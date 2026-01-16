@@ -71,7 +71,7 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
                       content={(
                         <ChartTooltipContent
                           labelFormatter={value => SCORE_LABELS[value as keyof typeof SCORE_LABELS] || value}
-                          formatter={(value, name, item) => (
+                          formatter={(value, _, item) => (
                             <div className="flex items-center gap-1">
                               <span className="font-medium">{item.payload.raw}</span>
                               <span className="text-muted-foreground">/</span>
