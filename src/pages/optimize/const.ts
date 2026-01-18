@@ -1,4 +1,4 @@
-import type { AtsEvaluationResult, FindingsGroup, Issue, Meta, ReadabilityIndex, Scores, Summary } from './types'
+import type { Issue } from './types'
 
 export const MOCK_ISSUES: Issue[] = [
   {
@@ -42,17 +42,6 @@ export const MOCK_ISSUES: Issue[] = [
     impact: '许多旧版 ATS 无法读取表格内的内容，导致信息丢失。',
   },
 ]
-
-export const DEFAULT_ATS: AtsEvaluationResult = {
-  version: '',
-  resume_id: '',
-  meta: {} as Meta,
-  readabilityIndex: {} as ReadabilityIndex,
-  fixChecklist: [],
-  summary: {} as Summary,
-  scores: {} as Scores,
-  findings: {} as FindingsGroup,
-}
 
 export const SCORE_LABELS = {
   job_match: '职位匹配度',

@@ -158,6 +158,10 @@ export interface FindingsGroup {
 }
 
 export interface AtsEvaluationResult {
+  id: string
+  created_at: string
+  history: AtsEvaluationResult[]
+  user_id: string
   version: '1.0' | string
   resume_id: string
   meta: Meta

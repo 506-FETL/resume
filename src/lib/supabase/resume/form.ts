@@ -21,7 +21,7 @@ export async function getAllResumesFromUser() {
   return data
 }
 
-export async function getResumeById(id: string) {
+export async function getResumeById<T extends string>(id: string, selector = '*' as T) {
   const user = await getCurrentUser()
 
   if (!user)
@@ -29,7 +29,7 @@ export async function getResumeById(id: string) {
 
   const { data, error } = await supabase
     .from('resume_config')
-    .select('*')
+    .select(selector)
     .eq('user_id', user.id)
     .eq('resume_id', id)
     .single()

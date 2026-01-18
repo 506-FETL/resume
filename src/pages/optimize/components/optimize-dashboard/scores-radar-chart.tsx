@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { SCORE_LABELS } from '../../const'
 
 interface ScoresRadarChartProps {
-  scores: Scores | null
+  scores: Scores | undefined
   loading?: boolean
 }
 

@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils'
 import useAtsStore from '../store'
 
 export function RepairChecklist() {
-  const { fixChecklist, loading, revertFixChecklist } = useAtsStore()
+  const { currentAtsConfig, loading, revertFixChecklist } = useAtsStore()
 
-  const fixList = fixChecklist || []
+  const fixList = currentAtsConfig?.fixChecklist || []
 
   return (
     <Card className="border-blue-100 dark:border-blue-900 shadow-md overflow-hidden bg-white dark:bg-card p-0 gap-0 rounded-2xl relative">

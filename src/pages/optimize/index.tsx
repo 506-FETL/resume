@@ -5,7 +5,6 @@ import { IssueAnalysis } from './components/issue-analysis'
 import { OptimizeDashboard } from './components/optimize-dashboard'
 import { ProTips } from './components/pro-tips'
 import { RepairChecklist } from './components/repair-checklist'
-import { ResumeManager } from './components/resume-manager'
 import { MOCK_ISSUES } from './const'
 import useAtsStore from './store'
 
@@ -19,18 +18,16 @@ function Optimize() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 space-y-6 overflow-x-hidden">
       <Header />
-
       <OptimizeDashboard />
 
       <div className="grid gap-6 md:grid-cols-12">
         <div className="md:col-span-8 space-y-6">
-          <ResumeManager />
           <IssueAnalysis issues={MOCK_ISSUES} />
+          <AdvancedTools />
         </div>
 
         <div className="md:col-span-4 space-y-6">
           <RepairChecklist />
-          <AdvancedTools />
           <ProTips />
         </div>
       </div>

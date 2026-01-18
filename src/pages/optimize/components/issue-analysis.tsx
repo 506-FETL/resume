@@ -17,19 +17,19 @@ interface IssueAnalysisProps {
 export function IssueAnalysis({ issues }: IssueAnalysisProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Search className="w-5 h-5" />
+      <CardHeader className="pb-3 sm:pb-4">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Search className="w-4 h-4 sm:w-5 sm:h-5" />
           简历问题深度分析
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 pt-0">
         {issues.map(issue => (
           <Collapsible key={issue.id} className="border rounded-md">
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50">
-              <div className="flex items-center gap-3 text-left">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 sm:p-4 hover:bg-muted/50">
+              <div className="flex items-center gap-2 sm:gap-3 text-left">
                 <SeverityBadge severity={issue.severity} />
-                <span className="font-medium text-sm">{issue.title}</span>
+                <span className="font-medium text-xs sm:text-sm">{issue.title}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </CollapsibleTrigger>

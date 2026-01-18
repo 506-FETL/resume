@@ -7,7 +7,8 @@ import ScoresRadarChart from './scores-radar-chart'
 import { calculateRating, calculateReadabilityRating } from './utils'
 
 export function OptimizeDashboard() {
-  const { fixChecklist, loading, summary, readabilityIndex, scores } = useAtsStore()
+  const { currentAtsConfig, loading } = useAtsStore()
+  const { fixChecklist, summary, readabilityIndex, scores } = currentAtsConfig || {}
 
   const totalTasks = fixChecklist?.length || 0
   const completedTasks = fixChecklist?.filter(item => item.isDone).length || 0
@@ -20,7 +21,7 @@ export function OptimizeDashboard() {
         value={`${summary?.overall_score}/100`}
         subtext={summary?.grade}
         icon={BarChart3}
-        colorClass={calculateRating(summary?.overall_score)}
+        colorClass={calculateRating(summary?.overall_score || 0)}
         loading={loading}
       />
       <MetricCard
