@@ -1,47 +1,6 @@
-import type { Issue } from './types'
-
-export const MOCK_ISSUES: Issue[] = [
-  {
-    id: '1',
-    severity: 'critical',
-    category: 'Contact Info',
-    title: '联系方式缺少可识别的邮箱格式',
-    description: '简历中未检测到有效的电子邮件地址。',
-    impact: 'ATS 无法解析您的联系方式，招聘人员将无法联系您。',
-  },
-  {
-    id: '2',
-    severity: 'warning',
-    category: 'Experience',
-    title: '项目经历缺乏量化指标',
-    description: '项目描述主要由定性陈述组成，缺少具体的数字或结果。',
-    impact: 'ATS 算法倾向于通过数字（如 %、增长额）来评估候选人的影响力。',
-  },
-  {
-    id: '3',
-    severity: 'warning',
-    category: 'Formatting',
-    title: '检测到不一致的项目符号格式',
-    description: '使用了多种不同的项目符号样式。',
-    impact: '可能导致解析混乱，降低可读性分数。',
-  },
-  {
-    id: '4',
-    severity: 'info',
-    category: 'Keywords',
-    title: '关键词密度低于建议阈值',
-    description: '针对目标职位的关键词覆盖率仅为 45%。',
-    impact: '可能会降低在特定职位搜索中的排名。',
-  },
-  {
-    id: '5',
-    severity: 'critical',
-    category: 'Structure',
-    title: '过度使用表格',
-    description: '检测到复杂的嵌套表格布局。',
-    impact: '许多旧版 ATS 无法读取表格内的内容，导致信息丢失。',
-  },
-]
+import type { ElementType } from 'react'
+import type { Severity } from './types'
+import { AlertCircle, AlertTriangle, Info } from 'lucide-react'
 
 export const SCORE_LABELS = {
   job_match: '职位匹配度',
@@ -49,4 +8,42 @@ export const SCORE_LABELS = {
   format_readability: '格式可读性',
   content_completeness: '内容完整度',
   impact_quantification: '影响力量化',
+}
+
+export const severityConfig: Record<Severity, {
+  label: string
+  icon: ElementType
+  textColor: string
+  bgColor: string
+  borderColor: string
+  badgeBg: string
+  badgeText: string
+}> = {
+  high: {
+    label: '严重问题',
+    icon: AlertCircle,
+    textColor: 'text-red-600 dark:text-red-400',
+    bgColor: 'bg-red-50/50 dark:bg-red-950/20',
+    borderColor: 'border-red-200/60 dark:border-red-900/40',
+    badgeBg: 'bg-red-100 dark:bg-red-900/30',
+    badgeText: 'text-red-700 dark:text-red-300',
+  },
+  medium: {
+    label: '警告',
+    icon: AlertTriangle,
+    textColor: 'text-amber-600 dark:text-amber-400',
+    bgColor: 'bg-amber-50/50 dark:bg-amber-950/20',
+    borderColor: 'border-amber-200/60 dark:border-amber-900/40',
+    badgeBg: 'bg-amber-100 dark:bg-amber-900/30',
+    badgeText: 'text-amber-700 dark:text-amber-300',
+  },
+  low: {
+    label: '建议优化',
+    icon: Info,
+    textColor: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-50/50 dark:bg-blue-950/20',
+    borderColor: 'border-blue-200/60 dark:border-blue-900/40',
+    badgeBg: 'bg-blue-100 dark:bg-blue-900/30',
+    badgeText: 'text-blue-700 dark:text-blue-300',
+  },
 }

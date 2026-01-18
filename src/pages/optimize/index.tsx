@@ -5,7 +5,6 @@ import { IssueAnalysis } from './components/issue-analysis'
 import { OptimizeDashboard } from './components/optimize-dashboard'
 import { ProTips } from './components/pro-tips'
 import { RepairChecklist } from './components/repair-checklist'
-import { MOCK_ISSUES } from './const'
 import useAtsStore from './store'
 
 function Optimize() {
@@ -22,7 +21,7 @@ function Optimize() {
 
       <div className="grid gap-6 md:grid-cols-12">
         <div className="md:col-span-8 space-y-6">
-          <IssueAnalysis issues={MOCK_ISSUES} />
+          <IssueAnalysis />
           <AdvancedTools />
         </div>
 

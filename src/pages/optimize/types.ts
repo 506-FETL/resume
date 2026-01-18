@@ -1,14 +1,5 @@
 import type { ResumeSchema } from '@/lib/schema'
 
-export interface Issue {
-  id: string
-  severity: 'critical' | 'warning' | 'info'
-  category: string
-  title: string
-  description: string
-  impact: string
-}
-
 export interface ResumeItem {
   id: string
   name: string
@@ -24,6 +15,7 @@ export type ChecklistOption = 'required' | 'optional'
 export type Priority = 0 | 1 | 2
 export type SectionKey = keyof ResumeSchema
 export type Mode = 'general_ats_check' | 'optimize_resume'
+export type Severity = 'high' | 'medium' | 'low'
 
 export type ScoreKey
   = | 'ats_parsing'
@@ -151,11 +143,7 @@ export interface Finding {
   fix: FixBlock
 }
 
-export interface FindingsGroup {
-  high: Finding[]
-  medium: Finding[]
-  low: Finding[]
-}
+export type FindingsGroup = Record<Severity, Finding[]>
 
 export interface AtsEvaluationResult {
   id: string

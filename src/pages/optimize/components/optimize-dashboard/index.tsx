@@ -15,7 +15,7 @@ export function OptimizeDashboard() {
   const progress = Math.round((completedTasks / totalTasks) * 100)
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         title="评分"
         value={`${summary?.overall_score}/100`}
