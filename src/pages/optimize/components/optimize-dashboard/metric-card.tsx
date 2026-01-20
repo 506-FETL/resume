@@ -4,8 +4,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 interface MetricCardProps {
-  title: string
-  value: string | number
+  title?: string
+  value?: string | number
   subtext?: string
   icon: LucideIcon
   colorClass: string
@@ -43,7 +43,7 @@ export default function MetricCard({ title, value, subtext, icon: Icon, colorCla
               ? <Spinner />
               : (
                   <span className={cn('text-3xl font-bold tracking-tight', colorClass)}>
-                    {value}
+                    {value || '--'}
                   </span>
                 )}
           </div>

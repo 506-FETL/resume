@@ -34,7 +34,11 @@ export function IssueAnalysis() {
           </div>
           <span>简历问题深度分析</span>
           {totalIssues > 0 && (
-            <Badge variant="secondary" className="text-[10px] sm:text-xs rounded-full">
+            <Badge variant="outline" className="text-[10px] sm:text-xs rounded-full gap-1.5">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+              </span>
               {totalIssues}
               个问题
             </Badge>

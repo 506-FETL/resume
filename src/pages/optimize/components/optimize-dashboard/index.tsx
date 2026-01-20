@@ -18,7 +18,7 @@ export function OptimizeDashboard() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         title="评分"
-        value={`${summary?.overall_score}/100`}
+        value={summary?.overall_score}
         subtext={summary?.grade}
         icon={BarChart3}
         colorClass={calculateRating(summary?.overall_score || 0)}
