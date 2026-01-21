@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import supabase from '@/lib/supabase/client'
 
 export function useCurrentUserImage() {
-  const [image, setImage] = useState<string | null>(null)
+  const [image, setImage] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     const fetchUserImage = async () => {
@@ -11,14 +11,14 @@ export function useCurrentUserImage() {
         console.error(error)
       }
 
-      setImage(data.session?.user.user_metadata.avatar_url ?? null)
+      setImage(data.session?.user.user_metadata.avatar_url)
     }
     fetchUserImage()
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setImage(session?.user.user_metadata.avatar_url ?? null)
+      setImage(session?.user.user_metadata.avatar_url)
     })
 
     return () => {

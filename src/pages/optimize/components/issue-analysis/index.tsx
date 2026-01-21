@@ -26,37 +26,46 @@ export function IssueAnalysis() {
     : 0
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-3 sm:pb-4">
-        <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg">
-          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
-            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
-          </div>
-          <span>简历问题深度分析</span>
+    <Card className="overflow-hidden shadow-sm border-primary/10">
+      <CardHeader className="pb-4 border-b border-border/50 bg-muted/20">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="p-2 rounded-md bg-primary/10 text-primary">
+              <Search className="w-4 h-4" />
+            </div>
+            <span>简历问题分析</span>
+          </CardTitle>
           {totalIssues > 0 && (
-            <Badge variant="outline" className="text-[10px] sm:text-xs rounded-full gap-1.5">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+            <Badge variant="outline" className="rounded-full py-1 px-3 gap-2 border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10 transition-colors">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
               </span>
-              {totalIssues}
-              个问题
+              <span className="font-medium">
+                {totalIssues}
+                {' '}
+                个待处理问题
+              </span>
             </Badge>
           )}
-        </CardTitle>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-5 pt-0">
+      <CardContent className="space-y-6 pt-6">
         {loading
           ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Spinner className="size-6 mb-3" />
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
+                <Spinner className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm">正在深度分析简历内容...</p>
               </div>
             )
           : !findings || totalIssues === 0
               ? (
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <Search className="size-10 mb-3 opacity-40" />
-                    <p className="text-sm">暂无检测到的问题</p>
+                    <div className="p-4 bg-muted/50 rounded-full mb-3">
+                      <Search className="w-8 h-8 opacity-40" />
+                    </div>
+                    <p className="text-sm font-medium">暂无检测到的问题</p>
+                    <p className="text-xs text-muted-foreground/80 mt-1">您的简历表现良好！</p>
                   </div>
                 )
               : severityOrder.map((severity) => {
@@ -68,17 +77,19 @@ export function IssueAnalysis() {
                   const Icon = config.icon
 
                   return (
-                    <div key={severity} className="space-y-2.5 sm:space-y-3">
+                    <div key={severity} className="space-y-3">
                       <div className="flex items-center gap-2 px-1">
-                        <Icon className={cn('size-4', config.textColor)} />
-                        <span className={cn('text-xs sm:text-sm font-semibold', config.textColor)}>
+                        <div className={cn('p-1 rounded bg-muted/50', config.textColor)}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className={cn('text-sm font-semibold', config.textColor)}>
                           {config.label}
                         </span>
-                        <Badge className={cn('text-[10px] sm:text-xs rounded-full', config.badgeBg, config.badgeText, 'border-transparent')}>
+                        <Badge variant="secondary" className="text-xs rounded-full h-5 px-2 min-w-5 justify-center">
                           {issues.length}
                         </Badge>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3 pl-2 sm:pl-3">
                         {issues.map(issue => (
                           <FindingItem key={issue.id} finding={issue} severity={severity} />
                         ))}

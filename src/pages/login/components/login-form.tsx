@@ -23,7 +23,6 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     try {
       await SignInWithEmailAndPassword(email, password)
 
-      // 导航到简历页面，同步对话框会在那里自动显示
       navigate('/resume')
     }
     catch (error: unknown) {

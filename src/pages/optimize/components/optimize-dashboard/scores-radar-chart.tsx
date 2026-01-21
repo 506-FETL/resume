@@ -34,37 +34,35 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
   }, [scores])
 
   return (
-    <Card className="h-full group relative">
-      <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
-        <Activity className="w-20 h-20 text-blue-800 dark:text-blue-100" />
+    <Card className="h-full group relative overflow-hidden shadow-sm border-primary/20 hover:shadow-md transition-all duration-300">
+      <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300 transform">
+        <Activity className="w-32 h-32 text-primary" />
       </div>
-      <CardContent className="p-4 md:p-5 flex flex-col justify-between h-full relative">
-        <div className="flex items-start justify-between w-full mb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/20 text-blue-600">
-              <Activity className="w-4 h-4" />
-            </div>
-            <p className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">能力雷达图</p>
+      <CardContent className="p-5 flex flex-col justify-between h-full relative z-10">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+            <Activity className="w-4 h-4" />
           </div>
+          <p className="text-sm font-medium text-muted-foreground">能力雷达图</p>
         </div>
 
         {loading
           ? (
               <div className="flex-1 flex items-center justify-center min-h-[180px]">
-                <Spinner />
+                <Spinner className="w-6 h-6" />
               </div>
             )
           : chartData.length > 0
             ? (
                 <ChartContainer
                   config={chartConfig}
-                  className="mx-auto w-full flex-1"
+                  className="mx-auto w-full flex-1 max-h-[200px]"
                 >
                   <RadarChart
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    outerRadius="60%"
+                    outerRadius="70%"
                   >
                     <ChartTooltip
                       cursor={false}
@@ -88,14 +86,14 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
                     />
                     <PolarAngleAxis
                       dataKey="category"
-                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                       tickLine={false}
                     />
                     <PolarGrid gridType="polygon" stroke="var(--border)" />
                     <Radar
                       dataKey="score"
                       fill="var(--chart-1)"
-                      fillOpacity={0.5}
+                      fillOpacity={0.4}
                       stroke="var(--chart-1)"
                       strokeWidth={2}
                     />

@@ -15,19 +15,21 @@ function Optimize() {
   }, [init])
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6 space-y-6 overflow-x-hidden">
-      <Header />
-      <OptimizeDashboard />
+    <div className="min-h-screen bg-muted/30 p-4 md:p-8 space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <Header />
+        <OptimizeDashboard />
 
-      <div className="grid gap-6 md:grid-cols-12">
-        <div className="md:col-span-8 space-y-6">
-          <IssueAnalysis />
-          <AdvancedTools />
-        </div>
+        <div className="grid gap-8 lg:grid-cols-12 items-start">
+          <div className="lg:col-span-8 space-y-8">
+            <IssueAnalysis />
+            <AdvancedTools />
+          </div>
 
-        <div className="md:col-span-4 space-y-6">
-          <RepairChecklist />
-          <ProTips />
+          <div className="lg:col-span-4 space-y-8">
+            <RepairChecklist />
+            <ProTips />
+          </div>
         </div>
       </div>
     </div>

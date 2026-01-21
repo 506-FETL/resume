@@ -33,36 +33,34 @@ export function OptimizeDashboard() {
         loading={loading}
       />
       <ScoresRadarChart scores={scores} loading={loading} />
-      <Card className="h-full group relative">
-        <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
-          <CheckCircle2 className="w-20 h-20 text-blue-800 dark:text-blue-100" />
+      <Card className="h-full group relative overflow-hidden border-primary/20 shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300 transform">
+          <CheckCircle2 className="w-32 h-32 text-primary" />
         </div>
-        <CardContent className="p-4 md:p-5 flex flex-col justify-between h-full relative">
-          <div className="flex items-start justify-between w-full mb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/20 text-blue-600">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-              <p className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">优化完成度</p>
+        <CardContent className="p-5 flex flex-col justify-between h-full relative z-10">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
+            <p className="text-sm font-medium text-muted-foreground">优化完成度</p>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-end justify-between">
+          <div className="space-y-4">
+            <div className="flex items-baseline">
               {Number.isFinite(progress) && (
-                <span className="text-3xl md:text-4xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
+                <span className="text-4xl font-bold tracking-tight text-foreground">
                   {progress}
-                  <span className="text-lg md:text-xl ml-0.5 text-blue-600/60">%</span>
+                  <span className="text-xl ml-1 text-muted-foreground font-medium">%</span>
                 </span>
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Progress value={progress} className="h-2 bg-blue-100 dark:bg-blue-950" />
-              <p className="text-xs text-muted-foreground/80 leading-relaxed">
+            <div className="space-y-2">
+              <Progress value={progress} className="h-2.5 bg-muted" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {progress === 100
-                  ? '太棒了！您已完成所有建议的优化项。'
-                  : '继续加油，完成剩余优化项可显著提升简历评分。'}
+                  ? '完美！您已完成所有优化项。'
+                  : '继续完成剩余优化项以提升评分。'}
               </p>
             </div>
           </div>

@@ -26,7 +26,6 @@ export function NavUser() {
   const handleSignOut = async () => {
     try {
       await SignOut()
-      toast.success('已登出')
       navigate('/login')
     }
     catch (error) {

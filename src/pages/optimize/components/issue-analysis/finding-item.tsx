@@ -23,7 +23,7 @@ export default function FindingItem({ finding, severity }: FindingItemProps) {
     >
       <CollapsibleTrigger className={cn(
         'flex items-center justify-between w-full p-3 sm:p-4 transition-colors',
-        'hover:bg-muted/40',
+        'hover:bg-muted/20',
       )}
       >
         <div className="flex items-center gap-2.5 sm:gap-3 text-left min-w-0 flex-1">
