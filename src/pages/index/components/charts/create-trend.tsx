@@ -4,13 +4,11 @@ import dayjs from 'dayjs'
 import { AreaChart as AreaChartIcon, BarChart3, Calendar as CalendarIcon, LineChart as LineChartIcon, TrendingUp } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
 import { trendChartConfig } from '../../const'
 import { GRANULARITY_CONFIG } from './const'
 import { getGranularity } from './utils'
@@ -64,21 +62,22 @@ function CreateTrend({ resumes }: MonthlyTrend) {
   }, [resumes, dateRange])
 
   return (
-    <Card className="flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <Card className="flex flex-col transition-all duration-200 hover:shadow-md">
       <CardHeader className="items-center pb-0">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <TrendingUp className="size-4" />
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <TrendingUp className="size-4 text-primary" />
           创建趋势
         </CardTitle>
-        <CardDescription className="flex flex-col items-center gap-3 pt-2">
+        <CardDescription className="flex flex-col items-center gap-2.5 pt-2">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 id="date"
                 variant="outline"
                 size="sm"
+                className="h-7 text-xs"
               >
-                <CalendarIcon className="size-4 opacity-50" />
+                <CalendarIcon className="size-3.5 mr-1.5 opacity-50" />
                 {dateRange?.from
                   ? (
                       dateRange.to
@@ -110,39 +109,39 @@ function CreateTrend({ resumes }: MonthlyTrend) {
             </PopoverContent>
           </Popover>
 
-          <div className="flex items-center gap-1 bg-secondary/50 p-1 rounded-lg border border-border/50">
+          <div className="flex items-center gap-0.5 bg-muted/50 p-0.5 rounded-md">
             <Button
-              variant={chartType === 'bar' ? 'default' : 'ghost'}
+              variant={chartType === 'bar' ? 'secondary' : 'ghost'}
               size="icon"
-              className="size-7 rounded-md transition-all"
+              className="size-6 rounded transition-colors"
               onClick={() => setChartType('bar')}
               title="柱状图"
             >
-              <BarChart3 className="size-4" />
+              <BarChart3 className="size-3.5" />
             </Button>
             <Button
-              variant={chartType === 'line' ? 'default' : 'ghost'}
+              variant={chartType === 'line' ? 'secondary' : 'ghost'}
               size="icon"
-              className="size-7 rounded-md transition-all"
+              className="size-6 rounded transition-colors"
               onClick={() => setChartType('line')}
               title="折线图"
             >
-              <LineChartIcon className="size-4" />
+              <LineChartIcon className="size-3.5" />
             </Button>
             <Button
-              variant={chartType === 'area' ? 'default' : 'ghost'}
+              variant={chartType === 'area' ? 'secondary' : 'ghost'}
               size="icon"
-              className="size-7 rounded-md transition-all"
+              className="size-6 rounded transition-colors"
               onClick={() => setChartType('area')}
               title="面积图"
             >
-              <AreaChartIcon className="size-4" />
+              <AreaChartIcon className="size-3.5" />
             </Button>
           </div>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
-        <ChartContainer config={trendChartConfig} className="h-60 w-full">
+        <ChartContainer config={trendChartConfig} className="h-52 w-full">
           {chartType === 'bar'
             ? (
                 <BarChart accessibilityLayer data={trendData}>
@@ -233,14 +232,13 @@ function CreateTrend({ resumes }: MonthlyTrend) {
                 )}
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 font-medium leading-none">
+      <CardFooter className="flex-col gap-2 text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
           共创建
-          <Badge variant="outline">
+          <span className="font-medium text-foreground">
             {trendData.reduce((acc, curr) => acc + curr.count, 0)}
-          </Badge>
+          </span>
           份简历
-          <TrendingUp className="size-4" />
         </div>
       </CardFooter>
     </Card>

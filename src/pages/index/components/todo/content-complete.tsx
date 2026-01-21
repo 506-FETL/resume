@@ -1,6 +1,5 @@
-import { AlertCircle, ArrowRight, FileText } from 'lucide-react'
+import { ArrowRight, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 interface CompletenessModuleProps {
@@ -12,40 +11,35 @@ export function CompletenessModule({ missingCount, missingItems }: CompletenessM
   const navigate = useNavigate()
 
   return (
-    <div className="space-y-3 flex flex-col h-full">
-      <div className="flex items-center gap-2">
-        <FileText className="size-4 text-orange-500" />
-        <h4 className="font-medium text-sm">内容完善</h4>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 mb-2.5">
+        <FileText className="size-3.5 text-amber-500" />
+        <h4 className="font-medium text-xs">内容完善</h4>
       </div>
-      <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg border border-orange-100 dark:border-orange-900/30 flex-1 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-orange-700 dark:text-orange-400 font-medium">
-              还差
-              <Badge variant="outline" className="text-xs mx-1 border-orange-200 text-orange-700 dark:text-orange-400 dark:border-orange-900">{missingCount}</Badge>
-              项优化
-            </span>
-            <AlertCircle className="size-4 text-orange-500 animate-pulse" />
-          </div>
+      <div className="bg-amber-50/80 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-100/80 dark:border-amber-900/20 flex-1 flex flex-col">
+        <div className="flex-1">
+          <p className="text-xs text-amber-700/90 dark:text-amber-400/90 mb-2">
+            还差 <span className="font-semibold">{missingCount}</span> 项优化
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {missingItems.map(item => (
-              <Badge
+              <span
                 key={item}
-                variant="outline"
-                className="dark:bg-transparent text-xs font-normal border-orange-200 text-orange-700 dark:text-orange-400 dark:border-orange-900"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100/60 dark:bg-amber-900/30 text-amber-700/80 dark:text-amber-400/80"
               >
                 {item}
-              </Badge>
+              </span>
             ))}
           </div>
         </div>
         <Button
-          variant="link"
-          className="h-auto p-0 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 w-full justify-start text-center"
+          variant="ghost"
+          size="sm"
+          className="h-7 mt-2.5 p-0 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-transparent justify-start"
           onClick={() => navigate('/optimize')}
         >
           去完善
-          <ArrowRight className="size-3" />
+          <ArrowRight className="size-3 ml-1" />
         </Button>
       </div>
     </div>

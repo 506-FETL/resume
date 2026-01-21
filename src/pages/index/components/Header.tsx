@@ -36,23 +36,23 @@ function Header() {
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          欢迎回来,
-          {auth?.user_metadata.full_name}
+      <div className="space-y-1.5">
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+          欢迎回来
+          {auth?.user_metadata.full_name ? `, ${auth.user_metadata.full_name}` : ''}
         </h1>
-        <p className="text-muted-foreground text-sm md:text-base">
+        <p className="text-muted-foreground text-sm">
           {greeting}
         </p>
       </div>
-      <div className="flex items-center gap-3 w-full md:w-auto">
-        <div className="relative hidden md:block w-64 group" ref={containerRef}>
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+      <div className="flex items-center gap-2.5 w-full md:w-auto">
+        <div className="relative hidden md:block w-56 group" ref={containerRef}>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 transition-colors duration-200 group-focus-within:text-primary" />
           <Input
             ref={inputRef}
             type="search"
             placeholder="搜索简历..."
-            className="pl-10"
+            className="pl-9 h-9 text-sm bg-muted/30 border-transparent focus:bg-background focus:border-input transition-colors duration-200"
             value={searchValue}
             onChange={handleInputChange}
           />
@@ -60,8 +60,10 @@ function Header() {
         <Button
           onClick={() => navigate('/resume')}
           variant="default"
+          size="sm"
+          className="h-9 px-4 shadow-sm"
         >
-          <Plus className="size-4" />
+          <Plus className="size-4 mr-1.5" />
           新建简历
         </Button>
       </div>

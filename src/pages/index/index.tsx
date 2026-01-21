@@ -17,13 +17,22 @@ const Container = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
     },
   },
 }
 const MotionItem = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 },
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 300,
+      damping: 24,
+    },
+  },
 }
 
 export default function DashboardPage() {
@@ -90,7 +99,7 @@ export default function DashboardPage() {
       variants={Container}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-4 md:gap-6 p-4 md:p-8 max-w-7xl mx-auto"
+      className="flex flex-col gap-5 md:gap-6 p-4 pb-8 md:p-6 lg:p-8 max-w-7xl mx-auto"
     >
       <motion.div variants={MotionItem}>
         <Header />

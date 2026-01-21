@@ -17,29 +17,29 @@ function StatisticalCard({ stats, loading }: { stats: ResumeStats, loading?: boo
         title="简历总数"
         value={stats.total}
         description="所有已创建的简历"
-        icon={<FileUser className="size-5 text-primary" />}
-        className="bg-linear-to-br from-background to-primary/5 hover:border-primary/50"
+        icon={<FileUser className="size-4 text-primary" />}
+        iconBg="bg-primary/8"
       />
       <StatCard
         title="云端简历"
         value={stats.online}
         description="已同步到云端"
-        icon={<Cloud className="size-5 text-blue-500" />}
-        iconBg="bg-blue-500/10"
+        icon={<Cloud className="size-4 text-blue-500" />}
+        iconBg="bg-blue-500/8"
       />
       <StatCard
         title="本地简历"
         value={stats.offline}
         description="仅存储在本地"
-        icon={<CloudOff className="size-5 text-orange-500" />}
-        iconBg="bg-orange-500/10"
+        icon={<CloudOff className="size-4 text-amber-500" />}
+        iconBg="bg-amber-500/8"
       />
       <StatCard
         title="近期新增"
         value={stats.recentCount}
         description="最近7天创建"
-        icon={<TrendingUp className="size-5 text-green-500" />}
-        iconBg="bg-green-500/10"
+        icon={<TrendingUp className="size-4 text-emerald-500" />}
+        iconBg="bg-emerald-500/8"
         trend={stats.recentCount > 0 ? `+${stats.recentCount}` : undefined}
       />
     </div>
@@ -65,33 +65,31 @@ function StatCard({
   description,
   icon,
   className,
-  iconBg = 'bg-primary/10',
+  iconBg = 'bg-primary/8',
   trend,
 }: StatCardProps) {
   return (
-    <Card className={cn('transition-all duration-300 hover:shadow-lg hover:-translate-y-1', className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between space-x-4">
-          <div className="flex items-center space-x-4">
-            <div className={cn('p-2 rounded-full', iconBg)}>
-              {icon}
-            </div>
-            <div>
-              <p className="text-xs md:text-sm font-bold leading-none text-muted-foreground">{title}</p>
-              <div className="mt-2 flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold tracking-tight">
-                  <NumberTicker value={value} className="text-2xl font-bold tracking-tight text-foreground" />
-                </h3>
-                {trend && (
-                  <span className="text-xs font-medium text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">
-                    {trend}
-                  </span>
-                )}
-              </div>
+    <Card className={cn('transition-all duration-200 hover:shadow-md', className)}>
+      <CardContent className="p-4 md:p-5">
+        <div className="flex items-start gap-3">
+          <div className={cn('p-2 rounded-lg shrink-0', iconBg)}>
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted-foreground mb-1">{title}</p>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-xl md:text-2xl font-semibold tracking-tight">
+                <NumberTicker value={value} className="text-xl md:text-2xl font-semibold tracking-tight text-foreground" />
+              </h3>
+              {trend && (
+                <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                  {trend}
+                </span>
+              )}
             </div>
           </div>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">{description}</p>
+        <p className="mt-3 text-[11px] text-muted-foreground/80 truncate">{description}</p>
       </CardContent>
     </Card>
   )
