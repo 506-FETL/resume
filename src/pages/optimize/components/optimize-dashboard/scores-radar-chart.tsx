@@ -36,7 +36,7 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
   return (
     <Card className="h-full group relative overflow-hidden shadow-sm border-primary/20 hover:shadow-md transition-all duration-300">
       <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300 transform">
-        <Activity className="w-32 h-32 text-primary" />
+        <Activity className="w-28 h-28 text-primary" />
       </div>
       <CardContent className="p-5 flex flex-col justify-between h-full relative z-10">
         <div className="flex items-center gap-2 mb-4">

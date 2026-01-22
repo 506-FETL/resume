@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '../../const'
+import IssueFixDialog from './Issue-fix-dialog'
 
 interface FindingItemProps {
   finding: Finding
@@ -96,17 +97,19 @@ export default function FindingItem({ finding, severity }: FindingItemProps) {
               )}
             </div>
             <div className="pt-1">
-              <Button
-                size="sm"
-                className={cn(
-                  'h-7 sm:h-8 text-xs font-medium',
-                  severity === 'high' && 'bg-red-600 hover:bg-red-700 text-white',
-                  severity === 'medium' && 'bg-amber-600 hover:bg-amber-700 text-white',
-                  severity === 'low' && 'bg-blue-600 hover:bg-blue-700 text-white',
-                )}
-              >
-                查看详情 & 自动修复
-              </Button>
+              <IssueFixDialog finding={finding} severity={severity}>
+                <Button
+                  size="sm"
+                  className={cn(
+                    'h-7 sm:h-8 text-xs font-medium',
+                    severity === 'high' && 'bg-red-600 hover:bg-red-700 text-white',
+                    severity === 'medium' && 'bg-amber-600 hover:bg-amber-700 text-white',
+                    severity === 'low' && 'bg-blue-600 hover:bg-blue-700 text-white',
+                  )}
+                >
+                  查看详情 & 自动修复
+                </Button>
+              </IssueFixDialog>
             </div>
           </div>
         </div>

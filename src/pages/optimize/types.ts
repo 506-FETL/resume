@@ -1,5 +1,3 @@
-import type { ResumeSchema } from '@/lib/schema'
-
 export interface ResumeItem {
   id: string
   name: string
@@ -10,10 +8,8 @@ export interface ResumeItem {
 // =====================
 // ATS Evaluation Types (refactored)
 // =====================
-
 export type ChecklistOption = 'required' | 'optional'
 export type Priority = 0 | 1 | 2
-export type SectionKey = keyof ResumeSchema
 export type Mode = 'general_ats_check' | 'optimize_resume'
 export type Severity = 'high' | 'medium' | 'low'
 
@@ -30,7 +26,7 @@ export type SuggestionKind
     | 'fill_field'
     | 'normalize_date'
 
-export type ValueType = 'string' | 'string_array' | 'object_array'
+export type ValueType = 'string' | 'html_string' | 'string_array' | 'object_array'
 
 export type RawValue
   = | string
@@ -44,6 +40,8 @@ export type RawValue
 
 export type AfterValue
   = | string
+    | number
+    | boolean
     | null
     | string[]
     | number[]
@@ -52,18 +50,14 @@ export type AfterValue
 
 export interface Locate {
   path: string
-  sectionKey: SectionKey
   sectionLabel: string
-  itemIndex: number | null
-  itemId: string | null
-  itemLabel: string | null
-  fieldKey: string
   fieldLabel: string
+  itemLabel: string | null
 }
 
 export interface Meta {
   document_version: number
-  language: 'zh'
+  language: 'zh' | string
   generated_at: string
   mode: Mode
   inputDigest: string
@@ -100,13 +94,7 @@ export interface ScoreItem {
   max: number
 }
 
-export type Scores = Record<ScoreKey, ScoreItem> & {
-  ats_parsing: ScoreItem
-  format_readability: ScoreItem
-  content_completeness: ScoreItem
-  impact_quantification: ScoreItem
-  job_match: ScoreItem
-}
+export type Scores = Record<ScoreKey, ScoreItem>
 
 export interface Evidence {
   text: string
@@ -143,15 +131,20 @@ export interface Finding {
   fix: FixBlock
 }
 
-export type FindingsGroup = Record<Severity, Finding[]>
+export interface FindingsGroup {
+  high: Finding[]
+  medium: Finding[]
+  low: Finding[]
+}
 
 export interface AtsEvaluationResult {
   id: string
+  todo_items: string[]
   created_at: string
-  history: AtsEvaluationResult[]
   user_id: string
-  version: '1.0' | string
   resume_id: string
+  version: '1.0' | string
+
   meta: Meta
   readabilityIndex: ReadabilityIndex
   fixChecklist: FixChecklistItem[]
