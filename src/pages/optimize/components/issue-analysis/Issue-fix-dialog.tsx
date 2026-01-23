@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Finding, Severity, Suggestion } from '../../types'
 import { AlertTriangle, ArrowRight, BadgeQuestionMark, Code2, Edit3, FileDiff, Info, Lightbulb, ListOrdered, Wand2, XCircle } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -76,7 +77,7 @@ function IssueFixDialog({ finding, severity, children }: { finding: Finding, sev
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="w-[70vw] max-w-[100vw]! h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="w-[65vw] max-w-[100vw]! h-[85vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 shrink-0 border-b">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl">
             <Wand2 className="size-4 sm:size-5 lg:size-6 text-primary shrink-0" />
@@ -183,40 +184,56 @@ function IssueFixContent({ finding, locationText, steps, suggestions, beforeCode
           </TabsTrigger>
         </TabsList>
 
-        <div className="mt-3 lg:mt-4 ring-1 ring-border/40 rounded-lg bg-card">
-          <TabsContent value="summary" className="m-0 p-2 sm:p-4 lg:p-6 space-y-4 lg:space-y-6">
-            {suggestions.map((suggestion: Suggestion) => (
-              <SuggestionCompareCard
-                key={`${suggestion.kind}-${suggestion.valueType}-${JSON.stringify(suggestion.after).slice(0, 20)}`}
-                before={suggestion.before}
-                after={suggestion.after}
-                valueType={suggestion.valueType}
-                reason={suggestion.reason}
-                kind={suggestion.kind}
-              />
-            ))}
-            {suggestions.length === 0 && (
-              <div className="text-center text-muted-foreground py-8 lg:py-12 text-xs lg:text-sm">
-                暂无具体的改动对比数据
-              </div>
-            )}
+        <div className="border rounded-lg bg-card">
+          <TabsContent value="summary">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="p-2 sm:p-4 lg:p-6 space-y-4 lg:space-y-6"
+            >
+              {suggestions.map((suggestion: Suggestion) => (
+                <SuggestionCompareCard
+                  key={`${suggestion.kind}-${suggestion.valueType}-${JSON.stringify(suggestion.after).slice(0, 20)}`}
+                  before={suggestion.before}
+                  after={suggestion.after}
+                  valueType={suggestion.valueType}
+                  reason={suggestion.reason}
+                  kind={suggestion.kind}
+                />
+              ))}
+              {suggestions.length === 0 && (
+                <div className="text-center text-muted-foreground py-8 lg:py-12 text-xs lg:text-sm">
+                  暂无具体的改动对比数据
+                </div>
+              )}
+            </motion.div>
           </TabsContent>
 
-          <TabsContent value="code" className="m-0 p-2 sm:p-4 lg:p-6">
-            <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2 lg:gap-6">
-              <CodeBlock language="json" filename="before.json" className="text-sm lg:text-base">
-                {beforeCode}
-              </CodeBlock>
-              <CodeBlock language="json" filename="after.json" className="text-sm lg:text-base">
-                {afterCode}
-              </CodeBlock>
-            </div>
+          <TabsContent value="code" className="m-0 overflow-hidden">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="p-2 sm:p-4 lg:p-6"
+            >
+              <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2 lg:gap-6">
+                <CodeBlock language="json" filename="before.json" className="text-sm lg:text-base">
+                  {beforeCode}
+                </CodeBlock>
+                <CodeBlock language="json" filename="after.json" className="text-sm lg:text-base">
+                  {afterCode}
+                </CodeBlock>
+              </div>
+            </motion.div>
           </TabsContent>
 
           <TabsContent value="edit" className="m-0 p-2 sm:p-4 lg:p-6">
             <SuggestionEditor
               suggestions={suggestions}
-              onChange={(_newSuggestions) => {
+              onChange={(newSuggestions) => {
                 // TODO: 处理修改后的建议
               }}
             />

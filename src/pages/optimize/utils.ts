@@ -1,43 +1,5 @@
-import { FIELD_LABEL_MAP } from './const'
-
-type PathValue<T, P extends string> = P extends `${infer Key}.${infer Rest}`
-  ? Key extends keyof T
-    ? PathValue<T[Key], Rest>
-    : Key extends `${infer ArrayKey}[${string}]`
-      ? ArrayKey extends keyof T
-        ? T[ArrayKey] extends (infer Item)[]
-          ? PathValue<Item, Rest>
-          : undefined
-        : undefined
-      : undefined
-  : P extends keyof T
-    ? T[P]
-    : P extends `${infer ArrayKey}[${string}]`
-      ? ArrayKey extends keyof T
-        ? T[ArrayKey] extends (infer Item)[]
-          ? Item
-          : undefined
-        : undefined
-      : undefined
-
-export function getByPath<T extends object, P extends string>(
-  root: T,
-  path: P,
-): PathValue<T, P> {
-  if (!root)
-    return undefined as any
-
-  const tokens = path
-    .replace(/\[(\d+)\]/g, '.$1')
-    .split('.')
-    .filter(Boolean)
-
-  return tokens.reduce<unknown>((acc, k) => {
-    if (acc === null || acc === undefined)
-      return undefined
-    return (acc as Record<string, unknown>)[k]
-  }, root) as PathValue<T, P>
-}
+import type { ValueType } from './types'
+import { FIELD_LABEL_MAP, PREVIEW_RENDERER_MAP } from './const'
 
 export function calculateRating(score: number) {
   if (score >= 90)
@@ -63,10 +25,6 @@ export function calculateReadabilityRating(score: number) {
     return 'text-orange-600'
   return 'text-red-600'
 }
-
-// ================================
-// 工具函数 (从 suggestion 组件提取)
-// ================================
 
 export function getFieldLabel(key: string): string {
   return FIELD_LABEL_MAP[key] || key
@@ -134,4 +92,24 @@ export function renderValue(value: unknown): string {
   if (Array.isArray(value))
     return value.join(', ') || '-'
   return JSON.stringify(value)
+}
+
+// 渲染预览值
+export function renderPreview(value: unknown, valueType: ValueType): string {
+  if (isEmptyValue(value))
+    return '（空）'
+
+  if (valueType === 'html_string') {
+    const text = (value as string).replace(/<[^>]*>/g, ' ').trim()
+    return text.slice(0, 150) + (text.length > 150 ? '...' : '')
+  }
+
+  const detectedType = detectValueType(value)
+  const renderer = PREVIEW_RENDERER_MAP[detectedType]
+
+  if (renderer) {
+    return renderer(value)
+  }
+
+  return String(value)
 }

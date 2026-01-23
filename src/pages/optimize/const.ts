@@ -1,5 +1,6 @@
 import type { ElementType } from 'react'
 import type { Severity, SuggestionKind } from './types'
+import type { SkillItem } from '@/lib/schema'
 import { AlertCircle, AlertTriangle, Calendar, Info, Tag } from 'lucide-react'
 
 export const SCORE_LABELS = {
@@ -48,9 +49,6 @@ export const severityConfig: Record<Severity, {
   },
 }
 
-// ================================
-// 字段标签映射
-// ================================
 export const FIELD_LABEL_MAP: Record<string, string> = {
   // 基本信息
   name: '姓名',
@@ -115,9 +113,7 @@ export const PROFICIENCY_MAP: Record<string, number> = {
   精通: 95,
 }
 
-// ================================
-// 编辑器相关常量
-// ================================
+// 编辑器
 export const KIND_CONFIG: Record<SuggestionKind, { label: string, color: string, bg: string }> = {
   replace_text: { label: '替换文本', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
   replace_value: { label: '替换值', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
@@ -137,12 +133,29 @@ export const PRESET_SKILLS = ['JavaScript', 'TypeScript', 'React', 'Vue', 'Node.
 // 预设证书
 export const PRESET_CERTIFICATES = ['CET-4', 'CET-6', '计算机二级', '普通话证书', '驾驶证', '教师资格证']
 
-// ================================
-// 渲染器相关常量
-// ================================
+// 渲染器
 export const KIND_LABEL_MAP: Record<SuggestionKind, { label: string, icon: typeof Tag }> = {
   replace_text: { label: '文本替换', icon: Tag },
   replace_value: { label: '值替换', icon: Tag },
   fill_field: { label: '字段填充', icon: Tag },
   normalize_date: { label: '日期格式化', icon: Calendar },
+}
+
+// 预览渲染器映射
+export const PREVIEW_RENDERER_MAP: Record<string, (value: any) => string> = {
+  skill_list: (value: SkillItem[]) => value.map(skill => `${skill.label}(${skill.proficiencyLevel})`).join('、'),
+  certificate_list: (value: Array<{ name: string }>) => value.map(cert => cert.name).join('、'),
+  date_range: (value: string[]) => {
+    const [start, end] = value
+    return `${start || '未填'} 至 ${end || '至今'}`
+  },
+  string_array: (value: string[]) => value.join('、'),
+  object: (value: any) => {
+    const str = JSON.stringify(value)
+    return str.slice(0, 100) + (str.length > 100 ? '...' : '')
+  },
+  object_array: (value: any) => {
+    const str = JSON.stringify(value)
+    return str.slice(0, 100) + (str.length > 100 ? '...' : '')
+  },
 }
