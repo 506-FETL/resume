@@ -9,7 +9,7 @@ import { severityConfig } from '../../const'
 import useAtsStore from '../../store'
 import FindingItem from './finding-item'
 
-export function IssueAnalysis() {
+export default function IssueAnalysis() {
   const { currentAtsConfig, loading } = useAtsStore()
   const [findings, setFindings] = useState<FindingsGroup>()
 
@@ -55,7 +55,6 @@ export function IssueAnalysis() {
           ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
                 <Spinner className="w-6 h-6 animate-spin text-primary" />
-                <p className="text-sm">正在深度分析简历内容...</p>
               </div>
             )
           : !findings || totalIssues === 0
@@ -79,7 +78,7 @@ export function IssueAnalysis() {
                   return (
                     <div key={severity} className="space-y-3">
                       <div className="flex items-center gap-2 px-1">
-                        <div className={cn('p-1 rounded bg-muted/50', config.textColor)}>
+                        <div className={config.textColor}>
                           <Icon className="w-4 h-4" />
                         </div>
                         <span className={cn('text-sm font-semibold', config.textColor)}>

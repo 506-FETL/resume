@@ -6,7 +6,7 @@ import { calculateRating, calculateReadabilityRating } from '../../utils'
 import MetricCard from './metric-card'
 import ScoresRadarChart from './scores-radar-chart'
 
-export function OptimizeDashboard() {
+export default function OptimizeDashboard() {
   const { currentAtsConfig, loading } = useAtsStore()
   const { fixChecklist, summary, readabilityIndex, scores } = currentAtsConfig || {}
 

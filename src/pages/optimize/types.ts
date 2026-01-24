@@ -1,8 +1,20 @@
+import type { ElementType } from 'react'
+
 export interface ResumeItem {
   id: string
   name: string
   date: string
   score: number
+}
+
+export interface SeverityConfigVariant {
+  label: string
+  icon: ElementType
+  textColor: string
+  bgColor: string
+  borderColor: string
+  badgeBg: string
+  badgeText: string
 }
 
 // =====================
@@ -114,6 +126,7 @@ export interface Suggestion {
   before: AfterValue | null
   after: AfterValue | null
   reason: string
+  fixed: boolean
 }
 
 export interface FixBlock {

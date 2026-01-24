@@ -1,23 +1,23 @@
-import type { ReactNode } from 'react'
-import type { SuggestionKind, ValueType } from '../../types'
+import type { MouseEvent, ReactNode } from 'react'
+import type { AfterValue, Suggestion, ValueType } from '../../../types'
 import type { SkillItem } from '@/lib/schema/resume/form/skillSpecialty'
-import { Edit3, RotateCcw } from 'lucide-react'
+import { Check, Edit3, RotateCcw } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useState } from 'react'
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { KIND_CONFIG } from '../../const'
-import { detectValueType, isEmptyValue, renderPreview } from '../../utils'
-import CertificateListEditor from '../editors/certificate-list-editor'
-import DateRangeEditor from '../editors/date-range-editor'
-import ObjectEditor from '../editors/object-editor'
-import SkillListEditor from '../editors/skill-list-editor'
-import StringArrayEditor from '../editors/string-array-editor'
+import { KIND_CONFIG } from '../../../const'
+import { detectValueType, isEmptyValue, renderPreview } from '../../../utils'
+import CertificateListEditor from '../../editors/certificate-list-editor'
+import DateRangeEditor from '../../editors/date-range-editor'
+import ObjectEditor from '../../editors/object-editor'
+import SkillListEditor from '../../editors/skill-list-editor'
+import StringArrayEditor from '../../editors/string-array-editor'
 
 // 编辑器组件映射
-const EDITOR_MAP: Record<string, (props: { value: unknown, onChange: (newValue: unknown) => void }) => ReactNode> = {
+const EDITOR_MAP: Record<string, (props: { value: AfterValue, onChange: (newValue: AfterValue) => void }) => ReactNode> = {
   date_range: ({ value, onChange }) => <DateRangeEditor value={value as string[]} onChange={onChange} />,
   skill_list: ({ value, onChange }) => <SkillListEditor value={value as SkillItem[]} onChange={onChange} />,
   skill_item: ({ value, onChange }) => (
@@ -57,25 +57,33 @@ const EDITOR_MAP: Record<string, (props: { value: unknown, onChange: (newValue: 
 }
 
 interface SuggestionEditCardProps {
-  suggestion: {
-    before: unknown
-    after: unknown
-    valueType: ValueType
-    reason: string
-    kind: SuggestionKind
-  }
-  onChange: (newSuggestion: SuggestionEditCardProps['suggestion']) => void
+  suggestion: Suggestion
+  onChange: (newSuggestion: Suggestion) => void
+  onOk?: (suggestions: Suggestion[]) => void
   onReset: () => void
   isModified: boolean
 }
 
-function SuggestionEditCard({ suggestion, onChange, onReset, isModified }: SuggestionEditCardProps) {
+function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }: SuggestionEditCardProps) {
   const kindConfig = KIND_CONFIG[suggestion.kind]
   const [isEditing, setIsEditing] = useState(false)
+  const [internalValue, setInternalValue] = useState(suggestion.after)
 
-  const handleValueChange = useCallback((updatedValue: unknown) => {
+  const handleValueChange = useCallback((updatedValue: AfterValue) => {
+    setInternalValue(updatedValue)
     onChange({ ...suggestion, after: updatedValue })
   }, [suggestion, onChange])
+
+  const handleOk = () => {
+    isEditing && onOk?.([{ ...suggestion, after: internalValue }])
+    setIsEditing(!isEditing)
+  }
+
+  const handleRestore = useCallback((e: MouseEvent) => {
+    e.stopPropagation()
+    onReset()
+    onOk?.([])
+  }, [onReset, onOk])
 
   return (
     <motion.div
@@ -114,7 +122,7 @@ function SuggestionEditCard({ suggestion, onChange, onReset, isModified }: Sugge
               variant="ghost"
               size="sm"
               className="h-7 px-2 text-xs"
-              onClick={onReset}
+              onClick={handleRestore}
             >
               <RotateCcw className="size-3 mr-1" />
               还原
@@ -124,10 +132,12 @@ function SuggestionEditCard({ suggestion, onChange, onReset, isModified }: Sugge
             variant={isEditing ? 'default' : 'outline'}
             size="sm"
             className="h-7 px-2 text-xs"
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={handleOk}
           >
-            <Edit3 className="size-3 mr-1" />
-            {isEditing ? '完成' : '编辑'}
+            {isEditing
+              ? <Check className="size-3 mr-1" />
+              : <Edit3 className="size-3 mr-1" />}
+            {isEditing ? '确定' : '编辑'}
           </Button>
         </div>
       </div>
@@ -145,7 +155,7 @@ function SuggestionEditCard({ suggestion, onChange, onReset, isModified }: Sugge
                 className="p-4"
               >
                 <ValueEditor
-                  value={suggestion.after}
+                  value={internalValue}
                   valueType={suggestion.valueType}
                   onChange={handleValueChange}
                 />
@@ -189,9 +199,9 @@ function SuggestionEditCard({ suggestion, onChange, onReset, isModified }: Sugge
 }
 
 function ValueEditor({ value, valueType, onChange }: {
-  value: unknown
+  value: AfterValue
   valueType: ValueType
-  onChange: (newValue: unknown) => void
+  onChange: (newValue: AfterValue) => void
 }) {
   const detectedType = detectValueType(value)
 

@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
-import { AdvancedTools } from './components/advanced-tools'
+import AdvancedTools from './components/advanced-tools'
+import IssueAnalysis from './components/analysis'
+import OptimizeDashboard from './components/dashboard'
 import Header from './components/header'
-import { IssueAnalysis } from './components/issue-analysis'
-import { OptimizeDashboard } from './components/optimize-dashboard'
-import { ProTips } from './components/pro-tips'
-import { RepairChecklist } from './components/repair-checklist'
+import ProTips from './components/pro-tips'
+import RepairChecklist from './components/repair-checklist'
 import useAtsStore from './store'
 
 function Optimize() {

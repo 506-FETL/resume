@@ -1,7 +1,7 @@
 import { Lightbulb } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 
-export function ProTips() {
+export default function ProTips() {
   return (
     <Card className="bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/50 shadow-sm">
       <CardContent className="p-4 flex gap-3">

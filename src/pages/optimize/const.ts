@@ -1,5 +1,4 @@
-import type { ElementType } from 'react'
-import type { Severity, SuggestionKind } from './types'
+import type { Severity, SeverityConfigVariant, SuggestionKind } from './types'
 import type { SkillItem } from '@/lib/schema'
 import { AlertCircle, AlertTriangle, Calendar, Info, Tag } from 'lucide-react'
 
@@ -11,15 +10,7 @@ export const SCORE_LABELS = {
   impact_quantification: '影响力量化',
 }
 
-export const severityConfig: Record<Severity, {
-  label: string
-  icon: ElementType
-  textColor: string
-  bgColor: string
-  borderColor: string
-  badgeBg: string
-  badgeText: string
-}> = {
+export const severityConfig: Record<Severity, SeverityConfigVariant> = {
   high: {
     label: '严重问题',
     icon: AlertCircle,

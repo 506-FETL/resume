@@ -17,8 +17,8 @@ function DateRangeEditor({ value, onChange }: {
   const parseDate = (dateStr: string | undefined): Date | undefined => {
     if (!dateStr || dateStr === '至今')
       return undefined
-    const parsed = new Date(dateStr)
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed
+    const d = dayjs(dateStr)
+    return d.isValid() ? d.toDate() : undefined
   }
 
   const formatDate = (date: Date | undefined): string => {
@@ -47,16 +47,14 @@ function DateRangeEditor({ value, onChange }: {
                 <span className="truncate">{start || '选择开始时间'}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-auto p-0">
+            <PopoverContent align="start">
               <Calendar
                 mode="single"
                 captionLayout="dropdown"
-                defaultMonth={parseDate(start) || new Date()}
+                defaultMonth={parseDate(start) || dayjs().toDate()}
                 selected={parseDate(start)}
-                onSelect={(date) => {
-                  onChange([formatDate(date), end])
-                }}
-                disabled={date => date > new Date()}
+                onSelect={date => onChange([formatDate(date), end])}
+                disabled={date => dayjs(date).isAfter(dayjs())}
               />
             </PopoverContent>
           </Popover>
@@ -84,16 +82,14 @@ function DateRangeEditor({ value, onChange }: {
                   <span className="truncate">{end || '选择结束时间'}</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-auto p-0">
+              <PopoverContent align="start">
                 <Calendar
                   mode="single"
                   captionLayout="dropdown"
-                  defaultMonth={parseDate(end) || new Date()}
+                  defaultMonth={parseDate(end) || dayjs().toDate()}
                   selected={parseDate(end)}
-                  onSelect={(date) => {
-                    onChange([start, formatDate(date)])
-                  }}
-                  endMonth={new Date(2035, 11)}
+                  onSelect={date => onChange([start, formatDate(date)])}
+                  disabled={date => dayjs(date).isAfter(dayjs())}
                 />
               </PopoverContent>
             </Popover>

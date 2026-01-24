@@ -1,12 +1,12 @@
 import type { ComponentType } from 'react'
-import type { SuggestionKind, ValueType } from '../../types'
+import type { SuggestionKind, ValueType } from '../../../types'
 import type { SkillItem } from '@/lib/schema/resume/form/skillSpecialty'
 import { ArrowRight, Calendar, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
-import { KIND_LABEL_MAP, PROFICIENCY_MAP } from '../../const'
-import { detectValueType, getFieldLabel, isEmptyValue, renderValue } from '../../utils'
+import { KIND_LABEL_MAP, PROFICIENCY_MAP } from '../../../const'
+import { detectValueType, getFieldLabel, isEmptyValue, renderValue } from '../../../utils'
 
 // 空值
 function EmptyValue() {
@@ -23,7 +23,7 @@ function StringValue({ value, variant }: { value: string, variant?: 'before' | '
   return (
     <span className={cn(
       'text-sm',
-      variant === 'before' && 'text-muted-foreground line-through decoration-destructive/50',
+      variant === 'before' && 'text-muted-foreground line-through decoration-destructive/50 dark:decoration-red-400/50',
       variant === 'after' && 'text-foreground font-medium',
     )}
     >
@@ -84,14 +84,14 @@ function SkillItemValue({ value, variant }: { value: SkillItem, variant?: 'befor
     <div className={cn(
       'flex items-center gap-2 p-2 rounded-md border',
       variant === 'before' && 'bg-muted/30 border-border/50',
-      variant === 'after' && 'bg-primary/5 border-primary/20',
+      variant === 'after' && 'bg-primary/5 border-primary/20 dark:bg-blue-500/10 dark:border-blue-500/20',
     )}
     >
       <Badge
         variant="secondary"
         className={cn(
           'shrink-0 text-[10px] px-1.5',
-          variant === 'after' && 'bg-primary/10 text-primary',
+          variant === 'after' && 'bg-primary/10 text-primary dark:text-blue-300 dark:bg-blue-500/20',
         )}
       >
         {value.label}
@@ -100,7 +100,10 @@ function SkillItemValue({ value, variant }: { value: SkillItem, variant?: 'befor
         {value.displayType === 'percentage'
           ? (
               <div className="flex items-center gap-2">
-                <Progress value={percentage} className="h-1.5 flex-1" />
+                <Progress
+                  value={percentage}
+                  className="h-1.5 flex-1 dark:bg-blue-950/50 *:dark:bg-blue-500"
+                />
                 <span className="text-[10px] text-muted-foreground shrink-0">{value.proficiencyLevel}</span>
               </div>
             )
@@ -140,7 +143,7 @@ function StringArrayValue({ value, variant }: { value: string[], variant?: 'befo
           className={cn(
             'text-[10px] px-1.5 py-0.5',
             variant === 'before' && 'bg-muted/50 text-muted-foreground',
-            variant === 'after' && 'bg-primary/10 text-primary',
+            variant === 'after' && 'bg-primary/10 text-primary dark:text-blue-300 dark:bg-blue-500/20',
           )}
         >
           {item}
@@ -189,7 +192,7 @@ function ObjectValue({ value, variant }: { value: Record<string, unknown>, varia
     <div className={cn(
       'space-y-1.5 p-2 rounded-md border text-xs',
       variant === 'before' && 'bg-muted/30 border-border/50',
-      variant === 'after' && 'bg-primary/5 border-primary/20',
+      variant === 'after' && 'bg-primary/5 border-primary/20 dark:bg-blue-500/10 dark:border-blue-500/20',
     )}
     >
       {entries.map(([key, val]) => (
@@ -295,11 +298,11 @@ export function SuggestionCompareCard({ before, after, valueType, reason, kind }
       <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
         {/* Before */}
         <div className="space-y-1.5">
-          <div className="text-[10px] font-medium text-destructive/80 flex items-center gap-1">
-            <span className="size-4 rounded bg-destructive/10 flex items-center justify-center">✕</span>
+          <div className="text-[10px] font-medium text-destructive/80 dark:text-red-400 flex items-center gap-1">
+            <span className="size-4 rounded bg-destructive/10 dark:bg-red-500/10 flex items-center justify-center">✕</span>
             修改前
           </div>
-          <div className="bg-destructive/5 border border-destructive/10 rounded-lg p-2.5 min-h-12">
+          <div className="bg-destructive/5 dark:bg-red-950/20 border border-destructive/10 dark:border-red-500/20 rounded-lg p-2.5 min-h-12">
             <SuggestionValueRenderer value={before} valueType={valueType} variant="before" />
           </div>
         </div>
@@ -307,12 +310,12 @@ export function SuggestionCompareCard({ before, after, valueType, reason, kind }
         {/* After */}
         <div className="space-y-1.5">
           <div className="text-[10px] font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
-            <span className="size-4 rounded bg-green-500/10 flex items-center justify-center">
+            <span className="size-4 rounded bg-green-500/10 dark:bg-green-500/20 flex items-center justify-center">
               <ArrowRight className="size-2.5" />
             </span>
             修改后
           </div>
-          <div className="bg-green-500/5 border border-green-500/10 rounded-lg p-2.5 min-h-12">
+          <div className="bg-green-500/5 dark:bg-green-950/20 border border-green-500/10 dark:border-green-500/20 rounded-lg p-2.5 min-h-12">
             <SuggestionValueRenderer value={after} valueType={valueType} variant="after" />
           </div>
         </div>

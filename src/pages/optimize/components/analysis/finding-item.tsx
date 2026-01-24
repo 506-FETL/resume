@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '../../const'
-import IssueFixDialog from './Issue-fix-dialog'
+import IssueFix from './Issue-fix'
 
 interface FindingItemProps {
   finding: Finding
@@ -17,11 +17,7 @@ export default function FindingItem({ finding, severity }: FindingItemProps) {
   const config = severityConfig[severity]
 
   return (
-    <Collapsible className={cn(
-      'border rounded-xl transition-all',
-      config.borderColor,
-    )}
-    >
+    <Collapsible className={cn('border rounded-xl transition-all', config.borderColor)}>
       <CollapsibleTrigger className={cn(
         'flex items-center justify-between w-full p-3 sm:p-4 transition-colors',
         'hover:bg-muted/20',
@@ -29,9 +25,7 @@ export default function FindingItem({ finding, severity }: FindingItemProps) {
       >
         <div className="flex items-center gap-2.5 sm:gap-3 text-left min-w-0 flex-1">
           <div className={cn('shrink-0', config.textColor)}>
-            {severity === 'high' && <AlertCircle className="size-4" />}
-            {severity === 'medium' && <AlertTriangle className="size-4" />}
-            {severity === 'low' && <Info className="size-4" />}
+            <config.icon className="size-4" />
           </div>
           <span className="font-medium text-xs sm:text-sm leading-snug">{finding.title}</span>
         </div>
@@ -97,7 +91,7 @@ export default function FindingItem({ finding, severity }: FindingItemProps) {
               )}
             </div>
             <div className="pt-1">
-              <IssueFixDialog finding={finding} severity={severity}>
+              <IssueFix finding={finding} severity={severity}>
                 <Button
                   size="sm"
                   className={cn(
@@ -109,7 +103,7 @@ export default function FindingItem({ finding, severity }: FindingItemProps) {
                 >
                   查看详情 & 自动修复
                 </Button>
-              </IssueFixDialog>
+              </IssueFix>
             </div>
           </div>
         </div>

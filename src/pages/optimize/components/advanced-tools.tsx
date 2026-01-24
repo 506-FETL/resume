@@ -2,7 +2,7 @@ import { LayoutTemplate, Maximize2, RefreshCcw, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export function AdvancedTools() {
+export default function AdvancedTools() {
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-4">

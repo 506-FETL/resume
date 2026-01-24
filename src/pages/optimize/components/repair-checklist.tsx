@@ -5,7 +5,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../store'
 
-export function RepairChecklist() {
+export default function RepairChecklist() {
   const { currentAtsConfig, loading, revertFixChecklist } = useAtsStore()
 
   const fixList = currentAtsConfig?.fixChecklist || []

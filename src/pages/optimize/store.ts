@@ -9,6 +9,7 @@ interface AtsStore {
   loading: boolean
 
   revertFixChecklist: (id: string) => Promise<void>
+  update: <K extends keyof AtsEvaluationResult>(key: K, value: AtsEvaluationResult[K]) => void
   init: () => Promise<void>
 }
 
@@ -31,6 +32,15 @@ const useAtsStore = create<AtsStore>()(
       finally {
         set({ loading: false })
       }
+    }
+
+    const update = <K extends keyof AtsEvaluationResult>(key: K, value: AtsEvaluationResult[K]) => {
+      const { currentAtsConfig } = get()
+
+      if (!currentAtsConfig)
+        return
+
+      set(() => ({ currentAtsConfig: { ...currentAtsConfig, [key]: value } }))
     }
 
     const revertFixChecklist = async (id: string) => {
@@ -60,6 +70,7 @@ const useAtsStore = create<AtsStore>()(
 
       init,
       revertFixChecklist,
+      update,
     }
   },
 )

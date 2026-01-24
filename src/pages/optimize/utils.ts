@@ -113,3 +113,5 @@ export function renderPreview(value: unknown, valueType: ValueType): string {
 
   return String(value)
 }
+
+export const callAll = <T>(fns: Array<(...args: T[]) => void | undefined>) => (...args: T[]) => fns.forEach(fn => fn?.(...args))

@@ -1,27 +1,23 @@
-import type { SuggestionKind, ValueType } from '../../types'
+import type { Suggestion } from '../../../types'
 import { Edit3, RotateCcw } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import SuggestionEditCard from './suggestion-edit-card'
+import SuggestionEditCard from './card'
 
 interface SuggestionEditorProps {
-  suggestions: Array<{
-    before: unknown
-    after: unknown
-    valueType: ValueType
-    reason: string
-    kind: SuggestionKind
-  }>
-  onChange?: (suggestions: Array<{ before: unknown, after: unknown, valueType: ValueType, reason: string, kind: SuggestionKind }>) => void
+  suggestions: Suggestion[]
+  onChange?: (suggestions: Suggestion[]) => void
+  onOk?: (suggestions: Suggestion[]) => void
 }
 
-function SuggestionEditor({ suggestions: initialSuggestions, onChange }: SuggestionEditorProps) {
+function SuggestionEditor({ suggestions: initialSuggestions, onChange, onOk }: SuggestionEditorProps) {
   const [currentSuggestions, setCurrentSuggestions] = useState(initialSuggestions)
   const [originalSuggestions] = useState(initialSuggestions)
 
-  const handleSuggestionChange = useCallback((index: number, updatedSuggestion: typeof currentSuggestions[0]) => {
+  const handleSuggestionChange = useCallback((index: number, updatedSuggestion: Suggestion) => {
     const newSuggestions = [...currentSuggestions]
     newSuggestions[index] = updatedSuggestion
+
     setCurrentSuggestions(newSuggestions)
     onChange?.(newSuggestions)
   }, [currentSuggestions, onChange])
@@ -92,11 +88,12 @@ function SuggestionEditor({ suggestions: initialSuggestions, onChange }: Suggest
       <div className="space-y-3">
         {currentSuggestions.map((suggestion, index) => (
           <SuggestionEditCard
-            key={`edit-${index}-${suggestion.kind}`}
+            key={`edit-${suggestion.reason}-${suggestion.kind}`}
             suggestion={suggestion}
             onChange={updatedSuggestion => handleSuggestionChange(index, updatedSuggestion)}
             onReset={() => handleReset(index)}
             isModified={isModified(index)}
+            onOk={onOk}
           />
         ))}
       </div>
