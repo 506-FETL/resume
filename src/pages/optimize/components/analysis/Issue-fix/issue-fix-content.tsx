@@ -48,7 +48,7 @@ function IssueFixContent({
   }
 
   return (
-    <div className="space-y-4 sm:space-y-5 lg:space-y-8">
+    <div className="space-y-4 sm:space-y-5 lg:space-y-8 overflow-auto p-4 md:p-6">
       {/* 信息概览卡片 */}
       <div className="space-y-1.5 lg:space-y-2">
         <span className={cn('text-xs lg:text-sm font-medium text-muted-foreground flex items-center gap-1.5 lg:gap-2', config.textColor)}>
@@ -102,7 +102,7 @@ function IssueFixContent({
         </div>
       </div>
 
-      <Tabs defaultValue="summary">
+      <Tabs defaultValue="summary" className="">
         <TabsList>
           <TabsTrigger value="summary">
             <FileDiff className="size-3 sm:size-3.5 lg:size-4 shrink-0" />

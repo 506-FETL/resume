@@ -96,14 +96,7 @@ body,
   // 移动端 toolbar 固定在底部
   @media screen and (max-width: 480px) {
     .tiptap-toolbar[data-variant='fixed'] {
-      position: absolute;
-      bottom: 0;
-      top: auto;
-      left: 0;
-      right: 0;
-      z-index: 10;
-      border-top: 1px solid var(--tt-toolbar-border-color);
-      border-bottom: none;
+      display: none;
     }
   }
 }

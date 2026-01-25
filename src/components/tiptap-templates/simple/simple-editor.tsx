@@ -185,11 +185,11 @@ function MobileToolbarContent({
   )
 }
 
-function arrowFn() {}
+
 
 export function SimpleEditor({
   content = '',
-  onChange = arrowFn,
+  onChange = () => {},
 }: { content?: string, onChange?: (editor: Editor) => void }) {
   const isMobile = useIsMobile()
   const [mobileView, setMobileView] = React.useState<
