@@ -115,3 +115,13 @@ export function renderPreview(value: unknown, valueType: ValueType): string {
 }
 
 export const callAll = <T>(fns: Array<(...args: T[]) => void | undefined>) => (...args: T[]) => fns.forEach(fn => fn?.(...args))
+
+export function setLeaf(root: any, path: Array<string | number>, value: any) {
+  let cur = root
+  for (let i = 0; i < path.length - 1; i++) {
+    cur = cur[path[i]]
+    if (cur == null)
+      throw new Error(`Path not found at ${String(path[i])}`)
+  }
+  cur[path[path.length - 1]] = value
+}

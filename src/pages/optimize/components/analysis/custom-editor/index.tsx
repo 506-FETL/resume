@@ -1,6 +1,6 @@
 import type { Suggestion } from '../../../types'
 import { Edit3, RotateCcw } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import SuggestionEditCard from './card'
 
@@ -10,9 +10,13 @@ interface SuggestionEditorProps {
   onOk?: (suggestions: Suggestion[]) => void
 }
 
-function SuggestionEditor({ suggestions: initialSuggestions, onChange, onOk }: SuggestionEditorProps) {
+function CustomEditor({ suggestions: initialSuggestions, onChange, onOk }: SuggestionEditorProps) {
   const [currentSuggestions, setCurrentSuggestions] = useState(initialSuggestions)
   const [originalSuggestions] = useState(initialSuggestions)
+
+  useEffect(() => {
+    setCurrentSuggestions(initialSuggestions)
+  }, [initialSuggestions])
 
   const handleSuggestionChange = useCallback((index: number, updatedSuggestion: Suggestion) => {
     const newSuggestions = [...currentSuggestions]
@@ -101,4 +105,4 @@ function SuggestionEditor({ suggestions: initialSuggestions, onChange, onOk }: S
   )
 }
 
-export default SuggestionEditor
+export default CustomEditor

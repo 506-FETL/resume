@@ -1,4 +1,4 @@
-import type { FindingsGroup, Severity } from '../../types'
+import type { Finding, FindingsGroup, Severity } from '../../types'
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +21,7 @@ export default function IssueAnalysis() {
   }, [currentAtsConfig, loading])
 
   const severityOrder: Severity[] = ['high', 'medium', 'low']
+
   const totalIssues = findings
     ? (findings.high?.length || 0) + (findings.medium?.length || 0) + (findings.low?.length || 0)
     : 0
@@ -90,7 +91,7 @@ export default function IssueAnalysis() {
                       </div>
                       <div className="space-y-3 pl-2 sm:pl-3">
                         {issues.map(issue => (
-                          <FindingItem key={issue.id} finding={issue} severity={severity} />
+                          <FindingItem key={issue.id} id={issue.id} severity={severity} />
                         ))}
                       </div>
                     </div>

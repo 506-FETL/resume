@@ -242,6 +242,13 @@ export function SimpleEditor({
   })
 
   React.useEffect(() => {
+    if(!editor) return
+    
+    editor.commands.setContent(content)
+    
+  }, [content, editor])
+
+  React.useEffect(() => {
     if (!isMobile && mobileView !== 'main') {
       setMobileView('main')
     }

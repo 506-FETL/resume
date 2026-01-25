@@ -3,7 +3,7 @@ import type { AfterValue, Suggestion, ValueType } from '../../../types'
 import type { SkillItem } from '@/lib/schema/resume/form/skillSpecialty'
 import { Check, Edit3, RotateCcw } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -69,6 +69,10 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
   const [isEditing, setIsEditing] = useState(false)
   const [internalValue, setInternalValue] = useState(suggestion.after)
 
+  useEffect(() => {
+    setInternalValue(suggestion.after)
+  }, [suggestion.after])
+
   const handleValueChange = useCallback((updatedValue: AfterValue) => {
     setInternalValue(updatedValue)
     onChange({ ...suggestion, after: updatedValue })
@@ -97,7 +101,11 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
       )}
     >
       {/* 头部 */}
-      <div className="flex flex-col gap-2 p-3 bg-muted/30 border-b sm:flex-row sm:items-center sm:justify-between sm:px-4">
+      <div className={cn(
+        'flex flex-col gap-2 p-3 border-b sm:flex-row sm:items-center sm:justify-between sm:px-4',
+        suggestion.fixed ? 'bg-green-100/30 dark:bg-green-900/10' : 'bg-muted/30',
+      )}
+      >
         <div className="flex flex-col gap-1.5 min-w-0 flex-1 sm:flex-row sm:items-center sm:gap-2">
           <div className="flex items-center gap-2 shrink-0">
             <Badge
@@ -106,7 +114,7 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
             >
               {kindConfig.label}
             </Badge>
-            {isModified && (
+            {isModified && !suggestion.fixed && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary">
                 已修改
               </Badge>
@@ -117,7 +125,7 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0 justify-end w-full sm:w-auto">
-          {isModified && (
+          {isModified && !suggestion.fixed && (
             <Button
               variant="ghost"
               size="sm"
@@ -128,17 +136,30 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
               还原
             </Button>
           )}
-          <Button
-            variant={isEditing ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={handleOk}
-          >
-            {isEditing
-              ? <Check className="size-3 mr-1" />
-              : <Edit3 className="size-3 mr-1" />}
-            {isEditing ? '确定' : '编辑'}
-          </Button>
+          {suggestion.fixed
+            ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-green-600 border-green-200 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 pointer-events-none"
+                >
+                  <Check className="size-3 mr-1" />
+                  已修复
+                </Button>
+              )
+            : (
+                <Button
+                  variant={isEditing ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handleOk}
+                >
+                  {isEditing
+                    ? <Check className="size-3 mr-1" />
+                    : <Edit3 className="size-3 mr-1" />}
+                  {isEditing ? '确定' : '编辑'}
+                </Button>
+              )}
         </div>
       </div>
 

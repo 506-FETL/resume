@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import type { SuggestionKind, ValueType } from '../../../types'
 import type { SkillItem } from '@/lib/schema/resume/form/skillSpecialty'
-import { ArrowRight, Calendar, Star } from 'lucide-react'
+import { ArrowRight, Calendar, Check, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
@@ -272,32 +272,48 @@ interface SuggestionCompareCardProps {
   valueType: ValueType
   reason?: string
   kind?: SuggestionKind
+  fixed?: boolean
 }
 
-export function SuggestionCompareCard({ before, after, valueType, reason, kind }: SuggestionCompareCardProps) {
+export function SuggestionCompareCard({ before, after, valueType, reason, kind, fixed }: SuggestionCompareCardProps) {
   const kindConfig = kind ? KIND_LABEL_MAP[kind] : null
 
   return (
-    <div className="space-y-3">
+    <div className={cn(
+      'space-y-3 rounded-xl p-3 sm:p-4 border transition-all duration-200',
+      fixed
+        ? 'bg-primary/5 border-primary/20 shadow-sm'
+        : 'bg-muted/10 border-border/50 hover:bg-muted/20',
+    )}
+    >
       {/* Header */}
-      {(kindConfig || reason) && (
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          {kindConfig && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 gap-1 bg-muted">
-              <kindConfig.icon className="size-2.5" />
-              {kindConfig.label}
-            </Badge>
-          )}
-          {reason && (
-            <span className="text-muted-foreground">{reason}</span>
-          )}
-        </div>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {(kindConfig || reason) && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            {kindConfig && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 gap-1 bg-muted">
+                <kindConfig.icon className="size-2.5" />
+                {kindConfig.label}
+              </Badge>
+            )}
+            {reason && (
+              <span className="text-muted-foreground">{reason}</span>
+            )}
+          </div>
+        )}
+
+        {fixed && (
+          <Badge variant="outline" className="bg-background text-primary border-primary/20 gap-1 text-[10px] px-2 h-5">
+            <Check className="size-2.5" />
+            已修复
+          </Badge>
+        )}
+      </div>
 
       {/* Compare */}
       <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
         {/* Before */}
-        <div className="space-y-1.5">
+        <div className={cn('space-y-1.5', fixed && 'opacity-60 grayscale')}>
           <div className="text-[10px] font-medium text-destructive/80 dark:text-red-400 flex items-center gap-1">
             <span className="size-4 rounded bg-destructive/10 dark:bg-red-500/10 flex items-center justify-center">✕</span>
             修改前
@@ -315,7 +331,13 @@ export function SuggestionCompareCard({ before, after, valueType, reason, kind }
             </span>
             修改后
           </div>
-          <div className="bg-green-500/5 dark:bg-green-950/20 border border-green-500/10 dark:border-green-500/20 rounded-lg p-2.5 min-h-12">
+          <div className={cn(
+            'rounded-lg p-2.5 min-h-12 transition-colors',
+            fixed
+              ? 'bg-background border-2 border-primary/20 shadow-sm'
+              : 'bg-green-500/5 dark:bg-green-950/20 border border-green-500/10 dark:border-green-500/20',
+          )}
+          >
             <SuggestionValueRenderer value={after} valueType={valueType} variant="after" />
           </div>
         </div>

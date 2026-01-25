@@ -1,51 +1,56 @@
-import type { Finding, Severity, SeverityConfigVariant, Suggestion } from '../../../types'
+import type { Severity, Suggestion } from '../../../types'
 import { AlertTriangle, BadgeQuestionMark, Code2, Edit3, FileDiff, Lightbulb, ListOrdered } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Badge } from '@/components/ui/badge'
 import { CodeBlock } from '@/components/ui/code-block'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { severityConfig } from '@/pages/optimize/const'
 import useAtsStore from '@/pages/optimize/store'
-import SuggestionEditor from '../custom-editor'
+import CustomEditor from '../custom-editor'
 import { SuggestionCompareCard } from '../custom-editor/renderer'
 
 interface IssueFixContentProps {
-  finding: Finding
-  locationText: string
-  steps: string[]
-  suggestions: Suggestion[]
-  beforeCode: string
-  afterCode: string
-  config: SeverityConfigVariant
   severity: Severity
   id: string
 }
 
-function IssueFixContent({
-  finding,
-  locationText,
-  steps,
-  suggestions,
-  beforeCode,
-  afterCode,
-  config,
-  severity,
-  id,
-}: IssueFixContentProps) {
+function IssueFixContent({ severity, id }: IssueFixContentProps) {
   const { update, currentAtsConfig } = useAtsStore()
 
-  const handleOk = (newSuggestions: Suggestion[]) => {
+  const finding = currentAtsConfig?.findings?.[severity]?.find(f => f.id === id)
+
+  const config = severityConfig[severity]
+
+  if (!finding)
+    return null
+
+  const evidence = finding.why.evidence[0]
+  const locationText = [evidence?.locate.sectionLabel, evidence?.locate.itemLabel, evidence?.locate.fieldLabel]
+    .filter(Boolean)
+    .join(' / ') || '未定位到具体位置'
+
+  const steps = finding.fix.steps.length > 0 ? finding.fix.steps : ['暂无具体步骤说明']
+  const suggestions = finding.fix.suggestions || []
+
+  const beforeCode = JSON.stringify(suggestions.map(s => s.before ?? null), null, 2)
+  const afterCode = JSON.stringify(suggestions.map(s => s.after ?? null), null, 2)
+
+  const handleChange = (newSuggestions: Suggestion[]) => {
     if (!currentAtsConfig?.findings)
       return
 
-    const updatedFinding = currentAtsConfig.findings[severity].map((finding) => {
-      if (finding.id === id) {
-        return { ...finding, fix: { ...finding.fix, suggestions: newSuggestions } }
+    const updatedFinding = currentAtsConfig.findings[severity].map((f) => {
+      if (f.id === id) {
+        return { ...f, fix: { ...f.fix, suggestions: newSuggestions } }
       }
-      return finding
+      return f
     })
     update('findings', { ...currentAtsConfig.findings, [severity]: updatedFinding })
   }
+
+  if (!finding)
+    return null
 
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-8 overflow-auto p-4 md:p-6">
@@ -55,8 +60,8 @@ function IssueFixContent({
           <BadgeQuestionMark className="size-3.5 lg:size-4" />
           问题位置
         </span>
-        <Badge variant="secondary" className={cn('text-xs lg:text-sm font-normal px-2.5 py-1 lg:px-3 lg:py-1.5 bg-muted text-foreground border border-border/50 max-w-full', config.badgeBg, config.badgeText)}>
-          <span className="truncate">{locationText}</span>
+        <Badge variant="secondary" className={cn('text-xs lg:text-sm font-normal px-2.5 py-1 lg:px-3 lg:py-1.5 bg-muted text-foreground border border-border/50 max-w-full h-auto', config.badgeBg, config.badgeText)}>
+          <span className="whitespace-normal text-left">{locationText}</span>
         </Badge>
       </div>
 
@@ -137,6 +142,7 @@ function IssueFixContent({
                   valueType={suggestion.valueType}
                   reason={suggestion.reason}
                   kind={suggestion.kind}
+                  fixed={suggestion.fixed}
                 />
               ))}
               {suggestions.length === 0 && (
@@ -167,9 +173,9 @@ function IssueFixContent({
           </TabsContent>
 
           <TabsContent value="edit" className="p-2 sm:p-4 lg:p-6">
-            <SuggestionEditor
+            <CustomEditor
               suggestions={suggestions}
-              onOk={handleOk}
+              onChange={handleChange}
             />
           </TabsContent>
         </div>

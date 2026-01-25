@@ -22,6 +22,24 @@ export async function getAtsFromUserId() {
   return data as AtsEvaluationResult[]
 }
 
+export async function updateAtsConfig(id: string, payload: Record<string, any>) {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('用户未登录')
+  }
+
+  const { error } = await supabase
+    .from('ats')
+    .update(payload)
+    .eq('user_id', user.id)
+    .eq('id', id)
+
+  if (error) {
+    throw error
+  }
+}
+
 export async function updateFixChecklist(fixChecklist: FixChecklistItem[], id: string) {
   const user = await getCurrentUser()
 

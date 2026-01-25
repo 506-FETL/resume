@@ -2,9 +2,14 @@ import type { DocHandle, Repo } from '@automerge/automerge-repo'
 import type { AutomergeResumeDocument, ChangeFn } from './schema'
 import type { CollaborationCallbacks } from './supabase-network-adapter'
 import type { ResumeSchema } from '@/lib/schema'
+import type { Suggestion } from '@/pages/optimize/types'
 import { next as Automerge } from '@automerge/automerge'
+import { set, toPath } from 'lodash'
 import { DEFAULT_ORDER, DEFAULT_VISIBILITY } from '@/lib/schema'
 import supabase from '@/lib/supabase/client'
+import { getResumeById, updateResumeConfig } from '@/lib/supabase/resume'
+import { getCurrentUser } from '@/lib/supabase/user'
+import { setLeaf } from '@/pages/optimize/utils'
 import { getAutomergeRepo } from './repo'
 import { SupabaseNetworkAdapter } from './supabase-network-adapter'
 
@@ -35,6 +40,61 @@ function simpleHash(str: string): number {
  * 负责文档的创建、加载、保存
  */
 export class DocumentManager {
+  /**
+   * 同步改动到 Automerge 文档
+   * @param resumeId 简历ID
+   * @param updates 优化建议列表（包含路径和修改后的值）
+   * @param options 配置选项
+   * @param options.syncToResumeConfig 是否同时同步到 resume_config 表（默认 false）
+   */
+  static async syncAutomergeDocument(
+    resumeId: string,
+    updates: Suggestion[],
+    options: { syncToResumeConfig?: boolean } = {},
+  ) {
+    const validSuggestions = updates?.filter(s => s?.locate?.path) || []
+
+    if (validSuggestions.length === 0) {
+      return
+    }
+
+    const user = await getCurrentUser()
+
+    if (!user) {
+      return
+    }
+
+    // 1. 同步到 Automerge 文档
+    const manager = new DocumentManager(resumeId, user.id)
+    const handle = await manager.initialize()
+
+    manager.change((doc) => {
+      validSuggestions.forEach((s) => {
+        setLeaf(doc, toPath(s.locate.path), s.after)
+      })
+    })
+
+    await manager.saveToSupabase(handle)
+
+    // 2. 如果开启选项，同步到 resume_config
+    if (options.syncToResumeConfig) {
+      try {
+        const resume_config = await getResumeById(resumeId)
+
+        validSuggestions.forEach((s) => {
+          // 这里使用 lodash.set 修改普通对象
+          set(resume_config, s.locate.path, s.after)
+        })
+
+        await updateResumeConfig(resumeId, resume_config)
+      }
+      catch (error) {
+        console.error('Failed to sync to resume_config:', error)
+        // 不抛出错误，以免中断主流程，但记录日志
+      }
+    }
+  }
+
   private handle: DocHandle<AutomergeResumeDocument> | null = null
   private resumeId: string
   private userId: string
