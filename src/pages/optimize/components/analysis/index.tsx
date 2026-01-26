@@ -1,4 +1,4 @@
-import type { Finding, FindingsGroup, Severity } from '../../types'
+import type { FindingsGroup, Severity } from '../../types'
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'

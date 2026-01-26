@@ -60,15 +60,8 @@ function CustomEditor({ suggestions: initialSuggestions, onChange, onOk }: Sugge
       {/* 操作栏 */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          共
-          {' '}
-          <span className="font-medium text-foreground">{currentSuggestions.length}</span>
-          {' '}
-          条建议
           {hasAnyModification && (
             <span className="text-primary ml-1">
-              ·
-              {' '}
               {currentSuggestions.filter((_, i) => isModified(i)).length}
               {' '}
               条已修改

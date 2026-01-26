@@ -53,7 +53,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
     return null
 
   return (
-    <div className="space-y-4 sm:space-y-5 lg:space-y-8 overflow-auto p-4 md:p-6">
+    <div className="space-y-4 sm:space-y-5 lg:space-y-8 overflow-auto p-4 md:p-6 h-full">
       {/* 信息概览卡片 */}
       <div className="space-y-1.5 lg:space-y-2">
         <span className={cn('text-xs lg:text-sm font-medium text-muted-foreground flex items-center gap-1.5 lg:gap-2', config.textColor)}>
@@ -126,13 +126,22 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
         </TabsList>
 
         <div className="border rounded-lg bg-card p-2">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <Badge variant="outline" className="text-xs font-normal px-2 py-0.5 h-6 bg-background">
+              共
+              {' '}
+              {suggestions.length}
+              {' '}
+              条建议
+            </Badge>
+          </div>
           <TabsContent value="summary">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="p-2 sm:p-4 lg:p-6 space-y-4 lg:space-y-6 "
+              className="p-2 sm:p-4 lg:p-6 space-y-4 lg:space-y-6 h-full"
             >
               {suggestions.map((suggestion: Suggestion) => (
                 <SuggestionCompareCard
