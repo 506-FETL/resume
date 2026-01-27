@@ -12,7 +12,7 @@ import { getAllOfflineResumes } from '@/lib/offline-resume-manager'
 import supabase from '@/lib/supabase/client'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
-import useAtsStore from '../store'
+import useAtsStore from '../../../store'
 
 interface ResumeConfig {
   id: string
@@ -164,14 +164,13 @@ export function ResumeManager() {
         <Button
           variant="outline"
           size="sm"
-          className="h-8 max-w-[140px] sm:max-w-[180px] gap-1.5"
           disabled={loading}
         >
           {loading
-            ? <Spinner className="size-3.5 shrink-0" />
-            : <ButtonIcon className={cn('size-3.5 shrink-0', iconColorClass)} />}
+            ? <Spinner />
+            : <ButtonIcon className={cn(iconColorClass)} />}
           <span className="truncate text-xs">{loading ? '加载中...' : selectedResumeName}</span>
-          <ChevronDown className="size-3 shrink-0 opacity-50" />
+          <ChevronDown className="shrink-0 opacity-50" />
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[500px] p-0 gap-0">

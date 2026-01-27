@@ -1,19 +1,6 @@
 import type { ReactNode } from 'react'
 import type { ORDERType } from '@/lib/schema'
-import {
-  Award,
-  Briefcase,
-  Building2,
-  Code2,
-  GraduationCap,
-  Heart,
-  Lightbulb,
-  MessageSquare,
-  School,
-  Trophy,
-  UserCheck,
-  UserRound,
-} from 'lucide-react'
+import { Award, Briefcase, Building2, Code2, GraduationCap, Heart, Lightbulb, MessageSquare, School, Trophy, UserCheck, UserRound } from 'lucide-react'
 import ApplicationInfoForm from '../components/forms/ApplicationInfoForm'
 import BasicResumeForm from '../components/forms/BasicResumeForm'
 import CampusExperienceForm from '../components/forms/CampusExperienceForm'

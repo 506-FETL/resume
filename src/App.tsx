@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
+import { useTheme } from 'next-themes'
 import { Suspense, useState } from 'react'
 import { useLocation, useRoutes } from 'react-router-dom'
 import routes from '~react-pages'
@@ -6,8 +7,9 @@ import { AppSidebar } from '@/components/dashboard/app-sidebar'
 import { SiteHeader } from '@/components/dashboard/site-header'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from '@/components/ui/sonner'
+import { BackgroundLines } from './components/ui/background-lines'
+import { LineShadowText } from './components/ui/line-shadow-text'
 
 function App() {
   const element = useRoutes(routes)
@@ -54,23 +56,15 @@ function App() {
 }
 
 function Loading() {
+  const theme = useTheme()
+  const shadowColor = theme.resolvedTheme === 'dark' ? 'white' : 'black'
+
   return (
-    <div className="w-full h-screen flex items-center justify-center px-4">
-      <div className="flex flex-col items-center gap-6 w-full max-w-md animate-in fade-in-50 duration-500">
-        {/* 简单的内容预览 */}
-        <div className="w-full space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-card/50">
-              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-3 w-3/4" />
-                <Skeleton className="h-2 w-1/2" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <BackgroundLines className="flex items-center justify-center">
+      <LineShadowText shadowColor={shadowColor} className="text-xl italic">
+        Loading...
+      </LineShadowText>
+    </BackgroundLines>
   )
 }
 

@@ -1,4 +1,4 @@
-import { History, Sparkles } from 'lucide-react'
+import { RefreshCcw, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ResumeManager } from './resume-manager'
 
@@ -19,8 +19,8 @@ function Header() {
       <div className="flex items-center gap-3 shrink-0 pl-11 sm:pl-0">
         <ResumeManager />
         <Button variant="outline" size="sm" className="h-9 px-4">
-          <History className="w-4 h-4 mr-2 text-muted-foreground" />
-          历史版本
+          <RefreshCcw />
+          重新检测
         </Button>
       </div>
     </div>
