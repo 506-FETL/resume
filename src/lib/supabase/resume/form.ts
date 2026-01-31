@@ -41,6 +41,34 @@ export async function getResumeById<T extends string>(id: string, selector = '*'
   return data
 }
 
+export async function uploadOfflineResumeToCloud(
+  resumeData: any,
+  info: { display_name: string, description?: string },
+  type: string = 'default',
+) {
+  const user = await getCurrentUser()
+
+  if (!user)
+    throw new Error('用户未登陆')
+
+  const { data, error } = await supabase
+    .from('resume_config')
+    .insert({
+      user_id: user.id,
+      type,
+      ...info,
+      ...resumeData, // 将简历数据展开插入
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
 export async function createNewResume(
   info: { display_name?: string, description?: string } = {
     display_name: '简历',

@@ -1,5 +1,79 @@
 import type { ValueType } from './types'
+import type { AutomergeResumeDocument } from '@/lib/automerge/schema'
+import type { ResumeSchema } from '@/lib/schema'
+import { getOfflineResumeById } from '@/lib/offline-resume-manager'
+import {
+  DEFAULT_APPLICATION_INFO,
+  DEFAULT_BASICS,
+  DEFAULT_CAMPUS_EXPERIENCE,
+  DEFAULT_EDU_BACKGROUND,
+  DEFAULT_HOBBIES,
+  DEFAULT_HONORS_CERTIFICATES,
+  DEFAULT_INTERNSHIP_EXPERIENCE,
+  DEFAULT_JOB_INTENT,
+  DEFAULT_PROJECT_EXPERIENCE,
+  DEFAULT_SELF_EVALUATION,
+  DEFAULT_SKILL_SPECIALTY,
+  DEFAULT_WORK_EXPERIENCE,
+} from '@/lib/schema'
+import { getResumeById } from '@/lib/supabase/resume'
 import { FIELD_LABEL_MAP, PREVIEW_RENDERER_MAP } from './const'
+
+function sanitizeDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map(item => sanitizeDeep(item)) as T
+  }
+  if (value && typeof value === 'object') {
+    const result: Record<string, unknown> = {}
+    Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
+      if (val === undefined)
+        return
+      result[key] = sanitizeDeep(val)
+    })
+    return result as T
+  }
+  return value
+}
+
+function mapDocToResumeSchema(doc: Partial<AutomergeResumeDocument> | null | undefined): ResumeSchema {
+  const source = doc as Record<string, any> | undefined
+
+  const getVal = <T>(key: string, defaultVal: T, legacyKey?: string) => {
+    const val = source?.[key] ?? (legacyKey ? source?.[legacyKey] : undefined) ?? defaultVal
+    return sanitizeDeep(val as T)
+  }
+
+  return {
+    basics: getVal('basics', DEFAULT_BASICS),
+    jobIntent: getVal('jobIntent', DEFAULT_JOB_INTENT, 'job_intent'),
+    applicationInfo: getVal('applicationInfo', DEFAULT_APPLICATION_INFO, 'application_info'),
+    eduBackground: getVal('eduBackground', DEFAULT_EDU_BACKGROUND, 'edu_background'),
+    workExperience: getVal('workExperience', DEFAULT_WORK_EXPERIENCE, 'work_experience'),
+    internshipExperience: getVal('internshipExperience', DEFAULT_INTERNSHIP_EXPERIENCE, 'internship_experience'),
+    campusExperience: getVal('campusExperience', DEFAULT_CAMPUS_EXPERIENCE, 'campus_experience'),
+    projectExperience: getVal('projectExperience', DEFAULT_PROJECT_EXPERIENCE, 'project_experience'),
+    skillSpecialty: getVal('skillSpecialty', DEFAULT_SKILL_SPECIALTY, 'skill_specialty'),
+    honorsCertificates: getVal('honorsCertificates', DEFAULT_HONORS_CERTIFICATES, 'honors_certificates'),
+    selfEvaluation: getVal('selfEvaluation', DEFAULT_SELF_EVALUATION, 'self_evaluation'),
+    hobbies: getVal('hobbies', DEFAULT_HOBBIES),
+  } as ResumeSchema
+}
+
+export async function fetchResumeDataForAnalysis(id: string, isOffline: boolean): Promise<ResumeSchema> {
+  if (isOffline) {
+    const offlineResume = await getOfflineResumeById(id)
+    if (!offlineResume) {
+      throw new Error('离线简历不存在')
+    }
+    return mapDocToResumeSchema(offlineResume.data as Partial<AutomergeResumeDocument>)
+  }
+
+  const onlineResume = await getResumeById(id)
+  if (!onlineResume) {
+    throw new Error('在线简历不存在')
+  }
+  return mapDocToResumeSchema(onlineResume as unknown as Partial<AutomergeResumeDocument>)
+}
 
 export function calculateRating(score: number) {
   if (score >= 90)

@@ -40,6 +40,29 @@ export async function updateAtsConfig(id: string, payload: Record<string, any>) 
   }
 }
 
+export async function createAtsConfig(payload: Omit<AtsEvaluationResult, 'id'>) {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('用户未登录')
+  }
+
+  const { data, error } = await supabase
+    .from('ats')
+    .insert({
+      ...payload,
+      user_id: user.id,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data as AtsEvaluationResult
+}
+
 export async function updateFixChecklist(fixChecklist: FixChecklistItem[], id: string) {
   const user = await getCurrentUser()
 

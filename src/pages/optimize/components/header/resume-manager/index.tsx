@@ -25,9 +25,8 @@ interface ResumeConfig {
 }
 
 export function ResumeManager() {
-  const { atsConfigs, currentAtsConfig, loading } = useAtsStore()
+  const { atsConfigs, currentAtsConfig, loading, selectedResumeId, setSelectedResume } = useAtsStore()
   const [resumes, setResumes] = useState<ResumeConfig[]>([])
-  const [selectedResumeId, setSelectedResumeId] = useState<string | undefined>()
   const [open, setOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -46,12 +45,12 @@ export function ResumeManager() {
         .select('created_at,id,display_name,resume_id')
         .eq('user_id', user.id)
 
-      if (fetchResumesError || !atsConfigs) {
+      if (fetchResumesError) {
         return
       }
 
       const structuredResumes = userResumes.map((resume) => {
-        const resumeAts = atsConfigs.find(ats => ats.resume_id === resume.resume_id)
+        const resumeAts = atsConfigs?.find(ats => ats.resume_id === resume.resume_id)
 
         if (resumeAts) {
           return {
@@ -75,29 +74,43 @@ export function ResumeManager() {
         id: resume.created_at,
         resume_id: resume.resume_id,
         display_name: resume.display_name,
-        isScored: false,
+        isScored: false, // 暂时假设离线简历没有关联的在线 ATS 记录，或者我们需要在 atsConfigs 里查找
         overall_score: null,
         created_at: resume.created_at,
         isOffline: true,
       }))
 
-      setResumes([...structuredResumes, ...offlineResumes])
+      // 尝试为离线简历匹配 ATS 记录 (如果 ATS 记录保存了 offline resume id)
+      // 注意：ATS 表的 resume_id 对应的是 resume_config 的 resume_id。
+      // 对于离线简历，resume_id 是 UUID，ATS 表里可能存了这个 UUID。
+      const structuredOfflineResumes = offlineResumes.map((resume) => {
+        const resumeAts = atsConfigs?.find(ats => ats.resume_id === resume.resume_id)
+        if (resumeAts) {
+          return { ...resume, isScored: true, overall_score: resumeAts.summary.overall_score }
+        }
+        return resume
+      })
+
+      setResumes([...structuredResumes, ...structuredOfflineResumes])
     }
 
     initResumeConfig()
   }, [atsConfigs, loading])
 
+  // Sync store selection with loaded resumes if needed
   useEffect(() => {
-    if (!currentAtsConfig)
-      return
-
-    setSelectedResumeId(currentAtsConfig.resume_id)
-  }, [currentAtsConfig])
+    if (currentAtsConfig && !selectedResumeId && resumes.length > 0) {
+      const found = resumes.find(r => r.resume_id === currentAtsConfig.resume_id)
+      if (found) {
+        setSelectedResume(found.resume_id, found.isOffline ? 'offline' : 'online')
+      }
+    }
+  }, [currentAtsConfig, resumes, selectedResumeId, setSelectedResume])
 
   const selectedResumeName = resumes.find(r => r.resume_id === selectedResumeId)?.display_name || '选择简历'
 
   const handleSelect = (resume: ResumeConfig) => {
-    setSelectedResumeId(resume.resume_id)
+    setSelectedResume(resume.resume_id, resume.isOffline ? 'offline' : 'online')
     setOpen(false)
   }
 
