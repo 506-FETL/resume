@@ -1,5 +1,5 @@
 import { IconHelp, IconSearch, IconSettings } from '@tabler/icons-react'
-import { FileUser, HomeIcon, LayoutTemplate, PencilRuler } from 'lucide-react'
+import { FileUser, FolderKanban, HomeIcon, LayoutTemplate, PencilRuler } from 'lucide-react'
 
 export const Data = {
   modules: [
@@ -12,6 +12,11 @@ export const Data = {
       title: '我的简历',
       url: '/resume',
       icon: FileUser,
+    },
+    {
+      title: '求职看板',
+      url: '/tracker',
+      icon: FolderKanban,
     },
     {
       title: '简历模板',

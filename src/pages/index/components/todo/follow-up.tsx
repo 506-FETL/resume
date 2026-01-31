@@ -1,5 +1,5 @@
 import { Send } from 'lucide-react'
-import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 
 interface FollowUpModuleProps {
@@ -8,6 +8,7 @@ interface FollowUpModuleProps {
 }
 
 export function FollowUpModule({ pendingCount, days }: FollowUpModuleProps) {
+  const navigate = useNavigate()
   return (
     <div className="flex flex-col h-full relative">
       <div className="hidden md:block absolute -left-2 top-1 bottom-0 w-px bg-border/50" />
@@ -23,8 +24,17 @@ export function FollowUpModule({ pendingCount, days }: FollowUpModuleProps) {
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
             </span>
             <p className="text-xs text-emerald-700/90 dark:text-emerald-400/90 leading-relaxed">
-              有 <span className="font-semibold text-sm">{pendingCount}</span> 个岗位超过
-              <span className="font-semibold"> {days}</span> 天没跟进
+              有
+              {' '}
+              <span className="font-semibold text-sm">{pendingCount}</span>
+              {' '}
+              个岗位超过
+              <span className="font-semibold">
+                {' '}
+                {days}
+              </span>
+              {' '}
+              天没跟进
             </p>
           </div>
         </div>
@@ -32,7 +42,7 @@ export function FollowUpModule({ pendingCount, days }: FollowUpModuleProps) {
           variant="outline"
           size="sm"
           className="h-7 w-full mt-2.5 text-xs border-emerald-200/80 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800/50 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
-          onClick={() => toast.info('看板功能开发中...')}
+          onClick={() => navigate('/tracker')}
         >
           投递看板
         </Button>
