@@ -7,7 +7,6 @@ export async function runAtsStructured(
   onUpdate?: (data: { content?: string, reasoning?: string }) => void,
 ) {
   const promptText = prompt.replace('<<<RESUME_JSON>>>', JSON.stringify(resumeConfig, null, 2))
-
   const stream = await client.chat.completions.create({
     model: 'deepseek-reasoner',
     messages: [

@@ -1,6 +1,7 @@
-import type { Severity, SeverityConfigVariant, SuggestionKind } from './types'
+import type { AnalysisState, AnalysisStatus, Severity, SeverityConfigVariant, StepConfig, SuggestionKind } from './types'
 import type { SkillItem } from '@/lib/schema'
-import { AlertCircle, AlertTriangle, Calendar, Info, Tag } from 'lucide-react'
+
+import { AlertCircle, AlertTriangle, Brain, Calendar, CloudUpload, Database, FileText, Info, Sparkles, Tag } from 'lucide-react'
 
 export const SCORE_LABELS = {
   job_match: '职位匹配度',
@@ -149,4 +150,72 @@ export const PREVIEW_RENDERER_MAP: Record<string, (value: any) => string> = {
     const str = JSON.stringify(value)
     return str.slice(0, 100) + (str.length > 100 ? '...' : '')
   },
+}
+
+// 步骤配置
+export const ANALYSIS_STEPS_CONFIG: StepConfig[] = [
+  {
+    id: 'upload',
+    icon: CloudUpload,
+    label: '同步简历',
+    activeStatus: 'uploading',
+    showCondition: (_, resumeType) => resumeType === 'offline',
+  },
+  {
+    id: 'fetch',
+    icon: Database,
+    label: '获取简历字段',
+    activeStatus: 'fetching',
+  },
+  {
+    id: 'send',
+    icon: CloudUpload,
+    label: '上传给 LLM',
+    activeStatus: 'sending',
+  },
+  {
+    id: 'thinking',
+    icon: Brain,
+    label: 'LLM 开始思考',
+    activeStatus: 'thinking',
+  },
+  {
+    id: 'result',
+    icon: FileText,
+    label: '返回结果',
+    activeStatus: ['generating', 'received'],
+  },
+  {
+    id: 'save',
+    icon: Database,
+    label: '更新到 ATS 并获取字段',
+    activeStatus: 'saving',
+  },
+  {
+    id: 'display',
+    icon: Sparkles,
+    label: '展示',
+    activeStatus: 'complete',
+  },
+]
+
+// 状态顺序映射，用于判断步骤是否已完成
+export const ANALYSIS_STATUS_ORDER: Record<AnalysisStatus, number> = {
+  idle: 0,
+  uploading: 1,
+  fetching: 2,
+  sending: 3,
+  thinking: 4,
+  generating: 5,
+  received: 6,
+  saving: 7,
+  complete: 8,
+}
+
+// 初始状态
+export const ANALYSIS_INITIAL_STATE: AnalysisState = {
+  status: 'idle',
+  logs: {},
+  reasoning: '',
+  content: '',
 }

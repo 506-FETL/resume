@@ -1,8 +1,8 @@
-import { Brain, CloudUpload, Database, FileText, Loader2, RefreshCcw, Search, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { Loader2, RefreshCcw, Search, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import Markdown from 'react-markdown'
 import { toast } from 'sonner'
 import { ChainOfThought, ChainOfThoughtContent, ChainOfThoughtStep } from '@/components/ai/chain-of-thought'
-import { CodeBlock, CodeBlockCopyButton } from '@/components/ai/code-block'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { Button } from '@/components/ui/button'
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
@@ -10,48 +10,40 @@ import { runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
 import { createAtsConfig, updateAtsConfig } from '@/lib/supabase/resume'
 import { uploadOfflineResumeToCloud } from '@/lib/supabase/resume/form'
+import { ANALYSIS_INITIAL_STATE, ANALYSIS_STEPS_CONFIG } from '../../const'
 import useAtsStore from '../../store'
-import { fetchResumeDataForAnalysis } from '../../utils'
+import { analysisReducer, fetchResumeDataForAnalysis, getStepContent, getStepStatus } from '../../utils'
 import { ResumeManager } from './resume-manager'
-
-type AnalysisStatus = 'idle' | 'uploading' | 'fetching' | 'sending' | 'thinking' | 'generating' | 'received' | 'saving' | 'complete'
 
 function Header() {
   const { selectedResumeId, selectedResumeType, atsConfigs, init, setSelectedResume } = useAtsStore()
-  const [reasoning, setReasoning] = useState('')
-  const [content, setContent] = useState('')
-  const [status, setStatus] = useState<AnalysisStatus>('idle')
+  const [state, dispatch] = useReducer(analysisReducer, ANALYSIS_INITIAL_STATE)
   const [isOpen, setIsOpen] = useState(false)
-  const [uploadLog, setUploadLog] = useState<string>('')
-  const [fetchLog, setFetchLog] = useState<string>('')
-  const [sendLog, setSendLog] = useState<string>('')
-  const [resultLog, setResultLog] = useState<string>('')
-  const [saveLog, setSaveLog] = useState<string>('')
-  const [displayLog, setDisplayLog] = useState<string>('')
 
-  const handleStartAnalysis = async () => {
+  const { status, logs, reasoning, content } = state
+
+  // 更新日志的便捷函数
+  const updateLog = useCallback((key: string, value: string, append = false) => {
+    dispatch({ type: 'UPDATE_LOG', payload: { key, value, append } })
+  }, [])
+
+  const handleStartAnalysis = useCallback(async () => {
     if (!selectedResumeId) {
       toast.error('请先选择一份简历')
       return
     }
 
     setIsOpen(true)
-    setReasoning('')
-    setContent('')
-    setUploadLog('')
-    setFetchLog('')
-    setSendLog('')
-    setResultLog('')
-    setSaveLog('')
-    setDisplayLog('')
+    dispatch({ type: 'RESET' })
 
     try {
       let currentResumeId = selectedResumeId
       const currentResumeType = selectedResumeType
 
+      // 上传离线简历
       if (currentResumeType === 'offline') {
-        setStatus('uploading')
-        setUploadLog('检测到本地简历，正在上传至云端...')
+        dispatch({ type: 'SET_STATUS', payload: 'uploading' })
+        updateLog('upload', '检测到本地简历，正在上传至云端...')
 
         const offlineResume = await getOfflineResumeById(selectedResumeId)
         if (!offlineResume) {
@@ -70,33 +62,33 @@ function Header() {
           throw new Error('上传简历失败')
         }
 
-        setUploadLog(prev => `${prev}\n✅ 上传成功，已转换为在线简历`)
-
+        updateLog('upload', '✅ 上传成功，已转换为在线简历', true)
         currentResumeId = onlineResume.resume_id
         setSelectedResume(currentResumeId, 'online')
       }
 
-      setStatus('fetching')
-      setFetchLog('正在获取简历字段...')
+      // 获取简历数据
+      dispatch({ type: 'SET_STATUS', payload: 'fetching' })
+      updateLog('fetch', '正在获取简历字段...')
       const resumeData = await fetchResumeDataForAnalysis(currentResumeId, false)
-      setFetchLog(prev => `${prev}\n✅ 获取成功，准备上传给 LLM`)
+      updateLog('fetch', '✅ 获取成功，准备上传给 LLM', true)
 
-      setStatus('sending')
-      setSendLog('正在上传给 LLM...')
+      // 发送给 LLM
+      dispatch({ type: 'SET_STATUS', payload: 'sending' })
+      updateLog('send', '正在上传给 LLM...')
 
       let finalContent = ''
 
-      await runAtsStructured(resumeData, ({ content, reasoning }) => {
-        if (reasoning) {
-          setStatus('thinking')
-          setSendLog('✅ 已上传给 LLM，开始思考')
-          setReasoning(reasoning)
+      await runAtsStructured(resumeData, ({ content: streamContent, reasoning: streamReasoning }) => {
+        if (streamReasoning) {
+          dispatch({ type: 'SET_STATUS', payload: 'thinking' })
+          updateLog('send', '✅ 已上传给 LLM，开始思考')
+          dispatch({ type: 'SET_REASONING', payload: streamReasoning })
         }
-        if (content) {
-          setStatus('generating')
-          setContent(content)
-          setSendLog(prev => (prev.includes('✅') ? prev : '✅ 已上传给 LLM'))
-          finalContent = content
+        if (streamContent) {
+          dispatch({ type: 'SET_STATUS', payload: 'generating' })
+          dispatch({ type: 'SET_CONTENT', payload: streamContent })
+          finalContent = streamContent
         }
       })
 
@@ -104,56 +96,84 @@ function Header() {
         throw new Error('未生成有效内容')
       }
 
-      setStatus('received')
-      setResultLog('✅ 已收到结果')
+      dispatch({ type: 'SET_STATUS', payload: 'received' })
+      updateLog('result', '✅ 已收到结果')
 
       const result = JSON.parse(finalContent)
 
-      setStatus('saving')
-      setSaveLog('正在保存分析报告...')
+      // 保存结果
+      dispatch({ type: 'SET_STATUS', payload: 'saving' })
+      updateLog('save', '正在保存分析报告...')
 
       const { id, user_id, created_at, resume_id: _resumeId, ...restResult } = result
-
-      const payload = {
-        ...restResult,
-        resume_id: currentResumeId,
-      }
+      const payload = { ...restResult, resume_id: currentResumeId }
 
       const existingAts = atsConfigs?.find(a => a.resume_id === currentResumeId)
 
       if (existingAts) {
         await updateAtsConfig(existingAts.id, payload)
-        setSaveLog(prev => `${prev}\n✅ 报告已更新`)
+        updateLog('save', '✅ 报告已更新', true)
         toast.success('ATS 分析报告已更新')
       }
       else {
         await createAtsConfig(payload)
-        setSaveLog(prev => `${prev}\n✅ 报告已生成`)
+        updateLog('save', '✅ 报告已生成', true)
         toast.success('ATS 分析报告已生成')
       }
 
       await init()
 
-      setStatus('complete')
-      setDisplayLog('✅ 已展示分析结果')
+      dispatch({ type: 'SET_STATUS', payload: 'complete' })
+      updateLog('display', '✅ 已展示分析结果')
     }
     catch (error: any) {
       console.error(error)
       toast.error(error.message || '分析过程中发生错误')
-      setStatus('idle')
+      dispatch({ type: 'SET_STATUS', payload: 'idle' })
     }
-  }
+  }, [selectedResumeId, selectedResumeType, atsConfigs, init, setSelectedResume, updateLog])
 
-  const handleViewAnalysis = () => {
+  const handleViewAnalysis = useCallback(() => {
     setIsOpen(true)
-  }
+  }, [])
 
-  const hasAnalysis = status !== 'idle' && (reasoning || content || uploadLog || fetchLog || sendLog || resultLog || saveLog || displayLog)
+  // 计算派生状态
+  const hasAnalysis = useMemo(() => {
+    return status !== 'idle' && (
+      reasoning
+      || content
+      || Object.keys(logs).length > 0
+    )
+  }, [status, reasoning, content, logs])
+
   const isProcessing = status !== 'idle' && status !== 'complete'
+
+  // 离开页面时提示用户
+  useEffect(() => {
+    if (!isProcessing)
+      return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isProcessing])
+
+  // 过滤并渲染步骤
+  const visibleSteps = useMemo(() => {
+    return ANALYSIS_STEPS_CONFIG.filter((step) => {
+      if (step.showCondition) {
+        return step.showCondition(state, selectedResumeType)
+      }
+      return true
+    })
+  }, [state, selectedResumeType])
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-primary/10 rounded-lg">
@@ -165,7 +185,7 @@ function Header() {
             基于 AI 深度分析，为您提供专业的简历优化建议，提升通过 ATS 筛选的概率。
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0 pl-11 sm:pl-0">
+        <div className="flex flex-wrap items-center gap-3 pl-11">
           <ResumeManager />
 
           {hasAnalysis && (
@@ -200,141 +220,82 @@ function Header() {
       </div>
 
       <ResponsiveDialog open={isOpen} onOpenChange={setIsOpen}>
-        <ResponsiveDialogContent className="max-w-2xl h-[85vh] max-h-[85vh] flex flex-col p-0">
-          <ResponsiveDialogHeader className="px-6 pt-6 pb-2">
+        <ResponsiveDialogContent className="max-w-2xl sm:h-[85vh] sm:max-h-[85vh] flex flex-col p-0">
+          <ResponsiveDialogHeader className="px-6 pt-6 pb-2 shrink-0">
             <ResponsiveDialogTitle>ATS 分析过程</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 pb-safe">
             <ChainOfThought open className="w-full">
               <ChainOfThoughtContent>
-                {selectedResumeType === 'offline' && (
-                  <ChainOfThoughtStep
-                    icon={CloudUpload}
-                    label="同步简历"
-                    status={status === 'uploading' ? 'active' : uploadLog ? 'complete' : 'pending'}
-                    description={(
+                {visibleSteps.map((stepConfig) => {
+                  const stepStatus = getStepStatus(stepConfig, status, logs, reasoning, content)
+
+                  if (stepStatus === 'pending') {
+                    return null
+                  }
+
+                  const stepContent = getStepContent(stepConfig, state)
+                  const isActive = stepStatus === 'active'
+
+                  // 根据步骤类型渲染不同的内容
+                  const renderStepContent = () => {
+                    if (!stepContent)
+                      return null
+
+                    // LLM 思考步骤 - 渲染 Markdown
+                    if (stepConfig.id === 'thinking') {
+                      return (
+                        <AutoScrollContainer
+                          className="max-h-[300px] bg-muted p-3 rounded-md mt-2 overflow-x-auto"
+                          dependency={stepContent}
+                          enabled={isActive}
+                        >
+                          <div className="markdown-content text-xs text-muted-foreground [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>li]:mb-1 [&>h1]:text-lg [&>h1]:font-bold [&>h1]:mb-2 [&>h2]:text-base [&>h2]:font-semibold [&>h2]:mb-2 [&>h3]:text-sm [&>h3]:font-medium [&>h3]:mb-1 [&>code]:bg-background [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-xs [&>pre]:bg-background [&>pre]:p-2 [&>pre]:rounded [&>pre]:overflow-x-auto [&>pre]:mb-2 [&>blockquote]:border-l-2 [&>blockquote]:border-muted-foreground/30 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:mb-2 [&>strong]:font-semibold [&>em]:italic">
+                            <Markdown>{stepContent}</Markdown>
+                          </div>
+                        </AutoScrollContainer>
+                      )
+                    }
+
+                    // 返回结果步骤 - JSON 代码块
+                    if (stepConfig.id === 'result') {
+                      return (
+                        <AutoScrollContainer
+                          className="max-h-[300px] bg-muted rounded-md mt-2 overflow-x-auto"
+                          dependency={stepContent}
+                          enabled={isActive}
+                        >
+                          <pre className="p-3 text-xs font-mono text-muted-foreground whitespace-pre-wrap break-all">
+                            <code>{stepContent}</code>
+                          </pre>
+                        </AutoScrollContainer>
+                      )
+                    }
+
+                    // 默认渲染
+                    return (
                       <AutoScrollContainer
-                        className="max-h-[100px] bg-muted p-3 rounded-md mt-2"
-                        dependency={uploadLog}
-                        enabled={status === 'uploading'}
+                        className="max-h-[300px] bg-muted p-3 rounded-md mt-2"
+                        dependency={stepContent}
+                        enabled={isActive}
                       >
                         <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                          {uploadLog || '等待上传...'}
+                          {stepContent}
                         </div>
                       </AutoScrollContainer>
-                    )}
-                  />
-                )}
+                    )
+                  }
 
-                <ChainOfThoughtStep
-                  icon={Database}
-                  label="获取简历字段"
-                  status={status === 'fetching' ? 'active' : fetchLog ? 'complete' : 'pending'}
-                  description={(
-                    <AutoScrollContainer
-                      className="max-h-[100px] bg-muted p-3 rounded-md mt-2"
-                      dependency={fetchLog}
-                      enabled={status === 'fetching'}
-                    >
-                      <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                        {fetchLog || '等待获取简历字段...'}
-                      </div>
-                    </AutoScrollContainer>
-                  )}
-                />
-
-                <ChainOfThoughtStep
-                  icon={CloudUpload}
-                  label="上传给 LLM"
-                  status={status === 'sending' ? 'active' : sendLog ? 'complete' : 'pending'}
-                  description={(
-                    <AutoScrollContainer
-                      className="max-h-[100px] bg-muted p-3 rounded-md mt-2"
-                      dependency={sendLog}
-                      enabled={status === 'sending'}
-                    >
-                      <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                        {sendLog || '等待上传给 LLM...'}
-                      </div>
-                    </AutoScrollContainer>
-                  )}
-                />
-
-                <ChainOfThoughtStep
-                  icon={Brain}
-                  label="LLM 开始思考"
-                  status={status === 'thinking' ? 'active' : reasoning ? 'complete' : 'pending'}
-                  description={(
-                    <AutoScrollContainer
-                      className="max-h-[300px] bg-muted p-3 rounded-md mt-2"
-                      dependency={reasoning}
-                      enabled={status === 'thinking'}
-                    >
-                      <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                        {reasoning || '等待 LLM 思考输出...'}
-                      </div>
-                    </AutoScrollContainer>
-                  )}
-                />
-
-                <ChainOfThoughtStep
-                  icon={FileText}
-                  label="返回结果"
-                  status={status === 'generating' ? 'active' : resultLog || content ? 'complete' : 'pending'}
-                  description={(
-                    <AutoScrollContainer
-                      className="max-h-[220px] bg-muted p-3 rounded-md mt-2"
-                      dependency={content || resultLog}
-                      enabled={status === 'generating'}
-                    >
-                      {content
-                        ? (
-                            <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                              {content}
-                            </div>
-                          )
-                        : (
-                            <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                              {resultLog || '等待返回结果...'}
-                            </div>
-                          )}
-                    </AutoScrollContainer>
-                  )}
-                />
-
-                <ChainOfThoughtStep
-                  icon={Database}
-                  label="更新到 ATS 并获取字段"
-                  status={status === 'saving' ? 'active' : saveLog ? 'complete' : 'pending'}
-                  description={(
-                    <AutoScrollContainer
-                      className="max-h-[100px] bg-muted p-3 rounded-md mt-2"
-                      dependency={saveLog}
-                      enabled={status === 'saving'}
-                    >
-                      <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                        {saveLog || '等待更新到 ATS...'}
-                      </div>
-                    </AutoScrollContainer>
-                  )}
-                />
-
-                <ChainOfThoughtStep
-                  icon={Sparkles}
-                  label="展示"
-                  status={status === 'complete' ? 'complete' : 'pending'}
-                  description={(
-                    <AutoScrollContainer
-                      className="max-h-20 bg-muted p-3 rounded-md mt-2"
-                      dependency={displayLog}
-                      enabled={status === 'complete'}
-                    >
-                      <div className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
-                        {displayLog || '等待展示...'}
-                      </div>
-                    </AutoScrollContainer>
-                  )}
-                />
+                  return (
+                    <ChainOfThoughtStep
+                      key={stepConfig.id}
+                      icon={stepConfig.icon}
+                      label={stepConfig.label}
+                      status={stepStatus}
+                      description={renderStepContent()}
+                    />
+                  )
+                })}
               </ChainOfThoughtContent>
             </ChainOfThought>
           </div>
