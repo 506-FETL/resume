@@ -381,6 +381,20 @@ export class DocumentManager {
   }
 
   /**
+   * 将 Uint8Array 转换为 Base64 字符串
+   * 使用分块处理避免大数组导致栈溢出
+   */
+  private uint8ArrayToBase64(bytes: Uint8Array): string {
+    const CHUNK_SIZE = 0x8000 // 32KB chunks
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+      const chunk = bytes.subarray(i, i + CHUNK_SIZE)
+      binary += String.fromCharCode.apply(null, chunk as unknown as number[])
+    }
+    return btoa(binary)
+  }
+
+  /**
    * 保存文档快照到 Supabase
    */
   async saveToSupabase(handle: DocHandle<AutomergeResumeDocument>) {
@@ -392,7 +406,8 @@ export class DocumentManager {
     const heads = Automerge.getHeads(doc)
 
     // 将 Uint8Array 转换为 Base64，因为 Supabase 的 BYTEA 处理有问题
-    const base64 = btoa(String.fromCharCode(...Array.from(binary)))
+    // 使用分块处理避免大数组导致栈溢出
+    const base64 = this.uint8ArrayToBase64(binary)
 
     // 获取文档 URL（用于协作）
     const documentUrl = handle.url

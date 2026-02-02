@@ -238,21 +238,23 @@ export function SimpleEditor({
     content,
   })
 
-  // 跟踪编辑器是否正在被用户编辑，避免 setContent 循环
-  const isInternalUpdate = React.useRef(false)
-  const previousContent = React.useRef(content)
+  // 使用 ref 存储 onChange 回调，避免 useEffect 依赖变化导致重复注册
+  const onChangeRef = React.useRef(onChange)
+  onChangeRef.current = onChange
 
-  // 更新 onUpdate 以标记内部更新
+  // 跟踪是否由外部 setContent 触发的更新，避免循环
+  const isSettingContent = React.useRef(false)
+
+  // 注册 onUpdate 事件处理
   React.useEffect(() => {
     if (!editor) return
     
     const handleUpdate = () => {
-      isInternalUpdate.current = true
-      onChange(editor)
-      // 使用 setTimeout 确保在下一个微任务中重置标志
-      setTimeout(() => {
-        isInternalUpdate.current = false
-      }, 0)
+      // 如果是 setContent 触发的更新，不通知父组件
+      if (isSettingContent.current) {
+        return
+      }
+      onChangeRef.current(editor)
     }
     
     editor.on('update', handleUpdate)
@@ -260,16 +262,22 @@ export function SimpleEditor({
     return () => {
       editor.off('update', handleUpdate)
     }
-  }, [editor, onChange])
+  }, [editor])
 
+  // 处理外部 content 变化
+  const prevContentRef = React.useRef(content)
   React.useEffect(() => {
     if (!editor) return
     
-    // 只有当 content 发生变化且不是由编辑器自身触发的更新时才设置内容
-    if (content !== previousContent.current && !isInternalUpdate.current) {
+    // 只有当外部 content 真正变化时才设置
+    // 比较 HTML 内容而不是引用
+    const currentHtml = editor.getHTML()
+    if (content !== prevContentRef.current && content !== currentHtml) {
+      isSettingContent.current = true
       editor.commands.setContent(content)
+      isSettingContent.current = false
     }
-    previousContent.current = content
+    prevContentRef.current = content
     
   }, [content, editor])
 
