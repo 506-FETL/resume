@@ -12,7 +12,7 @@ import { getAllOfflineResumes } from '@/lib/offline-resume-manager'
 import supabase from '@/lib/supabase/client'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
-import useAtsStore from '../../../store'
+import useAtsStore from '../../store'
 
 interface ResumeConfig {
   id: string

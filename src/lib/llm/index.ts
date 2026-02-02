@@ -1,11 +1,15 @@
 import type { ResumeSchema } from '../schema'
+import { throttle } from 'lodash'
 import client from './client'
 import prompt from './prompt'
 
 export async function runAtsStructured(
   resumeConfig: ResumeSchema,
   onUpdate?: (data: { content?: string, reasoning?: string }) => void,
+  options?: { throttleMs?: number },
 ) {
+  const { throttleMs = 100 } = options || {}
+
   const promptText = prompt.replace('<<<RESUME_JSON>>>', JSON.stringify(resumeConfig, null, 2))
   const stream = await client.chat.completions.create({
     model: 'deepseek-reasoner',
@@ -26,6 +30,13 @@ export async function runAtsStructured(
   let fullContent = ''
   let fullReasoning = ''
 
+  // 使用节流来限制 UI 更新频率，避免页面卡顿
+  const throttledUpdate = onUpdate
+    ? throttle((data: { content?: string, reasoning?: string }) => {
+        onUpdate(data)
+      }, throttleMs)
+    : null
+
   for await (const chunk of stream) {
     const delta = chunk.choices[0]?.delta as any
     const content = delta?.content || ''
@@ -37,12 +48,15 @@ export async function runAtsStructured(
       if (reasoning)
         fullReasoning += reasoning
 
-      onUpdate?.({
+      throttledUpdate?.({
         content: fullContent,
         reasoning: fullReasoning,
       })
     }
   }
+
+  // 确保最后一次更新被执行
+  throttledUpdate?.flush()
 
   return { content: fullContent, reasoning: fullReasoning }
 }
