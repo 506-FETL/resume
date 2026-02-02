@@ -1,7 +1,8 @@
-import type { AtsEvaluationResult } from './types'
+import type { AnalysisState, AtsEvaluationResult } from './types'
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import { getAtsFromUserId, updateFixChecklist } from '@/lib/supabase/resume'
+import { ANALYSIS_INITIAL_STATE } from './const'
 
 interface AtsStore {
   atsConfigs: AtsEvaluationResult[] | null
@@ -11,6 +12,12 @@ interface AtsStore {
   selectedResumeId: string | null
   selectedResumeType: 'online' | 'offline' | null
   setSelectedResume: (id: string, type: 'online' | 'offline') => void
+
+  // Analysis state
+  analysisState: AnalysisState
+  setAnalysisState: (state: Partial<AnalysisState>) => void
+  resetAnalysisState: () => void
+  updateLog: (key: string, value: string, append?: boolean) => void
 
   revertFixChecklist: (id: string) => Promise<void>
   update: <K extends keyof AtsEvaluationResult>(key: K, value: AtsEvaluationResult[K]) => void
@@ -58,6 +65,37 @@ const useAtsStore = create<AtsStore>()(
       }
     }
 
+    const setAnalysisState = (newState: Partial<AnalysisState>) => {
+      set(state => ({
+        analysisState: { ...state.analysisState, ...newState },
+      }))
+    }
+
+    const resetAnalysisState = () => {
+      set({ analysisState: ANALYSIS_INITIAL_STATE })
+    }
+
+    const updateLog = (key: string, value: string, append = false) => {
+      set((state) => {
+        const currentLogs = state.analysisState.logs
+        const newLogs = { ...currentLogs }
+
+        if (append && newLogs[key]) {
+          newLogs[key] = `${newLogs[key]}\n${value}`
+        }
+        else {
+          newLogs[key] = value
+        }
+
+        return {
+          analysisState: {
+            ...state.analysisState,
+            logs: newLogs,
+          },
+        }
+      })
+    }
+
     const update = <K extends keyof AtsEvaluationResult>(key: K, value: AtsEvaluationResult[K]) => {
       const { currentAtsConfig } = get()
 
@@ -93,6 +131,11 @@ const useAtsStore = create<AtsStore>()(
       atsConfigs: null,
       selectedResumeId: null,
       selectedResumeType: null,
+
+      analysisState: ANALYSIS_INITIAL_STATE,
+      setAnalysisState,
+      resetAnalysisState,
+      updateLog,
 
       init,
       setSelectedResume,

@@ -1,5 +1,5 @@
 import { Loader2, RefreshCcw, Search, Sparkles } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Markdown from 'react-markdown'
 import { toast } from 'sonner'
 import { ChainOfThought, ChainOfThoughtContent, ChainOfThoughtStep } from '@/components/ai/chain-of-thought'
@@ -10,22 +10,16 @@ import { runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
 import { createAtsConfig, updateAtsConfig } from '@/lib/supabase/resume'
 import { uploadOfflineResumeToCloud } from '@/lib/supabase/resume/form'
-import { ANALYSIS_INITIAL_STATE, ANALYSIS_STEPS_CONFIG } from '../../const'
+import { ANALYSIS_STEPS_CONFIG } from '../../const'
 import useAtsStore from '../../store'
-import { analysisReducer, fetchResumeDataForAnalysis, getStepContent, getStepStatus } from '../../utils'
+import { fetchResumeDataForAnalysis, getStepContent, getStepStatus } from '../../utils'
 import { ResumeManager } from './resume-manager'
 
 function Header() {
-  const { selectedResumeId, selectedResumeType, atsConfigs, init, setSelectedResume } = useAtsStore()
-  const [state, dispatch] = useReducer(analysisReducer, ANALYSIS_INITIAL_STATE)
+  const { selectedResumeId, selectedResumeType, atsConfigs, init, setSelectedResume, analysisState, setAnalysisState, resetAnalysisState, updateLog } = useAtsStore()
+
   const [isOpen, setIsOpen] = useState(false)
-
-  const { status, logs, reasoning, content } = state
-
-  // 更新日志的便捷函数
-  const updateLog = useCallback((key: string, value: string, append = false) => {
-    dispatch({ type: 'UPDATE_LOG', payload: { key, value, append } })
-  }, [])
+  const { status, logs, reasoning, content } = analysisState
 
   const handleStartAnalysis = useCallback(async () => {
     if (!selectedResumeId) {
@@ -34,7 +28,7 @@ function Header() {
     }
 
     setIsOpen(true)
-    dispatch({ type: 'RESET' })
+    resetAnalysisState()
 
     try {
       let currentResumeId = selectedResumeId
@@ -42,7 +36,7 @@ function Header() {
 
       // 上传离线简历
       if (currentResumeType === 'offline') {
-        dispatch({ type: 'SET_STATUS', payload: 'uploading' })
+        setAnalysisState({ status: 'uploading' })
         updateLog('upload', '检测到本地简历，正在上传至云端...')
 
         const offlineResume = await getOfflineResumeById(selectedResumeId)
@@ -68,26 +62,24 @@ function Header() {
       }
 
       // 获取简历数据
-      dispatch({ type: 'SET_STATUS', payload: 'fetching' })
+      setAnalysisState({ status: 'fetching' })
       updateLog('fetch', '正在获取简历字段...')
       const resumeData = await fetchResumeDataForAnalysis(currentResumeId, false)
       updateLog('fetch', '✅ 获取成功，准备上传给 LLM', true)
 
       // 发送给 LLM
-      dispatch({ type: 'SET_STATUS', payload: 'sending' })
+      setAnalysisState({ status: 'sending' })
       updateLog('send', '正在上传给 LLM...')
 
       let finalContent = ''
 
       await runAtsStructured(resumeData, ({ content: streamContent, reasoning: streamReasoning }) => {
         if (streamReasoning) {
-          dispatch({ type: 'SET_STATUS', payload: 'thinking' })
+          setAnalysisState({ status: 'thinking', reasoning: streamReasoning })
           updateLog('send', '✅ 已上传给 LLM，开始思考')
-          dispatch({ type: 'SET_REASONING', payload: streamReasoning })
         }
         if (streamContent) {
-          dispatch({ type: 'SET_STATUS', payload: 'generating' })
-          dispatch({ type: 'SET_CONTENT', payload: streamContent })
+          setAnalysisState({ status: 'generating', content: streamContent })
           finalContent = streamContent
         }
       })
@@ -96,13 +88,13 @@ function Header() {
         throw new Error('未生成有效内容')
       }
 
-      dispatch({ type: 'SET_STATUS', payload: 'received' })
+      setAnalysisState({ status: 'received' })
       updateLog('result', '✅ 已收到结果')
 
       const result = JSON.parse(finalContent)
 
       // 保存结果
-      dispatch({ type: 'SET_STATUS', payload: 'saving' })
+      setAnalysisState({ status: 'saving' })
       updateLog('save', '正在保存分析报告...')
 
       const { id, user_id, created_at, resume_id: _resumeId, ...restResult } = result
@@ -123,15 +115,24 @@ function Header() {
 
       await init()
 
-      dispatch({ type: 'SET_STATUS', payload: 'complete' })
+      setAnalysisState({ status: 'complete' })
       updateLog('display', '✅ 已展示分析结果')
     }
     catch (error: any) {
       console.error(error)
       toast.error(error.message || '分析过程中发生错误')
-      dispatch({ type: 'SET_STATUS', payload: 'idle' })
+      setAnalysisState({ status: 'idle' })
     }
-  }, [selectedResumeId, selectedResumeType, atsConfigs, init, setSelectedResume, updateLog])
+  }, [
+    selectedResumeId,
+    selectedResumeType,
+    atsConfigs,
+    init,
+    setSelectedResume,
+    updateLog,
+    setAnalysisState,
+    resetAnalysisState,
+  ])
 
   const handleViewAnalysis = useCallback(() => {
     setIsOpen(true)
@@ -165,11 +166,11 @@ function Header() {
   const visibleSteps = useMemo(() => {
     return ANALYSIS_STEPS_CONFIG.filter((step) => {
       if (step.showCondition) {
-        return step.showCondition(state, selectedResumeType)
+        return step.showCondition(analysisState, selectedResumeType)
       }
       return true
     })
-  }, [state, selectedResumeType])
+  }, [analysisState, selectedResumeType])
 
   return (
     <div className="flex flex-col gap-4">
@@ -203,16 +204,15 @@ function Header() {
           <Button
             variant="outline"
             size="sm"
-            className="h-9 px-4"
             onClick={handleStartAnalysis}
             disabled={isProcessing || !selectedResumeId}
           >
             {isProcessing
               ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="animate-spin" />
                 )
               : (
-                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  <RefreshCcw />
                 )}
             {hasAnalysis ? '重新检测' : '开始检测'}
           </Button>
@@ -234,7 +234,7 @@ function Header() {
                     return null
                   }
 
-                  const stepContent = getStepContent(stepConfig, state)
+                  const stepContent = getStepContent(stepConfig, analysisState)
                   const isActive = stepStatus === 'active'
 
                   // 根据步骤类型渲染不同的内容
