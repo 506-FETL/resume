@@ -92,13 +92,6 @@ body,
         0 2px 4px -2px rgb(0 0 0 / 0.4);
     }
   }
-
-  // 移动端 toolbar 固定在底部
-  @media screen and (max-width: 480px) {
-    .tiptap-toolbar[data-variant='fixed'] {
-      display: none;
-    }
-  }
 }
 
 @media screen and (max-width: 768px) {
@@ -113,6 +106,17 @@ body,
   .simple-editor-wrapper {
     height: 230px;
     border-radius: 8px;
+
+    // 移动端 toolbar 使用绝对定位在底部
+    .tiptap-toolbar[data-variant='fixed'] {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
   }
 }
 
@@ -127,10 +131,12 @@ body,
   z-index: 1;
 }
 
+// 移动端内容区域需要为底部固定的 toolbar 预留空间
 @media screen and (max-width: 480px) {
   .simple-editor-content {
-    // 为底部 toolbar 留出空间
-    padding-bottom: calc(var(--tt-toolbar-height) + 0.5rem);
+    // 减去 toolbar 高度，防止内容被遮挡
+    height: calc(100% - var(--tt-toolbar-height));
+    max-height: calc(100% - var(--tt-toolbar-height));
   }
 }
 
@@ -158,6 +164,8 @@ body,
 @media screen and (max-width: 480px) {
   .simple-editor-content .tiptap.ProseMirror.simple-editor {
     padding: 1rem 1.5rem;
+    // 为底部固定 toolbar 留出空间
+    padding-bottom: calc(var(--tt-toolbar-height) + 1rem);
     // 移动端特别强调光标可见性
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;

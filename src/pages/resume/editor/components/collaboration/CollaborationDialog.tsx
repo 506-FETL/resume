@@ -30,7 +30,7 @@ export function CollaborationDialog() {
 
   return (
     <Dialog open={collabDialogOpen} onOpenChange={setCollaborationDialogOpen}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" aria-describedby={undefined}>
         {isSharing
           ? (
               <SharingContent

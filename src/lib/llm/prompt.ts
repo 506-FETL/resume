@@ -248,12 +248,69 @@ after: [
 - "hobbies.description"  => sectionLabel="兴趣爱好", fieldLabel="爱好说明", itemLabel=null
 
 ========================
+【质量与可用性硬规则】（必须严格遵守）
+========================
+
+1) 建议值 after 绝对不能为空（强制）
+- 任何 suggestions[*].after 都不得为 null、不得为空字符串 ""、不得为空数组 []、不得为仅空白的 HTML（如 "<p></p>"、"<ul></ul>"）。
+- after 必须是“可直接展示 + 可直接应用/执行”的具体内容：
+  - string：必须包含明确内容（例如“（待补充：学校全称，如××大学）”）
+  - html_string：必须包含至少 2 条有效信息（例如 2 个 <p> 或 2 个 <li>），不得是空壳结构
+  - string_array：必须有 2 个元素且都非空
+  - object_array：不得为空，且每个对象必填字段齐全、值非空
+- 即使 kind="fill_field"（需要用户补充真实信息），after 也必须给“明确占位建议值”，例如：
+  "（待补充：公司全称/部门）"、"（待补充：项目成果指标，如首屏耗时降低X%）"
+  不能用 null 代替建议值。
+
+2) 日期时间统一格式（强制）
+- 所有时间区间字段（duration/workDuration/internshipDuration/projectDuration）必须统一为：
+  "YY-MM-DD~YY-MM-DD" 或 "YY-MM-DD~至今"
+- 在 JSON 内仍使用 string_array 存储，但必须满足：
+  - after = ["YY-MM-DD","YY-MM-DD"] 或 ["YY-MM-DD","至今"]
+  - 不允许 "YYYY/M/D"、"YYYY-MM"、空字符串
+- kind="normalize_date" 只能做“格式转换”，不得改变日期语义（不得凭空改年份/日期）。
+- 如果输入缺失或无法确定日期：
+  - 必须使用 kind="fill_field"
+  - after 必须给占位数组，例如：
+    ["（待补充：开始日期 YY-MM-DD）","（待补充：结束日期 YY-MM-DD 或 至今）"]
+
+3) 所有文案必须详细且具体（强制，禁止空泛）
+适用范围：summary、top_risks、next_actions.title、findings[*].title/why.summary/fix.summary/fix.steps/suggestions.reason 等所有文本字段。
+- 禁止出现泛泛表述：如“完善一下/补充细节/更清晰/优化描述/提升可读性/突出亮点”等没有落地内容的句子。
+- 每条建议必须具体到：
+  - 改哪个字段（locate.path）
+  - 要写什么内容（至少给出结构/要点/模板）
+  - 写到什么程度（条数、必须包含哪些信息）
+  - 如何验证（HR/ATS 能否快速读懂、是否有证据/指标、是否可面试追问）
+- 所有问题都必须说明“影响”：
+  - ATS 解析风险（字段缺失/格式混乱/关键词不足）
+  - HR 误判风险（方向不一致/经历不可信/信息密度低）
+  - 面试追问风险（没有职责边界/没有技术细节/没有结果证据）
+
+4) 项目建议必须从面试官/HR 视角出发（强制、可面试可追问）
+当 locate.path = "projectExperience.items[0].projectInfo" 或涉及项目字段时：
+- replace_text 的 after 必须按固定结构输出（不得省略）：
+  【背景/目标】→【职责/范围】→【技术/难点/决策】→【结果/影响/证据】
+- 每个部分的硬性要求：
+  - 背景/目标：说明为什么做、要解决什么痛点、成功标准是什么
+  - 职责/范围：明确你负责的模块边界、核心功能点、对接对象（后端/产品/设计）
+  - 技术/难点/决策：写出真实技术栈 + 至少1个难点 + 你的解决方案 + 选择理由（trade-off）
+  - 结果/影响/证据：必须给量化指标；若输入没有指标，必须用“待补充占位指标”而不是编造数字，例如：
+    （待补充：组件数量X、覆盖业务Y、复用率Z%、节省工时N%、缺陷率下降M%、构建耗时下降T%）
+- 禁止“能用就行”的描述（例如“实现了组件库/优化了性能”但不给模块细节/指标/证据）。
+- 目标是：HR 一眼能看出价值，面试官能顺着你的描述追问出技术细节与决策过程。
+
+========================
 【输出前自检】（必须执行）
 ========================
 在输出最终 JSON 前，你必须逐条检查：
 - 每一个 Locate（包括 findings.locate / evidence.locate / suggestions.locate / next_actions.locate）都包含 path/sectionLabel/fieldLabel/itemLabel 四个字段，且 itemLabel 若不适用为 null；
 - 不存在只写 path 的 locate；
 - 所有 locate.path 都来自白名单；
+- 是否存在 any suggestions.after 为 null/""/[]/空 HTML？如有必须修正为具体建议值
+- 时间区间是否全部符合 ["YY-MM-DD","YY-MM-DD|至今"]？如不符合必须给 normalize_date 或 fill_field + 占位值
+- 是否存在任何空泛句（“优化一下/补充细节”类）？如有必须改成可执行的具体要求
+- 项目建议是否满足四段结构 + 难点/决策 + 指标/占位指标？如不满足必须重写
 否则你必须修正后再输出。
 
 ========================

@@ -19,8 +19,6 @@ export function AutoScrollContainer({
   useEffect(() => {
     if (enabled && containerRef.current) {
       const element = containerRef.current
-      // 检查是否已经在底部附近（允许 50px 的误差），如果是则自动滚动
-      // 或者如果是强制自动滚动模式
       element.scrollTop = element.scrollHeight
     }
   }, [dependency, enabled])

@@ -209,9 +209,6 @@ export function SimpleEditor({
         'class': 'simple-editor',
       },
     },
-    onUpdate: ({ editor }) => {
-      onChange(editor)
-    },
     extensions: [
       StarterKit.configure({
         horizontalRule: false,
@@ -241,10 +238,38 @@ export function SimpleEditor({
     content,
   })
 
+  // 跟踪编辑器是否正在被用户编辑，避免 setContent 循环
+  const isInternalUpdate = React.useRef(false)
+  const previousContent = React.useRef(content)
+
+  // 更新 onUpdate 以标记内部更新
   React.useEffect(() => {
-    if(!editor) return
+    if (!editor) return
     
-    editor.commands.setContent(content)
+    const handleUpdate = () => {
+      isInternalUpdate.current = true
+      onChange(editor)
+      // 使用 setTimeout 确保在下一个微任务中重置标志
+      setTimeout(() => {
+        isInternalUpdate.current = false
+      }, 0)
+    }
+    
+    editor.on('update', handleUpdate)
+    
+    return () => {
+      editor.off('update', handleUpdate)
+    }
+  }, [editor, onChange])
+
+  React.useEffect(() => {
+    if (!editor) return
+    
+    // 只有当 content 发生变化且不是由编辑器自身触发的更新时才设置内容
+    if (content !== previousContent.current && !isInternalUpdate.current) {
+      editor.commands.setContent(content)
+    }
+    previousContent.current = content
     
   }, [content, editor])
 
