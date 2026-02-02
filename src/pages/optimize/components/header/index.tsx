@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 import { ChainOfThought, ChainOfThoughtContent, ChainOfThoughtStep } from '@/components/ai/chain-of-thought'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { Button } from '@/components/ui/button'
-import { CodeBlock } from '@/components/ui/code-block'
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
@@ -265,13 +264,13 @@ function Header() {
                   if (stepConfig.id === 'result') {
                     return (
                       <AutoScrollContainer
-                        className="max-h-[300px] rounded-md mt-2 "
+                        className="max-h-[300px] bg-muted p-3 rounded-md mt-2"
                         dependency={stepContent}
                         enabled={isActive}
                       >
-                        <CodeBlock language="json" showLineNumbers filename="ats.json" className="max-w-[400px]">
+                        <pre className="whitespace-pre-wrap font-mono text-xs text-muted-foreground">
                           {stepContent}
-                        </CodeBlock>
+                        </pre>
                       </AutoScrollContainer>
                     )
                   }
