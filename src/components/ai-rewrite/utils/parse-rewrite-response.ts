@@ -1,6 +1,6 @@
-import type { RewriteAction, RewriteCandidate } from './types'
+import type { RewriteAction, RewriteCandidate } from '../types'
 import { parseLlmJsonObject } from '@/lib/llm'
-import { REWRITE_ACTION_META } from './const'
+import { REWRITE_ACTION_META } from '../const'
 
 interface RawCandidate {
   title?: unknown

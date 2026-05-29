@@ -1,4 +1,4 @@
-import type { RewriteAction, RewriteCandidate } from './types'
+import type { RewriteAction, RewriteCandidate } from '../types'
 import { useCallback, useState } from 'react'
 import {
   failRewriteSession,
@@ -8,7 +8,7 @@ import {
   startRewriteStreaming,
   succeedRewriteSession,
   waitForRewriteJd,
-} from './rewrite-session-state'
+} from '../utils/rewrite-session-state'
 
 export function useRewriteSession() {
   const [state, setState] = useState(INITIAL_REWRITE_SESSION_STATE)

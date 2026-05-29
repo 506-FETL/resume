@@ -66,12 +66,12 @@ export default function HistoryResumeSelector({ value, options, loading, error, 
               <SelectTrigger
                 id="history-resume-selector"
                 aria-invalid={Boolean(error)}
-                className="h-auto min-h-18 w-full rounded-2xl border-primary/10 bg-background/95 px-3 py-3 shadow-xs transition-colors hover:border-primary/20 hover:bg-primary/[0.04]"
+                className="h-auto min-h-18 w-full rounded-2xl border-primary/10 bg-background/95 px-3 py-3 shadow-xs transition-colors hover:border-primary/20 hover:bg-primary/4"
               >
                 <SelectValue placeholder={loading ? '正在加载简历...' : '选择简历'}>
                   {selectedResume && (
                     <div className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 text-left">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/10 bg-primary/[0.06] shadow-xs">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/10 bg-primary/6 shadow-xs">
                         <FileText className="text-primary" />
                       </div>
 

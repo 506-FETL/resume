@@ -1,7 +1,7 @@
-import type { RewriteAction, RewriteFieldContext, RewriteSelection } from './types'
+import type { RewriteAction, RewriteFieldContext, RewriteSelection } from '../types'
 import { useCallback, useEffect, useRef } from 'react'
 import { runBulletRewrite } from '@/lib/llm'
-import { parseRewriteResponse } from './parse-rewrite-response'
+import { parseRewriteResponse } from '../utils/parse-rewrite-response'
 import { useRewriteSession } from './use-rewrite-session'
 
 interface Args {

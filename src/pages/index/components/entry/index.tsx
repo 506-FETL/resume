@@ -124,7 +124,7 @@ function Entry() {
                 </div>
               )
             : (
-                <div className="flex flex-col items-center justify-center h-[180px] text-center">
+                <div className="flex flex-col items-center justify-center h-45 text-center">
                   <div className="p-3 rounded-full bg-muted/50 mb-3">
                     <FileUser className="size-6 text-muted-foreground/40" />
                   </div>

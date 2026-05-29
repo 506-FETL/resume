@@ -1,4 +1,4 @@
-import type { RewriteAction, RewriteCandidate, RewriteSessionState } from './types'
+import type { RewriteAction, RewriteCandidate, RewriteSessionState } from '../types'
 
 export const INITIAL_REWRITE_SESSION_STATE: RewriteSessionState = {
   status: 'idle',

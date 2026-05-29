@@ -55,7 +55,7 @@ export default function CompletenessModule({
                         {' '}
                         项优化
                       </p>
-                      <div className="relative flex max-h-[22px] flex-wrap gap-1.5 overflow-hidden">
+                      <div className="relative flex max-h-5.5 flex-wrap gap-1.5 overflow-hidden">
                         {activeItem.ats.todoItems.length > 0
                           ? activeItem.ats.todoItems.map(item => (
                               <span
@@ -70,7 +70,6 @@ export default function CompletenessModule({
                                 {activeItem.ats.hasReport ? '当前没有待优化项' : '先运行一次 ATS 检测'}
                               </span>
                             )}
-                        <div className="pointer-events-none absolute top-0 right-0 bottom-0 w-8 bg-linear-to-l from-amber-50 to-transparent dark:from-[#1a120b]" />
                       </div>
                     </>
                   )

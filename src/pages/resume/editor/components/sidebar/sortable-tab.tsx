@@ -6,7 +6,6 @@ import { createPortal } from 'react-dom'
 import { Tab } from '@/components/ui/side-tabs'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
 
 interface SortableTabProps {
   id: VisibilityItemsType
@@ -39,10 +38,7 @@ export function SortableTab({
     <div
       ref={innerRef}
       {...draggableProps}
-      className={cn(
-        'flex flex-col items-center justify-end gap-2 select-none',
-        isDragging && 'shadow-lg ring-2 ring-primary/40 rounded-md bg-background',
-      )}
+      className="flex flex-col items-center justify-end gap-2 select-none"
       data-active={active}
     >
       <div className="flex flex-row items-center gap-1.5">

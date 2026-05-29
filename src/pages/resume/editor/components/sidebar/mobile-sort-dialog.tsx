@@ -75,15 +75,13 @@ export function MobileSortDialog({ open, order, onOpenChange, onConfirm }: Mobil
                       return null
                     return (
                       <Draggable key={id} draggableId={id} index={index}>
-                        {(draggable, snapshot) => (
+                        {draggable => (
                           <li
                             ref={draggable.innerRef}
                             {...draggable.draggableProps}
                             {...draggable.dragHandleProps}
                             style={draggable.draggableProps.style}
-                            className={`flex items-center gap-3 rounded-md border bg-background px-3 py-2 select-none cursor-grab active:cursor-grabbing ${
-                              snapshot.isDragging ? 'shadow-lg ring-2 ring-primary/40' : ''
-                            }`}
+                            className="touch-none flex items-center gap-3 rounded-md border bg-background px-3 py-2 select-none cursor-grab active:cursor-grabbing"
                             aria-label={`拖动 ${item.label}`}
                           >
                             <span className="text-foreground/80">{item.icon}</span>

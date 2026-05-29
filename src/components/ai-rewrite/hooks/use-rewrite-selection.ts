@@ -1,8 +1,8 @@
 import type { Editor } from '@tiptap/react'
-import type { RewriteSelection } from './types'
+import type { RewriteSelection } from '../types'
 import { DOMSerializer } from '@tiptap/pm/model'
 import { useCallback } from 'react'
-import { SELECTION_MIN_CHARS } from './const'
+import { SELECTION_MIN_CHARS } from '../const'
 
 export function useRewriteSelection(editor: Editor) {
   return useCallback((): RewriteSelection | null => {
