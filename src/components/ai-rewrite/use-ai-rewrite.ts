@@ -66,9 +66,9 @@ export function useAiRewrite({ fieldContext }: Args) {
     }
   }, [action, run])
 
-  const openWaitingJd = useCallback((nextAction: RewriteAction) => {
+  const waitForJd = useCallback(() => {
     cancel()
-    session.openWaitingJd(nextAction)
+    session.waitForJd()
   }, [cancel, session])
 
   return {
@@ -78,6 +78,6 @@ export function useAiRewrite({ fieldContext }: Args) {
     retry,
     cancel,
     reset: session.reset,
-    openWaitingJd,
+    waitForJd,
   }
 }

@@ -669,7 +669,7 @@ return (
 
 执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
-- [ ] **步骤 6：提交**
+- [x] **步骤 6：提交**
 
 ```bash
 git add src/components/ai-rewrite/rewrite-status-view.tsx src/components/ai-rewrite/rewrite-candidate-list.tsx src/components/ai-rewrite/ai-rewrite-panel.tsx src/components/ai-rewrite/candidate-card.tsx src/components/ai-rewrite/jd-context-input.tsx docs/superpowers/plans/2026-05-30-ai-rewrite-composition.md
@@ -683,7 +683,7 @@ git commit --only src/components/ai-rewrite/rewrite-status-view.tsx src/componen
 - 修改：`src/components/ai-rewrite/ai-rewrite-bubble.tsx`
 - 修改：`src/components/ai-rewrite/rewrite-session-state.test.ts`
 
-- [ ] **步骤 1：补充重试行为测试**
+- [x] **步骤 1：补充重试行为测试**
 
 在 `src/components/ai-rewrite/rewrite-session-state.test.ts` 增加：
 
@@ -695,15 +695,15 @@ it('streaming 时不会允许重复重试', () => {
 })
 ```
 
-- [ ] **步骤 2：运行测试并确认当前行为**
+- [x] **步骤 2：运行测试并确认当前行为**
 
 运行：`node --test src/components/ai-rewrite/rewrite-session-state.test.ts`
 
 预期：PASS；如果失败，先修状态 helper，不能继续 UI 串联。
 
-执行记录：
+执行记录：已运行 `node --test src/components/ai-rewrite/rewrite-session-state.test.ts`，结果 PASS，1 个 suite、4 个测试全部通过。
 
-- [ ] **步骤 3：更新 `useAiRewrite` 命名与返回值**
+- [x] **步骤 3：更新 `useAiRewrite` 命名与返回值**
 
 修改 `src/components/ai-rewrite/use-ai-rewrite.ts`：
 
@@ -721,7 +721,7 @@ const waitForJd = useCallback(() => {
 }, [cancel, session])
 ```
 
-- [ ] **步骤 4：更新 `AiRewriteBubble` 调用点**
+- [x] **步骤 4：更新 `AiRewriteBubble` 调用点**
 
 修改 `src/components/ai-rewrite/ai-rewrite-bubble.tsx`：
 
@@ -730,7 +730,7 @@ const waitForJd = useCallback(() => {
 - `handleAction` 依赖列表移除旧 `openWaitingJd`。
 - `activeSelection` 继续在非 idle 时使用 `savedSelection`。
 
-- [ ] **步骤 5：运行测试和类型检查**
+- [x] **步骤 5：运行测试和类型检查**
 
 运行：
 
@@ -741,7 +741,7 @@ node --test src/components/ai-rewrite/rewrite-session-state.test.ts
 
 预期：两条命令均 PASS。
 
-执行记录：
+执行记录：已运行 `node --test src/components/ai-rewrite/rewrite-session-state.test.ts && ./node_modules/.bin/tsc --noEmit`，结果 PASS，Node 测试 1 个 suite、4 个测试通过，类型检查通过。
 
 - [ ] **步骤 6：提交**
 

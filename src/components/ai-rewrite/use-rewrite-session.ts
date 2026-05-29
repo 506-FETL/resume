@@ -37,9 +37,5 @@ export function useRewriteSession() {
     setState(prev => waitForRewriteJd(prev))
   }, [])
 
-  const openWaitingJd = useCallback((_action: RewriteAction) => {
-    setState(prev => waitForRewriteJd(prev))
-  }, [])
-
-  return { state, startStreaming, succeed, fail, reset, setJdDraft, waitForJd, openWaitingJd }
+  return { state, startStreaming, succeed, fail, reset, setJdDraft, waitForJd }
 }

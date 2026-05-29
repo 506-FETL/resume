@@ -48,4 +48,10 @@ describe('rewrite session state', () => {
     assert.deepEqual(failed.candidates, [])
     assert.equal(failed.errorMessage, 'AI 改写失败')
   })
+
+  it('streaming 时不会允许重复重试', () => {
+    const streaming = startRewriteStreaming(INITIAL_REWRITE_SESSION_STATE, 'polish')
+
+    assert.equal(getRewriteCanRetry(streaming, 10), false)
+  })
 })

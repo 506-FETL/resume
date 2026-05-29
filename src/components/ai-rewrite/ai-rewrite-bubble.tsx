@@ -24,7 +24,7 @@ interface Props {
 const BUBBLE_MENU_PLUGIN_KEY = 'aiRewriteBubbleMenu'
 
 export function AiRewriteBubble({ editor, fieldContext }: Props) {
-  const { state, run, setJdDraft, reset, retry, cancel, openWaitingJd } = useAiRewrite({ fieldContext })
+  const { state, run, setJdDraft, reset, retry, cancel, waitForJd } = useAiRewrite({ fieldContext })
   const [bubbleEl, setBubbleEl] = useState<HTMLDivElement | null>(null)
   const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(null)
   const readSelection = useRewriteSelection(editor)
@@ -82,11 +82,11 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       return
     setSavedSelection(sel)
     if (nextAction === 'align_jd' && state.jdDraft.trim().length < JD_MIN_CHARS) {
-      openWaitingJd(nextAction)
+      waitForJd()
       return
     }
     run(nextAction, sel)
-  }, [openWaitingJd, readSelection, run, state.jdDraft])
+  }, [readSelection, run, state.jdDraft, waitForJd])
 
   const handleApply = useCallback((candidate: RewriteCandidate) => {
     if (!savedSelection)
