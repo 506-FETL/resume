@@ -323,7 +323,7 @@ export function useRewriteSelection(editor: Editor) {
 
 执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
-- [ ] **步骤 4：提交**
+- [x] **步骤 4：提交**
 
 ```bash
 git add src/components/ai-rewrite/use-rewrite-selection.ts src/components/ai-rewrite/ai-rewrite-bubble.tsx docs/superpowers/plans/2026-05-30-ai-rewrite-composition.md
@@ -336,7 +336,7 @@ git commit --only src/components/ai-rewrite/use-rewrite-selection.ts src/compone
 - 新建：`src/components/ai-rewrite/rewrite-bubble-menu.tsx`
 - 修改：`src/components/ai-rewrite/ai-rewrite-bubble.tsx`
 
-- [ ] **步骤 1：创建动作按钮组件**
+- [x] **步骤 1：创建动作按钮组件**
 
 新建 `src/components/ai-rewrite/rewrite-bubble-menu.tsx`：
 
@@ -377,7 +377,7 @@ export function RewriteBubbleMenu({ onAction }: RewriteBubbleMenuProps) {
 }
 ```
 
-- [ ] **步骤 2：在顶层组件中使用动作按钮组件**
+- [x] **步骤 2：在顶层组件中使用动作按钮组件**
 
 修改 `src/components/ai-rewrite/ai-rewrite-bubble.tsx`：
 
@@ -386,13 +386,13 @@ export function RewriteBubbleMenu({ onAction }: RewriteBubbleMenuProps) {
 - 引入 `RewriteBubbleMenu`。
 - portal 内容替换为 `<RewriteBubbleMenu onAction={handleAction} />`。
 
-- [ ] **步骤 3：运行类型检查**
+- [x] **步骤 3：运行类型检查**
 
 运行：`./node_modules/.bin/tsc --noEmit`
 
 预期：PASS。
 
-执行记录：
+执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
 - [ ] **步骤 4：提交**
 

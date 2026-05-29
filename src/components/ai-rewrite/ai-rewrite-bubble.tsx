@@ -6,10 +6,10 @@ import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu'
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { AiRewritePanel } from './ai-rewrite-panel'
-import { JD_MIN_CHARS, REWRITE_ACTION_LIST, REWRITE_ACTION_META, SELECTION_MIN_CHARS } from './const'
+import { JD_MIN_CHARS, REWRITE_ACTION_META, SELECTION_MIN_CHARS } from './const'
+import { RewriteBubbleMenu } from './rewrite-bubble-menu'
 import { useAiRewrite } from './use-ai-rewrite'
 import { useRewriteSelection } from './use-rewrite-selection'
 import './ai-rewrite.scss'
@@ -104,27 +104,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   return (
     <>
       {bubbleEl && createPortal(
-        <div className="tiptap-toolbar" data-variant="floating">
-          {REWRITE_ACTION_LIST.map((act) => {
-            const m = REWRITE_ACTION_META[act]
-            const Icon = m.icon
-            return (
-              <Button
-                key={act}
-                type="button"
-                size="sm"
-                variant="ghost"
-                title={m.description}
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => handleAction(act)}
-                className="h-8 gap-1"
-              >
-                <Icon className="size-4" />
-                <span className="text-xs">{m.label}</span>
-              </Button>
-            )
-          })}
-        </div>,
+        <RewriteBubbleMenu onAction={handleAction} />,
         bubbleEl,
       )}
 
