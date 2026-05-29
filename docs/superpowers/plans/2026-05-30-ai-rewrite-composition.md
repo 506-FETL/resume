@@ -49,7 +49,7 @@
 - 新建：`src/components/ai-rewrite/rewrite-session-state.test.ts`
 - 修改：`src/components/ai-rewrite/use-rewrite-session.ts`
 
-- [ ] **步骤 1：先写失败测试**
+- [x] **步骤 1：先写失败测试**
 
 新建 `src/components/ai-rewrite/rewrite-session-state.test.ts`：
 
@@ -107,15 +107,15 @@ describe('rewrite session state', () => {
 })
 ```
 
-- [ ] **步骤 2：运行测试并确认它失败**
+- [x] **步骤 2：运行测试并确认它失败**
 
 运行：`node --test src/components/ai-rewrite/rewrite-session-state.test.ts`
 
 预期：FAIL，报错包含 `Cannot find module` 或 `does not provide an export`，因为 `rewrite-session-state.ts` 尚未实现。
 
-执行记录：
+执行记录：已运行 `node --test src/components/ai-rewrite/rewrite-session-state.test.ts`，结果按预期 FAIL，报错 `ERR_MODULE_NOT_FOUND`，因为 `rewrite-session-state.ts` 尚未实现。
 
-- [ ] **步骤 3：更新类型契约**
+- [x] **步骤 3：更新类型契约**
 
 修改 `src/components/ai-rewrite/types.ts`：
 
@@ -125,7 +125,7 @@ export type RewriteSessionStatus = 'idle' | 'waiting_jd' | 'streaming' | 'succes
 
 保留现有 `RewriteSessionState` 字段，不引入全局 store。
 
-- [ ] **步骤 4：实现纯状态 helper**
+- [x] **步骤 4：实现纯状态 helper**
 
 新建 `src/components/ai-rewrite/rewrite-session-state.ts`：
 
@@ -197,7 +197,7 @@ export function getRewriteCanRetry(state: RewriteSessionState, jdMinChars: numbe
 }
 ```
 
-- [ ] **步骤 5：让 hook 使用状态 helper**
+- [x] **步骤 5：让 hook 使用状态 helper**
 
 修改 `src/components/ai-rewrite/use-rewrite-session.ts`，用 helper 替换内联 `setState` 逻辑：
 
@@ -245,21 +245,21 @@ export function useRewriteSession() {
 }
 ```
 
-- [ ] **步骤 6：再次运行测试并确认通过**
+- [x] **步骤 6：再次运行测试并确认通过**
 
 运行：`node --test src/components/ai-rewrite/rewrite-session-state.test.ts`
 
 预期：PASS，3 个测试通过。
 
-执行记录：
+执行记录：已运行 `node --test src/components/ai-rewrite/rewrite-session-state.test.ts`，结果 PASS，1 个 suite、3 个测试全部通过。
 
-- [ ] **步骤 7：运行类型检查**
+- [x] **步骤 7：运行类型检查**
 
 运行：`./node_modules/.bin/tsc --noEmit`
 
 预期：PASS。
 
-执行记录：
+执行记录：首次运行 `./node_modules/.bin/tsc --noEmit` 失败，报错 `use-ai-rewrite.ts` 仍引用旧的 `openWaitingJd`。已在 `useRewriteSession` 暂时保留兼容别名，等待任务 6 移除；再次运行同一命令，结果 PASS。
 
 - [ ] **步骤 8：提交**
 

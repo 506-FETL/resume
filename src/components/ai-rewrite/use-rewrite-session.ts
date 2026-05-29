@@ -1,52 +1,45 @@
-import type { RewriteAction, RewriteCandidate, RewriteSessionState } from './types'
+import type { RewriteAction, RewriteCandidate } from './types'
 import { useCallback, useState } from 'react'
-
-const INITIAL: RewriteSessionState = {
-  status: 'idle',
-  action: null,
-  candidates: [],
-  errorMessage: null,
-  jdDraft: '',
-}
+import {
+  failRewriteSession,
+  INITIAL_REWRITE_SESSION_STATE,
+  resetRewriteSession,
+  setRewriteJdDraft,
+  startRewriteStreaming,
+  succeedRewriteSession,
+  waitForRewriteJd,
+} from './rewrite-session-state'
 
 export function useRewriteSession() {
-  const [state, setState] = useState<RewriteSessionState>(INITIAL)
+  const [state, setState] = useState(INITIAL_REWRITE_SESSION_STATE)
 
   const startStreaming = useCallback((action: RewriteAction) => {
-    setState(prev => ({
-      ...prev,
-      status: 'streaming',
-      action,
-      candidates: [],
-      errorMessage: null,
-    }))
+    setState(prev => startRewriteStreaming(prev, action))
   }, [])
 
   const succeed = useCallback((candidates: RewriteCandidate[]) => {
-    setState(prev => ({ ...prev, status: 'success', candidates, errorMessage: null }))
+    setState(prev => succeedRewriteSession(prev, candidates))
   }, [])
 
   const fail = useCallback((message: string) => {
-    setState(prev => ({ ...prev, status: 'error', errorMessage: message }))
+    setState(prev => failRewriteSession(prev, message))
   }, [])
 
   const reset = useCallback(() => {
-    setState(INITIAL)
+    setState(resetRewriteSession())
   }, [])
 
   const setJdDraft = useCallback((jdDraft: string) => {
-    setState(prev => ({ ...prev, jdDraft }))
+    setState(prev => setRewriteJdDraft(prev, jdDraft))
   }, [])
 
-  const openWaitingJd = useCallback((action: RewriteAction) => {
-    setState(prev => ({
-      ...prev,
-      status: 'success',
-      action,
-      candidates: [],
-      errorMessage: null,
-    }))
+  const waitForJd = useCallback(() => {
+    setState(prev => waitForRewriteJd(prev))
   }, [])
 
-  return { state, startStreaming, succeed, fail, reset, setJdDraft, openWaitingJd }
+  const openWaitingJd = useCallback((_action: RewriteAction) => {
+    setState(prev => waitForRewriteJd(prev))
+  }, [])
+
+  return { state, startStreaming, succeed, fail, reset, setJdDraft, waitForJd, openWaitingJd }
 }

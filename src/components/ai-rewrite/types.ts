@@ -37,7 +37,7 @@ export interface RewriteRequestArgs {
   jdDraft?: string
 }
 
-export type RewriteSessionStatus = 'idle' | 'streaming' | 'success' | 'error'
+export type RewriteSessionStatus = 'idle' | 'waiting_jd' | 'streaming' | 'success' | 'error'
 
 export interface RewriteSessionState {
   status: RewriteSessionStatus
