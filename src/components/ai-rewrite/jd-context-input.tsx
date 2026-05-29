@@ -21,6 +21,7 @@ export function JdContextInput({ value, onChange }: Props) {
       <Textarea
         value={value}
         placeholder="粘贴岗位 JD，AI 将向其关键词靠拢"
+        aria-invalid={!valid}
         onChange={e => onChange(e.target.value)}
         className="max-h-40 min-h-20 text-sm"
       />

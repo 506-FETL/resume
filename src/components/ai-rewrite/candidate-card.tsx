@@ -39,6 +39,7 @@ export function CandidateCard({ candidate, onApply }: Props) {
           size="sm"
           variant="default"
           className="w-full"
+          aria-label={`应用 ${candidate.title}`}
           onClick={() => onApply(candidate)}
         >
           <Check className="size-4" />

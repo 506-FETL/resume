@@ -525,7 +525,7 @@ const canRetry = getRewriteCanRetry(state, JD_MIN_CHARS)
 
 执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
-- [ ] **步骤 5：提交**
+- [x] **步骤 5：提交**
 
 ```bash
 git add src/components/ai-rewrite/rewrite-dialog-shell.tsx src/components/ai-rewrite/rewrite-panel-footer.tsx src/components/ai-rewrite/ai-rewrite-bubble.tsx docs/superpowers/plans/2026-05-30-ai-rewrite-composition.md
@@ -541,7 +541,7 @@ git commit --only src/components/ai-rewrite/rewrite-dialog-shell.tsx src/compone
 - 修改：`src/components/ai-rewrite/candidate-card.tsx`
 - 修改：`src/components/ai-rewrite/jd-context-input.tsx`
 
-- [ ] **步骤 1：创建状态视图组件**
+- [x] **步骤 1：创建状态视图组件**
 
 新建 `src/components/ai-rewrite/rewrite-status-view.tsx`：
 
@@ -598,7 +598,7 @@ export function RewriteStatusView({ state }: RewriteStatusViewProps) {
 }
 ```
 
-- [ ] **步骤 2：创建候选列表组件**
+- [x] **步骤 2：创建候选列表组件**
 
 新建 `src/components/ai-rewrite/rewrite-candidate-list.tsx`：
 
@@ -625,7 +625,7 @@ export function RewriteCandidateList({ candidates, onApply }: RewriteCandidateLi
 }
 ```
 
-- [ ] **步骤 3：简化 `AiRewritePanel`**
+- [x] **步骤 3：简化 `AiRewritePanel`**
 
 修改 `src/components/ai-rewrite/ai-rewrite-panel.tsx`：
 
@@ -649,7 +649,7 @@ return (
 )
 ```
 
-- [ ] **步骤 4：整理候选卡和 JD 输入可访问性**
+- [x] **步骤 4：整理候选卡和 JD 输入可访问性**
 
 修改 `src/components/ai-rewrite/candidate-card.tsx`：
 
@@ -661,13 +661,13 @@ return (
 - 给 `Textarea` 增加 `aria-invalid={!valid}`。
 - 计数文本保留，避免新增说明性大段文案。
 
-- [ ] **步骤 5：运行类型检查**
+- [x] **步骤 5：运行类型检查**
 
 运行：`./node_modules/.bin/tsc --noEmit`
 
 预期：PASS。
 
-执行记录：
+执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
 - [ ] **步骤 6：提交**
 

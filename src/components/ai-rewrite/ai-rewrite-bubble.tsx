@@ -131,7 +131,6 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
           state={state}
           selection={activeSelection}
           onApply={handleApply}
-          onRetry={handleRetry}
           onJdDraftChange={setJdDraft}
         />
       </RewriteDialogShell>
