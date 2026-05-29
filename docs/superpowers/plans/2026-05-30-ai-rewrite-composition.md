@@ -394,7 +394,7 @@ export function RewriteBubbleMenu({ onAction }: RewriteBubbleMenuProps) {
 
 执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
-- [ ] **步骤 4：提交**
+- [x] **步骤 4：提交**
 
 ```bash
 git add src/components/ai-rewrite/rewrite-bubble-menu.tsx src/components/ai-rewrite/ai-rewrite-bubble.tsx docs/superpowers/plans/2026-05-30-ai-rewrite-composition.md
@@ -408,7 +408,7 @@ git commit --only src/components/ai-rewrite/rewrite-bubble-menu.tsx src/componen
 - 新建：`src/components/ai-rewrite/rewrite-panel-footer.tsx`
 - 修改：`src/components/ai-rewrite/ai-rewrite-bubble.tsx`
 
-- [ ] **步骤 1：创建 Dialog shell**
+- [x] **步骤 1：创建 Dialog shell**
 
 新建 `src/components/ai-rewrite/rewrite-dialog-shell.tsx`：
 
@@ -467,7 +467,7 @@ export function RewriteDialogShell({
 }
 ```
 
-- [ ] **步骤 2：创建 footer 组件**
+- [x] **步骤 2：创建 footer 组件**
 
 新建 `src/components/ai-rewrite/rewrite-panel-footer.tsx`：
 
@@ -500,7 +500,7 @@ export function RewritePanelFooter({ canRetry, isStreaming, onRetry }: RewritePa
 }
 ```
 
-- [ ] **步骤 3：在 `ai-rewrite-bubble.tsx` 中接入 shell**
+- [x] **步骤 3：在 `ai-rewrite-bubble.tsx` 中接入 shell**
 
 修改 `src/components/ai-rewrite/ai-rewrite-bubble.tsx`：
 
@@ -517,13 +517,13 @@ const canRetry = getRewriteCanRetry(state, JD_MIN_CHARS)
 - 用 `RewriteDialogShell` 包裹 `AiRewritePanel`。
 - footer 传入 `<RewritePanelFooter canRetry={canRetry} isStreaming={state.status === 'streaming'} onRetry={handleRetry} />`。
 
-- [ ] **步骤 4：运行类型检查**
+- [x] **步骤 4：运行类型检查**
 
 运行：`./node_modules/.bin/tsc --noEmit`
 
 预期：PASS。
 
-执行记录：
+执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
 - [ ] **步骤 5：提交**
 

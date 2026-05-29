@@ -6,10 +6,12 @@ import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu'
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { AiRewritePanel } from './ai-rewrite-panel'
 import { JD_MIN_CHARS, REWRITE_ACTION_META, SELECTION_MIN_CHARS } from './const'
 import { RewriteBubbleMenu } from './rewrite-bubble-menu'
+import { RewriteDialogShell } from './rewrite-dialog-shell'
+import { RewritePanelFooter } from './rewrite-panel-footer'
+import { getRewriteCanRetry } from './rewrite-session-state'
 import { useAiRewrite } from './use-ai-rewrite'
 import { useRewriteSelection } from './use-rewrite-selection'
 import './ai-rewrite.scss'
@@ -32,6 +34,9 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const action = state.action
   const meta = action ? REWRITE_ACTION_META[action] : null
   const HeaderIcon = meta?.icon
+  const title = meta ? `${meta.label}候选` : 'AI 改写候选'
+  const description = meta ? `${meta.description}；选择满意的版本点击「应用」即可替换原文。` : undefined
+  const canRetry = getRewriteCanRetry(state, JD_MIN_CHARS)
 
   // 创建 BubbleMenu 的原生 DOM 容器（Tiptap 的 BubbleMenuPlugin API
   // 需要直接传入 element，无 shadcn 等价物，故保留此最小原生容器）
@@ -108,30 +113,28 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
         bubbleEl,
       )}
 
-      <ResponsiveDialog open={dialogOpen} onOpenChange={open => !open && handleClose()}>
-        <ResponsiveDialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:h-[85vh] sm:max-h-[85vh] sm:max-w-3xl">
-          <ResponsiveDialogHeader className="shrink-0 border-b px-6 pb-4 pt-6">
-            <ResponsiveDialogTitle className="flex items-center gap-2 text-base">
-              {HeaderIcon ? <HeaderIcon className="size-4" /> : null}
-              {meta ? `${meta.label}候选` : 'AI 改写候选'}
-            </ResponsiveDialogTitle>
-            {meta && (
-              <ResponsiveDialogDescription>
-                {meta.description}
-                ；选择满意的版本点击「应用」即可替换原文。
-              </ResponsiveDialogDescription>
-            )}
-          </ResponsiveDialogHeader>
-
-          <AiRewritePanel
-            state={state}
-            selection={activeSelection}
-            onApply={handleApply}
+      <RewriteDialogShell
+        open={dialogOpen}
+        onOpenChange={open => !open && handleClose()}
+        title={title}
+        description={description}
+        icon={HeaderIcon}
+        footer={(
+          <RewritePanelFooter
+            canRetry={canRetry}
+            isStreaming={state.status === 'streaming'}
             onRetry={handleRetry}
-            onJdDraftChange={setJdDraft}
           />
-        </ResponsiveDialogContent>
-      </ResponsiveDialog>
+        )}
+      >
+        <AiRewritePanel
+          state={state}
+          selection={activeSelection}
+          onApply={handleApply}
+          onRetry={handleRetry}
+          onJdDraftChange={setJdDraft}
+        />
+      </RewriteDialogShell>
     </>
   )
 }
