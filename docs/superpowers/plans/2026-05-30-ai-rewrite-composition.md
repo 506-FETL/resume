@@ -261,7 +261,7 @@ export function useRewriteSession() {
 
 执行记录：首次运行 `./node_modules/.bin/tsc --noEmit` 失败，报错 `use-ai-rewrite.ts` 仍引用旧的 `openWaitingJd`。已在 `useRewriteSession` 暂时保留兼容别名，等待任务 6 移除；再次运行同一命令，结果 PASS。
 
-- [ ] **步骤 8：提交**
+- [x] **步骤 8：提交**
 
 ```bash
 git add src/components/ai-rewrite/types.ts src/components/ai-rewrite/rewrite-session-state.ts src/components/ai-rewrite/rewrite-session-state.test.ts src/components/ai-rewrite/use-rewrite-session.ts docs/superpowers/plans/2026-05-30-ai-rewrite-composition.md
@@ -274,7 +274,7 @@ git commit --only src/components/ai-rewrite/types.ts src/components/ai-rewrite/r
 - 新建：`src/components/ai-rewrite/use-rewrite-selection.ts`
 - 修改：`src/components/ai-rewrite/ai-rewrite-bubble.tsx`
 
-- [ ] **步骤 1：创建选区读取 hook**
+- [x] **步骤 1：创建选区读取 hook**
 
 新建 `src/components/ai-rewrite/use-rewrite-selection.ts`：
 
@@ -305,7 +305,7 @@ export function useRewriteSelection(editor: Editor) {
 }
 ```
 
-- [ ] **步骤 2：替换 `ai-rewrite-bubble.tsx` 内联函数**
+- [x] **步骤 2：替换 `ai-rewrite-bubble.tsx` 内联函数**
 
 修改 `src/components/ai-rewrite/ai-rewrite-bubble.tsx`：
 
@@ -315,13 +315,13 @@ export function useRewriteSelection(editor: Editor) {
 - 在组件中添加 `const readSelection = useRewriteSelection(editor)`。
 - `handleAction` 内改为 `const sel = readSelection()`。
 
-- [ ] **步骤 3：运行类型检查**
+- [x] **步骤 3：运行类型检查**
 
 运行：`./node_modules/.bin/tsc --noEmit`
 
 预期：PASS。
 
-执行记录：
+执行记录：已运行 `./node_modules/.bin/tsc --noEmit`，结果 PASS。
 
 - [ ] **步骤 4：提交**
 

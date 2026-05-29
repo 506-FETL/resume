@@ -3,21 +3,15 @@
 import type { Editor } from '@tiptap/react'
 import type { RewriteAction, RewriteCandidate, RewriteFieldContext, RewriteSelection } from './types'
 import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu'
-import { DOMSerializer } from '@tiptap/pm/model'
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from '@/components/ui/responsive-dialog'
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { AiRewritePanel } from './ai-rewrite-panel'
 import { JD_MIN_CHARS, REWRITE_ACTION_LIST, REWRITE_ACTION_META, SELECTION_MIN_CHARS } from './const'
 import { useAiRewrite } from './use-ai-rewrite'
+import { useRewriteSelection } from './use-rewrite-selection'
 import './ai-rewrite.scss'
 
 interface Props {
@@ -27,24 +21,11 @@ interface Props {
 
 const BUBBLE_MENU_PLUGIN_KEY = 'aiRewriteBubbleMenu'
 
-function getSelectionPayload(editor: Editor): RewriteSelection | null {
-  const { from, to } = editor.state.selection
-  if (from === to)
-    return null
-  const text = editor.state.doc.textBetween(from, to, '\n').trim()
-  if (text.length < SELECTION_MIN_CHARS)
-    return null
-  const slice = editor.state.doc.slice(from, to)
-  const div = document.createElement('div')
-  const fragment = DOMSerializer.fromSchema(editor.schema).serializeFragment(slice.content)
-  div.appendChild(fragment)
-  return { from, to, text, html: div.innerHTML }
-}
-
 export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const { state, run, setJdDraft, reset, retry, cancel, openWaitingJd } = useAiRewrite({ fieldContext })
   const [bubbleEl, setBubbleEl] = useState<HTMLDivElement | null>(null)
   const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(null)
+  const readSelection = useRewriteSelection(editor)
 
   const activeSelection = state.status === 'idle' ? null : savedSelection
   const dialogOpen = state.status !== 'idle'
@@ -91,7 +72,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   }, [cancel, reset])
 
   const handleAction = useCallback((nextAction: RewriteAction) => {
-    const sel = getSelectionPayload(editor)
+    const sel = readSelection()
     if (!sel)
       return
     setSavedSelection(sel)
@@ -100,7 +81,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       return
     }
     run(nextAction, sel)
-  }, [editor, run, openWaitingJd, state.jdDraft])
+  }, [openWaitingJd, readSelection, run, state.jdDraft])
 
   const handleApply = useCallback((candidate: RewriteCandidate) => {
     if (!savedSelection)
@@ -134,8 +115,6 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
                 size="sm"
                 variant="ghost"
                 title={m.description}
-                // 阻止按钮在点击时获得焦点：避免随后 Dialog/Drawer 打开后
-                // 焦点滞留在被 aria-hidden 的祖先按钮上，触发可访问性警告
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => handleAction(act)}
                 className="h-8 gap-1"
