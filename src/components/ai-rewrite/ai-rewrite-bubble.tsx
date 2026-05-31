@@ -1,8 +1,14 @@
 'use client'
 
 import type { Editor } from '@tiptap/react'
-import type { RewriteAction, RewriteCandidate, RewriteFieldContext, RewriteSelection } from './types'
+import type {
+  RewriteAction,
+  RewriteCandidate,
+  RewriteFieldContext,
+  RewriteSelection,
+} from './types'
 import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu'
+import { AnimatePresence } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
@@ -26,6 +32,7 @@ const BUBBLE_MENU_PLUGIN_KEY = 'aiRewriteBubbleMenu'
 export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const { state, run, setJdDraft, reset, retry, cancel, waitForJd } = useAiRewrite({ fieldContext })
   const [bubbleEl, setBubbleEl] = useState<HTMLDivElement | null>(null)
+  const [bubbleVisible, setBubbleVisible] = useState(false)
   const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(null)
 
   const activeSelection = state.status === 'idle' ? null : savedSelection
@@ -55,21 +62,44 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     if (!editor || !bubbleEl)
       return
 
+    let disposed = false
     const plugin = BubbleMenuPlugin({
       editor,
       element: bubbleEl,
       pluginKey: BUBBLE_MENU_PLUGIN_KEY,
+      options: {
+        onShow: () => {
+          if (disposed)
+            return
+
+          setBubbleVisible(true)
+        },
+        onHide: () => {
+          if (disposed)
+            return
+
+          const bubbleParent = editor.view.dom.parentElement
+          bubbleParent?.appendChild(bubbleEl)
+          bubbleEl.style.visibility = 'visible'
+          bubbleEl.style.opacity = '1'
+          setBubbleVisible(false)
+        },
+      },
       shouldShow: ({ editor: ed, from, to }) => {
         if (from === to)
           return false
 
-        return ed.state.doc.textBetween(from, to).trim().length >= SELECTION_MIN_CHARS
+        return (
+          ed.state.doc.textBetween(from, to).trim().length
+          >= SELECTION_MIN_CHARS
+        )
       },
     })
 
     editor.registerPlugin(plugin)
 
     return () => {
+      disposed = true
       editor.unregisterPlugin(BUBBLE_MENU_PLUGIN_KEY)
     }
   }, [editor, bubbleEl])
@@ -88,7 +118,10 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
 
     setSavedSelection(sel)
 
-    if (nextAction === 'align_jd' && state.jdDraft.trim().length < JD_MIN_CHARS) {
+    if (
+      nextAction === 'align_jd'
+      && state.jdDraft.trim().length < JD_MIN_CHARS
+    ) {
       waitForJd()
       return
     }
@@ -103,7 +136,10 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     editor
       .chain()
       .focus()
-      .insertContentAt({ from: savedSelection.from, to: savedSelection.to }, candidate.html)
+      .insertContentAt(
+        { from: savedSelection.from, to: savedSelection.to },
+        candidate.html,
+      )
       .run()
 
     toast.success('已应用 AI 改写')
@@ -118,10 +154,24 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
 
   return (
     <>
-      {bubbleEl && createPortal(
-        <RewriteBubbleMenu onAction={handleAction} />,
-        bubbleEl,
-      )}
+      {bubbleEl
+        && createPortal(
+          <AnimatePresence
+            initial={false}
+            onExitComplete={() => {
+              if (bubbleEl.childElementCount === 0)
+                bubbleEl.remove()
+            }}
+          >
+            {bubbleVisible && (
+              <RewriteBubbleMenu
+                key="ai-rewrite-bubble-menu"
+                onAction={handleAction}
+              />
+            )}
+          </AnimatePresence>,
+          bubbleEl,
+        )}
 
       <RewriteDialogShell
         open={dialogOpen}

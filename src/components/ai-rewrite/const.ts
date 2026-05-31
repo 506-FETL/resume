@@ -24,6 +24,6 @@ export const REWRITE_ACTION_META: Record<RewriteAction, ActionMeta> = {
   align_jd: { label: 'JD 靠拢', description: '向给定的岗位描述（JD）关键词靠拢', icon: Target },
 }
 
-export const SELECTION_MIN_CHARS = 2
+export const SELECTION_MIN_CHARS = 10
 export const JD_MIN_CHARS = 10
 export const REWRITE_TEMPERATURE = 0.6

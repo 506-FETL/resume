@@ -2,6 +2,7 @@ import type { RewriteCandidate } from '../types'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { parseSanitizedHtml } from '@/lib/safe-html'
 
 interface Props {
   candidate: RewriteCandidate
@@ -23,9 +24,9 @@ export function CandidateCard({ candidate, onApply }: Props) {
       <CardContent className="space-y-3 px-4 py-4">
         <div
           className="prose prose-sm max-w-none wrap-break-word leading-relaxed text-foreground"
-          // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
-          dangerouslySetInnerHTML={{ __html: candidate.html }}
-        />
+        >
+          {parseSanitizedHtml(candidate.html)}
+        </div>
         {candidate.notes && (
           <p className="border-t pt-3 text-xs leading-relaxed text-muted-foreground">
             {candidate.notes}
