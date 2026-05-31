@@ -1,6 +1,6 @@
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { JD_MIN_CHARS } from './const'
+import { JD_MIN_CHARS } from '../const'
 
 interface Props {
   value: string

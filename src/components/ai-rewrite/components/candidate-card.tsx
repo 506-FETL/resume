@@ -1,4 +1,4 @@
-import type { RewriteCandidate } from './types'
+import type { RewriteCandidate } from '../types'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'

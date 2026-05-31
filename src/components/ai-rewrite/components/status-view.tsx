@@ -1,4 +1,4 @@
-import type { RewriteSessionState } from './types'
+import type { RewriteSessionState } from '../types'
 import { AlertCircle, Loader2, Sparkles } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 

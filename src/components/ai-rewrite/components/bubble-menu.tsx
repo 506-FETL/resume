@@ -1,6 +1,6 @@
-import type { RewriteAction } from './types'
+import type { RewriteAction } from '../types'
 import { Button } from '@/components/ui/button'
-import { REWRITE_ACTION_LIST, REWRITE_ACTION_META } from './const'
+import { REWRITE_ACTION_LIST, REWRITE_ACTION_META } from '../const'
 
 interface RewriteBubbleMenuProps {
   onAction: (action: RewriteAction) => void

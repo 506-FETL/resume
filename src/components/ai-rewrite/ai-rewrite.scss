@@ -1,6 +1,3 @@
-/* AI 改写气泡按钮组：仅保留 z-index 提升（Tiptap 的 BubbleMenuPlugin 需要原生 DOM
- * element，无 shadcn 等价物，故此处不可避免地保留极少量原生样式。
- * 候选面板已迁移至 shadcn Dialog/Sheet，无需自写样式。） */
 .ai-rewrite-bubble {
   z-index: 60;
 }

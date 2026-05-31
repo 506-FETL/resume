@@ -3,16 +3,16 @@
 import type { Editor } from '@tiptap/react'
 import type { RewriteAction, RewriteCandidate, RewriteFieldContext, RewriteSelection } from './types'
 import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { AiRewritePanel } from './ai-rewrite-panel'
+import { RewriteBubbleMenu } from './components/bubble-menu'
+import { RewriteDialogShell } from './components/dialog-shell'
+import { RewritePanelFooter } from './components/panel-footer'
 import { JD_MIN_CHARS, REWRITE_ACTION_META, SELECTION_MIN_CHARS } from './const'
 import { useAiRewrite } from './hooks/use-ai-rewrite'
-import { useRewriteSelection } from './hooks/use-rewrite-selection'
-import { RewriteBubbleMenu } from './rewrite-bubble-menu'
-import { RewriteDialogShell } from './rewrite-dialog-shell'
-import { RewritePanelFooter } from './rewrite-panel-footer'
+import { readRewriteSelection } from './utils/read-rewrite-selection'
 import { getRewriteCanRetry } from './utils/rewrite-session-state'
 import './ai-rewrite.scss'
 
@@ -27,7 +27,6 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const { state, run, setJdDraft, reset, retry, cancel, waitForJd } = useAiRewrite({ fieldContext })
   const [bubbleEl, setBubbleEl] = useState<HTMLDivElement | null>(null)
   const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(null)
-  const readSelection = useRewriteSelection(editor)
 
   const activeSelection = state.status === 'idle' ? null : savedSelection
   const dialogOpen = state.status !== 'idle'
@@ -38,13 +37,14 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const description = meta ? `${meta.description}；选择满意的版本点击「应用」即可替换原文。` : undefined
   const canRetry = getRewriteCanRetry(state, JD_MIN_CHARS)
 
-  // 创建 BubbleMenu 的原生 DOM 容器（Tiptap 的 BubbleMenuPlugin API
-  // 需要直接传入 element，无 shadcn 等价物，故保留此最小原生容器）
+  // 创建 BubbleMenu 的原生 DOM 容器（Tiptap 的 BubbleMenuPlugin API 需要直接传入 element，无 shadcn 等价物，故保留此最小原生容器）
   useEffect(() => {
     const bubble = document.createElement('div')
+
     bubble.className = 'tiptap-toolbar ai-rewrite-bubble'
     document.body.appendChild(bubble)
     setBubbleEl(bubble)
+
     return () => {
       bubble.remove()
     }
@@ -54,6 +54,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   useEffect(() => {
     if (!editor || !bubbleEl)
       return
+
     const plugin = BubbleMenuPlugin({
       editor,
       element: bubbleEl,
@@ -61,50 +62,59 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       shouldShow: ({ editor: ed, from, to }) => {
         if (from === to)
           return false
+
         return ed.state.doc.textBetween(from, to).trim().length >= SELECTION_MIN_CHARS
       },
     })
+
     editor.registerPlugin(plugin)
+
     return () => {
       editor.unregisterPlugin(BUBBLE_MENU_PLUGIN_KEY)
     }
   }, [editor, bubbleEl])
 
-  const handleClose = useCallback(() => {
+  function handleClose() {
     cancel()
     reset()
     setSavedSelection(null)
-  }, [cancel, reset])
+  }
 
-  const handleAction = useCallback((nextAction: RewriteAction) => {
-    const sel = readSelection()
+  function handleAction(nextAction: RewriteAction) {
+    const sel = readRewriteSelection(editor)
+
     if (!sel)
       return
+
     setSavedSelection(sel)
+
     if (nextAction === 'align_jd' && state.jdDraft.trim().length < JD_MIN_CHARS) {
       waitForJd()
       return
     }
-    run(nextAction, sel)
-  }, [readSelection, run, state.jdDraft, waitForJd])
 
-  const handleApply = useCallback((candidate: RewriteCandidate) => {
+    run(nextAction, sel)
+  }
+
+  function handleApply(candidate: RewriteCandidate) {
     if (!savedSelection)
       return
+
     editor
       .chain()
       .focus()
       .insertContentAt({ from: savedSelection.from, to: savedSelection.to }, candidate.html)
       .run()
+
     toast.success('已应用 AI 改写')
     reset()
     setSavedSelection(null)
-  }, [editor, savedSelection, reset])
+  }
 
-  const handleRetry = useCallback(() => {
+  function handleRetry() {
     if (savedSelection)
       retry(savedSelection)
-  }, [retry, savedSelection])
+  }
 
   return (
     <>

@@ -1,7 +1,7 @@
 import type { RewriteCandidate, RewriteSelection, RewriteSessionState } from './types'
-import { JdContextInput } from './jd-context-input'
-import { RewriteCandidateList } from './rewrite-candidate-list'
-import { RewriteStatusView } from './rewrite-status-view'
+import { RewriteCandidateList } from './components/candidate-list'
+import { JdContextInput } from './components/jd-context-input'
+import { RewriteStatusView } from './components/status-view'
 
 interface Props {
   state: RewriteSessionState

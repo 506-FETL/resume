@@ -1,4 +1,4 @@
-import type { RewriteCandidate } from './types'
+import type { RewriteCandidate } from '../types'
 import { CandidateCard } from './candidate-card'
 
 interface RewriteCandidateListProps {
