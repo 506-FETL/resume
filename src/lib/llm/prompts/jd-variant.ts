@@ -1,6 +1,4 @@
-// TODO(Task 8): replace this module-private placeholder by importing
-// `EditableResumeView` from '@/components/jd-variant/types' once defined.
-type EditableResumeView = Record<string, unknown>
+import type { EditableResumeView } from '@/components/jd-variant/types'
 
 export interface JdPromptPair {
   system: string

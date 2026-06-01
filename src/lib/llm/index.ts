@@ -1,6 +1,7 @@
 import type { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions'
 import type { ResumeSchema } from '../schema'
 import type { RewriteRequestArgs } from '@/components/ai-rewrite/types'
+import type { EditableResumeView } from '@/components/jd-variant/types'
 import { throttle } from 'lodash'
 import { REWRITE_TEMPERATURE } from '@/components/ai-rewrite/const'
 import { callLLM } from './call'
@@ -167,8 +168,7 @@ export async function runJdVariantParse(
 }
 
 export async function runJdVariantRewrite(
-  // TODO(Task 8): replace `Record<string, unknown>` with `EditableResumeView` from '@/components/jd-variant/types' once defined.
-  args: { resumeJson: Record<string, unknown>, jdText: string, keywords: readonly string[] },
+  args: { resumeJson: EditableResumeView, jdText: string, keywords: readonly string[] },
   onUpdate?: (data: StreamUpdate) => void,
   options?: { throttleMs?: number, abortController?: AbortController },
 ) {
