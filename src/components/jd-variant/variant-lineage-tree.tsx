@@ -3,6 +3,7 @@ import { ArrowRight, GitBranch } from 'lucide-react'
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const STATUS_VARIANT: Record<string, 'default' | 'destructive' | 'outline' | 'secondary'> = {
   ready: 'default',
@@ -29,44 +30,45 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
   const matchPct = node.matchRate == null ? null : `${Math.round(node.matchRate * 100)}%`
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div
         data-current={isCurrent}
-        className={
+        className={cn(
+          'flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors',
           isCurrent
-            ? 'flex items-center gap-2 rounded border border-primary bg-primary/5 p-2'
-            : 'flex items-center gap-2 rounded border p-2'
-        }
+            ? 'border-primary bg-primary/5'
+            : 'hover:bg-accent/40',
+        )}
         style={{ marginLeft: depth * 16 }}
       >
-        <GitBranch className="size-3 text-muted-foreground" aria-hidden />
-        <span className="font-medium truncate flex-1">{node.displayName || '未命名简历'}</span>
+        <GitBranch className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="flex-1 truncate font-medium">{node.displayName || '未命名简历'}</span>
         {status && (
           <Badge variant={STATUS_VARIANT[status] ?? 'outline'} className="text-xs">
             {STATUS_LABEL[status] ?? status}
           </Badge>
         )}
-        {matchPct && <span className="text-xs text-muted-foreground">{matchPct}</span>}
+        {matchPct && <span className="text-xs tabular-nums text-muted-foreground">{matchPct}</span>}
         {!isCurrent && (
           <Button
-            size="sm"
+            size="icon"
             variant="ghost"
-            className="h-6 px-2"
+            className="size-7 shrink-0"
             onClick={() => onOpen(node.resumeId)}
             aria-label={`打开 ${node.displayName}`}
           >
-            <ArrowRight className="size-3" />
+            <ArrowRight className="size-3.5" />
           </Button>
         )}
       </div>
       {node.jdSnippet && (
-        <p className="text-xs text-muted-foreground line-clamp-2" style={{ marginLeft: depth * 16 + 24 }}>
+        <p className="text-xs text-muted-foreground line-clamp-2" style={{ marginLeft: depth * 16 + 26 }}>
           JD：
           {node.jdSnippet}
         </p>
       )}
       {node.children.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {node.children.map(child => (
             <VariantLineageTree
               key={child.resumeId}
@@ -108,14 +110,14 @@ export function VariantLineagePath({ tree, currentResumeId }: VariantLineagePath
     return <p className="text-xs text-muted-foreground">无血缘信息</p>
   }
   return (
-    <ol className="space-y-1 text-xs">
+    <ol className="space-y-1.5">
       {path.map((n, i) => (
         <li key={n.resumeId} className="flex items-center gap-2">
-          <Badge variant={i === path.length - 1 ? 'default' : 'outline'} className="truncate">
+          <Badge variant={i === path.length - 1 ? 'default' : 'outline'} className="max-w-45 truncate">
             {n.displayName || '未命名'}
           </Badge>
           {n.matchRate != null && (
-            <span className="text-muted-foreground">
+            <span className="text-xs tabular-nums text-muted-foreground">
               {Math.round(n.matchRate * 100)}
               %
             </span>

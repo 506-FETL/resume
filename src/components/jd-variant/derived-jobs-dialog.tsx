@@ -47,11 +47,11 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="max-w-md">
-        <ResponsiveDialogHeader>
+        <ResponsiveDialogHeader className="border-b px-6 pb-4 pt-6 text-left">
           <ResponsiveDialogTitle>派生任务</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>查看正在生成或失败的派生草稿</ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
-        <div className="space-y-4 text-sm">
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 text-sm">
           <section>
             <h3 className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               生成中
@@ -60,9 +60,9 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
             {generating.length === 0
               ? <p className="text-xs text-muted-foreground">暂无</p>
               : (
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {generating.map(item => (
-                      <li key={item.resume_id} className="flex items-center justify-between rounded border p-2">
+                      <li key={item.resume_id} className="flex items-center justify-between gap-2 rounded-lg border p-3">
                         <div className="truncate">{item.display_name || '未命名草稿'}</div>
                         <Button size="sm" variant="ghost" onClick={() => { discard(item.resume_id) }}>
                           丢弃
@@ -82,7 +82,7 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
               : (
                   <ul className="space-y-2">
                     {failed.map(item => (
-                      <li key={item.resume_id} className="rounded border p-2 space-y-1">
+                      <li key={item.resume_id} className="space-y-1 rounded-lg border p-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="truncate">{item.display_name || '未命名草稿'}</div>
                           <div className="flex gap-1">

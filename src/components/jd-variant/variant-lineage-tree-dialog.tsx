@@ -23,14 +23,14 @@ export function VariantLineageTreeDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="max-w-lg">
-        <ResponsiveDialogHeader>
+        <ResponsiveDialogHeader className="border-b px-6 pb-4 pt-6 text-left">
           <ResponsiveDialogTitle>血缘树</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>查看当前简历所属的派生关系</ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
-        <ScrollArea className="max-h-[60vh] pr-2">
-          {loading && <p className="text-xs text-muted-foreground">加载中...</p>}
+        <ScrollArea className="max-h-[60vh] px-6 py-5">
+          {loading && <p className="text-sm text-muted-foreground">加载中...</p>}
           {error && (
-            <p className="text-xs text-destructive">
+            <p className="text-sm text-destructive">
               加载失败：
               {error}
             </p>
@@ -46,7 +46,7 @@ export function VariantLineageTreeDialog({
             />
           )}
           {!loading && !error && !tree && (
-            <p className="text-xs text-muted-foreground">没有血缘信息</p>
+            <p className="text-sm text-muted-foreground">没有血缘信息</p>
           )}
         </ScrollArea>
       </ResponsiveDialogContent>

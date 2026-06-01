@@ -16,7 +16,7 @@ export function StepRewriting({ completedSections, changes, estimatedTotal, onAb
   const total = Math.max(estimatedTotal, completedSections.length || 1)
   const pct = Math.min(100, Math.round((completedSections.length / total) * 100))
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between text-sm">
         <span className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -34,7 +34,7 @@ export function StepRewriting({ completedSections, changes, estimatedTotal, onAb
       <Progress value={pct} aria-label="改写进度" />
       <ul className="flex max-h-60 flex-col gap-2 overflow-auto" aria-live="polite">
         {changes.map((c, i) => (
-          <li key={`${c.section}-${c.itemId}-${i}`} className="space-y-1 rounded border bg-muted/30 p-2 text-xs">
+          <li key={`${c.section}-${c.itemId}-${i}`} className="space-y-1 rounded-md bg-muted/40 p-3 text-xs">
             <div className="flex items-center gap-2">
               <Badge variant="secondary">{SECTION_LABEL[c.section] ?? c.section}</Badge>
               <span className="text-muted-foreground">{c.reason}</span>

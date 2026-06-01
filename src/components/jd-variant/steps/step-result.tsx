@@ -20,7 +20,7 @@ export function StepResult({ matchRate, changes, onOpen, onDiscard }: StepResult
   }, {})
   const pct = matchRate == null ? '—' : `${Math.round(matchRate * 100)}%`
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <Alert>
         <Sparkles className="size-4" aria-hidden />
         <AlertTitle>派生完成</AlertTitle>
@@ -29,10 +29,10 @@ export function StepResult({ matchRate, changes, onOpen, onDiscard }: StepResult
           <span className="font-semibold tabular-nums">{pct}</span>
         </AlertDescription>
       </Alert>
-      <Accordion type="multiple" className="max-h-72 overflow-auto">
+      <Accordion type="multiple" className="max-h-72 space-y-2 overflow-auto">
         {Object.entries(grouped).map(([section, items]) => (
-          <AccordionItem key={section} value={section}>
-            <AccordionTrigger className="text-sm">
+          <AccordionItem key={section} value={section} className="rounded-lg border px-3">
+            <AccordionTrigger className="py-3 text-sm">
               {SECTION_LABEL[section as keyof typeof SECTION_LABEL] ?? section}
               {' '}
               <Badge variant="secondary" className="ml-2">{items.length}</Badge>
@@ -40,16 +40,16 @@ export function StepResult({ matchRate, changes, onOpen, onDiscard }: StepResult
             <AccordionContent>
               <ul className="flex flex-col gap-2 text-xs">
                 {items.map((c, i) => (
-                  <li key={`${c.itemId}-${i}`} className="space-y-1 rounded border bg-muted/30 p-2">
+                  <li key={`${c.itemId}-${i}`} className="space-y-2 rounded-md bg-muted/40 p-3">
                     <div className="text-muted-foreground">{c.reason}</div>
                     <div className="flex flex-wrap gap-1">
                       {c.matchedKeywords.map(kw => <Badge key={kw} variant="outline" className="text-[10px]">{kw}</Badge>)}
                     </div>
-                    <details>
-                      <summary className="cursor-pointer">对比 before / after</summary>
-                      <div className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
-                        <pre className="whitespace-pre-wrap rounded bg-background p-1">{String(c.before ?? '')}</pre>
-                        <pre className="whitespace-pre-wrap rounded bg-background p-1">{String(c.after ?? '')}</pre>
+                    <details className="group">
+                      <summary className="cursor-pointer select-none text-muted-foreground transition-colors hover:text-foreground">对比 before / after</summary>
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <pre className="whitespace-pre-wrap rounded-md border bg-background p-2">{String(c.before ?? '')}</pre>
+                        <pre className="whitespace-pre-wrap rounded-md border bg-background p-2">{String(c.after ?? '')}</pre>
                       </div>
                     </details>
                   </li>

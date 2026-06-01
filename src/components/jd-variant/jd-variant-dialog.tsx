@@ -64,76 +64,70 @@ export function JdVariantDialog({
     <>
       <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
         <ResponsiveDialogContent className="max-w-xl">
-          <ResponsiveDialogHeader>
+          <ResponsiveDialogHeader className="border-b px-6 pb-4 pt-6 text-left">
             <ResponsiveDialogTitle>JD 驱动派生简历</ResponsiveDialogTitle>
             <ResponsiveDialogDescription aria-live="polite">
-              第
-              {' '}
-              {stepIndex}
-              {' '}
-              /
-              {' '}
-              {total}
-              {' '}
-              步
+              {`第 ${stepIndex} / ${total} 步`}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
-          {state.phase === 'error' && state.errorMessage && (
-            <Alert variant="destructive">
-              <AlertCircle className="size-4" aria-hidden />
-              <AlertTitle>派生失败</AlertTitle>
-              <AlertDescription className="space-y-2">
-                <div>{state.errorMessage}</div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={startGenerate}>重试</Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      discardDraft().catch(() => undefined)
-                      reset()
-                    }}
-                  >
-                    放弃草稿
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            {state.phase === 'error' && state.errorMessage && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" aria-hidden />
+                <AlertTitle>派生失败</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <div>{state.errorMessage}</div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={startGenerate}>重试</Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        discardDraft().catch(() => undefined)
+                        reset()
+                      }}
+                    >
+                      放弃草稿
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {state.phase === 'idle' && (
-            <StepInput value={jd} onChange={setJd} onSubmit={startGenerate} recentJds={recentJds} />
-          )}
-          {state.phase === 'parsing' && (
-            <StepParsing reasoning={state.parseReasoning} keywords={state.keywords} onAbort={abort} />
-          )}
-          {state.phase === 'rewriting' && (
-            <StepRewriting
-              completedSections={state.completedSections}
-              changes={state.changes}
-              estimatedTotal={5}
-              onAbort={abort}
-            />
-          )}
-          {state.phase === 'success' && state.draftResumeId && (
-            <StepResult
-              matchRate={state.matchRate}
-              changes={state.changes}
-              onOpen={() => {
-                if (state.draftResumeId) {
-                  onOpenResume(state.draftResumeId)
-                }
-                onOpenChange(false)
-                reset()
-              }}
-              onDiscard={() => {
-                discardDraft().catch(() => undefined)
-                reset()
-                onOpenChange(false)
-              }}
-            />
-          )}
+            {state.phase === 'idle' && (
+              <StepInput value={jd} onChange={setJd} onSubmit={startGenerate} recentJds={recentJds} />
+            )}
+            {state.phase === 'parsing' && (
+              <StepParsing reasoning={state.parseReasoning} keywords={state.keywords} onAbort={abort} />
+            )}
+            {state.phase === 'rewriting' && (
+              <StepRewriting
+                completedSections={state.completedSections}
+                changes={state.changes}
+                estimatedTotal={5}
+                onAbort={abort}
+              />
+            )}
+            {state.phase === 'success' && state.draftResumeId && (
+              <StepResult
+                matchRate={state.matchRate}
+                changes={state.changes}
+                onOpen={() => {
+                  if (state.draftResumeId) {
+                    onOpenResume(state.draftResumeId)
+                  }
+                  onOpenChange(false)
+                  reset()
+                }}
+                onDiscard={() => {
+                  discardDraft().catch(() => undefined)
+                  reset()
+                  onOpenChange(false)
+                }}
+              />
+            )}
+          </div>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
 

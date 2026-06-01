@@ -59,18 +59,19 @@ export function VariantLineageButton() {
             {!isMobile && <span>血缘</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-72 space-y-2 p-3">
-          <h3 className="text-xs font-medium">血缘链</h3>
+        <PopoverContent align="end" className="w-80 space-y-3 p-4">
+          <h3 className="text-sm font-semibold">血缘链</h3>
           <VariantLineagePath tree={tree} currentResumeId={resumeId ?? ''} />
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             className="w-full"
             onClick={() => {
               setPopoverOpen(false)
               setTreeOpen(true)
             }}
           >
+            <GitBranch data-icon="inline-start" />
             查看完整血缘树
           </Button>
         </PopoverContent>

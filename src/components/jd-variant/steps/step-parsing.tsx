@@ -10,7 +10,7 @@ export interface StepParsingProps {
 
 export function StepParsing({ reasoning, keywords, onAbort }: StepParsingProps) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" aria-hidden />
         {' '}
@@ -18,7 +18,7 @@ export function StepParsing({ reasoning, keywords, onAbort }: StepParsingProps) 
       </div>
       {reasoning && (
         <div
-          className="max-h-32 overflow-auto whitespace-pre-wrap rounded border bg-muted/40 p-2 text-xs text-muted-foreground"
+          className="max-h-32 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground"
           aria-live="polite"
         >
           {reasoning}
