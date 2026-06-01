@@ -10,11 +10,12 @@ export interface VariantBadgeProps {
 
 export function VariantBadge({ parentName, jdSnippet, matchRate }: VariantBadgeProps) {
   const pct = matchRate == null ? null : `${Math.round(matchRate * 100)}%`
+  const displayParent = parentName ?? '原简历已删除'
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className="gap-1" aria-label={`派生自 ${parentName ?? '原简历'}`}>
+          <Badge variant="outline" className="gap-1" aria-label={`派生自 ${displayParent}`}>
             <GitBranch className="size-3" aria-hidden />
             {' '}
             派生
@@ -25,7 +26,7 @@ export function VariantBadge({ parentName, jdSnippet, matchRate }: VariantBadgeP
           <div className="space-y-1 text-xs">
             <div>
               派生自：
-              <span className="font-medium">{parentName ?? '原简历'}</span>
+              <span className="font-medium">{displayParent}</span>
             </div>
             {jdSnippet && (
               <div className="text-muted-foreground">

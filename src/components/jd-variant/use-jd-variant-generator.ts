@@ -6,6 +6,7 @@ import {
   applyOfflineVariantChanges,
   cloneOfflineResumeAsDraft,
   deleteOfflineDraftVariant,
+  fetchOfflineVariantTree,
   getOfflineResumeById,
   isOfflineResumeId,
   markOfflineVariantFailed,
@@ -15,11 +16,12 @@ import {
   applyVariantChanges,
   cloneResumeAsDraft,
   deleteDraftVariant,
+  fetchVariantTree,
   getResumeById,
   markVariantFailed,
   markVariantReady,
 } from '@/lib/supabase/resume'
-import { MAX_KEYWORDS, MIN_KEYWORDS } from './const'
+import { MAX_KEYWORDS, MAX_VARIANT_DEPTH, MIN_KEYWORDS } from './const'
 import { parseVariantResponse } from './parse-variant-response'
 import { buildEditableView, computeMatchRate } from './utils'
 
@@ -48,6 +50,21 @@ interface CloudResumeRecord extends PersistedResumeSnapshot {
   display_name?: string
 }
 
+function computeDepth(
+  root: { resumeId: string, children: { resumeId: string, children: unknown[] }[] },
+  targetId: string,
+  d = 0,
+): number {
+  if (root.resumeId === targetId)
+    return d
+  for (const c of root.children) {
+    const r = computeDepth(c as typeof root, targetId, d + 1)
+    if (r >= 0)
+      return r
+  }
+  return -1
+}
+
 export function useJdVariantGenerator() {
   const [state, setState] = useState<GeneratorState>(initialState)
   const abortRef = useRef<AbortController | null>(null)
@@ -69,6 +86,22 @@ export function useJdVariantGenerator() {
     setState({ ...initialState, phase: 'parsing' })
 
     try {
+      // E4: 深度检查
+      try {
+        const fetcher = isOfflineResumeId(args.parentResumeId) ? fetchOfflineVariantTree : fetchVariantTree
+        const lineage = await fetcher(args.parentResumeId)
+        const depth = computeDepth(lineage.root, args.parentResumeId)
+        if (depth >= MAX_VARIANT_DEPTH) {
+          throw new Error(`派生层级过深（已达 ${MAX_VARIANT_DEPTH} 层），请基于原始简历派生`)
+        }
+      }
+      catch (depthErr) {
+        // 仅当深度异常时抛出；fetchVariantTree 自身错误（无网/无父）跳过让后续步骤报错
+        if (depthErr instanceof Error && depthErr.message.includes('派生层级过深')) {
+          throw depthErr
+        }
+      }
+
       // Phase 1: parse JD（or reuse keywords）
       let keywords: string[] = args.reuseKeywords ?? []
       let summary: string | undefined
