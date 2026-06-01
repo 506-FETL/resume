@@ -8,7 +8,7 @@
  */
 
 import type { DBSchema, IDBPDatabase } from 'idb'
-import type { PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeType } from '@/lib/schema'
+import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeType, VariantMetadata } from '@/lib/schema'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
@@ -24,10 +24,16 @@ interface ResumeDB extends DBSchema {
       created_at: string
       updated_at: string
       data: Partial<PersistedResumeSnapshot>
+      parent_resume_id?: string | null
+      linked_jd_text?: string | null
+      derived_metadata?: VariantMetadata | null
+      derived_status?: DerivedStatus | null
     }
     indexes: {
       created_at: string
       updated_at: string
+      parent_resume_id: string
+      derived_status: string
     }
   }
 }
@@ -35,7 +41,7 @@ interface ResumeDB extends DBSchema {
 type OfflineResumeRecord = ResumeDB['resumes']['value']
 
 const DB_NAME = 'offline-resumes'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 let dbInstance: IDBPDatabase<ResumeDB> | null = null
 const LEGACY_STORAGE_KEY = 'resume-config-storage'
@@ -108,12 +114,16 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
     return dbInstance
 
   dbInstance = await openDB<ResumeDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      // 创建 resumes 对象存储
-      if (!db.objectStoreNames.contains('resumes')) {
+    upgrade(db, oldVersion, _newVersion, tx) {
+      if (oldVersion < 1) {
         const resumeStore = db.createObjectStore('resumes', { keyPath: 'resume_id' })
         resumeStore.createIndex('created_at', 'created_at')
         resumeStore.createIndex('updated_at', 'updated_at')
+      }
+      if (oldVersion < 2) {
+        const store = tx.objectStore('resumes')
+        store.createIndex('parent_resume_id', 'parent_resume_id')
+        store.createIndex('derived_status', 'derived_status')
       }
     },
   })
@@ -161,6 +171,10 @@ export async function createOfflineResume(options: {
       ...DEFAULT_RESUME_APPEARANCE,
       templateBinding: createLegacyResumeTemplateBinding(options.type || 'default'),
     },
+    parent_resume_id: null,
+    linked_jd_text: null,
+    derived_metadata: null,
+    derived_status: null,
   }
 
   await db.add('resumes', resume)
@@ -333,4 +347,25 @@ export async function importOfflineResume(jsonData: string): Promise<string> {
   await db.add('resumes', resume)
 
   return newResumeId
+}
+
+/**
+ * 更新离线简历的 variant 相关字段（用于 JD 派生流程）
+ */
+export async function setVariantFieldsOffline(
+  resumeId: string,
+  fields: {
+    parent_resume_id?: string | null
+    linked_jd_text?: string | null
+    derived_metadata?: VariantMetadata | null
+    derived_status?: DerivedStatus | null
+  },
+) {
+  const db = await getDB()
+  const resume = await db.get('resumes', resumeId)
+  if (!resume) {
+    throw new Error('简历不存在')
+  }
+  const next = { ...resume, ...fields, updated_at: dayjs().toISOString() }
+  await db.put('resumes', next)
 }
