@@ -4,17 +4,9 @@ import type {
   VariantChange,
   VariantMetadata,
 } from '@/lib/schema'
+import { applyVariantChange } from '@/components/jd-variant/apply-changes'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
-
-// TODO(Task 11): replace with `import { applyVariantChange } from '@/components/jd-variant/apply-changes'`.
-// Stub: minimal field-path mutator covering top-level section assignment + ${section}.${itemId}.${fieldPath} bullet/field write.
-// Until Task 11 lands, this stub gives `applyVariantChanges` enough behaviour so the data layer compiles + smoke-tests.
-function applyVariantChange(snapshot: PersistedResumeSnapshot, _change: VariantChange): PersistedResumeSnapshot {
-  // Conservative behaviour: do not mutate. Real implementation in Task 11 must do field-path replacement.
-  // Return a shallow clone so callers see a "new" reference per change.
-  return { ...snapshot }
-}
 
 export interface VariantTreeNode {
   resumeId: string
@@ -93,10 +85,6 @@ export async function cloneResumeAsDraft(args: {
   return (data as { resume_id: string }).resume_id
 }
 
-// NOTE: until Task 11 replaces the inline `applyVariantChange` stub with the real field-path
-// mutator, this function will write the section snapshots back unchanged. The DB round-trip
-// still happens, so callers can rely on the returned snapshot reference, but no edits are
-// actually applied. Replace the stub above to enable real mutation.
 export async function applyVariantChanges(
   draftResumeId: string,
   snapshot: PersistedResumeSnapshot,

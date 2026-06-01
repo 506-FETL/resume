@@ -12,14 +12,8 @@ import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, Re
 import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/variant'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
+import { applyVariantChange } from '@/components/jd-variant/apply-changes'
 import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
-
-// TODO(Task 11): replace with `import { applyVariantChange } from '@/components/jd-variant/apply-changes'`.
-// Until Task 11 lands, this stub is a no-op shallow clone so applyOfflineVariantChanges compiles
-// and runs — it does NOT actually mutate fields. Tasks 11+ will provide the real field-path mutator.
-function applyVariantChange<T>(snapshot: T, _change: VariantChange): T {
-  return { ...snapshot } as T
-}
 
 const MAX_VARIANT_TREE_DEPTH = 5
 
