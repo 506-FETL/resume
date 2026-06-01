@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from '../../types'
-import { Cloud, Edit2, FileText, HardDrive, X } from 'lucide-react'
-import { useState } from 'react'
+import { Cloud, Edit2, FileText, GitBranch, HardDrive, Sparkles, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,13 +12,14 @@ import useResumeListStore from '@/pages/resume/store'
 import useCurrentResumeStore from '@/store/resume/current'
 import DeleteResumeDialog from '../delete-resume-dialog'
 import EditResumeDialog from '../edit-resume-dialog'
+import { VariantBadge } from './variant-badge'
 
 interface ResumeCardProps {
   resume: ResumeItem
 }
 
 export default function ResumeCard({ resume }: ResumeCardProps) {
-  const { deleteResume, updateResume } = useResumeListStore()
+  const { deleteResume, updateResume, openDeriveFor, resumes } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
   const isMobile = useIsMobile()
 
@@ -26,6 +27,16 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+
+  const parent = useMemo(() => {
+    if (!resume.parent_resume_id)
+      return null
+    return resumes.find(r => r.resume_id === resume.parent_resume_id) ?? null
+  }, [resume.parent_resume_id, resumes])
+
+  const isVariant = Boolean(resume.parent_resume_id)
+  const isGenerating = resume.derived_status === 'generating'
+  const isFailed = resume.derived_status === 'failed'
 
   const handleUpdateSuccess = (updates: { display_name: string, description: string }) => {
     updateResume(resume.resume_id, updates)
@@ -49,6 +60,19 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
   const handleDeleteConfirm = () => {
     deleteResume(resume.resume_id)
     setShowDeleteDialog(false)
+  }
+
+  const handleDeriveClick = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    openDeriveFor(resume.resume_id)
+  }
+
+  const handleParentClick = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    if (!parent)
+      return
+    setCurrentResume(parent.resume_id, parent.type)
+    navigate('/resume/editor')
   }
 
   return (
@@ -80,6 +104,25 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
           <div className="flex items-center justify-between">
             <FileText className="h-8 w-8 text-primary" />
             <div className="flex items-center gap-2">
+              {isVariant && (
+                <VariantBadge
+                  parentName={parent?.display_name ?? null}
+                  jdSnippet={resume.linked_jd_text ? resume.linked_jd_text.slice(0, 80) : null}
+                  matchRate={resume.derived_metadata?.matchRate ?? null}
+                />
+              )}
+              {isGenerating && (
+                <Badge variant="secondary" className="text-xs rounded-full">
+                  <GitBranch className="h-3 w-3 mr-1" />
+                  生成中
+                </Badge>
+              )}
+              {isFailed && (
+                <Badge variant="destructive" className="text-xs rounded-full">
+                  <GitBranch className="h-3 w-3 mr-1" />
+                  生成失败
+                </Badge>
+              )}
               {resume.isOffline
                 ? (
                     <Badge variant="secondary" className="text-xs rounded-full">
@@ -100,11 +143,33 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
         <CardContent className="flex-1">
           <CardTitle>{resume.display_name || `未命名简历`}</CardTitle>
           <CardDescription>{resume.description || '点击编辑简历内容'}</CardDescription>
+          {parent && (
+            <button
+              type="button"
+              onClick={handleParentClick}
+              className="mt-2 text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 hover:underline"
+            >
+              <GitBranch className="size-3" aria-hidden />
+              派生自
+              {' '}
+              {parent.display_name || '未命名简历'}
+            </button>
+          )}
         </CardContent>
-        <CardFooter>
-          <Button variant="outline" onClick={handleEditClick} className="w-full">
+        <CardFooter className="flex gap-2">
+          <Button variant="outline" onClick={handleEditClick} className="flex-1">
             <Edit2 />
-            编辑简历信息
+            编辑信息
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDeriveClick}
+            className="flex-1"
+            disabled={isGenerating}
+            aria-label="派生针对性版本"
+          >
+            <Sparkles />
+            派生
           </Button>
         </CardFooter>
       </Card>

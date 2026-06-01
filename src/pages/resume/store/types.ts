@@ -1,4 +1,5 @@
 import type { ResumeItem } from '../types'
+import type { ResumeFilterMode } from './resume-ui'
 
 export interface ResumeListState {
   // List slice
@@ -23,4 +24,10 @@ export interface ResumeListState {
   // UI slice
   showSyncDialog: boolean
   setShowSyncDialog: (show: boolean) => void
+  filterMode: ResumeFilterMode
+  setFilterMode: (mode: ResumeFilterMode) => void
+  derivePendingFor: string | null
+  openDeriveFor: (id: string | null) => void
+  derivedJobsOpen: boolean
+  setDerivedJobsOpen: (open: boolean) => void
 }
