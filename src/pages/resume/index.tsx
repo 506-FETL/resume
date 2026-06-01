@@ -1,15 +1,32 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { JdVariantDialog } from '@/components/jd-variant/jd-variant-dialog'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useResumeListStore from '@/pages/resume/store'
+import useCurrentResumeStore from '@/store/resume/current'
 import CreateResumeCard from './components/create-resume-card'
 import HeadBars from './components/head-bars'
 import ResumeCard from './components/resume-card'
 import SyncResumesDialog from './components/sync-resumes-dialog'
 
 export default function ResumePage() {
-  const { resumes, loading, isOnline, syncingIds, loadResumes, setupRealtimeSubscription } = useResumeListStore()
+  const {
+    resumes,
+    loading,
+    isOnline,
+    syncingIds,
+    loadResumes,
+    setupRealtimeSubscription,
+    filterMode,
+    setFilterMode,
+    derivePendingFor,
+    openDeriveFor,
+  } = useResumeListStore()
+  const { setCurrentResume } = useCurrentResumeStore()
+  const navigate = useNavigate()
 
   useEffect(() => {
     loadResumes()
@@ -22,12 +39,37 @@ export default function ResumePage() {
     return setupRealtimeSubscription()
   }, [isOnline, setupRealtimeSubscription])
 
+  const visibleItems = useMemo(() => {
+    if (filterMode === 'roots')
+      return resumes.filter(r => !r.parent_resume_id)
+    if (filterMode === 'variants')
+      return resumes.filter(r => r.parent_resume_id && r.derived_status === 'ready')
+    return resumes
+  }, [resumes, filterMode])
+
+  const pendingResume = useMemo(
+    () => (derivePendingFor ? resumes.find(r => r.resume_id === derivePendingFor) ?? null : null),
+    [derivePendingFor, resumes],
+  )
+
   if (loading)
     return <ResumePageSkeleton />
 
   return (
     <div className="container mx-auto p-8">
       <HeadBars />
+
+      <Tabs
+        value={filterMode}
+        onValueChange={v => setFilterMode(v as 'all' | 'roots' | 'variants')}
+        className="mb-6"
+      >
+        <TabsList>
+          <TabsTrigger value="all">全部</TabsTrigger>
+          <TabsTrigger value="roots">原版</TabsTrigger>
+          <TabsTrigger value="variants">派生版本</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <motion.div
         className="grid grid-cols-1 items-center md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
@@ -36,7 +78,7 @@ export default function ResumePage() {
         transition={{ duration: 0.3, delay: 0.2 }}
       >
         <AnimatePresence mode="popLayout">
-          {resumes.map((resume, index) => {
+          {visibleItems.map((resume, index) => {
             const isSyncingThis = syncingIds.has(resume.resume_id)
             return (
               <motion.div
@@ -72,7 +114,7 @@ export default function ResumePage() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{
               duration: 0.3,
-              delay: resumes.length * 0.05,
+              delay: visibleItems.length * 0.05,
               layout: { duration: 0.3 },
             }}
           >
@@ -82,6 +124,24 @@ export default function ResumePage() {
       </motion.div>
 
       <SyncResumesDialog />
+
+      {derivePendingFor && (
+        <JdVariantDialog
+          open
+          onOpenChange={(o) => {
+            if (!o)
+              openDeriveFor(null)
+          }}
+          parentResumeId={derivePendingFor}
+          recentJds={[]}
+          initialJd={pendingResume?.linked_jd_text ?? ''}
+          onOpenResume={(draftId) => {
+            const target = resumes.find(r => r.resume_id === draftId)
+            setCurrentResume(draftId, target?.type ?? 'default')
+            navigate('/resume/editor')
+          }}
+        />
+      )}
     </div>
   )
 }
