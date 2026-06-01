@@ -11,6 +11,7 @@ import useResumeConfigStore from '@/store/resume/config'
 import useResumeStore from '@/store/resume/form'
 import ExportDialog from '../export'
 import { ResumeHistoryVersionDropdown } from './history-version-dropdown'
+import { VariantLineageButton } from './variant-lineage-button'
 
 export default function ResumeConfigToolbar() {
   const isMobile = useIsMobile()
@@ -227,6 +228,8 @@ export default function ResumeConfigToolbar() {
       </DropdownMenu>
 
       <ResumeHistoryVersionDropdown />
+
+      <VariantLineageButton />
 
       <ExportDialog
         trigger={(
