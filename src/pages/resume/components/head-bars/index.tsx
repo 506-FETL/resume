@@ -1,4 +1,5 @@
-import { CloudUpload, Plane, Wifi } from 'lucide-react'
+import { CloudUpload, GitBranch, Plane, Wifi } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
@@ -7,8 +8,13 @@ import useResumeListStore from '@/pages/resume/store'
 function HeadBars() {
   const isOnline = useResumeListStore(s => s.isOnline)
   const offlineResumes = useResumeListStore(s => s.offlineResumes)
+  const resumes = useResumeListStore(s => s.resumes)
   const setShowSyncDialog = useResumeListStore(s => s.setShowSyncDialog)
+  const setDerivedJobsOpen = useResumeListStore(s => s.setDerivedJobsOpen)
   const hasOfflineResumesToSync = isOnline && offlineResumes.length > 0
+  const pendingCount = resumes.filter(
+    r => r.derived_status === 'generating' || r.derived_status === 'failed',
+  ).length
   const isMobile = useIsMobile()
 
   return (
@@ -32,6 +38,19 @@ function HeadBars() {
             {isOnline ? '在线' : '离线'}
           </span>
         </div>
+        <Button
+          onClick={() => setDerivedJobsOpen(true)}
+          variant="ghost"
+          size="sm"
+          className={isMobile ? 'w-full' : ''}
+          disabled={pendingCount === 0}
+        >
+          <GitBranch className="h-4 w-4 mr-2" />
+          派生任务
+          {pendingCount > 0 && (
+            <Badge variant="secondary" className="ml-2">{pendingCount}</Badge>
+          )}
+        </Button>
         <Button
           onClick={() => setShowSyncDialog(true)}
           variant="outline"

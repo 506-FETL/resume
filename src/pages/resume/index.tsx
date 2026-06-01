@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { DerivedJobsDialog } from '@/components/jd-variant/derived-jobs-dialog'
 import { JdVariantDialog } from '@/components/jd-variant/jd-variant-dialog'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,6 +25,8 @@ export default function ResumePage() {
     setFilterMode,
     derivePendingFor,
     openDeriveFor,
+    derivedJobsOpen,
+    setDerivedJobsOpen,
   } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
   const navigate = useNavigate()
@@ -124,6 +127,8 @@ export default function ResumePage() {
       </motion.div>
 
       <SyncResumesDialog />
+
+      <DerivedJobsDialog open={derivedJobsOpen} onOpenChange={setDerivedJobsOpen} />
 
       {derivePendingFor && (
         <JdVariantDialog
