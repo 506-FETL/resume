@@ -34,6 +34,17 @@ export const JD_VARIANT_STEPS: VariantStepConfig[] = [
   { id: 'done', label: '完成', icon: CheckCircle2 },
 ]
 
+export const SECTION_LABEL: Partial<Record<keyof ResumeSchema, string>> = {
+  basics: '个人简介',
+  job_intent: '求职意向',
+  skill_specialty: '技能特长',
+  self_evaluation: '自我评价',
+  work_experience: '工作经历',
+  internship_experience: '实习经历',
+  project_experience: '项目经历',
+  campus_experience: '校园经历',
+}
+
 export const MESSAGES = {
   dialogTitle: (name: string) => `为「${name}」派生 JD 变体`,
   dialogSubtitle: '在原简历基础上，AI 会针对 JD 局部改写文案，事实型字段保持不变。',
