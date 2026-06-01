@@ -1,11 +1,15 @@
 import type { ResumeToolContext } from '../shared/types'
 import type { JobDescriptionComparisonResult } from './types'
-import { Loader2, Search, Target } from 'lucide-react'
-import { useMemo } from 'react'
+import { GitBranch, Loader2, Search, Target } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { MIN_JD_CHARS } from '@/components/jd-variant/const'
+import { JdVariantDialog } from '@/components/jd-variant/jd-variant-dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { parseLlmJsonObject, runJobDescriptionStructured } from '@/lib/llm'
+import useCurrentResumeStore from '@/store/resume/current'
 import { ToolEmptyState, ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader } from '../shared/primitives'
 import AnalysisTrace from './analysis-trace'
 import ComparisonResultView from './comparison-result'
@@ -37,6 +41,11 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     () => hasJobDescriptionAnalysisFlow(analysisState, analysisError),
     [analysisError, analysisState],
   )
+  const analysisDone = analysisState.status === 'complete' && Boolean(result)
+  const canDerive = analysisDone && jobDescription.trim().length >= MIN_JD_CHARS
+  const [deriveOpen, setDeriveOpen] = useState(false)
+  const navigate = useNavigate()
+  const { setCurrentResume } = useCurrentResumeStore()
 
   const handleCompare = async () => {
     const normalizedJobDescription = jobDescription.trim()
@@ -128,6 +137,15 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
                 : <Target className="size-4" />}
               {analyzing ? '分析中...' : '开始比对'}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canDerive}
+              onClick={() => setDeriveOpen(true)}
+            >
+              <GitBranch className="size-4" />
+              派生针对性简历
+            </Button>
             {jobDescriptionLength > 0 && (
               <ToolMetaBadge tone="info">建议包含职责、要求、加分项三部分</ToolMetaBadge>
             )}
@@ -156,6 +174,21 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
                 />
               )
             : null}
+
+      {deriveOpen && (
+        <JdVariantDialog
+          open
+          onOpenChange={setDeriveOpen}
+          parentResumeId={resumeContext.resumeId}
+          initialJd={jobDescription.trim()}
+          skipInputStep
+          recentJds={[]}
+          onOpenResume={(draftId) => {
+            setCurrentResume(draftId, resumeContext.resumeType === 'offline' ? 'default' : 'default')
+            navigate('/resume/editor')
+          }}
+        />
+      )}
     </div>
   )
 }
