@@ -7,6 +7,9 @@ export interface JdPromptPair {
   user: string
 }
 
+export const JD_VARIANT_PARSE_TEMPERATURE = 0.2
+export const JD_VARIANT_REWRITE_TEMPERATURE = 0.6
+
 export function buildJdParsePrompt(jdText: string): JdPromptPair {
   const system = `你是资深 HR / 求职顾问，擅长从岗位描述（JD）中提炼关键词。
 你的任务：从用户给出的 JD 文本中，提炼 3~30 个关键词，并给出一句岗位画像。

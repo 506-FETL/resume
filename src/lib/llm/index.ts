@@ -4,6 +4,7 @@ import type { RewriteRequestArgs } from '@/components/ai-rewrite/types'
 import { throttle } from 'lodash'
 import { REWRITE_TEMPERATURE } from '@/components/ai-rewrite/const'
 import { callLLM } from './call'
+import { buildJdParsePrompt, buildJdRewritePrompt, JD_VARIANT_PARSE_TEMPERATURE, JD_VARIANT_REWRITE_TEMPERATURE } from './prompts/jd-variant'
 import { createJobDescriptionAnalysisPrompt } from './prompts/job-description'
 import { optimize_prompt } from './prompts/optimize'
 import { buildRewritePrompt } from './prompts/rewrite'
@@ -145,5 +146,40 @@ export async function runJobDescriptionStructured(
     },
   } as ChatCompletionCreateParamsBase
 
+  return await streamStructuredJson(req, onUpdate, options)
+}
+
+export async function runJdVariantParse(
+  jdText: string,
+  onUpdate?: (data: StreamUpdate) => void,
+  options?: { throttleMs?: number, abortController?: AbortController },
+) {
+  const { system, user } = buildJdParsePrompt(jdText)
+  const req = {
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: JD_VARIANT_PARSE_TEMPERATURE,
+  } as ChatCompletionCreateParamsBase
+  return await streamStructuredJson(req, onUpdate, options)
+}
+
+export async function runJdVariantRewrite(
+  // TODO(Task 8): replace `Record<string, unknown>` with `EditableResumeView` from '@/components/jd-variant/types' once defined.
+  args: { resumeJson: Record<string, unknown>, jdText: string, keywords: readonly string[] },
+  onUpdate?: (data: StreamUpdate) => void,
+  options?: { throttleMs?: number, abortController?: AbortController },
+) {
+  const { system, user } = buildJdRewritePrompt(args)
+  const req = {
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: JD_VARIANT_REWRITE_TEMPERATURE,
+  } as ChatCompletionCreateParamsBase
   return await streamStructuredJson(req, onUpdate, options)
 }
