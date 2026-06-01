@@ -8,10 +8,20 @@
  */
 
 import type { DBSchema, IDBPDatabase } from 'idb'
-import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeType, VariantMetadata } from '@/lib/schema'
+import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeType, VariantChange, VariantMetadata } from '@/lib/schema'
+import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/variant'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
+
+// TODO(Task 11): replace with `import { applyVariantChange } from '@/components/jd-variant/apply-changes'`.
+// Until Task 11 lands, this stub is a no-op shallow clone so applyOfflineVariantChanges compiles
+// and runs — it does NOT actually mutate fields. Tasks 11+ will provide the real field-path mutator.
+function applyVariantChange<T>(snapshot: T, _change: VariantChange): T {
+  return { ...snapshot } as T
+}
+
+const MAX_VARIANT_TREE_DEPTH = 5
 
 interface ResumeDB extends DBSchema {
   resumes: {
@@ -368,4 +378,174 @@ export async function setVariantFieldsOffline(
   }
   const next = { ...resume, ...fields, updated_at: dayjs().toISOString() }
   await db.put('resumes', next)
+}
+
+/**
+ * 基于已有简历克隆一份草稿副本，用于 JD 派生流程
+ */
+export async function cloneOfflineResumeAsDraft(args: {
+  parentResumeId: string
+  jdText: string
+  keywords: string[]
+  summary?: string
+}): Promise<string> {
+  const db = await getDB()
+  const parent = await db.get('resumes', args.parentResumeId)
+  if (!parent) {
+    throw new Error('源简历不存在')
+  }
+  const draftId = generateResumeId()
+  const cloneTitle = args.summary?.slice(0, 16) || args.keywords[0] || 'JD 变体'
+  const initialMetadata: VariantMetadata = {
+    keywords: args.keywords,
+    changes: [],
+    generatedAt: new Date().toISOString(),
+    matchRate: 0,
+  }
+  await db.add('resumes', {
+    resume_id: draftId,
+    display_name: `${parent.display_name} - ${cloneTitle}`,
+    description: `JD 变体 · ${new Date().toLocaleDateString()}`,
+    type: parent.type,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    data: hydrateOfflineResumeData({ ...(parent.data ?? {}) }),
+    parent_resume_id: args.parentResumeId,
+    linked_jd_text: args.jdText,
+    derived_metadata: initialMetadata,
+    derived_status: 'generating',
+  })
+  return draftId
+}
+
+/**
+ * 将一组 changes 应用到离线 draft 上（依赖 Task 11 的 applyVariantChange）
+ */
+export async function applyOfflineVariantChanges(
+  draftResumeId: string,
+  changes: VariantChange[],
+): Promise<void> {
+  const db = await getDB()
+  const draft = await db.get('resumes', draftResumeId)
+  if (!draft) {
+    throw new Error('草稿不存在')
+  }
+  let snapshot: Partial<PersistedResumeSnapshot> = (draft.data ?? {}) as Partial<PersistedResumeSnapshot>
+  for (const change of changes) {
+    snapshot = applyVariantChange(snapshot, change)
+  }
+  draft.data = snapshot
+  draft.updated_at = dayjs().toISOString()
+  await db.put('resumes', draft)
+}
+
+/**
+ * 将 draft 标记为 ready 并更新 metadata
+ */
+export async function markOfflineVariantReady(
+  draftResumeId: string,
+  args: { matchRate: number, generatedAt: string, changes?: VariantChange[], keywords?: string[] },
+): Promise<void> {
+  const db = await getDB()
+  const draft = await db.get('resumes', draftResumeId)
+  if (!draft) {
+    throw new Error('草稿不存在')
+  }
+  const prior = draft.derived_metadata ?? null
+  draft.derived_metadata = {
+    keywords: args.keywords ?? prior?.keywords ?? [],
+    changes: args.changes ?? prior?.changes ?? [],
+    matchRate: args.matchRate,
+    generatedAt: args.generatedAt,
+  }
+  draft.derived_status = 'ready'
+  draft.updated_at = dayjs().toISOString()
+  await db.put('resumes', draft)
+}
+
+/**
+ * 将 draft 标记为 failed 并写入错误描述
+ */
+export async function markOfflineVariantFailed(draftResumeId: string, message: string): Promise<void> {
+  const db = await getDB()
+  const draft = await db.get('resumes', draftResumeId)
+  if (!draft) {
+    throw new Error('草稿不存在')
+  }
+  draft.derived_status = 'failed'
+  draft.description = `派生失败：${message.slice(0, 200)}`
+  draft.updated_at = dayjs().toISOString()
+  await db.put('resumes', draft)
+}
+
+/**
+ * 删除离线 draft 简历
+ */
+export async function deleteOfflineDraftVariant(draftResumeId: string): Promise<void> {
+  const db = await getDB()
+  await db.delete('resumes', draftResumeId)
+}
+
+/**
+ * 构建以 currentResumeId 所属树为基准的 lineage：
+ * - 先沿 parent 链向上找到真正的 root（visited 防环，无步数上限）
+ * - 再从 root 向下 BFS 构建子树（深度上限 MAX_VARIANT_TREE_DEPTH）
+ */
+export async function fetchOfflineVariantTree(currentResumeId: string): Promise<VariantLineage> {
+  const db = await getDB()
+  const all = await db.getAll('resumes')
+  const byId = new Map(all.map(r => [r.resume_id, r]))
+
+  const visited = new Set<string>()
+  let walker: string | null = currentResumeId
+  let rootId = currentResumeId
+  while (walker && !visited.has(walker)) {
+    visited.add(walker)
+    rootId = walker
+    const node = byId.get(walker)
+    walker = node?.parent_resume_id ?? null
+  }
+
+  const childrenByParent = new Map<string, OfflineResumeRecord[]>()
+  for (const record of all) {
+    const parentId = record.parent_resume_id ?? null
+    if (!parentId) {
+      continue
+    }
+    const list = childrenByParent.get(parentId)
+    if (list) {
+      list.push(record)
+    }
+    else {
+      childrenByParent.set(parentId, [record])
+    }
+  }
+
+  const seen = new Set<string>([rootId])
+  function build(id: string, lvl: number): VariantTreeNode {
+    const r = byId.get(id)
+    if (!r) {
+      throw new Error('简历节点不存在')
+    }
+    const childRecords = lvl >= MAX_VARIANT_TREE_DEPTH ? [] : (childrenByParent.get(id) ?? [])
+    const children: VariantTreeNode[] = []
+    for (const c of childRecords) {
+      if (seen.has(c.resume_id)) {
+        continue
+      }
+      seen.add(c.resume_id)
+      children.push(build(c.resume_id, lvl + 1))
+    }
+    return {
+      resumeId: r.resume_id,
+      displayName: r.display_name,
+      derivedStatus: r.derived_status ?? null,
+      generatedAt: r.derived_metadata?.generatedAt ?? null,
+      jdSnippet: r.linked_jd_text?.slice(0, 80) ?? null,
+      matchRate: r.derived_metadata?.matchRate ?? null,
+      children,
+    }
+  }
+
+  return { root: build(rootId, 0), currentId: currentResumeId }
 }
