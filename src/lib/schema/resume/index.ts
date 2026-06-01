@@ -1,3 +1,5 @@
+import type { DerivedStatus, VariantMetadata } from './variant'
+
 import { z } from 'zod'
 
 export * from './config'
@@ -39,9 +41,14 @@ export interface ResumeListItem {
   display_name?: string
   description?: string
   isOffline?: boolean
+  parent_resume_id?: string | null
+  linked_jd_text?: string | null
+  derived_metadata?: VariantMetadata | null
+  derived_status?: DerivedStatus | null
 }
 
 export * from './form'
 export * from './persisted'
 export type { ResumeTemplateBinding } from './persisted'
+export * from './variant'
 export * from './visibility'

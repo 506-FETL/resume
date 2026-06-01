@@ -25,6 +25,10 @@ const RESUME_PERSISTED_FIELDS = [
   'spacing',
   'font',
   'theme',
+  'parent_resume_id',
+  'linked_jd_text',
+  'derived_metadata',
+  'derived_status',
 ] as const
 
 export const RESUME_PERSISTED_SELECTOR = RESUME_PERSISTED_FIELDS.join(',')
@@ -37,7 +41,7 @@ export async function getAllResumesFromUser() {
 
   const { data, error } = await supabase
     .from('resume_config')
-    .select('id,resume_id,created_at,updated_at,type,display_name,description')
+    .select('id,resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_text,derived_metadata,derived_status')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
