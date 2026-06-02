@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
+import useJdVariantStore from '@/store/jd-variant'
 
 function HeadBars() {
   const isOnline = useResumeListStore(s => s.isOnline)
@@ -12,9 +13,19 @@ function HeadBars() {
   const setShowSyncDialog = useResumeListStore(s => s.setShowSyncDialog)
   const setDerivedJobsOpen = useResumeListStore(s => s.setDerivedJobsOpen)
   const hasOfflineResumesToSync = isOnline && offlineResumes.length > 0
-  const pendingCount = resumes.filter(
-    r => r.derived_status === 'generating' || r.derived_status === 'failed',
-  ).length
+  const tasks = useJdVariantStore(s => s.tasks)
+  const activeParentIds = new Set(
+    Object.values(tasks)
+      .filter(t => t.phase === 'parsing' || t.phase === 'rewriting' || t.phase === 'error' || t.phase === 'aborted')
+      .map(t => t.parentResumeId),
+  )
+  const dbPendingParentIds = new Set(
+    resumes
+      .filter(r => r.derived_status === 'generating' || r.derived_status === 'failed')
+      .map(r => r.parent_resume_id ?? '')
+      .filter(pid => pid !== '' && !activeParentIds.has(pid)),
+  )
+  const pendingCount = activeParentIds.size + dbPendingParentIds.size
   const isMobile = useIsMobile()
 
   return (

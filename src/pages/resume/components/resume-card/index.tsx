@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
+import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
 import DeleteResumeDialog from '../delete-resume-dialog'
 import EditResumeDialog from '../edit-resume-dialog'
@@ -64,6 +65,9 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
 
   const handleDeriveClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
+    const task = useJdVariantStore.getState().tasks[resume.resume_id]
+    if (task && (task.phase === 'success' || task.phase === 'error' || task.phase === 'aborted'))
+      useJdVariantStore.getState().clearTask(resume.resume_id)
     openDeriveFor(resume.resume_id)
   }
 
