@@ -12,12 +12,9 @@ export interface DerivedJobsDialogProps {
   onOpenChange: (next: boolean) => void
 }
 
-interface RunningItem {
-  parentResumeId: string
-  parentName: string
-  source: 'store' | 'db'
-  dbResumeId?: string
-}
+type RunningItem
+  = | { parentResumeId: string, parentName: string, source: 'store' }
+    | { parentResumeId: string, parentName: string, source: 'db', dbResumeId: string }
 
 export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps) {
   const { resumes, openDeriveFor, loadResumes } = useResumeListStore()
@@ -76,6 +73,17 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
     }
   }
 
+  const discardRunning = (item: RunningItem) => {
+    if (item.source === 'db') {
+      discard(item.dbResumeId)
+      return
+    }
+    // store 任务：discardTask 会中止生成并删除草稿，随后刷新列表清除陈旧的 generating 行
+    discardTask(item.parentResumeId)
+      .catch(() => undefined)
+      .finally(() => loadResumes())
+  }
+
   const retry = (id: string, parentId: string | null | undefined) => {
     if (!parentId)
       return
@@ -121,12 +129,7 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              if (item.source === 'store')
-                                discardTask(item.parentResumeId)
-                              else
-                                discard(item.dbResumeId!)
-                            }}
+                            onClick={() => discardRunning(item)}
                           >
                             丢弃
                           </Button>
