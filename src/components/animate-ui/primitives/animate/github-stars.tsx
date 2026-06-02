@@ -2,6 +2,7 @@
 
 import type { HTMLMotionProps } from 'motion/react'
 import type { WithAsChild } from '@/components/animate-ui/primitives/animate/slot'
+import dayjs from 'dayjs'
 
 import type { ParticlesEffectProps } from '@/components/animate-ui/primitives/effects/particles'
 import type { SlidingNumberProps } from '@/components/animate-ui/primitives/texts/sliding-number'
@@ -66,6 +67,9 @@ function GithubStars({
     { inView, inViewOnce, inViewMargin },
   )
 
+  const cacheKey = `github-stars-${username}-${repo}-timestamp`
+  const starsCacheKey = `github-stars-${username}-${repo}`
+
   const [stars, setStars] = React.useState(value ?? 0)
   const [currentStars, setCurrentStars] = React.useState(0)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -86,11 +90,25 @@ function GithubStars({
     }
 
     const timeout = setTimeout(() => {
+      const cachedTimes = dayjs(localStorage.getItem(cacheKey))
+
+      if (cachedTimes && dayjs().diff(cachedTimes, 'date') <= 3) {
+        const cachedStars = localStorage.getItem(starsCacheKey)
+
+        if (cachedStars) {
+          setStars(Number(cachedStars))
+          setIsLoading(false)
+          return
+        }
+      }
+
       fetch(`https://api.github.com/repos/${username}/${repo}`)
         .then(response => response.json())
         .then((data) => {
           if (data && typeof data.stargazers_count === 'number') {
             setStars(data.stargazers_count)
+            localStorage.setItem(cacheKey, dayjs().toISOString())
+            localStorage.setItem(starsCacheKey, data.stargazers_count.toString())
           }
         })
         .catch(() => {
