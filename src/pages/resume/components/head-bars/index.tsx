@@ -14,9 +14,10 @@ function HeadBars() {
   const setDerivedJobsOpen = useResumeListStore(s => s.setDerivedJobsOpen)
   const hasOfflineResumesToSync = isOnline && offlineResumes.length > 0
   const tasks = useJdVariantStore(s => s.tasks)
+  // 与“派生任务”弹窗口径一致：store 仅计进行中（parsing/rewriting），失败/取消由 DB failed 行体现
   const activeParentIds = new Set(
     Object.values(tasks)
-      .filter(t => t.phase === 'parsing' || t.phase === 'rewriting' || t.phase === 'error' || t.phase === 'aborted')
+      .filter(t => t.phase === 'parsing' || t.phase === 'rewriting')
       .map(t => t.parentResumeId),
   )
   const dbPendingParentIds = new Set(
