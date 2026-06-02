@@ -1,8 +1,8 @@
 import type { RecentJd } from './steps/step-input'
 import { AlertCircle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { StepInput } from './steps/step-input'
@@ -31,8 +31,7 @@ export function JdVariantDialog({
   skipInputStep = false,
 }: JdVariantDialogProps) {
   const [jd, setJd] = useState(initialJd)
-  const [confirmClose, setConfirmClose] = useState(false)
-  const { state, generate, abort, reset, discardDraft } = useJdVariantGenerator()
+  const { state, generate, abort, reset, discardDraft } = useJdVariantGenerator(parentResumeId)
 
   const startGenerate = useCallback(() => {
     generate({ parentResumeId, jdText: jd })
@@ -47,10 +46,9 @@ export function JdVariantDialog({
 
   const handleOpenChange = (next: boolean) => {
     if (!next && (state.phase === 'parsing' || state.phase === 'rewriting')) {
-      setConfirmClose(true)
-      return
+      toast.info('正在后台继续派生，可在右上角“派生任务”查看进度')
     }
-    if (!next) {
+    if (!next && state.phase === 'idle') {
       reset()
       setJd('')
     }
@@ -128,32 +126,32 @@ export function JdVariantDialog({
                 }}
               />
             )}
+
+            {state.phase === 'aborted' && (
+              <Alert>
+                <AlertCircle className="size-4" aria-hidden />
+                <AlertTitle>已取消派生</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <div>生成已取消，草稿仍保留。</div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" disabled={!jd.trim()} onClick={startGenerate}>重新生成</Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        discardDraft().catch(() => undefined)
+                        onOpenChange(false)
+                      }}
+                    >
+                      丢弃草稿
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
-
-      <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确定关闭？</AlertDialogTitle>
-            <AlertDialogDescription>正在派生中，关闭将取消生成并删除草稿。</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>继续派生</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                abort()
-                discardDraft().catch(() => undefined)
-                reset()
-                setConfirmClose(false)
-                onOpenChange(false)
-              }}
-            >
-              关闭并丢弃
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
