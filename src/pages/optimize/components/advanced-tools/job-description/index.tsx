@@ -9,6 +9,7 @@ import { JdVariantDialog } from '@/components/jd-variant/jd-variant-dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { parseLlmJsonObject, runJobDescriptionStructured } from '@/lib/llm'
+import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
 import { ToolEmptyState, ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader } from '../shared/primitives'
 import AnalysisTrace from './analysis-trace'
@@ -141,7 +142,12 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               type="button"
               variant="outline"
               disabled={!canDerive}
-              onClick={() => setDeriveOpen(true)}
+              onClick={() => {
+                const task = useJdVariantStore.getState().tasks[resumeContext.resumeId]
+                if (task && (task.phase === 'success' || task.phase === 'error' || task.phase === 'aborted'))
+                  useJdVariantStore.getState().clearTask(resumeContext.resumeId)
+                setDeriveOpen(true)
+              }}
             >
               <GitBranch className="size-4" />
               派生针对性简历
