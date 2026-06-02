@@ -3,8 +3,8 @@ import type { JdVariantStore, VariantTask } from './types'
 import type { GenerateVariantArgs } from '@/components/jd-variant/types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { MAX_KEYWORDS, MAX_VARIANT_DEPTH, MIN_KEYWORDS } from '@/components/jd-variant/const'
-import { parseVariantResponse } from '@/components/jd-variant/parse-variant-response'
-import { buildEditableView, computeMatchRate } from '@/components/jd-variant/utils'
+import { buildEditableView, computeMatchRate } from '@/components/jd-variant/utils/editable-view'
+import { parseVariantResponse } from '@/components/jd-variant/utils/parse-response'
 import { parseLlmJsonObject, runJdVariantParse, runJdVariantRewrite } from '@/lib/llm'
 import {
   applyOfflineVariantChanges,

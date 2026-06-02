@@ -1,7 +1,7 @@
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useVariantLineage } from './use-variant-lineage'
-import { VariantLineageTree } from './variant-lineage-tree'
+import { useVariantLineage } from '../hooks/use-lineage'
+import { VariantLineageTree } from './lineage-tree'
 
 export interface VariantLineageTreeDialogProps {
   open: boolean

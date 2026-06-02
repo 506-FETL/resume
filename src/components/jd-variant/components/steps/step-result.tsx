@@ -1,11 +1,11 @@
-import type { VariantChange } from '../types'
+import type { VariantChange } from '../../types'
 import { Sparkles } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { parseSanitizedHtml } from '@/lib/safe-html'
-import { SECTION_LABEL } from '../const'
+import { SECTION_LABEL } from '../../const'
 
 export interface StepResultProps {
   matchRate: number | null

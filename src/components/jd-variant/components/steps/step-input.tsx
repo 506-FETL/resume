@@ -1,7 +1,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { MIN_JD_CHARS } from '../const'
+import { MIN_JD_CHARS } from '../../const'
 
 export interface RecentJd {
   snippet: string

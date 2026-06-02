@@ -1,7 +1,7 @@
 import type { VariantChange } from '@/lib/schema'
 import { parseLlmJsonObject } from '@/lib/llm'
 import { variantChangeSchema } from '@/lib/schema'
-import { MAX_CHANGES, MIN_CHANGES, REWRITE_AFTER_LENGTH_RATIO } from './const'
+import { MAX_CHANGES, MIN_CHANGES, REWRITE_AFTER_LENGTH_RATIO } from '../const'
 
 interface RawShape {
   changes?: unknown

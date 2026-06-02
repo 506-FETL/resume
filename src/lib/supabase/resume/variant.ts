@@ -4,7 +4,7 @@ import type {
   VariantChange,
   VariantMetadata,
 } from '@/lib/schema'
-import { applyVariantChange } from '@/components/jd-variant/apply-changes'
+import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 

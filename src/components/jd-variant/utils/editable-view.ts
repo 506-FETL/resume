@@ -1,4 +1,4 @@
-import type { EditableResumeView } from './types'
+import type { EditableResumeView } from '../types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 
 interface SnapshotLike {

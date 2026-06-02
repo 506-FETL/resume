@@ -1,4 +1,4 @@
-import type { GenerateVariantArgs } from './types'
+import type { GenerateVariantArgs } from '../types'
 import { useCallback } from 'react'
 import useJdVariantStore, { makeIdleTask } from '@/store/jd-variant'
 

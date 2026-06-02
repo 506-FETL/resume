@@ -12,7 +12,7 @@ import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, Re
 import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/variant'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
-import { applyVariantChange } from '@/components/jd-variant/apply-changes'
+import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
 import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
 
 const MAX_VARIANT_TREE_DEPTH = 5

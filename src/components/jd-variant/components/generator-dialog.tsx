@@ -5,11 +5,11 @@ import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
+import { useJdVariantGenerator } from '../hooks/use-generator'
 import { StepInput } from './steps/step-input'
 import { StepParsing } from './steps/step-parsing'
 import { StepResult } from './steps/step-result'
 import { StepRewriting } from './steps/step-rewriting'
-import { useJdVariantGenerator } from './use-jd-variant-generator'
 
 export interface JdVariantDialogProps {
   open: boolean

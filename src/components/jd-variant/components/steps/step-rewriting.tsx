@@ -1,9 +1,9 @@
-import type { VariantChange } from '../types'
+import type { VariantChange } from '../../types'
 import { Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { SECTION_LABEL } from '../const'
+import { SECTION_LABEL } from '../../const'
 
 export interface StepRewritingProps {
   completedSections: string[]
