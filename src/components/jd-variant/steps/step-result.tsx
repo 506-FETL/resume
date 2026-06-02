@@ -4,6 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { parseSanitizedHtml } from '@/lib/safe-html'
 import { SECTION_LABEL } from '../const'
 
 export interface StepResultProps {
@@ -48,8 +49,18 @@ export function StepResult({ matchRate, changes, onOpen, onDiscard }: StepResult
                     <details className="group">
                       <summary className="cursor-pointer select-none text-muted-foreground transition-colors hover:text-foreground">对比 before / after</summary>
                       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <pre className="whitespace-pre-wrap rounded-md border bg-background p-2">{String(c.before ?? '')}</pre>
-                        <pre className="whitespace-pre-wrap rounded-md border bg-background p-2">{String(c.after ?? '')}</pre>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Before</span>
+                          <div className="prose prose-sm max-w-none wrap-break-word rounded-md border bg-background p-2 leading-relaxed text-foreground">
+                            {parseSanitizedHtml(String(c.before ?? ''))}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-medium uppercase tracking-wide text-primary">After</span>
+                          <div className="prose prose-sm max-w-none wrap-break-word rounded-md border border-primary/40 bg-primary/5 p-2 leading-relaxed text-foreground">
+                            {parseSanitizedHtml(String(c.after ?? ''))}
+                          </div>
+                        </div>
                       </div>
                     </details>
                   </li>

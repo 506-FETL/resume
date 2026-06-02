@@ -106,6 +106,7 @@ export function JdVariantDialog({
                 completedSections={state.completedSections}
                 changes={state.changes}
                 estimatedTotal={5}
+                reasoning={state.rewriteReasoning}
                 onAbort={abort}
               />
             )}

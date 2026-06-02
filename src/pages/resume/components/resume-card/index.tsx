@@ -101,58 +101,64 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
         </Button>
 
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <FileText className="h-8 w-8 text-primary" />
-            <div className="flex items-center gap-2">
-              {isVariant && (
-                <VariantBadge
-                  parentName={parent?.display_name ?? null}
-                  jdSnippet={resume.linked_jd_text ? resume.linked_jd_text.slice(0, 80) : null}
-                  matchRate={resume.derived_metadata?.matchRate ?? null}
-                />
-              )}
-              {isGenerating && (
-                <Badge variant="secondary" className="text-xs rounded-full">
-                  <GitBranch className="h-3 w-3 mr-1" />
-                  生成中
-                </Badge>
-              )}
-              {isFailed && (
-                <Badge variant="destructive" className="text-xs rounded-full">
-                  <GitBranch className="h-3 w-3 mr-1" />
-                  生成失败
-                </Badge>
-              )}
-              {resume.isOffline
-                ? (
-                    <Badge variant="secondary" className="text-xs rounded-full">
-                      <HardDrive className="h-3 w-3 mr-1" />
-                      本地
-                    </Badge>
-                  )
-                : (
-                    <Badge variant="default" className="text-xs bg-blue-400 rounded-full">
-                      <Cloud className="h-3 w-3 mr-1" />
-                      云端
-                    </Badge>
-                  )}
-              <span className="text-xs text-muted-foreground">{new Date(resume.created_at).toLocaleDateString()}</span>
+          <div className="flex items-start justify-between">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10">
+              <FileText className="size-5 text-primary" />
             </div>
+            <span className="text-xs text-muted-foreground">{new Date(resume.created_at).toLocaleDateString()}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isVariant && (
+              <VariantBadge
+                parentName={parent?.display_name ?? null}
+                jdSnippet={resume.linked_jd_text ? resume.linked_jd_text.slice(0, 80) : null}
+                matchRate={resume.derived_metadata?.matchRate ?? null}
+              />
+            )}
+            {isGenerating && (
+              <Badge variant="secondary" className="text-xs rounded-full">
+                <GitBranch className="h-3 w-3 mr-1" />
+                生成中
+              </Badge>
+            )}
+            {isFailed && (
+              <Badge variant="destructive" className="text-xs rounded-full">
+                <GitBranch className="h-3 w-3 mr-1" />
+                生成失败
+              </Badge>
+            )}
+            {resume.isOffline
+              ? (
+                  <Badge variant="secondary" className="text-xs rounded-full">
+                    <HardDrive className="h-3 w-3 mr-1" />
+                    本地
+                  </Badge>
+                )
+              : (
+                  <Badge variant="default" className="text-xs bg-blue-400 rounded-full">
+                    <Cloud className="h-3 w-3 mr-1" />
+                    云端
+                  </Badge>
+                )}
           </div>
         </CardHeader>
-        <CardContent className="flex-1">
-          <CardTitle>{resume.display_name || `未命名简历`}</CardTitle>
-          <CardDescription>{resume.description || '点击编辑简历内容'}</CardDescription>
+        <CardContent className="flex-1 space-y-2">
+          <div className="space-y-1">
+            <CardTitle className="line-clamp-1">{resume.display_name || `未命名简历`}</CardTitle>
+            <CardDescription className="line-clamp-2">{resume.description || '点击编辑简历内容'}</CardDescription>
+          </div>
           {parent && (
             <button
               type="button"
               onClick={handleParentClick}
-              className="mt-2 text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 hover:underline"
+              className="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-primary hover:underline"
             >
-              <GitBranch className="size-3" aria-hidden />
-              派生自
-              {' '}
-              {parent.display_name || '未命名简历'}
+              <GitBranch className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">
+                派生自
+                {' '}
+                {parent.display_name || '未命名简历'}
+              </span>
             </button>
           )}
         </CardContent>

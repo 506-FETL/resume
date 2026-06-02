@@ -9,10 +9,11 @@ export interface StepRewritingProps {
   completedSections: string[]
   changes: VariantChange[]
   estimatedTotal: number
+  reasoning: string
   onAbort: () => void
 }
 
-export function StepRewriting({ completedSections, changes, estimatedTotal, onAbort }: StepRewritingProps) {
+export function StepRewriting({ completedSections, changes, estimatedTotal, reasoning, onAbort }: StepRewritingProps) {
   const total = Math.max(estimatedTotal, completedSections.length || 1)
   const pct = Math.min(100, Math.round((completedSections.length / total) * 100))
   return (
@@ -32,6 +33,14 @@ export function StepRewriting({ completedSections, changes, estimatedTotal, onAb
         </span>
       </div>
       <Progress value={pct} aria-label="改写进度" />
+      {reasoning && (
+        <div
+          className="max-h-32 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          {reasoning}
+        </div>
+      )}
       <ul className="flex max-h-60 flex-col gap-2 overflow-auto" aria-live="polite">
         {changes.map((c, i) => (
           <li key={`${c.section}-${c.itemId}-${i}`} className="space-y-1 rounded-md bg-muted/40 p-3 text-xs">

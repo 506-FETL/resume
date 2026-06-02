@@ -98,13 +98,13 @@ export default function CreateResumeCard() {
   }
 
   return (
-    <section>
+    <section className="h-full">
       <Card
-        className="hover:shadow-lg transition-all duration-300 cursor-pointer border-dashed border-2 hover:border-primary/50 h-full flex flex-col"
+        className="hover:shadow-lg transition-all duration-300 cursor-pointer border-dashed border-2 hover:border-primary/50 h-full flex flex-col items-center justify-center"
         onClick={() => setIsCreating(true)}
       >
         <CardHeader className="flex justify-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
+          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10">
             <Plus className="size-8" />
           </div>
         </CardHeader>
