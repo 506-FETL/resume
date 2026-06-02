@@ -32,6 +32,17 @@ type GetState = StoreApi<JdVariantStore>['getState']
 
 const controllers = new Map<string, AbortController>()
 
+function makePatch(set: SetState) {
+  return (parentResumeId: string, partial: Partial<VariantTask>) => {
+    set(s => ({
+      tasks: {
+        ...s.tasks,
+        [parentResumeId]: { ...(s.tasks[parentResumeId] ?? makeIdleTask(parentResumeId)), ...partial },
+      },
+    }))
+  }
+}
+
 interface OfflineResumeRecord {
   resume_id: string
   display_name?: string
@@ -59,14 +70,7 @@ function computeDepth(
 }
 
 export function createStartGenerate(set: SetState, get: GetState) {
-  const patch = (parentResumeId: string, partial: Partial<VariantTask>) => {
-    set(s => ({
-      tasks: {
-        ...s.tasks,
-        [parentResumeId]: { ...(s.tasks[parentResumeId] ?? makeIdleTask(parentResumeId)), ...partial },
-      },
-    }))
-  }
+  const patch = makePatch(set)
 
   return async (args: GenerateVariantArgs) => {
     const { parentResumeId } = args
@@ -226,14 +230,7 @@ export function createStartGenerate(set: SetState, get: GetState) {
 }
 
 export function createAbortTask(set: SetState, get: GetState) {
-  const patch = (parentResumeId: string, partial: Partial<VariantTask>) => {
-    set(s => ({
-      tasks: {
-        ...s.tasks,
-        [parentResumeId]: { ...(s.tasks[parentResumeId] ?? makeIdleTask(parentResumeId)), ...partial },
-      },
-    }))
-  }
+  const patch = makePatch(set)
 
   return (parentResumeId: string) => {
     controllers.get(parentResumeId)?.abort()
