@@ -83,7 +83,7 @@ export function JdVariantDialog({
                       variant="ghost"
                       onClick={() => {
                         discardDraft().catch(() => undefined)
-                        reset()
+                        onOpenChange(false)
                       }}
                     >
                       放弃草稿
