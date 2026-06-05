@@ -186,7 +186,7 @@ npx eslint \
 
 执行记录：定向 `rg` 无匹配；`npx tsc --noEmit` 退出码 0；修复两处数组索引 key 后，目标文件 ESLint 使用 `--max-warnings 0` 退出码 0；`git diff --check` 退出码 0。
 
-- [ ] **步骤 8：提交生成弹窗改动**
+- [x] **步骤 8：提交生成弹窗改动**
 
 仅暂存本任务文件和计划文件：
 
@@ -202,6 +202,8 @@ git add \
 git commit -m "refactor(jd-variant): normalize generator dialog UI"
 ```
 
+执行记录：已提交 `5598dbd refactor(jd-variant): normalize generator dialog UI`；提交前 staged 清单仅包含 6 个生成弹窗文件和本计划，四个既有工作树改动未进入提交。
+
 ## 任务 2：规范派生任务与血缘关系
 
 **文件：**
@@ -210,7 +212,7 @@ git commit -m "refactor(jd-variant): normalize generator dialog UI"
 - 修改：`src/components/jd-variant/components/lineage-tree.tsx`
 - 修改：`src/pages/resume/editor/components/toolbar/variant-lineage-button.tsx`
 
-- [ ] **步骤 1：运行任务与血缘规则基线并确认存在违规**
+- [x] **步骤 1：运行任务与血缘规则基线并确认存在违规**
 
 运行：
 
@@ -224,7 +226,9 @@ rg -n 'space-[xy]-|style=\{\{ marginLeft|>暂无<|className="size-[0-9.]+|classN
 
 预期：命中手写空状态、`space-y-*`、递增 margin 和组件内图标手动尺寸等写法。
 
-- [ ] **步骤 2：重构派生任务弹窗**
+执行记录：2026-06-06 已运行，命中任务弹窗手写“暂无”与 `space-y-*`、血缘树递增内联 `marginLeft` 和手动图标尺寸、Popover 的 `space-y-*`，失败基线成立。
+
+- [x] **步骤 2：重构派生任务弹窗**
 
 在 `tasks-dialog.tsx`：
 
@@ -238,7 +242,9 @@ rg -n 'space-[xy]-|style=\{\{ marginLeft|>暂无<|className="size-[0-9.]+|classN
 - 移动端 Footer 使用 wrap 或纵向布局，不压缩标题。
 - 不改 runningItems、failed、discardRunning、retry 的数据与回调。
 
-- [ ] **步骤 3：重构血缘弹窗状态**
+执行记录：任务弹窗已使用 Tabs 区分进行中/失败，任务项改为完整 Card，空列表改为 Empty，列表改为 ScrollArea；原数据合并、查看进度、重试和丢弃回调未修改。
+
+- [x] **步骤 3：重构血缘弹窗状态**
 
 在 `lineage-dialog.tsx`：
 
@@ -248,7 +254,9 @@ rg -n 'space-[xy]-|style=\{\{ marginLeft|>暂无<|className="size-[0-9.]+|classN
 - 树放入可纵向滚动的 ScrollArea，并允许树内部最小宽度。
 - 保留现有加载 hook 与打开简历回调。
 
-- [ ] **步骤 4：重构血缘树节点**
+执行记录：加载状态改为 Skeleton，错误改为 destructive Alert，无数据改为 Empty，树区域放入 ScrollArea；`useVariantLineage` 与打开简历回调保持原样。
+
+- [x] **步骤 4：重构血缘树节点**
 
 在 `lineage-tree.tsx`：
 
@@ -260,7 +268,9 @@ rg -n 'space-[xy]-|style=\{\{ marginLeft|>暂无<|className="size-[0-9.]+|classN
 - `findPath` 算法保持不变。
 - 路径展示改用 flex gap 和清晰的层级连接符，不使用 `space-y-*`。
 
-- [ ] **步骤 5：规范编辑器血缘 Popover**
+执行记录：已移除内联递增 `marginLeft`，使用递归边框、连接线与节点 Card 表达层级；`findPath` 算法保持不变，仅收窄为文件内函数以满足 Fast Refresh。
+
+- [x] **步骤 5：规范编辑器血缘 Popover**
 
 在 `variant-lineage-button.tsx`：
 
@@ -269,7 +279,9 @@ rg -n 'space-[xy]-|style=\{\{ marginLeft|>暂无<|className="size-[0-9.]+|classN
 - 保持先 `setPopoverOpen(false)` 再 `setTreeOpen(true)`。
 - Button 内图标继续使用 `data-icon`。
 
-- [ ] **步骤 6：运行定向检查、类型检查和 Lint**
+执行记录：PopoverContent 已改为 flex gap，并使用 Separator 分隔路径与完整树操作；父 Popover 关闭后再打开 Dialog 的顺序未变。
+
+- [x] **步骤 6：运行定向检查、类型检查和 Lint**
 
 运行：
 
@@ -291,6 +303,8 @@ npx eslint \
 
 - `rg` 无不允许的匹配；如果 Skeleton 的显式尺寸被命中，记录为允许项。
 - TypeScript 和 ESLint 退出码 0。
+
+执行记录：定向 `rg` 无匹配；修正血缘弹窗缩进和仅本文件使用的 `findPath` 导出后，`npx tsc --noEmit`、目标文件 ESLint `--max-warnings 0`、`git diff --check` 均退出码 0。
 
 - [ ] **步骤 7：提交任务与血缘改动**
 

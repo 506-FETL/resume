@@ -6,6 +6,7 @@ import { VariantLineagePath } from '@/components/jd-variant/components/lineage-t
 import { useVariantLineage } from '@/components/jd-variant/hooks/use-lineage'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
@@ -59,9 +60,10 @@ export function VariantLineageButton() {
             {!isMobile && <span>血缘</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-80 space-y-3 p-4">
+        <PopoverContent align="end" className="flex w-80 flex-col gap-3 p-4">
           <h3 className="text-sm font-semibold">血缘链</h3>
           <VariantLineagePath tree={tree} currentResumeId={resumeId ?? ''} />
+          <Separator />
           <Button
             size="sm"
             variant="outline"

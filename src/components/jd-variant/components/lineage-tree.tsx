@@ -1,8 +1,9 @@
 import type { VariantTreeNode } from '@/lib/supabase/resume/variant'
-import { ArrowRight, GitBranch } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 const STATUS_VARIANT: Record<string, 'default' | 'destructive' | 'outline' | 'secondary'> = {
@@ -30,45 +31,58 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
   const matchPct = node.matchRate == null ? null : `${Math.round(node.matchRate * 100)}%`
 
   return (
-    <div className="space-y-1.5">
-      <div
+    <div
+      className={cn(
+        'relative flex flex-col gap-3',
+        depth > 0 && 'border-l border-border pl-5',
+      )}
+    >
+      {depth > 0 && <span className="absolute -left-px top-7 h-px w-5 bg-border" aria-hidden />}
+      <Card
         data-current={isCurrent}
         className={cn(
-          'flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors',
-          isCurrent
-            ? 'border-primary bg-primary/5'
-            : 'hover:bg-accent/40',
+          'min-w-[28rem] gap-4 py-4 shadow-none transition-colors',
+          isCurrent ? 'border-primary bg-primary/5' : 'hover:bg-accent/30',
         )}
-        style={{ marginLeft: depth * 16 }}
       >
-        <GitBranch className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="flex-1 truncate font-medium">{node.displayName || '未命名简历'}</span>
-        {status && (
-          <Badge variant={STATUS_VARIANT[status] ?? 'outline'} className="text-xs">
-            {STATUS_LABEL[status] ?? status}
-          </Badge>
-        )}
-        {matchPct && <span className="text-xs tabular-nums text-muted-foreground">{matchPct}</span>}
-        {!isCurrent && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-7 shrink-0"
-            onClick={() => onOpen(node.resumeId)}
-            aria-label={`打开 ${node.displayName}`}
-          >
-            <ArrowRight className="size-3.5" />
-          </Button>
-        )}
-      </div>
-      {node.jdSnippet && (
-        <p className="text-xs text-muted-foreground line-clamp-2" style={{ marginLeft: depth * 16 + 26 }}>
-          JD：
-          {node.jdSnippet}
-        </p>
-      )}
+        <CardHeader className="px-4">
+          <CardTitle className="truncate">{node.displayName || '未命名简历'}</CardTitle>
+          <CardDescription>{isCurrent ? '当前简历' : '派生关系中的简历'}</CardDescription>
+          <CardAction>
+            <div className="flex items-center gap-2">
+              {status && (
+                <Badge variant={STATUS_VARIANT[status] ?? 'outline'}>
+                  {STATUS_LABEL[status] ?? status}
+                </Badge>
+              )}
+              {matchPct && <Badge variant="outline">{matchPct}</Badge>}
+              {!isCurrent && (
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => onOpen(node.resumeId)}
+                  aria-label={`打开 ${node.displayName || '未命名简历'}`}
+                >
+                  <ArrowRight />
+                </Button>
+              )}
+            </div>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="px-4">
+          {node.jdSnippet
+            ? (
+                <p className="line-clamp-2 text-sm text-muted-foreground">
+                  JD：
+                  {node.jdSnippet}
+                </p>
+              )
+            : <p className="text-sm text-muted-foreground">没有关联的职位描述摘要。</p>}
+        </CardContent>
+      </Card>
+
       {node.children.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-3">
           {node.children.map(child => (
             <VariantLineageTree
               key={child.resumeId}
@@ -84,7 +98,7 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
   )
 }
 
-export function findPath(node: VariantTreeNode, targetId: string, acc: VariantTreeNode[] = []): VariantTreeNode[] | null {
+function findPath(node: VariantTreeNode, targetId: string, acc: VariantTreeNode[] = []): VariantTreeNode[] | null {
   const next = [...acc, node]
   if (node.resumeId === targetId)
     return next
@@ -109,10 +123,22 @@ export function VariantLineagePath({ tree, currentResumeId }: VariantLineagePath
   if (path.length === 0) {
     return <p className="text-xs text-muted-foreground">无血缘信息</p>
   }
+
   return (
-    <ol className="space-y-1.5">
+    <ol className="flex flex-col gap-2">
       {path.map((n, i) => (
         <li key={n.resumeId} className="flex items-center gap-2">
+          <span
+            className={cn(
+              'flex size-5 shrink-0 items-center justify-center rounded-full text-xs',
+              i === path.length - 1
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground',
+            )}
+            aria-hidden
+          >
+            {i + 1}
+          </span>
           <Badge variant={i === path.length - 1 ? 'default' : 'outline'} className="max-w-45 truncate">
             {n.displayName || '未命名'}
           </Badge>
