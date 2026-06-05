@@ -82,7 +82,7 @@
 - 修改：`src/components/jd-variant/components/steps/step-rewriting.tsx`
 - 修改：`src/components/jd-variant/components/steps/step-result.tsx`
 
-- [ ] **步骤 1：运行生成弹窗规则基线并确认存在违规**
+- [x] **步骤 1：运行生成弹窗规则基线并确认存在违规**
 
 运行：
 
@@ -94,7 +94,9 @@ rg -n 'space-[xy]-|<label|<button|<details|<summary|className="size-[0-9.]+.*ani
 
 预期：命中当前 `space-y-*`、原生 `label`/`button`/`details`、手动 Spinner 尺寸等写法，作为重构前失败基线。
 
-- [ ] **步骤 2：新增纯展示步骤指示器**
+执行记录：2026-06-06 已运行，命中 `generator-dialog.tsx` 的 `space-y-*`、`step-input.tsx` 的原生 `label`/`button`、解析与改写步骤的手写 Spinner 尺寸，以及结果步骤的原生 `details`/`summary`，失败基线成立。
+
+- [x] **步骤 2：新增纯展示步骤指示器**
 
 实现 `GeneratorStepIndicator`：
 
@@ -104,7 +106,9 @@ rg -n 'space-[xy]-|<label|<button|<details|<summary|className="size-[0-9.]+.*ani
 - 桌面端显示步骤名，窄屏允许隐藏次要文字但保留可访问标签。
 - 只做展示，不读取 store，不触发 action。
 
-- [ ] **步骤 3：重构生成弹窗骨架**
+执行记录：新增 `generator-step-indicator.tsx`，仅接收 `GeneratorPhase` 并映射四步展示，没有读取 store 或新增 action。
+
+- [x] **步骤 3：重构生成弹窗骨架**
 
 在 `generator-dialog.tsx`：
 
@@ -117,7 +121,9 @@ rg -n 'space-[xy]-|<label|<button|<details|<summary|className="size-[0-9.]+.*ani
 - 保持现有 `startGenerate`、`abort`、`reset`、`discardDraft` 和 `onOpenResume` 调用顺序与语义。
 - 不改变关闭生成中弹窗后后台继续的 toast 行为。
 
-- [ ] **步骤 4：规范输入步骤**
+执行记录：生成弹窗已改为固定 Header、ScrollArea 主体和 ResponsiveDialogFooter；阶段内容使用 `AnimatePresence`，并通过 `useReducedMotion` 关闭非必要位移。原有生成、取消、丢弃、打开和后台 toast 回调保持原调用语义。
+
+- [x] **步骤 4：规范输入步骤**
 
 在 `step-input.tsx`：
 
@@ -128,7 +134,9 @@ rg -n 'space-[xy]-|<label|<button|<details|<summary|className="size-[0-9.]+.*ani
 - 移除步骤内部提交按钮，由 Dialog Footer 渲染。
 - 不改变字符计算、最近 JD 回填和示例内容。
 
-- [ ] **步骤 5：规范解析与改写步骤**
+执行记录：输入区已使用 Field 组合与 `aria-invalid`，最近 JD 改为 Button，提交操作移至弹窗 Footer。
+
+- [x] **步骤 5：规范解析与改写步骤**
 
 在 `step-parsing.tsx` 和 `step-rewriting.tsx`：
 
@@ -140,7 +148,9 @@ rg -n 'space-[xy]-|<label|<button|<details|<summary|className="size-[0-9.]+.*ani
 - 移除步骤内部取消按钮，由 Dialog Footer 渲染。
 - 保持 progress、completedSections、changes、reasoning 的展示语义。
 
-- [ ] **步骤 6：规范成功结果**
+执行记录：解析与改写步骤已改用 Spinner、ScrollArea、Skeleton、Progress、Card 和 Badge，取消操作移至弹窗 Footer。
+
+- [x] **步骤 6：规范成功结果**
 
 在 `step-result.tsx`：
 
@@ -151,7 +161,9 @@ rg -n 'space-[xy]-|<label|<button|<details|<summary|className="size-[0-9.]+.*ani
 - 保留 HTML 安全解析 `parseSanitizedHtml`。
 - 移除步骤内部操作按钮，由 Dialog Footer 渲染。
 
-- [ ] **步骤 7：运行定向检查、类型检查和 Lint**
+执行记录：结果按 section 使用 Accordion，Before/After 使用响应式双 Card 展示，已移除原生 details/summary，安全 HTML 解析保持不变。
+
+- [x] **步骤 7：运行定向检查、类型检查和 Lint**
 
 运行：
 
@@ -171,6 +183,8 @@ npx eslint \
 - `rg` 无匹配。
 - TypeScript 退出码 0。
 - ESLint 退出码 0。
+
+执行记录：定向 `rg` 无匹配；`npx tsc --noEmit` 退出码 0；修复两处数组索引 key 后，目标文件 ESLint 使用 `--max-warnings 0` 退出码 0；`git diff --check` 退出码 0。
 
 - [ ] **步骤 8：提交生成弹窗改动**
 
