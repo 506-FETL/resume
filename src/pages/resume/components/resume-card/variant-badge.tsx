@@ -16,14 +16,14 @@ export function VariantBadge({ parentName, jdSnippet, matchRate }: VariantBadgeP
       <Tooltip>
         <TooltipTrigger asChild>
           <Badge variant="outline" className="gap-1" aria-label={`派生自 ${displayParent}`}>
-            <GitBranch className="size-3" aria-hidden />
+            <GitBranch aria-hidden />
             {' '}
             派生
             {pct ? ` · ${pct}` : ''}
           </Badge>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
-          <div className="space-y-1 text-xs">
+          <div className="flex flex-col gap-1 text-xs">
             <div>
               派生自：
               <span className="font-medium">{displayParent}</span>

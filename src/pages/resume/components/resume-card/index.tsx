@@ -5,9 +5,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { cn } from '@/lib/utils'
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import useResumeListStore from '@/pages/resume/store'
 import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
@@ -22,12 +20,10 @@ interface ResumeCardProps {
 export default function ResumeCard({ resume }: ResumeCardProps) {
   const { deleteResume, updateResume, openDeriveFor, resumes } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
-  const isMobile = useIsMobile()
 
   const navigate = useNavigate()
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
 
   const parent = useMemo(() => {
     if (!resume.parent_resume_id)
@@ -82,35 +78,27 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
   return (
     <>
       <Card
-        className="hover:shadow-lg transition-all duration-300 cursor-pointer relative h-full flex flex-col"
+        className="group h-full cursor-pointer gap-5 py-5 transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-md focus-within:border-primary/30"
         onClick={handleCardClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* 删除按钮 */}
-        <Button
-          onClick={handleDeleteClick}
-          size="icon"
-          className={cn(
-            'absolute -top-2 -right-2 z-10 h-6 w-6 rounded-full bg-linear-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg hover:cursor-pointer',
-            isMobile
-              ? 'opacity-100 scale-100 rotate-0'
-              : isHovered
-                ? 'opacity-100 scale-100 rotate-0'
-                : 'opacity-0 scale-0 rotate-90',
-          )}
-          aria-label="删除简历"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-
-        <CardHeader>
-          <div className="flex items-start justify-between">
+        <CardHeader className="gap-4 px-5">
+          <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10">
               <FileText className="size-5 text-primary" />
             </div>
             <span className="text-xs text-muted-foreground">{new Date(resume.created_at).toLocaleDateString()}</span>
           </div>
+          <CardAction>
+            <Button
+              type="button"
+              onClick={handleDeleteClick}
+              size="icon-sm"
+              variant="ghost"
+              aria-label="删除简历"
+            >
+              <X />
+            </Button>
+          </CardAction>
           <div className="flex flex-wrap items-center gap-1.5">
             {isVariant && (
               <VariantBadge
@@ -120,55 +108,57 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
               />
             )}
             {isGenerating && (
-              <Badge variant="secondary" className="text-xs rounded-full">
-                <GitBranch className="h-3 w-3 mr-1" />
+              <Badge variant="secondary">
+                <GitBranch />
                 生成中
               </Badge>
             )}
             {isFailed && (
-              <Badge variant="destructive" className="text-xs rounded-full">
-                <GitBranch className="h-3 w-3 mr-1" />
+              <Badge variant="destructive">
+                <GitBranch />
                 生成失败
               </Badge>
             )}
             {resume.isOffline
               ? (
-                  <Badge variant="secondary" className="text-xs rounded-full">
-                    <HardDrive className="h-3 w-3 mr-1" />
+                  <Badge variant="secondary">
+                    <HardDrive />
                     本地
                   </Badge>
                 )
               : (
-                  <Badge variant="default" className="text-xs bg-blue-400 rounded-full">
-                    <Cloud className="h-3 w-3 mr-1" />
+                  <Badge variant="outline">
+                    <Cloud />
                     云端
                   </Badge>
                 )}
           </div>
         </CardHeader>
-        <CardContent className="flex-1 space-y-2">
-          <div className="space-y-1">
-            <CardTitle className="line-clamp-1">{resume.display_name || `未命名简历`}</CardTitle>
+        <CardContent className="flex flex-1 flex-col gap-3 px-5">
+          <div className="flex flex-col gap-1">
+            <CardTitle className="line-clamp-1">{resume.display_name || '未命名简历'}</CardTitle>
             <CardDescription className="line-clamp-2">{resume.description || '点击编辑简历内容'}</CardDescription>
           </div>
           {parent && (
-            <button
+            <Button
               type="button"
+              size="xs"
+              variant="link"
               onClick={handleParentClick}
-              className="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-primary hover:underline"
+              className="max-w-full justify-start"
             >
-              <GitBranch className="size-3 shrink-0" aria-hidden />
+              <GitBranch data-icon="inline-start" aria-hidden />
               <span className="truncate">
                 派生自
                 {' '}
                 {parent.display_name || '未命名简历'}
               </span>
-            </button>
+            </Button>
           )}
         </CardContent>
-        <CardFooter className="flex gap-2">
+        <CardFooter className="mt-auto grid grid-cols-2 gap-2 px-5">
           <Button variant="outline" onClick={handleEditClick} className="flex-1">
-            <Edit2 />
+            <Edit2 data-icon="inline-start" />
             编辑信息
           </Button>
           <Button
@@ -178,7 +168,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
             disabled={isGenerating}
             aria-label="派生针对性版本"
           >
-            <Sparkles />
+            <Sparkles data-icon="inline-start" />
             派生
           </Button>
         </CardFooter>

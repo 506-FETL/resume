@@ -306,7 +306,7 @@ npx eslint \
 
 执行记录：定向 `rg` 无匹配；修正血缘弹窗缩进和仅本文件使用的 `findPath` 导出后，`npx tsc --noEmit`、目标文件 ESLint `--max-warnings 0`、`git diff --check` 均退出码 0。
 
-- [ ] **步骤 7：提交任务与血缘改动**
+- [x] **步骤 7：提交任务与血缘改动**
 
 ```bash
 git add \
@@ -318,6 +318,8 @@ git add \
 git commit -m "refactor(jd-variant): normalize task and lineage UI"
 ```
 
+执行记录：已提交 `05fc4e9 refactor(jd-variant): normalize task and lineage UI`；提交范围仅包含 4 个任务/血缘 UI 文件和计划记录。
+
 ## 任务 3：规范简历列表、Header 与卡片动效
 
 **文件：**
@@ -326,7 +328,7 @@ git commit -m "refactor(jd-variant): normalize task and lineage UI"
 - 修改：`src/pages/resume/components/resume-card/index.tsx`
 - 修改：`src/pages/resume/components/resume-card/variant-badge.tsx`
 
-- [ ] **步骤 1：保存并检查 `src/pages/resume/index.tsx` 当前用户改动**
+- [x] **步骤 1：保存并检查 `src/pages/resume/index.tsx` 当前用户改动**
 
 运行：
 
@@ -336,7 +338,9 @@ git diff -- src/pages/resume/index.tsx
 
 记录当前工作树中的 store 解构格式和 Tabs `className="my-3"`，后续修改必须基于当前内容，不回退用户改动。
 
-- [ ] **步骤 2：运行列表与卡片规则基线并确认存在违规**
+执行记录：已确认任务前 diff 仅包含 store 解构压缩为单行，以及 Tabs 从 `mb-6` 改为 `my-3`。后续基于该工作树版本修改。
+
+- [x] **步骤 2：运行列表与卡片规则基线并确认存在违规**
 
 运行：
 
@@ -350,7 +354,9 @@ rg -n 'space-[xy]-|dark:|bg-(red|blue|green)-|text-(red|blue|green)-|animate-(pu
 
 预期：命中当前原始颜色、手动图标尺寸、在线状态动画、删除按钮旋转缩放和列表累积延迟。
 
-- [ ] **步骤 3：重构简历页面布局与列表动效**
+执行记录：2026-06-06 已运行，命中 Header 原始绿色和 pulse/bounce、卡片删除按钮的绝对定位/旋转/缩放/原始红色、云端 Badge 原始蓝色、图标手动尺寸、`space-y-*`、列表 `index * 0.05` 累积延迟。
+
+- [x] **步骤 3：重构简历页面布局与列表动效**
 
 在 `src/pages/resume/index.tsx`：
 
@@ -365,7 +371,9 @@ rg -n 'space-[xy]-|dark:|bg-(red|blue|green)-|text-(red|blue|green)-|animate-(pu
 - Skeleton 使用与真实卡片一致的 Card 结构、flex gap 和 `size-*`。
 - 不改变过滤、同步、弹窗和导航逻辑。
 
-- [ ] **步骤 4：重构 Header**
+执行记录：页面已使用响应式 padding 与统一 gap；卡片进入/退出改为轻微 opacity/y，移除 scale、索引延迟和同步缩放，保留 layout；Skeleton 结构已对齐真实 Card。过滤、同步、弹窗和导航逻辑未修改。
+
+- [x] **步骤 4：重构 Header**
 
 在 `head-bars/index.tsx`：
 
@@ -376,7 +384,9 @@ rg -n 'space-[xy]-|dark:|bg-(red|blue|green)-|text-(red|blue|green)-|animate-(pu
 - 移动端按钮可全宽，桌面端恢复自适应。
 - 不改变 pendingCount 和同步按钮启用条件。
 
-- [ ] **步骤 5：重构简历卡片**
+执行记录：Header 已改为纯响应式 Tailwind，在线状态使用语义 Badge，移除原始绿色和 pulse/bounce；按钮图标改用 `data-icon`，pendingCount 与启用条件保持不变。
+
+- [x] **步骤 5：重构简历卡片**
 
 在 `resume-card/index.tsx`：
 
@@ -391,7 +401,9 @@ rg -n 'space-[xy]-|dark:|bg-(red|blue|green)-|text-(red|blue|green)-|animate-(pu
 - 父简历入口使用 Button link/ghost 组合并保持 `stopPropagation`。
 - Footer 保持两个等宽按钮与原有行为。
 
-- [ ] **步骤 6：规范派生 Badge Tooltip**
+执行记录：删除按钮已移入 CardAction，移除 hover 旋转/缩放/负偏移；状态 Badge 使用内置变体，父简历入口改为 Button link，Footer 保持编辑/派生两个等宽入口。
+
+- [x] **步骤 6：规范派生 Badge Tooltip**
 
 在 `variant-badge.tsx`：
 
@@ -399,7 +411,9 @@ rg -n 'space-[xy]-|dark:|bg-(red|blue|green)-|text-(red|blue|green)-|animate-(pu
 - Badge 内图标不手动尺寸。
 - 保持 parentName、jdSnippet 和 matchRate 文案。
 
-- [ ] **步骤 7：运行定向检查、类型检查和 Lint**
+执行记录：TooltipContent 已改为 flex gap，Badge 图标不再手动指定尺寸，原文案保持不变。
+
+- [x] **步骤 7：运行定向检查、类型检查和 Lint**
 
 运行：
 
@@ -422,7 +436,9 @@ npx eslint \
 - `rg` 不再命中目标违规。
 - TypeScript 和 ESLint 退出码 0。
 
-- [ ] **步骤 8：暂存前确认没有覆盖用户的其他文件**
+执行记录：目标规则已清除；规则扫描剩余 5 条均为矩形 Skeleton 的非等宽高写法，不适用 `size-*`。修正两行缩进后，`npx tsc --noEmit`、目标文件 ESLint `--max-warnings 0`、`git diff --check` 均退出码 0。
+
+- [x] **步骤 8：暂存前确认没有覆盖用户的其他文件**
 
 运行：
 
@@ -438,6 +454,8 @@ git diff -- src/pages/resume/index.tsx
 - `src/components/jd-variant/utils/apply-changes.ts`
 
 仍保持未暂存，且未被本任务修改。
+
+执行记录：已检查工作树和 diff；三个既有非页面文件仍保持原始未暂存内容。本次对 `src/pages/resume/index.tsx` 的修改建立在用户单行 store 解构与 `Tabs className="my-3"` 之上，二者仍保留。
 
 - [ ] **步骤 9：提交不含既有改动的列表组件**
 
