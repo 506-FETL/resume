@@ -201,20 +201,18 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               )
             : null}
 
-      {deriveOpen && (
-        <JdVariantDialog
-          open
-          onOpenChange={setDeriveOpen}
-          parentResumeId={resumeContext.resumeId}
-          initialJd={jobDescription.trim()}
-          skipInputStep
-          recentJds={[]}
-          onOpenResume={(draftId) => {
-            setCurrentResume(draftId, resumeContext.resumeType === 'offline' ? 'default' : 'default')
-            navigate('/resume/editor')
-          }}
-        />
-      )}
+      <JdVariantDialog
+        open={deriveOpen}
+        onOpenChange={setDeriveOpen}
+        parentResumeId={resumeContext.resumeId}
+        initialJd={jobDescription.trim()}
+        skipInputStep
+        recentJds={[]}
+        onOpenResume={(draftId) => {
+          setCurrentResume(draftId, resumeContext.resumeType === 'offline' ? 'default' : 'default')
+          navigate('/resume/editor')
+        }}
+      />
     </div>
   )
 }

@@ -41,7 +41,7 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
       <Card
         data-current={isCurrent}
         className={cn(
-          'min-w-[28rem] gap-4 py-4 shadow-none transition-colors',
+          'w-[28rem] gap-4 py-4 shadow-none transition-colors',
           isCurrent ? 'border-primary bg-primary/5' : 'hover:bg-accent/30',
         )}
       >
@@ -127,7 +127,7 @@ export function VariantLineagePath({ tree, currentResumeId }: VariantLineagePath
   return (
     <ol className="flex flex-col gap-2">
       {path.map((n, i) => (
-        <li key={n.resumeId} className="flex items-center gap-2">
+        <li key={n.resumeId} className="flex min-w-0 items-center gap-2">
           <span
             className={cn(
               'flex size-5 shrink-0 items-center justify-center rounded-full text-xs',
@@ -139,11 +139,15 @@ export function VariantLineagePath({ tree, currentResumeId }: VariantLineagePath
           >
             {i + 1}
           </span>
-          <Badge variant={i === path.length - 1 ? 'default' : 'outline'} className="max-w-45 truncate">
-            {n.displayName || '未命名'}
+          <Badge
+            variant={i === path.length - 1 ? 'default' : 'outline'}
+            className="min-w-0 flex-1 shrink justify-start"
+            title={n.displayName || '未命名'}
+          >
+            <span className="truncate">{n.displayName || '未命名'}</span>
           </Badge>
           {n.matchRate != null && (
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
               {Math.round(n.matchRate * 100)}
               %
             </span>

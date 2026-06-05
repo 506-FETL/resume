@@ -75,8 +75,8 @@ export function ResponsiveDialog({
       <ResponsiveDialogContext.Provider value={contextValue}>
         <Drawer open={open} onOpenChange={onOpenChange}>
           {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
-          <DrawerContent className="flex flex-col h-full">
-              {children}
+          <DrawerContent className="h-full overflow-hidden">
+            {children}
           </DrawerContent>
         </Drawer>
       </ResponsiveDialogContext.Provider>

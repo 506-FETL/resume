@@ -49,6 +49,12 @@ export function JdVariantDialog({
     }
   }, [skipInputStep, state.phase, jd, startGenerate])
 
+  useEffect(() => {
+    if (open && state.phase === 'idle') {
+      setJd(initialJd)
+    }
+  }, [initialJd, open, state.phase])
+
   const handleOpenChange = (next: boolean) => {
     if (!next && (state.phase === 'parsing' || state.phase === 'rewriting')) {
       toast.info('正在后台继续派生，可在右上角“派生任务”查看进度')
@@ -130,7 +136,7 @@ export function JdVariantDialog({
           <GeneratorStepIndicator phase={state.phase} />
         </ResponsiveDialogHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="overflow-auto">
           <div className="min-h-80 px-6 py-5">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -176,7 +182,7 @@ export function JdVariantDialog({
           </div>
         </ScrollArea>
 
-        <ResponsiveDialogFooter className="shrink-0 gap-2 bg-background">
+        <ResponsiveDialogFooter className="shrink-0 gap-2 border-t bg-background">
           {footer}
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

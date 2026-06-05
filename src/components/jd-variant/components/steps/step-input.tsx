@@ -33,7 +33,7 @@ export function StepInput({ value, onChange, recentJds }: StepInputProps) {
           onChange={e => onChange(e.target.value)}
           rows={8}
           placeholder="请粘贴目标岗位 JD…"
-          className="resize-none"
+          className="max-h-60"
           aria-invalid={showError}
         />
         <FieldDescription aria-live="polite">

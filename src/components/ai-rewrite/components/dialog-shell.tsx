@@ -1,11 +1,5 @@
 import type { ComponentType, ReactNode } from 'react'
-import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from '@/components/ui/responsive-dialog'
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 
 interface RewriteDialogShellProps {
   children: ReactNode
@@ -17,15 +11,7 @@ interface RewriteDialogShellProps {
   title: string
 }
 
-export function RewriteDialogShell({
-  children,
-  description,
-  footer,
-  icon: Icon,
-  onOpenChange,
-  open,
-  title,
-}: RewriteDialogShellProps) {
+export function RewriteDialogShell({ children, description, footer, icon: Icon, onOpenChange, open, title }: RewriteDialogShellProps) {
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:h-[85vh] sm:max-h-[85vh] sm:max-w-3xl">

@@ -1,3 +1,5 @@
+import Markdown from 'react-markdown'
+import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -23,11 +25,14 @@ export function StepParsing({ reasoning, keywords }: StepParsingProps) {
         <CardContent className="px-4">
           {reasoning
             ? (
-                <ScrollArea className="h-32 rounded-md border bg-muted/30 p-3">
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground" aria-live="polite">
-                    {reasoning}
-                  </p>
-                </ScrollArea>
+                <AutoScrollContainer
+                  className="max-h-75 bg-muted p-3 rounded-md mt-2 overflow-x-auto"
+                  dependency={reasoning}
+                >
+                  <div className="markdown-content text-xs text-muted-foreground [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>li]:mb-1 [&>h1]:text-lg [&>h1]:font-bold [&>h1]:mb-2 [&>h2]:text-base [&>h2]:font-semibold [&>h2]:mb-2 [&>h3]:text-sm [&>h3]:font-medium [&>h3]:mb-1 [&>code]:bg-background [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-xs [&>pre]:bg-background [&>pre]:p-2 [&>pre]:rounded [&>pre]:overflow-x-auto [&>pre]:mb-2 [&>blockquote]:border-l-2 [&>blockquote]:border-muted-foreground/30 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:mb-2 [&>strong]:font-semibold [&>em]:italic">
+                    <Markdown>{reasoning}</Markdown>
+                  </div>
+                </AutoScrollContainer>
               )
             : (
                 <div className="flex flex-col gap-2" aria-label="正在等待模型分析">

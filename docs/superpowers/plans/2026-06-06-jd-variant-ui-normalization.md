@@ -521,7 +521,7 @@ npx eslint src/pages/optimize/components/advanced-tools/job-description/index.ts
 
 执行记录：定向 `rg` 无匹配；`npx tsc --noEmit`、目标文件 ESLint `--max-warnings 0`、`git diff --check` 均退出码 0。
 
-- [ ] **步骤 4：提交 Optimize 入口改动**
+- [x] **步骤 4：提交 Optimize 入口改动**
 
 ```bash
 git add \
@@ -529,6 +529,8 @@ git add \
   docs/superpowers/plans/2026-06-06-jd-variant-ui-normalization.md
 git commit -m "refactor(optimize): normalize JD derive entry UI"
 ```
+
+执行记录：已提交 `e370ed9 refactor(optimize): normalize JD derive entry UI`；提交范围仅包含 Optimize JD 组件和计划记录。
 
 ## 任务 5：全量验证与视觉冒烟
 

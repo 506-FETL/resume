@@ -1,9 +1,9 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
 import { DerivedJobsDialog } from '@/components/jd-variant/components/tasks-dialog'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useResumeListStore from '@/pages/resume/store'
@@ -14,22 +14,15 @@ import ResumeCard from './components/resume-card'
 import SyncResumesDialog from './components/sync-resumes-dialog'
 
 export default function ResumePage() {
-  const {
-    resumes,
-    loading,
-    isOnline,
-    syncingIds,
-    loadResumes,
-    setupRealtimeSubscription,
-    filterMode,
-    setFilterMode,
-    derivePendingFor,
-    openDeriveFor,
-    derivedJobsOpen,
-    setDerivedJobsOpen,
-  } = useResumeListStore()
+  const { resumes, loading, isOnline, syncingIds, loadResumes, setupRealtimeSubscription, filterMode, setFilterMode, derivePendingFor, openDeriveFor, derivedJobsOpen, setDerivedJobsOpen } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
   const navigate = useNavigate()
+  const shouldReduceMotion = useReducedMotion()
+  const retainedDeriveParentId = useRef<string | null>(derivePendingFor)
+  if (derivePendingFor) {
+    retainedDeriveParentId.current = derivePendingFor
+  }
+  const deriveDialogParentId = derivePendingFor ?? retainedDeriveParentId.current
 
   useEffect(() => {
     loadResumes()
@@ -59,13 +52,13 @@ export default function ResumePage() {
     return <ResumePageSkeleton />
 
   return (
-    <div className="container mx-auto p-8">
+    <div className="container mx-auto flex flex-col gap-3 px-4 py-6 sm:px-6 lg:px-8">
       <HeadBars />
 
       <Tabs
         value={filterMode}
         onValueChange={v => setFilterMode(v as 'all' | 'roots' | 'variants')}
-        className="mb-6"
+        className="my-3"
       >
         <TabsList>
           <TabsTrigger value="all">全部</TabsTrigger>
@@ -75,34 +68,31 @@ export default function ResumePage() {
       </Tabs>
 
       <motion.div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.18 }}
       >
         <AnimatePresence mode="popLayout">
-          {visibleItems.map((resume, index) => {
+          {visibleItems.map((resume) => {
             const isSyncingThis = syncingIds.has(resume.resume_id)
             return (
               <motion.div
                 key={resume.resume_id}
                 layout
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
                 animate={{
-                  opacity: isSyncingThis ? 0.5 : 1,
-                  scale: isSyncingThis ? 0.95 : 1,
+                  opacity: isSyncingThis ? 0.55 : 1,
                   y: 0,
                 }}
                 exit={{
                   opacity: 0,
-                  scale: 0.8,
-                  y: -20,
-                  transition: { duration: 0.2 },
+                  y: shouldReduceMotion ? 0 : -4,
                 }}
                 transition={{
-                  duration: 0.3,
-                  delay: index * 0.05,
-                  layout: { duration: 0.3 },
+                  duration: shouldReduceMotion ? 0 : 0.18,
+                  ease: 'easeOut',
+                  layout: { duration: shouldReduceMotion ? 0 : 0.2 },
                 }}
               >
                 <ResumeCard resume={resume} />
@@ -113,12 +103,12 @@ export default function ResumePage() {
           <motion.div
             key="create-card"
             layout
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: 0.3,
-              delay: visibleItems.length * 0.05,
-              layout: { duration: 0.3 },
+              duration: shouldReduceMotion ? 0 : 0.18,
+              ease: 'easeOut',
+              layout: { duration: shouldReduceMotion ? 0 : 0.2 },
             }}
           >
             <CreateResumeCard />
@@ -130,14 +120,15 @@ export default function ResumePage() {
 
       <DerivedJobsDialog open={derivedJobsOpen} onOpenChange={setDerivedJobsOpen} />
 
-      {derivePendingFor && (
+      {deriveDialogParentId && (
         <JdVariantDialog
-          open
+          key={deriveDialogParentId}
+          open={Boolean(derivePendingFor)}
           onOpenChange={(o) => {
             if (!o)
               openDeriveFor(null)
           }}
-          parentResumeId={derivePendingFor}
+          parentResumeId={deriveDialogParentId}
           recentJds={[]}
           initialJd={pendingResume?.linked_jd_text ?? ''}
           onOpenResume={(draftId) => {
@@ -153,39 +144,33 @@ export default function ResumePage() {
 
 function ResumePageSkeleton() {
   return (
-    <div className="container mx-auto p-8">
-      <motion.div
-        className="mb-8"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Skeleton className="h-9 w-48 mb-2" />
+    <div className="container mx-auto flex flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-9 w-48" />
         <Skeleton className="h-5 w-64" />
-      </motion.div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 8 }, (_, idx) => idx).map(i => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-          >
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between mb-4">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-                <Skeleton className="h-6 w-3/4 mb-2" />
+          <Card key={i} className="gap-5 py-5">
+            <CardHeader className="flex flex-col gap-4 px-5">
+              <div className="flex items-center justify-between gap-4">
+                <Skeleton className="size-10 rounded-lg" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-6 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-10 w-full" />
-              </CardContent>
-            </Card>
-          </motion.div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-5">
+              <Skeleton className="h-16 w-full" />
+            </CardContent>
+            <CardFooter className="grid grid-cols-2 gap-2 px-5">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </CardFooter>
+          </Card>
         ))}
       </div>
     </div>

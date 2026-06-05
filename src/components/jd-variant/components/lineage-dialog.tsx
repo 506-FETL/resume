@@ -32,8 +32,8 @@ export function VariantLineageTreeDialog({
           <ResponsiveDialogDescription>查看当前简历所属的派生关系</ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="px-6 py-5">
+        <ScrollArea className="min-h-0 flex-1" orientation="both">
+          <div className="min-w-full w-max px-6 py-5">
             {loading && (
               <div className="flex flex-col gap-3" aria-label="正在加载血缘树">
                 <Skeleton className="h-24 w-full" />
@@ -51,7 +51,7 @@ export function VariantLineageTreeDialog({
             )}
 
             {!loading && !error && tree && (
-              <div className="min-w-[32rem]">
+              <div className="min-w-md pr-2">
                 <VariantLineageTree
                   node={tree}
                   currentResumeId={currentResumeId}
