@@ -457,7 +457,7 @@ git diff -- src/pages/resume/index.tsx
 
 执行记录：已检查工作树和 diff；三个既有非页面文件仍保持原始未暂存内容。本次对 `src/pages/resume/index.tsx` 的修改建立在用户单行 store 解构与 `Tabs className="my-3"` 之上，二者仍保留。
 
-- [ ] **步骤 9：提交不含既有改动的列表组件**
+- [x] **步骤 9：提交不含既有改动的列表组件**
 
 `src/pages/resume/index.tsx` 在本任务前已经存在用户改动，因此本步骤不得暂存该文件。只提交其余原本干净的组件与计划记录，页面文件保留在工作树中。
 
@@ -473,12 +473,14 @@ git status --short src/pages/resume/index.tsx
 
 预期：`src/pages/resume/index.tsx` 仍显示为未暂存修改。
 
+执行记录：已提交 `5f731bb refactor(resume): normalize JD variant list UI`，仅包含 Header、ResumeCard、VariantBadge 和计划记录；`src/pages/resume/index.tsx` 仍为未暂存修改。
+
 ## 任务 4：规范 Optimize JD 派生入口
 
 **文件：**
 - 修改：`src/pages/optimize/components/advanced-tools/job-description/index.tsx`
 
-- [ ] **步骤 1：运行 Optimize 入口规则基线并确认存在违规**
+- [x] **步骤 1：运行 Optimize 入口规则基线并确认存在违规**
 
 运行：
 
@@ -489,7 +491,9 @@ rg -n 'space-[xy]-|Loader2|className="size-[0-9.]+|<Textarea' \
 
 预期：命中 `space-y-*`、Loader2 手动 spinner 和未使用 Field 的 Textarea。
 
-- [ ] **步骤 2：规范职位描述输入区**
+执行记录：2026-06-06 已运行，命中外层与 ToolPanelBody 的 `space-y-*`、Loader2 手写 Spinner、Button 内图标手动尺寸，以及未使用 Field 的 Textarea。
+
+- [x] **步骤 2：规范职位描述输入区**
 
 在 `job-description/index.tsx`：
 
@@ -500,7 +504,9 @@ rg -n 'space-[xy]-|Loader2|className="size-[0-9.]+|<Textarea' \
 - Search、Target、GitBranch 图标在 Button 中使用 `data-icon`，不手动尺寸。
 - 保留 jobDescription session、分析请求、结果和派生打开逻辑。
 
-- [ ] **步骤 3：运行定向检查、类型检查和 Lint**
+执行记录：外层与 ToolPanelBody 已改为 flex gap；Textarea 使用 FieldGroup/Field/FieldLabel/FieldDescription；分析中使用 Spinner，Button 图标使用 `data-icon`。session、请求、结果和派生打开逻辑未修改。
+
+- [x] **步骤 3：运行定向检查、类型检查和 Lint**
 
 运行：
 
@@ -512,6 +518,8 @@ npx eslint src/pages/optimize/components/advanced-tools/job-description/index.ts
 ```
 
 预期：`rg` 无匹配，TypeScript 和 ESLint 退出码 0。
+
+执行记录：定向 `rg` 无匹配；`npx tsc --noEmit`、目标文件 ESLint `--max-warnings 0`、`git diff --check` 均退出码 0。
 
 - [ ] **步骤 4：提交 Optimize 入口改动**
 

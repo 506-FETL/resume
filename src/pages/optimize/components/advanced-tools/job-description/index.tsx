@@ -1,12 +1,14 @@
 import type { ResumeToolContext } from '../shared/types'
 import type { JobDescriptionComparisonResult } from './types'
-import { GitBranch, Loader2, Search, Target } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { GitBranch, Search, Target } from 'lucide-react'
+import { useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
 import { MIN_JD_CHARS } from '@/components/jd-variant/const'
 import { Button } from '@/components/ui/button'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { parseLlmJsonObject, runJobDescriptionStructured } from '@/lib/llm'
 import useJdVariantStore from '@/store/jd-variant'
@@ -47,6 +49,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
   const [deriveOpen, setDeriveOpen] = useState(false)
   const navigate = useNavigate()
   const { setCurrentResume } = useCurrentResumeStore()
+  const jobDescriptionId = useId()
 
   const handleCompare = async () => {
     const normalizedJobDescription = jobDescription.trim()
@@ -116,7 +119,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <ToolPanelCard>
         <ToolPanelHeader
           title="岗位描述输入"
@@ -124,18 +127,35 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
           icon={Search}
           badge={jobDescriptionLength > 0 ? <ToolMetaBadge tone="info">{`已输入 ${jobDescriptionLength} 字`}</ToolMetaBadge> : null}
         />
-        <ToolPanelBody className="space-y-4">
-          <Textarea
-            value={jobDescription}
-            onChange={event => setJobDescription(sessionKey, event.target.value)}
-            className="max-h-50 resize-y border-border/60 bg-background md:max-h-60 lg:max-h-80 xl:max-h-100"
-            placeholder="粘贴职位描述、岗位职责、任职要求或加分项。"
-          />
+        <ToolPanelBody className="flex flex-col gap-4">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor={jobDescriptionId}>职位描述</FieldLabel>
+              <Textarea
+                id={jobDescriptionId}
+                value={jobDescription}
+                onChange={event => setJobDescription(sessionKey, event.target.value)}
+                className="max-h-50 resize-y border-border/60 bg-background md:max-h-60 lg:max-h-80 xl:max-h-100"
+                placeholder="粘贴职位描述、岗位职责、任职要求或加分项。"
+              />
+              <FieldDescription>
+                已输入
+                {' '}
+                {jobDescriptionLength}
+                {' '}
+                字；派生针对性简历至少需要
+                {' '}
+                {MIN_JD_CHARS}
+                {' '}
+                字。
+              </FieldDescription>
+            </Field>
+          </FieldGroup>
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={handleCompare} disabled={analyzing || !jobDescription.trim()}>
               {analyzing
-                ? <Loader2 className="size-4 animate-spin" />
-                : <Target className="size-4" />}
+                ? <Spinner data-icon="inline-start" />
+                : <Target data-icon="inline-start" />}
               {analyzing ? '分析中...' : '开始比对'}
             </Button>
             <Button
@@ -149,7 +169,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
                 setDeriveOpen(true)
               }}
             >
-              <GitBranch className="size-4" />
+              <GitBranch data-icon="inline-start" />
               派生针对性简历
             </Button>
             {jobDescriptionLength > 0 && (
