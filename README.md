@@ -2,7 +2,17 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE) ![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white) ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 
-智能简历创作平台 —— 从编辑到投递，一站式求职解决方案。
+智能简历创作与求职管理平台 —— 从内容编辑、模板定制到岗位匹配和投递追踪的一站式解决方案。
+
+## 最新进展（2026-06-06）
+
+- **JD 驱动派生简历**：粘贴目标岗位描述，自动解析关键词并基于现有简历生成独立的针对性版本
+- **后台派生任务**：关闭生成窗口后任务仍可继续，可统一查看进度、重试失败任务或清理草稿
+- **简历血缘管理**：区分原始简历与派生版本，展示来源 JD、匹配度以及多层派生关系
+- **划词 AI 改写**：在富文本编辑器中选择内容后，可执行 STAR 化、量化、强动词、润色和 JD 靠拢
+- **模板工作台**：统一管理官方、社区和个人模板，并通过可视化编辑器调整布局、模块与样式
+
+完整版本记录见应用内的「更新日志」页面，内容位于 [`src/pages/changelog/content`](./src/pages/changelog/content)。
 
 ## 为什么选择 GResume？
 
@@ -10,8 +20,9 @@
 
 ### ✨ 特性亮点
 
-- 🎨 **6 套专业模板** — 基础、简约、现代、商务侧栏、ATS 紧凑、分段展示，一键切换
-- 🤖 **AI 深度优化** — 五维评分 + 思维链推理，精准定位问题并给出修复建议
+- 🎨 **模板中心与工作台** — 6 套官方模板，支持社区模板、个人模板和可视化定制
+- 🤖 **AI 深度优化** — ATS 五维评分、问题修复和编辑器内划词改写
+- 🎯 **JD 针对性派生** — 从原始简历生成岗位定制版本，保留匹配度、改写详情和血缘关系
 - 👥 **实时多人协作** — 基于 Automerge CRDT，无冲突协同编辑
 - 📋 **求职进度追踪** — 看板 + 列表双视图，覆盖从投递到 Offer 全流程
 - 💾 **离线优先** — 无需注册即可使用，登录后自动云端同步
@@ -40,7 +51,7 @@
 
 ### 🎨 模板中心
 
-提供 **6 套精心设计的官方模板**，覆盖不同求职场景：
+模板中心分为 **官方、社区、我的** 三个区域。官方提供 6 套内置模板，覆盖不同求职场景：
 
 | 模板         | 风格       | 适用场景                      |
 | ------------ | ---------- | ----------------------------- |
@@ -51,11 +62,16 @@
 | ATS 紧凑模板 | 高密度排版 | 针对 ATS 系统优化，解析率最高 |
 | 分段展示模板 | 分块堆叠   | 内容丰富，适合项目经历突出者  |
 
-支持实时预览和一键切换，编辑内容自动适配新模板布局。
+支持实时预览和一键绑定，编辑内容会自动适配新模板布局。你也可以复制官方或社区模板，在可视化编辑器中调整：
+
+- 单栏、左右侧栏和分段堆叠等布局骨架
+- 模块顺序、显示状态、所在区域和展示样式
+- 字体、颜色、间距、密度和圆角等视觉配置
+- 模板名称、说明、公开范围和发布状态
 
 ---
 
-### 🤖 AI 驱动的 ATS 优化
+### 🤖 AI 驱动的 ATS 优化与内容改写
 
 **深度简历分析**
 
@@ -78,9 +94,34 @@ AI 从五个维度评估你的简历：
 - 日期规范化：统一时间格式
 - 内容增强：添加量化数据
 
-**透明的推理过程**
+**划词 AI 改写**
 
-基于 DeepSeek Reasoner 的流式思维链输出，你可以实时查看 AI 的完整思考过程，了解每一条建议背后的逻辑，而不是盲目接受"黑箱"结果。
+在工作、项目、实习、校园、教育、自我评价、证书、兴趣和技能等富文本字段中选中内容，即可调用 AI 生成 2–3 个候选版本：
+
+- **STAR 化**：按情境、任务、行动、结果重组经历
+- **量化**：强化数量、比例、规模和业务结果
+- **强动词**：替换“负责”“参与”等弱表达
+- **润色**：精简句子并优化语法、标点和可读性
+- **JD 靠拢**：结合目标岗位关键词调整措辞
+
+候选内容会先经过安全 HTML 清理，再由用户确认后写回原选区。
+
+**可观察的分析过程**
+
+基于 DeepSeek Reasoner 的流式输出，ATS 分析和 JD 派生过程会展示当前阶段、关键词、改写进度与修改理由，用户确认后再应用结果。
+
+---
+
+### 🎯 JD 驱动的派生简历
+
+针对不同岗位，不再需要手动复制并逐段修改简历。你可以从「我的简历」或 JD 匹配工具直接发起派生：
+
+1. 粘贴目标岗位 JD，AI 提取核心关键词与岗位摘要
+2. 复制源简历为独立草稿，仅改写允许优化的描述性字段
+3. 展示改写前后对比、命中关键词、修改理由和关键词匹配度
+4. 将结果保存为新的简历版本，原始简历内容保持不变
+
+派生任务支持后台继续、进度回看、取消、重试和丢弃。简历列表可按「全部 / 原始简历 / 派生版本」筛选，并通过血缘树查看多层派生关系。在线简历使用 Supabase 持久化，离线简历同样支持本地派生与血缘查询。
 
 ---
 
@@ -112,6 +153,8 @@ AI 从五个维度评估你的简历：
 **完整申请记录**
 
 每个职位可记录：公司信息、职位详情、薪资范围、申请日期、各阶段进展、面试轮次、个人备注。再也不会忘记"这家公司我投过没有"。
+
+支持按公司、岗位和城市搜索，并与状态筛选组合使用。
 
 ---
 
@@ -178,15 +221,16 @@ AI 从五个维度评估你的简历：
 
 ```bash
 # 克隆仓库
-git clone <repository-url>
+git clone https://github.com/506-FETL/resume.git
 cd resume
 
 # 安装依赖
 pnpm install
 
-# 配置环境变量（创建 .env 文件）
+# 配置环境变量（创建不会提交到 Git 的 .env.local 文件）
 VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-key
+VITE_BASE_URL=http://localhost:5173
 
 # 启动开发服务器
 pnpm dev
@@ -195,7 +239,16 @@ pnpm dev
 访问 `http://localhost:5173` 开始使用。
 
 > [!WARNING]
-> **数据库初始化**：在你的 Supabase 项目中，请将 `supabase/migrations/` 目录下的所有 SQL 文件在数据库中执行一次，以创建必要的表结构（`resume_config`、`resume_config_versions`、`ats`、`company`、`resume_templates`）。
+> **数据库初始化**：在你的 Supabase 项目中按顺序执行 `supabase/migrations/` 下的 SQL。除核心表（`resume_config`、`resume_config_versions`、`ats`、`company`、`resume_templates`）外，最新迁移还会为 `resume_config` 增加 JD 派生所需的父级、JD、元数据和状态字段。
+
+需要使用 ATS、AI 改写或 JD 派生时，还需部署 LLM 代理并配置服务端密钥：
+
+```bash
+supabase secrets set OPENAI_API_KEY=your-deepseek-api-key
+supabase functions deploy llm-proxy
+```
+
+`OPENAI_API_KEY` 是当前 Edge Function 沿用的环境变量名，实际请求发送至 DeepSeek API。AI 能力需要用户登录后使用。
 
 > [!TIP]
 > 离线模式下无需配置 Supabase 即可使用简历编辑功能，数据会存储在浏览器本地。
@@ -222,8 +275,8 @@ src/
 │   ├── index/              # 仪表盘 — 数据概览与快速入口
 │   ├── resume/             # 简历编辑器 — 核心编辑与预览
 │   │   └── editor/         # 编辑器主界面（表单 + 工具栏 + 协作）
-│   ├── template/           # 模板中心 — 6 套官方模板预览与切换
-│   ├── optimize/           # ATS 优化 — AI 五维分析与修复建议
+│   ├── template/           # 模板中心 — 官方/社区/个人模板与可视化工作台
+│   ├── optimize/           # ATS 优化 — AI 分析、问题修复与 JD 匹配
 │   ├── tracker/            # 求职追踪 — 看板与列表管理
 │   ├── history/            # 版本历史 — 时间线与快照对比
 │   ├── profile/            # 个人设置 — 账户与偏好管理
@@ -235,6 +288,8 @@ src/
 │   ├── ui/                 # shadcn/ui 基础组件
 │   ├── resume/             # 简历渲染组件
 │   ├── ai/                 # AI 相关组件（思维链展示等）
+│   ├── ai-rewrite/         # 编辑器划词改写、候选生成与安全写回
+│   ├── jd-variant/         # JD 派生流程、后台任务与血缘展示
 │   ├── tiptap-ui/          # Tiptap 编辑器 UI
 │   └── dashboard/          # 仪表盘布局组件
 ├── lib/                    # 核心业务逻辑
@@ -244,7 +299,7 @@ src/
 │   ├── llm/                # AI 服务集成（Prompt · 调用 · 流式处理）
 │   ├── schema/             # 数据模型与校验（Zod）
 │   └── supabase/           # Supabase 客户端封装
-├── store/                  # Zustand 全局状态管理
+├── store/                  # Zustand 全局状态（简历、JD 派生任务等）
 ├── hooks/                  # 可复用 React Hooks
 ├── styles/                 # 全局样式
 └── assets/                 # 静态资源

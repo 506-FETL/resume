@@ -1,0 +1,41 @@
+---
+title: "编辑器划词 AI 改写"
+date: "2026-05-31"
+tags: ["AI", "Editor", "Rewrite"]
+version: "1.1"
+---
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+简历优化不再局限于整份报告。现在，在编辑器里选中一段经历，就能直接让 AI 给出多个可替换版本。
+
+- **5 种改写动作** — 支持 STAR 化、量化、强动词、润色和 JD 靠拢
+- **多候选对比** — 每次生成 2–3 个版本，保留标题、正文和改写说明
+- **原位应用** — 选择满意的候选后，直接替换原富文本选区
+- **覆盖主要内容模块** — 工作、项目、实习、校园、教育、自我评价、证书、兴趣和技能均可使用
+- **安全 HTML 渲染** — AI 返回内容经过清理后再展示和写回，降低不可信 HTML 风险
+
+<Accordion type="multiple" className="w-full not-prose">
+  <AccordionItem value="item-1">
+    <AccordionTrigger>划词改写怎么用？</AccordionTrigger>
+    <AccordionContent className="flex flex-col gap-4 text-balance">
+      <ol className="list-decimal space-y-2 pl-4">
+        <li>在支持的富文本字段中选择至少 10 个字符</li>
+        <li>从浮动菜单选择改写动作；使用 JD 靠拢时补充目标岗位描述</li>
+        <li>等待 AI 生成候选并比较不同表达</li>
+        <li>点击“应用此版本”，将候选写回原选区</li>
+      </ol>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value="item-2">
+    <AccordionTrigger>这次还优化了什么？</AccordionTrigger>
+    <AccordionContent className="flex flex-col gap-4 text-balance">
+      <ul className="list-disc space-y-2 pl-4">
+        <li>改写菜单增加进入和退出动画，并适配键盘操作</li>
+        <li>候选弹窗统一使用响应式 Dialog / Sheet 布局</li>
+        <li>关闭弹窗时会取消未完成请求，重新生成也会终止旧请求</li>
+        <li>候选解析增加结构校验，过滤空内容和无效返回</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
