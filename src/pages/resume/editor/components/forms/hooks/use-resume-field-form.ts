@@ -1,8 +1,9 @@
 import type { FieldArrayPath, FieldValues } from 'react-hook-form'
 import type { ZodType } from 'zod'
+import type { RemoteFieldArrayAdapters } from '@/hooks/form-remote-sync'
 import type { FormDataMap } from '@/store/resume/const'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { useFormRemoteSync } from '@/hooks/use-form-remote-sync'
 import useResumeStore from '@/store/resume/form'
@@ -42,8 +43,14 @@ export function useResumeFieldForm<
     name: arrayFieldName,
   })
 
-  // 远程协作同步：当 Automerge 远程变更更新 store 时，自动 reset form
-  const isResettingRef = useFormRemoteSync(form, storeFormData)
+  const remoteFieldArrays = useMemo<RemoteFieldArrayAdapters>(() => ({
+    [arrayFieldName]: {
+      append: (value, options) => append(value as any, options),
+      remove,
+    },
+  }), [append, arrayFieldName, remove])
+
+  const isResettingRef = useFormRemoteSync(form, storeFormData, remoteFieldArrays)
 
   useEffect(() => {
     const subscription = form.watch((value) => {

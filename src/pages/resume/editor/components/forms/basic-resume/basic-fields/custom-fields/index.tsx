@@ -1,8 +1,7 @@
-import type { UseFormReturn } from 'react-hook-form'
+import type { FieldArrayWithId, UseFieldArrayAppend, UseFieldArrayRemove, UseFormReturn } from 'react-hook-form'
 import type { BasicFormInput } from '@/lib/schema'
 import { Delete, Plus } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useFieldArray } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -10,14 +9,13 @@ import { useIsMobile } from '@/hooks/use-mobile'
 
 interface CustomFieldsProps {
   form: UseFormReturn<BasicFormInput>
+  fields: FieldArrayWithId<BasicFormInput, 'customFields'>[]
+  append: UseFieldArrayAppend<BasicFormInput, 'customFields'>
+  remove: UseFieldArrayRemove
 }
 
-export function CustomFields({ form }: CustomFieldsProps) {
+export function CustomFields({ form, fields, append, remove }: CustomFieldsProps) {
   const isMobile = useIsMobile()
-  const { fields, remove, append } = useFieldArray({
-    control: form.control,
-    name: 'customFields',
-  })
 
   function onAddField() {
     append({ label: '', value: '' })

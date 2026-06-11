@@ -1,9 +1,10 @@
+import type { RemoteFieldArrayAdapters } from '@/hooks/form-remote-sync'
 import type { BasicFormType } from '@/lib/schema'
 import type { ShallowPartial } from '@/lib/utils'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'motion/react'
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useMemo } from 'react'
+import { useFieldArray, useForm } from 'react-hook-form'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 import { useFormRemoteSync } from '@/hooks/use-form-remote-sync'
@@ -26,7 +27,17 @@ function BasicResumeForm({ className }: { className?: string }) {
     reValidateMode: 'onChange',
   })
 
-  const isResettingRef = useFormRemoteSync(form, basics)
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'customFields',
+  })
+  const remoteFieldArrays = useMemo<RemoteFieldArrayAdapters>(() => ({
+    customFields: {
+      append: (value, options) => append(value as any, options),
+      remove,
+    },
+  }), [append, remove])
+  const isResettingRef = useFormRemoteSync(form, basics, remoteFieldArrays)
 
   useEffect(() => {
     const subscription = form.watch((value) => {
@@ -46,7 +57,12 @@ function BasicResumeForm({ className }: { className?: string }) {
           <DemographicFields form={form} />
         </motion.div>
         <Separator className="mt-6" />
-        <CustomFields form={form} />
+        <CustomFields
+          form={form}
+          fields={fields}
+          append={append}
+          remove={remove}
+        />
       </form>
     </Form>
   )
