@@ -1,5 +1,5 @@
-import type { WriteOp } from './write-plan'
 import type { WriteDeps } from './apply-write-ops.core'
+import type { WriteOp } from './write-plan'
 import { next as Automerge } from '@automerge/automerge'
 import { setLeaf } from '@/pages/optimize/utils'
 import { applyWriteOps } from './apply-write-ops.core'
