@@ -19,13 +19,16 @@
 - `src/hooks/collab/classify-leaf.test.ts` —— 分类回归测试。
 - `src/hooks/collab/text-caret-diff.ts` —— `mapCaretByDiff(oldStr, newStr, caret)`。纯函数。
 - `src/hooks/collab/text-caret-diff.test.ts` —— 光标映射回归测试。
-- `src/hooks/collab/write-plan.ts` —— `buildWriteOps(plan, sectionKey, classify)`：把 `RemoteFormSyncPlan` 翻译成一组「文档写操作描述」（纯数据，不触碰 Automerge），便于单测；以及 `applyWriteOps(doc, sectionKey, ops)` 执行器（调用 `updateText`/`setLeaf`/`push`/`deleteAt`）。
-- `src/hooks/collab/write-plan.test.ts` —— 写操作生成回归测试。
+- `src/hooks/collab/write-plan.ts` —— **纯函数** `buildWriteOps(plan, sectionKey, classify)`：把 `RemoteFormSyncPlan` 翻译成一组「文档写操作描述」（`WriteOp[]`，纯数据，**不 import 任何 `@/` 别名或 app 运行时**，仅依赖 `lodash/toPath` 与同目录 `classify-leaf`）。便于 `node --test`。
+- `src/hooks/collab/write-plan.test.ts` —— `buildWriteOps` 回归测试（纯函数，node 可跑）。
+- `src/hooks/collab/apply-write-ops.ts` —— **执行器**（含 app 运行时依赖）：`applyWriteOps(doc, ops, deps)`，`deps = { updateText, setLeaf }` **依赖注入**，默认绑定 `@automerge/automerge` 的 `next.updateText` 与项目 `setLeaf`。因 import `@/` 与 Automerge，**不写 node 纯函数单测**，由 Task 8 浏览器/集成路径验证；可选：对「路由分发逻辑」用注入的 fake deps 写一个不 import `@/` 的轻测（见 Task 4）。
 - `src/hooks/collab/use-resume-form-sync.ts` —— 共享 hook，整合读（现有 `useFormRemoteSync`）+ 写（diff→store 动作）+ 光标保持。
-- `src/hooks/collab/focus-registry.ts` —— 轻量「当前聚焦自由文本字段」注册（`document.activeElement` + `data-rhf-name` 反查或 focus/blur 记录）。
+- `src/hooks/collab/focus-registry.ts` —— 轻量「当前聚焦自由文本字段」注册（`document.activeElement` + `name` 反查或 focus/blur 记录）。
+
+**关键约束（测试可加载性）：** `node --test --experimental-strip-types` **不解析 `@/` 别名**。因此 `classify-leaf` / `text-caret-diff` / `write-plan` 三个纯模块及其测试**只能 import 相对路径（带 `.ts` 后缀）与 npm 包（如 `lodash`）**，绝不能 import `optimize/utils.ts` 的 `setLeaf`（它会传递引入 `@/lib/automerge` 等整套运行时）。`setLeaf` 只在执行器 `apply-write-ops.ts` 中使用，且该文件不参与纯函数 node 测试。
 
 **修改：**
-- `src/hooks/form-remote-sync.ts` —— 无需改 `planRemoteFormSync`；若需要导出 `normalizeToProp` 路径工具则在此补充（复用 `lodash/toPath` + 数字段规范化，参考 `setLeaf`）。
+- `src/hooks/form-remote-sync.ts` —— 无需改 `planRemoteFormSync`；若需要导出 `normalizeToProp` 路径工具则在此补充（复用 `lodash/toPath` + 数字段规范化，参考 `setLeaf`）。`buildWriteOps` 直接从此 import `planRemoteFormSync` 的**类型**（`RemoteFormSyncPlan`）。
 - `src/store/resume/form.ts` —— 新增 store 动作 `updateFormFields(sectionKey, nextValue, applyDoc)`：乐观整段替换本地 state + 经 `applyResumeChange` 用 `applyDoc(doc)` 写文档。
 - `src/pages/resume/editor/components/forms/hooks/use-resume-field-form.ts` —— 写路径改用 `useResumeFormSync`。
 - `src/pages/resume/editor/components/forms/basic-resume/index.tsx`
@@ -85,15 +88,15 @@ test('atomic leaves: enums, dates, numbers, unregistered', () => {
 
 要点：
 - `RICH_TEXT`：`Record<sectionKey, Set<leafFieldName>>`，来自 spec §3.3 富文本清单（`content`/`description`/`workInfo`/`internshipInfo`/`projectInfo`/`eduInfo`/`campusInfo`）。
-- `FREE_TEXT`：`Record<sectionKey, Set<leafFieldName>>`，来自 spec §3.3 自由文本白名单：
+- `FREE_TEXT`：`Record<sectionKey, Set<leafFieldName>>`，来自 spec §3.3 自由文本白名单（字段名已按 `src/lib/schema/resume/form/*.ts` 核对）：
   - `basics`: `name`, `phone`, `email`, `nation`, `nativePlace`, `customFields.*.label`, `customFields.*.value`
   - `job_intent`: `jobIntent`, `intentionalCity`
   - `application_info`: `applicationSchool`, `applicationMajor`
   - `work_experience` items: `companyName`, `position`
-  - `internship_experience` items: `companyName`, `position`（按实际 schema 字段名核对）
-  - `project_experience` items: `projectName`, `role`
-  - `campus_experience` items: `experienceName`, `participantRole`
-  - `edu_background` items: `schoolName`, `professional`
+  - `internship_experience` items: `companyName`, `position`
+  - `project_experience` items: `projectName`, `participantRole`
+  - `campus_experience` items: `experienceName`, `role`
+  - `edu_background` items: `schoolName`, `professional`（**不含** `degree`，其为 Select 枚举 → atomic）
   - `honors_certificates` certificates: `name`
   - `hobbies` hobbies: `name`
 - 归一化：把 `relativePath` 用 `.` 拆段，数字段（数组索引）替换为 `*`，取**末段字段名**（以及带 `*` 的父段用于数组项匹配）匹配集合。
@@ -280,48 +283,82 @@ git commit -m "feat(collab): build field-scoped Automerge write ops from diff pl
 ## 任务 4：文档写执行器 `applyWriteOps` + store 动作 `updateFormFields`
 
 **文件：**
-- 修改：`src/hooks/collab/write-plan.ts`（新增 `applyWriteOps(doc, ops)`）
+- 新建：`src/hooks/collab/apply-write-ops.ts`（执行器，含 app 运行时依赖）
+- 新建：`src/hooks/collab/apply-write-ops.routing.test.ts`（**仅测路由分发**，用注入的 fake deps，**不 import `@/`**）
 - 修改：`src/store/resume/form.ts`（新增 `updateFormFields`）
-- 修改：`src/store/resume/helpers/sync-service.ts` 或复用现有 `applyResumeChange`
-- 参考：`src/pages/optimize/utils.ts`（`setLeaf`）、`src/lib/automerge/document/manager.ts`（`change`）
+- 修改：`src/store/resume/const.ts`（`FormSlice` 接口加 `updateFormFields` 签名）
+- 参考：`src/pages/optimize/utils.ts`（`setLeaf`）、`src/lib/automerge/document/manager.ts`（`change`）、`src/lib/automerge/document/persistence.ts`（Automerge import 风格）
 
-`applyWriteOps(doc, ops)`：遍历 `ops`：
-- `updateText`：先读 `getIn(doc, path)`；若为 `string` → `Automerge.updateText(doc, path, value)`；否则回退 `setLeaf(doc, path, value)`（spec §5 兜底）。`Automerge` 从 `@automerge/automerge` 的 `next` 命名空间导入（与 `persistence.ts` 一致：`import { next as Automerge } from '@automerge/automerge'`）。
-- `setLeaf`：`setLeaf(doc, path, value)`。
-- `arrayPush`：`getIn(doc, path).push(value)`（父数组代理）。
-- `arrayDeleteAt`：`getIn(doc, path).deleteAt(index)`。
+**执行器设计（依赖注入，避免测试触达 `@/`）：**
+```ts
+// apply-write-ops.ts
+import { next as Automerge } from '@automerge/automerge'
+import { setLeaf } from '@/pages/optimize/utils'
+import type { WriteOp } from './write-plan'
 
-`updateFormFields(sectionKey, nextValue, ops)`（新 store 动作）：
+export interface WriteDeps {
+  updateText: (doc: any, path: (string | number)[], value: string) => void
+  setLeaf: (doc: any, path: (string | number)[], value: unknown) => void
+}
+const defaultDeps: WriteDeps = {
+  updateText: (doc, path, value) => Automerge.updateText(doc, path, value),
+  setLeaf,
+}
+export function getIn(doc: any, path: (string | number)[]): unknown { /* 逐段解引用 */ }
+export function applyWriteOps(doc: any, ops: WriteOp[], deps: WriteDeps = defaultDeps) {
+  for (const op of ops) {
+    switch (op.kind) {
+      case 'updateText': {
+        const cur = getIn(doc, op.path)
+        if (typeof cur === 'string') deps.updateText(doc, op.path, op.value)
+        else deps.setLeaf(doc, op.path, op.value) // spec §5 兜底
+        break
+      }
+      case 'setLeaf': deps.setLeaf(doc, op.path, op.value); break
+      case 'arrayPush': (getIn(doc, op.path) as any[]).push(op.value); break
+      case 'arrayDeleteAt': (getIn(doc, op.path) as any).deleteAt(op.index); break
+    }
+  }
+}
+```
+> `getIn` 与路由分发（`switch`）是可脱 `@/` 测试的核心：路由测试**只 import `getIn`/`applyWriteOps`**，并注入 fake `deps`（记录调用）+ 普通对象/数组（`push` 原生、`deleteAt` 用 fake 实现）。因执行器文件顶部 import 了 `@/pages/optimize/utils`，纯 node 无法加载它 —— 故路由测试文件**改为直接内联一份 `applyWriteOps` 的最小副本或从一个不含 `@/` 的子模块导入**。为彻底解耦：把 `getIn` + `applyWriteOps`（纯分发，deps 全注入、无顶层 `@/` import）放在 `apply-write-ops.core.ts`，而 `apply-write-ops.ts` 只负责组装 `defaultDeps` 并 re-export。routing 测试 import `apply-write-ops.core.ts`。
+
+**修正后的文件清单：**
+- 新建：`src/hooks/collab/apply-write-ops.core.ts` —— `getIn` + `applyWriteOps(doc, ops, deps)`，**deps 必传**，无顶层 `@/`/Automerge import。可 node 测试。
+- 新建：`src/hooks/collab/apply-write-ops.ts` —— import `@/pages/optimize/utils` 的 `setLeaf` 与 `next.updateText`，组装 `defaultDeps`，导出 `applyDefault(doc, ops) = applyWriteOps(doc, ops, defaultDeps)`。不参与 node 测试。
+- 新建：`src/hooks/collab/apply-write-ops.core.test.ts` —— 路由分发回归测试（import core，注入 fake deps）。
+
+`updateFormFields(sectionKey, nextValue, ops)`（新 store 动作，位于 `form.ts`）：
 ```ts
 updateFormFields: (key, nextValue, ops) => {
   applyResumeChange(
     set,
     get,
     { [key]: nextValue },           // 乐观：整段替换本地 JS state（无 CRDT 身份问题）
-    (doc) => { applyWriteOps(doc, ops) },
+    (doc) => { applyDefault(doc, ops) },
   )
 }
 ```
 > `applyResumeChange` 已有 try/catch + `pendingChanges`/`syncError` + 在线/离线调度，无需重复。
 
-**测试（执行器纯逻辑用轻量 fake doc）：**
-- [ ] **步骤 1：先写失败测试** `src/hooks/collab/apply-write-ops.test.ts`
+- [ ] **步骤 1：先写失败测试** `src/hooks/collab/apply-write-ops.core.test.ts`
 
-用一个最小 fake：`updateText` 用一个可记录调用的 stub；`setLeaf`/`push`/`deleteAt` 用普通对象+数组（数组带 `push`/自定义 `deleteAt`）验证最终结构。断言：
-- `updateText` op 在目标为字符串时调用 stub、非字符串时回退写值；
-- `arrayPush` 追加到父数组、`arrayDeleteAt` 删除指定尾部索引；
-- 完整 path（含 sectionKey、数字索引）被正确解引用。
+用注入的 fake deps + 普通对象/数组断言：
+- `updateText` op：目标为字符串 → 调用 `deps.updateText`（记录 path/value）；目标非字符串 → 调用 `deps.setLeaf`（回退）。
+- `setLeaf` op → 调用 `deps.setLeaf`。
+- `arrayPush` op → 目标父数组被 push；`arrayDeleteAt` op → 调用数组的 `deleteAt(index)`。
+- `getIn` 对含 sectionKey + 数字索引的完整 path 正确解引用（如 `['work_experience','items',0,'companyName']`）。
 
 - [ ] **步骤 2：运行并确认失败**
 
-运行：`node --test --experimental-strip-types src/hooks/collab/apply-write-ops.test.ts`
-预期：FAIL
+运行：`node --test --experimental-strip-types src/hooks/collab/apply-write-ops.core.test.ts`
+预期：FAIL（`apply-write-ops.core.ts` 不存在）
 
-- [ ] **步骤 3：写最小实现**（`applyWriteOps` + `getIn` 工具；`updateFormFields` 接线）
+- [ ] **步骤 3：写最小实现**（`apply-write-ops.core.ts` 的 `getIn` + `applyWriteOps`；再写 `apply-write-ops.ts` 组装 `defaultDeps`；再在 `form.ts`/`const.ts` 接线 `updateFormFields`）
 
 - [ ] **步骤 4：运行并确认通过**
 
-运行：`node --test --experimental-strip-types src/hooks/collab/apply-write-ops.test.ts`
+运行：`node --test --experimental-strip-types src/hooks/collab/apply-write-ops.core.test.ts`
 预期：PASS
 
 - [ ] **步骤 5：类型检查 + 提交**
@@ -329,7 +366,7 @@ updateFormFields: (key, nextValue, ops) => {
 运行：`npx tsc --noEmit`（预期无新增错误）
 执行记录：（填写真实结果）
 ```bash
-git add src/hooks/collab/write-plan.ts src/hooks/collab/apply-write-ops.test.ts src/store/resume/form.ts src/store/resume/helpers/sync-service.ts
+git add src/hooks/collab/apply-write-ops.core.ts src/hooks/collab/apply-write-ops.ts src/hooks/collab/apply-write-ops.core.test.ts src/store/resume/form.ts src/store/resume/const.ts
 git commit -m "feat(collab): apply field-scoped write ops to Automerge doc via store action"
 ```
 
@@ -433,8 +470,9 @@ git commit -m "refactor(collab): wire all resume forms to field-scoped useResume
 
 - [ ] **步骤 1：跑全部纯函数单测**
 
-运行：`node --test --experimental-strip-types src/hooks/collab/*.test.ts`
+运行：`node --test --experimental-strip-types src/hooks/collab/classify-leaf.test.ts src/hooks/collab/text-caret-diff.test.ts src/hooks/collab/write-plan.test.ts src/hooks/collab/apply-write-ops.core.test.ts`
 预期：全部 PASS
+说明：这 4 个测试文件均不 import `@/` 别名或 app 运行时，故可脱离 vite 直接跑。执行器 `apply-write-ops.ts`（含 `@/` import）与各 hook/组件不写 node 测试，由步骤 5 浏览器路径验证。
 执行记录：（填写）
 
 - [ ] **步骤 2：类型检查**
