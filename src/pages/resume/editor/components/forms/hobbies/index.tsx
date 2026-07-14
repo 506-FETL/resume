@@ -108,7 +108,7 @@ function HobbiesForm({ className }: { className?: string }) {
                   className="h-8"
                 >
                   {hobby}
-                  {isPresetHobbyAdded(hobby) && <X className="ml-1 h-3 w-3" />}
+                  {isPresetHobbyAdded(hobby) && <X className="ml-1 size-3" />}
                 </Button>
               ))}
             </div>
@@ -131,7 +131,7 @@ function HobbiesForm({ className }: { className?: string }) {
                 className="flex-1"
               />
               <Button type="button" variant="outline" size={isMobile ? 'sm' : 'default'} onClick={addCustomHobby}>
-                <Plus className="h-4 w-4" />
+                <Plus className="size-4" />
                 {!isMobile && <span className="ml-2">添加</span>}
               </Button>
             </div>
@@ -165,9 +165,9 @@ function HobbiesForm({ className }: { className?: string }) {
                         onClick={() => {
                           remove(index)
                         }}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="size-4" />
                       </Button>
                     </motion.div>
                   )

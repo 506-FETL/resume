@@ -85,7 +85,7 @@ function WorkExperienceForm({ className }: { className?: string }) {
                         <PopoverTrigger asChild>
                           <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
                             {field.value?.[0] || '入职时间'}
-                            <Laptop className="ml-auto h-4 w-4 opacity-50" />
+                            <Laptop className="ml-auto size-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-auto p-0">
@@ -108,7 +108,7 @@ function WorkExperienceForm({ className }: { className?: string }) {
                         <PopoverTrigger asChild>
                           <Button disabled={isUptoNow} variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
                             {field.value?.[1] || '离职时间'}
-                            <DoorOpen className="ml-auto h-4 w-4 opacity-50" />
+                            <DoorOpen className="ml-auto size-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-auto p-0">

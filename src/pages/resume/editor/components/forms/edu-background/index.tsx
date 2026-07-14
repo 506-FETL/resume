@@ -89,7 +89,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
                         <PopoverTrigger asChild>
                           <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
                             {field.value?.[0] || '入学年月'}
-                            <Baby className="ml-auto h-4 w-4 opacity-50" />
+                            <Baby className="ml-auto size-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-auto p-0">
@@ -111,7 +111,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
                         <PopoverTrigger asChild>
                           <Button disabled={isUptoNow} variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
                             {field.value?.[1] || '毕业年月'}
-                            <GraduationCap className="ml-auto h-4 w-4 opacity-50" />
+                            <GraduationCap className="ml-auto size-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-auto p-0">

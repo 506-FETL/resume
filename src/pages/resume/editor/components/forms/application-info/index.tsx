@@ -1,17 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'motion/react'
-import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { useFormRemoteSync } from '@/hooks/use-form-remote-sync'
+import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
 import { resumeSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
 
 function ApplicationInfoForm({ className }: { className?: string }) {
   const applicationInfo = useResumeStore(state => state.application_info)
-  const updateForm = useResumeStore(state => state.updateForm)
 
   const form = useForm({
     resolver: zodResolver(resumeSchema.shape.application_info),
@@ -20,17 +18,8 @@ function ApplicationInfoForm({ className }: { className?: string }) {
     reValidateMode: 'onChange',
   })
 
-  // 远程协作同步：当 Automerge 远程变更更新 store 时，自动 reset form
-  const isResettingRef = useFormRemoteSync(form, applicationInfo)
-
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (isResettingRef.current)
-        return
-      updateForm('application_info', value)
-    })
-    return () => subscription.unsubscribe()
-  }, [form, updateForm, isResettingRef])
+  // 远程协作字段级双向同步（含同字段并发的光标保持）
+  useResumeFormSync(form, 'application_info', applicationInfo)
 
   return (
     <Form {...form}>

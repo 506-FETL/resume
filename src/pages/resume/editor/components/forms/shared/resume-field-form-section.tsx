@@ -54,7 +54,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
                     onClick={() => remove(index)}
                     className="h-8 text-destructive hover:text-destructive"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="size-4" />
                     {!isMobile && <span className="ml-1">删除</span>}
                   </Button>
                 )}
@@ -72,7 +72,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
           onClick={onAddItem}
           className="w-full sm:w-auto"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
           {!isMobile && <span className="ml-2">{addLabel}</span>}
         </Button>
       </form>

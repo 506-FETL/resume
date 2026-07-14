@@ -3,10 +3,9 @@ import type { ZodType } from 'zod'
 import type { RemoteFieldArrayAdapters } from '@/hooks/form-remote-sync'
 import type { FormDataMap } from '@/store/resume/const'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
-import { useFormRemoteSync } from '@/hooks/use-form-remote-sync'
-import useResumeStore from '@/store/resume/form'
+import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
 
 interface UseResumeFieldFormOptions<
   TFieldValues extends FieldValues,
@@ -29,8 +28,6 @@ export function useResumeFieldForm<
   arrayFieldName,
   defaultItem,
 }: UseResumeFieldFormOptions<TFieldValues, TArrayFieldName>) {
-  const updateForm = useResumeStore(state => state.updateForm)
-
   const form = useForm<TFieldValues>({
     resolver: zodResolver(schema as any) as any,
     defaultValues: storeFormData as any,
@@ -50,16 +47,7 @@ export function useResumeFieldForm<
     },
   }), [append, arrayFieldName, remove])
 
-  const isResettingRef = useFormRemoteSync(form, storeFormData, remoteFieldArrays)
-
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (isResettingRef.current)
-        return
-      updateForm(fieldName, value as Partial<FormDataMap[typeof fieldName]>)
-    })
-    return () => subscription.unsubscribe()
-  }, [form, updateForm, isResettingRef, fieldName])
+  useResumeFormSync(form, fieldName, storeFormData, remoteFieldArrays)
 
   function onAddItem() {
     if (defaultItem) {

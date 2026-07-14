@@ -1,13 +1,11 @@
 import type { RemoteFieldArrayAdapters } from '@/hooks/form-remote-sync'
-import type { BasicFormType } from '@/lib/schema'
-import type { ShallowPartial } from '@/lib/utils'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'motion/react'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
-import { useFormRemoteSync } from '@/hooks/use-form-remote-sync'
+import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
 import { resumeSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
@@ -18,7 +16,6 @@ import { PersonalFields } from './basic-fields/personal-fields'
 
 function BasicResumeForm({ className }: { className?: string }) {
   const basics = useResumeStore(state => state.basics)
-  const updateForm = useResumeStore(state => state.updateForm)
 
   const form = useForm({
     resolver: zodResolver(resumeSchema.shape.basics),
@@ -37,16 +34,7 @@ function BasicResumeForm({ className }: { className?: string }) {
       remove,
     },
   }), [append, remove])
-  const isResettingRef = useFormRemoteSync(form, basics, remoteFieldArrays)
-
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (isResettingRef.current)
-        return
-      updateForm('basics', value as ShallowPartial<BasicFormType>)
-    })
-    return () => subscription.unsubscribe()
-  }, [form, updateForm, isResettingRef])
+  useResumeFormSync(form, 'basics', basics, remoteFieldArrays)
 
   return (
     <Form {...form}>

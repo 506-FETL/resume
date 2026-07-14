@@ -2,13 +2,12 @@ import type { DateEntry } from '@/lib/schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import { motion } from 'motion/react'
-import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useFormRemoteSync } from '@/hooks/use-form-remote-sync'
+import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
 import { jobIntentFormSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
@@ -17,7 +16,6 @@ const dateEntryOptions: DateEntry[] = ['不填', '随时到岗', '15天内', '1�
 
 function JobIntentForm({ className }: { className?: string }) {
   const jobIntent = useResumeStore(state => state.job_intent)
-  const updateForm = useResumeStore(state => state.updateForm)
 
   const form = useForm({
     resolver: zodResolver(jobIntentFormSchema),
@@ -26,17 +24,8 @@ function JobIntentForm({ className }: { className?: string }) {
     reValidateMode: 'onChange',
   })
 
-  // 远程协作同步：当 Automerge 远程变更更新 store 时，自动 reset form
-  const isResettingRef = useFormRemoteSync(form, jobIntent)
-
-  useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (isResettingRef.current)
-        return
-      updateForm('job_intent', value)
-    })
-    return () => subscription.unsubscribe()
-  }, [form, updateForm, isResettingRef])
+  // 远程协作字段级双向同步（含同字段并发的光标保持）
+  useResumeFormSync(form, 'job_intent', jobIntent)
 
   return (
     <Form {...form}>
