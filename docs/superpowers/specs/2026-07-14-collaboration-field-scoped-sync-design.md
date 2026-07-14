@@ -79,10 +79,10 @@
 维护一个显式分类，写路径据此决定字符串叶子的合并策略。默认策略为 **LWW 原子赋值**（`setLeaf`），字符级合并是**opt-in 白名单**，从而保证 Select 枚举、日期字符串/元组、number 等**绝不**被 `updateText` 拆分损坏，且未登记字段零回归。
 
 - **富文本（HTML，LWW）**：`self_evaluation.content`、`hobbies.description`、`honors_certificates.description`、`skill_specialty.description`、`work_experience.items.*.workInfo`、`internship_experience.items.*.internshipInfo`、`project_experience.items.*.projectInfo`、`edu_background.items.*.eduInfo`、`campus_experience.items.*.campusInfo`。
-- **自由文本（`<Input>` 纯文本，字符级合并）**：登记明确为自由文本录入的单行字段，例如 `basics.name`、`basics.email`、联系方式、`job_intent.jobIntent`、`job_intent.intentionalCity`、`application_info.applicationSchool`、`application_info.applicationMajor`，以及经历数组内的 `companyName`、`position`、`projectName`、`schoolName`、`experienceName`、`role`、`participantRole`、`professional`、`degree`、`skills.*.name` 等自由文本项。实现时按 section 明确列出，避免误纳枚举/日期。
-- **原子（默认，LWW）**：其余全部 —— Select 枚举（`job_intent.dateEntry`、`skill_specialty.skills.*.proficiencyLevel`、`skill_specialty.skills.*.displayType`）、日期字符串与日期元组（`*.workDuration`、`*.internshipDuration`、`*.projectDuration`、`*.duration`）、`job_intent.expectedSalary`（number）、以及任何未显式登记的字符串。
+- **自由文本（`<Input>` 纯文本，字符级合并）**：登记明确为自由文本录入的单行字段。按 section 明确列出（示例）：`basics.name`、`basics.email`、`basics.phone`、`basics.nation`、`basics.nativePlace` 等 `<Input>` 文本项、`job_intent.jobIntent`、`job_intent.intentionalCity`、`application_info.applicationSchool`、`application_info.applicationMajor`，以及经历数组内的 `companyName`、`position`、`projectName`、`schoolName`、`experienceName`、`role`、`participantRole`、`professional` 等自由文本 `<Input>` 项。**仅纳入真正的自由文本 `<Input>`，不纳入枚举/日期/仅在新增时赋值的展示型字段**（如 `edu_background.items.*.degree` 为 Select 枚举 → 原子；`skill_specialty.skills.*.label` 仅在添加技能时赋值并以 `<span>` 展示 → 不纳入）。`basics.birthMonth` 等日期字符串归原子。
+- **原子（默认，LWW）**：其余全部 —— Select 枚举（`job_intent.dateEntry`、`edu_background.items.*.degree`、`skill_specialty.skills.*.proficiencyLevel`、`skill_specialty.skills.*.displayType`）、日期字符串与日期元组（`*.workDuration`、`*.internshipDuration`、`*.projectDuration`、`*.duration`、`basics.birthMonth`）、`job_intent.expectedSalary`（number）、以及任何未显式登记的字符串。
 
-分类接口：`classifyLeaf(sectionKey, relativePath) => 'rich' | 'freeText' | 'atomic'`，数组索引段规范化后按字段名匹配。写 applier 只在 `'freeText'` 且新旧均为字符串时调用 `updateText`，其余一律 `setLeaf`。
+分类接口：`classifyLeaf(sectionKey, relativePath) => 'rich' | 'freeText' | 'atomic'`，数组索引段规范化后按字段名匹配。applier 从 `sectionBasePath` 的首段取得 `sectionKey`（或调用方按 section 预绑定 `classifyLeaf`）。写 applier 只在 `'freeText'` 且新旧均为字符串时调用 `updateText`，其余一律 `setLeaf`。
 
 ### 3.4 循环抑制
 
