@@ -96,3 +96,12 @@ test('arrayDeleteAt is a safe no-op when the array is not materialized', () => {
   applyWriteOps(doc, [{ kind: 'arrayDeleteAt', path: ['work_experience', 'items'], index: 0 }], deps)
   assert.ok(true)
 })
+
+test('setLeaf op with undefined value is skipped (Automerge rejects undefined)', () => {
+  const doc: any = { basics: { name: 'a' } }
+  const { calls, deps } = recordingDeps()
+  applyWriteOps(doc, [{ kind: 'setLeaf', path: ['basics', 'name'], value: undefined }], deps)
+  // 不写入 undefined（否则真实 Automerge 会抛错并使整个 change 事务失败）
+  assert.equal(calls.length, 0)
+  assert.equal(doc.basics.name, 'a')
+})

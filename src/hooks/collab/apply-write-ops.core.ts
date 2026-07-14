@@ -44,7 +44,11 @@ export function applyWriteOps(doc: any, ops: WriteOp[], deps: WriteDeps): void {
         break
       }
       case 'setLeaf': {
-        deps.setLeaf(doc, op.path, op.value)
+        // Automerge 不接受 undefined（会抛错并使整个 change 事务失败）。
+        // 与旧的 applyPatch/sanitizeDeep 行为一致：跳过 undefined。
+        if (op.value !== undefined) {
+          deps.setLeaf(doc, op.path, op.value)
+        }
         break
       }
       case 'arrayPush': {
