@@ -19,7 +19,7 @@
 - `src/hooks/collab/classify-leaf.test.ts` —— 分类回归测试。
 - `src/hooks/collab/text-caret-diff.ts` —— `mapCaretByDiff(oldStr, newStr, caret)`。纯函数。
 - `src/hooks/collab/text-caret-diff.test.ts` —— 光标映射回归测试。
-- `src/hooks/collab/write-plan.ts` —— **纯函数** `buildWriteOps(plan, sectionKey, classify)`：把 `RemoteFormSyncPlan` 翻译成一组「文档写操作描述」（`WriteOp[]`，纯数据，**不 import 任何 `@/` 别名或 app 运行时**，仅依赖 `lodash/toPath` 与同目录 `classify-leaf`）。便于 `node --test`。
+- `src/hooks/collab/write-plan.ts` —— **纯函数** `buildWriteOps(plan, sectionKey, classify)`：把 `RemoteFormSyncPlan` 翻译成一组「文档写操作描述」（`WriteOp[]`，纯数据，**不 import 任何 `@/` 别名或 app 运行时**，无第三方依赖 —— 路径用 `String.split('.')` 拆段）。便于 `node --test`。
 - `src/hooks/collab/write-plan.test.ts` —— `buildWriteOps` 回归测试（纯函数，node 可跑）。
 - `src/hooks/collab/apply-write-ops.ts` —— **执行器**（含 app 运行时依赖）：`applyWriteOps(doc, ops, deps)`，`deps = { updateText, setLeaf }` **依赖注入**，默认绑定 `@automerge/automerge` 的 `next.updateText` 与项目 `setLeaf`。因 import `@/` 与 Automerge，**不写 node 纯函数单测**，由 Task 8 浏览器/集成路径验证；可选：对「路由分发逻辑」用注入的 fake deps 写一个不 import `@/` 的轻测（见 Task 4）。
 - `src/hooks/collab/use-resume-form-sync.ts` —— 共享 hook，整合读（现有 `useFormRemoteSync`）+ 写（diff→store 动作）+ 光标保持。
@@ -28,7 +28,7 @@
 **关键约束（测试可加载性）：** `node --test --experimental-strip-types` **不解析 `@/` 别名**。因此 `classify-leaf` / `text-caret-diff` / `write-plan` 三个纯模块及其测试**只能 import 相对路径（带 `.ts` 后缀）与 npm 包（如 `lodash`）**，绝不能 import `optimize/utils.ts` 的 `setLeaf`（它会传递引入 `@/lib/automerge` 等整套运行时）。`setLeaf` 只在执行器 `apply-write-ops.ts` 中使用，且该文件不参与纯函数 node 测试。
 
 **修改：**
-- `src/hooks/form-remote-sync.ts` —— 无需改 `planRemoteFormSync`；若需要导出 `normalizeToProp` 路径工具则在此补充（复用 `lodash/toPath` + 数字段规范化，参考 `setLeaf`）。`buildWriteOps` 直接从此 import `planRemoteFormSync` 的**类型**（`RemoteFormSyncPlan`）。
+- `src/hooks/form-remote-sync.ts` —— 无需改 `planRemoteFormSync`（保持零 import 的纯模块）。`buildWriteOps` 从此仅 import **类型** `RemoteFormSyncPlan`。
 - `src/store/resume/form.ts` —— 新增 store 动作 `updateFormFields(sectionKey, nextValue, applyDoc)`：乐观整段替换本地 state + 经 `applyResumeChange` 用 `applyDoc(doc)` 写文档。
 - `src/pages/resume/editor/components/forms/hooks/use-resume-field-form.ts` —— 写路径改用 `useResumeFormSync`。
 - `src/pages/resume/editor/components/forms/basic-resume/index.tsx`
@@ -103,7 +103,7 @@ test('atomic leaves: enums, dates, numbers, unregistered', () => {
 - 判定顺序：命中 rich → `'rich'`；命中 freeText → `'freeText'`；否则 `'atomic'`。
 - 导出 `type LeafClass = 'rich' | 'freeText' | 'atomic'`。
 
-> 注意：自由文本白名单**只允许真正的 `<Input>` 自由文本**。任何 Select 枚举、日期字符串、number、展示型 `<span>` 字段一律不列入（默认落入 atomic）。执行前用对应 `src/lib/schema/resume/form/*.ts` 核对每个字段确为 `z.string()` 自由输入，避免误纳。
+> 注意：自由文本白名单**只允许真正的 `<Input>` 自由文本**。任何 Select 枚举、日期字符串、number、展示型 `<span>` 字段一律不列入（默认落入 atomic）。上面的白名单已按 `src/lib/schema/resume/form/*.ts` 逐字段核对为 `z.string()` 自由输入，直接照抄即可，无需再改动字段集合。
 
 - [ ] **步骤 4：运行并确认通过**
 
@@ -200,7 +200,7 @@ type WriteOp =
   | { kind: 'arrayPush',  path: (string | number)[], value: unknown }
   | { kind: 'arrayDeleteAt', path: (string | number)[], index: number }
 ```
-- `path` 为**含 sectionKey 的完整 Prop 路径**，数组索引段为 number（用 `lodash/toPath` 拆解 `fieldUpdate.path` 后，对纯数字段 `Number(seg)`，并在最前拼 `sectionKey`）。
+- `path` 为**含 sectionKey 的完整 Prop 路径**，数组索引段为 number（用 `fieldUpdate.path.split('.')` 拆段 —— `planRemoteFormSync` 只产出以 `.` 连接的路径、无方括号语法，故无需 `lodash/toPath`；对纯数字段 `Number(seg)`，并在最前拼 `sectionKey`）。
 - 对每个 `fieldUpdate`：`cls = classify(sectionKey, fieldUpdate.path)`；`cls==='freeText' && typeof value==='string'` → `updateText`；否则 → `setLeaf`。
 - 对每个 `fieldArrayOperation`：`append` → `arrayPush`（path 为 `[sectionKey, ...arrayPathSegs]`）；`remove` → `arrayDeleteAt`。
 
@@ -283,8 +283,9 @@ git commit -m "feat(collab): build field-scoped Automerge write ops from diff pl
 ## 任务 4：文档写执行器 `applyWriteOps` + store 动作 `updateFormFields`
 
 **文件：**
-- 新建：`src/hooks/collab/apply-write-ops.ts`（执行器，含 app 运行时依赖）
-- 新建：`src/hooks/collab/apply-write-ops.routing.test.ts`（**仅测路由分发**，用注入的 fake deps，**不 import `@/`**）
+- 新建：`src/hooks/collab/apply-write-ops.core.ts`（纯分发 `getIn` + `applyWriteOps(doc, ops, deps)`，deps 必传，无顶层 `@/`/Automerge import）
+- 新建：`src/hooks/collab/apply-write-ops.ts`（执行器组装：import `@/pages/optimize/utils` 的 `setLeaf` 与 `next.updateText`，导出 `applyDefault`）
+- 新建：`src/hooks/collab/apply-write-ops.core.test.ts`（**仅测路由分发**，import core，注入 fake deps，**不 import `@/`**）
 - 修改：`src/store/resume/form.ts`（新增 `updateFormFields`）
 - 修改：`src/store/resume/const.ts`（`FormSlice` 接口加 `updateFormFields` 签名）
 - 参考：`src/pages/optimize/utils.ts`（`setLeaf`）、`src/lib/automerge/document/manager.ts`（`change`）、`src/lib/automerge/document/persistence.ts`（Automerge import 风格）
@@ -478,7 +479,7 @@ git commit -m "refactor(collab): wire all resume forms to field-scoped useResume
 - [ ] **步骤 2：类型检查**
 
 运行：`npx tsc --noEmit`
-预期：无错误
+预期：无**新增**错误。基线：当前仓库已存在 1 个与本次无关的预存错误 `src/components/jd-variant/components/steps/step-parsing.tsx(5,1): TS6133 'ScrollArea' is declared but its value is never read`（未提交文件）。以此为基线比对，本任务不得引入除此之外的任何错误。
 执行记录：（填写）
 
 - [ ] **步骤 3：Lint**
