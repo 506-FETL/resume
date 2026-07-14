@@ -2,6 +2,7 @@ import type { WriteDeps } from './apply-write-ops.core.ts'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { applyWriteOps, getIn } from './apply-write-ops.core.ts'
+import { setLeaf } from './test-setleaf.fixture.ts'
 
 function recordingDeps() {
   const calls: Array<{ fn: string, path: (string | number)[], value?: unknown }> = []
@@ -9,10 +10,8 @@ function recordingDeps() {
     updateText: (_doc, path, value) => { calls.push({ fn: 'updateText', path, value }) },
     setLeaf: (doc, path, value) => {
       calls.push({ fn: 'setLeaf', path, value })
-      // 真正写入，方便断言最终结构
-      let cur: any = doc
-      for (let i = 0; i < path.length - 1; i += 1) cur = cur[path[i]]
-      cur[path[path.length - 1]] = value
+      // 用与生产一致的 setLeaf（会建出缺失的中间节点），方便断言最终结构
+      setLeaf(doc, path, value)
     },
   }
   return { calls, deps }
@@ -73,4 +72,27 @@ test('multiple ops applied in order', () => {
   ], deps)
   assert.equal(calls.length, 2)
   assert.equal(doc.basics.email, 'y')
+})
+
+test('arrayPush materializes the parent array when section is not yet an array (fresh doc)', () => {
+  // 全新简历：section 只有空对象、尚未物化数组
+  const doc: any = { skill_specialty: {} }
+  const { deps } = recordingDeps()
+  applyWriteOps(doc, [{ kind: 'arrayPush', path: ['skill_specialty', 'skills'], value: { label: 'React' } }], deps)
+  assert.deepEqual(doc.skill_specialty.skills, [{ label: 'React' }])
+})
+
+test('arrayPush materializes when the whole section is missing', () => {
+  const doc: any = {}
+  const { deps } = recordingDeps()
+  applyWriteOps(doc, [{ kind: 'arrayPush', path: ['hobbies', 'hobbies'], value: { name: '篮球' } }], deps)
+  assert.deepEqual(doc.hobbies.hobbies, [{ name: '篮球' }])
+})
+
+test('arrayDeleteAt is a safe no-op when the array is not materialized', () => {
+  const doc: any = { work_experience: {} }
+  const { deps } = recordingDeps()
+  // 不应抛错
+  applyWriteOps(doc, [{ kind: 'arrayDeleteAt', path: ['work_experience', 'items'], index: 0 }], deps)
+  assert.ok(true)
 })

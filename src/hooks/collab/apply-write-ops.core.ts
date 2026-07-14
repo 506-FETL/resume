@@ -48,7 +48,14 @@ export function applyWriteOps(doc: any, ops: WriteOp[], deps: WriteDeps): void {
         break
       }
       case 'arrayPush': {
-        const arr = getIn(doc, op.path) as any
+        let arr = getIn(doc, op.path) as any
+        if (arr == null) {
+          // 全新简历 / 从未编辑过的 section：父数组尚未物化。
+          // 先用 setLeaf 建出空数组（会一并建出缺失的 section 对象），再 push，
+          // 否则结构操作会静默丢失（回归自旧的整段数组写入）。
+          deps.setLeaf(doc, op.path, [])
+          arr = getIn(doc, op.path) as any
+        }
         if (Array.isArray(arr) || typeof arr?.push === 'function') {
           arr.push(op.value)
         }

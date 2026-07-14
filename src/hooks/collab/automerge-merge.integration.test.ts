@@ -125,3 +125,22 @@ test('tail append from one side + field edit from other both survive', () => {
   assert.ok(merged.work_experience.items[0].companyName.includes('Acme') || merged.work_experience.items[0].companyName.includes('A'))
   assert.equal(merged.work_experience.items[1].companyName, 'New')
 })
+
+test('append to an UNMATERIALIZED section array on a fresh doc persists (regression guard)', () => {
+  // 全新简历：section 未物化（seedData 为 null 时的真实形态）
+  const doc = Automerge.from<any>({ skill_specialty: {} })
+
+  const next = Automerge.change(doc, (d: any) => {
+    // ensureSection 只建空对象；数组物化交给 applyWriteOps
+    const plan = buildWriteOps(
+      planFor({ skills: [] }, { skills: [{ label: 'React' }] }, ['skills']),
+      'skill_specialty',
+      classifyLeaf,
+    )
+    applyWriteOps(d, plan, deps)
+  })
+
+  assert.ok(Array.isArray(next.skill_specialty.skills), 'skills 数组已物化')
+  assert.equal(next.skill_specialty.skills.length, 1)
+  assert.equal(next.skill_specialty.skills[0].label, 'React')
+})
