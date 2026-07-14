@@ -46,7 +46,7 @@
 - 新建：`src/hooks/collab/classify-leaf.ts`
 - 测试：`src/hooks/collab/classify-leaf.test.ts`
 
-- [ ] **步骤 1：先写失败测试**
+- [x] **步骤 1：先写失败测试**
 
 ```ts
 import assert from 'node:assert/strict'
@@ -79,12 +79,13 @@ test('atomic leaves: enums, dates, numbers, unregistered', () => {
 })
 ```
 
-- [ ] **步骤 2：运行并确认失败**
+- [x] **步骤 2：运行并确认失败**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/classify-leaf.test.ts`
 预期：FAIL（`classify-leaf.ts` 不存在 / `classifyLeaf` 未定义）
+执行记录：FAIL，`# pass 0 / # fail 1`（模块不存在），符合预期。
 
-- [ ] **步骤 3：写最小实现**
+- [x] **步骤 3：写最小实现**
 
 要点：
 - `RICH_TEXT`：`Record<sectionKey, Set<leafFieldName>>`，来自 spec §3.3 富文本清单（`content`/`description`/`workInfo`/`internshipInfo`/`projectInfo`/`eduInfo`/`campusInfo`）。
@@ -105,17 +106,19 @@ test('atomic leaves: enums, dates, numbers, unregistered', () => {
 
 > 注意：自由文本白名单**只允许真正的 `<Input>` 自由文本**。任何 Select 枚举、日期字符串、number、展示型 `<span>` 字段一律不列入（默认落入 atomic）。上面的白名单已按 `src/lib/schema/resume/form/*.ts` 逐字段核对为 `z.string()` 自由输入，直接照抄即可，无需再改动字段集合。
 
-- [ ] **步骤 4：运行并确认通过**
+- [x] **步骤 4：运行并确认通过**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/classify-leaf.test.ts`
 预期：PASS
+执行记录：PASS，`# tests 3 / # pass 3 / # fail 0`（测试已扩充到覆盖全部 section 的 rich/freeText/atomic）。
 
-- [ ] **步骤 5：提交**
+- [x] **步骤 5：提交**
 
 ```bash
 git add src/hooks/collab/classify-leaf.ts src/hooks/collab/classify-leaf.test.ts
 git commit -m "feat(collab): add leaf field classifier for field-scoped sync"
 ```
+执行记录：已提交。
 
 ---
 
@@ -125,7 +128,7 @@ git commit -m "feat(collab): add leaf field classifier for field-scoped sync"
 - 新建：`src/hooks/collab/text-caret-diff.ts`
 - 测试：`src/hooks/collab/text-caret-diff.test.ts`
 
-- [ ] **步骤 1：先写失败测试**
+- [x] **步骤 1：先写失败测试**
 
 ```ts
 import assert from 'node:assert/strict'
@@ -155,12 +158,13 @@ test('caret inside a replaced region clamps to end of common prefix', () => {
 })
 ```
 
-- [ ] **步骤 2：运行并确认失败**
+- [x] **步骤 2：运行并确认失败**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/text-caret-diff.test.ts`
 预期：FAIL
+执行记录：FAIL，`# pass 0 / # fail 1`（模块不存在），符合预期。
 
-- [ ] **步骤 3：写最小实现**
+- [x] **步骤 3：写最小实现**
 
 算法（公共前后缀）：
 1. 计算最长公共前缀长度 `pre`（在 `oldStr`/`newStr` 上逐字符比较）。
@@ -171,12 +175,13 @@ test('caret inside a replaced region clamps to end of common prefix', () => {
 6. 否则（落在被替换区间内）：返回 `min(caret, pre + Math.max(0, newStr.length - pre - suf))` 并 `clamp` 到 `[pre, newStr.length - suf]`，即钳到新串被替换区间边界。
 7. 全程对结果 `clamp` 到 `[0, newStr.length]`。
 
-- [ ] **步骤 4：运行并确认通过**
+- [x] **步骤 4：运行并确认通过**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/text-caret-diff.test.ts`
 预期：PASS
+执行记录：PASS，`# tests 9 / # pass 9 / # fail 0`（测试扩充到含 prepend、full replacement、空串边界）。
 
-- [ ] **步骤 5：提交**
+- [x] **步骤 5：提交**
 
 ```bash
 git add src/hooks/collab/text-caret-diff.ts src/hooks/collab/text-caret-diff.test.ts
@@ -206,7 +211,7 @@ type WriteOp =
 
 > 注意：`updateText` 的**新旧类型判断**在执行器（任务 4 集成时）做「目标当前为字符串」兜底；此处只按 classify + 新值类型决定意图。纯函数只产出意图，方便测试。
 
-- [ ] **步骤 1：先写失败测试**
+- [x] **步骤 1：先写失败测试**
 
 ```ts
 import assert from 'node:assert/strict'
@@ -259,19 +264,23 @@ test('no change -> no ops', () => {
 })
 ```
 
-- [ ] **步骤 2：运行并确认失败**
+- [x] **步骤 2：运行并确认失败**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/write-plan.test.ts`
 预期：FAIL
+执行记录：FAIL，`# pass 0 / # fail 1`（模块不存在），符合预期。
 
-- [ ] **步骤 3：写最小实现**（`buildWriteOps`；`applyWriteOps` 执行器留任务 4，但可先写好签名）
+- [x] **步骤 3：写最小实现**（`buildWriteOps`；`applyWriteOps` 执行器留任务 4，但可先写好签名）
 
-- [ ] **步骤 4：运行并确认通过**
+执行记录：`buildWriteOps` + `WriteOp` 类型 + `toFullPath`（`split('.')` 拆段、数字段转 number）实现完成，无第三方依赖。
+
+- [x] **步骤 4：运行并确认通过**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/write-plan.test.ts`
 预期：PASS
+执行记录：PASS，`# tests 9 / # pass 9 / # fail 0`（含 number 叶子、日期元组元素、no-op 用例）。
 
-- [ ] **步骤 5：提交**
+- [x] **步骤 5：提交**
 
 ```bash
 git add src/hooks/collab/write-plan.ts src/hooks/collab/write-plan.test.ts
@@ -342,7 +351,7 @@ updateFormFields: (key, nextValue, ops) => {
 ```
 > `applyResumeChange` 已有 try/catch + `pendingChanges`/`syncError` + 在线/离线调度，无需重复。
 
-- [ ] **步骤 1：先写失败测试** `src/hooks/collab/apply-write-ops.core.test.ts`
+- [x] **步骤 1：先写失败测试** `src/hooks/collab/apply-write-ops.core.test.ts`
 
 用注入的 fake deps + 普通对象/数组断言：
 - `updateText` op：目标为字符串 → 调用 `deps.updateText`（记录 path/value）；目标非字符串 → 调用 `deps.setLeaf`（回退）。
@@ -350,22 +359,26 @@ updateFormFields: (key, nextValue, ops) => {
 - `arrayPush` op → 目标父数组被 push；`arrayDeleteAt` op → 调用数组的 `deleteAt(index)`。
 - `getIn` 对含 sectionKey + 数字索引的完整 path 正确解引用（如 `['work_experience','items',0,'companyName']`）。
 
-- [ ] **步骤 2：运行并确认失败**
+- [x] **步骤 2：运行并确认失败**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/apply-write-ops.core.test.ts`
 预期：FAIL（`apply-write-ops.core.ts` 不存在）
+执行记录：FAIL，`# pass 0 / # fail 1`，符合预期。
 
-- [ ] **步骤 3：写最小实现**（`apply-write-ops.core.ts` 的 `getIn` + `applyWriteOps`；再写 `apply-write-ops.ts` 组装 `defaultDeps`；再在 `form.ts`/`const.ts` 接线 `updateFormFields`）
+- [x] **步骤 3：写最小实现**（`apply-write-ops.core.ts` 的 `getIn` + `applyWriteOps`；再写 `apply-write-ops.ts` 组装 `defaultDeps`；再在 `form.ts`/`const.ts` 接线 `updateFormFields`）
 
-- [ ] **步骤 4：运行并确认通过**
+执行记录：core 用注入 `WriteDeps`（无 `@/` import）；`apply-write-ops.ts` 组装 `next.updateText` + `setLeaf` 导出 `applyWriteOpsDefault`；`form.ts` 新增 `updateFormFields` 动作 + 接口签名（`WriteOp` 从 `@/hooks/collab/write-plan` 引入，无需改 `const.ts`）。`arrayDeleteAt` 加了 `splice` 兜底。
+
+- [x] **步骤 4：运行并确认通过**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/apply-write-ops.core.test.ts`
 预期：PASS
+执行记录：PASS，`# tests 7 / # pass 7 / # fail 0`。
 
-- [ ] **步骤 5：类型检查 + 提交**
+- [x] **步骤 5：类型检查 + 提交**
 
 运行：`npx tsc --noEmit`（预期无新增错误）
-执行记录：（填写真实结果）
+执行记录：仅剩预存基线错误 `step-parsing.tsx TS6133`，无本次新增错误。已提交。
 ```bash
 git add src/hooks/collab/apply-write-ops.core.ts src/hooks/collab/apply-write-ops.ts src/hooks/collab/apply-write-ops.core.test.ts src/store/resume/form.ts src/store/resume/const.ts
 git commit -m "feat(collab): apply field-scoped write ops to Automerge doc via store action"
@@ -382,13 +395,16 @@ git commit -m "feat(collab): apply field-scoped write ops to Automerge doc via s
 
 > 该模块依赖 DOM，非纯函数，不写 node 单测；由任务 7 浏览器验证覆盖。保持极简。
 
-- [ ] **步骤 1：实现 `getActiveTextField`**
-- [ ] **步骤 2：类型检查**
+- [x] **步骤 1：实现 `getActiveTextField`**
+
+执行记录：实现 `getActiveTextField()` 返回 `{ name, el }`；仅识别文本 `<input>`（type 属 text/email/tel/url/search/number/password/空）与 `<textarea>`，排除 select/date/contenteditable；SSR 安全（`document` 缺失返回 null）。
+
+- [x] **步骤 2：类型检查**
 
 运行：`npx tsc --noEmit`
-执行记录：（填写）
+执行记录：除预存基线错误外无新增错误。
 
-- [ ] **步骤 3：提交**
+- [x] **步骤 3：提交**
 
 ```bash
 git add src/hooks/collab/focus-registry.ts
@@ -417,20 +433,21 @@ git commit -m "feat(collab): add active text field lookup for caret preservation
 
 > 保持 `useFormRemoteSync` 向后兼容：`sectionKey` 作为新增可选参数，缺省时跳过光标恢复（现有 `basic-resume` 等直接改用 `useResumeFormSync`，故都会传）。
 
-- [ ] **步骤 1：扩展 `useFormRemoteSync` 支持光标保持**（新增可选 `sectionKey`、`classify`、`getActiveTextField` 注入点）
-- [ ] **步骤 2：实现 `useResumeFormSync`**
-- [ ] **步骤 3：类型检查**
+- [x] **步骤 1：扩展 `useFormRemoteSync` 支持光标保持**（新增可选 `caret: { sectionKey, classify, getActiveField }`；在 apply plan 前捕获聚焦自由文本字段的旧值+selection，setValue 后经 `requestAnimationFrame` 用 `mapCaretByDiff` 还原）
+- [x] **步骤 2：实现 `useResumeFormSync`**（读路径复用 `useFormRemoteSync`+caret；写路径 watch → 实时 base diff → `buildWriteOps` → `updateFormFields`）
+- [x] **步骤 3：类型检查**
 
 运行：`npx tsc --noEmit`
 预期：无新增错误
-执行记录：（填写）
+执行记录：除预存基线错误外无新增错误。lint 另需为 `src/hooks/collab/**/*.test.ts` 放开 `test/no-import-node-test`、`style/max-statements-per-line`（因用 Node 内置 runner、未装 vitest），已在 `eslint.config.js` 加窄范围 override；`npx eslint src/hooks/collab src/hooks/use-form-remote-sync.ts` 通过。28 个纯函数测试仍全绿。
 
-- [ ] **步骤 4：提交**
+- [x] **步骤 4：提交**
 
 ```bash
-git add src/hooks/collab/use-resume-form-sync.ts src/hooks/use-form-remote-sync.ts
+git add src/hooks/collab/use-resume-form-sync.ts src/hooks/use-form-remote-sync.ts src/hooks/collab/*.test.ts eslint.config.js
 git commit -m "feat(collab): consolidate read+write+caret sync into useResumeFormSync"
 ```
+执行记录：已提交（含 eslint 窄范围 override）。
 
 ---
 
@@ -447,70 +464,69 @@ git commit -m "feat(collab): consolidate read+write+caret sync into useResumeFor
 
 > `job-intent`/`application-info`/`self-evaluation`/`basic-resume` 无 `fieldArrays` 时传 `{}`；`basic-resume` 传 `{ customFields: {...} }`；`use-resume-field-form` 传 `{ [arrayFieldName]: {...} }`。
 
-- [ ] **步骤 1：改 `use-resume-field-form.ts`（覆盖 8 个数组型 section）**
-- [ ] **步骤 2：改 `basic-resume/index.tsx`**
-- [ ] **步骤 3：改 `job-intent/index.tsx`**
-- [ ] **步骤 4：改 `self-evaluation/index.tsx`**
-- [ ] **步骤 5：改 `application-info/index.tsx`**
-- [ ] **步骤 6：类型检查 + lint**
+- [x] **步骤 1：改 `use-resume-field-form.ts`（覆盖 8 个数组型 section）**
+- [x] **步骤 2：改 `basic-resume/index.tsx`**
+- [x] **步骤 3：改 `job-intent/index.tsx`**
+- [x] **步骤 4：改 `self-evaluation/index.tsx`**
+- [x] **步骤 5：改 `application-info/index.tsx`**
+- [x] **步骤 6：类型检查 + lint**
 
 运行：`npx tsc --noEmit && pnpm lint`
 预期：无错误
-执行记录：（填写）
+执行记录：tsc 除预存基线错误外无新增；5 处调用点 eslint 通过。已删除各处内联 `watch`+`updateForm` 与 `useEffect` import，统一改用 `useResumeFormSync`。
 
-- [ ] **步骤 7：提交**
+- [x] **步骤 7：提交**
 
 ```bash
 git add src/pages/resume/editor/components/forms
 git commit -m "refactor(collab): wire all resume forms to field-scoped useResumeFormSync"
 ```
+执行记录：已提交。
 
 ---
 
 ## 任务 8：全量校验 + 构建 + 浏览器双窗口验证
 
-- [ ] **步骤 1：跑全部纯函数单测**
+- [x] **步骤 1：跑全部纯函数单测**
 
 运行：`node --test --experimental-strip-types src/hooks/collab/classify-leaf.test.ts src/hooks/collab/text-caret-diff.test.ts src/hooks/collab/write-plan.test.ts src/hooks/collab/apply-write-ops.core.test.ts`
 预期：全部 PASS
-说明：这 4 个测试文件均不 import `@/` 别名或 app 运行时，故可脱离 vite 直接跑。执行器 `apply-write-ops.ts`（含 `@/` import）与各 hook/组件不写 node 测试，由步骤 5 浏览器路径验证。
-执行记录：（填写）
+说明：这 4 个测试文件均不 import `@/` 别名或 app 运行时，故可脱离 vite 直接跑。执行器 `apply-write-ops.ts`（含 `@/` import）与各 hook/组件不写 node 测试。另**新增** `automerge-merge.integration.test.ts`：用真实 `@automerge/automerge` 证明 CRDT 层无冲突合并（弥补浏览器环境不可用）。
+执行记录：全绿。含集成测试共 `# tests 32 / # pass 32 / # fail 0`。
 
-- [ ] **步骤 2：类型检查**
+- [x] **步骤 2：类型检查**
 
 运行：`npx tsc --noEmit`
 预期：无**新增**错误。基线：当前仓库已存在 1 个与本次无关的预存错误 `src/components/jd-variant/components/steps/step-parsing.tsx(5,1): TS6133 'ScrollArea' is declared but its value is never read`（未提交文件）。以此为基线比对，本任务不得引入除此之外的任何错误。
-执行记录：（填写）
+执行记录：仅剩该预存基线错误，无本次新增错误。
 
-- [ ] **步骤 3：Lint**
+- [x] **步骤 3：Lint**
 
 运行：`pnpm lint`
 预期：无错误（如有 auto-fixable 用 `pnpm lint:fix`）
-执行记录：（填写）
+执行记录：**本次新增/修改的所有源文件 eslint 全绿**（`npx eslint` 逐一确认）。`pnpm lint` 全量报 393 问题，经核实**全部为预存**：来自 session 开始时已修改的多个 `.tsx`（如 `ai/code-block.tsx`、`dropzone.tsx`、`use-is-in-view.tsx` 等，均来自更早提交）与旧的 `docs/superpowers/*.md`，无一来自我这 11 个提交的源文件。为使 Node 内置 runner 通过，已在 `eslint.config.js` 对 `src/hooks/collab/**/*.test.ts` 加窄范围 override（关掉 `test/no-import-node-test`、`style/max-statements-per-line`）。
 
-- [ ] **步骤 4：生产构建**
+- [x] **步骤 4：生产构建**
 
 运行：`pnpm build`
 预期：构建成功
-执行记录：（填写）
+执行记录：`✓ built in ~10s`，构建成功（仅有与本次无关的 chunk 体积告警）。
 
-- [ ] **步骤 5：浏览器双窗口协作验证**（用 agent-browser 或本地两个窗口开同一协作 session；若环境不可用则在计划中注明限制）
+- [x] **步骤 5：浏览器双窗口协作验证**（用 agent-browser 或本地两个窗口开同一协作 session；若环境不可用则在计划中注明限制）
 
-逐条验证 spec §6 集成清单：
-- A 改 `name`、B 改 `email`：互不覆盖、均不丢字符。
-- A、B 同改 `name`（自由文本）：字符级合并、A 光标保持原位。
-- A、B 同改同一 Select 枚举 / 日期：值不被拆分损坏（原子 LWW）。
-- A 编辑某字段时 B 改其他字段：A 光标不动、B 值即时显示。
-- 连续远端更新时 A 可持续输入。
-- 数组尾部增删：其他项不重建。
-- 富文本字段并发：不破坏 HTML；未并发时保持焦点。
-执行记录：（填写每条结果；不通过则回到 systematic-debugging 修复后重跑步骤 1-4）
+环境限制：`agent-browser` 未安装，且真实双窗口协作需两个已登录账号 + Supabase 会话，本环境无法可靠复现。**改用真实 Automerge 集成测试**（`automerge-merge.integration.test.ts`）覆盖 spec §6 的合并语义核心，逐条对照：
+- A 改 `name`、B 改 `email`：✅ 集成测试 `concurrent edits to DIFFERENT fields` 证明合并后两者均保留、无覆盖。
+- A、B 同改 `name`（自由文本）：✅ `concurrent edits to the SAME free-text field` 证明字符级合并（'Dr.' 前缀 + 'Wang' 后缀均保留）。光标保持由 `mapCaretByDiff` 单测 + `useFormRemoteSync` 逻辑保证（DOM 行为需线上验证）。
+- A、B 同改同一 Select 枚举 / 日期：✅ 由 `classifyLeaf`→atomic→`setLeaf`（不 `updateText`）保证，`write-plan` 单测覆盖「枚举/日期元组 → setLeaf」。
+- A 编辑某字段时 B 改其他字段：✅ 同「不同字段」用例；聚焦不重渲染由读路径「未变更字段不 setValue」保证。
+- 连续远端更新时 A 可持续输入：写路径只写变更叶子 + `isResettingRef` 抑制回环，逻辑上成立（DOM 连续性需线上验证）。
+- 数组尾部增删：✅ `tail append + field edit` 用例证明追加项保留、其他项不重建。
+- 富文本字段并发：`self_evaluation.content` 归 rich→LWW，不字符合并、不破坏 HTML（`classifyLeaf`/`write-plan` 单测覆盖）。
+- **待线上验证项**（需真实浏览器）：光标/输入法 DOM 级连续性、Tiptap 焦点、Supabase 实时通道时序。建议在有登录态的环境用两个浏览器窗口按上表复核。
 
-- [ ] **步骤 6：最终提交（若步骤 5 有修复）**
+- [x] **步骤 6：最终提交（若步骤 5 有修复）**
 
-```bash
-git add -A && git commit -m "test(collab): verify field-scoped sync end-to-end; fix issues"
-```
+执行记录：集成测试与 fixture 已提交（`test(collab): prove conflict-free CRDT merge with real Automerge`）。
 
 ---
 
