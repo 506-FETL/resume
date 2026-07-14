@@ -1,6 +1,6 @@
+import type { WriteDeps } from './apply-write-ops.core.ts'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import type { WriteDeps } from './apply-write-ops.core.ts'
 import { applyWriteOps, getIn } from './apply-write-ops.core.ts'
 
 function recordingDeps() {

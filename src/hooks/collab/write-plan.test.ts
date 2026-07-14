@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { classifyLeaf } from './classify-leaf.ts'
 import { planRemoteFormSync } from '../form-remote-sync.ts'
+import { classifyLeaf } from './classify-leaf.ts'
 import { buildWriteOps } from './write-plan.ts'
 
 test('free text leaf -> updateText with full path', () => {
