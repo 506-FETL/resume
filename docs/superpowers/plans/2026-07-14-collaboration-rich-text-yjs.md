@@ -6,7 +6,7 @@
 
 **架构：** 新增 Yjs 层（会话级 `Y.Doc` + `Awareness` + Supabase 传输 provider，平行于现有 `SupabaseNetworkAdapter`）。`SimpleEditor` 双模式：协作开启用 `Collaboration`+`CollaborationCaret`（禁用 StarterKit 的 history、不传 content）、keyed remount；`onUpdate` 去抖镜像 HTML 到现有 `field.onChange`→A 的 `rich`=LWW 写路径。host 在初始同步完成后对空 fragment 种子化现有 HTML。
 
-**技术栈：** Yjs 13、y-protocols、y-prosemirror、`@tiptap/extension-collaboration`、`@tiptap/extension-collaboration-caret`、Supabase Realtime broadcast、Node 22 内置测试运行器。
+**技术栈：** Yjs 13、y-protocols、`@tiptap/extension-collaboration`（依赖 `@tiptap/y-tiptap`，种子化亦用它）、`@tiptap/extension-collaboration-caret`、Supabase Realtime broadcast、Node 22 内置测试运行器。
 
 **规格：** `docs/superpowers/specs/2026-07-14-collaboration-rich-text-yjs-design.md`
 
@@ -32,7 +32,7 @@
 - `src/lib/collaboration/richtext/supabase-yjs-provider.ts` —— `SupabaseYjsProvider`：Supabase broadcast 上的 Yjs sync（step1/2 + update 广播）+ awareness 编解码 + presence/离开清理。
 - `src/lib/collaboration/richtext/seed.ts` —— `seedFragmentFromHtml(fragment, html, extensions)`：host 用 `generateJSON`+`schema.nodeFromJSON`+`prosemirrorToYXmlFragment` 注入；仅空 fragment。
 - `src/lib/collaboration/richtext/collab-extensions.ts` —— 构造协作扩展数组的工厂（复用编辑器全部扩展 + `Collaboration` + `CollaborationCaret`，关闭 history）。
-- `src/lib/collaboration/richtext/store.ts` —— `useRichTextCollabStore`（Zustand）：`{ session: RichTextCollabSession | null, isReady }`；或并入现有 collaboration store。
+- `src/lib/collaboration/richtext/store.ts` —— `useRichTextCollabStore`（Zustand）：`{ session, provider, ready, setSession, clear }`；或并入现有 collaboration store。
 - `src/lib/collaboration/richtext/index.ts` —— barrel 导出。
 - `src/lib/collaboration/richtext/mirror-debounce.ts` —— 纯工具 `createDebouncedMirror(fn, wait)` 返回 `{ run, flush, cancel }`（可 node 测试，用 fake timer/手动 flush）。
 - `src/lib/collaboration/richtext/mirror-debounce.test.ts`
@@ -267,7 +267,9 @@ git commit -m "feat(collab): add Supabase transport provider for Yjs doc + aware
 - 新建：`src/lib/collaboration/richtext/seed.ts`
 - 参考：`simple-editor.tsx` 的完整 `extensions` 数组
 
-`collab-extensions.ts`：导出 `buildEditorExtensions({ collab })`：返回编辑器扩展数组。standalone = 现有全套；collaborative = 现有全套但 `StarterKit.configure({ undoRedo: false })`（关 history）+ 追加 `Collaboration.configure({ fragment })` + `CollaborationCaret.configure({ provider: awarenessProvider, user })`。把 `simple-editor.tsx` 现有 extensions 抽到此工厂以复用。
+`collab-extensions.ts`：导出 `buildEditorExtensions({ collab })`：返回编辑器扩展数组。standalone = 现有全套；collaborative = 现有全套但把 `StarterKit.configure(...)` 追加 `undoRedo: false`（关 history）+ 追加 `Collaboration.configure({ fragment })` + `CollaborationCaret.configure({ provider: awarenessProvider, user })`。把 `simple-editor.tsx` 现有 extensions 抽到此工厂以复用。
+
+> **必须保留 StarterKit 现有配置**：当前是 `StarterKit.configure({ horizontalRule: false, link: { openOnClick: false, enableClickSelection: true } })`（见 `simple-editor.tsx`）。协作模式只是**追加** `undoRedo: false`，绝不能丢掉 `horizontalRule: false`——否则 StarterKit 的 HorizontalRule 与单独注册的 `HorizontalRule`（同文件）重复注册节点，破坏 schema/构建。`link` 配置同样保留。
 
 `seed.ts`：`seedFragmentFromHtml(fragment, html, extensions)`：
 - 若 `fragment.length > 0` 立即 return（原子空检查）。

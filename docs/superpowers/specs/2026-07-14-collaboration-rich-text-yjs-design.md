@@ -15,15 +15,14 @@
 
 ### 1.1 新增依赖
 
-`package.json` 目前无这些包，需新增（版本对齐已装 Tiptap 3.10.x / 或其兼容 range）：
+`package.json` 目前无这些包，需新增（版本对齐已装 Tiptap 3.x range）：
 
 - `yjs`（Y.Doc / Y.XmlFragment）
-- `y-protocols`（sync step1/2 + awareness 编解码）
-- `y-prosemirror`（`prosemirrorToYXmlFragment` 种子化；`@tiptap/extension-collaboration` 亦依赖它）
-- `@tiptap/extension-collaboration`
+- `y-protocols`（awareness 编解码 + 可选 sync）
+- `@tiptap/extension-collaboration`（Tiptap v3 官方协作，内部依赖 **`@tiptap/y-tiptap`**——y-prosemirror 的 fork）
 - `@tiptap/extension-collaboration-caret`
 
-安装后需确认与现有 `@tiptap/*@3.10.1`、`@tiptap/pm` 版本兼容（peer deps 一致）。
+种子化（HTML→Yjs fragment）须用**与编辑器同一绑定** `@tiptap/y-tiptap` 的转换 API，**不**单独用 `y-prosemirror`，避免双绑定编码不一致。安装后确认与现有 `@tiptap/*`、`@tiptap/pm` 版本兼容。
 
 ## 2. 目标与非目标
 
@@ -74,7 +73,7 @@
 - **standalone（默认，协作关闭）**：现状不变——`content` prop 驱动、`onChange` 回吐 HTML。不加载 Collaboration/Caret 扩展。
 - **collaborative（协作开启）**：加载 `Collaboration.configure({ fragment })` 与 `CollaborationCaret.configure({ provider, user })`；**不传 `content`**（Yjs 是真源，Tiptap 要求协作时不设初始 content，否则重复）；`onUpdate` 仍回吐 HTML 到 `field.onChange`（维持镜像）。
 
-`useEditor` 只在创建时读取 `extensions`，故模式切换**必须**用 keyed remount（如 `key={collab ? 'collab' : 'standalone'}`），非「或独立子组件」的可选项。collab→standalone remount 时读取 `content={field.value}` 是新鲜的——因为协作期间镜像写路径持续更新 `field.value`，这一点使设计自洽。`SimpleEditor` 的 `collab` 为**可选 prop、缺省 standalone**，保证两个非简历用途（`optimize` custom-editor、`tracker` interview-sub-stages）向后兼容、不回归。
+`useEditor` 只在创建时读取 `extensions`，故模式切换**必须真正重建 `useEditor` 实例**：用 `@tiptap/react` 的 `useEditor(options, deps)` 依赖数组（传 `[Boolean(collab)]`），或把调用 `useEditor` 的组件本身用 `key` 重挂载。**注意**：仅给 `<EditorContent>` 加 `key` 是错误的——`useEditor` 在外层调用，不会因此重建。collab→standalone remount 时读取 `content={field.value}` 是新鲜的——因为协作期间镜像写路径持续更新 `field.value`，这一点使设计自洽。`SimpleEditor` 的 `collab` 为**可选 prop、缺省 standalone**，保证两个非简历用途（`optimize` custom-editor、`tracker` interview-sub-stages）向后兼容、不回归。
 
 ### 3.5 种子化（首次内容注入）
 
@@ -85,7 +84,7 @@ Yjs 字段首次为空时需注入现有 HTML，且必须避免重复注入与�
 - **重连/双 host 防护**：`resumeHosting` 等重连路径可能出现瞬时双 host。种子化须幂等——空检查在写入前紧邻执行，且注入用一次性事务；已注入或已非空一律跳过，避免双 host 各注入一次。
 - guest 永不种子化，只接收同步。
 
-**API 精度**：用 `y-prosemirror` 的 `prosemirrorToYXmlFragment(pmDoc, fragment)` 写入。`pmDoc` 由 `generateJSON(html, extensions)` 得到 JSON 后经 `schema.nodeFromJSON(json)`（ProseMirror `Node.fromJSON`）构建。`extensions` 必须与编辑器**完全一致**——需包含编辑器加载的**每一个**扩展：StarterKit、HorizontalRule、TextAlign、TaskList、TaskItem、Highlight、Image、Typography、Superscript、Subscript、Selection、ImageUploadNode、Link 等（见 `simple-editor.tsx` 的 `extensions` 数组），否则种子化会**静默丢失**未覆盖的节点/标记（highlight、图片、任务列表、水平线等）。
+**API 精度**：种子化用 **`@tiptap/y-tiptap`**（Tiptap v3 Collaboration 的绑定）的 PM→Yjs 转换 API（导出名执行时确认，通常 `prosemirrorToYXmlFragment` / `prosemirrorJSONToYDoc`）。`pmDoc` 由 `generateJSON(html, extensions)` 得 JSON 后经 `schema.nodeFromJSON`（`getSchema(extensions)`）构建。`extensions` 必须与编辑器**完全一致**——需包含编辑器加载的**每一个**扩展：StarterKit、HorizontalRule、TextAlign、TaskList、TaskItem、Highlight、Image、Typography、Superscript、Subscript、Selection、ImageUploadNode、Link 等（见 `simple-editor.tsx` 的 `extensions` 数组），否则种子化会**静默丢失**未覆盖的节点/标记（highlight、图片、任务列表、水平线等）。不要混用独立 `y-prosemirror` 实现。
 
 ### 3.6 生命周期接线
 
