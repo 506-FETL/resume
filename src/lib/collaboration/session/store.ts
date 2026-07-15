@@ -7,6 +7,7 @@ import type {
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import useResumeStore from '@/store/resume/form'
+import { useRichTextCollabStore } from '../richtext'
 import { createCollaborationSessionId } from '../shared'
 import { createSessionCallbacks } from './callbacks'
 import { enableCollaborationSession } from './service'
@@ -42,6 +43,15 @@ async function activateSession(
     resumeId: result.resumeId,
     userId: result.userId,
     role: result.role,
+  })
+
+  // 启动富文本 Yjs 协作层（字符级合并 + 编辑器内远端光标）
+  useRichTextCollabStore.getState().start({
+    resumeId: result.resumeId,
+    sessionId: result.sessionId,
+    role: result.role,
+    userName: result.userName,
+    color: result.color,
   })
 }
 
@@ -151,6 +161,9 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       toast.error(`关闭协作时出错，请重试: ${message}`)
     }
 
+    // 销毁富文本 Yjs 层（provider/doc/awareness，含去抖 flush 由编辑器卸载处理）
+    useRichTextCollabStore.getState().stop()
+
     if (state.sessionId && state.resumeId && state.selfUserId) {
       clearStoredSession(state.sessionId, state.resumeId, state.selfUserId)
     }
@@ -170,6 +183,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
 
     useResumeStore.getState().docManager?.disableCollaboration()
+    useRichTextCollabStore.getState().stop()
 
     if (state.sessionId && state.resumeId && state.selfUserId) {
       clearStoredSession(state.sessionId, state.resumeId, state.selfUserId)

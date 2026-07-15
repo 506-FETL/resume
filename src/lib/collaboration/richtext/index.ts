@@ -1,0 +1,6 @@
+export type { CollabExtensionConfig } from './collab-extensions'
+export { buildEditorExtensions } from './collab-extensions'
+export { buildFragmentKey } from './fragment-key'
+export { default as useRichTextCollabStore } from './store'
+export { SupabaseYjsProvider } from './supabase-yjs-provider'
+export { RichTextCollabSession } from './yjs-doc'
