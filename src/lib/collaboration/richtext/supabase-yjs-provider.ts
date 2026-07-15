@@ -1,0 +1,139 @@
+import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { Awareness } from 'y-protocols/awareness'
+import type { Doc } from 'yjs'
+import {
+  applyAwarenessUpdate,
+  encodeAwarenessUpdate,
+  removeAwarenessStates,
+} from 'y-protocols/awareness'
+import { applyUpdate, encodeStateAsUpdate } from 'yjs'
+import { decodeBase64ToBytes, encodeBytesToBase64 } from '@/lib/automerge/shared'
+import supabase from '@/lib/supabase/client'
+
+/**
+ * 在 Supabase Realtime broadcast 之上同步一个 `Y.Doc` 与其 `Awareness`。
+ *
+ * 与 Automerge 的 `SupabaseNetworkAdapter` 平行，但用独立频道
+ * `yjs:resume:<resumeId>:<sessionId>`，互不干扰。
+ *
+ * - 文档同步：本地 `doc.update`（非本 provider 触发）→ 广播二进制 update；
+ *   收远端 update → `applyUpdate(doc, bytes, this)`（origin=this 防回环）。
+ * - 初始全量：新加入者广播 `sync-request`，在场者回其完整状态（`encodeStateAsUpdate`）。
+ * - awareness：本地变化 → 广播 `encodeAwarenessUpdate`；收远端 → `applyAwarenessUpdate`。
+ * - presence：本频道 presence；peer 离开时清其 awareness 状态。
+ *
+ * `CollaborationCaret` 读取 `provider.awareness`，故以公共字段暴露。
+ */
+export class SupabaseYjsProvider {
+  readonly awareness: Awareness
+  private readonly doc: Doc
+  private readonly channelName: string
+  private channel: RealtimeChannel | null = null
+  private connected = false
+
+  private readonly onDocUpdate: (update: Uint8Array, origin: unknown) => void
+  private readonly onAwarenessUpdate: (
+    changes: { added: number[], updated: number[], removed: number[] },
+    origin: unknown,
+  ) => void
+
+  constructor(resumeId: string, sessionId: string, doc: Doc, awareness: Awareness) {
+    this.doc = doc
+    this.awareness = awareness
+    this.channelName = `yjs:resume:${resumeId}:${sessionId}`
+
+    this.onDocUpdate = (update, origin) => {
+      // 本 provider 应用远端 update 时 origin===this，跳过以免回环广播
+      if (origin === this) {
+        return
+      }
+      this.broadcast('yjs-update', { update: encodeBytesToBase64(update) })
+    }
+
+    this.onAwarenessUpdate = ({ added, updated, removed }, origin) => {
+      if (origin === 'remote') {
+        return
+      }
+      const changed = [...added, ...updated, ...removed]
+      this.broadcast('yjs-awareness', {
+        update: encodeBytesToBase64(encodeAwarenessUpdate(this.awareness, changed)),
+      })
+    }
+  }
+
+  connect(): void {
+    if (this.channel) {
+      return
+    }
+
+    const channel = supabase.channel(this.channelName)
+    this.channel = channel
+
+    channel.on('broadcast', { event: 'yjs-update' }, (payload: any) => {
+      const b64 = payload?.payload?.update
+      if (typeof b64 === 'string') {
+        applyUpdate(this.doc, decodeBase64ToBytes(b64), this)
+      }
+    })
+
+    channel.on('broadcast', { event: 'yjs-awareness' }, (payload: any) => {
+      const b64 = payload?.payload?.update
+      if (typeof b64 === 'string') {
+        applyAwarenessUpdate(this.awareness, decodeBase64ToBytes(b64), 'remote')
+      }
+    })
+
+    // 新加入者请求全量；在场者以完整状态响应
+    channel.on('broadcast', { event: 'yjs-sync-request' }, () => {
+      this.broadcast('yjs-update', {
+        update: encodeBytesToBase64(encodeStateAsUpdate(this.doc)),
+      })
+    })
+
+    channel.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') {
+        return
+      }
+      this.connected = true
+      this.doc.on('update', this.onDocUpdate)
+      this.awareness.on('update', this.onAwarenessUpdate)
+      // 请求已有对等方的全量状态
+      this.broadcast('yjs-sync-request', {})
+    })
+  }
+
+  /** 是否已订阅成功（host 种子化前应等待此为 true）。 */
+  isConnected(): boolean {
+    return this.connected
+  }
+
+  getChannelName(): string {
+    return this.channelName
+  }
+
+  destroy(): void {
+    this.doc.off('update', this.onDocUpdate)
+    this.awareness.off('update', this.onAwarenessUpdate)
+
+    // 清除本地 awareness（通知他人自己离开）
+    try {
+      removeAwarenessStates(this.awareness, [this.doc.clientID], 'local')
+    }
+    catch {
+      // 忽略清理异常
+    }
+
+    if (this.channel) {
+      this.channel.unsubscribe()
+      this.channel = null
+    }
+    this.connected = false
+  }
+
+  private broadcast(event: string, payload: Record<string, unknown>): void {
+    if (!this.channel || !this.connected) {
+      return
+    }
+    this.channel.send({ type: 'broadcast', event, payload })
+  }
+}
