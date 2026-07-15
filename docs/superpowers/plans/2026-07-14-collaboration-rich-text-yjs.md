@@ -47,23 +47,24 @@
 
 ## 任务 0：安装依赖
 
-- [ ] **步骤 1：安装**
+- [x] **步骤 1：安装**
 
 运行：`pnpm add yjs y-protocols @tiptap/extension-collaboration @tiptap/extension-collaboration-caret`
 预期：安装成功。**重要**：Tiptap v3 的 `@tiptap/extension-collaboration` 依赖 **`@tiptap/y-tiptap`**（y-prosemirror 的 fork），**不是** `y-prosemirror`。种子化应使用**与编辑器同一绑定**（`@tiptap/y-tiptap`）的 PM→Yjs 转换 API，避免双绑定编码不一致；执行时用 `node -e "console.log(Object.keys(require('@tiptap/y-tiptap')))"` 查实际导出名（如 `prosemirrorToYXmlFragment` / `prosemirrorJSONToYDoc`），并据此写种子化。故**不单独安装 `y-prosemirror`**（它会随 collaboration 传递依赖进来，但我们只用 y-tiptap 的导出）。
-执行记录：（填写实际安装版本；记录 `@tiptap/y-tiptap` 的种子化导出名；若 peer 冲突记录解决方式）
+执行记录：已装 `yjs@13.6.31`、`y-protocols@1.0.7`、`@tiptap/extension-collaboration@3.22.3`、`@tiptap/extension-collaboration-caret@3.22.3`、`@tiptap/y-tiptap@3.0.7`（后者显式加为直接依赖以满足 collaboration 的 peer）。**关键坑**：新协作包按 `^3.22.3` 会把 `@tiptap/core` 解析到 `3.27.4`，与应用其余 `@tiptap/*@3.22.3` 形成**两份 core**，导致全应用类型错误（`simple-editor.tsx`/`link-popover` 报 overload/`setLink` 不存在）。**修复**：在 `package.json` 加 `pnpm.overrides` 把 `@tiptap/core` 与 `@tiptap/pm` 锁到 `3.22.3`，删 lockfile 重装后 lockfile 仅剩单一 `@tiptap/core@3.22.3`。`@tiptap/y-tiptap@3.0.7` 已确认导出种子化 API：`prosemirrorToYXmlFragment`、`prosemirrorToYDoc`、`prosemirrorJSONToYDoc`、`initProseMirrorDoc`、`yXmlFragmentToProseMirrorRootNode`。`StarterKit@3.22.3` 确认有 `undoRedo` 选项。
 
-- [ ] **步骤 2：验证可 import + 构建未破坏**
+- [x] **步骤 2：验证可 import + 构建未破坏**
 
 运行：`npx tsc --noEmit`（仅基线错误）；`node -e "require('yjs');require('y-protocols/awareness')"` 确认可解析。
-执行记录：（填写）
+执行记录：override 修复后 tsc 仅剩基线错误；`yjs`/`y-protocols` 解析 ok；`pnpm build` 成功（9.6s）。
 
-- [ ] **步骤 3：提交**
+- [x] **步骤 3：提交**
 
 ```bash
 git add package.json pnpm-lock.yaml
 git commit -m "chore(collab): add yjs + tiptap collaboration deps for rich-text collab"
 ```
+执行记录：已提交（含 pnpm.overrides 修复）。
 
 ---
 
@@ -390,46 +391,49 @@ git commit -m "feat(collab): wire all 9 rich-text editors to Yjs collaboration"
 
 ## 任务 9：全量校验 + 集成/浏览器验证
 
-- [ ] **步骤 1：纯函数单测**
+- [x] **步骤 1：纯函数单测**
 
-运行：`node --test --experimental-strip-types src/lib/collaboration/richtext/fragment-key.test.ts src/lib/collaboration/richtext/mirror-debounce.test.ts`（及任务 3 可选集成测试）
+运行：`node --test --experimental-strip-types src/lib/collaboration/richtext/fragment-key.test.ts src/lib/collaboration/richtext/mirror-debounce.test.ts`（及任务 3 集成测试）
 预期：全绿
-执行记录：（填写）
+执行记录：全绿。含 A+B 全部协作测试共 `# tests 50 / # pass 50 / # fail 0`。
 
-- [ ] **步骤 2：类型检查**
+- [x] **步骤 2：类型检查**
 
 运行：`npx tsc --noEmit`
 预期：仅基线错误 `step-parsing.tsx TS6133`，无新增
-执行记录：（填写）
+执行记录：仅剩基线错误，无新增。
 
-- [ ] **步骤 3：Lint（新增/修改文件）**
+- [x] **步骤 3：Lint（新增/修改文件）**
 
 运行：对本次改动文件跑 `npx eslint <files>`
 预期：无错误（全量 `pnpm lint` 的预存问题不计）
-执行记录：（填写）
+执行记录：全部新增/修改文件 eslint 通过（含为 `src/lib/collaboration/richtext/**/*.test.ts` 扩展的 node:test override）。`simple-editor.tsx` 属 `**/tiptap-*/**` eslint ignore 范围，不参与 lint（预存配置）。
 
-- [ ] **步骤 4：生产构建**
+- [x] **步骤 4：生产构建**
 
 运行：`pnpm build`
 预期：成功
-执行记录：（填写）
+执行记录：`✓ built in ~10s`，成功（仅无关 chunk 体积告警）。
 
-- [ ] **步骤 5：Yjs 合并集成测试（兜底浏览器不可用）**
+- [x] **步骤 5：Yjs 合并集成测试（兜底浏览器不可用）**
 
 新建 `src/lib/collaboration/richtext/yjs-merge.integration.test.ts`：用真实 `yjs` 两个 `Y.Doc` + `Y.XmlFragment`，模拟两 peer 对同一 fragment 并发编辑，`applyUpdate` 互相合并后断言两处编辑都保留（字符级无冲突）。
 运行：`node --test --experimental-strip-types src/lib/collaboration/richtext/yjs-merge.integration.test.ts`
-执行记录：（填写；若 strip-types 无法 import yjs 则改 `.mjs` 或注明并转浏览器）
+执行记录：PASS（2/2）。证明：同一 fragment 并发插入 'Dr.' 前缀 + ' World' 后缀，合并后两处均保留且两端收敛一致；不同 fragment 编辑互不影响。真实 `yjs` 在 strip-types 下 import 正常，无需 `.mjs` 兜底。
 
-- [ ] **步骤 6：浏览器双窗口验证（环境可用时）**
+- [x] **步骤 6：浏览器双窗口验证（环境可用时）**
 
-逐条对照 spec §7 复现清单：同字段字符级合并、远端彩色光标/选区+姓名、HTML 镜像 preview/刷新保留、协作关闭回落 standalone、种子化不重复。
-执行记录：（逐条结果；环境不可用则注明限制，说明已由步骤 5 集成测试兜底 CRDT 合并语义）
+逐条对照 spec §7 复现清单。
+执行记录：**环境限制** —— 无 `agent-browser` 且真实双窗口需两个已登录账号 + Supabase 会话，无法可靠复现。已验证项：
+- 同字段字符级合并 → ✅ 步骤 5 真实 Yjs 集成测试证明。
+- HTML 镜像不回归 → 富文本 `onChange(editor.getHTML())` 经 A 的 `rich`=LWW 写路径落 Automerge，preview/PDF/history 消费 HTML 不变；`pnpm build` 通过。
+- 协作关闭回落 standalone → `collab` 为可选 prop 缺省 standalone；两处非简历用途（optimize/tracker）未传 collab、构建通过、行为不变。
+- 种子化不重复 → 仅 host、初始同步 settle 后、原子空检查（`seed.ts` fragment.length>0 跳过）。
+- **待线上验证项**（需真实浏览器）：编辑器内远端彩色光标/选区 DOM 渲染（CollaborationCaret + 已存在的 `.collaboration-carets` CSS）、Supabase 实时通道时序、种子化 settle 延时在真实网络下的充分性。建议在有登录态环境用两窗口复核。
 
-- [ ] **步骤 7：最终提交（若有修复）**
+- [x] **步骤 7：最终提交（若有修复）**
 
-```bash
-git add -A && git commit -m "test(collab): verify Yjs rich-text collab merge + cleanup"
-```
+执行记录：集成测试已提交（`test(collab): prove Yjs rich-text character-level merge + fragment independence`）。
 
 ---
 
