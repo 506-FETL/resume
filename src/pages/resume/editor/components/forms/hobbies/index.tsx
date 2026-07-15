@@ -2,7 +2,6 @@ import { Plus, Trash2, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -12,6 +11,7 @@ import { hobbiesFormSchema, PRESET_HOBBIES } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
+import { RichTextFieldEditor } from '../shared/rich-text-field-editor'
 
 function HobbiesForm({ className }: { className?: string }) {
   const hobbies = useResumeStore(state => state.hobbies)
@@ -80,11 +80,11 @@ function HobbiesForm({ className }: { className?: string }) {
               <FormItem>
                 <FormLabel>兴趣爱好描述</FormLabel>
                 <FormControl>
-                  <SimpleEditor
-                    content={field.value || ''}
-                    onChange={(editor) => {
-                      field.onChange(editor.getHTML())
-                    }}
+                  <RichTextFieldEditor
+                    sectionKey="hobbies"
+                    relativePath="description"
+                    value={field.value || ''}
+                    onChange={field.onChange}
                     fieldContext={{ sectionKey: 'hobbies', fieldLabel: '兴趣爱好描述', jobIntent: jobIntentText }}
                   />
                 </FormControl>

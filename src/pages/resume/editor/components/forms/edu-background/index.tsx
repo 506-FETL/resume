@@ -2,7 +2,6 @@ import type { Degree } from '@/lib/schema'
 import dayjs from 'dayjs'
 import { Baby, GraduationCap } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -12,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DEFAULT_EDU_BACKGROUND, eduBackgroundFormSchema } from '@/lib/schema'
+import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 import { ResumeFieldFormSection } from '../shared/resume-field-form-section'
@@ -183,11 +183,11 @@ function EduBackgroundForm({ className }: { className?: string }) {
               <FormItem>
                 <FormLabel>教育背景描述</FormLabel>
                 <FormControl>
-                  <SimpleEditor
-                    content={field.value || ''}
-                    onChange={(editor) => {
-                      field.onChange(editor.getHTML())
-                    }}
+                  <RichTextFieldEditor
+                    sectionKey="edu_background"
+                    relativePath={`items.${index}.eduInfo`}
+                    value={field.value || ''}
+                    onChange={field.onChange}
                     fieldContext={{ sectionKey: 'edu_background', fieldLabel: '教育经历描述', jobIntent: jobIntentText }}
                   />
                 </FormControl>

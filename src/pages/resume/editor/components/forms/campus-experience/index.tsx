@@ -1,7 +1,6 @@
 import dayjs from 'dayjs'
 import { DoorOpen, Laptop } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -10,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { campusExperienceFormSchema, DEFAULT_CAMPUS_EXPERIENCE } from '@/lib/schema'
+import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 import { ResumeFieldFormSection } from '../shared/resume-field-form-section'
@@ -154,11 +154,11 @@ function CampusExperienceForm({ className }: { className?: string }) {
               <FormItem>
                 <FormLabel>校园经历描述</FormLabel>
                 <FormControl>
-                  <SimpleEditor
-                    content={field.value || ''}
-                    onChange={(editor) => {
-                      field.onChange(editor.getHTML())
-                    }}
+                  <RichTextFieldEditor
+                    sectionKey="campus_experience"
+                    relativePath={`items.${index}.campusInfo`}
+                    value={field.value || ''}
+                    onChange={field.onChange}
                     fieldContext={{ sectionKey: 'campus_experience', fieldLabel: '校园经历', jobIntent: jobIntentText }}
                   />
                 </FormControl>

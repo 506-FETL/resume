@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import { selfEvaluationFormSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
@@ -38,11 +38,11 @@ function SelfEvaluationForm({ className }: { className?: string }) {
               <FormItem>
                 <FormLabel>自我评价</FormLabel>
                 <FormControl>
-                  <SimpleEditor
-                    content={field.value || ''}
-                    onChange={(editor) => {
-                      field.onChange(editor.getHTML())
-                    }}
+                  <RichTextFieldEditor
+                    sectionKey="self_evaluation"
+                    relativePath="content"
+                    value={field.value || ''}
+                    onChange={field.onChange}
                     fieldContext={{ sectionKey: 'self_evaluation', fieldLabel: '自我评价', jobIntent: jobIntentText }}
                   />
                 </FormControl>

@@ -3,7 +3,6 @@ import { Plus, Trash2, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -13,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { PRESET_SKILLS, PROFICIENCY_PERCENTAGE_MAP, skillSpecialtyFormSchema } from '@/lib/schema/resume/form/skillSpecialty'
 import { cn } from '@/lib/utils'
+import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 
@@ -97,11 +97,11 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
               <FormItem>
                 <FormLabel>技能特长描述</FormLabel>
                 <FormControl>
-                  <SimpleEditor
-                    content={field.value || ''}
-                    onChange={(editor) => {
-                      field.onChange(editor.getHTML())
-                    }}
+                  <RichTextFieldEditor
+                    sectionKey="skill_specialty"
+                    relativePath="description"
+                    value={field.value || ''}
+                    onChange={field.onChange}
                     fieldContext={{ sectionKey: 'skill_specialty', fieldLabel: '技能特长描述', jobIntent: jobIntentText }}
                   />
                 </FormControl>

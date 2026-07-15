@@ -1,7 +1,6 @@
 import dayjs from 'dayjs'
 import { DoorOpen, Laptop } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -10,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DEFAULT_WORK_EXPERIENCE, workExperienceFormSchema } from '@/lib/schema'
+import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 import { ResumeFieldFormSection } from '../shared/resume-field-form-section'
@@ -154,11 +154,11 @@ function WorkExperienceForm({ className }: { className?: string }) {
               <FormItem>
                 <FormLabel>工作描述</FormLabel>
                 <FormControl>
-                  <SimpleEditor
-                    content={field.value || ''}
-                    onChange={(editor) => {
-                      field.onChange(editor.getHTML())
-                    }}
+                  <RichTextFieldEditor
+                    sectionKey="work_experience"
+                    relativePath={`items.${index}.workInfo`}
+                    value={field.value || ''}
+                    onChange={field.onChange}
                     fieldContext={{ sectionKey: 'work_experience', fieldLabel: '工作描述', jobIntent: jobIntentText }}
                   />
                 </FormControl>
