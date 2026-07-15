@@ -53,13 +53,20 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
 
     set({ session, provider, ready: true })
 
-    // 仅「全新 host 分享」种子化：等待初始同步 settle 后，对仍为空的 fragment 注入现有 HTML。
-    // 加入会话 / resumeHosting 重连不种子化（seed=false），避免与远端已有 Yjs 状态叠加造成重复。
-    if (role === 'host' && seed) {
+    // host 种子化：等待初始同步 settle 后，对仍为空的 fragment 注入现有 HTML。
+    // - 全新分享（seed=true）：直接种子化。
+    // - 重连（seed=false，如 resumeHosting）：仅当无远端在场（无人持有内容）才回落种子化，
+    //   避免与他人已有 Yjs 状态叠加造成重复；有远端时等其 sync 响应补齐。
+    // 两种情况都靠 seedFragmentFromHtml 的原子空检查（fragment 非空即跳过）兜底防覆盖。
+    if (role === 'host') {
       seedTimer = setTimeout(() => {
         seedTimer = null
         // 会话可能已被销毁
         if (get().session !== session) {
+          return
+        }
+        // 重连且有远端在场时不种子化（内容将由远端 sync 补齐）
+        if (!seed && provider.getRemotePeerCount() > 0) {
           return
         }
         const data = useResumeStore.getState().getResumeFormData()

@@ -120,6 +120,20 @@ export class SupabaseYjsProvider {
     return this.connected
   }
 
+  /**
+   * 当前频道上的远端对等方数量（基于 Supabase presence，比尽力而为的 sync 广播可靠）。
+   * 用于 host 重连时判定：无远端在场（无人持有内容）才回落种子化，避免与他人已有 Yjs 状态叠加。
+   */
+  getRemotePeerCount(): number {
+    if (!this.channel) {
+      return 0
+    }
+    const state = this.channel.presenceState() as Record<string, unknown[]>
+    // 每个 presence key 对应一个连接；扣除自己（本端 track 一次）
+    const total = Object.keys(state).length
+    return Math.max(0, total - 1)
+  }
+
   getChannelName(): string {
     return this.channelName
   }
