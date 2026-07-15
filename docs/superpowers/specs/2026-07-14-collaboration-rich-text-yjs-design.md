@@ -85,7 +85,7 @@ Yjs 字段首次为空时需注入现有 HTML，且必须避免重复注入与�
 - **重连/双 host 防护**：`resumeHosting` 等重连路径可能出现瞬时双 host。种子化须幂等——空检查在写入前紧邻执行，且注入用一次性事务；已注入或已非空一律跳过，避免双 host 各注入一次。
 - guest 永不种子化，只接收同步。
 
-**API 精度**：用 `y-prosemirror` 的 `prosemirrorToYXmlFragment(pmDoc, fragment)` 写入。`pmDoc` 由 `generateJSON(html, extensions)` + ProseMirror 构建，`extensions` 必须与编辑器**完全一致**（StarterKit、Highlight、TextAlign、TaskList/TaskItem、Image、Superscript、Subscript、Typography、Link 等，见 `simple-editor.tsx`），否则种子化会静默丢失 highlight/图片/任务列表等节点与标记。
+**API 精度**：用 `y-prosemirror` 的 `prosemirrorToYXmlFragment(pmDoc, fragment)` 写入。`pmDoc` 由 `generateJSON(html, extensions)` 得到 JSON 后经 `schema.nodeFromJSON(json)`（ProseMirror `Node.fromJSON`）构建。`extensions` 必须与编辑器**完全一致**——需包含编辑器加载的**每一个**扩展：StarterKit、HorizontalRule、TextAlign、TaskList、TaskItem、Highlight、Image、Typography、Superscript、Subscript、Selection、ImageUploadNode、Link 等（见 `simple-editor.tsx` 的 `extensions` 数组），否则种子化会**静默丢失**未覆盖的节点/标记（highlight、图片、任务列表、水平线等）。
 
 ### 3.6 生命周期接线
 
@@ -95,7 +95,7 @@ Yjs 字段首次为空时需注入现有 HTML，且必须避免重复注入与�
 
 已核实**不会死循环**：协作模式下本地 Yjs 编辑 → `onUpdate` → `field.onChange(getHTML)` → `form.watch` → A 写路径 → Automerge → store；store 回流触发 A 的 `useFormRemoteSync`，但 `planRemoteFormSync` 对相等的 `content` 产出空 diff → 不 `setValue` → 无回灌。远端对等方：A 读路径 `setValue('content', html)` 会触发，但协作模式编辑器**忽略 `content`**，不会再进 `onUpdate`；且其触发的 `watch` 被 `isResettingRef` 抑制。故「不传 content」+ A 既有 no-op/`isResettingRef` 守卫已闭环，**不得**再加冗余断路器。
 
-需注意：数组经历表单是**单个 RHF 实例**同时承载富文本 `workInfo` 与自由文本 `companyName/position`。协作时每次远端富文本键入都会经 `onUpdate` 镜像 HTML → 频繁的远端 `setValue` → 频繁 `isResettingRef=true` 窗口，可能短暂抑制同 section 自由文本的本地 `watch` 回写。**缓解**：镜像写做去抖（如 300ms 合并 HTML 落库），既降 Automerge op 频率，也缩小 `isResettingRef` 窗口。HTML 只是派生镜像、非实时真源，去抖不损协作体验。
+需注意：数组经历表单是**单个 RHF 实例**同时承载富文本 `workInfo` 与自由文本 `companyName/position`。协作时每次远端富文本键入都会经 `onUpdate` 镜像 HTML → 频繁的远端 `setValue` → 频繁 `isResettingRef=true` 窗口，可能短暂抑制同 section 自由文本的本地 `watch` 回写。**缓解**：镜像写做去抖（如 300ms 合并 HTML 落库），既降 Automerge op 频率，也缩小 `isResettingRef` 窗口。HTML 只是派生镜像、非实时真源，去抖不损协作体验。去抖器**位置**：置于编辑器 `onUpdate` 到 `field.onChange` 之间（每个协作编辑器一份）；会话 teardown 时必须 **flush**（立即落最后一次 HTML）后再销毁，否则 collab→standalone remount 读取的 `field.value` 可能丢失最后 <300ms 的编辑。
 
 ## 4. 组件与数据流
 
@@ -127,7 +127,7 @@ Yjs 字段首次为空时需注入现有 HTML，且必须避免重复注入与�
 - `buildFragmentKey`：section 级与数组项级 key 生成、稳定、可逆区分。
 - provider 的 awareness/update 编解码纯函数（base64、消息封装）若可抽出则单测。
 
-集成/浏览器验证（spec §8 复现清单）：
+集成/浏览器验证（本节复现清单）：
 - 两人同改同一富文本字段：字符级合并、互不覆盖、双方光标可见。
 - 编辑器内远端光标随对方输入实时移动、显示姓名与颜色。
 - 富文本改动仍镜像为 HTML，preview/PDF/刷新后保留。
