@@ -49,9 +49,9 @@
 
 - [ ] **步骤 1：安装**
 
-运行：`pnpm add yjs y-protocols y-prosemirror @tiptap/extension-collaboration @tiptap/extension-collaboration-caret`
-预期：安装成功，`@tiptap/*` 与现有 `3.10.1` peer 兼容（如告警版本不一致，锁到与 `@tiptap/react@3.x` 匹配的版本）。
-执行记录：（填写实际安装版本；若 peer 冲突，记录解决方式）
+运行：`pnpm add yjs y-protocols @tiptap/extension-collaboration @tiptap/extension-collaboration-caret`
+预期：安装成功。**重要**：Tiptap v3 的 `@tiptap/extension-collaboration` 依赖 **`@tiptap/y-tiptap`**（y-prosemirror 的 fork），**不是** `y-prosemirror`。种子化应使用**与编辑器同一绑定**（`@tiptap/y-tiptap`）的 PM→Yjs 转换 API，避免双绑定编码不一致；执行时用 `node -e "console.log(Object.keys(require('@tiptap/y-tiptap')))"` 查实际导出名（如 `prosemirrorToYXmlFragment` / `prosemirrorJSONToYDoc`），并据此写种子化。故**不单独安装 `y-prosemirror`**（它会随 collaboration 传递依赖进来，但我们只用 y-tiptap 的导出）。
+执行记录：（填写实际安装版本；记录 `@tiptap/y-tiptap` 的种子化导出名；若 peer 冲突记录解决方式）
 
 - [ ] **步骤 2：验证可 import + 构建未破坏**
 
@@ -72,6 +72,11 @@ git commit -m "chore(collab): add yjs + tiptap collaboration deps for rich-text 
 **文件：**
 - 新建：`src/lib/collaboration/richtext/fragment-key.ts`
 - 测试：`src/lib/collaboration/richtext/fragment-key.test.ts`
+- 修改：`eslint.config.js`
+
+- [ ] **步骤 0：扩展 ESLint override 覆盖新测试目录**
+
+现有 override 只覆盖 `src/hooks/collab/**/*.test.ts`（关掉 `test/no-import-node-test`、`style/max-statements-per-line`）。本子项目测试在 `src/lib/collaboration/richtext/`，需把该 override 的 `files` 改为同时匹配：`['src/hooks/collab/**/*.test.ts', 'src/lib/collaboration/richtext/**/*.test.ts']`（含 `*.integration.test.ts`）。否则 `import { test } from 'node:test'` 与 `mirror-debounce.test.ts` 的多语句行会被 lint 拦下。
 
 - [ ] **步骤 1：先写失败测试**
 
@@ -230,6 +235,7 @@ git commit -m "feat(collab): add session-scoped Yjs doc + awareness"
 - 参考：`src/lib/automerge/collaboration/supabase-network-adapter.ts`（频道/presence/base64 模式）、`src/lib/automerge/shared`（`encodeBytesToBase64`/`decodeBase64ToBytes`）
 
 `SupabaseYjsProvider`（构造 `resumeId, sessionId, doc, awareness`）：
+- **公共 `awareness` 字段**：必须以 `public readonly awareness` 暴露传入的 `Awareness` 实例——`CollaborationCaret.configure({ provider })` 会读 `provider.awareness` 渲染远端光标。
 - 频道 `yjs:resume:<resumeId>:<sessionId>`。
 - **doc sync**：`doc.on('update', (update, origin) => { if (origin !== this) broadcast('yjs-update', base64(update)) })`；收 `yjs-update` → `Y.applyUpdate(doc, bytes, this)`（origin=this 防回环）。
 - **初始同步**：subscribe 成功后用 `y-protocols/sync` 的 `writeSyncStep1`/`readSyncMessage` 交换状态向量；或简化：新加入者广播 `yjs-sync-request`，在场者回其完整 `Y.encodeStateAsUpdate(doc)`。选后者更简单可靠。
@@ -265,7 +271,8 @@ git commit -m "feat(collab): add Supabase transport provider for Yjs doc + aware
 
 `seed.ts`：`seedFragmentFromHtml(fragment, html, extensions)`：
 - 若 `fragment.length > 0` 立即 return（原子空检查）。
-- `const json = generateJSON(html, extensions)`；`const pmDoc = schema.nodeFromJSON(json)`（schema 由 `getSchema(extensions)` 得）；`prosemirrorToYXmlFragment(pmDoc, fragment)`。
+- `const json = generateJSON(html, extensions)`；用 **`@tiptap/y-tiptap`** 的转换 API（与编辑器 Collaboration 同一绑定，导出名执行时确认，通常 `prosemirrorToYXmlFragment(pmDoc, fragment)` 或 `prosemirrorJSONToYDoc`）把 JSON 写入 fragment。若该绑定只提供 `Y.Doc` 级 API，则用编辑器同名 fragment 键构造后合并。**不要**混用 `y-prosemirror` 的独立实现，避免与 y-tiptap 的 `ySyncPlugin` 编码不一致。
+- `schema` 由 `getSchema(extensions)` 得（`Node.fromJSON` 需要）。
 - 用**与编辑器完全一致**的 extensions（含 HorizontalRule/ImageUploadNode/Selection 等），否则丢节点。
 
 - [ ] **步骤 1：抽取扩展工厂**（把 `simple-editor.tsx` 的 extensions 移到 `collab-extensions.ts`，standalone 分支保持等价）
@@ -294,8 +301,10 @@ git commit -m "feat(collab): add collab extension factory + fragment HTML seedin
 `store.ts`：`useRichTextCollabStore`：`{ session: RichTextCollabSession | null, provider: SupabaseYjsProvider | null, ready: boolean, setSession(...), clear() }`。
 
 session 接线：
-- 会话激活成功（拿到 `resumeId`/`sessionId`/`role`/`userName`/`selfColor`）后：`new RichTextCollabSession()` → `new SupabaseYjsProvider(resumeId, sessionId, doc, awareness)` → `provider.connect()` → `session.setLocalUser({ name: userName, color: selfColor })` → 存入 `useRichTextCollabStore`。
+- **接线点**：`session/store.ts` 的 `activateSession()` 内，`set(createConnectedSessionState(result))` 之后。此处 `result` 直接携带 `sessionId`/`resumeId`/`userId`/`userName`/`role`/`color`/`selfPeerId`。**注意**：`userName` **不是**顶层 session state 字段（state 只有 `selfColor`/`selfUserId`），必须从 `result.userName`（或 `participants[selfPeerId].metadata.userName`）取，不能像 `selfColor` 那样从 store state 读。
+- 会话激活成功后：`new RichTextCollabSession()` → `new SupabaseYjsProvider(resumeId, sessionId, doc, awareness)` → `provider.connect()` → `session.setLocalUser({ name: result.userName, color: result.color })` → 存入 `useRichTextCollabStore`。
 - **种子化**：仅 `role==='host'`，在 provider 初始同步 settle 后（sync-response 收到或超时兜底）对 9 个 fragment 调 `seedFragmentFromHtml`（HTML 取自当前 store 的对应字段）。空检查在写入前。
+- **重连幂等**：`resumeHosting` 无 `stopSharing` 前置守卫，重连时须先 `clear()` 旧 Yjs 层（销毁旧 doc/provider）再新建，避免泄漏第二个 `Y.Doc`/provider。
 - 销毁：`stopSharing`/`handleRemoteShareEnd` 时 `provider.destroy()` + `session.destroy()` + `clear()`。（去抖 flush 在编辑器卸载时处理，见任务 7。）
 
 - [ ] **步骤 1：实现 `useRichTextCollabStore`**
@@ -321,9 +330,14 @@ git commit -m "feat(collab): wire Yjs rich-text session lifecycle + host seeding
 
 - 新增可选 prop `collab?: { fragment: Y.XmlFragment, provider: awareness-provider, user: { name, color }, onMirror: (html: string) => void }`。
 - `useEditor` 的 `extensions` 由 `buildEditorExtensions({ collab })` 提供；协作时不传 `content`。
-- **keyed remount**：`<EditorContent key={collab ? 'collab' : 'standalone'} ...>` 或在 `useEditor` 依赖上区分——确保切换重建实例。（用包裹组件按 `collab` 存在与否挂不同 key 的内部编辑器。）
+- **模式切换必须真正重建 `useEditor` 实例**。有两种正确做法，二选一：
+  - **(推荐) `useEditor` 依赖数组**：`@tiptap/react` 的 `useEditor(options, deps?)` 接受依赖数组（已验证签名 `useEditor(options, deps?: DependencyList)`）。传 `[Boolean(collab)]`（及 fragment 引用）作为 deps，切换时自动重建编辑器，无需包裹组件。
+  - 或**把调用 `useEditor` 的组件本身**用 `key` 重挂载（例如抽一个内部 `<EditorInstance key={collab ? 'collab' : 'standalone'} />`，`useEditor` 在其内部调用）。
+  - **注意**：给 `<EditorContent>` 加 `key` 是**错误**的——`useEditor` 在 `SimpleEditor` 体内调用、`EditorContent` 只是子节点，只 key `EditorContent` 不会重建 `useEditor`，extensions 不会切换、模式切换静默失效。
 - **镜像**：协作时 `onUpdate` → `createDebouncedMirror(html => collab.onMirror(html), 300)`；编辑器卸载（useEffect cleanup）时 `flush()`。standalone 保持现有 `onChange`。
+- **provider 契约**：`CollaborationCaret.configure({ provider })` 读取 `provider.awareness`，故传入的 provider 对象**必须暴露公共 `.awareness` 字段**（`SupabaseYjsProvider` 需满足）。
 - standalone 分支（无 `collab`）行为与现状**完全一致**，保证 `optimize`/`tracker` 两处用途不回归。
+- **AiRewriteBubble**：当前在 `editor && fieldContext` 时挂载；确认协作模式下仍挂载可用（其 `insertContentAt` 编辑经 Yjs 流转，无需特殊处理）。
 
 - [ ] **步骤 1：改造 `SimpleEditor` 支持 collab（keyed remount + 协作扩展 + 去抖镜像 + 卸载 flush）**
 - [ ] **步骤 2：类型检查 + 构建 + lint**
@@ -350,17 +364,20 @@ git commit -m "feat(collab): dual-mode SimpleEditor (standalone | Yjs collaborat
 - `onMirror = (html) => field.onChange(html)`（复用现有 HTML 落库链路）
 未协作时不传 `collab`（现状）。数组项字段的 `fieldRelativePath` 用 `items.${index}.${infoField}`。
 
-> 建议抽一个小 hook `useRichTextCollab(sectionKey, relativePath)` 返回 `collab | undefined`，9 处复用，避免重复样板。
+> 抽一个小 hook `useRichTextCollab(sectionKey, relativePath)` 返回 `collab | undefined`，复用。
+>
+> **⚠️ rules-of-hooks（`react-hooks/rules-of-hooks` 已启用）**：section 级 4 个字段在表单顶层调用 hook 安全；但 5 个数组字段的编辑器在 `renderItem(index)`（`fields.map` 内）渲染，**不得**在循环里直接调 `useRichTextCollab`。做法：为数组项富文本抽一个**独立子组件** `<RichTextItemEditor sectionKey relativePath field ... />`，在该子组件内部调用 `useRichTextCollab` + 渲染 `SimpleEditor`；`renderItem` 里渲染该子组件（组件调用不违反 hooks 规则）。section 级字段可直接用 hook 或同样走子组件。
 
-- [ ] **步骤 1：新增 `useRichTextCollab` hook（返回 collab 或 undefined）**
-- [ ] **步骤 2：接线 self-evaluation、hobbies、honors-certificates、skill-specialty（section 级字段）**
-- [ ] **步骤 3：接线 work/internship/project/edu/campus（数组项 `items.N.*Info`）**
-- [ ] **步骤 4：类型检查 + lint + 构建**
+- [ ] **步骤 1：新增 `useRichTextCollab(sectionKey, relativePath)` hook（返回 collab 或 undefined）**
+- [ ] **步骤 2：新增 `<RichTextItemEditor>` 子组件（内部调 hook + SimpleEditor），供数组项与 section 级复用**
+- [ ] **步骤 3：接线 self-evaluation、hobbies、honors-certificates、skill-specialty（section 级字段）**
+- [ ] **步骤 4：接线 work/internship/project/edu/campus（数组项 `items.N.*Info`，经 `<RichTextItemEditor>`）**
+- [ ] **步骤 5：类型检查 + lint + 构建**
 
-运行：`npx tsc --noEmit`（仅基线）；`pnpm eslint`（新增/修改文件清）；`pnpm build`
+运行：`npx tsc --noEmit`（仅基线）；对改动文件跑 `npx eslint <files>`（含 rules-of-hooks 校验）；`pnpm build`
 执行记录：（填写）
 
-- [ ] **步骤 5：提交**
+- [ ] **步骤 6：提交**
 
 ```bash
 git add src/pages/resume/editor/components/forms src/lib/collaboration/richtext
