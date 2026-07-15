@@ -49,9 +49,9 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
         <CardTitle>账户设置</CardTitle>
         <CardDescription>管理你的账户安全和偏好</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
+          <div className="flex flex-col gap-0.5">
             <Label>修改密码</Label>
             <p className="text-muted-foreground text-sm">更新你的账户密码以保护安全</p>
           </div>
@@ -68,15 +68,15 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
 
 function LoadingSkeleton() {
   return (
-    <div className="rounded-xl border bg-card shadow-sm p-6 space-y-6">
-      <div className="space-y-2">
+    <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
         <Skeleton className="h-6 w-32 rounded-lg" />
         <Skeleton className="h-4 w-64" />
       </div>
       <Separator />
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between py-3">
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-3 w-48" />
           </div>
@@ -84,11 +84,11 @@ function LoadingSkeleton() {
         </div>
         <Separator />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-5 w-full" />
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-5 w-full" />
           </div>

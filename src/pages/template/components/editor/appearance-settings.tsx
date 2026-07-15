@@ -22,8 +22,8 @@ export function TemplateAppearanceSettings({
   const capabilities = getTemplateEditorCapabilities(manifest)
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="template-name">模板名称</Label>
         <Input
           id="template-name"
@@ -32,7 +32,7 @@ export function TemplateAppearanceSettings({
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="template-description">模板描述</Label>
         <Textarea
           id="template-description"
@@ -43,7 +43,7 @@ export function TemplateAppearanceSettings({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>布局骨架</Label>
           <Select
             value={manifest.layout.skeleton}
@@ -62,7 +62,7 @@ export function TemplateAppearanceSettings({
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>头部样式</Label>
           <Select
             value={manifest.layout.headerVariant}
@@ -81,7 +81,7 @@ export function TemplateAppearanceSettings({
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>密度</Label>
           <Select
             value={manifest.layout.density}
@@ -100,7 +100,7 @@ export function TemplateAppearanceSettings({
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>页面边距预设</Label>
           <Select
             value={manifest.layout.page.pagePaddingToken}
@@ -125,7 +125,7 @@ export function TemplateAppearanceSettings({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>颜色预设</Label>
           <Select
             value={manifest.tokens.colorPreset}
@@ -144,7 +144,7 @@ export function TemplateAppearanceSettings({
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>字体预设</Label>
           <Select
             value={manifest.tokens.fontPreset}
@@ -163,7 +163,7 @@ export function TemplateAppearanceSettings({
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>间距预设</Label>
           <Select
             value={manifest.tokens.spacingPreset}
@@ -182,7 +182,7 @@ export function TemplateAppearanceSettings({
           </Select>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>圆角预设</Label>
           <Select
             value={manifest.tokens.radiusPreset ?? 'none'}

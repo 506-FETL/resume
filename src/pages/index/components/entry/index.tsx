@@ -89,8 +89,8 @@ function Entry() {
         <CardContent className="flex-1 pt-0">
           {recentResumes.length > 0
             ? (
-                <div className="space-y-3">
-                  <div className="space-y-1">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
                     {recentResumes.map(resume => (
                       <RecentActivity
                         key={resume.resume_id}

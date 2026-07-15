@@ -65,7 +65,7 @@ function SharingContent({
           <div className="flex items-center gap-2">
             <Input readOnly value={shareUrl ?? ''} className="flex-1 text-xs md:text-sm" />
             <Button type="button" size="sm" variant="outline" onClick={onCopyShareLink} disabled={!shareUrl}>
-              <Copy className="h-4 w-4" />
+              <Copy className="size-4" />
               <span className="hidden md:inline">复制</span>
             </Button>
           </div>
@@ -120,7 +120,7 @@ function StartSharingContent({
           取消
         </Button>
         <Button type="button" onClick={onStartSharing} disabled={!canStartSharing}>
-          {isCollabConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isCollabConnecting && <Loader2 className="mr-2 size-4 animate-spin" />}
           确认开启
         </Button>
       </DialogFooter>

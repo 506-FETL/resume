@@ -17,7 +17,7 @@ export function TemplatePropertiesPanel() {
     <Card className="max-h-[69vh] overflow-auto">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <CardTitle>{selectedSection ? '模块属性' : '模板属性'}</CardTitle>
             <CardDescription>
               {selectedSection ? '调整当前模块的结构与展示方式。' : '调整模板整体的布局与视觉配置。'}

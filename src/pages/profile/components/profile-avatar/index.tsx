@@ -111,15 +111,15 @@ export function ProfileAvatar() {
   return (
     <>
       <div className="relative transition-all duration-300">
-        <CurrentUserAvatar className="h-24 w-24" />
+        <CurrentUserAvatar className="size-24" />
         <Button
           onClick={handleAvatarClick}
           disabled={uploading}
           size="icon"
-          className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full hover:cursor-pointer hover:shadow-md"
+          className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full hover:cursor-pointer hover:shadow-md"
           title="更换头像"
         >
-          {uploading ? <Spinner className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+          {uploading ? <Spinner className="size-4" /> : <Camera className="size-4" />}
         </Button>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>

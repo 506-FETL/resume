@@ -169,7 +169,7 @@ export function CollaborationUISync({
               })
             }}
           >
-            {followMode ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+            {followMode ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
             {followMode ? '跟随中' : '独立浏览'}
           </Button>
         </TooltipTrigger>
@@ -184,7 +184,7 @@ export function CollaborationUISync({
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge variant="secondary" className="gap-1 h-7 text-xs cursor-default">
-              <Users className="h-3 w-3" />
+              <Users className="size-3" />
               {activeRemoteUsers.length}
             </Badge>
           </TooltipTrigger>
@@ -194,7 +194,7 @@ export function CollaborationUISync({
               {activeRemoteUsers.map(u => (
                 <div key={u.userId} className="flex items-center gap-2 py-0.5">
                   <div
-                    className="w-2 h-2 rounded-full"
+                    className="size-2 rounded-full"
                     style={{ backgroundColor: u.color }}
                   />
                   <span>{u.userName}</span>

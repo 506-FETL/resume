@@ -9,7 +9,7 @@ export function SkillListValue({ value, variant }: FieldRendererProps<SkillItem[
     return <EmptyValue />
 
   return (
-    <div className="space-y-1.5">
+    <div className="flex flex-col gap-1.5">
       {value.map(skill => (
         <SkillItemValue key={`skill-${skill.label}-${skill.proficiencyLevel || 'default'}`} value={skill} variant={variant} />
       ))}

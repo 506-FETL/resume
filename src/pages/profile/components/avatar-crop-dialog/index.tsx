@@ -82,7 +82,7 @@ export function AvatarCropDialog({
           <DialogDescription>在图片上直接拖拽四角调整裁剪范围，并切换方形或圆形头像。</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 px-6 py-5">
+        <div className="flex flex-col gap-4 px-6 py-5">
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
@@ -147,7 +147,7 @@ export function AvatarCropDialog({
             取消
           </Button>
           <Button type="button" onClick={handleConfirm} disabled={!image || !completedCrop || submitting}>
-            {submitting && <Spinner className="mr-2 h-4 w-4" />}
+            {submitting && <Spinner className="mr-2 size-4" />}
             保存头像
           </Button>
         </DialogFooter>

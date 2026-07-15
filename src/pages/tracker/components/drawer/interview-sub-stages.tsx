@@ -111,7 +111,7 @@ export function InterviewSubStages({
     const showDateAndNotes = selected.status !== '待处理'
 
     return (
-      <div className="min-w-0 space-y-4 overflow-hidden rounded-lg border bg-card p-4">
+      <div className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-lg border bg-card p-4">
         <div className="flex items-center gap-2">
           <Input
             value={selected.label}
@@ -190,7 +190,7 @@ export function InterviewSubStages({
         </div>
 
         {showDateAndNotes && (
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">面经笔记</span>
             <SimpleEditor
               content={selected.notes || ''}
@@ -203,7 +203,7 @@ export function InterviewSubStages({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">面试轮次</span>
         <span className="text-xs text-muted-foreground">

@@ -70,11 +70,11 @@ export function SuggestionCompareCard({ before, after, valueType, reason, kind, 
 
       <div className="grid min-w-0 gap-3 sm:grid-cols-1 lg:grid-cols-2">
         <div className={cn('min-w-0 space-y-1.5', fixed && 'opacity-60 grayscale')}>
-          <div className="text-[10px] font-medium text-destructive/80 dark:text-red-400 flex items-center gap-1">
-            <span className="size-4 rounded bg-destructive/10 dark:bg-red-500/10 flex items-center justify-center">✕</span>
+          <div className="text-[10px] font-medium text-destructive/80 flex items-center gap-1">
+            <span className="size-4 rounded bg-destructive/10 flex items-center justify-center">✕</span>
             修改前
           </div>
-          <div className="bg-destructive/5 dark:bg-red-950/20 border border-destructive/10 dark:border-red-500/20 rounded-lg p-2.5 min-h-12">
+          <div className="bg-destructive/5 border border-destructive/10 rounded-lg p-2.5 min-h-12">
             <SuggestionValueRenderer value={before} valueType={valueType} variant="before" />
           </div>
         </div>

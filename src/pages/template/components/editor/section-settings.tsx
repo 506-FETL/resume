@@ -28,8 +28,8 @@ export function TemplateSectionSettings({
   const removable = canTemplateSectionDelete(manifest, section.sectionId)
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-medium">
             {TEMPLATE_SECTION_LABELS[section.renderer] ?? section.renderer}
@@ -43,7 +43,7 @@ export function TemplateSectionSettings({
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label>区域</Label>
         <Select
           value={section.region}
@@ -64,7 +64,7 @@ export function TemplateSectionSettings({
         </Select>
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label>展示样式</Label>
         <Select
           value={section.variant ?? variants[0] ?? 'default'}

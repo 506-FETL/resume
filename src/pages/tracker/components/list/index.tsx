@@ -17,7 +17,7 @@ export default function ListView() {
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         {LIST_SKELETON_KEYS.map(key => (
           <Skeleton key={key} className="h-12 w-full rounded-md" />
         ))}

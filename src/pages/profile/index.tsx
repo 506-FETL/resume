@@ -68,7 +68,7 @@ function ProfilePageSkeleton() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in-50 duration-500">
       {/* 页面标题骨架 */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <Skeleton className="h-9 w-48 rounded-lg" />
         <Skeleton className="h-5 w-80" />
       </div>
@@ -76,25 +76,25 @@ function ProfilePageSkeleton() {
       <Separator />
 
       {/* 个人资料卡片骨架 */}
-      <div className="rounded-xl border bg-card shadow-sm p-6 space-y-6">
+      <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
         <div className="flex items-start gap-6">
           {/* 头像骨架 */}
           <div className="flex flex-col items-center gap-3">
-            <Skeleton className="h-32 w-32 rounded-full" />
+            <Skeleton className="size-32 rounded-full" />
             <Skeleton className="h-9 w-28 rounded-md" />
           </div>
 
           {/* 用户信息骨架 */}
-          <div className="flex-1 space-y-5">
-            <div className="space-y-2">
+          <div className="flex-1 flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-10 w-full max-w-md rounded-md" />
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-10 w-full max-w-md rounded-md" />
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-20" />
               <Skeleton className="h-5 w-48" />
             </div>
@@ -103,15 +103,15 @@ function ProfilePageSkeleton() {
       </div>
 
       {/* 账户设置卡片骨架 */}
-      <div className="rounded-xl border bg-card shadow-sm p-6 space-y-6">
-        <div className="space-y-2">
+      <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
           <Skeleton className="h-6 w-32 rounded-lg" />
           <Skeleton className="h-4 w-64" />
         </div>
         <Separator />
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between py-3">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-3 w-48" />
             </div>
@@ -119,11 +119,11 @@ function ProfilePageSkeleton() {
           </div>
           <Separator />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-20" />
               <Skeleton className="h-5 w-full" />
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-5 w-full" />
             </div>
@@ -132,15 +132,15 @@ function ProfilePageSkeleton() {
       </div>
 
       {/* 偏好设置卡片骨架 */}
-      <div className="rounded-xl border bg-card shadow-sm p-6 space-y-6">
-        <div className="space-y-2">
+      <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
           <Skeleton className="h-6 w-28 rounded-lg" />
           <Skeleton className="h-4 w-56" />
         </div>
         <Separator />
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between py-3">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-3 w-40" />
             </div>
@@ -148,7 +148,7 @@ function ProfilePageSkeleton() {
           </div>
           <Separator />
           <div className="flex items-center justify-between py-3">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-20" />
               <Skeleton className="h-3 w-52" />
             </div>

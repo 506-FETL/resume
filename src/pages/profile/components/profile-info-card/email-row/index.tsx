@@ -57,7 +57,7 @@ export function EmailRow({ initialEmail }: EmailRowProps) {
     <EditableField
       id="email"
       label="邮箱地址"
-      icon={<Mail className="h-4 w-4" />}
+      icon={<Mail className="size-4 shrink-0" />}
       type="email"
       value={email}
       isEditing={editing}

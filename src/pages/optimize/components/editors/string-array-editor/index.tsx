@@ -29,7 +29,7 @@ function StringArrayEditor({ value, onChange, placeholder }: {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* 已添加的标签 */}
       {value.length > 0 && (
         <div className="flex flex-wrap gap-2">

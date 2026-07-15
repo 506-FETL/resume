@@ -35,12 +35,12 @@ export default function OptimizeDashboard() {
       <ScoresRadarChart scores={scores} loading={loading} />
       <Card className="h-full group relative overflow-hidden border-primary/20 shadow-sm hover:shadow-md transition-all duration-300">
         <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300 transform">
-          <CheckCircle2 className="w-28 h-28 text-primary" />
+          <CheckCircle2 className="size-28 text-primary" />
         </div>
         <CardContent className="p-5 flex flex-col justify-between h-full relative">
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="size-4" />
             </div>
             <p className="text-sm font-medium text-muted-foreground">优化完成度</p>
           </div>

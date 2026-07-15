@@ -22,7 +22,7 @@ function Header() {
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary to-primary/70">
           欢迎回来
           {auth?.user_metadata.full_name ? `, ${auth.user_metadata.full_name}` : ''}

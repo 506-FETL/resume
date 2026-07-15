@@ -8,7 +8,7 @@ export function ObjectArrayValue({ value, variant }: FieldRendererProps<Array<Re
     return <EmptyValue />
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {value.map(item => (
         <ObjectValue key={`obj-${JSON.stringify(item)}`} value={item} variant={variant} />
       ))}

@@ -37,7 +37,7 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
               {formatDate(frontmatter.date)}
             </time>
             {frontmatter.version && (
-              <div className="flex relative items-center justify-center w-10 h-10 text-foreground border border-border rounded-lg text-sm font-bold">
+              <div className="flex relative items-center justify-center size-10 text-foreground border border-border rounded-lg text-sm font-bold">
                 {frontmatter.version}
               </div>
             )}
@@ -51,7 +51,7 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
             <div className="hidden md:block absolute -translate-x-1/2 size-3 bg-primary rounded-full " />
           </div>
 
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <div className="relative  flex flex-col gap-2">
               <h2 className="text-2xl font-semibold tracking-tight text-balance">
                 {frontmatter.title}

@@ -54,7 +54,7 @@ export function NameRow({ initialFullName }: NameRowProps) {
     <EditableField
       id="name"
       label="用户名"
-      icon={<UserIcon className="h-4 w-4" />}
+      icon={<UserIcon className="size-4 shrink-0" />}
       value={fullName}
       isEditing={editing}
       isSaving={saving}

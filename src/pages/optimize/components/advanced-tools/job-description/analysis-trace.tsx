@@ -157,7 +157,7 @@ export default function AnalysisTrace({
         </ChainOfThought>
 
         {analysisError && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm leading-6 text-red-700 dark:text-red-300">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm leading-6 text-destructive">
             {analysisError}
           </div>
         )}

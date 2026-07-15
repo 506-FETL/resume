@@ -132,7 +132,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
               className={cn(
                 metric.status === 'good' && 'border-green-500/15 bg-green-500/5',
                 metric.status === 'warn' && 'border-amber-500/15 bg-amber-500/5',
-                metric.status === 'missing' && 'border-red-500/15 bg-red-500/5',
+                metric.status === 'missing' && 'border-destructive/15 bg-destructive/5',
               )}
             >
               <ToolPanelBody>

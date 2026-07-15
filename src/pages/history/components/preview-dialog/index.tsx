@@ -146,7 +146,7 @@ export default function HistoryPreviewDialog({
       >
         <DialogHeader className="shrink-0 px-5 py-4 sm:px-6 sm:py-5 lg:px-8">
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 space-y-2">
+            <div className="flex min-w-0 flex-col gap-2">
               <DialogTitle>{title}</DialogTitle>
               <DialogDescription>{description}</DialogDescription>
             </div>

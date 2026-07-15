@@ -34,7 +34,7 @@ function SectionList({
   onToggleVisible: (sectionId: string) => void
 }) {
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <h3 className="font-medium">{label}</h3>
         <Badge variant="secondary">{items.length}</Badge>
@@ -134,7 +134,7 @@ export function TemplateStructurePanel() {
     <Card className="max-h-[69vh] overflow-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Layers3 className="h-4 w-4" />
+          <Layers3 className="size-4 shrink-0" />
           结构面板
         </CardTitle>
         <CardDescription>拖拽排序、切换区域，决定模板的整体结构。</CardDescription>
@@ -142,7 +142,7 @@ export function TemplateStructurePanel() {
       <CardContent className="min-w-0">
         <div>
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
               <SectionList
                 droppableId="main"
                 label="主栏"
@@ -163,7 +163,7 @@ export function TemplateStructurePanel() {
             </div>
           </DragDropContext>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 flex flex-col gap-3">
             <h3 className="font-medium">模块库</h3>
             <TemplateSectionPalette manifest={manifest} onChange={applyManifest} />
           </div>

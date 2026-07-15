@@ -114,7 +114,7 @@ export default function JobDrawer() {
           ? <img src={selectedJob.company_logo} alt={selectedJob.company} className="size-7 object-contain" />
           : <BriefcaseBusiness className="size-5" />}
       </div>
-      <div className="min-w-0 flex-1 space-y-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2 text-xs">
           <Badge className={cn('rounded-full border-0 px-2 py-0.5 text-[11px] font-medium', statusConfig.bgColor, statusConfig.color)}>
             {statusConfig.label}
@@ -183,7 +183,7 @@ export default function JobDrawer() {
       <div className="px-5 py-5 lg:px-6">
         {isEditing
           ? (
-              <div className="space-y-4">
+              <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold">编辑职位信息</h3>
                   <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>

@@ -28,7 +28,7 @@ function DateRangeEditor({ value, onChange }: {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* 日期选择区域 - 移动端垂直排列，桌面端水平排列 */}
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-2 sm:gap-3 items-end">
         {/* 开始时间 */}

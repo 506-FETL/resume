@@ -20,7 +20,7 @@ export default function TimelineLoadingState() {
               <Skeleton className="h-8 w-16 rounded-full" />
               <Skeleton className="h-8 w-28 rounded-full" />
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 flex flex-col gap-3">
               <Skeleton className="h-7 w-44 max-w-full" />
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-10 w-full rounded-xl" />

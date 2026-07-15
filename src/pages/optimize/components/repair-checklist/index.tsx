@@ -15,7 +15,7 @@ export default function RepairChecklist() {
       <CardHeader className="pb-4 border-b border-border/50">
         <div className="flex items-center gap-2 mb-1">
           <div className="p-2 rounded-md bg-primary/10 text-primary">
-            <Wand2 className="w-4 h-4" />
+            <Wand2 className="size-4" />
           </div>
           <CardTitle className="text-lg font-bold">优化修复清单</CardTitle>
         </div>
@@ -28,16 +28,16 @@ export default function RepairChecklist() {
         <ScrollArea className="h-100 w-full">
           {loading
             ? (
-                <div className="flex flex-col items-center justify-center h-75 text-muted-foreground space-y-3">
-                  <Spinner className="w-5 h-5 animate-spin text-primary" />
+                <div className="flex flex-col items-center justify-center h-75 text-muted-foreground gap-3">
+                  <Spinner className="size-5 animate-spin text-primary" />
                   <p className="text-sm font-medium">分析修复项中...</p>
                 </div>
               )
             : fixList.length === 0
               ? (
-                  <div className="flex flex-col items-center justify-center h-75 px-6 text-center space-y-4">
+                  <div className="flex flex-col items-center justify-center h-75 px-6 text-center gap-4">
                     <div className="bg-green-100/50 dark:bg-green-900/20 p-4 rounded-full">
-                      <ClipboardCheck className="w-8 h-8 text-green-600 dark:text-green-400" />
+                      <ClipboardCheck className="size-8 text-green-600 dark:text-green-400" />
                     </div>
                     <div className="space-y-1 max-w-xs">
                       <h3 className="text-base font-semibold">暂无待修复项</h3>

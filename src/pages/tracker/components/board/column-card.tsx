@@ -35,7 +35,7 @@ export function ColumnCard({ job }: ColumnCardProps) {
             ? <img src={job.company_logo} alt={job.company} className="size-5 object-contain" />
             : <Building2 className="size-4" />}
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="truncate text-sm font-medium leading-tight text-foreground">{job.position}</p>
           <p className="truncate text-xs text-muted-foreground">{job.company}</p>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

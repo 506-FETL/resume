@@ -156,11 +156,11 @@ export function TemplateCard({
           : null}
       </div>
 
-      <div className={cn('space-y-2 pt-3', contentClassName)}>
+      <div className={cn('flex flex-col gap-2 pt-3', contentClassName)}>
         {title || trailing
           ? (
               <div className="flex items-start justify-between gap-3">
-                <div className="space-y-0.5">
+                <div className="flex flex-col gap-0.5">
                   {title ? <h3 className="text-sm font-semibold tracking-tight">{title}</h3> : null}
                   {description ? <p className="line-clamp-2 text-xs text-muted-foreground">{description}</p> : null}
                 </div>

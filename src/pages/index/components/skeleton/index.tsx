@@ -13,8 +13,8 @@ export function StatsSkeleton() {
         <Card key={key}>
           <CardContent className="p-4 md:p-5">
             <div className="flex items-start gap-3">
-              <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
-              <div className="flex-1 space-y-2">
+              <Skeleton className="size-8 rounded-lg shrink-0" />
+              <div className="flex-1 flex flex-col gap-2">
                 <Skeleton className="h-3 w-16" />
                 <Skeleton className="h-6 w-10" />
               </div>
@@ -34,7 +34,7 @@ export function EntrySkeleton() {
       <Card className="flex flex-col">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-7 w-7 rounded-md" />
+            <Skeleton className="size-7 rounded-md" />
             <Skeleton className="h-4 w-20" />
           </div>
           <Skeleton className="h-3 w-24" />
@@ -52,17 +52,17 @@ export function EntrySkeleton() {
       <Card className="flex flex-col">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-7 w-7 rounded-md" />
+            <Skeleton className="size-7 rounded-md" />
             <Skeleton className="h-4 w-20" />
           </div>
           <Skeleton className="h-3 w-24" />
         </CardHeader>
         <CardContent className="flex-1 pt-0">
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             {ACTIVITY_SKELETON_KEYS.map(key => (
               <div key={key} className="flex items-center gap-3 p-2">
-                <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
-                <div className="flex-1 space-y-1.5">
+                <Skeleton className="size-9 rounded-lg shrink-0" />
+                <div className="flex-1 flex flex-col gap-1.5">
                   <Skeleton className="h-3.5 w-3/4" />
                   <Skeleton className="h-2.5 w-1/2" />
                 </div>

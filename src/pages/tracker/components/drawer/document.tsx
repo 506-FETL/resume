@@ -96,12 +96,12 @@ export default function DrawerDocument() {
   if (!loading && resumeList.length === 0) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <h3 className="text-lg font-semibold tracking-tight">投递简历</h3>
           <p className="text-sm text-muted-foreground">为这条职位记录绑定一份简历，后续查看与复盘会更顺手。</p>
         </div>
         <div className="aspect-3/4 overflow-hidden rounded-2xl border border-border/60 bg-white">
-          <div className="w-full h-full flex items-center justify-center bg-muted/50">
+          <div className="flex size-full items-center justify-center bg-muted/50">
             <div className="text-center text-muted-foreground px-6">
               <FileText className="size-12 mx-auto mb-3 opacity-50" />
               <p className="text-sm font-medium mb-2">当前投递简历为空</p>
@@ -122,7 +122,7 @@ export default function DrawerDocument() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <h3 className="text-lg font-semibold tracking-tight">投递简历</h3>
         <p className="text-sm text-muted-foreground">
           这里展示当前绑定到该职位的简历预览。建议在投递前确认版本，避免后续回看时信息混乱。
@@ -159,7 +159,7 @@ export default function DrawerDocument() {
           <div className="aspect-3/4 overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm">
             {previewLoading
               ? (
-                  <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                  <div className="flex size-full items-center justify-center bg-muted/50">
                     <Loader2 className="size-8 animate-spin text-muted-foreground" />
                   </div>
                 )
@@ -168,7 +168,7 @@ export default function DrawerDocument() {
                     <SharedResumePreview data={previewData} />
                   )
                 : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                    <div className="flex size-full items-center justify-center bg-muted/50">
                       <div className="text-center text-muted-foreground">
                         <FileText className="size-12 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">请选择一份简历</p>

@@ -29,7 +29,7 @@ export function CollaborationControls({ onOpenSortDialog }: CollaborationControl
               onClick={onManualSync}
               disabled={isSyncing || !pendingChanges}
             >
-              <Save className="h-4 w-4" />
+              <Save className="size-4" />
               {!isMobile && '手动保存'}
             </Button>
             <Tooltip>
@@ -47,14 +47,14 @@ export function CollaborationControls({ onOpenSortDialog }: CollaborationControl
                   >
                     {isCollabConnecting
                       ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="size-4 animate-spin" />
                         )
                       : isSharing
                         ? (
-                            <Radio className="h-4 w-4" />
+                            <Radio className="size-4" />
                           )
                         : (
-                            <Share2 className="h-4 w-4" />
+                            <Share2 className="size-4" />
                           )}
                     {!isMobile && (isSharing ? '协作中' : '开启协作')}
                   </Button>
@@ -75,7 +75,7 @@ export function CollaborationControls({ onOpenSortDialog }: CollaborationControl
                 onClick={onOpenSortDialog}
                 aria-label="调整模块顺序"
               >
-                <ArrowUpDown className="h-4 w-4" />
+                <ArrowUpDown className="size-4" />
               </Button>
             )}
           </div>
@@ -97,7 +97,7 @@ function renderSyncStatus({
   if (isSyncing) {
     return (
       <span className="flex items-center gap-2 text-sm text-muted-foreground font-normal">
-        <Clock className="h-4 w-4 animate-spin" />
+        <Clock className="size-4 animate-spin" />
         同步中...
       </span>
     )
@@ -106,7 +106,7 @@ function renderSyncStatus({
   if (pendingChanges) {
     return (
       <span className="flex items-center gap-2 text-sm text-amber-600 font-normal">
-        <Clock className="h-4 w-4" />
+        <Clock className="size-4" />
         有未保存的更改
       </span>
     )

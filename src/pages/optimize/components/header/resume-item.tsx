@@ -75,7 +75,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
                 <span>•</span>
                 <span className={cn(
                   'font-medium',
-                  resume.overall_score >= 80 ? 'text-green-600' : resume.overall_score >= 60 ? 'text-amber-600' : 'text-red-600',
+                  resume.overall_score >= 80 ? 'text-green-600' : resume.overall_score >= 60 ? 'text-amber-600' : 'text-destructive',
                 )}
                 >
                   {resume.overall_score}

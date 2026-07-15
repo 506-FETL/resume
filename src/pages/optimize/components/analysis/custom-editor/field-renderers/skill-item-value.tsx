@@ -12,14 +12,14 @@ export function SkillItemValue({ value, variant }: FieldRendererProps<SkillItem>
     <div className={cn(
       'flex items-center gap-2 p-2 rounded-md border',
       variant === 'before' && 'bg-muted/30 border-border/50',
-      variant === 'after' && 'bg-primary/5 border-primary/20 dark:bg-blue-500/10 dark:border-blue-500/20',
+      variant === 'after' && 'bg-primary/5 border-primary/20',
     )}
     >
       <Badge
         variant="secondary"
         className={cn(
           'shrink-0 text-[10px] px-1.5',
-          variant === 'after' && 'bg-primary/10 text-primary dark:text-blue-300 dark:bg-blue-500/20',
+          variant === 'after' && 'bg-primary/10 text-primary',
         )}
       >
         {value.label}
@@ -30,7 +30,7 @@ export function SkillItemValue({ value, variant }: FieldRendererProps<SkillItem>
               <div className="flex items-center gap-2">
                 <Progress
                   value={percentage}
-                  className="h-1.5 flex-1 dark:bg-blue-950/50 *:dark:bg-blue-500"
+                  className="h-1.5 flex-1"
                 />
                 <span className="text-[10px] text-muted-foreground shrink-0">{value.proficiencyLevel}</span>
               </div>

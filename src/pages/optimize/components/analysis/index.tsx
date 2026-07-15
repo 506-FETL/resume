@@ -40,7 +40,7 @@ export default function IssueAnalysis() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <div className="p-2 rounded-md bg-primary/10 text-primary">
-              <Search className="w-4 h-4" />
+              <Search className="size-4" />
             </div>
             <span>简历问题分析</span>
           </CardTitle>
@@ -70,15 +70,15 @@ export default function IssueAnalysis() {
       <CardContent className="space-y-6 pt-6">
         {loading
           ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-3">
-                <Spinner className="w-6 h-6 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+                <Spinner className="size-6 animate-spin text-primary" />
               </div>
             )
           : !findings || totalFindings === 0
               ? (
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <div className="p-4 bg-muted/50 rounded-full mb-3">
-                      <Search className="w-8 h-8 opacity-40" />
+                      <Search className="size-8 opacity-40" />
                     </div>
                     <p className="text-sm font-medium">暂无检测到的问题</p>
                     <p className="text-xs text-muted-foreground/80 mt-1">您的简历表现良好！</p>
@@ -97,7 +97,7 @@ export default function IssueAnalysis() {
                     <div key={severity} className="space-y-3">
                       <div className="flex items-center gap-2 px-1">
                         <div className={config.textColor}>
-                          <Icon className="w-4 h-4" />
+                          <Icon className="size-4" />
                         </div>
                         <span className={cn('text-sm font-semibold', config.textColor)}>
                           {config.label}

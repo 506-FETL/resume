@@ -9,9 +9,9 @@ function ObjectEditor({ value, onChange }: {
   const entries = Object.entries(value).filter(([k]) => !k.startsWith('_'))
 
   return (
-    <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
+    <div className="flex flex-col gap-3 p-3 rounded-lg border bg-muted/30">
       {entries.map(([key, val]) => (
-        <div key={key} className="space-y-1">
+        <div key={key} className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">
             {FIELD_LABEL_MAP[key] || key}
           </label>

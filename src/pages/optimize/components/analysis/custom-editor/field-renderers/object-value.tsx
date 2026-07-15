@@ -14,9 +14,9 @@ export function ObjectValue({ value, variant }: FieldRendererProps<Record<string
 
   return (
     <div className={cn(
-      'space-y-1.5 p-2 rounded-md border text-xs',
+      'flex flex-col gap-1.5 p-2 rounded-md border text-xs',
       variant === 'before' && 'bg-muted/30 border-border/50',
-      variant === 'after' && 'bg-primary/5 border-primary/20 dark:bg-blue-500/10 dark:border-blue-500/20',
+      variant === 'after' && 'bg-primary/5 border-primary/20',
     )}
     >
       {entries.map(([key, val]) => (

@@ -35,11 +35,11 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
         </DialogHeader>
         <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={handleExportPdf}>
-            <Printer className="mr-2 h-4 w-4" />
+            <Printer className="mr-2 size-4" />
             导出 PDF
           </Button>
           <Button onClick={handleExportDoc}>
-            <FileText className="mr-2 h-4 w-4" />
+            <FileText className="mr-2 size-4" />
             导出 Word
           </Button>
         </DialogFooter>

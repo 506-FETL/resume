@@ -50,7 +50,7 @@ function Header() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Sparkles className="w-5 h-5 text-primary" />
+              <Sparkles className="size-5 text-primary" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">ATS 优化助手</h1>
           </div>

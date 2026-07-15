@@ -26,7 +26,7 @@ export function TemplateSectionPalette({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {paletteSections.map((sectionId) => {
         const nextSection = {
           sectionId,

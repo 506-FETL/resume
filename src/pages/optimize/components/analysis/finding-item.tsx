@@ -63,7 +63,7 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
             {isFixed && <span className="text-[10px] text-green-600 font-medium">已修复</span>}
           </div>
         </div>
-        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+        <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className={cn(
@@ -131,7 +131,7 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
                   variant={isFixed ? 'outline' : 'default'}
                   className={cn(
                     'h-7 sm:h-8 text-xs font-medium',
-                    !isFixed && severity === 'high' && 'bg-red-600 hover:bg-red-700 text-white',
+                    !isFixed && severity === 'high' && 'bg-destructive hover:bg-destructive/90 text-white',
                     !isFixed && severity === 'medium' && 'bg-amber-600 hover:bg-amber-700 text-white',
                     !isFixed && severity === 'low' && 'bg-blue-600 hover:bg-blue-700 text-white',
                     isFixed && 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700',

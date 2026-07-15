@@ -41,9 +41,9 @@ function CertificateListEditor({ value, onChange }: {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* 快速添加 */}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <label className="text-xs font-medium text-muted-foreground">快速添加证书</label>
         <div className="flex flex-wrap gap-1.5">
           {PRESET_CERTIFICATES.map(cert => (

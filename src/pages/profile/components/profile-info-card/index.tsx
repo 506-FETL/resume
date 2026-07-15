@@ -52,17 +52,17 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
         <CardTitle>个人资料</CardTitle>
         <CardDescription>你的基本账户信息</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="flex flex-col gap-6">
         <div className="flex items-center gap-6">
           <ProfileAvatar />
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <h3 className="text-2xl font-semibold">{currentName}</h3>
             <p className="text-muted-foreground flex items-center gap-2">
-              <Mail className="h-4 w-4" />
+              <Mail className="size-4 shrink-0" />
               {email}
             </p>
             <Badge variant={user.email_confirmed_at ? 'outline' : 'destructive'} className="mt-2 gap-1">
-              <Shield className="h-3 w-3" />
+              <Shield className="size-3 shrink-0" />
               {user.email_confirmed_at ? '邮箱已验证' : '邮箱未验证'}
             </Badge>
           </div>
@@ -77,14 +77,14 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
           <ReadonlyField
             id="created"
             label="注册时间"
-            icon={<CalendarIcon className="h-4 w-4" />}
+            icon={<CalendarIcon className="size-4 shrink-0" />}
             value={formatRegistrationDate(user.created_at)}
           />
 
           <ReadonlyField
             id="updated"
             label="最后更新"
-            icon={<CalendarIcon className="h-4 w-4" />}
+            icon={<CalendarIcon className="size-4 shrink-0" />}
             value={formatRegistrationDate(user.updated_at || user.created_at)}
           />
         </div>

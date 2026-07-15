@@ -111,7 +111,7 @@ export default function SyncResumesDialog() {
                             disabled={isSyncing}
                           />
                         </div>
-                        <FileText className="h-5 w-5 text-primary mt-0.5" />
+                        <FileText className="size-5 text-primary mt-0.5 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-base truncate">{resume.display_name}</CardTitle>
                           {resume.description && (
@@ -124,7 +124,7 @@ export default function SyncResumesDialog() {
                     </CardHeader>
                     <CardContent className="pt-0 pl-12">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="size-3" />
                         <span>{formatDate(resume.created_at)}</span>
                         <Badge variant="outline" className="text-xs">
                           {resume.type}

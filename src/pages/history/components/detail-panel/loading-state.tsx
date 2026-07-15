@@ -10,7 +10,7 @@ export default function DetailPanelLoadingState() {
           <LoaderCircle data-icon="inline-start" className="animate-spin" />
           正在加载版本详情
         </Badge>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="h-4 w-64 max-w-full" />
         </div>

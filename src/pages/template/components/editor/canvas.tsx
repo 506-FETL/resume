@@ -18,8 +18,8 @@ export function TemplateCanvas() {
 
   return (
     <Card className="max-h-[69vh]">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
-        <div className="space-y-1">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
           <CardTitle>实时预览</CardTitle>
           <CardDescription>中间画布直接复用简历预览组件与模板运行时。</CardDescription>
         </div>
