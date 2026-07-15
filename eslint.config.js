@@ -19,7 +19,7 @@ export default antfu({
 }, {
   // 协作模块的纯函数回归测试使用 Node 内置测试运行器（`node --test`），
   // 项目未安装 vitest，故对这些文件放开 vitest 偏好与相关风格约束。
-  files: ['src/hooks/collab/**/*.test.ts'],
+  files: ['src/hooks/collab/**/*.test.ts', 'src/lib/collaboration/richtext/**/*.test.ts'],
   rules: {
     'test/no-import-node-test': 'off',
     'style/max-statements-per-line': 'off',
