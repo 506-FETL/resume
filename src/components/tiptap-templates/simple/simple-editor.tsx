@@ -2,18 +2,9 @@
 
 import type { Editor } from '@tiptap/react'
 import type { RewriteFieldContext } from '@/components/ai-rewrite'
-import { Highlight } from '@tiptap/extension-highlight'
-
-import { Image } from '@tiptap/extension-image'
-import { TaskItem, TaskList } from '@tiptap/extension-list'
-import { Subscript } from '@tiptap/extension-subscript'
-import { Superscript } from '@tiptap/extension-superscript'
-import { TextAlign } from '@tiptap/extension-text-align'
-import { Typography } from '@tiptap/extension-typography'
-import { Selection } from '@tiptap/extensions'
+import type { CollabExtensionConfig } from '@/lib/collaboration/richtext/collab-extensions'
+import type { DebouncedMirror } from '@/lib/collaboration/richtext/mirror-debounce'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
-// --- Tiptap Core Extensions ---
-import { StarterKit } from '@tiptap/starter-kit'
 import * as React from 'react'
 import { AiRewriteBubble } from '@/components/ai-rewrite'
 
@@ -22,9 +13,6 @@ import { ArrowLeftIcon } from '@/components/tiptap-icons/arrow-left-icon'
 import { HighlighterIcon } from '@/components/tiptap-icons/highlighter-icon'
 import { LinkIcon } from '@/components/tiptap-icons/link-icon'
 
-import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
-// --- Tiptap Node ---
-import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
 // --- Components ---
 // --- UI Primitives ---
 import { Button } from '@/components/tiptap-ui-primitive/button'
@@ -57,7 +45,9 @@ import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button'
 // --- Hooks ---
 import { useIsMobile } from '@/hooks/use-mobile'
 
-import { handleImageUpload, MAX_FILE_SIZE } from '@/lib/tiptap-utils'
+// --- Collab rich-text ---
+import { buildEditorExtensions } from '@/lib/collaboration/richtext/collab-extensions'
+import { createDebouncedMirror } from '@/lib/collaboration/richtext/mirror-debounce'
 
 // --- Lib ---
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
@@ -194,18 +184,21 @@ interface SimpleEditorProps {
   content?: string
   onChange?: (editor: Editor) => void
   fieldContext?: RewriteFieldContext
+  collab?: CollabExtensionConfig
 }
 
 export function SimpleEditor({
   content = '',
   onChange = () => {},
   fieldContext,
+  collab,
 }: SimpleEditorProps) {
   const isMobile = useIsMobile()
   const [mobileView, setMobileView] = React.useState<
     'main' | 'highlighter' | 'link'
   >('main')
   const toolbarRef = React.useRef<HTMLDivElement>(null)
+  const isCollab = Boolean(collab)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -219,34 +212,15 @@ export function SimpleEditor({
         'class': 'simple-editor',
       },
     },
-    extensions: [
-      StarterKit.configure({
-        horizontalRule: false,
-        link: {
-          openOnClick: false,
-          enableClickSelection: true,
-        },
-      }),
-      HorizontalRule,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Highlight.configure({ multicolor: true }),
-      Image,
-      Typography,
-      Superscript,
-      Subscript,
-      Selection,
-      ImageUploadNode.configure({
-        accept: 'image/*',
-        maxSize: MAX_FILE_SIZE,
-        limit: 2,
-        upload: handleImageUpload,
-        onError: error => toast.error(`上传图片失败: ${error.message}`),
-      }),
-    ],
-    content,
-  })
+    extensions: buildEditorExtensions({
+      collab,
+      onImageError: message => toast.error(`上传图片失败: ${message}`),
+    }),
+    // 协作模式下 Yjs 是内容真源，不能传初始 content（否则每个 peer 都注入导致重复）
+    ...(isCollab ? {} : { content }),
+    // 模式切换（standalone <-> collaborative）或 fragment 变化时重建编辑器实例，
+    // 因 useEditor 仅在创建时读取 extensions
+  }, [isCollab, collab?.fragment])
 
   // 使用 ref 存储 onChange 回调，避免 useEffect 依赖变化导致重复注册
   const onChangeRef = React.useRef(onChange)
@@ -255,30 +229,54 @@ export function SimpleEditor({
   // 跟踪是否由外部 setContent 触发的更新，避免循环
   const isSettingContent = React.useRef(false)
 
+  // 协作模式：把 onUpdate 产出的 HTML 去抖镜像给父组件（落 Automerge 供 preview/PDF/历史）。
+  // 卸载时 flush，避免丢失最后 <300ms 的编辑。
+  const mirrorRef = React.useRef<DebouncedMirror<Editor> | null>(null)
+  React.useEffect(() => {
+    if (!isCollab) {
+      mirrorRef.current = null
+      return
+    }
+    const mirror = createDebouncedMirror<Editor>((ed) => {
+      onChangeRef.current(ed)
+    }, 300)
+    mirrorRef.current = mirror
+    return () => {
+      mirror.flush()
+      mirrorRef.current = null
+    }
+  }, [isCollab])
+
   // 注册 onUpdate 事件处理
   React.useEffect(() => {
     if (!editor) return
-    
+
     const handleUpdate = () => {
       // 如果是 setContent 触发的更新，不通知父组件
       if (isSettingContent.current) {
         return
       }
-      onChangeRef.current(editor)
+      // 协作模式：去抖镜像；standalone：即时回调
+      if (mirrorRef.current) {
+        mirrorRef.current.run(editor)
+      }
+      else {
+        onChangeRef.current(editor)
+      }
     }
-    
+
     editor.on('update', handleUpdate)
-    
+
     return () => {
       editor.off('update', handleUpdate)
     }
   }, [editor])
 
-  // 处理外部 content 变化
+  // 处理外部 content 变化（仅 standalone；协作模式 Yjs 是真源，忽略 content prop）
   const prevContentRef = React.useRef(content)
   React.useEffect(() => {
-    if (!editor) return
-    
+    if (!editor || isCollab) return
+
     // 只有当外部 content 真正变化时才设置
     // 比较 HTML 内容而不是引用
     const currentHtml = editor.getHTML()
@@ -288,8 +286,7 @@ export function SimpleEditor({
       isSettingContent.current = false
     }
     prevContentRef.current = content
-    
-  }, [content, editor])
+  }, [content, editor, isCollab])
 
   React.useEffect(() => {
     if (!isMobile && mobileView !== 'main') {

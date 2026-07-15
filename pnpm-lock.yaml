@@ -105,6 +105,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.16
         version: 4.2.2(vite@7.3.2(@types/node@24.12.2)(jiti@2.6.1)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)(terser@5.46.1)(yaml@2.8.3))
+      '@tiptap/core':
+        specifier: 3.22.3
+        version: 3.22.3(@tiptap/pm@3.22.3)
       '@tiptap/extension-bubble-menu':
         specifier: ^3.22.3
         version: 3.22.3(@tiptap/core@3.22.3(@tiptap/pm@3.22.3))(@tiptap/pm@3.22.3)

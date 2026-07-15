@@ -42,6 +42,7 @@
     "@supabase/supabase-js": "^2.93.3",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.16",
+    "@tiptap/core": "3.22.3",
     "@tiptap/extension-bubble-menu": "^3.22.3",
     "@tiptap/extension-collaboration": "^3.22.3",
     "@tiptap/extension-collaboration-caret": "^3.22.3",
