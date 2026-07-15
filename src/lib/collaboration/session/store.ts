@@ -45,13 +45,16 @@ async function activateSession(
     role: result.role,
   })
 
-  // 启动富文本 Yjs 协作层（字符级合并 + 编辑器内远端光标）
+  // 启动富文本 Yjs 协作层（字符级合并 + 编辑器内远端光标）。
+  // 仅全新 host 分享（shouldSaveSnapshot=true）才种子化现有 HTML；
+  // 加入会话与 resumeHosting 重连不种子化，避免与已有 Yjs 状态叠加导致内容重复。
   useRichTextCollabStore.getState().start({
     resumeId: result.resumeId,
     sessionId: result.sessionId,
     role: result.role,
     userName: result.userName,
     color: result.color,
+    seed: params.shouldSaveSnapshot === true,
   })
 }
 

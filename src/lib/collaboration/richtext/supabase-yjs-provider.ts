@@ -90,6 +90,17 @@ export class SupabaseYjsProvider {
       })
     })
 
+    // presence：peer 离开时立即移除其 awareness（本端渲染的远端光标），
+    // 不必等 y-protocols 30s 超时回收。用各 peer 上报的 Yjs clientID 定位。
+    channel.on('presence', { event: 'leave' }, ({ leftPresences }: any) => {
+      const leftClientIds = (leftPresences ?? [])
+        .map((p: any) => p?.clientId)
+        .filter((id: unknown): id is number => typeof id === 'number')
+      if (leftClientIds.length > 0) {
+        removeAwarenessStates(this.awareness, leftClientIds, 'remote')
+      }
+    })
+
     channel.subscribe((status) => {
       if (status !== 'SUBSCRIBED') {
         return
@@ -97,6 +108,8 @@ export class SupabaseYjsProvider {
       this.connected = true
       this.doc.on('update', this.onDocUpdate)
       this.awareness.on('update', this.onAwarenessUpdate)
+      // 上报自己的 Yjs clientID，供他人在本端离开时清理 awareness
+      this.channel?.track({ clientId: this.doc.clientID }).catch(() => {})
       // 请求已有对等方的全量状态
       this.broadcast('yjs-sync-request', {})
     })
@@ -112,16 +125,17 @@ export class SupabaseYjsProvider {
   }
 
   destroy(): void {
-    this.doc.off('update', this.onDocUpdate)
-    this.awareness.off('update', this.onAwarenessUpdate)
-
-    // 清除本地 awareness（通知他人自己离开）
+    // 先在解绑监听、退订频道之前广播本地离开（清除自己的 awareness），
+    // 让他人即时移除本端光标，而非等 y-protocols 30s 超时回收。
     try {
       removeAwarenessStates(this.awareness, [this.doc.clientID], 'local')
     }
     catch {
       // 忽略清理异常
     }
+
+    this.doc.off('update', this.onDocUpdate)
+    this.awareness.off('update', this.onAwarenessUpdate)
 
     if (this.channel) {
       this.channel.unsubscribe()

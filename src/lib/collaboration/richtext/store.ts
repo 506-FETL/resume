@@ -13,6 +13,8 @@ interface StartParams {
   role: 'host' | 'guest'
   userName: string
   color: string
+  /** 仅全新 host 分享为 true；加入/重连为 false，避免重复种子化 */
+  seed: boolean
 }
 
 interface RichTextCollabStore {
@@ -26,6 +28,9 @@ interface RichTextCollabStore {
 // host 在 provider 订阅成功后等待初始同步 settle 再种子化的兜底延时。
 const SEED_SETTLE_DELAY = 800
 
+// 待执行的种子化定时器，stop() 时取消，避免向已销毁文档注入。
+let seedTimer: ReturnType<typeof setTimeout> | null = null
+
 /** 用编辑器同一套扩展（无 collab 分支）供种子化 generateJSON/getSchema 使用。 */
 function seedExtensions() {
   return buildEditorExtensions()
@@ -36,7 +41,7 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
   provider: null,
   ready: false,
 
-  start: ({ resumeId, sessionId, role, userName, color }) => {
+  start: ({ resumeId, sessionId, role, userName, color, seed }) => {
     // 幂等：先清理已有（覆盖 resumeHosting 重连等无前置 stop 的路径）
     get().stop()
 
@@ -48,9 +53,11 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
 
     set({ session, provider, ready: true })
 
-    // 仅 host 种子化：等待初始同步 settle 后，对仍为空的 fragment 注入现有 HTML
-    if (role === 'host') {
-      setTimeout(() => {
+    // 仅「全新 host 分享」种子化：等待初始同步 settle 后，对仍为空的 fragment 注入现有 HTML。
+    // 加入会话 / resumeHosting 重连不种子化（seed=false），避免与远端已有 Yjs 状态叠加造成重复。
+    if (role === 'host' && seed) {
+      seedTimer = setTimeout(() => {
+        seedTimer = null
         // 会话可能已被销毁
         if (get().session !== session) {
           return
@@ -75,6 +82,10 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
   },
 
   stop: () => {
+    if (seedTimer !== null) {
+      clearTimeout(seedTimer)
+      seedTimer = null
+    }
     const { session, provider } = get()
     provider?.destroy()
     session?.destroy()
