@@ -11,10 +11,4 @@ export function useRuntimeLayout() {
   return layout
 }
 
-export function formatRange(range?: string[]): string {
-  if (!range?.[0]) {
-    return ''
-  }
-
-  return `${range[0]} - ${range[1] || '至今'}`
-}
+export { formatRange } from './duration'

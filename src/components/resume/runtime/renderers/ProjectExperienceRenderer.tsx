@@ -1,6 +1,6 @@
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
+import { formatRange, rangeHasValue, rangeKey } from './duration'
 import { RuntimeEntry, RuntimeSection } from './shared'
-import { formatRange } from './utils'
 
 export default function ProjectExperienceRenderer() {
   const { project_experience, getVisibility } = useTemplateResumeData()
@@ -10,13 +10,13 @@ export default function ProjectExperienceRenderer() {
   }
 
   const items = project_experience.items.filter(item =>
-    item.projectName || item.participantRole || item.projectInfo || item.projectDuration.some(Boolean))
+    item.projectName || item.participantRole || item.projectInfo || rangeHasValue(item.projectDuration))
 
   return (
     <RuntimeSection title="项目经历">
       {items.map(item => (
         <RuntimeEntry
-          key={`${item.projectName}-${item.participantRole}-${item.projectDuration.join('-')}`}
+          key={`${item.projectName}-${item.participantRole}-${rangeKey(item.projectDuration)}`}
           title={item.projectName || '项目'}
           subtitle={item.participantRole}
           duration={formatRange(item.projectDuration)}

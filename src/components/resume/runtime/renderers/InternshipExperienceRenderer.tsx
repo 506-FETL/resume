@@ -1,6 +1,6 @@
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
+import { formatRange, rangeHasValue, rangeKey } from './duration'
 import { RuntimeEntry, RuntimeSection } from './shared'
-import { formatRange } from './utils'
 
 export default function InternshipExperienceRenderer() {
   const { internship_experience, getVisibility } = useTemplateResumeData()
@@ -10,13 +10,13 @@ export default function InternshipExperienceRenderer() {
   }
 
   const items = internship_experience.items.filter(item =>
-    item.companyName || item.position || item.internshipInfo || item.internshipDuration.some(Boolean))
+    item.companyName || item.position || item.internshipInfo || rangeHasValue(item.internshipDuration))
 
   return (
     <RuntimeSection title="实习经历">
       {items.map(item => (
         <RuntimeEntry
-          key={`${item.companyName}-${item.position}-${item.internshipDuration.join('-')}`}
+          key={`${item.companyName}-${item.position}-${rangeKey(item.internshipDuration)}`}
           title={item.companyName || '公司'}
           subtitle={item.position}
           duration={formatRange(item.internshipDuration)}
