@@ -4,7 +4,7 @@ import supabase from '../supabase/client'
 
 export async function callLLM(req: ChatCompletionCreateParams, abortController?: AbortController) {
   const {
-    model = 'deepseek-reasoner',
+    model = 'deepseek-v4-pro',
     messages = [],
     temperature = 0,
     stream = true,

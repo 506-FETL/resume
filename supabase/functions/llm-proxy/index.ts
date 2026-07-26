@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     const {
       messages,
-      model = 'deepseek-reasoner',
+      model = 'deepseek-v4-pro',
       response_format,
       temperature = 0,
       stream = true,
