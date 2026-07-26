@@ -334,6 +334,15 @@ git commit -m "fix: clear typecheck baseline"
 
 执行记录：已创建本地提交 `1f3ee50 fix: clear typecheck baseline`，包含用户授权的无用 import 清理及截至构建完成的计划执行记录；未执行 `git push`。本步骤状态更新将作为最终文档记录单独提交。
 
+## 代码评审与最终复验
+
+- 独立代码评审范围 `532fe2d..e5f44bd` 结论为 `Ready to merge: Yes`，无 Critical 或 Important 问题。
+- 唯一 Minor 为 `useFormRemoteSync` 注释仍提及 `form.watch`；已核实实现改为 `form.subscribe`，并同步修正注释与回环描述。
+- 修正注释后重新执行两项一次性 Node 回归断言，均退出码 0，分别输出 `resume normalization regression: passed` 与 `rich text sibling array regression: passed`。
+- 修正注释后重新执行包含全部改动 TypeScript 文件的 ESLint，退出码 0、无输出。
+- 修正注释后重新执行 `npx tsc --noEmit`，退出码 0、无输出。
+- 修正注释后重新执行 `pnpm build`，退出码 0，Vite 7.3.2 在 13.59s 构建成功；仅有既有的大 chunk 非阻塞警告。
+
 ## 完成定义
 
 - 旧简历缺失的 `certificates`、`skills`、`hobbies` 和经历 `items` 在读取时按各自默认结构补齐。

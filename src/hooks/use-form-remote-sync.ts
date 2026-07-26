@@ -16,8 +16,8 @@ import { applyRemoteFormSyncPlan, planRemoteFormSync } from './form-remote-sync'
  * 该 hook 监听 store 数据变化，通过增量字段更新将远程数据同步到 form，
  * 避免 reset 整个表单导致字段数组重建和当前编辑控件失焦。
  *
- * 返回 `isResettingRef`，调用方应在 `form.watch` 回调中检查该 ref，
- * 以避免远端增量写入 → watch → updateForm 的循环广播。
+ * 返回 `isResettingRef`，调用方应在 `form.subscribe` 回调中检查该 ref，
+ * 以避免远端增量写入 → subscribe → updateFormFields 的循环广播。
  *
  * 可选的 `caret` 配置用于**同字段并发**下的光标保持：当远端修改的字段恰是当前
  * 聚焦的自由文本输入框时，在 `setValue` 后按文本 diff 还原光标偏移，避免光标跳到末尾。
