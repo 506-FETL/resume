@@ -6,7 +6,7 @@ import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import { useCurrentUserName } from '@/hooks/use-current-user'
+import { getUserDisplayName } from '@/hooks/use-current-user'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useCollaborationStore } from '@/lib/collaboration'
 import useResumeExportStore from '@/store/resume/export'
@@ -64,7 +64,7 @@ function Editor() {
 
   const fill = theme === 'dark' ? '#0c0a09' : '#fafaf9'
   const stroke = theme === 'dark' ? '#3d3b3b' : '#e7e5e4'
-  const userDisplayName = useCurrentUserName()
+  const userDisplayName = getUserDisplayName(currentUser)
 
   const handleOpenSortDialog = useCallback(() => {
     requestAnimationFrame(() => {
@@ -87,14 +87,14 @@ function Editor() {
     <CollaborationPanelProvider>
 
       {roomName && currentUser && (
-        <RealtimeCursors roomName={roomName} username={userDisplayName || `用户-${currentUser.id.slice(0, 6)}`} />
+        <RealtimeCursors roomName={roomName} username={userDisplayName} />
       )}
 
       {/* 协作 UI 状态同步 */}
       {roomName && isSharing && currentUser && (
         <CollaborationUISync
           roomName={roomName}
-          username={userDisplayName || `用户-${currentUser.id.slice(0, 6)}`}
+          username={userDisplayName}
           drawerOpen={open}
           setDrawerOpen={setOpen}
           activeTabId={activeTabId}

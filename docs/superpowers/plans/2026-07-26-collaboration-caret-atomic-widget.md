@@ -1,5 +1,9 @@
 # 富文本协作光标原子 Widget 修复实施计划
 
+> **状态：已停止。** 真实双账号回归在提交 `bede3b6` 后仍复现旧气泡残留，
+> 且 `display: inline-block` 会在正文中引入 atomic inline 软换行机会。
+> 产品已取消昵称气泡，后续执行转入 `2026-07-26-collaboration-caret-label-removal-and-notification-names.md`；本文件保留已执行记录，不再继续任务 4–5。
+
 > **给代理执行者：** 必须使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 按任务逐步实现本计划。步骤使用复选框（`- [ ]`）语法跟踪，执行时必须把本文件同步更新为最新状态。
 
 **目标：** 将远端协作光标改为合法、零净宽且边界明确的原子行内 widget，消除协作者侧昵称气泡堆叠和移动残片，并保留现有 Yjs awareness 与身份去重行为。

@@ -42,12 +42,15 @@
 - 删除未采用文档：`docs/superpowers/plans/2026-07-26-collaboration-caret-stale-awareness.md`
 - 修改：此前 atomic 规格与计划，标记被本方案取代
 
-- [ ] 删除全部四个当前/已跟踪的协作光标测试文件。
-- [ ] 删除 `eslint.config.js` 中只匹配协作富文本测试的覆盖块。
-- [ ] 运行 `pnpm remove -D happy-dom`，同步更新 `package.json` 与 `pnpm-lock.yaml`。
-- [ ] 把 `caret-dedupe.ts` 回到当前 HEAD 已提交实现，不保留未完成的身份桥接实验。
-- [ ] 删除未采用的 stale-awareness 规格/计划，并让旧 atomic 文档明确指向本设计。
-- [ ] 全局扫描源码，确认不存在 `*.test.*`、`*.spec.*`、`__tests__` 或测试目录；设计文档 `.spec.md` 除外。
+- [x] 删除全部四个当前/已跟踪的协作光标测试文件。
+- [x] 删除 `eslint.config.js` 中只匹配协作富文本测试的覆盖块。
+- [x] 运行 `pnpm remove -D happy-dom`，同步更新 `package.json` 与 `pnpm-lock.yaml`。
+- [x] 把 `caret-dedupe.ts` 回到当前 HEAD 已提交实现，不保留未完成的身份桥接实验。
+- [x] 删除未采用的 stale-awareness 规格/计划，并让旧 atomic 文档明确指向本设计。
+- [x] 全局扫描源码，确认不存在 `*.test.*`、`*.spec.*`、`__tests__` 或测试目录；设计文档 `.spec.md` 除外。
+
+执行记录：`find src public scripts .github ...` 无任何测试文件或测试目录输出；`rg` 未发现
+`happy-dom` 或专用测试 ESLint 配置；`git diff --quiet -- caret-dedupe.ts` 确认实验代码已完全回退。
 
 ### 任务 2：彻底移除昵称气泡但保留光标竖线
 
@@ -56,11 +59,14 @@
 - 修改：`src/lib/collaboration/richtext/caret-dom.ts`
 - 修改：`src/components/tiptap-node/paragraph-node/paragraph-node.scss`
 
-- [ ] 删除 `caret-dom.ts` 中 label 的创建、文字写入和 append，只返回带用户颜色的 caret `span`。
-- [ ] 更新函数注释，明确该构造器只输出彩色竖线。
-- [ ] 删除 SCSS 的 `--tt-collaboration-carets-label` 明暗变量及整个 `&__label` 规则。
-- [ ] 保留 caret 的边框、负 margin、pointer-events 和定位；确认失败的 `display/width/height/vertical-align` atomic 声明不存在。
-- [ ] 用 `rg` 确认源码不再创建或引用 `.collaboration-carets__label`。
+- [x] 删除 `caret-dom.ts` 中 label 的创建、文字写入和 append，只返回带用户颜色的 caret `span`。
+- [x] 更新函数注释，明确该构造器只输出彩色竖线。
+- [x] 删除 SCSS 的 `--tt-collaboration-carets-label` 明暗变量及整个 `&__label` 规则。
+- [x] 保留 caret 的边框、负 margin、pointer-events 和定位；确认失败的 `display/width/height/vertical-align` atomic 声明不存在。
+- [x] 用 `rg` 确认源码不再创建或引用 `.collaboration-carets__label`。
+
+执行记录：源码扫描对 `collaboration-carets__label`、`&__label` 和对应 CSS 变量均无输出；
+caret builder 现在只返回设置了 `border-color` 的 `.collaboration-carets__caret`。
 
 ### 任务 3：消除协作启动昵称竞态
 
@@ -70,10 +76,13 @@
 - 修改：`src/pages/resume/editor/index.tsx`
 - 修改：`src/pages/resume/editor/components/collaboration/index.tsx`
 
-- [ ] 在 `use-current-user.ts` 增加同步 `getUserDisplayName(user)`：优先返回修剪后的 `full_name`，缺失时对已登录用户返回 `用户-<id前六位>`，无用户返回空字符串。
-- [ ] `Editor` 基于 `useResumeLoader()` 返回的同一个 `currentUser` 调用该函数，删除独立的 `useCurrentUserName()` 订阅。
-- [ ] `CollaborationPanelProvider` 基于 `useUserStore` 的同一个 `currentUser` 调用该函数，删除独立的 `useCurrentUserName()` 订阅。
-- [ ] 确认 `startSharing`、`joinSession`、`resumeHosting`、鼠标光标和 UI 同步均获得同一个稳定展示名。
+- [x] 在 `use-current-user.ts` 增加同步 `getUserDisplayName(user)`：优先返回修剪后的 `full_name`，缺失时对已登录用户返回 `用户-<id前六位>`，无用户返回空字符串。
+- [x] `Editor` 基于 `useResumeLoader()` 返回的同一个 `currentUser` 调用该函数，删除独立的 `useCurrentUserName()` 订阅。
+- [x] `CollaborationPanelProvider` 基于 `useUserStore` 的同一个 `currentUser` 调用该函数，删除独立的 `useCurrentUserName()` 订阅。
+- [x] 确认 `startSharing`、`joinSession`、`resumeHosting`、鼠标光标和 UI 同步均获得同一个稳定展示名。
+
+执行记录：编辑器与协作面板现均从各自已经持有的同一 `currentUser` 同步解析展示名；
+`rg` 确认这两个入口不再调用 `useCurrentUserName()`，会话 payload 与两个协作 UI 通道共享该值。
 
 ### 任务 4：让退出通知携带并解析真实昵称
 
@@ -83,12 +92,15 @@
 - 修改：`src/lib/automerge/collaboration/supabase-network-adapter.ts`
 - 修改：`src/lib/collaboration/session/callbacks.ts`
 
-- [ ] 将 `CollaborationCallbacks.onPeerLeave` payload 扩展为可选 `metadata`。
-- [ ] presence leave 处理器从每条 `leftPresences` 读取 `presence.metadata` 并随 `peerId` 传给回调。
-- [ ] 在 callbacks 中增加局部昵称解析函数，按 `metadata.userName`、`metadata.name`、匿名 peer 兜底解析。
-- [ ] 加入通知复用统一解析函数。
-- [ ] 退出通知在删除 participant 前读取缓存 metadata，并按“事件 metadata → participant metadata → 兜底”显示“`<昵称> 退出协作`”。
-- [ ] 检查自端 peer 过滤逻辑保持不变，避免自己收到自己的加入/退出通知。
+- [x] 将 `CollaborationCallbacks.onPeerLeave` payload 扩展为可选 `metadata`。
+- [x] presence leave 处理器从每条 `leftPresences` 读取 `presence.metadata` 并随 `peerId` 传给回调。
+- [x] 在 callbacks 中增加局部昵称解析函数，按 `metadata.userName`、`metadata.name`、匿名 peer 兜底解析。
+- [x] 加入通知复用统一解析函数。
+- [x] 退出通知在删除 participant 前读取缓存 metadata，并按“事件 metadata → participant metadata → 兜底”显示“`<昵称> 退出协作`”。
+- [x] 检查自端 peer 过滤逻辑保持不变，避免自己收到自己的加入/退出通知。
+
+执行记录：leave 回调现收到 `presence.metadata`，并在 participants 删除前读取缓存 metadata；
+加入与退出共用同一昵称解析顺序，自端 `peerId` 过滤条件保持不变。
 
 ### 任务 5：验证、记录与本地提交
 
@@ -96,9 +108,28 @@
 
 - 修改：本计划
 
-- [ ] 运行相关 ESLint：`pnpm exec eslint eslint.config.js src/hooks/use-current-user.ts src/pages/resume/editor/index.tsx src/pages/resume/editor/components/collaboration/index.tsx src/lib/automerge/shared/types.ts src/lib/automerge/collaboration/supabase-network-adapter.ts src/lib/collaboration/session/callbacks.ts src/lib/collaboration/richtext/caret-dom.ts src/lib/collaboration/richtext/caret-dedupe.ts src/lib/collaboration/richtext/collab-extensions.ts --max-warnings 0`。
-- [ ] 运行 `pnpm exec tsc --noEmit` 与 `npx tsc --noEmit`；既有 `src/components/jd-variant/components/steps/step-parsing.tsx` 的 `ScrollArea` 未使用错误保持如实记录，不修改无关文件。
-- [ ] 运行 `pnpm build`、`git diff --check` 和全局测试文件扫描。
-- [ ] 直接审查最终 diff，确认没有删除设计文档、没有更改远端光标竖线能力、没有推送远端。
-- [ ] 更新所有执行记录后，本地提交：`fix(collab): remove caret labels and preserve participant names`。
+- [x] 运行相关 ESLint：`pnpm exec eslint eslint.config.js src/hooks/use-current-user.ts src/pages/resume/editor/index.tsx src/pages/resume/editor/components/collaboration/index.tsx src/lib/automerge/shared/types.ts src/lib/automerge/collaboration/supabase-network-adapter.ts src/lib/collaboration/session/callbacks.ts src/lib/collaboration/richtext/caret-dom.ts src/lib/collaboration/richtext/caret-dedupe.ts src/lib/collaboration/richtext/collab-extensions.ts --max-warnings 0`。
+
+  执行记录：原始命令只有两个既有警告（Tiptap 路径被配置忽略；Provider 文件原有
+  `react-refresh/only-export-components`）；使用 `--no-warn-ignored` 并只关闭该既有 Provider
+  规则后重新检查相关源码，退出码为 0，0 错误、0 警告。
+
+- [x] 运行 `pnpm exec tsc --noEmit` 与 `npx tsc --noEmit`；既有 `src/components/jd-variant/components/steps/step-parsing.tsx` 的 `ScrollArea` 未使用错误保持如实记录，不修改无关文件。
+
+  执行记录：两条命令退出码均为 2，唯一 TypeScript 错误均为既有
+  `step-parsing.tsx:5 TS6133 ScrollArea`；`npx` 另输出既有 npm `home` 配置弃用警告。
+
+- [x] 运行 `pnpm build`、`git diff --check` 和全局测试文件扫描。
+
+  执行记录：`pnpm build` 退出码 0，转换 5213 个模块，仅有既有 chunk 大小提示；
+  `git diff --check` 退出码 0；源码测试文件/测试目录、label 选择器与 `happy-dom` 扫描均无输出；
+  `pnpm install --frozen-lockfile --offline` 退出码 0，确认 lockfile 一致。
+
+- [x] 直接审查最终 diff，确认没有删除设计文档、没有更改远端光标竖线能力、没有推送远端。
+
+  执行记录：自查发现空 `userName` 不应阻断兼容 `name` 字段，已改为逐字段、逐 metadata
+  来源解析；设计文档保留，caret 边框规则保留，未执行任何远端操作。
+- [x] 更新所有执行记录后，本地提交：`fix(collab): remove caret labels and preserve participant names`。
 - [ ] 交给用户双账号验证加入、退出通知以及富文本光标展示；未获得真实浏览器结果前不宣称人工验收通过。
+
+  当前状态：自动验证已完成；等待用户在两个真实登录页面验收，故本项保持未勾选。

@@ -4,8 +4,8 @@
  * 背景：`@tiptap/y-tiptap` 的 `yCursorPlugin` 默认对每个 awareness clientId 各渲染一个光标，
  * 仅过滤掉自己（`currentClientId !== userClientId`）。而同一个人在重连、StrictMode 双挂载、
  * host 种子化竞态（旧 provider 未连接成功即销毁，awareness 移除广播被丢弃）等情况下，
- * 会在远端遗留多个 clientId 的 awareness 状态。于是同一个人叠出多个光标标签
- * （如 "seams" 重叠三次）。y-protocols 要 30s 超时才回收，期间一直重影。
+ * 会在远端遗留多个 clientId 的 awareness 状态。于是同一个人可能叠出多个光标竖线。
+ * y-protocols 要 30s 超时才回收，期间旧光标仍会存在。
  *
  * 去重排序依据（关键）：
  * 1. Yjs 的 `clientID` 是 `random.uint32` 生成的**随机值**，并非单调递增，
