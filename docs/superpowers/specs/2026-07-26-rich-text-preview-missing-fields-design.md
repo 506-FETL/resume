@@ -89,7 +89,7 @@ Tiptap 输入本身不是异常来源；它只是触发了状态写回和预览�
 本次按用户要求不采用 TDD，不要求测试先行。实现完成后通过以下场景和工程检查验证修复：
 
 1. 缺少 `honors_certificates.certificates` 时补齐为空数组，同时保留 `description`。
-2. `skill_specialty.skills`、`hobbies.hobbies` 和经历 `items` 为缺失或 `null` 时补齐为空数组。
+2. `skill_specialty.skills`、`honors_certificates.certificates`、`hobbies.hobbies` 和经历 `items` 为缺失或 `null` 时补齐为各 section 的默认数组副本；前三者默认为空数组，经历模块保留其默认空白表单项。
 3. 合法的非空数组、对象和富文本字符串原样保留，输入和默认常量均不被修改。
 4. 富文本描述变化时，完整 section 生成的写操作只包含描述字段，不删除或覆盖同级数组。
 5. 运行针对原始报错的数据回归验证、定向 ESLint、`npx tsc --noEmit` 和生产构建；不为本次修复额外引入测试框架。
