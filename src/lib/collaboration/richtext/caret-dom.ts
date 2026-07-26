@@ -4,7 +4,7 @@ export function createCollaborationCaret(user: Record<string, any>): HTMLElement
   cursor.classList.add('collaboration-carets__caret')
   cursor.setAttribute('style', `border-color: ${user.color}`)
 
-  const label = document.createElement('div')
+  const label = document.createElement('span')
   label.classList.add('collaboration-carets__label')
   label.setAttribute('style', `background-color: ${user.color}`)
   label.insertBefore(document.createTextNode(user.name ?? ''), null)

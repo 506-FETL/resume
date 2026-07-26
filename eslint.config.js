@@ -16,4 +16,9 @@ export default antfu({
     'no-undef': 'error',
     'react-hooks/incompatible-library': 'off',
   },
+}, {
+  files: ['src/lib/collaboration/richtext/**/*.test.ts'],
+  rules: {
+    'test/no-import-node-test': 'off',
+  },
 })

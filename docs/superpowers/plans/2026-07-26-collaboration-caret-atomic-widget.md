@@ -128,7 +128,7 @@ git commit -m "refactor(collab): extract caret DOM builder"
 - 修改：`src/lib/collaboration/richtext/caret-dom.ts`
 - 修改：`docs/superpowers/plans/2026-07-26-collaboration-caret-atomic-widget.md`
 
-- [ ] **步骤 1：安装仅测试使用的 DOM 环境**
+- [x] **步骤 1：安装仅测试使用的 DOM 环境**
 
 运行：
 
@@ -138,7 +138,7 @@ pnpm add -D happy-dom
 
 预期：`happy-dom` 只出现在 `devDependencies`，`package.json` 和 `pnpm-lock.yaml` 更新，生产依赖不变。
 
-- [ ] **步骤 2：为 Node 测试加入窄范围 ESLint 配置**
+- [x] **步骤 2：为 Node 测试加入窄范围 ESLint 配置**
 
 把 `eslint.config.js` 的导出改为两个配置参数；现有主配置保持不变，仅追加：
 
@@ -153,7 +153,7 @@ pnpm add -D happy-dom
 
 不要恢复已删除的其他目录测试配置，也不要全局关闭该规则。
 
-- [ ] **步骤 3：先写 DOM 语义失败测试**
+- [x] **步骤 3：先写 DOM 语义失败测试**
 
 新增 `src/lib/collaboration/richtext/caret-dom.test.ts`：
 
@@ -205,7 +205,7 @@ test('uses an empty label when the remote user name is missing', () => {
 })
 ```
 
-- [ ] **步骤 4：运行测试并确认失败原因准确**
+- [x] **步骤 4：运行测试并确认失败原因准确**
 
 运行：
 
@@ -217,7 +217,19 @@ node --test --experimental-strip-types src/lib/collaboration/richtext/caret-dom.
 
 执行后追加真实失败摘要。
 
-- [ ] **步骤 5：做最小 DOM 修复**
+执行记录（2026-07-26）：
+
+- `pnpm add -D happy-dom`：退出码 0，安装 `happy-dom@20.11.1`；`package.json` 仅在 `devDependencies` 增加该依赖，生产 `dependencies` 未变化，`pnpm-lock.yaml` 同步更新。
+- `eslint.config.js` 保留原主配置，只追加 `src/lib/collaboration/richtext/**/*.test.ts` 的窄范围 override，并仅关闭 `test/no-import-node-test`。
+- 红灯命令 `node --test --experimental-strip-types src/lib/collaboration/richtext/caret-dom.test.ts`：退出码 1；2 条测试中 1 条通过、1 条失败。失败仅为首条测试的 label 标签断言，实际 `'DIV'`、期望 `'SPAN'`（`ERR_ASSERTION`）；缺失姓名时空 label 文本测试通过，没有模块、DOM 安装或导入错误。
+- 生产修复仅把 `caret-dom.ts` 的 label 创建由 `document.createElement('div')` 改为 `document.createElement('span')`；class、style、姓名回退和 DOM API 均未改动。
+- 绿灯命令 `node --test --experimental-strip-types src/lib/collaboration/richtext/caret-dom.test.ts`：退出码 0，2 条测试全部通过，0 失败。
+- `pnpm exec eslint eslint.config.js src/lib/collaboration/richtext/caret-dom.ts src/lib/collaboration/richtext/caret-dom.test.ts --max-warnings 0`：退出码 0，0 errors / 0 warnings。
+- `pnpm exec tsc --noEmit`：退出码 2；唯一错误为既有基线 `src/components/jd-variant/components/steps/step-parsing.tsx:5` 的 `TS6133: 'ScrollArea' is declared but its value is never read`，本任务未修改该无关文件。
+- `npx tsc --noEmit`：退出码 2；同一处既有基线 `TS6133`，另有 npm 对未知 `home` 用户配置的警告；没有本任务引入的新类型错误。
+- `git diff --check`：退出码 0，无空白错误。
+
+- [x] **步骤 5：做最小 DOM 修复**
 
 只把 `caret-dom.ts` 中的标签创建从：
 
@@ -233,7 +245,7 @@ const label = document.createElement('span')
 
 其余类名、颜色和文本回退保持不变，不添加 U+2060、强制回流或 DOM 清理逻辑。
 
-- [ ] **步骤 6：运行测试与静态检查并确认通过**
+- [x] **步骤 6：运行测试与静态检查并确认通过**
 
 运行：
 
@@ -248,7 +260,7 @@ git diff --check
 
 执行后追加真实结果。
 
-- [ ] **步骤 7：更新计划进度并提交 DOM 契约修复**
+- [x] **步骤 7：更新计划进度并提交 DOM 契约修复**
 
 ```bash
 git add package.json pnpm-lock.yaml eslint.config.js src/lib/collaboration/richtext/caret-dom.ts src/lib/collaboration/richtext/caret-dom.test.ts docs/superpowers/plans/2026-07-26-collaboration-caret-atomic-widget.md
