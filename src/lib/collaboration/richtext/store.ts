@@ -51,7 +51,7 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
     const provider = new SupabaseYjsProvider(resumeId, sessionId, session.doc, session.awareness)
 
     // 从连接第一帧就带上稳定 id，确保该端广播的所有 awareness 状态（含随后被 start/stop
-    // 竞态遗留的幽灵）都归属同一个人，供远端去重。名字后续可由编辑器 updateUser 刷新。
+    // 竞态遗留的幽灵）都归属同一个人，供远端去重。身份后续由 SimpleEditor 直接刷新 awareness。
     session.setLocalUser({ name: userName, color, id: userId })
     provider.connect()
 

@@ -294,20 +294,23 @@ export function SimpleEditor({
     }
   }, [isMobile, mobileView])
 
-  // 协作模式：把最新的用户名 / 颜色推进 Yjs awareness。
-  // CollaborationCaret 仅在插件初始化时写一次 `user`（options.user），而 useEditor 的依赖
-  // 只有 [isCollab, fragment]。这里继续把 session self 的最新身份推进 awareness，确保
-  // 会话身份发生更新时编辑器插件不保留旧值。
-  // 注意需带上 id（稳定人类身份），供远端按人去重光标。
+  // 协作模式：把最新身份直接推进 Yjs awareness。
+  // 不通过 CollaborationCaret 的 updateUser 命令，避免模式切换时旧的 standalone
+  // editor 尚未被 useEditor 重建、命令尚不存在的竞态。
+  const collabAwareness = collab?.provider.awareness
   const collabUserName = collab?.user.name
   const collabUserColor = collab?.user.color
   const collabUserId = collab?.user.id
   React.useEffect(() => {
-    if (!editor || !isCollab || collabUserName == null) {
+    if (!collabAwareness || collabUserName == null) {
       return
     }
-    editor.commands.updateUser({ name: collabUserName, color: collabUserColor, id: collabUserId })
-  }, [editor, isCollab, collabUserName, collabUserColor, collabUserId])
+    collabAwareness.setLocalStateField('user', {
+      name: collabUserName,
+      color: collabUserColor,
+      id: collabUserId,
+    })
+  }, [collabAwareness, collabUserName, collabUserColor, collabUserId])
 
   const editorContextValue = React.useMemo(() => ({ editor }), [editor])
 
