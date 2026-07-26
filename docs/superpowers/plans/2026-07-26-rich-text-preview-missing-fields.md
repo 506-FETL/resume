@@ -30,11 +30,13 @@
 
 ### 任务 1：新增共享简历结构规范化函数
 
+**状态：进行中**
+
 **文件：**
 - 新建：`src/lib/schema/resume/normalize.ts`
 - 修改：`src/lib/schema/resume/index.ts`
 
-- [ ] **步骤 1：实现结构驱动的默认值合并**
+- [x] **步骤 1：实现结构驱动的默认值合并**
 
 在 `src/lib/schema/resume/normalize.ts` 中：
 
@@ -79,7 +81,7 @@ function mergeWithDefaults(value: unknown, defaultValue: unknown): unknown {
 }
 ```
 
-- [ ] **步骤 2：从 schema 公共入口导出 API**
+- [x] **步骤 2：从 schema 公共入口导出 API**
 
 在 `src/lib/schema/resume/index.ts` 增加：
 
@@ -87,7 +89,7 @@ function mergeWithDefaults(value: unknown, defaultValue: unknown): unknown {
 export * from './normalize'
 ```
 
-- [ ] **步骤 3：执行定向静态检查**
+- [x] **步骤 3：执行定向静态检查**
 
 运行：
 
@@ -96,6 +98,8 @@ pnpm exec eslint src/lib/schema/resume/normalize.ts src/lib/schema/resume/index.
 ```
 
 预期：退出码 0，无 lint error 或 warning。
+
+执行记录：`pnpm exec eslint src/lib/schema/resume/normalize.ts src/lib/schema/resume/index.ts --max-warnings 0` 退出码 0，无输出。
 
 - [ ] **步骤 4：本地提交规范化基础能力**
 

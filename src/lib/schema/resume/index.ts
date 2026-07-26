@@ -48,6 +48,7 @@ export interface ResumeListItem {
 }
 
 export * from './form'
+export * from './normalize'
 export * from './persisted'
 export type { ResumeTemplateBinding } from './persisted'
 export * from './variant'
