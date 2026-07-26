@@ -4,14 +4,26 @@ import { DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/dr
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { formatTime } from '@/utils/date'
-import { useCollaborationPanel } from '.'
+import { useCollaborationPanel } from '../context'
 
 interface CollaborationControlsProps {
   onOpenSortDialog?: () => void
 }
 
 export function CollaborationControls({ onOpenSortDialog }: CollaborationControlsProps = {}) {
-  const { isMobile, isSyncing, pendingChanges, lastSyncTime, onManualSync, openCollaborationDialog, isSharing, isCollabConnecting, collabDisabledReason, shareButtonTooltip, participantCount } = useCollaborationPanel()
+  const {
+    isMobile,
+    isSyncing,
+    pendingChanges,
+    lastSyncTime,
+    onManualSync,
+    openCollaborationDialog,
+    isSharing,
+    isCollabConnecting,
+    collabDisabledReason,
+    shareButtonTooltip,
+    participantCount,
+  } = useCollaborationPanel()
 
   return (
     <DrawerHeader className="relative">
@@ -46,16 +58,10 @@ export function CollaborationControls({ onOpenSortDialog }: CollaborationControl
                     )}
                   >
                     {isCollabConnecting
-                      ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        )
+                      ? <Loader2 className="size-4 animate-spin" />
                       : isSharing
-                        ? (
-                            <Radio className="size-4" />
-                          )
-                        : (
-                            <Share2 className="size-4" />
-                          )}
+                        ? <Radio className="size-4" />
+                        : <Share2 className="size-4" />}
                     {!isMobile && (isSharing ? '协作中' : '开启协作')}
                   </Button>
                 </span>

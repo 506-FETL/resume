@@ -1,4 +1,32 @@
-import type { CollaborationActivationResult, CollaborationParticipant, CollaborationSessionState } from './types'
+import type { CollaborationActivationResult, CollaborationParticipant, CollaborationParticipantMetadata, CollaborationSessionState } from './types'
+import { getParticipantColor } from '../shared'
+
+function readMetadataString(metadata: Record<string, unknown> | undefined, key: string) {
+  const value = metadata?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function readParticipantRole(metadata: Record<string, unknown> | undefined) {
+  const role = metadata?.role
+  return role === 'host' || role === 'guest' ? role : null
+}
+
+export function normalizeParticipantMetadata(
+  peerId: string,
+  metadata?: Record<string, unknown>,
+): CollaborationParticipantMetadata {
+  const userId = readMetadataString(metadata, 'userId') ?? peerId
+
+  return {
+    userId,
+    userName:
+      readMetadataString(metadata, 'userName')
+      ?? readMetadataString(metadata, 'name')
+      ?? `协作者 ${peerId.slice(-4)}`,
+    color: readMetadataString(metadata, 'color') ?? getParticipantColor(userId),
+    role: readParticipantRole(metadata),
+  }
+}
 
 export function createInitialCollaborationSessionState(): CollaborationSessionState {
   return {
@@ -7,23 +35,22 @@ export function createInitialCollaborationSessionState(): CollaborationSessionSt
     role: null,
     sessionId: null,
     shareUrl: null,
-    channelName: null,
     resumeId: null,
     roomName: null,
     participants: {},
     error: null,
-    selfPeerId: null,
-    selfColor: null,
-    selfUserId: null,
+    self: null,
     shareEndedByRemote: false,
   }
 }
 
-export function createParticipant(peerId: string, metadata?: Record<string, any>): CollaborationParticipant {
+export function createParticipant(
+  peerId: string,
+  metadata?: Record<string, unknown>,
+): CollaborationParticipant {
   return {
     peerId,
-    metadata,
-    joinedAt: Date.now(),
+    metadata: normalizeParticipantMetadata(peerId, metadata),
   }
 }
 
@@ -51,6 +78,15 @@ export function removeParticipant(
 }
 
 export function createConnectedSessionState(result: CollaborationActivationResult): Partial<CollaborationSessionState> {
+  const selfParticipant = result.self.peerId
+    ? createParticipant(result.self.peerId, {
+        userId: result.self.userId,
+        userName: result.self.userName,
+        color: result.self.color,
+        role: result.role,
+      })
+    : null
+
   return {
     isSharing: true,
     isConnecting: false,
@@ -59,26 +95,14 @@ export function createConnectedSessionState(result: CollaborationActivationResul
     shareUrl: result.shareUrl,
     resumeId: result.resumeId,
     roomName: result.roomName,
-    participants: result.selfPeerId
-      ? {
-          [result.selfPeerId]: createParticipant(result.selfPeerId, {
-            userId: result.userId,
-            userName: result.userName,
-            color: result.color,
-            role: result.role,
-          }),
-        }
-      : {},
-    selfPeerId: result.selfPeerId,
-    selfUserId: result.userId,
-    selfColor: result.color,
+    participants: selfParticipant ? { [selfParticipant.peerId]: selfParticipant } : {},
+    self: result.self,
     error: null,
     shareEndedByRemote: false,
   }
 }
 
 export function createStoppedSessionState(
-  currentState: CollaborationSessionState,
   overrides: Partial<CollaborationSessionState> = {},
 ): Partial<CollaborationSessionState> {
   return {
@@ -87,14 +111,11 @@ export function createStoppedSessionState(
     role: null,
     sessionId: null,
     shareUrl: null,
-    channelName: null,
     resumeId: null,
     roomName: null,
     participants: {},
     error: null,
-    selfPeerId: null,
-    selfColor: currentState.selfColor,
-    selfUserId: null,
+    self: null,
     shareEndedByRemote: false,
     ...overrides,
   }

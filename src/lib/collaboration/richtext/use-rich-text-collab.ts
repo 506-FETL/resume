@@ -1,6 +1,5 @@
 import type { CollabExtensionConfig } from '@/lib/collaboration/richtext'
 import { useMemo } from 'react'
-import { useCurrentUserName } from '@/hooks/use-current-user'
 import { buildFragmentKey, useRichTextCollabStore } from '@/lib/collaboration/richtext'
 import useCollaborationStore from '@/lib/collaboration/session/store'
 
@@ -18,35 +17,23 @@ export function useRichTextCollab(
   const provider = useRichTextCollabStore(state => state.provider)
   const ready = useRichTextCollabStore(state => state.ready)
 
-  const selfColor = useCollaborationStore(state => state.selfColor)
-  const selfUserId = useCollaborationStore(state => state.selfUserId)
-  // 展示名以「当前登录用户」为准（与鼠标光标同源、随认证状态实时解析）。
-  // participants[selfPeerId].metadata.userName 是开启协作那一刻冻结的快照——
-  // 若彼时 full_name 尚未加载，会被永久固化为「用户-<id>」兜底；这里仍用实时来源
-  // 保持 awareness 用户信息准确，即使富文本光标已经不再展示昵称气泡。
-  const liveUserName = useCurrentUserName()
-  const frozenUserName = useCollaborationStore(state =>
-    (state.selfPeerId ? state.participants[state.selfPeerId]?.metadata?.userName : undefined),
-  )
-  const userName = liveUserName
-    || (frozenUserName as string | undefined)
-    || (selfUserId ? `用户-${selfUserId.slice(0, 6)}` : undefined)
+  const self = useCollaborationStore(state => state.self)
 
   const key = buildFragmentKey(sectionKey, relativePath)
 
   return useMemo(() => {
-    if (!ready || !session || !provider || !selfColor) {
+    if (!ready || !session || !provider || !self) {
       return undefined
     }
     return {
       fragment: session.getFieldFragment(key),
       provider,
       user: {
-        name: userName ?? '协作者',
-        color: selfColor,
+        name: self.userName,
+        color: self.color,
         // 稳定人类身份：用于按“人”去重编辑器光标，避免重连 / 竞态遗留重复竖线。
-        id: selfUserId ?? undefined,
+        id: self.userId,
       },
     }
-  }, [ready, session, provider, key, userName, selfColor, selfUserId])
+  }, [ready, session, provider, key, self])
 }

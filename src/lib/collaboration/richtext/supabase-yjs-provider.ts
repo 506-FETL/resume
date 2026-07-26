@@ -10,6 +10,14 @@ import { applyUpdate, encodeStateAsUpdate } from 'yjs'
 import { decodeBase64ToBytes, encodeBytesToBase64 } from '@/lib/automerge/shared'
 import supabase from '@/lib/supabase/client'
 
+interface YjsUpdateBroadcast {
+  payload?: { update?: unknown }
+}
+
+interface YjsPresence {
+  clientId?: unknown
+}
+
 /**
  * 在 Supabase Realtime broadcast 之上同步一个 `Y.Doc` 与其 `Awareness`。
  *
@@ -69,14 +77,14 @@ export class SupabaseYjsProvider {
     const channel = supabase.channel(this.channelName)
     this.channel = channel
 
-    channel.on('broadcast', { event: 'yjs-update' }, (payload: any) => {
+    channel.on('broadcast', { event: 'yjs-update' }, (payload: YjsUpdateBroadcast) => {
       const b64 = payload?.payload?.update
       if (typeof b64 === 'string') {
         applyUpdate(this.doc, decodeBase64ToBytes(b64), this)
       }
     })
 
-    channel.on('broadcast', { event: 'yjs-awareness' }, (payload: any) => {
+    channel.on('broadcast', { event: 'yjs-awareness' }, (payload: YjsUpdateBroadcast) => {
       const b64 = payload?.payload?.update
       if (typeof b64 === 'string') {
         applyAwarenessUpdate(this.awareness, decodeBase64ToBytes(b64), 'remote')
@@ -92,9 +100,9 @@ export class SupabaseYjsProvider {
 
     // presence：peer 离开时立即移除其 awareness（本端渲染的远端光标），
     // 不必等 y-protocols 30s 超时回收。用各 peer 上报的 Yjs clientID 定位。
-    channel.on('presence', { event: 'leave' }, ({ leftPresences }: any) => {
+    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
       const leftClientIds = (leftPresences ?? [])
-        .map((p: any) => p?.clientId)
+        .map(presence => (presence as YjsPresence).clientId)
         .filter((id: unknown): id is number => typeof id === 'number')
       if (leftClientIds.length > 0) {
         removeAwarenessStates(this.awareness, leftClientIds, 'remote')

@@ -27,13 +27,6 @@ export interface CollaborationPanelContextValue {
   setCollaborationDialogOpen: (open: boolean) => void
 }
 
-export interface CollaborationPanelProviderProps {
-  currentUser: SupabaseUser
-  activeResumeId?: string
-  userDisplayName: string
-  children: ReactNode
-}
-
 export interface Item<T> {
   id: T
   label: string

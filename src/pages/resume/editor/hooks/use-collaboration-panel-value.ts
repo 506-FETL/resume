@@ -1,7 +1,8 @@
 import type { CollaborationPanelContextValue, SupabaseUser } from './../types'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getStoredSessionRole, useCollaborationStore } from '@/lib/collaboration'
 import useResumeStore from '@/store/resume/form'
@@ -27,8 +28,51 @@ export function useCollaborationPanelValue({
 
   const collabSessionParam = searchParams.get('collabSession')
 
-  const { manualSync, isSyncing, pendingChanges, lastSyncTime, mode, isInitialized: isDocumentInitialized } = useResumeStore()
-  const { participants, isSharing, isConnecting: isCollabConnecting, shareUrl, role: collaborationRole, startSharing, stopSharing, joinSession, resumeHosting, error: collaborationError, sessionId, shareEndedByRemote, acknowledgeRemoteShareEnd } = useCollaborationStore()
+  const {
+    manualSync,
+    isSyncing,
+    pendingChanges,
+    lastSyncTime,
+    mode,
+    isDocumentInitialized,
+  } = useResumeStore(useShallow(state => ({
+    manualSync: state.manualSync,
+    isSyncing: state.isSyncing,
+    pendingChanges: state.pendingChanges,
+    lastSyncTime: state.lastSyncTime,
+    mode: state.mode,
+    isDocumentInitialized: state.isInitialized,
+  })))
+
+  const {
+    participants,
+    isSharing,
+    isCollabConnecting,
+    shareUrl,
+    collaborationRole,
+    startSharing,
+    stopSharing,
+    joinSession,
+    resumeHosting,
+    collaborationError,
+    sessionId,
+    shareEndedByRemote,
+    acknowledgeRemoteShareEnd,
+  } = useCollaborationStore(useShallow(state => ({
+    participants: state.participants,
+    isSharing: state.isSharing,
+    isCollabConnecting: state.isConnecting,
+    shareUrl: state.shareUrl,
+    collaborationRole: state.role,
+    startSharing: state.startSharing,
+    stopSharing: state.stopSharing,
+    joinSession: state.joinSession,
+    resumeHosting: state.resumeHosting,
+    collaborationError: state.error,
+    sessionId: state.sessionId,
+    shareEndedByRemote: state.shareEndedByRemote,
+    acknowledgeRemoteShareEnd: state.acknowledgeRemoteShareEnd,
+  })))
 
   const participantCount = Object.keys(participants).length
 
@@ -118,14 +162,6 @@ export function useCollaborationPanelValue({
     }
   }, [collabSessionParam, joinedSessionId])
 
-  // 使用 ref 持有不稳定的函数引用，减少 useEffect 依赖数量
-  const joinSessionRef = useRef(joinSession)
-  const resumeHostingRef = useRef(resumeHosting)
-  useEffect(() => {
-    joinSessionRef.current = joinSession
-    resumeHostingRef.current = resumeHosting
-  })
-
   useEffect(() => {
     if (!collabSessionParam || !activeResumeId)
       return
@@ -145,7 +181,7 @@ export function useCollaborationPanelValue({
       userName: userDisplayName || `用户-${currentUser.id.slice(0, 6)}`,
     }
 
-    const action = sessionRoleHint === 'host' ? resumeHostingRef.current : joinSessionRef.current
+    const action = sessionRoleHint === 'host' ? resumeHosting : joinSession
     action(payload)
       .then(() => setJoinedSessionId(collabSessionParam))
       .catch(() => setJoinedSessionId(collabSessionParam))
@@ -160,6 +196,8 @@ export function useCollaborationPanelValue({
     currentUser,
     userDisplayName,
     sessionRoleHint,
+    joinSession,
+    resumeHosting,
   ])
 
   useEffect(() => {

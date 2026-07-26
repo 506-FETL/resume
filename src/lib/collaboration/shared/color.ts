@@ -7,6 +7,7 @@ function hashUserId(userId: string) {
   return hash >>> 0
 }
 
-export function createParticipantColor(userId: string) {
+/** Resolve the same collaboration color for every connection owned by a login user. */
+export function getParticipantColor(userId: string) {
   return `hsl(${hashUserId(userId) % 360}, 85%, 60%)`
 }

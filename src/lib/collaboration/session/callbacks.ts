@@ -3,27 +3,11 @@ import type { CollaborationCallbacks } from '@/lib/automerge'
 import { toast } from 'sonner'
 import { addParticipant, createParticipant, removeParticipant } from './state'
 
-function getParticipantDisplayName(
-  peerId: string,
-  metadata?: Record<string, any>,
-) {
-  for (const name of [metadata?.userName, metadata?.name]) {
-    if (typeof name === 'string' && name.trim()) {
-      return name.trim()
-    }
-  }
-  return `协作者 ${peerId.slice(-4)}`
-}
-
 export function createSessionCallbacks(options: SessionCallbacksOptions): CollaborationCallbacks {
-  const { role, userId, userName, color, getState, setState, adapterPeerIdRef } = options
+  const { role, identity, getState, setState, adapterPeerIdRef } = options
 
   return {
-    presenceMetadata: { userId, userName, color, role },
-
-    onChannelReady: (channelName) => {
-      setState({ channelName })
-    },
+    presenceMetadata: { ...identity, role },
 
     onPeerJoin: ({ peerId, metadata }) => {
       if (peerId === adapterPeerIdRef.current) {
@@ -38,13 +22,13 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
       }))
 
       const participantMetadata = getState().participants[peerId]?.metadata
-      const displayName = getParticipantDisplayName(peerId, participantMetadata)
+      const displayName = participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
       toast.success(`${displayName} 加入协作`, { description: '已同步最新内容' })
     },
 
     onPeerLeave: ({ peerId }) => {
       const participantMetadata = getState().participants[peerId]?.metadata
-      const displayName = getParticipantDisplayName(peerId, participantMetadata)
+      const displayName = participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
 
       setState(state => ({
         participants: removeParticipant(state.participants, peerId),

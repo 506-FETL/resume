@@ -1,14 +1,10 @@
 import type { CreateSessionCallbacks, SessionActivationOptions } from './types'
-import { buildCollaborationRoomName, buildCollaborationShareUrl, createParticipantColor } from '../shared'
+import type { DocumentManager } from '@/lib/automerge'
+import { buildCollaborationRoomName, buildCollaborationShareUrl, getParticipantColor } from '../shared'
 
 interface EnableSessionOptions extends SessionActivationOptions {
   createCallbacks: CreateSessionCallbacks
-  getDocumentManager: () => {
-    enableCollaboration: (sessionId: string, callbacks: any) => Promise<{ peerId?: string }>
-    getHandle: () => unknown
-    getDocumentUrl: () => string | null
-    saveToSupabase: (handle: any) => Promise<void>
-  } | null
+  getDocumentManager: () => DocumentManager | null
 }
 
 export async function enableCollaborationSession(options: EnableSessionOptions) {
@@ -31,15 +27,14 @@ export async function enableCollaborationSession(options: EnableSessionOptions) 
     throw new Error('文档尚未初始化，无法开启协作')
   }
 
-  const color = createParticipantColor(userId)
-  setState({ isConnecting: true, error: null, selfColor: color })
+  const color = getParticipantColor(userId)
+  const identity = { userId, userName, color }
+  setState({ isConnecting: true, error: null })
 
   const adapterPeerIdRef = { current: null as string | null }
   const callbacks = createCallbacks({
     role,
-    userId,
-    userName,
-    color,
+    identity,
     getState,
     setState,
     adapterPeerIdRef,
@@ -55,16 +50,16 @@ export async function enableCollaborationSession(options: EnableSessionOptions) 
   return {
     sessionId,
     resumeId,
-    userId,
-    userName,
     role,
-    color,
+    self: {
+      peerId: adapterPeerIdRef.current,
+      ...identity,
+    },
     shareUrl: buildCollaborationShareUrl(
       resumeId,
       sessionId,
       docManager.getDocumentUrl() || undefined,
     ),
     roomName: buildCollaborationRoomName(resumeId, sessionId),
-    selfPeerId: adapterPeerIdRef.current,
   }
 }

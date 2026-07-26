@@ -16,19 +16,19 @@ export function useTabDrawerBroadcast({
   isApplyingRemote,
   broadcastUIAction,
 }: UseTabDrawerBroadcastOptions) {
-  const prevDrawerOpen = useRef(drawerOpen)
+  const previousDrawerOpen = useRef(drawerOpen)
   useEffect(() => {
-    if (prevDrawerOpen.current !== drawerOpen) {
-      prevDrawerOpen.current = drawerOpen
+    if (previousDrawerOpen.current !== drawerOpen) {
+      previousDrawerOpen.current = drawerOpen
       if (!isApplyingRemote.current)
         broadcastUIAction({ kind: 'drawer-toggle', open: drawerOpen })
     }
   }, [drawerOpen, broadcastUIAction, isApplyingRemote])
 
-  const prevActiveTab = useRef(activeTabId)
+  const previousActiveTab = useRef(activeTabId)
   useEffect(() => {
-    if (prevActiveTab.current !== activeTabId) {
-      prevActiveTab.current = activeTabId
+    if (previousActiveTab.current !== activeTabId) {
+      previousActiveTab.current = activeTabId
       if (!isApplyingRemote.current)
         broadcastUIAction({ kind: 'tab-switch', tabId: activeTabId })
     }

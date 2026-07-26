@@ -28,7 +28,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   private readonly sessionId: string
   private readonly callbacks: CollaborationCallbacks
   private readonly channelName: string
-  private readonly presenceMetadata: Record<string, any>
+  private readonly presenceMetadata: Record<string, unknown>
   private ready = false
   private localDocumentId: string | null = null
   private pendingMessages: PendingSyncMessage[] = []
@@ -120,7 +120,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     return this.channelName
   }
 
-  broadcastControlMessage(type: string, data: Record<string, any> = {}) {
+  broadcastControlMessage(type: string, data: Record<string, unknown> = {}) {
     if (!this.channel) {
       return
     }

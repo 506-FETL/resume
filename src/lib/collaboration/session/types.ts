@@ -1,10 +1,23 @@
 import type { CollaborationRole } from '../shared'
 import type { CollaborationCallbacks } from '@/lib/automerge'
 
+export interface CollaborationIdentity {
+  userId: string
+  userName: string
+  color: string
+}
+
+export interface CollaborationSelf extends CollaborationIdentity {
+  peerId: string | null
+}
+
+export interface CollaborationParticipantMetadata extends CollaborationIdentity {
+  role: CollaborationRole | null
+}
+
 export interface CollaborationParticipant {
   peerId: string
-  metadata?: Record<string, any>
-  joinedAt: number
+  metadata: CollaborationParticipantMetadata
 }
 
 export interface StartShareParams {
@@ -23,14 +36,11 @@ export interface CollaborationSessionState {
   role: CollaborationRole | null
   sessionId: string | null
   shareUrl: string | null
-  channelName: string | null
   resumeId: string | null
   roomName: string | null
   participants: Record<string, CollaborationParticipant>
   error: string | null
-  selfPeerId: string | null
-  selfColor: string | null
-  selfUserId: string | null
+  self: CollaborationSelf | null
   shareEndedByRemote: boolean
 }
 
@@ -58,9 +68,7 @@ export interface CollaborationSessionStoreAccess {
 
 export interface SessionCallbacksOptions extends CollaborationSessionStoreAccess {
   role: CollaborationRole
-  userId: string
-  userName: string
-  color: string
+  identity: CollaborationIdentity
   adapterPeerIdRef: { current: string | null }
 }
 
@@ -76,13 +84,10 @@ export interface SessionActivationOptions extends CollaborationSessionStoreAcces
 export interface CollaborationActivationResult {
   sessionId: string
   resumeId: string
-  userId: string
-  userName: string
   role: CollaborationRole
-  color: string
+  self: CollaborationSelf
   shareUrl: string
   roomName: string
-  selfPeerId: string | null
 }
 
 export type CreateSessionCallbacks = (options: SessionCallbacksOptions) => CollaborationCallbacks

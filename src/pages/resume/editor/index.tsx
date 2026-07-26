@@ -1,20 +1,17 @@
 import { Edit } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReactToPrint } from 'react-to-print'
-import { RealtimeCursors } from '@/components/realtime-cursors'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import { getUserDisplayName } from '@/hooks/use-current-user'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useCollaborationStore } from '@/lib/collaboration'
 import useResumeExportStore from '@/store/resume/export'
 import useResumeStore from '@/store/resume/form'
 import CollaborationPanelProvider from './components/collaboration'
 import { CollaborationControls } from './components/collaboration/collaboration-controls'
 import { CollaborationDialog } from './components/collaboration/collaboration-dialog'
-import { CollaborationUISync } from './components/collaboration/collaboration-ui-sync'
+import { CollaborationRuntime } from './components/collaboration/collaboration-runtime'
 import ResumePreview from './components/preview'
 import SidebarEditor from './components/sidebar'
 import { useResumeLoader } from './hooks/use-resume-loader'
@@ -24,7 +21,7 @@ function Editor() {
   const [open, setOpen] = useState(false)
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
   const { theme } = useTheme()
-  const { loading, currentUser } = useResumeLoader()
+  const { loading } = useResumeLoader()
 
   const resumeRef = useRef<HTMLDivElement | null>(null)
   const previewScrollRef = useRef<HTMLDivElement | null>(null)
@@ -59,13 +56,8 @@ function Editor() {
   const toggleVisibility = useResumeStore(state => state.toggleVisibility)
   const visibilityState = useResumeStore(state => state.visibility)
 
-  const roomName = useCollaborationStore(state => state.roomName)
-  const isSharing = useCollaborationStore(state => state.isSharing)
-  const selfColor = useCollaborationStore(state => state.selfColor)
-
   const fill = theme === 'dark' ? '#0c0a09' : '#fafaf9'
   const stroke = theme === 'dark' ? '#3d3b3b' : '#e7e5e4'
-  const userDisplayName = getUserDisplayName(currentUser)
 
   const handleOpenSortDialog = useCallback(() => {
     requestAnimationFrame(() => {
@@ -86,24 +78,13 @@ function Editor() {
 
   return (
     <CollaborationPanelProvider>
-
-      {roomName && currentUser && selfColor && (
-        <RealtimeCursors roomName={roomName} username={userDisplayName} color={selfColor} />
-      )}
-
-      {/* 协作 UI 状态同步 */}
-      {roomName && isSharing && currentUser && selfColor && (
-        <CollaborationUISync
-          roomName={roomName}
-          username={userDisplayName}
-          color={selfColor}
-          drawerOpen={open}
-          setDrawerOpen={setOpen}
-          activeTabId={activeTabId}
-          onUpdateActiveTabId={updateActiveTabId}
-          scrollContainerRef={previewScrollRef}
-        />
-      )}
+      <CollaborationRuntime
+        drawerOpen={open}
+        setDrawerOpen={setOpen}
+        activeTabId={activeTabId}
+        updateActiveTabId={updateActiveTabId}
+        scrollContainerRef={previewScrollRef}
+      />
 
       <Drawer open={open} onOpenChange={setOpen} handleOnly>
         <DrawerTrigger asChild>

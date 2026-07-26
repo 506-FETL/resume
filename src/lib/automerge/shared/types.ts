@@ -1,9 +1,9 @@
 export interface CollaborationCallbacks {
-  onPeerJoin?: (payload: { peerId: string, metadata?: Record<string, any> }) => void
+  onPeerJoin?: (payload: { peerId: string, metadata?: Record<string, unknown> }) => void
   onPeerLeave?: (payload: { peerId: string }) => void
   onChannelReady?: (channelName: string) => void
-  onControlMessage?: (payload: { type: string, data?: Record<string, any> }) => void
-  presenceMetadata?: Record<string, any>
+  onControlMessage?: (payload: { type: string, data?: Record<string, unknown> }) => void
+  presenceMetadata?: Record<string, unknown>
 }
 
 export interface DocumentSaveResult {

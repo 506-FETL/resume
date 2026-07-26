@@ -296,10 +296,8 @@ export function SimpleEditor({
 
   // 协作模式：把最新的用户名 / 颜色推进 Yjs awareness。
   // CollaborationCaret 仅在插件初始化时写一次 `user`（options.user），而 useEditor 的依赖
-  // 只有 [isCollab, fragment]，不含用户名——展示名往往在编辑器创建之后才异步解析完成
-  // （如 participants[selfPeerId].metadata.userName 尚未就绪时回落为「协作者」）。
-  // 若不在此显式同步，awareness 会一直保留创建时的陈旧用户信息。
-  // 用 updateUser 命令在 user 变化时刷新，使各协作通道中的身份信息保持一致。
+  // 只有 [isCollab, fragment]。这里继续把 session self 的最新身份推进 awareness，确保
+  // 会话身份发生更新时编辑器插件不保留旧值。
   // 注意需带上 id（稳定人类身份），供远端按人去重光标。
   const collabUserName = collab?.user.name
   const collabUserColor = collab?.user.color

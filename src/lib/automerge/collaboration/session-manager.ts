@@ -77,7 +77,7 @@ export class CollaborationSessionManager {
     return this.currentSessionId
   }
 
-  broadcastControlMessage(type: string, data: Record<string, any> = {}) {
+  broadcastControlMessage(type: string, data: Record<string, unknown> = {}) {
     this.adapter?.broadcastControlMessage(type, data)
   }
 }

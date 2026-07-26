@@ -18,15 +18,15 @@ export function useConfigBroadcast({
   isApplyingRemote,
   broadcastUIAction,
 }: UseConfigBroadcastOptions) {
-  const prevSpacing = useRef(spacing)
-  const prevFont = useRef(font)
-  const prevTheme = useRef(theme)
+  const previousSpacing = useRef(spacing)
+  const previousFont = useRef(font)
+  const previousTheme = useRef(theme)
 
   useEffect(() => {
     if (isApplyingRemote.current)
       return
-    if (JSON.stringify(prevSpacing.current) !== JSON.stringify(spacing)) {
-      prevSpacing.current = spacing
+    if (JSON.stringify(previousSpacing.current) !== JSON.stringify(spacing)) {
+      previousSpacing.current = spacing
       broadcastUIAction({ kind: 'config-spacing', data: spacing })
     }
   }, [spacing, broadcastUIAction, isApplyingRemote])
@@ -34,8 +34,8 @@ export function useConfigBroadcast({
   useEffect(() => {
     if (isApplyingRemote.current)
       return
-    if (JSON.stringify(prevFont.current) !== JSON.stringify(font)) {
-      prevFont.current = font
+    if (JSON.stringify(previousFont.current) !== JSON.stringify(font)) {
+      previousFont.current = font
       broadcastUIAction({ kind: 'config-font', data: font })
     }
   }, [font, broadcastUIAction, isApplyingRemote])
@@ -43,8 +43,8 @@ export function useConfigBroadcast({
   useEffect(() => {
     if (isApplyingRemote.current)
       return
-    if (JSON.stringify(prevTheme.current) !== JSON.stringify(theme)) {
-      prevTheme.current = theme
+    if (JSON.stringify(previousTheme.current) !== JSON.stringify(theme)) {
+      previousTheme.current = theme
       broadcastUIAction({ kind: 'config-theme', data: theme })
     }
   }, [theme, broadcastUIAction, isApplyingRemote])

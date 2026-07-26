@@ -49,7 +49,7 @@ export function bindCursorChannel(options: {
   } = options
 
   channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-    leftPresences.forEach((presence: any) => {
+    leftPresences.forEach((presence) => {
       const parsedUserId = getPresenceUserId(presence)
 
       if (parsedUserId === null || parsedUserId === selfUserId) {

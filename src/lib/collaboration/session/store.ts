@@ -41,7 +41,7 @@ async function activateSession(
   rememberSessionRole({
     sessionId: result.sessionId,
     resumeId: result.resumeId,
-    userId: result.userId,
+    userId: result.self.userId,
     role: result.role,
   })
 
@@ -52,9 +52,9 @@ async function activateSession(
     resumeId: result.resumeId,
     sessionId: result.sessionId,
     role: result.role,
-    userName: result.userName,
-    color: result.color,
-    userId: result.userId,
+    userName: result.self.userName,
+    color: result.self.color,
+    userId: result.self.userId,
     seed: params.shouldSaveSnapshot === true,
   })
 }
@@ -168,11 +168,11 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     // 销毁富文本 Yjs 层（provider/doc/awareness，含去抖 flush 由编辑器卸载处理）
     useRichTextCollabStore.getState().stop()
 
-    if (state.sessionId && state.resumeId && state.selfUserId) {
-      clearStoredSession(state.sessionId, state.resumeId, state.selfUserId)
+    if (state.sessionId && state.resumeId && state.self) {
+      clearStoredSession(state.sessionId, state.resumeId, state.self.userId)
     }
 
-    set(createStoppedSessionState(state))
+    set(createStoppedSessionState())
 
     if (!silent) {
       toast.success(state.role === 'host' ? '已关闭实时协作' : '已退出实时协作')
@@ -189,12 +189,12 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     useResumeStore.getState().docManager?.disableCollaboration()
     useRichTextCollabStore.getState().stop()
 
-    if (state.sessionId && state.resumeId && state.selfUserId) {
-      clearStoredSession(state.sessionId, state.resumeId, state.selfUserId)
+    if (state.sessionId && state.resumeId && state.self) {
+      clearStoredSession(state.sessionId, state.resumeId, state.self.userId)
     }
 
     set(
-      createStoppedSessionState(state, {
+      createStoppedSessionState({
         shareEndedByRemote: true,
       }),
     )

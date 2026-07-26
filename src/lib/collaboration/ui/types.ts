@@ -6,23 +6,6 @@ export interface RemoteUserUIState {
   color: string
   drawerOpen: boolean
   activeTabId: ORDERType | null
-  scrollPosition: number
-  lastUpdate: number
-}
-
-export interface RemoteClickEvent {
-  userId: number
-  userName: string
-  color: string
-  position: { x: number, y: number }
-  timestamp: number
-  targetLabel?: string
-}
-
-export interface SharedUIConfig {
-  spacing: SpacingConfigType
-  font: FontConfigType
-  theme: ThemeConfigType
 }
 
 export interface UIStateBroadcastPayload {
@@ -33,20 +16,7 @@ export interface UIStateBroadcastPayload {
   state: {
     drawerOpen: boolean
     activeTabId: ORDERType | null
-    scrollPosition?: number
-    config?: SharedUIConfig
   }
-  timestamp: number
-}
-
-export interface ClickEventBroadcastPayload {
-  type: 'mouse-click'
-  userId: number
-  userName: string
-  color: string
-  position: { x: number, y: number }
-  viewport?: { width: number, height: number }
-  targetLabel?: string
   timestamp: number
 }
 
@@ -66,38 +36,6 @@ export interface UIActionBroadcastPayload {
   color: string
   timestamp: number
 }
-
-export type CollaborationUIBroadcastPayload
-  = | UIStateBroadcastPayload
-    | ClickEventBroadcastPayload
-    | UIActionBroadcastPayload
-
-export type LatestRemoteAction = UIAction & {
-  userId: number
-  userName: string
-  color: string
-  timestamp: number
-}
-
-export interface CollaborationUIState {
-  followMode: boolean
-  remoteUIStates: Record<number, RemoteUserUIState>
-  remoteClicks: RemoteClickEvent[]
-  latestRemoteAction: LatestRemoteAction | null
-}
-
-export interface CollaborationUIActions {
-  setFollowMode: (enabled: boolean) => void
-  updateRemoteUIState: (payload: UIStateBroadcastPayload) => void
-  addRemoteClick: (payload: ClickEventBroadcastPayload) => void
-  setLatestRemoteAction: (action: UIActionBroadcastPayload) => void
-  clearLatestRemoteAction: () => void
-  removeRemoteUser: (userId: number) => void
-  cleanExpiredClicks: () => void
-  reset: () => void
-}
-
-export type CollaborationUIStore = CollaborationUIState & CollaborationUIActions
 
 export interface CollaborationUIIdentity {
   userId: number

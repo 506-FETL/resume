@@ -101,7 +101,7 @@ export class DocumentManager {
     return this.collaboration?.getSessionId() ?? null
   }
 
-  broadcastCollaborationEvent(type: string, data: Record<string, any> = {}) {
+  broadcastCollaborationEvent(type: string, data: Record<string, unknown> = {}) {
     this.collaboration?.broadcastControlMessage(type, data)
   }
 

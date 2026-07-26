@@ -1,11 +1,32 @@
 import { Copy, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogHeader as ModalHeader } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  DialogHeader as ModalHeader,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { useCollaborationPanel } from '.'
+import { useCollaborationPanel } from '../context'
 
 export function CollaborationDialog() {
-  const { collabDialogOpen, setCollaborationDialogOpen, closeCollaborationDialog, isSharing, participantCount, shareUrl, onCopyShareLink, collaborationRole, onStopSharing, collaborationError, onStartSharing, canStartSharing, isCollabConnecting } = useCollaborationPanel()
+  const {
+    collabDialogOpen,
+    setCollaborationDialogOpen,
+    closeCollaborationDialog,
+    isSharing,
+    participantCount,
+    shareUrl,
+    onCopyShareLink,
+    collaborationRole,
+    onStopSharing,
+    collaborationError,
+    onStartSharing,
+    canStartSharing,
+    isCollabConnecting,
+  } = useCollaborationPanel()
 
   return (
     <Dialog open={collabDialogOpen} onOpenChange={setCollaborationDialogOpen}>
@@ -72,7 +93,9 @@ function SharingContent({
         </div>
         <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           <p>
-            <span className="font-medium text-foreground">{collaborationRole === 'host' ? '发起者' : '协作者'}</span>
+            <span className="font-medium text-foreground">
+              {collaborationRole === 'host' ? '发起者' : '协作者'}
+            </span>
             {collaborationRole === 'host'
               ? ' 可以随时关闭共享，关闭后他人将无法继续加入此链接。'
               : ' 可以随时退出协作，重新访问链接即可再次加入。'}
@@ -108,7 +131,9 @@ function StartSharingContent({
     <>
       <ModalHeader>
         <DialogTitle>开启实时协作</DialogTitle>
-        <DialogDescription>启用后将创建协作会话，你可以复制链接分享给队友，大家的更改会实时同步。</DialogDescription>
+        <DialogDescription>
+          启用后将创建协作会话，你可以复制链接分享给队友，大家的更改会实时同步。
+        </DialogDescription>
       </ModalHeader>
       <div className="space-y-3 text-sm text-muted-foreground">
         <p>• 支持多人同时编辑，自动保存修改记录</p>
