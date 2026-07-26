@@ -2,7 +2,6 @@ import Markdown from 'react-markdown'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 

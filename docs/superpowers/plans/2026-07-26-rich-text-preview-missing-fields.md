@@ -184,7 +184,7 @@ git commit -m "fix: repair legacy resume data at boundaries"
 
 ### 任务 3：确保富文本写回使用完整 section 值
 
-**状态：进行中**
+**状态：已完成**
 
 **文件：**
 - 修改：`src/hooks/collab/use-resume-form-sync.ts`
@@ -234,7 +234,7 @@ pnpm exec eslint src/hooks/collab/use-resume-form-sync.ts --max-warnings 0
 
 执行记录：`pnpm exec eslint src/hooks/collab/use-resume-form-sync.ts --max-warnings 0` 退出码 0，无输出。
 
-- [ ] **步骤 3：本地提交完整值订阅修复**
+- [x] **步骤 3：本地提交完整值订阅修复**
 
 ```bash
 git add src/hooks/collab/use-resume-form-sync.ts docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md
@@ -243,14 +243,18 @@ git commit -m "fix: sync complete resume form values"
 
 不得执行 `git push`。
 
+执行记录：已创建本地提交 `6649c2c fix: sync complete resume form values`，未执行 `git push`。
+
 ---
 
 ### 任务 4：执行原始场景回归与完整工程验证
 
+**状态：进行中**
+
 **文件：**
 - 修改：`docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md`
 
-- [ ] **步骤 1：执行旧数据结构回归验证**
+- [x] **步骤 1：执行旧数据结构回归验证**
 
 使用已安装的 `jiti` 从 Node 直接加载 TypeScript 模块，并用 `node:assert/strict` 验证：
 
@@ -261,13 +265,17 @@ git commit -m "fix: sync complete resume form values"
 
 运行时不得创建持久测试文件；把实际命令与断言结果追加到本计划的执行记录。
 
-- [ ] **步骤 2：执行富文本同级数组保留回归**
+执行记录：使用 `node --input-type=module -e`、`jiti` 与 `node:assert/strict` 验证荣誉证书缺失数组、技能/爱好数组为 `null`、工作经历数组为 `null`、合法数组保留及输入/默认常量不变；退出码 0，输出 `resume normalization regression: passed`。
+
+- [x] **步骤 2：执行富文本同级数组保留回归**
 
 使用现有 `planRemoteFormSync` 与 `buildWriteOps` 做一次性 Node 断言：当 `honors_certificates.description` 从空字符串变为富文本、`certificates` 保持不变时，写操作只包含 `description` 的 `setLeaf`，不得出现 `certificates` 的赋值、删除或数组操作。
 
 把实际命令与断言结果追加到本计划的执行记录。
 
-- [ ] **步骤 3：运行所有改动文件的定向 lint**
+执行记录：使用 `planRemoteFormSync`、`buildWriteOps` 和 `classifyLeaf` 对荣誉证书富文本更新做一次性 Node 断言；退出码 0，输出 `rich text sibling array regression: passed`，唯一写操作为 `description` 的 `setLeaf`。
+
+- [x] **步骤 3：运行所有改动文件的定向 lint**
 
 ```bash
 pnpm exec eslint \
@@ -281,7 +289,9 @@ pnpm exec eslint \
 
 预期：退出码 0，无 error 或 warning。
 
-- [ ] **步骤 4：运行仓库强制类型检查**
+执行记录：上述定向 ESLint 命令退出码 0，无输出；用户授权清理既有 `ScrollArea` import 后，将 `src/components/jd-variant/components/steps/step-parsing.tsx` 加入同一检查再次运行，退出码仍为 0、无输出。
+
+- [x] **步骤 4：运行仓库强制类型检查**
 
 ```bash
 npx tsc --noEmit
@@ -289,7 +299,9 @@ npx tsc --noEmit
 
 预期：退出码 0，无 TypeScript 错误。
 
-- [ ] **步骤 5：运行生产构建**
+执行记录：首次运行 `npx tsc --noEmit` 退出码 2，唯一错误为 `src/components/jd-variant/components/steps/step-parsing.tsx:5` 的既有未使用 `ScrollArea` import（`TS6133`）。该行自提交 `5598dbdb` 起存在，且本次修复原本未修改该文件；用户明确允许删除该无用 import 后再次运行，退出码 0、无输出。
+
+- [x] **步骤 5：运行生产构建**
 
 ```bash
 pnpm build
@@ -297,7 +309,9 @@ pnpm build
 
 预期：退出码 0，Vite 生产构建完成；记录已有非阻塞警告，不把警告误报为成功或失败。
 
-- [ ] **步骤 6：检查最终差异与提交状态**
+执行记录：`pnpm build` 退出码 0，Vite 7.3.2 完成 5218 个模块转换并在 14.19s 构建成功；存在既有的 `Some chunks are larger than 500 kB` 非阻塞体积警告。
+
+- [x] **步骤 6：检查最终差异与提交状态**
 
 ```bash
 git diff --check
@@ -307,11 +321,13 @@ git log -5 --oneline
 
 确认只包含规格、计划和本次修复文件；不得执行 `git push`。
 
+执行记录：`git diff --check` 无输出；`git status --short` 仅包含本计划执行记录与用户授权删除未使用 import 的 `step-parsing.tsx`；最近提交依次为 `6649c2c`、`2e4640b`、`6e1da6d`，均为本次本地修复且未推送。
+
 - [ ] **步骤 7：提交最终计划执行记录（如有未提交变更）**
 
 ```bash
-git add docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md
-git commit -m "docs: record rich text preview fix verification"
+git add docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md src/components/jd-variant/components/steps/step-parsing.tsx
+git commit -m "fix: clear typecheck baseline"
 ```
 
 不得执行 `git push`。
