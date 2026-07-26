@@ -36,7 +36,7 @@
 - 修改：`src/lib/collaboration/richtext/collab-extensions.ts:36-49,138`
 - 修改：`docs/superpowers/plans/2026-07-26-collaboration-caret-atomic-widget.md`
 
-- [ ] **步骤 1：创建保持现状的 DOM 构造函数**
+- [x] **步骤 1：创建保持现状的 DOM 构造函数**
 
 新增 `src/lib/collaboration/richtext/caret-dom.ts`。本步骤刻意保留 `<div>` 标签，确保只是提取，不提前混入行为修复：
 
@@ -57,7 +57,7 @@ export function createCollaborationCaret(user: Record<string, any>) {
 }
 ```
 
-- [ ] **步骤 2：让扩展组装使用提取后的函数**
+- [x] **步骤 2：让扩展组装使用提取后的函数**
 
 在 `collab-extensions.ts` 中删除原 `renderCaret`，增加相对导入：
 
@@ -77,7 +77,7 @@ DedupeCollaborationCaret.configure({
 
 不得修改 `DedupeCollaborationCaret`、`createDedupeAwarenessFilter`、Collaboration fragment 或扩展顺序。
 
-- [ ] **步骤 3：验证提取没有破坏类型与构建**
+- [x] **步骤 3：验证提取没有破坏类型与构建**
 
 运行：
 
@@ -92,7 +92,19 @@ git diff --check
 
 执行后在本步骤下追加：`执行记录：...`。
 
-- [ ] **步骤 4：更新计划进度并提交纯重构**
+执行记录（2026-07-26）：
+
+- 代码质量复审确认 `className` / CSSOM style 属性 / `append` 不是对原构造过程的严格逐语义提取；已恢复 `classList.add`、`setAttribute('style', ...)`、`insertBefore(..., null)` 以及 `cursor` 操作序列，使函数体与基线 `renderCaret` 一致。
+- 代码质量复审修复后新鲜复跑：目标 ESLint 退出码 0；`pnpm exec tsc --noEmit` 与 `npx tsc --noEmit` 均退出码 2 且仍只命中已记录的基线 `step-parsing.tsx:5` `TS6133`（`npx` 另有 npm `home` 配置警告）；`pnpm build` 退出码 0，成功转换 5213 个模块；`git diff --check` 退出码 0。
+- 规格复审发现初次提取把参数收窄为必填 `name: string` 且丢失了缺省回退；已恢复 `user: Record<string, any>` 和 `document.createTextNode(user.name ?? '')`，保持原 `renderCaret` 在姓名缺省时生成空文本节点的语义。
+- `pnpm exec eslint src/lib/collaboration/richtext/caret-dom.ts src/lib/collaboration/richtext/collab-extensions.ts --max-warnings 0`：首次退出码 1，命中基线中 `caret-dedupe` 的内联类型导入规则；拆分为顶层 `import type` 后第二次退出码 1，命中导入排序规则；调整零运行时影响的导入顺序后第三次退出码 0，0 errors / 0 warnings；规格复审修复后复跑仍为退出码 0。
+- `pnpm exec tsc --noEmit`：退出码 2；唯一错误为 `src/components/jd-variant/components/steps/step-parsing.tsx:5` 的 `TS6133: 'ScrollArea' is declared but its value is never read`；规格复审修复后复跑仍仅此错误。
+- `npx tsc --noEmit`：退出码 2；同一 `TS6133` 错误，另有 npm 对未知 `home` 用户配置的警告；规格复审修复后复跑结果不变。
+- 基线证据：`git diff -- src/components/jd-variant/components/steps/step-parsing.tsx` 无输出，且 `git show aabb03fa8f324d1db20fe942af2159432ec310ab:src/components/jd-variant/components/steps/step-parsing.tsx` 已包含该未使用导入；因此该类型错误属于任务前基线，本任务未修改无关文件。
+- `pnpm build`：退出码 0，Vite 成功转换 5213 个模块并完成生产构建；输出现有大 chunk 警告；规格复审修复后复跑仍为退出码 0。
+- `git diff --check`：退出码 0，无空白错误；规格复审修复后复跑仍为退出码 0。
+
+- [x] **步骤 4：更新计划进度并提交纯重构**
 
 先把任务 1 已完成步骤改为 `- [x]`，再运行：
 

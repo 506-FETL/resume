@@ -1,5 +1,6 @@
 import type { Awareness } from 'y-protocols/awareness'
 import type { XmlFragment } from 'yjs'
+import type { AwarenessLikeState } from './caret-dedupe'
 import { Collaboration } from '@tiptap/extension-collaboration'
 import { CollaborationCaret } from '@tiptap/extension-collaboration-caret'
 import { Highlight } from '@tiptap/extension-highlight'
@@ -15,7 +16,8 @@ import { yCursorPlugin } from '@tiptap/y-tiptap'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
 import { handleImageUpload, MAX_FILE_SIZE } from '@/lib/tiptap-utils'
-import { type AwarenessLikeState, createDedupeAwarenessFilter } from './caret-dedupe'
+import { createDedupeAwarenessFilter } from './caret-dedupe'
+import { createCollaborationCaret } from './caret-dom'
 
 export interface CollabExtensionConfig {
   fragment: XmlFragment
@@ -31,21 +33,6 @@ export interface CollabExtensionConfig {
 interface BuildExtensionsOptions {
   onImageError?: (message: string) => void
   collab?: CollabExtensionConfig
-}
-
-/** 远端光标 DOM：彩色竖线 + 姓名标签（配套 .collaboration-carets CSS）。 */
-function renderCaret(user: Record<string, any>): HTMLElement {
-  const cursor = document.createElement('span')
-  cursor.classList.add('collaboration-carets__caret')
-  cursor.setAttribute('style', `border-color: ${user.color}`)
-
-  const label = document.createElement('div')
-  label.classList.add('collaboration-carets__label')
-  label.setAttribute('style', `background-color: ${user.color}`)
-  label.insertBefore(document.createTextNode(user.name ?? ''), null)
-
-  cursor.insertBefore(label, null)
-  return cursor
 }
 
 /**
@@ -135,7 +122,7 @@ export function buildEditorExtensions({ onImageError, collab }: BuildExtensionsO
       DedupeCollaborationCaret.configure({
         provider: collab.provider,
         user: collab.user,
-        render: renderCaret,
+        render: createCollaborationCaret,
       }),
     )
   }
