@@ -38,28 +38,29 @@ export function useResumeFormSync<T extends FieldValues>(
   const isResettingRef = useFormRemoteSync(form, storeData, fieldArrays, caret)
 
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (isResettingRef.current) {
-        return
-      }
+    return form.subscribe({
+      formState: { values: true },
+      callback: ({ values }) => {
+        if (isResettingRef.current) {
+          return
+        }
 
-      // 以「变更前的 store 值」为 base 计算最小 diff（实时读取，避免陈旧闭包）。
-      const base = useResumeStore.getState()[sectionKey] as unknown
-      const plan = planRemoteFormSync(base, value, Object.keys(fieldArrays))
+        // 以「变更前的 store 值」为 base 计算最小 diff（实时读取，避免陈旧闭包）。
+        const base = useResumeStore.getState()[sectionKey] as unknown
+        const plan = planRemoteFormSync(base, values, Object.keys(fieldArrays))
 
-      if (plan.fieldUpdates.length === 0 && plan.fieldArrayOperations.length === 0) {
-        return
-      }
+        if (plan.fieldUpdates.length === 0 && plan.fieldArrayOperations.length === 0) {
+          return
+        }
 
-      const ops = buildWriteOps(plan, sectionKey as string, classifyLeaf)
-      useResumeStore.getState().updateFormFields(
-        sectionKey,
-        value as unknown as FormDataMap[typeof sectionKey],
-        ops,
-      )
+        const ops = buildWriteOps(plan, sectionKey as string, classifyLeaf)
+        useResumeStore.getState().updateFormFields(
+          sectionKey,
+          values as unknown as FormDataMap[typeof sectionKey],
+          ops,
+        )
+      },
     })
-
-    return () => subscription.unsubscribe()
     // fieldArrays 每次渲染重建，用其 key 集合作为稳定依赖
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, sectionKey, isResettingRef, Object.keys(fieldArrays).join(',')])

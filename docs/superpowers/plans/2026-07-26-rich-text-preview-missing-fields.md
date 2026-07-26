@@ -116,7 +116,7 @@ git commit -m "fix: normalize incomplete resume sections"
 
 ### 任务 2：在加载与预览边界应用结构规范化
 
-**状态：进行中**
+**状态：已完成**
 
 **文件：**
 - 修改：`src/store/resume/helpers/transform.ts`
@@ -169,7 +169,7 @@ pnpm exec eslint src/store/resume/helpers/transform.ts src/components/resume/run
 
 执行记录：`pnpm exec eslint src/store/resume/helpers/transform.ts src/components/resume/runtime/context/resume-data-context.tsx --max-warnings 0` 退出码 0，无输出。
 
-- [ ] **步骤 4：本地提交边界接入**
+- [x] **步骤 4：本地提交边界接入**
 
 ```bash
 git add src/store/resume/helpers/transform.ts src/components/resume/runtime/context/resume-data-context.tsx docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md
@@ -178,14 +178,18 @@ git commit -m "fix: repair legacy resume data at boundaries"
 
 不得执行 `git push`。
 
+执行记录：已创建本地提交 `2e4640b fix: repair legacy resume data at boundaries`，未执行 `git push`。
+
 ---
 
 ### 任务 3：确保富文本写回使用完整 section 值
 
+**状态：进行中**
+
 **文件：**
 - 修改：`src/hooks/collab/use-resume-form-sync.ts`
 
-- [ ] **步骤 1：替换不完整的 `watch(callback)` 写路径**
+- [x] **步骤 1：替换不完整的 `watch(callback)` 写路径**
 
 把 `form.watch` 订阅改为 `form.subscribe`：
 
@@ -218,7 +222,7 @@ useEffect(() => {
 
 保留现有远端回环抑制、实时读取 store 基线和字段数组路径依赖策略。不得回退到整段 Automerge 覆盖。
 
-- [ ] **步骤 2：执行定向静态检查**
+- [x] **步骤 2：执行定向静态检查**
 
 运行：
 
@@ -227,6 +231,8 @@ pnpm exec eslint src/hooks/collab/use-resume-form-sync.ts --max-warnings 0
 ```
 
 预期：退出码 0，无 lint error 或 warning。
+
+执行记录：`pnpm exec eslint src/hooks/collab/use-resume-form-sync.ts --max-warnings 0` 退出码 0，无输出。
 
 - [ ] **步骤 3：本地提交完整值订阅修复**
 
