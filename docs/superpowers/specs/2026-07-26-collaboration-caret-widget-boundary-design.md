@@ -29,7 +29,7 @@
 
 因此不采用 `U+2060` 修复；旧规格中的该因果解释已作废。
 
-### 2.2 当前最小根因边界
+### 2.2 当前工作假设与最小根因边界
 
 `src/lib/collaboration/richtext/collab-extensions.ts` 当前生成如下 widget：
 
@@ -39,7 +39,7 @@
 
 该结构不是一个稳定的原子行内盒：`<span>` 的 HTML 内容模型要求 phrasing content，而内部 `<div>` 是 flow content；同时，绝对定位子节点不参与外层尺寸计算。远端事务连续移动 ProseMirror widget 时，逻辑 DecorationSet 和 DOM 可以已经替换正确，但浏览器仍需对这种零内容 inline containing block 反复做行盒、绝对定位和绘制失效计算。
 
-隔离 DOM 生命周期没有发现 awareness 数量或节点清理异常，而用户观察到的是持续的可视堆叠和残片。因此当前证据把问题收敛到 widget 的浏览器布局/绘制边界。由于非绘制型 DOM 模拟器不能验证像素残影，本设计明确把双账号浏览器回归设为完成门槛，而不把推断伪装成已由自动化证明的浏览器根因。
+隔离 DOM 生命周期没有发现 awareness 数量或节点清理异常，而用户观察到的是持续的可视堆叠和残片。因此当前证据支持“widget 的浏览器布局/绘制边界不稳定”这一工作假设。它尚未被像素级自动化证明：非绘制型 DOM 模拟器不能验证残影，本设计明确把双账号浏览器回归设为完成门槛，而不把该假设写成已确认的浏览器根因。
 
 ## 3. 目标与非目标
 
@@ -64,7 +64,7 @@
 采用“合法原子 inline widget”方案：
 
 1. 将远端 caret DOM 构造提取到 `src/lib/collaboration/richtext/caret-dom.ts`，让 DOM 结构可以独立测试。
-2. 外层继续使用 `.collaboration-carets__caret` `<span>`，但在 CSS 中改为零宽、具有 `1em` 明确高度的 `inline-block`，并使用 `vertical-align` 对齐当前文字行。
+2. 外层继续使用 `.collaboration-carets__caret` `<span>`，但在 CSS 中固定使用 `display: inline-block`、`width: 0`、`height: 1em` 和 `vertical-align: text-bottom`。`text-bottom` 使 1em 高的竖线盒底部与父级字体的文字底部对齐，避免把选择留给实施阶段，也避免 `middle` 等取值造成竖线偏移。
 3. 保留现有透明双边框与负 margin 的零净宽布局，使加入 widget 不推动正文；颜色仍由现有 inline style 写入边框。
 4. 姓名标签由 `<div>` 改为 `.collaboration-carets__label` `<span>`，继续绝对定位在光标上方。这样外层只包含合法的 phrasing content。
 5. `collab-extensions.ts` 继续将构造函数作为 `cursorBuilder` 传给现有 `DedupeCollaborationCaret`；不改变 Decoration key、selection 解析或 awareness 过滤。
@@ -99,6 +99,7 @@
 - 颜色继续由现有 awareness 用户数据提供，不新增格式转换。
 - 外层零净宽，不能改变正文字符位置、换行宽度或 selection 映射。
 - `height: 1em` 随编辑器当前字号缩放；姓名标签仍使用现有字号和 padding。
+- `vertical-align: text-bottom` 是固定契约；不得在实施时临时换成 `baseline`、`middle` 或其他值。
 - 独立编辑模式不加载 CollaborationCaret，因此不受影响。
 - 不修改用户工作区中已有的 `.DS_Store` 变更。
 
@@ -110,11 +111,13 @@
 
 1. 先为 `caret-dom.ts` 写失败测试，证明当前构造仍产生块级 `<div>`，尚未满足原子 widget 契约。
 2. 断言修复后的外层和标签均为 `SPAN`，类名、颜色和姓名文本保持不变，并且只有一个标签节点。
-3. 增加真实 Tiptap/Yjs 双编辑器生命周期测试：远端连续输入、移动 selection 后，每个采样点都只能存在一个远端 caret 和一个 label。
-4. 增加多字段共享 awareness 场景：活跃字段有一个标签，未聚焦字段没有标签。
-5. 运行针对性测试、相关 ESLint、TypeScript 类型检查和生产构建。
+3. 先写 CSS 契约失败测试：使用现有 `sass-embedded` 编译 `paragraph-node.scss`，从编译结果中提取 caret 规则，分别断言 `display: inline-block`、`width: 0`、`height: 1em`、`vertical-align: text-bottom` 以及现有双边框/负 margin。当前样式缺少前四项，测试必须先失败；补齐几何规则后通过。
+4. 增加真实 Tiptap/Yjs 双编辑器生命周期测试：使用 `happy-dom` 提供 DOM 环境，远端连续输入、移动 selection 后，每个采样点都只能存在一个远端 caret 和一个 label。
+5. 增加多字段共享 awareness 场景：活跃字段有一个标签，未聚焦字段没有标签。
+6. 将 `happy-dom` 加为开发依赖，仅用于上述 DOM 生命周期测试；不进入生产 bundle。
+7. 运行针对性测试、相关 ESLint、TypeScript 类型检查和生产构建。
 
-生命周期测试用于防止后续代码引入真实 DOM 节点泄漏；它在当前实现下也可能通过，因此是补充回归，不被错误描述为本次 CSS/像素缺陷的 fail-before 测试。真正的红灯来自 DOM 语义和原子盒样式契约。
+生命周期测试用于防止后续代码引入真实 DOM 节点泄漏；它在当前实现下也可能通过，因此是补充回归，不被错误描述为本次 CSS/像素缺陷的 fail-before 测试。本次 TDD 的红灯分别来自 DOM 语义测试和编译后 CSS 几何契约测试。
 
 ### 7.2 双账号浏览器回归（完成门槛）
 
@@ -125,6 +128,7 @@
 3. 发起者输入多行并跨行移动，旧行无气泡残留。
 4. 发起者在两个不同富文本字段间切换焦点，只有当前字段显示气泡。
 5. 反向由协作者输入，发起者侧行为仍正常。
+6. 至少在两种字号或行高的富文本字段中检查竖线高度和气泡位置，确认 `text-bottom` 对齐不抬高行盒、不遮挡正文。
 
 若执行环境没有双账号登录态，不能宣称视觉缺陷已完全修复；必须明确记录限制，并请用户完成该项验收。
 
