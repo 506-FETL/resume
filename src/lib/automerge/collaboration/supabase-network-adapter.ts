@@ -199,10 +199,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
             peerId: String(remotePeerId) as unknown as PeerId,
           })
 
-          this.callbacks.onPeerLeave?.({
-            peerId: String(remotePeerId),
-            metadata: presence.metadata || {},
-          })
+          this.callbacks.onPeerLeave?.({ peerId: String(remotePeerId) })
         }
       })
     })

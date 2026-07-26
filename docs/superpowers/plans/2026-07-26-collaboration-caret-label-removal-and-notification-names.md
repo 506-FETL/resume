@@ -4,7 +4,7 @@
 
 **目标：** 保留富文本远端彩色光标竖线但彻底移除昵称气泡，并让加入/退出协作通知稳定显示真实昵称，同时按用户要求删除仓库全部测试代码。
 
-**架构：** 光标构造器不再创建 label DOM，SCSS 只保留竖线规则；协作启动从已加载的 `currentUser` 同步解析昵称，避免第二条异步认证链路。presence leave 事件把 metadata 传到会话层，会话层在移除 participant 前按事件与缓存数据解析昵称。
+**架构：** 光标构造器不再创建 label DOM，SCSS 只保留竖线规则；协作启动从已加载的 `currentUser` 同步解析昵称，避免第二条异步认证链路。participant store 是通知昵称 metadata 的唯一真源，加入先存后读，退出在删除前读取。
 
 **技术栈：** React 19、TypeScript、Zustand、Supabase Realtime Presence、Tiptap/Yjs、SCSS、pnpm/Vite
 
@@ -21,8 +21,6 @@
 - `src/hooks/use-current-user.ts`：提供基于现成 Supabase User 的同步展示名解析函数。
 - `src/pages/resume/editor/index.tsx`：为鼠标协作与 UI 同步使用同一展示名。
 - `src/pages/resume/editor/components/collaboration/index.tsx`：为协作会话启动提供同一展示名。
-- `src/lib/automerge/shared/types.ts`：允许离开事件携带 presence metadata。
-- `src/lib/automerge/collaboration/supabase-network-adapter.ts`：把 `leftPresences` metadata 传出适配层。
 - `src/lib/collaboration/session/callbacks.ts`：统一解析加入/退出昵称并生成通知。
 - `eslint.config.js`、`package.json`、`pnpm-lock.yaml`：移除仅用于已删除测试的配置与直接依赖。
 
@@ -84,23 +82,21 @@ caret builder 现在只返回设置了 `border-color` 的 `.collaboration-carets
 执行记录：编辑器与协作面板现均从各自已经持有的同一 `currentUser` 同步解析展示名；
 `rg` 确认这两个入口不再调用 `useCurrentUserName()`，会话 payload 与两个协作 UI 通道共享该值。
 
-### 任务 4：让退出通知携带并解析真实昵称
+### 任务 4：让加入与退出通知使用同一份 participant metadata
 
 **文件：**
 
-- 修改：`src/lib/automerge/shared/types.ts`
-- 修改：`src/lib/automerge/collaboration/supabase-network-adapter.ts`
 - 修改：`src/lib/collaboration/session/callbacks.ts`
 
-- [x] 将 `CollaborationCallbacks.onPeerLeave` payload 扩展为可选 `metadata`。
-- [x] presence leave 处理器从每条 `leftPresences` 读取 `presence.metadata` 并随 `peerId` 传给回调。
-- [x] 在 callbacks 中增加局部昵称解析函数，按 `metadata.userName`、`metadata.name`、匿名 peer 兜底解析。
-- [x] 加入通知复用统一解析函数。
-- [x] 退出通知在删除 participant 前读取缓存 metadata，并按“事件 metadata → participant metadata → 兜底”显示“`<昵称> 退出协作`”。
+- [x] 撤销 `CollaborationCallbacks.onPeerLeave` payload 的 metadata 扩展，恢复为只传 `peerId`。
+- [x] 撤销适配层 leave metadata 传递，避免第二套 metadata 进入会话回调。
+- [x] 保留单参数昵称解析函数，按 `metadata.userName`、`metadata.name`、匿名 peer 兜底解析。
+- [x] 加入回调先创建并保存 participant，再从 participant store 读取 metadata 显示通知。
+- [x] 退出回调在删除 participant 前从同一 participant store 读取 metadata 显示通知。
 - [x] 检查自端 peer 过滤逻辑保持不变，避免自己收到自己的加入/退出通知。
 
-执行记录：leave 回调现收到 `presence.metadata`，并在 participants 删除前读取缓存 metadata；
-加入与退出共用同一昵称解析顺序，自端 `peerId` 过滤条件保持不变。
+执行记录：`onPeerLeave` 类型与适配层均恢复为只传 `peerId`；`rg` 确认通知层不存在
+`metadataSources` 或 leave metadata 参数，加入与退出都只读取 `participants[peerId].metadata`。
 
 ### 任务 5：验证、记录与本地提交
 
@@ -112,24 +108,29 @@ caret builder 现在只返回设置了 `border-color` 的 `.collaboration-carets
 
   执行记录：原始命令只有两个既有警告（Tiptap 路径被配置忽略；Provider 文件原有
   `react-refresh/only-export-components`）；使用 `--no-warn-ignored` 并只关闭该既有 Provider
-  规则后重新检查相关源码，退出码为 0，0 错误、0 警告。
+  规则后重新检查相关源码，退出码为 0，0 错误、0 警告。metadata 收敛后再次检查本次
+  规格、计划和三个相关源码文件，退出码为 0。
 
 - [x] 运行 `pnpm exec tsc --noEmit` 与 `npx tsc --noEmit`；既有 `src/components/jd-variant/components/steps/step-parsing.tsx` 的 `ScrollArea` 未使用错误保持如实记录，不修改无关文件。
 
   执行记录：两条命令退出码均为 2，唯一 TypeScript 错误均为既有
-  `step-parsing.tsx:5 TS6133 ScrollArea`；`npx` 另输出既有 npm `home` 配置弃用警告。
+  `step-parsing.tsx:5 TS6133 ScrollArea`；metadata 收敛后复查结果不变；`npx` 另输出既有
+  npm `home` 配置弃用警告。
 
 - [x] 运行 `pnpm build`、`git diff --check` 和全局测试文件扫描。
 
   执行记录：`pnpm build` 退出码 0，转换 5213 个模块，仅有既有 chunk 大小提示；
   `git diff --check` 退出码 0；源码测试文件/测试目录、label 选择器与 `happy-dom` 扫描均无输出；
-  `pnpm install --frozen-lockfile --offline` 退出码 0，确认 lockfile 一致。
+  `pnpm install --frozen-lockfile --offline` 退出码 0，确认 lockfile 一致。metadata 收敛后再次
+  构建通过，仍转换 5213 个模块，`git diff --check` 仍为 0。
 
 - [x] 直接审查最终 diff，确认没有删除设计文档、没有更改远端光标竖线能力、没有推送远端。
 
   执行记录：自查发现空 `userName` 不应阻断兼容 `name` 字段，已改为逐字段、逐 metadata
-  来源解析；设计文档保留，caret 边框规则保留，未执行任何远端操作。
-- [x] 更新所有执行记录后，本地提交：`fix(collab): remove caret labels and preserve participant names`。
+  字段解析；收敛复查确认 leave 只传 `peerId`，通知只读 participant store；设计文档保留，
+  caret 边框规则保留，未执行任何远端操作。
+
+- [x] 更新本次收敛执行记录后，本地提交：`refactor(collab): use participant metadata for notices`。
 - [ ] 交给用户双账号验证加入、退出通知以及富文本光标展示；未获得真实浏览器结果前不宣称人工验收通过。
 
   当前状态：自动验证已完成；等待用户在两个真实登录页面验收，故本项保持未勾选。

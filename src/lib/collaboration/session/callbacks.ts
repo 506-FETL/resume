@@ -5,13 +5,11 @@ import { addParticipant, createParticipant, removeParticipant } from './state'
 
 function getParticipantDisplayName(
   peerId: string,
-  ...metadataSources: Array<Record<string, any> | undefined>
+  metadata?: Record<string, any>,
 ) {
-  for (const metadata of metadataSources) {
-    for (const name of [metadata?.userName, metadata?.name]) {
-      if (typeof name === 'string' && name.trim()) {
-        return name.trim()
-      }
+  for (const name of [metadata?.userName, metadata?.name]) {
+    if (typeof name === 'string' && name.trim()) {
+      return name.trim()
     }
   }
   return `协作者 ${peerId.slice(-4)}`
@@ -32,20 +30,21 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
         return
       }
 
-      const displayName = getParticipantDisplayName(peerId, metadata)
-      toast.success(`${displayName} 加入协作`, { description: '已同步最新内容' })
-
       setState(state => ({
         participants: addParticipant(
           state.participants,
           createParticipant(peerId, metadata),
         ),
       }))
+
+      const participantMetadata = getState().participants[peerId]?.metadata
+      const displayName = getParticipantDisplayName(peerId, participantMetadata)
+      toast.success(`${displayName} 加入协作`, { description: '已同步最新内容' })
     },
 
-    onPeerLeave: ({ peerId, metadata }) => {
+    onPeerLeave: ({ peerId }) => {
       const participantMetadata = getState().participants[peerId]?.metadata
-      const displayName = getParticipantDisplayName(peerId, metadata, participantMetadata)
+      const displayName = getParticipantDisplayName(peerId, participantMetadata)
 
       setState(state => ({
         participants: removeParticipant(state.participants, peerId),

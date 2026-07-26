@@ -15,7 +15,7 @@
 - 从富文本协作光标 DOM 中彻底移除昵称节点，而不是仅用 CSS 隐藏；
 - 保留远端光标竖线及原有颜色；
 - 加入协作时从已加载的当前用户对象取得真实昵称；
-- 退出协作时保留并使用离开 presence 的 metadata；
+- 加入与退出通知统一使用 participant store 中保存的 metadata；
 - 删除仓库内全部测试代码文件及仅为这些测试引入的配置和依赖；
 - 不新增测试，使用静态检查和生产构建验证。
 
@@ -29,9 +29,9 @@
 
 ### 2.2 退出通知昵称
 
-Supabase presence 的 leave 记录包含成员 metadata，但 `SupabaseNetworkAdapter` 在触发
-`onPeerLeave` 时只传递 `peerId`。会话回调随后先从 participants 删除成员，再显示固定的
-“协作者已离开 / Peer xxxx”，因此无法恢复真实昵称。
+加入事件已经把 presence metadata 保存到 participant store。退出回调却先从 participants
+删除成员，再显示固定的“协作者已离开 / Peer xxxx”，因此丢失了本地已经存在的真实昵称。
+无需为 leave 事件再传第二套 metadata；正确做法是在删除 participant 前读取这份唯一缓存。
 
 ## 3. 设计
 
@@ -52,10 +52,11 @@ Supabase presence 的 leave 记录包含成员 metadata，但 `SupabaseNetworkAd
 
 ### 3.3 加入与退出通知
 
-- 加入：继续优先读取 presence 的 `metadata.userName`，其后兼容 `metadata.name`；
-- 退出：扩展 `onPeerLeave` 数据契约以携带 metadata，适配层从 `leftPresences` 原样传入；
-- 会话回调在删除 participant 前读取保存的 metadata，并按“事件 metadata → participant
-  metadata → 匿名兜底”的顺序解析昵称；
+- participant store 是通知昵称 metadata 的唯一真源；不扩展 `onPeerLeave` 数据契约，适配层
+  仍只传递 `peerId`；
+- 加入：先把 presence metadata 写入 participant store，再从保存后的 participant 解析通知昵称；
+- 退出：在删除 participant 前读取同一份 metadata；
+- 两种通知都按 `metadata.userName`、`metadata.name`、匿名 peer 兜底的顺序解析；
 - 通知标题统一为“`<昵称> 加入协作`”和“`<昵称> 退出协作`”。
 
 ## 4. 测试资产删除范围
