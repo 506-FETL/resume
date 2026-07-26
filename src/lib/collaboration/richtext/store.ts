@@ -13,6 +13,8 @@ interface StartParams {
   role: 'host' | 'guest'
   userName: string
   color: string
+  /** 稳定的人类身份（登录 userId）。写入 awareness，供远端按“人”去重光标。 */
+  userId?: string
   /** 仅全新 host 分享为 true；加入/重连为 false，避免重复种子化 */
   seed: boolean
 }
@@ -41,14 +43,16 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
   provider: null,
   ready: false,
 
-  start: ({ resumeId, sessionId, role, userName, color, seed }) => {
+  start: ({ resumeId, sessionId, role, userName, color, userId, seed }) => {
     // 幂等：先清理已有（覆盖 resumeHosting 重连等无前置 stop 的路径）
     get().stop()
 
     const session = new RichTextCollabSession()
     const provider = new SupabaseYjsProvider(resumeId, sessionId, session.doc, session.awareness)
 
-    session.setLocalUser({ name: userName, color })
+    // 从连接第一帧就带上稳定 id，确保该端广播的所有 awareness 状态（含随后被 start/stop
+    // 竞态遗留的幽灵）都归属同一个人，供远端去重。名字后续可由编辑器 updateUser 刷新。
+    session.setLocalUser({ name: userName, color, id: userId })
     provider.connect()
 
     set({ session, provider, ready: true })

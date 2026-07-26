@@ -54,6 +54,7 @@ async function activateSession(
     role: result.role,
     userName: result.userName,
     color: result.color,
+    userId: result.userId,
     seed: params.shouldSaveSnapshot === true,
   })
 }

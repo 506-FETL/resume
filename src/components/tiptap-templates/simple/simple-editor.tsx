@@ -294,6 +294,23 @@ export function SimpleEditor({
     }
   }, [isMobile, mobileView])
 
+  // 协作模式：把最新的用户名 / 颜色推进 Yjs awareness。
+  // CollaborationCaret 仅在插件初始化时写一次 `user`（options.user），而 useEditor 的依赖
+  // 只有 [isCollab, fragment]，不含用户名——展示名往往在编辑器创建之后才异步解析完成
+  // （如 participants[selfPeerId].metadata.userName 尚未就绪时回落为「协作者」）。
+  // 若不在此显式同步，awareness 会一直保留创建时的陈旧值，远端光标标签便显示为空 / 占位。
+  // 用 updateUser 命令在 user 变化时刷新，鼠标光标（实时重播）与编辑器光标即可保持一致。
+  // 注意需带上 id（稳定人类身份），供远端按人去重光标。
+  const collabUserName = collab?.user.name
+  const collabUserColor = collab?.user.color
+  const collabUserId = collab?.user.id
+  React.useEffect(() => {
+    if (!editor || !isCollab || collabUserName == null) {
+      return
+    }
+    editor.commands.updateUser({ name: collabUserName, color: collabUserColor, id: collabUserId })
+  }, [editor, isCollab, collabUserName, collabUserColor, collabUserId])
+
   const editorContextValue = React.useMemo(() => ({ editor }), [editor])
 
   return (

@@ -11,14 +11,21 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Typography } from '@tiptap/extension-typography'
 import { Selection } from '@tiptap/extensions'
 import { StarterKit } from '@tiptap/starter-kit'
+import { yCursorPlugin } from '@tiptap/y-tiptap'
 import { HorizontalRule } from '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '@/components/tiptap-node/image-upload-node/image-upload-node-extension'
 import { handleImageUpload, MAX_FILE_SIZE } from '@/lib/tiptap-utils'
+import { type AwarenessLikeState, createDedupeAwarenessFilter } from './caret-dedupe'
 
 export interface CollabExtensionConfig {
   fragment: XmlFragment
   provider: { awareness: Awareness }
-  user: { name: string, color: string }
+  user: {
+    name: string
+    color: string
+    /** 稳定的人类身份标识（如登录 userId）。用于按“人”而非易变的 Yjs clientID 去重光标。 */
+    id?: string
+  }
 }
 
 interface BuildExtensionsOptions {
@@ -40,6 +47,45 @@ function renderCaret(user: Record<string, any>): HTMLElement {
   cursor.insertBefore(label, null)
   return cursor
 }
+
+/**
+ * `CollaborationCaret` 的去重变体：其余行为完全一致，但给内部的 `yCursorPlugin`
+ * 注入一个 `awarenessStateFilter`，按 `user.id`（稳定人类身份）去重——同一个人只渲染
+ * “最活跃”的那个 clientId 光标（按是否持有 cursor + awareness.meta.lastUpdated 排序，
+ * 注意 Yjs clientID 是随机值不能用于判活），避免重连 / StrictMode / provider 连接竞态
+ * 遗留的幽灵 clientId 在 30s 超时回收前叠出多个重复标签。
+ *
+ * 需重写 `addProseMirrorPlugins`（官方扩展未透出 `awarenessStateFilter` 配置项）。
+ * 保持与官方一致：初始化时写入本地 `user`，并把 awareness 状态镜像到 storage.users。
+ */
+const DedupeCollaborationCaret = CollaborationCaret.extend({
+  addProseMirrorPlugins() {
+    const awareness = this.options.provider.awareness as Awareness
+    const awarenessStatesToArray = (states: Map<number, any>) =>
+      Array.from(states.entries()).map(([clientId, value]) => ({ clientId, ...value.user }))
+
+    return [
+      yCursorPlugin(
+        (() => {
+          awareness.setLocalStateField('user', this.options.user)
+          this.storage.users = awarenessStatesToArray(awareness.states)
+          awareness.on('update', () => {
+            this.storage.users = awarenessStatesToArray(awareness.states)
+          })
+          return awareness
+        })(),
+        {
+          awarenessStateFilter: createDedupeAwarenessFilter(
+            () => awareness.getStates() as Map<number, AwarenessLikeState>,
+            () => (awareness as unknown as { meta: Map<number, { lastUpdated?: number }> }).meta,
+          ),
+          cursorBuilder: this.options.render,
+          selectionBuilder: this.options.selectionRender,
+        },
+      ),
+    ]
+  },
+})
 
 /**
  * 构造 SimpleEditor 的扩展数组。
@@ -86,7 +132,7 @@ export function buildEditorExtensions({ onImageError, collab }: BuildExtensionsO
   if (collab) {
     extensions.push(
       Collaboration.configure({ fragment: collab.fragment }),
-      CollaborationCaret.configure({
+      DedupeCollaborationCaret.configure({
         provider: collab.provider,
         user: collab.user,
         render: renderCaret,

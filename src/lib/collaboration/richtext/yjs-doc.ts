@@ -11,6 +11,8 @@ import * as Y from 'yjs'
 export interface RichTextCollabUser {
   name: string
   color: string
+  /** 稳定的人类身份（登录 userId）。用于按“人”而非易变的 Yjs clientID 去重远端光标。 */
+  id?: string
 }
 
 export class RichTextCollabSession {

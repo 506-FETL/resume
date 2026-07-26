@@ -55,11 +55,16 @@ export function useCurrentUserImage() {
  *
  * 该 Hook 基于 `useCurrentUser()` 返回的用户对象，
  * 优先读取 Supabase `user_metadata.full_name` 字段。
- * 当用户未登录或没有配置展示名称时，返回占位符 `?`。
+ * 当用户未登录或没有配置展示名称时，返回空字符串 `''`。
  *
- * @returns 当前用户显示名称；缺失时返回 `?`
+ * 注意：这里刻意返回**假值**而非占位符（如 `?`）。调用方普遍以
+ * `userDisplayName || \`用户-xxxx\`` 之类的方式兜底展示名；若此处返回真值占位符，
+ * 会短路掉这些兜底逻辑，导致协作光标标签等场景直接显示占位符（如 `?`）。
+ * 需要占位符的展示场景（如个人资料页）应在各自调用点自行兜底。
+ *
+ * @returns 当前用户显示名称；缺失时返回 `''`
  */
 export function useCurrentUserName() {
   const user = useCurrentUser()
-  return user?.user_metadata?.full_name ?? '?'
+  return (user?.user_metadata?.full_name as string | undefined) ?? ''
 }

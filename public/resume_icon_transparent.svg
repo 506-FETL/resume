@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="512" height="512" viewBox="0 0 512 512"
+     fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Resume icon</title>
+  <desc id="desc">A clean resume document icon with profile, list items and sparkle accents.</desc>
+
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5B8CFF"/>
+      <stop offset="100%" stop-color="#2F6BFF"/>
+    </linearGradient>
+    <linearGradient id="softAccent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EEF3FF"/>
+      <stop offset="100%" stop-color="#DCE7FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Document outline -->
+  <path d="M150 64H328L392 128V292"
+        stroke="#171A21" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M328 64V106C328 120.36 339.64 132 354 132H392"
+        stroke="#171A21" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M312 442H150C135.64 442 124 430.36 124 416V90C124 75.64 135.64 64 150 64"
+        stroke="#171A21" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Fold fill -->
+  <path d="M336 75.3V106C336 111.52 340.48 116 346 116H376.7L336 75.3Z"
+        fill="url(#softAccent)"/>
+
+  <!-- Profile block -->
+  <circle cx="190" cy="190" r="54" fill="url(#softAccent)"/>
+  <circle cx="190" cy="176" r="19"
+          stroke="#171A21" stroke-width="11"/>
+  <path d="M158 218C164.5 199.8 177 192 190 192C203 192 215.5 199.8 222 218"
+        stroke="#171A21" stroke-width="11"
+        stroke-linecap="round"/>
+
+  <!-- Header lines -->
+  <path d="M260 174H340"
+        stroke="url(#accent)" stroke-width="12"
+        stroke-linecap="round"/>
+  <path d="M260 206H318"
+        stroke="#9CA3AF" stroke-width="10"
+        stroke-linecap="round"/>
+
+  <!-- Resume content bullets -->
+  <circle cx="158" cy="270" r="7" fill="url(#accent)"/>
+  <path d="M185 270H334"
+        stroke="#C7CBD3" stroke-width="10"
+        stroke-linecap="round"/>
+
+  <circle cx="158" cy="314" r="7" fill="url(#accent)"/>
+  <path d="M185 314H316"
+        stroke="#C7CBD3" stroke-width="10"
+        stroke-linecap="round"/>
+
+  <circle cx="158" cy="358" r="7" fill="url(#accent)"/>
+  <path d="M185 358H267"
+        stroke="#C7CBD3" stroke-width="10"
+        stroke-linecap="round"/>
+
+  <!-- Sparkle -->
+  <path d="M360 316C366 347 383 364 414 370C383 376 366 393 360 424C354 393 337 376 306 370C337 364 354 347 360 316Z"
+        fill="url(#softAccent)"
+        stroke="#171A21" stroke-width="12"
+        stroke-linejoin="round"/>
+
+  <!-- Plus accents -->
+  <path d="M420 326V350M408 338H432"
+        stroke="url(#accent)" stroke-width="9"
+        stroke-linecap="round"/>
+  <path d="M304 402V426M292 414H316"
+        stroke="url(#accent)" stroke-width="9"
+        stroke-linecap="round"/>
+</svg>

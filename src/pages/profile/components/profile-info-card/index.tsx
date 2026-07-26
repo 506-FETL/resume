@@ -56,7 +56,7 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
         <div className="flex items-center gap-6">
           <ProfileAvatar />
           <div className="flex flex-col gap-1">
-            <h3 className="text-2xl font-semibold">{currentName}</h3>
+            <h3 className="text-2xl font-semibold">{currentName || '?'}</h3>
             <p className="text-muted-foreground flex items-center gap-2">
               <Mail className="size-4 shrink-0" />
               {email}
