@@ -249,7 +249,7 @@ git commit -m "fix: sync complete resume form values"
 
 ### 任务 4：执行原始场景回归与完整工程验证
 
-**状态：进行中**
+**状态：已完成**
 
 **文件：**
 - 修改：`docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md`
@@ -323,7 +323,7 @@ git log -5 --oneline
 
 执行记录：`git diff --check` 无输出；`git status --short` 仅包含本计划执行记录与用户授权删除未使用 import 的 `step-parsing.tsx`；最近提交依次为 `6649c2c`、`2e4640b`、`6e1da6d`，均为本次本地修复且未推送。
 
-- [ ] **步骤 7：提交最终计划执行记录（如有未提交变更）**
+- [x] **步骤 7：提交最终计划执行记录（如有未提交变更）**
 
 ```bash
 git add docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md src/components/jd-variant/components/steps/step-parsing.tsx
@@ -331,6 +331,8 @@ git commit -m "fix: clear typecheck baseline"
 ```
 
 不得执行 `git push`。
+
+执行记录：已创建本地提交 `1f3ee50 fix: clear typecheck baseline`，包含用户授权的无用 import 清理及截至构建完成的计划执行记录；未执行 `git push`。本步骤状态更新将作为最终文档记录单独提交。
 
 ## 完成定义
 
