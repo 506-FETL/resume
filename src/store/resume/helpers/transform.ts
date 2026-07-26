@@ -2,7 +2,7 @@ import type { FormDataMap, PersistableResumeState, ResumeFormPayload } from '../
 import type { AutomergeResumeDocument } from '@/lib/automerge'
 import type { PersistedResumeSnapshot, ResumeAppearancePatch } from '@/lib/schema'
 import { get } from 'lodash'
-import { DEFAULT_ORDER, DEFAULT_VISIBILITY, migrateOrder, migrateVisibility, normalizeResumeAppearance, normalizeResumeType, resolveResumeTemplateBinding } from '@/lib/schema'
+import { DEFAULT_ORDER, DEFAULT_VISIBILITY, migrateOrder, migrateVisibility, normalizeResumeAppearance, normalizeResumeSection, normalizeResumeType, resolveResumeTemplateBinding } from '@/lib/schema'
 import { FORM_DATA_KEYS, FORM_FIELD_DEFAULTS } from '../const'
 import { sanitizeDeep } from './sanitize'
 
@@ -60,11 +60,14 @@ export function mapSourceToPersistedSnapshot(
   )
 
   for (const key of FORM_DATA_KEYS) {
-    const { default: defaultVal, legacyKey } = FORM_FIELD_DEFAULTS[key]
-    const val = get(source, key)
+    const { legacyKey } = FORM_FIELD_DEFAULTS[key]
+    const value = get(source, key)
       ?? (legacyKey ? get(source, legacyKey) : undefined)
-      ?? defaultVal
-    setFormDataField(formData, key, sanitizeDeep(val) as FormDataMap[typeof key])
+    setFormDataField(
+      formData,
+      key,
+      normalizeResumeSection(key, sanitizeDeep(value)),
+    )
   }
 
   return {

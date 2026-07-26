@@ -30,7 +30,7 @@
 
 ### 任务 1：新增共享简历结构规范化函数
 
-**状态：进行中**
+**状态：已完成**
 
 **文件：**
 - 新建：`src/lib/schema/resume/normalize.ts`
@@ -101,7 +101,7 @@ pnpm exec eslint src/lib/schema/resume/normalize.ts src/lib/schema/resume/index.
 
 执行记录：`pnpm exec eslint src/lib/schema/resume/normalize.ts src/lib/schema/resume/index.ts --max-warnings 0` 退出码 0，无输出。
 
-- [ ] **步骤 4：本地提交规范化基础能力**
+- [x] **步骤 4：本地提交规范化基础能力**
 
 ```bash
 git add src/lib/schema/resume/normalize.ts src/lib/schema/resume/index.ts docs/superpowers/plans/2026-07-26-rich-text-preview-missing-fields.md
@@ -110,15 +110,19 @@ git commit -m "fix: normalize incomplete resume sections"
 
 不得执行 `git push`。
 
+执行记录：已创建本地提交 `6e1da6d fix: normalize incomplete resume sections`，未执行 `git push`。
+
 ---
 
 ### 任务 2：在加载与预览边界应用结构规范化
+
+**状态：进行中**
 
 **文件：**
 - 修改：`src/store/resume/helpers/transform.ts`
 - 修改：`src/components/resume/runtime/context/resume-data-context.tsx`
 
-- [ ] **步骤 1：规范化 store 加载转换**
+- [x] **步骤 1：规范化 store 加载转换**
 
 在 `mapSourceToPersistedSnapshot` 的 `FORM_DATA_KEYS` 循环中保留 snake_case/legacy key 选择逻辑，但把最终值交给 `normalizeResumeSection`：
 
@@ -136,7 +140,7 @@ setFormDataField(
 
 这样缺失整个 section、缺少内部键、内部容器为 `null` 或容器类型错误时都会得到默认结构；合法值及额外兼容字段保留。
 
-- [ ] **步骤 2：规范化共享预览输入**
+- [x] **步骤 2：规范化共享预览输入**
 
 在 `buildTemplateResumeData` 中先调用 `normalizeResumeFormData(snapshot)`，再覆盖返回对象中的 12 个表单 section：
 
@@ -153,7 +157,7 @@ return {
 
 不得在 renderer 中增加分散的可选链兜底。
 
-- [ ] **步骤 3：执行定向静态检查**
+- [x] **步骤 3：执行定向静态检查**
 
 运行：
 
@@ -162,6 +166,8 @@ pnpm exec eslint src/store/resume/helpers/transform.ts src/components/resume/run
 ```
 
 预期：退出码 0，无 lint error 或 warning。
+
+执行记录：`pnpm exec eslint src/store/resume/helpers/transform.ts src/components/resume/runtime/context/resume-data-context.tsx --max-warnings 0` 退出码 0，无输出。
 
 - [ ] **步骤 4：本地提交边界接入**
 
