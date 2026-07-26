@@ -31,7 +31,7 @@ export async function enableCollaborationSession(options: EnableSessionOptions) 
     throw new Error('文档尚未初始化，无法开启协作')
   }
 
-  const color = getState().selfColor ?? createParticipantColor()
+  const color = createParticipantColor(userId)
   setState({ isConnecting: true, error: null, selfColor: color })
 
   const adapterPeerIdRef = { current: null as string | null }

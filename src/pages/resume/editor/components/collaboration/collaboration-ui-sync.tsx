@@ -28,6 +28,8 @@ interface CollaborationUISyncProps {
   roomName: string
   /** 当前用户显示名 */
   username: string
+  /** 当前登录用户的稳定协作颜色 */
+  color: string
   /** 抽屉是否打开 */
   drawerOpen: boolean
   /** 设置抽屉打开状态 */
@@ -43,6 +45,7 @@ interface CollaborationUISyncProps {
 export function CollaborationUISync({
   roomName,
   username,
+  color,
   drawerOpen,
   setDrawerOpen,
   activeTabId,
@@ -78,6 +81,8 @@ export function CollaborationUISync({
   const { broadcastUIAction } = useRealtimeCollabUI({
     roomName,
     username,
+    color,
+    uiActionBroadcastEnabled: followMode,
     drawerOpen,
     activeTabId,
     config,
@@ -142,10 +147,12 @@ export function CollaborationUISync({
   }, [animateRemoteScrollTo, setDrawerOpen, onUpdateActiveTabId, replaceConfig, suppressScrollSync])
 
   useEffect(() => {
-    if (!latestRemoteAction || !followMode)
+    if (!latestRemoteAction)
       return
 
-    applyRemoteAction(latestRemoteAction, latestRemoteAction.userName)
+    if (followMode) {
+      applyRemoteAction(latestRemoteAction, latestRemoteAction.userName)
+    }
     clearLatestRemoteAction()
   }, [latestRemoteAction, followMode, applyRemoteAction, clearLatestRemoteAction])
 
@@ -163,7 +170,7 @@ export function CollaborationUISync({
               setFollowMode(!followMode)
               toast.info(followMode ? '已关闭跟随模式' : '已开启跟随模式', {
                 description: followMode
-                  ? '将不再同步协作者的 UI 操作'
+                  ? '将不再跟随协作者，也不会同步你的 UI 操作'
                   : '将自动跟随协作者的 UI 操作',
                 duration: 2000,
               })
@@ -176,7 +183,7 @@ export function CollaborationUISync({
         <TooltipContent>
           {followMode
             ? '跟随模式：协作者的 UI 操作将自动同步到你的界面'
-            : '独立浏览模式：不同步协作者的 UI 操作'}
+            : '独立浏览模式：既不跟随协作者，也不向协作者同步本地 UI 操作'}
         </TooltipContent>
       </Tooltip>
 

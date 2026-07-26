@@ -9,7 +9,6 @@ import {
   COLLAB_UI_CLICK_EVENT,
   COLLAB_UI_STATE_EVENT,
   createClickPayload,
-  createParticipantColor,
   createRealtimeUserId,
   createUIActionPayload,
   createUIStatePayload,
@@ -23,6 +22,8 @@ import { useThrottledCallback } from './use-throttled-callback'
 interface UseRealtimeCollabUIOptions {
   roomName: string
   username: string
+  color: string
+  uiActionBroadcastEnabled: boolean
   drawerOpen: boolean
   activeTabId: ORDERType
   config?: SharedUIConfig
@@ -42,6 +43,8 @@ interface UseRealtimeCollabUIReturn {
 export function useRealtimeCollabUI({
   roomName,
   username,
+  color,
+  uiActionBroadcastEnabled,
   drawerOpen,
   activeTabId,
   config,
@@ -49,7 +52,6 @@ export function useRealtimeCollabUI({
   throttleMs = 100,
 }: UseRealtimeCollabUIOptions): UseRealtimeCollabUIReturn {
   const [userId] = useState(createRealtimeUserId)
-  const [color] = useState(() => createParticipantColor())
   const channelRef = useRef<RealtimeChannel | null>(null)
   const drawerOpenRef = useRef(drawerOpen)
   const activeTabIdRef = useRef(activeTabId)
@@ -98,7 +100,7 @@ export function useRealtimeCollabUI({
   }, [drawerOpen, activeTabId, config, throttledBroadcastState])
 
   const broadcastUIAction = useCallback((action: UIAction) => {
-    if (!channelRef.current) {
+    if (!uiActionBroadcastEnabled || !channelRef.current) {
       return
     }
 
@@ -107,7 +109,7 @@ export function useRealtimeCollabUI({
       event: COLLAB_UI_ACTION_EVENT,
       payload: createUIActionPayload({ userId, userName: username, color }, action),
     })
-  }, [userId, username, color])
+  }, [userId, username, color, uiActionBroadcastEnabled])
 
   const broadcastClick = useCallback((position: { x: number, y: number }, targetLabel?: string) => {
     if (!channelRef.current) {

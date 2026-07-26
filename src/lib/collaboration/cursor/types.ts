@@ -26,6 +26,7 @@ export type RealtimeCursorMap = Record<string, CursorEventPayload>
 export interface UseRealtimeCursorsOptions {
   roomName: string
   username: string
+  color: string
   throttleMs: number
 }
 

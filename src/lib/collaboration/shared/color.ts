@@ -1,11 +1,12 @@
-function createRandomHue() {
-  return Math.floor(Math.random() * 360)
+function hashUserId(userId: string) {
+  let hash = 2166136261
+  for (let index = 0; index < userId.length; index += 1) {
+    hash ^= userId.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
 }
 
-export function createParticipantColor() {
-  return `hsl(${createRandomHue()}, 85%, 65%)`
-}
-
-export function createCursorColor() {
-  return `hsl(${createRandomHue()}, 100%, 70%)`
+export function createParticipantColor(userId: string) {
+  return `hsl(${hashUserId(userId) % 360}, 85%, 60%)`
 }

@@ -61,6 +61,7 @@ function Editor() {
 
   const roomName = useCollaborationStore(state => state.roomName)
   const isSharing = useCollaborationStore(state => state.isSharing)
+  const selfColor = useCollaborationStore(state => state.selfColor)
 
   const fill = theme === 'dark' ? '#0c0a09' : '#fafaf9'
   const stroke = theme === 'dark' ? '#3d3b3b' : '#e7e5e4'
@@ -86,15 +87,16 @@ function Editor() {
   return (
     <CollaborationPanelProvider>
 
-      {roomName && currentUser && (
-        <RealtimeCursors roomName={roomName} username={userDisplayName} />
+      {roomName && currentUser && selfColor && (
+        <RealtimeCursors roomName={roomName} username={userDisplayName} color={selfColor} />
       )}
 
       {/* 协作 UI 状态同步 */}
-      {roomName && isSharing && currentUser && (
+      {roomName && isSharing && currentUser && selfColor && (
         <CollaborationUISync
           roomName={roomName}
           username={userDisplayName}
+          color={selfColor}
           drawerOpen={open}
           setDrawerOpen={setOpen}
           activeTabId={activeTabId}

@@ -6,8 +6,8 @@ import { useRealtimeCursors } from '@/lib/collaboration'
 
 const THROTTLE_MS = 12
 
-export const RealtimeCursors = memo(({ roomName, username }: { roomName: string, username: string }) => {
-  const { cursors } = useRealtimeCursors({ roomName, username, throttleMs: THROTTLE_MS })
+export const RealtimeCursors = memo(({ roomName, username, color }: { roomName: string, username: string, color: string }) => {
+  const { cursors } = useRealtimeCursors({ roomName, username, color, throttleMs: THROTTLE_MS })
 
   return (
     <div>

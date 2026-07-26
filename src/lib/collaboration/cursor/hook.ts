@@ -2,12 +2,11 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { CursorEventPayload, UseRealtimeCursorsOptions, UseRealtimeCursorsReturn } from './types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import supabase from '@/lib/supabase/client'
-import { createCursorColor, createRealtimeUserId, getViewportSize, projectPointToViewport } from '../shared'
+import { createRealtimeUserId, getViewportSize, projectPointToViewport } from '../shared'
 import { bindCursorChannel, broadcastCursorPayload, createCursorPayload, isCursorChannelSubscribed, trackCursorPresence } from './channel'
 import { projectRealtimeCursor, removeRealtimeCursor, upsertRealtimeCursorBatch } from './state'
 
-export function useRealtimeCursors({ roomName, username, throttleMs }: UseRealtimeCursorsOptions): UseRealtimeCursorsReturn {
-  const [color] = useState(createCursorColor)
+export function useRealtimeCursors({ roomName, username, color, throttleMs }: UseRealtimeCursorsOptions): UseRealtimeCursorsReturn {
   const [userId] = useState(createRealtimeUserId)
   const [cursors, setCursors] = useState<UseRealtimeCursorsReturn['cursors']>({})
   const cursorPayloadRef = useRef<CursorEventPayload | null>(null)

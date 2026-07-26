@@ -35,7 +35,7 @@ export function useRichTextCollab(
   const key = buildFragmentKey(sectionKey, relativePath)
 
   return useMemo(() => {
-    if (!ready || !session || !provider) {
+    if (!ready || !session || !provider || !selfColor) {
       return undefined
     }
     return {
@@ -43,7 +43,7 @@ export function useRichTextCollab(
       provider,
       user: {
         name: userName ?? '协作者',
-        color: selfColor ?? '#4f46e5',
+        color: selfColor,
         // 稳定人类身份：用于按“人”去重编辑器光标，避免重连 / 竞态遗留重复竖线。
         id: selfUserId ?? undefined,
       },
