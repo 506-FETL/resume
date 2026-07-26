@@ -279,7 +279,7 @@ git commit -m "fix(collab): use inline caret label"
 - 修改：`src/components/tiptap-node/paragraph-node/paragraph-node.scss:109-117`
 - 修改：`docs/superpowers/plans/2026-07-26-collaboration-caret-atomic-widget.md`
 
-- [ ] **步骤 1：先写精确选择器的 CSS 契约测试**
+- [x] **步骤 1：先写精确选择器的 CSS 契约测试**
 
 新增 `src/lib/collaboration/richtext/caret-style.test.ts`：
 
@@ -330,7 +330,7 @@ test('caret selector defines a zero-net-width atomic inline box', () => {
 
 该测试要求目标选择器前必须是样式表起点或上一个规则的 `}`，并把该规则的声明解析为属性 Map 后按完整属性名比较；带前缀的更长选择器、`min-width`、`min-height` 或自定义属性都不能造成误通过。
 
-- [ ] **步骤 2：运行测试并确认几何契约先失败**
+- [x] **步骤 2：运行测试并确认几何契约先失败**
 
 运行：
 
@@ -342,7 +342,12 @@ node --test --experimental-strip-types src/lib/collaboration/richtext/caret-styl
 
 执行后追加真实失败摘要。
 
-- [ ] **步骤 3：补齐最小原子盒样式**
+执行记录（2026-07-26）：
+
+- 新增编译后 CSS 契约测试，正则严格限定为 `(?:^|\})\s*\.tiptap\.ProseMirror \.collaboration-carets__caret\s*\{([^}]*)\}`，并把目标规则声明解析为属性 Map 后按完整属性名比较，避免更长 selector、`min-width`、`min-height` 或自定义属性误通过。
+- 红灯命令 `node --test --experimental-strip-types src/lib/collaboration/richtext/caret-style.test.ts`：退出码 1，1 条测试失败；目标 selector 已成功提取，首个失败断言实际值为 `undefined`、期望值为 `'inline-block'`（`ERR_ASSERTION`），没有导入、路径、Sass 编译或正则错误。
+
+- [x] **步骤 3：补齐最小原子盒样式**
 
 在 `.collaboration-carets__caret` 规则中加入以下四项；保留现有声明：
 
@@ -365,7 +370,7 @@ position: relative;
 
 不得增加 `will-change`、`translateZ`、MutationObserver 或定时清理。
 
-- [ ] **步骤 4：运行 DOM 与 CSS 测试并确认通过**
+- [x] **步骤 4：运行 DOM 与 CSS 测试并确认通过**
 
 运行：
 
@@ -381,7 +386,17 @@ git diff --check
 
 执行后追加真实结果。
 
-- [ ] **步骤 5：更新计划进度并提交几何修复**
+执行记录（2026-07-26）：
+
+- 生产修复仅在 `.collaboration-carets__caret` 中新增 `display: inline-block`、`width: 0`、`height: 1em`、`vertical-align: text-bottom`；既有双透明边框、双 `-1px` margin、`position: relative` 等声明全部保留，未修改 DOM，也未增加 `will-change`、`translateZ`、MutationObserver 或定时清理。
+- 绿灯命令 `node --test --experimental-strip-types src/lib/collaboration/richtext/caret-dom.test.ts src/lib/collaboration/richtext/caret-style.test.ts`：退出码 0，3 条测试全部通过，0 失败。
+- `pnpm exec eslint src/lib/collaboration/richtext/caret-style.test.ts --max-warnings 0`：退出码 0，0 errors / 0 warnings。
+- `pnpm exec tsc --noEmit`：退出码 2；唯一错误为既有基线 `src/components/jd-variant/components/steps/step-parsing.tsx:5` 的 `TS6133: 'ScrollArea' is declared but its value is never read`，没有本任务新增的类型错误，也未修改该无关文件。
+- `npx tsc --noEmit`：退出码 2；同一处既有基线 `TS6133`，另有 npm 对未知 `home` 用户配置的警告；没有本任务新增的类型错误。
+- `pnpm build`：退出码 0，Vite 成功转换 5213 个模块并完成生产构建；输出现有大 chunk 警告。
+- `git diff --check`：退出码 0，无空白错误。
+
+- [x] **步骤 5：更新计划进度并提交几何修复**
 
 ```bash
 git add src/lib/collaboration/richtext/caret-style.test.ts src/components/tiptap-node/paragraph-node/paragraph-node.scss docs/superpowers/plans/2026-07-26-collaboration-caret-atomic-widget.md

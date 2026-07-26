@@ -107,6 +107,10 @@
 .tiptap.ProseMirror {
   .collaboration-carets {
     &__caret {
+      display: inline-block;
+      width: 0;
+      height: 1em;
+      vertical-align: text-bottom;
       border-right: 1px solid transparent;
       border-left: 1px solid transparent;
       pointer-events: none;
