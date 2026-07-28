@@ -57,7 +57,10 @@ export default function Contacts({ job }: ContactsProps) {
     try {
       const savedJob = await updateCompany(job.id, { contacts: next })
       const shouldUpdateLocalUi = isCurrentRequest()
-      syncJob(savedJob)
+      const isStillShowingRequestJob = jobIdRef.current === requestJobId
+      if (shouldUpdateLocalUi || !isStillShowingRequestJob) {
+        syncJob(savedJob)
+      }
       if (shouldUpdateLocalUi && successText) {
         toast.success(successText)
       }
@@ -96,12 +99,13 @@ export default function Contacts({ job }: ContactsProps) {
   }
 
   const handleDelete = async () => {
-    if (!pendingDeleteId || saving) {
+    const deleteId = pendingDeleteId
+    if (!deleteId || saving) {
       return
     }
 
-    await persist(contactsRef.current.filter(c => c.id !== pendingDeleteId), '已删除联系人')
     setPendingDeleteId(null)
+    await persist(contactsRef.current.filter(c => c.id !== deleteId), '已删除联系人')
   }
 
   const pendingDeleteContact = contacts.find(contact => contact.id === pendingDeleteId)
