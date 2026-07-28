@@ -22,30 +22,51 @@ interface ContactsProps {
   job: JobApplication
 }
 
+function areContactsEqual(left: TrackerContact[], right: TrackerContact[]) {
+  return left.length === right.length && left.every((contact, index) => {
+    const other = right[index]
+    return contact.id === other.id
+      && contact.name === other.name
+      && contact.role === other.role
+      && contact.channel === other.channel
+      && contact.note === other.note
+  })
+}
+
 export default function Contacts({ job }: ContactsProps) {
   const { syncJob } = useTrackerStore()
   const [contacts, setContacts] = useState<TrackerContact[]>(job.contacts)
+  const [baseline, setBaseline] = useState<TrackerContact[]>(job.contacts)
   const [saving, setSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
-  // 始终指向最新本地值，供保存时读取，避免闭包读到旧数组
   const contactsRef = useRef(contacts)
+  const baselineRef = useRef(baseline)
+  const jobContactsRef = useRef(job.contacts)
   const jobIdRef = useRef(job.id)
   const requestGenerationRef = useRef(0)
   contactsRef.current = contacts
+  baselineRef.current = baseline
+  jobContactsRef.current = job.contacts
   jobIdRef.current = job.id
 
-  // 外部数据变化（切换职位/服务端回写）时同步本地
+  // 同职位的完整行回写不覆盖本组件已接纳的联系人基线。
   useEffect(() => {
     requestGenerationRef.current += 1
-    setContacts(job.contacts)
+    setContacts(jobContactsRef.current)
+    setBaseline(jobContactsRef.current)
     setSaving(false)
     setPendingDeleteId(null)
-  }, [job.id, job.contacts])
+  }, [job.id])
 
-  const persist = async (next: TrackerContact[], successText?: string) => {
-    const previous = contactsRef.current
+  const dirty = !areContactsEqual(contacts, baseline)
+
+  const persist = async (
+    next: TrackerContact[],
+    options: { rollbackOnFailure: boolean, successText?: string },
+  ) => {
     const requestJobId = job.id
     const requestGeneration = requestGenerationRef.current + 1
+    const requestBaseline = baselineRef.current
     requestGenerationRef.current = requestGeneration
     const isCurrentRequest = () => (
       jobIdRef.current === requestJobId
@@ -58,18 +79,23 @@ export default function Contacts({ job }: ContactsProps) {
       const savedJob = await updateCompany(job.id, { contacts: next })
       const shouldUpdateLocalUi = isCurrentRequest()
       const isStillShowingRequestJob = jobIdRef.current === requestJobId
-      if (shouldUpdateLocalUi || !isStillShowingRequestJob) {
+      if (shouldUpdateLocalUi) {
+        syncJob(savedJob)
+        setContacts(savedJob.contacts)
+        setBaseline(savedJob.contacts)
+      }
+      else if (!isStillShowingRequestJob) {
         syncJob(savedJob)
       }
-      if (shouldUpdateLocalUi && successText) {
-        toast.success(successText)
+      if (options.successText) {
+        toast.success(options.successText)
       }
     }
     catch (error) {
-      if (isCurrentRequest()) {
-        setContacts(previous)
-        toast.error('操作失败', { description: getTrackerErrorMessage(error) })
+      if (isCurrentRequest() && options.rollbackOnFailure) {
+        setContacts(requestBaseline)
       }
+      toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
     finally {
       if (isCurrentRequest()) {
@@ -79,6 +105,10 @@ export default function Contacts({ job }: ContactsProps) {
   }
 
   const handleAdd = async () => {
+    if (dirty || saving) {
+      return
+    }
+
     const contact: TrackerContact = {
       id: crypto.randomUUID(),
       name: '',
@@ -86,26 +116,29 @@ export default function Contacts({ job }: ContactsProps) {
       channel: '',
       note: '',
     }
-    await persist([...contactsRef.current, contact], '已添加联系人')
+    await persist([...contactsRef.current, contact], { rollbackOnFailure: true, successText: '已添加联系人' })
   }
 
-  // 本地即时更新（受控），失焦时才落库；落库读 ref 最新值避免覆盖其他字段
   const handleFieldChange = (id: string, patch: Partial<TrackerContact>) => {
     setContacts(prev => prev.map(c => (c.id === id ? { ...c, ...patch } : c)))
   }
 
-  const handleFieldCommit = async () => {
-    await persist(contactsRef.current)
+  const handleSave = async () => {
+    if (!dirty || saving) {
+      return
+    }
+
+    await persist(contactsRef.current, { rollbackOnFailure: false })
   }
 
   const handleDelete = async () => {
     const deleteId = pendingDeleteId
-    if (!deleteId || saving) {
+    if (!deleteId || dirty || saving) {
       return
     }
 
     setPendingDeleteId(null)
-    await persist(contactsRef.current.filter(c => c.id !== deleteId), '已删除联系人')
+    await persist(contactsRef.current.filter(c => c.id !== deleteId), { rollbackOnFailure: true, successText: '已删除联系人' })
   }
 
   const pendingDeleteContact = contacts.find(contact => contact.id === pendingDeleteId)
@@ -118,10 +151,15 @@ export default function Contacts({ job }: ContactsProps) {
           <h3 className="text-sm font-semibold">联系人</h3>
           <span className="text-xs text-muted-foreground">{contacts.length}</span>
         </div>
-        <Button variant="outline" size="sm" className="h-8 w-full sm:w-auto" disabled={saving} onClick={handleAdd}>
-          <Plus className="size-3.5" />
-          添加联系人
-        </Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" size="sm" className="h-8 w-full sm:w-auto" disabled={!dirty || saving} onClick={handleSave}>
+            保存修改
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 w-full sm:w-auto" disabled={dirty || saving} onClick={handleAdd}>
+            <Plus className="size-3.5" />
+            添加联系人
+          </Button>
+        </div>
       </div>
 
       {contacts.length === 0
@@ -141,7 +179,6 @@ export default function Contacts({ job }: ContactsProps) {
                       className="h-8 font-medium"
                       disabled={saving}
                       onChange={e => handleFieldChange(contact.id, { name: e.target.value })}
-                      onBlur={handleFieldCommit}
                     />
                     <Input
                       value={contact.role}
@@ -149,7 +186,6 @@ export default function Contacts({ job }: ContactsProps) {
                       className="h-8"
                       disabled={saving}
                       onChange={e => handleFieldChange(contact.id, { role: e.target.value })}
-                      onBlur={handleFieldCommit}
                     />
                     <Input
                       value={contact.channel}
@@ -157,7 +193,6 @@ export default function Contacts({ job }: ContactsProps) {
                       className="h-8"
                       disabled={saving}
                       onChange={e => handleFieldChange(contact.id, { channel: e.target.value })}
-                      onBlur={handleFieldCommit}
                     />
                     <Input
                       value={contact.note}
@@ -165,7 +200,6 @@ export default function Contacts({ job }: ContactsProps) {
                       className="h-8"
                       disabled={saving}
                       onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
-                      onBlur={handleFieldCommit}
                     />
                   </div>
                   <Button
@@ -173,7 +207,7 @@ export default function Contacts({ job }: ContactsProps) {
                     size="icon-sm"
                     className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     aria-label="删除联系人"
-                    disabled={saving}
+                    disabled={dirty || saving}
                     onClick={() => setPendingDeleteId(contact.id)}
                   >
                     <Trash2 className="size-4" />
@@ -193,7 +227,7 @@ export default function Contacts({ job }: ContactsProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving} onClick={() => setPendingDeleteId(null)}>取消</AlertDialogCancel>
-            <AlertDialogAction disabled={saving} onClick={handleDelete}>删除</AlertDialogAction>
+            <AlertDialogAction disabled={dirty || saving} onClick={handleDelete}>删除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
