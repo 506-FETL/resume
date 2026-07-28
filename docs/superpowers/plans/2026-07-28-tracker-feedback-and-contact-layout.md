@@ -71,7 +71,7 @@ git commit -m "fix(tracker): refine contact feedback and layout"
 
 - [ ] **步骤 1：为手动跟进记录增加删除确认**
 
-在 `ActivityTimeline` 中增加待删除记录 ID。删除图标只打开 `AlertDialog`；确认后删除，取消或关闭时清空状态。保留新增记录和删除记录成功 Toast，以及失败 Toast；自动状态记录继续不显示删除按钮。
+在 `ActivityTimeline` 中增加待删除记录 ID。删除图标只打开 `AlertDialog`；确认框展示该记录的 `label`，确认后删除，取消或关闭时清空状态。保留新增记录和删除记录成功 Toast，以及失败 Toast；自动状态记录继续不显示删除按钮。
 
 - [ ] **步骤 2：移除下一步普通成功 Toast**
 
@@ -140,15 +140,19 @@ git commit -m "fix(tracker): confirm job deletion in list views"
 
 删除看板拖拽更新到 Offer 或终止流程后的 Toast；保留状态更新失败 Toast 和终态二次确认。
 
-- [ ] **步骤 2：清理批量普通成功提示**
+- [ ] **步骤 2：补充批量删除确认**
+
+在 `TrackerHeader` 中增加批量删除确认状态。“删除选中”按钮只打开 `AlertDialog`；对话框展示当前选中职位数量，确认后才调用 `handleDeleteSelectedJobs`，取消或关闭时不发送请求。
+
+- [ ] **步骤 3：清理批量普通成功提示**
 
 删除批量修改状态和批量归档成功 Toast；保留批量删除成功 Toast，以及所有失败 Toast。
 
-- [ ] **步骤 3：清理详情抽屉归档成功提示**
+- [ ] **步骤 4：清理详情抽屉归档成功提示**
 
 删除归档/取消归档成功 Toast；保留职位删除成功 Toast和所有失败 Toast。
 
-- [ ] **步骤 4：检查三个组件**
+- [ ] **步骤 5：检查三个组件**
 
 运行：
 
@@ -158,7 +162,7 @@ pnpm exec eslint src/pages/tracker/components/board/index.tsx src/pages/tracker/
 
 预期：退出码 0，无 ESLint 错误。
 
-- [ ] **步骤 5：提交反馈清理**
+- [ ] **步骤 6：提交反馈清理**
 
 ```bash
 git add src/pages/tracker/components/board/index.tsx src/pages/tracker/components/header/index.tsx src/pages/tracker/components/drawer/index.tsx
@@ -224,4 +228,3 @@ pnpm build
 git add docs/superpowers/plans/2026-07-28-tracker-feedback-and-contact-layout.md
 git commit -m "docs: record tracker feedback verification"
 ```
-
