@@ -1,5 +1,5 @@
 import type { ApplicationStatus, DrawerTab } from '../../types'
-import { ArrowLeft, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
+import { Archive, ArrowLeft, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -11,14 +11,18 @@ import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { deleteCompany, updateCompany } from '@/lib/supabase/resume'
+import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
 import useTrackerStore from '../../store'
-import { autoCompleteStages, getTrackerErrorMessage } from '../../utils'
+import { appendStatusChangeActivity, autoCompleteStages, getTrackerErrorMessage } from '../../utils'
+import { CompanyLogo } from '../company-logo'
+import ActivityTimeline from './activity-timeline'
+import Contacts from './contacts'
 import DrawerDocument from './document'
 import DrawerEditForm from './edit-form'
 import DrawerMetaBar from './meta-bar'
+import NextActionSection from './next-action'
 import ProgressTimeline from './progress-timeline'
 import DrawerStageDetail from './stage-detail'
 
@@ -27,14 +31,14 @@ type ConfirmKind = 'reject' | 'delete' | null
 export default function JobDrawer() {
   const { selectedJob, drawerOpen, closeJobDrawer, syncJob, restoreJobsSnapshot, removeJobs } = useTrackerStore()
   const isMobile = useIsMobile()
-  const [activeTab, setActiveTab] = useState<DrawerTab>('information')
+  const [activeTab, setActiveTab] = useState<DrawerTab>('follow-up')
   const [isEditing, setIsEditing] = useState(false)
   const [viewingStage, setViewingStage] = useState<ApplicationStatus | null>(null)
   const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null)
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      setActiveTab('information')
+      setActiveTab('follow-up')
       setIsEditing(false)
       setViewingStage(null)
       closeJobDrawer()
@@ -53,6 +57,7 @@ export default function JobDrawer() {
       ...selectedJob,
       status: newStatus,
       stage_details: updatedStageDetails,
+      activities: appendStatusChangeActivity(selectedJob, newStatus),
     }
 
     syncJob(optimisticJob)
@@ -99,6 +104,20 @@ export default function JobDrawer() {
     }
   }
 
+  const handleArchive = async () => {
+    if (!selectedJob)
+      return
+    const next = !selectedJob.archived
+    try {
+      const savedJob = await archiveCompany(selectedJob.id, next)
+      syncJob(savedJob)
+      toast.success(next ? '已归档' : '已取消归档')
+    }
+    catch (error) {
+      toast.error('操作失败', { description: getTrackerErrorMessage(error) })
+    }
+  }
+
   if (!selectedJob)
     return null
 
@@ -110,9 +129,13 @@ export default function JobDrawer() {
   const titleBlock = (
     <div className="flex items-start gap-3">
       <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        {selectedJob.company_logo
-          ? <img src={selectedJob.company_logo} alt={selectedJob.company} className="size-7 object-contain" />
-          : <BriefcaseBusiness className="size-5" />}
+        <CompanyLogo
+          logo={selectedJob.company_logo}
+          company={selectedJob.company}
+          icon={BriefcaseBusiness}
+          imgClassName="size-7"
+          iconClassName="size-5"
+        />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2 text-xs">
@@ -152,6 +175,10 @@ export default function JobDrawer() {
             终止该流程
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleArchive}>
+            <Archive className="size-4" />
+            {selectedJob.archived ? '取消归档' : '归档'}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setConfirmKind('delete')} className="text-destructive focus:text-destructive">
             <Trash2 className="size-4" />
             删除该记录
@@ -197,29 +224,41 @@ export default function JobDrawer() {
           : (
               <Tabs value={activeTab} onValueChange={v => setActiveTab(v as DrawerTab)}>
                 <TabsList>
-                  <TabsTrigger value="information" className="flex-1">跟进流程</TabsTrigger>
-                  <TabsTrigger value="document" className="flex-1">投递简历</TabsTrigger>
+                  <TabsTrigger value="follow-up" className="flex-1">跟进</TabsTrigger>
+                  <TabsTrigger value="interview" className="flex-1">阶段详情</TabsTrigger>
+                  <TabsTrigger value="documents" className="flex-1">简历 & 联系人</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="information" className="mt-5 space-y-6">
+                <TabsContent value="follow-up" className="mt-5 space-y-6">
+                  {selectedJob.status !== 'rejected' && <NextActionSection key={selectedJob.id} job={selectedJob} />}
                   <ProgressTimeline
                     viewingStage={viewingStage}
                     onStageClick={stage => setViewingStage(stage === selectedJob.status ? null : stage)}
                   />
-                  {selectedJob.status !== 'rejected' && (
-                    <>
-                      <Separator />
-                      <DrawerStageDetail
-                        displayStage={displayStage}
-                        isViewingHistory={isViewingHistory}
-                        onSaved={() => setViewingStage(null)}
-                      />
-                    </>
-                  )}
+                  <Separator />
+                  <ActivityTimeline job={selectedJob} />
                 </TabsContent>
 
-                <TabsContent value="document" className="mt-5">
+                <TabsContent value="interview" className="mt-5 space-y-6">
+                  {selectedJob.status === 'rejected'
+                    ? (
+                        <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-8 text-center text-sm text-muted-foreground">
+                          该流程已终止，阶段详情不可再编辑。
+                        </p>
+                      )
+                    : (
+                        <DrawerStageDetail
+                          displayStage={displayStage}
+                          isViewingHistory={isViewingHistory}
+                          onSaved={() => setViewingStage(null)}
+                        />
+                      )}
+                </TabsContent>
+
+                <TabsContent value="documents" className="mt-5 space-y-6">
                   <DrawerDocument />
+                  <Separator />
+                  <Contacts job={selectedJob} />
                 </TabsContent>
               </Tabs>
             )}

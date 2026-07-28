@@ -104,6 +104,15 @@ export function AddJobForm({ formData, onChange }: AddJobFormProps) {
             />
           </Field>
           <Field>
+            <FieldLabel htmlFor="company-logo">公司 Logo 链接</FieldLabel>
+            <Input
+              id="company-logo"
+              placeholder="https://... （可选，图片地址）"
+              value={formData.company_logo}
+              onChange={e => onChange('company_logo', e.target.value)}
+            />
+          </Field>
+          <Field>
             <FieldLabel htmlFor="salary-min">薪资范围</FieldLabel>
             <div className="flex items-center gap-2">
               <Input

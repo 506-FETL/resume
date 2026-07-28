@@ -7,7 +7,7 @@ import JobDrawer from './components/drawer'
 import AddJobDrawer from './components/drawer/add-job'
 import TrackerHeader from './components/header'
 import ListView from './components/list'
-import StatusFilter from './components/status-filter'
+import OverviewBar from './components/overview-bar'
 import useTrackerStore from './store'
 import { getTrackerLoadErrorMeta } from './utils'
 
@@ -56,7 +56,7 @@ function Tracker() {
     <>
       <div className="mx-auto flex w-full max-w-360 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-10 lg:py-6">
         <TrackerHeader />
-        <StatusFilter />
+        <OverviewBar />
         <main className="w-full min-w-0">
           {renderMainContent()}
         </main>

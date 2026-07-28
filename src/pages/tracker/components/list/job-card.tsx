@@ -1,16 +1,17 @@
 import type { JobApplication } from '../../types'
-import { Building2, MapPin, MoreVertical, Trash2 } from 'lucide-react'
+import { Archive, Building2, MapPin, MoreVertical, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { deleteCompany, updateCompany } from '@/lib/supabase/resume'
+import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
 import useTrackerStore from '../../store'
-import { autoCompleteStages, getTrackerErrorMessage } from '../../utils'
+import { appendStatusChangeActivity, autoCompleteStages, getTrackerErrorMessage } from '../../utils'
+import { CompanyLogo } from '../company-logo'
 
 interface JobCardProps {
   job: JobApplication
@@ -39,12 +40,29 @@ export function JobCard({ job }: JobCardProps) {
     }
   }
 
+  const handleArchive = async () => {
+    const next = !job.archived
+    try {
+      const savedJob = await archiveCompany(job.id, next)
+      syncJob(savedJob)
+      toast.success(next ? '已归档' : '已取消归档')
+    }
+    catch (error) {
+      toast.error('操作失败', { description: getTrackerErrorMessage(error) })
+    }
+  }
+
   const handleStatusChange = async (newStatus: JobApplication['status']) => {
     if (newStatus === job.status)
       return
     const previousState = useTrackerStore.getState()
     const updatedStageDetails = autoCompleteStages(job.status, newStatus, job.stage_details, true)
-    const optimisticJob = { ...job, status: newStatus, stage_details: updatedStageDetails }
+    const optimisticJob = {
+      ...job,
+      status: newStatus,
+      stage_details: updatedStageDetails,
+      activities: appendStatusChangeActivity(job, newStatus),
+    }
 
     syncJob(optimisticJob)
 
@@ -75,9 +93,7 @@ export function JobCard({ job }: JobCardProps) {
     >
       <div className="flex items-start gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-          {job.company_logo
-            ? <img src={job.company_logo} alt={job.company} className="size-5 object-contain" />
-            : <Building2 className="size-4" />}
+          <CompanyLogo logo={job.company_logo} company={job.company} icon={Building2} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
@@ -139,6 +155,10 @@ export function JobCard({ job }: JobCardProps) {
                         )}
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleArchive()}>
+                        <Archive data-icon="inline-start" />
+                        {job.archived ? '取消归档' : '归档'}
+                      </DropdownMenuItem>
                       <DropdownMenuItem variant="destructive" onClick={() => handleDelete()}>
                         <Trash2 data-icon="inline-start" />
                         删除

@@ -6,6 +6,7 @@ export interface AddJobFormData {
   location: string
   status: ApplicationStatus
   job_url: string
+  company_logo: string
   salaryMin: string
   salaryMax: string
   resume_id: string | null
@@ -17,6 +18,7 @@ export const INITIAL_FORM_DATA: AddJobFormData = {
   location: '',
   status: 'saved',
   job_url: '',
+  company_logo: '',
   salaryMin: '',
   salaryMax: '',
   resume_id: null,

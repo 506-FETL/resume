@@ -1,4 +1,4 @@
-import type { ApplicationStatus, JobApplication, ViewMode } from './types'
+import type { ApplicationStatus, JobApplication, TrackerSortBy, TrackerSortDir, ViewMode } from './types'
 import { create } from 'zustand'
 import { filterJobs } from './utils'
 
@@ -15,6 +15,9 @@ interface TrackerStore {
   error: string | null
   isInitialized: boolean
 
+  // 看板 UI
+  rejectedCollapsed: boolean
+
   // 选择模式
   selectedIds: Set<string>
   isSelectMode: boolean
@@ -22,6 +25,11 @@ interface TrackerStore {
   // 筛选
   filterStatus: ApplicationStatus | null
   searchKeyword: string
+  showArchived: boolean
+
+  // 排序（仅列表视图消费）
+  sortBy: TrackerSortBy
+  sortDir: TrackerSortDir
 
   // Drawer
   selectedJob: JobApplication | null
@@ -32,6 +40,9 @@ interface TrackerStore {
   setViewMode: (mode: ViewMode) => void
   setFilterStatus: (status: ApplicationStatus | null) => void
   setSearchKeyword: (keyword: string) => void
+  toggleRejectedCollapsed: () => void
+  setShowArchived: (value: boolean) => void
+  setSort: (sortBy: TrackerSortBy) => void
   enterSelectMode: () => void
   exitSelectMode: () => void
   toggleSelect: (id: string) => void
@@ -49,10 +60,13 @@ interface TrackerStore {
 const useTrackerStore = create<TrackerStore>()(set => ({
   // 初始状态
   jobs: [],
-  viewMode: 'list',
+  viewMode: 'board',
   loading: false,
   error: null,
   isInitialized: false,
+
+  // 看板 UI
+  rejectedCollapsed: true,
 
   // 选择模式
   selectedIds: new Set(),
@@ -61,6 +75,11 @@ const useTrackerStore = create<TrackerStore>()(set => ({
   // 筛选
   filterStatus: null,
   searchKeyword: '',
+  showArchived: false,
+
+  // 排序
+  sortBy: 'updated',
+  sortDir: 'desc',
 
   // Drawer
   selectedJob: null,
@@ -71,6 +90,13 @@ const useTrackerStore = create<TrackerStore>()(set => ({
   setViewMode: mode => set({ viewMode: mode }),
   setFilterStatus: status => set({ filterStatus: status }),
   setSearchKeyword: keyword => set({ searchKeyword: keyword }),
+  setShowArchived: value => set({ showArchived: value }),
+  setSort: sortBy => set(state => (
+    state.sortBy === sortBy
+      ? { sortDir: state.sortDir === 'asc' ? 'desc' : 'asc' }
+      : { sortBy, sortDir: 'desc' }
+  )),
+  toggleRejectedCollapsed: () => set(state => ({ rejectedCollapsed: !state.rejectedCollapsed })),
   enterSelectMode: () => set({ isSelectMode: true, selectedIds: new Set() }),
   exitSelectMode: () => set({ isSelectMode: false, selectedIds: new Set() }),
   toggleSelect: (id) => {
@@ -87,7 +113,7 @@ const useTrackerStore = create<TrackerStore>()(set => ({
   },
   selectAll: () => {
     set((state) => {
-      const selectableJobs = filterJobs(state.jobs, state.filterStatus, state.searchKeyword)
+      const selectableJobs = filterJobs(state.jobs, state.filterStatus, state.searchKeyword, state.showArchived)
 
       return {
         selectedIds: state.selectedIds.size === selectableJobs.length

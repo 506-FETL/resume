@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { updateCompany } from '@/lib/supabase/resume'
 import { APPLICATION_STATUS_ORDER, DEFAULT_INTERVIEW_SUB_STAGES } from '../../const'
 import useTrackerStore from '../../store'
-import { getTrackerErrorMessage } from '../../utils'
+import { appendStatusChangeActivity, getTrackerErrorMessage } from '../../utils'
 
 interface UseStageDetailProps {
   displayStage: ApplicationStatus
@@ -175,6 +175,7 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
           status: nextStatus,
           stage_details: finalDetails,
           interview_sub_stages: localSubStages,
+          activities: appendStatusChangeActivity(job, nextStatus),
         }
       }
       else {
@@ -247,6 +248,7 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
           status: nextStatus,
           stage_details: finalDetails,
           interview_sub_stages: localSubStages,
+          activities: appendStatusChangeActivity(job, nextStatus),
         }
       }
       else {

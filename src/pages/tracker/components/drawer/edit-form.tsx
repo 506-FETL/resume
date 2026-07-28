@@ -36,6 +36,7 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
     salaryMin: parsedSalary.min,
     salaryMax: parsedSalary.max,
     job_url: selectedJob?.job_url || '',
+    company_logo: selectedJob?.company_logo || '',
   })
 
   const handleChange = (field: string, value: string) => {
@@ -57,6 +58,7 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
           ? `${formData.salaryMin}K-${formData.salaryMax}K`
           : formData.salaryMin ? `${formData.salaryMin}K` : null,
         job_url: formData.job_url || null,
+        company_logo: formData.company_logo.trim() || null,
       })
 
       syncJob(savedJob)
@@ -145,6 +147,16 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
             placeholder="https://..."
             value={formData.job_url}
             onChange={e => handleChange('job_url', e.target.value)}
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="company-logo">公司 Logo 链接</FieldLabel>
+          <Input
+            id="company-logo"
+            placeholder="https://... （可选，图片地址）"
+            value={formData.company_logo}
+            onChange={e => handleChange('company_logo', e.target.value)}
           />
         </Field>
       </FieldGroup>

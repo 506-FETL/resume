@@ -26,7 +26,7 @@ export function buildJobPayload(formData: AddJobFormData): Omit<JobApplication, 
   return {
     resume_id: formData.resume_id,
     company: formData.company,
-    company_logo: null,
+    company_logo: formData.company_logo.trim() || null,
     position: formData.position,
     location: formData.location,
     salary: formData.salaryMin && formData.salaryMax
@@ -36,5 +36,10 @@ export function buildJobPayload(formData: AddJobFormData): Omit<JobApplication, 
     status: formData.status,
     stage_details: [{ stage: formData.status, status: '待处理', start_date: null, notes: '' }],
     interview_sub_stages: [],
+    archived: false,
+    next_action: null,
+    next_action_date: null,
+    activities: [],
+    contacts: [],
   }
 }

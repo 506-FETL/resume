@@ -3,9 +3,8 @@ import type { ResumeVersionSourceType } from '@/lib/supabase/resume/history'
 import type { ApplicationStatus } from '@/pages/tracker/types'
 import { useEffect, useMemo, useState } from 'react'
 import { listAtsSummaries, listJobApplicationSummaries, listResumeHistoryVersionSummaries } from '@/lib/supabase/resume'
+import { isJobPendingFollowUp } from '@/pages/tracker/utils'
 import { diffDates } from '@/utils/date'
-
-const FOLLOW_UP_STALE_DAYS = 7
 
 export interface ResumeSpotlight {
   resume: Resume
@@ -138,15 +137,7 @@ export function useResumeSpotlights(resumes: Resume[], resumesLoading: boolean) 
               rejected: 0,
             })
 
-            const pendingCount = jobs.filter((job) => {
-              if (job.status === 'offer' || job.status === 'rejected') {
-                return false
-              }
-
-              const lastUpdate = new Date(job.updated_at)
-              const daysDiff = Math.floor((Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24))
-              return daysDiff >= FOLLOW_UP_STALE_DAYS
-            }).length
+            const pendingCount = jobs.filter(isJobPendingFollowUp).length
 
             const activeCount = statusCounts.saved + statusCounts.applied + statusCounts.screen + statusCounts.interview
 

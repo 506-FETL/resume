@@ -1,5 +1,12 @@
 import type { ApplicationStatus, StageStatus } from './types'
 
+// 下一步日期徽标配色（按 tone）
+export const NEXT_ACTION_TONE_CLASSES: Record<'overdue' | 'today' | 'upcoming', string> = {
+  overdue: 'bg-red-100 text-red-700',
+  today: 'bg-orange-100 text-orange-700',
+  upcoming: 'bg-muted text-muted-foreground',
+}
+
 // 看板列配置
 export const BOARD_COLUMNS = [
   { status: 'saved' as ApplicationStatus, label: '已保存' },
@@ -7,13 +14,15 @@ export const BOARD_COLUMNS = [
   { status: 'screen' as ApplicationStatus, label: '筛选中' },
   { status: 'interview' as ApplicationStatus, label: '面试中' },
   { status: 'offer' as ApplicationStatus, label: '已录用' },
+  { status: 'rejected' as ApplicationStatus, label: '已终止' },
 ]
 
 // 阶段状态颜色配置（用于 drawer-stage-detail）
+// 语义统一：待处理=灰、进行中=蓝、已完成=绿、已拒绝=红（与 STAGE_STATUS_CONFIG 一致）
 export const STAGE_STATUS_COLORS: Record<StageStatus, { bg: string, text: string, border: string }> = {
   待处理: { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' },
-  进行中: { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-200' },
-  已完成: { bg: 'bg-yellow-100', text: 'text-yellow-600', border: 'border-yellow-200' },
+  进行中: { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-200' },
+  已完成: { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-200' },
   已拒绝: { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-200' },
 }
 
@@ -24,7 +33,7 @@ export const APPLICATION_STATUS_CONFIG: Record<ApplicationStatus, { label: strin
   screen: { label: '筛选中', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
   interview: { label: '面试中', color: 'text-purple-600', bgColor: 'bg-purple-100' },
   offer: { label: '已录用', color: 'text-green-600', bgColor: 'bg-green-100' },
-  rejected: { label: '终止流程', color: 'text-red-600', bgColor: 'bg-red-100' },
+  rejected: { label: '已终止', color: 'text-red-600', bgColor: 'bg-red-100' },
 }
 
 // 申请状态顺序（用于进度条）

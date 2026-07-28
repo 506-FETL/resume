@@ -1,15 +1,16 @@
-import type { JobApplication } from '../../types'
-import { ArrowRight, Building2, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react'
+import type { JobApplication, TrackerSortBy } from '../../types'
+import { Archive, ArrowDown, ArrowRight, ArrowUp, Bell, Building2, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { deleteCompany, updateCompany } from '@/lib/supabase/resume'
+import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
-import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
+import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER, NEXT_ACTION_TONE_CLASSES } from '../../const'
 import useTrackerStore from '../../store'
-import { autoCompleteStages, getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
+import { appendStatusChangeActivity, autoCompleteStages, getDaysInStage, getNextActionBadge, getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
+import { CompanyLogo } from '../company-logo'
 
 interface JobTableProps {
   jobs: JobApplication[]
@@ -22,6 +23,35 @@ function formatDate(dateStr: string | null): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+interface SortableHeadProps {
+  field: TrackerSortBy
+  label: string
+  sortBy: TrackerSortBy
+  sortDir: 'asc' | 'desc'
+  onSort: (field: TrackerSortBy) => void
+}
+
+function SortableHead({ field, label, sortBy, sortDir, onSort }: SortableHeadProps) {
+  const isActive = sortBy === field
+  return (
+    <th className="px-3 py-2.5 text-left font-medium">
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className={cn(
+          'inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-foreground',
+          isActive && 'text-foreground',
+        )}
+      >
+        {label}
+        {isActive && (
+          sortDir === 'asc' ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
+        )}
+      </button>
+    </th>
+  )
+}
+
 export function JobTable({ jobs }: JobTableProps) {
   const {
     isSelectMode,
@@ -32,6 +62,9 @@ export function JobTable({ jobs }: JobTableProps) {
     syncJob,
     restoreJobsSnapshot,
     removeJobs,
+    sortBy,
+    sortDir,
+    setSort,
   } = useTrackerStore()
 
   const allSelected = jobs.length > 0 && jobs.every(job => selectedIds.has(job.id))
@@ -41,7 +74,12 @@ export function JobTable({ jobs }: JobTableProps) {
       return
     const previousState = useTrackerStore.getState()
     const updatedStageDetails = autoCompleteStages(job.status, newStatus, job.stage_details, true)
-    const optimisticJob = { ...job, status: newStatus, stage_details: updatedStageDetails }
+    const optimisticJob = {
+      ...job,
+      status: newStatus,
+      stage_details: updatedStageDetails,
+      activities: appendStatusChangeActivity(job, newStatus),
+    }
 
     syncJob(optimisticJob)
 
@@ -74,6 +112,18 @@ export function JobTable({ jobs }: JobTableProps) {
     }
   }
 
+  const handleArchive = async (job: JobApplication) => {
+    const next = !job.archived
+    try {
+      const savedJob = await archiveCompany(job.id, next)
+      syncJob(savedJob)
+      toast.success(next ? '已归档' : '已取消归档')
+    }
+    catch (error) {
+      toast.error('操作失败', { description: getTrackerErrorMessage(error) })
+    }
+  }
+
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       <div className="overflow-x-auto">
@@ -89,11 +139,12 @@ export function JobTable({ jobs }: JobTableProps) {
                   />
                 </th>
               )}
-              <th className="px-3 py-2.5 text-left font-medium">公司 / 职位</th>
+              <SortableHead field="company" label="公司 / 职位" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
               <th className="px-3 py-2.5 text-left font-medium">地点</th>
               <th className="px-3 py-2.5 text-left font-medium">薪资</th>
-              <th className="px-3 py-2.5 text-left font-medium">状态</th>
-              <th className="px-3 py-2.5 text-left font-medium">更新时间</th>
+              <SortableHead field="status" label="状态" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
+              <SortableHead field="days" label="停留" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
+              <SortableHead field="updated" label="更新时间" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
               <th className="px-3 py-2.5 text-right font-medium">操作</th>
             </tr>
           </thead>
@@ -102,6 +153,8 @@ export function JobTable({ jobs }: JobTableProps) {
               const isSelected = selectedIds.has(job.id)
               const statusConfig = APPLICATION_STATUS_CONFIG[job.status]
               const nextAction = getTrackerNextAction(job)
+              const nextActionBadge = getNextActionBadge(job)
+              const daysInStage = getDaysInStage(job)
               const handleRowClick = () => {
                 if (isSelectMode)
                   toggleSelect(job.id)
@@ -127,13 +180,19 @@ export function JobTable({ jobs }: JobTableProps) {
                   <td className="px-3 py-2.5">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                        {job.company_logo
-                          ? <img src={job.company_logo} alt={job.company} className="size-5 object-contain" />
-                          : <Building2 className="size-4" />}
+                        <CompanyLogo logo={job.company_logo} company={job.company} icon={Building2} />
                       </div>
                       <div className="min-w-0">
                         <div className="truncate font-medium text-foreground">{job.position}</div>
-                        <div className="truncate text-xs text-muted-foreground">{job.company}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-xs text-muted-foreground">{job.company}</span>
+                          {nextActionBadge && (
+                            <span className={cn('inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
+                              <Bell className="size-2.5" />
+                              {nextActionBadge.label}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -144,6 +203,7 @@ export function JobTable({ jobs }: JobTableProps) {
                       {statusConfig.label}
                     </Badge>
                   </td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{daysInStage === 0 ? '今天' : `${daysInStage}天`}</td>
                   <td className="px-3 py-2.5 text-xs text-muted-foreground">{formatDate(job.updated_at)}</td>
                   <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
@@ -193,6 +253,10 @@ export function JobTable({ jobs }: JobTableProps) {
                             )}
                           </DropdownMenuGroup>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleArchive(job)}>
+                            <Archive data-icon="inline-start" />
+                            {job.archived ? '取消归档' : '归档'}
+                          </DropdownMenuItem>
                           <DropdownMenuItem variant="destructive" onClick={() => handleDelete(job)}>
                             <Trash2 data-icon="inline-start" />
                             删除

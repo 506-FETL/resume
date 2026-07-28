@@ -3,16 +3,16 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { APPLICATION_STATUS_CONFIG } from '../../const'
 import useTrackerStore from '../../store'
-import { filterJobs } from '../../utils'
+import { filterJobs, sortJobs } from '../../utils'
 import { JobCard } from './job-card'
 import { JobTable } from './job-table'
 
 const LIST_SKELETON_KEYS = ['list-skeleton-1', 'list-skeleton-2', 'list-skeleton-3', 'list-skeleton-4'] as const
 
 export default function ListView() {
-  const { jobs, loading, filterStatus, searchKeyword, setFilterStatus, setSearchKeyword, openAddDrawer } = useTrackerStore()
+  const { jobs, loading, filterStatus, searchKeyword, showArchived, sortBy, sortDir, setFilterStatus, setSearchKeyword, openAddDrawer } = useTrackerStore()
 
-  const filteredJobs = filterJobs(jobs, filterStatus, searchKeyword)
+  const filteredJobs = sortJobs(filterJobs(jobs, filterStatus, searchKeyword, showArchived), sortBy, sortDir)
   const hasFilter = filterStatus !== null || searchKeyword.trim() !== ''
 
   if (loading) {
