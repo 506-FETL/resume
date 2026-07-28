@@ -3,6 +3,16 @@ import dayjs from 'dayjs'
 import { CircleDot, GitCommitHorizontal, MessageSquarePlus, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { updateCompany } from '@/lib/supabase/resume'
@@ -25,6 +35,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
   const { syncJob } = useTrackerStore()
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   // 最新在上
   const sorted = [...job.activities].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
@@ -58,9 +69,16 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
     setDraft('')
   }
 
-  const handleDelete = async (id: string) => {
-    await persist(job.activities.filter(a => a.id !== id), '已删除记录')
+  const handleDelete = async () => {
+    const deleteId = pendingDeleteId
+    if (!deleteId || saving)
+      return
+
+    setPendingDeleteId(null)
+    await persist(job.activities.filter(activity => activity.id !== deleteId), '已删除记录')
   }
+
+  const pendingDeleteActivity = job.activities.find(activity => activity.id === pendingDeleteId)
 
   return (
     <section className="flex flex-col gap-3">
@@ -127,7 +145,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                           className="opacity-0 transition-opacity group-hover:opacity-100"
                           aria-label="删除记录"
                           disabled={saving}
-                          onClick={() => handleDelete(activity.id)}
+                          onClick={() => setPendingDeleteId(activity.id)}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -138,6 +156,21 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
               })}
             </ol>
           )}
+
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除记录？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {`删除后将无法恢复。确定要删除「${pendingDeleteActivity?.label ?? '该记录'}」吗？`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving} onClick={() => setPendingDeleteId(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction disabled={saving} onClick={handleDelete}>删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   )
 }

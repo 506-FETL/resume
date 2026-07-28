@@ -36,7 +36,6 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
         next_action_date: date,
       })
       syncJob(savedJob)
-      toast.success('已更新下一步')
     }
     catch (error) {
       toast.error('保存失败', { description: getTrackerErrorMessage(error) })
@@ -53,7 +52,6 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
       syncJob(savedJob)
       setAction('')
       setDate(null)
-      toast.success('已清除下一步')
     }
     catch (error) {
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
