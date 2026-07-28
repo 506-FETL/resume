@@ -29,30 +29,49 @@ export default function Contacts({ job }: ContactsProps) {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   // 始终指向最新本地值，供保存时读取，避免闭包读到旧数组
   const contactsRef = useRef(contacts)
+  const jobIdRef = useRef(job.id)
+  const requestGenerationRef = useRef(0)
   contactsRef.current = contacts
+  jobIdRef.current = job.id
 
   // 外部数据变化（切换职位/服务端回写）时同步本地
   useEffect(() => {
+    requestGenerationRef.current += 1
     setContacts(job.contacts)
+    setSaving(false)
+    setPendingDeleteId(null)
   }, [job.id, job.contacts])
 
   const persist = async (next: TrackerContact[], successText?: string) => {
     const previous = contactsRef.current
+    const requestJobId = job.id
+    const requestGeneration = requestGenerationRef.current + 1
+    requestGenerationRef.current = requestGeneration
+    const isCurrentRequest = () => (
+      jobIdRef.current === requestJobId
+      && requestGenerationRef.current === requestGeneration
+    )
+
     setContacts(next)
     setSaving(true)
     try {
       const savedJob = await updateCompany(job.id, { contacts: next })
+      const shouldUpdateLocalUi = isCurrentRequest()
       syncJob(savedJob)
-      if (successText) {
+      if (shouldUpdateLocalUi && successText) {
         toast.success(successText)
       }
     }
     catch (error) {
-      setContacts(previous)
-      toast.error('操作失败', { description: getTrackerErrorMessage(error) })
+      if (isCurrentRequest()) {
+        setContacts(previous)
+        toast.error('操作失败', { description: getTrackerErrorMessage(error) })
+      }
     }
     finally {
-      setSaving(false)
+      if (isCurrentRequest()) {
+        setSaving(false)
+      }
     }
   }
 
@@ -111,7 +130,7 @@ export default function Contacts({ job }: ContactsProps) {
             <ul className="flex flex-col gap-3">
               {contacts.map(contact => (
                 <li key={contact.id} className="flex items-start gap-2 rounded-lg border bg-card p-3">
-                  <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]">
+                  <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]">
                     <Input
                       value={contact.name}
                       placeholder="姓名"
