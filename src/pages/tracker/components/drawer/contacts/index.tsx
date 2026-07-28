@@ -2,6 +2,16 @@ import type { JobApplication, TrackerContact } from '../../../types'
 import { Plus, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { updateCompany } from '@/lib/supabase/resume'
@@ -16,6 +26,7 @@ export default function Contacts({ job }: ContactsProps) {
   const { syncJob } = useTrackerStore()
   const [contacts, setContacts] = useState<TrackerContact[]>(job.contacts)
   const [saving, setSaving] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   // 始终指向最新本地值，供保存时读取，避免闭包读到旧数组
   const contactsRef = useRef(contacts)
   contactsRef.current = contacts
@@ -25,15 +36,19 @@ export default function Contacts({ job }: ContactsProps) {
     setContacts(job.contacts)
   }, [job.id, job.contacts])
 
-  const persist = async (next: TrackerContact[], successText: string) => {
+  const persist = async (next: TrackerContact[], successText?: string) => {
+    const previous = contactsRef.current
     setContacts(next)
     setSaving(true)
     try {
       const savedJob = await updateCompany(job.id, { contacts: next })
       syncJob(savedJob)
-      toast.success(successText)
+      if (successText) {
+        toast.success(successText)
+      }
     }
     catch (error) {
+      setContacts(previous)
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
     finally {
@@ -58,22 +73,29 @@ export default function Contacts({ job }: ContactsProps) {
   }
 
   const handleFieldCommit = async () => {
-    await persist(contactsRef.current, '已保存')
+    await persist(contactsRef.current)
   }
 
-  const handleDelete = async (id: string) => {
-    await persist(contactsRef.current.filter(c => c.id !== id), '已删除联系人')
+  const handleDelete = async () => {
+    if (!pendingDeleteId || saving) {
+      return
+    }
+
+    await persist(contactsRef.current.filter(c => c.id !== pendingDeleteId), '已删除联系人')
+    setPendingDeleteId(null)
   }
+
+  const pendingDeleteContact = contacts.find(contact => contact.id === pendingDeleteId)
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <UserRound className="size-4 text-muted-foreground" />
           <h3 className="text-sm font-semibold">联系人</h3>
           <span className="text-xs text-muted-foreground">{contacts.length}</span>
         </div>
-        <Button variant="outline" size="sm" className="h-8" disabled={saving} onClick={handleAdd}>
+        <Button variant="outline" size="sm" className="h-8 w-full sm:w-auto" disabled={saving} onClick={handleAdd}>
           <Plus className="size-3.5" />
           添加联系人
         </Button>
@@ -88,31 +110,21 @@ export default function Contacts({ job }: ContactsProps) {
         : (
             <ul className="flex flex-col gap-3">
               {contacts.map(contact => (
-                <li key={contact.id} className="flex flex-col gap-2 rounded-lg border bg-card p-3">
-                  <div className="flex items-center gap-2">
+                <li key={contact.id} className="flex items-start gap-2 rounded-lg border bg-card p-3">
+                  <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]">
                     <Input
                       value={contact.name}
                       placeholder="姓名"
-                      className="h-8 flex-1 font-medium"
+                      className="h-8 font-medium"
+                      disabled={saving}
                       onChange={e => handleFieldChange(contact.id, { name: e.target.value })}
                       onBlur={handleFieldCommit}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      aria-label="删除联系人"
-                      disabled={saving}
-                      onClick={() => handleDelete(contact.id)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
                     <Input
                       value={contact.role}
                       placeholder="角色（如 HR / 面试官 / 内推人）"
                       className="h-8"
+                      disabled={saving}
                       onChange={e => handleFieldChange(contact.id, { role: e.target.value })}
                       onBlur={handleFieldCommit}
                     />
@@ -120,21 +132,48 @@ export default function Contacts({ job }: ContactsProps) {
                       value={contact.channel}
                       placeholder="联系方式（微信 / 邮箱 / 电话）"
                       className="h-8"
+                      disabled={saving}
                       onChange={e => handleFieldChange(contact.id, { channel: e.target.value })}
                       onBlur={handleFieldCommit}
                     />
+                    <Input
+                      value={contact.note}
+                      placeholder="备注"
+                      className="h-8"
+                      disabled={saving}
+                      onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
+                      onBlur={handleFieldCommit}
+                    />
                   </div>
-                  <Input
-                    value={contact.note}
-                    placeholder="备注"
-                    className="h-8"
-                    onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
-                    onBlur={handleFieldCommit}
-                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="删除联系人"
+                    disabled={saving}
+                    onClick={() => setPendingDeleteId(contact.id)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
+
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除联系人？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {`删除后将无法恢复。确定要删除${pendingDeleteContact?.name.trim() || '该联系人'}吗？`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving} onClick={() => setPendingDeleteId(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction disabled={saving} onClick={handleDelete}>删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   )
 }
