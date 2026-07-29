@@ -110,10 +110,6 @@ export default function BoardView() {
     updateCompany(jobId, optimisticJob)
       .then((savedJob) => {
         syncJob(savedJob)
-        if (newStatus === 'offer')
-          toast.success('Offer🎉')
-        else if (newStatus === 'rejected')
-          toast.error('终止流程')
       })
       .catch((error) => {
         restoreJobsSnapshot({

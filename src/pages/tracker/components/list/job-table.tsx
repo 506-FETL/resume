@@ -1,6 +1,8 @@
 import type { JobApplication, TrackerSortBy } from '../../types'
 import { Archive, ArrowDown, ArrowRight, ArrowUp, Bell, Building2, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -66,6 +68,7 @@ export function JobTable({ jobs }: JobTableProps) {
     sortDir,
     setSort,
   } = useTrackerStore()
+  const [pendingDeleteJob, setPendingDeleteJob] = useState<JobApplication | null>(null)
 
   const allSelected = jobs.length > 0 && jobs.every(job => selectedIds.has(job.id))
 
@@ -86,10 +89,6 @@ export function JobTable({ jobs }: JobTableProps) {
     try {
       const savedJob = await updateCompany(job.id, optimisticJob)
       syncJob(savedJob)
-      if (newStatus === 'offer')
-        toast.success('Offer🎉')
-      else if (newStatus === 'rejected')
-        toast.error('终止流程')
     }
     catch (error) {
       restoreJobsSnapshot({
@@ -117,7 +116,6 @@ export function JobTable({ jobs }: JobTableProps) {
     try {
       const savedJob = await archiveCompany(job.id, next)
       syncJob(savedJob)
-      toast.success(next ? '已归档' : '已取消归档')
     }
     catch (error) {
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
@@ -257,7 +255,7 @@ export function JobTable({ jobs }: JobTableProps) {
                             <Archive data-icon="inline-start" />
                             {job.archived ? '取消归档' : '归档'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onClick={() => handleDelete(job)}>
+                          <DropdownMenuItem variant="destructive" onClick={() => setPendingDeleteJob(job)}>
                             <Trash2 data-icon="inline-start" />
                             删除
                           </DropdownMenuItem>
@@ -271,6 +269,31 @@ export function JobTable({ jobs }: JobTableProps) {
           </tbody>
         </table>
       </div>
+      <AlertDialog open={pendingDeleteJob !== null} onOpenChange={open => !open && setPendingDeleteJob(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除职位？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {`删除后将无法恢复。确定要永久删除「${pendingDeleteJob?.company ?? ''} - ${pendingDeleteJob?.position ?? ''}」吗？`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteJob(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!pendingDeleteJob)
+                  return
+                const job = pendingDeleteJob
+                setPendingDeleteJob(null)
+                handleDelete(job)
+              }}
+            >
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

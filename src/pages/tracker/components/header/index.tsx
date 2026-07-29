@@ -36,6 +36,7 @@ export default function TrackerHeader() {
     setShowArchived,
   } = useTrackerStore()
   const [pendingBatchReject, setPendingBatchReject] = useState(false)
+  const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
   const jobCount = jobs.length
   const selectableCount = filterJobs(jobs, filterStatus, searchKeyword, showArchived).length
   const selectedCount = selectedIds.size
@@ -75,7 +76,6 @@ export default function TrackerHeader() {
       }))
       saved.forEach(syncJob)
       exitSelectMode()
-      toast.success(`已将 ${targets.length} 个职位标记为「${APPLICATION_STATUS_CONFIG[newStatus].label}」`)
     }
     catch (error) {
       toast.error('批量更新失败', { description: getTrackerErrorMessage(error) })
@@ -101,7 +101,6 @@ export default function TrackerHeader() {
       const saved = await Promise.all(targets.map(job => archiveCompany(job.id, true)))
       saved.forEach(syncJob)
       exitSelectMode()
-      toast.success(`已归档 ${targets.length} 个职位`)
     }
     catch (error) {
       toast.error('批量归档失败', { description: getTrackerErrorMessage(error) })
@@ -211,7 +210,7 @@ export default function TrackerHeader() {
                   variant="destructive"
                   size="sm"
                   className="h-7"
-                  onClick={() => handleDeleteSelectedJobs()}
+                  onClick={() => setPendingBatchDelete(true)}
                 >
                   <Trash2 />
                   删除选中
@@ -253,6 +252,33 @@ export default function TrackerHeader() {
               }}
             >
               确认终止
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={pendingBatchDelete} onOpenChange={open => !open && setPendingBatchDelete(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除选中的职位？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将永久删除当前选中的
+              {' '}
+              {selectedCount}
+              {' '}
+              个职位，且无法恢复。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingBatchDelete(false)}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setPendingBatchDelete(false)
+                handleDeleteSelectedJobs()
+              }}
+            >
+              确认删除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -111,7 +111,6 @@ export default function JobDrawer() {
     try {
       const savedJob = await archiveCompany(selectedJob.id, next)
       syncJob(savedJob)
-      toast.success(next ? '已归档' : '已取消归档')
     }
     catch (error) {
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
