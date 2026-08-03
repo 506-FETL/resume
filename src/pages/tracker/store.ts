@@ -1,4 +1,4 @@
-import type { ApplicationStatus, JobApplication, TrackerSortBy, TrackerSortDir, ViewMode } from './types'
+import type { ApplicationStatus, JobApplication, TrackerMetricKey, TrackerSortBy, TrackerSortDir, ViewMode } from './types'
 import { create } from 'zustand'
 import { filterJobs } from './utils'
 
@@ -24,6 +24,7 @@ interface TrackerStore {
 
   // 筛选
   filterStatus: ApplicationStatus | null
+  metricFilter: TrackerMetricKey | null
   searchKeyword: string
   showArchived: boolean
 
@@ -39,6 +40,8 @@ interface TrackerStore {
   // 共享状态操作
   setViewMode: (mode: ViewMode) => void
   setFilterStatus: (status: ApplicationStatus | null) => void
+  setMetricFilter: (key: TrackerMetricKey | null) => void
+  clearFilters: () => void
   setSearchKeyword: (keyword: string) => void
   toggleRejectedCollapsed: () => void
   setShowArchived: (value: boolean) => void
@@ -74,6 +77,7 @@ const useTrackerStore = create<TrackerStore>()(set => ({
 
   // 筛选
   filterStatus: null,
+  metricFilter: null,
   searchKeyword: '',
   showArchived: false,
 
@@ -88,7 +92,12 @@ const useTrackerStore = create<TrackerStore>()(set => ({
 
   // 共享状态操作
   setViewMode: mode => set({ viewMode: mode }),
-  setFilterStatus: status => set({ filterStatus: status }),
+  setFilterStatus: status => set({ filterStatus: status, metricFilter: null }),
+  setMetricFilter: key => set(state => ({
+    metricFilter: state.metricFilter === key ? null : key,
+    filterStatus: null,
+  })),
+  clearFilters: () => set({ filterStatus: null, metricFilter: null }),
   setSearchKeyword: keyword => set({ searchKeyword: keyword }),
   setShowArchived: value => set({ showArchived: value }),
   setSort: sortBy => set(state => (
@@ -113,7 +122,7 @@ const useTrackerStore = create<TrackerStore>()(set => ({
   },
   selectAll: () => {
     set((state) => {
-      const selectableJobs = filterJobs(state.jobs, state.filterStatus, state.searchKeyword, state.showArchived)
+      const selectableJobs = filterJobs(state.jobs, state.filterStatus, state.searchKeyword, state.showArchived, state.metricFilter)
 
       return {
         selectedIds: state.selectedIds.size === selectableJobs.length

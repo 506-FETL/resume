@@ -2,6 +2,7 @@ import type { DropResult } from '@hello-pangea/dnd'
 import type { ApplicationStatus } from '../../types'
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -25,7 +26,8 @@ const EDGE_THRESHOLD = 120
 const SCROLL_SPEED = 80
 
 export default function BoardView() {
-  const { jobs, filterStatus, searchKeyword, showArchived, syncJob, restoreJobsSnapshot, rejectedCollapsed, toggleRejectedCollapsed } = useTrackerStore()
+  const { jobs, filterStatus, metricFilter, searchKeyword, showArchived, syncJob, restoreJobsSnapshot, rejectedCollapsed, toggleRejectedCollapsed } = useTrackerStore()
+  const reduce = useReducedMotion()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const columnRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const isDraggingRef = useRef(false)
@@ -58,7 +60,7 @@ export default function BoardView() {
   }, [])
 
   // 搜索结果在每一列内独立过滤（不按 filterStatus 隐藏列，保留所有列以便拖拽改状态）
-  const filteredJobs = filterJobs(jobs, null, searchKeyword, showArchived)
+  const filteredJobs = filterJobs(jobs, null, searchKeyword, showArchived, metricFilter)
   const getJobsByStatus = (status: ApplicationStatus) =>
     filteredJobs.filter(job => job.status === status)
 
@@ -247,7 +249,13 @@ export default function BoardView() {
                                               {...dragProvided.dragHandleProps}
                                               className={dragSnapshot.isDragging ? 'opacity-90 shadow-lg' : ''}
                                             >
-                                              <ColumnCard job={job} />
+                                              <motion.div
+                                                initial={reduce || dragSnapshot.isDragging ? false : { opacity: 0, y: 6 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.18, delay: Math.min(index, 8) * 0.03 }}
+                                              >
+                                                <ColumnCard job={job} />
+                                              </motion.div>
                                             </div>
                                           )}
                                         </Draggable>

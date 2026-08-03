@@ -9,11 +9,18 @@ import { JobTable } from './job-table'
 
 const LIST_SKELETON_KEYS = ['list-skeleton-1', 'list-skeleton-2', 'list-skeleton-3', 'list-skeleton-4'] as const
 
-export default function ListView() {
-  const { jobs, loading, filterStatus, searchKeyword, showArchived, sortBy, sortDir, setFilterStatus, setSearchKeyword, openAddDrawer } = useTrackerStore()
+const METRIC_LABELS: Record<'applied' | 'interview' | 'offer' | 'pending', string> = {
+  applied: '已投递',
+  interview: '面试中',
+  offer: 'Offer',
+  pending: '待跟进',
+}
 
-  const filteredJobs = sortJobs(filterJobs(jobs, filterStatus, searchKeyword, showArchived), sortBy, sortDir)
-  const hasFilter = filterStatus !== null || searchKeyword.trim() !== ''
+export default function ListView() {
+  const { jobs, loading, filterStatus, metricFilter, searchKeyword, showArchived, sortBy, sortDir, setSearchKeyword, clearFilters, openAddDrawer } = useTrackerStore()
+
+  const filteredJobs = sortJobs(filterJobs(jobs, filterStatus, searchKeyword, showArchived, metricFilter), sortBy, sortDir)
+  const hasFilter = filterStatus !== null || metricFilter !== null || searchKeyword.trim() !== ''
 
   if (loading) {
     return (
@@ -50,6 +57,7 @@ export default function ListView() {
           <h2 className="text-base font-semibold tracking-tight">
             当前
             {filterStatus ? `「${APPLICATION_STATUS_CONFIG[filterStatus].label}」` : ''}
+            {metricFilter ? `「${METRIC_LABELS[metricFilter]}」` : ''}
             筛选下没有匹配的职位
           </h2>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -60,7 +68,7 @@ export default function ListView() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setFilterStatus(null)
+                  clearFilters()
                   setSearchKeyword('')
                 }}
               >

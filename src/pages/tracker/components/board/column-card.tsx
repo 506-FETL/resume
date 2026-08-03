@@ -28,8 +28,9 @@ export function ColumnCard({ job }: ColumnCardProps) {
   return (
     <Card
       className={cn(
-        'cursor-pointer rounded-lg border bg-card p-3 shadow-xs transition-colors hover:bg-muted/40',
+        'group cursor-pointer rounded-lg border bg-card p-3 shadow-xs transition-all hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-sm',
         isSelected && 'border-primary bg-primary/5',
+        job.archived && 'opacity-60',
       )}
       onClick={handleClick}
     >
@@ -50,6 +51,9 @@ export function ColumnCard({ job }: ColumnCardProps) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-1 pt-0.5">
+            {job.archived && (
+              <span className="rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">已归档</span>
+            )}
             {nextActionBadge && (
               <span className={cn('inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
                 <Bell className="size-2.5" />
