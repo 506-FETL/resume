@@ -87,6 +87,7 @@ export function JobCard({ job }: JobCardProps) {
         className={cn(
           'cursor-pointer rounded-xl border bg-card p-3 shadow-sm transition-colors hover:bg-muted/30',
           isSelected && 'border-primary bg-primary/5',
+          job.archived && 'opacity-60',
         )}
         onClick={handleClick}
       >

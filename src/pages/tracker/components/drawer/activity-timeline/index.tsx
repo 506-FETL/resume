@@ -1,6 +1,7 @@
 import type { JobApplication, TrackerActivity, TrackerActivityType } from '../../../types'
 import dayjs from 'dayjs'
 import { CircleDot, GitCommitHorizontal, MessageSquarePlus, Plus, Trash2 } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -33,6 +34,7 @@ interface ActivityTimelineProps {
 
 export default function ActivityTimeline({ job }: ActivityTimelineProps) {
   const { syncJob } = useTrackerStore()
+  const reduce = useReducedMotion()
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
@@ -117,11 +119,17 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
           )
         : (
             <ol className="flex flex-col gap-0.5">
-              {sorted.map((activity) => {
+              {sorted.map((activity, index) => {
                 const Icon = TYPE_ICON[activity.type] ?? CircleDot
                 const isAuto = activity.type === 'status_change'
                 return (
-                  <li key={activity.id} className="group flex gap-3">
+                  <motion.li
+                    key={activity.id}
+                    initial={reduce ? false : { opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.18, delay: Math.min(index, 8) * 0.03 }}
+                    className="group flex gap-3"
+                  >
                     <div className="flex flex-col items-center">
                       <span className={cn(
                         'mt-1 flex size-6 shrink-0 items-center justify-center rounded-full border',
@@ -151,7 +159,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                         </Button>
                       )}
                     </div>
-                  </li>
+                  </motion.li>
                 )
               })}
             </ol>

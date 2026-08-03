@@ -1,5 +1,5 @@
 import type { ResumePreviewData } from './components/drawer/types'
-import type { ApplicationStatus, JobApplication, StageDetail, TrackerActivity, TrackerSortBy, TrackerSortDir } from './types'
+import type { ApplicationStatus, JobApplication, StageDetail, TrackerActivity, TrackerMetricKey, TrackerSortBy, TrackerSortDir } from './types'
 import type { TemplateResumeDataInput } from '@/components/resume/runtime/context/resume-data-context'
 import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_ORDER, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_VISIBILITY, DEFAULT_WORK_EXPERIENCE, migrateOrder, migrateVisibility, normalizeResumeType, resolveResumeTemplateBinding } from '@/lib/schema'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER, TRACKER_NEXT_ACTION_LABELS } from './const'
@@ -211,17 +211,37 @@ export function getTrackerErrorMessage(error: unknown, fallback = '未知错误'
   return error instanceof Error ? error.message : fallback
 }
 
+// 概览聚合指标谓词。口径必须与 getTrackerOverviewStats 同源：
+// applied=历史漏斗(投过就算)、interview/offer=未归档+当前状态、pending=待跟进口径
+export function matchesMetric(job: JobApplication, key: TrackerMetricKey): boolean {
+  switch (key) {
+    case 'applied':
+      return getFurthestStageIndex(job) >= APPLICATION_STATUS_ORDER.indexOf('applied')
+    case 'interview':
+      return !job.archived && job.status === 'interview'
+    case 'offer':
+      return !job.archived && job.status === 'offer'
+    case 'pending':
+      return isJobPendingFollowUp(job)
+    default:
+      return true
+  }
+}
+
 export function filterJobs(
   jobs: JobApplication[],
   filterStatus: ApplicationStatus | null,
   keyword: string,
   showArchived = true,
+  metricFilter: TrackerMetricKey | null = null,
 ): JobApplication[] {
   const trimmed = keyword.trim().toLowerCase()
   return jobs.filter((job) => {
     if (!showArchived && job.archived)
       return false
     if (filterStatus && job.status !== filterStatus)
+      return false
+    if (metricFilter && !matchesMetric(job, metricFilter))
       return false
     if (!trimmed)
       return true

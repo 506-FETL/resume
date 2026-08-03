@@ -1,3 +1,5 @@
+import { Archive, X } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -14,7 +16,8 @@ import { getTrackerLoadErrorMeta } from './utils'
 const TRACKER_SKELETON_KEYS = ['tracker-skeleton-1', 'tracker-skeleton-2', 'tracker-skeleton-3'] as const
 
 function Tracker() {
-  const { viewMode, loading } = useTrackerStore()
+  const { viewMode, loading, showArchived, setShowArchived } = useTrackerStore()
+  const reduce = useReducedMotion()
 
   useEffect(() => {
     const currentState = useTrackerStore.getState()
@@ -57,6 +60,31 @@ function Tracker() {
       <div className="mx-auto flex w-full max-w-360 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-10 lg:py-6">
         <TrackerHeader />
         <OverviewBar />
+        <AnimatePresence initial={false}>
+          {showArchived && (
+            <motion.div
+              initial={reduce ? false : { opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={reduce ? undefined : { opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <span className="inline-flex items-center gap-1.5">
+                  <Archive className="size-4" />
+                  正在查看已归档职位
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowArchived(false)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-amber-100"
+                >
+                  <X className="size-3.5" />
+                  退出
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <main className="w-full min-w-0">
           {renderMainContent()}
         </main>

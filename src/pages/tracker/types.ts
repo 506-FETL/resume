@@ -62,3 +62,6 @@ export interface JobApplication {
 }
 
 export type DrawerTab = 'follow-up' | 'interview' | 'documents'
+
+// 概览聚合指标筛选键（与 filterStatus 互斥）
+export type TrackerMetricKey = 'applied' | 'interview' | 'offer' | 'pending'

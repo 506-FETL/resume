@@ -1,5 +1,6 @@
 import type { ApplicationStatus, DrawerTab } from '../../types'
-import { Archive, ArrowLeft, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
+import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -15,7 +16,7 @@ import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/res
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
 import useTrackerStore from '../../store'
-import { appendStatusChangeActivity, autoCompleteStages, getTrackerErrorMessage } from '../../utils'
+import { appendStatusChangeActivity, autoCompleteStages, getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
 import { CompanyLogo } from '../company-logo'
 import ActivityTimeline from './activity-timeline'
 import Contacts from './contacts'
@@ -26,11 +27,12 @@ import NextActionSection from './next-action'
 import ProgressTimeline from './progress-timeline'
 import DrawerStageDetail from './stage-detail'
 
-type ConfirmKind = 'reject' | 'delete' | null
+type ConfirmKind = 'reject' | 'delete' | 'jump-offer' | null
 
 export default function JobDrawer() {
   const { selectedJob, drawerOpen, closeJobDrawer, syncJob, restoreJobsSnapshot, removeJobs } = useTrackerStore()
   const isMobile = useIsMobile()
+  const reduce = useReducedMotion()
   const [activeTab, setActiveTab] = useState<DrawerTab>('follow-up')
   const [isEditing, setIsEditing] = useState(false)
   const [viewingStage, setViewingStage] = useState<ApplicationStatus | null>(null)
@@ -52,7 +54,7 @@ export default function JobDrawer() {
       return
 
     const previousState = useTrackerStore.getState()
-    const updatedStageDetails = autoCompleteStages(selectedJob.status, newStatus, selectedJob.stage_details)
+    const updatedStageDetails = autoCompleteStages(selectedJob.status, newStatus, selectedJob.stage_details, true)
     const optimisticJob = {
       ...selectedJob,
       status: newStatus,
@@ -73,6 +75,17 @@ export default function JobDrawer() {
       })
 
     setViewingStage(null)
+  }
+
+  // 进度时间线点击跳转：终态(offer)二次确认，其余直接推进/回退
+  const handleStageJump = (target: ApplicationStatus) => {
+    if (!selectedJob || target === selectedJob.status)
+      return
+    if (target === 'offer') {
+      setConfirmKind('jump-offer')
+      return
+    }
+    handleProgressChange(target)
   }
 
   const handleStepBack = () => {
@@ -148,8 +161,20 @@ export default function JobDrawer() {
     </div>
   )
 
+  const nextAction = getTrackerNextAction(selectedJob)
+
   const toolbar = !isEditing && (
     <div className="flex items-center gap-1">
+      {nextAction.targetStatus && (
+        <Button
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => handleStageJump(nextAction.targetStatus!)}
+        >
+          {nextAction.label}
+          <ArrowRight className="size-3.5" />
+        </Button>
+      )}
       <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditing(true)}>
         <Pencil className="size-3.5" />
         编辑信息
@@ -228,36 +253,58 @@ export default function JobDrawer() {
                   <TabsTrigger value="documents" className="flex-1">简历 & 联系人</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="follow-up" className="mt-5 space-y-6">
-                  {selectedJob.status !== 'rejected' && <NextActionSection key={selectedJob.id} job={selectedJob} />}
-                  <ProgressTimeline
-                    viewingStage={viewingStage}
-                    onStageClick={stage => setViewingStage(stage === selectedJob.status ? null : stage)}
-                  />
-                  <Separator />
-                  <ActivityTimeline job={selectedJob} />
+                <TabsContent value="follow-up" className="mt-5">
+                  <motion.div
+                    initial={reduce ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-6"
+                  >
+                    {selectedJob.status !== 'rejected' && <NextActionSection key={selectedJob.id} job={selectedJob} />}
+                    <ProgressTimeline
+                      viewingStage={viewingStage}
+                      onStageClick={stage => setViewingStage(stage === selectedJob.status ? null : stage)}
+                      onStageJump={handleStageJump}
+                    />
+                    <Separator />
+                    <ActivityTimeline job={selectedJob} />
+                  </motion.div>
                 </TabsContent>
 
-                <TabsContent value="interview" className="mt-5 space-y-6">
-                  {selectedJob.status === 'rejected'
-                    ? (
-                        <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-8 text-center text-sm text-muted-foreground">
-                          该流程已终止，阶段详情不可再编辑。
-                        </p>
-                      )
-                    : (
-                        <DrawerStageDetail
-                          displayStage={displayStage}
-                          isViewingHistory={isViewingHistory}
-                          onSaved={() => setViewingStage(null)}
-                        />
-                      )}
+                <TabsContent value="interview" className="mt-5">
+                  <motion.div
+                    initial={reduce ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-6"
+                  >
+                    {selectedJob.status === 'rejected'
+                      ? (
+                          <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-8 text-center text-sm text-muted-foreground">
+                            该流程已终止，阶段详情不可再编辑。
+                          </p>
+                        )
+                      : (
+                          <DrawerStageDetail
+                            displayStage={displayStage}
+                            isViewingHistory={isViewingHistory}
+                            onSaved={() => setViewingStage(null)}
+                          />
+                        )}
+                  </motion.div>
                 </TabsContent>
 
-                <TabsContent value="documents" className="mt-5 space-y-6">
-                  <DrawerDocument />
-                  <Separator />
-                  <Contacts job={selectedJob} />
+                <TabsContent value="documents" className="mt-5">
+                  <motion.div
+                    initial={reduce ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-6"
+                  >
+                    <DrawerDocument />
+                    <Separator />
+                    <Contacts job={selectedJob} />
+                  </motion.div>
                 </TabsContent>
               </Tabs>
             )}
@@ -270,26 +317,34 @@ export default function JobDrawer() {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {confirmKind === 'delete' ? '确认删除该记录？' : '确认终止该流程？'}
+            {confirmKind === 'delete'
+              ? '确认删除该记录？'
+              : confirmKind === 'jump-offer'
+                ? '确认移动到「已录用」？'
+                : '确认终止该流程？'}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {confirmKind === 'delete'
               ? `「${selectedJob.company} - ${selectedJob.position}」将被永久删除，无法恢复。`
-              : '该操作会把状态标记为「终止流程」，可在「已终止」筛选下查看。'}
+              : confirmKind === 'jump-offer'
+                ? '将把该职位标记为已录用。'
+                : '该操作会把状态标记为「终止流程」，可在「已终止」筛选下查看。'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className={cn(confirmKind !== 'jump-offer' && 'bg-destructive text-destructive-foreground hover:bg-destructive/90')}
             onClick={() => {
               if (confirmKind === 'delete')
                 handleDelete()
               else if (confirmKind === 'reject')
                 handleReject()
+              else if (confirmKind === 'jump-offer')
+                handleProgressChange('offer')
             }}
           >
-            {confirmKind === 'delete' ? '删除' : '终止'}
+            {confirmKind === 'delete' ? '删除' : confirmKind === 'jump-offer' ? '确认' : '终止'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

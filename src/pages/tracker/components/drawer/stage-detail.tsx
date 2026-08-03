@@ -125,7 +125,7 @@ export default function DrawerStageDetail({
 
       {!isViewingHistory && (
         <p className="text-xs text-muted-foreground">
-          提示：把状态改为「已完成」并保存，会自动推进到下一阶段；也可以直接点右上角「完成本阶段」一步推进。
+          提示：可直接在上方进度条点击任意阶段快速切换；把本阶段改为「已完成」并保存会自动推进到下一阶段。
         </p>
       )}
 

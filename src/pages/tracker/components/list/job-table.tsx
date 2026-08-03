@@ -1,5 +1,6 @@
 import type { JobApplication, TrackerSortBy } from '../../types'
 import { Archive, ArrowDown, ArrowRight, ArrowUp, Bell, Building2, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -68,6 +69,7 @@ export function JobTable({ jobs }: JobTableProps) {
     sortDir,
     setSort,
   } = useTrackerStore()
+  const reduce = useReducedMotion()
   const [pendingDeleteJob, setPendingDeleteJob] = useState<JobApplication | null>(null)
 
   const allSelected = jobs.length > 0 && jobs.every(job => selectedIds.has(job.id))
@@ -147,7 +149,7 @@ export function JobTable({ jobs }: JobTableProps) {
             </tr>
           </thead>
           <tbody>
-            {jobs.map((job) => {
+            {jobs.map((job, index) => {
               const isSelected = selectedIds.has(job.id)
               const statusConfig = APPLICATION_STATUS_CONFIG[job.status]
               const nextAction = getTrackerNextAction(job)
@@ -159,8 +161,11 @@ export function JobTable({ jobs }: JobTableProps) {
                 else openJobDrawer(job)
               }
               return (
-                <tr
+                <motion.tr
                   key={job.id}
+                  initial={reduce ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.15, delay: Math.min(index, 12) * 0.02 }}
                   onClick={handleRowClick}
                   className={cn(
                     'group cursor-pointer border-t transition-colors hover:bg-muted/40',
@@ -184,6 +189,9 @@ export function JobTable({ jobs }: JobTableProps) {
                         <div className="truncate font-medium text-foreground">{job.position}</div>
                         <div className="flex items-center gap-1.5">
                           <span className="truncate text-xs text-muted-foreground">{job.company}</span>
+                          {job.archived && (
+                            <span className="shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-medium text-muted-foreground">已归档</span>
+                          )}
                           {nextActionBadge && (
                             <span className={cn('inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
                               <Bell className="size-2.5" />
@@ -263,7 +271,7 @@ export function JobTable({ jobs }: JobTableProps) {
                       </DropdownMenu>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               )
             })}
           </tbody>

@@ -80,10 +80,11 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
         }
       }
       else {
-        // Non-interview stage: start date cannot be empty
+        // 非面试阶段：不再强制先填日期；若为空则自动补当天，保留时间轨迹
         const detail = localDetails.find(s => s.stage === displayStage)
         if (!detail?.start_date) {
-          toast.warning('请先选择开始时间，保存完成后，才能选择已完成状态')
+          const today = dayjs().format('YYYY-MM-DD')
+          updateStageDetail({ start_date: today, status: newStatus })
           setIsStatusOpen(false)
           return
         }
@@ -219,20 +220,22 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
       const savedSubStages = job.interview_sub_stages || []
       return savedSubStages.length > 0 && savedSubStages.every(s => s.status === '已完成')
     }
-    const detail = localDetails.find(s => s.stage === displayStage)
-    return Boolean(detail?.start_date)
+    return true
   })()
 
   const markCurrentStageComplete = async () => {
     if (!job || !canCompleteStage)
       return
 
+    const today = dayjs().format('YYYY-MM-DD')
     const nextDetails = (() => {
       const existing = localDetails.find(s => s.stage === displayStage)
       if (existing) {
-        return localDetails.map(s => s.stage === displayStage ? { ...s, status: '已完成' as const } : s)
+        return localDetails.map(s => s.stage === displayStage
+          ? { ...s, status: '已完成' as const, start_date: s.start_date ?? today }
+          : s)
       }
-      return [...localDetails, { stage: displayStage, status: '已完成' as const, start_date: null, notes: '' }]
+      return [...localDetails, { stage: displayStage, status: '已完成' as const, start_date: today, notes: '' }]
     })()
 
     let payload: Partial<typeof job>

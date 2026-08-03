@@ -38,6 +38,7 @@ export default function TrackerHeader() {
   const [pendingBatchReject, setPendingBatchReject] = useState(false)
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
   const jobCount = jobs.length
+  const archivedCount = jobs.filter(job => job.archived).length
   const selectableCount = filterJobs(jobs, filterStatus, searchKeyword, showArchived).length
   const selectedCount = selectedIds.size
 
@@ -139,13 +140,24 @@ export default function TrackerHeader() {
             {viewMode === 'list' && <SortMenu />}
             <ViewToggle />
             <Button
-              variant={showArchived ? 'secondary' : 'outline'}
-              size="icon"
-              aria-label={showArchived ? '隐藏已归档' : '显示已归档'}
-              title={showArchived ? '隐藏已归档' : '显示已归档'}
+              variant={showArchived ? 'default' : 'outline'}
+              size="sm"
+              className="gap-1.5"
+              disabled={!showArchived && archivedCount === 0}
+              title={archivedCount === 0 ? '还没有已归档的职位' : (showArchived ? '隐藏已归档' : '显示已归档')}
               onClick={() => setShowArchived(!showArchived)}
             >
-              <Archive />
+              <Archive className="size-4" />
+              已归档
+              {archivedCount > 0 && (
+                <span className={cn(
+                  'ml-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-medium',
+                  showArchived ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground',
+                )}
+                >
+                  {archivedCount}
+                </span>
+              )}
             </Button>
             <Button
               variant={isSelectMode ? 'secondary' : 'outline'}
