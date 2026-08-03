@@ -1,43 +1,55 @@
 ---
-title: "求职跟踪看板上线"
-date: "2026-03-22"
-tags: ["Tracker", "Kanban", "UI"]
-version: "0.8"
+title: '求职跟踪看板上线'
+date: '2026-03-22'
+tags: ['Tracker', 'Kanban', 'UI']
+version: '0.0.8'
 ---
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
-<img src="https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/tracker.png" alt="预览图" className="w-full" />
+<img
+  src='https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/tracker.png'
+  alt='预览图'
+  className='w-full'
+/>
 
 简历写完只是开始——投了哪些公司？面到哪一轮了？哪个 offer 该怎么选？这些以前只能开个 Excel 记录的事情，现在直接在产品里搞定。同时，我们对整个界面做了一次大规模"整容手术"。
 
-- **求职看板（Kanban）** — 把投递流程可视化：待投递 → 已投递 → 面试中 → 拿到 Offer，拖一下就能更新状态
+- **求职看板** — 把投递流程可视化：待投递 → 已投递 → 面试中 → 拿到 Offer，拖一下就能更新状态
 - **JD 智能匹配** — 把职位描述贴进来，AI 自动分析你的简历和这个岗位有多"对口"，还会给出匹配度评分
 - **列表视图** — 除了看板，还有表格模式，适合海投的同学快速浏览和筛选
-- **对话框全面重设计** — 所有核心弹窗换成了 Sidebar 侧栏布局，桌面端体验大幅提升
+- **操作面板全面重设计** — 核心操作使用更宽敞清晰的侧边面板，桌面端体验大幅提升
 
-<Accordion type="multiple" className="w-full not-prose">
-  <AccordionItem value="item-1">
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
     <AccordionTrigger>看板的玩法</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
         <li>
           每一列代表求职的一个阶段，卡片就是你投递的每一个岗位，轻松管理整个求职进度
         </li>
         <li>点开卡片是一个抽屉，里面有岗位详情、面试记录、备注等完整信息</li>
-        <li>JD 对比工具会逐条分析关键词匹配情况，并给出置信度评分，让你知道该不该投</li>
+        <li>
+          JD
+          对比工具会逐条分析关键词匹配情况，并给出置信度评分，让你知道该不该投
+        </li>
         <li>列表视图支持排序和筛选，投了 50+ 家也能快速找到目标</li>
       </ul>
     </AccordionContent>
   </AccordionItem>
-  <AccordionItem value="item-2">
+  <AccordionItem value='item-2'>
     <AccordionTrigger>界面"整容"了哪些地方？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>新增求职、保存版本、问题修复、编辑简历——所有核心对话框统一换成了 `Sidebar` 布局</li>
-        <li>`ResponsiveDialog` 组件升级，自动适配桌面和移动端</li>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>新增求职、保存版本、问题修复和编辑简历统一使用更宽敞的操作面板</li>
+        <li>电脑端和移动端会自动使用更适合当前屏幕的弹窗布局</li>
         <li>完善了无障碍访问支持，键盘操作和屏幕阅读器都能正常使用</li>
-        <li>移动端新增 `Sticky Header`，长表单滚动时操作按钮始终可见</li>
+        <li>移动端长表单滚动时，常用操作按钮仍保持可见</li>
       </ul>
     </AccordionContent>
   </AccordionItem>

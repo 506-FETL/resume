@@ -1,13 +1,22 @@
 ---
-title: "版本历史 + LLM"
-date: "2026-02-09"
-tags: ["History", "AI", "LLM"]
-version: "0.6"
+title: '版本历史与 AI 修复'
+date: '2026-02-09'
+tags: ['History', 'AI', 'Fix']
+version: '0.0.6'
 ---
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
-<img src="https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/Historical%20version.png" alt="预览图" className="w-full" />
+<img
+  src='https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/Historical%20version.png'
+  alt='预览图'
+  className='w-full'
+/>
 
 完整的版本历史系统，顺便，我们还请来了一位 AI 搭档帮你自动修简历。
 
@@ -16,27 +25,27 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 - **修改前后对比视图** — 不是直接帮你改了你还不知道改了啥，而是清楚地告诉你：改了哪里、为什么改、改成了什么
 - **Confetti 庆祝动画** — 修完所有问题后满屏撒花！这个功能没什么用，但真的很爽 🎉
 
-<Accordion type="multiple" className="w-full not-prose">
-  <AccordionItem value="item-1">
-    <AccordionTrigger>AI 是怎么修简历的？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>
-          LLM 调用走 Supabase Edge Function 代理，API Key 在服务端，前端完全不碰密钥，安全第一
-        </li>
-        <li>当前接入的是 DeepSeek API，性价比极高</li>
-        <li>修复流程用 Reducer + 步骤配置模式编排，支持多步异步操作，中间可以暂停和跳过</li>
-        <li>每一条修复建议都会展示"为什么要改"的理由，不是黑箱操作</li>
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>AI 修复怎么用？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>从分析报告中选择需要处理的问题，查看 AI 给出的修改方案</li>
+        <li>每条建议都会说明修改原因，并展示修改前后的内容</li>
+        <li>可以逐项应用、跳过或暂停，不会未经确认直接改写简历</li>
+        <li>应用后可以继续编辑，最终内容始终由你决定</li>
       </ul>
     </AccordionContent>
   </AccordionItem>
-  <AccordionItem value="item-2">
+  <AccordionItem value='item-2'>
     <AccordionTrigger>版本历史怎么用？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
         <li>编辑器右上角的时间机器图标，点开就是完整的版本时间线</li>
         <li>每个版本都可以预览完整的简历快照，不用恢复就能看</li>
-        <li>恢复操作是非破坏性的——恢复到旧版本的同时，当前版本也会被保存为新快照</li>
+        <li>
+          恢复操作是非破坏性的——恢复到旧版本的同时，当前版本也会被保存为新快照
+        </li>
         <li>底部 Pro Tips 跑马灯滚动展示使用技巧，写简历的时候顺便涨知识</li>
       </ul>
     </AccordionContent>

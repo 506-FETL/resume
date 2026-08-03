@@ -1,26 +1,33 @@
 ---
-title: "PDF 导出与账号系统"
-date: "2025-11-04"
-tags: ["Export", "Auth", "PDF"]
-version: "0.3"
+title: 'PDF 导出与账号系统'
+date: '2025-11-04'
+tags: ['Export', 'Auth', 'PDF']
+version: '0.0.3'
 ---
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
 简历写得再好看，导出来一坨就白搭了。这个版本终于补上了最关键的一环——高保真 PDF 导出。
 
 - **PDF 导出** — 点击导出，浏览器直接生成 PDF，支持 A4 精确分页
-- **智能分页** — 渲染引擎会自动计算每个模块的高度，在合适的位置断页，保证每一页都干净整洁
+- **智能分页** — 导出时会在合适的位置自动断页，尽量保证每一页都干净整洁
 - **编辑器配置工具栏** — 字体、间距、主题色，不用去设置页，编辑器里直接调
+- **账号与云端保存** — 登录后可以保存在线简历，并在不同设备继续编辑
 
-<Accordion type="multiple" className="w-full not-prose">
-  <AccordionItem value="item-1">
-    <AccordionTrigger>导出背后的故事</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>把渲染好的简历 DOM 原封不动地复制到一个<font className="line-through">隐藏的 iframe 里</font>**(已舍弃，见上文)**，然后调用浏览器原生的打印功能</li>
-        <li>分页逻辑是自研的，不是简单地按固定高度切，而是会识别模块边界，避免"半句话被截到下一页"的尴尬</li>
-        <li>LightRays 背景效果让编辑界面更有氛围感，虽然纯装饰，但写简历的心情确实好了不少</li>
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>导出体验有哪些优化？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>导出前会按 A4 页面重新排版，减少尺寸和边距偏差</li>
+        <li>分页时识别模块边界，尽量避免标题、段落或一句话被拦腰截断</li>
+        <li>字体、间距和主题色会跟随当前简历配置写入导出结果</li>
+        <li>编辑界面增加更柔和的背景效果，长时间填写时更舒适</li>
       </ul>
     </AccordionContent>
   </AccordionItem>

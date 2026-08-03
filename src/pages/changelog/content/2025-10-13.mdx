@@ -1,48 +1,52 @@
 ---
-title: "简历构建器的诞生"
-date: "2025-10-13"
-tags: ["Launch", "Editor", "Forms"]
-version: "0.1"
+title: '简历构建器的诞生'
+date: '2025-10-13'
+tags: ['Launch', 'Editor', 'Forms']
+version: '0.0.1'
 ---
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
-<img src="https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/Resume%20Editing.png" alt="预览图" className="w-full" />
+<img
+  src='https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/Resume%20Editing.png'
+  alt='预览图'
+  className='w-full'
+/>
 
 万事开头难——但我们还是动手了。这是项目的第一个可用版本，一个能真正"写简历"的东西终于跑起来了。
 
-- **TipTap 富文本编辑器** — 不是普通的 `textarea`，所见即所得，支持富文本、图片、列表
+- **所见即所得编辑** — 支持加粗、列表、图片等常用格式，编辑时就能看到最终效果
 - **覆盖 10+ 模块的表单系统** — 求职意向、教育背景、校园经历、实习、项目、工作经验、技能、荣誉、兴趣爱好、自我评价……你能想到的简历板块，全都有了
 - **拖拽排序** — 觉得"项目经历"应该放在"工作经验"前面？拖一下就行
 - **实时预览** — 编辑的同时，右侧就能看到最终效果
 - **个性化配置** — 字体、间距、主题色，已支持！
 
-<Accordion type="multiple" className="w-full not-prose">
-  <AccordionItem value="item-1">
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
     <AccordionTrigger>这个版本里都塞了什么？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>
-          编辑器基于 `TipTap` 构建，工具栏、快捷键、格式刷一个不少
-        </li>
-        <li>
-          表单数据用 `Schema` 驱动，每个模块都可以自由增删条目，自定义字段也支持
-        </li>
-        <li>简历渲染引擎搭好了基础框架，第一个 Basic 模板已经可以正常输出</li>
-        <li>拖拽排序基于自定义 `DragContext`，不依赖任何第三方拖拽库</li>
-        <li>`ErrorBoundary` 全局兜底，再离谱的操作也不会白屏</li>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>工具栏提供常用文字格式、快捷键和格式调整能力</li>
+        <li>每个简历模块都可以自由增删条目，也支持补充自定义字段</li>
+        <li>首套基础模板可以完整展示并导出已填写的简历内容</li>
+        <li>模块支持拖拽排序，显示顺序可以随求职目标灵活调整</li>
+        <li>填写异常内容时会尽量保留当前页面和已输入的信息</li>
       </ul>
     </AccordionContent>
   </AccordionItem>
-  <AccordionItem value="item-2">
-    <AccordionTrigger>技术选型</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>`Vite + React + TypeScript + TailwindCSS`</li>
-        <li>`shadcn/ui` 做 UI 基础</li>
-        <li>`Zustand` 管理状态，轻量但强大</li>
-        <li>`antfu-eslint` 统一代码风格</li>
-        <li>一键部署到 `Vercel`</li>
+  <AccordionItem value='item-2'>
+    <AccordionTrigger>首个版本能完成什么？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>从零创建并填写一份结构完整的简历</li>
+        <li>按需增删、隐藏和排序各个内容模块</li>
+        <li>一边编辑，一边查看接近最终成品的实时预览</li>
+        <li>调整字体、间距和主题色，形成个人化样式</li>
       </ul>
     </AccordionContent>
   </AccordionItem>

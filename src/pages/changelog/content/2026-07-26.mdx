@@ -1,0 +1,48 @@
+---
+title: '协作体验与简历兼容性优化'
+date: '2026-07-26'
+tags: ['Collaboration', 'Stability', 'Experience']
+version: '0.0.15'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.0.15</Badge>
+这次更新集中改善多人协作中的细节体验和旧简历兼容性。协作者的浏览状态更加独立，光标提示更轻量，较早创建的简历也能更稳定地编辑和预览。
+
+- **独立浏览模式** — 协作者可以查看不同模块，不会互相抢占当前页面状态
+- **稳定的参与者颜色** — 同一登录用户在协作会话中保持确定的颜色标识
+- **轻量光标提示** — 移除遮挡正文的常驻昵称气泡，只保留清晰的位置提示
+- **准确的协作通知** — 加入、离开等提示展示参与者的正确名称
+- **多人编辑更稳定** — 减少重复同步造成的内容回退或覆盖
+- **旧简历兼容** — 修复缺失模块或经历时间时可能出现的编辑和预览问题
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>协作体验有哪些变化？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>其他协作者切换模块时，不再强制改变你正在查看的内容</li>
+        <li>远程光标保持可识别，但不会用昵称标签持续占用正文空间</li>
+        <li>参与者颜色由登录用户 ID 稳定生成，重新进入后仍保持一致</li>
+        <li>减少重复的加入、离开和内容更新提示，协作过程更安静</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='item-2'>
+    <AccordionTrigger>旧简历有哪些改善？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>打开较早创建的简历时，会自动补全缺失的内容模块</li>
+        <li>经历起止时间不完整时，预览不会因此中断</li>
+        <li>协作修改后仍会保留简历中的其他已有内容，减少字段丢失</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

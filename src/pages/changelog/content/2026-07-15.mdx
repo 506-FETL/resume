@@ -1,0 +1,45 @@
+---
+title: '富文本多人协作'
+date: '2026-07-15'
+tags: ['Collaboration', 'Editor', 'Rich Text']
+version: '0.0.14'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.0.14</Badge>
+多人协作进一步覆盖富文本内容。多人同时编辑不同模块、段落或文字格式时更加稳定，也更不容易覆盖彼此的输入。
+
+- **同时编辑更稳定** — 多人修改不同字段时，各自的内容会分别保留
+- **富文本格式同步** — 文字、段落、列表和常用格式可以一起协作编辑
+- **模块互不干扰** — 每个描述字段独立同步，内容和格式不会串到其他模块
+- **光标位置保护** — 收到远程修改时，尽量保持当前输入位置不跳动
+- **重新连接保护** — 网络恢复或参与者重新进入时，避免空内容覆盖已有简历
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>哪些内容支持同时编辑？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>姓名、公司、日期等基础信息可以由不同参与者分别修改</li>
+        <li>工作、项目、实习等描述支持文字、段落和格式的同步编辑</li>
+        <li>协作修改会正常反映到预览、保存和导出结果中</li>
+        <li>未开启协作时，编辑方式与原来保持一致</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='item-2'>
+    <AccordionTrigger>覆盖哪些富文本模块？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <p>
+        工作经历、项目经历、实习经历、校园经历、教育背景、自我评价、荣誉证书、兴趣爱好和技能特长均已接入同一套富文本协作流程。
+      </p>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

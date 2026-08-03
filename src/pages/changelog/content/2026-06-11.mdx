@@ -1,0 +1,46 @@
+---
+title: '实时多人协作优化'
+date: '2026-06-11'
+tags: ['Collaboration', 'Editing', 'Sharing']
+version: '0.0.13'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.0.13</Badge>
+实时多人协作的表单同步进一步优化。邀请其他人进入同一份简历后，字段修改会更稳定地同步，减少重复传递文件或口头确认修改位置的成本。
+
+- **实时表单同步** — 协作者的字段修改会及时反映到当前简历
+- **协作会话管理** — 创建者可以开启、关闭协作并管理参与者
+- **在线状态感知** — 页面能够识别当前参与协作的用户和连接状态
+- **本地编辑兼容** — 未开启协作时继续沿用原有编辑和保存流程
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>如何开始协作？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ol className='list-decimal space-y-2 pl-4'>
+        <li>由简历创建者开启协作会话并邀请参与者</li>
+        <li>参与者进入同一份简历后，会自动加入当前协作会话</li>
+        <li>任意一方修改表单后，其他在线参与者会收到对应字段更新</li>
+        <li>协作结束后关闭会话，简历仍按原有方式保存和编辑</li>
+      </ol>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='item-2'>
+    <AccordionTrigger>这次更新的重点</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>协作能力直接接入现有简历表单，不需要切换到独立编辑器</li>
+        <li>临时离开协作不会影响普通编辑和已保存的简历内容</li>
+        <li>参与者状态和光标提示更加稳定，更容易判断当前协作情况</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

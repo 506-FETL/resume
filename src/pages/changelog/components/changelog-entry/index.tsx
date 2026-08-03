@@ -37,7 +37,7 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
               {formatDate(frontmatter.date)}
             </time>
             {frontmatter.version && (
-              <div className="flex relative items-center justify-center size-10 text-foreground border border-border rounded-lg text-sm font-bold">
+              <div className="relative inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-border px-3 py-2 text-sm font-bold leading-none text-foreground">
                 {frontmatter.version}
               </div>
             )}
