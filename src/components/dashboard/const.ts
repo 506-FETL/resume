@@ -1,4 +1,4 @@
-import { Axe, FileUser, FolderKanban, History, HomeIcon, LayoutTemplate, PencilRuler, Settings } from 'lucide-react'
+import { Axe, FileUser, FolderKanban, History, HomeIcon, LayoutTemplate, PencilRuler, Settings, Sparkles } from 'lucide-react'
 
 export const Data = {
   modules: [
@@ -6,6 +6,11 @@ export const Data = {
       title: '首页',
       url: '/',
       icon: HomeIcon,
+    },
+    {
+      title: 'AI 助手',
+      url: '/assistant',
+      icon: Sparkles,
     },
     {
       title: '我的简历',

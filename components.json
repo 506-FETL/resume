@@ -21,6 +21,7 @@
   "registries": {
     "@magicui": "https://magicui.design/r/{name}.json",
     "@supabase": "https://supabase.com/ui/r/{name}.json",
-    "@animate-ui": "https://animate-ui.com/r/{name}.json"
+    "@animate-ui": "https://animate-ui.com/r/{name}.json",
+    "@gaia": "https://ui.heygaia.io/r/{name}.json"
   }
 }

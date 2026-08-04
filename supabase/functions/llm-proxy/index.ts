@@ -8,6 +8,12 @@ interface LLMProxyRequest {
   response_format?: unknown
   temperature?: number
   stream?: boolean
+  // Agent 支持：function calling（DeepSeek V4 官方支持，OpenAI 兼容）
+  tools?: unknown
+  tool_choice?: unknown
+  // 思考模式（DeepSeek V4 支持 thinking 下的工具调用）
+  thinking?: unknown
+  reasoning_effort?: string
 }
 
 Deno.serve(async (req) => {
@@ -25,6 +31,10 @@ Deno.serve(async (req) => {
       response_format,
       temperature = 0,
       stream = true,
+      tools,
+      tool_choice,
+      thinking,
+      reasoning_effort,
     } = (await req.json()) as LLMProxyRequest
 
     const apiKey = Deno.env.get('OPENAI_API_KEY')
@@ -44,15 +54,32 @@ Deno.serve(async (req) => {
       )
     }
 
+    // 白名单透传：显式列字段，避免 ...rest 全量透传注入意外参数
     const requestBody: Record<string, unknown> = {
       model,
-      messages,
+      messages, // content 可为字符串或多模态数组，原样透传（多模态为 S6 预留）
       temperature,
       stream,
     }
 
     if (response_format) {
       requestBody.response_format = response_format
+    }
+
+    if (tools) {
+      requestBody.tools = tools
+    }
+
+    if (tool_choice) {
+      requestBody.tool_choice = tool_choice
+    }
+
+    if (thinking) {
+      requestBody.thinking = thinking
+    }
+
+    if (reasoning_effort) {
+      requestBody.reasoning_effort = reasoning_effort
     }
 
     const response = await fetch('https://api.deepseek.com/chat/completions', {
