@@ -1,38 +1,47 @@
 ---
-title: "ATS 优化引擎来了"
-date: "2026-01-16"
-tags: ["AI", "ATS", "Dashboard"]
-version: "0.5"
+title: 'ATS 优化引擎来了'
+date: '2026-01-16'
+tags: ['AI', 'ATS', 'Dashboard']
+version: '0.0.5'
 ---
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
-<img src="https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/ATS.png" alt="预览图" className="w-full" />
+<img
+  src='https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/ATS.png'
+  alt='预览图'
+  className='w-full'
+/>
 
 你知道吗？超过 75% 的简历在被人看到之前，就已经被 ATS 过滤掉了。这次我们直接在产品里内置了一个 ATS 优化引擎——在你投递之前，先帮你跑一遍"机器审核"。
 
 - **ATS 评分系统** — 一键扫描你的简历，从关键词密度、格式规范、内容完整度等多个维度打分
-- **可视化分析报告** — 而是用图表、徽章、进度条把问题展示得明明白白
+- **可视化分析报告** — 使用图表、徽章和进度条，把各类问题展示得明明白白
 - **全新 Dashboard** — 登录后的第一个页面焕然一新，简历创建趋势、今日待办、数据概览一目了然
 
-<Accordion type="multiple" className="w-full not-prose">
-  <AccordionItem value="item-1">
-    <AccordionTrigger>ATS 引擎怎么工作的？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>ATS 分析会告诉你什么？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
         <li>
-          引擎会模拟真实的 ATS 系统，检查你的简历是否包含目标岗位的关键词、格式是否对解析友好、内容结构是否完整
+          检查简历是否包含目标岗位关键词、格式是否容易被招聘系统识别、内容结构是否完整
         </li>
         <li>每个维度都会给出具体得分和改进建议，不是笼统地说"需要优化"</li>
-        <li>分析结果通过 Tabs 分页展示，扫描概览、详细问题、优化建议各有专区</li>
+        <li>分析结果按扫描概览、详细问题和优化建议分类展示</li>
         <li>支持在线和离线两种简历的分析，不一定要在平台上创建的简历才能用</li>
       </ul>
     </AccordionContent>
   </AccordionItem>
-  <AccordionItem value="item-2">
+  <AccordionItem value='item-2'>
     <AccordionTrigger>Dashboard 有什么？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
         <li>简历创建趋势图表，支持按日期范围筛选，一眼看出自己的"产出效率"</li>
         <li>今日待办卡片——该投的简历投了没？该改的地方改了没？</li>
         <li>数据统计概览，简历数量、优化得分、求职进展一目了然</li>

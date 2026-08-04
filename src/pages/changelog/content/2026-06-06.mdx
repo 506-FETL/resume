@@ -1,14 +1,21 @@
 ---
-title: "JD 驱动的派生简历"
-date: "2026-06-06"
-tags: ["AI", "JD", "Resume Variant"]
-version: "1.2"
+title: 'JD 驱动的派生简历'
+date: '2026-06-06'
+tags: ['AI', 'JD', 'Resume Variant']
+version: '0.0.12'
 ---
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
 
-<Badge className="mr-1">V 1.2</Badge>让“一份基础简历对应多个目标岗位”成为正式工作流。粘贴 JD 后，系统会保留原简历，并生成一份独立、可继续编辑和投递的针对性版本。
+<Badge className='mr-1'>V 0.0.12</Badge>
+让“一份基础简历对应多个目标岗位”成为正式工作流。粘贴 JD
+后，系统会保留原简历，并生成一份独立、可继续编辑和投递的针对性版本。
 
 - **两阶段生成** — 先解析岗位关键词，再对允许修改的简历字段进行针对性改写
 - **事实字段保护** — 只优化个人简介、求职意向、技能和经历描述等文案，不改动事实型信息
@@ -16,37 +23,41 @@ import { Badge } from "@/components/ui/badge";
 - **后台任务管理** — 关闭生成窗口后继续运行，可查看进度、取消、重试或清理失败草稿
 - **派生版本管理** — 简历列表支持原始/派生筛选，卡片展示来源、JD 摘要和匹配度
 - **血缘树** — 查看同一份原始简历下的多层派生关系，并快速打开任意版本
-- **在线与离线一致** — Supabase 云端简历和 IndexedDB 本地简历都支持派生流程
+- **在线与离线一致** — 登录后的在线简历和保存在本机的离线简历都支持派生流程
 
-<Accordion type="multiple" className="w-full not-prose">
-  <AccordionItem value="item-1">
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
     <AccordionTrigger>派生流程</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ol className="list-decimal space-y-2 pl-4">
-        <li>从简历卡片或 JD 匹配工具发起派生，并粘贴至少 30 个字符的岗位描述</li>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ol className='list-decimal space-y-2 pl-4'>
+        <li>
+          从简历卡片或 JD 匹配工具发起派生，并粘贴至少 30 个字符的岗位描述
+        </li>
         <li>AI 提取岗位关键词与摘要，随后复制源简历创建草稿</li>
         <li>系统流式展示解析与改写进度，并持续汇总已修改模块</li>
         <li>生成完成后检查匹配度和逐项差异，再决定打开或丢弃新简历</li>
       </ol>
     </AccordionContent>
   </AccordionItem>
-  <AccordionItem value="item-2">
-    <AccordionTrigger>数据与任务如何管理？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>每个派生版本记录父简历、原始 JD、关键词、改写记录、生成状态和匹配度</li>
-        <li>生成中的任务由全局 Zustand store 管理，关闭弹窗不会中断当前页面内的任务</li>
+  <AccordionItem value='item-2'>
+    <AccordionTrigger>版本与任务如何管理？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>
+          每个派生版本记录父简历、原始 JD、关键词、改写记录、生成状态和匹配度
+        </li>
+        <li>关闭生成窗口后任务仍可继续，并能从“派生任务”入口查看进度</li>
         <li>失败和取消的草稿会保留状态，可从“派生任务”入口重试或丢弃</li>
         <li>派生深度设置上限，层级过深时会提示回到原始简历重新派生</li>
       </ul>
     </AccordionContent>
   </AccordionItem>
-  <AccordionItem value="item-3">
+  <AccordionItem value='item-3'>
     <AccordionTrigger>界面同步优化</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>生成步骤、结果详情、任务列表和血缘树统一为项目现有的响应式组件规范</li>
-        <li>桌面端使用紧凑对话框，移动端自动切换为更适合触控的底部 Sheet</li>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>生成步骤、结果详情、任务列表和血缘树采用一致的操作方式</li>
+        <li>电脑端使用紧凑窗口，移动端自动切换为更适合触控的底部面板</li>
         <li>简历卡片、筛选标签和 JD 工具入口统一状态徽标与操作文案</li>
       </ul>
     </AccordionContent>

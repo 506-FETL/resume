@@ -1,32 +1,35 @@
 ---
-title: "实时协作上线"
-date: "2025-10-25"
-tags: ["Collaboration", "Automerge", "Real-time"]
-version: "0.2"
+title: '实时协作上线'
+date: '2025-10-25'
+tags: ['Collaboration', 'Sharing', 'Editing']
+version: '0.0.2'
 ---
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
 现在你可以把链接甩给朋友、导师或者学姐，让他们直接在你的简历上动手改。
 
-- **多人实时编辑** — 基于 `Automerge CRDT` 构建，多个人同时改同一份简历也不会冲突，离线编辑回来自动合并
+- **多人实时编辑** — 多个人可以同时修改同一份简历，系统会自动合并各自的变化
 - **一键分享协作链接** — 点一下就能生成邀请链接，对方打开就能一起编辑，零门槛
 - **远程光标** — 能看到对方正在改哪里，再也不用喊"你别动那段我在改"
 - **实时变更提醒** — 对方改了什么，弹窗第一时间告诉你
 - **协作面板** — 查看在线成员、管理协作会话，一目了然
 
-<Accordion type="multiple" className="w-full not-prose">
-  <AccordionItem value="item-1">
-    <AccordionTrigger>怎么做到"不冲突"的？</AccordionTrigger>
-    <AccordionContent className="flex flex-col gap-4 text-balance">
-      <ul className="list-disc space-y-2 pl-4">
-        <li>
-          核心是 `Automerge` —— 一种 CRDT（无冲突复制数据类型），天生为多人并发设计，不需要锁，不需要"谁先保存谁赢"
-        </li>
-        <li>数据通过 `Supabase Realtime` 的 WebSocket 通道同步，延迟极低</li>
-        <li>本地用 `IndexedDB` 缓存文档，断网了也能继续写，联网自动合并</li>
-        <li>`Perfect Cursor` 算法让远程光标的移动看起来丝滑自然，不是"瞬移"</li>
-        <li>发起协作的瞬间就会把最新版本存到云端，确保所有人拿到的都是最新内容</li>
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>协作时会发生什么？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>多人同时修改不同字段时，各自的输入会自动保留并合并</li>
+        <li>在线修改会快速同步给其他参与者，减少来回刷新页面</li>
+        <li>网络短暂中断时仍可继续编辑，恢复连接后自动同步变化</li>
+        <li>远程光标平滑展示，让你更容易判断对方正在修改的位置</li>
+        <li>发起协作时会先保存最新简历，确保参与者从同一版本开始</li>
       </ul>
     </AccordionContent>
   </AccordionItem>

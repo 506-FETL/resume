@@ -1,0 +1,65 @@
+---
+title: '求职看板全面升级'
+date: '2026-07-29'
+tags: ['Tracker', 'Kanban', 'Workflow']
+version: '0.0.16'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.0.16</Badge>
+求职看板从状态记录工具升级为完整的申请跟进工作台。看板、列表和详情抽屉共享同一套数据，可以安排下一步、记录沟通、维护联系人，并通过筛选、排序、归档和批量操作整理大量职位。
+
+- **看板与列表双视图** — 在流程分栏和高密度表格之间自由切换
+- **申请概览** — 汇总当前职位数量、阶段分布和需要关注的下一步
+- **下一步跟进** — 记录行动内容和日期，并在列表中展示临近或逾期提醒
+- **活动时间线** — 自动记录状态变化，也可以手动补充沟通和跟进事项
+- **联系人管理** — 为每个职位维护姓名、角色、联系方式和备注
+- **筛选与排序** — 按公司、职位、城市和状态搜索，并按更新时间等条件排序
+- **归档与批量管理** — 批量修改状态、归档或永久删除不再需要的记录
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='item-1'>
+    <AccordionTrigger>职位详情现在能记录什么？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>公司、岗位、地点、薪资、JD 链接和公司 Logo</li>
+        <li>当前阶段、各阶段详情、申请日期和已停留天数</li>
+        <li>下一步行动、提醒日期、手动跟进记录和自动状态时间线</li>
+        <li>招聘方、HR 或业务联系人，以及对应角色、联系方式和备注</li>
+        <li>关联简历和申请过程中的补充资料</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='item-2'>
+    <AccordionTrigger>联系人编辑如何保存？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>字段修改先保存在当前职位草稿中，点击“保存修改”后统一提交</li>
+        <li>存在未保存修改时暂时禁用新增和删除，避免覆盖尚未确认的输入</li>
+        <li>
+          联系人卡片会在手机、平板和桌面宽度下自动切换单列、双列和单行布局
+        </li>
+        <li>切换职位后，当前填写的内容不会被其他职位的更新覆盖</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='item-3'>
+    <AccordionTrigger>删除和操作反馈有什么变化？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>职位、联系人、手动跟进记录和批量职位在永久删除前都会再次确认</li>
+        <li>确认框明确展示删除对象或选中职位数量，取消不会发送请求</li>
+        <li>
+          普通状态更新和归档保持安静，只在创建、永久删除、失败或业务阻断时提示
+        </li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
