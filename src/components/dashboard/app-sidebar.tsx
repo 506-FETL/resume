@@ -2,6 +2,7 @@ import type React from 'react'
 import { Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
+import { AssistantEntry } from './assistant-entry'
 import { Data } from './const'
 import { NavOptions } from './nav-options'
 import { NavUser } from './nav-user'
@@ -22,6 +23,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <AssistantEntry />
         <NavOptions options={Data.modules} description="模块" />
       </SidebarContent>
       <SidebarFooter>

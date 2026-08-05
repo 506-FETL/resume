@@ -44,7 +44,7 @@ export function MessageActions({ message, onEdit, onRetry }: MessageActionsProps
         {dayjs(message.createdAt).format('YYYY-MM-DD HH:mm:ss')}
       </span>
       <Button variant="ghost" size="icon-xs" aria-label="复制" title="复制" onClick={handleCopy}>
-        {copied ? <Check className="size-3.5 text-green-600" /> : <Copy className="size-3.5" />}
+        {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
       </Button>
       {isUser && onEdit && (
         <Button variant="ghost" size="icon-xs" aria-label="编辑" title="编辑" onClick={() => onEdit(message)}>

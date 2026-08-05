@@ -1,99 +1,31 @@
 'use client'
 
-import { CircleUser, EllipsisVertical, LogIn, LogOut } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { EllipsisVertical } from 'lucide-react'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import useCurrentUser from '@/hooks/use-current-user'
-import { SignOut } from '@/lib/supabase/user'
 import { CurrentUserAvatar } from '../current-user-avatar'
-import { Data } from './const'
-import { NavSecondary } from './nav-secondary'
+import { AccountMenu } from './account-menu'
 
 export function NavUser() {
   const user = useCurrentUser()
   const { isMobile } = useSidebar()
-  const navigate = useNavigate()
-
-  const handleSignOut = async () => {
-    try {
-      await SignOut()
-      navigate('/login')
-    }
-    catch (error) {
-      toast.error(`登出失败，请稍后重试, ${error}`)
-    }
-  }
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <CurrentUserAvatar />
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user ? user.user_metadata.full_name : '未登陆'}</span>
-                <span className="text-muted-foreground truncate text-xs">{user ? user.email : 'resume'}</span>
-              </div>
-              <EllipsisVertical className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? 'bottom' : 'right'}
-            align="end"
-            sideOffset={4}
+        <AccountMenu side={isMobile ? 'bottom' : 'right'}>
+          <SidebarMenuButton
+            size="lg"
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
-            {user && (
-              <>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <CircleUser />
-                    账户
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-              </>
-            )}
-
-            <NavSecondary items={Data.navSecondary} className="p-0" />
-            <DropdownMenuSeparator />
-
-            {user
-              ? (
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      <LogOut />
-                      登出
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                )
-              : (
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        navigate('/login')
-                      }}
-                    >
-                      <LogIn />
-                      登录
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <CurrentUserAvatar />
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{user ? user.user_metadata.full_name : '未登录'}</span>
+              <span className="truncate text-xs text-muted-foreground">{user ? user.email : 'resume'}</span>
+            </div>
+            <EllipsisVertical className="ml-auto size-4" />
+          </SidebarMenuButton>
+        </AccountMenu>
       </SidebarMenuItem>
     </SidebarMenu>
   )

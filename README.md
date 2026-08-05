@@ -4,8 +4,9 @@
 
 智能简历创作与求职管理平台 —— 从内容编辑、模板定制到岗位匹配和投递追踪的一站式解决方案。
 
-## 最新进展（2026-07-29）
+## 最新进展（2026-08-05）
 
+- **全局 AI 求职助手**：新增独立的 ChatGPT 式工作区，支持持久化会话、流式推理、Function Calling、内部信息读取、写入前确认与历史正文搜索
 - **求职追踪升级为 CRM 工作流**：看板与列表双视图之外，新增概览统计条，实时汇总已投递、面试中、Offer、待跟进数量与响应率
 - **联系人管理**：为每个岗位维护 recruiter、内推人等联系人（姓名、角色、渠道、备注），跟进有据可依
 - **活动时间线**：状态变更自动入库，并可手动补充备注、面试、跟进事件，完整还原每段求职历程
@@ -22,6 +23,7 @@
 ### ✨ 特性亮点
 
 - 🎨 **模板中心与工作台** — 6 套官方模板，支持社区模板、个人模板和可视化定制
+- ✦ **全局 AI 求职助手** — 通过对话理解简历、ATS、历史版本和求职进展，并在确认后执行安全写入
 - 🤖 **AI 深度优化** — ATS 五维评分、问题修复和编辑器内划词改写
 - 🎯 **JD 针对性派生** — 从原始简历生成岗位定制版本，保留匹配度、改写详情和血缘关系
 - 👥 **实时多人协作** — Automerge 文档 CRDT + Yjs 富文本字符级协同，无冲突并发编辑
@@ -110,6 +112,24 @@ AI 从五个维度评估你的简历：
 **可观察的分析过程**
 
 基于 DeepSeek Reasoner 的流式输出，ATS 分析和 JD 派生过程会展示当前阶段、关键词、改写进度与修改理由，用户确认后再应用结果。
+
+---
+
+### ✦ 全局 AI 求职助手
+
+从 Dashboard 的独立入口进入全屏 AI 工作区，页面采用固定会话侧栏、固定顶部栏和 GAIA Chat Composer，仅消息内容区域滚动。桌面端侧栏可折叠并记住偏好，移动端通过全高抽屉管理历史会话。
+
+助手通过 DeepSeek V4 流式 Function Calling 串联项目内部数据，能够读取：
+
+- 当前用户资料、时间与会话上下文
+- 全部简历、当前简历正文、版本历史与派生血缘
+- ATS 分析结果、简历模板和求职看板职位
+
+涉及修改时不会直接写入。当前简历字段和求职看板职位的变更都会先展示内联确认卡，用户确认后才通过既有 CRDT Store 或 Supabase 数据层执行。取消、切换会话或离开页面都会停止当前 Agent 任务，未确认操作不会在后台继续。
+
+会话与结构化消息存入 Supabase，刷新后可恢复上次对话；历史搜索在服务端检索会话标题和用户可见消息正文，并可跳转到具体消息。搜索不会暴露 reasoning、工具参数、工具返回值或 system 消息。
+
+> 图片理解与联网搜索仍属于后续阶段，当前版本不宣称已经支持。
 
 ---
 
@@ -251,7 +271,7 @@ pnpm dev
 访问 `http://localhost:5173` 开始使用。
 
 > [!WARNING]
-> **数据库初始化**：在你的 Supabase 项目中按顺序执行 `supabase/migrations/` 下的 SQL。除核心表（`resume_config`、`resume_config_versions`、`ats`、`company`、`resume_templates`）外，最新迁移还会为 `resume_config` 增加 JD 派生所需的父级、JD、元数据和状态字段，并为 `company` 表增加求职 CRM 所需的 `archived`、`next_action` / `next_action_date`、`activities` / `contacts` 字段。
+> **数据库初始化**：在你的 Supabase 项目中按顺序执行 `supabase/migrations/` 下的 SQL。除核心表（`resume_config`、`resume_config_versions`、`ats`、`company`、`resume_templates`）外，最新迁移还会为 `resume_config` 增加 JD 派生字段，为 `company` 增加求职 CRM 字段，并创建 AI 助手使用的 `ai_conversations`、`ai_messages`、私有 `chat-uploads` bucket 与 owner-only 历史搜索 RPC。
 
 需要使用 ATS、AI 改写或 JD 派生时，还需部署 LLM 代理并配置服务端密钥：
 
@@ -290,6 +310,7 @@ src/
 │   ├── template/           # 模板中心 — 官方/社区/个人模板与可视化工作台
 │   ├── optimize/           # ATS 优化 — AI 分析、问题修复与 JD 匹配
 │   ├── tracker/            # 求职追踪 — 看板与列表管理
+│   ├── assistant/          # 全局 AI 助手 — 会话、Agent、确认与历史搜索
 │   ├── history/            # 版本历史 — 时间线与快照对比
 │   ├── profile/            # 个人设置 — 账户与偏好管理
 │   ├── changelog/          # 更新日志
@@ -298,6 +319,7 @@ src/
 │   └── forgot-password/    # 找回密码
 ├── components/             # 通用组件
 │   ├── ui/                 # shadcn/ui 基础组件
+│   ├── layout/             # Dashboard 与 AI 助手独立页面外壳
 │   ├── resume/             # 简历渲染组件
 │   ├── ai/                 # AI 相关组件（思维链展示等）
 │   ├── ai-rewrite/         # 编辑器划词改写、候选生成与安全写回
@@ -305,6 +327,7 @@ src/
 │   ├── tiptap-ui/          # Tiptap 编辑器 UI
 │   └── dashboard/          # 仪表盘布局组件
 ├── lib/                    # 核心业务逻辑
+│   ├── ai/                 # Agent loop、Function Calling、内部工具与导航
 │   ├── automerge/          # Automerge 文档 CRDT 引擎（结构化数据同步）
 │   ├── collaboration/      # 协作会话、光标去重与 Yjs 富文本协同
 │   ├── resume-template/    # 模板注册表、运行时与编辑器

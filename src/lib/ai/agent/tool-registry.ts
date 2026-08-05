@@ -2,6 +2,7 @@ export interface AgentTool {
   name: string
   description: string
   parameters: Record<string, unknown> // JSON Schema，对齐 DeepSeek tools.function.parameters
+  mode: 'read' | 'write' // read 自动执行；write 走确认卡
   execute: (args: Record<string, unknown>) => Promise<unknown>
 }
 

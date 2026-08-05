@@ -1,16 +1,18 @@
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
-import { runAgent } from '@/lib/ai/agent'
+import { buildUserContext, runAgent } from '@/lib/ai/agent'
 import {
   createConversation,
+  deleteConversation,
   insertMessage,
   touchConversation,
   updateConversation,
 } from '@/lib/supabase/ai'
 import { getErrorMessage } from '@/utils'
 import { CONVERSATION_TITLE_MAX_LEN, DEFAULT_CONVERSATION_TITLE } from '../const'
-import useAssistantStore from '../store'
+import useAssistantStore, { cancelActiveAssistantRun } from '../store'
+import { writeLastConversationId } from '../utils'
 
 // 构造一条本地临时消息（乐观上屏，稍后用服务端返回替换）
 function makeLocalMessage(role: AiMessage['role'], text: string): AiMessage {
@@ -35,6 +37,11 @@ export function useChatStream() {
     // 1. 立即乐观上屏用户气泡 + 进入 streaming（同步，无 await，杜绝延迟）
     const localUser = makeLocalMessage('user', trimmed)
     const controller = new AbortController()
+    const ownsCurrentRun = (expectedConversationId?: string) => {
+      const state = useAssistantStore.getState()
+      return state.abortController === controller
+        && (!expectedConversationId || state.activeConversationId === expectedConversationId)
+    }
     useAssistantStore.setState(state => ({
       messages: [...state.messages, localUser],
       streaming: true,
@@ -49,16 +56,26 @@ export function useChatStream() {
     try {
       if (!conversationId) {
         const conv = await createConversation(DEFAULT_CONVERSATION_TITLE)
+        if (
+          controller.signal.aborted
+          || useAssistantStore.getState().abortController !== controller
+        ) {
+          await deleteConversation(conv.id).catch(() => undefined)
+          return
+        }
         conversationId = conv.id
         isNewConversation = true
         useAssistantStore.getState().upsertConversation(conv)
         useAssistantStore.getState().setActiveConversationId(conv.id)
+        writeLastConversationId(conv.id)
       }
     }
     catch (error) {
-      useAssistantStore.getState().removeMessage(localUser.id)
-      useAssistantStore.setState({ streaming: false, streamingText: '', streamingParts: [], abortController: null })
-      toast.error('创建会话失败', { description: getErrorMessage(error) })
+      if (ownsCurrentRun()) {
+        useAssistantStore.getState().removeMessage(localUser.id)
+        useAssistantStore.setState({ streaming: false, streamingText: '', streamingParts: [], abortController: null })
+        toast.error('创建会话失败', { description: getErrorMessage(error) })
+      }
       return
     }
 
@@ -68,25 +85,34 @@ export function useChatStream() {
         role: 'user',
         parts: [{ type: 'text', text: trimmed }],
       })
+      if (!ownsCurrentRun(conversationId))
+        return
       useAssistantStore.getState().replaceMessage(localUser.id, savedUser)
     }
     catch (error) {
-      useAssistantStore.getState().removeMessage(localUser.id)
-      useAssistantStore.setState({ streaming: false, streamingText: '', streamingParts: [], abortController: null })
-      toast.error('发送失败', { description: getErrorMessage(error) })
+      if (ownsCurrentRun(conversationId)) {
+        useAssistantStore.getState().removeMessage(localUser.id)
+        useAssistantStore.setState({ streaming: false, streamingText: '', streamingParts: [], abortController: null })
+        toast.error('发送失败', { description: getErrorMessage(error) })
+      }
       return
     }
 
     // 4. 起 agent 循环，把回调事件映射到结构化进行中态 streamingParts
     const draft: AiMessagePart[] = []
-    const pushDraft = () => useAssistantStore.getState().setStreamingParts([...draft])
+    const pushDraft = () => {
+      if (useAssistantStore.getState().abortController === controller)
+        useAssistantStore.getState().setStreamingParts([...draft])
+    }
     let reasoningIdx = -1
     let textIdx = -1
 
     try {
+      const context = await buildUserContext().catch(() => undefined)
       const finalParts = await runAgent({
         history: useAssistantStore.getState().messages,
         signal: controller.signal,
+        context,
         callbacks: {
           onReasoning: (full) => {
             if (reasoningIdx < 0) {
@@ -109,17 +135,17 @@ export function useChatStream() {
             pushDraft()
           },
           onToolCallStart: (call) => {
-            draft.push({ type: 'tool-call', toolCallId: call.id, toolName: call.name, args: call.args, state: 'call' })
+            draft.push({ type: 'tool-call', toolCallId: call.id, toolName: call.name, args: call.args, state: call.awaitingConfirm ? 'awaiting-confirm' : 'call' })
             // 工具调用后，后续文本/推理应另起新块
             textIdx = -1
             reasoningIdx = -1
             pushDraft()
           },
-          onToolResult: (id, result, isError) => {
+          onToolResult: (id, result, isError, cancelled) => {
             const i = draft.findIndex(p => p.type === 'tool-call' && p.toolCallId === id)
             if (i >= 0) {
               const prev = draft[i] as Extract<AiMessagePart, { type: 'tool-call' }>
-              draft[i] = { ...prev, result, state: isError ? 'error' : 'result' }
+              draft[i] = { ...prev, result, state: isError ? 'error' : cancelled ? 'cancelled' : 'result' }
             }
             pushDraft()
           },
@@ -127,14 +153,22 @@ export function useChatStream() {
       })
 
       // 5. 落库 assistant 消息（整轮完整 parts），原子关闭 streaming（避免双气泡）
+      if (controller.signal.aborted)
+        throw new DOMException('aborted', 'AbortError')
       const assistantMessage = await insertMessage(conversationId, { role: 'assistant', parts: finalParts })
-      useAssistantStore.setState(state => ({
-        messages: [...state.messages, assistantMessage],
-        streaming: false,
-        streamingText: '',
-        streamingParts: [],
-        abortController: null,
-      }))
+      const current = useAssistantStore.getState()
+      if (
+        current.abortController === controller
+        && current.activeConversationId === conversationId
+      ) {
+        useAssistantStore.setState(state => ({
+          messages: [...state.messages, assistantMessage],
+          streaming: false,
+          streamingText: '',
+          streamingParts: [],
+          abortController: null,
+        }))
+      }
 
       // 6. 刷新排序；首条消息生成标题
       await touchConversation(conversationId)
@@ -148,7 +182,14 @@ export function useChatStream() {
       if ((error as Error)?.name !== 'AbortError') {
         toast.error('回复失败', { description: getErrorMessage(error) })
       }
-      useAssistantStore.setState({ streaming: false, streamingText: '', streamingParts: [], abortController: null })
+      if (useAssistantStore.getState().abortController === controller) {
+        useAssistantStore.setState({
+          streaming: false,
+          streamingText: '',
+          streamingParts: [],
+          abortController: null,
+        })
+      }
     }
   }, [])
 
@@ -181,7 +222,7 @@ export function useChatStream() {
   }, [runSend])
 
   const stopStreaming = useCallback(() => {
-    useAssistantStore.getState().abortController?.abort()
+    cancelActiveAssistantRun()
   }, [])
 
   return { sendMessage, retryLast, stopStreaming }

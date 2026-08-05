@@ -7,8 +7,8 @@ import { getTool, toApiToolDefs } from './tool-registry'
 export interface AgentCallbacks {
   onReasoning?: (full: string) => void
   onText?: (full: string) => void
-  onToolCallStart?: (call: { id: string, name: string, args: Record<string, unknown> }) => void
-  onToolResult?: (id: string, result: unknown, isError: boolean) => void
+  onToolCallStart?: (call: { id: string, name: string, args: Record<string, unknown>, awaitingConfirm?: boolean }) => void
+  onToolResult?: (id: string, result: unknown, isError: boolean, cancelled?: boolean) => void
 }
 
 export interface AgentRunOptions {
@@ -16,13 +16,14 @@ export interface AgentRunOptions {
   signal: AbortSignal
   thinking?: boolean // 默认关
   maxSteps?: number // 默认 8
+  context?: string // 轻量用户概况，注入 system
   callbacks?: AgentCallbacks
 }
 
 // 运行多步 agent，返回最终 assistant 消息的 parts（供落库）
 export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[]> {
-  const { history, signal, thinking = false, maxSteps = 8, callbacks = {} } = options
-  const apiMessages = toApiMessages(history)
+  const { history, signal, thinking = false, maxSteps = 8, context, callbacks = {} } = options
+  const apiMessages = toApiMessages(history, context)
   const finalParts: AiMessagePart[] = []
 
   for (let step = 0; step < maxSteps; step++) {
@@ -40,12 +41,23 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
       tools: toApiToolDefs(),
       thinking: thinking ? { type: 'enabled' } : { type: 'disabled' },
     }
-    const stream = await callLLM(req as any, undefined)
+    const requestController = new AbortController()
+    const abortRequest = () => requestController.abort()
+    signal.addEventListener('abort', abortRequest, { once: true })
+    if (signal.aborted)
+      requestController.abort()
 
-    for await (const chunk of stream) {
-      if (signal.aborted)
-        throw new DOMException('aborted', 'AbortError')
-      parser.push(chunk)
+    try {
+      const stream = await callLLM(req as any, requestController)
+
+      for await (const chunk of stream) {
+        if (signal.aborted)
+          throw new DOMException('aborted', 'AbortError')
+        parser.push(chunk)
+      }
+    }
+    finally {
+      signal.removeEventListener('abort', abortRequest)
     }
 
     const { text, reasoning, toolCalls, finishReason } = parser.result()
@@ -69,10 +81,12 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
         finalParts.push({ type: 'text', text })
 
       for (const tc of toolCalls) {
-        callbacks.onToolCallStart?.(tc)
         const tool = getTool(tc.name)
+        const isWrite = tool?.mode === 'write'
+        callbacks.onToolCallStart?.({ ...tc, awaitingConfirm: isWrite })
         let result: unknown
         let isError = false
+        let cancelled = false
         if (!tool) {
           result = { error: `工具不存在: ${tc.name}` }
           isError = true
@@ -80,22 +94,27 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
         else {
           try {
             result = await tool.execute(tc.args)
-            if (result && typeof result === 'object' && 'error' in (result as Record<string, unknown>))
-              isError = true
+            if (result && typeof result === 'object') {
+              const obj = result as Record<string, unknown>
+              if ('error' in obj)
+                isError = true
+              if ('cancelled' in obj && obj.cancelled)
+                cancelled = true
+            }
           }
           catch (e) {
             result = { error: e instanceof Error ? e.message : '工具执行失败' }
             isError = true
           }
         }
-        callbacks.onToolResult?.(tc.id, result, isError)
+        callbacks.onToolResult?.(tc.id, result, isError, cancelled)
         finalParts.push({
           type: 'tool-call',
           toolCallId: tc.id,
           toolName: tc.name,
           args: tc.args,
           result,
-          state: isError ? 'error' : 'result',
+          state: isError ? 'error' : cancelled ? 'cancelled' : 'result',
         })
         apiMessages.push({ role: 'tool', content: JSON.stringify(result), tool_call_id: tc.id } as any)
       }

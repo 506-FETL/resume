@@ -10,8 +10,10 @@ interface ApiMessage {
 }
 
 // AiMessage[]（parts）→ DeepSeek messages（含 system 头 + tool_calls + role:tool 回填）
-export function toApiMessages(messages: AiMessage[]): ApiMessage[] {
-  const out: ApiMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }]
+// context: 轻量用户概况，拼进 system 头给 agent 基本盘感知
+export function toApiMessages(messages: AiMessage[], context?: string): ApiMessage[] {
+  const systemContent = context ? `${SYSTEM_PROMPT}\n\n${context}` : SYSTEM_PROMPT
+  const out: ApiMessage[] = [{ role: 'system', content: systemContent }]
 
   for (const m of messages) {
     const textContent = m.parts

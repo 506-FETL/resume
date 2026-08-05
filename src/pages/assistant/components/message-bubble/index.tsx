@@ -18,22 +18,29 @@ type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
 function renderAssistantParts(parts: AiMessagePart[]) {
   const nodes: ReactNode[] = []
   let buffer: ToolCallPart[] = []
+  const keyOccurrences = new Map<string, number>()
+  const createPartKey = (prefix: string, content: string) => {
+    const baseKey = `${prefix}-${content}`
+    const occurrence = keyOccurrences.get(baseKey) ?? 0
+    keyOccurrences.set(baseKey, occurrence + 1)
+    return `${baseKey}-${occurrence}`
+  }
   const flush = (key: string) => {
     if (buffer.length) {
       nodes.push(<ToolCallPartGroup key={key} calls={buffer} />)
       buffer = []
     }
   }
-  parts.forEach((p, i) => {
+  parts.forEach((p) => {
     if (p.type === 'tool-call') {
       buffer.push(p)
       return
     }
-    flush(`tc-${i}`)
+    flush(createPartKey('tool-group', buffer.map(call => call.toolCallId).join('-')))
     if (p.type === 'reasoning')
-      nodes.push(<ReasoningPart key={i} text={p.text} />)
+      nodes.push(<ReasoningPart key={createPartKey('reasoning', p.text)} text={p.text} />)
     else if (p.type === 'text')
-      nodes.push(<TextPart key={i} text={p.text} />)
+      nodes.push(<TextPart key={createPartKey('text', p.text)} text={p.text} />)
   })
   flush('tc-end')
   return nodes

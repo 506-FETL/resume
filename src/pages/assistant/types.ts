@@ -2,7 +2,19 @@ import type { AiConversation, AiMessage } from '@/lib/ai/types'
 
 export type { AiConversation, AiMessage }
 
-// 消息流渲染项：已落库消息 + 可选的"进行中"流式助手气泡
-export interface StreamingDraft {
-  text: string
+export interface AssistantRouteState {
+  from?: string
 }
+
+export interface OpenConversationOptions {
+  targetMessageId?: string | null
+  closeOverlays?: boolean
+}
+
+export type ConversationSearchStatus
+  = 'idle'
+    | 'loading'
+    | 'ready'
+    | 'empty'
+    | 'error'
+    | 'unavailable'

@@ -1,4 +1,4 @@
-import type { AiConversation } from '@/lib/ai/types'
+import type { AiConversation, AiConversationSearchResult } from '@/lib/ai/types'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
@@ -11,6 +11,32 @@ function mapConversation(row: any): AiConversation {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
+}
+
+function mapConversationSearchResult(row: any): AiConversationSearchResult {
+  if (row.role !== null && row.role !== 'user' && row.role !== 'assistant')
+    throw new Error('搜索结果包含未知消息角色')
+  if (row.match_type !== 'title' && row.match_type !== 'message')
+    throw new Error('搜索结果包含未知命中类型')
+
+  return {
+    conversationId: row.conversation_id,
+    conversationTitle: row.conversation_title,
+    messageId: row.message_id ?? null,
+    excerpt: row.excerpt ?? '',
+    role: row.role,
+    matchedAt: row.matched_at,
+    conversationUpdatedAt: row.conversation_updated_at,
+    matchType: row.match_type,
+    relevance: Number(row.relevance) || 0,
+  }
+}
+
+interface SearchConversationOptions {
+  query: string
+  limit?: number
+  offset?: number
+  signal?: AbortSignal
 }
 
 export async function listConversations(): Promise<AiConversation[]> {
@@ -95,4 +121,32 @@ export async function deleteConversation(id: string): Promise<void> {
 
   if (error)
     throw error
+}
+
+export async function searchConversations({
+  query,
+  limit = 20,
+  offset = 0,
+  signal,
+}: SearchConversationOptions): Promise<AiConversationSearchResult[]> {
+  let request = supabase.rpc('search_ai_conversations', {
+    p_search_query: query,
+    p_result_limit: limit,
+    p_result_offset: offset,
+  })
+
+  if (signal)
+    request = request.abortSignal(signal)
+
+  const { data, error } = await request
+  if (error)
+    throw error
+
+  return (data || []).map(mapConversationSearchResult)
+}
+
+export function isConversationSearchUnavailable(error: unknown): boolean {
+  const candidate = error as { code?: string, message?: string }
+  return candidate.code === 'PGRST202'
+    || candidate.message?.includes('search_ai_conversations') === true
 }

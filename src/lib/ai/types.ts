@@ -3,7 +3,7 @@
 
 export type AiMessageRole = 'user' | 'assistant' | 'system'
 
-export type AiToolCallState = 'call' | 'result' | 'error'
+export type AiToolCallState = 'call' | 'awaiting-confirm' | 'result' | 'error' | 'cancelled'
 
 export type AiMessagePart
   = | { type: 'text', text: string }
@@ -24,6 +24,18 @@ export interface AiConversation {
   title: string
   createdAt: string
   updatedAt: string
+}
+
+export interface AiConversationSearchResult {
+  conversationId: string
+  conversationTitle: string
+  messageId: string | null
+  excerpt: string
+  role: 'user' | 'assistant' | null
+  matchedAt: string
+  conversationUpdatedAt: string
+  matchType: 'title' | 'message'
+  relevance: number
 }
 
 export interface AiMessage {
