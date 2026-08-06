@@ -4,6 +4,13 @@ export interface ParsedToolCall {
   args: Record<string, unknown>
 }
 
+// token 用量（部分模型仅在最后一个 chunk 返回）
+export interface StreamUsage {
+  input: number
+  output: number
+  total: number
+}
+
 export interface StreamParserCallbacks {
   onText?: (delta: string, full: string) => void
   onReasoning?: (delta: string, full: string) => void
@@ -15,6 +22,7 @@ export class StreamParser {
   private reasoning = ''
   private toolAcc = new Map<number, { id: string, name: string, argsText: string }>()
   private finishReason: string | null = null
+  private usage: StreamUsage | null = null
   private callbacks: StreamParserCallbacks
 
   constructor(callbacks: StreamParserCallbacks = {}) {
@@ -22,6 +30,15 @@ export class StreamParser {
   }
 
   push(chunk: any): void {
+    // usage 可能出现在最后一个（choices 为空的）chunk 上
+    const u = chunk?.usage
+    if (u) {
+      this.usage = {
+        input: Number(u.prompt_tokens ?? 0),
+        output: Number(u.completion_tokens ?? 0),
+        total: Number(u.total_tokens ?? (Number(u.prompt_tokens ?? 0) + Number(u.completion_tokens ?? 0))),
+      }
+    }
     const choice = chunk?.choices?.[0]
     if (!choice)
       return
@@ -52,7 +69,7 @@ export class StreamParser {
       this.finishReason = choice.finish_reason
   }
 
-  result(): { text: string, reasoning: string, toolCalls: ParsedToolCall[], finishReason: string | null } {
+  result(): { text: string, reasoning: string, toolCalls: ParsedToolCall[], finishReason: string | null, usage: StreamUsage | null } {
     const toolCalls: ParsedToolCall[] = [...this.toolAcc.entries()]
       .sort((a, b) => a[0] - b[0])
       .map(([, v]) => {
@@ -65,6 +82,6 @@ export class StreamParser {
         }
         return { id: v.id, name: v.name, args }
       })
-    return { text: this.text, reasoning: this.reasoning, toolCalls, finishReason: this.finishReason }
+    return { text: this.text, reasoning: this.reasoning, toolCalls, finishReason: this.finishReason, usage: this.usage }
   }
 }

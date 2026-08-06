@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
 
 interface MessageActionsProps {
   message: AiMessage
-  onEdit?: (message: AiMessage) => void
-  onRetry?: () => void
+  onEdit?: () => void
+  onRegenerate?: () => void
 }
 
 function getPlainText(message: AiMessage): string {
@@ -18,7 +18,7 @@ function getPlainText(message: AiMessage): string {
     .join('\n')
 }
 
-export function MessageActions({ message, onEdit, onRetry }: MessageActionsProps) {
+export function MessageActions({ message, onEdit, onRegenerate }: MessageActionsProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
 
@@ -47,12 +47,12 @@ export function MessageActions({ message, onEdit, onRetry }: MessageActionsProps
         {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
       </Button>
       {isUser && onEdit && (
-        <Button variant="ghost" size="icon-xs" aria-label="编辑" title="编辑" onClick={() => onEdit(message)}>
+        <Button variant="ghost" size="icon-xs" aria-label="编辑" title="编辑并重新生成" onClick={onEdit}>
           <Pencil className="size-3.5" />
         </Button>
       )}
-      {!isUser && onRetry && (
-        <Button variant="ghost" size="icon-xs" aria-label="重试" title="重试" onClick={onRetry}>
+      {!isUser && onRegenerate && (
+        <Button variant="ghost" size="icon-xs" aria-label="重新生成" title="重新生成" onClick={onRegenerate}>
           <RefreshCw className="size-3.5" />
         </Button>
       )}

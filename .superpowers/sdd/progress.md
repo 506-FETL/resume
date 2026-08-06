@@ -103,3 +103,22 @@
 - 复验：tsc + eslint + build 干净（header fragment 缩进 --fix）。
 
 ## 全部 P1-P5 + 各期审查修复完成，均未提交。3 个迁移待用户执行。
+
+# ==================================================
+# S7 画布与推理体验优化（计划: docs/superpowers/plans/2026-08-06-ai-assistant-s7-canvas-reasoning.md）
+基线: 4a93f44（spec+plan 已提交；代码工作区未提交，沿用「实现者只改工作区不 commit」约定）
+审查隔离: 每任务用 snap-task-N 快照前后 diff（review-task-N.diff），非 commit range
+## 任务状态
+- [x] T1 深度思考接通 + composer 开关 + 思考链 Shimmer（const/store/use-chat-stream/composer×2/message-bubble/reasoning-part/message-list）— 之前已完成
+- [x] T2 统一红绿 DiffView + computeLineDiff + 确认卡升级（新建 diff/compute-line-diff.ts + diff/diff-view.tsx；重写 confirm-card/resume-field-diff.tsx）
+- [x] T3 写工具带 before/after + deriveCanvasModel 产 diff+stat + 画布变更记录红绿 diff（resume.ts/crud.ts/types.ts/utils.ts/change-log）
+- [x] T4 对话内活动列表（重写 message-bubble/tool-call-part.tsx，逐行图标+标签+DiffStat，进行中仅 loading）
+- [x] T5 画布可拖拽改宽 + 去选择器 + 去重头部图标 + 进出动画（const/store 加 canvasWidth；use-canvas-preview 暴露 currentName；resume-preview 只读标题；assistant-canvas 拖拽手柄+AnimatePresence；chat-header 仅折叠时显示按钮）
+
+## S7 全量复验
+- eslint（src/pages/assistant + resume.ts + crud.ts + composer.tsx，--no-warn-ignored）：0 error 0 warning。
+- tsc --noEmit：0 error。
+- pnpm build：✓ built（仅既有 chunk-size 警告）。
+- git diff --check：无输出。
+- 环境说明：FUSE 挂载的 node_modules 解析不全 + node 版本(需24)不符，改在本机(mounted PC 目录, node 24)执行 `pnpm install --no-frozen-lockfile` 后跑 lint/tsc/build。均未 commit。
+- 修复的 lint 项：React.PointerEvent→ReactPointerEvent 类型 import（no-undef）；compute-line-diff 用 Array.from 替代 new Array（unicorn/no-new-array）；diff-view key 加 eslint-disable(react/no-array-index-key)。

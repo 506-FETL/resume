@@ -1,9 +1,10 @@
-import { Sparkles } from 'lucide-react'
+import { ArrowDown, Sparkles } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
+import { Shimmer } from '@/components/ai/shimmer'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { WaveSpinner } from '@/components/ui/wave-spinner'
 import { CONVERSATION_BOTTOM_TARGET, MESSAGE_HIGHLIGHT_DURATION_MS } from '../../const'
 import { useChatStream } from '../../hooks/use-chat-stream'
 import useAssistantStore from '../../store'
@@ -17,6 +18,8 @@ export default function MessageList() {
     messages,
     streaming,
     streamingParts,
+    streamingUsage,
+    usageByMessageId,
     pendingConfirm,
     initializing,
     loadingMessages: loading,
@@ -24,16 +27,8 @@ export default function MessageList() {
     targetMessageId,
     setTargetMessageId,
   } = useAssistantStore()
-  const { retryLast } = useChatStream()
+  const { regenerateFrom, editUserMessageAndRerun } = useChatStream()
   const shouldReduceMotion = useReducedMotion()
-
-  // 编辑：把用户消息文本回填到输入框
-  const handleEdit = (text: string) => {
-    useAssistantStore.getState().setComposerDraft(text)
-  }
-
-  // 仅最后一条助手消息可重试
-  const lastAssistantId = [...messages].reverse().find(m => m.role === 'assistant')?.id
 
   useEffect(() => {
     if (!targetMessageId || initializing || loading)
@@ -98,6 +93,21 @@ export default function MessageList() {
       key={conversationViewVersion}
       className="h-full"
       dependency={[messages, streamingParts, pendingConfirm]}
+      renderOverlay={({ atBottom, scrollToBottom }) => (
+        !atBottom && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="滚动到底部"
+              className="pointer-events-auto size-9 rounded-full border shadow-md"
+              onClick={scrollToBottom}
+            >
+              <ArrowDown className="size-4" />
+            </Button>
+          </div>
+        )
+      )}
     >
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-6 lg:px-8">
         {messages.map(message => (
@@ -120,8 +130,9 @@ export default function MessageList() {
           >
             <MessageBubble
               message={message}
-              onEdit={msg => handleEdit(msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('\n'))}
-              onRetry={message.id === lastAssistantId ? retryLast : undefined}
+              usage={usageByMessageId[message.id] ?? null}
+              onEditSave={editUserMessageAndRerun}
+              onRegenerate={regenerateFrom}
             />
           </motion.div>
         ))}
@@ -130,6 +141,7 @@ export default function MessageList() {
             ? (
                 <MessageBubble
                   message={{ id: 'streaming', conversationId: '', userId: '', role: 'assistant', parts: streamingParts, createdAt: new Date().toISOString() }}
+                  usage={streamingUsage}
                 />
               )
             : (
@@ -137,8 +149,8 @@ export default function MessageList() {
                   <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Sparkles className="size-4" />
                   </div>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <WaveSpinner />
+                  <div className="min-w-0 flex-1 pt-1 text-sm">
+                    <Shimmer duration={1.4}>正在思考…</Shimmer>
                   </div>
                 </div>
               )

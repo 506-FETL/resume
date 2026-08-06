@@ -1,3 +1,4 @@
+import type { UploadedFile } from '@/components/ui/file-preview'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
@@ -26,6 +27,16 @@ function makeLocalMessage(role: AiMessage['role'], text: string): AiMessage {
   }
 }
 
+// 把附件信息拼进发送文本（多模态后端链路暂未打通，此处透传文件名作为上下文提示）
+function withAttachmentNote(text: string, files?: UploadedFile[]): string {
+  const images = (files ?? []).filter(f => f.type.startsWith('image/'))
+  if (images.length === 0)
+    return text
+  const names = images.map(f => f.name).join('、')
+  const note = `（用户附带 ${images.length} 张图片：${names}）`
+  return text ? `${text}\n\n${note}` : note
+}
+
 export function useChatStream() {
   // 核心发送：先乐观上屏，再后台落库 + 起流
   const runSend = useCallback(async (trimmed: string) => {
@@ -47,6 +58,7 @@ export function useChatStream() {
       streaming: true,
       streamingText: '',
       streamingParts: [],
+      streamingUsage: null,
       abortController: controller,
     }))
 
@@ -106,12 +118,14 @@ export function useChatStream() {
     }
     let reasoningIdx = -1
     let textIdx = -1
+    let finalUsage: { input: number, output: number, total: number } | null = null
 
     try {
       const context = await buildUserContext().catch(() => undefined)
       const finalParts = await runAgent({
         history: useAssistantStore.getState().messages,
         signal: controller.signal,
+        thinking: useAssistantStore.getState().deepThinking,
         context,
         callbacks: {
           onReasoning: (full) => {
@@ -149,6 +163,11 @@ export function useChatStream() {
             }
             pushDraft()
           },
+          onUsage: (usage) => {
+            finalUsage = usage
+            if (useAssistantStore.getState().abortController === controller)
+              useAssistantStore.getState().setStreamingUsage(usage)
+          },
         },
       })
 
@@ -161,11 +180,14 @@ export function useChatStream() {
         current.abortController === controller
         && current.activeConversationId === conversationId
       ) {
+        if (finalUsage)
+          useAssistantStore.getState().setUsageForMessage(assistantMessage.id, finalUsage)
         useAssistantStore.setState(state => ({
           messages: [...state.messages, assistantMessage],
           streaming: false,
           streamingText: '',
           streamingParts: [],
+          streamingUsage: null,
           abortController: null,
         }))
       }
@@ -187,15 +209,20 @@ export function useChatStream() {
           streaming: false,
           streamingText: '',
           streamingParts: [],
+          streamingUsage: null,
           abortController: null,
         })
       }
     }
   }, [])
 
-  const sendMessage = useCallback((text: string) => {
-    runSend(text.trim())
+  const sendMessage = useCallback((text: string, files?: UploadedFile[]) => {
+    runSend(withAttachmentNote(text.trim(), files))
   }, [runSend])
+
+  // 提取消息中的纯文本
+  const messageText = (m: AiMessage): string =>
+    m.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('\n')
 
   // 重试：移除最后一条助手消息（若有），以最后一条用户消息重新发送
   const retryLast = useCallback(() => {
@@ -210,7 +237,7 @@ export function useChatStream() {
       if (lastUserText === null && m.role === 'assistant')
         continue
       if (lastUserText === null && m.role === 'user') {
-        lastUserText = m.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('\n')
+        lastUserText = messageText(m)
         continue // 该用户消息也移除，由 runSend 重新追加
       }
       kept.unshift(m)
@@ -221,9 +248,49 @@ export function useChatStream() {
     runSend(lastUserText.trim())
   }, [runSend])
 
+  // 针对指定助手消息重新生成：截断其对应的上一条用户消息及之后所有消息，用该用户消息重跑
+  const regenerateFrom = useCallback((assistantMessageId: string) => {
+    const { messages, streaming } = useAssistantStore.getState()
+    if (streaming)
+      return
+    const ai = messages.findIndex(m => m.id === assistantMessageId && m.role === 'assistant')
+    if (ai < 0)
+      return
+    // 找到该助手消息前最近的一条用户消息
+    let ui = -1
+    for (let i = ai - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        ui = i
+        break
+      }
+    }
+    if (ui < 0)
+      return
+    const userText = messageText(messages[ui]).trim()
+    if (!userText)
+      return
+    useAssistantStore.getState().setMessages(messages.slice(0, ui))
+    runSend(userText)
+  }, [runSend])
+
+  // 编辑历史用户消息后重新生成：截断该用户消息及之后的所有消息，用新文本重跑
+  const editUserMessageAndRerun = useCallback((userMessageId: string, newText: string) => {
+    const { messages, streaming } = useAssistantStore.getState()
+    if (streaming)
+      return
+    const trimmed = newText.trim()
+    if (!trimmed)
+      return
+    const ui = messages.findIndex(m => m.id === userMessageId && m.role === 'user')
+    if (ui < 0)
+      return
+    useAssistantStore.getState().setMessages(messages.slice(0, ui))
+    runSend(trimmed)
+  }, [runSend])
+
   const stopStreaming = useCallback(() => {
     cancelActiveAssistantRun()
   }, [])
 
-  return { sendMessage, retryLast, stopStreaming }
+  return { sendMessage, retryLast, regenerateFrom, editUserMessageAndRerun, stopStreaming }
 }

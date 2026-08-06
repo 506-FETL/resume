@@ -65,6 +65,10 @@ export interface ComposerProps {
 	onRemoveFile?: (id: string) => void;
 	/** Whether the composer is in loading state */
 	isLoading?: boolean;
+	/** Extra action nodes rendered at the left of the toolbar (after the tool buttons) */
+	leadingActions?: ReactNode;
+	/** Extra action nodes rendered at the right of the toolbar (before the send button) */
+	trailingActions?: ReactNode;
 }
 
 // Primary color matching GAIA: #00bbff
@@ -88,6 +92,8 @@ export const Composer: FC<ComposerProps> = ({
 	attachedFiles = [],
 	onRemoveFile,
 	isLoading = false,
+	leadingActions,
+	trailingActions,
 }) => {
 	const [inputValue, setInputValue] = useState(defaultValue);
 	const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
@@ -178,6 +184,15 @@ export const Composer: FC<ComposerProps> = ({
 		(match: SlashCommandMatch) => {
 			onToolSelect?.(match.tool);
 			setIsToolsDropdownOpen(false);
+			// 选中工具后聚焦输入框，并把光标移到末尾（等新内容渲染完成后再定位）
+			requestAnimationFrame(() => {
+				const el = textareaRef.current;
+				if (el) {
+					el.focus();
+					const len = el.value.length;
+					el.setSelectionRange(len, len);
+				}
+			});
 		},
 		[onToolSelect],
 	);
@@ -215,6 +230,21 @@ export const Composer: FC<ComposerProps> = ({
 	// Get unique categories
 	const categories = ["all", ...new Set(tools.map((t) => t.category))];
 
+	// Slash trigger: typing "/" at the start opens the tools dropdown and filters by query
+	const slashActive = tools.length > 0 && currentValue.startsWith("/");
+	const slashQuery = slashActive ? currentValue.slice(1).toLowerCase() : "";
+	const slashMatches: SlashCommandMatch[] = slashActive
+		? toolMatches.filter(
+				(m) =>
+					!slashQuery ||
+					m.tool.name.toLowerCase().includes(slashQuery) ||
+					(m.tool.description ?? "").toLowerCase().includes(slashQuery),
+			)
+		: [];
+	// Dropdown is visible either via the tools button or via slash typing
+	const dropdownOpen = (showToolsButton && isToolsDropdownOpen) || slashActive;
+	const dropdownMatches = slashActive ? slashMatches : toolMatches;
+
 	const canSubmit = currentValue.trim() || attachedFiles.length > 0;
 
 	return (
@@ -228,17 +258,18 @@ export const Composer: FC<ComposerProps> = ({
 					"bg-zinc-100 dark:bg-zinc-800",
 				)}
 			>
-				{/* Slash Command Dropdown - positioned above composer */}
-				{showToolsButton && tools.length > 0 && isToolsDropdownOpen && (
+				{/* Slash Command Dropdown - positioned above composer.
+				    Opens via the tools button or by typing "/" at the start of the input. */}
+				{tools.length > 0 && dropdownOpen && dropdownMatches.length > 0 && (
 					<div className="absolute bottom-full left-0 right-0 mb-2 z-50">
 						<SlashCommandDropdown
-							matches={toolMatches}
+							matches={dropdownMatches}
 							selectedIndex={selectedToolIndex}
 							onSelect={handleToolSelect}
 							onClose={() => setIsToolsDropdownOpen(false)}
 							position={{ left: 0, width: undefined }}
 							isVisible={true}
-							openedViaButton={true}
+							openedViaButton={!slashActive}
 							selectedCategory={selectedCategory}
 							categories={categories}
 							onCategoryChange={setSelectedCategory}
@@ -290,8 +321,8 @@ export const Composer: FC<ComposerProps> = ({
 				</form>
 
 				{/* Toolbar */}
-				<div className="flex items-center justify-between px-2 pt-1">
-					<div className="flex items-center gap-1">
+				<div className="flex items-center justify-between gap-2 px-2 pt-1">
+					<div className="flex items-center gap-1.5">
 						{/* Add Context / Attach Button */}
 						<div className="relative">
 							<button
@@ -317,7 +348,7 @@ export const Composer: FC<ComposerProps> = ({
 
 							{/* Context Menu Dropdown */}
 							{isContextMenuOpen && contextOptions && (
-								<div className="absolute bottom-full left-0 mb-2 min-w-[200px] rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-1 shadow-xl overflow-hidden animate-in fade-in-0 slide-in-from-bottom-2 duration-150">
+								<div className="absolute bottom-full left-0 mb-2 min-w-[220px] max-w-[300px] max-h-[320px] overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-1 shadow-xl animate-in fade-in-0 slide-in-from-bottom-2 duration-150">
 									{contextOptions.map((option) => (
 										<button
 											key={option.id}
@@ -325,21 +356,23 @@ export const Composer: FC<ComposerProps> = ({
 											onClick={() => {
 												option.onClick?.();
 												setIsContextMenuOpen(false);
+												// 选完后把焦点交还输入框，避免「鼠标失焦」需要再次点击才能输入
+												textareaRef.current?.focus();
 											}}
-											className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+											className="flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left text-sm text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
 										>
 											{option.icon && (
 												<span
-													className="flex-shrink-0"
+													className="mt-0.5 flex-shrink-0"
 													style={{ color: PRIMARY_COLOR }}
 												>
 													{option.icon}
 												</span>
 											)}
-											<div className="flex flex-col">
-												<span>{option.label}</span>
+											<div className="flex min-w-0 flex-col">
+												<span className="break-words leading-snug">{option.label}</span>
 												{option.description && (
-													<span className="text-xs text-zinc-500 dark:text-zinc-400">
+													<span className="text-xs text-zinc-500 dark:text-zinc-400 break-words leading-snug">
 														{option.description}
 													</span>
 												)}
@@ -378,26 +411,32 @@ export const Composer: FC<ComposerProps> = ({
 								)}
 							</button>
 						)}
+
+						{leadingActions}
 					</div>
 
-					{/* Send Button */}
-					<button
-						type="button"
-						onClick={() => handleSubmit()}
-						disabled={disabled || isLoading || !canSubmit}
-						className={cn(
-							"flex h-9 w-9 min-w-9 max-w-9 items-center justify-center rounded-full transition-colors cursor-pointer",
-							"disabled:cursor-not-allowed",
-							// Enabled state - primary color background
-							canSubmit && "bg-[#00bbff] text-white hover:bg-[#00a3e0]",
-							// Disabled state - visible gray background that contrasts with composer
-							!canSubmit &&
-								"bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500",
-						)}
-						aria-label="Send message"
-					>
-						<HugeiconsIcon icon={ArrowUp02Icon} size={20} />
-					</button>
+					{/* Right actions: extra trailing actions + send button */}
+					<div className="flex items-center gap-2">
+						{trailingActions}
+						{/* Send Button */}
+						<button
+							type="button"
+							onClick={() => handleSubmit()}
+							disabled={disabled || isLoading || !canSubmit}
+							className={cn(
+								"flex h-9 w-9 min-w-9 max-w-9 items-center justify-center rounded-full transition-colors cursor-pointer",
+								"disabled:cursor-not-allowed",
+								// Enabled state - primary color background
+								canSubmit && "bg-[#00bbff] text-white hover:bg-[#00a3e0]",
+								// Disabled state - visible gray background that contrasts with composer
+								!canSubmit &&
+									"bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500",
+							)}
+							aria-label="Send message"
+						>
+							<HugeiconsIcon icon={ArrowUp02Icon} size={20} />
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

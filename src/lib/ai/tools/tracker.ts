@@ -53,6 +53,29 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: '已终止',
 }
 
+// 看板职位字段 → 中文标签（用于变更记录里生成统一的红绿 diff）
+const JOB_FIELD_LABELS: Record<string, string> = {
+  company: '公司',
+  position: '岗位',
+  status: '状态',
+  next_action: '下一步',
+  notes: '备注',
+  location: '城市',
+  salary: '薪资',
+}
+
+function formatJobField(key: string, value: unknown): string {
+  if (value === null || value === undefined || value === '')
+    return ''
+  if (key === 'status')
+    return STATUS_LABELS[String(value)] ?? String(value)
+  return String(value)
+}
+
+function jobFieldLine(key: string, value: unknown): string {
+  return `${JOB_FIELD_LABELS[key] ?? key}：${formatJobField(key, value)}`
+}
+
 registerTool({
   name: 'update_job',
   description: '修改某个看板职位的字段（如 status 状态、next_action 下一步、notes 备注、location、salary 等）。status 可选：saved/applied/screen/interview/offer/rejected。此操作需用户确认。',
@@ -94,7 +117,11 @@ registerTool({
       apply: async () => {
         const saved = await updateCompany(jobId, patch)
         useTrackerStore.getState().syncJob(saved)
-        return { ok: true, jobId }
+        // 生成统一的红绿 diff：逐字段对比旧值 → 新值
+        const keys = Object.keys(patch)
+        const before = keys.map(k => jobFieldLine(k, (job as unknown as Record<string, unknown>)[k])).join('\n')
+        const after = keys.map(k => jobFieldLine(k, patch[k])).join('\n')
+        return { ok: true, jobId, before, after }
       },
     })
   },
@@ -126,7 +153,12 @@ registerTool({
       apply: async () => {
         const created = await createCompany(data as never)
         useTrackerStore.getState().prependJob(created)
-        return { ok: true, id: created.id }
+        // 新增：before 为空，after 为新职位内容，统一走红绿 diff（整体新增为绿色）
+        const after = Object.keys(data)
+          .filter(k => k in JOB_FIELD_LABELS && formatJobField(k, data[k]))
+          .map(k => jobFieldLine(k, data[k]))
+          .join('\n')
+        return { ok: true, id: created.id, before: '', after }
       },
     })
   },

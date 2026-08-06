@@ -3,7 +3,7 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import { BrainIcon, ChevronDownIcon } from 'lucide-react'
-import { createContext, memo, use, useEffect, useMemo, useState } from 'react'
+import { createContext, memo, use, useEffect, useMemo, useRef, useState } from 'react'
 import { Streamdown } from 'streamdown'
 import { Shimmer } from '@/components/ai/shimmer'
 import {
@@ -64,10 +64,14 @@ export const Reasoning = memo(
 
     const [hasAutoClosed, setHasAutoClosed] = useState(false)
     const [startTime, setStartTime] = useState<number | null>(null)
+    // 记录该思考块是否曾经处于流式状态。用它（而非会随后续 part 变化的 defaultOpen）
+    // 判断收起时机：一旦思考流结束就收起，不必等整轮会话结束。
+    const hasStreamedRef = useRef(false)
 
     // Track duration when streaming starts and ends
     useEffect(() => {
       if (isStreaming) {
+        hasStreamedRef.current = true
         if (startTime === null) {
           setStartTime(Date.now())
         }
@@ -78,9 +82,9 @@ export const Reasoning = memo(
       }
     }, [isStreaming, startTime, setDuration])
 
-    // Auto-open when streaming starts, auto-close when streaming ends (once only)
+    // 思考流一结束（isStreaming 由 true→false）就自动收起，仅收起一次。
     useEffect(() => {
-      if (defaultOpen && !isStreaming && isOpen && !hasAutoClosed) {
+      if (hasStreamedRef.current && !isStreaming && isOpen && !hasAutoClosed) {
         // Add a small delay before closing to allow user to see the content
         const timer = setTimeout(() => {
           setIsOpen(false)
@@ -89,7 +93,7 @@ export const Reasoning = memo(
 
         return () => clearTimeout(timer)
       }
-    }, [isStreaming, isOpen, defaultOpen, setIsOpen, hasAutoClosed])
+    }, [isStreaming, isOpen, setIsOpen, hasAutoClosed])
 
     const handleOpenChange = (newOpen: boolean) => {
       setIsOpen(newOpen)

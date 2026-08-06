@@ -1,3 +1,4 @@
+import type { StreamUsage } from './stream-parser'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { callLLM } from '@/lib/llm/call'
 import { StreamParser } from './stream-parser'
@@ -9,6 +10,8 @@ export interface AgentCallbacks {
   onText?: (full: string) => void
   onToolCallStart?: (call: { id: string, name: string, args: Record<string, unknown>, awaitingConfirm?: boolean }) => void
   onToolResult?: (id: string, result: unknown, isError: boolean, cancelled?: boolean) => void
+  // 累计 token 用量（本轮多步求和），每步结束回调一次
+  onUsage?: (usage: StreamUsage) => void
 }
 
 export interface AgentRunOptions {
@@ -25,6 +28,7 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
   const { history, signal, thinking = false, maxSteps = 8, context, callbacks = {} } = options
   const apiMessages = toApiMessages(history, context)
   const finalParts: AiMessagePart[] = []
+  const cumulativeUsage: StreamUsage = { input: 0, output: 0, total: 0 }
 
   for (let step = 0; step < maxSteps; step++) {
     if (signal.aborted)
@@ -38,6 +42,7 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
     const req: Record<string, unknown> = {
       messages: apiMessages,
       stream: true,
+      stream_options: { include_usage: true },
       tools: toApiToolDefs(),
       thinking: thinking ? { type: 'enabled' } : { type: 'disabled' },
     }
@@ -60,7 +65,14 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
       signal.removeEventListener('abort', abortRequest)
     }
 
-    const { text, reasoning, toolCalls, finishReason } = parser.result()
+    const { text, reasoning, toolCalls, finishReason, usage } = parser.result()
+
+    if (usage) {
+      cumulativeUsage.input += usage.input
+      cumulativeUsage.output += usage.output
+      cumulativeUsage.total += usage.total
+      callbacks.onUsage?.({ ...cumulativeUsage })
+    }
 
     if (reasoning)
       finalParts.push({ type: 'reasoning', text: reasoning })

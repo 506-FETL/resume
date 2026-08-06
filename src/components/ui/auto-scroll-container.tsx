@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 interface AutoScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   enabled?: boolean
   dependency?: any // 触发滚动的依赖项
+  // 覆盖层渲染器：接收当前是否在底部与滚动到底方法，用于渲染"回到底部"按钮等
+  renderOverlay?: (state: { atBottom: boolean, scrollToBottom: () => void }) => React.ReactNode
 }
 
 const BOTTOM_THRESHOLD = 30
@@ -14,16 +16,26 @@ export function AutoScrollContainer({
   className,
   enabled = true,
   dependency,
+  renderOverlay,
   ...props
 }: AutoScrollContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef(true)
+  const [atBottom, setAtBottom] = useState(true)
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current
     if (!el) return
     const { scrollTop, scrollHeight, clientHeight } = el
-    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight <= BOTTOM_THRESHOLD
+    const bottom = scrollHeight - scrollTop - clientHeight <= BOTTOM_THRESHOLD
+    isAtBottomRef.current = bottom
+    setAtBottom(bottom)
+  }, [])
+
+  const scrollToBottom = useCallback(() => {
+    const el = containerRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [])
 
   useEffect(() => {
@@ -36,17 +48,21 @@ export function AutoScrollContainer({
   useEffect(() => {
     if (enabled) {
       isAtBottomRef.current = true
+      setAtBottom(true)
     }
   }, [enabled])
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('overflow-auto', className)}
-      onScroll={handleScroll}
-      {...props}
-    >
-      {children}
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div
+        ref={containerRef}
+        className={cn('overflow-auto', className)}
+        onScroll={handleScroll}
+        {...props}
+      >
+        {children}
+      </div>
+      {renderOverlay?.({ atBottom, scrollToBottom })}
     </div>
   )
 }

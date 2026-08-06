@@ -1,5 +1,5 @@
 import type React from 'react'
-import { Sparkles } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { AssistantEntry } from './assistant-entry'
@@ -15,7 +15,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:p-1.5">
               <Link to="/">
-                <Sparkles className="size-5" />
+                <FileText className="size-5" />
                 <span className="text-base font-semibold">Resume</span>
               </Link>
             </SidebarMenuButton>

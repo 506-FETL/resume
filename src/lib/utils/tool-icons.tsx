@@ -51,6 +51,10 @@ const normalizeCategoryName = (name: string): string => {
 // Alias mapping for backwards compatibility
 const iconAliases: Record<string, string> = {
 	calendar: "google_calendar",
+	// 求职助手快捷指令的中文分类 → 内置图标分类
+	经历: "documents",
+	匹配: "goal_tracking",
+	简历: "creative",
 };
 
 // Tool category icon configs - matches gaia repo pattern

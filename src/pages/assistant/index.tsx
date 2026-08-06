@@ -1,3 +1,4 @@
+import AssistantCanvas from './components/assistant-canvas'
 import AssistantSidebar from './components/assistant-sidebar'
 import ChatHeader from './components/chat-header'
 import Composer from './components/composer'
@@ -24,6 +25,7 @@ export default function Assistant() {
           <Composer />
         </div>
       </div>
+      <AssistantCanvas />
       <ConversationSearch />
     </div>
   )

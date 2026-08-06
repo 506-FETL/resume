@@ -7,6 +7,7 @@ import {
   deleteResume,
   deleteResumeHistoryVersion,
   getCompanies,
+  getResumeById,
   getResumeHistoryResume,
   listResumeHistoryVersions,
   restoreResumeHistoryVersion,
@@ -85,7 +86,13 @@ registerTool({
           await updateResumeConfig(resumeId, sectionColumns)
         // 自动在编辑器打开新简历
         useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
-        return { ok: true, resumeId, opened: true }
+        // 统一红绿 diff：新建 → before 为空，after 为简历名称/描述
+        const afterLines = [`名称：${displayName}`]
+        if (args.description)
+          afterLines.push(`描述：${String(args.description)}`)
+        if (filledKeys.length)
+          afterLines.push(`预填模块：${filledKeys.join('、')}`)
+        return { ok: true, resumeId, opened: true, before: '', after: afterLines.join('\n') }
       },
     })
   },
@@ -118,11 +125,24 @@ registerTool({
     if (Object.keys(patch).length === 0)
       return { error: '没有需要更新的字段（display_name / description）' }
 
-    const parts: string[] = []
-    if (patch.display_name !== undefined)
-      parts.push(`名称 → ${patch.display_name}`)
-    if (patch.description !== undefined)
-      parts.push(`描述 → ${patch.description || '（空）'}`)
+    // 读取当前元信息作为「变更前」，避免 before 为空
+    const current = await getResumeById<{ display_name?: string, description?: string }>(
+      resumeId,
+      'display_name, description',
+    ).catch(() => ({} as { display_name?: string, description?: string }))
+
+    const beforeParts: string[] = []
+    const afterParts: string[] = []
+    if (patch.display_name !== undefined) {
+      beforeParts.push(`名称：${current.display_name || '（空）'}`)
+      afterParts.push(`名称：${(patch.display_name as string) || '（空）'}`)
+    }
+    if (patch.description !== undefined) {
+      beforeParts.push(`描述：${current.description || '（空）'}`)
+      afterParts.push(`描述：${(patch.description as string) || '（空）'}`)
+    }
+    const before = beforeParts.join('\n')
+    const after = afterParts.join('\n')
 
     return requestConfirm({
       id: crypto.randomUUID(),
@@ -130,12 +150,12 @@ registerTool({
       preview: {
         kind: 'resume-field',
         title: '修改简历信息',
-        before: '',
-        after: parts.join('\n'),
+        before,
+        after,
       },
       apply: async () => {
         await updateResumeConfig(resumeId, patch)
-        return { ok: true, resumeId }
+        return { ok: true, resumeId, before, after }
       },
     })
   },
@@ -165,11 +185,14 @@ registerTool({
         summary: `将永久删除简历（resumeId=${resumeId}）及其全部内容，无法恢复。`,
       },
       apply: async () => {
+        // 删除前读取名称，生成统一红绿 diff（整体删除为红色）
+        const current = await getResumeById<{ display_name?: string }>(resumeId, 'display_name')
+          .catch(() => ({} as { display_name?: string }))
         await deleteResume(resumeId, 'resume_id')
         // 若删除的是当前打开的简历，清空当前编辑态
         if (useCurrentResumeStore.getState().resumeId === resumeId)
           useCurrentResumeStore.getState().clearCurrentResume()
-        return { ok: true, resumeId }
+        return { ok: true, resumeId, before: `名称：${current.display_name || resumeId}`, after: '' }
       },
     })
   },
@@ -356,7 +379,11 @@ registerTool({
       apply: async () => {
         await deleteCompany(jobId)
         useTrackerStore.getState().removeJobs([jobId])
-        return { ok: true, jobId }
+        // 统一红绿 diff：删除 → before 为职位信息，after 为空（整体删除为红色）
+        const beforeLines = [`公司：${job.company}`, `岗位：${job.position}`]
+        if (job.location)
+          beforeLines.push(`城市：${job.location}`)
+        return { ok: true, jobId, before: beforeLines.join('\n'), after: '' }
       },
     })
   },

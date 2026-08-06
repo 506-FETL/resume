@@ -1,4 +1,4 @@
-import { getAllResumesFromUser, getResumeById } from '@/lib/supabase/resume'
+import { getAllResumesFromUser, getResumeById, updateResumeConfig } from '@/lib/supabase/resume'
 import { FORM_DATA_KEYS, useCurrentResumeStore, useResumeStore } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
 import { registerTool } from '../agent/tool-registry'
@@ -85,7 +85,9 @@ registerTool({
     if (!FORM_DATA_KEYS.includes(sectionKey))
       return { error: `无效的模块键：${sectionKey}` }
 
-    const before = useResumeStore.getState().getResumeFormData()[sectionKey]
+    // 「变更前」以 DB 为准（助手页可能未加载编辑器内存态），回退到内存态
+    const dbRow = await getResumeById<Record<string, unknown>>(currentId, sectionKey).catch(() => null)
+    const before = dbRow?.[sectionKey] ?? useResumeStore.getState().getResumeFormData()[sectionKey]
     const after = args.value
 
     return requestConfirm({
@@ -99,8 +101,8 @@ registerTool({
         after,
       },
       apply: async () => {
-        useResumeStore.getState().updateForm(sectionKey, after as never)
-        return { ok: true, sectionKey }
+        await updateResumeConfig(currentId, { [sectionKey]: after })
+        return { ok: true, sectionKey, before, after }
       },
     })
   },

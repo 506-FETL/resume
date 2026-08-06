@@ -1,5 +1,12 @@
 import type { AiMessagePart } from '@/lib/ai/types'
-import { ToolCallsSection } from '@/components/ui/tool-calls-section'
+import { Loader2, PanelRight, RotateCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { getToolCategoryIcon } from '@/lib/utils/tool-icons'
+import useAssistantStore from '../../store'
+import { retryToolCall } from '../../tool-retry'
+import { TOOL_CANVAS_META } from '../../utils'
+import { computeLineDiff, diffStat } from '../diff/compute-line-diff'
+import { DiffStat } from '../diff/diff-view'
 
 type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
 
@@ -7,42 +14,73 @@ interface ToolCallPartProps {
   calls: ToolCallPart[]
 }
 
-// 工具名 → { 展示分类(决定图标/配色), 中文标题 }。分类取自 tool-icons 内置 category。
-const TOOL_META: Record<string, { category: string, label: string }> = {
-  list_resumes: { category: 'documents', label: '读取简历列表' },
-  get_resume_detail: { category: 'documents', label: '读取简历内容' },
-  update_current_resume_field: { category: 'todos', label: '修改简历' },
-  create_resume: { category: 'documents', label: '新建简历' },
-  update_resume_meta: { category: 'todos', label: '修改简历信息' },
-  delete_resume: { category: 'todos', label: '删除简历' },
-  open_resume: { category: 'documents', label: '打开简历' },
-  save_current_resume_version: { category: 'reminders', label: '保存历史版本' },
-  restore_current_resume_version: { category: 'reminders', label: '恢复历史版本' },
-  delete_resume_version: { category: 'reminders', label: '删除历史版本' },
-  list_jobs: { category: 'goal_tracking', label: '读取求职看板' },
-  get_job: { category: 'goal_tracking', label: '读取职位详情' },
-  update_job: { category: 'goal_tracking', label: '修改职位' },
-  create_job: { category: 'goal_tracking', label: '新增职位' },
-  delete_job: { category: 'goal_tracking', label: '删除职位' },
-  get_ats: { category: 'development', label: '读取 ATS 评分' },
-  get_variant_tree: { category: 'memory', label: '读取派生血缘' },
-  list_templates: { category: 'creative', label: '读取模板' },
-  list_resume_versions: { category: 'reminders', label: '读取历史版本' },
-  get_user_profile: { category: 'general', label: '读取用户资料' },
-  get_current_time: { category: 'reminders', label: '获取当前时间' },
+function statOf(part: ToolCallPart): { additions: number, deletions: number } | null {
+  const result = part.result
+  if (result && typeof result === 'object' && 'before' in result && 'after' in result) {
+    const r = result as { before: unknown, after: unknown }
+    const s = diffStat(computeLineDiff(r.before, r.after))
+    if (s.additions > 0 || s.deletions > 0)
+      return s
+  }
+  return null
 }
 
 export function ToolCallPartGroup({ calls }: ToolCallPartProps) {
-  const entries = calls.map((c) => {
-    const meta = TOOL_META[c.toolName] ?? { category: 'general', label: c.toolName }
-    return {
-      tool_name: meta.label,
-      tool_category: meta.category,
-      tool_call_id: c.toolCallId,
-      inputs: (c.args ?? {}) as Record<string, unknown>,
-      output: c.result === undefined ? '' : JSON.stringify(c.result),
-      show_category: false,
-    }
-  })
-  return <ToolCallsSection toolCalls={entries} />
+  const targetTab = calls
+    .map(c => TOOL_CANVAS_META[c.toolName]?.targetTab)
+    .find(Boolean)
+
+  return (
+    <div className="flex flex-col gap-1">
+      {/* ChatGPT/Codex 式工具活动轨迹：左侧引导线 + 逐行「图标 + 动作 + 增删统计」 */}
+      <div className="flex flex-col gap-0.5 border-l-2 border-border/70 pl-3">
+        {calls.map((c) => {
+          const meta = TOOL_CANVAS_META[c.toolName]
+          const label = meta?.label ?? c.toolName
+          const pending = c.state === 'call' || c.state === 'awaiting-confirm'
+          const stat = statOf(c)
+          return (
+            <div key={c.toolCallId} className="flex items-center gap-2 py-0.5 text-sm">
+              <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
+                {pending
+                  ? <Loader2 className="size-3.5 animate-spin" />
+                  : getToolCategoryIcon(meta?.iconCategory ?? 'general', { showBackground: false, size: 16 })}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-foreground/80">{label}</span>
+              {stat && <DiffStat additions={stat.additions} deletions={stat.deletions} />}
+              {c.state === 'cancelled' && <span className="text-xs text-muted-foreground">已取消</span>}
+              {c.state === 'error' && (
+                <>
+                  <span className="text-xs text-rose-500">失败</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 px-1.5 text-xs text-rose-500 hover:text-rose-600"
+                    onClick={() => retryToolCall(c.toolCallId)}
+                  >
+                    <RotateCw className="size-3.5" />
+                    重试
+                  </Button>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      {targetTab && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-fit gap-1 px-2 text-xs text-muted-foreground"
+          onClick={() => {
+            useAssistantStore.setState({ canvasOpen: true, canvasMobileOpen: true })
+            useAssistantStore.getState().requestCanvasTab(targetTab)
+          }}
+        >
+          <PanelRight className="size-3.5" />
+          在画布中查看
+        </Button>
+      )}
+    </div>
+  )
 }
