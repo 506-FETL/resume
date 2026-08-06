@@ -45,10 +45,10 @@ export function toApiMessages(messages: AiMessage[], context?: string): ApiMessa
           tool_call_id: tc.toolCallId,
         })
       }
+      continue
     }
-    else {
-      out.push({ role: m.role, content: textContent })
-    }
+
+    out.push({ role: m.role, content: textContent })
     // reasoning part 不回传模型（仅本地展示）
   }
 

@@ -1,7 +1,6 @@
 import type { ComposerContextOption, Tool } from '@/components/ui/composer'
-import type { UploadedFile } from '@/components/ui/file-preview'
-import { Brain, Briefcase, FileText, ImagePlus, Square } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { Brain, Briefcase, FileText, Square } from 'lucide-react'
+import { useMemo } from 'react'
 import { Composer as GaiaComposer } from '@/components/ui/composer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -15,8 +14,6 @@ export default function Composer() {
   const { streaming, composerDraft: draft, initializing, loadingMessages, deepThinking, setDeepThinking } = useAssistantStore()
   const { sendMessage, stopStreaming } = useChatStream()
   const { resumes, jobs } = useComposerContext()
-  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const disabled = streaming || initializing || loadingMessages
 
   // @ 引用：把简历/职位信息拼接进输入框，作为本轮上下文提示
@@ -26,35 +23,8 @@ export default function Composer() {
     useAssistantStore.getState().setComposerDraft(next)
   }
 
-  const handleFilesSelected = (files: FileList | null) => {
-    if (!files || files.length === 0)
-      return
-    const next: UploadedFile[] = Array.from(files)
-      .filter(f => f.type.startsWith('image/'))
-      .map(f => ({ id: crypto.randomUUID(), url: URL.createObjectURL(f), name: f.name, type: f.type }))
-    if (next.length > 0)
-      setAttachedFiles(prev => [...prev, ...next])
-  }
-
-  const removeFile = (id: string) => {
-    setAttachedFiles((prev) => {
-      const target = prev.find(f => f.id === id)
-      if (target?.url.startsWith('blob:'))
-        URL.revokeObjectURL(target.url)
-      return prev.filter(f => f.id !== id)
-    })
-  }
-
   const contextOptions = useMemo<ComposerContextOption[]>(() => {
-    const opts: ComposerContextOption[] = [
-      {
-        id: 'upload-image',
-        label: '上传图片',
-        description: '添加图片作为对话附件',
-        icon: <ImagePlus className="size-4" />,
-        onClick: () => fileInputRef.current?.click(),
-      },
-    ]
+    const opts: ComposerContextOption[] = []
     resumes.forEach(r => opts.push({
       id: `resume-${r.resumeId}`,
       label: `简历：${r.name}`,
@@ -84,30 +54,14 @@ export default function Composer() {
 
   const submit = (message: string) => {
     const text = message.trim()
-    if ((!text && attachedFiles.length === 0) || disabled)
+    if (!text || disabled)
       return
     useAssistantStore.getState().setComposerDraft('')
-    sendMessage(text, attachedFiles)
-    attachedFiles.forEach((f) => {
-      if (f.url.startsWith('blob:'))
-        URL.revokeObjectURL(f.url)
-    })
-    setAttachedFiles([])
+    sendMessage(text)
   }
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 sm:px-6 lg:px-8">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          handleFilesSelected(e.target.files)
-          e.target.value = ''
-        }}
-      />
       <GaiaComposer
         value={draft}
         placeholder={COMPOSER_PLACEHOLDER}
@@ -116,8 +70,6 @@ export default function Composer() {
         tools={ASSISTANT_TOOLS}
         onToolSelect={handleToolSelect}
         contextOptions={contextOptions}
-        attachedFiles={attachedFiles}
-        onRemoveFile={removeFile}
         trailingActions={(
           <>
             {streaming && (

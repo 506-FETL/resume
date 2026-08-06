@@ -1,4 +1,5 @@
 import type { CanvasChange, CanvasModel } from '../../../types'
+import type { FormDataMap } from '@/store/resume'
 import { ChevronRight, Undo2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -7,10 +8,30 @@ import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { updateResumeConfig } from '@/lib/supabase/resume'
-import { useCurrentResumeStore } from '@/store/resume'
+import { updateMessage } from '@/lib/supabase/ai'
+import { applyResumeFieldToDocument, useCurrentResumeStore } from '@/store/resume'
 import useAssistantStore from '../../../store'
 import { DiffStat, DiffView } from '../../diff/diff-view'
+
+// 将撤销状态写回对应 tool-call part（内存态 + DB 持久化），刷新后仍显示「已撤销」
+async function markChangeUndone(toolCallId: string): Promise<void> {
+  const { messages, replaceMessage } = useAssistantStore.getState()
+  const owner = messages.find(m => m.parts.some(p => p.type === 'tool-call' && p.toolCallId === toolCallId))
+  if (!owner)
+    return
+  const parts = owner.parts.map(p =>
+    p.type === 'tool-call' && p.toolCallId === toolCallId ? { ...p, undone: true } : p,
+  )
+  replaceMessage(owner.id, { ...owner, parts })
+  if (owner.id.startsWith('local-') || owner.id === 'streaming')
+    return
+  try {
+    await updateMessage(owner.id, { parts })
+  }
+  catch {
+    // 持久化失败静默处理，内存态已更新
+  }
+}
 
 function StateBadge({ state }: { state: CanvasChange['state'] }) {
   if (state === 'cancelled')
@@ -35,8 +56,9 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
     }
     setPendingId(change.id)
     try {
-      await updateResumeConfig(currentId, { [change.undo.sectionKey]: change.undo.before })
+      await applyResumeFieldToDocument(currentId, change.undo.sectionKey as keyof FormDataMap, change.undo.before as Record<string, unknown>)
       setUndoneIds(prev => new Set(prev).add(change.id))
+      await markChangeUndone(change.id)
       bumpCanvasRefresh()
       toast.success('已撤销该修改')
     }
@@ -56,8 +78,9 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
     <ScrollArea className="h-full min-h-0">
       <div className="flex flex-col gap-2 p-3">
         {model.writes.map((change) => {
-          const canUndo = !!change.undo && change.state === 'result' && !undoneIds.has(change.id)
-          const stateBadge = undoneIds.has(change.id)
+          const isUndone = undoneIds.has(change.id) || !!change.undone
+          const canUndo = !!change.undo && change.state === 'result' && !isUndone
+          const stateBadge = isUndone
             ? <Badge variant="outline">已撤销</Badge>
             : <StateBadge state={change.state} />
           // 没有 diff/摘要的变更（如保存/恢复历史版本）：渲染为不可展开的普通行，避免空的折叠面板

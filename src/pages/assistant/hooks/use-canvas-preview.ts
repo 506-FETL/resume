@@ -13,8 +13,17 @@ interface ResumeOption { resumeId: string, name: string }
 // 避免重新加载时的骨架闪烁
 const snapshotCache = new Map<string, ResumeSnapshot>()
 
+// 清除快照缓存：AI 写简历成功后调用，避免写后重取时先命中旧缓存造成「画布不刷新」的观感。
+// 不传 resumeId 时清空全部（写操作可能影响 currentResumeId 联动的任意预览目标）。
+export function invalidateCanvasSnapshot(resumeId?: string): void {
+  if (resumeId)
+    snapshotCache.delete(resumeId)
+  else
+    snapshotCache.clear()
+}
+
 export function useCanvasPreview() {
-  const { previewResumeId, setPreviewResumeId, canvasRefreshTick } = useAssistantStore()
+  const { previewResumeId, setPreviewResumeId, canvasRefreshTick, canvasActiveTab } = useAssistantStore()
   const currentResumeId = useCurrentResumeStore(s => s.resumeId)
   const { writes } = useCanvasModel()
   const [options, setOptions] = useState<ResumeOption[]>([])
@@ -64,6 +73,10 @@ export function useCanvasPreview() {
       setStatus(options.length === 0 ? 'empty' : 'idle')
       return
     }
+    // 只在简历 tab 激活时拉取；切到简历 tab 时（canvasActiveTab 依赖变化）每次都重新加载最新 DB 数据，
+    // 一劳永逸地避免画布停留在旧内容（预览面板 forceMount 常驻，故用 tab 激活作为刷新时机）
+    if (canvasActiveTab !== 'resume')
+      return
     let cancelled = false
     // 命中缓存则直接展示（无骨架），后台静默 revalidate
     const cached = snapshotCache.get(previewResumeId)
@@ -95,7 +108,7 @@ export function useCanvasPreview() {
     return () => {
       cancelled = true
     }
-  }, [previewResumeId, resumeWriteCount, options.length, canvasRefreshTick])
+  }, [previewResumeId, resumeWriteCount, options.length, canvasRefreshTick, canvasActiveTab])
 
   const currentName = options.find(o => o.resumeId === previewResumeId)?.name ?? null
 

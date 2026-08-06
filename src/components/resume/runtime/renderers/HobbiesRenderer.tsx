@@ -16,9 +16,11 @@ export default function HobbiesRenderer() {
       {hobbies.hobbies.length > 0
         ? (
             <div className="flex flex-wrap gap-2">
-              {hobbies.hobbies.map(item => (
+              {hobbies.hobbies.map((item, index) => (
                 <span
-                  key={item.name}
+                  // 空/重复条目无稳定唯一内容，用 index 保证 key 唯一
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={`${item.name}-${index}`}
                   className="rounded-full border px-2 py-1"
                   style={{
                     fontSize: font.smallSize,

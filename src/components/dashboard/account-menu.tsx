@@ -45,6 +45,7 @@ export function AccountMenu({
         side={side}
         align={align}
         sideOffset={6}
+        collisionPadding={8}
       >
         {user && (
           <DropdownMenuGroup>

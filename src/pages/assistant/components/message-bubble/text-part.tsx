@@ -2,9 +2,12 @@ import type { ComponentProps, ReactNode } from 'react'
 import { isValidElement } from 'react'
 import { Streamdown } from 'streamdown'
 import { CodeBlock } from '@/components/ui/code-block'
+import { cn } from '@/lib/utils'
 
 interface TextPartProps {
   text: string
+  // 流式进行中时开启：新出现的 markdown 块从下往上、由模糊到清晰淡入
+  animate?: boolean
 }
 
 // 从 markdown 的 <pre><code class="language-xxx">...</code></pre> 结构里取出语言与源码
@@ -41,9 +44,13 @@ const MARKDOWN_COMPONENTS = { pre: CodeBlockPre } as ComponentProps<typeof Strea
 
 // 助手文本按 markdown 渲染（复用仓库既有 Streamdown，支持流式增量）。
 // 代码块改用仓库 CodeBlock：带语言图标、语法高亮与复制/下载。
-export function TextPart({ text }: TextPartProps) {
+export function TextPart({ text, animate = false }: TextPartProps) {
   return (
-    <div className="prose prose-sm prose-stone max-w-none dark:prose-invert prose-pre:my-2 prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5">
+    <div className={cn(
+      'prose prose-sm prose-stone max-w-none dark:prose-invert prose-pre:my-2 prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5',
+      animate && 'stream-blur-in',
+    )}
+    >
       <Streamdown components={MARKDOWN_COMPONENTS}>
         {text}
       </Streamdown>

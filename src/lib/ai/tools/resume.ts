@@ -1,5 +1,7 @@
-import { getAllResumesFromUser, getResumeById, updateResumeConfig } from '@/lib/supabase/resume'
-import { FORM_DATA_KEYS, useCurrentResumeStore, useResumeStore } from '@/store/resume'
+import type { z } from 'zod'
+import { resumeSchema } from '@/lib/schema'
+import { getAllResumesFromUser, getResumeById } from '@/lib/supabase/resume'
+import { applyResumeFieldToDocument, FORM_DATA_KEYS, useCurrentResumeStore, useResumeStore } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
 import { registerTool } from '../agent/tool-registry'
 
@@ -63,6 +65,14 @@ const SECTION_LABELS: Record<string, string> = {
   hobbies: '兴趣爱好',
 }
 
+// 把 zod 校验错误整理成给模型看的简明中文提示
+function formatSectionIssues(error: z.ZodError): string {
+  return error.issues
+    .slice(0, 8)
+    .map(i => `${i.path.join('.') || '(根)'}：${i.message}`)
+    .join('；')
+}
+
 registerTool({
   name: 'update_current_resume_field',
   description: `修改「当前正在编辑」的简历的某个模块内容。仅当用户已在编辑器打开某份简历时可用。sectionKey 可选值：${FORM_DATA_KEYS.join(', ')}。value 为该模块的新内容对象（结构需与该模块一致）。此操作需用户确认。`,
@@ -88,7 +98,22 @@ registerTool({
     // 「变更前」以 DB 为准（助手页可能未加载编辑器内存态），回退到内存态
     const dbRow = await getResumeById<Record<string, unknown>>(currentId, sectionKey).catch(() => null)
     const before = dbRow?.[sectionKey] ?? useResumeStore.getState().getResumeFormData()[sectionKey]
-    const after = args.value
+
+    // value 必须是对象；以完整模块内容为基线合并本次改动，再按该模块的字段结构（zod schema）校验，
+    // 拒绝结构错误的写入（如把技能写成空对象/字符串数组），避免简历渲染成一排空标签。
+    const rawValue = args.value
+    if (!rawValue || typeof rawValue !== 'object' || Array.isArray(rawValue))
+      return { error: `value 必须是【${SECTION_LABELS[sectionKey] ?? sectionKey}】模块的内容对象` }
+
+    const merged = { ...(before as Record<string, unknown> | null ?? {}), ...(rawValue as Record<string, unknown>) }
+    const parsed = resumeSchema.shape[sectionKey].safeParse(merged)
+    if (!parsed.success) {
+      return {
+        error: `写入【${SECTION_LABELS[sectionKey] ?? sectionKey}】的数据不符合该模块的字段结构约束，已拒绝写入：${formatSectionIssues(parsed.error)}。请先用 get_resume_detail 查看该模块的现有结构，再严格按相同结构重新提供 value。`,
+      }
+    }
+    // 使用校验并规范化（去空格、补默认值）后的完整模块内容
+    const after = parsed.data
 
     return requestConfirm({
       id: crypto.randomUUID(),
@@ -101,7 +126,8 @@ registerTool({
         after,
       },
       apply: async () => {
-        await updateResumeConfig(currentId, { [sectionKey]: after })
+        // 经编辑器 store 写入 Automerge 文档并落库，保证编辑器与画布一致
+        await applyResumeFieldToDocument(currentId, sectionKey, after as Record<string, unknown>)
         return { ok: true, sectionKey, before, after }
       },
     })

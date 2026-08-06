@@ -154,7 +154,7 @@ export default function BoardView() {
           ref={scrollContainerRef}
           className="w-full min-w-0 overflow-x-auto"
         >
-          <div className="flex gap-4 pb-2">
+          <div className="flex gap-4 pb-2 xl:gap-5">
             {BOARD_COLUMNS.map((column) => {
               const columnJobs = getJobsByStatus(column.status)
               const highlighted = isColumnHighlighted(column.status)
@@ -172,7 +172,7 @@ export default function BoardView() {
                     'flex flex-col',
                     collapsed
                       ? 'w-[48px] shrink-0'
-                      : 'min-w-[240px] flex-1 basis-0',
+                      : 'min-w-[240px] flex-1 basis-0 xl:min-w-[280px] 2xl:min-w-[320px]',
                   )}
                 >
                   {collapsed
@@ -182,7 +182,7 @@ export default function BoardView() {
                           aria-expanded={false}
                           onClick={toggleRejectedCollapsed}
                           title={`${column.label}（${columnJobs.length}）· 点击展开`}
-                          className="flex h-full min-h-[320px] w-full flex-col items-center gap-2 rounded-lg border bg-muted/40 py-3 text-muted-foreground transition-colors hover:bg-muted/60"
+                          className="flex h-full min-h-[320px] w-full flex-col items-center gap-2 rounded-lg border bg-muted/40 py-3 text-muted-foreground transition-colors hover:bg-muted/60 lg:min-h-[calc(100vh-19rem)]"
                         >
                           <ChevronRight className="size-4 shrink-0" />
                           <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
@@ -233,7 +233,7 @@ export default function BoardView() {
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
                                 className={cn(
-                                  'flex min-h-[320px] flex-1 flex-col gap-2 rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
+                                  'flex min-h-[320px] flex-1 flex-col gap-2 rounded-b-lg border bg-muted/20 p-2.5 transition-colors lg:min-h-[calc(100vh-22rem)]',
                                   snapshot.isDraggingOver && 'bg-primary/5 ring-1 ring-primary/30',
                                   highlighted && !snapshot.isDraggingOver && 'border-primary/50 bg-primary/5',
                                 )}

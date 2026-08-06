@@ -14,9 +14,11 @@ export default function InternshipExperienceRenderer() {
 
   return (
     <RuntimeSection title="实习经历">
-      {items.map(item => (
+      {items.map((item, index) => (
         <RuntimeEntry
-          key={`${item.companyName}-${item.position}-${rangeKey(item.internshipDuration)}`}
+          // 空/重复条目无稳定唯一内容，用 index 保证 key 唯一
+          // eslint-disable-next-line react/no-array-index-key
+          key={`${item.companyName}-${item.position}-${rangeKey(item.internshipDuration)}-${index}`}
           title={item.companyName || '公司'}
           subtitle={item.position}
           duration={formatRange(item.internshipDuration)}

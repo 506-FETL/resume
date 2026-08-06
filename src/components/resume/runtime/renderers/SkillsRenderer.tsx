@@ -16,9 +16,11 @@ export default function SkillsRenderer() {
       {skill_specialty.skills.length > 0
         ? (
             <div className="flex flex-wrap gap-2">
-              {skill_specialty.skills.map(skill => (
+              {skill_specialty.skills.map((skill, index) => (
                 <span
-                  key={`${skill.label}-${skill.proficiencyLevel}`}
+                  // 空/重复技能项无稳定唯一内容，用 index 保证 key 唯一（避免 undefined-undefined 重复 key）
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={`${skill.label}-${skill.proficiencyLevel}-${index}`}
                   className="rounded-full border px-2 py-1"
                   style={{
                     fontSize: font.smallSize,

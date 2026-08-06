@@ -1,11 +1,12 @@
 import type { AiMessagePart } from '@/lib/ai/types'
 import { toast } from 'sonner'
 import { getTool } from '@/lib/ai/agent'
+import { updateMessage } from '@/lib/supabase/ai'
 import useAssistantStore from './store'
 
 type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
 
-// 就地更新某个工具调用 part（按 toolCallId 定位所在消息）。仅更新会话内存态，不回写 DB。
+// 就地更新某个工具调用 part（按 toolCallId 定位所在消息）。仅更新会话内存态。
 function patchToolPart(toolCallId: string, patch: Partial<ToolCallPart>): void {
   const { messages, replaceMessage } = useAssistantStore.getState()
   for (const m of messages) {
@@ -15,6 +16,22 @@ function patchToolPart(toolCallId: string, patch: Partial<ToolCallPart>): void {
       replaceMessage(m.id, { ...m, parts: updatedParts })
       return
     }
+  }
+}
+
+// 把 toolCallId 所在消息的当前 parts 回写 DB（本地临时行/进行中行不落库）。
+// 失败不阻塞 UI —— 内存态已更新，仅记录一次轻提示。
+async function persistToolMessage(toolCallId: string): Promise<void> {
+  const owner = useAssistantStore.getState().messages.find(
+    m => m.parts.some(p => p.type === 'tool-call' && p.toolCallId === toolCallId),
+  )
+  if (!owner || owner.id.startsWith('local-') || owner.id === 'streaming')
+    return
+  try {
+    await updateMessage(owner.id, { parts: owner.parts })
+  }
+  catch {
+    // 持久化失败静默处理，避免打断重试反馈
   }
 }
 
@@ -62,4 +79,6 @@ export async function retryToolCall(toolCallId: string): Promise<void> {
     })
     toast.error('重试失败', { description: e instanceof Error ? e.message : '工具执行失败' })
   }
+  // 重试结束后把最终状态/结果回写 DB，刷新页面也保留
+  await persistToolMessage(toolCallId)
 }

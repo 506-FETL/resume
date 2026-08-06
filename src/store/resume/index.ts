@@ -1,3 +1,4 @@
+export { applyResumeFieldToDocument } from './apply-field'
 export { registerResumeConfigPersistence, default as useResumeConfigStore } from './config'
 export type { FormDataMap, PersistableResumeState, ResumeFormPayload } from './const'
 export { FORM_DATA_KEYS, FORM_FIELD_DEFAULTS } from './const'

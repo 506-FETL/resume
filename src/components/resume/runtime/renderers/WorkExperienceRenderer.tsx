@@ -14,9 +14,11 @@ export default function WorkExperienceRenderer() {
 
   return (
     <RuntimeSection title="工作经历">
-      {items.map(item => (
+      {items.map((item, index) => (
         <RuntimeEntry
-          key={`${item.companyName}-${item.position}-${rangeKey(item.workDuration)}`}
+          // 空/重复条目无稳定唯一内容，用 index 保证 key 唯一
+          // eslint-disable-next-line react/no-array-index-key
+          key={`${item.companyName}-${item.position}-${rangeKey(item.workDuration)}-${index}`}
           title={item.companyName || '公司'}
           subtitle={item.position}
           duration={formatRange(item.workDuration)}

@@ -184,11 +184,13 @@ export const Composer: FC<ComposerProps> = ({
 		(match: SlashCommandMatch) => {
 			onToolSelect?.(match.tool);
 			setIsToolsDropdownOpen(false);
-			// 选中工具后聚焦输入框，并把光标移到末尾（等新内容渲染完成后再定位）
+			// 必须在用户手势（tap/click）内同步聚焦，移动端（iOS Safari）才会唤起键盘、触发输入；
+			// 放进 requestAnimationFrame 会脱离手势链，导致移动端点击工具后无法激活输入框。
+			textareaRef.current?.focus();
+			// 待新内容渲染完成后再把光标移到末尾（此步可异步，不影响键盘唤起）
 			requestAnimationFrame(() => {
 				const el = textareaRef.current;
 				if (el) {
-					el.focus();
 					const len = el.value.length;
 					el.setSelectionRange(len, len);
 				}

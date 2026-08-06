@@ -40,6 +40,8 @@ export interface CanvasChange {
   targetTab?: Exclude<CanvasTabKey, 'changes'>
   // 可撤销的写操作载荷（当前支持「修改当前简历字段」）：把 sectionKey 写回 before
   undo?: { sectionKey: string, before: unknown }
+  // 是否已被一键撤销（源自 tool-call part 的持久化标记，刷新后仍保留）
+  undone?: boolean
 }
 
 export interface CanvasModel {

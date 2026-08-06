@@ -237,7 +237,8 @@ export function filterJobs(
 ): JobApplication[] {
   const trimmed = keyword.trim().toLowerCase()
   return jobs.filter((job) => {
-    if (!showArchived && job.archived)
+    // showArchived 打开 = 「已归档视图」，只看已归档；关闭 = 常规视图，隐藏已归档
+    if (showArchived ? !job.archived : job.archived)
       return false
     if (filterStatus && job.status !== filterStatus)
       return false

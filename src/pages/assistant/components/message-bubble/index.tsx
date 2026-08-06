@@ -26,13 +26,6 @@ function plainText(message: AiMessage): string {
 function renderAssistantParts(parts: AiMessagePart[], isStreamingMessage: boolean) {
   const nodes: ReactNode[] = []
   let buffer: ToolCallPart[] = []
-  const keyOccurrences = new Map<string, number>()
-  const createPartKey = (prefix: string, content: string) => {
-    const baseKey = `${prefix}-${content}`
-    const occurrence = keyOccurrences.get(baseKey) ?? 0
-    keyOccurrences.set(baseKey, occurrence + 1)
-    return `${baseKey}-${occurrence}`
-  }
   const flush = (key: string) => {
     if (buffer.length) {
       nodes.push(<ToolCallPartGroup key={key} calls={buffer} />)
@@ -45,13 +38,16 @@ function renderAssistantParts(parts: AiMessagePart[], isStreamingMessage: boolea
       buffer.push(p)
       return
     }
-    flush(createPartKey('tool-group', buffer.map(call => call.toolCallId).join('-')))
+    // 用「部件在数组中的位置」作为稳定 key，避免内容增量导致整块卸载重挂、重解析 markdown（长文本卡顿主因）
+    flush(`tool-group-${index}`)
+    const streaming = isStreamingMessage && index === lastIndex
     if (p.type === 'reasoning') {
-      const streaming = isStreamingMessage && index === lastIndex
-      nodes.push(<ReasoningPart key={createPartKey('reasoning', p.text)} text={p.text} streaming={streaming} />)
+      // eslint-disable-next-line react/no-array-index-key -- 流式中部件位置稳定，用索引 key 才能避免重挂载
+      nodes.push(<ReasoningPart key={`reasoning-${index}`} text={p.text} streaming={streaming} />)
     }
     else if (p.type === 'text') {
-      nodes.push(<TextPart key={createPartKey('text', p.text)} text={p.text} />)
+      // eslint-disable-next-line react/no-array-index-key -- 流式中部件位置稳定，用索引 key 才能避免重挂载
+      nodes.push(<TextPart key={`text-${index}`} text={p.text} animate={streaming} />)
     }
   })
   flush('tc-end')
@@ -107,10 +103,12 @@ export function MessageBubble({ message, onEditSave, onRegenerate, usage }: Mess
       )
     }
     return (
-      <div className="group flex flex-col items-end gap-1">
-        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground whitespace-pre-wrap break-words">
-          {plainText(message)}
-        </div>
+      <div className="group flex flex-col items-end gap-1.5">
+        {plainText(message).trim() && (
+          <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground whitespace-pre-wrap break-words">
+            {plainText(message)}
+          </div>
+        )}
         {!hideActions && (
           <MessageActions
             message={message}

@@ -1,4 +1,3 @@
-import type { UploadedFile } from '@/components/ui/file-preview'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
@@ -13,28 +12,19 @@ import {
 import { getErrorMessage } from '@/utils'
 import { CONVERSATION_TITLE_MAX_LEN, DEFAULT_CONVERSATION_TITLE } from '../const'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
-import { writeLastConversationId } from '../utils'
+import { TOOL_CANVAS_META, writeLastConversationId } from '../utils'
+import { invalidateCanvasSnapshot } from './use-canvas-preview'
 
 // 构造一条本地临时消息（乐观上屏，稍后用服务端返回替换）
-function makeLocalMessage(role: AiMessage['role'], text: string): AiMessage {
+function makeLocalMessage(role: AiMessage['role'], parts: AiMessagePart[]): AiMessage {
   return {
     id: `local-${crypto.randomUUID()}`,
     conversationId: '',
     userId: '',
     role,
-    parts: [{ type: 'text', text }],
+    parts,
     createdAt: new Date().toISOString(),
   }
-}
-
-// 把附件信息拼进发送文本（多模态后端链路暂未打通，此处透传文件名作为上下文提示）
-function withAttachmentNote(text: string, files?: UploadedFile[]): string {
-  const images = (files ?? []).filter(f => f.type.startsWith('image/'))
-  if (images.length === 0)
-    return text
-  const names = images.map(f => f.name).join('、')
-  const note = `（用户附带 ${images.length} 张图片：${names}）`
-  return text ? `${text}\n\n${note}` : note
 }
 
 export function useChatStream() {
@@ -46,7 +36,7 @@ export function useChatStream() {
       return
 
     // 1. 立即乐观上屏用户气泡 + 进入 streaming（同步，无 await，杜绝延迟）
-    const localUser = makeLocalMessage('user', trimmed)
+    const localUser = makeLocalMessage('user', [{ type: 'text', text: trimmed }])
     const controller = new AbortController()
     const ownsCurrentRun = (expectedConversationId?: string) => {
       const state = useAssistantStore.getState()
@@ -91,7 +81,7 @@ export function useChatStream() {
       return
     }
 
-    // 3. 后台落库用户消息，成功后用服务端行替换本地临时行
+    // 3. 落库用户消息，用服务端行替换本地临时行
     try {
       const savedUser = await insertMessage(conversationId, {
         role: 'user',
@@ -112,9 +102,22 @@ export function useChatStream() {
 
     // 4. 起 agent 循环，把回调事件映射到结构化进行中态 streamingParts
     const draft: AiMessagePart[] = []
+    // 用 requestAnimationFrame 合帧：高频 token 回调在一帧内只触发一次 store 更新，避免逐 token 重渲染卡顿
+    let rafId: number | null = null
     const pushDraft = () => {
-      if (useAssistantStore.getState().abortController === controller)
-        useAssistantStore.getState().setStreamingParts([...draft])
+      if (rafId != null)
+        return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        if (useAssistantStore.getState().abortController === controller)
+          useAssistantStore.getState().setStreamingParts([...draft])
+      })
+    }
+    const cancelPushDraft = () => {
+      if (rafId != null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
     }
     let reasoningIdx = -1
     let textIdx = -1
@@ -160,6 +163,12 @@ export function useChatStream() {
             if (i >= 0) {
               const prev = draft[i] as Extract<AiMessagePart, { type: 'tool-call' }>
               draft[i] = { ...prev, result, state: isError ? 'error' : cancelled ? 'cancelled' : 'result' }
+              // 简历写操作成功：清掉快照缓存并强制画布刷新，保证右侧画布重新拉取最新 DB 数据
+              // （对齐撤销路径的 bumpCanvasRefresh，避免写后仍命中旧缓存导致「画布不刷新」）
+              if (!isError && !cancelled && TOOL_CANVAS_META[prev.toolName]?.category === 'resume') {
+                invalidateCanvasSnapshot()
+                useAssistantStore.getState().bumpCanvasRefresh()
+              }
             }
             pushDraft()
           },
@@ -180,6 +189,7 @@ export function useChatStream() {
         current.abortController === controller
         && current.activeConversationId === conversationId
       ) {
+        cancelPushDraft()
         if (finalUsage)
           useAssistantStore.getState().setUsageForMessage(assistantMessage.id, finalUsage)
         useAssistantStore.setState(state => ({
@@ -205,6 +215,7 @@ export function useChatStream() {
         toast.error('回复失败', { description: getErrorMessage(error) })
       }
       if (useAssistantStore.getState().abortController === controller) {
+        cancelPushDraft()
         useAssistantStore.setState({
           streaming: false,
           streamingText: '',
@@ -216,8 +227,8 @@ export function useChatStream() {
     }
   }, [])
 
-  const sendMessage = useCallback((text: string, files?: UploadedFile[]) => {
-    runSend(withAttachmentNote(text.trim(), files))
+  const sendMessage = useCallback((text: string) => {
+    runSend(text.trim())
   }, [runSend])
 
   // 提取消息中的纯文本
@@ -229,23 +240,23 @@ export function useChatStream() {
     const { messages, streaming } = useAssistantStore.getState()
     if (streaming || messages.length === 0)
       return
-    let lastUserText: string | null = null
+    let lastUser: AiMessage | null = null
     const kept: AiMessage[] = []
     // 从后往前：丢弃末尾的助手消息，定位最后一条用户消息
     for (let i = messages.length - 1; i >= 0; i--) {
       const m = messages[i]
-      if (lastUserText === null && m.role === 'assistant')
+      if (lastUser === null && m.role === 'assistant')
         continue
-      if (lastUserText === null && m.role === 'user') {
-        lastUserText = messageText(m)
+      if (lastUser === null && m.role === 'user') {
+        lastUser = m
         continue // 该用户消息也移除，由 runSend 重新追加
       }
       kept.unshift(m)
     }
-    if (!lastUserText)
+    if (!lastUser)
       return
     useAssistantStore.getState().setMessages(kept)
-    runSend(lastUserText.trim())
+    runSend(messageText(lastUser).trim())
   }, [runSend])
 
   // 针对指定助手消息重新生成：截断其对应的上一条用户消息及之后所有消息，用该用户消息重跑
@@ -279,10 +290,8 @@ export function useChatStream() {
     if (streaming)
       return
     const trimmed = newText.trim()
-    if (!trimmed)
-      return
     const ui = messages.findIndex(m => m.id === userMessageId && m.role === 'user')
-    if (ui < 0)
+    if (ui < 0 || !trimmed)
       return
     useAssistantStore.getState().setMessages(messages.slice(0, ui))
     runSend(trimmed)

@@ -22,7 +22,8 @@ export function AssistantSidebarFooter({ expanded }: AssistantSidebarFooterProps
         !expanded && 'flex-col',
       )}
     >
-      <AccountMenu side="right" align="end">
+      {/* 展开态（含移动端抽屉）：底部锚点，向上弹出并左对齐，避免向右溢出屏幕；收起态窄栏：向右弹出 */}
+      <AccountMenu side={expanded ? 'top' : 'right'} align={expanded ? 'start' : 'end'}>
         <Button
           variant="ghost"
           size={expanded ? 'default' : 'icon-sm'}

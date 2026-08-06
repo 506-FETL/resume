@@ -1,4 +1,3 @@
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { computeLineDiff } from './compute-line-diff'
 
@@ -26,7 +25,9 @@ export function DiffStat({ additions, deletions, className }: { additions: numbe
 export function DiffView({ before, after, className }: { before: unknown, after: unknown, className?: string }) {
   const lines = computeLineDiff(before, after)
   return (
-    <ScrollArea className={cn('max-h-72 rounded-lg border', className)}>
+    // 原生 max-h + overflow-auto：Radix ScrollArea 的 Viewport 用 display:table，
+    // 仅设 max-height 时不会裁剪/滚动，会把内容整体撑开导致溢出，故改用原生滚动容器。
+    <div className={cn('max-h-72 overflow-auto rounded-lg border', className)}>
       <pre className="min-w-full font-mono text-xs leading-relaxed">
         {lines.map((line, idx) => (
           <div
@@ -42,10 +43,10 @@ export function DiffView({ before, after, className }: { before: unknown, after:
             <span className="select-none text-muted-foreground/60">
               {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
             </span>
-            <span className="whitespace-pre-wrap break-words">{line.text}</span>
+            <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{line.text}</span>
           </div>
         ))}
       </pre>
-    </ScrollArea>
+    </div>
   )
 }

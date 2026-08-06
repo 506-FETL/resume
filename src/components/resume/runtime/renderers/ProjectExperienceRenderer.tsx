@@ -14,9 +14,11 @@ export default function ProjectExperienceRenderer() {
 
   return (
     <RuntimeSection title="项目经历">
-      {items.map(item => (
+      {items.map((item, index) => (
         <RuntimeEntry
-          key={`${item.projectName}-${item.participantRole}-${rangeKey(item.projectDuration)}`}
+          // 空/重复条目无稳定唯一内容，用 index 保证 key 唯一
+          // eslint-disable-next-line react/no-array-index-key
+          key={`${item.projectName}-${item.participantRole}-${rangeKey(item.projectDuration)}-${index}`}
           title={item.projectName || '项目'}
           subtitle={item.participantRole}
           duration={formatRange(item.projectDuration)}

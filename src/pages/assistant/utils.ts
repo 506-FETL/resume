@@ -158,6 +158,7 @@ export function deriveCanvasModel(messages: AiMessage[], streamingParts: AiMessa
       state: part.state,
       targetTab: meta.targetTab,
       undo,
+      undone: part.undone,
     })
   }
 

@@ -7,7 +7,6 @@ export type AiToolCallState = 'call' | 'awaiting-confirm' | 'result' | 'error' |
 
 export type AiMessagePart
   = | { type: 'text', text: string }
-    | { type: 'image', path: string } // Storage 对象路径，非签名 URL（URL 有时效）
     | {
       type: 'tool-call'
       toolCallId: string
@@ -15,6 +14,7 @@ export type AiMessagePart
       args: unknown
       result?: unknown
       state: AiToolCallState
+      undone?: boolean // 该写操作是否已被用户在画布「变更记录」里一键撤销（持久化状态）
     }
     | { type: 'reasoning', text: string }
 

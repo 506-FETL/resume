@@ -14,9 +14,11 @@ export default function EducationRenderer() {
 
   return (
     <RuntimeSection title="教育经历">
-      {items.map(item => (
+      {items.map((item, index) => (
         <RuntimeEntry
-          key={`${item.schoolName}-${item.professional}-${rangeKey(item.duration)}`}
+          // 空/重复条目无稳定唯一内容，用 index 保证 key 唯一
+          // eslint-disable-next-line react/no-array-index-key
+          key={`${item.schoolName}-${item.professional}-${rangeKey(item.duration)}-${index}`}
           title={item.schoolName || '学校'}
           subtitle={[item.professional, item.degree !== '不填' ? item.degree : ''].filter(Boolean).join(' / ')}
           duration={formatRange(item.duration)}

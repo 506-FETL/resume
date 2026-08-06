@@ -2,8 +2,6 @@ import type { AiMessage, AiMessagePart, AiMessageRole } from '@/lib/ai/types'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
-const CHAT_BUCKET = 'chat-uploads'
-
 function mapMessage(row: any): AiMessage {
   return {
     id: row.id,
@@ -56,34 +54,24 @@ export async function insertMessage(
   return mapMessage(data)
 }
 
-// 上传聊天图片到私有 bucket，返回对象路径（供存入消息 parts 的 image.path）
-export async function uploadChatImage(
-  conversationId: string,
-  file: File,
-): Promise<{ path: string }> {
+// 就地更新一条消息的 parts（用于工具重试后回写状态/结果、diff 撤销标记等持久化）
+export async function updateMessage(
+  messageId: string,
+  patch: { parts: AiMessagePart[] },
+): Promise<AiMessage> {
   const user = await getCurrentUser()
   if (!user)
     throw new Error('用户未登录')
 
-  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'png'
-  const path = `${user.id}/${conversationId}/${crypto.randomUUID()}.${ext}`
-
-  const { error } = await supabase.storage
-    .from(CHAT_BUCKET)
-    .upload(path, file, { contentType: file.type || 'image/png', upsert: false })
-
-  if (error)
-    throw error
-  return { path }
-}
-
-// 私有对象换签名 URL（渲染或发给模型时用）；默认 1 小时
-export async function getSignedImageUrl(path: string, expiresInSeconds = 3600): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from(CHAT_BUCKET)
-    .createSignedUrl(path, expiresInSeconds)
+  const { data, error } = await supabase
+    .from('ai_messages')
+    .update({ parts: patch.parts })
+    .eq('id', messageId)
+    .eq('user_id', user.id)
+    .select()
+    .single()
 
   if (error)
     throw error
-  return data.signedUrl
+  return mapMessage(data)
 }
