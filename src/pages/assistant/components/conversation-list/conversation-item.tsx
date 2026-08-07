@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { cn } from '@/lib/utils'
 import { ConversationActions } from './conversation-actions'
 import { ConversationDeleteDialog } from './conversation-delete-dialog'
 
@@ -39,7 +40,7 @@ export function ConversationItem({ conversation, active, pending, onSelect, onRe
         <Input
           value={draft}
           autoFocus
-          className="h-9 flex-1"
+          className="h-9 flex-1 rounded-lg"
           onChange={e => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter')
@@ -57,16 +58,30 @@ export function ConversationItem({ conversation, active, pending, onSelect, onRe
   return (
     <>
       <div className="group relative">
-        <Button
-          variant={active ? 'secondary' : 'ghost'}
-          className="h-9 w-full justify-start gap-2 pr-9 font-normal"
+        <button
+          type="button"
+          className={cn(
+            'flex h-9 w-full items-center rounded-lg px-2.5 text-left text-sm transition-colors',
+            active
+              ? 'bg-accent font-medium text-accent-foreground'
+              : 'text-foreground/80 hover:bg-accent/60 hover:text-foreground',
+          )}
           onClick={() => onSelect(conversation.id)}
         >
-          <span className="min-w-0 flex-1 truncate text-left">{conversation.title}</span>
-        </Button>
-        <div className="absolute top-1/2 right-1 -translate-y-1/2">
+          <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
+        </button>
+
+        {/* hover 时右侧渐隐遮罩，避免标题与操作按钮重叠 */}
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-y-0 right-0 w-16 rounded-r-lg bg-gradient-to-l to-transparent opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100',
+            active ? 'from-accent' : 'from-accent/60',
+          )}
+        />
+
+        <div className="absolute inset-y-0 right-1 flex items-center">
           {pending
-            ? <Spinner className="mr-2 size-4 text-muted-foreground" />
+            ? <Spinner className="mr-1.5 size-4 text-muted-foreground" />
             : (
                 <ConversationActions
                   title={conversation.title}

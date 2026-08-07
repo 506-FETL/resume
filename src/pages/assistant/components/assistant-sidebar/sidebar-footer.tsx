@@ -18,7 +18,7 @@ export function AssistantSidebarFooter({ expanded }: AssistantSidebarFooterProps
   return (
     <div
       className={cn(
-        'mt-auto flex shrink-0 items-center gap-2 border-t p-3',
+        'mt-auto flex shrink-0 items-center gap-1.5 border-t border-border/60 p-2.5',
         !expanded && 'flex-col',
       )}
     >
@@ -27,7 +27,7 @@ export function AssistantSidebarFooter({ expanded }: AssistantSidebarFooterProps
         <Button
           variant="ghost"
           size={expanded ? 'default' : 'icon-sm'}
-          className={expanded ? 'h-10 min-w-0 flex-1 justify-start rounded-xl px-2' : 'rounded-xl'}
+          className={expanded ? 'h-11 min-w-0 flex-1 justify-start rounded-lg px-2' : 'rounded-lg'}
           aria-label="账户菜单"
         >
           <CurrentUserAvatar className="size-7" />
@@ -43,11 +43,11 @@ export function AssistantSidebarFooter({ expanded }: AssistantSidebarFooterProps
         </Button>
       </AccountMenu>
       {expanded
-        ? <AnimatedThemeToggler className="size-8 rounded-xl" aria-label="切换主题" />
+        ? <AnimatedThemeToggler className="size-8 rounded-lg text-muted-foreground hover:text-foreground" aria-label="切换主题" />
         : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <AnimatedThemeToggler className="size-8 rounded-xl" aria-label="切换主题" />
+                <AnimatedThemeToggler className="size-8 rounded-lg text-muted-foreground hover:text-foreground" aria-label="切换主题" />
               </TooltipTrigger>
               <TooltipContent side="right">切换主题</TooltipContent>
             </Tooltip>

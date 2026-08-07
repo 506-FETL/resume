@@ -1,5 +1,4 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -21,14 +20,7 @@ function SidebarBody({ expanded, mobile = false }: { expanded: boolean, mobile?:
     <>
       {!mobile && <AssistantSidebarHeader expanded={expanded} onToggle={toggleSidebar} />}
       <AssistantSidebarActions expanded={expanded} />
-      {expanded && (
-        <>
-          <Separator className="mx-3 w-auto" />
-          <div className="min-h-0 flex-1 px-3 pt-3 pb-3">
-            <ConversationList />
-          </div>
-        </>
-      )}
+      {expanded && <ConversationList />}
       <AssistantSidebarFooter expanded={expanded} />
     </>
   )

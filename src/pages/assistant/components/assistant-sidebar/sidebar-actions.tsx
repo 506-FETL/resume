@@ -1,4 +1,4 @@
-import { ArrowLeft, MessageSquarePlus, Search } from 'lucide-react'
+import { ArrowLeft, Search, SquarePen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -19,19 +19,21 @@ export function AssistantSidebarActions({ expanded }: AssistantSidebarActionsPro
   // 折叠态：仅图标竖排 + Tooltip
   if (!expanded) {
     const items = [
-      { label: '返回工作台', icon: ArrowLeft, onClick: returnToWorkspace },
-      { label: '新建对话', icon: MessageSquarePlus, onClick: startNewConversation },
-      { label: '搜索历史', icon: Search, onClick: openSearch },
+      { label: '返回工作台', icon: ArrowLeft, onClick: returnToWorkspace, primary: false },
+      { label: '新建对话', icon: SquarePen, onClick: startNewConversation, primary: true },
+      { label: '搜索历史', icon: Search, onClick: openSearch, primary: false },
     ]
     return (
-      <div className="flex shrink-0 flex-col items-center gap-1.5 p-3">
-        {items.map(({ label, icon: Icon, onClick }) => (
+      <div className="flex shrink-0 flex-col items-center gap-1 p-2.5">
+        {items.map(({ label, icon: Icon, onClick, primary }) => (
           <Tooltip key={label}>
             <TooltipTrigger asChild>
               <Button
-                variant={label === '新建对话' ? 'default' : 'ghost'}
+                variant="ghost"
                 size="icon-sm"
-                className="rounded-xl"
+                className={primary
+                  ? 'rounded-lg border border-primary/20 bg-primary/[0.06] text-primary hover:bg-primary/10 hover:text-primary dark:bg-primary/10 dark:hover:bg-primary/15'
+                  : 'rounded-lg text-muted-foreground hover:text-foreground'}
                 aria-label={label}
                 onClick={onClick}
               >
@@ -45,34 +47,35 @@ export function AssistantSidebarActions({ expanded }: AssistantSidebarActionsPro
     )
   }
 
-  // 展开态（C1）：返回=轻链接 / 新建=主 CTA / 搜索=类搜索框 pill
+  // 展开态：返回=轻链接 / 新建=克制主 CTA / 搜索=融入式搜索行
   return (
-    <div className="flex shrink-0 flex-col gap-2 p-3 pt-2">
+    <div className="flex shrink-0 flex-col gap-2 px-2.5 pt-1 pb-2">
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 justify-start gap-1.5 self-start rounded-lg px-2 text-muted-foreground hover:text-foreground"
+        className="-ml-1 h-7 justify-start gap-1 self-start rounded-md px-1.5 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
         aria-label="返回工作台"
         onClick={returnToWorkspace}
       >
-        <ArrowLeft className="size-4" />
-        <span className="text-xs font-medium">返回工作台</span>
-      </Button>
-
-      <Button
-        size="sm"
-        className="h-9 w-full justify-start gap-2 rounded-xl"
-        aria-label="新建对话"
-        onClick={startNewConversation}
-      >
-        <MessageSquarePlus className="size-4" />
-        <span>新建对话</span>
+        <ArrowLeft className="size-3.5" />
+        返回工作台
       </Button>
 
       <Button
         variant="outline"
         size="sm"
-        className="h-9 w-full justify-start gap-2 rounded-xl font-normal text-muted-foreground"
+        className="h-10 w-full justify-start gap-2 rounded-xl border-primary/20 bg-primary/[0.06] font-medium text-primary shadow-none hover:bg-primary/10 hover:text-primary dark:bg-primary/10 dark:hover:bg-primary/15"
+        aria-label="新建对话"
+        onClick={startNewConversation}
+      >
+        <SquarePen className="size-4" />
+        <span>新建对话</span>
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-9 w-full justify-start gap-2 rounded-xl bg-muted/40 px-2.5 font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
         aria-label="搜索历史"
         onClick={openSearch}
       >

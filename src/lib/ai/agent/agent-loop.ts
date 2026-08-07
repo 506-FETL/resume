@@ -80,9 +80,12 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
     // 需要调用工具
     if (finishReason === 'tool_calls' && toolCalls.length > 0) {
       // 记录 assistant 的 tool_calls 到 api 上下文
+      // DeepSeek 思考模式下：携带 tools 的请求，后续轮次必须完整回传本轮 reasoning_content，
+      // 否则 API 返回 400。见 https://api-docs.deepseek.com/zh-cn/guides/thinking_mode#工具调用
       apiMessages.push({
         role: 'assistant',
         content: text || null,
+        reasoning_content: reasoning || undefined,
         tool_calls: toolCalls.map(tc => ({
           id: tc.id,
           type: 'function',

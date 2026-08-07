@@ -12,22 +12,19 @@ export function AssistantSidebarHeader({ expanded, onToggle }: AssistantSidebarH
   const shouldReduceMotion = useReducedMotion()
 
   return (
-    <div className="flex h-16 shrink-0 items-center border-b px-3">
+    <div className="flex h-14 shrink-0 items-center gap-1 px-3">
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={shouldReduceMotion ? undefined : { opacity: 0, x: -8 }}
-            className="flex min-w-0 flex-1 items-center gap-2.5"
+            exit={shouldReduceMotion ? undefined : { opacity: 0, x: -6 }}
+            className="flex min-w-0 flex-1 items-center gap-2"
           >
-            <div className="flex size-8 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary shadow-xs">
-              <Sparkles className="size-4" />
+            <div className="flex size-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="size-3.5" />
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight">GResume AI</p>
-              <p className="truncate text-[11px] text-muted-foreground">你的求职工作台</p>
-            </div>
+            <p className="truncate text-sm font-semibold tracking-tight">GResume AI</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -36,6 +33,7 @@ export function AssistantSidebarHeader({ expanded, onToggle }: AssistantSidebarH
           <Button
             variant="ghost"
             size="icon-sm"
+            className="text-muted-foreground hover:text-foreground"
             aria-label={expanded ? '折叠对话侧栏' : '展开对话侧栏'}
             onClick={onToggle}
           >

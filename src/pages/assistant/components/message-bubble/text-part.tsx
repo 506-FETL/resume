@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 
 interface TextPartProps {
   text: string
-  // 流式进行中时开启：新出现的 markdown 块从下往上、由模糊到清晰淡入
+  // 流式进行中时开启：新出现的 markdown 块以 ChatGPT 式轻模糊淡入呈现，并在尾部显示闪烁光标
   animate?: boolean
 }
 
@@ -48,7 +48,7 @@ export function TextPart({ text, animate = false }: TextPartProps) {
   return (
     <div className={cn(
       'prose prose-sm prose-stone max-w-none dark:prose-invert prose-pre:my-2 prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5',
-      animate && 'stream-blur-in',
+      animate && 'stream-in',
     )}
     >
       <Streamdown components={MARKDOWN_COMPONENTS}>
