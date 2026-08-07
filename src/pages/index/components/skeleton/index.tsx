@@ -4,7 +4,24 @@ import { Skeleton } from '@/components/ui/skeleton'
 const STAT_SKELETON_KEYS = ['stat-1', 'stat-2', 'stat-3', 'stat-4'] as const
 const ACTION_SKELETON_KEYS = ['action-1', 'action-2', 'action-3', 'action-4'] as const
 const ACTIVITY_SKELETON_KEYS = ['activity-1', 'activity-2', 'activity-3'] as const
-const CHART_SKELETON_KEYS = ['chart-1', 'chart-2', 'chart-3'] as const
+const TODO_SKELETON_KEYS = ['todo-1', 'todo-2', 'todo-3'] as const
+
+export function TodoSkeleton() {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {TODO_SKELETON_KEYS.map(key => (
+        <div key={key} className="flex items-center gap-3 rounded-lg border p-3">
+          <Skeleton className="size-9 rounded-lg shrink-0" />
+          <div className="flex-1 flex flex-col gap-2">
+            <Skeleton className="h-3.5 w-2/5" />
+            <Skeleton className="h-2.5 w-3/5" />
+          </div>
+          <Skeleton className="size-4 rounded" />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export function StatsSkeleton() {
   return (
@@ -71,24 +88,6 @@ export function EntrySkeleton() {
           </div>
         </CardContent>
       </Card>
-    </div>
-  )
-}
-
-export function ChartsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-      {CHART_SKELETON_KEYS.map(key => (
-        <Card key={key} className="h-80">
-          <CardHeader className="items-center pb-0">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-3 w-20 mt-1" />
-          </CardHeader>
-          <CardContent className="pt-4">
-            <Skeleton className="h-[180px] w-full rounded-lg" />
-          </CardContent>
-        </Card>
-      ))}
     </div>
   )
 }

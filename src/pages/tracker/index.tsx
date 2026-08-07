@@ -52,12 +52,18 @@ function Tracker() {
       )
     }
 
-    return viewMode === 'list' ? <ListView /> : <BoardView />
+    return viewMode === 'list'
+      ? (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ListView />
+          </div>
+        )
+      : <BoardView />
   }
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-360 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-10 lg:py-6 2xl:max-w-[1720px]">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-360 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-10 lg:py-6 2xl:max-w-[1720px]">
         <TrackerHeader />
         <OverviewBar />
         <AnimatePresence initial={false}>
@@ -85,7 +91,7 @@ function Tracker() {
             </motion.div>
           )}
         </AnimatePresence>
-        <main className="w-full min-w-0">
+        <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
           {renderMainContent()}
         </main>
       </div>

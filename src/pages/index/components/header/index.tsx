@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import useCurrentUser from '@/hooks/use-current-user'
 
-function Header() {
+interface HeaderProps {
+  focus?: string
+}
+
+function Header({ focus }: HeaderProps) {
   const [greeting, setGreeting] = useState('')
   const auth = useCurrentUser()
 
@@ -28,7 +32,7 @@ function Header() {
           {auth?.user_metadata.full_name ? `, ${auth.user_metadata.full_name}` : ''}
         </h1>
         <p className="text-muted-foreground text-sm">
-          {greeting}
+          {focus || greeting}
         </p>
       </div>
     </div>

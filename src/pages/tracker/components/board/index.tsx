@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, BOARD_COLUMNS } from '../../const'
@@ -152,9 +153,9 @@ export default function BoardView() {
       <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div
           ref={scrollContainerRef}
-          className="w-full min-w-0 overflow-x-auto"
+          className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-x-auto"
         >
-          <div className="flex gap-4 pb-2 xl:gap-5">
+          <div className="flex min-h-0 flex-1 items-stretch gap-3 pb-2 xl:gap-4">
             {BOARD_COLUMNS.map((column) => {
               const columnJobs = getJobsByStatus(column.status)
               const highlighted = isColumnHighlighted(column.status)
@@ -169,7 +170,7 @@ export default function BoardView() {
                       columnRefs.current.set(column.status, el)
                   }}
                   className={cn(
-                    'flex flex-col',
+                    'flex h-full min-h-0 flex-col',
                     collapsed
                       ? 'w-[48px] shrink-0'
                       : 'min-w-[240px] flex-1 basis-0 xl:min-w-[280px] 2xl:min-w-[320px]',
@@ -182,21 +183,19 @@ export default function BoardView() {
                           aria-expanded={false}
                           onClick={toggleRejectedCollapsed}
                           title={`${column.label}（${columnJobs.length}）· 点击展开`}
-                          className="flex h-full min-h-[320px] w-full flex-col items-center gap-2 rounded-lg border bg-muted/40 py-3 text-muted-foreground transition-colors hover:bg-muted/60 lg:min-h-[calc(100vh-19rem)]"
+                          className="flex h-full min-h-0 w-full flex-col items-center gap-2 rounded-lg border bg-muted/30 py-3 text-muted-foreground transition-colors hover:bg-muted/50"
                         >
                           <ChevronRight className="size-4 shrink-0" />
                           <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
                           <span className="[writing-mode:vertical-rl] text-sm font-semibold tracking-wide">{column.label}</span>
-                          <span className="mt-1 inline-flex min-w-5 items-center justify-center rounded-full bg-background px-1.5 py-0.5 text-xs font-medium">
-                            {columnJobs.length}
-                          </span>
+                          <Badge variant="secondary" className="mt-1">{columnJobs.length}</Badge>
                         </button>
                       )
                     : (
                         <>
                           <div className={cn(
-                            'flex items-center justify-between gap-2 rounded-t-lg border border-b-0 bg-muted/40 px-3 py-2',
-                            highlighted && 'border-primary/50 bg-primary/10',
+                            'flex items-center justify-between gap-2 rounded-t-lg border border-b-0 bg-muted/30 px-3 py-2.5',
+                            highlighted && 'border-primary/40 bg-primary/5',
                           )}
                           >
                             {isRejectedColumn
@@ -218,13 +217,9 @@ export default function BoardView() {
                                     <h3 className="truncate text-sm font-semibold">{column.label}</h3>
                                   </div>
                                 )}
-                            <span className={cn(
-                              'inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-medium',
-                              highlighted ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground',
-                            )}
-                            >
+                            <Badge variant={highlighted ? 'default' : 'secondary'}>
                               {columnJobs.length}
-                            </span>
+                            </Badge>
                           </div>
 
                           <Droppable droppableId={column.status}>
@@ -233,9 +228,9 @@ export default function BoardView() {
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
                                 className={cn(
-                                  'flex min-h-[320px] flex-1 flex-col gap-2 rounded-b-lg border bg-muted/20 p-2.5 transition-colors lg:min-h-[calc(100vh-22rem)]',
+                                  'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
                                   snapshot.isDraggingOver && 'bg-primary/5 ring-1 ring-primary/30',
-                                  highlighted && !snapshot.isDraggingOver && 'border-primary/50 bg-primary/5',
+                                  highlighted && !snapshot.isDraggingOver && 'border-primary/40 bg-primary/5',
                                 )}
                               >
                                 {columnJobs.length > 0
@@ -262,7 +257,7 @@ export default function BoardView() {
                                       ))
                                     )
                                   : (
-                                      <div className="flex min-h-[120px] flex-1 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground">
+                                      <div className="flex min-h-[96px] flex-1 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground/70">
                                         拖拽职位至此
                                       </div>
                                     )}

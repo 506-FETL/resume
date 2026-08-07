@@ -1,30 +1,24 @@
 import type { ReactNode } from 'react'
-import { ArrowRight, BarChart3, Clock, Cloud, CloudOff, FileUser, Plus, Sparkles } from 'lucide-react'
+import type { TimelineEvent, TimelineEventType } from '../../insights'
+import { ArrowRight, Clock, FileUser, FolderKanban, LayoutTemplate, PencilRuler, Plus, Send, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
-import useCurrentResumeStore from '@/store/resume/current'
-import { diffDates, formatRelativeTime } from '@/utils/date'
-import { TYPE_LABELS } from '../../const'
+import { useDashboardTimeline } from '../../insights'
 import useIndexStore from '../../store'
 import { EntrySkeleton } from '../skeleton'
 
 function Entry() {
   const navigate = useNavigate()
-  const { setCurrentResume } = useCurrentResumeStore()
-  const isOnline = useIndexStore(s => s.isOnline)
   const resumes = useIndexStore(s => s.resumes)
   const loading = useIndexStore(s => s.loading)
+  const { events, loading: timelineLoading } = useDashboardTimeline(resumes, loading)
 
   if (loading) {
     return <EntrySkeleton />
   }
-
-  // 获取最近更新的3个简历
-  const recentResumes = [...resumes]
-    .sort((a, b) => diffDates(b.created_at, a.created_at))
-    .slice(0, 3)
 
   return (
     <div className="grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2">
@@ -50,26 +44,25 @@ function Entry() {
               highlight
             />
             <QuickAction
-              title="我的简历"
-              description="管理所有简历"
-              icon={<FileUser className="size-4" />}
-              onClick={() => navigate('/resume')}
+              title="求职看板"
+              description="跟进投递与面试进度"
+              icon={<FolderKanban className="size-4" />}
+              onClick={() => navigate('/tracker')}
               iconBg="bg-blue-500/10 text-blue-500"
             />
             <QuickAction
               title="简历模板"
               description="浏览可用模板"
-              icon={<BarChart3 className="size-4" />}
+              icon={<LayoutTemplate className="size-4" />}
               onClick={() => navigate('/template')}
               iconBg="bg-violet-500/10 text-violet-500"
             />
             <QuickAction
-              title={isOnline ? '已登录' : '登录账号'}
-              description={isOnline ? '同步已启用' : '登录后同步云端'}
-              icon={<Cloud className="size-4" />}
-              onClick={() => !isOnline && navigate('/login')}
-              disabled={isOnline}
-              iconBg="bg-amber-500/10 text-amber-500"
+              title="简历优化"
+              description="ATS 检测与改进建议"
+              icon={<PencilRuler className="size-4" />}
+              onClick={() => navigate('/optimize')}
+              iconBg="bg-emerald-500/10 text-emerald-500"
             />
           </div>
         </CardContent>
@@ -84,27 +77,22 @@ function Entry() {
             </div>
             <CardTitle className="text-sm font-medium">最近动态</CardTitle>
           </div>
-          <CardDescription className="text-xs">最近编辑的简历</CardDescription>
+          <CardDescription className="text-xs">简历编辑与投递的近期事件</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 pt-0">
-          {recentResumes.length > 0
+          {events.length > 0
             ? (
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1">
-                    {recentResumes.map(resume => (
-                      <RecentActivity
-                        key={resume.resume_id}
-                        title={resume.display_name || '未命名简历'}
-                        description={TYPE_LABELS[resume.type]}
-                        time={formatRelativeTime(resume.updated_at || resume.created_at)}
-                        isOffline={resume.isOffline}
-                        onClick={() => {
-                          setCurrentResume(resume.resume_id, resume.type)
-                          navigate('/resume/editor')
-                        }}
+                  <ol className="flex flex-col">
+                    {events.map((event, index) => (
+                      <TimelineItem
+                        key={event.id}
+                        event={event}
+                        isLast={index === events.length - 1}
+                        onClick={() => navigate(event.to)}
                       />
                     ))}
-                  </div>
+                  </ol>
                   <div className="pt-3 border-t flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
                       共
@@ -124,23 +112,29 @@ function Entry() {
                 </div>
               )
             : (
-                <div className="flex flex-col items-center justify-center h-45 text-center">
-                  <div className="p-3 rounded-full bg-muted/50 mb-3">
-                    <FileUser className="size-6 text-muted-foreground/40" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground/80">还没有创建任何简历</p>
-                  <p className="text-xs text-muted-foreground mt-1 mb-3">
-                    立即开始创建您的第一份专业简历
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => navigate('/resume')}
-                  >
-                    创建第一份简历
-                  </Button>
-                </div>
+                <Empty className="h-45 border-0 p-0">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <FileUser className="text-muted-foreground/50" />
+                    </EmptyMedia>
+                    <EmptyTitle className="text-sm">
+                      {timelineLoading ? '正在整理最近动态' : '还没有任何动态'}
+                    </EmptyTitle>
+                    <EmptyDescription className="text-xs">
+                      创建或编辑简历、投递岗位后，动态会显示在这里
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => navigate('/resume')}
+                    >
+                      创建第一份简历
+                    </Button>
+                  </EmptyContent>
+                </Empty>
               )}
         </CardContent>
       </Card>
@@ -173,13 +167,19 @@ function QuickAction({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex flex-col items-start gap-2.5 rounded-lg border p-3 text-left transition-all duration-200',
-        'hover:bg-accent/50 hover:border-border/80',
-        highlight && 'bg-primary/3 border-primary/20 hover:border-primary/30 hover:bg-primary/6',
-        disabled && 'cursor-default opacity-50 hover:bg-transparent hover:border-border',
+        'group flex flex-col items-start gap-2.5 rounded-lg border p-3 text-left transition-all duration-200',
+        'hover:-translate-y-0.5 hover:shadow-sm hover:bg-accent/50 hover:border-border/80',
+        highlight && 'bg-primary/3 border-primary/20 hover:border-primary/40 hover:bg-primary/6 hover:shadow-primary/10',
+        disabled && 'cursor-default opacity-50 hover:translate-y-0 hover:shadow-none hover:bg-transparent hover:border-border',
       )}
     >
-      <div className={cn('flex size-8 items-center justify-center rounded-md transition-colors', iconBg)}>
+      <div className={cn(
+        'flex size-8 items-center justify-center rounded-md transition-transform duration-200',
+        'group-hover:scale-110 group-hover:-rotate-3',
+        disabled && 'group-hover:scale-100 group-hover:rotate-0',
+        iconBg,
+      )}
+      >
         {icon}
       </div>
       <div>
@@ -190,67 +190,64 @@ function QuickAction({
   )
 }
 
-function RecentActivity({
-  title,
-  description,
-  time,
-  isOffline,
+// 时间线单条事件的图标 / 语义色配置
+const TIMELINE_STYLES: Record<TimelineEventType, { icon: ReactNode, dot: string, ring: string }> = {
+  ai: {
+    icon: <Sparkles className="size-3.5 text-violet-500" />,
+    dot: 'bg-violet-500/10',
+    ring: 'ring-violet-500/20',
+  },
+  edit: {
+    icon: <PencilRuler className="size-3.5 text-blue-500" />,
+    dot: 'bg-blue-500/10',
+    ring: 'ring-blue-500/20',
+  },
+  apply: {
+    icon: <Send className="size-3.5 text-emerald-500" />,
+    dot: 'bg-emerald-500/10',
+    ring: 'ring-emerald-500/20',
+  },
+}
+
+function TimelineItem({
+  event,
+  isLast,
   onClick,
 }: {
-  title: string
-  description: string
-  time: string
-  isOffline?: boolean
+  event: TimelineEvent
+  isLast?: boolean
   onClick?: () => void
 }) {
+  const style = TIMELINE_STYLES[event.type]
   return (
-    <div
-      onClick={onClick}
-      className="group flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors duration-150 cursor-pointer -mx-2"
-    >
-      <div className={cn(
-        'relative flex size-9 items-center justify-center rounded-lg transition-colors duration-150 shrink-0',
-        isOffline
-          ? 'bg-amber-500/10 group-hover:bg-amber-500/15'
-          : 'bg-blue-500/10 group-hover:bg-blue-500/15',
-      )}
-      >
-        <FileUser className={cn(
-          'size-4',
-          isOffline ? 'text-amber-500' : 'text-blue-500',
-        )}
-        />
-        {/* 状态指示器 */}
+    <li className="group flex gap-3">
+      {/* 图标 + 连接线 */}
+      <div className="flex flex-col items-center">
         <div className={cn(
-          'absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full flex items-center justify-center',
-          isOffline ? 'bg-amber-100 dark:bg-amber-900/50' : 'bg-blue-100 dark:bg-blue-900/50',
+          'flex size-7 items-center justify-center rounded-full ring-1 shrink-0 transition-colors duration-150',
+          style.dot,
+          style.ring,
         )}
         >
-          {isOffline
-            ? <CloudOff className="size-2 text-amber-600 dark:text-amber-400" />
-            : <Cloud className="size-2 text-blue-600 dark:text-blue-400" />}
+          {style.icon}
         </div>
+        {!isLast && <div className="w-px flex-1 bg-border" />}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium truncate group-hover:text-foreground transition-colors duration-150">{title}</p>
-          <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap">{time}</span>
-        </div>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          {isOffline
-            ? (
-                <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                  本地
-                </span>
-              )
-            : (
-                <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                  云端
-                </span>
-              )}
-          <p className="text-[11px] text-muted-foreground truncate">{description}</p>
-        </div>
-      </div>
-    </div>
+      {/* 事件内容 */}
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          'flex flex-1 items-start justify-between gap-2 rounded-md px-2 py-1.5 -mx-2 text-left',
+          'transition-colors duration-150 hover:bg-muted/50',
+          isLast ? '' : 'mb-1',
+        )}
+      >
+        <p className="text-sm truncate group-hover:text-foreground transition-colors duration-150">
+          {event.title}
+        </p>
+        <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap pt-0.5">{event.time}</span>
+      </button>
+    </li>
   )
 }

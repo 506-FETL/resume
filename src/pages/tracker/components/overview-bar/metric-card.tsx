@@ -25,13 +25,12 @@ export function MetricCard({ label, value, active, accent, onClick, index }: Met
       transition={{ duration: 0.2, delay: index * 0.04 }}
       whileTap={reduce ? undefined : { scale: 0.97 }}
       className={cn(
-        'relative flex flex-col items-start gap-0.5 overflow-hidden rounded-lg border px-3 py-2 text-left transition-colors',
+        'relative flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors',
         active
-          ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/30'
-          : 'border-transparent hover:bg-muted/60',
+          ? 'border-primary/40 bg-primary/5'
+          : 'border-transparent hover:bg-accent',
       )}
     >
-      {active && <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />}
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className={cn(
         'text-xl font-semibold tabular-nums',
