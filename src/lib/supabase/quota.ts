@@ -7,6 +7,7 @@ export interface AiQuota {
   usedToday: number
   remaining: number
   lastResetDate: string
+  unlimited: boolean
 }
 
 interface RawAiQuota {
@@ -15,6 +16,7 @@ interface RawAiQuota {
   used_today: number
   remaining: number
   last_reset_date: string
+  unlimited: boolean
 }
 
 // 读取当前登录用户的额度（惰性重置在函数内完成）。供后续 UI 使用。
@@ -31,5 +33,6 @@ export async function getAiQuota(): Promise<AiQuota> {
     usedToday: raw.used_today ?? 0,
     remaining: raw.remaining ?? 0,
     lastResetDate: raw.last_reset_date ?? '',
+    unlimited: raw.unlimited ?? false,
   }
 }

@@ -1,3 +1,4 @@
+import { Infinity as InfinityIcon } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAiQuota } from '@/hooks/use-ai-quota'
@@ -24,9 +25,18 @@ export function QuotaMeter({ className }: { className?: string }) {
   if (error || !quota)
     return null
 
-  const { remaining, dailyLimit, usedToday } = quota
+  const { remaining, dailyLimit, usedToday, unlimited } = quota
   const tone = getQuotaTone(remaining)
   const percent = getUsedPercent(usedToday, dailyLimit)
+
+  if (unlimited) {
+    return (
+      <div className={cn('flex items-center justify-center gap-1 py-1 text-xs text-amber-600 dark:text-amber-400', className)}>
+        <InfinityIcon className="size-3" />
+        AI 额度无限
+      </div>
+    )
+  }
 
   return (
     <div className={cn('flex items-center justify-center gap-2 py-1 text-xs', className)}>

@@ -1,5 +1,4 @@
-import { Sparkles } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Infinity as InfinityIcon, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -14,27 +13,32 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAiQuota } from '@/hooks/use-ai-quota'
 import { cn } from '@/lib/utils'
 import useUpgradeDialogStore from '@/store/upgrade-dialog'
-import { getQuotaTone, getUsedPercent } from './utils'
+import { getPlanBadge, getQuotaTone, getUsedPercent, normalizePlan } from './utils'
 
 /**
  * 用户中心的额度卡片：展示 plan、今日已用/剩余、进度条、重置文案，
- * 并提供「升级」按钮（复用全局 UpgradeDialog）。
+ * 并提供「升级」按钮（复用全局 UpgradeDialog）。root/max 为顶配，隐藏升级入口。
  */
 export function QuotaCard() {
   const { quota, loading, error } = useAiQuota()
   const openDialog = useUpgradeDialogStore(s => s.openDialog)
+
+  const tier = quota ? normalizePlan(quota.plan) : 'free'
+  const showUpgrade = quota ? tier === 'free' || tier === 'pro' : false
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>AI 每日额度</CardTitle>
         <CardDescription>每日 0 点重置，免费版每日 20 次</CardDescription>
-        <CardAction>
-          <Button size="sm" onClick={() => openDialog({ reason: 'manual' })}>
-            <Sparkles />
-            升级
-          </Button>
-        </CardAction>
+        {showUpgrade && (
+          <CardAction>
+            <Button size="sm" onClick={() => openDialog({ reason: 'manual' })}>
+              <Sparkles />
+              升级
+            </Button>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent>
         {loading
@@ -47,16 +51,44 @@ export function QuotaCard() {
   )
 }
 
+function PlanPill({ plan }: { plan: string }) {
+  const badge = getPlanBadge(plan)
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium',
+        badge.className,
+      )}
+    >
+      {badge.label}
+    </span>
+  )
+}
+
 function QuotaCardBody({ quota }: { quota: NonNullable<ReturnType<typeof useAiQuota>['quota']> }) {
-  const { plan, remaining, dailyLimit, usedToday } = quota
+  const { plan, remaining, dailyLimit, usedToday, unlimited } = quota
   const tone = getQuotaTone(remaining)
   const percent = getUsedPercent(usedToday, dailyLimit)
-  const planLabel = plan === 'free' ? '免费版' : plan
+
+  if (unlimited) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <PlanPill plan={plan} />
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400">
+            <InfinityIcon className="size-4" />
+            无限额度
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">管理员账户</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <Badge variant="secondary">{planLabel}</Badge>
+        <PlanPill plan={plan} />
         <span
           className={cn(
             'text-sm font-medium tabular-nums',
