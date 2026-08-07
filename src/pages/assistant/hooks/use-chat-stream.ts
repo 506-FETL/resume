@@ -2,13 +2,10 @@ import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { buildUserContext, runAgent } from '@/lib/ai/agent'
-import {
-  createConversation,
-  deleteConversation,
-  insertMessage,
-  touchConversation,
-  updateConversation,
-} from '@/lib/supabase/ai'
+import { QuotaExceededError } from '@/lib/llm/call'
+import { createConversation, deleteConversation, insertMessage, touchConversation, updateConversation } from '@/lib/supabase/ai'
+import { decrementAiQuota, refetchAiQuota } from '@/store/ai-quota'
+import { openUpgradeDialog } from '@/store/upgrade-dialog'
 import { getErrorMessage } from '@/utils'
 import { CONVERSATION_TITLE_MAX_LEN, DEFAULT_CONVERSATION_TITLE } from '../const'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
@@ -124,6 +121,8 @@ export function useChatStream() {
     let finalUsage: { input: number, output: number, total: number } | null = null
 
     try {
+      // 本轮即将消耗一次额度：先本地乐观递减，让 composer 剩余数立即回落，完成后再 refetch 校正
+      decrementAiQuota()
       const context = await buildUserContext().catch(() => undefined)
       const finalParts = await runAgent({
         history: useAssistantStore.getState().messages,
@@ -209,10 +208,19 @@ export function useChatStream() {
         const updated = await updateConversation(conversationId, { title })
         useAssistantStore.getState().upsertConversation(updated)
       }
+      // 7. 本轮成功：以服务端权威额度校正各展示位（composer / 账户菜单 / 用户中心）
+      refetchAiQuota()
     }
     catch (error) {
       if ((error as Error)?.name !== 'AbortError') {
-        toast.error('回复失败', { description: getErrorMessage(error) })
+        // 额度超限：打开升级占位 Dialog（携带恢复时间），并以服务端额度校正展示位
+        if (error instanceof QuotaExceededError) {
+          openUpgradeDialog({ reason: 'quota_exceeded', resetAt: error.resetAt ?? null })
+          refetchAiQuota()
+        }
+        else {
+          toast.error('回复失败', { description: getErrorMessage(error) })
+        }
       }
       if (useAssistantStore.getState().abortController === controller) {
         cancelPushDraft()

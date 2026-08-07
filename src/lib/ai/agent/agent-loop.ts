@@ -5,6 +5,9 @@ import { StreamParser } from './stream-parser'
 import { toApiMessages } from './to-api-messages'
 import { getTool, toApiToolDefs } from './tool-registry'
 
+// 注：light/heavy 与扣费金额已改由 llm-proxy 服务端根据请求 payload 权威判定，
+// 客户端不再进行 per-turn 加权计算，也不上报 weight。
+
 export interface AgentCallbacks {
   onReasoning?: (full: string) => void
   onText?: (full: string) => void

@@ -1,6 +1,7 @@
 import type { ComposerContextOption, Tool } from '@/components/ui/composer'
 import { Brain, Briefcase, FileText, Square } from 'lucide-react'
 import { useMemo } from 'react'
+import { QuotaMeter } from '@/components/quota/quota-meter'
 import { Composer as GaiaComposer } from '@/components/ui/composer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -113,6 +114,7 @@ export default function Composer() {
         onChange={value => useAssistantStore.getState().setComposerDraft(value)}
         onSubmit={submit}
       />
+      <QuotaMeter className="mt-1.5" />
     </div>
   )
 }

@@ -1,10 +1,7 @@
 import type { ConversationSearchStatus } from '../types'
 import type { AiConversationSearchResult } from '@/lib/ai/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  isConversationSearchUnavailable,
-  searchConversations,
-} from '@/lib/supabase/ai'
+import { isConversationSearchUnavailable, searchConversations } from '@/lib/supabase/ai'
 import {
   CONVERSATION_SEARCH_DEBOUNCE_MS,
   CONVERSATION_SEARCH_MIN_LENGTH,

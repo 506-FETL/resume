@@ -14,19 +14,7 @@ import { MessageBubble } from '../message-bubble'
 const LIST_SKELETON_KEYS = ['msg-skeleton-1', 'msg-skeleton-2', 'msg-skeleton-3'] as const
 
 export default function MessageList() {
-  const {
-    messages,
-    streaming,
-    streamingParts,
-    streamingUsage,
-    usageByMessageId,
-    pendingConfirm,
-    initializing,
-    loadingMessages: loading,
-    conversationViewVersion,
-    targetMessageId,
-    setTargetMessageId,
-  } = useAssistantStore()
+  const { messages, streaming, streamingParts, streamingUsage, usageByMessageId, pendingConfirm, initializing, loadingMessages: loading, conversationViewVersion, targetMessageId, setTargetMessageId } = useAssistantStore()
   const { regenerateFrom, editUserMessageAndRerun } = useChatStream()
   const shouldReduceMotion = useReducedMotion()
 

@@ -1,18 +1,5 @@
 import type { ResumeType } from '@/lib/schema'
-import {
-  createNewResume,
-  createResumeHistoryVersion,
-  createResumeSnapshotHash,
-  deleteCompany,
-  deleteResume,
-  deleteResumeHistoryVersion,
-  getCompanies,
-  getResumeById,
-  getResumeHistoryResume,
-  listResumeHistoryVersions,
-  restoreResumeHistoryVersion,
-  updateResumeConfig,
-} from '@/lib/supabase/resume'
+import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResume, deleteResumeHistoryVersion, getCompanies, getResumeById, getResumeHistoryResume, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
 import { buildResumeSnapshot, normalizeHistoryVersion } from '@/pages/history/utils'
 import useTrackerStore from '@/pages/tracker/store'
 import { FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'

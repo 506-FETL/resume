@@ -32,7 +32,7 @@ export function AssistantSidebarActions({ expanded }: AssistantSidebarActionsPro
                 variant="ghost"
                 size="icon-sm"
                 className={primary
-                  ? 'rounded-lg border border-primary/20 bg-primary/[0.06] text-primary hover:bg-primary/10 hover:text-primary dark:bg-primary/10 dark:hover:bg-primary/15'
+                  ? 'rounded-lg border border-primary/20 bg-primary/6 text-primary hover:bg-primary/10 hover:text-primary dark:bg-primary/10 dark:hover:bg-primary/15'
                   : 'rounded-lg text-muted-foreground hover:text-foreground'}
                 aria-label={label}
                 onClick={onClick}
@@ -64,7 +64,7 @@ export function AssistantSidebarActions({ expanded }: AssistantSidebarActionsPro
       <Button
         variant="outline"
         size="sm"
-        className="h-10 w-full justify-start gap-2 rounded-xl border-primary/20 bg-primary/[0.06] font-medium text-primary shadow-none hover:bg-primary/10 hover:text-primary dark:bg-primary/10 dark:hover:bg-primary/15"
+        className="h-10 w-full justify-start gap-2 rounded-xl border-primary/20 bg-primary/6 font-medium text-primary shadow-none hover:bg-primary/10 hover:text-primary dark:bg-primary/10 dark:hover:bg-primary/15"
         aria-label="新建对话"
         onClick={startNewConversation}
       >

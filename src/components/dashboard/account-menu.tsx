@@ -2,6 +2,7 @@ import type React from 'react'
 import { CircleUser, LogIn, LogOut, ScrollText, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { QuotaMenuRow } from '@/components/quota/quota-menu-row'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +56,12 @@ export function AccountMenu({
             </DropdownMenuItem>
           </DropdownMenuGroup>
         )}
-        {user && <DropdownMenuSeparator />}
+        {user && (
+          <>
+            <QuotaMenuRow />
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => navigate('/settings')}>
             <Settings />

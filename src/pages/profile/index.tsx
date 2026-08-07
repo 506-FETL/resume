@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { QuotaCard } from '@/components/quota/quota-card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getCurrentUser } from '@/lib/supabase/user'
@@ -57,6 +58,9 @@ export default function ProfilePage() {
 
       {/* 账户设置卡片 */}
       <AccountSettingsCard user={user} />
+
+      {/* AI 额度卡片 */}
+      <QuotaCard />
 
       {/* 偏好设置卡片 */}
       <PreferencesCard />

@@ -3,6 +3,7 @@ import { useLocation, useRoutes } from 'react-router-dom'
 import routes from '~react-pages'
 import { AssistantShell } from '@/components/layout/assistant-shell'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
+import { UpgradeDialog } from '@/components/quota/upgrade-dialog'
 import { ThemeProvider, useTheme } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { BackgroundLines } from './components/ui/background-lines'
@@ -29,6 +30,7 @@ function App() {
             </DashboardShell>
           )}
       <Toaster position="top-right" richColors />
+      <UpgradeDialog />
     </ThemeProvider>
   )
 }

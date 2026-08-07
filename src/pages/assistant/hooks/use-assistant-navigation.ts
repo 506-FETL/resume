@@ -6,10 +6,7 @@ import { forgetAssistantReturnPath, resolveAssistantReturnPath } from '@/lib/ai/
 import { deleteConversation, listMessages } from '@/lib/supabase/ai'
 import { getErrorMessage } from '@/utils'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
-import {
-  clearLastConversationId,
-  writeLastConversationId,
-} from '../utils'
+import { clearLastConversationId, writeLastConversationId } from '../utils'
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement))

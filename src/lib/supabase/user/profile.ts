@@ -66,6 +66,16 @@ export async function changeAvatar(file: File) {
   if (error)
     throw error
 
+  // 同步写回 profiles 表，避免与 auth metadata 不同源
+  const { error: profileErr } = await supabase
+    .from('profiles')
+    .upsert(
+      { id: user.id, avatar_url: avatarUrl, updated_at: new Date().toISOString() },
+      { onConflict: 'id' },
+    )
+  if (profileErr)
+    throw profileErr
+
   return avatarUrl
 }
 
@@ -74,4 +84,28 @@ export async function updateProfile(attributes: UserAttributes) {
 
   if (error)
     throw error
+
+  // 若更新了 full_name / avatar_url，同步写回 profiles 表保持一致
+  const meta = attributes.data as { full_name?: string, avatar_url?: string } | undefined
+  if (meta && (meta.full_name !== undefined || meta.avatar_url !== undefined)) {
+    const user = await getCurrentUser()
+    if (user) {
+      const patch: {
+        id: string
+        updated_at: string
+        full_name?: string
+        avatar_url?: string
+      } = { id: user.id, updated_at: new Date().toISOString() }
+      if (meta.full_name !== undefined)
+        patch.full_name = meta.full_name
+      if (meta.avatar_url !== undefined)
+        patch.avatar_url = meta.avatar_url
+
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .upsert(patch, { onConflict: 'id' })
+      if (profileErr)
+        throw profileErr
+    }
+  }
 }
