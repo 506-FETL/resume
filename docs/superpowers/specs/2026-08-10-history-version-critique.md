@@ -52,6 +52,13 @@
 5. **重复的恢复编排**：历史页 store 和工具栏下拉各写一遍 `restoreResumeHistoryVersion` + toast + reload。→ 抽成一个 `useRestoreVersion` hook。
 6. **`content_hash` 存了却从不用**：既不去重、也不驱动「有无未保存改动」的判断复用。→ 要么用起来（见下「去重」），要么别存。
 
+> **P1 落地校正（2026-08-10 实施后）：**
+> - 第 4 项其实更简单：`history/utils.ts:createSnapshotHash` 是**零调用死代码**，已直接删除（非「合一」）。
+> - 第 2 项的 `SOURCE_META` **并不重复**——全仓库单一定义、各处 import，无需统一。
+> - 第 3 项已选「接上 `ai_optimize`」：AI 保存工具 `crud.ts` 改写 `source_type: 'ai_optimize'`，首页信息流「AI 助手更新了…」分支就此生效；`import` 类型暂留。
+> - 第 5 项 `useRestoreVersion` **未做**：两处编排的快照来源与刷新机制实质不同，强抽 hook 反增复杂度（YAGNI），且已定不动工具栏下拉。
+> - 「砍三套 UI / 合并预览弹窗」属破坏性改动，本轮**未做**，留待后续单独评估。
+
 ---
 
 ## 四、锐评：缺了什么关键能力
