@@ -4,6 +4,7 @@
 - 来源：`docs/superpowers/specs/2026-08-10-history-version-critique.md` 的 P0 切片
 - 范围：仅 `/history` 历史页；**不动**编辑器工具栏下拉、助手画布、schema、持久层
 - 目标：把「备份流水」升级为可用的「版本历史」——能看两版差异、避免存重复版本
+- 文案原则：所有用户可见文案保持轻量、口语化，面向普通用户，不出现「字段/行级/hash/版本号 V{n}」等术语味措辞
 
 ---
 
@@ -16,7 +17,7 @@
 - 位置：`src/pages/history/store/history-data.ts` 的 `saveCurrentVersion`。
 - 逻辑：保存前先算 `nextHash = await createResumeSnapshotHash(currentResume.snapshot)`（本来保存时就要算，提前到比对处，只算一次）。
   - 取 `latest = versions[0]`（store 中 `versions` 按 `version_no desc`，最新在首）。
-  - 若 `latest?.content_hash && latest.content_hash === nextHash` → 不发请求，`toast.info('当前内容与最新版本 V{latest.version_no} 一致，无需保存')`，`return null`。
+  - 若 `latest?.content_hash && latest.content_hash === nextHash` → 不发请求，`toast.info('内容没有变化，已是最新版本')`，`return null`。
   - 否则照常 `createResumeHistoryVersion(...)`，复用已算出的 `nextHash` 作为 `content_hash`（避免重复计算）。
 - 边界：
   - `content_hash` 缺失（历史旧数据为 null）→ 不阻止保存（视为不同）。
@@ -37,8 +38,8 @@
 点「对比」打开对比弹窗：
 - 顶部两个选择器：**左＝基准版**（默认选中「上一版」，即 `version_no` 比当前选中版小的最近一版；若为最早版则回退到「当前内容」），**右＝目标版**（默认＝当前详情选中的版本）。
 - 两个选择器的候选项：全部历史版本（`V{n} · 来源 · 日期`）+「当前内容」（用 `currentResume.snapshot`）。
-- 顶部显示总统计「共 N 处字段改动（+X / -Y 行）」。
-- 主体：**按 section → 字段** 逐块渲染，仅显示**有变化**的字段；每块用现有 `DiffView(before, after)` 出行级红绿。无任何变化时显示空态「两个版本内容一致」。
+- 顶部显示总统计「共 N 处改动」（数字用户能懂即可，不暴露 +X/-Y 行这类术语；行级增删仍在每个字段块内用红绿呈现）。
+- 主体：**按 section → 字段** 逐块渲染，仅显示**有变化**的字段；每块用现有 `DiffView(before, after)` 出行级红绿。无任何变化时显示空态「两个版本内容一样」。
 
 ### 数据与算法（新文件，避免塞进现有大文件）
 - `src/pages/history/utils/compare.ts`
@@ -58,7 +59,7 @@
 - 在 `detail-header.tsx` 用本地 `useState` 管理 `compareOpen`，与现有 `previewTarget` 等状态并列。
 
 ### 边界
-- 版本数 < 2 且无「当前内容」可比 → 「对比」按钮禁用并 tooltip「暂无可对比的版本」。
+- 版本数 < 2 且无「当前内容」可比 → 「对比」按钮禁用并 tooltip「还没有可对比的版本」。
 - 两侧选同一个 → 空态「两个版本内容一致」。
 - 富文本字段（HTML 串）：`computeLineDiff` 已按行 diff 文本，HTML 作为纯文本行比较即可（P0 不做富文本渲染级 diff）。
 
