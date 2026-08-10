@@ -6,12 +6,16 @@ import { applyMetadataDraftPatch, createMetadataDraft, isMetadataDraftDirty } fr
 
 const EMPTY_DRAFT = createMetadataDraft()
 
+export type HistoryDetailTab = 'overview' | 'resume'
+
 export interface HistoryDetailPanelState {
   selectedEntry: HistorySelection
   selectedVersion: ResumeHistoryVersionRecord | null
   editing: boolean
   editDraft: VersionMetadataDraft
   discardDialogOpen: boolean
+  activeTab: HistoryDetailTab
+  setActiveTab: (tab: HistoryDetailTab) => void
   selectEntry: (target: HistorySelection) => void
   requestSelectEntry: (target: HistorySelection) => void
   requestCloseDetail: () => void
@@ -32,6 +36,7 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
   const [editDraft, setEditDraft] = useState<VersionMetadataDraft>(EMPTY_DRAFT)
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
   const [pendingDiscardAction, setPendingDiscardAction] = useState<PendingDiscardAction>(null)
+  const [activeTab, setActiveTab] = useState<HistoryDetailTab>('resume')
 
   const selectedVersion = useMemo(
     () => typeof selectedEntry === 'number'
@@ -148,6 +153,8 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
     editing,
     editDraft,
     discardDialogOpen,
+    activeTab,
+    setActiveTab,
     selectEntry,
     requestSelectEntry,
     requestCloseDetail,

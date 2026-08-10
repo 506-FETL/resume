@@ -1,6 +1,6 @@
-import type { PreviewTarget, RestoreStrategy } from '../../types'
+import type { RestoreStrategy } from '../../types'
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
-import { Clock3, Edit3, Eye, RotateCcw, Save, Sparkles, Trash2 } from 'lucide-react'
+import { Clock3, Edit3, Eye, GitCompare, RotateCcw, Save, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,8 +10,8 @@ import { formatDateTime, formatRelativeTime } from '@/utils/date'
 import { SOURCE_META } from '../../const'
 import useHistoryStore from '../../store'
 import { getCurrentSyncState, getResumeTypeLabel, getVersionTitle } from '../../utils'
+import CompareDialog from '../compare-dialog'
 import HistoryDialogs from '../dialogs'
-import HistoryPreviewDialog from '../preview-dialog'
 import SaveVersionDialog from '../save-version-dialog'
 
 interface DetailHeaderProps {
@@ -21,18 +21,18 @@ interface DetailHeaderProps {
 export default function DetailHeader({ state }: DetailHeaderProps) {
   const isMobile = useIsMobile()
   const { currentResume, versions, savingMetadata, restoreVersion, deleteVersion } = useHistoryStore()
-  const [previewTarget, setPreviewTarget] = useState<PreviewTarget>(null)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [restoreTargetId, setRestoreTargetId] = useState<number | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
+  const [compareOpen, setCompareOpen] = useState(false)
   const { selectedEntry, selectedVersion, editing } = state
   const isCurrent = selectedEntry === 'current'
 
   useEffect(() => {
-    setPreviewTarget(null)
     setSaveDialogOpen(false)
     setRestoreTargetId(null)
     setDeleteTargetId(null)
+    setCompareOpen(false)
   }, [selectedEntry])
 
   const handleConfirmRestore = async (strategy: RestoreStrategy) => {
@@ -47,7 +47,6 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
     }
 
     setRestoreTargetId(null)
-    setPreviewTarget(null)
     state.selectEntry(restoredVersion.id)
   }
 
@@ -60,10 +59,6 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
     if (!deleted) {
       return
-    }
-
-    if (previewTarget === deleteTargetId) {
-      setPreviewTarget(null)
     }
 
     setDeleteTargetId(null)
@@ -109,13 +104,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
               isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2',
             )}
           >
-            {!isMobile && (
-              <Button variant="outline" className="w-full justify-center" onClick={() => setPreviewTarget('current')}>
-                <Eye data-icon="inline-start" />
-                查看当前内容
-              </Button>
-            )}
-            <Button className="w-full justify-center" onClick={() => setSaveDialogOpen(true)}>
+            <Button onClick={() => setSaveDialogOpen(true)}>
               <Save data-icon="inline-start" />
               保存当前版本
             </Button>
@@ -135,7 +124,6 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
             {getResumeTypeLabel(currentResume.type)}
           </Badge>
         </div>
-        <HistoryPreviewDialog previewTarget={previewTarget} onClose={() => setPreviewTarget(null)} />
         <SaveVersionDialog
           open={saveDialogOpen}
           onOpenChange={setSaveDialogOpen}
@@ -151,6 +139,11 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
   const sourceMeta = SOURCE_META[selectedVersion.source_type]
   const SourceIcon = sourceMeta.icon
+
+  // 默认基准＝比当前选中版更早的最近一版；没有更早版本则回退到「当前内容」
+  const olderVersion = versions.find(version => version.version_no < selectedVersion.version_no)
+  const compareBaseId = olderVersion ? String(olderVersion.id) : 'current'
+  const canCompare = versions.length >= 2 || Boolean(currentResume)
 
   return (
     <div className="flex flex-col gap-4">
@@ -176,7 +169,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
           <div className="flex flex-col gap-1">
             <h2 className="text-2xl font-semibold tracking-tight">{getVersionTitle(selectedVersion)}</h2>
             <p className="text-sm text-muted-foreground">
-              {selectedVersion.description || '查看该版本的说明、内容，以及恢复操作。'}
+              {selectedVersion.description || '查看该版本的简历内容，或恢复到这一版。'}
             </p>
           </div>
         </div>
@@ -188,15 +181,19 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
                   <div
                     className={cn(
                       'grid gap-2',
-                      isMobile ? 'grid-cols-3' : 'grid-cols-1 sm:grid-cols-2',
+                      isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2',
                     )}
                   >
-                    {!isMobile && (
-                      <Button variant="outline" className="w-full justify-center" onClick={() => setPreviewTarget(selectedVersion.id)}>
-                        <Eye data-icon="inline-start" />
-                        查看内容
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      className="w-full justify-center"
+                      disabled={!canCompare}
+                      title={canCompare ? undefined : '还没有可对比的版本'}
+                      onClick={() => setCompareOpen(true)}
+                    >
+                      <GitCompare data-icon="inline-start" />
+                      对比
+                    </Button>
                     <Button variant="outline" className="w-full justify-center" onClick={() => setRestoreTargetId(selectedVersion.id)}>
                       <RotateCcw data-icon="inline-start" />
                       恢复此版本
@@ -231,7 +228,12 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
         <Badge variant="outline">{formatDateTime(selectedVersion.created_at)}</Badge>
         <Badge variant="outline">{sourceMeta.label}</Badge>
       </div>
-      <HistoryPreviewDialog previewTarget={previewTarget} onClose={() => setPreviewTarget(null)} />
+      <CompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        baseId={compareBaseId}
+        targetId={String(selectedVersion.id)}
+      />
       <SaveVersionDialog
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}

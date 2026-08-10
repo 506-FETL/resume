@@ -4,7 +4,6 @@ import type { ResumeHistoryVersionRecord, ResumeSnapshot } from '@/lib/supabase/
 export type { RestoreStrategy } from '@/lib/supabase/resume/history'
 
 export type HistorySelection = number | 'current' | null
-export type PreviewTarget = number | 'current' | null
 
 export interface HistoryCurrentResume {
   resumeId: string

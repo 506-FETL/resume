@@ -239,7 +239,7 @@ registerTool({
           resume_id: resumeId,
           version_name: args.versionName ? String(args.versionName) : null,
           description: args.description ? String(args.description) : null,
-          source_type: 'manual',
+          source_type: 'ai_optimize',
           snapshot,
           content_hash: await createResumeSnapshotHash(snapshot),
           base_updated_at: record.updated_at,

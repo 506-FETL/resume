@@ -116,13 +116,21 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       set({ savingCurrent: true })
 
       try {
+        const nextHash = await createResumeSnapshotHash(currentResume.snapshot)
+        const latest = versions[0]
+        // 内容与最新版本完全一致 → 不重复保存
+        if (latest?.content_hash && latest.content_hash === nextHash) {
+          toast.info('内容没有变化，已是最新版本')
+          return null
+        }
+
         const created = normalizeHistoryVersion(
           await createResumeHistoryVersion({
             resume_id: resumeId,
             ...toVersionMutationPayload(draft),
             source_type: 'manual',
             snapshot: currentResume.snapshot,
-            content_hash: await createResumeSnapshotHash(currentResume.snapshot),
+            content_hash: nextHash,
             base_updated_at: currentResume.updatedAt,
           }),
         )

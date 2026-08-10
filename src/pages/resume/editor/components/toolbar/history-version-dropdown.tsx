@@ -1,225 +1,112 @@
-import type { RestoreStrategy, ResumeHistoryVersionRecord } from '@/lib/supabase/resume/history'
-import { History, LoaderCircle } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { History, LoaderCircle, Save } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
-import { listResumeHistoryVersions, restoreResumeHistoryVersion } from '@/lib/supabase/resume'
+import {
+  createResumeHistoryVersion,
+  createResumeSnapshotHash,
+  getResumeHistoryResume,
+  listResumeHistoryVersions,
+} from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
-import RestoreVersionDialog from '@/pages/history/components/dialogs/restore-version-dialog'
-import { normalizeHistoryVersion } from '@/pages/history/utils'
+import { buildResumeSnapshot } from '@/pages/history/utils'
 import useCurrentResumeStore from '@/store/resume/current'
 import useResumeStore from '@/store/resume/form'
-import { resolveHistoryDropdownOpenState } from './history-version-preview-state'
-import HistoryVersionPreviewDialog from './version-compare'
-import { VersionListItem } from './version-list-item'
 
+/**
+ * 编辑器工具栏的历史版本入口：只保留「打开历史版本」（跳转 /history）与「快速保存」两个动作，
+ * 完整的列表/预览/对比/恢复统一在 /history 页完成，避免维护多套版本 UI。
+ */
 export function ResumeHistoryVersionDropdown() {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
   const resumeId = useCurrentResumeStore(state => state.resumeId)
   const isInitialized = useResumeStore(state => state.isInitialized)
-  const getHistoryRestoreSource = useResumeStore(state => state.getHistoryRestoreSource)
-  const preserveDropdownOpenRef = useRef(false)
+  const [saving, setSaving] = useState(false)
 
-  const [desktopOpen, setDesktopOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [versions, setVersions] = useState<ResumeHistoryVersionRecord[]>([])
-  const [restoreTargetId, setRestoreTargetId] = useState<number | null>(null)
-  const [previewTargetId, setPreviewTargetId] = useState<number | null>(null)
-  const [restoring, setRestoring] = useState(false)
-  const [restoreStrategy, setRestoreStrategy] = useState<RestoreStrategy | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
+  const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
+  const canUseHistory = Boolean(resumeId) && !isOffline && isInitialized
 
-  const canUseHistory = Boolean(resumeId) && !isOfflineResumeId(resumeId!) && isInitialized
+  const disabledReason = !resumeId
+    ? '当前未选择简历'
+    : isOffline
+      ? '离线简历暂不支持历史版本'
+      : undefined
 
-  const restoreTarget = useMemo(
-    () => versions.find(version => version.id === restoreTargetId) ?? null,
-    [restoreTargetId, versions],
-  )
-  const previewTarget = useMemo(
-    () => versions.find(version => version.id === previewTargetId) ?? null,
-    [previewTargetId, versions],
-  )
-
-  useEffect(() => {
-    if (!resumeId || isOfflineResumeId(resumeId)) {
-      setVersions([])
-      setError(null)
-      setLoading(false)
-      setPreviewTargetId(null)
-    }
-  }, [resumeId])
-
-  useEffect(() => {
-    if (!desktopOpen || !resumeId || isOfflineResumeId(resumeId)) {
+  const openHistory = () => {
+    if (!canUseHistory || !resumeId)
       return
-    }
-
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-
-    listResumeHistoryVersions(resumeId)
-      .then((result) => {
-        if (cancelled) {
-          return
-        }
-
-        setVersions(result.map(normalizeHistoryVersion))
-      })
-      .catch((nextError) => {
-        if (cancelled) {
-          return
-        }
-
-        setError(nextError instanceof Error ? nextError.message : '历史版本加载失败')
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [desktopOpen, reloadKey, resumeId])
-
-  const handleRestoreRequest = (versionId: number) => {
-    setRestoreTargetId(versionId)
+    navigate(`/history?resumeId=${resumeId}`)
   }
 
-  const handlePreviewRequest = (versionId: number) => {
-    preserveDropdownOpenRef.current = true
-    setPreviewTargetId(versionId)
-  }
-
-  const handleDropdownOpenChange = (nextOpen: boolean) => {
-    const preserveOpen = preserveDropdownOpenRef.current || previewTargetId !== null
-    preserveDropdownOpenRef.current = false
-
-    setDesktopOpen(currentOpen => resolveHistoryDropdownOpenState({
-      currentOpen,
-      nextOpen,
-      preserveOpen,
-    }))
-  }
-
-  const handleConfirmRestore = async (strategy: RestoreStrategy) => {
-    if (!resumeId || !restoreTarget) {
+  const handleQuickSave = async () => {
+    if (!canUseHistory || !resumeId || saving)
       return
-    }
 
-    setRestoring(true)
-    setRestoreStrategy(strategy)
-
+    setSaving(true)
     try {
-      const { snapshot, updatedAt } = getHistoryRestoreSource()
+      const record = await getResumeHistoryResume(resumeId)
+      const snapshot = buildResumeSnapshot(record)
+      const nextHash = await createResumeSnapshotHash(snapshot)
 
-      await restoreResumeHistoryVersion({
-        resumeId,
-        targetVersion: restoreTarget,
-        currentSnapshot: snapshot,
-        currentUpdatedAt: updatedAt,
-        strategy,
+      // 与 /history 保存一致的去重：内容和最新版本一样就不重复存
+      const versions = await listResumeHistoryVersions(resumeId)
+      const latest = versions[0]
+      if (latest?.content_hash && latest.content_hash === nextHash) {
+        toast.info('内容没有变化，已是最新版本')
+        return
+      }
+
+      await createResumeHistoryVersion({
+        resume_id: resumeId,
+        source_type: 'manual',
+        snapshot,
+        content_hash: nextHash,
+        base_updated_at: record.updated_at,
       })
-
-      setRestoreTargetId(null)
-      setReloadKey(current => current + 1)
-      toast.success('已恢复至所选版本')
+      toast.success('当前版本已保存')
     }
-    catch (nextError) {
-      toast.error(nextError instanceof Error ? nextError.message : '恢复版本失败')
+    catch (error) {
+      toast.error(error instanceof Error ? error.message : '保存版本失败')
     }
     finally {
-      setRestoring(false)
-      setRestoreStrategy(null)
+      setSaving(false)
     }
   }
 
-  const trigger = (
-    <Button
-      variant="outline"
-      size={isMobile ? 'icon' : 'sm'}
-      className={cn(isMobile && 'size-9')}
-      disabled={!canUseHistory}
-      title={!resumeId
-        ? '当前未选择简历'
-        : resumeId && isOfflineResumeId(resumeId)
-          ? '离线简历暂不支持历史版本'
-          : undefined}
-    >
-      <History data-icon="inline-start" />
-      {!isMobile && <span>历史版本</span>}
-    </Button>
-  )
-
-  const listContent = (
-    <div className="space-y-3 p-3">
-      {loading && (
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 px-4 py-8 text-sm text-muted-foreground">
-          <LoaderCircle className="size-4 animate-spin" />
-          正在加载历史版本...
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && versions.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
-          暂无历史版本
-        </div>
-      )}
-
-      {!loading && !error && versions.map(version => (
-        <VersionListItem
-          key={version.id}
-          version={version}
-          mobile={isMobile}
-          onRestore={handleRestoreRequest}
-          onPreview={handlePreviewRequest}
-        />
-      ))}
-    </div>
-  )
-
   return (
-    <>
-      <DropdownMenu modal={false} open={desktopOpen} onOpenChange={handleDropdownOpenChange}>
-        <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          side="bottom"
-          className="overflow-hidden rounded-2xl border-border/70 p-0"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size={isMobile ? 'icon' : 'sm'}
+          className={cn(isMobile && 'size-9')}
+          disabled={!canUseHistory}
+          title={disabledReason}
         >
-          <DropdownMenuLabel className="px-4 py-3 text-sm font-semibold">
-            历史版本
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="mx-0 my-0" />
-          <div className="max-h-[min(32rem,calc(100vh-10rem))] overflow-y-auto">
-            {listContent}
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <RestoreVersionDialog
-        targetVersion={restoreTarget}
-        restoring={restoring}
-        restoreStrategy={restoreStrategy}
-        onOpenChange={() => setRestoreTargetId(null)}
-        onConfirm={handleConfirmRestore}
-      />
-      <HistoryVersionPreviewDialog
-        previewTarget={previewTarget}
-        onClose={() => setPreviewTargetId(null)}
-      />
-    </>
+          <History data-icon="inline-start" />
+          {!isMobile && <span>历史版本</span>}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" side="bottom" className="w-44">
+        <DropdownMenuItem onClick={openHistory}>
+          <History data-icon="inline-start" />
+          查看历史版本
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={saving} onClick={handleQuickSave}>
+          {saving ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : <Save data-icon="inline-start" />}
+          快速保存
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

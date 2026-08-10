@@ -270,20 +270,6 @@ export function areSnapshotsEqual(left: ResumeSnapshot, right?: ResumeSnapshot |
   return stableSerialize(left) === stableSerialize(right)
 }
 
-export async function createSnapshotHash(snapshot: ResumeSnapshot) {
-  const content = stableSerialize(snapshot)
-
-  if (!globalThis.crypto?.subtle) {
-    return content
-  }
-
-  const encoded = new TextEncoder().encode(content)
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded)
-  return Array.from(new Uint8Array(digest))
-    .map(value => value.toString(16).padStart(2, '0'))
-    .join('')
-}
-
 function normalizeDraft(draft: VersionMetadataDraft) {
   return {
     versionName: draft.versionName.trim(),

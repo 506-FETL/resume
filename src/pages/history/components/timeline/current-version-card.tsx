@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils'
 import { formatDateTime, formatRelativeTime } from '@/utils/date'
 import useHistoryStore from '../../store'
 import { getCurrentSyncState, getResumeTypeLabel } from '../../utils'
-import HistoryPreviewDialog from '../preview-dialog'
 import SaveVersionDialog from '../save-version-dialog'
 
 interface CurrentVersionCardProps {
@@ -23,7 +22,6 @@ export default function CurrentVersionCard({
 }: CurrentVersionCardProps) {
   const isMobile = useIsMobile()
   const { currentResume, versions } = useHistoryStore()
-  const [previewOpen, setPreviewOpen] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
 
   const { latestVersionNo, synced } = getCurrentSyncState(currentResume, versions)
@@ -34,7 +32,6 @@ export default function CurrentVersionCard({
       : '有未保存的更新'
 
   useEffect(() => {
-    setPreviewOpen(false)
     setSaveDialogOpen(false)
   }, [currentResume?.resumeId])
 
@@ -103,9 +100,9 @@ export default function CurrentVersionCard({
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
                 {!isMobile && (
-                  <DropdownMenuItem onClick={() => setPreviewOpen(true)}>
+                  <DropdownMenuItem onClick={() => onSelectEntry('current')}>
                     <Eye />
-                    查看当前内容
+                    查看简历
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => setSaveDialogOpen(true)}>
@@ -118,7 +115,6 @@ export default function CurrentVersionCard({
         </div>
       </article>
 
-      <HistoryPreviewDialog previewTarget={previewOpen ? 'current' : null} onClose={() => setPreviewOpen(false)} />
       <SaveVersionDialog
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}

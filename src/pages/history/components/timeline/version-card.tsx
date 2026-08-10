@@ -1,6 +1,6 @@
 import type { HistorySelection, RestoreStrategy } from '../../types'
 import type { ResumeHistoryVersionRecord } from '@/lib/supabase/resume/history'
-import { Eye, Flag, MoreHorizontal, RotateCcw, Sparkles, Trash2 } from 'lucide-react'
+import { Eye, Flag, MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -13,7 +13,6 @@ import { SOURCE_META } from '../../const'
 import useHistoryStore from '../../store'
 import { getVersionSubtitle, getVersionTitle } from '../../utils'
 import HistoryDialogs from '../dialogs'
-import HistoryPreviewDialog from '../preview-dialog'
 
 interface VersionCardProps {
   version: ResumeHistoryVersionRecord
@@ -30,7 +29,6 @@ export default function VersionCard({
 }: VersionCardProps) {
   const isMobile = useIsMobile()
   const { restoreVersion, deleteVersion } = useHistoryStore()
-  const [previewTarget, setPreviewTarget] = useState<number | null>(null)
   const [restoreTargetId, setRestoreTargetId] = useState<number | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
 
@@ -46,7 +44,6 @@ export default function VersionCard({
     }
 
     setRestoreTargetId(null)
-    setPreviewTarget(null)
     onSelectEntry(restoredVersion.id)
   }
 
@@ -55,10 +52,6 @@ export default function VersionCard({
 
     if (!deleted) {
       return
-    }
-
-    if (previewTarget === version.id) {
-      setPreviewTarget(null)
     }
 
     setDeleteTargetId(null)
@@ -163,18 +156,12 @@ export default function VersionCard({
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => onSelectEntry(version.id)}>
-                    <Sparkles />
-                    查看详情
+                    <Eye />
+                    查看简历
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  {!isMobile && (
-                    <DropdownMenuItem onClick={() => setPreviewTarget(version.id)}>
-                      <Eye />
-                      查看内容
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem onClick={() => setRestoreTargetId(version.id)}>
                     <RotateCcw />
                     恢复此版本
@@ -190,7 +177,6 @@ export default function VersionCard({
         </article>
       </motion.article>
 
-      <HistoryPreviewDialog previewTarget={previewTarget} onClose={() => setPreviewTarget(null)} />
       <HistoryDialogs
         restoreTargetId={restoreTargetId}
         deleteTargetId={deleteTargetId}

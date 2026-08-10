@@ -1,17 +1,14 @@
-import { Eye, Save } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import useHistoryStore from '../../store'
-import HistoryPreviewDialog from '../preview-dialog'
 import SaveVersionDialog from '../save-version-dialog'
 
 export default function HistoryHeaderActions() {
   const { currentResume, loading } = useHistoryStore()
-  const [previewOpen, setPreviewOpen] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
 
   useEffect(() => {
-    setPreviewOpen(false)
     setSaveDialogOpen(false)
   }, [currentResume?.resumeId])
 
@@ -23,20 +20,11 @@ export default function HistoryHeaderActions() {
             常用操作
           </span>
           <p className="text-sm leading-6 text-muted-foreground">
-            先查看当前内容，再决定是否保存为新版本。
+            把当前内容保存为一个新版本，方便日后对比和恢复。
           </p>
         </div>
 
         <div className="grid gap-2.5">
-          <Button
-            variant="outline"
-            className="justify-center"
-            disabled={!currentResume || loading}
-            onClick={() => setPreviewOpen(true)}
-          >
-            <Eye data-icon="inline-start" />
-            查看当前内容
-          </Button>
           <Button
             className="justify-center"
             disabled={!currentResume || loading}
@@ -48,7 +36,6 @@ export default function HistoryHeaderActions() {
         </div>
       </section>
 
-      <HistoryPreviewDialog previewTarget={previewOpen ? 'current' : null} onClose={() => setPreviewOpen(false)} />
       <SaveVersionDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
     </>
   )

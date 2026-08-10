@@ -1,10 +1,13 @@
 import type { HistorySelection } from '../../types'
 import { LoaderCircle } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/utils/date'
+import { DEFAULT_VERSION_FILTER, filterVersions, isFilterActive } from '../../filter'
 import { useOverflowState } from '../../hooks/use-overflow-state'
 import useHistoryStore from '../../store'
 import { groupVersionsByDay } from '../../utils'
@@ -12,6 +15,7 @@ import CurrentVersionCard from './current-version-card'
 import TimelineEmptyState from './empty-state'
 import TimelineLoadingState from './loading-state'
 import VersionCard from './version-card'
+import VersionFilterBar from './version-filter-bar'
 
 interface HistoryTimelineProps {
   selectedEntry: HistorySelection
@@ -22,11 +26,23 @@ export default function HistoryTimeline({
   selectedEntry,
   onSelectEntry,
 }: HistoryTimelineProps) {
-  const { currentResume, versions, loading } = useHistoryStore()
+  const { resumeId, currentResume, versions, loading } = useHistoryStore()
   const { ref: scrollRef, overflowing } = useOverflowState<HTMLDivElement>()
+  const [filter, setFilter] = useState(DEFAULT_VERSION_FILTER)
 
-  const groups = groupVersionsByDay(versions)
-  const timelineCountLabel = versions.length === 0 ? '暂无版本记录' : `${versions.length} 条版本记录`
+  // 切换简历时重置筛选，避免上一份简历的条件带过来
+  useEffect(() => {
+    setFilter(DEFAULT_VERSION_FILTER)
+  }, [resumeId])
+
+  const filteredVersions = useMemo(() => filterVersions(versions, filter), [versions, filter])
+  const groups = groupVersionsByDay(filteredVersions)
+  const hasKeywordOrFilter = filter.keyword.trim().length > 0 || isFilterActive(filter)
+  const timelineCountLabel = versions.length === 0
+    ? '暂无版本记录'
+    : hasKeywordOrFilter
+      ? `筛选出 ${filteredVersions.length} / 共 ${versions.length} 条`
+      : `${versions.length} 条版本记录`
 
   return (
     <Card className="flex min-h-0 flex-col gap-0 overflow-hidden border-border/70 bg-background/95 py-0 shadow-none max-h-[72dvh] md:max-h-[min(78vh,920px)] lg:sticky lg:top-20 lg:h-[calc(100vh-7rem)] lg:max-h-230">
@@ -79,9 +95,9 @@ export default function HistoryTimeline({
           <Separator />
 
           <section className="flex flex-col gap-4">
-            <div className="px-1 text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              历史版本
-            </div>
+            {!loading && versions.length > 0 && (
+              <VersionFilterBar criteria={filter} onChange={setFilter} />
+            )}
 
             {loading
               ? (
@@ -115,9 +131,18 @@ export default function HistoryTimeline({
                       ))}
                     </div>
                   )
-                : (
-                    <TimelineEmptyState currentResume={currentResume} />
-                  )}
+                : versions.length > 0
+                  ? (
+                      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-muted/20 px-3 py-10 text-center">
+                        <p className="text-sm text-muted-foreground">没有符合条件的版本</p>
+                        <Button variant="outline" size="sm" className="h-8" onClick={() => setFilter(DEFAULT_VERSION_FILTER)}>
+                          清除筛选
+                        </Button>
+                      </div>
+                    )
+                  : (
+                      <TimelineEmptyState currentResume={currentResume} />
+                    )}
           </section>
         </div>
       </CardContent>
