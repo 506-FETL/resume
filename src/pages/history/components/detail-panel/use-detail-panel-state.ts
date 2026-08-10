@@ -1,5 +1,5 @@
 import type { HistorySelection, PendingDiscardAction, VersionMetadataDraft } from '../../types'
-import type { ResumeHistoryVersionRecord } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import useHistoryStore from '../../store'
 import { applyMetadataDraftPatch, createMetadataDraft, isMetadataDraftDirty } from '../../utils'
@@ -10,7 +10,7 @@ export type HistoryDetailTab = 'overview' | 'resume'
 
 export interface HistoryDetailPanelState {
   selectedEntry: HistorySelection
-  selectedVersion: ResumeHistoryVersionRecord | null
+  selectedVersion: ResumeHistoryVersionListItem | null
   editing: boolean
   editDraft: VersionMetadataDraft
   discardDialogOpen: boolean

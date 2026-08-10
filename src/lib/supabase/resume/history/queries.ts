@@ -2,8 +2,10 @@ import type {
   CreateResumeHistoryVersionInput,
   ResumeHistoryOptionRecord,
   ResumeHistoryResumeRecord,
+  ResumeHistoryVersionListRow,
   ResumeHistoryVersionRow,
   ResumeHistoryVersionSummaryRecord,
+  ResumeSnapshot,
   UpdateResumeHistoryVersionInput,
 } from './types'
 import supabase from '../../client'
@@ -24,7 +26,28 @@ const VERSION_SELECTOR = `
   tags,
   snapshot,
   content_hash,
-  base_updated_at
+  base_updated_at,
+  company_id,
+  submitted_at
+`
+
+// 列表用：不含 snapshot（侧边栏渲染用不到），大幅减小载荷
+const VERSION_LIST_SELECTOR = `
+  id,
+  created_at,
+  updated_at,
+  user_id,
+  resume_id,
+  version_no,
+  version_name,
+  description,
+  milestone_name,
+  source_type,
+  tags,
+  content_hash,
+  base_updated_at,
+  company_id,
+  submitted_at
 `
 
 const RESUME_SELECTOR = `
@@ -101,7 +124,7 @@ export async function listResumeHistoryVersions(resumeId: string) {
 
   const { data, error } = await supabase
     .from('resume_config_versions')
-    .select(VERSION_SELECTOR)
+    .select(VERSION_LIST_SELECTOR)
     .eq('resume_id', resumeId)
     .eq('user_id', user.id)
     .order('version_no', { ascending: false })
@@ -110,7 +133,28 @@ export async function listResumeHistoryVersions(resumeId: string) {
     throw error
   }
 
-  return (data ?? []) as ResumeHistoryVersionRow[]
+  return (data ?? []) as ResumeHistoryVersionListRow[]
+}
+
+export async function getResumeHistoryVersionSnapshot(id: number) {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('用户未登陆')
+  }
+
+  const { data, error } = await supabase
+    .from('resume_config_versions')
+    .select('snapshot')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return (data as { snapshot: ResumeSnapshot | Record<string, unknown> }).snapshot
 }
 
 export async function listResumeHistoryVersionSummaries() {
@@ -152,6 +196,8 @@ export async function createResumeHistoryVersion(input: CreateResumeHistoryVersi
       snapshot: input.snapshot,
       content_hash: input.content_hash ?? null,
       base_updated_at: input.base_updated_at ?? null,
+      company_id: input.company_id ?? null,
+      submitted_at: input.submitted_at ?? null,
     })
     .select(VERSION_SELECTOR)
     .single()
@@ -177,6 +223,8 @@ export async function updateResumeHistoryVersion(id: number, input: UpdateResume
       description: input.description ?? null,
       milestone_name: input.milestone_name ?? null,
       tags: input.tags ?? [],
+      company_id: input.company_id ?? null,
+      submitted_at: input.submitted_at ?? null,
     })
     .eq('id', id)
     .eq('user_id', user.id)

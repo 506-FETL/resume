@@ -6,6 +6,7 @@ import { createResumeSnapshotHash, trimToNull } from './snapshot'
 export async function restoreResumeHistoryVersion({
   resumeId,
   targetVersion,
+  targetSnapshot,
   currentSnapshot,
   currentUpdatedAt,
   strategy,
@@ -23,7 +24,7 @@ export async function restoreResumeHistoryVersion({
     })
   }
 
-  const restoredSnapshot = await replaceAutomergeDocumentSnapshot(resumeId, targetVersion.snapshot)
+  const restoredSnapshot = await replaceAutomergeDocumentSnapshot(resumeId, targetSnapshot)
 
   return createResumeHistoryVersion({
     resume_id: resumeId,

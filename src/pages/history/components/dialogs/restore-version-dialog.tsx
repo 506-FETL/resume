@@ -1,4 +1,4 @@
-import type { RestoreStrategy, ResumeHistoryVersionRecord } from '@/lib/supabase/resume/history'
+import type { RestoreStrategy, ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import { AlertTriangle, LoaderCircle, RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { getVersionTitle } from '../../utils'
 
 interface RestoreVersionDialogProps {
-  targetVersion: ResumeHistoryVersionRecord | null
+  targetVersion: ResumeHistoryVersionListItem | null
   restoring: boolean
   restoreStrategy: RestoreStrategy | null
   onOpenChange: (open: boolean) => void

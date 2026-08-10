@@ -1,6 +1,6 @@
 import type { RestoreStrategy } from '../../types'
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
-import { Clock3, Edit3, Eye, GitCompare, RotateCcw, Save, Sparkles, Trash2 } from 'lucide-react'
+import { Clock3, Edit3, GitCompare, RotateCcw, Save, Sparkles, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { getCurrentSyncState, getResumeTypeLabel, getVersionTitle } from '../../
 import CompareDialog from '../compare-dialog'
 import HistoryDialogs from '../dialogs'
 import SaveVersionDialog from '../save-version-dialog'
+import VersionPdfExportButton from '../version-pdf-export'
 
 interface DetailHeaderProps {
   state: HistoryDetailPanelState
@@ -194,6 +195,11 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
                       <GitCompare data-icon="inline-start" />
                       对比
                     </Button>
+                    <VersionPdfExportButton
+                      versionId={selectedVersion.id}
+                      documentTitle={getVersionTitle(selectedVersion)}
+                      className="w-full justify-center"
+                    />
                     <Button variant="outline" className="w-full justify-center" onClick={() => setRestoreTargetId(selectedVersion.id)}>
                       <RotateCcw data-icon="inline-start" />
                       恢复此版本

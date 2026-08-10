@@ -1,5 +1,5 @@
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -24,9 +24,12 @@ interface CompareDialogProps {
 }
 
 export default function CompareDialog({ open, onOpenChange, baseId, targetId }: CompareDialogProps) {
-  const { versions, currentResume } = useHistoryStore()
+  const { versions, currentResume, loadVersionSnapshot, snapshotCache } = useHistoryStore()
   const [base, setBase] = useState<string>(baseId ?? CURRENT)
   const [target, setTarget] = useState<string>(targetId ?? CURRENT)
+  const [beforeSnap, setBeforeSnap] = useState<ResumeSnapshot | null>(null)
+  const [afterSnap, setAfterSnap] = useState<ResumeSnapshot | null>(null)
+  const [loadingSnap, setLoadingSnap] = useState(false)
 
   // 重新打开时同步初始选择
   useEffect(() => {
@@ -44,14 +47,31 @@ export default function CompareDialog({ open, onOpenChange, baseId, targetId }: 
     })),
   ], [versions, currentResume])
 
-  const snapshotOf = (id: string): ResumeSnapshot | null => {
+  // 按需解析某一侧的 snapshot：当前内容直接取；历史版本命中缓存或拉取
+  const resolveSnap = useCallback(async (id: string): Promise<ResumeSnapshot | null> => {
     if (id === CURRENT)
       return currentResume?.snapshot ?? null
-    return versions.find(version => String(version.id) === id)?.snapshot ?? null
-  }
+    const numId = Number(id)
+    return snapshotCache[numId] ?? await loadVersionSnapshot(numId)
+  }, [currentResume, snapshotCache, loadVersionSnapshot])
 
-  const beforeSnap = snapshotOf(base)
-  const afterSnap = snapshotOf(target)
+  useEffect(() => {
+    if (!open)
+      return
+    let cancelled = false
+    setLoadingSnap(true)
+    Promise.all([resolveSnap(base), resolveSnap(target)]).then(([b, a]) => {
+      if (!cancelled) {
+        setBeforeSnap(b)
+        setAfterSnap(a)
+        setLoadingSnap(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, base, target, resolveSnap])
+
   const diffs = useMemo(
     () => (beforeSnap && afterSnap ? diffSnapshots(beforeSnap, afterSnap) : []),
     [beforeSnap, afterSnap],
@@ -100,23 +120,29 @@ export default function CompareDialog({ open, onOpenChange, baseId, targetId }: 
 
         <div className="scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="flex flex-col gap-5 px-6 py-5">
-            {changed === 0
+            {loadingSnap
               ? (
-                  <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-10 text-center text-sm text-muted-foreground">
-                    两个版本内容一样
+                  <p className="px-3 py-10 text-center text-sm text-muted-foreground">
+                    正在加载版本内容…
                   </p>
                 )
-              : diffs.map(section => (
-                  <div key={section.sectionKey} className="flex flex-col gap-3">
-                    <h3 className="text-sm font-semibold">{section.sectionLabel}</h3>
-                    {section.fields.map(field => (
-                      <div key={field.key} className="flex flex-col gap-1.5">
-                        <span className="text-xs text-muted-foreground">{field.label}</span>
-                        <DiffView before={field.before} after={field.after} />
-                      </div>
-                    ))}
-                  </div>
-                ))}
+              : changed === 0
+                ? (
+                    <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-10 text-center text-sm text-muted-foreground">
+                      两个版本内容一样
+                    </p>
+                  )
+                : diffs.map(section => (
+                    <div key={section.sectionKey} className="flex flex-col gap-3">
+                      <h3 className="text-sm font-semibold">{section.sectionLabel}</h3>
+                      {section.fields.map(field => (
+                        <div key={field.key} className="flex flex-col gap-1.5">
+                          <span className="text-xs text-muted-foreground">{field.label}</span>
+                          <DiffView before={field.before} after={field.after} />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
           </div>
         </div>
       </ResponsiveDialogContent>

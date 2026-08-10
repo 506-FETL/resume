@@ -1,9 +1,10 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
-import { Bookmark, CalendarClock, Flag, MessageSquareText, Tags } from 'lucide-react'
+import { Bookmark, Briefcase, CalendarClock, Flag, MessageSquareText, Send, Tags } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDateTime } from '@/utils/date'
 import { SOURCE_META } from '../../const'
+import { useJobSummaries } from '../../hooks/use-job-summaries'
 import VersionMetadataFields from '../shared/version-metadata-fields'
 import MetricCard from './metric-card'
 
@@ -13,6 +14,7 @@ interface HistoryVersionOverviewProps {
 
 export default function HistoryVersionOverview({ state }: HistoryVersionOverviewProps) {
   const { selectedVersion: version, editing } = state
+  const { getLabel } = useJobSummaries()
 
   if (!version) {
     return null
@@ -27,6 +29,9 @@ export default function HistoryVersionOverview({ state }: HistoryVersionOverview
       </Card>
     )
   }
+
+  const jobLabel = getLabel(version.company_id)
+  const jobValue = jobLabel ?? (version.company_id ? '岗位已删除' : '未关联')
 
   return (
     <>
@@ -49,6 +54,18 @@ export default function HistoryVersionOverview({ state }: HistoryVersionOverview
             label="重点标记"
             value={version.milestone_name || '未设置'}
             icon={Flag}
+            toneClassName="border-border bg-muted/40"
+          />
+          <MetricCard
+            label="关联岗位"
+            value={jobValue}
+            icon={Briefcase}
+            toneClassName="border-border bg-muted/40"
+          />
+          <MetricCard
+            label="投递日期"
+            value={version.submitted_at || '未记录'}
+            icon={Send}
             toneClassName="border-border bg-muted/40"
           />
         </CardContent>

@@ -1,5 +1,5 @@
 import type { HistorySelection, RestoreStrategy } from '../../types'
-import type { ResumeHistoryVersionRecord } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import { Eye, Flag, MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useState } from 'react'
@@ -15,7 +15,7 @@ import { getVersionSubtitle, getVersionTitle } from '../../utils'
 import HistoryDialogs from '../dialogs'
 
 interface VersionCardProps {
-  version: ResumeHistoryVersionRecord
+  version: ResumeHistoryVersionListItem
   index: number
   selected: boolean
   onSelectEntry: (target: HistorySelection) => void

@@ -1,4 +1,4 @@
-import type { ResumeHistoryVersionRecord, ResumeVersionSourceType } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryVersionListItem, ResumeVersionSourceType } from '@/lib/supabase/resume/history'
 import { getVersionTitle } from './utils'
 
 export type VersionSortOrder = 'newest' | 'oldest'
@@ -27,7 +27,7 @@ export function isFilterActive(criteria: VersionFilterCriteria): boolean {
     || criteria.sort !== 'newest'
 }
 
-function matchesKeyword(version: ResumeHistoryVersionRecord, keyword: string): boolean {
+function matchesKeyword(version: ResumeHistoryVersionListItem, keyword: string): boolean {
   const q = keyword.trim().toLowerCase()
   if (!q)
     return true
@@ -42,9 +42,9 @@ function matchesKeyword(version: ResumeHistoryVersionRecord, keyword: string): b
 
 /** 按条件过滤 + 排序，返回新数组（不改原数组）。 */
 export function filterVersions(
-  versions: ResumeHistoryVersionRecord[],
+  versions: ResumeHistoryVersionListItem[],
   criteria: VersionFilterCriteria,
-): ResumeHistoryVersionRecord[] {
+): ResumeHistoryVersionListItem[] {
   const filtered = versions.filter((version) => {
     if (criteria.source !== 'all' && version.source_type !== criteria.source)
       return false

@@ -1,20 +1,22 @@
 import type { StoreApi } from 'zustand'
 import type { HistoryCurrentResume, RestoreStrategy, VersionMetadataDraft } from '../types'
 import type { HistoryStoreState } from './types'
-import type { ResumeHistoryVersionRecord } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryVersionListItem, ResumeHistoryVersionRecord, ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { toast } from 'sonner'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
-import { createResumeHistoryVersion, createResumeSnapshotHash, deleteResumeHistoryVersion, getResumeHistoryResume, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeHistoryVersion } from '@/lib/supabase/resume'
-import { buildCurrentResume, normalizeHistoryVersion, toVersionMutationPayload } from '../utils'
+import { createResumeHistoryVersion, createResumeSnapshotHash, deleteResumeHistoryVersion, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeHistoryVersion } from '@/lib/supabase/resume'
+import { buildCurrentResume, buildResumeSnapshot, normalizeHistoryVersion, normalizeHistoryVersionListItem, toVersionMutationPayload } from '../utils'
 
 export interface HistoryDataSlice {
   resumeId: string | null
   currentResume: HistoryCurrentResume | null
-  versions: ResumeHistoryVersionRecord[]
+  versions: ResumeHistoryVersionListItem[]
+  snapshotCache: Record<number, ResumeSnapshot>
   error: string | null
 
   init: (resumeId: string | null | undefined) => Promise<void>
   reload: () => Promise<void>
+  loadVersionSnapshot: (id: number) => Promise<ResumeSnapshot | null>
   saveCurrentVersion: (draft: VersionMetadataDraft) => Promise<ResumeHistoryVersionRecord | null>
   updateVersionMetadata: (versionId: number, draft: VersionMetadataDraft) => Promise<ResumeHistoryVersionRecord | null>
   restoreVersion: (versionId: number, strategy: RestoreStrategy) => Promise<ResumeHistoryVersionRecord | null>
@@ -32,8 +34,9 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
     ])
 
     set({
-      currentResume: buildCurrentResume(resume),
-      versions: versions.map(normalizeHistoryVersion),
+      currentResume: await buildCurrentResume(resume),
+      versions: versions.map(normalizeHistoryVersionListItem),
+      snapshotCache: {},
       error: null,
       loading: false,
     })
@@ -43,7 +46,24 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
     resumeId: null,
     currentResume: null,
     versions: [],
+    snapshotCache: {},
     error: null,
+
+    async loadVersionSnapshot(id) {
+      const cached = get().snapshotCache[id]
+      if (cached)
+        return cached
+      try {
+        const raw = await getResumeHistoryVersionSnapshot(id)
+        const snapshot = buildResumeSnapshot(raw)
+        set(state => ({ snapshotCache: { ...state.snapshotCache, [id]: snapshot } }))
+        return snapshot
+      }
+      catch (error) {
+        toast.error(error instanceof Error ? error.message : '加载版本内容失败')
+        return null
+      }
+    },
 
     async init(resumeId) {
       if (!resumeId) {
@@ -51,6 +71,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
           resumeId: null,
           currentResume: null,
           versions: [],
+          snapshotCache: {},
           loading: false,
           error: null,
         })
@@ -62,6 +83,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
           resumeId,
           currentResume: null,
           versions: [],
+          snapshotCache: {},
           loading: false,
           error: '当前仅支持查看云端简历的版本记录，请先同步到云端。',
         })
@@ -72,6 +94,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         resumeId,
         currentResume: null,
         versions: [],
+        snapshotCache: {},
         loading: true,
         error: null,
       })
@@ -86,6 +109,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
           error: message,
           currentResume: null,
           versions: [],
+          snapshotCache: {},
         })
         toast.error(message)
       }
@@ -135,7 +159,12 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
           }),
         )
 
-        set({ versions: [created, ...versions] })
+        // 列表存轻量项，snapshot 进缓存（避免刚保存又要重新拉一次）
+        const { snapshot: createdSnapshot, ...createdListItem } = created
+        set(state => ({
+          versions: [createdListItem, ...state.versions],
+          snapshotCache: { ...state.snapshotCache, [created.id]: createdSnapshot },
+        }))
         toast.success('当前版本已保存')
         return created
       }
@@ -161,9 +190,12 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
           await updateResumeHistoryVersion(versionId, toVersionMutationPayload(draft)),
         )
 
-        set({
-          versions: versions.map(version => version.id === updated.id ? updated : version),
-        })
+        // 列表存轻量项，snapshot 同步进缓存
+        const { snapshot: updatedSnapshot, ...updatedListItem } = updated
+        set(state => ({
+          versions: state.versions.map(version => version.id === updated.id ? updatedListItem : version),
+          snapshotCache: { ...state.snapshotCache, [updated.id]: updatedSnapshot },
+        }))
         toast.success('版本信息已更新')
         return updated
       }
@@ -186,10 +218,15 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       set({ restoring: true })
 
       try {
+        const targetSnapshot = await get().loadVersionSnapshot(versionId)
+        if (!targetSnapshot)
+          return null
+
         const restoredVersion = normalizeHistoryVersion(
           await restoreResumeHistoryVersion({
             resumeId,
             targetVersion,
+            targetSnapshot,
             currentSnapshot: currentResume.snapshot,
             currentUpdatedAt: currentResume.updatedAt,
             strategy,

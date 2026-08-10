@@ -1,6 +1,8 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
-import { useEffect } from 'react'
+import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
+import { useEffect, useState } from 'react'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useHistoryStore from '../../store'
 import HistoryResumePreview from '../shared/history-resume-preview'
@@ -14,12 +16,35 @@ interface HistoryDetailContentProps {
 
 export default function HistoryDetailContent({ state,
 }: HistoryDetailContentProps) {
-  const { currentResume } = useHistoryStore()
+  const { currentResume, loadVersionSnapshot, snapshotCache } = useHistoryStore()
   const { activeTab, setActiveTab } = state
 
-  const detailSnapshot = state.selectedEntry === 'current'
-    ? currentResume?.snapshot
-    : state.selectedVersion?.snapshot
+  const isCurrent = state.selectedEntry === 'current'
+  const selectedVersionId = isCurrent ? null : state.selectedVersion?.id ?? null
+
+  // 历史版本的 snapshot 按需加载（列表已不含 snapshot）
+  const [versionSnapshot, setVersionSnapshot] = useState<ResumeSnapshot | null>(null)
+
+  useEffect(() => {
+    if (selectedVersionId == null) {
+      setVersionSnapshot(null)
+      return
+    }
+    const cached = snapshotCache[selectedVersionId]
+    if (cached) {
+      setVersionSnapshot(cached)
+      return
+    }
+    let cancelled = false
+    setVersionSnapshot(null)
+    loadVersionSnapshot(selectedVersionId).then((snap) => {
+      if (!cancelled)
+        setVersionSnapshot(snap)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedVersionId, snapshotCache, loadVersionSnapshot])
 
   useEffect(() => {
     if (state.editing) {
@@ -27,7 +52,11 @@ export default function HistoryDetailContent({ state,
     }
   }, [state.editing, setActiveTab])
 
-  if (!detailSnapshot) {
+  // current 用当前内容 snapshot；历史版本用按需加载的
+  const resumeSnapshot = isCurrent ? currentResume?.snapshot ?? null : versionSnapshot
+
+  // 未选中任何条目（current 无当前简历、或未选版本）→ 不渲染
+  if (isCurrent ? !currentResume : !state.selectedVersion) {
     return null
   }
 
@@ -50,7 +79,7 @@ export default function HistoryDetailContent({ state,
         <TabsContent value="overview" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="scrollbar-gutter-stable scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="flex flex-col gap-4 px-4 py-4 pb-8 sm:px-6 sm:py-5 sm:pb-6">
-              {state.selectedEntry === 'current'
+              {isCurrent
                 ? <CurrentOverview />
                 : <HistoryVersionOverview state={state} />}
             </div>
@@ -60,7 +89,9 @@ export default function HistoryDetailContent({ state,
         <TabsContent value="resume" className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="scrollbar-gutter-stable scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="px-3 py-4 pb-8 sm:px-4 sm:py-5 sm:pb-6">
-              <HistoryResumePreview snapshot={detailSnapshot} />
+              {resumeSnapshot
+                ? <HistoryResumePreview snapshot={resumeSnapshot} />
+                : <Skeleton className="h-96 w-full" />}
             </div>
           </div>
         </TabsContent>

@@ -1,6 +1,6 @@
 import type { ResumeType } from '@/lib/schema'
-import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResume, deleteResumeHistoryVersion, getCompanies, getResumeById, getResumeHistoryResume, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
-import { buildResumeSnapshot, normalizeHistoryVersion } from '@/pages/history/utils'
+import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResume, deleteResumeHistoryVersion, getCompanies, getResumeById, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
+import { buildResumeSnapshot, normalizeHistoryVersionListItem } from '@/pages/history/utils'
 import useTrackerStore from '@/pages/tracker/store'
 import { FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
@@ -276,7 +276,7 @@ registerTool({
     const rawTarget = versions.find(v => v.id === versionId)
     if (!rawTarget)
       return { error: '未在当前简历下找到该版本' }
-    const target = normalizeHistoryVersion(rawTarget)
+    const target = normalizeHistoryVersionListItem(rawTarget)
 
     const strategy = args.backup === false ? 'without_backup' : 'with_backup'
 
@@ -291,9 +291,11 @@ registerTool({
       apply: async () => {
         const record = await getResumeHistoryResume(resumeId)
         const currentSnapshot = buildResumeSnapshot(record)
+        const targetSnapshot = buildResumeSnapshot(await getResumeHistoryVersionSnapshot(versionId))
         await restoreResumeHistoryVersion({
           resumeId,
           targetVersion: target,
+          targetSnapshot,
           currentSnapshot,
           currentUpdatedAt: record.updated_at,
           strategy,

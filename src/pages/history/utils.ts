@@ -1,7 +1,8 @@
 import type { HistoryCurrentResume, HistoryResumeOption, HistoryVersionGroup, VersionMetadataDraft } from './types'
-import type { ResumeHistoryOptionRecord, ResumeHistoryResumeRecord, ResumeHistoryVersionRecord, ResumeHistoryVersionRow, ResumeSnapshot } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryOptionRecord, ResumeHistoryResumeRecord, ResumeHistoryVersionListItem, ResumeHistoryVersionListRow, ResumeHistoryVersionRecord, ResumeHistoryVersionRow, ResumeSnapshot } from '@/lib/supabase/resume/history'
 import dayjs from 'dayjs'
 import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_ORDER, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_VISIBILITY, DEFAULT_WORK_EXPERIENCE, migrateOrder, migrateVisibility, normalizeResumeAppearance, normalizeResumeType, resolveResumeTemplateBinding } from '@/lib/schema'
+import { createResumeSnapshotHash } from '@/lib/supabase/resume'
 import { RESUME_TYPE_LABEL_MAP } from './const'
 
 interface SnapshotFieldConfig {
@@ -104,6 +105,10 @@ export function buildResumeSnapshot(source: unknown): ResumeSnapshot {
   }
 }
 
+export function normalizeHistoryVersionListItem(row: ResumeHistoryVersionListRow): ResumeHistoryVersionListItem {
+  return { ...row, tags: normalizeTags(row.tags) }
+}
+
 export function normalizeHistoryVersion(version: ResumeHistoryVersionRow): ResumeHistoryVersionRecord {
   return {
     ...version,
@@ -112,14 +117,16 @@ export function normalizeHistoryVersion(version: ResumeHistoryVersionRow): Resum
   }
 }
 
-export function buildCurrentResume(record: ResumeHistoryResumeRecord): HistoryCurrentResume {
+export async function buildCurrentResume(record: ResumeHistoryResumeRecord): Promise<HistoryCurrentResume> {
+  const snapshot = buildResumeSnapshot(record)
   return {
     resumeId: record.resume_id,
     displayName: record.display_name?.trim() || '未命名简历',
     description: record.description?.trim() || '',
     updatedAt: record.updated_at,
     type: normalizeResumeType(record.type),
-    snapshot: buildResumeSnapshot(record),
+    snapshot,
+    contentHash: await createResumeSnapshotHash(snapshot),
   }
 }
 
@@ -133,11 +140,11 @@ export function buildHistoryResumeOption(record: ResumeHistoryOptionRecord): His
   }
 }
 
-export function getVersionTitle(version: ResumeHistoryVersionRecord) {
+export function getVersionTitle(version: ResumeHistoryVersionListItem) {
   return version.version_name?.trim() || `版本 V${version.version_no}`
 }
 
-export function getVersionSubtitle(version: ResumeHistoryVersionRecord) {
+export function getVersionSubtitle(version: ResumeHistoryVersionListItem) {
   if (version.milestone_name?.trim()) {
     return version.milestone_name.trim()
   }
@@ -145,12 +152,14 @@ export function getVersionSubtitle(version: ResumeHistoryVersionRecord) {
   return `V${version.version_no}`
 }
 
-export function createMetadataDraft(version?: ResumeHistoryVersionRecord | null): VersionMetadataDraft {
+export function createMetadataDraft(version?: ResumeHistoryVersionListItem | null): VersionMetadataDraft {
   return {
     versionName: version?.version_name ?? '',
     milestoneName: version?.milestone_name ?? '',
     description: version?.description ?? '',
     tags: normalizeTags(version?.tags),
+    companyId: version?.company_id ?? null,
+    submittedAt: version?.submitted_at ?? null,
   }
 }
 
@@ -171,20 +180,22 @@ export function toVersionMutationPayload(draft: VersionMetadataDraft) {
     milestone_name: trimToNull(draft.milestoneName),
     description: trimToNull(draft.description),
     tags: normalizeTags(draft.tags),
+    company_id: draft.companyId || null,
+    submitted_at: draft.submittedAt || null,
   }
 }
 
 export function isMetadataDraftDirty(
   draft: VersionMetadataDraft,
-  version: ResumeHistoryVersionRecord | null | undefined,
+  version: ResumeHistoryVersionListItem | null | undefined,
 ) {
   const left = JSON.stringify(normalizeDraft(draft))
   const right = JSON.stringify(normalizeDraft(createMetadataDraft(version)))
   return left !== right
 }
 
-export function groupVersionsByDay(versions: ResumeHistoryVersionRecord[]): HistoryVersionGroup[] {
-  const groups = new Map<string, ResumeHistoryVersionRecord[]>()
+export function groupVersionsByDay(versions: ResumeHistoryVersionListItem[]): HistoryVersionGroup[] {
+  const groups = new Map<string, ResumeHistoryVersionListItem[]>()
 
   versions.forEach((version) => {
     const key = dayjs(version.created_at).format('YYYY-MM-DD')
@@ -222,7 +233,7 @@ export function getDateGroupLabel(value: string) {
   return date.format('YYYY 年 M 月 D 日')
 }
 
-export function getCurrentSyncState(currentResume: HistoryCurrentResume | null, versions: ResumeHistoryVersionRecord[]) {
+export function getCurrentSyncState(currentResume: HistoryCurrentResume | null, versions: ResumeHistoryVersionListItem[]) {
   if (!currentResume || versions.length === 0) {
     return {
       latestVersionNo: null,
@@ -230,9 +241,13 @@ export function getCurrentSyncState(currentResume: HistoryCurrentResume | null, 
     }
   }
 
+  const latest = versions[0]
+  // content_hash 为 null（迁移前旧数据）→ 保守显示「有未保存的更新」，不误报已同步
+  const synced = Boolean(latest?.content_hash) && latest.content_hash === currentResume.contentHash
+
   return {
-    latestVersionNo: versions[0]?.version_no ?? null,
-    synced: areSnapshotsEqual(currentResume.snapshot, versions[0]?.snapshot),
+    latestVersionNo: latest?.version_no ?? null,
+    synced,
   }
 }
 
@@ -276,6 +291,8 @@ function normalizeDraft(draft: VersionMetadataDraft) {
     milestoneName: draft.milestoneName.trim(),
     description: draft.description.trim(),
     tags: normalizeTags(draft.tags),
+    companyId: draft.companyId ?? null,
+    submittedAt: draft.submittedAt ?? null,
   }
 }
 

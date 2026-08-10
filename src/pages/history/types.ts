@@ -1,5 +1,5 @@
 import type { ResumeType } from '@/lib/schema'
-import type { ResumeHistoryVersionRecord, ResumeSnapshot } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryVersionListItem, ResumeSnapshot } from '@/lib/supabase/resume/history'
 
 export type { RestoreStrategy } from '@/lib/supabase/resume/history'
 
@@ -12,6 +12,7 @@ export interface HistoryCurrentResume {
   updatedAt: string | null
   type: ResumeType
   snapshot: ResumeSnapshot
+  contentHash: string
 }
 
 export interface HistoryResumeOption {
@@ -27,6 +28,8 @@ export interface VersionMetadataDraft {
   milestoneName: string
   description: string
   tags: string[]
+  companyId: string | null
+  submittedAt: string | null
 }
 
 export type PendingDiscardAction
@@ -36,5 +39,5 @@ export type PendingDiscardAction
 
 export interface HistoryVersionGroup {
   label: string
-  items: ResumeHistoryVersionRecord[]
+  items: ResumeHistoryVersionListItem[]
 }
