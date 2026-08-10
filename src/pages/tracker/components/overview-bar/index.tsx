@@ -53,11 +53,6 @@ export default function OverviewBar() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
           />
         </div>
-        <span className="text-[11px] text-muted-foreground">
-          {hasAppliedData
-            ? `进入筛选及以后的岗位占投递总数 ${stats.applied} 的比例`
-            : '还没有投递数据'}
-        </span>
       </div>
 
       {/* 竖分隔线 */}

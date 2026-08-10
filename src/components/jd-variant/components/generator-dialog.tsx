@@ -126,18 +126,18 @@ export function JdVariantDialog({
 
   return (
     <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
-      <ResponsiveDialogContent className="min-h-0 overflow-hidden sm:h-[min(82vh,720px)] sm:max-w-2xl">
-        <ResponsiveDialogHeader className="shrink-0 border-b px-6 pb-4 pt-6 text-left">
+      <ResponsiveDialogContent className="min-h-0 sm:max-h-[82vh] sm:max-w-2xl">
+        <ResponsiveDialogHeader className="shrink-0 gap-3 border-b px-6 pb-5 pt-6 text-left">
           <ResponsiveDialogTitle>JD 驱动派生简历</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="flex flex-col gap-1" aria-live="polite">
-            <span>根据目标岗位局部优化简历文案，事实型字段保持不变。</span>
-            <span>{`第 ${stepIndex} / ${total} 步`}</span>
+          <ResponsiveDialogDescription aria-live="polite">
+            根据目标岗位局部优化简历文案，事实型字段保持不变。
+            <span className="sr-only">{`当前第 ${stepIndex} / ${total} 步`}</span>
           </ResponsiveDialogDescription>
           <GeneratorStepIndicator phase={state.phase} />
         </ResponsiveDialogHeader>
 
-        <ScrollArea className="overflow-auto">
-          <div className="min-h-80 px-6 py-5">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="min-h-[220px] px-6 py-5">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={state.phase}

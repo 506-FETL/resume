@@ -15,6 +15,7 @@
 ## 文件结构
 
 **修改：**
+
 - `src/pages/tracker/store.ts` — 新增 `metricFilter` 状态与 `setMetricFilter` / `clearFilters`，`setFilterStatus` 互斥清空
 - `src/pages/tracker/types.ts` — 新增 `TrackerMetricKey` 类型
 - `src/pages/tracker/utils.ts` — 新增 `matchesMetric`，`filterJobs` 增加 `metricFilter` 参数
@@ -35,6 +36,7 @@
 - `src/pages/tracker/components/drawer/next-action/index.tsx` — 徽标/保存微交互（轻）
 
 **新建：**
+
 - `src/pages/tracker/components/overview-bar/metric-card.tsx` — 单个可点指标卡（含数字滚动）
 - `src/pages/tracker/hooks/use-count-up.ts` — 轻量数字滚动 hook（遵循 reduced-motion）
 
@@ -45,6 +47,7 @@
 ### 任务 1：新增 `TrackerMetricKey` 类型
 
 **文件：**
+
 - 修改：`src/pages/tracker/types.ts`
 
 - [ ] **步骤 1：追加类型**
@@ -66,6 +69,7 @@ export type TrackerMetricKey = 'applied' | 'interview' | 'offer' | 'pending'
 ### 任务 2：store 引入互斥筛选模型
 
 **文件：**
+
 - 修改：`src/pages/tracker/store.ts`
 
 - [ ] **步骤 1：扩展类型导入与接口**
@@ -126,6 +130,7 @@ import type { ApplicationStatus, JobApplication, TrackerMetricKey, TrackerSortBy
 ### 任务 3：utils 新增 `matchesMetric` 与 `filterJobs` 扩展
 
 **文件：**
+
 - 修改：`src/pages/tracker/utils.ts`
 
 - [ ] **步骤 1：导入 metric 类型**
@@ -197,6 +202,7 @@ export function filterJobs(
 ### 任务 4：轻量数字滚动 hook
 
 **文件：**
+
 - 创建：`src/pages/tracker/hooks/use-count-up.ts`
 
 - [ ] **步骤 1：实现 hook**
@@ -255,6 +261,7 @@ export function useCountUp(target: number, duration = 500): number {
 ### 任务 5：可点指标卡组件
 
 **文件：**
+
 - 创建：`src/pages/tracker/components/overview-bar/metric-card.tsx`
 
 - [ ] **步骤 1：实现 MetricCard**
@@ -317,6 +324,7 @@ export function MetricCard({ label, value, active, accent, onClick, index }: Met
 ### 任务 6：概览条主体重构（Hero KPI + 指标区）
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/overview-bar/index.tsx`
 
 - [ ] **步骤 1：整体替换实现**
@@ -416,6 +424,7 @@ export default function OverviewBar() {
 ### 任务 7：list/board 消费 metricFilter
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/list/index.tsx`
 - 修改：`src/pages/tracker/components/board/index.tsx`
 
@@ -493,6 +502,7 @@ const METRIC_LABELS: Record<'applied' | 'interview' | 'offer' | 'pending', strin
 ### 任务 8：Header 归档按钮文案化 + 空态禁用
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/header/index.tsx`
 
 - [ ] **步骤 1：计算归档数量**
@@ -542,6 +552,7 @@ const METRIC_LABELS: Record<'applied' | 'interview' | 'offer' | 'pending', strin
 ### 任务 9：归档信息条
 
 **文件：**
+
 - 修改：`src/pages/tracker/index.tsx`
 
 - [ ] **步骤 1：新增信息条**
@@ -600,6 +611,7 @@ import { Archive, X } from 'lucide-react'
 ### 任务 10：归档卡片/行视觉弱化
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/board/column-card.tsx`
 - 修改：`src/pages/tracker/components/list/job-card.tsx`
 - 修改：`src/pages/tracker/components/list/job-table.tsx`
@@ -674,6 +686,7 @@ import { Archive, X } from 'lucide-react'
 ### 任务 11：进度时间线节点点击语义改为「跳转」
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/drawer/progress-timeline.tsx`
 
 - [ ] **步骤 1：新增 onStageJump 回调并放宽可点范围**
@@ -734,6 +747,7 @@ interface ProgressTimelineProps {
 ### 任务 12：Drawer 头部推进主按钮 + 跳转确认流 + 自动回填当天
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/drawer/index.tsx`
 
 - [ ] **步骤 1：handleProgressChange 自动回填当天**
@@ -884,6 +898,7 @@ import { ArrowRight } from 'lucide-react'
 ### 任务 13：弱化阶段「完成前必须先填日期」硬拦截
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/drawer/use-stage-detail.ts`
 - 修改：`src/pages/tracker/components/drawer/stage-detail.tsx`
 
@@ -955,6 +970,7 @@ import { ArrowRight } from 'lucide-react'
 ### 任务 14：联系人保存按行拆分
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/drawer/contacts/index.tsx`
 
 - [ ] **步骤 1：新增按 id 的相等判断 + baseline 索引**
@@ -1129,6 +1145,7 @@ function contactEqual(a: TrackerContact | undefined, b: TrackerContact | undefin
 ### 任务 15：看板卡片 / 列表行 / 跟进记录入场动效
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/board/index.tsx`
 - 修改：`src/pages/tracker/components/list/job-table.tsx`
 - 修改：`src/pages/tracker/components/drawer/activity-timeline/index.tsx`
@@ -1204,6 +1221,7 @@ function contactEqual(a: TrackerContact | undefined, b: TrackerContact | undefin
 ### 任务 16：Drawer 内容 / Tab 切换淡入
 
 **文件：**
+
 - 修改：`src/pages/tracker/components/drawer/index.tsx`
 
 - [ ] **步骤 1：Tab 内容 AnimatePresence 淡入**

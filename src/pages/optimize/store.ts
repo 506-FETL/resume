@@ -200,21 +200,33 @@ const useAtsStore = create<AtsStore>()(
         setAnalysisState({ status: 'sending' })
         updateLog('send', '正在上传...')
 
-        let finalContent = ''
-
-        await runAtsStructured(resumeData, ({ content: streamContent, reasoning: streamReasoning }) => {
-          if (streamReasoning) {
-            setAnalysisState({ status: 'thinking', reasoning: streamReasoning })
-            updateLog('send', '已上传，开始思考...')
-          }
-          if (streamContent) {
-            setAnalysisState({ status: 'generating', content: streamContent })
-            finalContent = streamContent
-          }
-        })
+        // 关键：以 runAtsStructured 的返回值作为权威内容来源（与 jd-variant / ai-rewrite 一致），
+        // 回调仅用于驱动流式 UI。此前用节流回调闭包重建 finalContent，会因 throttle/flush 时序
+        // 丢失最后一段内容而误报「未返回有效内容」。
+        const { content: finalContent, reasoning: finalReasoning, finishReason } = await runAtsStructured(
+          resumeData,
+          ({ content: streamContent, reasoning: streamReasoning }) => {
+            if (streamReasoning) {
+              setAnalysisState({ status: 'thinking', reasoning: streamReasoning })
+              updateLog('send', '已上传，开始思考...')
+            }
+            if (streamContent) {
+              setAnalysisState({ status: 'generating', content: streamContent })
+            }
+          },
+        )
 
         if (!finalContent) {
-          throw new Error('未生成有效内容')
+          // 区分两种空内容：模型只产出了思考过程（H1）vs 完全无输出（网络/上游中断）。
+          if (finalReasoning) {
+            throw new Error('AI 只返回了思考过程，未生成评估结果（模型输出可能超时或被截断），请重新发起分析')
+          }
+          throw new Error('AI 未返回任何内容，请检查网络后重新发起分析')
+        }
+
+        // finish_reason==='length' 表示输出被 token 上限截断，JSON 必然不完整，提前给出可操作的提示。
+        if (finishReason === 'length') {
+          throw new Error('AI 输出内容过长被截断，评估结果不完整，请重新发起分析')
         }
 
         setAnalysisState({ status: 'received' })

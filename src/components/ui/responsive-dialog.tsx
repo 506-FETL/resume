@@ -89,7 +89,7 @@ export function ResponsiveDialog({
         {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
         <DialogContent
           className={cn(
-            'flex flex-col p-0 duration-200',
+            'flex flex-col overflow-hidden p-0 duration-200',
             variant === 'sidebar'
               ? 'h-[min(90vh,880px)] w-[calc(85vw)] sm:max-w-[min(1000px,calc(100vw-2rem))] lg:max-w-[min(1120px,85vw)]'
               : 'max-h-[85vh] sm:max-w-lg',

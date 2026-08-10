@@ -19,11 +19,25 @@ export function rangeKey(range?: readonly (string | null | undefined)[] | null):
   return Array.isArray(range) ? range.map(value => value ?? '').join('-') : ''
 }
 
+/**
+ * 展示层归一到「年月」：把 `YYYY-MM-DD`（历史数据精确到日）截断为 `YYYY-MM`。
+ * 只处理形如 YYYY-MM-DD / YYYY/MM/DD 的完整日期，其余（`至今`、已是 YYYY-MM、空值）原样返回。
+ */
+function toYearMonth(value: string): string {
+  const match = /^(\d{4})[-/](\d{1,2})[-/]\d{1,2}$/.exec(value.trim())
+  if (!match) {
+    return value
+  }
+  return `${match[1]}-${match[2].padStart(2, '0')}`
+}
+
 /** 展示用区间文案；缺开始时间返回空串，缺结束时间回落「至今」。 */
 export function formatRange(range?: readonly (string | null | undefined)[] | null): string {
   if (!range?.[0]) {
     return ''
   }
 
-  return `${range[0]} - ${range[1] || '至今'}`
+  const start = toYearMonth(range[0])
+  const end = range[1] ? toYearMonth(range[1]) : '至今'
+  return `${start} - ${end}`
 }

@@ -236,10 +236,10 @@ E) skill_specialty.skills
 - reason 中必须明确提醒"请按真实掌握情况删改"。
 
 F) basics.birthMonth
-- 期望格式是 "YYYY-MM-DD"。
+- 期望格式是 "YYYY-MM"。
 - 如果只是格式不规范，可用 replace_value + string 进行标准化。
 - 如果缺失真实日期，只能用 fill_field，after 示例：
-  "（待补充：出生日期 YYYY-MM-DD）"
+  "（待补充：出生年月 YYYY-MM）"
 
 ========================
 8. Locate.path 白名单（必须严格使用）

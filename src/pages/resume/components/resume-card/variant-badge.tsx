@@ -1,6 +1,8 @@
 import { GitBranch } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
+import { RESUME_BADGE_COLORS } from './const'
 
 export interface VariantBadgeProps {
   parentName: string | null
@@ -15,7 +17,7 @@ export function VariantBadge({ parentName, jdSnippet, matchRate }: VariantBadgeP
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className="gap-1" aria-label={`派生自 ${displayParent}`}>
+          <Badge variant="outline" className={cn('gap-1', RESUME_BADGE_COLORS.variant)} aria-label={`派生自 ${displayParent}`}>
             <GitBranch aria-hidden />
             {' '}
             派生

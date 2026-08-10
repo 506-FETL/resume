@@ -71,7 +71,7 @@ export default function DrawerStageDetail({
             onValueChange={value => handleStatusChange(value as StageStatus)}
             disabled={isViewingHistory}
           >
-            <SelectTrigger className={cn('w-full', colors.text)}>
+            <SelectTrigger className={colors.text}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

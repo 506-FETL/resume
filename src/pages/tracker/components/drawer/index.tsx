@@ -1,5 +1,5 @@
 import type { ApplicationStatus, DrawerTab } from '../../types'
-import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
+import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, XCircle } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -175,9 +175,15 @@ export default function JobDrawer() {
           <ArrowRight className="size-3.5" />
         </Button>
       )}
-      <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditing(true)}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 gap-1.5 px-2 text-xs sm:px-3"
+        aria-label="编辑信息"
+        onClick={() => setIsEditing(true)}
+      >
         <Pencil className="size-3.5" />
-        编辑信息
+        <span className="hidden sm:inline">编辑信息</span>
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -218,11 +224,6 @@ export default function JobDrawer() {
         {titleBlock}
         <div className="flex shrink-0 items-center gap-1">
           {toolbar}
-          {isMobile && (
-            <Button variant="ghost" size="icon-sm" aria-label="关闭" onClick={() => handleOpenChange(false)}>
-              <X />
-            </Button>
-          )}
         </div>
       </div>
       <DrawerMetaBar />

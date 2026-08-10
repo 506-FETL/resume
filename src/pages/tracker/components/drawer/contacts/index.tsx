@@ -166,60 +166,74 @@ export default function Contacts({ job }: ContactsProps) {
                 return (
                   <li key={contact.id} className="flex items-start gap-2 rounded-lg border bg-card p-3">
                     <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]">
-                      <Input
-                        value={contact.name}
-                        placeholder="姓名"
-                        className="h-8 font-medium"
-                        disabled={saving}
-                        onChange={e => handleFieldChange(contact.id, { name: e.target.value })}
-                      />
-                      <Input
-                        value={contact.role}
-                        placeholder="角色（如 HR / 面试官 / 内推人）"
-                        className="h-8"
-                        disabled={saving}
-                        onChange={e => handleFieldChange(contact.id, { role: e.target.value })}
-                      />
-                      <Input
-                        value={contact.channel}
-                        placeholder="联系方式（微信 / 邮箱 / 电话）"
-                        className="h-8"
-                        disabled={saving}
-                        onChange={e => handleFieldChange(contact.id, { channel: e.target.value })}
-                      />
-                      <Input
-                        value={contact.note}
-                        placeholder="备注"
-                        className="h-8"
-                        disabled={saving}
-                        onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
-                      />
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[11px] font-medium text-muted-foreground">姓名</span>
+                        <Input
+                          value={contact.name}
+                          placeholder="如 佘明聪"
+                          className="h-8 font-medium"
+                          disabled={saving}
+                          onChange={e => handleFieldChange(contact.id, { name: e.target.value })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[11px] font-medium text-muted-foreground">角色</span>
+                        <Input
+                          value={contact.role}
+                          placeholder="HR / 面试官 / 内推人"
+                          className="h-8"
+                          disabled={saving}
+                          onChange={e => handleFieldChange(contact.id, { role: e.target.value })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[11px] font-medium text-muted-foreground">联系方式</span>
+                        <Input
+                          value={contact.channel}
+                          placeholder="微信 / 邮箱 / 电话"
+                          className="h-8"
+                          disabled={saving}
+                          onChange={e => handleFieldChange(contact.id, { channel: e.target.value })}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[11px] font-medium text-muted-foreground">备注</span>
+                        <Input
+                          value={contact.note}
+                          placeholder="如账号、补充说明"
+                          className="h-8"
+                          disabled={saving}
+                          onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
+                        />
+                      </label>
                     </div>
-                    {rowDirty && (
+                    <div className="flex shrink-0 items-center gap-1 pt-[22px]">
+                      {rowDirty && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8"
+                          disabled={saving}
+                          onClick={() => handleSaveRow(contact.id)}
+                        >
+                          保存
+                        </Button>
+                      )}
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 shrink-0"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="删除联系人"
                         disabled={saving}
-                        onClick={() => handleSaveRow(contact.id)}
+                        onClick={() => {
+                          if (isPersisted)
+                            setPendingDeleteId(contact.id)
+                          else setContacts(prev => prev.filter(c => c.id !== contact.id))
+                        }}
                       >
-                        保存
+                        <Trash2 className="size-4" />
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      aria-label="删除联系人"
-                      disabled={saving}
-                      onClick={() => {
-                        if (isPersisted)
-                          setPendingDeleteId(contact.id)
-                        else setContacts(prev => prev.filter(c => c.id !== contact.id))
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    </div>
                   </li>
                 )
               })}

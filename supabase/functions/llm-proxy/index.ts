@@ -9,6 +9,7 @@ interface LLMProxyRequest {
   response_format?: unknown
   temperature?: number
   stream?: boolean
+  max_tokens?: number
   // Agent 支持：function calling（DeepSeek V4 官方支持，OpenAI 兼容）
   tools?: unknown
   tool_choice?: unknown
@@ -36,14 +37,32 @@ const HEAVY_RESUME_WRITE_TOOLS = new Set<string>([
   'delete_resume_version',
 ])
 
+// ATS 简历评估：系统提示词中包含固定标识串，服务端据此权威判定为 heavy（cost=3），
+// 与前端 src/lib/llm/index.ts runAtsStructured 的系统提示词保持一致。此判定不依赖客户端 action 字段（防伪造）。
+const ATS_SYSTEM_MARKER = 'ATS 简历评估引擎'
+
+function messagesContainAtsMarker(messages: unknown[]): boolean {
+  return messages.some((raw) => {
+    const m = raw as { role?: unknown, content?: unknown } | null
+    if (!m || typeof m !== 'object' || m.role !== 'system')
+      return false
+    return typeof m.content === 'string' && m.content.includes(ATS_SYSTEM_MARKER)
+  })
+}
+
 // 服务端权威 cost 判定：仅依据服务端可见的 payload，忽略客户端上报的 weight/action。
 // - 强制最低消耗：任何一次到达的 LLM 调用 cost 至少为 1。
+// - ATS 简历评估：系统提示词命中 ATS 标识 → heavy（cost=3）。
 // - 关键点：整段对话历史每次都会全量发来，必须只看「最后一条 role==='user' 之后」的消息（当前轮），
 //   否则历史里的旧 tool_calls 会把后续每一轮都误判为 heavy。
 // - 当前轮里若存在 assistant 消息的 tool_calls 命中 heavy 简历写工具 → 本次调用 heavy（cost=3）；否则 light（cost=1）。
 function computeCost(messages: unknown[]): { cost: number, action: string } {
   if (!Array.isArray(messages))
     return { cost: 1, action: 'chat' }
+
+  // ATS 评估为单轮请求，系统提示词命中即判 heavy。
+  if (messagesContainAtsMarker(messages))
+    return { cost: 3, action: 'ats' }
 
   // 定位最后一条 role==='user' 的下标
   let lastUserIdx = -1
@@ -104,6 +123,7 @@ Deno.serve(async (req) => {
       response_format,
       temperature = 0,
       stream = true,
+      max_tokens,
       tools,
       tool_choice,
       thinking,
@@ -195,6 +215,10 @@ Deno.serve(async (req) => {
 
     if (response_format) {
       requestBody.response_format = response_format
+    }
+
+    if (typeof max_tokens === 'number' && max_tokens > 0) {
+      requestBody.max_tokens = max_tokens
     }
 
     if (tools) {

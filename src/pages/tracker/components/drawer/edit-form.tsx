@@ -77,13 +77,6 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-3xl border border-border/60 bg-card/80 p-4 shadow-sm">
-        <h3 className="text-lg font-semibold tracking-tight">编辑信息</h3>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          这里用于补齐职位本身的信息。流程推进和阶段备注请回到上方跟进区处理。
-        </p>
-      </div>
-
       <FieldGroup className="gap-3">
         <Field>
           <FieldLabel htmlFor="company">公司名称</FieldLabel>

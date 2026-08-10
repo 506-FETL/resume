@@ -11,6 +11,7 @@ import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
 import DeleteResumeDialog from '../delete-resume-dialog'
 import EditResumeDialog from '../edit-resume-dialog'
+import { RESUME_BADGE_COLORS } from './const'
 import { VariantBadge } from './variant-badge'
 
 interface ResumeCardProps {
@@ -108,26 +109,26 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
               />
             )}
             {isGenerating && (
-              <Badge variant="secondary">
+              <Badge variant="outline" className={RESUME_BADGE_COLORS.generating}>
                 <GitBranch />
                 生成中
               </Badge>
             )}
             {isFailed && (
-              <Badge variant="destructive">
+              <Badge variant="outline" className={RESUME_BADGE_COLORS.failed}>
                 <GitBranch />
                 生成失败
               </Badge>
             )}
             {resume.isOffline
               ? (
-                  <Badge variant="secondary">
+                  <Badge variant="outline" className={RESUME_BADGE_COLORS.local}>
                     <HardDrive />
                     本地
                   </Badge>
                 )
               : (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className={RESUME_BADGE_COLORS.cloud}>
                     <Cloud />
                     云端
                   </Badge>

@@ -125,12 +125,12 @@ export default function DrawerDocument() {
       <div className="flex flex-col gap-1">
         <h3 className="text-lg font-semibold tracking-tight">投递简历</h3>
         <p className="text-sm text-muted-foreground">
-          这里展示当前绑定到该职位的简历预览。建议在投递前确认版本，避免后续回看时信息混乱。
+          当前绑定到该职位的简历预览
         </p>
       </div>
 
       <FieldGroup className="gap-5">
-        <Field>
+        <Field className="w-40">
           <FieldLabel htmlFor="resume-select">选择简历</FieldLabel>
           <Select
             value={job.resume_id || ''}

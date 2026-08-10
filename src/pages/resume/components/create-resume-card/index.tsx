@@ -5,10 +5,10 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { createOfflineResume } from '@/lib/offline-resume-manager'
 import { createNewResume } from '@/lib/supabase/resume/form'
@@ -120,11 +120,6 @@ export default function CreateResumeCard() {
           <DialogContent className="sm:max-w-135">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold">创建新简历</DialogTitle>
-              <DialogDescription className="text-base">
-                {isOnline
-                  ? '填写简历信息并选择基础模板类型。更多官方模板、社区模板和我的模板请前往“简历模板”页面。'
-                  : '填写简历信息并选择基础模板类型。更多官方模板、社区模板和我的模板请前往“简历模板”页面。'}
-              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateResume}>
               <FieldGroup className="gap-6 py-6">
@@ -173,16 +168,12 @@ export default function CreateResumeCard() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>兼容模板类型</SelectLabel>
                         <SelectItem value="default">默认</SelectItem>
                         <SelectItem value="modern">现代</SelectItem>
                         <SelectItem value="simple">简约</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-                  <FieldDescription>
-                    这是兼容旧流程的基础模板类型。更多可直接使用或自定义的模板，请前往“简历模板”页。
-                  </FieldDescription>
                 </Field>
               </FieldGroup>
 

@@ -79,16 +79,12 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
         <Input
           value={action}
           placeholder="例如：发送感谢信 / 跟进 HR 回复"
-          className="flex-1"
           onChange={e => setAction(e.target.value)}
         />
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn('justify-start font-normal sm:w-40', !selectedDate && 'text-muted-foreground')}
-            >
-              <CalendarIcon className="mr-2 size-4" />
+            <Button variant="outline">
+              <CalendarIcon />
               {selectedDate ? dayjs(selectedDate).format('YYYY-MM-DD') : '选择日期'}
             </Button>
           </PopoverTrigger>
