@@ -198,7 +198,7 @@ MeasurementSource 使用与 PrintedPages 完全相同的：
 - appearance。
 - 自托管字体。
 
-MeasurementSource 位于屏幕外且 `visibility: hidden`，保持真实布局；它不进入打印 ref。
+MeasurementSource 位于屏幕外且 `opacity: 0`，保持真实布局和可测量的 computed visibility；它不进入打印 ref。
 
 ### 7.2 边界采集
 
