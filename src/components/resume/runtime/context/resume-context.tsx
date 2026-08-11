@@ -77,7 +77,7 @@ export function ResumeContextProvider({
 export function useResumeContext() {
   const context = use(ResumeContext)
   if (!context) {
-    throw new Error('useResumeContext 必须在 ResumeWrapper 内部使用')
+    throw new Error('useResumeContext 必须在 ResumeContextProvider 内部使用')
   }
   return context
 }

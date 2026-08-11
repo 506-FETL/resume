@@ -31,7 +31,7 @@ export default function SidebarSkeleton({
     <div className="flex flex-col" style={{ lineHeight: spacing.lineHeight }}>
       {header}
       <div
-        className="grid md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]"
+        className="grid grid-cols-[minmax(0,220px)_minmax(0,1fr)]"
         style={{
           rowGap: spacing.sectionMargin,
           columnGap: '1.5rem',
