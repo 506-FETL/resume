@@ -116,7 +116,7 @@ export default function ResumePreview({ resumeRef, scrollContainerRef }: ResumeP
   }, [previewData, manifest])
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-auto p-3 md:p-8">
+    <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto p-3 md:p-8">
       <div ref={viewportRef} className="w-full min-w-0">
         <div className="flex justify-center">
           <div

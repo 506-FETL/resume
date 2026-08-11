@@ -19,7 +19,11 @@ function renderSection(section: ResolvedTemplateManifest['sections'][number], da
     return null
   }
 
-  return <Renderer key={`${section.sectionId}-${section.order}`} />
+  return (
+    <div key={`${section.sectionId}-${section.order}`} data-section={orderKey ?? section.renderer}>
+      <Renderer />
+    </div>
+  )
 }
 
 export function ResumeTemplateRuntime({
