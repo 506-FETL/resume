@@ -10,7 +10,7 @@ interface ExportDialogProps {
 }
 
 export default function ExportDialog({ trigger }: ExportDialogProps) {
-  const { exportToPdf, exportToDoc } = useResumeExportStore()
+  const { exportToPdf, exportToDoc, documentState } = useResumeExportStore()
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
 
   const handleExportPdf = async () => {
@@ -34,12 +34,16 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
           <DialogDescription>选择导出格式，导出内容将与页面预览保持一致。</DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={handleExportPdf}>
-            <Printer className="mr-2 size-4" />
-            导出 PDF
+          <Button
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={documentState.status !== 'ready'}
+          >
+            <Printer data-icon="inline-start" />
+            {documentState.status === 'measuring' ? '准备中…' : '导出 PDF'}
           </Button>
           <Button onClick={handleExportDoc}>
-            <FileText className="mr-2 size-4" />
+            <FileText data-icon="inline-start" />
             导出 Word
           </Button>
         </DialogFooter>

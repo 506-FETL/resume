@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import { create } from 'zustand'
@@ -8,36 +9,49 @@ import useResumeStore from './form'
 import { createResumeDocHtml } from './helpers'
 
 interface ResumeExportState {
-  resumeRef: RefObject<HTMLDivElement | null> | null
-  handlePrint: (() => void) | null
-  setResumeRef: (ref: RefObject<HTMLDivElement | null>) => void
-  setHandlePrint: (handlePrint: (() => void) | null) => void
+  sourceRef: RefObject<HTMLDivElement | null> | null
+  handlePrint: (() => Promise<boolean>) | null
+  documentState: ResumeDocumentState
+  setSourceRef: (ref: RefObject<HTMLDivElement | null>) => void
+  setHandlePrint: (handlePrint: (() => Promise<boolean>) | null) => void
+  setDocumentState: (state: ResumeDocumentState) => void
   exportToPdf: () => Promise<void>
   exportToDoc: () => void
 }
 
 const useResumeExportStore = create<ResumeExportState>((set, get) => ({
-  resumeRef: null,
+  sourceRef: null,
   handlePrint: null,
+  documentState: {
+    status: 'measuring',
+    signature: null,
+    fontFamily: 'Noto Sans SC',
+    fontWeights: [400, 600, 700],
+    error: null,
+  },
 
-  setResumeRef: (ref) => {
-    set({ resumeRef: ref })
+  setSourceRef: (ref) => {
+    set({ sourceRef: ref })
   },
 
   setHandlePrint: (handlePrint) => {
     set({ handlePrint })
   },
 
-  exportToPdf: async () => {
-    const { handlePrint, resumeRef } = get()
+  setDocumentState: (documentState) => {
+    set({ documentState })
+  },
 
-    if (!handlePrint || !resumeRef?.current) {
-      toast.warning('简历加载中')
+  exportToPdf: async () => {
+    const { documentState, handlePrint } = get()
+
+    if (documentState.status !== 'ready' || !handlePrint) {
+      toast.warning(documentState.error || '简历分页准备中')
       return
     }
 
     try {
-      handlePrint()
+      await handlePrint()
     }
     catch (error) {
       toast.error(`导出 PDF 失败,请稍后重试${error instanceof Error ? `: ${error.message}` : ''}`)
@@ -45,10 +59,10 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
   },
 
   exportToDoc: () => {
-    const { resumeRef } = get()
+    const { sourceRef } = get()
     const resumeName = useResumeStore.getState().basics.name
 
-    if (!resumeRef?.current) {
+    if (!sourceRef?.current) {
       toast.warning('简历加载中')
       return
     }
@@ -60,10 +74,7 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
       const resumeTheme = themeColorMap[themeConfig.theme]
       const fontSize = fontConfig.fontSize
 
-      const firstPage = resumeRef.current.querySelector('[data-resume-content]')
-      const rawHtml = firstPage ? firstPage.innerHTML : resumeRef.current.innerHTML
-
-      const contentHtml = rawHtml
+      const contentHtml = sourceRef.current.innerHTML
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         .replace(/\s*on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '')
 

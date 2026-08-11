@@ -1,7 +1,8 @@
+import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import { Edit } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useReactToPrint } from 'react-to-print'
+import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
@@ -32,8 +33,16 @@ function Editor() {
   const { theme } = useTheme()
   const { loading } = useResumeLoader()
 
-  const resumeRef = useRef<HTMLDivElement | null>(null)
+  const documentRef = useRef<HTMLDivElement | null>(null)
+  const sourceRef = useRef<HTMLDivElement | null>(null)
   const previewScrollRef = useRef<HTMLDivElement | null>(null)
+  const [documentState, setDocumentState] = useState<ResumeDocumentState>({
+    status: 'measuring',
+    signature: null,
+    fontFamily: 'Noto Sans SC',
+    fontWeights: [400, 600, 700],
+    error: null,
+  })
 
   const resumeName = useResumeStore(state => state.basics.name)
   const currentResumeId = useCurrentResumeStore(state => state.resumeId)
@@ -41,26 +50,26 @@ function Editor() {
   const currentDisplayName = currentResumeId
     ? (resumes.find(resume => resume.resume_id === currentResumeId)?.display_name ?? null)
     : null
-  const setResumeRef = useResumeExportStore(state => state.setResumeRef)
+  const setSourceRef = useResumeExportStore(state => state.setSourceRef)
   const setHandlePrint = useResumeExportStore(state => state.setHandlePrint)
-
-  const handlePrint = useReactToPrint({
-    contentRef: resumeRef,
+  const setExportDocumentState = useResumeExportStore(state => state.setDocumentState)
+  const handlePrint = useResumePrint({
+    contentRef: documentRef,
+    documentState,
     documentTitle: resumeName ? `${resumeName}-简历` : '我的简历',
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 0;
-      }
-    `,
   })
 
   useEffect(() => {
-    setResumeRef(resumeRef)
-  }, [setResumeRef])
+    setSourceRef(sourceRef)
+  }, [setSourceRef])
+
+  useEffect(() => {
+    setExportDocumentState(documentState)
+  }, [documentState, setExportDocumentState])
 
   useEffect(() => {
     setHandlePrint(handlePrint)
+    return () => setHandlePrint(null)
   }, [setHandlePrint, handlePrint])
 
   const activeTabId = useResumeStore(state => state.activeTabId)
@@ -118,7 +127,12 @@ function Editor() {
             <div className="relative h-full min-h-0 w-full">
               <div className="absolute inset-0 flex min-h-0 overflow-hidden">
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                  <ResumePreview resumeRef={resumeRef} scrollContainerRef={previewScrollRef} />
+                  <ResumePreview
+                    resumeRef={documentRef}
+                    sourceRef={sourceRef}
+                    onDocumentStateChange={setDocumentState}
+                    scrollContainerRef={previewScrollRef}
+                  />
                 </div>
                 <EditPanel
                   open={panelOpen}
@@ -185,7 +199,12 @@ function Editor() {
                 </DrawerContent>
               </Drawer>
               <div className="flex flex-col md:flex-row min-h-screen overflow-auto">
-                <ResumePreview resumeRef={resumeRef} scrollContainerRef={previewScrollRef} />
+                <ResumePreview
+                  resumeRef={documentRef}
+                  sourceRef={sourceRef}
+                  onDocumentStateChange={setDocumentState}
+                  scrollContainerRef={previewScrollRef}
+                />
               </div>
             </>
           )}
