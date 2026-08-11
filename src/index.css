@@ -2,6 +2,22 @@
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
 
+@font-face {
+  font-family: 'LXGW WenKai';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('@fontsource/lxgw-wenkai/files/lxgw-wenkai-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'LXGW WenKai';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@fontsource/lxgw-wenkai/files/lxgw-wenkai-latin-700-normal.woff2') format('woff2');
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
