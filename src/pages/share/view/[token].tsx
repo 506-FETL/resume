@@ -8,6 +8,7 @@ import { buildTemplateResumeData } from '@/components/resume/runtime/context/res
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { fetchSharedResume } from '@/lib/supabase/resume/share'
 import SharePdfExport from '../components/pdf-export'
 
@@ -33,7 +34,7 @@ export default function ResumeSharePage() {
   const [documentState, setDocumentState] = useState<ResumeDocumentState>({
     status: 'measuring',
     signature: null,
-    fontFamily: 'Noto Sans SC',
+    fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
     fontWeights: [400, 600, 700],
     error: null,
   })

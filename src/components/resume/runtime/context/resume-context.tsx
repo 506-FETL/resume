@@ -147,8 +147,8 @@ export const defaultSpacing: ResumeSpacing = {
 }
 
 export const defaultFont: ResumeFont = {
-  familyName: 'Noto Sans SC',
-  fontFamily: `'Noto Sans SC', sans-serif`,
+  familyName: 'Noto Sans SC Variable',
+  fontFamily: `'Noto Sans SC Variable', sans-serif`,
   nameSize: '1.875rem',
   jobIntentSize: '1rem',
   sectionTitleSize: '1rem',

@@ -74,11 +74,16 @@ export function collectPageBoundaries(root: HTMLElement) {
     if (!isVisible(element))
       return
     const rect = element.getBoundingClientRect()
-    const offset = rect.top - rootRect.top
-    if (rect.width > 0 && rect.height > 0 && offset > BOUNDARY_EPSILON) {
+    const top = rect.top - rootRect.top
+    const bottom = rect.bottom - rootRect.top
+    if (rect.width > 0 && rect.height > 0 && top > BOUNDARY_EPSILON) {
       candidates.push({
-        offset,
-        key: hash(`${getNodePath(element, root)}:atomic`),
+        offset: top,
+        key: hash(`${getNodePath(element, root)}:atomic-start`),
+      })
+      candidates.push({
+        offset: bottom,
+        key: hash(`${getNodePath(element, root)}:atomic-end`),
       })
     }
   })
@@ -214,10 +219,13 @@ export async function waitForResumeFont(
   if (!targetDocument.fonts)
     throw new Error('当前浏览器不支持字体状态检测')
 
-  await Promise.all(
+  const loadedFaces = await Promise.all(
     weights.map(weight =>
       targetDocument.fonts.load(`${weight} 16px "${familyName}"`)),
   )
+  if (loadedFaces.some(faces => faces.length === 0))
+    throw new Error(`字体 ${familyName} 未注册`)
+
   await targetDocument.fonts.ready
 
   const ready = weights.every(weight =>

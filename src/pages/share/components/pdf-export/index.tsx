@@ -25,10 +25,15 @@ export default function SharePdfExport({
     <Button
       variant="outline"
       disabled={documentState.status !== 'ready'}
+      title={documentState.error ?? undefined}
       onClick={() => handlePrint().catch(() => undefined)}
     >
       <FileDown data-icon="inline-start" />
-      {documentState.status === 'measuring' ? '准备中…' : '下载 PDF'}
+      {documentState.status === 'measuring'
+        ? '准备中…'
+        : documentState.status === 'error'
+          ? '分页失败'
+          : '下载 PDF'}
     </Button>
   )
 }

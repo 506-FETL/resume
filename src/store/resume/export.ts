@@ -3,7 +3,7 @@ import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import { create } from 'zustand'
-import { getFontFamilyCSS, themeColorMap } from '@/lib/schema'
+import { DEFAULT_RESUME_FONT_FAMILY_NAME, getFontFamilyCSS, themeColorMap } from '@/lib/schema'
 import useResumeConfigStore from './config'
 import useResumeStore from './form'
 import { createResumeDocHtml } from './helpers'
@@ -25,7 +25,7 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
   documentState: {
     status: 'measuring',
     signature: null,
-    fontFamily: 'Noto Sans SC',
+    fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
     fontWeights: [400, 600, 700],
     error: null,
   },

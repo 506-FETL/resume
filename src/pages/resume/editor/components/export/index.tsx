@@ -38,9 +38,14 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
             variant="outline"
             onClick={handleExportPdf}
             disabled={documentState.status !== 'ready'}
+            title={documentState.error ?? undefined}
           >
             <Printer data-icon="inline-start" />
-            {documentState.status === 'measuring' ? '准备中…' : '导出 PDF'}
+            {documentState.status === 'measuring'
+              ? '准备中…'
+              : documentState.status === 'error'
+                ? '分页失败'
+                : '导出 PDF'}
           </Button>
           <Button onClick={handleExportDoc}>
             <FileText data-icon="inline-start" />

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
 import ShareDialog from '@/pages/share/components/share-dialog'
@@ -39,7 +40,7 @@ function Editor() {
   const [documentState, setDocumentState] = useState<ResumeDocumentState>({
     status: 'measuring',
     signature: null,
-    fontFamily: 'Noto Sans SC',
+    fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
     fontWeights: [400, 600, 700],
     error: null,
   })

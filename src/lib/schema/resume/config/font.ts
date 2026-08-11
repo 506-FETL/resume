@@ -6,6 +6,8 @@ export const RESUME_FONT_FAMILIES = {
   wenkai: 'lxgw-wenkai',
 } as const
 
+export const DEFAULT_RESUME_FONT_FAMILY_NAME = 'Noto Sans SC Variable'
+
 export const fontFamilyOptions = [
   { label: '无衬线', value: RESUME_FONT_FAMILIES.sans },
   { label: '衬线', value: RESUME_FONT_FAMILIES.serif },
@@ -63,11 +65,11 @@ export const DEFAULT_FONT_CONFIG: FontConfigType = {
 export function getFontFamilyName(fontFamily: ResumeFontFamily) {
   switch (fontFamily) {
     case RESUME_FONT_FAMILIES.serif:
-      return 'Noto Serif SC'
+      return 'Noto Serif SC Variable'
     case RESUME_FONT_FAMILIES.wenkai:
       return 'LXGW WenKai'
     default:
-      return 'Noto Sans SC'
+      return DEFAULT_RESUME_FONT_FAMILY_NAME
   }
 }
 

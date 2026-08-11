@@ -10,6 +10,7 @@ import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplat
 import { Button } from '@/components/ui/button'
 import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
 import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
+import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import useHistoryStore from '../../store'
 
 interface VersionPdfExportButtonProps {
@@ -33,7 +34,7 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   const [documentState, setDocumentState] = useState<ResumeDocumentState>({
     status: 'measuring',
     signature: null,
-    fontFamily: 'Noto Sans SC',
+    fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
     fontWeights: [400, 600, 700],
     error: null,
   })
@@ -97,13 +98,11 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   ])
 
   const handleExport = async () => {
-    if (
-      snapshot
-      && previewData
-      && manifest
-      && documentState.status === 'ready'
-    ) {
-      await handlePrint()
+    if (snapshot && previewData && manifest) {
+      if (documentState.status !== 'measuring')
+        await handlePrint()
+      else
+        shouldPrintRef.current = true
       return
     }
 
@@ -129,7 +128,7 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
         onClick={handleExport}
       >
         {loading ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : <FileDown data-icon="inline-start" />}
-        导出 PDF
+        {documentState.status === 'measuring' && snapshot ? '准备中…' : '导出 PDF'}
       </Button>
 
       {snapshot && previewData && manifest && (
