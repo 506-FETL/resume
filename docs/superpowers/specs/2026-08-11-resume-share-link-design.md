@@ -20,7 +20,7 @@
 | 隐私范围 | **沿用简历现有可见性**（visibility），与导出 PDF 行为一致 |
 | 下载权限 | **允许访问者下载 PDF** |
 | 管理入口 | **编辑器内** + **简历列表卡片** 双入口 |
-| 路由形式 | **完整路径 `/resume/view/:token`** |
+| 路由形式 | **完整路径 `/share/view/:token`** |
 | 密码哈希 | **服务端计算哈希**（明文不落库、不进前端日志） |
 
 ## 2. 关键技术约束（探索得出）
@@ -45,6 +45,7 @@
 | `token` | text unique not null | 访问凭证，长随机串，URL 用它 |
 | `label` | text | 链接名称（如「字节专用」），owner 自定义 |
 | `snapshot` | jsonb not null | 固化的简历内容，形态 = `PersistedResumeSnapshot` |
+| `template_manifest` | jsonb not null | 固化的模板 manifest，保证私有自定义模板也能在匿名页按分享时样式渲染 |
 | `display_name` | text | 快照时的简历标题（分享页标题栏用） |
 | `is_active` | boolean not null default true | 撤销 = 置 false（软删除，保留统计） |
 | `password_hash` | text null | 访问密码哈希（null = 开即看）；可变字段，切换密码即改它 |
@@ -62,7 +63,7 @@
 
 ### RLS 策略
 
-- owner 对自己的记录有全部权限（select/insert/update/delete）——`auth.uid() = user_id`，用于管理面板。
+- owner 对自己的记录有 RLS 管理权限（select/insert/update/delete）——`auth.uid() = user_id`。数据库列权限进一步限制 owner 客户端：管理列表只能读取链接元数据与派生的 `has_password`，不能读取 `password_hash`、正文 `snapshot` 或 `template_manifest`。
 - 匿名 / 任何人**不能直接 SELECT 这张表**（避免拖库、避免读到 `password_hash`）。
 - 匿名读取简历内容走 Edge Function（第 4 节），使用 service_role 绕过 RLS 并脱敏。
 
@@ -78,13 +79,13 @@
 2. `is_active = false` → 返回「链接已关闭」。
 3. `expires_at` 已过 → 返回「链接已过期」。
 4. `password_hash` 非空且请求未带正确密码 → 返回 `{ needPassword: true }`，**不返回简历内容**。
-5. 校验通过 → 原子自增 `view_count`、更新 `last_viewed_at`，返回 `{ snapshot, display_name }`。**永不返回 `password_hash`、`user_id` 等敏感字段。**
+5. 校验通过 → 通过 service-role-only RPC 原子自增 `view_count`、更新 `last_viewed_at`，返回 `{ snapshot, template_manifest, display_name }`。**永不返回 `password_hash`、`user_id` 等敏感字段。**
 
 为降低信息泄露，「不存在 / 已关闭 / 已过期」对访问者可用统一空状态文案（内部可区分，前端展示收敛）。
 
 ### 4.2 密码写入（owner 鉴权）
 
-设密码 / 改密码 / 清密码时，前端把明文密码 POST 给该 Function，携带 owner JWT：Function 校验身份（`user_id = auth.uid()` 且该 share 属于此 owner）→ 用 bcrypt 算哈希 → 写入 `password_hash`（清密码则置 null）。明文不落库、不进前端日志。
+设密码 / 改密码 / 清密码时，前端把明文密码 POST 给该 Function，携带 owner JWT：Function 校验身份（`user_id = auth.uid()` 且该 share 属于此 owner）→ 用 Web Crypto PBKDF2-SHA256 生成带随机盐的 hash → 写入 `password_hash`（清密码则置 null）。明文不落库、不进前端日志。
 
 ### 4.3 为什么用 Edge Function 而非直接开 anon SELECT
 
@@ -98,7 +99,12 @@
 
 点击「分享」时，从当前 store 完整状态（`getFormPayload` + 外观配置）序列化出 `PersistedResumeSnapshot`。store 里富文本字段已是 Yjs 合并后的最新 HTML，快照天然完整，避免协作富文本遗漏。
 
-### 5.2 新增 Zustand store：`src/store/resume-share/`（应用级）
+写入分享表之前执行两层脱敏与固化：
+
+- `visibility` 标记隐藏的模块替换为空默认值，避免访问者从网络响应中恢复 UI 未展示的隐私内容。
+- 解析当前模板并固化 `template_manifest`；移除模板 owner id 与私有模板 binding id，匿名查看页不再需要读取 owner-only `resume_templates`。
+
+### 5.2 页面级 Zustand store：`src/pages/share/store.ts`
 
 跨「编辑器内」「列表卡片」两入口共享。actions：
 
@@ -129,7 +135,7 @@
 
 ### 6.1 路由与外壳
 
-新增 `src/pages/resume/view/[token].tsx` → `/resume/view/:token`。此页**不套** `DashboardShell` / `AssistantShell`（面向外部匿名者，不应出现登录用户侧边栏 / 导航）。在 `App.tsx` 外壳判断中为 `view` 路由开「裸壳」分支。
+新增 `src/pages/share/view/[token].tsx` → `/share/view/:token`。此页**不套** `DashboardShell` / `AssistantShell`（面向外部匿名者，不应出现登录用户侧边栏 / 导航）。在 `App.tsx` 外壳判断中为 `view` 路由开「裸壳」分支。
 
 ### 6.2 页面状态机
 
@@ -163,9 +169,9 @@
 新增：
 - `supabase/migrations/20260811xxxxxx_add_resume_shares.sql`
 - `supabase/functions/resume-share/index.ts`
-- `src/store/resume-share/`（store 与类型）
-- `src/lib/supabase/resume-share/`（数据访问封装）
-- `src/pages/resume/view/[token].tsx`（分享页）
+- `src/pages/share/store.ts`、`types.ts`、`utils.ts`
+- `src/lib/supabase/resume/share.ts`（数据访问封装）
+- `src/pages/share/view/[token].tsx`（分享页）
 - `ShareDialog` 组件（位置待计划确定）
 
 修改：

@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
+import useResumeListStore from '@/pages/resume/store'
+import ShareDialog from '@/pages/share/components/share-dialog'
+import useCurrentResumeStore from '@/store/resume/current'
 import useResumeExportStore from '@/store/resume/export'
 import useResumeStore from '@/store/resume/form'
 import CollaborationPanelProvider from './components/collaboration'
@@ -32,6 +36,11 @@ function Editor() {
   const previewScrollRef = useRef<HTMLDivElement | null>(null)
 
   const resumeName = useResumeStore(state => state.basics.name)
+  const currentResumeId = useCurrentResumeStore(state => state.resumeId)
+  const resumes = useResumeListStore(state => state.resumes)
+  const currentDisplayName = currentResumeId
+    ? (resumes.find(resume => resume.resume_id === currentResumeId)?.display_name ?? null)
+    : null
   const setResumeRef = useResumeExportStore(state => state.setResumeRef)
   const setHandlePrint = useResumeExportStore(state => state.setHandlePrint)
 
@@ -181,6 +190,12 @@ function Editor() {
             </>
           )}
       <CollaborationDialog />
+      <ShareDialog
+        getSnapshot={() => buildResumeShareSnapshotSource(
+          useResumeStore.getState().getPersistedSnapshot(),
+          currentDisplayName,
+        )}
+      />
     </CollaborationPanelProvider>
   )
 }

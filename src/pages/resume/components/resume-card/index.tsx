@@ -1,12 +1,13 @@
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from '../../types'
-import { Cloud, Edit2, FileText, GitBranch, HardDrive, Sparkles, X } from 'lucide-react'
+import { Cloud, Edit2, FileText, GitBranch, HardDrive, Share2, Sparkles, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import useResumeListStore from '@/pages/resume/store'
+import useShareStore from '@/pages/share/store'
 import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
 import DeleteResumeDialog from '../delete-resume-dialog'
@@ -21,6 +22,7 @@ interface ResumeCardProps {
 export default function ResumeCard({ resume }: ResumeCardProps) {
   const { deleteResume, updateResume, openDeriveFor, resumes } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
+  const { openDialog: openShareDialog } = useShareStore()
 
   const navigate = useNavigate()
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -74,6 +76,13 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
       return
     setCurrentResume(parent.resume_id, parent.type)
     navigate('/resume/editor')
+  }
+
+  const handleShareClick = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    if (resume.isOffline)
+      return
+    openShareDialog(resume.resume_id, resume.display_name || '未命名简历')
   }
 
   return (
@@ -157,20 +166,32 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
             </Button>
           )}
         </CardContent>
-        <CardFooter className="mt-auto grid grid-cols-2 gap-2 px-5">
-          <Button variant="outline" onClick={handleEditClick} className="flex-1">
-            <Edit2 data-icon="inline-start" />
-            编辑信息
-          </Button>
+        <CardFooter className="mt-auto flex flex-col gap-2 px-5">
+          <div className="grid w-full grid-cols-2 gap-2">
+            <Button variant="outline" onClick={handleEditClick} className="flex-1">
+              <Edit2 data-icon="inline-start" />
+              编辑信息
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDeriveClick}
+              className="flex-1"
+              disabled={isGenerating}
+              aria-label="派生针对性版本"
+            >
+              <Sparkles data-icon="inline-start" />
+              派生
+            </Button>
+          </div>
           <Button
             variant="outline"
-            onClick={handleDeriveClick}
-            className="flex-1"
-            disabled={isGenerating}
-            aria-label="派生针对性版本"
+            onClick={handleShareClick}
+            className="w-full"
+            disabled={resume.isOffline}
+            title={resume.isOffline ? '离线简历需先同步到云端才能分享' : undefined}
           >
-            <Sparkles data-icon="inline-start" />
-            派生
+            <Share2 data-icon="inline-start" />
+            {resume.isOffline ? '同步后可分享' : '分享'}
           </Button>
         </CardFooter>
       </Card>

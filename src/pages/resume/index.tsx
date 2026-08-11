@@ -6,7 +6,10 @@ import { DerivedJobsDialog } from '@/components/jd-variant/components/tasks-dial
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
+import ShareDialog from '@/pages/share/components/share-dialog'
+import useShareStore from '@/pages/share/store'
 import useCurrentResumeStore from '@/store/resume/current'
 import CreateResumeCard from './components/create-resume-card'
 import HeadBars from './components/head-bars'
@@ -16,6 +19,7 @@ import SyncResumesDialog from './components/sync-resumes-dialog'
 export default function ResumePage() {
   const { resumes, loading, isOnline, syncingIds, loadResumes, setupRealtimeSubscription, filterMode, setFilterMode, derivePendingFor, openDeriveFor, derivedJobsOpen, setDerivedJobsOpen } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
+  const { openForResumeId: shareOpenForResumeId } = useShareStore()
   const navigate = useNavigate()
   const shouldReduceMotion = useReducedMotion()
   const retainedDeriveParentId = useRef<string | null>(derivePendingFor)
@@ -117,6 +121,14 @@ export default function ResumePage() {
       </motion.div>
 
       <SyncResumesDialog />
+
+      <ShareDialog
+        getSnapshot={async () => {
+          if (!shareOpenForResumeId)
+            throw new Error('未选择简历')
+          return getResumeSnapshotById(shareOpenForResumeId)
+        }}
+      />
 
       <DerivedJobsDialog open={derivedJobsOpen} onOpenChange={setDerivedJobsOpen} />
 

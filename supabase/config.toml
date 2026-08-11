@@ -1,0 +1,2 @@
+[functions.resume-share]
+verify_jwt = false

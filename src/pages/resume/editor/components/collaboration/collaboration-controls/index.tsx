@@ -1,8 +1,12 @@
-import { ArrowUpDown, Clock, Loader2, Radio, Save, Share2 } from 'lucide-react'
+import { ArrowUpDown, Clock, Link2, Loader2, Radio, Save, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { cn } from '@/lib/utils'
+import useResumeListStore from '@/pages/resume/store'
+import useShareStore from '@/pages/share/store'
+import { useCurrentResumeStore } from '@/store/resume'
 import { formatTime } from '@/utils/date'
 import { useCollaborationPanel } from '../context'
 
@@ -26,6 +30,18 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
     shareButtonTooltip,
     participantCount,
   } = useCollaborationPanel()
+
+  const resumeId = useCurrentResumeStore(state => state.resumeId)
+  const resumes = useResumeListStore(state => state.resumes)
+  const resumeName = resumeId ? (resumes.find(r => r.resume_id === resumeId)?.display_name ?? null) : null
+  const { openDialog: openShareDialog } = useShareStore()
+  const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
+  const canShare = Boolean(resumeId) && !isOffline
+  const shareDisabledReason = !resumeId
+    ? '当前未选择简历'
+    : isOffline
+      ? '离线简历需先同步到云端才能分享'
+      : undefined
 
   const HeaderTag = plain ? 'div' : DrawerHeader
   const TitleTag = plain ? 'div' : DrawerTitle
@@ -67,6 +83,16 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
           </TooltipTrigger>
           <TooltipContent side="bottom">{shareButtonTooltip}</TooltipContent>
         </Tooltip>
+        <Button
+          size={isMobile ? 'icon' : 'sm'}
+          variant="outline"
+          onClick={() => resumeId && openShareDialog(resumeId, resumeName)}
+          disabled={!canShare}
+          title={shareDisabledReason}
+        >
+          <Link2 className="size-4" />
+          {!isMobile && '分享'}
+        </Button>
         {isSharing && (
           <span className="text-xs font-medium text-emerald-600">
             协作人数

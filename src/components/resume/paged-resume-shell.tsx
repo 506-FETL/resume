@@ -6,7 +6,18 @@ import { useResumeStyles } from '@/hooks/use-resume-styles'
 const A4_HEIGHT_MM = 297
 const MM_TO_PX = 3.7795275591
 
-export default function PagedResumeShell({ children, ref, appearance }: PropsWithChildren<{ ref?: Ref<HTMLDivElement> | null, appearance?: Partial<ResumeAppearanceConfig> | null }>) {
+export default function PagedResumeShell({
+  children,
+  ref,
+  appearance,
+  onReadyChange,
+  contentVersion,
+}: PropsWithChildren<{
+  ref?: Ref<HTMLDivElement> | null
+  appearance?: Partial<ResumeAppearanceConfig> | null
+  onReadyChange?: (ready: boolean) => void
+  contentVersion?: string
+}>) {
   const { appearance: resolvedAppearance } = useResumeStyles(appearance)
   const spacingConfig = resolvedAppearance.spacing
   const fontConfig = resolvedAppearance.font
@@ -17,11 +28,15 @@ export default function PagedResumeShell({ children, ref, appearance }: PropsWit
   const followingPageViewportHeight = a4HeightPx
 
   useEffect(() => {
+    let readyFrame = 0
+    onReadyChange?.(false)
+
     const updatePageCount = () => {
       if (!contentRef.current) {
         return
       }
 
+      onReadyChange?.(false)
       const contentHeight = contentRef.current.scrollHeight
       const tolerance = 5
       const adjustedContentHeight = Math.max(0, contentHeight - tolerance)
@@ -30,6 +45,16 @@ export default function PagedResumeShell({ children, ref, appearance }: PropsWit
         : 1 + Math.ceil((adjustedContentHeight - firstPageViewportHeight) / followingPageViewportHeight)
 
       setPageCount(calculatedPages)
+      cancelAnimationFrame(readyFrame)
+      const markReady = () => {
+        readyFrame = requestAnimationFrame(() => {
+          readyFrame = requestAnimationFrame(() => onReadyChange?.(true))
+        })
+      }
+      if (document.fonts?.ready)
+        document.fonts.ready.then(markReady)
+      else
+        markReady()
     }
 
     const resizeObserver = new ResizeObserver(updatePageCount)
@@ -40,7 +65,9 @@ export default function PagedResumeShell({ children, ref, appearance }: PropsWit
     updatePageCount()
 
     return () => {
+      cancelAnimationFrame(readyFrame)
       resizeObserver.disconnect()
+      onReadyChange?.(false)
     }
   }, [
     spacingConfig.pageMargin,
@@ -50,6 +77,8 @@ export default function PagedResumeShell({ children, ref, appearance }: PropsWit
     fontConfig.fontFamily,
     firstPageViewportHeight,
     followingPageViewportHeight,
+    onReadyChange,
+    contentVersion,
   ])
 
   return (

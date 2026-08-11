@@ -17,29 +17,32 @@ function App() {
   const isAssistantRoute
     = location.pathname === '/assistant'
       || location.pathname.startsWith('/assistant/')
+  const isShareViewRoute = location.pathname.startsWith('/share/view/')
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <AnimatePresence mode="wait">
         <motion.div
-          key={isAssistantRoute ? 'assistant' : 'dashboard'}
+          key={isShareViewRoute ? 'share' : isAssistantRoute ? 'assistant' : 'dashboard'}
           initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.98 }}
           transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
           className="h-dvh w-full"
         >
-          {isAssistantRoute
-            ? (
-                <AssistantShell>
-                  <Suspense fallback={<Loading />}>{element}</Suspense>
-                </AssistantShell>
-              )
-            : (
-                <DashboardShell routeKey={location.pathname}>
-                  <Suspense fallback={<Loading />}>{element}</Suspense>
-                </DashboardShell>
-              )}
+          {isShareViewRoute
+            ? <Suspense fallback={<Loading />}>{element}</Suspense>
+            : isAssistantRoute
+              ? (
+                  <AssistantShell>
+                    <Suspense fallback={<Loading />}>{element}</Suspense>
+                  </AssistantShell>
+                )
+              : (
+                  <DashboardShell routeKey={location.pathname}>
+                    <Suspense fallback={<Loading />}>{element}</Suspense>
+                  </DashboardShell>
+                )}
         </motion.div>
       </AnimatePresence>
       <Toaster position="top-right" richColors />

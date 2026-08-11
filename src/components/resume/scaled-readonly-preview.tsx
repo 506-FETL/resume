@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
@@ -13,6 +14,8 @@ interface ScaledReadonlyPreviewProps {
   appearance?: Partial<ResumeAppearanceConfig> | null
   manifest?: TemplateManifest | null
   className?: string
+  documentRef?: Ref<HTMLDivElement>
+  onDocumentReadyChange?: (ready: boolean) => void
 }
 
 export default function ScaledReadonlyPreview({
@@ -20,6 +23,8 @@ export default function ScaledReadonlyPreview({
   appearance,
   manifest: manifestOverride,
   className,
+  documentRef,
+  onDocumentReadyChange,
 }: ScaledReadonlyPreviewProps) {
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const [canvas, setCanvas] = useState<HTMLDivElement | null>(null)
@@ -27,6 +32,16 @@ export default function ScaledReadonlyPreview({
   const [scaledHeight, setScaledHeight] = useState<number | null>(null)
   const [scaledWidth, setScaledWidth] = useState<number | null>(null)
   const [manifest, setManifest] = useState(() => getBuiltInTemplateManifest(data.type))
+  const documentVersion = JSON.stringify([
+    data,
+    manifest.id,
+    manifest.version,
+    appearance,
+  ])
+
+  useEffect(() => {
+    onDocumentReadyChange?.(false)
+  }, [data, manifestOverride, onDocumentReadyChange])
 
   useEffect(() => {
     let cancelled = false
@@ -133,7 +148,12 @@ export default function ScaledReadonlyPreview({
               width: 'fit-content',
             }}
           >
-            <PagedResumeShell appearance={appearance}>
+            <PagedResumeShell
+              ref={documentRef}
+              appearance={appearance}
+              onReadyChange={onDocumentReadyChange}
+              contentVersion={documentVersion}
+            >
               <ResumeTemplateRuntime data={data} manifest={manifest} appearance={appearance} />
             </PagedResumeShell>
           </div>

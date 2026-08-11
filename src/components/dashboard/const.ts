@@ -1,4 +1,4 @@
-import { Axe, FileUser, FolderKanban, History, HomeIcon, LayoutTemplate, PencilRuler, Settings } from 'lucide-react'
+import { Axe, FileUser, FolderKanban, History, HomeIcon, LayoutTemplate, PencilRuler, Settings, Share2 } from 'lucide-react'
 
 export const Data = {
   modules: [
@@ -11,6 +11,11 @@ export const Data = {
       title: '我的简历',
       url: '/resume',
       icon: FileUser,
+    },
+    {
+      title: '分享管理',
+      url: '/share',
+      icon: Share2,
     },
     {
       title: '求职看板',

@@ -162,6 +162,27 @@ AI 从五个维度评估你的简历：
 
 ---
 
+### 🔗 简历只读分享
+
+云端简历可以生成多个独立的只读分享链接，适合分别发送给不同公司、HR 或猎头：
+
+- 分享内容在生成链接时固化为快照，后续编辑不会意外改变已投递版本
+- 每个链接可独立命名、设置有效期、随时关闭或重新启用
+- 默认拿到链接即可查看，也可随时设置、修改或移除访问密码
+- 管理界面展示成功查看请求次数与最后查看时间，并支持一键推送最新版
+- 匿名查看页保留简历当时的模板与排版，并允许下载 PDF
+
+侧边栏「分享管理」可跨简历集中搜索、筛选和管理全部链接；快速分享入口同时位于简历编辑器和「我的简历」卡片。离线简历需先同步到云端，才能生成外部可访问链接。
+
+分享页路由：
+
+```text
+/share
+/share/view/:token
+```
+
+---
+
 ### 📋 求职进度追踪与 CRM
 
 **可视化管道**
@@ -271,7 +292,17 @@ pnpm dev
 访问 `http://localhost:5173` 开始使用。
 
 > [!WARNING]
-> **数据库初始化**：在你的 Supabase 项目中按顺序执行 `supabase/migrations/` 下的 SQL。除核心表（`resume_config`、`resume_config_versions`、`ats`、`company`、`resume_templates`）外，最新迁移还会为 `resume_config` 增加 JD 派生字段，为 `company` 增加求职 CRM 字段，并创建 AI 助手使用的 `ai_conversations`、`ai_messages`、私有 `chat-uploads` bucket 与 owner-only 历史搜索 RPC。
+> **数据库初始化**：在你的 Supabase 项目中按顺序执行 `supabase/migrations/` 下的 SQL。除核心表（`resume_config`、`resume_config_versions`、`ats`、`company`、`resume_templates`）外，最新迁移还会为 `resume_config` 增加 JD 派生字段，为 `company` 增加求职 CRM 字段，创建 AI 助手使用的 `ai_conversations`、`ai_messages`、私有 `chat-uploads` bucket 与 owner-only 历史搜索 RPC，并新增只读分享使用的 `resume_shares` 表。
+
+只读分享还需要部署匿名可访问的 `resume-share` Edge Function：
+
+```bash
+supabase functions deploy resume-share --no-verify-jwt
+```
+
+`--no-verify-jwt` 只关闭 Supabase 网关的统一 JWT 前置校验；Function 内部仍会对设置密码等 owner 写操作单独校验用户 JWT，匿名请求只能读取通过 token、状态、有效期与密码校验的脱敏快照。
+
+密码使用 Edge Runtime 原生 Web Crypto PBKDF2-SHA256 处理，并在校验前按「分享链接 + 客户端」和「分享链接全局」两层持久化限流，防止在线爆破与高并发计算资源滥用。
 
 需要使用 ATS、AI 改写或 JD 派生时，还需部署 LLM 代理并配置服务端密钥：
 
