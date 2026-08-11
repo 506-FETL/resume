@@ -205,3 +205,29 @@ export function layoutSignaturesEqual(
 ) {
   return serializeLayoutSignature(left) === serializeLayoutSignature(right)
 }
+
+export async function waitForResumeFont(
+  targetDocument: Document,
+  familyName: string,
+  weights: number[],
+) {
+  if (!targetDocument.fonts)
+    throw new Error('当前浏览器不支持字体状态检测')
+
+  await Promise.all(
+    weights.map(weight =>
+      targetDocument.fonts.load(`${weight} 16px "${familyName}"`)),
+  )
+  await targetDocument.fonts.ready
+
+  const ready = weights.every(weight =>
+    targetDocument.fonts.check(`${weight} 16px "${familyName}"`))
+  if (!ready)
+    throw new Error(`字体 ${familyName} 加载失败`)
+}
+
+export function nextAnimationFrame() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve())
+  })
+}
