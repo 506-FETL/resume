@@ -2,7 +2,6 @@
 
 import type { HTMLMotionProps } from 'motion/react'
 import type { WithAsChild } from '@/components/animate-ui/primitives/animate/slot'
-import dayjs from 'dayjs'
 
 import type { ParticlesEffectProps } from '@/components/animate-ui/primitives/effects/particles'
 import type { SlidingNumberProps } from '@/components/animate-ui/primitives/texts/sliding-number'
@@ -24,6 +23,7 @@ import {
 
 } from '@/hooks/use-is-in-view'
 import { getStrictContext } from '@/lib/get-strict-context'
+import { getGithubStars, setGithubStars } from '@/lib/supabase/github-stars'
 import { cn } from '@/lib/utils'
 
 interface GithubStarsContextType {
@@ -67,9 +67,6 @@ function GithubStars({
     { inView, inViewOnce, inViewMargin },
   )
 
-  const cacheKey = `github-stars-${username}-${repo}-timestamp`
-  const starsCacheKey = `github-stars-${username}-${repo}`
-
   const [stars, setStars] = React.useState(value ?? 0)
   const [currentStars, setCurrentStars] = React.useState(0)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -83,41 +80,53 @@ function GithubStars({
   React.useEffect(() => {
     if (value !== undefined && username && repo)
       return
-    if (!isInView) {
+    if (!isInView || !username || !repo) {
       setStars(0)
       setIsLoading(true)
       return
     }
 
+    let cancelled = false
+
     const timeout = setTimeout(() => {
-      const cachedTimes = dayjs(localStorage.getItem(cacheKey))
+      // 服务端缓存 + 懒刷新（超 1 天服务端拉取并回写，否则返回缓存）。全局共享一份，避免每客户端各自打 GitHub。
+      getGithubStars(username, repo)
+        .then(async (result) => {
+          if (cancelled)
+            return
 
-      if (cachedTimes && dayjs().diff(cachedTimes, 'date') <= 3) {
-        const cachedStars = localStorage.getItem(starsCacheKey)
+          if (!result.stale) {
+            setStars(result.stars)
+            return
+          }
 
-        if (cachedStars) {
-          setStars(Number(cachedStars))
-          setIsLoading(false)
-          return
-        }
-      }
-
-      fetch(`https://api.github.com/repos/${username}/${repo}`)
-        .then(response => response.json())
-        .then((data) => {
+          // stale：服务端 pgsql-http 不可用，走兜底——前端 fetch 后写回共享表
+          const res = await fetch(`https://api.github.com/repos/${username}/${repo}`)
+          const data = await res.json()
+          if (cancelled)
+            return
           if (data && typeof data.stargazers_count === 'number') {
             setStars(data.stargazers_count)
-            localStorage.setItem(cacheKey, dayjs().toISOString())
-            localStorage.setItem(starsCacheKey, data.stargazers_count.toString())
+            setGithubStars(username, repo, data.stargazers_count).catch(() => {})
+          }
+          else {
+            // 兜底 fetch 也失败：用服务端返回的旧缓存兜底
+            setStars(result.stars)
           }
         })
         .catch(() => {
           // GitHub stars 加载失败是非关键路径，静默降级避免打扰用户
         })
-        .finally(() => setIsLoading(false))
+        .finally(() => {
+          if (!cancelled)
+            setIsLoading(false)
+        })
     }, delay)
 
-    return () => clearTimeout(timeout)
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
+    }
   }, [username, repo, value, isInView, delay])
 
   return (

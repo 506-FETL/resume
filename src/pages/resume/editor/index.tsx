@@ -113,7 +113,6 @@ function Editor() {
                 </div>
                 <EditPanel
                   open={panelOpen}
-                  activeTabId={activeTabId}
                   order={order}
                   visibilityState={visibilityState}
                   onActivate={handleActivateWithScroll}

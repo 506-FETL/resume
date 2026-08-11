@@ -5,6 +5,7 @@ import type { ORDERType } from '@/lib/schema'
 import { useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import useResumeConfigStore from '@/store/resume/config'
+import useResumeStore from '@/store/resume/form'
 
 interface UseRemoteCollaborationActionOptions {
   followMode: boolean
@@ -44,6 +45,10 @@ export function useRemoteCollaborationAction({
 
       case 'tab-switch':
         updateActiveTabId(payload.action.tabId)
+        break
+
+      case 'section-toggle':
+        useResumeStore.getState().setSectionOpen(payload.action.tabId, payload.action.open)
         break
 
       case 'config-spacing':

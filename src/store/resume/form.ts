@@ -16,6 +16,7 @@ import { createSyncSlice } from './slices/sync'
 
 interface FormSlice extends FormDataMap {
   activeTabId: ORDERType
+  openSections: ORDERType[]
   order: ORDERType[]
   visibility: Record<VisibilityItemsType, boolean>
   type: ResumeType
@@ -27,6 +28,7 @@ interface FormSlice extends FormDataMap {
   getVisibility: (id: VisibilityItemsType) => boolean
   setVisibility: (id: VisibilityItemsType, isHidden: boolean) => void
   updateActiveTabId: (newActiveTab: ORDERType) => void
+  setSectionOpen: (id: ORDERType, open: boolean) => void
   getResumeFormData: () => FormDataMap
   getPersistedSnapshot: () => PersistedResumeSnapshot
   getHistoryRestoreSource: () => { snapshot: ResumeSnapshot, updatedAt: string | null }
@@ -45,6 +47,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
   job_intent: DEFAULT_JOB_INTENT,
   order: DEFAULT_ORDER,
   activeTabId: 'basics',
+  openSections: ['basics'],
   application_info: DEFAULT_APPLICATION_INFO,
   edu_background: DEFAULT_EDU_BACKGROUND,
   work_experience: DEFAULT_WORK_EXPERIENCE,
@@ -85,6 +88,19 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
   },
 
   updateActiveTabId: newActiveTab => set({ activeTabId: newActiveTab }),
+
+  // 展开集合：纯本地 UI 态（不写 Automerge），协作经 UI 广播同步。展开自动置为 activeTab。
+  setSectionOpen: (id, open) => set((state) => {
+    const has = state.openSections.includes(id)
+    if (open) {
+      if (has)
+        return {}
+      return { openSections: [...state.openSections, id], activeTabId: id }
+    }
+    if (!has)
+      return {}
+    return { openSections: state.openSections.filter(s => s !== id) }
+  }),
 
   updateForm: (key, data) => {
     const sanitized = sanitizeDeep(data)

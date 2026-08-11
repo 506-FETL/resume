@@ -2,9 +2,10 @@ import { motion } from 'motion/react'
 import { useEffect, useMemo } from 'react'
 import Entry from './components/entry'
 import Header from './components/header'
+import { ActivityCard, AtsTrendCard, FollowUpCard, FunnelCard } from './components/insight-cards'
 import StatisticalCard from './components/statistical-card'
 import { TodoCard } from './components/todo'
-import { useDashboardInsights } from './insights'
+import { useDashboardExtras, useDashboardInsights } from './insights'
 import useIndexStore from './store'
 
 const Container = {
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   const resumes = useIndexStore(s => s.resumes)
   const resumesLoading = useIndexStore(s => s.loading)
   const insights = useDashboardInsights(resumes, resumesLoading)
+  const extras = useDashboardExtras(resumes, resumesLoading)
 
   useEffect(() => {
     loadData()
@@ -67,8 +69,23 @@ export default function DashboardPage() {
         />
       </motion.div>
 
+      {!extras.loading && insights.hasCloudResume && extras.followUps.length > 0 && (
+        <motion.div variants={MotionItem}>
+          <FollowUpCard followUps={extras.followUps} total={extras.followUpTotal} />
+        </motion.div>
+      )}
+
       <motion.div variants={MotionItem}>
         <StatisticalCard funnel={insights.funnel} loading={insights.loading} />
+      </motion.div>
+
+      <motion.div variants={MotionItem} className="grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2">
+        <FunnelCard funnel={extras.funnel} loading={extras.loading} />
+        <AtsTrendCard trend={extras.atsTrend} loading={extras.loading} />
+      </motion.div>
+
+      <motion.div variants={MotionItem}>
+        <ActivityCard activity={extras.activity} loading={extras.loading} />
       </motion.div>
 
       <motion.div variants={MotionItem}>

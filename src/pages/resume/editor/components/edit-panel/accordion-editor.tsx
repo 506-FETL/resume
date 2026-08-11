@@ -1,13 +1,13 @@
 import type { DropResult } from '@hello-pangea/dnd'
 import type { ORDERType, VisibilityItemsType } from '@/lib/schema'
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback } from 'react'
 import { Accordion } from '@/components/ui/accordion'
+import useResumeStore from '@/store/resume/form'
 import { ITEMS } from '../../const'
 import { SectionRow } from './section-row'
 
 interface AccordionEditorProps {
-  activeTabId: ORDERType
   order: ORDERType[]
   visibilityState: Record<string, boolean>
   onActivate: (id: ORDERType) => void
@@ -20,15 +20,12 @@ const DROPPABLE_ID = 'resume-edit-panel-sections'
 /**
  * 桌面编辑区主体：多开折叠列表 + 竖向拖拽排序。
  * - 基本信息固定置顶（不可拖、无显隐开关）；其余模块可拖拽排序。
- * - 多开：展开集合 openIds 为本地 UI 态，不参与协作同步；同时刻可展开任意多个。
- * - activeTabId 仍是单值、协作同步、驱动渲染区滚动：展开某模块即 onActivate（切 activeTab + 滚动）；
- *   收起仅移出 openIds，不改 activeTab（不破坏渲染区定位）。
- * - 协作方改 activeTabId → 经 prevActiveRef 检测「值真的变了」才并入 openIds 展开，
- *   避免「本地收起当前 active 项后被自动重新展开」的抖动。
+ * - 多开：展开集合 openSections 提升到 store（本地 UI 态，不写 Automerge），
+ *   由 useSectionToggleBroadcast 广播给协作方，实现展开/收起双向同步。
+ * - 展开自动置为 activeTab（store 内联动）并触发 onActivate 滚动渲染区；收起仅移出集合。
  * - 排序/显隐均复用 store 动作，天然参与协作同步。
  */
 export function AccordionEditor({
-  activeTabId,
   order,
   visibilityState,
   onActivate,
@@ -38,17 +35,8 @@ export function AccordionEditor({
   const orderDraggable = order.filter(id => id !== 'basics')
   const basicsItem = ITEMS.find(item => item.id === 'basics')!
 
-  // 展开集合：本地 UI 态；初始展开当前 activeTab
-  const [openIds, setOpenIds] = useState<ORDERType[]>(() => [activeTabId])
-
-  // activeTabId 真正变化（本地激活或协作方切换）时，确保对应模块展开
-  const prevActiveRef = useRef(activeTabId)
-  useEffect(() => {
-    if (prevActiveRef.current === activeTabId)
-      return
-    prevActiveRef.current = activeTabId
-    setOpenIds(prev => (prev.includes(activeTabId) ? prev : [...prev, activeTabId]))
-  }, [activeTabId])
+  const openSections = useResumeStore(state => state.openSections)
+  const setSectionOpen = useResumeStore(state => state.setSectionOpen)
 
   const handleDragEnd = useCallback((result: DropResult) => {
     const { source, destination } = result
@@ -60,18 +48,22 @@ export function AccordionEditor({
     onUpdateOrder(['basics', ...next])
   }, [orderDraggable, onUpdateOrder])
 
-  // 多开受控：diff 出新展开项 → onActivate（切 activeTab + 滚动）；收起仅更新 openIds
+  // 多开受控：diff 出新增/移除项写回 store（展开自动切 activeTab），新增项额外触发滚动
   const handleValueChange = useCallback((next: string[]) => {
-    const added = next.find(id => !openIds.includes(id as ORDERType))
-    setOpenIds(next as ORDERType[])
-    if (added)
-      onActivate(added as ORDERType)
-  }, [openIds, onActivate])
+    const added = next.find(id => !openSections.includes(id as ORDERType)) as ORDERType | undefined
+    const removed = openSections.find(id => !next.includes(id))
+    if (added) {
+      setSectionOpen(added, true)
+      onActivate(added)
+    }
+    if (removed)
+      setSectionOpen(removed, false)
+  }, [openSections, setSectionOpen, onActivate])
 
   return (
     <Accordion
       type="multiple"
-      value={openIds}
+      value={openSections}
       onValueChange={handleValueChange}
       className="flex flex-col gap-2"
     >

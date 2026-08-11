@@ -23,6 +23,7 @@ export interface UIStateBroadcastPayload {
 export type UIAction
   = | { kind: 'drawer-toggle', open: boolean }
     | { kind: 'tab-switch', tabId: ORDERType }
+    | { kind: 'section-toggle', tabId: ORDERType, open: boolean }
     | { kind: 'scroll', position: number, target: 'window' | 'preview' }
     | { kind: 'config-spacing', data: Partial<SpacingConfigType> }
     | { kind: 'config-font', data: Partial<FontConfigType> }

@@ -7,6 +7,7 @@ import { useConfigBroadcast } from '@/pages/resume/editor/hooks/use-config-broad
 import { useRealtimeCollaborationUI } from '@/pages/resume/editor/hooks/use-realtime-collaboration-ui'
 import { useRemoteCollaborationAction } from '@/pages/resume/editor/hooks/use-remote-collaboration-action'
 import { useScrollSync } from '@/pages/resume/editor/hooks/use-scroll-sync'
+import { useSectionToggleBroadcast } from '@/pages/resume/editor/hooks/use-section-toggle-broadcast'
 import { useTabDrawerBroadcast } from '@/pages/resume/editor/hooks/use-tab-drawer-broadcast'
 import useResumeConfigStore from '@/store/resume/config'
 import { FollowModeToggle } from './follow-mode-toggle'
@@ -78,6 +79,11 @@ export function CollaborationUISync({
   useTabDrawerBroadcast({
     drawerOpen,
     activeTabId,
+    isApplyingRemote,
+    broadcastUIAction,
+  })
+
+  useSectionToggleBroadcast({
     isApplyingRemote,
     broadcastUIAction,
   })

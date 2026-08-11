@@ -11,7 +11,6 @@ import { AccordionEditor } from './accordion-editor'
 
 interface EditPanelProps {
   open: boolean
-  activeTabId: ORDERType
   order: ORDERType[]
   visibilityState: Record<string, boolean>
   onActivate: (id: ORDERType) => void
@@ -61,7 +60,6 @@ function ratioToWidth(ratio: number): number {
  */
 export default function EditPanel({
   open,
-  activeTabId,
   order,
   visibilityState,
   onActivate,
@@ -177,7 +175,6 @@ export default function EditPanel({
             {/* 仅此区域滚动，编辑栏整体固定；@container/panel 让内部表单按面板宽度自适应列数 */}
             <div className="@container/panel min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4">
               <AccordionEditor
-                activeTabId={activeTabId}
                 order={order}
                 visibilityState={visibilityState}
                 onActivate={onActivate}
