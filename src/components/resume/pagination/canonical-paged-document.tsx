@@ -2,6 +2,7 @@ import type { PropsWithChildren, Ref } from 'react'
 import type { ResumeDocumentStateChange } from './types'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useResumeStyles } from '@/hooks/use-resume-styles'
 import { A4_PAGE_HEIGHT, A4_PAGE_WIDTH } from './const'
 import { usePaginationPlan } from './use-pagination-plan'
@@ -87,44 +88,48 @@ export default function CanonicalPagedDocument({
     endKey: 'measuring',
   }]
 
-  return (
-    <>
+  const measurementSource = (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed top-0 opacity-0"
+      style={{
+        left: '-100000px',
+        width: A4_PAGE_WIDTH,
+      }}
+    >
       <div
-        aria-hidden
-        className="pointer-events-none fixed top-0 opacity-0"
+        ref={setPage}
         style={{
-          left: '-100000px',
+          position: 'relative',
           width: A4_PAGE_WIDTH,
+          height: A4_PAGE_HEIGHT,
         }}
       >
         <div
-          ref={setPage}
+          ref={setViewport}
           style={{
-            position: 'relative',
-            width: A4_PAGE_WIDTH,
-            height: A4_PAGE_HEIGHT,
+            position: 'absolute',
+            inset: `${pageMargin}px`,
           }}
         >
           <div
-            ref={setViewport}
+            ref={handleSourceRef}
+            data-resume-source
             style={{
-              position: 'absolute',
-              inset: `${pageMargin}px`,
+              fontFamily: font.fontFamily,
+              fontSynthesis: 'none',
             }}
           >
-            <div
-              ref={handleSourceRef}
-              data-resume-source
-              style={{
-                fontFamily: font.fontFamily,
-                fontSynthesis: 'none',
-              }}
-            >
-              {children}
-            </div>
+            {children}
           </div>
         </div>
       </div>
+    </div>
+  )
+
+  return (
+    <>
+      {createPortal(measurementSource, document.body)}
 
       <div
         ref={handleDocumentRef}
