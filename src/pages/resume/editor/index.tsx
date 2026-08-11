@@ -1,4 +1,5 @@
 import { Edit } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { useTheme } from '@/components/theme-provider'
@@ -21,6 +22,7 @@ import { useScrollToSection } from './hooks/use-scroll-to-section'
 
 function Editor() {
   const isMobile = useIsMobile()
+  const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
   const { theme } = useTheme()
@@ -62,11 +64,11 @@ function Editor() {
   const fill = theme === 'dark' ? '#0c0a09' : '#fafaf9'
   const stroke = theme === 'dark' ? '#3d3b3b' : '#e7e5e4'
 
-  // 桌面编辑面板形态（侧栏/抽屉）+ 开关 + 左导航自动让位
-  const { mode, setMode, open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
+  // 桌面编辑面板开关 + 左导航自动让位（桌面恒为右侧常驻侧栏）
+  const { open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
   const scrollToSection = useScrollToSection(previewScrollRef)
-  // 桌面侧栏形态：点 tab 既切换又滚动渲染区到对应章节
-  const useSidebarMode = !isMobile && mode === 'sidebar'
+  // 桌面：点 tab 既切换又滚动渲染区到对应章节；移动端走底部抽屉
+  const useSidebarMode = !isMobile
   const handleActivateWithScroll = useCallback((id: typeof activeTabId) => {
     updateActiveTabId(id)
     scrollToSection(id)
@@ -114,47 +116,50 @@ function Editor() {
                   activeTabId={activeTabId}
                   order={order}
                   visibilityState={visibilityState}
-                  fill={fill}
-                  stroke={stroke}
                   onActivate={handleActivateWithScroll}
                   onUpdateOrder={updateOrder}
                   onToggleVisibility={toggleVisibility}
                   onClose={() => setPanelOpen(false)}
-                  onSwitchToDrawer={() => {
-                    setPanelOpen(false)
-                    setMode('drawer')
-                  }}
                 />
-                {!panelOpen && (
-                  <Button
-                    variant="outline"
-                    className="fixed bottom-6 right-6 z-1 shadow-md"
-                    onClick={() => setPanelOpen(true)}
-                  >
-                    <Edit />
-                    编辑简历
-                  </Button>
-                )}
+                <AnimatePresence>
+                  {!panelOpen && (
+                    <motion.div
+                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+                      className="fixed bottom-6 right-6 z-1"
+                    >
+                      <Button
+                        variant="outline"
+                        className="shadow-md"
+                        onClick={() => setPanelOpen(true)}
+                      >
+                        <Edit />
+                        编辑简历
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           )
         : (
-            // 移动端 / 桌面抽屉形态：底部抽屉
+            // 移动端：底部抽屉
             <>
               <Drawer open={open} onOpenChange={setOpen} handleOnly>
                 <DrawerTrigger asChild>
                   <Button
                     variant="outline"
                     className="fixed bottom-6 left-1/2 z-1 -transform -translate-x-1/2"
-                    size={isMobile ? 'icon' : 'default'}
+                    size="icon"
                   >
                     <Edit />
-                    {!isMobile && '编辑简历'}
                   </Button>
                 </DrawerTrigger>
                 <DrawerContent className="h-160">
-                  <CollaborationControls onOpenSortDialog={isMobile ? handleOpenSortDialog : undefined} />
-                  <div className="p-4 overflow-y-auto overflow-x-hidden">
+                  <CollaborationControls onOpenSortDialog={handleOpenSortDialog} />
+                  <div className="@container/panel p-4 overflow-y-auto overflow-x-hidden">
                     <SidebarEditor
                       activeTabId={activeTabId}
                       order={order}
@@ -174,17 +179,6 @@ function Editor() {
               <div className="flex flex-col md:flex-row min-h-screen overflow-auto">
                 <ResumePreview resumeRef={resumeRef} scrollContainerRef={previewScrollRef} />
               </div>
-              {/* 桌面抽屉形态：提供切回侧栏的入口 */}
-              {!isMobile && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="fixed bottom-6 right-6 z-1"
-                  onClick={() => setMode('sidebar')}
-                >
-                  切换为侧栏
-                </Button>
-              )}
             </>
           )}
       <CollaborationDialog />

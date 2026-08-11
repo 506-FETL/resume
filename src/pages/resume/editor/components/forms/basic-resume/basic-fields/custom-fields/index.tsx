@@ -27,7 +27,7 @@ export function CustomFields({ form, fields, append, remove }: CustomFieldsProps
         <Plus />
         {!isMobile && '添加自定义字段'}
       </Button>
-      <div className="mt-6 grid gap-4 justify-items-start sm:grid-cols-2 md:grid-cols-3">
+      <div className="mt-6 grid gap-4 justify-items-start @md/panel:grid-cols-2 @2xl/panel:grid-cols-3">
         {fields.map((item, index) => (
           <motion.div key={item.id} transition={{ duration: 0.2 }} className="flex gap-2 items-end" layout>
             <FormField

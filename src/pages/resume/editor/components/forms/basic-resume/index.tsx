@@ -39,7 +39,7 @@ function BasicResumeForm({ className }: { className?: string }) {
   return (
     <Form {...form}>
       <form id="basic-resume-form" className={cn(className)}>
-        <motion.div layout className="grid gap-4 justify-items-start sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <motion.div layout className="grid gap-4 justify-items-start @sm/panel:grid-cols-2 @lg/panel:grid-cols-3 @2xl/panel:grid-cols-4">
           <PersonalFields form={form} />
           <ContactFields form={form} />
           <DemographicFields form={form} />

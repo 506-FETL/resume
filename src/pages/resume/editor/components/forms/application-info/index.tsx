@@ -24,7 +24,7 @@ function ApplicationInfoForm({ className }: { className?: string }) {
   return (
     <Form {...form}>
       <form id="application-info-form" className={cn(className)}>
-        <motion.div layout className="grid gap-4 justify-items-start sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+        <motion.div layout className="grid gap-4 justify-items-start @sm/panel:grid-cols-2 @2xl/panel:grid-cols-4">
           <FormField
             control={form.control}
             name="applicationSchool"

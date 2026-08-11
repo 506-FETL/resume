@@ -23,7 +23,7 @@ function WorkExperienceForm({ className }: { className?: string }) {
     items: workExperience.items || DEFAULT_WORK_EXPERIENCE.items,
   }), [workExperience.items])
 
-  const { form, fields, remove, onAddItem } = useResumeFieldForm({
+  const { form, fields, remove, move, onAddItem } = useResumeFieldForm({
     fieldName: 'work_experience',
     schema: workExperienceFormSchema,
     storeFormData,
@@ -36,6 +36,7 @@ function WorkExperienceForm({ className }: { className?: string }) {
       form={form}
       fields={fields}
       remove={remove}
+      move={move}
       onAddItem={onAddItem}
       formId="work-experience-form"
       title="工作经历"
@@ -43,7 +44,7 @@ function WorkExperienceForm({ className }: { className?: string }) {
       className={className}
       renderItem={index => (
         <>
-          <section className="grid gap-4 justify-items-start sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <section className="flex flex-col gap-4">
             <FormField
               name={`items.${index}.companyName`}
               control={form.control}

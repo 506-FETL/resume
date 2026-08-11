@@ -158,7 +158,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
           {fields.length > 0 && (
             <div className="flex flex-col gap-4">
               <FormLabel>技能列表</FormLabel>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 @md/panel:grid-cols-2 @2xl/panel:grid-cols-3">
                 {fields.map((item, index) => (
                   <motion.div
                     key={item.id}

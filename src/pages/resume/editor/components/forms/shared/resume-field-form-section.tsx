@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
 import type { FieldArrayWithId, FieldValues, UseFormReturn } from 'react-hook-form'
-import { Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +14,8 @@ interface ResumeFieldFormSectionProps<TFieldValues extends FieldValues> {
   fields: FieldArrayWithId<TFieldValues>[]
   remove: (index: number) => void
   onAddItem: () => void
+  /** 传入则渲染「上移/下移」按钮以调整多项顺序（复用 useFieldArray 的 move） */
+  move?: (from: number, to: number) => void
   formId: string
   title: string
   addLabel: string
@@ -25,6 +28,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
   fields,
   remove,
   onAddItem,
+  move,
   formId,
   title,
   addLabel,
@@ -32,6 +36,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
   renderItem,
 }: ResumeFieldFormSectionProps<TFieldValues>) {
   const isMobile = useIsMobile()
+  const multiple = fields.length > 1
 
   return (
     <Form {...form}>
@@ -44,19 +49,55 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-muted-foreground">
                   {title}
-                  {fields.length > 1 ? `#${index + 1}` : ''}
+                  {multiple ? `#${index + 1}` : ''}
                 </h3>
-                {fields.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove(index)}
-                    className="h-8 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="size-4" />
-                    {!isMobile && <span className="ml-1">删除</span>}
-                  </Button>
+                {multiple && (
+                  <div className="flex items-center gap-0.5">
+                    {move && (
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              disabled={index === 0}
+                              onClick={() => move(index, index - 1)}
+                              aria-label={`上移${title}#${index + 1}`}
+                            >
+                              <ArrowUp className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>上移</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              disabled={index === fields.length - 1}
+                              onClick={() => move(index, index + 1)}
+                              aria-label={`下移${title}#${index + 1}`}
+                            >
+                              <ArrowDown className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>下移</TooltipContent>
+                        </Tooltip>
+                      </>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(index)}
+                      className="h-8 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                      {!isMobile && <span className="ml-1">删除</span>}
+                    </Button>
+                  </div>
                 )}
               </div>
 

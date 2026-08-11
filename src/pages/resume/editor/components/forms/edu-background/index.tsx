@@ -27,7 +27,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
     items: eduBackground.items || DEFAULT_EDU_BACKGROUND.items,
   }), [eduBackground.items])
 
-  const { form, fields, remove, onAddItem } = useResumeFieldForm({
+  const { form, fields, remove, move, onAddItem } = useResumeFieldForm({
     fieldName: 'edu_background',
     schema: eduBackgroundFormSchema,
     storeFormData,
@@ -40,6 +40,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
       form={form}
       fields={fields}
       remove={remove}
+      move={move}
       onAddItem={onAddItem}
       formId="edu-background-form"
       title="教育背景"
@@ -47,7 +48,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
       className={className}
       renderItem={index => (
         <>
-          <section className="grid gap-4 justify-items-start sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+          <section className="flex flex-col gap-4">
             <FormField
               name={`items.${index}.schoolName`}
               control={form.control}

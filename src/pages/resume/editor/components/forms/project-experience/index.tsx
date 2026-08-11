@@ -23,7 +23,7 @@ function ProjectExperienceForm({ className }: { className?: string }) {
     items: projectExperience.items || DEFAULT_PROJECT_EXPERIENCE.items,
   }), [projectExperience.items])
 
-  const { form, fields, remove, onAddItem } = useResumeFieldForm({
+  const { form, fields, remove, move, onAddItem } = useResumeFieldForm({
     fieldName: 'project_experience',
     schema: projectExperienceFormSchema,
     storeFormData,
@@ -36,6 +36,7 @@ function ProjectExperienceForm({ className }: { className?: string }) {
       form={form}
       fields={fields}
       remove={remove}
+      move={move}
       onAddItem={onAddItem}
       formId="project-experience-form"
       title="项目经验"
@@ -43,7 +44,7 @@ function ProjectExperienceForm({ className }: { className?: string }) {
       className={className}
       renderItem={index => (
         <>
-          <section className="grid gap-4 justify-items-start sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <section className="flex flex-col gap-4">
             <FormField
               name={`items.${index}.projectName`}
               control={form.control}

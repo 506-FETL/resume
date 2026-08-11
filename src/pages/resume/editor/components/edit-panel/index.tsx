@@ -1,35 +1,32 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { ORDERType, VisibilityItemsType } from '@/lib/schema'
-import { PanelRightClose } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { ArrowRightToLine } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { CollaborationControls } from '../collaboration/collaboration-controls'
-import SidebarEditor from '../sidebar'
+import { AccordionEditor } from './accordion-editor'
 
 interface EditPanelProps {
   open: boolean
   activeTabId: ORDERType
   order: ORDERType[]
   visibilityState: Record<string, boolean>
-  fill: string
-  stroke: string
   onActivate: (id: ORDERType) => void
   onUpdateOrder: (order: ORDERType[]) => void
   onToggleVisibility: (id: VisibilityItemsType) => void
   onClose: () => void
-  onSwitchToDrawer: () => void
 }
 
 // 宽度按屏幕宽度比例存储，大屏小屏自适应；额外用像素上下限兜底避免极端屏幕过窄/过宽
 const RATIO_KEY = 'gresume:editor:edit-panel-ratio'
 const MIN_RATIO = 0.25
 const MAX_RATIO = 0.6
-const DEFAULT_RATIO = 0.34
+const DEFAULT_RATIO = 0.36
 const MIN_PX = 320
-const MAX_PX = 720
+const MAX_PX = 820
 
 function clampRatio(ratio: number): number {
   return Math.min(MAX_RATIO, Math.max(MIN_RATIO, ratio))
@@ -56,24 +53,27 @@ function ratioToWidth(ratio: number): number {
 /**
  * 桌面右侧常驻编辑侧栏：整体高度撑满、自身不滚动，仅表单区内部滚动；
  * 左边缘可拖拽调整宽度（占屏幕宽度比例，随屏幕自适应，localStorage 记忆比例）。
- * 与移动端底部抽屉互斥。
+ * 内部编辑区为多开折叠列表（AccordionEditor）。与移动端底部抽屉互斥。
+ *
+ * 动效：进出动画作用于 width（0↔W）+ opacity，而非 transform——因为编辑栏与渲染区是 flex 兄弟、
+ * 渲染区 flex-1，动 width 时渲染区靠 flex 自然平滑跟随移动。内层用固定宽度承载内容并由外层 overflow-hidden
+ * 裁剪，避免动画期间 @container 断点抖动导致栅格列数跳变；拖拽调宽时过渡时长置 0 保证跟手。
  */
 export default function EditPanel({
   open,
   activeTabId,
   order,
   visibilityState,
-  fill,
-  stroke,
   onActivate,
   onUpdateOrder,
   onToggleVisibility,
   onClose,
-  onSwitchToDrawer,
 }: EditPanelProps) {
   const reduceMotion = useReducedMotion()
   const [ratio, setRatio] = useState(readStoredRatio)
   const [width, setWidth] = useState(() => ratioToWidth(readStoredRatio()))
+  // 拖拽调宽期间关闭 width 过渡，保证跟手不卡
+  const [isResizing, setIsResizing] = useState(false)
   const draggingRef = useRef(false)
 
   // 屏幕尺寸变化时按比例重算像素宽度
@@ -86,6 +86,7 @@ export default function EditPanel({
   const onHandlePointerDown = (event: ReactPointerEvent) => {
     event.preventDefault()
     draggingRef.current = true
+    setIsResizing(true)
     event.currentTarget.setPointerCapture(event.pointerId)
     document.body.style.userSelect = 'none'
   }
@@ -104,6 +105,7 @@ export default function EditPanel({
     if (!draggingRef.current)
       return
     draggingRef.current = false
+    setIsResizing(false)
     event.currentTarget.releasePointerCapture(event.pointerId)
     document.body.style.userSelect = ''
   }
@@ -123,73 +125,69 @@ export default function EditPanel({
     }
   }, [])
 
-  if (!open)
-    return null
+  const widthTransition = reduceMotion || isResizing
+    ? { duration: 0 }
+    : { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const }
 
   return (
-    <motion.aside
-      initial={reduceMotion ? false : { x: width, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
-      style={{ width }}
-      className="relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-l bg-background"
-    >
-      {/* 左边缘拖拽手柄：调整宽度比例 */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="拖拽调整编辑栏宽度"
-        onPointerDown={onHandlePointerDown}
-        onPointerMove={onHandlePointerMove}
-        onPointerUp={onHandlePointerUp}
-        onLostPointerCapture={persistRatio}
-        className={cn(
-          'absolute left-0 top-0 z-10 h-full w-1.5 -translate-x-1/2 cursor-col-resize',
-          'transition-colors hover:bg-primary/30 active:bg-primary/40',
-        )}
-      />
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.aside
+          key="edit-panel"
+          initial={reduceMotion ? false : { width: 0, opacity: 0 }}
+          animate={{ width, opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          transition={{ width: widthTransition, opacity: { duration: reduceMotion ? 0 : 0.18 } }}
+          className="relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-l bg-background"
+        >
+          {/* 内层固定宽度：动画期间内容一次性按目标宽度布局，由外层裁剪呈现，避免 @container 列数跳变 */}
+          <div style={{ width }} className="flex h-full min-h-0 flex-col">
+            {/* 左边缘拖拽手柄：调整宽度比例 */}
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="拖拽调整编辑栏宽度"
+              onPointerDown={onHandlePointerDown}
+              onPointerMove={onHandlePointerMove}
+              onPointerUp={onHandlePointerUp}
+              onLostPointerCapture={persistRatio}
+              className={cn(
+                'absolute left-0 top-0 z-10 h-full w-1.5 -translate-x-1/2 cursor-col-resize',
+                'transition-colors hover:bg-primary/30 active:bg-primary/40',
+              )}
+            />
 
-      {/* 顶部：协作控制条 + 单个收起入口（不再重复图标） */}
-      <div className="flex shrink-0 items-start justify-between gap-2 border-b pr-2">
-        <div className="min-w-0 flex-1">
-          <CollaborationControls plain />
-        </div>
-        <div className="flex shrink-0 items-center gap-1 pt-4">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={onSwitchToDrawer}>
-                抽屉
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">切换为底部抽屉</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="收起编辑栏" onClick={onClose}>
-                <PanelRightClose className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">收起编辑栏</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+            {/* 顶部：协作控制条 + 收起入口 */}
+            <div className="flex shrink-0 items-start justify-between gap-2 border-b pr-2">
+              <div className="min-w-0 flex-1">
+                <CollaborationControls plain />
+              </div>
+              <div className="flex shrink-0 items-center gap-1 pt-4">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" aria-label="收起编辑栏" onClick={onClose}>
+                      <ArrowRightToLine className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">收起编辑栏</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
 
-      {/* 仅此区域滚动，编辑栏整体固定 */}
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4">
-        <SidebarEditor
-          activeTabId={activeTabId}
-          order={order}
-          visibilityState={visibilityState}
-          fill={fill}
-          stroke={stroke}
-          isMobile={false}
-          sortDialogOpen={false}
-          onSortDialogOpenChange={() => {}}
-          onUpdateActiveTabId={onActivate}
-          onUpdateOrder={onUpdateOrder}
-          onToggleVisibility={onToggleVisibility}
-        />
-      </div>
-    </motion.aside>
+            {/* 仅此区域滚动，编辑栏整体固定；@container/panel 让内部表单按面板宽度自适应列数 */}
+            <div className="@container/panel min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4">
+              <AccordionEditor
+                activeTabId={activeTabId}
+                order={order}
+                visibilityState={visibilityState}
+                onActivate={onActivate}
+                onUpdateOrder={onUpdateOrder}
+                onToggleVisibility={onToggleVisibility}
+              />
+            </div>
+          </div>
+        </motion.aside>
+      )}
+    </AnimatePresence>
   )
 }
