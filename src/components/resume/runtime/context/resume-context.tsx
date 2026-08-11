@@ -35,6 +35,7 @@ export interface ResumeSpacing {
  * 简历字体配置
  */
 export interface ResumeFont {
+  familyName: string
   fontFamily: string
   nameSize: string
   jobIntentSize: string
@@ -146,7 +147,8 @@ export const defaultSpacing: ResumeSpacing = {
 }
 
 export const defaultFont: ResumeFont = {
-  fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Microsoft YaHei', sans-serif`,
+  familyName: 'Noto Sans SC',
+  fontFamily: `'Noto Sans SC', sans-serif`,
   nameSize: '1.875rem',
   jobIntentSize: '1rem',
   sectionTitleSize: '1rem',

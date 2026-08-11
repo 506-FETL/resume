@@ -21,7 +21,15 @@ export function TemplateRuntimeProviders({
   return (
     <TemplateResumeDataProvider value={data}>
       <ResumeContextProvider value={{ theme, spacing, font, layout }}>
-        {children}
+        <div
+          data-resume-runtime-root
+          style={{
+            fontFamily: font.fontFamily,
+            fontSynthesis: 'none',
+          }}
+        >
+          {children}
+        </div>
       </ResumeContextProvider>
     </TemplateResumeDataProvider>
   )

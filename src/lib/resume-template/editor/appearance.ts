@@ -1,5 +1,6 @@
 import type { TemplateManifest } from '../schema'
 import type { ResumeAppearancePatch } from '@/lib/schema'
+import { RESUME_FONT_FAMILIES } from '@/lib/schema'
 
 const PAGE_PADDING_TO_MARGIN: Record<string, number> = {
   sm: 12,
@@ -31,7 +32,7 @@ const COLOR_PRESET_MAP: Record<string, ResumeAppearancePatch['theme']> = {
 
 const FONT_PRESET_MAP: Record<string, ResumeAppearancePatch['font']> = {
   default: {
-    fontFamily: 'system',
+    fontFamily: RESUME_FONT_FAMILIES.sans,
   },
 }
 

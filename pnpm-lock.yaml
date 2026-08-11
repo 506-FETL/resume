@@ -24,6 +24,15 @@ importers:
       '@floating-ui/react':
         specifier: ^0.27.16
         version: 0.27.19(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@fontsource-variable/noto-sans-sc':
+        specifier: 5.2.10
+        version: 5.2.10
+      '@fontsource-variable/noto-serif-sc':
+        specifier: 5.2.9
+        version: 5.2.9
+      '@fontsource/lxgw-wenkai':
+        specifier: 5.2.5
+        version: 5.2.5
       '@hello-pangea/dnd':
         specifier: ^18.0.1
         version: 18.0.1(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -977,6 +986,15 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource-variable/noto-sans-sc@5.2.10':
+    resolution: {integrity: sha512-zdk10i5HrDQTXI7ldD61zToX1fsgig8vDTsu7zB48SXOitWfuX0e5viZAwnkHuhwh096PU6X6i1AyAsbBCISpA==}
+
+  '@fontsource-variable/noto-serif-sc@5.2.9':
+    resolution: {integrity: sha512-7zfvfNQSlcgzuln7ycuyz25ng+DFMhSg7kkjxQeG/smJjRcy0skFvaEbwUsDxLXxWodMmHjO5efJ6bx5Up81CA==}
+
+  '@fontsource/lxgw-wenkai@5.2.5':
+    resolution: {integrity: sha512-lIBouZW7qNw3VdVnjc0NC80iDfxjU7OnaKGaz6QHiHjC8z0fv9MyrHpeBMzkPnyEVabcpUu4Wf8DnaihfGVYtw==}
 
   '@hello-pangea/dnd@18.0.1':
     resolution: {integrity: sha512-xojVWG8s/TGrKT1fC8K2tIWeejJYTAeJuj36zM//yEm/ZrnZUSFGS15BpO+jGZT1ybWvyXmeDJwPYb4dhWlbZQ==}
@@ -7342,6 +7360,12 @@ snapshots:
       tabbable: 6.4.0
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@fontsource-variable/noto-sans-sc@5.2.10': {}
+
+  '@fontsource-variable/noto-serif-sc@5.2.9': {}
+
+  '@fontsource/lxgw-wenkai@5.2.5': {}
 
   '@hello-pangea/dnd@18.0.1(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
     dependencies:

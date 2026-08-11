@@ -3,7 +3,7 @@ import type { SpacingConfigType } from './config/spacing'
 import type { ThemeConfigType } from './config/theme'
 import type { ORDERType, ResumeSchema, ResumeType } from './index'
 import type { VisibilityFormType } from './visibility'
-import { DEFAULT_FONT_CONFIG, fontConfigSchema } from './config/font'
+import { DEFAULT_FONT_CONFIG, fontConfigSchema, normalizeResumeFontFamily } from './config/font'
 import { DEFAULT_SPACING_CONFIG, spacingConfigSchema } from './config/spacing'
 import { DEFAULT_THEME_CONFIG, themeConfigSchema } from './config/theme'
 
@@ -59,7 +59,14 @@ export function normalizeSpacingConfig(value: unknown): SpacingConfigType {
 }
 
 export function normalizeFontConfig(value: unknown): FontConfigType {
-  const parsed = fontConfigSchema.safeParse(value)
+  const input = value && typeof value === 'object'
+    ? value as Record<string, unknown>
+    : {}
+  const parsed = fontConfigSchema.safeParse({
+    ...DEFAULT_FONT_CONFIG,
+    ...input,
+    fontFamily: normalizeResumeFontFamily(input.fontFamily),
+  })
   return parsed.success ? parsed.data : DEFAULT_FONT_CONFIG
 }
 
