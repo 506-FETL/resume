@@ -1,9 +1,10 @@
+import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { FileDown, LoaderCircle } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useReactToPrint } from 'react-to-print'
-import PagedResumeShell from '@/components/resume/paged-resume-shell'
+import CanonicalPagedDocument from '@/components/resume/pagination/canonical-paged-document'
+import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,13 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(() => snapshotCache[versionId] ?? null)
   const [loading, setLoading] = useState(false)
   const shouldPrintRef = useRef(false)
+  const [documentState, setDocumentState] = useState<ResumeDocumentState>({
+    status: 'measuring',
+    signature: null,
+    fontFamily: 'Noto Sans SC',
+    fontWeights: [400, 600, 700],
+    error: null,
+  })
 
   const previewData = useMemo(() => (snapshot ? buildTemplateResumeData(snapshot) : null), [snapshot])
   const [manifest, setManifest] = useState<TemplateManifest | null>(null)
@@ -62,34 +70,47 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
     }
   }, [previewData])
 
-  const handlePrint = useReactToPrint({
+  const handlePrint = useResumePrint({
     contentRef: printRef,
+    documentState,
     documentTitle: documentTitle ? `${documentTitle}-简历` : '简历',
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 0;
-      }
-    `,
   })
 
   // 快照与 manifest 就绪、且用户点击过导出后，触发打印
   useEffect(() => {
-    if (shouldPrintRef.current && snapshot && previewData && manifest) {
+    if (
+      shouldPrintRef.current
+      && snapshot
+      && previewData
+      && manifest
+      && documentState.status === 'ready'
+    ) {
       shouldPrintRef.current = false
-      // 等一帧确保离屏节点已渲染
-      requestAnimationFrame(() => handlePrint())
+      handlePrint().catch(() => undefined)
     }
-  }, [snapshot, previewData, manifest, handlePrint])
+  }, [
+    documentState.status,
+    handlePrint,
+    manifest,
+    previewData,
+    snapshot,
+  ])
 
   const handleExport = async () => {
-    if (snapshot) {
-      shouldPrintRef.current = true
-      // 触发上面的 effect（snapshot 已在，manifest 也已解析）
-      if (manifest)
-        requestAnimationFrame(() => handlePrint())
+    if (
+      snapshot
+      && previewData
+      && manifest
+      && documentState.status === 'ready'
+    ) {
+      await handlePrint()
       return
     }
+
+    shouldPrintRef.current = true
+    if (snapshot)
+      return
+
     setLoading(true)
     const snap = await loadVersionSnapshot(versionId)
     setLoading(false)
@@ -111,12 +132,24 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
         导出 PDF
       </Button>
 
-      {/* 离屏打印节点：真实布局但移出视口，供 react-to-print 抓取 */}
       {snapshot && previewData && manifest && (
-        <div aria-hidden className="pointer-events-none fixed -left-[99999px] top-0 opacity-0">
-          <PagedResumeShell ref={printRef} appearance={snapshot}>
-            <ResumeTemplateRuntime data={previewData} manifest={manifest} />
-          </PagedResumeShell>
+        <div
+          aria-hidden
+          className="pointer-events-none fixed top-0 opacity-0"
+          style={{ left: '-100000px' }}
+        >
+          <CanonicalPagedDocument
+            appearance={snapshot}
+            contentVersion={JSON.stringify([snapshot, manifest])}
+            documentRef={printRef}
+            onStateChange={setDocumentState}
+          >
+            <ResumeTemplateRuntime
+              data={previewData}
+              manifest={manifest}
+              appearance={snapshot}
+            />
+          </CanonicalPagedDocument>
         </div>
       )}
     </>

@@ -1,3 +1,4 @@
+import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { motion, useReducedMotion } from 'motion/react'
@@ -8,7 +9,7 @@ import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { fetchSharedResume } from '@/lib/supabase/resume/share'
-import SharePdfExport from '../components/share-pdf-export'
+import SharePdfExport from '../components/pdf-export'
 
 type ViewState
   = | { phase: 'loading' }
@@ -29,7 +30,13 @@ export default function ResumeSharePage() {
   const [submitting, setSubmitting] = useState(false)
   const requestIdRef = useRef(0)
   const documentRef = useRef<HTMLDivElement>(null)
-  const [documentReady, setDocumentReady] = useState(false)
+  const [documentState, setDocumentState] = useState<ResumeDocumentState>({
+    status: 'measuring',
+    signature: null,
+    fontFamily: 'Noto Sans SC',
+    fontWeights: [400, 600, 700],
+    error: null,
+  })
 
   const load = useCallback(async (nextPassword?: string) => {
     const requestId = ++requestIdRef.current
@@ -153,7 +160,7 @@ export default function ResumeSharePage() {
         <h1 className="truncate text-base font-semibold">{state.displayName || '简历'}</h1>
         <SharePdfExport
           contentRef={documentRef}
-          ready={documentReady}
+          documentState={documentState}
           documentTitle={state.displayName || '简历'}
         />
       </header>
@@ -165,7 +172,7 @@ export default function ResumeSharePage() {
               appearance={state.snapshot}
               manifest={state.templateManifest}
               documentRef={documentRef}
-              onDocumentReadyChange={setDocumentReady}
+              onDocumentStateChange={setDocumentState}
             />
           )}
         </div>

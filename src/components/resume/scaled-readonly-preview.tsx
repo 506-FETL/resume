@@ -3,7 +3,7 @@ import type { ResumeDocumentStateChange } from './pagination/types'
 import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
 import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
@@ -17,7 +17,6 @@ interface ScaledReadonlyPreviewProps {
   documentRef?: Ref<HTMLDivElement>
   sourceRef?: Ref<HTMLDivElement>
   onDocumentStateChange?: ResumeDocumentStateChange
-  onDocumentReadyChange?: (ready: boolean) => void
 }
 
 export default function ScaledReadonlyPreview({
@@ -28,7 +27,6 @@ export default function ScaledReadonlyPreview({
   documentRef,
   sourceRef,
   onDocumentStateChange,
-  onDocumentReadyChange,
 }: ScaledReadonlyPreviewProps) {
   const [manifest, setManifest] = useState(() => getBuiltInTemplateManifest(data.type))
   const documentVersion = JSON.stringify([
@@ -74,18 +72,13 @@ export default function ScaledReadonlyPreview({
     }
   }, [data.templateBinding, data.type, manifestOverride])
 
-  const handleDocumentStateChange: ResumeDocumentStateChange = useCallback((state) => {
-    onDocumentStateChange?.(state)
-    onDocumentReadyChange?.(state.status === 'ready')
-  }, [onDocumentReadyChange, onDocumentStateChange])
-
   return (
     <ScaledResumeDocument
       appearance={appearance}
       contentVersion={documentVersion}
       documentRef={documentRef}
       sourceRef={sourceRef}
-      onStateChange={handleDocumentStateChange}
+      onStateChange={onDocumentStateChange}
       className={className}
     >
       <ResumeTemplateRuntime
