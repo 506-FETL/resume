@@ -75,7 +75,6 @@ export default defineConfig({
           'automerge-core': [
             '@automerge/automerge',
             '@automerge/automerge-repo',
-            '@automerge/automerge-repo-network-websocket',
             '@automerge/automerge-repo-storage-indexeddb',
           ],
           // 动画
