@@ -1,3 +1,41 @@
 .ai-rewrite-bubble {
   z-index: 60;
+  max-width: calc(100vw - 1rem);
+}
+
+.ai-rewrite-bubble > .tiptap-toolbar[data-variant='floating'] {
+  width: max-content;
+  max-width: 100%;
+}
+
+.ai-rewrite-bubble > .tiptap-toolbar[data-mode='full'],
+.ai-rewrite-bubble-measure > .tiptap-toolbar[data-mode='full'] {
+  width: max-content;
+  border: var(--tt-toolbar-border-width) solid var(--tt-toolbar-border-color);
+  border-radius: calc(var(--tt-toolbar-padding) + var(--tt-radius-lg) + var(--tt-toolbar-border-width));
+  background-color: var(--tt-toolbar-bg-color);
+  box-shadow: var(--tt-shadow-elevated-md);
+}
+
+.ai-rewrite-bubble > .tiptap-toolbar[data-mode='compact'] {
+  width: max-content;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ai-rewrite-bubble-measure {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  z-index: -1;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.ai-rewrite-bubble-measure-content {
+  width: max-content;
 }

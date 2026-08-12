@@ -16,6 +16,15 @@ function toBubbleRect(rect: DOMRect): BubbleRect {
   }
 }
 
+function toDOMRect(rect: BubbleRect) {
+  return new DOMRect(
+    rect.left,
+    rect.top,
+    rect.width,
+    rect.height,
+  )
+}
+
 export function createSelectionVirtualElement(
   editor: Editor,
   boundary: HTMLElement,
@@ -45,17 +54,10 @@ export function createSelectionVirtualElement(
 
     return {
       contextElement: editor.view.dom,
-      getClientRects: getPositionRects,
+      getClientRects: () => getPositionRects().map(toDOMRect),
       getBoundingClientRect: () => {
         const combined = combineRects(getPositionRects())
-        return combined
-          ? new DOMRect(
-              combined.left,
-              combined.top,
-              combined.width,
-              combined.height,
-            )
-          : new DOMRect()
+        return combined ? toDOMRect(combined) : new DOMRect()
       },
     }
   }

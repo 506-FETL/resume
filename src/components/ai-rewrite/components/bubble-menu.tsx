@@ -81,6 +81,7 @@ export function RewriteBubbleMenu({
           'tiptap-toolbar',
           measuring && 'ai-rewrite-bubble-measure-content',
         )}
+        data-mode="full"
         data-variant="floating"
       >
         {renderActionButtons()}
@@ -89,7 +90,11 @@ export function RewriteBubbleMenu({
   }
 
   return (
-    <div className="tiptap-toolbar" data-variant="floating">
+    <div
+      className="tiptap-toolbar"
+      data-mode="compact"
+      data-variant="floating"
+    >
       <DropdownMenu
         modal={false}
         open={menuOpen}
