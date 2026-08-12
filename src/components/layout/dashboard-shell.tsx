@@ -22,6 +22,7 @@ export function DashboardShell({ children, routeKey }: DashboardShellProps) {
 
   return (
     <SidebarProvider
+      className="h-full min-h-0 overflow-hidden"
       defaultOpen={sidebarOpen}
       open={sidebarOpen}
       onOpenChange={(open) => {
@@ -35,11 +36,11 @@ export function DashboardShell({ children, routeKey }: DashboardShellProps) {
       }}
     >
       <AppSidebar variant="floating" />
-      <SidebarInset className="flex flex-col">
-        <header className="sticky top-0 z-1 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+      <SidebarInset className="min-h-0 overflow-hidden">
+        <header className="sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
           <SiteHeader />
         </header>
-        <div className="min-w-0 flex-1 overflow-clip p-4">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip p-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={routeKey}
@@ -47,7 +48,7 @@ export function DashboardShell({ children, routeKey }: DashboardShellProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="h-full w-full"
+              className="h-full min-h-0 w-full"
             >
               {children}
             </motion.div>

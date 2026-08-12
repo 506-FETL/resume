@@ -153,7 +153,7 @@ export default function BoardView() {
       <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div
           ref={scrollContainerRef}
-          className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-x-auto"
+          className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-x-auto overflow-y-hidden overscroll-x-contain"
         >
           <div className="flex min-h-0 flex-1 items-stretch gap-3 pb-2 xl:gap-4">
             {BOARD_COLUMNS.map((column) => {
@@ -228,7 +228,7 @@ export default function BoardView() {
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
                                 className={cn(
-                                  'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
+                                  'scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
                                   snapshot.isDraggingOver && 'bg-primary/5 ring-1 ring-primary/30',
                                   highlighted && !snapshot.isDraggingOver && 'border-primary/40 bg-primary/5',
                                 )}
