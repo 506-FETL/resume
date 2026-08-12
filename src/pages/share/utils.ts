@@ -1,6 +1,40 @@
-import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
+import type { VersionDialogSelection } from './types'
+import type { ResumeShareRecord, ShareVersionSelection, ShareVersionSource } from '@/lib/supabase/resume/share.types'
 
 export type ShareStatusFilter = 'all' | 'active' | 'inactive' | 'expired'
+
+export function formatShareVersionSource(source: ShareVersionSource) {
+  return source.kind === 'current'
+    ? '当前版本'
+    : `V${source.versionNo} · ${source.versionLabel}`
+}
+
+export function toVersionDialogSelection(
+  source: ShareVersionSource,
+): VersionDialogSelection {
+  if (source.kind === 'current')
+    return source
+
+  if (source.versionId != null) {
+    return {
+      kind: 'history',
+      versionId: source.versionId,
+    }
+  }
+
+  return {
+    kind: 'deleted-history',
+    versionNo: source.versionNo,
+    versionLabel: source.versionLabel,
+    versionCreatedAt: source.versionCreatedAt,
+  }
+}
+
+export function isPublishableVersionSelection(
+  value: VersionDialogSelection,
+): value is ShareVersionSelection {
+  return value.kind === 'current' || value.kind === 'history'
+}
 
 export function buildShareUrl(token: string) {
   return `${window.location.origin}/share/view/${token}`

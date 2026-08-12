@@ -7,6 +7,45 @@ export interface ResumeShareSnapshotSource {
   displayName: string | null
 }
 
+export type ShareVersionSelection
+  = | { kind: 'current' }
+    | { kind: 'history', versionId: number }
+
+export type ShareVersionSource
+  = | { kind: 'current' }
+    | {
+      kind: 'history'
+      versionId: number | null
+      versionNo: number
+      versionLabel: string
+      versionCreatedAt: string
+    }
+
+export type ResolvedShareVersionSource
+  = | { kind: 'current' }
+    | {
+      kind: 'history'
+      versionId: number
+      versionNo: number
+      versionLabel: string
+      versionCreatedAt: string
+    }
+
+export interface ResolvedResumeShareRelease extends ResumeShareSnapshotSource {
+  source: ResolvedShareVersionSource
+}
+
+export type CurrentResumeShareSnapshotProvider
+  = (resumeId: string) => Promise<ResumeShareSnapshotSource>
+
+export interface ResumeShareVersionSourceColumns {
+  source_kind: 'current' | 'history'
+  source_version_id: number | null
+  source_version_no: number | null
+  source_version_label: string | null
+  source_version_created_at: string | null
+}
+
 /** resume_shares 表行（owner 侧可见字段，不包含 password_hash） */
 export interface ResumeShareRecord {
   id: string
@@ -23,6 +62,7 @@ export interface ResumeShareRecord {
   last_viewed_at: string | null
   created_at: string
   updated_at: string
+  source: ShareVersionSource
 }
 
 /** 新建分享链接的可选项 */
