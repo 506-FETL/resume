@@ -93,7 +93,9 @@ export default function CreateDialog({
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && !submitting)
+        if (!nextOpen && submitting)
+          return
+        if (!nextOpen)
           reset()
         onOpenChange(nextOpen)
       }}
@@ -113,6 +115,7 @@ export default function CreateDialog({
                   variant="outline"
                   role="combobox"
                   aria-expanded={resumeOpen}
+                  disabled={submitting}
                   className="w-full min-w-0 justify-between"
                 >
                   <span className="truncate">{selectedResume?.displayName ?? '搜索并选择简历'}</span>

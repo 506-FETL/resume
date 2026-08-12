@@ -71,8 +71,10 @@ export default function VersionDialog({
   const renderedShare = share
     ?? (retainedShare?.id === versionShareId ? retainedShare : null)
   const [selection, setSelection] = useState<VersionDialogSelection>({ kind: 'current' })
+  const [submitting, setSubmitting] = useState(false)
   const initializedShareIdRef = useRef<string | null>(null)
-  const busy = Boolean(renderedShare && pendingShareIds.includes(renderedShare.id))
+  const busy = submitting
+    || Boolean(renderedShare && pendingShareIds.includes(renderedShare.id))
   const versionEntry = renderedShare
     ? versionOptionsByResumeId[renderedShare.resume_id]
     : undefined
@@ -124,11 +126,12 @@ export default function VersionDialog({
   }, [renderedShare, selection, versionDialogOpen, versionEntry])
 
   const handlePublish = async () => {
-    if (!renderedShare || !isPublishableVersionSelection(selection))
+    if (busy || !renderedShare || !isPublishableVersionSelection(selection))
       return
 
     const submittedSelection = selection
     const versionsBeforePublish = versionEntry?.items ?? []
+    setSubmitting(true)
     try {
       const release = await resolveResumeShareRelease({
         resumeId: renderedShare.resume_id,
@@ -163,6 +166,9 @@ export default function VersionDialog({
         }
       }
       toast.error(error instanceof Error ? error.message : '发布失败，请重试')
+    }
+    finally {
+      setSubmitting(false)
     }
   }
 
