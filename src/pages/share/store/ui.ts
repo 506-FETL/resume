@@ -6,8 +6,6 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
   searchKeyword: '',
   resumeFilters: [],
   statusFilter: 'all',
-  actionShare: null,
-  actionTrigger: null,
   settingsDialogOpen: false,
   settingsShareId: null,
   deleteDialogOpen: false,
@@ -20,10 +18,7 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
       openForResumeName: resumeName,
       dialogRequestId: requestId,
       shares: [],
-      loading: true,
       dialogLoading: true,
-      mutatingId: null,
-      error: null,
       dialogError: null,
     })
     get().loadDialogShares(resumeId).catch(() => undefined)
@@ -34,20 +29,13 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
     openForResumeName: null,
     dialogRequestId: state.dialogRequestId + 1,
     shares: [],
-    loading: false,
     dialogLoading: false,
-    mutatingId: null,
-    error: null,
     dialogError: null,
   })),
 
   setSearchKeyword: searchKeyword => set({ searchKeyword }),
   setResumeFilters: resumeFilters => set({ resumeFilters }),
   setStatusFilter: statusFilter => set({ statusFilter }),
-  setActionShare: (actionShare, actionTrigger = null) => set({
-    actionShare,
-    actionTrigger,
-  }),
   openSettingsDialog: settingsShareId => set({
     settingsShareId,
     settingsDialogOpen: true,

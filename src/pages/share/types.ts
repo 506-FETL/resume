@@ -7,7 +7,4 @@ export interface ResumeSummary {
   type: ResumeType
 }
 
-/** @deprecated 组件命名迁移完成后删除。 */
-export type ShareResumeSummary = ResumeSummary
-
 export type SnapshotProvider = () => Promise<ResumeShareSnapshotSource>
