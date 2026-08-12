@@ -34,7 +34,7 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
   const resumeId = useCurrentResumeStore(state => state.resumeId)
   const resumes = useResumeListStore(state => state.resumes)
   const resumeName = resumeId ? (resumes.find(r => r.resume_id === resumeId)?.display_name ?? null) : null
-  const { openDialog: openShareDialog } = useShareStore()
+  const { openDialog: openQuickDialog } = useShareStore()
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
   const canShare = Boolean(resumeId) && !isOffline
   const shareDisabledReason = !resumeId
@@ -86,7 +86,7 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
         <Button
           size={isMobile ? 'icon' : 'sm'}
           variant="outline"
-          onClick={() => resumeId && openShareDialog(resumeId, resumeName)}
+          onClick={() => resumeId && openQuickDialog(resumeId, resumeName)}
           disabled={!canShare}
           title={shareDisabledReason}
         >

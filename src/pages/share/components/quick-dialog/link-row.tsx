@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { formatDateTime } from '@/utils/date'
 import { buildShareUrl, formatShareUrlForDisplay } from '../../utils'
 
-interface ShareLinkRowProps {
+interface LinkRowProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   busy: boolean
@@ -21,7 +21,7 @@ interface ShareLinkRowProps {
   onDelete: () => void
 }
 
-export function ShareLinkRow({
+export function LinkRow({
   ref,
   share,
   busy,
@@ -29,7 +29,7 @@ export function ShareLinkRow({
   onEditSettings,
   onPushLatest,
   onDelete,
-}: ShareLinkRowProps) {
+}: LinkRowProps) {
   const reduceMotion = useReducedMotion()
   const [copied, setCopied] = useState(false)
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)

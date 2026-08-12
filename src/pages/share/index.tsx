@@ -7,20 +7,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
-import ShareActionDrawer from './components/action-drawer'
-import ShareCreateDialog from './components/create-dialog'
-import ShareEmptyState from './components/empty-state'
-import ShareGrid from './components/grid'
-import ShareHeader from './components/header'
-import ShareMobileList from './components/mobile-list'
-import ShareDialog from './components/share-dialog'
-import ShareSettingsDialog from './components/settings-dialog'
-import ShareToolbar from './components/toolbar'
+import CreateDialog from './components/create-dialog'
+import EmptyState from './components/empty-state'
+import Grid from './components/grid'
+import Header from './components/header'
+import MobileList from './components/mobile-list'
+import ActionDrawer from './components/mobile-list/action-drawer'
+import SettingsDialog from './components/settings-dialog'
+import Toolbar from './components/toolbar'
 import { useSharePageBootstrap } from './hooks/use-share-page-bootstrap'
 import useShareStore from './store'
 import { buildShareUrl, deriveShareStatus, filterShares } from './utils'
 
-export default function SharePage() {
+export default function Management() {
   useSharePageBootstrap()
   const reduceMotion = useReducedMotion()
   const { allShares, resumeMap, pageLoading, error, mutatingId, searchKeyword, resumeFilters, statusFilter, actionShare, actionTrigger, setSearchKeyword, setResumeFilters, setStatusFilter, setActionShare, create, setActive, updateSettings, pushSnapshot, remove, reloadPage } = useShareStore()
@@ -162,13 +161,13 @@ export default function SharePage() {
       transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
       className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-8"
     >
-      <ShareHeader
+      <Header
         total={allShares.length}
         active={activeCount}
         canCreate={resumes.length > 0}
         onCreate={handleCreate}
       />
-      <ShareToolbar
+      <Toolbar
         keyword={searchKeyword}
         resumeIds={resumeFilters}
         status={statusFilter}
@@ -182,12 +181,12 @@ export default function SharePage() {
         {filteredShares.length === 0
           ? (
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <ShareEmptyState filtered={hasFilter} />
+                <EmptyState filtered={hasFilter} />
               </motion.div>
             )
           : (
               <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <ShareGrid
+                <Grid
                   shares={filteredShares}
                   onPreview={handlePreview}
                   onSettings={handleOpenSettings}
@@ -195,35 +194,26 @@ export default function SharePage() {
                   onToggleActive={handleToggleActive}
                   onDelete={setDeleteShare}
                 />
-                <ShareMobileList shares={filteredShares} onMore={setActionShare} />
+                <MobileList shares={filteredShares} onMore={setActionShare} />
               </motion.div>
             )}
       </AnimatePresence>
 
-      <ShareCreateDialog
+      <CreateDialog
         open={createDialogOpen}
         resumes={resumes}
         onOpenChange={setCreateDialogOpen}
         onCreate={handleCreateShare}
       />
 
-      <ShareDialog
-        getSnapshot={async () => {
-          const resumeId = useShareStore.getState().openForResumeId
-          if (!resumeId)
-            throw new Error('未选择简历')
-          return getResumeSnapshotById(resumeId)
-        }}
-      />
-
-      <ShareSettingsDialog
+      <SettingsDialog
         share={settingsShare}
         busy={Boolean(settingsShare && mutatingId === settingsShare.id)}
         onOpenChange={open => !open && setSettingsShare(null)}
         onSave={handleSaveSettings}
       />
 
-      <ShareActionDrawer
+      <ActionDrawer
         share={actionShare}
         restoreFocusTo={actionTrigger}
         busy={Boolean(actionShare && mutatingId === actionShare.id)}

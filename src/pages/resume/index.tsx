@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
-import ShareDialog from '@/pages/share/components/share-dialog'
+import QuickDialog from '@/pages/share/components/quick-dialog'
 import useShareStore from '@/pages/share/store'
 import useCurrentResumeStore from '@/store/resume/current'
 import CreateResumeCard from './components/create-resume-card'
@@ -122,7 +122,7 @@ export default function ResumePage() {
 
       <SyncResumesDialog />
 
-      <ShareDialog
+      <QuickDialog
         getSnapshot={async () => {
           if (!shareOpenForResumeId)
             throw new Error('未选择简历')

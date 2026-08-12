@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { dateToExpiryIso } from '../../utils'
-import AnimatedVisibilityIcon from '../animated-visibility-icon'
-import ShareDateField from './share-date-field'
+import VisibilityIcon from '../visibility-icon'
+import DateField from './date-field'
 
-interface CreateShareFormProps {
+interface CreateFormProps {
   onCreate: (options: CreateShareOptions) => Promise<boolean>
 }
 
-export function CreateShareForm({ onCreate }: CreateShareFormProps) {
+export function CreateForm({ onCreate }: CreateFormProps) {
   const [label, setLabel] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -73,13 +73,13 @@ export function CreateShareForm({ onCreate }: CreateShareFormProps) {
               aria-label={showPassword ? '隐藏访问密码' : '显示访问密码'}
               onClick={() => setShowPassword(value => !value)}
             >
-              <AnimatedVisibilityIcon visible={showPassword} />
+              <VisibilityIcon visible={showPassword} />
             </Button>
           </div>
         </div>
         <div className="min-w-0 flex flex-col gap-1.5 sm:col-span-2">
           <Label htmlFor="share-expiry" className="text-xs">有效期（可选）</Label>
-          <ShareDateField value={expiresAt} onChange={setExpiresAt} />
+          <DateField value={expiresAt} onChange={setExpiresAt} />
         </div>
       </div>
       <Button onClick={handleCreate} disabled={submitting} className="self-start">

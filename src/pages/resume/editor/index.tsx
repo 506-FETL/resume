@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
-import ShareDialog from '@/pages/share/components/share-dialog'
+import QuickDialog from '@/pages/share/components/quick-dialog'
 import useCurrentResumeStore from '@/store/resume/current'
 import useResumeExportStore from '@/store/resume/export'
 import useResumeStore from '@/store/resume/form'
@@ -210,7 +210,7 @@ function Editor() {
             </>
           )}
       <CollaborationDialog />
-      <ShareDialog
+      <QuickDialog
         getSnapshot={() => buildResumeShareSnapshotSource(
           useResumeStore.getState().getPersistedSnapshot(),
           currentDisplayName,

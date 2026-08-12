@@ -4,17 +4,17 @@ import { FileDown } from 'lucide-react'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { Button } from '@/components/ui/button'
 
-interface SharePdfExportProps {
+interface PdfExportProps {
   contentRef: RefObject<HTMLDivElement | null>
   documentState: ResumeDocumentState
   documentTitle: string
 }
 
-export default function SharePdfExport({
+export default function PdfExport({
   contentRef,
   documentState,
   documentTitle,
-}: SharePdfExportProps) {
+}: PdfExportProps) {
   const handlePrint = useResumePrint({
     contentRef,
     documentState,

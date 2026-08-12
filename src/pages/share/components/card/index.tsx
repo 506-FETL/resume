@@ -12,7 +12,7 @@ import { formatRelativeTime } from '@/utils/date'
 import { SHARE_CARD_ICONS, SHARE_ICON_STYLES, SHARE_MOTION, SHARE_STATUS_META } from '../../const'
 import { buildShareUrl, deriveShareStatus, formatShareUrlForDisplay } from '../../utils'
 
-interface ShareCardProps {
+interface LinkCardProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   index: number
@@ -23,7 +23,7 @@ interface ShareCardProps {
   onDelete: () => void
 }
 
-export default function ShareCard({ ref, share, index, onPreview, onSettings, onPushLatest, onToggleActive, onDelete }: ShareCardProps) {
+export default function LinkCard({ ref, share, index, onPreview, onSettings, onPushLatest, onToggleActive, onDelete }: LinkCardProps) {
   const reduceMotion = useReducedMotion()
   const status = deriveShareStatus(share)
   const statusMeta = SHARE_STATUS_META[status]

@@ -1,11 +1,11 @@
 import { Link2, SearchX } from 'lucide-react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 
-interface ShareEmptyStateProps {
+interface EmptyStateProps {
   filtered: boolean
 }
 
-export default function ShareEmptyState({ filtered }: ShareEmptyStateProps) {
+export default function EmptyState({ filtered }: EmptyStateProps) {
   return (
     <Empty className="min-h-90 border border-dashed bg-muted/20">
       <EmptyHeader>

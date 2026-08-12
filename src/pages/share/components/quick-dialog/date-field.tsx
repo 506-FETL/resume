@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/date'
 
-interface ShareDateFieldProps {
+interface DateFieldProps {
   value: Date | undefined
   onChange: (value: Date | undefined) => void
   className?: string
@@ -17,7 +17,7 @@ function startOfToday() {
   return today
 }
 
-export default function ShareDateField({ value, onChange, className }: ShareDateFieldProps) {
+export default function DateField({ value, onChange, className }: DateFieldProps) {
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
       <Popover>

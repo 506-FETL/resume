@@ -1,4 +1,4 @@
-import type { ShareResumeSummary } from '../../types'
+import type { ResumeSummary } from '../../types'
 import type { CreateShareOptions } from '@/lib/supabase/resume/share.types'
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -11,22 +11,22 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { dateToExpiryIso } from '../../utils'
-import AnimatedVisibilityIcon from '../animated-visibility-icon'
-import ShareDateField from '../share-dialog/share-date-field'
+import DateField from '../quick-dialog/date-field'
+import VisibilityIcon from '../visibility-icon'
 
-interface ShareCreateDialogProps {
+interface CreateDialogProps {
   open: boolean
-  resumes: ShareResumeSummary[]
+  resumes: ResumeSummary[]
   onOpenChange: (open: boolean) => void
   onCreate: (resumeId: string, options: CreateShareOptions) => Promise<void>
 }
 
-export default function ShareCreateDialog({
+export default function CreateDialog({
   open,
   resumes,
   onOpenChange,
   onCreate,
-}: ShareCreateDialogProps) {
+}: CreateDialogProps) {
   const [resumeId, setResumeId] = useState('')
   const [resumeOpen, setResumeOpen] = useState(false)
   const [label, setLabel] = useState('')
@@ -151,13 +151,13 @@ export default function ShareCreateDialog({
                 aria-label={showPassword ? '隐藏访问密码' : '显示访问密码'}
                 onClick={() => setShowPassword(value => !value)}
               >
-                <AnimatedVisibilityIcon visible={showPassword} />
+                <VisibilityIcon visible={showPassword} />
               </Button>
             </div>
           </div>
           <div className="min-w-0 flex flex-col gap-1.5 sm:col-span-2">
             <Label>有效期</Label>
-            <ShareDateField value={expiresAt} onChange={setExpiresAt} />
+            <DateField value={expiresAt} onChange={setExpiresAt} />
           </div>
         </div>
 

@@ -9,19 +9,19 @@ import { cn } from '@/lib/utils'
 import { SHARE_CARD_ICONS, SHARE_ICON_STYLES, SHARE_MOTION, SHARE_STATUS_META } from '../../const'
 import { buildShareUrl, deriveShareStatus, formatShareUrlForDisplay } from '../../utils'
 
-interface ShareMobileItemProps {
+interface MobileItemProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   index: number
   onMore: (trigger: HTMLElement) => void
 }
 
-export default function ShareMobileItem({
+export default function MobileItem({
   ref,
   share,
   index,
   onMore,
-}: ShareMobileItemProps) {
+}: MobileItemProps) {
   const reduceMotion = useReducedMotion()
   const status = deriveShareStatus(share)
   const statusMeta = SHARE_STATUS_META[status]

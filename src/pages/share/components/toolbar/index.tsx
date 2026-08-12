@@ -1,4 +1,4 @@
-import type { ShareResumeSummary } from '../../types'
+import type { ResumeSummary } from '../../types'
 import type { ShareStatusFilter } from '../../utils'
 import { Check, ChevronsUpDown, Search, X } from 'lucide-react'
 import { useState } from 'react'
@@ -10,17 +10,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
-interface ShareToolbarProps {
+interface ToolbarProps {
   keyword: string
   resumeIds: string[]
   status: ShareStatusFilter
-  resumes: ShareResumeSummary[]
+  resumes: ResumeSummary[]
   onKeywordChange: (value: string) => void
   onResumeChange: (value: string[]) => void
   onStatusChange: (value: ShareStatusFilter) => void
 }
 
-export default function ShareToolbar({
+export default function Toolbar({
   keyword,
   resumeIds,
   status,
@@ -28,7 +28,7 @@ export default function ShareToolbar({
   onKeywordChange,
   onResumeChange,
   onStatusChange,
-}: ShareToolbarProps) {
+}: ToolbarProps) {
   const [resumeOpen, setResumeOpen] = useState(false)
   const selectedLabel = resumeIds.length === 0
     ? '全部简历'

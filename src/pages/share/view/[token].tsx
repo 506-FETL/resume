@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { fetchSharedResume } from '@/lib/supabase/resume/share'
-import SharePdfExport from '../components/pdf-export'
+import PdfExport from '../components/pdf-export'
 
 type ViewState
   = | { phase: 'loading' }
@@ -159,7 +159,7 @@ export default function ResumeSharePage() {
     >
       <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b bg-background/85 px-4 py-3 backdrop-blur">
         <h1 className="truncate text-base font-semibold">{state.displayName || '简历'}</h1>
-        <SharePdfExport
+        <PdfExport
           contentRef={documentRef}
           documentState={documentState}
           documentTitle={state.displayName || '简历'}

@@ -1,14 +1,14 @@
 import { Plus, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-interface ShareHeaderProps {
+interface HeaderProps {
   total: number
   active: number
   canCreate: boolean
   onCreate: () => void
 }
 
-export default function ShareHeader({ total, active, canCreate, onCreate }: ShareHeaderProps) {
+export default function Header({ total, active, canCreate, onCreate }: HeaderProps) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex min-w-0 items-start gap-3">

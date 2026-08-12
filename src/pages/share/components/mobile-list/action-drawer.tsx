@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 
-interface ShareActionDrawerProps {
+interface ActionDrawerProps {
   share: ResumeShareRecord | null
   restoreFocusTo: HTMLElement | null
   busy: boolean
@@ -16,7 +16,7 @@ interface ShareActionDrawerProps {
   onDelete: () => void
 }
 
-export default function ShareActionDrawer({
+export default function ActionDrawer({
   share,
   restoreFocusTo,
   busy,
@@ -26,7 +26,7 @@ export default function ShareActionDrawer({
   onPushLatest,
   onToggleActive,
   onDelete,
-}: ShareActionDrawerProps) {
+}: ActionDrawerProps) {
   const reduceMotion = useReducedMotion()
   const actions = [
     { key: 'preview', node: (

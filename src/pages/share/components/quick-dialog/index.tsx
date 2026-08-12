@@ -1,4 +1,5 @@
-import type { CreateShareOptions, ResumeShareRecord, ResumeShareSnapshotSource } from '@/lib/supabase/resume/share.types'
+import type { SnapshotProvider } from '../../types'
+import type { CreateShareOptions, ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Loader2 } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useState } from 'react'
@@ -8,17 +9,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import useShareStore from '../../store'
-import ShareSettingsDialog from '../settings-dialog'
-import { CreateShareForm } from './create-share-form'
-import { ShareLinkRow } from './share-link-row'
+import SettingsDialog from '../settings-dialog'
+import { CreateForm } from './create-form'
+import { LinkRow } from './link-row'
 
-export interface ShareSnapshotSource {
-  getSnapshot: () => Promise<ResumeShareSnapshotSource>
+interface QuickDialogProps {
+  getSnapshot: SnapshotProvider
 }
 
-interface ShareDialogProps extends ShareSnapshotSource {}
-
-export default function ShareDialog({ getSnapshot }: ShareDialogProps) {
+export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
   const { openForResumeId, openForResumeName, shares, loading, mutatingId, error, closeDialog, create, setActive, updateSettings, pushSnapshot, remove } = useShareStore()
   const navigate = useNavigate()
 
@@ -123,7 +122,7 @@ export default function ShareDialog({ getSnapshot }: ShareDialogProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <CreateShareForm onCreate={handleCreate} />
+          <CreateForm onCreate={handleCreate} />
 
           <div className="min-w-0 flex flex-col gap-3">
             {(loading || creating) && (
@@ -141,7 +140,7 @@ export default function ShareDialog({ getSnapshot }: ShareDialogProps) {
             <div className="scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-40 max-h-[min(38dvh,22rem)] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg pr-1">
               <AnimatePresence initial={false} mode="popLayout">
                 {shares.map(share => (
-                  <ShareLinkRow
+                  <LinkRow
                     key={share.id}
                     share={share}
                     busy={mutatingId === share.id}
@@ -167,7 +166,7 @@ export default function ShareDialog({ getSnapshot }: ShareDialogProps) {
         </DialogContent>
       </Dialog>
 
-      <ShareSettingsDialog
+      <SettingsDialog
         share={settingsShare}
         busy={Boolean(settingsShare && mutatingId === settingsShare.id)}
         onOpenChange={nextOpen => !nextOpen && setSettingsShare(null)}

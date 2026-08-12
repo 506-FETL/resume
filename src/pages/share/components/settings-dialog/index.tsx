@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { dateToExpiryIso, expiryIsoToDate } from '../../utils'
-import AnimatedVisibilityIcon from '../animated-visibility-icon'
-import ShareDateField from '../share-dialog/share-date-field'
+import DateField from '../quick-dialog/date-field'
+import VisibilityIcon from '../visibility-icon'
 
-interface ShareSettingsDialogProps {
+interface SettingsDialogProps {
   share: ResumeShareRecord | null
   busy: boolean
   onOpenChange: (open: boolean) => void
@@ -20,12 +20,12 @@ interface ShareSettingsDialogProps {
   }) => Promise<void>
 }
 
-export default function ShareSettingsDialog({
+export default function SettingsDialog({
   share,
   busy,
   onOpenChange,
   onSave,
-}: ShareSettingsDialogProps) {
+}: SettingsDialogProps) {
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [passwordEnabled, setPasswordEnabled] = useState(false)
@@ -88,7 +88,7 @@ export default function ShareSettingsDialog({
 
           <div className="min-w-0 flex flex-col gap-1.5">
             <Label htmlFor="edit-share-expiry">有效期</Label>
-            <ShareDateField value={expiresAt} onChange={setExpiresAt} />
+            <DateField value={expiresAt} onChange={setExpiresAt} />
           </div>
 
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
@@ -124,7 +124,7 @@ export default function ShareSettingsDialog({
                       aria-label={showCurrentPasswordState ? '隐藏当前密码状态' : '显示当前密码状态'}
                       onClick={() => setShowCurrentPasswordState(value => !value)}
                     >
-                      <AnimatedVisibilityIcon visible={showCurrentPasswordState} />
+                      <VisibilityIcon visible={showCurrentPasswordState} />
                     </Button>
                   </div>
                 </div>
@@ -152,7 +152,7 @@ export default function ShareSettingsDialog({
                     aria-label={showNewPassword ? '隐藏新密码' : '显示新密码'}
                     onClick={() => setShowNewPassword(value => !value)}
                   >
-                    <AnimatedVisibilityIcon visible={showNewPassword} />
+                    <VisibilityIcon visible={showNewPassword} />
                   </Button>
                 </div>
               </div>

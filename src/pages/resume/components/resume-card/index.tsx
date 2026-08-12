@@ -22,7 +22,7 @@ interface ResumeCardProps {
 export default function ResumeCard({ resume }: ResumeCardProps) {
   const { deleteResume, updateResume, openDeriveFor, resumes } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
-  const { openDialog: openShareDialog } = useShareStore()
+  const { openDialog: openQuickDialog } = useShareStore()
 
   const navigate = useNavigate()
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -82,7 +82,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
     e.stopPropagation()
     if (resume.isOffline)
       return
-    openShareDialog(resume.resume_id, resume.display_name || '未命名简历')
+    openQuickDialog(resume.resume_id, resume.display_name || '未命名简历')
   }
 
   return (
