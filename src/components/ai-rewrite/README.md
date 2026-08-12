@@ -1,6 +1,6 @@
 # AI Rewrite 模块讲解
 
-`ai-rewrite` 是简历编辑器里的“划词改写”能力：用户在 Tiptap 富文本里选中一段内容，系统弹出改写动作菜单；用户选择动作后，模块把选区、字段上下文和可选 JD 交给 LLM；LLM 返回 2 到 3 个候选；用户选择一个候选后，组件把候选 HTML 写回原选区。
+`ai-rewrite` 是桌面端简历编辑器里的“划词改写”能力：用户在 Tiptap 富文本里选中一段内容，系统弹出改写动作菜单；用户选择动作后，模块把选区、字段上下文和可选 JD 交给 LLM；LLM 返回 2 到 3 个候选；用户选择一个候选后，组件把候选 HTML 写回原选区。移动端不挂载该模块。
 
 这个模块最重要的设计点是职责分层：
 
@@ -93,13 +93,14 @@ src/components/ai-rewrite/
 2. 测量完整动作工具条的固有宽度，并根据当前编辑器可视宽度选择完整、紧凑或隐藏模式。
 3. 用真实文本行矩形创建 Floating UI virtual element。
 4. 注册 `BubbleMenuPlugin`，以上方优先、下方回退的策略显示菜单。
-5. 监听编辑器内部滚动、祖先滚动和边界 resize，持续更新菜单坐标。
-6. 用户点击动作后，调用 `readRewriteSelection(editor)` 获取当前选区快照。
-7. 把选区存进 `savedSelection`，避免弹窗打开后 selection 丢失。
-8. 如果是 `align_jd` 且 JD 不够长，进入 `waiting_jd` 状态，不发请求。
-9. 否则调用 `useAiRewrite().run(action, selection)` 发起 LLM 请求。
-10. 组合弹窗 shell、footer 和 panel。
-11. 用户点击候选后，用 `editor.chain().focus().insertContentAt(...).run()` 写回原选区。
+5. 用 BubbleMenu 的 `onShow/onHide` 驱动内容层的 Motion 进出动画，动画结束后再清理隐藏宿主。
+6. 监听编辑器内部滚动、祖先滚动和边界 resize，持续更新菜单坐标。
+7. 用户点击动作后，调用 `readRewriteSelection(editor)` 获取当前选区快照。
+8. 把选区存进 `savedSelection`，避免弹窗打开后 selection 丢失。
+9. 如果是 `align_jd` 且 JD 不够长，进入 `waiting_jd` 状态，不发请求。
+10. 否则调用 `useAiRewrite().run(action, selection)` 发起 LLM 请求。
+11. 组合弹窗 shell、footer 和 panel。
+12. 用户点击候选后，用 `editor.chain().focus().insertContentAt(...).run()` 写回原选区。
 
 **在模块中的角色：** 它是“桥”。一边连接 Tiptap，另一边连接 React UI 和 LLM session。为了保持边界清晰，候选怎么展示、错误怎么显示、LLM 怎么解析，都不放在这里。
 
@@ -152,7 +153,8 @@ src/components/ai-rewrite/
 - 完整模式渲染 5 个动作按钮。
 - 测量模式通过 `ResizeObserver` 上报完整工具条固有宽度。
 - 横向空间不足时只渲染省略号按钮，并用 shadcn `DropdownMenu` 展示 5 个动作。
-- 完整模式阻止指针抢走编辑器焦点；紧凑模式在执行动作前读取并保存 TipTap selection。
+- 完整与紧凑模式共用淡入/上移和淡出/下移动画，并尊重系统减少动态效果设置。
+- 完整模式阻止指针抢走编辑器焦点；紧凑模式使用 Radix Trigger 的原生指针事件。
 
 **在模块中的角色：** 它只负责“用户想执行哪个动作”。它不读选区，不开弹窗，不发请求。
 

@@ -339,7 +339,7 @@ export function SimpleEditor({
           role="presentation"
           className="simple-editor-content"
         />
-        {editor && fieldContext && (
+        {!isMobile && editor && fieldContext && (
           <AiRewriteBubble editor={editor} fieldContext={fieldContext} />
         )}
       </EditorContext>

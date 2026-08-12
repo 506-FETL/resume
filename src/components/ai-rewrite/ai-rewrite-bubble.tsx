@@ -8,7 +8,7 @@ import type {
   RewriteSelection,
 } from './types'
 import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { AiRewritePanel } from './ai-rewrite-panel'
@@ -35,11 +35,13 @@ const COMPACT_BUBBLE_WIDTH = 42
 export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const { state, run, setJdDraft, reset, retry, cancel, waitForJd } = useAiRewrite({ fieldContext })
   const [bubbleEl, setBubbleEl] = useState<HTMLDivElement | null>(null)
+  const [bubbleVisible, setBubbleVisible] = useState(false)
   const [measureEl, setMeasureEl] = useState<HTMLDivElement | null>(null)
   const [boundaryEl, setBoundaryEl] = useState<HTMLElement | null>(null)
   const [fullMenuWidth, setFullMenuWidth] = useState(0)
   const [availableWidth, setAvailableWidth] = useState(0)
   const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(null)
+  const bubbleVisibleRef = useRef(false)
   const bubbleMode = fullMenuWidth > 0
     ? getBubbleDisplayMode({
         availableWidth,
@@ -120,6 +122,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     if (!bubbleEl || !boundaryEl || bubbleMode === 'hidden')
       return
 
+    let disposed = false
     const plugin = BubbleMenuPlugin({
       editor,
       element: bubbleEl,
@@ -157,6 +160,24 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
         },
         inline: true,
         scrollTarget: boundaryEl,
+        onShow: () => {
+          if (disposed)
+            return
+
+          bubbleVisibleRef.current = true
+          setBubbleVisible(true)
+        },
+        onHide: () => {
+          if (disposed)
+            return
+
+          // TipTap 会先隐藏并移除宿主；临时恢复原位置宿主，让内容层完成退出动画。
+          bubbleVisibleRef.current = false
+          document.body.appendChild(bubbleEl)
+          bubbleEl.style.visibility = 'visible'
+          bubbleEl.style.opacity = '1'
+          setBubbleVisible(false)
+        },
       },
       shouldShow: ({ editor: ed, from, to }) => {
         if (from === to)
@@ -172,9 +193,15 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     editor.registerPlugin(plugin)
 
     return () => {
+      disposed = true
       editor.unregisterPlugin(BUBBLE_MENU_PLUGIN_KEY)
     }
   }, [boundaryEl, bubbleEl, bubbleMode, editor])
+
+  const handleBubbleHidden = useCallback(() => {
+    if (!bubbleVisibleRef.current)
+      bubbleEl?.remove()
+  }, [bubbleEl])
 
   useEffect(() => {
     if (bubbleMode === 'hidden')
@@ -259,7 +286,9 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       {bubbleEl && bubbleMode !== 'hidden' && createPortal(
         <RewriteBubbleMenu
           mode={bubbleMode}
+          visible={bubbleVisible}
           onAction={handleAction}
+          onHidden={handleBubbleHidden}
         />,
         bubbleEl,
       )}

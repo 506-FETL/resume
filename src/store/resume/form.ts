@@ -89,17 +89,16 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
 
   updateActiveTabId: newActiveTab => set({ activeTabId: newActiveTab }),
 
-  // 展开集合：纯本地 UI 态（不写 Automerge），协作经 UI 广播同步。展开自动置为 activeTab。
+  // 单开集合：纯本地 UI 态（不写 Automerge），协作经 UI 广播同步。展开自动置为 activeTab。
   setSectionOpen: (id, open) => set((state) => {
-    const has = state.openSections.includes(id)
     if (open) {
-      if (has)
+      if (state.openSections.length === 1 && state.openSections[0] === id)
         return {}
-      return { openSections: [...state.openSections, id], activeTabId: id }
+      return { openSections: [id], activeTabId: id }
     }
-    if (!has)
+    if (!state.openSections.includes(id))
       return {}
-    return { openSections: state.openSections.filter(s => s !== id) }
+    return { openSections: [] }
   }),
 
   updateForm: (key, data) => {

@@ -18,11 +18,11 @@ interface AccordionEditorProps {
 const DROPPABLE_ID = 'resume-edit-panel-sections'
 
 /**
- * 桌面编辑区主体：多开折叠列表 + 竖向拖拽排序。
+ * 桌面编辑区主体：单开折叠列表 + 竖向拖拽排序。
  * - 基本信息固定置顶（不可拖、无显隐开关）；其余模块可拖拽排序。
- * - 多开：展开集合 openSections 提升到 store（本地 UI 态，不写 Automerge），
+ * - 单开：展开集合 openSections 提升到 store（本地 UI 态，不写 Automerge），
  *   由 useSectionToggleBroadcast 广播给协作方，实现展开/收起双向同步。
- * - 展开自动置为 activeTab（store 内联动）并触发 onActivate 滚动渲染区；收起仅移出集合。
+ * - 展开自动置为 activeTab（store 内联动）并触发 onActivate 滚动渲染区；收起清空集合。
  * - 排序/显隐均复用 store 动作，天然参与协作同步。
  */
 export function AccordionEditor({
@@ -48,22 +48,24 @@ export function AccordionEditor({
     onUpdateOrder(['basics', ...next])
   }, [orderDraggable, onUpdateOrder])
 
-  // 多开受控：diff 出新增/移除项写回 store（展开自动切 activeTab），新增项额外触发滚动
-  const handleValueChange = useCallback((next: string[]) => {
-    const added = next.find(id => !openSections.includes(id as ORDERType)) as ORDERType | undefined
-    const removed = openSections.find(id => !next.includes(id))
-    if (added) {
-      setSectionOpen(added, true)
-      onActivate(added)
+  // 单开受控：展开新项会由 store 原子替换旧项；空字符串表示收起当前项
+  const handleValueChange = useCallback((next: string) => {
+    const current = openSections[0]
+    if (next) {
+      const nextSection = next as ORDERType
+      setSectionOpen(nextSection, true)
+      onActivate(nextSection)
     }
-    if (removed)
-      setSectionOpen(removed, false)
+    else if (current) {
+      setSectionOpen(current, false)
+    }
   }, [openSections, setSectionOpen, onActivate])
 
   return (
     <Accordion
-      type="multiple"
-      value={openSections}
+      type="single"
+      collapsible
+      value={openSections[0] ?? ''}
       onValueChange={handleValueChange}
       className="flex flex-col gap-2"
     >

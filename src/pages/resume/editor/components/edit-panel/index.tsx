@@ -52,7 +52,7 @@ function ratioToWidth(ratio: number): number {
 /**
  * 桌面右侧常驻编辑侧栏：整体高度撑满、自身不滚动，仅表单区内部滚动；
  * 左边缘可拖拽调整宽度（占屏幕宽度比例，随屏幕自适应，localStorage 记忆比例）。
- * 内部编辑区为多开折叠列表（AccordionEditor）。与移动端底部抽屉互斥。
+ * 内部编辑区为单开折叠列表（AccordionEditor）。与移动端底部抽屉互斥。
  *
  * 动效：进出动画作用于 width（0↔W）+ opacity，而非 transform——因为编辑栏与渲染区是 flex 兄弟、
  * 渲染区 flex-1，动 width 时渲染区靠 flex 自然平滑跟随移动。内层用固定宽度承载内容并由外层 overflow-hidden
