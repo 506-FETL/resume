@@ -1,20 +1,9 @@
-import type { ShareState } from './types'
-import { create } from 'zustand'
+import type { ShareDataSlice, ShareSlice } from './types'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
-import {
-  createResumeShare,
-  deleteResumeShare,
-  listAllResumeShares,
-  listResumeShares,
-  pushResumeShareSnapshot,
-  setResumeShareActive,
-  updateResumeShareSettings,
-} from '@/lib/supabase/resume/share'
+import { createResumeShare, deleteResumeShare, listAllResumeShares, listResumeShares, pushResumeShareSnapshot, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
 
-const useShareStore = create<ShareState>((set, get) => ({
-  openForResumeId: null,
-  openForResumeName: null,
+export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
   ownerUserId: null,
   pageRequestId: 0,
   shares: [],
@@ -24,32 +13,6 @@ const useShareStore = create<ShareState>((set, get) => ({
   pageLoading: false,
   mutatingId: null,
   error: null,
-  searchKeyword: '',
-  resumeFilters: [],
-  statusFilter: 'all',
-  actionShare: null,
-  actionTrigger: null,
-
-  openDialog: (resumeId, resumeName) => {
-    set({
-      openForResumeId: resumeId,
-      openForResumeName: resumeName,
-      shares: [],
-      loading: true,
-      mutatingId: null,
-      error: null,
-    })
-    get().loadShares(resumeId).catch(() => undefined)
-  },
-
-  closeDialog: () => set({
-    openForResumeId: null,
-    openForResumeName: null,
-    shares: [],
-    loading: false,
-    mutatingId: null,
-    error: null,
-  }),
 
   bootstrapPage: async () => {
     const requestId = get().pageRequestId + 1
@@ -119,10 +82,6 @@ const useShareStore = create<ShareState>((set, get) => ({
   },
 
   reloadPage: async () => get().bootstrapPage(),
-  setSearchKeyword: searchKeyword => set({ searchKeyword }),
-  setResumeFilters: resumeFilters => set({ resumeFilters }),
-  setStatusFilter: statusFilter => set({ statusFilter }),
-  setActionShare: (actionShare, actionTrigger = null) => set({ actionShare, actionTrigger }),
 
   loadShares: async (resumeId) => {
     set({ loading: true, error: null })
@@ -131,11 +90,11 @@ const useShareStore = create<ShareState>((set, get) => ({
       if (get().openForResumeId === resumeId)
         set({ shares, loading: false })
     }
-    catch (e) {
+    catch (error) {
       if (get().openForResumeId === resumeId) {
         set({
           loading: false,
-          error: e instanceof Error ? e.message : '加载失败',
+          error: error instanceof Error ? error.message : '加载失败',
         })
       }
     }
@@ -152,10 +111,10 @@ const useShareStore = create<ShareState>((set, get) => ({
         allShares: [record, ...state.allShares],
       }))
     }
-    catch (e) {
+    catch (error) {
       if (get().openForResumeId === resumeId)
-        set({ error: e instanceof Error ? e.message : '创建失败' })
-      throw e
+        set({ error: error instanceof Error ? error.message : '创建失败' })
+      throw error
     }
   },
 
@@ -164,14 +123,21 @@ const useShareStore = create<ShareState>((set, get) => ({
     try {
       await setResumeShareActive(shareId, isActive)
       set(state => ({
-        shares: state.shares.map(s => (s.id === shareId ? { ...s, is_active: isActive } : s)),
-        allShares: state.allShares.map(s => (s.id === shareId ? { ...s, is_active: isActive } : s)),
+        shares: state.shares.map(share => (
+          share.id === shareId ? { ...share, is_active: isActive } : share
+        )),
+        allShares: state.allShares.map(share => (
+          share.id === shareId ? { ...share, is_active: isActive } : share
+        )),
         mutatingId: null,
       }))
     }
-    catch (e) {
-      set({ mutatingId: null, error: e instanceof Error ? e.message : '操作失败' })
-      throw e
+    catch (error) {
+      set({
+        mutatingId: null,
+        error: error instanceof Error ? error.message : '操作失败',
+      })
+      throw error
     }
   },
 
@@ -221,14 +187,21 @@ const useShareStore = create<ShareState>((set, get) => ({
     try {
       await pushResumeShareSnapshot(shareId, snapshot, templateManifest, displayName)
       set(state => ({
-        shares: state.shares.map(s => (s.id === shareId ? { ...s, display_name: displayName } : s)),
-        allShares: state.allShares.map(s => (s.id === shareId ? { ...s, display_name: displayName } : s)),
+        shares: state.shares.map(share => (
+          share.id === shareId ? { ...share, display_name: displayName } : share
+        )),
+        allShares: state.allShares.map(share => (
+          share.id === shareId ? { ...share, display_name: displayName } : share
+        )),
         mutatingId: null,
       }))
     }
-    catch (e) {
-      set({ mutatingId: null, error: e instanceof Error ? e.message : '操作失败' })
-      throw e
+    catch (error) {
+      set({
+        mutatingId: null,
+        error: error instanceof Error ? error.message : '操作失败',
+      })
+      throw error
     }
   },
 
@@ -237,18 +210,19 @@ const useShareStore = create<ShareState>((set, get) => ({
     try {
       await deleteResumeShare(shareId)
       set(state => ({
-        shares: state.shares.filter(s => s.id !== shareId),
-        allShares: state.allShares.filter(s => s.id !== shareId),
+        shares: state.shares.filter(share => share.id !== shareId),
+        allShares: state.allShares.filter(share => share.id !== shareId),
         actionShare: state.actionShare?.id === shareId ? null : state.actionShare,
         actionTrigger: state.actionShare?.id === shareId ? null : state.actionTrigger,
         mutatingId: null,
       }))
     }
-    catch (e) {
-      set({ mutatingId: null, error: e instanceof Error ? e.message : '删除失败' })
-      throw e
+    catch (error) {
+      set({
+        mutatingId: null,
+        error: error instanceof Error ? error.message : '删除失败',
+      })
+      throw error
     }
   },
-}))
-
-export default useShareStore
+})
