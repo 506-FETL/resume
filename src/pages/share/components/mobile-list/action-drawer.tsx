@@ -31,18 +31,30 @@ export default function ActionDrawer({
   const reduceMotion = useReducedMotion()
   const busy = Boolean(share && pendingShareIds.includes(share.id))
 
+  const handleDrawerOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && document.activeElement instanceof HTMLElement)
+      document.activeElement.blur()
+    onOpenChange(nextOpen)
+    if (!nextOpen) {
+      requestAnimationFrame(() => {
+        if (restoreFocusTo?.isConnected)
+          restoreFocusTo.focus()
+      })
+    }
+  }
+
   const handlePreview = () => {
     if (!share)
       return
     window.open(buildShareUrl(share.token), '_blank', 'noopener,noreferrer')
-    onOpenChange(false)
+    handleDrawerOpenChange(false)
   }
 
   const handleSettings = () => {
     if (!share)
       return
     openSettingsDialog(share.id)
-    onOpenChange(false)
+    handleDrawerOpenChange(false)
   }
 
   const handlePushLatest = async () => {
@@ -57,7 +69,7 @@ export default function ActionDrawer({
         source.displayName,
       )
       toast.success('已推送最新版')
-      onOpenChange(false)
+      handleDrawerOpenChange(false)
     }
     catch {
       toast.error('推送失败')
@@ -70,7 +82,7 @@ export default function ActionDrawer({
     try {
       await setActive(share.id, !share.is_active)
       toast.success(share.is_active ? '链接已关闭' : '链接已启用')
-      onOpenChange(false)
+      handleDrawerOpenChange(false)
     }
     catch {
       toast.error('操作失败')
@@ -81,7 +93,7 @@ export default function ActionDrawer({
     if (!share)
       return
     openDeleteDialog(share.id)
-    onOpenChange(false)
+    handleDrawerOpenChange(false)
   }
 
   const actions = [
@@ -114,17 +126,7 @@ export default function ActionDrawer({
   return (
     <Drawer
       open={open}
-      onOpenChange={(open) => {
-        if (open && document.activeElement instanceof HTMLElement)
-          document.activeElement.blur()
-        onOpenChange(open)
-        if (!open) {
-          requestAnimationFrame(() => {
-            if (restoreFocusTo?.isConnected)
-              restoreFocusTo.focus()
-          })
-        }
-      }}
+      onOpenChange={handleDrawerOpenChange}
     >
       <DrawerContent className="rounded-t-[28px]">
         <DrawerHeader className="text-left">
@@ -148,7 +150,7 @@ export default function ActionDrawer({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.16, delay: reduceMotion ? 0 : actions.length * 0.035 }}
           >
-            <Button variant="ghost" className="h-11 w-full justify-start text-destructive hover:text-destructive" disabled={busy} onClick={handleDelete}>
+            <Button variant="destructive" className="h-11 w-full justify-start" disabled={busy} onClick={handleDelete}>
               <Trash2 data-icon="inline-start" />
               永久删除
             </Button>

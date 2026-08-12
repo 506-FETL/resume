@@ -19,7 +19,8 @@ export default function DeleteDialog() {
   } = useShareStore()
   const share = findShareById(allShares, shares, deleteShareId)
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
-  const renderedShare = share ?? retainedShare
+  const renderedShare = share
+    ?? (retainedShare?.id === deleteShareId ? retainedShare : null)
   const busy = Boolean(deleteShareId && pendingShareIds.includes(deleteShareId))
 
   useEffect(() => {

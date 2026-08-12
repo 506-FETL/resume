@@ -24,7 +24,8 @@ export default function SettingsDialog() {
   } = useShareStore()
   const share = findShareById(allShares, shares, settingsShareId)
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
-  const renderedShare = share ?? retainedShare
+  const renderedShare = share
+    ?? (retainedShare?.id === settingsShareId ? retainedShare : null)
   const busy = Boolean(settingsShareId && pendingShareIds.includes(settingsShareId))
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
