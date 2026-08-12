@@ -166,6 +166,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
             {bubbleVisible && (
               <RewriteBubbleMenu
                 key="ai-rewrite-bubble-menu"
+                mode="full"
                 onAction={handleAction}
               />
             )}
