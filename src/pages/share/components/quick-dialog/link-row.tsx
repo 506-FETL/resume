@@ -1,4 +1,5 @@
 import type { Ref } from 'react'
+import type { SnapshotProvider } from '../../types'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Check, Copy, KeyRound, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -9,27 +10,28 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDateTime } from '@/utils/date'
+import useShareStore from '../../store'
 import { buildShareUrl, formatShareUrlForDisplay } from '../../utils'
 
 interface LinkRowProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   busy: boolean
-  onToggleActive: (isActive: boolean) => void
-  onEditSettings: () => void
-  onPushLatest: () => void
-  onDelete: () => void
+  getSnapshot: SnapshotProvider
 }
 
 export function LinkRow({
   ref,
   share,
   busy,
-  onToggleActive,
-  onEditSettings,
-  onPushLatest,
-  onDelete,
+  getSnapshot,
 }: LinkRowProps) {
+  const {
+    setActive,
+    pushSnapshot,
+    openSettingsDialog,
+    openDeleteDialog,
+  } = useShareStore()
   const reduceMotion = useReducedMotion()
   const [copied, setCopied] = useState(false)
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -46,6 +48,27 @@ export function LinkRow({
     }
     catch {
       toast.error('复制失败，请手动复制链接')
+    }
+  }
+
+  const handleToggleActive = async (isActive: boolean) => {
+    try {
+      await setActive(share.id, isActive)
+      toast.success(isActive ? '链接已启用' : '链接已关闭')
+    }
+    catch {
+      toast.error('操作失败')
+    }
+  }
+
+  const handlePushLatest = async () => {
+    try {
+      const { snapshot, templateManifest, displayName } = await getSnapshot()
+      await pushSnapshot(share.id, snapshot, templateManifest, displayName)
+      toast.success('已推送最新简历到该链接')
+    }
+    catch {
+      toast.error('推送失败')
     }
   }
 
@@ -82,7 +105,7 @@ export function LinkRow({
           {expired && <Badge variant="destructive">已过期</Badge>}
           {!share.is_active && <Badge variant="secondary">已关闭</Badge>}
         </div>
-        <Switch checked={share.is_active} disabled={busy} onCheckedChange={onToggleActive} aria-label="启用或关闭链接" />
+        <Switch checked={share.is_active} disabled={busy} onCheckedChange={handleToggleActive} aria-label="启用或关闭链接" />
       </div>
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5">
@@ -95,7 +118,7 @@ export function LinkRow({
           <TooltipContent className="max-w-sm break-all">{url}</TooltipContent>
         </Tooltip>
         <Button size="icon-sm" variant="ghost" onClick={handleCopy} aria-label="复制链接">
-          {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+          {copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}
         </Button>
       </div>
 
@@ -124,15 +147,15 @@ export function LinkRow({
       </div>
 
       <div className="flex min-w-0 flex-wrap gap-2">
-        <Button size="xs" variant="outline" disabled={busy} onClick={onEditSettings}>
+        <Button size="xs" variant="outline" disabled={busy} onClick={() => openSettingsDialog(share.id)}>
           <Pencil data-icon="inline-start" />
           编辑设置
         </Button>
-        <Button size="xs" variant="outline" disabled={busy} onClick={onPushLatest}>
+        <Button size="xs" variant="outline" disabled={busy} onClick={handlePushLatest}>
           <RefreshCw data-icon="inline-start" />
           推送最新版
         </Button>
-        <Button size="xs" variant="ghost" disabled={busy} onClick={onDelete} className="text-destructive hover:text-destructive">
+        <Button size="xs" variant="destructive" disabled={busy} onClick={() => openDeleteDialog(share.id)}>
           <Trash2 data-icon="inline-start" />
           删除
         </Button>

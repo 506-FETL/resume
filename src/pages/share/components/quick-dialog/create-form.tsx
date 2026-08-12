@@ -1,9 +1,10 @@
 import type { CreateShareOptions } from '@/lib/supabase/resume/share.types'
-import { Loader2, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
 import { dateToExpiryIso } from '../../utils'
 import VisibilityIcon from '../visibility-icon'
 import DateField from './date-field'
@@ -41,9 +42,9 @@ export function CreateForm({ onCreate }: CreateFormProps) {
 
   return (
     <div className="min-w-0 flex flex-col gap-3 rounded-lg border p-4">
-      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="min-w-0 flex flex-col gap-1.5">
-          <Label htmlFor="share-label" className="text-xs">链接名称（可选）</Label>
+      <FieldGroup className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field className="min-w-0">
+          <FieldLabel htmlFor="share-label">链接名称（可选）</FieldLabel>
           <Input
             id="share-label"
             value={label}
@@ -51,39 +52,38 @@ export function CreateForm({ onCreate }: CreateFormProps) {
             placeholder="如：字节专用"
             maxLength={120}
           />
-        </div>
-        <div className="min-w-0 flex flex-col gap-1.5">
-          <Label htmlFor="share-password" className="text-xs">访问密码（可选）</Label>
-          <div className="relative">
+        </Field>
+        <Field className="min-w-0">
+          <FieldLabel htmlFor="share-password">访问密码（可选）</FieldLabel>
+          <div className="flex min-w-0 gap-2">
             <Input
               id="share-password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="留空则开即看"
-              className="pr-10"
+              className="min-w-0"
               maxLength={128}
               autoComplete="new-password"
             />
             <Button
               type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="absolute right-1 top-1/2 -translate-y-1/2"
+              variant="outline"
+              size="icon"
               aria-label={showPassword ? '隐藏访问密码' : '显示访问密码'}
               onClick={() => setShowPassword(value => !value)}
             >
               <VisibilityIcon visible={showPassword} />
             </Button>
           </div>
-        </div>
-        <div className="min-w-0 flex flex-col gap-1.5 sm:col-span-2">
-          <Label htmlFor="share-expiry" className="text-xs">有效期（可选）</Label>
+        </Field>
+        <Field className="min-w-0 sm:col-span-2">
+          <FieldLabel>有效期（可选）</FieldLabel>
           <DateField value={expiresAt} onChange={setExpiresAt} />
-        </div>
-      </div>
+        </Field>
+      </FieldGroup>
       <Button onClick={handleCreate} disabled={submitting} className="self-start">
-        {submitting ? <Loader2 className="size-4 animate-spin" data-icon="inline-start" /> : <Plus data-icon="inline-start" />}
+        {submitting ? <Spinner data-icon="inline-start" /> : <Plus data-icon="inline-start" />}
         生成分享链接
       </Button>
     </div>

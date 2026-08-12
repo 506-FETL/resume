@@ -1,14 +1,13 @@
 import type { SnapshotProvider } from '../../types'
-import type { CreateShareOptions, ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Loader2 } from 'lucide-react'
+import type { CreateShareOptions } from '@/lib/supabase/resume/share.types'
 import { AnimatePresence } from 'motion/react'
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Spinner } from '@/components/ui/spinner'
 import useShareStore from '../../store'
+import DeleteDialog from '../delete-dialog'
 import SettingsDialog from '../settings-dialog'
 import { CreateForm } from './create-form'
 import { LinkRow } from './link-row'
@@ -18,17 +17,23 @@ interface QuickDialogProps {
 }
 
 export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
-  const { openForResumeId, openForResumeName, shares, loading, mutatingId, error, closeDialog, create, setActive, openSettingsDialog, pushSnapshot, remove } = useShareStore()
+  const {
+    openForResumeId,
+    openForResumeName,
+    shares,
+    dialogLoading,
+    dialogError,
+    pendingShareIds,
+    closeDialog,
+    create,
+  } = useShareStore()
   const navigate = useNavigate()
 
-  const [creating, setCreating] = useState(false)
-  const [deleteShare, setDeleteShare] = useState<ResumeShareRecord | null>(null)
   const open = Boolean(openForResumeId)
 
   const handleCreate = async (options: CreateShareOptions) => {
     if (!openForResumeId)
       return false
-    setCreating(true)
     try {
       const { snapshot, templateManifest, displayName } = await getSnapshot()
       await create(openForResumeId, snapshot, templateManifest, displayName, options)
@@ -39,44 +44,6 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       toast.error('生成失败，请重试')
       return false
     }
-    finally {
-      setCreating(false)
-    }
-  }
-
-  const handlePush = async (shareId: string) => {
-    try {
-      const { snapshot, templateManifest, displayName } = await getSnapshot()
-      await pushSnapshot(shareId, snapshot, templateManifest, displayName)
-      toast.success('已推送最新简历到该链接')
-    }
-    catch {
-      toast.error('推送失败')
-    }
-  }
-
-  const handleToggleActive = async (share: ResumeShareRecord, isActive: boolean) => {
-    try {
-      await setActive(share.id, isActive)
-      toast.success(isActive ? '链接已启用' : '链接已关闭')
-    }
-    catch {
-      toast.error('操作失败')
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!deleteShare)
-      return
-
-    try {
-      await remove(deleteShare.id)
-      toast.success('分享链接已永久删除')
-      setDeleteShare(null)
-    }
-    catch {
-      toast.error('删除失败')
-    }
   }
 
   return (
@@ -84,10 +51,8 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       <Dialog
         open={open}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            setDeleteShare(null)
+          if (!nextOpen)
             closeDialog()
-          }
         }}
       >
         <DialogContent className="max-h-[calc(100dvh-2rem)] min-w-0 max-w-2xl overflow-hidden">
@@ -105,15 +70,15 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
           <CreateForm onCreate={handleCreate} />
 
           <div className="min-w-0 flex flex-col gap-3">
-            {(loading || creating) && (
+            {dialogLoading && (
               <div className="flex shrink-0 items-center justify-center py-2 text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
+                <Spinner />
               </div>
             )}
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {dialogError && <p className="text-sm text-destructive">{dialogError}</p>}
 
-            {!loading && shares.length === 0 && (
+            {!dialogLoading && shares.length === 0 && (
               <p className="py-4 text-center text-sm text-muted-foreground">还没有分享链接，生成一个吧。</p>
             )}
 
@@ -123,11 +88,8 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
                   <LinkRow
                     key={share.id}
                     share={share}
-                    busy={mutatingId === share.id}
-                    onToggleActive={isActive => handleToggleActive(share, isActive)}
-                    onEditSettings={() => openSettingsDialog(share.id)}
-                    onPushLatest={() => handlePush(share.id)}
-                    onDelete={() => setDeleteShare(share)}
+                    busy={pendingShareIds.includes(share.id)}
+                    getSnapshot={getSnapshot}
                   />
                 ))}
               </AnimatePresence>
@@ -147,27 +109,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       </Dialog>
 
       <SettingsDialog />
-
-      <AlertDialog open={Boolean(deleteShare)} onOpenChange={nextOpen => !nextOpen && setDeleteShare(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>永久删除这个分享链接？</AlertDialogTitle>
-            <AlertDialogDescription>
-              删除后，已发出的链接会立即失效，访问次数等统计也无法恢复。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={Boolean(deleteShare && mutatingId === deleteShare.id)}
-            >
-              永久删除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteDialog />
     </>
   )
 }
