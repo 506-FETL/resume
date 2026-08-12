@@ -1,7 +1,6 @@
-import type { ResumeSummary } from '../../types'
 import type { ShareStatusFilter } from '../../utils'
 import { Check, ChevronsUpDown, Search, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -9,38 +8,36 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import useShareStore from '../../store'
 
-interface ToolbarProps {
-  keyword: string
-  resumeIds: string[]
-  status: ShareStatusFilter
-  resumes: ResumeSummary[]
-  onKeywordChange: (value: string) => void
-  onResumeChange: (value: string[]) => void
-  onStatusChange: (value: ShareStatusFilter) => void
-}
-
-export default function Toolbar({
-  keyword,
-  resumeIds,
-  status,
-  resumes,
-  onKeywordChange,
-  onResumeChange,
-  onStatusChange,
-}: ToolbarProps) {
+export default function Toolbar() {
+  const {
+    resumeMap,
+    searchKeyword,
+    resumeFilters,
+    statusFilter,
+    setSearchKeyword,
+    setResumeFilters,
+    setStatusFilter,
+  } = useShareStore()
   const [resumeOpen, setResumeOpen] = useState(false)
-  const selectedLabel = resumeIds.length === 0
+  const resumes = useMemo(
+    () => Object.values(resumeMap).sort(
+      (left, right) => left.displayName.localeCompare(right.displayName),
+    ),
+    [resumeMap],
+  )
+  const selectedLabel = resumeFilters.length === 0
     ? '全部简历'
-    : resumeIds.length === 1
-      ? (resumes.find(resume => resume.resumeId === resumeIds[0])?.displayName ?? '已选 1 项')
-      : `已选 ${resumeIds.length} 项`
+    : resumeFilters.length === 1
+      ? (resumes.find(resume => resume.resumeId === resumeFilters[0])?.displayName ?? '已选 1 项')
+      : `已选 ${resumeFilters.length} 项`
 
   const toggleResume = (resumeId: string) => {
-    onResumeChange(
-      resumeIds.includes(resumeId)
-        ? resumeIds.filter(id => id !== resumeId)
-        : [...resumeIds, resumeId],
+    setResumeFilters(
+      resumeFilters.includes(resumeId)
+        ? resumeFilters.filter(id => id !== resumeId)
+        : [...resumeFilters, resumeId],
     )
   }
 
@@ -49,8 +46,8 @@ export default function Toolbar({
       <div className="relative min-w-0 flex-1 sm:min-w-64">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          value={keyword}
-          onChange={event => onKeywordChange(event.target.value)}
+          value={searchKeyword}
+          onChange={event => setSearchKeyword(event.target.value)}
           placeholder="搜索名称、简历或链接"
           className="pl-9"
         />
@@ -59,7 +56,7 @@ export default function Toolbar({
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-full justify-between sm:w-48">
             <span className="truncate">{selectedLabel}</span>
-            <ChevronsUpDown className="opacity-50" />
+            <ChevronsUpDown data-icon="inline-end" className="opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">
@@ -74,20 +71,20 @@ export default function Toolbar({
                     value={`${resume.displayName} ${resume.resumeId}`}
                     onSelect={() => toggleResume(resume.resumeId)}
                   >
-                    <Checkbox checked={resumeIds.includes(resume.resumeId)} />
+                    <Checkbox checked={resumeFilters.includes(resume.resumeId)} />
                     <span className="min-w-0 flex-1 truncate">{resume.displayName}</span>
-                    <Check className={cn('size-4', resumeIds.includes(resume.resumeId) ? 'opacity-100' : 'opacity-0')} />
+                    <Check className={cn('size-4', resumeFilters.includes(resume.resumeId) ? 'opacity-100' : 'opacity-0')} />
                   </CommandItem>
                 ))}
               </CommandGroup>
             </CommandList>
-            {resumeIds.length > 0 && (
+            {resumeFilters.length > 0 && (
               <div className="border-t p-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start"
-                  onClick={() => onResumeChange([])}
+                  onClick={() => setResumeFilters([])}
                 >
                   <X data-icon="inline-start" />
                   清空选择
@@ -97,7 +94,7 @@ export default function Toolbar({
           </Command>
         </PopoverContent>
       </Popover>
-      <Tabs value={status} onValueChange={value => onStatusChange(value as ShareStatusFilter)}>
+      <Tabs value={statusFilter} onValueChange={value => setStatusFilter(value as ShareStatusFilter)}>
         <TabsList className="grid w-full grid-cols-4 sm:w-auto">
           <TabsTrigger value="all">全部</TabsTrigger>
           <TabsTrigger value="active">有效</TabsTrigger>

@@ -7,7 +7,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
-import CreateDialog from './components/create-dialog'
 import EmptyState from './components/empty-state'
 import Grid from './components/grid'
 import Header from './components/header'
@@ -17,20 +16,15 @@ import SettingsDialog from './components/settings-dialog'
 import Toolbar from './components/toolbar'
 import { useSharePageBootstrap } from './hooks/use-share-page-bootstrap'
 import useShareStore from './store'
-import { buildShareUrl, deriveShareStatus, filterShares } from './utils'
+import { buildShareUrl, filterShares } from './utils'
 
 export default function Management() {
   useSharePageBootstrap()
   const reduceMotion = useReducedMotion()
-  const { allShares, resumeMap, pageLoading, error, mutatingId, searchKeyword, resumeFilters, statusFilter, actionShare, actionTrigger, setSearchKeyword, setResumeFilters, setStatusFilter, setActionShare, create, setActive, updateSettings, pushSnapshot, remove, reloadPage } = useShareStore()
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const { allShares, pageLoading, error, mutatingId, searchKeyword, resumeFilters, statusFilter, actionShare, actionTrigger, setActionShare, setActive, updateSettings, pushSnapshot, remove, reloadPage } = useShareStore()
   const [settingsShare, setSettingsShare] = useState<ResumeShareRecord | null>(null)
   const [deleteShare, setDeleteShare] = useState<ResumeShareRecord | null>(null)
 
-  const resumes = useMemo(
-    () => Object.values(resumeMap).sort((left, right) => left.displayName.localeCompare(right.displayName)),
-    [resumeMap],
-  )
   const filteredShares = useMemo(
     () => filterShares(allShares, {
       keyword: searchKeyword,
@@ -39,7 +33,6 @@ export default function Management() {
     }),
     [allShares, resumeFilters, searchKeyword, statusFilter],
   )
-  const activeCount = allShares.filter(share => deriveShareStatus(share) === 'active').length
   const hasFilter = Boolean(searchKeyword.trim()) || resumeFilters.length > 0 || statusFilter !== 'all'
 
   const handlePreview = (share: ResumeShareRecord) => {
@@ -110,21 +103,6 @@ export default function Management() {
     }
   }
 
-  const handleCreate = () => {
-    setCreateDialogOpen(true)
-  }
-
-  const handleCreateShare = async (resumeId: string, options: Parameters<typeof create>[4]) => {
-    const source = await getResumeSnapshotById(resumeId)
-    await create(
-      resumeId,
-      source.snapshot,
-      source.templateManifest,
-      source.displayName,
-      options,
-    )
-  }
-
   if (pageLoading && allShares.length === 0) {
     return (
       <div className="flex min-h-[60dvh] items-center justify-center text-muted-foreground">
@@ -161,21 +139,8 @@ export default function Management() {
       transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
       className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-8"
     >
-      <Header
-        total={allShares.length}
-        active={activeCount}
-        canCreate={resumes.length > 0}
-        onCreate={handleCreate}
-      />
-      <Toolbar
-        keyword={searchKeyword}
-        resumeIds={resumeFilters}
-        status={statusFilter}
-        resumes={resumes}
-        onKeywordChange={setSearchKeyword}
-        onResumeChange={setResumeFilters}
-        onStatusChange={setStatusFilter}
-      />
+      <Header />
+      <Toolbar />
 
       <AnimatePresence mode="wait" initial={false}>
         {filteredShares.length === 0
@@ -198,13 +163,6 @@ export default function Management() {
               </motion.div>
             )}
       </AnimatePresence>
-
-      <CreateDialog
-        open={createDialogOpen}
-        resumes={resumes}
-        onOpenChange={setCreateDialogOpen}
-        onCreate={handleCreateShare}
-      />
 
       <SettingsDialog
         share={settingsShare}

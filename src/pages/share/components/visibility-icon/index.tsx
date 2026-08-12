@@ -7,6 +7,7 @@ export default function VisibilityIcon({ visible }: { visible: boolean }) {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.span
+        data-icon="inline-start"
         key={visible ? 'visible' : 'hidden'}
         initial={reduceMotion ? false : { opacity: 0, rotate: -10, scale: 0.9 }}
         animate={{ opacity: 1, rotate: 0, scale: 1 }}

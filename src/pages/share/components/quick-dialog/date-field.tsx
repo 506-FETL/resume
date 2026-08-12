@@ -45,7 +45,7 @@ export default function DateField({ value, onChange, className }: DateFieldProps
           aria-label="清除有效期"
           onClick={() => onChange(undefined)}
         >
-          <X />
+          <X data-icon="inline-start" />
         </Button>
       )}
     </div>

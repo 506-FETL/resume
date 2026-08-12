@@ -1,32 +1,30 @@
-import type { ResumeSummary } from '../../types'
-import type { CreateShareOptions } from '@/lib/supabase/resume/share.types'
-import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react'
+import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Spinner } from '@/components/ui/spinner'
+import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import { cn } from '@/lib/utils'
+import useShareStore from '../../store'
 import { dateToExpiryIso } from '../../utils'
 import DateField from '../quick-dialog/date-field'
 import VisibilityIcon from '../visibility-icon'
 
 interface CreateDialogProps {
   open: boolean
-  resumes: ResumeSummary[]
   onOpenChange: (open: boolean) => void
-  onCreate: (resumeId: string, options: CreateShareOptions) => Promise<void>
 }
 
 export default function CreateDialog({
   open,
-  resumes,
   onOpenChange,
-  onCreate,
 }: CreateDialogProps) {
+  const { resumeMap, create } = useShareStore()
   const [resumeId, setResumeId] = useState('')
   const [resumeOpen, setResumeOpen] = useState(false)
   const [label, setLabel] = useState('')
@@ -34,6 +32,12 @@ export default function CreateDialog({
   const [showPassword, setShowPassword] = useState(false)
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [submitting, setSubmitting] = useState(false)
+  const resumes = useMemo(
+    () => Object.values(resumeMap).sort(
+      (left, right) => left.displayName.localeCompare(right.displayName),
+    ),
+    [resumeMap],
+  )
   const selectedResume = useMemo(
     () => resumes.find(resume => resume.resumeId === resumeId) ?? null,
     [resumeId, resumes],
@@ -52,11 +56,18 @@ export default function CreateDialog({
       return
     setSubmitting(true)
     try {
-      await onCreate(resumeId, {
-        label: label.trim() || null,
-        password: password.trim() || null,
-        expiresAt: dateToExpiryIso(expiresAt),
-      })
+      const source = await getResumeSnapshotById(resumeId)
+      await create(
+        resumeId,
+        source.snapshot,
+        source.templateManifest,
+        source.displayName,
+        {
+          label: label.trim() || null,
+          password: password.trim() || null,
+          expiresAt: dateToExpiryIso(expiresAt),
+        },
+      )
       toast.success('分享链接已生成')
       reset()
       onOpenChange(false)
@@ -84,17 +95,22 @@ export default function CreateDialog({
           <DialogDescription>选择简历并设置链接。</DialogDescription>
         </DialogHeader>
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="min-w-0 flex flex-col gap-1.5 sm:col-span-2">
-            <Label>选择简历</Label>
+        <FieldGroup className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field className="min-w-0 sm:col-span-2">
+            <FieldLabel>选择简历</FieldLabel>
             <Popover open={resumeOpen} onOpenChange={setResumeOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full min-w-0 justify-between">
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={resumeOpen}
+                  className="w-full min-w-0 justify-between"
+                >
                   <span className="truncate">{selectedResume?.displayName ?? '搜索并选择简历'}</span>
-                  <ChevronsUpDown className="opacity-50" />
+                  <ChevronsUpDown data-icon="inline-end" className="opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
                 <Command>
                   <CommandInput placeholder="搜索简历" />
                   <CommandList>
@@ -118,10 +134,10 @@ export default function CreateDialog({
                 </Command>
               </PopoverContent>
             </Popover>
-          </div>
+          </Field>
 
-          <div className="min-w-0 flex flex-col gap-1.5">
-            <Label htmlFor="new-share-label">链接名称</Label>
+          <Field className="min-w-0">
+            <FieldLabel htmlFor="new-share-label">链接名称</FieldLabel>
             <Input
               id="new-share-label"
               value={label}
@@ -129,44 +145,43 @@ export default function CreateDialog({
               placeholder="如：字节专用"
               maxLength={120}
             />
-          </div>
-          <div className="min-w-0 flex flex-col gap-1.5">
-            <Label htmlFor="new-share-password">访问密码</Label>
-            <div className="relative">
+          </Field>
+          <Field className="min-w-0">
+            <FieldLabel htmlFor="new-share-password">访问密码</FieldLabel>
+            <div className="flex min-w-0 gap-2">
               <Input
                 id="new-share-password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={event => setPassword(event.target.value)}
                 placeholder="留空则无需密码"
-                className="pr-10"
+                className="min-w-0"
                 maxLength={128}
                 autoComplete="new-password"
               />
               <Button
                 type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2"
+                variant="outline"
+                size="icon"
                 aria-label={showPassword ? '隐藏访问密码' : '显示访问密码'}
                 onClick={() => setShowPassword(value => !value)}
               >
                 <VisibilityIcon visible={showPassword} />
               </Button>
             </div>
-          </div>
-          <div className="min-w-0 flex flex-col gap-1.5 sm:col-span-2">
-            <Label>有效期</Label>
+          </Field>
+          <Field className="min-w-0 sm:col-span-2">
+            <FieldLabel>有效期</FieldLabel>
             <DateField value={expiresAt} onChange={setExpiresAt} />
-          </div>
-        </div>
+          </Field>
+        </FieldGroup>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             取消
           </Button>
           <Button onClick={handleCreate} disabled={!resumeId || submitting}>
-            {submitting ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <Plus data-icon="inline-start" />}
+            {submitting ? <Spinner data-icon="inline-start" /> : <Plus data-icon="inline-start" />}
             创建分享
           </Button>
         </DialogFooter>
