@@ -38,7 +38,7 @@ index -> create-dialog
 
 ## 2. 目标
 
-1. 将 `SharePage` 收敛为薄页面骨架。
+1. 将页面入口收敛为薄页面骨架。
 2. 消除只用于运输共享状态和业务动作的 props。
 3. 让 Header、Toolbar、Content、共享 Dialog 直接读取页面 Store。
 4. 让 Card、移动 Drawer、设置/删除 Dialog 就地执行对应业务动作。
@@ -67,23 +67,23 @@ index -> create-dialog
 删除以下链路：
 
 ```text
-SharePage -> Header:
+当前页面入口 -> Header:
   total / active / canCreate / onCreate
 
-SharePage -> Toolbar:
+当前页面入口 -> Toolbar:
   keyword / resumeIds / status / resumes
   onKeywordChange / onResumeChange / onStatusChange
 
-SharePage -> Grid:
+当前页面入口 -> Grid:
   onPreview / onSettings / onPushLatest / onToggleActive / onDelete
 
 Grid -> Card:
   onPreview / onSettings / onPushLatest / onToggleActive / onDelete
 
-SharePage -> SettingsDialog:
+当前页面入口 -> SettingsDialog:
   share / busy / onSave
 
-SharePage -> ActionDrawer:
+当前页面入口 -> ActionDrawer:
   share / busy / 全部业务动作
 ```
 
@@ -167,7 +167,7 @@ src/pages/share/
 
 ## 6. 页面与组件职责
 
-### 6.1 `SharePage`
+### 6.1 页面入口
 
 只负责：
 
@@ -178,7 +178,7 @@ src/pages/share/
 目标结构：
 
 ```tsx
-function ShareManagement() {
+function Management() {
   useSharePageBootstrap()
   const reduceMotion = useReducedMotion()
 
@@ -442,7 +442,7 @@ ResumePage / Editor
 
 使用 `rg` 确认：
 
-- `SharePage` 无 CRUD handler、筛选派生、设置/删除本地状态。
+- 页面入口无 CRUD handler、筛选派生、设置/删除本地状态。
 - Toolbar 无筛选 props。
 - Grid/LinkCard 无五个运输型业务回调 props。
 - Store 无 `getSnapshot`、`HTMLElement`、表单字段和 `filteredShares`。
@@ -474,7 +474,7 @@ git diff --check
 
 ## 13. 验收标准
 
-1. `SharePage` 只负责初始化、Motion 和组件组装。
+1. 页面入口 `Management` 只负责初始化、Motion 和组件组装。
 2. Header、Toolbar、Content、SettingsDialog、DeleteDialog 直接读取 Store。
 3. Grid/Card 不再运输业务回调。
 4. Card、Drawer、Dialog 在触发组件就地执行具体业务。
