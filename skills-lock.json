@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "readme-generator": {
+      "source": "geekjourneyx/readme-generator",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "df06080bc20fd1ec50391e01a2829b570c1acfc89683665e755556959989b24c"
+    },
     "shadcn": {
       "source": "shadcn/ui",
       "sourceType": "github",
