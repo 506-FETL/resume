@@ -127,6 +127,21 @@ interface ResolvedResumeShareRelease {
 
 `ResumeShareRecord` 增加归一后的持久化 `source`，UI 不直接组合数据库可空字段。数据库行到领域对象的转换集中在分享数据访问层。`ResolvedResumeShareRelease` 的历史来源 ID 必填，只能通过受校验的历史版本查询构造。
 
+版本发布弹窗另外允许一个只读的 UI 占位状态，用于表示来源历史版本已经删除：
+
+```ts
+type VersionDialogSelection =
+  | ShareVersionSelection
+  | {
+      kind: 'deleted-history'
+      versionNo: number
+      versionLabel: string
+      versionCreatedAt: string
+    }
+```
+
+`deleted-history` 不能传入 release resolver，也不能触发发布；类型守卫只允许 `current` 或带必填 ID 的 `history` 进入发布数据流。
+
 ## 6. 数据流
 
 ### 6.1 加载版本选项
@@ -209,7 +224,8 @@ interface ResolvedResumeShareRelease {
 - 把“推送最新版”统一替换为“更换分享版本”；
 - 打开独立 `version-dialog`，默认定位到当前来源；
 - 主按钮文案为“发布所选版本”；
-- 当前来源历史版本已删除时，展示保留的版本编号/名称并标记“原版本已删除”，用户仍可选择其他现存版本。
+- 当前来源历史版本已删除时，选择器以 `deleted-history` 占位项展示保留的版本编号/名称并标记“原版本已删除”；该项不可重新发布，主按钮保持禁用；
+- 弹窗不会自动回退到“当前版本”。用户必须明确选择“当前版本”或任一现存历史版本后，主按钮才启用。
 
 访问设置弹窗继续只处理名称、有效期和密码。这样修改访问权限不会隐式发布编辑中的内容。
 
@@ -234,6 +250,7 @@ interface ResolvedResumeShareRelease {
 
 - 版本列表失败：当前版本仍可选；历史区域显示错误与重试。
 - 版本在选择后被删除：快照查询失败，保留弹窗与原链接内容，提示版本已不存在并刷新选项。
+- 打开弹窗时来源版本已删除：保留不可发布的删除占位，不自动改变选择；用户重新选择有效目标后才能发布。
 - 历史快照与 resume ID 不匹配：查询按两者共同过滤，按不存在处理。
 - 自定义模板无法解析：不发布，显示已有明确错误。
 - 重复提交：沿用 `pendingShareIds` 阻止同一链接并发写。
@@ -250,14 +267,21 @@ interface ResolvedResumeShareRelease {
 
 - 数据库行到 `ShareVersionSource` 的归一；
 - `ResolvedResumeShareRelease` 来源到数据库 patch 的转换；
-- `ShareVersionSelection` 不允许构造缺少版本 ID 的历史发布；
+- `deleted-history` 弹窗状态不能进入 release resolver，且不会自动回退到当前版本；
 - 当前版本与历史版本的显示文案；
 - 发布成功后 `shares`、`allShares` 的一致映射；
 - 历史来源 ID 被置空后仍保留可读信息。
 
+TypeScript 类型检查覆盖：
+
+- `ShareVersionSelection` 的历史分支不能缺少版本 ID；
+- `VersionDialogSelection` 中的 `deleted-history` 不能作为 resolver 输入；
+- 持久化 `ShareVersionSource` 与发布用 `ResolvedResumeShareRelease` 不可互相误用。
+
 静态验证：
 
 - `pnpm test --run`；
+- `pnpm exec tsc --noEmit`，落实判别联合的编译期约束；
 - `pnpm lint`；
 - `pnpm build`。
 
