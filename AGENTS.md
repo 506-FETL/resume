@@ -42,6 +42,7 @@ Always respond in Chinese-simplified.
 ## 通用规则
 
 - 除非用户明确要求执行 `git push`，否则不要推送到任何远端。
+- 当前仓库没有写测试，因此不需要执行TDD开发流程
 - 默认在当前分支上工作，除非用户明确要求创建或切换分支。
 - 在 `src/pages` 下创建或重构页面时，遵循 history-style 模块结构，包含 `components/`、`hooks/`、`const.ts`、`index.tsx`、`store.ts`、`types.ts` 和 `utils.ts`；使用 kebab-case 命名，组件以文件夹导出（`index.tsx`），并通过将共享页面状态/动作提升到页面的 store 中来避免多级 prop 传递。
 

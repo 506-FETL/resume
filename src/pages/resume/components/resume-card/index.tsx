@@ -167,10 +167,10 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
           )}
         </CardContent>
         <CardFooter className="mt-auto flex flex-col gap-2 px-5">
-          <div className="grid w-full grid-cols-2 gap-2">
+          <div className="grid w-full grid-cols-3 gap-2">
             <Button variant="outline" onClick={handleEditClick} className="flex-1">
               <Edit2 data-icon="inline-start" />
-              编辑信息
+              编辑
             </Button>
             <Button
               variant="outline"
@@ -182,17 +182,17 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
               <Sparkles data-icon="inline-start" />
               派生
             </Button>
+            <Button
+              variant="outline"
+              onClick={handleShareClick}
+              className="w-full"
+              disabled={resume.isOffline}
+              title={resume.isOffline ? '离线简历需先同步到云端才能分享' : undefined}
+            >
+              <Share2 data-icon="inline-start" />
+              分享
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleShareClick}
-            className="w-full"
-            disabled={resume.isOffline}
-            title={resume.isOffline ? '离线简历需先同步到云端才能分享' : undefined}
-          >
-            <Share2 data-icon="inline-start" />
-            {resume.isOffline ? '同步后可分享' : '分享'}
-          </Button>
         </CardFooter>
       </Card>
 
