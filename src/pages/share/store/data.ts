@@ -1,7 +1,7 @@
 import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
-import { createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, pushResumeShareSnapshot, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
+import { createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
 
 const versionOptionRequests = new Map<string, Promise<void>>()
@@ -261,28 +261,6 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
                   : Boolean(settings.password),
               }
             : share
-        )),
-      }))
-    }
-    finally {
-      set(state => ({
-        pendingShareIds: removePending(state.pendingShareIds, shareId),
-      }))
-    }
-  },
-
-  pushSnapshot: async (shareId, snapshot, templateManifest, displayName) => {
-    if (get().pendingShareIds.includes(shareId))
-      throw new Error('操作正在进行中')
-
-    set(state => ({
-      pendingShareIds: addPending(state.pendingShareIds, shareId),
-    }))
-    try {
-      const record = await pushResumeShareSnapshot(shareId, snapshot, templateManifest, displayName)
-      set(state => ({
-        ...mapShareLists(state, share => (
-          share.id === shareId ? record : share
         )),
       }))
     }

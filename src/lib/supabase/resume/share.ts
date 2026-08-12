@@ -284,21 +284,6 @@ export async function publishResumeShareRelease(
   return toRecord(data)
 }
 
-/** 兼容旧入口：推送最新版等价于发布 current release。 */
-export async function pushResumeShareSnapshot(
-  shareId: string,
-  snapshot: PersistedResumeSnapshot,
-  templateManifest: TemplateManifest,
-  displayName: string | null,
-): Promise<ResumeShareRecord> {
-  return publishResumeShareRelease(shareId, {
-    snapshot,
-    templateManifest,
-    displayName,
-    source: { kind: 'current' },
-  })
-}
-
 export async function deleteResumeShare(shareId: string): Promise<void> {
   const { error } = await supabase
     .from('resume_shares')

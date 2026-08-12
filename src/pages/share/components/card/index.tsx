@@ -1,18 +1,18 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Copy, Eye, LockKeyhole, MoreHorizontal, Power, RefreshCw, Settings2, Trash2 } from 'lucide-react'
+import { Copy, Eye, History, LockKeyhole, MoreHorizontal, Power, Settings2, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/utils/date'
 import { SHARE_CARD_ICONS, SHARE_ICON_STYLES, SHARE_MOTION, SHARE_STATUS_META } from '../../const'
 import useShareStore from '../../store'
 import { buildShareUrl, deriveShareStatus, formatShareUrlForDisplay } from '../../utils'
+import VersionBadge from '../version-badge'
 
 interface LinkCardProps {
   ref?: Ref<HTMLDivElement>
@@ -25,7 +25,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
     pendingShareIds,
     openSettingsDialog,
     openDeleteDialog,
-    pushSnapshot,
+    openVersionDialog,
     setActive,
   } = useShareStore()
   const reduceMotion = useReducedMotion()
@@ -47,22 +47,6 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
 
   const handlePreview = () => {
     window.open(url, '_blank', 'noopener,noreferrer')
-  }
-
-  const handlePushLatest = async () => {
-    try {
-      const source = await getResumeSnapshotById(share.resume_id)
-      await pushSnapshot(
-        share.id,
-        source.snapshot,
-        source.templateManifest,
-        source.displayName,
-      )
-      toast.success('已推送最新版')
-    }
-    catch {
-      toast.error('推送失败')
-    }
   }
 
   const handleToggleActive = async () => {
@@ -134,6 +118,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
           </div>
 
           <div className="mt-3 flex min-w-0 items-center gap-3 text-[11px] text-muted-foreground">
+            <VersionBadge source={share.source} />
             {share.has_password && (
               <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-300">
                 <LockKeyhole className="size-3" />
@@ -174,9 +159,9 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem disabled={busy} onClick={handlePushLatest}>
-                    <RefreshCw data-icon="inline-start" />
-                    推送最新版
+                  <DropdownMenuItem disabled={busy} onClick={() => openVersionDialog(share.id)}>
+                    <History data-icon="inline-start" />
+                    更换分享版本
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled={busy} onClick={handleToggleActive}>
                     <Power data-icon="inline-start" />

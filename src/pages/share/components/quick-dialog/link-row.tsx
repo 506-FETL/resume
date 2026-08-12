@@ -1,5 +1,4 @@
 import type { Ref } from 'react'
-import type { SnapshotProvider } from '../../types'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Check, Copy, KeyRound, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -12,23 +11,22 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { formatDateTime } from '@/utils/date'
 import useShareStore from '../../store'
 import { buildShareUrl, formatShareUrlForDisplay } from '../../utils'
+import VersionBadge from '../version-badge'
 
 interface LinkRowProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   busy: boolean
-  getSnapshot: SnapshotProvider
 }
 
 export function LinkRow({
   ref,
   share,
   busy,
-  getSnapshot,
 }: LinkRowProps) {
   const {
     setActive,
-    pushSnapshot,
+    openVersionDialog,
     openSettingsDialog,
     openDeleteDialog,
   } = useShareStore()
@@ -58,17 +56,6 @@ export function LinkRow({
     }
     catch {
       toast.error('操作失败')
-    }
-  }
-
-  const handlePushLatest = async () => {
-    try {
-      const { snapshot, templateManifest, displayName } = await getSnapshot()
-      await pushSnapshot(share.id, snapshot, templateManifest, displayName)
-      toast.success('已推送最新简历到该链接')
-    }
-    catch {
-      toast.error('推送失败')
     }
   }
 
@@ -104,6 +91,7 @@ export function LinkRow({
           )}
           {expired && <Badge variant="destructive">已过期</Badge>}
           {!share.is_active && <Badge variant="secondary">已关闭</Badge>}
+          <VersionBadge source={share.source} />
         </div>
         <Switch checked={share.is_active} disabled={busy} onCheckedChange={handleToggleActive} aria-label="启用或关闭链接" />
       </div>
@@ -151,9 +139,9 @@ export function LinkRow({
           <Pencil data-icon="inline-start" />
           编辑设置
         </Button>
-        <Button size="xs" variant="outline" disabled={busy} onClick={handlePushLatest}>
+        <Button size="xs" variant="outline" disabled={busy} onClick={() => openVersionDialog(share.id)}>
           <RefreshCw data-icon="inline-start" />
-          推送最新版
+          更换分享版本
         </Button>
         <Button size="xs" variant="destructive" disabled={busy} onClick={() => openDeleteDialog(share.id)}>
           <Trash2 data-icon="inline-start" />

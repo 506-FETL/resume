@@ -1,9 +1,11 @@
 import { motion, useReducedMotion } from 'motion/react'
+import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import Content from './components/content'
 import DeleteDialog from './components/delete-dialog'
 import Header from './components/header'
 import SettingsDialog from './components/settings-dialog'
 import Toolbar from './components/toolbar'
+import VersionDialog from './components/version-dialog'
 import { SHARE_MOTION } from './const'
 import { useSharePageBootstrap } from './hooks/use-share-page-bootstrap'
 
@@ -26,6 +28,7 @@ export default function Management() {
       <Content />
       <SettingsDialog />
       <DeleteDialog />
+      <VersionDialog getCurrentSnapshot={getResumeSnapshotById} />
     </motion.div>
   )
 }

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { SHARE_CARD_ICONS, SHARE_ICON_STYLES, SHARE_MOTION, SHARE_STATUS_META } from '../../const'
 import { buildShareUrl, deriveShareStatus, formatShareUrlForDisplay } from '../../utils'
+import VersionBadge from '../version-badge'
 
 interface MobileItemProps {
   ref?: Ref<HTMLDivElement>
@@ -117,6 +118,7 @@ export default function MobileItem({
         </div>
 
         <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+          <VersionBadge source={share.source} />
           {share.has_password && (
             <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-300">
               <LockKeyhole className="size-3" />

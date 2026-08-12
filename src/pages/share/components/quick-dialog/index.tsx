@@ -10,6 +10,7 @@ import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
 import DeleteDialog from '../delete-dialog'
 import SettingsDialog from '../settings-dialog'
+import VersionDialog from '../version-dialog'
 import { CreateForm } from './create-form'
 import { LinkRow } from './link-row'
 
@@ -113,7 +114,6 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
                     key={share.id}
                     share={share}
                     busy={pendingShareIds.includes(share.id)}
-                    getSnapshot={getSnapshot}
                   />
                 ))}
               </AnimatePresence>
@@ -134,6 +134,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
 
       <SettingsDialog />
       <DeleteDialog />
+      <VersionDialog getCurrentSnapshot={async () => getSnapshot()} />
     </>
   )
 }

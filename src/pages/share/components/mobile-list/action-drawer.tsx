@@ -1,10 +1,9 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Eye, Power, RefreshCw, Settings2, Trash2 } from 'lucide-react'
+import { Eye, History, Power, Settings2, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
 import { buildShareUrl } from '../../utils'
 
@@ -25,7 +24,7 @@ export default function ActionDrawer({
     pendingShareIds,
     openSettingsDialog,
     openDeleteDialog,
-    pushSnapshot,
+    openVersionDialog,
     setActive,
   } = useShareStore()
   const reduceMotion = useReducedMotion()
@@ -57,23 +56,11 @@ export default function ActionDrawer({
     handleDrawerOpenChange(false)
   }
 
-  const handlePushLatest = async () => {
+  const handleVersion = () => {
     if (!share)
       return
-    try {
-      const source = await getResumeSnapshotById(share.resume_id)
-      await pushSnapshot(
-        share.id,
-        source.snapshot,
-        source.templateManifest,
-        source.displayName,
-      )
-      toast.success('已推送最新版')
-      handleDrawerOpenChange(false)
-    }
-    catch {
-      toast.error('推送失败')
-    }
+    openVersionDialog(share.id)
+    handleDrawerOpenChange(false)
   }
 
   const handleToggleActive = async () => {
@@ -109,10 +96,10 @@ export default function ActionDrawer({
         编辑设置
       </Button>
     ) },
-    { key: 'push', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handlePushLatest}>
-        <RefreshCw data-icon="inline-start" />
-        推送最新版
+    { key: 'version', node: (
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleVersion}>
+        <History data-icon="inline-start" />
+        更换分享版本
       </Button>
     ) },
     { key: 'power', node: (

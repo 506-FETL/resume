@@ -1,8 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { ResumeSummary } from '../types'
 import type { ShareStatusFilter } from '../utils'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
-import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import type { CreateShareOptions, ResolvedResumeShareRelease, ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 
@@ -48,12 +46,6 @@ export interface ShareDataSlice {
   ) => Promise<void>
   setActive: (shareId: string, isActive: boolean) => Promise<void>
   updateSettings: (shareId: string, settings: SettingsPayload) => Promise<void>
-  pushSnapshot: (
-    shareId: string,
-    snapshot: PersistedResumeSnapshot,
-    templateManifest: TemplateManifest,
-    displayName: string | null,
-  ) => Promise<void>
   publishRelease: (
     shareId: string,
     release: ResolvedResumeShareRelease,
