@@ -1,11 +1,12 @@
 import type { SnapshotProvider } from '../../types'
-import type { CreateShareOptions } from '@/lib/supabase/resume/share.types'
+import type { CreateShareOptions, ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
+import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
 import DeleteDialog from '../delete-dialog'
 import SettingsDialog from '../settings-dialog'
@@ -25,18 +26,32 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
     dialogError,
     pendingShareIds,
     closeDialog,
-    create,
+    createRelease,
+    loadVersionOptions,
+    versionOptionsByResumeId,
   } = useShareStore()
   const navigate = useNavigate()
 
   const open = Boolean(openForResumeId)
 
-  const handleCreate = async (options: CreateShareOptions) => {
+  const versionEntry = openForResumeId
+    ? versionOptionsByResumeId[openForResumeId]
+    : undefined
+
+  const handleCreate = async (
+    selection: ShareVersionSelection,
+    options: CreateShareOptions,
+  ) => {
     if (!openForResumeId)
       return false
     try {
-      const { snapshot, templateManifest, displayName } = await getSnapshot()
-      await create(openForResumeId, snapshot, templateManifest, displayName, options)
+      const release = await resolveResumeShareRelease({
+        resumeId: openForResumeId,
+        displayName: openForResumeName,
+        selection,
+        getCurrentSource: async () => getSnapshot(),
+      })
+      await createRelease(openForResumeId, release, options)
       toast.success('分享链接已生成')
       return true
     }
@@ -63,11 +78,20 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
               」
             </DialogTitle>
             <DialogDescription>
-              生成只读链接，别人无需登录即可查看这份简历的当前快照。你可随时关闭链接或推送最新版。
+              生成所选版本的只读快照，别人无需登录即可查看。你可随时关闭链接或更换分享版本。
             </DialogDescription>
           </DialogHeader>
 
-          <CreateForm onCreate={handleCreate} />
+          <CreateForm
+            versions={versionEntry?.items ?? []}
+            versionsLoading={versionEntry?.loading ?? false}
+            versionsError={versionEntry?.error ?? null}
+            onRetryVersions={() => {
+              if (openForResumeId)
+                loadVersionOptions(openForResumeId, { force: true }).catch(() => undefined)
+            }}
+            onCreate={handleCreate}
+          />
 
           <div className="min-w-0 flex flex-col gap-3">
             {dialogLoading && (

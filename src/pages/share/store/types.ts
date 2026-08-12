@@ -41,13 +41,6 @@ export interface ShareDataSlice {
     resumeId: string,
     options?: { force?: boolean },
   ) => Promise<void>
-  create: (
-    resumeId: string,
-    snapshot: PersistedResumeSnapshot,
-    templateManifest: TemplateManifest,
-    displayName: string | null,
-    options?: CreateShareOptions,
-  ) => Promise<void>
   createRelease: (
     resumeId: string,
     release: ResolvedResumeShareRelease,

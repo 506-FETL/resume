@@ -1,4 +1,5 @@
-import type { CreateShareOptions } from '@/lib/supabase/resume/share.types'
+import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
+import type { CreateShareOptions, ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -6,14 +7,29 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { dateToExpiryIso } from '../../utils'
+import VersionSelector from '../version-selector'
 import VisibilityIcon from '../visibility-icon'
 import DateField from './date-field'
 
 interface CreateFormProps {
-  onCreate: (options: CreateShareOptions) => Promise<boolean>
+  versions: ResumeHistoryVersionListItem[]
+  versionsLoading: boolean
+  versionsError: string | null
+  onRetryVersions: () => void
+  onCreate: (
+    selection: ShareVersionSelection,
+    options: CreateShareOptions,
+  ) => Promise<boolean>
 }
 
-export function CreateForm({ onCreate }: CreateFormProps) {
+export function CreateForm({
+  versions,
+  versionsLoading,
+  versionsError,
+  onRetryVersions,
+  onCreate,
+}: CreateFormProps) {
+  const [selection, setSelection] = useState<ShareVersionSelection>({ kind: 'current' })
   const [label, setLabel] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -23,7 +39,7 @@ export function CreateForm({ onCreate }: CreateFormProps) {
   const handleCreate = async () => {
     setSubmitting(true)
     try {
-      const created = await onCreate({
+      const created = await onCreate(selection, {
         label: label.trim() || null,
         password: password.trim() || null,
         expiresAt: dateToExpiryIso(expiresAt),
@@ -34,6 +50,7 @@ export function CreateForm({ onCreate }: CreateFormProps) {
       setPassword('')
       setShowPassword(false)
       setExpiresAt(undefined)
+      setSelection({ kind: 'current' })
     }
     finally {
       setSubmitting(false)
@@ -43,6 +60,18 @@ export function CreateForm({ onCreate }: CreateFormProps) {
   return (
     <div className="min-w-0 flex flex-col gap-3 rounded-lg border p-4">
       <FieldGroup className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field className="min-w-0 sm:col-span-2">
+          <FieldLabel>分享版本</FieldLabel>
+          <VersionSelector
+            value={selection}
+            versions={versions}
+            loading={versionsLoading}
+            error={versionsError}
+            disabled={submitting}
+            onChange={setSelection}
+            onRetry={onRetryVersions}
+          />
+        </Field>
         <Field className="min-w-0">
           <FieldLabel htmlFor="share-label">链接名称（可选）</FieldLabel>
           <Input

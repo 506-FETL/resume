@@ -1,7 +1,7 @@
 import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
-import { createResumeShare, createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, pushResumeShareSnapshot, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
+import { createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, pushResumeShareSnapshot, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
 
 const versionOptionRequests = new Map<string, Promise<void>>()
@@ -206,16 +206,6 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       if (versionOptionRequests.get(resumeId) === request)
         versionOptionRequests.delete(resumeId)
     }
-  },
-
-  create: async (resumeId, snapshot, templateManifest, displayName, options) => {
-    const record = await createResumeShare(resumeId, snapshot, templateManifest, displayName, options)
-    set(state => ({
-      shares: state.openForResumeId === resumeId
-        ? [record, ...state.shares]
-        : state.shares,
-      allShares: [record, ...state.allShares],
-    }))
   },
 
   createRelease: async (resumeId, release, options) => {

@@ -166,22 +166,6 @@ export async function listAllResumeShares(): Promise<ResumeShareRecord[]> {
   return (data ?? []).map(toRecord)
 }
 
-/** 创建分享链接（owner）。带密码时先 insert 再调 Function 写 hash。 */
-export async function createResumeShare(
-  resumeId: string,
-  snapshot: PersistedResumeSnapshot,
-  templateManifest: TemplateManifest,
-  displayName: string | null,
-  options: CreateShareOptions = {},
-): Promise<ResumeShareRecord> {
-  return createResumeShareRelease(resumeId, {
-    snapshot,
-    templateManifest,
-    displayName,
-    source: { kind: 'current' },
-  }, options)
-}
-
 /** 创建带明确版本来源的分享链接（owner）。 */
 export async function createResumeShareRelease(
   resumeId: string,

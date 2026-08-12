@@ -1,3 +1,4 @@
+import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -8,11 +9,12 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
-import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
+import { getResumeSnapshotById, resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import { cn } from '@/lib/utils'
 import useShareStore from '../../store'
 import { dateToExpiryIso } from '../../utils'
 import DateField from '../quick-dialog/date-field'
+import VersionSelector from '../version-selector'
 import VisibilityIcon from '../visibility-icon'
 
 interface CreateDialogProps {
@@ -24,7 +26,12 @@ export default function CreateDialog({
   open,
   onOpenChange,
 }: CreateDialogProps) {
-  const { resumeMap, create } = useShareStore()
+  const {
+    resumeMap,
+    createRelease,
+    loadVersionOptions,
+    versionOptionsByResumeId,
+  } = useShareStore()
   const [resumeId, setResumeId] = useState('')
   const [resumeOpen, setResumeOpen] = useState(false)
   const [label, setLabel] = useState('')
@@ -32,6 +39,7 @@ export default function CreateDialog({
   const [showPassword, setShowPassword] = useState(false)
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [submitting, setSubmitting] = useState(false)
+  const [selection, setSelection] = useState<ShareVersionSelection>({ kind: 'current' })
   const resumes = useMemo(
     () => Object.values(resumeMap).sort(
       (left, right) => left.displayName.localeCompare(right.displayName),
@@ -42,6 +50,7 @@ export default function CreateDialog({
     () => resumes.find(resume => resume.resumeId === resumeId) ?? null,
     [resumeId, resumes],
   )
+  const versionEntry = resumeId ? versionOptionsByResumeId[resumeId] : undefined
 
   const reset = () => {
     setResumeId('')
@@ -49,6 +58,7 @@ export default function CreateDialog({
     setPassword('')
     setShowPassword(false)
     setExpiresAt(undefined)
+    setSelection({ kind: 'current' })
   }
 
   const handleCreate = async () => {
@@ -56,18 +66,17 @@ export default function CreateDialog({
       return
     setSubmitting(true)
     try {
-      const source = await getResumeSnapshotById(resumeId)
-      await create(
+      const release = await resolveResumeShareRelease({
         resumeId,
-        source.snapshot,
-        source.templateManifest,
-        source.displayName,
-        {
-          label: label.trim() || null,
-          password: password.trim() || null,
-          expiresAt: dateToExpiryIso(expiresAt),
-        },
-      )
+        displayName: selectedResume?.displayName ?? null,
+        selection,
+        getCurrentSource: getResumeSnapshotById,
+      })
+      await createRelease(resumeId, release, {
+        label: label.trim() || null,
+        password: password.trim() || null,
+        expiresAt: dateToExpiryIso(expiresAt),
+      })
       toast.success('分享链接已生成')
       reset()
       onOpenChange(false)
@@ -122,6 +131,8 @@ export default function CreateDialog({
                           value={`${resume.displayName} ${resume.resumeId}`}
                           onSelect={() => {
                             setResumeId(resume.resumeId)
+                            setSelection({ kind: 'current' })
+                            loadVersionOptions(resume.resumeId, { force: true }).catch(() => undefined)
                             setResumeOpen(false)
                           }}
                         >
@@ -134,6 +145,22 @@ export default function CreateDialog({
                 </Command>
               </PopoverContent>
             </Popover>
+          </Field>
+
+          <Field className="min-w-0 sm:col-span-2">
+            <FieldLabel>分享版本</FieldLabel>
+            <VersionSelector
+              value={selection}
+              versions={versionEntry?.items ?? []}
+              loading={versionEntry?.loading ?? false}
+              error={versionEntry?.error ?? null}
+              disabled={!resumeId || submitting}
+              onChange={setSelection}
+              onRetry={() => {
+                if (resumeId)
+                  loadVersionOptions(resumeId, { force: true }).catch(() => undefined)
+              }}
+            />
           </Field>
 
           <Field className="min-w-0">
