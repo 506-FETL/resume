@@ -1,0 +1,66 @@
+import type { MouseEvent } from 'react'
+import { toast } from 'sonner'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Spinner } from '@/components/ui/spinner'
+import useShareStore from '../../store'
+import { findShareById } from '../../utils'
+
+export default function DeleteDialog() {
+  const {
+    allShares,
+    shares,
+    deleteDialogOpen,
+    deleteShareId,
+    pendingShareIds,
+    closeDeleteDialog,
+    remove,
+  } = useShareStore()
+  const share = findShareById(allShares, shares, deleteShareId)
+  const busy = Boolean(deleteShareId && pendingShareIds.includes(deleteShareId))
+
+  const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (!deleteShareId)
+      return
+
+    try {
+      await remove(deleteShareId)
+      toast.success('分享链接已永久删除')
+    }
+    catch {
+      toast.error('删除失败')
+    }
+  }
+
+  return (
+    <AlertDialog
+      open={deleteDialogOpen}
+      onOpenChange={(open) => {
+        if (!open)
+          closeDeleteDialog()
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>永久删除分享链接？</AlertDialogTitle>
+          <AlertDialogDescription>
+            删除「
+            {share?.label || '未命名链接'}
+            」后链接立即失效，访问记录无法恢复。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={!deleteShareId || busy}
+            onClick={handleDelete}
+          >
+            {busy && <Spinner data-icon="inline-start" />}
+            永久删除
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}

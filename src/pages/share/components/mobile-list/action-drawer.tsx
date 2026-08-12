@@ -1,54 +1,110 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Eye, Power, RefreshCw, Settings2, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
+import useShareStore from '../../store'
+import { buildShareUrl } from '../../utils'
 
 interface ActionDrawerProps {
+  open: boolean
   share: ResumeShareRecord | null
   restoreFocusTo: HTMLElement | null
-  busy: boolean
   onOpenChange: (open: boolean) => void
-  onPreview: () => void
-  onSettings: () => void
-  onPushLatest: () => void
-  onToggleActive: () => void
-  onDelete: () => void
 }
 
 export default function ActionDrawer({
+  open,
   share,
   restoreFocusTo,
-  busy,
   onOpenChange,
-  onPreview,
-  onSettings,
-  onPushLatest,
-  onToggleActive,
-  onDelete,
 }: ActionDrawerProps) {
+  const {
+    pendingShareIds,
+    openSettingsDialog,
+    openDeleteDialog,
+    pushSnapshot,
+    setActive,
+  } = useShareStore()
   const reduceMotion = useReducedMotion()
+  const busy = Boolean(share && pendingShareIds.includes(share.id))
+
+  const handlePreview = () => {
+    if (!share)
+      return
+    window.open(buildShareUrl(share.token), '_blank', 'noopener,noreferrer')
+    onOpenChange(false)
+  }
+
+  const handleSettings = () => {
+    if (!share)
+      return
+    openSettingsDialog(share.id)
+    onOpenChange(false)
+  }
+
+  const handlePushLatest = async () => {
+    if (!share)
+      return
+    try {
+      const source = await getResumeSnapshotById(share.resume_id)
+      await pushSnapshot(
+        share.id,
+        source.snapshot,
+        source.templateManifest,
+        source.displayName,
+      )
+      toast.success('已推送最新版')
+      onOpenChange(false)
+    }
+    catch {
+      toast.error('推送失败')
+    }
+  }
+
+  const handleToggleActive = async () => {
+    if (!share)
+      return
+    try {
+      await setActive(share.id, !share.is_active)
+      toast.success(share.is_active ? '链接已关闭' : '链接已启用')
+      onOpenChange(false)
+    }
+    catch {
+      toast.error('操作失败')
+    }
+  }
+
+  const handleDelete = () => {
+    if (!share)
+      return
+    openDeleteDialog(share.id)
+    onOpenChange(false)
+  }
+
   const actions = [
     { key: 'preview', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" onClick={onPreview}>
-        <Eye data-icon="inline-start" className="text-blue-600" />
+      <Button variant="outline" className="h-11 w-full justify-start" onClick={handlePreview}>
+        <Eye data-icon="inline-start" />
         预览
       </Button>
     ) },
     { key: 'settings', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" onClick={onSettings}>
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleSettings}>
         <Settings2 data-icon="inline-start" />
         编辑设置
       </Button>
     ) },
     { key: 'push', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={onPushLatest}>
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handlePushLatest}>
         <RefreshCw data-icon="inline-start" />
         推送最新版
       </Button>
     ) },
     { key: 'power', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={onToggleActive}>
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleToggleActive}>
         <Power data-icon="inline-start" />
         {share?.is_active ? '关闭链接' : '启用链接'}
       </Button>
@@ -57,7 +113,7 @@ export default function ActionDrawer({
 
   return (
     <Drawer
-      open={Boolean(share)}
+      open={open}
       onOpenChange={(open) => {
         if (open && document.activeElement instanceof HTMLElement)
           document.activeElement.blur()
@@ -92,7 +148,7 @@ export default function ActionDrawer({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.16, delay: reduceMotion ? 0 : actions.length * 0.035 }}
           >
-            <Button variant="ghost" className="h-11 w-full justify-start text-destructive hover:text-destructive" disabled={busy} onClick={onDelete}>
+            <Button variant="ghost" className="h-11 w-full justify-start text-destructive hover:text-destructive" disabled={busy} onClick={handleDelete}>
               <Trash2 data-icon="inline-start" />
               永久删除
             </Button>

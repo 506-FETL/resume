@@ -18,11 +18,10 @@ interface QuickDialogProps {
 }
 
 export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
-  const { openForResumeId, openForResumeName, shares, loading, mutatingId, error, closeDialog, create, setActive, updateSettings, pushSnapshot, remove } = useShareStore()
+  const { openForResumeId, openForResumeName, shares, loading, mutatingId, error, closeDialog, create, setActive, openSettingsDialog, pushSnapshot, remove } = useShareStore()
   const navigate = useNavigate()
 
   const [creating, setCreating] = useState(false)
-  const [settingsShare, setSettingsShare] = useState<ResumeShareRecord | null>(null)
   const [deleteShare, setDeleteShare] = useState<ResumeShareRecord | null>(null)
   const open = Boolean(openForResumeId)
 
@@ -66,24 +65,6 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
     }
   }
 
-  const handleSaveSettings = async (settings: {
-    label: string | null
-    expiresAt: string | null
-    password: string | null | undefined
-  }) => {
-    if (!settingsShare)
-      return
-
-    try {
-      await updateSettings(settingsShare.id, settings)
-      toast.success('分享设置已更新')
-      setSettingsShare(null)
-    }
-    catch {
-      toast.error('保存设置失败')
-    }
-  }
-
   const handleDelete = async () => {
     if (!deleteShare)
       return
@@ -104,7 +85,6 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
         open={open}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
-            setSettingsShare(null)
             setDeleteShare(null)
             closeDialog()
           }
@@ -145,7 +125,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
                     share={share}
                     busy={mutatingId === share.id}
                     onToggleActive={isActive => handleToggleActive(share, isActive)}
-                    onEditSettings={() => setSettingsShare(share)}
+                    onEditSettings={() => openSettingsDialog(share.id)}
                     onPushLatest={() => handlePush(share.id)}
                     onDelete={() => setDeleteShare(share)}
                   />
@@ -166,12 +146,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
         </DialogContent>
       </Dialog>
 
-      <SettingsDialog
-        share={settingsShare}
-        busy={Boolean(settingsShare && mutatingId === settingsShare.id)}
-        onOpenChange={nextOpen => !nextOpen && setSettingsShare(null)}
-        onSave={handleSaveSettings}
-      />
+      <SettingsDialog />
 
       <AlertDialog open={Boolean(deleteShare)} onOpenChange={nextOpen => !nextOpen && setDeleteShare(null)}>
         <AlertDialogContent>

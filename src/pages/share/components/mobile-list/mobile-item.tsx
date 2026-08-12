@@ -13,14 +13,14 @@ interface MobileItemProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   index: number
-  onMore: (trigger: HTMLElement) => void
+  onOpen: (trigger: HTMLElement) => void
 }
 
 export default function MobileItem({
   ref,
   share,
   index,
-  onMore,
+  onOpen,
 }: MobileItemProps) {
   const reduceMotion = useReducedMotion()
   const status = deriveShareStatus(share)
@@ -40,7 +40,7 @@ export default function MobileItem({
 
   const handleOpen = (trigger: HTMLElement) => {
     trigger.blur()
-    requestAnimationFrame(() => onMore(trigger))
+    requestAnimationFrame(() => onOpen(trigger))
   }
 
   return (
@@ -112,7 +112,7 @@ export default function MobileItem({
               handleCopy()
             }}
           >
-            <Copy />
+            <Copy data-icon="inline-start" />
           </Button>
         </div>
 

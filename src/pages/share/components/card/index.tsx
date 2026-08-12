@@ -5,30 +5,35 @@ import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/utils/date'
 import { SHARE_CARD_ICONS, SHARE_ICON_STYLES, SHARE_MOTION, SHARE_STATUS_META } from '../../const'
+import useShareStore from '../../store'
 import { buildShareUrl, deriveShareStatus, formatShareUrlForDisplay } from '../../utils'
 
 interface LinkCardProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   index: number
-  onPreview: () => void
-  onSettings: () => void
-  onPushLatest: () => void
-  onToggleActive: () => void
-  onDelete: () => void
 }
 
-export default function LinkCard({ ref, share, index, onPreview, onSettings, onPushLatest, onToggleActive, onDelete }: LinkCardProps) {
+export default function LinkCard({ ref, share, index }: LinkCardProps) {
+  const {
+    pendingShareIds,
+    openSettingsDialog,
+    openDeleteDialog,
+    pushSnapshot,
+    setActive,
+  } = useShareStore()
   const reduceMotion = useReducedMotion()
   const status = deriveShareStatus(share)
   const statusMeta = SHARE_STATUS_META[status]
   const Icon = SHARE_CARD_ICONS[index % SHARE_CARD_ICONS.length]
   const url = buildShareUrl(share.token)
+  const busy = pendingShareIds.includes(share.id)
 
   const handleCopy = async () => {
     try {
@@ -37,6 +42,36 @@ export default function LinkCard({ ref, share, index, onPreview, onSettings, onP
     }
     catch {
       toast.error('复制失败，请手动复制')
+    }
+  }
+
+  const handlePreview = () => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const handlePushLatest = async () => {
+    try {
+      const source = await getResumeSnapshotById(share.resume_id)
+      await pushSnapshot(
+        share.id,
+        source.snapshot,
+        source.templateManifest,
+        source.displayName,
+      )
+      toast.success('已推送最新版')
+    }
+    catch {
+      toast.error('推送失败')
+    }
+  }
+
+  const handleToggleActive = async () => {
+    try {
+      await setActive(share.id, !share.is_active)
+      toast.success(share.is_active ? '链接已关闭' : '链接已启用')
+    }
+    catch {
+      toast.error('操作失败')
     }
   }
 
@@ -94,7 +129,7 @@ export default function LinkCard({ ref, share, index, onPreview, onSettings, onP
               <TooltipContent className="max-w-sm break-all">{url}</TooltipContent>
             </Tooltip>
             <Button variant="ghost" size="icon-xs" aria-label="复制链接" onClick={handleCopy}>
-              <Copy />
+              <Copy data-icon="inline-start" />
             </Button>
           </div>
 
@@ -117,16 +152,16 @@ export default function LinkCard({ ref, share, index, onPreview, onSettings, onP
           <div className="mt-3 flex justify-end gap-1 border-t pt-2.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="text-blue-600" aria-label="预览" onClick={onPreview}>
-                  <Eye />
+                <Button variant="ghost" size="icon-sm" aria-label="预览" onClick={handlePreview}>
+                  <Eye data-icon="inline-start" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>预览</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="编辑设置" onClick={onSettings}>
-                  <Settings2 />
+                <Button variant="ghost" size="icon-sm" aria-label="编辑设置" disabled={busy} onClick={() => openSettingsDialog(share.id)}>
+                  <Settings2 data-icon="inline-start" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>编辑设置</TooltipContent>
@@ -134,23 +169,27 @@ export default function LinkCard({ ref, share, index, onPreview, onSettings, onP
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon-sm" aria-label="更多操作">
-                  <MoreHorizontal />
+                  <MoreHorizontal data-icon="inline-start" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onPushLatest}>
-                  <RefreshCw data-icon="inline-start" />
-                  推送最新版
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onToggleActive}>
-                  <Power data-icon="inline-start" />
-                  {share.is_active ? '关闭链接' : '启用链接'}
-                </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem disabled={busy} onClick={handlePushLatest}>
+                    <RefreshCw data-icon="inline-start" />
+                    推送最新版
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={busy} onClick={handleToggleActive}>
+                    <Power data-icon="inline-start" />
+                    {share.is_active ? '关闭链接' : '启用链接'}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={onDelete}>
-                  <Trash2 data-icon="inline-start" />
-                  永久删除
-                </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem variant="destructive" disabled={busy} onClick={() => openDeleteDialog(share.id)}>
+                    <Trash2 data-icon="inline-start" />
+                    永久删除
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
