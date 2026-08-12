@@ -1,6 +1,6 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { AnimatePresence } from 'motion/react'
-import ShareMobileItem from '../share-mobile-item'
+import ShareMobileItem from '../mobile-item'
 
 interface ShareMobileListProps {
   shares: ResumeShareRecord[]

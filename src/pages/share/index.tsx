@@ -3,35 +3,19 @@ import { LoaderCircle, RefreshCcw } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
-import ShareActionDrawer from './components/share-action-drawer'
-import ShareCreateDialog from './components/share-create-dialog'
+import ShareActionDrawer from './components/action-drawer'
+import ShareCreateDialog from './components/create-dialog'
+import ShareEmptyState from './components/empty-state'
+import ShareGrid from './components/grid'
+import ShareHeader from './components/header'
+import ShareMobileList from './components/mobile-list'
 import ShareDialog from './components/share-dialog'
-import ShareEmptyState from './components/share-empty-state'
-import ShareGrid from './components/share-grid'
-import ShareHeader from './components/share-header'
-import ShareMobileList from './components/share-mobile-list'
-import ShareSettingsDialog from './components/share-settings-dialog'
-import ShareToolbar from './components/share-toolbar'
+import ShareSettingsDialog from './components/settings-dialog'
+import ShareToolbar from './components/toolbar'
 import { useSharePageBootstrap } from './hooks/use-share-page-bootstrap'
 import useShareStore from './store'
 import { buildShareUrl, deriveShareStatus, filterShares } from './utils'
@@ -39,28 +23,7 @@ import { buildShareUrl, deriveShareStatus, filterShares } from './utils'
 export default function SharePage() {
   useSharePageBootstrap()
   const reduceMotion = useReducedMotion()
-  const {
-    allShares,
-    resumeMap,
-    pageLoading,
-    error,
-    mutatingId,
-    searchKeyword,
-    resumeFilters,
-    statusFilter,
-    actionShare,
-    actionTrigger,
-    setSearchKeyword,
-    setResumeFilters,
-    setStatusFilter,
-    setActionShare,
-    create,
-    setActive,
-    updateSettings,
-    pushSnapshot,
-    remove,
-    reloadPage,
-  } = useShareStore()
+  const { allShares, resumeMap, pageLoading, error, mutatingId, searchKeyword, resumeFilters, statusFilter, actionShare, actionTrigger, setSearchKeyword, setResumeFilters, setStatusFilter, setActionShare, create, setActive, updateSettings, pushSnapshot, remove, reloadPage } = useShareStore()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [settingsShare, setSettingsShare] = useState<ResumeShareRecord | null>(null)
   const [deleteShare, setDeleteShare] = useState<ResumeShareRecord | null>(null)

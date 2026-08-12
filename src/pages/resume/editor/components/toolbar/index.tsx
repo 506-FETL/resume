@@ -57,7 +57,7 @@ export default function ResumeConfigToolbar() {
                 disabled={isToolbarLoading}
                 min={0}
                 max={100}
-                step={2}
+                step={1}
                 className="w-full"
               />
             </div>
@@ -94,7 +94,7 @@ export default function ResumeConfigToolbar() {
                 disabled={isToolbarLoading}
                 min={0}
                 max={100}
-                step={2}
+                step={1}
                 className="w-full"
               />
             </div>

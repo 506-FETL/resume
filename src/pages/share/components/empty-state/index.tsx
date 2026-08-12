@@ -7,7 +7,7 @@ interface ShareEmptyStateProps {
 
 export default function ShareEmptyState({ filtered }: ShareEmptyStateProps) {
   return (
-    <Empty className="min-h-[360px] border border-dashed bg-muted/20">
+    <Empty className="min-h-90 border border-dashed bg-muted/20">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           {filtered ? <SearchX /> : <Link2 />}

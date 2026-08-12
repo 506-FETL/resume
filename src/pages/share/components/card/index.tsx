@@ -5,13 +5,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/utils/date'
@@ -29,16 +23,7 @@ interface ShareCardProps {
   onDelete: () => void
 }
 
-export default function ShareCard({
-  ref,
-  share,
-  index,
-  onPreview,
-  onSettings,
-  onPushLatest,
-  onToggleActive,
-  onDelete,
-}: ShareCardProps) {
+export default function ShareCard({ ref, share, index, onPreview, onSettings, onPushLatest, onToggleActive, onDelete }: ShareCardProps) {
   const reduceMotion = useReducedMotion()
   const status = deriveShareStatus(share)
   const statusMeta = SHARE_STATUS_META[status]

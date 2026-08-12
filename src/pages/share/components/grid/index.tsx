@@ -1,6 +1,6 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { AnimatePresence } from 'motion/react'
-import ShareCard from '../share-card'
+import ShareCard from '../card'
 
 interface ShareGridProps {
   shares: ResumeShareRecord[]
@@ -11,14 +11,7 @@ interface ShareGridProps {
   onDelete: (share: ResumeShareRecord) => void
 }
 
-export default function ShareGrid({
-  shares,
-  onPreview,
-  onSettings,
-  onPushLatest,
-  onToggleActive,
-  onDelete,
-}: ShareGridProps) {
+export default function ShareGrid({ shares, onPreview, onSettings, onPushLatest, onToggleActive, onDelete }: ShareGridProps) {
   return (
     <div className="hidden min-w-0 grid-cols-3 gap-3 lg:grid 2xl:grid-cols-4">
       <AnimatePresence initial={false} mode="popLayout">

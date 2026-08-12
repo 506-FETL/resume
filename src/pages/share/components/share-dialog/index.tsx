@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import useShareStore from '../../store'
-import ShareSettingsDialog from '../share-settings-dialog'
+import ShareSettingsDialog from '../settings-dialog'
 import { CreateShareForm } from './create-share-form'
 import { ShareLinkRow } from './share-link-row'
 
