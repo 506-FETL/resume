@@ -63,15 +63,15 @@
 | `source_kind` | text not null default `'current'` | `current` 或 `history` |
 | `source_version_id` | bigint null | 来源历史版本 ID；外键删除时置空 |
 | `source_version_no` | integer null | 发布时冗余保存的版本编号 |
-| `source_version_name` | text null | 发布时冗余保存的版本名称 |
+| `source_version_label` | text null | 发布时解析并冗余保存的展示名称：版本名称、里程碑名称或“未命名版本” |
 | `source_version_created_at` | timestamptz null | 发布时冗余保存的版本保存时间 |
 
 约束：
 
 - `source_kind` 只允许 `current`、`history`；
 - `current` 的历史版本字段全部为空；
-- `history` 必须有 `source_version_no` 与 `source_version_created_at`；
-- `source_version_id` 引用 `resume_config_versions(id)`，`ON DELETE SET NULL`；由于编号、名称和保存时间已冗余，置空不影响管理界面解释来源。
+- `history` 必须有 `source_version_no`、`source_version_label` 与 `source_version_created_at`；
+- `source_version_id` 引用 `resume_config_versions(id)`，`ON DELETE SET NULL`；由于编号、展示名称和保存时间已冗余，置空不影响管理界面解释来源。
 
 迁移与权限：
 
@@ -82,7 +82,17 @@
 
 ## 5. 领域类型与边界
 
-新增判别联合类型，避免用多个可空参数表达非法状态：
+选择输入与持久化读取使用不同类型，避免新发布时产生 `history + null versionId`，同时允许历史版本删除后外键置空。
+
+用户选择只表达目标，历史版本 ID 必填：
+
+```ts
+type ShareVersionSelection =
+  | { kind: 'current' }
+  | { kind: 'history'; versionId: number }
+```
+
+持久化来源表达分享记录的既有状态，历史版本删除后 ID 可以为空：
 
 ```ts
 type ShareVersionSource =
@@ -91,7 +101,7 @@ type ShareVersionSource =
       kind: 'history'
       versionId: number | null
       versionNo: number
-      versionName: string | null
+      versionLabel: string
       versionCreatedAt: string
     }
 ```
@@ -99,15 +109,23 @@ type ShareVersionSource =
 新增发布输入类型，把内容与来源作为一个不可拆分的对象传递：
 
 ```ts
-interface ResumeShareRelease {
+interface ResolvedResumeShareRelease {
   snapshot: PersistedResumeSnapshot
   templateManifest: TemplateManifest
   displayName: string | null
-  source: ShareVersionSource
+  source:
+    | { kind: 'current' }
+    | {
+        kind: 'history'
+        versionId: number
+        versionNo: number
+        versionLabel: string
+        versionCreatedAt: string
+      }
 }
 ```
 
-`ResumeShareRecord` 增加归一后的 `source`，UI 不直接组合数据库可空字段。数据库行到领域对象的转换集中在分享数据访问层。
+`ResumeShareRecord` 增加归一后的持久化 `source`，UI 不直接组合数据库可空字段。数据库行到领域对象的转换集中在分享数据访问层。`ResolvedResumeShareRelease` 的历史来源 ID 必填，只能通过受校验的历史版本查询构造。
 
 ## 6. 数据流
 
@@ -117,29 +135,32 @@ interface ResumeShareRelease {
 
 - 打开快速分享时并行加载该简历的分享链接与版本列表；
 - 分享管理页选择简历后按需加载版本列表；
-- 已缓存成功结果可复用；明确重试时重新请求；
+- 已缓存成功结果可在弹窗首屏复用，但每次打开包含版本选择器的弹窗时都后台重新验证；成功后整体替换缓存；
+- 同一 resume 的并发请求去重，并用请求序号防止旧响应覆盖新结果；
 - 加载失败不阻断“当前版本”，历史版本区域显示错误与重试入口。
 
-版本列表只加载元数据，不预取快照。
+版本列表只加载元数据，不预取快照。查询按固定页长循环使用 Supabase `.range(from, to)`，直到返回数少于页长，确保“全部历史版本”不受服务端最大返回行数限制。创建、删除或重命名历史版本发生在其他页面时，下次打开分享版本选择器会自动得到最新结果；显式重试也强制重新请求。
 
 ### 6.2 解析发布内容
 
-统一的 release resolver 根据选择构造 `ResumeShareRelease`：
+统一的 release resolver 根据 `ShareVersionSelection` 构造 `ResolvedResumeShareRelease`。现有 `SnapshotProvider` 契约保持不变：它返回的 `ResumeShareSnapshotSource` 已经完成隐藏内容脱敏、模板 manifest 固化和 template binding 移除，resolver 不再重复处理。
 
 - `current`
-  - 编辑器快速分享：使用页面传入的内存 snapshot provider，保证包含尚未远端同步的最新编辑内容；
-  - 分享管理页：使用 `getResumeSnapshotById` 读取云端当前内容。
+  - 编辑器快速分享：使用页面传入的现有内存 snapshot provider，得到一次处理完成的 source，保证包含尚未远端同步的最新编辑内容；
+  - 分享管理页：使用现有 `getResumeSnapshotById`，得到一次处理完成的云端当前 source；
+  - resolver 只附加 `{ kind: 'current' }` 来源，不再次脱敏或解析模板。
 - `history`
-  - 使用版本 ID、当前用户和 resume ID 读取快照，避免跨简历误选；
+  - 在一次查询中使用版本 ID、当前用户和 resume ID 同时读取快照与实际版本元数据，避免缓存元数据与发布内容不一致，也避免跨简历误选；
   - 使用当前简历标题作为 `displayName`；
-  - 将版本元数据写入 `source`。
+  - 把 `version_name || milestone_name || '未命名版本'` 解析为稳定的 `versionLabel`；
+  - 对这份原始历史快照调用一次 `buildResumeShareSnapshotSource`，完成脱敏与模板固化，再附加实际查询得到的来源元数据。
 
-两种来源随后统一经过现有流程：
+因此，以下处理在每条分支中恰好执行一次，而不是在 resolver 汇合后再次执行：
 
 1. 依据 visibility 清空隐藏模块；
 2. 解析并固化模板 manifest；
 3. 移除私有 owner 信息与 template binding；
-4. 返回自包含的脱敏发布对象。
+4. 返回自包含的脱敏 source，再附加发布来源。
 
 ### 6.3 创建分享
 
@@ -199,7 +220,7 @@ interface ResumeShareRelease {
 - `src/pages/share/components/version-selector/index.tsx`
   - 纯展示和选择；依赖版本选项、选中值、加载/错误与 retry 回调。
 - `src/pages/share/components/version-dialog/index.tsx`
-  - 根据当前 share 初始化选项，解析并发布选中版本；接收当前版本 snapshot provider 以区分编辑器内存态与管理页云端态。
+  - 根据当前 share 初始化选项，解析并发布选中版本；接收返回“已完成脱敏与模板固化 source”的当前版本 snapshot provider，以区分编辑器内存态与管理页云端态。
 - `src/pages/share/store/data.ts`
   - 加载/缓存版本元数据；创建带来源分享；发布版本并映射列表。
 - `src/pages/share/store/ui.ts`
@@ -228,7 +249,8 @@ interface ResumeShareRelease {
 单元测试覆盖：
 
 - 数据库行到 `ShareVersionSource` 的归一；
-- `ShareVersionSource` 到数据库 patch 的转换；
+- `ResolvedResumeShareRelease` 来源到数据库 patch 的转换；
+- `ShareVersionSelection` 不允许构造缺少版本 ID 的历史发布；
 - 当前版本与历史版本的显示文案；
 - 发布成功后 `shares`、`allShares` 的一致映射；
 - 历史来源 ID 被置空后仍保留可读信息。
@@ -284,4 +306,3 @@ interface ResumeShareRelease {
 - `src/pages/share/components/card/index.tsx`
 - `src/pages/share/components/mobile-list/*`
 - `src/pages/share/index.tsx`
-
