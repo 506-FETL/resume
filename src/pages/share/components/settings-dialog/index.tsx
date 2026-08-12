@@ -1,3 +1,4 @@
+import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -22,7 +23,9 @@ export default function SettingsDialog() {
     updateSettings,
   } = useShareStore()
   const share = findShareById(allShares, shares, settingsShareId)
-  const busy = Boolean(share && pendingShareIds.includes(share.id))
+  const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
+  const renderedShare = share ?? retainedShare
+  const busy = Boolean(settingsShareId && pendingShareIds.includes(settingsShareId))
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [passwordEnabled, setPasswordEnabled] = useState(false)
@@ -30,6 +33,11 @@ export default function SettingsDialog() {
   const [showCurrentPasswordState, setShowCurrentPasswordState] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (share)
+      setRetainedShare(share)
+  }, [share])
 
   useEffect(() => {
     if (!settingsDialogOpen)
@@ -119,7 +127,7 @@ export default function SettingsDialog() {
 
           {passwordEnabled && (
             <>
-              {share?.has_password && (
+              {renderedShare?.has_password && (
                 <Field>
                   <FieldLabel>当前密码</FieldLabel>
                   <div className="flex min-w-0 gap-2">
@@ -142,7 +150,7 @@ export default function SettingsDialog() {
               )}
               <Field data-invalid={Boolean(validationError)}>
                 <FieldLabel htmlFor="edit-share-password">
-                  {share?.has_password ? '新密码（可选）' : '访问密码'}
+                  {renderedShare?.has_password ? '新密码（可选）' : '访问密码'}
                 </FieldLabel>
                 <div className="flex min-w-0 gap-2">
                   <Input
@@ -153,7 +161,7 @@ export default function SettingsDialog() {
                       setPassword(event.target.value)
                       setValidationError(null)
                     }}
-                    placeholder={share?.has_password ? '留空则保持当前密码' : '请输入访问密码'}
+                    placeholder={renderedShare?.has_password ? '留空则保持当前密码' : '请输入访问密码'}
                     className="min-w-0"
                     maxLength={128}
                     autoComplete="new-password"

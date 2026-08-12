@@ -1,4 +1,6 @@
 import type { MouseEvent } from 'react'
+import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Spinner } from '@/components/ui/spinner'
@@ -16,7 +18,14 @@ export default function DeleteDialog() {
     remove,
   } = useShareStore()
   const share = findShareById(allShares, shares, deleteShareId)
+  const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
+  const renderedShare = share ?? retainedShare
   const busy = Boolean(deleteShareId && pendingShareIds.includes(deleteShareId))
+
+  useEffect(() => {
+    if (share)
+      setRetainedShare(share)
+  }, [share])
 
   const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -45,7 +54,7 @@ export default function DeleteDialog() {
           <AlertDialogTitle>永久删除分享链接？</AlertDialogTitle>
           <AlertDialogDescription>
             删除「
-            {share?.label || '未命名链接'}
+            {renderedShare?.label || '未命名链接'}
             」后链接立即失效，访问记录无法恢复。
           </AlertDialogDescription>
         </AlertDialogHeader>
