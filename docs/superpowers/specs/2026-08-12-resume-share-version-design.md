@@ -2,7 +2,7 @@
 
 - 日期：2026-08-12
 - 主题：resume-share-version
-- 状态：已获用户批准，待规格审查
+- 状态：已获用户批准并通过独立规格审查，待实现计划
 - 关联规格：`docs/superpowers/specs/2026-08-11-resume-share-link-design.md`
 
 ## 1. 背景
