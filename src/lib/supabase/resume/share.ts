@@ -1,4 +1,4 @@
-import type { CreateShareOptions, ResumeShareRecord, ResumeShareSnapshotSource, ShareViewResult } from './share.types'
+import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
@@ -8,6 +8,7 @@ import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { getResumeById, RESUME_PERSISTED_SELECTOR } from './form'
+import { getResumeHistoryVersionForShare } from './history'
 
 const SHARE_SELECT = 'id,resume_id,user_id,token,label,display_name,is_active,has_password,expires_at,view_count,last_viewed_at,created_at,updated_at'
 
@@ -74,6 +75,42 @@ export async function getResumeSnapshotById(resumeId: string): Promise<ResumeSha
   const snapshot = mapSourceToPersistedSnapshot(source ?? {})
   const displayName = (source as { display_name?: string | null } | null)?.display_name ?? null
   return buildResumeShareSnapshotSource(snapshot, displayName)
+}
+
+export async function resolveResumeShareRelease(input: {
+  resumeId: string
+  displayName: string | null
+  selection: ShareVersionSelection
+  getCurrentSource: CurrentResumeShareSnapshotProvider
+}): Promise<ResolvedResumeShareRelease> {
+  if (input.selection.kind === 'current') {
+    return {
+      ...await input.getCurrentSource(input.resumeId),
+      source: { kind: 'current' },
+    }
+  }
+
+  const version = await getResumeHistoryVersionForShare(
+    input.resumeId,
+    input.selection.versionId,
+  )
+  const source = await buildResumeShareSnapshotSource(
+    mapSourceToPersistedSnapshot(version.snapshot),
+    input.displayName,
+  )
+
+  return {
+    ...source,
+    source: {
+      kind: 'history',
+      versionId: input.selection.versionId,
+      versionNo: version.version_no,
+      versionLabel: version.version_name?.trim()
+        || version.milestone_name?.trim()
+        || '未命名版本',
+      versionCreatedAt: version.created_at,
+    },
+  }
 }
 
 /** 列出某简历的所有分享链接（owner） */

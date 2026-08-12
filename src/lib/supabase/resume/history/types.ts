@@ -39,6 +39,15 @@ export type ResumeHistoryVersionRow = ResumeHistoryVersionMeta & { snapshot: Res
 
 export type ResumeHistoryVersionRecord = ResumeHistoryVersionMeta & { snapshot: ResumeSnapshot }
 
+export interface ResumeHistoryShareReleaseRow {
+  resume_id: string
+  version_no: number
+  version_name: string | null
+  milestone_name: string | null
+  created_at: string
+  snapshot: ResumeSnapshot | Record<string, unknown>
+}
+
 export interface ResumeHistoryResumeRecord {
   resume_id: string
   updated_at: string | null

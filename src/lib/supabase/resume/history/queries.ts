@@ -2,6 +2,7 @@ import type {
   CreateResumeHistoryVersionInput,
   ResumeHistoryOptionRecord,
   ResumeHistoryResumeRecord,
+  ResumeHistoryShareReleaseRow,
   ResumeHistoryVersionListRow,
   ResumeHistoryVersionRow,
   ResumeHistoryVersionSummaryRecord,
@@ -9,6 +10,7 @@ import type {
   UpdateResumeHistoryVersionInput,
 } from './types'
 import supabase from '../../client'
+import { collectPages } from '../../pagination'
 import { getCurrentUser } from '../../user'
 import { getResumeById } from '../form'
 
@@ -91,6 +93,15 @@ const VERSION_SUMMARY_SELECTOR = `
   milestone_name
 `
 
+const VERSION_SHARE_RELEASE_SELECTOR = `
+  resume_id,
+  version_no,
+  version_name,
+  milestone_name,
+  created_at,
+  snapshot
+`
+
 export async function getResumeHistoryResume(resumeId: string) {
   return getResumeById<ResumeHistoryResumeRecord>(resumeId, RESUME_SELECTOR)
 }
@@ -122,18 +133,43 @@ export async function listResumeHistoryVersions(resumeId: string) {
     throw new Error('用户未登陆')
   }
 
+  return collectPages(async (from, to) => {
+    const { data, error } = await supabase
+      .from('resume_config_versions')
+      .select(VERSION_LIST_SELECTOR)
+      .eq('resume_id', resumeId)
+      .eq('user_id', user.id)
+      .order('version_no', { ascending: false })
+      .range(from, to)
+
+    if (error)
+      throw error
+
+    return (data ?? []) as ResumeHistoryVersionListRow[]
+  })
+}
+
+export async function getResumeHistoryVersionForShare(
+  resumeId: string,
+  versionId: number,
+) {
+  const user = await getCurrentUser()
+
+  if (!user)
+    throw new Error('用户未登陆')
+
   const { data, error } = await supabase
     .from('resume_config_versions')
-    .select(VERSION_LIST_SELECTOR)
+    .select(VERSION_SHARE_RELEASE_SELECTOR)
+    .eq('id', versionId)
     .eq('resume_id', resumeId)
     .eq('user_id', user.id)
-    .order('version_no', { ascending: false })
+    .single()
 
-  if (error) {
+  if (error)
     throw error
-  }
 
-  return (data ?? []) as ResumeHistoryVersionListRow[]
+  return data as ResumeHistoryShareReleaseRow
 }
 
 export async function getResumeHistoryVersionSnapshot(id: number) {
