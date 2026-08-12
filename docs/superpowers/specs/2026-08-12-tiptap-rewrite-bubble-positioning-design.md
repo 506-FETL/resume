@@ -91,7 +91,9 @@ editor.view.dom.closest('.simple-editor-content')
 3. 对部分相交矩形裁剪到编辑器可视范围。
 4. `getClientRects()` 返回全部可见文本行。
 5. `getBoundingClientRect()` 返回可见文本行的合并矩形。
-6. 没有可见矩形时返回 `null`，BubbleMenu 不显示。
+6. 没有可见矩形但原始 Range 仍存在时，返回原始行矩形交给 `hide` middleware 判定，
+   避免插件因 virtual element 为 `null` 而保留旧坐标。
+7. Range 本身无有效矩形时才返回 `null`。
 
 Floating UI 启用 `inline` middleware。`top` 定位由第一条可见文本行决定；
 回退到 `bottom` 时使用最后一条可见文本行。
