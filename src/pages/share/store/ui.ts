@@ -10,6 +10,8 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
   settingsShareId: null,
   deleteDialogOpen: false,
   deleteShareId: null,
+  versionDialogOpen: false,
+  versionShareId: null,
 
   openDialog: (resumeId, resumeName) => {
     const requestId = get().dialogRequestId + 1
@@ -22,6 +24,7 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
       dialogError: null,
     })
     get().loadDialogShares(resumeId).catch(() => undefined)
+    get().loadVersionOptions(resumeId, { force: true }).catch(() => undefined)
   },
 
   closeDialog: () => set(state => ({
@@ -46,4 +49,9 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
     deleteDialogOpen: true,
   }),
   closeDeleteDialog: () => set({ deleteDialogOpen: false }),
+  openVersionDialog: versionShareId => set({
+    versionShareId,
+    versionDialogOpen: true,
+  }),
+  closeVersionDialog: () => set({ versionDialogOpen: false }),
 })

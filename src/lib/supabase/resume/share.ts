@@ -9,11 +9,30 @@ import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { getResumeById, RESUME_PERSISTED_SELECTOR } from './form'
 import { getResumeHistoryVersionForShare } from './history'
+import { readShareVersionSource, toShareVersionSourcePatch } from './share-version'
 
-const SHARE_SELECT = 'id,resume_id,user_id,token,label,display_name,is_active,has_password,expires_at,view_count,last_viewed_at,created_at,updated_at'
+const SHARE_SELECT = 'id,resume_id,user_id,token,label,display_name,is_active,has_password,expires_at,view_count,last_viewed_at,created_at,updated_at,source_kind,source_version_id,source_version_no,source_version_label,source_version_created_at'
 
 function toRecord(row: Record<string, any>): ResumeShareRecord {
-  return row as ResumeShareRecord
+  const {
+    source_kind,
+    source_version_id,
+    source_version_no,
+    source_version_label,
+    source_version_created_at,
+    ...record
+  } = row
+
+  return {
+    ...record,
+    source: readShareVersionSource({
+      source_kind,
+      source_version_id,
+      source_version_no,
+      source_version_label,
+      source_version_created_at,
+    }),
+  } as ResumeShareRecord
 }
 
 function generateToken() {
@@ -155,6 +174,20 @@ export async function createResumeShare(
   displayName: string | null,
   options: CreateShareOptions = {},
 ): Promise<ResumeShareRecord> {
+  return createResumeShareRelease(resumeId, {
+    snapshot,
+    templateManifest,
+    displayName,
+    source: { kind: 'current' },
+  }, options)
+}
+
+/** 创建带明确版本来源的分享链接（owner）。 */
+export async function createResumeShareRelease(
+  resumeId: string,
+  release: ResolvedResumeShareRelease,
+  options: CreateShareOptions = {},
+): Promise<ResumeShareRecord> {
   const user = await getCurrentUser()
   if (!user)
     throw new Error('用户未登录')
@@ -168,10 +201,11 @@ export async function createResumeShare(
       user_id: user.id,
       token,
       label: options.label ?? null,
-      display_name: displayName,
-      snapshot,
-      template_manifest: templateManifest,
+      display_name: release.displayName,
+      snapshot: release.snapshot,
+      template_manifest: release.templateManifest,
       expires_at: options.expiresAt ?? null,
+      ...toShareVersionSourcePatch(release.source),
       // 带密码时先不激活，密码写成功后再激活，避免残留可匿名访问的无密码记录
       ...(hasPassword ? { is_active: false } : {}),
     })
@@ -244,23 +278,41 @@ export async function updateResumeShareSettings(
   }
 }
 
-/** 推送最新快照覆盖 */
+/** 发布一份完整 release，内容与来源在同一次 UPDATE 中保持一致。 */
+export async function publishResumeShareRelease(
+  shareId: string,
+  release: ResolvedResumeShareRelease,
+): Promise<ResumeShareRecord> {
+  const { data, error } = await supabase
+    .from('resume_shares')
+    .update({
+      snapshot: release.snapshot,
+      template_manifest: release.templateManifest,
+      display_name: release.displayName,
+      ...toShareVersionSourcePatch(release.source),
+    })
+    .eq('id', shareId)
+    .select(SHARE_SELECT)
+    .single()
+
+  if (error)
+    throw error
+  return toRecord(data)
+}
+
+/** 兼容旧入口：推送最新版等价于发布 current release。 */
 export async function pushResumeShareSnapshot(
   shareId: string,
   snapshot: PersistedResumeSnapshot,
   templateManifest: TemplateManifest,
   displayName: string | null,
-): Promise<void> {
-  const { error } = await supabase
-    .from('resume_shares')
-    .update({
-      snapshot,
-      template_manifest: templateManifest,
-      display_name: displayName,
-    })
-    .eq('id', shareId)
-  if (error)
-    throw error
+): Promise<ResumeShareRecord> {
+  return publishResumeShareRelease(shareId, {
+    snapshot,
+    templateManifest,
+    displayName,
+    source: { kind: 'current' },
+  })
 }
 
 export async function deleteResumeShare(shareId: string): Promise<void> {

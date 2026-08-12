@@ -1,7 +1,10 @@
 import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
-import { createResumeShare, deleteResumeShare, listAllResumeShares, listResumeShares, pushResumeShareSnapshot, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
+import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
+import { createResumeShare, createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, pushResumeShareSnapshot, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
+
+const versionOptionRequests = new Map<string, Promise<void>>()
 
 function addPending(ids: string[], shareId: string) {
   return ids.includes(shareId) ? ids : [...ids, shareId]
@@ -33,6 +36,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
   dialogError: null,
   dialogRequestId: 0,
   pendingShareIds: [],
+  versionOptionsByResumeId: {},
 
   bootstrapPage: async () => {
     const requestId = get().pageRequestId + 1
@@ -58,6 +62,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
           searchKeyword: '',
           resumeFilters: [],
           statusFilter: 'all',
+          versionOptionsByResumeId: {},
         })
       }
 
@@ -94,6 +99,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         ownerUserId: null,
         allShares: [],
         resumeMap: {},
+        versionOptionsByResumeId: {},
         pageLoading: false,
         pageError: error instanceof Error ? error.message : '加载分享链接失败',
       })
@@ -133,8 +139,87 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     }
   },
 
+  loadVersionOptions: async (resumeId, options) => {
+    const activeRequest = versionOptionRequests.get(resumeId)
+    if (activeRequest)
+      return activeRequest
+
+    const current = get().versionOptionsByResumeId[resumeId]
+    if (current?.loaded && !options?.force)
+      return
+
+    const requestId = (current?.requestId ?? 0) + 1
+    set(state => ({
+      versionOptionsByResumeId: {
+        ...state.versionOptionsByResumeId,
+        [resumeId]: {
+          items: current?.items ?? [],
+          loading: true,
+          error: null,
+          requestId,
+          loaded: current?.loaded ?? false,
+        },
+      },
+    }))
+
+    const request = (async () => {
+      try {
+        const items = await listResumeHistoryVersions(resumeId)
+        if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
+          return
+        set(state => ({
+          versionOptionsByResumeId: {
+            ...state.versionOptionsByResumeId,
+            [resumeId]: {
+              items,
+              loading: false,
+              error: null,
+              requestId,
+              loaded: true,
+            },
+          },
+        }))
+      }
+      catch (error) {
+        if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
+          return
+        set(state => ({
+          versionOptionsByResumeId: {
+            ...state.versionOptionsByResumeId,
+            [resumeId]: {
+              items: state.versionOptionsByResumeId[resumeId]?.items ?? [],
+              loading: false,
+              error: error instanceof Error ? error.message : '历史版本加载失败',
+              requestId,
+              loaded: state.versionOptionsByResumeId[resumeId]?.loaded ?? false,
+            },
+          },
+        }))
+      }
+    })()
+
+    versionOptionRequests.set(resumeId, request)
+    try {
+      await request
+    }
+    finally {
+      if (versionOptionRequests.get(resumeId) === request)
+        versionOptionRequests.delete(resumeId)
+    }
+  },
+
   create: async (resumeId, snapshot, templateManifest, displayName, options) => {
     const record = await createResumeShare(resumeId, snapshot, templateManifest, displayName, options)
+    set(state => ({
+      shares: state.openForResumeId === resumeId
+        ? [record, ...state.shares]
+        : state.shares,
+      allShares: [record, ...state.allShares],
+    }))
+  },
+
+  createRelease: async (resumeId, release, options) => {
+    const record = await createResumeShareRelease(resumeId, release, options)
     set(state => ({
       shares: state.openForResumeId === resumeId
         ? [record, ...state.shares]
@@ -204,10 +289,32 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
     try {
-      await pushResumeShareSnapshot(shareId, snapshot, templateManifest, displayName)
+      const record = await pushResumeShareSnapshot(shareId, snapshot, templateManifest, displayName)
       set(state => ({
         ...mapShareLists(state, share => (
-          share.id === shareId ? { ...share, display_name: displayName } : share
+          share.id === shareId ? record : share
+        )),
+      }))
+    }
+    finally {
+      set(state => ({
+        pendingShareIds: removePending(state.pendingShareIds, shareId),
+      }))
+    }
+  },
+
+  publishRelease: async (shareId, release) => {
+    if (get().pendingShareIds.includes(shareId))
+      throw new Error('操作正在进行中')
+
+    set(state => ({
+      pendingShareIds: addPending(state.pendingShareIds, shareId),
+    }))
+    try {
+      const record = await publishResumeShareRelease(shareId, release)
+      set(state => ({
+        ...mapShareLists(state, share => (
+          share.id === shareId ? record : share
         )),
       }))
     }
@@ -236,6 +343,9 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         deleteDialogOpen: state.deleteShareId === shareId
           ? false
           : state.deleteDialogOpen,
+        versionDialogOpen: state.versionShareId === shareId
+          ? false
+          : state.versionDialogOpen,
       }))
     }
     finally {
