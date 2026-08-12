@@ -261,16 +261,7 @@ type VersionDialogSelection =
 
 ## 10. 验证策略
 
-项目当前没有测试运行器。本功能引入与 Vite 配套的最小 Vitest 配置，不引入 DOM 或端到端测试框架。
-
-单元测试覆盖：
-
-- 数据库行到 `ShareVersionSource` 的归一；
-- `ResolvedResumeShareRelease` 来源到数据库 patch 的转换；
-- `deleted-history` 弹窗状态不能进入 release resolver，且不会自动回退到当前版本；
-- 当前版本与历史版本的显示文案；
-- 发布成功后 `shares`、`allShares` 的一致映射；
-- 历史来源 ID 被置空后仍保留可读信息。
+当前仓库没有测试运行器，且用户明确要求本功能不引入测试、不执行 TDD。因此不新增 Vitest、测试文件或测试脚本。
 
 TypeScript 类型检查覆盖：
 
@@ -280,10 +271,17 @@ TypeScript 类型检查覆盖：
 
 静态验证：
 
-- `pnpm test --run`；
 - `pnpm exec tsc --noEmit`，落实判别联合的编译期约束；
 - `pnpm lint`；
 - `pnpm build`。
+
+代码审查重点：
+
+- 数据库行到 `ShareVersionSource` 的归一与 release patch 必须成对审查；
+- `deleted-history` 不能进入 release resolver，也不能自动回退当前版本；
+- 发布成功必须同时更新 `shares`、`allShares`；
+- 历史来源 ID 置空后仍须使用冗余标签正常展示；
+- 分页终止、缓存重验、请求去重与旧响应隔离通过静态路径审查和手工模拟验证。
 
 手工验收矩阵：
 
@@ -314,11 +312,9 @@ TypeScript 类型检查覆盖：
 - `supabase/migrations/20260812xxxxxx_add_resume_share_version_source.sql`
 - `src/pages/share/components/version-selector/index.tsx`
 - `src/pages/share/components/version-dialog/index.tsx`
-- 分享版本来源的纯函数测试文件与最小 Vitest 配置
 
 修改：
 
-- `package.json`、`pnpm-lock.yaml`
 - `src/lib/supabase/resume/share.types.ts`
 - `src/lib/supabase/resume/share.ts`
 - `src/lib/supabase/resume/history/queries.ts`
