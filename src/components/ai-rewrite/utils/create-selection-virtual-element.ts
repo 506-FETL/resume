@@ -2,7 +2,7 @@ import type { Editor } from '@tiptap/react'
 import type { BubbleRect } from './bubble-positioning'
 import {
   combineRects,
-  getPositionSelectionRects,
+  getVisibleSelectionRects,
 } from './bubble-positioning'
 
 function toBubbleRect(rect: DOMRect): BubbleRect {
@@ -44,12 +44,12 @@ export function createSelectionVirtualElement(
       range.getClientRects(),
       toBubbleRect,
     ).filter(rect => rect.width > 0 && rect.height > 0)
-    const getPositionRects = () => getPositionSelectionRects(
+    const getPositionRects = () => getVisibleSelectionRects(
       getRawRects(),
       toBubbleRect(boundary.getBoundingClientRect()),
     )
 
-    if (getRawRects().length === 0)
+    if (getPositionRects().length === 0)
       return null
 
     return {

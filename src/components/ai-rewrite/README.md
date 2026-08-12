@@ -89,14 +89,17 @@ src/components/ai-rewrite/
 
 **实现思路：**
 
-1. 创建一个原生 DOM 容器，交给 Tiptap `BubbleMenuPlugin` 使用。
-2. 注册 `BubbleMenuPlugin`，让用户选中文字时显示菜单。
-3. 用户点击动作后，调用 `readRewriteSelection(editor)` 获取当前选区快照。
-4. 把选区存进 `savedSelection`，避免弹窗打开后 selection 丢失。
-5. 如果是 `align_jd` 且 JD 不够长，进入 `waiting_jd` 状态，不发请求。
-6. 否则调用 `useAiRewrite().run(action, selection)` 发起 LLM 请求。
-7. 组合弹窗 shell、footer 和 panel。
-8. 用户点击候选后，用 `editor.chain().focus().insertContentAt(...).run()` 写回原选区。
+1. 在 `document.body` 创建可见宿主和隐藏测量宿主。
+2. 测量完整动作工具条的固有宽度，并根据当前编辑器可视宽度选择完整、紧凑或隐藏模式。
+3. 用真实文本行矩形创建 Floating UI virtual element。
+4. 注册 `BubbleMenuPlugin`，以上方优先、下方回退的策略显示菜单。
+5. 监听编辑器内部滚动、祖先滚动和边界 resize，持续更新菜单坐标。
+6. 用户点击动作后，调用 `readRewriteSelection(editor)` 获取当前选区快照。
+7. 把选区存进 `savedSelection`，避免弹窗打开后 selection 丢失。
+8. 如果是 `align_jd` 且 JD 不够长，进入 `waiting_jd` 状态，不发请求。
+9. 否则调用 `useAiRewrite().run(action, selection)` 发起 LLM 请求。
+10. 组合弹窗 shell、footer 和 panel。
+11. 用户点击候选后，用 `editor.chain().focus().insertContentAt(...).run()` 写回原选区。
 
 **在模块中的角色：** 它是“桥”。一边连接 Tiptap，另一边连接 React UI 和 LLM session。为了保持边界清晰，候选怎么展示、错误怎么显示、LLM 怎么解析，都不放在这里。
 
@@ -117,7 +120,12 @@ src/components/ai-rewrite/
 
 **作用：** 给 BubbleMenu 原生挂载点补充必要样式。
 
-**实现思路：** 目前只设置 `.ai-rewrite-bubble { z-index: 60; }`。
+**实现思路：**
+
+- 可见宿主固定挂载到 body，不受编辑器 overflow 裁剪。
+- 隐藏测量宿主位于屏幕外且设置 `aria-hidden`、`inert`。
+- 完整菜单保持固有宽度；紧凑模式只保留省略号按钮的气泡外观。
+- 覆盖通用 TipTap 移动端浮动工具条的全宽样式，避免紧凑按钮拉满编辑器。
 
 **在模块中的角色：** Tiptap BubbleMenuPlugin 要求传入一个原生 DOM element，这个 element 不走 shadcn 组件体系，所以这里保留极少量样式。其他弹层和候选 UI 都尽量用 shadcn/Tailwind。
 
@@ -140,11 +148,11 @@ src/components/ai-rewrite/
 
 **实现思路：**
 
-- 遍历 `REWRITE_ACTION_LIST`。
-- 从 `REWRITE_ACTION_META` 取 icon、label、description。
-- 渲染 5 个按钮。
-- 点击按钮时调用 `onAction(action)`。
-- `onMouseDown` 阻止按钮抢走编辑器焦点，减少弹窗打开时的焦点问题。
+- 从 `REWRITE_ACTION_META` 复用 icon、label、description。
+- 完整模式渲染 5 个动作按钮。
+- 测量模式通过 `ResizeObserver` 上报完整工具条固有宽度。
+- 横向空间不足时只渲染省略号按钮，并用 shadcn `DropdownMenu` 展示 5 个动作。
+- 完整模式阻止指针抢走编辑器焦点；紧凑模式在执行动作前读取并保存 TipTap selection。
 
 **在模块中的角色：** 它只负责“用户想执行哪个动作”。它不读选区，不开弹窗，不发请求。
 
@@ -315,18 +323,23 @@ src/components/ai-rewrite/
 
 ### 2. `AiRewriteBubble` 建立 Tiptap BubbleMenu
 
-`AiRewriteBubble` 首次渲染时创建一个 DOM 容器，并注册 `BubbleMenuPlugin`。
+`AiRewriteBubble` 首次渲染时创建可见宿主和隐藏测量宿主。可见宿主通过
+`appendTo: document.body` 使用固定定位；隐藏宿主提前得到完整工具条宽度，避免
+TipTap 在按钮尚未渲染时对空节点完成首次定位。
 
 显示条件在 `shouldShow` 里：
 
 - 选区不能为空。
 - 选区纯文本长度要达到 `SELECTION_MIN_CHARS`。
+- 完整工具条或省略号按钮能放进当前编辑器可视宽度。
 
 这样可以避免用户只是点一下光标，或者选了过短内容时弹出 AI 菜单。
 
 ### 3. 用户划词后看到动作菜单
 
-当 Tiptap BubbleMenu 判断应该显示时，`createPortal()` 会把 `components/bubble-menu.tsx` 渲染到 BubbleMenu 的 DOM 容器里。
+当 Tiptap BubbleMenu 判断应该显示时，`createPortal()` 会把
+`components/bubble-menu.tsx` 渲染到 body 级宿主。菜单优先位于第一条可见选中文字
+上方，上方空间不足时翻到下方；左右位置限制在所属编辑器可视边界内。
 
 菜单的 5 个按钮来自 `REWRITE_ACTION_LIST`：
 
@@ -335,6 +348,9 @@ src/components/ai-rewrite/
 - 强动词
 - 润色
 - JD 靠拢
+
+完整工具条横向放不下时，入口自动切换为省略号按钮；点击后通过 shadcn
+`DropdownMenu` 展示同样的 5 个动作和说明。
 
 这一步只决定“用户选择了哪个动作”，还没有读取选区，也没有请求 LLM。
 
@@ -554,25 +570,31 @@ stateDiagram-v2
 
 ## 核心边界
 
-| 问题                         | 负责文件                          |
-| ---------------------------- | --------------------------------- |
-| 什么情况下显示划词菜单       | `ai-rewrite-bubble.tsx`           |
-| 如何读取 Tiptap 选区         | `utils/read-rewrite-selection.ts` |
-| 如何发起和取消 LLM 请求      | `hooks/use-ai-rewrite.ts`         |
-| session 状态如何保存         | `hooks/use-rewrite-session.ts`    |
-| session 状态如何转移         | `utils/rewrite-session-state.ts`  |
-| LLM 字符串如何变成候选       | `utils/parse-rewrite-response.ts` |
-| 弹窗外壳怎么布局             | `components/dialog-shell.tsx`     |
-| body 内展示什么              | `ai-rewrite-panel.tsx`            |
-| loading/error/waiting 怎么看 | `components/status-view.tsx`      |
-| 候选怎么排列                 | `components/candidate-list.tsx`   |
-| 单个候选怎么展示             | `components/candidate-card.tsx`   |
-| 候选怎么写回原文             | `ai-rewrite-bubble.tsx`           |
+| 问题                         | 负责文件                                    |
+| ---------------------------- | ------------------------------------------- |
+| 什么情况下显示划词菜单       | `ai-rewrite-bubble.tsx`                     |
+| 菜单如何限制在编辑器边界内   | `utils/bubble-positioning.ts`               |
+| 多行选区如何转换为定位参考   | `utils/create-selection-virtual-element.ts` |
+| 如何读取 Tiptap 选区         | `utils/read-rewrite-selection.ts`           |
+| 如何发起和取消 LLM 请求      | `hooks/use-ai-rewrite.ts`                   |
+| session 状态如何保存         | `hooks/use-rewrite-session.ts`              |
+| session 状态如何转移         | `utils/rewrite-session-state.ts`            |
+| LLM 字符串如何变成候选       | `utils/parse-rewrite-response.ts`           |
+| 弹窗外壳怎么布局             | `components/dialog-shell.tsx`               |
+| body 内展示什么              | `ai-rewrite-panel.tsx`                      |
+| loading/error/waiting 怎么看 | `components/status-view.tsx`                |
+| 候选怎么排列                 | `components/candidate-list.tsx`             |
+| 单个候选怎么展示             | `components/candidate-card.tsx`             |
+| 候选怎么写回原文             | `ai-rewrite-bubble.tsx`                     |
 
 ## 维护建议
 
 - 新增改写动作时，至少要同步改 `types.ts`、`const.ts` 和 `src/lib/llm/prompts/rewrite.ts`。
 - 不要把 Tiptap editor 传进候选卡或状态视图；写回职责应该留在 `AiRewriteBubble`。
+- 定位异常优先检查 `ai-rewrite-bubble.tsx`、`utils/bubble-positioning.ts` 和
+  `utils/create-selection-virtual-element.ts`。
+- 不要通过放开 `.simple-editor-wrapper` 的 overflow 修复气泡裁剪；BubbleMenu 必须保持
+  body 级宿主和编辑器级边界。
 - 不要让 UI 组件直接调用 LLM；请求职责应该留在 `useAiRewrite()`。
 - 不要在 React hook 里手写复杂状态对象；状态转移优先放到 `utils/rewrite-session-state.ts`。
 - 不要直接信任 LLM 输出；候选必须经过 `parseRewriteResponse()`。

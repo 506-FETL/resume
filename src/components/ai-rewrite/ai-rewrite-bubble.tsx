@@ -66,7 +66,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     measure.className = 'ai-rewrite-bubble-measure'
     measure.ariaHidden = 'true'
     measure.inert = true
-    document.body.append(bubble, measure)
+    document.body.appendChild(measure)
     setBubbleEl(bubble)
     setMeasureEl(measure)
 
@@ -125,9 +125,11 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       element: bubbleEl,
       pluginKey: BUBBLE_MENU_PLUGIN_KEY,
       appendTo: () => document.body,
-      getReferencedVirtualElement: () => (
-        createSelectionVirtualElement(editor, boundaryEl)
-      ),
+      getReferencedVirtualElement: () => {
+        const reference = createSelectionVirtualElement(editor, boundaryEl)
+        bubbleEl.style.visibility = reference ? 'visible' : 'hidden'
+        return reference
+      },
       options: {
         strategy: 'fixed',
         placement: 'top',
