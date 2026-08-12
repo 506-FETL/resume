@@ -21,10 +21,16 @@ export interface ShareDataSlice {
   pageLoading: boolean
   mutatingId: string | null
   error: string | null
+  pageError: string | null
+  dialogLoading: boolean
+  dialogError: string | null
+  dialogRequestId: number
+  pendingShareIds: string[]
 
   bootstrapPage: () => Promise<void>
   reloadPage: () => Promise<void>
   loadShares: (resumeId: string) => Promise<void>
+  loadDialogShares: (resumeId: string) => Promise<void>
   create: (
     resumeId: string,
     snapshot: PersistedResumeSnapshot,
@@ -51,6 +57,10 @@ export interface ShareUiSlice {
   statusFilter: ShareStatusFilter
   actionShare: ResumeShareRecord | null
   actionTrigger: HTMLElement | null
+  settingsDialogOpen: boolean
+  settingsShareId: string | null
+  deleteDialogOpen: boolean
+  deleteShareId: string | null
 
   openDialog: (resumeId: string, resumeName: string | null) => void
   closeDialog: () => void
@@ -61,6 +71,10 @@ export interface ShareUiSlice {
     share: ResumeShareRecord | null,
     trigger?: HTMLElement | null,
   ) => void
+  openSettingsDialog: (shareId: string) => void
+  closeSettingsDialog: () => void
+  openDeleteDialog: (shareId: string) => void
+  closeDeleteDialog: () => void
 }
 
 export type ShareStoreState = ShareDataSlice & ShareUiSlice

@@ -1,7 +1,25 @@
-import type { ShareDataSlice, ShareSlice } from './types'
+import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { createResumeShare, deleteResumeShare, listAllResumeShares, listResumeShares, pushResumeShareSnapshot, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
+
+function addPending(ids: string[], shareId: string) {
+  return ids.includes(shareId) ? ids : [...ids, shareId]
+}
+
+function removePending(ids: string[], shareId: string) {
+  return ids.filter(id => id !== shareId)
+}
+
+function mapShareLists(
+  state: ShareStoreState,
+  updater: (share: ShareStoreState['allShares'][number]) => ShareStoreState['allShares'][number],
+) {
+  return {
+    allShares: state.allShares.map(updater),
+    shares: state.shares.map(updater),
+  }
+}
 
 export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
   ownerUserId: null,
@@ -13,6 +31,11 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
   pageLoading: false,
   mutatingId: null,
   error: null,
+  pageError: null,
+  dialogLoading: false,
+  dialogError: null,
+  dialogRequestId: 0,
+  pendingShareIds: [],
 
   bootstrapPage: async () => {
     const requestId = get().pageRequestId + 1
@@ -20,6 +43,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       pageRequestId: requestId,
       pageLoading: true,
       error: null,
+      pageError: null,
       allShares: [],
       resumeMap: {},
       actionShare: null,
@@ -77,24 +101,46 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         resumeMap: {},
         pageLoading: false,
         error: error instanceof Error ? error.message : '加载分享链接失败',
+        pageError: error instanceof Error ? error.message : '加载分享链接失败',
       })
     }
   },
 
   reloadPage: async () => get().bootstrapPage(),
 
-  loadShares: async (resumeId) => {
-    set({ loading: true, error: null })
+  loadShares: async resumeId => get().loadDialogShares(resumeId),
+
+  loadDialogShares: async (resumeId) => {
+    const requestId = get().dialogRequestId
+    set({
+      loading: true,
+      dialogLoading: true,
+      error: null,
+      dialogError: null,
+    })
     try {
       const shares = await listResumeShares(resumeId)
-      if (get().openForResumeId === resumeId)
-        set({ shares, loading: false })
+      if (
+        get().dialogRequestId === requestId
+        && get().openForResumeId === resumeId
+      ) {
+        set({
+          shares,
+          loading: false,
+          dialogLoading: false,
+        })
+      }
     }
     catch (error) {
-      if (get().openForResumeId === resumeId) {
+      if (
+        get().dialogRequestId === requestId
+        && get().openForResumeId === resumeId
+      ) {
         set({
           loading: false,
+          dialogLoading: false,
           error: error instanceof Error ? error.message : '加载失败',
+          dialogError: error instanceof Error ? error.message : '加载失败',
         })
       }
     }
@@ -119,34 +165,49 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
   },
 
   setActive: async (shareId, isActive) => {
-    set({ mutatingId: shareId, error: null })
+    if (get().pendingShareIds.includes(shareId))
+      throw new Error('操作正在进行中')
+
+    set(state => ({
+      pendingShareIds: addPending(state.pendingShareIds, shareId),
+      mutatingId: shareId,
+      error: null,
+    }))
     try {
       await setResumeShareActive(shareId, isActive)
       set(state => ({
-        shares: state.shares.map(share => (
+        ...mapShareLists(state, share => (
           share.id === shareId ? { ...share, is_active: isActive } : share
         )),
-        allShares: state.allShares.map(share => (
-          share.id === shareId ? { ...share, is_active: isActive } : share
-        )),
-        mutatingId: null,
       }))
     }
     catch (error) {
       set({
-        mutatingId: null,
         error: error instanceof Error ? error.message : '操作失败',
       })
       throw error
+    }
+    finally {
+      set(state => ({
+        pendingShareIds: removePending(state.pendingShareIds, shareId),
+        mutatingId: state.mutatingId === shareId ? null : state.mutatingId,
+      }))
     }
   },
 
   updateSettings: async (shareId, settings) => {
-    set({ mutatingId: shareId, error: null })
+    if (get().pendingShareIds.includes(shareId))
+      throw new Error('操作正在进行中')
+
+    set(state => ({
+      pendingShareIds: addPending(state.pendingShareIds, shareId),
+      mutatingId: shareId,
+      error: null,
+    }))
     try {
       await updateResumeShareSettings(shareId, settings)
       set(state => ({
-        shares: state.shares.map(share => (
+        ...mapShareLists(state, share => (
           share.id === shareId
             ? {
                 ...share,
@@ -158,55 +219,62 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
               }
             : share
         )),
-        allShares: state.allShares.map(share => (
-          share.id === shareId
-            ? {
-                ...share,
-                label: settings.label,
-                expires_at: settings.expiresAt,
-                has_password: settings.password === undefined
-                  ? share.has_password
-                  : Boolean(settings.password),
-              }
-            : share
-        )),
-        mutatingId: null,
       }))
     }
     catch (error) {
       set({
-        mutatingId: null,
         error: error instanceof Error ? error.message : '操作失败',
       })
       throw error
+    }
+    finally {
+      set(state => ({
+        pendingShareIds: removePending(state.pendingShareIds, shareId),
+        mutatingId: state.mutatingId === shareId ? null : state.mutatingId,
+      }))
     }
   },
 
   pushSnapshot: async (shareId, snapshot, templateManifest, displayName) => {
-    set({ mutatingId: shareId, error: null })
+    if (get().pendingShareIds.includes(shareId))
+      throw new Error('操作正在进行中')
+
+    set(state => ({
+      pendingShareIds: addPending(state.pendingShareIds, shareId),
+      mutatingId: shareId,
+      error: null,
+    }))
     try {
       await pushResumeShareSnapshot(shareId, snapshot, templateManifest, displayName)
       set(state => ({
-        shares: state.shares.map(share => (
+        ...mapShareLists(state, share => (
           share.id === shareId ? { ...share, display_name: displayName } : share
         )),
-        allShares: state.allShares.map(share => (
-          share.id === shareId ? { ...share, display_name: displayName } : share
-        )),
-        mutatingId: null,
       }))
     }
     catch (error) {
       set({
-        mutatingId: null,
         error: error instanceof Error ? error.message : '操作失败',
       })
       throw error
     }
+    finally {
+      set(state => ({
+        pendingShareIds: removePending(state.pendingShareIds, shareId),
+        mutatingId: state.mutatingId === shareId ? null : state.mutatingId,
+      }))
+    }
   },
 
   remove: async (shareId) => {
-    set({ mutatingId: shareId, error: null })
+    if (get().pendingShareIds.includes(shareId))
+      throw new Error('操作正在进行中')
+
+    set(state => ({
+      pendingShareIds: addPending(state.pendingShareIds, shareId),
+      mutatingId: shareId,
+      error: null,
+    }))
     try {
       await deleteResumeShare(shareId)
       set(state => ({
@@ -214,15 +282,25 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         allShares: state.allShares.filter(share => share.id !== shareId),
         actionShare: state.actionShare?.id === shareId ? null : state.actionShare,
         actionTrigger: state.actionShare?.id === shareId ? null : state.actionTrigger,
-        mutatingId: null,
+        settingsDialogOpen: state.settingsShareId === shareId
+          ? false
+          : state.settingsDialogOpen,
+        deleteDialogOpen: state.deleteShareId === shareId
+          ? false
+          : state.deleteDialogOpen,
       }))
     }
     catch (error) {
       set({
-        mutatingId: null,
         error: error instanceof Error ? error.message : '删除失败',
       })
       throw error
+    }
+    finally {
+      set(state => ({
+        pendingShareIds: removePending(state.pendingShareIds, shareId),
+        mutatingId: state.mutatingId === shareId ? null : state.mutatingId,
+      }))
     }
   },
 })

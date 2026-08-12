@@ -63,3 +63,15 @@ export function filterShares(
     ].some(value => value?.toLocaleLowerCase().includes(keyword))
   })
 }
+
+export function findShareById(
+  allShares: ResumeShareRecord[],
+  dialogShares: ResumeShareRecord[],
+  shareId: string | null,
+) {
+  if (!shareId)
+    return null
+  return allShares.find(share => share.id === shareId)
+    ?? dialogShares.find(share => share.id === shareId)
+    ?? null
+}

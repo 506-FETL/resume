@@ -8,27 +8,38 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
   statusFilter: 'all',
   actionShare: null,
   actionTrigger: null,
+  settingsDialogOpen: false,
+  settingsShareId: null,
+  deleteDialogOpen: false,
+  deleteShareId: null,
 
   openDialog: (resumeId, resumeName) => {
+    const requestId = get().dialogRequestId + 1
     set({
       openForResumeId: resumeId,
       openForResumeName: resumeName,
+      dialogRequestId: requestId,
       shares: [],
       loading: true,
+      dialogLoading: true,
       mutatingId: null,
       error: null,
+      dialogError: null,
     })
-    get().loadShares(resumeId).catch(() => undefined)
+    get().loadDialogShares(resumeId).catch(() => undefined)
   },
 
-  closeDialog: () => set({
+  closeDialog: () => set(state => ({
     openForResumeId: null,
     openForResumeName: null,
+    dialogRequestId: state.dialogRequestId + 1,
     shares: [],
     loading: false,
+    dialogLoading: false,
     mutatingId: null,
     error: null,
-  }),
+    dialogError: null,
+  })),
 
   setSearchKeyword: searchKeyword => set({ searchKeyword }),
   setResumeFilters: resumeFilters => set({ resumeFilters }),
@@ -37,4 +48,14 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
     actionShare,
     actionTrigger,
   }),
+  openSettingsDialog: settingsShareId => set({
+    settingsShareId,
+    settingsDialogOpen: true,
+  }),
+  closeSettingsDialog: () => set({ settingsDialogOpen: false }),
+  openDeleteDialog: deleteShareId => set({
+    deleteShareId,
+    deleteDialogOpen: true,
+  }),
+  closeDeleteDialog: () => set({ deleteDialogOpen: false }),
 })
