@@ -43,6 +43,17 @@ export function getVisibleSelectionRects(
     .filter((rect): rect is BubbleRect => rect !== null)
 }
 
+export function getPositionSelectionRects(
+  rects: BubbleRect[],
+  boundary: BubbleRect,
+) {
+  const nonEmptyRects = rects.filter(
+    rect => rect.width > 0 && rect.height > 0,
+  )
+  const visibleRects = getVisibleSelectionRects(nonEmptyRects, boundary)
+  return visibleRects.length > 0 ? visibleRects : nonEmptyRects
+}
+
 export function combineRects(rects: BubbleRect[]): BubbleRect | null {
   if (rects.length === 0)
     return null

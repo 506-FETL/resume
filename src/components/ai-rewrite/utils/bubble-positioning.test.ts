@@ -5,6 +5,7 @@ import {
   clipRect,
   combineRects,
   getBubbleDisplayMode,
+  getPositionSelectionRects,
   getVisibleSelectionRects,
 } from './bubble-positioning.ts'
 
@@ -29,6 +30,20 @@ test('getVisibleSelectionRects 丢弃零尺寸和完全不可见文本行', () =
       { left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 },
     ),
     [{ left: 10, top: 10, right: 40, bottom: 30, width: 30, height: 20 }],
+  )
+})
+
+test('getPositionSelectionRects 在选区完全滚出时保留原始行供 hide 判断', () => {
+  const rawRects = [
+    { left: 10, top: -40, right: 60, bottom: -20, width: 50, height: 20 },
+  ]
+
+  assert.deepEqual(
+    getPositionSelectionRects(
+      rawRects,
+      { left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 },
+    ),
+    rawRects,
   )
 })
 
