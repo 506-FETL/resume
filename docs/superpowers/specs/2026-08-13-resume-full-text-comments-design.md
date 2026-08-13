@@ -27,7 +27,7 @@
 
 ### 2.1 目标
 
-- 在编辑器右侧最终简历画布和公开分享页提供一致的全文划词评论能力。
+- 在在线简历编辑器右侧最终简历画布和公开分享页提供一致的全文划词评论能力。
 - 覆盖所有可见文字，不限于 Tiptap 富文本。
 - 支持主评论、单层回复、解决、重新打开、编辑、删除和手动重新关联。
 - 支持登录用户与无需填写昵称的匿名访客。
@@ -46,6 +46,7 @@
 8. 新评论、回复、解决状态和未读数量实时同步。
 9. 字体、缩放、分页和模板布局变化后，高亮仍绑定正确语义文字或进入失效状态。
 10. PDF 与打印结果不含高亮、标记、Drawer 或评论内容。
+11. 离线简历不创建评论空间、不展示可操作评论层，也不保存或迁移本地评论。
 
 ## 3. 已确认产品决策
 
@@ -73,6 +74,7 @@
 | 重新发布 | 新批次评论为空，旧批次只对所有者可见 |
 | 删除分享 | 对外失效并转内部归档；永久删除另行确认 |
 | 评论开关 | 每条分享链接独立设置，默认开启 |
+| 离线简历 | 不可评论；入口禁用并提示转为在线简历，不保存或迁移评论 |
 | 导出 | 评论永不进入 PDF 或打印 |
 
 ## 4. 非目标
@@ -90,6 +92,7 @@
 - 任意跨字段、跨条目或跨页选区；
 - 多层嵌套回复；
 - 将评论 mark 写回 Tiptap、HTML 或简历快照。
+- 离线评论存储，以及离线简历转在线时的评论迁移。
 
 ## 5. 领域模型
 
@@ -97,7 +100,7 @@
 
 评论空间是最高隔离边界，类型为：
 
-- working：某份简历的当前工作版本；每份简历唯一。
+- working：某份在线简历的当前工作版本；每份在线简历唯一，离线简历不存在评论空间。
 - history：某个不可变历史版本；每个历史版本唯一。
 - share_release：某条分享链接的某次不可变发布批次；每个批次唯一。
 
@@ -188,7 +191,7 @@ resume_shares 新增：
 - allow_comments boolean not null default true；
 - archived_at timestamptz null。
 
-本功能迁移不删除既有 snapshot、template_manifest 和来源字段。迁移为每条既有分享回填 release_no = 1 的发布批次并设置 current_release_id；读取链路切换到发布表后，旧快照列不再作为真源。只有生产环境确认全部读取与写入均已使用发布表后，才能通过后续独立迁移删除旧列。
+本功能迁移不删除既有 snapshot、template_manifest 和来源字段。迁移为每条既有分享回填 release_no = 1 的发布批次并设置 current_release_id；读取链路切换到发布表后，旧快照列不再作为真源。回填 release 的评论空间由服务端使用与前端相同的跨运行时纯函数，从 release snapshot 确定性生成并幂等补齐；公开访客不能提交或覆盖权威 anchor_document。只有生产环境确认全部读取与写入均已使用发布表后，才能通过后续独立迁移删除旧列。
 
 ### 6.2 resume_comment_scopes
 
@@ -201,6 +204,7 @@ resume_shares 新增：
 - anchor_document jsonb not null；
 - document_hash text not null；
 - document_revision integer not null default 1；
+- projection_reference_date date not null；
 - created_at timestamptz not null；
 - archived_at timestamptz null。
 
@@ -210,7 +214,7 @@ resume_shares 新增：
 - 每个 history_version_id 只有一个 history scope；
 - 每个 share_release_id 只有一个 share_release scope。
 
-anchor_document 只保存 nodeKey、规范化文本和富文本块边界，不保存布局或评论。working 和 history scope 懒创建；share_release scope 与发布批次在同一事务中创建。
+anchor_document 只保存 nodeKey、规范化文本和富文本块边界，不保存布局或评论。projection_reference_date 固定年龄等时间派生文案的投影基准：working 在成功保存时更新，history 使用版本创建日期，share_release 使用发布日期。working 和 history scope 懒创建；新 share_release scope 与发布批次在同一事务中创建，迁移回填的既有 release 由服务端幂等补齐 scope。
 
 ### 6.3 resume_comment_threads
 
@@ -379,7 +383,7 @@ ResumeTemplateRuntime 的所有可评论字段必须暴露稳定语义元数据�
 
 ### 8.5 权威锚点文档与工作版本重定位
 
-共享纯函数 buildCommentAnchorDocument 从结构化简历数据生成字段级 nodeKey、NFC 文本和富文本块边界。历史版本和分享发布批次创建 scope 时只生成一次；working scope 在简历内容成功同步后更新。
+跨浏览器与 Edge Function 共用的纯函数 buildCommentAnchorDocument 从结构化简历数据和 projection_reference_date 生成字段级 nodeKey、NFC 文本和富文本块边界；Runtime 也复用同一套可见文案投影规则，避免年龄、单位、日期和空值拼接不一致。旧快照缺少 entryId 时，两端用 section、collection、index 和稳定内容摘要生成相同 legacy ID。历史版本和分享发布批次创建 scope 时只生成一次；working scope 在简历内容成功同步后更新。
 
 working scope 更新使用 document_revision 做比较并交换：
 
@@ -627,6 +631,8 @@ stale_release、stale_document 和 stale_revision 必须返回可恢复提示，
 - 版本/发布批次切换；
 - 全局未读入口。
 
+编辑页仅在在线模式挂载评论 Provider。离线模式不请求 scope 或订阅实时事件，评论入口为不可操作状态并提示“转为在线简历后可评论”；转在线流程不执行评论迁移。
+
 Composer 输入、临时菜单和 Drawer snap 状态使用组件本地状态；跨组件线程、未读、当前 scope、实时状态和草稿使用 Zustand。不得通过 ResumeTemplateRuntime 多层 prop 传递完整评论列表。
 
 ## 17. 验证方案
@@ -685,6 +691,7 @@ Composer 输入、临时菜单和 Drawer snap 状态使用组件本地状态；�
 - 字体加载前后、窗口 resize、重新分页；
 - 打印预览和 PDF 无评论层；
 - 密码分享、关闭评论、重新发布、归档中的已打开页面。
+- 离线简历入口禁用、无评论网络请求，转为在线后从空 working scope 开始。
 
 只有真实设备或等价浏览器自动化确认后，才能声称移动端交互可用。
 
@@ -707,6 +714,7 @@ Composer 输入、临时菜单和 Drawer snap 状态使用组件本地状态；�
 15. 限流和纯文本安全规则生效。
 16. 分享归档保留内部评论，永久删除明确且可验证。
 17. PDF 和打印永远不包含评论 UI。
+18. 离线简历没有可操作评论入口、评论数据或转在线迁移。
 
 ## 19. 实施拆分建议
 
