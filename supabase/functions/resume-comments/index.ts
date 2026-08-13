@@ -337,6 +337,7 @@ async function issueCollaboratorToken({
     expiresAt: new Date(expiresAt * 1_000).toISOString(),
     sessionId: session.session_id,
     resumeId: session.resume_id,
+    versionId,
     userId: member.user_id,
     role: member.role,
   }
@@ -877,6 +878,29 @@ async function loadThreadCounts(admin: AdminClient, scopeId: string) {
   }, { unresolved: 0, resolved: 0, detached: 0 })
 }
 
+async function loadVersionReference(admin: AdminClient, versionId: number) {
+  const [versionResult, shareCountResult] = await Promise.all([
+    admin
+      .from('resume_config_versions')
+      .select('id,version_no,version_name,milestone_name,status,content_hash,document_revision,projection_reference_date')
+      .eq('id', versionId)
+      .single(),
+    admin
+      .from('resume_shares')
+      .select('id', { count: 'exact', head: true })
+      .eq('version_id', versionId)
+      .is('archived_at', null),
+  ])
+  if (versionResult.error)
+    throw versionResult.error
+  if (shareCountResult.error)
+    throw shareCountResult.error
+  return {
+    ...versionResult.data,
+    shared_link_count: shareCountResult.count ?? 0,
+  }
+}
+
 async function issueTopics({
   access,
   realtimeSecret,
@@ -1141,13 +1165,17 @@ Deno.serve(async (req) => {
     }
 
     if (op === 'bootstrap_scope') {
-      const [{ threads, profiles }, lastReadEventSeq, realtime] = await Promise.all([
+      const [{ threads, profiles }, lastReadEventSeq, realtime, version, counts] = await Promise.all([
         loadThreads(admin, access.scope.id),
         loadReadState(admin, access),
         issueTopics({ access, realtimeSecret, tokenSecret }),
+        loadVersionReference(admin, access.versionId),
+        loadThreadCounts(admin, access.scope.id),
       ])
       return finalize(success({
         scope: access.scope,
+        version,
+        counts,
         threads,
         profiles,
         lastReadEventSeq,
@@ -1296,7 +1324,27 @@ Deno.serve(async (req) => {
         eventSeq: Number(data.eventSeq),
         type: op,
       }))
-      return finalize(success(data, Number(data.eventSeq)))
+      const eventSeq = Number(data.eventSeq)
+      const [{ threads, profiles }, counts] = await Promise.all([
+        loadThreads(
+          admin,
+          access.scope.id,
+          relocations.map(relocation => relocation.threadId),
+        ),
+        loadThreadCounts(admin, access.scope.id),
+      ])
+      return finalize(success({
+        ...data,
+        threads,
+        profiles,
+        counts,
+        event: {
+          event_seq: eventSeq,
+          thread_id: null,
+          type: 'document_synced',
+          created_at: new Date().toISOString(),
+        },
+      }, eventSeq))
     }
 
     requireActor(access)
@@ -1385,9 +1433,16 @@ Deno.serve(async (req) => {
         : Promise.resolve({ threads: [], profiles: [] }),
       loadThreadCounts(admin, access.scope.id),
     ])
+    const thread = threads[0] ?? null
+    const comments = thread && Array.isArray(thread.comments) ? thread.comments : []
+    const commentId = typeof data.commentId === 'string' ? data.commentId : null
     return finalize(success({
       ...data,
-      thread: threads[0] ?? null,
+      thread,
+      comment: commentId
+        ? comments.find(comment => comment.id === commentId) ?? null
+        : null,
+      removedCommentId: op === 'delete_comment' ? commentId : null,
       profiles,
       counts,
       event: {

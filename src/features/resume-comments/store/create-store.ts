@@ -15,8 +15,6 @@ function orderThreads(
       const resolvedDifference = Number(Boolean(left.resolvedAt)) - Number(Boolean(right.resolvedAt))
       if (resolvedDifference !== 0)
         return resolvedDifference
-      if (scope?.kind === 'share_release')
-        return Date.parse(right.lastActivityAt) - Date.parse(left.lastActivityAt)
       const nodeDifference = (nodeOrder.get(left.anchor.nodeKey) ?? Number.MAX_SAFE_INTEGER)
         - (nodeOrder.get(right.anchor.nodeKey) ?? Number.MAX_SAFE_INTEGER)
       if (nodeDifference !== 0)
@@ -34,8 +32,10 @@ function indexThreads(threads: ResumeCommentThread[]) {
 }
 
 export function createResumeCommentStore(): ResumeCommentStore {
-  return createStore<ResumeCommentStoreState>()(set => ({
+  return createStore<ResumeCommentStoreState>()((set, get) => ({
     scope: null,
+    version: null,
+    counts: { unresolved: 0, resolved: 0, detached: 0 },
     accessibleScopes: [],
     threadsById: {},
     orderedThreadIds: [],
@@ -53,6 +53,8 @@ export function createResumeCommentStore(): ResumeCommentStore {
     connection: 'idle',
     accessState: 'active',
     lastError: null,
+    pendingEntities: {},
+    mutationErrors: {},
 
     replaceScope: input => set((state) => {
       const scopeChanged = state.scope?.id !== input.scope.id
@@ -61,6 +63,8 @@ export function createResumeCommentStore(): ResumeCommentStore {
         : state.draftsByScopeId
       return {
         scope: input.scope,
+        version: input.version,
+        counts: input.counts,
         accessibleScopes: input.accessibleScopes,
         threadsById: indexThreads(input.threads),
         orderedThreadIds: orderThreads(input.threads, input.scope),
@@ -80,6 +84,8 @@ export function createResumeCommentStore(): ResumeCommentStore {
         lastEventSeq: input.eventSeq,
         lastReadEventSeq: input.lastReadEventSeq,
         lastError: null,
+        pendingEntities: {},
+        mutationErrors: {},
       }
     }),
     replaceThreads: input => set(state => ({
@@ -94,6 +100,127 @@ export function createResumeCommentStore(): ResumeCommentStore {
       lastEventSeq: input.eventSeq,
       lastError: null,
     })),
+    applyMutation: input => set((state) => {
+      const threadsById = { ...state.threadsById }
+      if (input.removedThreadId)
+        delete threadsById[input.removedThreadId]
+      if (input.thread)
+        threadsById[input.thread.id] = input.thread
+      const threads = Object.values(threadsById)
+      return {
+        threadsById,
+        orderedThreadIds: orderThreads(threads, state.scope),
+        counts: input.counts,
+        events: [...state.events, input.event].slice(-500),
+        lastEventSeq: Math.max(state.lastEventSeq, input.eventSeq),
+        activeThreadId: input.removedThreadId === state.activeThreadId
+          ? null
+          : state.activeThreadId,
+      }
+    }),
+    applyOptimisticMutation: (input) => {
+      const state = get()
+      const snapshot = {
+        threadsById: state.threadsById,
+        orderedThreadIds: state.orderedThreadIds,
+        counts: state.counts,
+        activeThreadId: state.activeThreadId,
+      }
+      const threadsById = { ...state.threadsById }
+      if (input.removedThreadId)
+        delete threadsById[input.removedThreadId]
+      if (input.thread)
+        threadsById[input.thread.id] = input.thread
+      set({
+        threadsById,
+        orderedThreadIds: orderThreads(Object.values(threadsById), state.scope),
+        counts: input.counts ?? state.counts,
+        pendingEntities: { ...state.pendingEntities, [input.entityKey]: true },
+        mutationErrors: Object.fromEntries(
+          Object.entries(state.mutationErrors).filter(([key]) => key !== input.entityKey),
+        ),
+      })
+      return snapshot
+    },
+    commitMutation: (entityKey, input) => {
+      get().applyMutation(input)
+      get().finishPending(entityKey)
+    },
+    rollbackMutation: (entityKey, snapshot, message) => set(state => ({
+      ...snapshot,
+      pendingEntities: Object.fromEntries(
+        Object.entries(state.pendingEntities).filter(([key]) => key !== entityKey),
+      ),
+      mutationErrors: { ...state.mutationErrors, [entityKey]: message },
+    })),
+    applyRealtimePatch: input => set((state) => {
+      const threadsById = { ...state.threadsById }
+      for (const event of input.events) {
+        if (event.type === 'thread_deleted' && event.threadId)
+          delete threadsById[event.threadId]
+      }
+      for (const thread of input.threads)
+        threadsById[thread.id] = thread
+      const uniqueEvents = new Map(state.events.map(event => [event.eventSeq, event]))
+      for (const event of input.events)
+        uniqueEvents.set(event.eventSeq, event)
+      return {
+        threadsById,
+        orderedThreadIds: orderThreads(Object.values(threadsById), state.scope),
+        events: [...uniqueEvents.values()]
+          .sort((left, right) => left.eventSeq - right.eventSeq)
+          .slice(-500),
+        lastEventSeq: Math.max(state.lastEventSeq, input.eventSeq),
+      }
+    }),
+    applyDocumentSync: input => set((state) => {
+      const threadsById = { ...state.threadsById }
+      for (const thread of input.threads)
+        threadsById[thread.id] = thread
+      return {
+        scope: state.scope
+          ? {
+              ...state.scope,
+              documentHash: input.documentHash,
+              documentRevision: input.documentRevision,
+              nextEventSeq: input.eventSeq,
+            }
+          : null,
+        version: state.version
+          ? {
+              ...state.version,
+              documentHash: input.documentHash,
+              documentRevision: input.documentRevision,
+            }
+          : null,
+        threadsById,
+        orderedThreadIds: orderThreads(Object.values(threadsById), state.scope),
+        counts: input.counts,
+        events: [...state.events, input.event].slice(-500),
+        lastEventSeq: Math.max(state.lastEventSeq, input.eventSeq),
+      }
+    }),
+    beginPending: entityKey => set(state => ({
+      pendingEntities: { ...state.pendingEntities, [entityKey]: true },
+      mutationErrors: Object.fromEntries(
+        Object.entries(state.mutationErrors).filter(([key]) => key !== entityKey),
+      ),
+    })),
+    finishPending: entityKey => set((state) => {
+      const pendingEntities = { ...state.pendingEntities }
+      const mutationErrors = { ...state.mutationErrors }
+      delete pendingEntities[entityKey]
+      delete mutationErrors[entityKey]
+      return { pendingEntities, mutationErrors }
+    }),
+    failPending: (entityKey, message) => set((state) => {
+      const pendingEntities = { ...state.pendingEntities }
+      delete pendingEntities[entityKey]
+      return {
+        pendingEntities,
+        mutationErrors: { ...state.mutationErrors, [entityKey]: message },
+      }
+    }),
     setActiveThread: threadId => set({ activeThreadId: threadId }),
     setSelection: selection => set({ selection }),
     setDraft: (threadKey, value) => set(state => ({
@@ -107,6 +234,8 @@ export function createResumeCommentStore(): ResumeCommentStore {
     preserveDraftsForNextScope: () => set({ preserveDraftsOnNextScope: true }),
     beginScopeSwitch: () => set(state => ({
       scope: null,
+      version: null,
+      counts: { unresolved: 0, resolved: 0, detached: 0 },
       threadsById: {},
       orderedThreadIds: [],
       events: [],
@@ -121,6 +250,8 @@ export function createResumeCommentStore(): ResumeCommentStore {
       lastEventSeq: 0,
       lastReadEventSeq: 0,
       connection: 'connecting',
+      pendingEntities: {},
+      mutationErrors: {},
     })),
     beginRelink: relinkThreadId => set({ relinkThreadId, relinkError: null, selection: null }),
     cancelRelink: () => set({ relinkThreadId: null, relinkError: null, selection: null }),

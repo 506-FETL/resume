@@ -3,8 +3,15 @@ import type { ResumeCommentStore } from '../store/types.ts'
 import { useEffect } from 'react'
 import { useStore } from 'zustand'
 import {
+  deriveCommentCacheKey,
+  readCommentCache,
+  rememberCommentVersionHint,
+  writeCommentCache,
+} from '../api/cache.ts'
+import {
   isResumeCommentClientError,
 } from '../api/client.ts'
+import { beginCommentPerformance } from '../api/performance.ts'
 import { decideCommentRealtimeRecovery } from '../api/realtime-recovery.ts'
 import {
   ResumeCommentRealtimeSubscription,
@@ -19,10 +26,10 @@ interface UseCommentRealtimeOptions {
   accessIdentityKey: string
 }
 
-function accessChangedRelease(previous: CommentAccessContext, next: CommentAccessContext) {
+function accessChangedVersion(previous: CommentAccessContext, next: CommentAccessContext) {
   return previous.kind === 'share'
     && next.kind === 'share'
-    && previous.releaseId !== next.releaseId
+    && previous.versionId !== next.versionId
 }
 
 function isReadOnlyAccess(access: CommentAccessContext) {
@@ -44,8 +51,8 @@ export function useCommentRealtime({
 
     let cancelled = false
     let queue = Promise.resolve()
+    let bootstrap: () => Promise<void>
     const realtime = new ResumeCommentRealtimeSubscription(client)
-    const ownerRealtime = new ResumeCommentRealtimeSubscription(client, 'owner')
 
     const handleError = (error: unknown) => {
       if (cancelled)
@@ -55,7 +62,6 @@ export function useCommentRealtime({
           store.getState().setAccessState('unavailable', error.code)
           onAccessInvalidated?.(error.code)
           realtime.disconnect()
-          ownerRealtime.disconnect()
           return
         }
         if (error.code === 'comments_disabled') {
@@ -76,11 +82,10 @@ export function useCommentRealtime({
         return true
       const previous = client.getAccessContext()
       const next = await refreshAccess()
-      if (accessChangedRelease(previous, next)) {
+      if (accessChangedVersion(previous, next)) {
         store.getState().setAccessState('unavailable', 'stale_release')
         onAccessInvalidated?.('stale_release')
         realtime.disconnect()
-        ownerRealtime.disconnect()
         return false
       }
       client.setAccessContext(next)
@@ -90,13 +95,50 @@ export function useCommentRealtime({
       return true
     }
 
-    const bootstrap = async () => {
+    const recoverIncrementally = async () => {
+      const marker = beginCommentPerformance('realtime_recovery')
+      marker.countRequest()
+      const lastEventSeq = store.getState().lastEventSeq
+      const list = await client.listEvents(lastEventSeq)
+      if (cancelled)
+        return
+      store.getState().applyRealtimePatch({
+        threads: list.data.threads,
+        events: list.data.events,
+        eventSeq: list.eventSeq,
+      })
+      marker.end(list.requestId)
+    }
+
+    const connectRealtime = (scopeRealtime: Parameters<typeof realtime.connect>[0]) => {
+      realtime.connect(scopeRealtime, {
+        onInvalidation: (event) => {
+          enqueue(async () => {
+            if (event.type === 'settings_changed' && !await refreshCurrentAccess())
+              return
+            const lastEventSeq = store.getState().lastEventSeq
+            const recovery = decideCommentRealtimeRecovery(lastEventSeq, event.eventSeq)
+            if (recovery === 'ignore')
+              return
+            await recoverIncrementally()
+          })
+        },
+        onProtocolMismatch: () => enqueue(bootstrap),
+        onStatusChange: status => store.getState().setConnection(status),
+      })
+    }
+
+    bootstrap = async () => {
       store.getState().setConnection('connecting')
+      const marker = beginCommentPerformance('bootstrap')
+      marker.countRequest()
       const response = await client.bootstrapScope()
       if (cancelled)
         return
       store.getState().replaceScope({
         scope: response.data.scope,
+        version: response.data.version,
+        counts: response.data.counts,
         accessibleScopes: response.data.accessibleScopes,
         threads: response.data.threads,
         eventSeq: response.eventSeq,
@@ -106,70 +148,63 @@ export function useCommentRealtime({
       store.getState().setAccessState(
         isReadOnlyAccess(access) ? 'read_only' : 'active',
       )
-      realtime.connect(response.data.scopeRealtime, {
-        onInvalidation: (event) => {
-          enqueue(async () => {
-            if (event.type === 'settings_changed') {
-              if (!await refreshCurrentAccess())
-                return
-              await bootstrap()
-              return
-            }
-            const lastEventSeq = store.getState().lastEventSeq
-            const recovery = decideCommentRealtimeRecovery(lastEventSeq, event.eventSeq)
-            if (recovery === 'ignore')
-              return
-            if (recovery === 'bootstrap') {
-              await bootstrap()
-              return
-            }
-            const list = await client.listThreads(lastEventSeq)
-            if (cancelled)
-              return
-            store.getState().replaceThreads({
-              threads: list.data.threads,
-              events: list.data.events,
-              eventSeq: list.eventSeq,
-            })
-          })
-        },
-        onProtocolMismatch: () => enqueue(bootstrap),
-        onStatusChange: status => store.getState().setConnection(status),
+      connectRealtime(response.data.scopeRealtime)
+      const authenticatedUserId = await client.getAuthenticatedUserId()
+      rememberCommentVersionHint(access, response.data.version.versionId)
+      const cacheKey = deriveCommentCacheKey(
+        access,
+        response.data.version.versionId,
+        authenticatedUserId,
+      )
+      if (cacheKey)
+        writeCommentCache(cacheKey, response.data).catch(() => undefined)
+      marker.end(response.requestId)
+    }
+
+    const hydrateCache = async () => {
+      const cacheKey = deriveCommentCacheKey(
+        client.getAccessContext(),
+        undefined,
+        await client.getAuthenticatedUserId(),
+      )
+      if (!cacheKey)
+        return
+      const marker = beginCommentPerformance('cache')
+      const cached = await readCommentCache(cacheKey)
+      if (!cached || cancelled)
+        return
+      store.getState().replaceScope({
+        scope: cached.value.scope,
+        version: cached.value.version,
+        counts: cached.value.counts,
+        accessibleScopes: cached.value.accessibleScopes,
+        threads: cached.value.threads,
+        eventSeq: cached.value.scope.nextEventSeq,
+        lastReadEventSeq: cached.value.lastReadEventSeq,
       })
-      if (response.data.ownerRealtime) {
-        ownerRealtime.connect(response.data.ownerRealtime, {
-          // Owner topic 汇总所有可访问 scope；事件序号不属于当前 scope，
-          // 因此直接 bootstrap 刷新来源未读数，不与当前序号做比较。
-          onInvalidation: () => enqueue(bootstrap),
-          onProtocolMismatch: () => enqueue(bootstrap),
-          onStatusChange: () => undefined,
-        })
-      }
-      else {
-        ownerRealtime.disconnect()
-      }
+      marker.end()
     }
 
     const handleOffline = () => {
       realtime.disconnect()
-      ownerRealtime.disconnect()
       store.getState().setConnection('offline')
     }
     const handleOnline = () => enqueue(bootstrap)
 
     window.addEventListener('offline', handleOffline)
     window.addEventListener('online', handleOnline)
-    if (navigator.onLine)
-      enqueue(bootstrap)
-    else
-      handleOffline()
+    enqueue(async () => {
+      await hydrateCache()
+      if (navigator.onLine)
+        await bootstrap()
+      else
+        handleOffline()
+    })
 
     const refreshTimer = refreshAccess
       ? window.setInterval(() => {
           enqueue(async () => {
-            if (!await refreshCurrentAccess())
-              return
-            await bootstrap()
+            await refreshCurrentAccess()
           })
         }, 60_000)
       : null
@@ -177,7 +212,6 @@ export function useCommentRealtime({
     return () => {
       cancelled = true
       realtime.disconnect()
-      ownerRealtime.disconnect()
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('online', handleOnline)
       if (refreshTimer)

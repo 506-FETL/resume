@@ -16,6 +16,7 @@ export function readShareCommentAccess(result: ShareViewResult): ShareCommentAcc
   if (
     !result.shareId
     || !result.releaseId
+    || !result.versionId
     || !result.commentScopeId
     || !result.commentAccessToken
     || !result.commentAccessExpiresAt
@@ -28,6 +29,7 @@ export function readShareCommentAccess(result: ShareViewResult): ShareCommentAcc
       accessToken: result.commentAccessToken,
       shareId: result.shareId,
       releaseId: result.releaseId,
+      versionId: result.versionId,
       commentsEnabled: result.allowComments === true,
     },
     scopeId: result.commentScopeId,

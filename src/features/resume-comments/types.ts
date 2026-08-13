@@ -1,6 +1,6 @@
 import type { CommentAnchor } from './anchors/types.ts'
 
-export type CommentScopeKind = 'working' | 'history' | 'share_release'
+export type CommentScopeKind = 'version'
 
 export type CommentActor
   = | { kind: 'user', userId: string }
@@ -55,10 +55,24 @@ export interface CommentScopeReference {
   documentHash: string
   documentRevision: number
   projectionReferenceDate: string
-  source:
-    | { kind: 'working' }
-    | { kind: 'history', historyVersionId: number }
-    | { kind: 'share_release', shareId: string, releaseId: string, releaseNo: number }
+  source: { kind: 'version', versionId: number }
+}
+
+export interface CommentVersionReference {
+  versionId: number
+  versionNo: number
+  versionName: string | null
+  status: 'active' | 'frozen'
+  documentHash: string
+  documentRevision: number
+  projectionReferenceDate: string
+  sharedLinkCount: number
+}
+
+export interface CommentThreadCounts {
+  unresolved: number
+  resolved: number
+  detached: number
 }
 
 export interface ResumeComment {

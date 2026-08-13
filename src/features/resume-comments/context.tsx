@@ -34,26 +34,24 @@ export interface ResumeCommentProviderProps {
   panelHeaderContent?: ReactNode
 }
 
-function attachLegacyAnonymousCredential(client: ResumeCommentClient, access: CommentAccessContext) {
+function attachVersionAnonymousCredential(client: ResumeCommentClient, access: CommentAccessContext) {
   if (access.kind === 'share')
-    attachStoredAnonymousCommentIdentity(client, access.shareId)
+    attachStoredAnonymousCommentIdentity(client, access.versionId)
 }
 
 function getAccessIdentityKey(access: CommentAccessContext) {
   if (access.kind === 'owner') {
     return `owner:${'scopeId' in access
       ? `scope:${access.scopeId}`
-      : 'historyVersionId' in access
-        ? `history:${access.historyVersionId}`
-        : 'shareReleaseId' in access
-          ? `share:${access.shareReleaseId}`
-          : `working:${access.resumeId}`}`
+      : 'versionId' in access
+        ? `version:${access.versionId}`
+        : `resume:${access.resumeId}`}`
   }
   if (access.kind === 'collaborator')
     return `collaborator:${access.sessionId}:${access.resumeId}:${access.userId}`
   // 15 分钟访问令牌只是同一发布批次的凭据轮换，不能被当成 scope 切换，
   // 否则每次心跳刷新都会清空本地草稿和当前线程。
-  return `share:${access.shareId}:${access.releaseId}`
+  return `share-version:${access.versionId}`
 }
 
 export function ResumeCommentProvider({
@@ -69,7 +67,7 @@ export function ResumeCommentProvider({
   const [store] = useState(createResumeCommentStore)
   const [client] = useState(() => {
     const value = new ResumeCommentClient(access)
-    attachLegacyAnonymousCredential(value, access)
+    attachVersionAnonymousCredential(value, access)
     return value
   })
   const accessIdentityKey = getAccessIdentityKey(access)
@@ -81,7 +79,7 @@ export function ResumeCommentProvider({
       previousAccessIdentityKey.current = accessIdentityKey
     }
     client.setAccessContext(access)
-    attachLegacyAnonymousCredential(client, access)
+    attachVersionAnonymousCredential(client, access)
   }, [access, accessIdentityKey, client, store])
 
   const handleAccessInvalidated = useCallback((reason: 'stale_release' | 'share_unavailable') => {

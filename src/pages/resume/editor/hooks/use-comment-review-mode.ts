@@ -10,8 +10,7 @@ import {
   registerWorkingDocumentSync,
 } from '@/features/resume-comments/api/working-document-sync.ts'
 import { useResumeCommentContext } from '@/features/resume-comments/context.tsx'
-import { getResumeHistoryVersionSnapshot, listResumeHistoryVersions } from '@/lib/supabase/resume/history'
-import { getResumeShareReleaseForReview, listResumeShareReviewReleases } from '@/lib/supabase/resume/share'
+import { getResumeVersionForShare, listResumeVersions } from '@/lib/supabase/resume/history'
 import useResumeStore from '@/store/resume/form'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 
@@ -30,7 +29,7 @@ export interface CommentReviewMode {
   selectSource: (key: CommentSourceOption['key']) => Promise<boolean>
 }
 
-function historyLabel(version: Awaited<ReturnType<typeof listResumeHistoryVersions>>[number]) {
+function historyLabel(version: Awaited<ReturnType<typeof listResumeVersions>>[number]) {
   const name = version.version_name?.trim() || version.milestone_name?.trim()
   return `V${version.version_no}${name ? ` · ${name}` : ''}`
 }
@@ -78,30 +77,25 @@ export function useCommentReviewMode({
     let cancelled = false
     setSourcesLoading(true)
     setError(null)
-    Promise.all([
-      listResumeHistoryVersions(resumeId),
-      listResumeShareReviewReleases(resumeId),
-    ]).then(([histories, releases]) => {
+    listResumeVersions(resumeId).then((versions) => {
       if (cancelled)
         return
+      const active = versions.find(version => version.status === 'active')
+      const histories = versions.filter(version => version.status === 'frozen')
       setSources([
-        { key: 'working', kind: 'working', label: '当前工作版本' },
+        {
+          key: 'working',
+          kind: 'working',
+          label: '当前工作版本',
+          versionId: active?.id,
+        },
         ...histories.map(version => ({
           key: `history:${version.id}` as const,
           kind: 'history' as const,
           historyVersionId: version.id,
           label: historyLabel(version),
           versionNo: version.version_no,
-          projectionReferenceDate: version.created_at.slice(0, 10),
-        })),
-        ...releases.map(release => ({
-          key: `share:${release.id}` as const,
-          kind: 'share_release' as const,
-          shareReleaseId: release.id,
-          label: `${release.shareLabel || release.displayName || '分享'} · 发布 #${release.releaseNo}`,
-          releaseNo: release.releaseNo,
-          archived: Boolean(release.archivedAt),
-          projectionReferenceDate: release.createdAt.slice(0, 10),
+          projectionReferenceDate: version.projection_reference_date,
         })),
       ])
     }).catch((reason) => {
@@ -132,16 +126,10 @@ export function useCommentReviewMode({
         setManifestOverride(null)
         setProjectionReferenceDate(undefined)
       }
-      else if (source.kind === 'history') {
-        const snapshot = await getResumeHistoryVersionSnapshot(source.historyVersionId)
-        setSnapshotOverride(mapSourceToPersistedSnapshot(snapshot))
-        setManifestOverride(null)
-        setProjectionReferenceDate(source.projectionReferenceDate)
-      }
       else {
-        const release = await getResumeShareReleaseForReview(source.shareReleaseId)
-        setSnapshotOverride(release.snapshot)
-        setManifestOverride(release.templateManifest)
+        const version = await getResumeVersionForShare(resumeId ?? '', source.historyVersionId)
+        setSnapshotOverride(mapSourceToPersistedSnapshot(version.snapshot))
+        setManifestOverride(null)
         setProjectionReferenceDate(source.projectionReferenceDate)
       }
       setSelectedKey(key)
@@ -154,7 +142,7 @@ export function useCommentReviewMode({
     finally {
       setSwitching(false)
     }
-  }, [collaboratorMode, selectedKey, sources])
+  }, [collaboratorMode, resumeId, selectedKey, sources])
 
   useEffect(() => {
     const leaveDeletedHistory = (historyVersionId: number) => {
@@ -196,9 +184,7 @@ export function useCommentReviewMode({
     if (collaboratorMode && collaboratorAccess)
       return collaboratorAccess
     if (selected.kind === 'history')
-      return { kind: 'owner', historyVersionId: selected.historyVersionId }
-    if (selected.kind === 'share_release')
-      return { kind: 'owner', shareReleaseId: selected.shareReleaseId }
+      return { kind: 'owner', versionId: selected.historyVersionId }
     return { kind: 'owner', resumeId: resumeId ?? '' }
   }, [collaboratorAccess, collaboratorMode, resumeId, selected])
 
@@ -249,11 +235,15 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
     if (projected.documentHash === currentHash)
       return
     try {
-      await client.syncWorkingDocument({
+      const response = await client.syncWorkingDocument({
         anchorDocument: projected.document,
         documentHash: projected.documentHash,
         projectionReferenceDate,
         expectedDocumentRevision: currentRevision,
+      })
+      store.getState().applyDocumentSync({
+        ...response.data,
+        eventSeq: response.eventSeq,
       })
     }
     catch (error) {
@@ -262,28 +252,26 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
       const latest = await client.bootstrapScope()
       store.getState().replaceScope({
         scope: latest.data.scope,
+        version: latest.data.version,
+        counts: latest.data.counts,
         accessibleScopes: latest.data.accessibleScopes,
         threads: latest.data.threads,
         eventSeq: latest.eventSeq,
         lastReadEventSeq: latest.data.lastReadEventSeq,
       })
       if (latest.data.scope.documentHash !== projected.documentHash) {
-        await client.syncWorkingDocument({
+        const retry = await client.syncWorkingDocument({
           anchorDocument: projected.document,
           documentHash: projected.documentHash,
           projectionReferenceDate,
           expectedDocumentRevision: latest.data.scope.documentRevision,
         })
+        store.getState().applyDocumentSync({
+          ...retry.data,
+          eventSeq: retry.eventSeq,
+        })
       }
     }
-    const refreshed = await client.bootstrapScope()
-    store.getState().replaceScope({
-      scope: refreshed.data.scope,
-      accessibleScopes: refreshed.data.accessibleScopes,
-      threads: refreshed.data.threads,
-      eventSeq: refreshed.eventSeq,
-      lastReadEventSeq: refreshed.data.lastReadEventSeq,
-    })
   }, [client, store])
 
   useEffect(() => {
@@ -295,6 +283,8 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
         const bootstrap = await client.bootstrapScope()
         store.getState().replaceScope({
           scope: bootstrap.data.scope,
+          version: bootstrap.data.version,
+          counts: bootstrap.data.counts,
           accessibleScopes: bootstrap.data.accessibleScopes,
           threads: bootstrap.data.threads,
           eventSeq: bootstrap.eventSeq,

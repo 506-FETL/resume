@@ -9,11 +9,11 @@ interface StoredAnonymousCommentIdentity {
   secret: string
 }
 
-const ANONYMOUS_STORAGE_PREFIX = 'resume-comment-anonymous:'
+const ANONYMOUS_STORAGE_PREFIX = 'resume-comment-anonymous-version:'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
-function getStorageKey(shareId: string) {
-  return `${ANONYMOUS_STORAGE_PREFIX}${shareId}`
+function getStorageKey(versionId: number) {
+  return `${ANONYMOUS_STORAGE_PREFIX}${versionId}`
 }
 
 function bytesToBase64Url(bytes: Uint8Array) {
@@ -69,11 +69,11 @@ function getLocalStorage() {
   }
 }
 
-export function loadAnonymousCommentIdentity(shareId: string): AnonymousCommentCredential | null {
+export function loadAnonymousCommentIdentity(versionId: number): AnonymousCommentCredential | null {
   const storage = getLocalStorage()
   if (!storage)
     return null
-  const key = getStorageKey(shareId)
+  const key = getStorageKey(versionId)
   const identity = readStoredIdentity(storage.getItem(key))
   if (!identity) {
     storage.removeItem(key)
@@ -84,9 +84,9 @@ export function loadAnonymousCommentIdentity(shareId: string): AnonymousCommentC
 
 export function attachStoredAnonymousCommentIdentity(
   client: ResumeCommentClient,
-  shareId: string,
+  versionId: number,
 ) {
-  const identity = loadAnonymousCommentIdentity(shareId)
+  const identity = loadAnonymousCommentIdentity(versionId)
   client.setAnonymousCredential(identity)
   return identity
 }
@@ -94,9 +94,9 @@ export function attachStoredAnonymousCommentIdentity(
 /** 仅在匿名访问者首次提交评论前调用；浏览分享页本身不会创建身份。 */
 export async function ensureAnonymousCommentIdentity(
   client: ResumeCommentClient,
-  shareId: string,
+  versionId: number,
 ): Promise<AnonymousCommentCredential> {
-  const existing = loadAnonymousCommentIdentity(shareId)
+  const existing = loadAnonymousCommentIdentity(versionId)
   if (existing) {
     client.setAnonymousCredential(existing)
     return existing
@@ -109,7 +109,7 @@ export async function ensureAnonymousCommentIdentity(
   const identity = { id: response.data.anonymousId, secret }
   const storage = getLocalStorage()
   try {
-    storage?.setItem(getStorageKey(shareId), JSON.stringify({
+    storage?.setItem(getStorageKey(versionId), JSON.stringify({
       version: 1,
       anonymousId: identity.id,
       secret: identity.secret,

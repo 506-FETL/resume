@@ -16,6 +16,7 @@ export interface CollaborationCommentAccess {
   expiresAt: string
   sessionId: string
   resumeId: string
+  versionId: number
   userId: string
   role: 'editor' | 'viewer'
 }

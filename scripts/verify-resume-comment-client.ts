@@ -1,6 +1,10 @@
 import type { ResumeCommentThread } from '../src/features/resume-comments/types.ts'
 import assert from 'node:assert/strict'
 import { deriveAnonymousAvatarVisual } from '../src/features/resume-comments/api/anonymous-identity.ts'
+import {
+  deriveCommentCacheKey,
+  serializeCommentCacheKey,
+} from '../src/features/resume-comments/api/cache.ts'
 import { decideCommentRealtimeRecovery } from '../src/features/resume-comments/api/realtime-recovery.ts'
 import { createResumeCommentStore } from '../src/features/resume-comments/store/create-store.ts'
 
@@ -39,18 +43,30 @@ function thread(
 const store = createResumeCommentStore()
 const firstScope = {
   id: 'scope-1',
-  kind: 'working' as const,
+  kind: 'version' as const,
   resumeId: 'resume-1',
   ownerUserId: 'user-1',
-  historyVersionId: null,
-  shareReleaseId: null,
+  versionId: 42,
   documentHash: 'a'.repeat(64),
   documentRevision: 1,
   projectionReferenceDate: '2026-08-14',
   nextEventSeq: 8,
 }
+const version = {
+  versionId: 42,
+  versionNo: 3,
+  versionName: '当前工作版本',
+  status: 'active' as const,
+  documentHash: 'a'.repeat(64),
+  documentRevision: 1,
+  projectionReferenceDate: '2026-08-14',
+  sharedLinkCount: 2,
+}
+const counts = { unresolved: 2, resolved: 1, detached: 0 }
 store.getState().replaceScope({
   scope: firstScope,
+  version,
+  counts,
   accessibleScopes: [],
   threads: [
     thread('resolved-newer', '2026-08-14T10:00:00.000Z', '2026-08-14T10:00:00.000Z'),
@@ -73,6 +89,8 @@ assert.equal(store.getState().connection, 'offline')
 
 store.getState().replaceScope({
   scope: { ...firstScope, documentRevision: 2 },
+  version: { ...version, documentRevision: 2 },
+  counts,
   accessibleScopes: [],
   threads: [],
   eventSeq: 9,
@@ -81,7 +99,9 @@ store.getState().replaceScope({
 assert.equal(store.getState().draftsByThreadKey['new-thread'], '不要丢失的草稿')
 
 store.getState().replaceScope({
-  scope: { ...firstScope, id: 'scope-2', kind: 'share_release' },
+  scope: { ...firstScope, id: 'scope-2', versionId: 43 },
+  version: { ...version, versionId: 43, status: 'frozen' },
+  counts: { unresolved: 0, resolved: 0, detached: 0 },
   accessibleScopes: [],
   threads: [],
   eventSeq: 1,
@@ -92,7 +112,9 @@ assert.deepEqual(store.getState().draftsByThreadKey, {})
 store.getState().setDraft('new-thread', '重新发布后保留')
 store.getState().preserveDraftsForNextScope()
 store.getState().replaceScope({
-  scope: { ...firstScope, id: 'scope-3', kind: 'share_release' },
+  scope: { ...firstScope, id: 'scope-3', versionId: 44 },
+  version: { ...version, versionId: 44, status: 'frozen' },
+  counts,
   accessibleScopes: [],
   threads: [],
   eventSeq: 1,
@@ -100,7 +122,9 @@ store.getState().replaceScope({
 })
 assert.equal(store.getState().draftsByThreadKey['new-thread'], '重新发布后保留')
 store.getState().replaceScope({
-  scope: { ...firstScope, id: 'scope-4', kind: 'share_release' },
+  scope: { ...firstScope, id: 'scope-4', versionId: 45 },
+  version: { ...version, versionId: 45, status: 'frozen' },
+  counts,
   accessibleScopes: [],
   threads: [],
   eventSeq: 1,
@@ -114,7 +138,41 @@ assert.equal(store.getState().lastReadEventSeq, 7)
 
 assert.equal(decideCommentRealtimeRecovery(8, 8), 'ignore')
 assert.equal(decideCommentRealtimeRecovery(8, 9), 'incremental')
-assert.equal(decideCommentRealtimeRecovery(8, 11), 'bootstrap')
+assert.equal(decideCommentRealtimeRecovery(8, 11), 'incremental')
+
+const shareAccess = {
+  kind: 'share' as const,
+  accessToken: 'secret-access-token',
+  shareId: 'share-1',
+  releaseId: 'release-1',
+  versionId: 42,
+  commentsEnabled: true,
+}
+const cacheKey = deriveCommentCacheKey(shareAccess)
+assert.ok(cacheKey)
+assert.equal(serializeCommentCacheKey(cacheKey).includes(shareAccess.accessToken), false)
+assert.equal(serializeCommentCacheKey(cacheKey).includes(shareAccess.releaseId), false)
+
+const beforeOptimistic = store.getState().threadsById
+const snapshot = store.getState().applyOptimisticMutation({
+  entityKey: 'thread:missing:delete',
+  removedThreadId: 'missing',
+})
+store.getState().rollbackMutation('thread:missing:delete', snapshot, '模拟失败')
+assert.deepEqual(store.getState().threadsById, beforeOptimistic)
+assert.equal(store.getState().mutationErrors['thread:missing:delete'], '模拟失败')
+
+store.getState().applyRealtimePatch({
+  threads: [],
+  events: [{ eventSeq: 10, type: 'settings_changed', threadId: null, createdAt: '2026-08-14' }],
+  eventSeq: 10,
+})
+store.getState().applyRealtimePatch({
+  threads: [],
+  events: [{ eventSeq: 10, type: 'settings_changed', threadId: null, createdAt: '2026-08-14' }],
+  eventSeq: 10,
+})
+assert.equal(store.getState().events.filter(event => event.eventSeq === 10).length, 1)
 assert.deepEqual(
   deriveAnonymousAvatarVisual('anonymous-id'),
   deriveAnonymousAvatarVisual('anonymous-id'),

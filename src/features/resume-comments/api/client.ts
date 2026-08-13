@@ -6,6 +6,8 @@ import type {
 import type {
   CommentAuthor,
   CommentErrorCode,
+  CommentThreadCounts,
+  CommentVersionReference,
   ResumeComment,
   ResumeCommentEvent,
   ResumeCommentEventType,
@@ -29,11 +31,7 @@ export type CommentAccessContext
   }
   | {
     kind: 'owner'
-    historyVersionId: number
-  }
-  | {
-    kind: 'owner'
-    shareReleaseId: string
+    versionId: number
   }
   | {
     kind: 'collaborator'
@@ -42,12 +40,14 @@ export type CommentAccessContext
     resumeId: string
     userId: string
     role: 'editor' | 'viewer'
+    versionId: number
   }
   | {
     kind: 'share'
     accessToken: string
     shareId: string
     releaseId: string
+    versionId: number
     commentsEnabled: boolean
     anonymous?: AnonymousCommentCredential | null
   }
@@ -60,6 +60,8 @@ export interface CommentRealtimeAccess {
 
 export interface CommentBootstrapResult {
   scope: CommentScopeSummary
+  version: CommentVersionReference
+  counts: CommentThreadCounts
   accessibleScopes: AccessibleCommentScopeSummary[]
   threads: ResumeCommentThread[]
   lastReadEventSeq: number
@@ -72,20 +74,52 @@ export interface CommentThreadListResult {
   events: ResumeCommentEvent[]
 }
 
+export interface CommentMutationResult {
+  thread: ResumeCommentThread | null
+  comment: ResumeComment | null
+  removedCommentId: string | null
+  counts: CommentThreadCounts
+  event: ResumeCommentEvent
+  threadId: string | null
+  commentId: string | null
+  revision: number | null
+}
+
+export interface CommentDocumentSyncResult {
+  versionId: number
+  documentRevision: number
+  documentHash: string
+  threads: ResumeCommentThread[]
+  counts: CommentThreadCounts
+  event: ResumeCommentEvent
+}
+
 export interface CommentApiSuccess<T> {
   data: T
   eventSeq: number
+  requestId: string | null
+  serverTiming: string | null
 }
 
 export class ResumeCommentClientError extends Error {
   readonly code: CommentErrorCode
   readonly retryAfterSeconds?: number
+  readonly requestId?: string
+  readonly details?: unknown
 
-  constructor(code: CommentErrorCode, message: string, retryAfterSeconds?: number) {
+  constructor(
+    code: CommentErrorCode,
+    message: string,
+    retryAfterSeconds?: number,
+    requestId?: string,
+    details?: unknown,
+  ) {
     super(message)
     this.name = 'ResumeCommentClientError'
     this.code = code
     this.retryAfterSeconds = retryAfterSeconds
+    this.requestId = requestId
+    this.details = details
   }
 }
 
@@ -136,11 +170,10 @@ function normalizeScope(value: unknown): CommentScopeSummary {
   })
   return {
     id: String(scope.id ?? ''),
-    kind: scope.kind === 'history' || scope.kind === 'share_release' ? scope.kind : 'working',
+    kind: 'version',
     resumeId: String(scope.resume_id ?? ''),
     ownerUserId: String(scope.owner_user_id ?? ''),
-    historyVersionId: scope.history_version_id == null ? null : asNumber(scope.history_version_id),
-    shareReleaseId: asNullableString(scope.share_release_id),
+    versionId: asNumber(scope.version_id),
     documentHash: String(scope.document_hash ?? ''),
     documentRevision: asNumber(scope.document_revision),
     nodeOrder,
@@ -153,15 +186,38 @@ function normalizeAccessibleScope(value: unknown): AccessibleCommentScopeSummary
   const scope = asRecord(value)
   return {
     id: String(scope.id ?? ''),
-    kind: scope.kind === 'history' || scope.kind === 'share_release' ? scope.kind : 'working',
+    kind: 'version',
     resumeId: String(scope.resume_id ?? ''),
-    historyVersionId: scope.history_version_id == null ? null : asNumber(scope.history_version_id),
-    shareReleaseId: asNullableString(scope.share_release_id),
+    versionId: asNumber(scope.version_id),
     projectionReferenceDate: String(scope.projection_reference_date ?? ''),
     documentRevision: asNumber(scope.document_revision),
     nextEventSeq: asNumber(scope.next_event_seq),
     lastReadEventSeq: asNumber(scope.last_read_event_seq),
     updatedAt: String(scope.updated_at ?? ''),
+  }
+}
+
+function normalizeVersion(value: unknown): CommentVersionReference {
+  const version = asRecord(value)
+  return {
+    versionId: asNumber(version.id),
+    versionNo: asNumber(version.version_no),
+    versionName: asNullableString(version.version_name)
+      ?? asNullableString(version.milestone_name),
+    status: version.status === 'frozen' ? 'frozen' : 'active',
+    documentHash: String(version.content_hash ?? ''),
+    documentRevision: asNumber(version.document_revision),
+    projectionReferenceDate: String(version.projection_reference_date ?? ''),
+    sharedLinkCount: asNumber(version.shared_link_count),
+  }
+}
+
+function normalizeCounts(value: unknown): CommentThreadCounts {
+  const counts = asRecord(value)
+  return {
+    unresolved: asNumber(counts.unresolved),
+    resolved: asNumber(counts.resolved),
+    detached: asNumber(counts.detached),
   }
 }
 
@@ -292,12 +348,69 @@ function normalizeBootstrap(value: unknown): CommentBootstrapResult {
   const data = asRecord(value)
   return {
     scope: normalizeScope(data.scope),
+    version: normalizeVersion(data.version),
+    counts: normalizeCounts(data.counts),
     accessibleScopes: asArray(data.accessibleScopes).map(normalizeAccessibleScope),
     threads: normalizeThreads(data.threads, data.profiles),
     lastReadEventSeq: asNumber(data.lastReadEventSeq),
     scopeRealtime: normalizeRealtimeAccess(data.scopeRealtime),
     ownerRealtime: data.ownerRealtime ? normalizeRealtimeAccess(data.ownerRealtime) : null,
   }
+}
+
+function normalizeMutation(value: unknown): CommentMutationResult {
+  const data = asRecord(value)
+  const normalizedThreads = data.thread
+    ? normalizeThreads([data.thread], data.profiles)
+    : []
+  const thread = normalizedThreads[0] ?? null
+  const commentId = asNullableString(data.commentId)
+  const event = normalizeEvents([data.event])[0] ?? {
+    eventSeq: asNumber(asRecord(data.event).event_seq, asNumber(data.eventSeq)),
+    type: 'settings_changed',
+    threadId: asNullableString(data.threadId),
+    createdAt: new Date().toISOString(),
+  }
+  return {
+    thread,
+    comment: commentId
+      ? thread?.comments.find(comment => comment.id === commentId) ?? null
+      : null,
+    removedCommentId: asNullableString(data.removedCommentId),
+    counts: normalizeCounts(data.counts),
+    event,
+    threadId: asNullableString(data.threadId),
+    commentId,
+    revision: data.revision == null ? null : asNumber(data.revision),
+  }
+}
+
+let cachedAuthToken: string | null | undefined
+let cachedAuthUserId: string | null | undefined
+let authTokenPromise: Promise<string | null> | null = null
+let authListenerStarted = false
+
+function startAuthTokenListener() {
+  if (authListenerStarted)
+    return
+  authListenerStarted = true
+  supabase.auth.onAuthStateChange((_event, session) => {
+    cachedAuthToken = session?.access_token ?? null
+    cachedAuthUserId = session?.user.id ?? null
+    authTokenPromise = null
+  })
+}
+
+export async function getCommentAuthToken() {
+  startAuthTokenListener()
+  if (cachedAuthToken !== undefined)
+    return cachedAuthToken
+  authTokenPromise ??= supabase.auth.getSession().then(({ data }) => {
+    cachedAuthToken = data.session?.access_token ?? null
+    cachedAuthUserId = data.session?.user.id ?? null
+    return cachedAuthToken
+  })
+  return authTokenPromise
 }
 
 export class ResumeCommentClient {
@@ -326,6 +439,15 @@ export class ResumeCommentClient {
     this.access = { ...this.access, anonymous: credential }
   }
 
+  async hasAuthenticatedSession() {
+    return Boolean(await getCommentAuthToken())
+  }
+
+  async getAuthenticatedUserId() {
+    await getCommentAuthToken()
+    return cachedAuthUserId ?? null
+  }
+
   async bootstrapScope(): Promise<CommentApiSuccess<CommentBootstrapResult>> {
     const response = await this.request<unknown>('bootstrap_scope')
     return { ...response, data: normalizeBootstrap(response.data) }
@@ -333,6 +455,17 @@ export class ResumeCommentClient {
 
   async listThreads(afterEventSeq: number): Promise<CommentApiSuccess<CommentThreadListResult>> {
     const response = await this.request<Record<string, unknown>>('list_threads', { afterEventSeq })
+    return {
+      ...response,
+      data: {
+        threads: normalizeThreads(response.data.threads, response.data.profiles),
+        events: normalizeEvents(response.data.events),
+      },
+    }
+  }
+
+  async listEvents(afterEventSeq: number): Promise<CommentApiSuccess<CommentThreadListResult>> {
+    const response = await this.request<Record<string, unknown>>('list_events', { afterEventSeq })
     return {
       ...response,
       data: {
@@ -365,7 +498,18 @@ export class ResumeCommentClient {
     projectionReferenceDate: string
     expectedDocumentRevision: number
   }) {
-    return this.write('sync_working_document', input)
+    return this.writeRaw<Record<string, unknown>>('sync_working_document', input)
+      .then(response => ({
+        ...response,
+        data: {
+          versionId: asNumber(response.data.versionId),
+          documentRevision: asNumber(response.data.documentRevision),
+          documentHash: String(response.data.documentHash ?? ''),
+          threads: normalizeThreads(response.data.threads, response.data.profiles),
+          counts: normalizeCounts(response.data.counts),
+          event: normalizeEvents([response.data.event])[0]!,
+        } satisfies CommentDocumentSyncResult,
+      }))
   }
 
   createThread(input: {
@@ -374,12 +518,19 @@ export class ResumeCommentClient {
     documentHash: string
     originalPageIndex: number | null
   }) {
-    return this.write('create_thread', input)
+    return this.mutate('create_thread', input)
   }
 
-  createReply(thread: Pick<ResumeCommentThread, 'id' | 'revision'>, body: string) {
-    return this.write('create_reply', {
+  createReply(
+    thread: Pick<ResumeCommentThread, 'id' | 'revision' | 'comments'>,
+    body: string,
+    parentCommentId = thread.comments.find(comment => comment.parentId === null)?.id,
+  ) {
+    if (!parentCommentId)
+      throw new ResumeCommentClientError('not_found', '回复目标不存在')
+    return this.mutate('create_reply', {
       threadId: thread.id,
+      parentCommentId,
       expectedRevision: thread.revision,
       body,
     })
@@ -390,7 +541,7 @@ export class ResumeCommentClient {
     commentId: string,
     body: string,
   ) {
-    return this.write('edit_comment', {
+    return this.mutate('edit_comment', {
       threadId: thread.id,
       commentId,
       expectedRevision: thread.revision,
@@ -399,7 +550,7 @@ export class ResumeCommentClient {
   }
 
   deleteComment(thread: Pick<ResumeCommentThread, 'id' | 'revision'>, commentId: string) {
-    return this.write('delete_comment', {
+    return this.mutate('delete_comment', {
       threadId: thread.id,
       commentId,
       expectedRevision: thread.revision,
@@ -407,21 +558,21 @@ export class ResumeCommentClient {
   }
 
   deleteThread(thread: Pick<ResumeCommentThread, 'id' | 'revision'>) {
-    return this.write('delete_thread', {
+    return this.mutate('delete_thread', {
       threadId: thread.id,
       expectedRevision: thread.revision,
     })
   }
 
   resolveThread(thread: Pick<ResumeCommentThread, 'id' | 'revision'>) {
-    return this.write('resolve_thread', {
+    return this.mutate('resolve_thread', {
       threadId: thread.id,
       expectedRevision: thread.revision,
     })
   }
 
   reopenThread(thread: Pick<ResumeCommentThread, 'id' | 'revision'>) {
-    return this.write('reopen_thread', {
+    return this.mutate('reopen_thread', {
       threadId: thread.id,
       expectedRevision: thread.revision,
     })
@@ -432,7 +583,7 @@ export class ResumeCommentClient {
     anchor: CommentAnchor,
     documentHash: string,
   ) {
-    return this.write('relink_anchor', {
+    return this.mutate('relink_anchor', {
       threadId: thread.id,
       expectedRevision: thread.revision,
       anchor,
@@ -441,10 +592,15 @@ export class ResumeCommentClient {
   }
 
   markRead(eventSeq: number) {
-    return this.write('mark_read', { eventSeq })
+    return this.writeRaw('mark_read', { eventSeq })
   }
 
-  private write<TInput extends Record<string, unknown>>(op: string, input: TInput) {
+  private async mutate<TInput extends Record<string, unknown>>(op: string, input: TInput) {
+    const response = await this.writeRaw(op, input)
+    return { ...response, data: normalizeMutation(response.data) }
+  }
+
+  private writeRaw<TInput extends Record<string, unknown>>(op: string, input: TInput) {
     return this.request<Record<string, unknown>>(op, {
       ...input,
       requestId: crypto.randomUUID(),
@@ -457,19 +613,22 @@ export class ResumeCommentClient {
         accessKind: 'owner',
         ...('scopeId' in this.access
           ? { scopeId: this.access.scopeId }
-          : 'historyVersionId' in this.access
-            ? { historyVersionId: this.access.historyVersionId }
-            : 'shareReleaseId' in this.access
-              ? { shareReleaseId: this.access.shareReleaseId }
-              : { resumeId: this.access.resumeId }),
+          : 'versionId' in this.access
+            ? { versionId: this.access.versionId }
+            : { resumeId: this.access.resumeId }),
       }
     }
     if (this.access.kind === 'collaborator') {
-      return { accessKind: 'collaborator', accessToken: this.access.accessToken }
+      return {
+        accessKind: 'collaborator',
+        accessToken: this.access.accessToken,
+        versionId: this.access.versionId,
+      }
     }
     return {
       accessKind: 'share',
       accessToken: this.access.accessToken,
+      versionId: this.access.versionId,
       ...(this.access.anonymous
         ? {
             anonymous: {
@@ -485,8 +644,9 @@ export class ResumeCommentClient {
     op: string,
     input: Record<string, unknown> = {},
   ): Promise<CommentApiSuccess<T>> {
-    const { data: sessionResult } = await supabase.auth.getSession()
+    const authToken = await getCommentAuthToken()
     const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    const requestId = crypto.randomUUID()
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-comments`,
       {
@@ -494,21 +654,30 @@ export class ResumeCommentClient {
         headers: {
           'Content-Type': 'application/json',
           'apikey': publishableKey,
-          'Authorization': `Bearer ${sessionResult.session?.access_token ?? publishableKey}`,
+          'Authorization': `Bearer ${authToken ?? publishableKey}`,
           'x-client-info': 'resume-app/comments',
+          'x-request-id': requestId,
         },
         body: JSON.stringify({
           op,
           ...this.accessBody(),
-          ...(this.access.kind === 'share' ? { releaseId: this.access.releaseId } : {}),
+          ...(this.access.kind === 'share'
+            ? { releaseId: this.access.releaseId, versionId: this.access.versionId }
+            : {}),
           ...input,
         }),
       },
     ).catch(() => {
-      throw new ResumeCommentClientError('unexpected', '无法连接评论服务')
+      throw new ResumeCommentClientError(
+        'unexpected',
+        '无法连接评论服务',
+        undefined,
+        requestId,
+      )
     })
     const payload = await response.json().catch(() => null)
     const result = asRecord(payload)
+    const responseRequestId = response.headers.get('x-request-id') ?? requestId
     if (!response.ok || result.ok !== true) {
       const error = asRecord(result.error)
       const code = String(error.code ?? 'unexpected') as CommentErrorCode
@@ -516,11 +685,15 @@ export class ResumeCommentClient {
         code,
         String(error.message ?? '评论服务暂时不可用'),
         error.retryAfterSeconds == null ? undefined : asNumber(error.retryAfterSeconds),
+        responseRequestId,
+        error.details,
       )
     }
     return {
       data: result.data as T,
       eventSeq: asNumber(result.eventSeq),
+      requestId: responseRequestId,
+      serverTiming: response.headers.get('server-timing'),
     }
   }
 }

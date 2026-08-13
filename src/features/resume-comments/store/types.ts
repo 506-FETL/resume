@@ -3,6 +3,8 @@ import type { CommentAnchor } from '../anchors/types.ts'
 import type {
   CommentErrorCode,
   CommentScopeKind,
+  CommentThreadCounts,
+  CommentVersionReference,
   ResumeCommentEvent,
   ResumeCommentThread,
 } from '../types.ts'
@@ -12,8 +14,7 @@ export interface CommentScopeSummary {
   kind: CommentScopeKind
   resumeId: string
   ownerUserId: string
-  historyVersionId: number | null
-  shareReleaseId: string | null
+  versionId: number
   documentHash: string
   documentRevision: number
   nodeOrder: string[]
@@ -25,8 +26,7 @@ export interface AccessibleCommentScopeSummary {
   id: string
   kind: CommentScopeKind
   resumeId: string
-  historyVersionId: number | null
-  shareReleaseId: string | null
+  versionId: number
   projectionReferenceDate: string
   documentRevision: number
   nextEventSeq: number
@@ -51,8 +51,17 @@ export interface PendingCommentSelection {
 export type CommentConnectionState = 'idle' | 'connecting' | 'live' | 'offline'
 export type CommentAccessState = 'active' | 'read_only' | 'unavailable'
 
+export interface CommentMutationSnapshot {
+  threadsById: Record<string, ResumeCommentThread>
+  orderedThreadIds: string[]
+  counts: CommentThreadCounts
+  activeThreadId: string | null
+}
+
 export interface ResumeCommentStoreState {
   scope: CommentScopeSummary | null
+  version: CommentVersionReference | null
+  counts: CommentThreadCounts
   accessibleScopes: AccessibleCommentScopeSummary[]
   threadsById: Record<string, ResumeCommentThread>
   orderedThreadIds: string[]
@@ -70,9 +79,13 @@ export interface ResumeCommentStoreState {
   connection: CommentConnectionState
   accessState: CommentAccessState
   lastError: CommentErrorCode | null
+  pendingEntities: Record<string, true>
+  mutationErrors: Record<string, string>
 
   replaceScope: (input: {
     scope: CommentScopeSummary
+    version: CommentVersionReference
+    counts: CommentThreadCounts
     accessibleScopes: AccessibleCommentScopeSummary[]
     threads: ResumeCommentThread[]
     events?: ResumeCommentEvent[]
@@ -84,6 +97,47 @@ export interface ResumeCommentStoreState {
     events: ResumeCommentEvent[]
     eventSeq: number
   }) => void
+  applyMutation: (input: {
+    thread: ResumeCommentThread | null
+    removedThreadId?: string | null
+    counts: CommentThreadCounts
+    event: ResumeCommentEvent
+    eventSeq: number
+  }) => void
+  applyOptimisticMutation: (input: {
+    entityKey: string
+    thread?: ResumeCommentThread | null
+    removedThreadId?: string | null
+    counts?: CommentThreadCounts
+  }) => CommentMutationSnapshot
+  commitMutation: (entityKey: string, input: {
+    thread: ResumeCommentThread | null
+    removedThreadId?: string | null
+    counts: CommentThreadCounts
+    event: ResumeCommentEvent
+    eventSeq: number
+  }) => void
+  rollbackMutation: (
+    entityKey: string,
+    snapshot: CommentMutationSnapshot,
+    message: string,
+  ) => void
+  applyRealtimePatch: (input: {
+    threads: ResumeCommentThread[]
+    events: ResumeCommentEvent[]
+    eventSeq: number
+  }) => void
+  applyDocumentSync: (input: {
+    documentHash: string
+    documentRevision: number
+    threads: ResumeCommentThread[]
+    counts: CommentThreadCounts
+    event: ResumeCommentEvent
+    eventSeq: number
+  }) => void
+  beginPending: (entityKey: string) => void
+  finishPending: (entityKey: string) => void
+  failPending: (entityKey: string, message: string) => void
   setActiveThread: (threadId: string | null) => void
   setSelection: (selection: PendingCommentSelection | null) => void
   setDraft: (threadKey: string, value: string) => void
