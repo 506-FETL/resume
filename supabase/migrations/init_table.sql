@@ -97,6 +97,7 @@ create table public.resume_config (
   font jsonb not null default '{"fontSize": 14, "fontFamily": "system"}'::jsonb,
   theme jsonb not null default '{"theme": "default"}'::jsonb,
   template_binding jsonb null,
+  current_version_id bigint null,
   constraint resume_config_pkey primary key (id),
   constraint resume_config_resume_id_key unique (resume_id),
   constraint resume_config_resume_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE,
@@ -138,11 +139,20 @@ create table public.resume_config_versions (
   snapshot jsonb not null,
   content_hash text null,
   base_updated_at timestamp with time zone null,
+  status text not null default 'frozen'::text,
+  document_revision bigint not null default 1,
+  projection_reference_date date not null default current_date,
   constraint resume_config_versions_pkey primary key (id),
   constraint resume_config_versions_resume_id_version_no_key unique (resume_id, version_no),
   constraint resume_config_versions_resume_id_fkey foreign KEY (resume_id) references resume_config (resume_id) on delete CASCADE,
   constraint resume_config_versions_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE,
   constraint resume_config_versions_snapshot_is_object_check check ((jsonb_typeof(snapshot) = 'object'::text)),
+  constraint resume_config_versions_status_check check (
+    status = any (array['active'::text, 'frozen'::text])
+  ),
+  constraint resume_config_versions_document_revision_check check (
+    document_revision > 0
+  ),
   constraint resume_config_versions_source_type_check check (
     (
       source_type = any (
@@ -164,6 +174,12 @@ create table public.resume_config_versions (
   )
 ) TABLESPACE pg_default;
 
+alter table public.resume_config
+  add constraint resume_config_current_version_id_fkey
+  foreign key (current_version_id)
+  references public.resume_config_versions (id)
+  on delete restrict;
+
 create index IF not exists idx_resume_config_versions_resume_id on public.resume_config_versions using btree (resume_id) TABLESPACE pg_default;
 
 create index IF not exists idx_resume_config_versions_user_id on public.resume_config_versions using btree (user_id) TABLESPACE pg_default;
@@ -171,6 +187,10 @@ create index IF not exists idx_resume_config_versions_user_id on public.resume_c
 create index IF not exists idx_resume_config_versions_resume_id_created_at on public.resume_config_versions using btree (resume_id, created_at desc) TABLESPACE pg_default;
 
 create index IF not exists idx_resume_config_versions_resume_id_version_no_desc on public.resume_config_versions using btree (resume_id, version_no desc) TABLESPACE pg_default;
+
+create unique index IF not exists idx_resume_config_versions_one_active on public.resume_config_versions using btree (resume_id) TABLESPACE pg_default
+where
+  (status = 'active'::text);
 
 create index IF not exists idx_resume_config_versions_resume_id_milestone_name on public.resume_config_versions using btree (resume_id, milestone_name) TABLESPACE pg_default
 where
