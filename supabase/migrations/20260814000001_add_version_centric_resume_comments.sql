@@ -100,7 +100,9 @@ $$;
 
 ALTER TABLE public.resume_config_versions
   ALTER COLUMN status SET NOT NULL,
-  ALTER COLUMN projection_reference_date SET NOT NULL;
+  ALTER COLUMN status SET DEFAULT 'frozen',
+  ALTER COLUMN projection_reference_date SET NOT NULL,
+  ALTER COLUMN projection_reference_date SET DEFAULT current_date;
 
 DO $$
 BEGIN
@@ -629,6 +631,24 @@ BEGIN
     AND kind = 'version'
     AND archived_at IS NULL
   FOR UPDATE;
+
+  -- manualSync 已先把表单写入 resume_config；分叉事务再次从云端配置
+  -- 刷新活动快照，避免复制浏览器尚未持久化的本地状态。
+  UPDATE public.resume_config_versions
+  SET snapshot = to_jsonb(v_config)
+        - 'id'
+        - 'created_at'
+        - 'user_id'
+        - 'updated_at'
+        - 'resume_id'
+        - 'display_name'
+        - 'description'
+        - 'automerge_enabled'
+        - 'document_version'
+        - 'current_version_id',
+      base_updated_at = v_config.updated_at
+  WHERE id = v_current.id
+  RETURNING * INTO v_current;
 
   UPDATE public.resume_config_versions
   SET status = 'frozen'

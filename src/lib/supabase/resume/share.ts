@@ -9,7 +9,7 @@ import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { getResumeById, RESUME_PERSISTED_SELECTOR } from './form'
-import { getResumeHistoryVersionForShare } from './history'
+import { getCurrentResumeVersion, getResumeVersionForShare } from './history'
 import { readShareVersionSource, toShareVersionSourcePatch } from './share-version'
 
 const SHARE_SELECT = `
@@ -28,6 +28,12 @@ const SHARE_SELECT = `
   current_release_id,
   allow_comments,
   archived_at,
+  version_id,
+  version:resume_config_versions!resume_shares_version_id_fkey(
+    id,
+    document_revision,
+    status
+  ),
   current_release:resume_share_releases!resume_shares_current_release_id_fkey(
     id,
     release_no,
@@ -68,11 +74,17 @@ function toRecord(row: Record<string, any>): ResumeShareRecord {
     current_release,
     allow_comments,
     archived_at,
+    version_id,
+    version,
     ...record
   } = row
   const currentRelease = toReleaseSummary(current_release)
+  const currentVersion = (Array.isArray(version) ? version[0] : version) as Record<string, any> | null
   if (current_release_id !== currentRelease.id) {
     throw new Error('分享链接当前发布批次不一致')
+  }
+  if (!currentVersion || !Number.isSafeInteger(version_id) || currentVersion.id !== version_id) {
+    throw new Error('分享链接缺少有效版本')
   }
 
   return {
@@ -80,6 +92,8 @@ function toRecord(row: Record<string, any>): ResumeShareRecord {
     display_name: currentRelease.displayName,
     currentReleaseId: current_release_id,
     currentRelease,
+    versionId: version_id,
+    documentRevision: Number(currentVersion.document_revision ?? 1),
     allowComments: allow_comments,
     archivedAt: archived_at ?? null,
     source: currentRelease.source,
@@ -166,13 +180,19 @@ export async function resolveResumeShareRelease(input: {
   getCurrentSource: CurrentResumeShareSnapshotProvider
 }): Promise<ResolvedResumeShareRelease> {
   if (input.selection.kind === 'current') {
+    const version = await getCurrentResumeVersion(input.resumeId)
     return {
-      ...await input.getCurrentSource(input.resumeId),
+      ...await buildResumeShareSnapshotSource(
+        mapSourceToPersistedSnapshot(version.snapshot),
+        input.displayName,
+      ),
       source: { kind: 'current' },
+      versionId: version.id,
+      documentRevision: version.document_revision,
     }
   }
 
-  const version = await getResumeHistoryVersionForShare(
+  const version = await getResumeVersionForShare(
     input.resumeId,
     input.selection.versionId,
   )
@@ -192,6 +212,8 @@ export async function resolveResumeShareRelease(input: {
         || '未命名版本',
       versionCreatedAt: version.created_at,
     },
+    versionId: input.selection.versionId,
+    documentRevision: version.document_revision,
   }
 }
 
@@ -255,6 +277,7 @@ export async function createResumeShareRelease(
       template_manifest: release.templateManifest,
       expires_at: options.expiresAt ?? null,
       allow_comments: options.allowComments ?? true,
+      version_id: release.versionId,
       ...toShareVersionSourcePatch(release.source),
       // 发布批次和密码都就绪前保持关闭，避免公开读取到半初始化记录。
       is_active: false,
@@ -464,6 +487,8 @@ export async function fetchSharedResume(
     share_id?: string
     release_id?: string
     release_no?: number
+    version_id?: number
+    document_revision?: number
     allow_comments?: boolean
     projection_reference_date?: string
     comment_scope_id?: string
@@ -495,6 +520,8 @@ export async function fetchSharedResume(
     shareId: body.share_id,
     releaseId: body.release_id,
     releaseNo: body.release_no,
+    versionId: body.version_id,
+    documentRevision: body.document_revision,
     allowComments: body.allow_comments,
     projectionReferenceDate: body.projection_reference_date,
     commentScopeId: body.comment_scope_id,

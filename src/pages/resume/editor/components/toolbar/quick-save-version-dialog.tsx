@@ -7,12 +7,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  createResumeHistoryVersion,
-  createResumeSnapshotHash,
-  getResumeHistoryResume,
-  listResumeHistoryVersions,
+  createNextResumeVersion,
 } from '@/lib/supabase/resume'
-import { buildResumeSnapshot } from '@/pages/history/utils'
+import useResumeStore from '@/store/resume/form'
 
 interface QuickSaveVersionDialogProps {
   open: boolean
@@ -57,28 +54,18 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
 
     try {
       const normalizedVersionName = versionName.trim()
-      const record = await getResumeHistoryResume(resumeId)
-      const snapshot = buildResumeSnapshot(record)
-      const nextHash = await createResumeSnapshotHash(snapshot)
-
-      // 与 /history 保存一致的去重：内容和最新版本一样就不重复存
-      const versions = await listResumeHistoryVersions(resumeId)
-      const latest = versions[0]
-      if (latest?.content_hash && latest.content_hash === nextHash) {
-        notifyIfMounted(() => toast.info('内容没有变化，已是最新版本'))
-        completed = true
-        return
+      const resumeState = useResumeStore.getState()
+      if (resumeState.pendingChanges) {
+        await resumeState.manualSync()
+        const synced = useResumeStore.getState()
+        if (synced.pendingChanges || synced.syncError)
+          throw new Error(synced.syncError ?? '简历尚未同步，无法创建新版本')
       }
-
-      await createResumeHistoryVersion({
-        resume_id: resumeId,
-        source_type: 'manual',
-        snapshot,
-        content_hash: nextHash,
-        base_updated_at: record.updated_at,
-        version_name: normalizedVersionName || null,
-      })
-      notifyIfMounted(() => toast.success('当前版本已保存'))
+      await createNextResumeVersion(resumeId, normalizedVersionName || null)
+      window.dispatchEvent(new CustomEvent('resume-active-version-created', {
+        detail: { resumeId },
+      }))
+      notifyIfMounted(() => toast.success('新版本已创建'))
       completed = true
     }
     catch (error) {

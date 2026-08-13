@@ -7,6 +7,7 @@ import type {
   ResumeHistoryVersionRow,
   ResumeHistoryVersionSummaryRecord,
   ResumeSnapshot,
+  ResumeVersionListItem,
   UpdateResumeHistoryVersionInput,
 } from './types'
 import supabase from '../../client'
@@ -30,7 +31,10 @@ const VERSION_SELECTOR = `
   content_hash,
   base_updated_at,
   company_id,
-  submitted_at
+  submitted_at,
+  status,
+  document_revision,
+  projection_reference_date
 `
 
 // 列表用：不含 snapshot（侧边栏渲染用不到），大幅减小载荷
@@ -49,7 +53,10 @@ const VERSION_LIST_SELECTOR = `
   content_hash,
   base_updated_at,
   company_id,
-  submitted_at
+  submitted_at,
+  status,
+  document_revision,
+  projection_reference_date
 `
 
 const RESUME_SELECTOR = `
@@ -99,7 +106,10 @@ const VERSION_SHARE_RELEASE_SELECTOR = `
   version_name,
   milestone_name,
   created_at,
-  snapshot
+  snapshot,
+  status,
+  document_revision,
+  projection_reference_date
 `
 
 export async function getResumeHistoryResume(resumeId: string) {
@@ -139,6 +149,7 @@ export async function listResumeHistoryVersions(resumeId: string) {
       .select(VERSION_LIST_SELECTOR)
       .eq('resume_id', resumeId)
       .eq('user_id', user.id)
+      .eq('status', 'frozen')
       .order('version_no', { ascending: false })
       .range(from, to)
 
@@ -147,6 +158,83 @@ export async function listResumeHistoryVersions(resumeId: string) {
 
     return (data ?? []) as ResumeHistoryVersionListRow[]
   })
+}
+
+export async function listResumeVersions(resumeId: string): Promise<ResumeVersionListItem[]> {
+  const user = await getCurrentUser()
+  if (!user)
+    throw new Error('用户未登陆')
+
+  const [versions, shares] = await Promise.all([
+    collectPages(async (from, to) => {
+      const { data, error } = await supabase
+        .from('resume_config_versions')
+        .select(VERSION_LIST_SELECTOR)
+        .eq('resume_id', resumeId)
+        .eq('user_id', user.id)
+        .order('status', { ascending: true })
+        .order('version_no', { ascending: false })
+        .range(from, to)
+      if (error)
+        throw error
+      return (data ?? []) as ResumeHistoryVersionListRow[]
+    }),
+    collectPages(async (from, to) => {
+      const { data, error } = await supabase
+        .from('resume_shares')
+        .select('version_id')
+        .eq('resume_id', resumeId)
+        .eq('user_id', user.id)
+        .is('archived_at', null)
+        .range(from, to)
+      if (error)
+        throw error
+      return (data ?? []) as Array<{ version_id: number | null }>
+    }),
+  ])
+  const sharedCounts = new Map<number, number>()
+  for (const share of shares) {
+    if (share.version_id == null)
+      continue
+    sharedCounts.set(share.version_id, (sharedCounts.get(share.version_id) ?? 0) + 1)
+  }
+  return versions.map(version => ({
+    ...version,
+    shared_link_count: sharedCounts.get(version.id) ?? 0,
+  }))
+}
+
+export async function getCurrentResumeVersion(resumeId: string) {
+  const user = await getCurrentUser()
+  if (!user)
+    throw new Error('用户未登陆')
+
+  const { data, error } = await supabase
+    .from('resume_config_versions')
+    .select(VERSION_SELECTOR)
+    .eq('resume_id', resumeId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single()
+  if (error)
+    throw error
+  return data as ResumeHistoryVersionRow
+}
+
+export async function createNextResumeVersion(resumeId: string, versionName: string | null) {
+  const user = await getCurrentUser()
+  if (!user)
+    throw new Error('用户未登陆')
+  const { data, error } = await supabase.rpc('create_next_resume_version', {
+    p_resume_id: resumeId,
+    p_version_name: versionName?.trim() || null,
+  })
+  if (error)
+    throw error
+  const versionId = Number(data)
+  if (!Number.isSafeInteger(versionId) || versionId <= 0)
+    throw new Error('新版本创建结果无效')
+  return versionId
 }
 
 export async function getResumeHistoryVersionForShare(
@@ -170,6 +258,13 @@ export async function getResumeHistoryVersionForShare(
     throw error
 
   return data as ResumeHistoryShareReleaseRow
+}
+
+export async function getResumeVersionForShare(
+  resumeId: string,
+  versionId: number,
+) {
+  return getResumeHistoryVersionForShare(resumeId, versionId)
 }
 
 export async function getResumeHistoryVersionSnapshot(id: number) {
@@ -234,6 +329,8 @@ export async function createResumeHistoryVersion(input: CreateResumeHistoryVersi
       base_updated_at: input.base_updated_at ?? null,
       company_id: input.company_id ?? null,
       submitted_at: input.submitted_at ?? null,
+      status: 'frozen',
+      projection_reference_date: new Date().toISOString().slice(0, 10),
     })
     .select(VERSION_SELECTOR)
     .single()

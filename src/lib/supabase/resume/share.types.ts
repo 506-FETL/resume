@@ -33,6 +33,8 @@ export type ResolvedShareVersionSource
 
 export interface ResolvedResumeShareRelease extends ResumeShareSnapshotSource {
   source: ResolvedShareVersionSource
+  versionId: number
+  documentRevision: number
 }
 
 export interface ResumeShareReleaseSummary {
@@ -89,6 +91,8 @@ export interface ResumeShareRecord {
   updated_at: string
   currentReleaseId: string
   currentRelease: ResumeShareReleaseSummary
+  versionId: number
+  documentRevision: number
   allowComments: boolean
   archivedAt: string | null
   source: ShareVersionSource
@@ -113,6 +117,8 @@ export interface ShareViewResult {
   shareId?: string
   releaseId?: string
   releaseNo?: number
+  versionId?: number
+  documentRevision?: number
   allowComments?: boolean
   projectionReferenceDate?: string
   commentScopeId?: string
