@@ -477,9 +477,9 @@ git commit -m "feat(comments): 重构递归评论树与操作反馈"
 
 删除 `mobileSnapPoint`、`snapPoints`、`snapPoint` 和 `onSnapPointChange`。桌面明确 `swipeDirection="right"`，移动明确 `swipeDirection="down"`；首次渲染通过 CSS breakpoint/稳定媒体查询避免方向翻转。
 
-- [ ] **步骤 3：实现移动有界高度与键盘**
+- [ ] **步骤 3：实现移动固定高度与键盘**
 
-短内容自然高度，长内容 `max-height: 92dvh`，加载态稳定 min-height。使用 `Drawer.VirtualKeyboardProvider`，头部和输入区固定，列表滚动，处理 safe area 和横屏。
+Drawer 固定 `height: 92dvh`，使用 `Drawer.VirtualKeyboardProvider`；头部、筛选栏和输入区固定，列表、空状态、评论树与新建评论区域在剩余空间滚动，处理 safe area 和横屏。
 
 - [ ] **步骤 4：修正高亮生命周期**
 

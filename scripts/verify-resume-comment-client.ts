@@ -210,6 +210,10 @@ const commentBookmarkSource = readFileSync(
   new URL('../src/features/resume-comments/components/comment-bookmark.tsx', import.meta.url),
   'utf8',
 )
+const threadDetailSource = readFileSync(
+  new URL('../src/features/resume-comments/components/thread-detail.tsx', import.meta.url),
+  'utf8',
+)
 const drawerSource = readFileSync(
   new URL('../src/components/ui/drawer.tsx', import.meta.url),
   'utf8',
@@ -252,6 +256,13 @@ assert.match(
 assert.match(commentsPanelSource, /useCommentMobileLayout/u)
 assert.match(commentsPanelSource, /swipeDirection="down"/u)
 assert.match(commentsPanelSource, /overlayClassName="supports-backdrop-filter:backdrop-blur-none"/u)
+assert.match(commentsPanelSource, /\[--drawer-content-height:92dvh\]/u)
+assert.match(commentsPanelSource, /\[--drawer-content-max-height:92dvh\]/u)
+assert.doesNotMatch(commentsPanelSource, /\[--drawer-content-height:auto\]/u)
+assert.match(commentsPanelSource, /grid shrink-0 grid-cols-3/u)
+assert.match(commentsPanelSource, /flex min-h-0 flex-1 overflow-y-auto/u)
+assert.match(threadDetailSource, /flex shrink-0 items-center/u)
+assert.match(threadDetailSource, /shrink-0 border-t p-3/u)
 assert.match(commentMobileLayoutSource, /\(hover: none\) and \(pointer: coarse\) and \(max-width: 1024px\)/u)
 assert.match(commentBookmarkSource, /h-10 w-9/u)
 assert.doesNotMatch(commentBookmarkSource, /h-14 w-12/u)

@@ -100,7 +100,7 @@ export function ThreadDetail({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center gap-2 border-b px-3 py-2">
+      <header className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
         <Button size="icon-sm" variant="ghost" aria-label="返回评论列表" onClick={onBack}>
           <ArrowLeft />
         </Button>
@@ -176,11 +176,11 @@ export function ThreadDetail({
         />
       </div>
       {actions.errorMessage
-        ? <p role="alert" className="px-4 py-2 text-xs text-destructive">{actions.errorMessage}</p>
+        ? <p role="alert" className="shrink-0 px-4 py-2 text-xs text-destructive">{actions.errorMessage}</p>
         : null}
       {permissions.canCreate && accessState === 'active' && !thread.resolvedAt
         ? (
-            <div className="border-t p-3">
+            <div className="shrink-0 border-t p-3">
               {replyTarget
                 ? (
                     <div className="mb-2 flex items-center justify-between rounded-md bg-muted px-2 py-1.5 text-xs text-muted-foreground">

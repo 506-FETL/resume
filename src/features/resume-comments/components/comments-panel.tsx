@@ -65,7 +65,7 @@ function PanelBody({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b px-4 pb-3 pt-4">
+      <header className="shrink-0 border-b px-4 pb-3 pt-4">
         <div className="flex items-center gap-2 pr-8">
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold">评论</h2>
@@ -103,7 +103,7 @@ function PanelBody({
       </header>
       {creating && selection
         ? (
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <p className="mb-3 border-l-2 border-amber-300 pl-3 text-sm text-muted-foreground">{selection.exactQuote}</p>
               <CommentComposer
                 draftKey="new-thread"
@@ -120,7 +120,7 @@ function PanelBody({
           )
         : (
             <>
-              <div className="grid grid-cols-3 gap-1 border-b p-2">
+              <div className="grid shrink-0 grid-cols-3 gap-1 border-b p-2">
                 {([
                   ['open', '未解决'],
                   ['resolved', '已解决'],
@@ -137,7 +137,7 @@ function PanelBody({
                   </Button>
                 ))}
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="flex min-h-0 flex-1 overflow-y-auto">
                 <ThreadList
                   threads={threads}
                   filter={filter}
@@ -193,7 +193,7 @@ export function CommentsPanel({
       aria-label="简历评论"
       overlayClassName="supports-backdrop-filter:backdrop-blur-none"
       className={isMobile
-        ? 'max-h-[92dvh] min-h-[min(22rem,70dvh)] rounded-b-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] [--drawer-content-height:auto] [--drawer-content-max-height:92dvh] [--drawer-inset:0px]'
+        ? 'rounded-b-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] [--drawer-content-height:92dvh] [--drawer-content-max-height:92dvh] [--drawer-inset:0px]'
         : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}
     >
       <DrawerTitle className="sr-only">简历评论</DrawerTitle>

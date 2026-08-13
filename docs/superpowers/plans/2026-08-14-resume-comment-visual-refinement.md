@@ -22,6 +22,7 @@
 - [x] 将 `CommentsPanel` 从通用 `useIsMobile` 切换到评论专用 Hook。
 - [x] 为 `DrawerContent` 增加 `overlayClassName`，评论遮罩禁用背景模糊。
 - [x] 扩展静态验证，确认移动端使用向下手势、Overlay 无模糊且 Provider 位于 Drawer 内。
+- [x] 将移动端 Drawer 固定为 `92dvh`，只让列表、评论树和新建评论内容区滚动。
 
 ### 任务 2：缩小书签并增加历史版本审阅条
 
