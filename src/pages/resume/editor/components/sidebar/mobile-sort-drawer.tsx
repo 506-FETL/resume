@@ -2,7 +2,7 @@ import type { ReactNode, RefObject } from 'react'
 import type { ORDERType } from '@/lib/schema'
 import { GripVertical, X } from 'lucide-react'
 import { Reorder, useDragControls } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -12,6 +12,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import {
+  autoScrollAtEdge,
+  MOTION_REORDER_TRANSITION,
+  useMotionReorder,
+} from '@/components/ui/motion-reorder'
 import { ITEMS } from '../../const'
 
 interface MobileSortDrawerProps {
@@ -26,12 +31,16 @@ function MobileSortItem({
   label,
   icon,
   scrollRef,
+  onDragStart,
+  onDragEnd,
   onKeyboardMove,
 }: {
   id: ORDERType
   label: string
   icon: ReactNode
   scrollRef: RefObject<HTMLUListElement | null>
+  onDragStart: () => void
+  onDragEnd: () => void
   onKeyboardMove: (id: ORDERType, direction: -1 | 1) => void
 }) {
   const dragControls = useDragControls()
@@ -44,22 +53,16 @@ function MobileSortItem({
       data-sort-id={id}
       data-base-ui-swipe-ignore=""
       layout="position"
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       whileDrag={{
         scale: 1.015,
         boxShadow: '0 12px 28px rgb(0 0 0 / 0.16)',
         zIndex: 10,
       }}
-      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+      transition={MOTION_REORDER_TRANSITION}
       onDrag={(_event, info) => {
-        const container = scrollRef.current
-        if (!container)
-          return
-        const bounds = container.getBoundingClientRect()
-        const edge = 56
-        if (info.point.y < bounds.top + edge)
-          container.scrollBy({ top: -12 })
-        else if (info.point.y > bounds.bottom - edge)
-          container.scrollBy({ top: 12 })
+        autoScrollAtEdge(scrollRef.current, info.point, 'y')
       }}
       className="relative flex select-none items-center gap-2 rounded-md border bg-background px-2 py-2"
     >
@@ -88,24 +91,24 @@ function MobileSortItem({
 
 export function MobileSortDrawer({ open, order, onOpenChange, onConfirm }: MobileSortDrawerProps) {
   const initialDraft = order.filter(id => id !== 'basics')
-  const [draft, setDraft] = useState<ORDERType[]>(initialDraft)
   const listRef = useRef<HTMLUListElement | null>(null)
+  const {
+    draft,
+    setDraft,
+    startDragging,
+    finishDragging,
+    moveByKeyboard,
+  } = useMotionReorder({
+    values: initialDraft,
+    axis: 'y',
+    onCommit: () => {},
+    commitOnKeyboard: false,
+  })
 
   useEffect(() => {
     if (open)
       setDraft(order.filter(id => id !== 'basics'))
-  }, [open, order])
-
-  const handleKeyboardMove = (id: ORDERType, direction: -1 | 1) => {
-    const sourceIndex = draft.indexOf(id)
-    const destinationIndex = sourceIndex + direction
-    if (sourceIndex < 0 || destinationIndex < 0 || destinationIndex >= draft.length)
-      return
-    const next = [...draft]
-    const [moved] = next.splice(sourceIndex, 1)
-    next.splice(destinationIndex, 0, moved)
-    setDraft(next)
-  }
+  }, [open, order, setDraft])
 
   const handleConfirm = () => {
     onConfirm(['basics', ...draft])
@@ -161,7 +164,11 @@ export function MobileSortDrawer({ open, order, onOpenChange, onConfirm }: Mobil
                 label={item.label}
                 icon={item.icon}
                 scrollRef={listRef}
-                onKeyboardMove={handleKeyboardMove}
+                onDragStart={startDragging}
+                onDragEnd={finishDragging}
+                onKeyboardMove={(itemId, direction) => {
+                  moveByKeyboard(itemId as Exclude<ORDERType, 'basics'>, direction)
+                }}
               />
             )
           })}

@@ -9,6 +9,21 @@ export const MOTION_REORDER_TRANSITION = {
   damping: 40,
 }
 
+export function findScrollableAncestor(
+  element: HTMLElement | null,
+  axis: DragAxis,
+): HTMLElement | null {
+  let current = element?.parentElement ?? null
+  while (current) {
+    const style = window.getComputedStyle(current)
+    const overflow = axis === 'x' ? style.overflowX : style.overflowY
+    if (overflow === 'auto' || overflow === 'scroll')
+      return current
+    current = current.parentElement
+  }
+  return null
+}
+
 function arraysEqual<T>(left: T[], right: T[]): boolean {
   return left.length === right.length && left.every((value, index) => Object.is(value, right[index]))
 }
@@ -38,10 +53,12 @@ export function useMotionReorder<T>({
   values,
   axis: _axis,
   onCommit,
+  commitOnKeyboard = true,
 }: {
   values: T[]
   axis: DragAxis
   onCommit: (values: T[]) => void
+  commitOnKeyboard?: boolean
 }): {
     draft: T[]
     setDraft: Dispatch<SetStateAction<T[]>>
@@ -65,7 +82,7 @@ export function useMotionReorder<T>({
   }, [onCommit])
 
   useEffect(() => {
-    if (!dragging) {
+    if (!dragging && !arraysEqual(draftRef.current, values)) {
       setDraft(values)
       draftRef.current = values
     }
@@ -94,8 +111,9 @@ export function useMotionReorder<T>({
     draftRef.current = next
     startSnapshotRef.current = next
     setDraft(next)
-    onCommitRef.current(next)
-  }, [])
+    if (commitOnKeyboard)
+      onCommitRef.current(next)
+  }, [commitOnKeyboard])
 
   return {
     draft,
