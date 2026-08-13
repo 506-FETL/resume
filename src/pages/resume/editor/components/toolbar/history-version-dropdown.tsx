@@ -1,5 +1,5 @@
 import { History, Save } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,10 +24,17 @@ export function ResumeHistoryVersionDropdown() {
   const navigate = useNavigate()
   const resumeId = useCurrentResumeStore(state => state.resumeId)
   const isInitialized = useResumeStore(state => state.isInitialized)
-  const [quickSaveOpen, setQuickSaveOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [quickSaveResumeId, setQuickSaveResumeId] = useState<string | null>(null)
+  const quickSaveFrameRef = useRef<number | null>(null)
+  const pendingQuickSaveRef = useRef(false)
 
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
   const canUseHistory = Boolean(resumeId) && !isOffline && isInitialized
+  const activeResumeIdRef = useRef(resumeId)
+  const canUseHistoryRef = useRef(canUseHistory)
+  activeResumeIdRef.current = resumeId
+  canUseHistoryRef.current = canUseHistory
 
   const disabledReason = !resumeId
     ? '当前未选择简历'
@@ -41,9 +48,47 @@ export function ResumeHistoryVersionDropdown() {
     navigate(`/history?resumeId=${resumeId}`)
   }
 
+  const cancelPendingQuickSave = () => {
+    if (quickSaveFrameRef.current !== null) {
+      cancelAnimationFrame(quickSaveFrameRef.current)
+      quickSaveFrameRef.current = null
+    }
+    pendingQuickSaveRef.current = false
+  }
+
+  useEffect(() => {
+    cancelPendingQuickSave()
+    setQuickSaveResumeId(null)
+  }, [resumeId, canUseHistory])
+
+  useEffect(() => {
+    return () => {
+      if (quickSaveFrameRef.current !== null)
+        cancelAnimationFrame(quickSaveFrameRef.current)
+      pendingQuickSaveRef.current = false
+    }
+  }, [])
+
+  const openQuickSave = () => {
+    if (!canUseHistory || !resumeId)
+      return
+
+    const capturedResumeId = resumeId
+    cancelPendingQuickSave()
+    pendingQuickSaveRef.current = true
+    setMenuOpen(false)
+    quickSaveFrameRef.current = requestAnimationFrame(() => {
+      quickSaveFrameRef.current = null
+      pendingQuickSaveRef.current = false
+
+      if (activeResumeIdRef.current === capturedResumeId && canUseHistoryRef.current)
+        setQuickSaveResumeId(capturedResumeId)
+    })
+  }
+
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
@@ -56,22 +101,34 @@ export function ResumeHistoryVersionDropdown() {
             {!isMobile && <span>历史版本</span>}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="bottom" className="w-44">
+        <DropdownMenuContent
+          align="start"
+          side="bottom"
+          className="w-44"
+          onCloseAutoFocus={(event) => {
+            if (pendingQuickSaveRef.current)
+              event.preventDefault()
+          }}
+        >
           <DropdownMenuItem onClick={openHistory}>
             <History data-icon="inline-start" />
             查看历史版本
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setQuickSaveOpen(true)}>
+          <DropdownMenuItem onSelect={openQuickSave}>
             <Save data-icon="inline-start" />
             快速保存
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {canUseHistory && resumeId && (
+      {quickSaveResumeId && (
         <QuickSaveVersionDialog
-          open={quickSaveOpen}
-          onOpenChange={setQuickSaveOpen}
-          resumeId={resumeId}
+          key={quickSaveResumeId}
+          open
+          onOpenChange={(open) => {
+            if (!open)
+              setQuickSaveResumeId(null)
+          }}
+          resumeId={quickSaveResumeId}
         />
       )}
     </>
