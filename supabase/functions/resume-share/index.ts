@@ -2,6 +2,11 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../shared/cors.ts'
+import {
+  derivePasswordGeneration,
+  signCommentToken,
+} from '../shared/resume-comment-auth.ts'
+import { buildCommentAnchorDocument } from '../shared/resume-comment-core.ts'
 
 const PASSWORD_ALGORITHM = 'pbkdf2-sha256'
 const PASSWORD_ITERATIONS = 310_000
@@ -24,6 +29,9 @@ interface GetResult {
   release_id?: string
   release_no?: number
   allow_comments?: boolean
+  comment_scope_id?: string
+  comment_access_token?: string
+  comment_access_expires_at?: string
   error?: string
 }
 
@@ -33,7 +41,16 @@ interface CurrentReleaseRow {
   snapshot: unknown
   template_manifest: unknown
   display_name: string | null
+  created_at: string
 }
+
+function createAdminClient(url: string, serviceRoleKey: string) {
+  return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+type AdminClient = ReturnType<typeof createAdminClient>
 
 function readCurrentRelease(value: unknown): CurrentReleaseRow | null {
   const release = (Array.isArray(value) ? value[0] : value) as CurrentReleaseRow | null
@@ -147,7 +164,7 @@ async function verifyPassword(password: string, storedHash: string) {
 
 async function authenticateOwner(
   req: Request,
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
 ) {
   const authHeader = req.headers.get('Authorization') ?? ''
   const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
@@ -158,7 +175,7 @@ async function authenticateOwner(
 }
 
 async function verifyShareOwnership(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   shareId: string,
   userId: string,
 ) {
@@ -172,7 +189,7 @@ async function verifyShareOwnership(
 }
 
 async function consumeOwnerWriteLimit(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   userId: string,
 ) {
   const { data, error } = await admin.rpc('consume_resume_share_owner_write', {
@@ -182,6 +199,43 @@ async function consumeOwnerWriteLimit(
     p_block_seconds: 60,
   })
   return !error && Boolean(data)
+}
+
+async function ensureShareCommentScope(
+  admin: AdminClient,
+  release: CurrentReleaseRow,
+) {
+  const { data: existing, error: existingError } = await admin
+    .from('resume_comment_scopes')
+    .select('id')
+    .eq('kind', 'share_release')
+    .eq('share_release_id', release.id)
+    .maybeSingle()
+  if (existingError) {
+    throw existingError
+  }
+  if (existing?.id) {
+    return existing.id as string
+  }
+
+  const referenceDate = release.created_at.slice(0, 10)
+  const { document, documentHash } = buildCommentAnchorDocument(
+    release.snapshot,
+    referenceDate,
+  )
+  const { data, error } = await admin.rpc(
+    'ensure_resume_share_release_comment_scope',
+    {
+      p_share_release_id: release.id,
+      p_anchor_document: document,
+      p_document_hash: documentHash,
+      p_projection_reference_date: referenceDate,
+    },
+  )
+  if (error || typeof data !== 'string') {
+    throw error ?? new Error('Unable to ensure share comment scope')
+  }
+  return data
 }
 
 Deno.serve(async (req) => {
@@ -197,9 +251,7 @@ Deno.serve(async (req) => {
   if (!supabaseUrl || !serviceRoleKey) {
     return json({ error: 'service credentials not configured' }, 500)
   }
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  const admin = createAdminClient(supabaseUrl, serviceRoleKey)
 
   try {
     // ============ 匿名读取：GET ?token / POST { token, password }（读取意图） ============
@@ -339,7 +391,8 @@ Deno.serve(async (req) => {
           release_no,
           snapshot,
           template_manifest,
-          display_name
+          display_name,
+          created_at
         )
       `)
       .eq('token', token)
@@ -417,6 +470,25 @@ Deno.serve(async (req) => {
     if (viewError)
       console.error('record_resume_share_view failed:', viewError.message)
 
+    const commentTokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
+    const scopeId = await ensureShareCommentScope(admin, currentRelease)
+    const issuedAt = Math.floor(Date.now() / 1_000)
+    const expiresAtSeconds = issuedAt + 15 * 60
+    const passwordGeneration = await derivePasswordGeneration(
+      data.password_hash,
+      commentTokenSecret,
+    )
+    const commentAccessToken = await signCommentToken({
+      version: 1,
+      kind: 'share',
+      issuedAt,
+      expiresAt: expiresAtSeconds,
+      shareId: data.id,
+      releaseId: currentRelease.id,
+      scopeId,
+      passwordGeneration,
+    }, commentTokenSecret)
+
     // 匿名读取只返回固化快照、模板与标题，绝不返回 password_hash / user_id 等敏感字段。
     return json({
       snapshot: currentRelease.snapshot,
@@ -426,6 +498,9 @@ Deno.serve(async (req) => {
       release_id: currentRelease.id,
       release_no: currentRelease.release_no,
       allow_comments: data.allow_comments,
+      comment_scope_id: scopeId,
+      comment_access_token: commentAccessToken,
+      comment_access_expires_at: new Date(expiresAtSeconds * 1_000).toISOString(),
     } satisfies GetResult)
   }
   catch (err) {

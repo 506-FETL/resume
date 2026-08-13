@@ -54,6 +54,11 @@ DECLARE
   v_event_one bigint;
   v_event_two bigint;
   v_retry integer;
+  v_api_response jsonb;
+  v_api_replay jsonb;
+  v_api_thread_id uuid;
+  v_api_comment_id uuid;
+  v_identity_response jsonb;
   v_anchor_document jsonb := '{
     "nodes": [
       {
@@ -314,6 +319,141 @@ BEGIN
   PERFORM pg_temp.assert_true(
     NOT public.claim_resume_comment_request('user:' || v_owner_id::text, v_share_one_id),
     '相同 actor + request_id 必须被识别为重放'
+  );
+
+  v_identity_response := public.create_resume_comment_anonymous_identity(
+    v_share_one_id,
+    v_release_scope_id,
+    repeat('e', 64),
+    'anonymous-new:' || repeat('e', 64),
+    '00000000-0000-4000-8000-000000000308'
+  );
+  PERFORM pg_temp.assert_true(
+    v_identity_response ->> 'anonymousId' IS NOT NULL
+      AND v_identity_response = public.create_resume_comment_anonymous_identity(
+        v_share_one_id,
+        v_release_scope_id,
+        repeat('e', 64),
+        'anonymous-new:' || repeat('e', 64),
+        '00000000-0000-4000-8000-000000000308'
+      ),
+    '匿名身份创建必须按 request_id 幂等'
+  );
+
+  v_api_response := public.execute_resume_comment_write(
+    'create_thread',
+    v_working_scope_id,
+    'user',
+    v_owner_id,
+    'user:' || v_owner_id::text,
+    '00000000-0000-4000-8000-000000000309',
+    jsonb_build_object(
+      'manageAll', true,
+      'anchor', v_anchor,
+      'documentHash', v_document_hash,
+      'body', '事务主评论',
+      'originalPageIndex', 0
+    )
+  );
+  v_api_thread_id := (v_api_response ->> 'threadId')::uuid;
+  v_api_comment_id := (v_api_response ->> 'commentId')::uuid;
+  v_api_replay := public.execute_resume_comment_write(
+    'create_thread',
+    v_working_scope_id,
+    'user',
+    v_owner_id,
+    'user:' || v_owner_id::text,
+    '00000000-0000-4000-8000-000000000309',
+    jsonb_build_object(
+      'manageAll', true,
+      'anchor', v_anchor,
+      'documentHash', v_document_hash,
+      'body', '不会重复创建',
+      'originalPageIndex', 0
+    )
+  );
+  PERFORM pg_temp.assert_true(
+    v_api_response = v_api_replay
+      AND EXISTS (
+        SELECT 1 FROM public.resume_comments
+        WHERE id = v_api_comment_id AND body = '事务主评论'
+      )
+      AND (
+        SELECT count(*) FROM public.resume_comment_events
+        WHERE thread_id = v_api_thread_id AND type = 'thread_created'
+      ) = 1,
+    '创建线程、主评论和 event 必须事务化且重放不重复'
+  );
+
+  v_api_response := public.execute_resume_comment_write(
+    'create_reply',
+    v_working_scope_id,
+    'user',
+    v_owner_id,
+    'user:' || v_owner_id::text,
+    '00000000-0000-4000-8000-000000000310',
+    jsonb_build_object(
+      'manageAll', true,
+      'threadId', v_api_thread_id,
+      'expectedRevision', 1,
+      'body', '事务回复'
+    )
+  );
+  PERFORM pg_temp.assert_true(
+    (v_api_response ->> 'revision')::integer = 2,
+    '回复必须递增线程 revision'
+  );
+  PERFORM pg_temp.expect_error(
+    format(
+      'SELECT public.execute_resume_comment_write(%L, %L, %L, %L, %L, %L, %L::jsonb)',
+      'resolve_thread',
+      v_working_scope_id,
+      'user',
+      v_owner_id,
+      'user:' || v_owner_id::text,
+      '00000000-0000-4000-8000-000000000311',
+      jsonb_build_object(
+        'manageAll', true,
+        'threadId', v_api_thread_id,
+        'expectedRevision', 1
+      )::text
+    ),
+    '旧 thread revision 必须稳定返回冲突'
+  );
+
+  v_api_response := public.execute_resume_comment_write(
+    'mark_read',
+    v_working_scope_id,
+    'user',
+    v_owner_id,
+    'user:' || v_owner_id::text,
+    '00000000-0000-4000-8000-000000000312',
+    jsonb_build_object('eventSeq', 999999)
+  );
+  PERFORM pg_temp.assert_true(
+    (v_api_response ->> 'eventSeq')::bigint
+      = (SELECT next_event_seq FROM public.resume_comment_scopes WHERE id = v_working_scope_id),
+    'mark_read 不得越过 scope 最新 event_seq'
+  );
+
+  v_api_response := public.sync_resume_working_comment_document_v2(
+    v_working_scope_id,
+    v_owner_id,
+    v_anchor_document,
+    v_document_hash,
+    1,
+    current_date,
+    '[]'::jsonb,
+    'user:' || v_owner_id::text,
+    '00000000-0000-4000-8000-000000000313'
+  );
+  PERFORM pg_temp.assert_true(
+    (v_api_response ->> 'documentRevision')::integer = 2
+      AND EXISTS (
+        SELECT 1 FROM public.resume_comment_events
+        WHERE scope_id = v_working_scope_id AND type = 'document_synced'
+      ),
+    'working 文档同步必须原子递增 revision 并写 event'
   );
 
   FOR counter IN 1..5 LOOP

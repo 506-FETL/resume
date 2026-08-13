@@ -1,2 +1,5 @@
 [functions.resume-share]
 verify_jwt = false
+
+[functions.resume-comments]
+verify_jwt = false

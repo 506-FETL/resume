@@ -587,10 +587,16 @@ git commit -m "feat(comments): 暴露简历语义评论节点"
 - 创建：`supabase/functions/shared/resume-comment-auth.ts`
 - 创建：`supabase/functions/shared/resume-comment-events.ts`
 - 创建：`supabase/functions/resume-comments/index.ts`
+- 创建：`supabase/migrations/20260813000003_add_resume_comment_api_transactions.sql`
+- 创建：`scripts/verify-resume-comment-service.ts`
 - 修改：`supabase/functions/resume-share/index.ts`
 - 修改：`supabase/functions/shared/resume-comment-core.ts`
+- 修改：`supabase/tests/resume-comments.sql`
+- 修改：`supabase/config.toml`
+- 修改：`src/features/resume-comments/anchors/relocate.ts`
+- 修改：`package.json`
 
-- [ ] **步骤 1：定义稳定 op 与错误协议**
+- [x] **步骤 1：定义稳定 op 与错误协议**
 
 Edge Function 只接受规格列出的 14 个 op，响应统一为：
 
@@ -609,7 +615,7 @@ type CommentApiResponse<T> =
 
 错误码固定为规格 12 节的集合；未知 op 返回 `not_found`，内部异常返回无敏感细节的 `unexpected`。
 
-- [ ] **步骤 2：实现四类服务端 actor 鉴权**
+- [x] **步骤 2：实现四类服务端 actor 鉴权**
 
 - owner：Supabase auth user 与 scope.owner_user_id 相同；
 - collaborator：有效短期 token 绑定 session_id、resume_id、user_id、role，仅 working scope；
@@ -618,13 +624,13 @@ type CommentApiResponse<T> =
 
 登录访问者的新内容一律记 user；请求可同时附旧匿名凭证，仅用于管理原浏览器旧评论，不做身份合并。
 
-- [ ] **步骤 3：签发和刷新公开评论访问令牌**
+- [x] **步骤 3：签发和刷新公开评论访问令牌**
 
 `resume-share` 在分享状态、有效期和密码校验后签发 token，并返回 release/scope/allowComments/15 分钟 expiresAt。token 原文不入库；每次评论写入重新校验 share 当前 release，因此重新发布后旧 token 立即返回 `stale_release`。
 
 签发前若 backfill release 尚无 scope，`resume-share` 必须用 `resume-comment-core.ts` 从数据库中的 release snapshot 和 release.created_at 构造权威文档，再调用 service-role-only ensure RPC；不得接受浏览器提交的 anchor document。
 
-- [ ] **步骤 4：实现读取、写入和权限矩阵**
+- [x] **步骤 4：实现读取、写入和权限矩阵**
 
 实现 bootstrap/list/create/reply/edit/delete/resolve/reopen/relink/mark_read/sync document。每个写请求：
 
@@ -638,11 +644,11 @@ type CommentApiResponse<T> =
 
 根评论有回复时删除为 tombstone；owner 删除线程为软删除并写审计事件。
 
-- [ ] **步骤 5：实现脱敏实时失效通知**
+- [x] **步骤 5：实现脱敏实时失效通知**
 
 数据库提交成功后广播仅包含 `eventSeq` 和事件种类的通知，不包含 scope ID、正文、用户资料、匿名 ID、secret hash 或限流 key。公开 topic 由 `base64url(HMAC(realtimeSecret, scopeId:releaseId:15分钟时间桶))` 派生，令牌在当前时间桶结束时过期且最长有效 15 分钟；客户端提前刷新，服务端只向当前桶广播。owner 另获得同样短期的用户聚合 topic，用来刷新跨 scope 未读索引。广播失败不回滚数据库；客户端通过 list_threads/events 补偿。
 
-- [ ] **步骤 6：实现纯文本安全和安全链接**
+- [x] **步骤 6：实现纯文本安全和安全链接**
 
 服务端去除首尾空白与禁止控制字符，按字素计数；正文始终以字符串存储。链接识别只允许 `http:`、`https:`、`mailto:`，客户端渲染使用 React 节点，不使用 `dangerouslySetInnerHTML`。
 
@@ -655,7 +661,9 @@ supabase functions serve --no-verify-jwt
 
 另开终端用 curl 验证 owner、登录 visitor、anonymous、comments disabled、stale release、stale document、stale revision、rate limited 和 request replay。预期均返回稳定 code，且数据库无重复 comment/event。
 
-- [ ] **步骤 8：提交评论服务**
+验证记录（2026-08-13）：通过 `deno check`、纯逻辑服务脚本、锚点脚本、定向 ESLint 和 SQL parser；SQL 验证脚本已扩充匿名身份、事务创建/回复、request replay、revision 冲突、mark_read 和 working 文档同步。`supabase functions serve --no-verify-jwt` 因本机没有 Docker/Podman 无法启动，所以 curl 接口矩阵和数据库实际事务执行尚未验证，不能以静态解析代替。
+
+- [x] **步骤 8：提交评论服务**
 
 ```bash
 git add supabase/functions/shared/resume-comment-core.ts supabase/functions/shared/resume-comment-schema.ts supabase/functions/shared/resume-comment-auth.ts supabase/functions/shared/resume-comment-events.ts supabase/functions/resume-comments/index.ts supabase/functions/resume-share/index.ts
