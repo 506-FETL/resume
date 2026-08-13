@@ -196,10 +196,11 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
   }
 
   function handleConfirm() {
-    if (!allFieldsValid) {
+    if (!allFieldsValid || !fineSessionActiveRef.current) {
       return
     }
 
+    fineSessionActiveRef.current = false
     if (isDirty) {
       commitSpacingPreview()
     }
@@ -207,7 +208,6 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
       discardSpacingPreview()
     }
 
-    fineSessionActiveRef.current = false
     setBaseline(null)
     setOpen(false)
   }
