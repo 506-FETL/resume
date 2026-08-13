@@ -51,14 +51,6 @@ export function normalizeResumeFontFamily(value: unknown): ResumeFontFamily {
   return RESUME_FONT_FAMILIES.sans
 }
 
-export const fontSizeOptions = [
-  { label: '小号 (12px)', value: 12 },
-  { label: '正常 (14px)', value: 14 },
-  { label: '中等 (16px)', value: 16 },
-  { label: '大号 (18px)', value: 18 },
-  { label: '特大 (20px)', value: 20 },
-] as const
-
 export const fontConfigSchema = z.object({
   fontFamily: fontFamilyEnum.default(RESUME_FONT_FAMILIES.sans),
   fontSize: z.number().min(10).max(24).default(14),
