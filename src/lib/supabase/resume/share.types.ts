@@ -43,6 +43,23 @@ export interface ResumeShareReleaseSummary {
   createdAt: string
 }
 
+export interface ResumeShareReviewRelease {
+  id: string
+  shareId: string
+  releaseNo: number
+  shareLabel: string | null
+  displayName: string | null
+  archivedAt: string | null
+  isCurrent: boolean
+  createdAt: string
+}
+
+export interface ResumeShareReviewPayload {
+  snapshot: PersistedResumeSnapshot
+  templateManifest: TemplateManifest
+  displayName: string | null
+}
+
 export type CurrentResumeShareSnapshotProvider
   = (resumeId: string) => Promise<ResumeShareSnapshotSource>
 
@@ -82,6 +99,7 @@ export interface CreateShareOptions {
   label?: string | null
   password?: string | null
   expiresAt?: string | null
+  allowComments?: boolean
 }
 
 /** 匿名访问分享页的读取结果 */

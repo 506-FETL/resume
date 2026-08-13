@@ -40,6 +40,7 @@ export function useCommentRealtime({
     let cancelled = false
     let queue = Promise.resolve()
     const realtime = new ResumeCommentRealtimeSubscription(client)
+    const ownerRealtime = new ResumeCommentRealtimeSubscription(client, 'owner')
 
     const handleError = (error: unknown) => {
       if (cancelled)
@@ -49,6 +50,7 @@ export function useCommentRealtime({
           store.getState().setAccessState('unavailable', error.code)
           onAccessInvalidated?.(error.code)
           realtime.disconnect()
+          ownerRealtime.disconnect()
           return
         }
         if (error.code === 'comments_disabled') {
@@ -62,6 +64,25 @@ export function useCommentRealtime({
 
     const enqueue = (action: () => Promise<void>) => {
       queue = queue.then(action).catch(handleError)
+    }
+
+    const refreshCurrentAccess = async () => {
+      if (!refreshAccess)
+        return true
+      const previous = client.getAccessContext()
+      const next = await refreshAccess()
+      if (accessChangedRelease(previous, next)) {
+        store.getState().setAccessState('unavailable', 'stale_release')
+        onAccessInvalidated?.('stale_release')
+        realtime.disconnect()
+        ownerRealtime.disconnect()
+        return false
+      }
+      client.setAccessContext(next)
+      store.getState().setAccessState(
+        next.kind === 'share' && !next.commentsEnabled ? 'read_only' : 'active',
+      )
+      return true
     }
 
     const bootstrap = async () => {
@@ -83,6 +104,12 @@ export function useCommentRealtime({
       realtime.connect(response.data.scopeRealtime, {
         onInvalidation: (event) => {
           enqueue(async () => {
+            if (event.type === 'settings_changed') {
+              if (!await refreshCurrentAccess())
+                return
+              await bootstrap()
+              return
+            }
             const lastEventSeq = store.getState().lastEventSeq
             const recovery = decideCommentRealtimeRecovery(lastEventSeq, event.eventSeq)
             if (recovery === 'ignore')
@@ -104,10 +131,23 @@ export function useCommentRealtime({
         onProtocolMismatch: () => enqueue(bootstrap),
         onStatusChange: status => store.getState().setConnection(status),
       })
+      if (response.data.ownerRealtime) {
+        ownerRealtime.connect(response.data.ownerRealtime, {
+          // Owner topic 汇总所有可访问 scope；事件序号不属于当前 scope，
+          // 因此直接 bootstrap 刷新来源未读数，不与当前序号做比较。
+          onInvalidation: () => enqueue(bootstrap),
+          onProtocolMismatch: () => enqueue(bootstrap),
+          onStatusChange: () => undefined,
+        })
+      }
+      else {
+        ownerRealtime.disconnect()
+      }
     }
 
     const handleOffline = () => {
       realtime.disconnect()
+      ownerRealtime.disconnect()
       store.getState().setConnection('offline')
     }
     const handleOnline = () => enqueue(bootstrap)
@@ -122,18 +162,8 @@ export function useCommentRealtime({
     const refreshTimer = refreshAccess
       ? window.setInterval(() => {
           enqueue(async () => {
-            const previous = client.getAccessContext()
-            const next = await refreshAccess()
-            if (accessChangedRelease(previous, next)) {
-              store.getState().setAccessState('unavailable', 'stale_release')
-              onAccessInvalidated?.('stale_release')
-              realtime.disconnect()
+            if (!await refreshCurrentAccess())
               return
-            }
-            client.setAccessContext(next)
-            store.getState().setAccessState(
-              next.kind === 'share' && !next.commentsEnabled ? 'read_only' : 'active',
-            )
             await bootstrap()
           })
         }, 60_000)
@@ -142,6 +172,7 @@ export function useCommentRealtime({
     return () => {
       cancelled = true
       realtime.disconnect()
+      ownerRealtime.disconnect()
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('online', handleOnline)
       if (refreshTimer)

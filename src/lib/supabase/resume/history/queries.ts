@@ -281,13 +281,22 @@ export async function deleteResumeHistoryVersion(id: number) {
     throw new Error('用户未登陆')
   }
 
-  const { error } = await supabase
-    .from('resume_config_versions')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)
+  const { error } = await supabase.rpc('delete_resume_history_version_with_comments', {
+    p_history_version_id: id,
+  })
 
   if (error) {
     throw error
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('resume-history-version-deleted', {
+      detail: { historyVersionId: id },
+    }))
+  }
+  if (typeof BroadcastChannel !== 'undefined') {
+    const channel = new BroadcastChannel('resume-history-events')
+    channel.postMessage({ type: 'history-version-deleted', historyVersionId: id })
+    channel.close()
   }
 }

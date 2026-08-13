@@ -31,13 +31,15 @@ function readInvalidation(value: unknown): CommentRealtimeInvalidation | null {
 
 export class ResumeCommentRealtimeSubscription {
   private readonly client: ResumeCommentClient
+  private readonly accessKind: 'owner' | 'scope'
   private channel: RealtimeChannel | null = null
   private refreshTimer: ReturnType<typeof setTimeout> | null = null
   private callbacks: CommentRealtimeCallbacks | null = null
   private generation = 0
 
-  constructor(client: ResumeCommentClient) {
+  constructor(client: ResumeCommentClient, accessKind: 'owner' | 'scope' = 'scope') {
     this.client = client
+    this.accessKind = accessKind
   }
 
   connect(access: CommentRealtimeAccess, callbacks: CommentRealtimeCallbacks) {
@@ -110,7 +112,12 @@ export class ResumeCommentRealtimeSubscription {
       const response = await this.client.issueRealtimeToken()
       if (generation !== this.generation || !this.callbacks)
         return
-      this.subscribe(response.data.scopeRealtime)
+      const access = this.accessKind === 'owner'
+        ? response.data.ownerRealtime
+        : response.data.scopeRealtime
+      if (!access)
+        throw new Error('Realtime access is unavailable')
+      this.subscribe(access)
     }
     catch {
       if (generation === this.generation)

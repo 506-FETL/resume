@@ -8,6 +8,8 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
   statusFilter: 'all',
   settingsDialogOpen: false,
   settingsShareId: null,
+  archiveDialogOpen: false,
+  archiveShareId: null,
   deleteDialogOpen: false,
   deleteShareId: null,
   versionDialogOpen: false,
@@ -44,6 +46,11 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
     settingsDialogOpen: true,
   }),
   closeSettingsDialog: () => set({ settingsDialogOpen: false }),
+  openArchiveDialog: archiveShareId => set({
+    archiveShareId,
+    archiveDialogOpen: true,
+  }),
+  closeArchiveDialog: () => set({ archiveDialogOpen: false }),
   openDeleteDialog: deleteShareId => set({
     deleteShareId,
     deleteDialogOpen: true,

@@ -1,7 +1,7 @@
 import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
-import { createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
+import { archiveResumeShare, createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
 
 const versionOptionRequests = new Map<string, Promise<void>>()
@@ -259,6 +259,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
                 has_password: settings.password === undefined
                   ? share.has_password
                   : Boolean(settings.password),
+                allowComments: settings.allowComments,
               }
             : share
         )),
@@ -293,6 +294,28 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     }
   },
 
+  archive: async (shareId) => {
+    if (get().pendingShareIds.includes(shareId))
+      throw new Error('操作正在进行中')
+
+    set(state => ({ pendingShareIds: addPending(state.pendingShareIds, shareId) }))
+    try {
+      await archiveResumeShare(shareId)
+      const archivedAt = new Date().toISOString()
+      set(state => ({
+        ...mapShareLists(state, share => share.id === shareId
+          ? { ...share, archivedAt, is_active: false }
+          : share),
+        archiveDialogOpen: state.archiveShareId === shareId
+          ? false
+          : state.archiveDialogOpen,
+      }))
+    }
+    finally {
+      set(state => ({ pendingShareIds: removePending(state.pendingShareIds, shareId) }))
+    }
+  },
+
   remove: async (shareId) => {
     if (get().pendingShareIds.includes(shareId))
       throw new Error('操作正在进行中')
@@ -308,6 +331,9 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         settingsDialogOpen: state.settingsShareId === shareId
           ? false
           : state.settingsDialogOpen,
+        archiveDialogOpen: state.archiveShareId === shareId
+          ? false
+          : state.archiveDialogOpen,
         deleteDialogOpen: state.deleteShareId === shareId
           ? false
           : state.deleteDialogOpen,

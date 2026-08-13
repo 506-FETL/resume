@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
+import type { ORDERType } from '@/lib/schema'
 import { Edit, MessageSquareText } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -9,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
+import { CommentSourceSelector } from '@/features/resume-comments/components/comment-source-selector.tsx'
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
 import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -26,10 +28,11 @@ import { CollaborationRuntime } from './components/collaboration/collaboration-r
 import EditPanel from './components/edit-panel'
 import ResumePreview from './components/preview'
 import SidebarEditor from './components/sidebar'
-import { usePrepareWorkingCommentWrite, useWorkingDocumentCommentSync } from './hooks/use-comment-review-mode'
+import { useCommentReviewMode, usePrepareWorkingCommentWrite, useWorkingDocumentCommentSync } from './hooks/use-comment-review-mode'
 import { useEditPanel } from './hooks/use-edit-panel'
 import { useResumeLoader } from './hooks/use-resume-loader'
 import { useScrollToSection } from './hooks/use-scroll-to-section'
+import { useResumeReviewStore } from './review-store'
 
 function Editor() {
   const isMobile = useIsMobile()
@@ -38,6 +41,11 @@ function Editor() {
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
   const restoreEditPanelRef = useRef(false)
+  const reviewUiRef = useRef<{
+    activeTabId: ORDERType
+    panelOpen: boolean
+    scrollTop: number
+  } | null>(null)
   const { theme } = useTheme()
   const { currentUser, loading } = useResumeLoader()
 
@@ -94,6 +102,16 @@ function Editor() {
   // 桌面编辑面板开关 + 左导航自动让位（桌面恒为右侧常驻侧栏）
   const { open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
   const prepareCommentWrite = usePrepareWorkingCommentWrite(currentResumeId)
+  const commentReview = useCommentReviewMode({
+    resumeId: currentResumeId,
+    workingLabel: currentDisplayName ?? resumeName ?? '当前简历',
+    enabled: commentsOpen,
+  })
+  const setReviewActive = useResumeReviewStore(state => state.setActive)
+  useEffect(() => {
+    setReviewActive(!commentReview.isWorking)
+    return () => setReviewActive(false)
+  }, [commentReview.isWorking, setReviewActive])
   const handleCommentsOpenChange = useCallback((nextOpen: boolean) => {
     setCommentsOpen(nextOpen)
     if (nextOpen) {
@@ -103,10 +121,10 @@ function Editor() {
         setOpen(false)
       return
     }
-    if (restoreEditPanelRef.current && !isMobile)
+    if (restoreEditPanelRef.current && !isMobile && commentReview.isWorking)
       setPanelOpen(true)
     restoreEditPanelRef.current = false
-  }, [isMobile, open, panelOpen, setPanelOpen])
+  }, [commentReview.isWorking, isMobile, open, panelOpen, setPanelOpen])
   const handleMobileEditOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen)
     if (nextOpen && commentsOpen)
@@ -119,6 +137,35 @@ function Editor() {
     updateActiveTabId(id)
     scrollToSection(id)
   }, [updateActiveTabId, scrollToSection])
+  const handleCommentSourceChange = useCallback(async (key: Parameters<typeof commentReview.selectSource>[0]) => {
+    const enteringReview = commentReview.isWorking && key !== 'working'
+    const leavingReview = !commentReview.isWorking && key === 'working'
+    if (enteringReview) {
+      reviewUiRef.current = {
+        activeTabId,
+        panelOpen,
+        scrollTop: previewScrollRef.current?.scrollTop ?? 0,
+      }
+      restoreEditPanelRef.current = panelOpen
+    }
+    const changed = await commentReview.selectSource(key)
+    if (!changed)
+      return
+    if (key !== 'working') {
+      setPanelOpen(false)
+      setOpen(false)
+      return
+    }
+    if (leavingReview && reviewUiRef.current) {
+      const saved = reviewUiRef.current
+      updateActiveTabId(saved.activeTabId)
+      restoreEditPanelRef.current = saved.panelOpen
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        previewScrollRef.current?.scrollTo({ top: saved.scrollTop })
+      }))
+      reviewUiRef.current = null
+    }
+  }, [activeTabId, commentReview, panelOpen, setPanelOpen, updateActiveTabId])
 
   const handleOpenSortDialog = useCallback(() => {
     requestAnimationFrame(() => {
@@ -160,10 +207,13 @@ function Editor() {
                     sourceRef={sourceRef}
                     onDocumentStateChange={setDocumentState}
                     scrollContainerRef={previewScrollRef}
+                    snapshotOverride={commentReview.snapshotOverride}
+                    manifestOverride={commentReview.manifestOverride}
+                    projectionReferenceDate={commentReview.projectionReferenceDate}
                   />
                 </div>
                 <EditPanel
-                  open={panelOpen}
+                  open={panelOpen && commentReview.isWorking}
                   order={order}
                   visibilityState={visibilityState}
                   onActivate={handleActivateWithScroll}
@@ -172,7 +222,7 @@ function Editor() {
                   onClose={() => setPanelOpen(false)}
                 />
                 <AnimatePresence>
-                  {!panelOpen && !commentsOpen && (
+                  {!panelOpen && !commentsOpen && commentReview.isWorking && (
                     <motion.div
                       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -200,43 +250,48 @@ function Editor() {
         : (
             // 移动端：底部抽屉
             <>
-              <Drawer open={open} onOpenChange={handleMobileEditOpenChange} showSwipeHandle>
-                <DrawerTrigger
-                  render={(
-                    <Button
-                      variant="outline"
-                      className="fixed bottom-6 left-1/2 z-1 -transform -translate-x-1/2"
-                      size="icon"
-                    />
-                  )}
-                >
-                  <Edit />
-                </DrawerTrigger>
-                <DrawerContent className="h-160">
-                  <CollaborationControls onOpenSortDialog={handleOpenSortDialog} />
-                  <div className="@container/panel p-4 overflow-y-auto overflow-x-hidden">
-                    <SidebarEditor
-                      activeTabId={activeTabId}
-                      order={order}
-                      visibilityState={visibilityState}
-                      fill={fill}
-                      stroke={stroke}
-                      isMobile={isMobile}
-                      sortDialogOpen={sortDialogOpen}
-                      onSortDialogOpenChange={setSortDialogOpen}
-                      onUpdateActiveTabId={updateActiveTabId}
-                      onUpdateOrder={updateOrder}
-                      onToggleVisibility={toggleVisibility}
-                    />
-                  </div>
-                </DrawerContent>
-              </Drawer>
+              {commentReview.isWorking && (
+                <Drawer open={open} onOpenChange={handleMobileEditOpenChange} showSwipeHandle>
+                  <DrawerTrigger
+                    render={(
+                      <Button
+                        variant="outline"
+                        className="fixed bottom-6 left-1/2 z-1 -transform -translate-x-1/2"
+                        size="icon"
+                      />
+                    )}
+                  >
+                    <Edit />
+                  </DrawerTrigger>
+                  <DrawerContent className="h-160">
+                    <CollaborationControls onOpenSortDialog={handleOpenSortDialog} />
+                    <div className="@container/panel p-4 overflow-y-auto overflow-x-hidden">
+                      <SidebarEditor
+                        activeTabId={activeTabId}
+                        order={order}
+                        visibilityState={visibilityState}
+                        fill={fill}
+                        stroke={stroke}
+                        isMobile={isMobile}
+                        sortDialogOpen={sortDialogOpen}
+                        onSortDialogOpenChange={setSortDialogOpen}
+                        onUpdateActiveTabId={updateActiveTabId}
+                        onUpdateOrder={updateOrder}
+                        onToggleVisibility={toggleVisibility}
+                      />
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+              )}
               <div className="flex flex-col md:flex-row min-h-screen overflow-auto">
                 <ResumePreview
                   resumeRef={documentRef}
                   sourceRef={sourceRef}
                   onDocumentStateChange={setDocumentState}
                   scrollContainerRef={previewScrollRef}
+                  snapshotOverride={commentReview.snapshotOverride}
+                  manifestOverride={commentReview.manifestOverride}
+                  projectionReferenceDate={commentReview.projectionReferenceDate}
                 />
               </div>
             </>
@@ -245,18 +300,32 @@ function Editor() {
         ? (
             <ResumeCommentProvider
               key={currentResumeId}
-              access={{ kind: 'owner', resumeId: currentResumeId }}
-              beforeWrite={prepareCommentWrite}
+              access={commentReview.access}
+              beforeWrite={commentReview.isWorking ? prepareCommentWrite : undefined}
               commentsVisible={commentsOpen}
+              panelHeaderContent={(
+                <>
+                  <CommentSourceSelector
+                    options={commentReview.sources}
+                    value={commentReview.selectedKey}
+                    loading={commentReview.sourcesLoading || commentReview.switching}
+                    onChange={value => handleCommentSourceChange(value).catch(() => undefined)}
+                  />
+                  {commentReview.error
+                    ? <p className="mt-2 text-xs text-destructive">{commentReview.error}</p>
+                    : null}
+                </>
+              )}
             >
               <WorkingResumeComments
                 resumeId={currentResumeId}
+                syncWorkingDocument={commentReview.isWorking}
                 rootRef={documentRef}
-                sourceLabel={currentDisplayName ?? resumeName ?? '当前简历'}
+                sourceLabel={commentReview.sourceLabel}
                 currentUserId={currentUser?.id ?? null}
                 open={commentsOpen}
                 onOpenChange={handleCommentsOpenChange}
-                layoutRevision={JSON.stringify(documentState.signature)}
+                layoutRevision={`${commentReview.selectedKey}:${JSON.stringify(documentState.signature)}`}
               />
             </ResumeCommentProvider>
           )
@@ -284,6 +353,7 @@ function Editor() {
 
 function WorkingResumeComments({
   resumeId,
+  syncWorkingDocument,
   rootRef,
   sourceLabel,
   currentUserId,
@@ -292,6 +362,7 @@ function WorkingResumeComments({
   layoutRevision,
 }: {
   resumeId: string
+  syncWorkingDocument: boolean
   rootRef: RefObject<HTMLElement | null>
   sourceLabel: string
   currentUserId: string | null
@@ -299,7 +370,7 @@ function WorkingResumeComments({
   onOpenChange: (open: boolean) => void
   layoutRevision: string
 }) {
-  useWorkingDocumentCommentSync(resumeId)
+  useWorkingDocumentCommentSync(resumeId, syncWorkingDocument)
   const hasUnread = useResumeCommentStore(state => state.lastEventSeq > state.lastReadEventSeq)
   return (
     <>

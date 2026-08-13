@@ -1,5 +1,7 @@
 import type { RefObject } from 'react'
 import type { ResumeDocumentStateChange } from '@/components/resume/pagination/types'
+import type { TemplateManifest } from '@/lib/resume-template/schema'
+import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { useEffect, useMemo, useState } from 'react'
 import ScaledResumeDocument from '@/components/resume/pagination/scaled-resume-document'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
@@ -14,6 +16,9 @@ interface ResumePreviewProps {
   sourceRef?: RefObject<HTMLDivElement | null>
   onDocumentStateChange?: ResumeDocumentStateChange
   scrollContainerRef?: RefObject<HTMLDivElement | null>
+  snapshotOverride?: PersistedResumeSnapshot | null
+  manifestOverride?: TemplateManifest | null
+  projectionReferenceDate?: string
 }
 
 export default function ResumePreview({
@@ -21,19 +26,28 @@ export default function ResumePreview({
   sourceRef,
   onDocumentStateChange,
   scrollContainerRef,
+  snapshotOverride,
+  manifestOverride,
+  projectionReferenceDate,
 }: ResumePreviewProps) {
   const { type, templateBinding, basics, job_intent: jobIntent, application_info: applicationInfo, edu_background: eduBackground, work_experience: workExperience, internship_experience: internshipExperience, campus_experience: campusExperience, project_experience: projectExperience, skill_specialty: skillSpecialty, honors_certificates: honorsCertificates, self_evaluation: selfEvaluation, hobbies, order, visibility } = useResumeStore()
   const spacing = useResumeConfigStore(state => state.spacing)
   const spacingPreview = useResumeConfigStore(state => state.spacingPreview)
   const font = useResumeConfigStore(state => state.font)
   const theme = useResumeConfigStore(state => state.theme)
-  const editorAppearance = useMemo(() => ({
-    spacing: spacingPreview ?? spacing,
-    font,
-    theme,
-  }), [font, spacing, spacingPreview, theme])
+  const editorAppearance = useMemo(() => snapshotOverride
+    ? {
+        spacing: snapshotOverride.spacing,
+        font: snapshotOverride.font,
+        theme: snapshotOverride.theme,
+      }
+    : {
+        spacing: spacingPreview ?? spacing,
+        font,
+        theme,
+      }, [font, snapshotOverride, spacing, spacingPreview, theme])
 
-  const previewData = buildTemplateResumeData({
+  const previewData = buildTemplateResumeData(snapshotOverride ?? {
     basics,
     job_intent: jobIntent,
     application_info: applicationInfo,
@@ -58,15 +72,21 @@ export default function ResumePreview({
     let cancelled = false
 
     async function loadManifest() {
-      const fallbackManifest = getBuiltInTemplateManifest(templateBinding?.basedOnResumeType ?? type)
+      if (manifestOverride) {
+        setManifest(manifestOverride)
+        return
+      }
+      const effectiveType = snapshotOverride?.type ?? type
+      const effectiveBinding = snapshotOverride?.templateBinding ?? templateBinding
+      const fallbackManifest = getBuiltInTemplateManifest(effectiveBinding?.basedOnResumeType ?? effectiveType)
 
-      if (!templateBinding) {
+      if (!effectiveBinding) {
         setManifest(fallbackManifest)
         return
       }
 
       try {
-        const resolvedManifest = await getManifestFromTemplateBinding(templateBinding)
+        const resolvedManifest = await getManifestFromTemplateBinding(effectiveBinding)
         if (!cancelled) {
           setManifest(resolvedManifest ?? fallbackManifest)
         }
@@ -83,7 +103,7 @@ export default function ResumePreview({
     return () => {
       cancelled = true
     }
-  }, [templateBinding, type])
+  }, [manifestOverride, snapshotOverride, templateBinding, type])
 
   return (
     <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto p-3 md:p-8">
@@ -94,6 +114,7 @@ export default function ResumePreview({
           manifest.id,
           manifest.version,
           editorAppearance,
+          projectionReferenceDate,
         ])}
         documentRef={resumeRef}
         sourceRef={sourceRef}
@@ -103,6 +124,7 @@ export default function ResumePreview({
           data={previewData}
           manifest={manifest}
           appearance={editorAppearance}
+          projectionReferenceDate={projectionReferenceDate}
         />
       </ScaledResumeDocument>
     </div>

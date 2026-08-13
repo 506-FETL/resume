@@ -1,4 +1,4 @@
-import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareReleaseSummary, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
+import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareReleaseSummary, ResumeShareReviewPayload, ResumeShareReviewRelease, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
@@ -254,6 +254,7 @@ export async function createResumeShareRelease(
       snapshot: release.snapshot,
       template_manifest: release.templateManifest,
       expires_at: options.expiresAt ?? null,
+      allow_comments: options.allowComments ?? true,
       ...toShareVersionSourcePatch(release.source),
       // 发布批次和密码都就绪前保持关闭，避免公开读取到半初始化记录。
       is_active: false,
@@ -271,6 +272,7 @@ export async function createResumeShareRelease(
         label: options.label ?? null,
         expiresAt: options.expiresAt ?? null,
         password: options.password!,
+        allowComments: options.allowComments ?? true,
       })
     }
 
@@ -299,6 +301,7 @@ export async function updateResumeShareSettings(
     label: string | null
     expiresAt: string | null
     password: string | null | undefined
+    allowComments: boolean
   },
 ): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -317,6 +320,7 @@ export async function updateResumeShareSettings(
       shareId,
       label: settings.label,
       expiresAt: settings.expiresAt,
+      allowComments: settings.allowComments,
       ...(settings.password !== undefined ? { password: settings.password } : {}),
     }),
   })
@@ -324,6 +328,76 @@ export async function updateResumeShareSettings(
     const text = await response.text().catch(() => '')
     throw new Error(`更新分享设置失败: ${text}`)
   }
+}
+
+export async function listResumeShareReviewReleases(
+  resumeId: string,
+): Promise<ResumeShareReviewRelease[]> {
+  const user = await getCurrentUser()
+  if (!user)
+    throw new Error('用户未登录')
+
+  const { data, error } = await supabase
+    .from('resume_share_releases')
+    .select(`
+      id,
+      share_id,
+      release_no,
+      display_name,
+      created_at,
+      share:resume_shares!inner(
+        id,
+        resume_id,
+        user_id,
+        label,
+        archived_at,
+        current_release_id
+      )
+    `)
+    .eq('share.resume_id', resumeId)
+    .eq('share.user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error)
+    throw error
+  return (data ?? []).map((row: Record<string, any>) => {
+    const share = (Array.isArray(row.share) ? row.share[0] : row.share) as Record<string, any>
+    return {
+      id: row.id,
+      shareId: row.share_id,
+      releaseNo: row.release_no,
+      shareLabel: share?.label ?? null,
+      displayName: row.display_name ?? null,
+      archivedAt: share?.archived_at ?? null,
+      isCurrent: share?.current_release_id === row.id,
+      createdAt: row.created_at,
+    }
+  })
+}
+
+export async function getResumeShareReleaseForReview(
+  releaseId: string,
+): Promise<ResumeShareReviewPayload> {
+  const { data, error } = await supabase
+    .from('resume_share_releases')
+    .select('snapshot,template_manifest,display_name')
+    .eq('id', releaseId)
+    .single()
+  if (error)
+    throw error
+  return {
+    snapshot: data.snapshot as PersistedResumeSnapshot,
+    templateManifest: data.template_manifest as TemplateManifest,
+    displayName: data.display_name ?? null,
+  }
+}
+
+export async function archiveResumeShare(shareId: string): Promise<void> {
+  const { error } = await supabase.rpc('archive_resume_share', {
+    p_share_id: shareId,
+  })
+  if (error)
+    throw error
 }
 
 /** 原子创建不可变 release，并切换分享链接的 current release 指针。 */
@@ -358,10 +432,9 @@ export async function publishResumeShareRelease(
 }
 
 export async function deleteResumeShare(shareId: string): Promise<void> {
-  const { error } = await supabase
-    .from('resume_shares')
-    .delete()
-    .eq('id', shareId)
+  const { error } = await supabase.rpc('delete_resume_share_permanently', {
+    p_share_id: shareId,
+  })
   if (error)
     throw error
 }

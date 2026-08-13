@@ -16,6 +16,7 @@ export interface CommentScopeSummary {
   shareReleaseId: string | null
   documentHash: string
   documentRevision: number
+  nodeOrder: string[]
   projectionReferenceDate: string
   nextEventSeq: number
 }
@@ -26,8 +27,10 @@ export interface AccessibleCommentScopeSummary {
   resumeId: string
   historyVersionId: number | null
   shareReleaseId: string | null
+  projectionReferenceDate: string
   documentRevision: number
   nextEventSeq: number
+  lastReadEventSeq: number
   updatedAt: string
 }
 
@@ -57,7 +60,10 @@ export interface ResumeCommentStoreState {
   activeThreadId: string | null
   selection: PendingCommentSelection | null
   draftsByThreadKey: Record<string, string>
+  draftsByScopeId: Record<string, Record<string, string>>
   preserveDraftsOnNextScope: boolean
+  relinkThreadId: string | null
+  relinkError: string | null
   lastEventSeq: number
   lastReadEventSeq: number
   highlightsHidden: boolean
@@ -83,6 +89,10 @@ export interface ResumeCommentStoreState {
   setDraft: (threadKey: string, value: string) => void
   clearDraft: (threadKey: string) => void
   preserveDraftsForNextScope: () => void
+  beginScopeSwitch: () => void
+  beginRelink: (threadId: string) => void
+  cancelRelink: () => void
+  setRelinkError: (message: string | null) => void
   setHighlightsHidden: (hidden: boolean) => void
   setConnection: (connection: CommentConnectionState) => void
   setAccessState: (state: CommentAccessState, error?: CommentErrorCode | null) => void

@@ -28,6 +28,14 @@ export type CommentAccessContext
     resumeId: string
   }
   | {
+    kind: 'owner'
+    historyVersionId: number
+  }
+  | {
+    kind: 'owner'
+    shareReleaseId: string
+  }
+  | {
     kind: 'collaborator'
     accessToken: string
   }
@@ -117,6 +125,11 @@ function asNullableString(value: unknown) {
 
 function normalizeScope(value: unknown): CommentScopeSummary {
   const scope = asRecord(value)
+  const anchorDocument = asRecord(scope.anchor_document)
+  const nodeOrder = asArray(anchorDocument.nodes).flatMap((value) => {
+    const node = asRecord(value)
+    return typeof node.nodeKey === 'string' ? [node.nodeKey] : []
+  })
   return {
     id: String(scope.id ?? ''),
     kind: scope.kind === 'history' || scope.kind === 'share_release' ? scope.kind : 'working',
@@ -126,6 +139,7 @@ function normalizeScope(value: unknown): CommentScopeSummary {
     shareReleaseId: asNullableString(scope.share_release_id),
     documentHash: String(scope.document_hash ?? ''),
     documentRevision: asNumber(scope.document_revision),
+    nodeOrder,
     projectionReferenceDate: String(scope.projection_reference_date ?? ''),
     nextEventSeq: asNumber(scope.next_event_seq),
   }
@@ -139,8 +153,10 @@ function normalizeAccessibleScope(value: unknown): AccessibleCommentScopeSummary
     resumeId: String(scope.resume_id ?? ''),
     historyVersionId: scope.history_version_id == null ? null : asNumber(scope.history_version_id),
     shareReleaseId: asNullableString(scope.share_release_id),
+    projectionReferenceDate: String(scope.projection_reference_date ?? ''),
     documentRevision: asNumber(scope.document_revision),
     nextEventSeq: asNumber(scope.next_event_seq),
+    lastReadEventSeq: asNumber(scope.last_read_event_seq),
     updatedAt: String(scope.updated_at ?? ''),
   }
 }
@@ -437,7 +453,11 @@ export class ResumeCommentClient {
         accessKind: 'owner',
         ...('scopeId' in this.access
           ? { scopeId: this.access.scopeId }
-          : { resumeId: this.access.resumeId }),
+          : 'historyVersionId' in this.access
+            ? { historyVersionId: this.access.historyVersionId }
+            : 'shareReleaseId' in this.access
+              ? { shareReleaseId: this.access.shareReleaseId }
+              : { resumeId: this.access.resumeId }),
       }
     }
     if (this.access.kind === 'collaborator') {

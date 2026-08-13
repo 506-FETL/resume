@@ -7,67 +7,62 @@ import { Spinner } from '@/components/ui/spinner'
 import useShareStore from '../../store'
 import { findShareById } from '../../utils'
 
-export default function DeleteDialog() {
+export default function ArchiveDialog() {
   const {
     allShares,
     shares,
-    deleteDialogOpen,
-    deleteShareId,
+    archiveDialogOpen,
+    archiveShareId,
     pendingShareIds,
-    closeDeleteDialog,
-    remove,
+    closeArchiveDialog,
+    archive,
   } = useShareStore()
-  const share = findShareById(allShares, shares, deleteShareId)
+  const share = findShareById(allShares, shares, archiveShareId)
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
   const renderedShare = share
-    ?? (retainedShare?.id === deleteShareId ? retainedShare : null)
-  const busy = Boolean(deleteShareId && pendingShareIds.includes(deleteShareId))
+    ?? (retainedShare?.id === archiveShareId ? retainedShare : null)
+  const busy = Boolean(archiveShareId && pendingShareIds.includes(archiveShareId))
 
   useEffect(() => {
     if (share)
       setRetainedShare(share)
   }, [share])
 
-  const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+  const handleArchive = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
-    if (!deleteShareId)
+    if (!archiveShareId)
       return
-
     try {
-      await remove(deleteShareId)
-      toast.success('分享链接已永久删除')
+      await archive(archiveShareId)
+      toast.success('分享已归档')
     }
     catch {
-      toast.error('删除失败')
+      toast.error('归档失败')
     }
   }
 
   return (
     <AlertDialog
-      open={deleteDialogOpen}
+      open={archiveDialogOpen}
       onOpenChange={(open) => {
         if (!open)
-          closeDeleteDialog()
+          closeArchiveDialog()
       }}
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>永久删除分享链接？</AlertDialogTitle>
+          <AlertDialogTitle>归档分享链接？</AlertDialogTitle>
           <AlertDialogDescription>
-            删除「
+            归档「
             {renderedShare?.label || '未命名链接'}
-            」后，全部发布批次、访问记录和评论都会永久删除且无法恢复。
+            」后，外部访问会立即失效；发布批次和评论仍会保留，之后可在评论来源中继续审阅。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            disabled={!deleteShareId || busy}
-            onClick={handleDelete}
-          >
+          <AlertDialogAction disabled={!archiveShareId || busy} onClick={handleArchive}>
             {busy && <Spinner data-icon="inline-start" />}
-            永久删除
+            确认归档
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

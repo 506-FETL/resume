@@ -9,6 +9,7 @@ import {
   useResumeCommentContext,
   useResumeCommentStore,
 } from '../context.tsx'
+import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { useCommentReadReceipt } from '../hooks/use-comment-realtime.ts'
 import { useCommentSelection } from '../hooks/use-comment-selection.ts'
 import { useHighlightGeometry } from '../hooks/use-highlight-geometry.ts'
@@ -55,10 +56,14 @@ export function CommentSurface({
     state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean),
   ))
   const activeThreadId = useResumeCommentStore(state => state.activeThreadId)
+  const relinkThreadId = useResumeCommentStore(state => state.relinkThreadId)
+  const cancelRelink = useResumeCommentStore(state => state.cancelRelink)
+  const setRelinkError = useResumeCommentStore(state => state.setRelinkError)
   const setActiveThread = useResumeCommentStore(state => state.setActiveThread)
   const highlightsHidden = useResumeCommentStore(state => state.highlightsHidden)
   const accessState = useResumeCommentStore(state => state.accessState)
   const access = client.getAccessContext()
+  const actions = useCommentActions()
   const resolvedPermissions = permissions ?? {
     canCreate: access.kind === 'owner' || (access.kind === 'share' && access.commentsEnabled),
     canModerateAll: access.kind === 'owner',
@@ -85,9 +90,26 @@ export function CommentSurface({
     setOpen(true)
   }, [setActiveThread, setOpen])
 
-  const handleSelectionComment = useCallback(() => {
+  const handleSelectionComment = useCallback(async () => {
     if (!selection)
       return
+    if (relinkThreadId) {
+      const thread = threads.find(item => item.id === relinkThreadId)
+      if (!thread) {
+        setRelinkError('待关联的评论已不存在')
+        return
+      }
+      const response = await actions.relinkThread(thread)
+      if (!response) {
+        setRelinkError('重新关联失败，请重新选择文字后再试')
+        setActiveThread(thread.id)
+        setOpen(true)
+        return
+      }
+      cancelRelink()
+      openThread(thread.id)
+      return
+    }
     const matching = threads.filter(thread => (
       !thread.resolvedAt
       && thread.anchorStatus === 'anchored'
@@ -108,7 +130,7 @@ export function CommentSurface({
     setActiveThread(null)
     setCreating(true)
     setOpen(true)
-  }, [openThread, selection, setActiveThread, setOpen, threads])
+  }, [actions, cancelRelink, openThread, relinkThreadId, selection, setActiveThread, setOpen, setRelinkError, threads])
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -116,6 +138,10 @@ export function CommentSurface({
         return
       if (selection) {
         clearSelection()
+        return
+      }
+      if (relinkThreadId) {
+        cancelRelink()
         return
       }
       if (picker) {
@@ -131,7 +157,7 @@ export function CommentSurface({
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [activeThreadId, clearSelection, open, picker, selection, setActiveThread, setOpen])
+  }, [activeThreadId, cancelRelink, clearSelection, open, picker, relinkThreadId, selection, setActiveThread, setOpen])
 
   const pickedThreads = useMemo(() => picker
     ? picker.threadIds.flatMap((id) => {
@@ -159,7 +185,8 @@ export function CommentSurface({
             <SelectionAction
               selection={selection}
               disabled={!resolvedPermissions.canCreate || accessState !== 'active'}
-              onComment={handleSelectionComment}
+              mode={relinkThreadId ? 'relink' : 'comment'}
+              onComment={() => handleSelectionComment().catch(() => undefined)}
             />
           )
         : null}

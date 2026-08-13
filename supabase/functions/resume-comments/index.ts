@@ -228,6 +228,69 @@ async function resolveAccess({
     if (typeof body.scopeId === 'string') {
       scopeId = readUuid(body, 'scopeId')
     }
+    else if (body.historyVersionId !== undefined) {
+      const historyVersionId = readNonNegativeInteger(body, 'historyVersionId')
+      const { data: version, error } = await admin
+        .from('resume_config_versions')
+        .select('id,resume_id,user_id,snapshot,created_at')
+        .eq('id', historyVersionId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (error || !version) {
+        throw new CommentApiError('not_found', '历史版本不存在', 404)
+      }
+      const projectionReferenceDate = String(version.created_at).slice(0, 10)
+      const projected = buildCommentAnchorDocument(version.snapshot, projectionReferenceDate)
+      const { data, error: ensureError } = await admin.rpc(
+        'ensure_resume_history_comment_scope',
+        {
+          p_owner_user_id: userId,
+          p_history_version_id: historyVersionId,
+          p_anchor_document: projected.document,
+          p_document_hash: projected.documentHash,
+          p_projection_reference_date: projectionReferenceDate,
+        },
+      )
+      if (ensureError || typeof data !== 'string') {
+        throw ensureError ?? new Error('Unable to ensure history comment scope')
+      }
+      scopeId = data
+    }
+    else if (typeof body.shareReleaseId === 'string') {
+      const shareReleaseId = readUuid(body, 'shareReleaseId')
+      const { data: release, error: releaseError } = await admin
+        .from('resume_share_releases')
+        .select('id,share_id,snapshot,created_at')
+        .eq('id', shareReleaseId)
+        .maybeSingle()
+      if (releaseError || !release) {
+        throw new CommentApiError('not_found', '分享反馈不存在', 404)
+      }
+      const { data: share, error: shareError } = await admin
+        .from('resume_shares')
+        .select('id,user_id')
+        .eq('id', release.share_id)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (shareError || !share) {
+        throw new CommentApiError('not_found', '分享反馈不存在', 404)
+      }
+      const projectionReferenceDate = String(release.created_at).slice(0, 10)
+      const projected = buildCommentAnchorDocument(release.snapshot, projectionReferenceDate)
+      const { data, error: ensureError } = await admin.rpc(
+        'ensure_resume_share_release_comment_scope',
+        {
+          p_share_release_id: shareReleaseId,
+          p_anchor_document: projected.document,
+          p_document_hash: projected.documentHash,
+          p_projection_reference_date: projectionReferenceDate,
+        },
+      )
+      if (ensureError || typeof data !== 'string') {
+        throw ensureError ?? new Error('Unable to ensure share comment scope')
+      }
+      scopeId = data
+    }
     else {
       const resumeId = readUuid(body, 'resumeId')
       const { data: resume, error } = await admin
@@ -441,6 +504,32 @@ async function loadReadState(admin: AdminClient, access: ResolvedAccess) {
     throw error
   }
   return Number(data?.last_read_event_seq ?? 0)
+}
+
+async function loadAccessibleScopes(admin: AdminClient, userId: string) {
+  const [scopeResult, readResult] = await Promise.all([
+    admin
+      .from('resume_comment_scopes')
+      .select('id,kind,resume_id,history_version_id,share_release_id,projection_reference_date,document_revision,next_event_seq,updated_at')
+      .eq('owner_user_id', userId)
+      .order('updated_at', { ascending: false }),
+    admin
+      .from('resume_comment_read_states')
+      .select('scope_id,last_read_event_seq')
+      .eq('principal_kind', 'user')
+      .eq('principal_user_id', userId),
+  ])
+  if (scopeResult.error)
+    throw scopeResult.error
+  if (readResult.error)
+    throw readResult.error
+  const readByScopeId = new Map(
+    (readResult.data ?? []).map(row => [row.scope_id, Number(row.last_read_event_seq ?? 0)]),
+  )
+  return (scopeResult.data ?? []).map(scope => ({
+    ...scope,
+    last_read_event_seq: readByScopeId.get(scope.id) ?? 0,
+  }))
 }
 
 async function issueTopics({
@@ -670,14 +759,7 @@ Deno.serve(async (req) => {
       ])
       let accessibleScopes: unknown[] = []
       if (access.kind === 'owner' && access.userId) {
-        const { data, error } = await admin
-          .from('resume_comment_scopes')
-          .select('id,kind,resume_id,history_version_id,share_release_id,document_revision,next_event_seq,updated_at')
-          .eq('owner_user_id', access.userId)
-          .order('updated_at', { ascending: false })
-        if (error)
-          throw error
-        accessibleScopes = data ?? []
+        accessibleScopes = await loadAccessibleScopes(admin, access.userId)
       }
       return success({
         scope: access.scope,

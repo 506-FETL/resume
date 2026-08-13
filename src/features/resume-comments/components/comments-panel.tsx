@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useResumeCommentStore } from '../context.tsx'
+import { useResumeCommentContext, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { CommentComposer } from './comment-composer.tsx'
 import { ThreadDetail } from './thread-detail.tsx'
@@ -19,14 +19,17 @@ function PanelBody({
   creating,
   onCancelCreating,
   onClose,
+  onBeginRelink,
 }: {
   sourceLabel: string
   permissions: CommentUiPermissions
   creating: boolean
   onCancelCreating: () => void
   onClose: () => void
+  onBeginRelink: (threadId: string) => void
 }) {
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
+  const { panelHeaderContent } = useResumeCommentContext()
   const actions = useCommentActions()
   const threads = useResumeCommentStore(useShallow(
     state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean),
@@ -47,6 +50,7 @@ function PanelBody({
         thread={activeThread}
         permissions={permissions}
         onBack={() => setActiveThread(null)}
+        onBeginRelink={onBeginRelink}
       />
     )
   }
@@ -79,6 +83,7 @@ function PanelBody({
               </p>
             )
           : null}
+        {panelHeaderContent}
       </header>
       {creating && selection
         ? (
@@ -142,6 +147,7 @@ export function CommentsPanel({
 }) {
   const isMobile = useIsMobile()
   const [mobileSnapPoint, setMobileSnapPoint] = useState<number | string>(0.56)
+  const beginRelink = useResumeCommentStore(state => state.beginRelink)
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen)
       setMobileSnapPoint(0.56)
@@ -154,6 +160,11 @@ export function CommentsPanel({
       creating={creating}
       onCancelCreating={onCancelCreating}
       onClose={() => handleOpenChange(false)}
+      onBeginRelink={(threadId) => {
+        beginRelink(threadId)
+        if (isMobile)
+          handleOpenChange(false)
+      }}
     />
   )
   return (

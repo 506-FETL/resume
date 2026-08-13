@@ -19,7 +19,7 @@ import { QuickSaveVersionDialog } from './quick-save-version-dialog'
  * 编辑器工具栏的历史版本入口：只保留「打开历史版本」（跳转 /history）与「快速保存」两个动作，
  * 完整的列表/预览/对比/恢复统一在 /history 页完成，避免维护多套版本 UI。
  */
-export function ResumeHistoryVersionDropdown() {
+export function ResumeHistoryVersionDropdown({ reviewActive = false }: { reviewActive?: boolean }) {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const resumeId = useCurrentResumeStore(state => state.resumeId)
@@ -29,7 +29,7 @@ export function ResumeHistoryVersionDropdown() {
   const pendingQuickSaveResumeIdRef = useRef<string | null>(null)
 
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
-  const canUseHistory = Boolean(resumeId) && !isOffline && isInitialized
+  const canUseHistory = Boolean(resumeId) && !isOffline && isInitialized && !reviewActive
   const activeResumeIdRef = useRef(resumeId)
   const canUseHistoryRef = useRef(canUseHistory)
   activeResumeIdRef.current = resumeId
@@ -39,7 +39,9 @@ export function ResumeHistoryVersionDropdown() {
     ? '当前未选择简历'
     : isOffline
       ? '离线简历暂不支持历史版本'
-      : undefined
+      : reviewActive
+        ? '请先切回当前工作版本'
+        : undefined
 
   const openHistory = () => {
     if (!canUseHistory || !resumeId)

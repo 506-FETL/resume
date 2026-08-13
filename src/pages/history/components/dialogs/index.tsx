@@ -66,7 +66,7 @@ export default function HistoryDialogs({
             <AlertDialogDescription>
               删除后，V
               {deleteTarget?.version_no}
-              的说明、标签和内容将无法恢复，但当前正在编辑的内容不会受影响。
+              的说明、标签、内容和内部评论将永久删除；当前正在编辑的内容和已发布分享不受影响。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

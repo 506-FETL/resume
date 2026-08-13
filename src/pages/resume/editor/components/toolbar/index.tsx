@@ -8,6 +8,7 @@ import { themeOptions } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeConfigStore from '@/store/resume/config'
 import useResumeStore from '@/store/resume/form'
+import { useResumeReviewStore } from '../../review-store'
 import ExportDialog from '../export'
 import { FontSettings } from './font-settings'
 import { ResumeHistoryVersionDropdown } from './history-version-dropdown'
@@ -18,13 +19,15 @@ export default function ResumeConfigToolbar() {
   const isMobile = useIsMobile()
   const { theme, updateTheme } = useResumeConfigStore()
   const isToolbarLoading = useResumeStore(state => !state.isInitialized)
+  const reviewActive = useResumeReviewStore(state => state.active)
+  const editingDisabled = isToolbarLoading || reviewActive
 
   return (
     <div className={cn('flex flex-row gap-2')}>
 
-      <SpacingSettings isMobile={isMobile} disabled={isToolbarLoading} />
+      <SpacingSettings isMobile={isMobile} disabled={editingDisabled} />
 
-      <FontSettings isMobile={isMobile} disabled={isToolbarLoading} />
+      <FontSettings isMobile={isMobile} disabled={editingDisabled} />
 
       {/* 皮肤设置 */}
       <DropdownMenu>
@@ -33,7 +36,8 @@ export default function ResumeConfigToolbar() {
             variant="outline"
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
-            disabled={isToolbarLoading}
+            disabled={editingDisabled}
+            title={reviewActive ? '审阅历史或分享版本时不可编辑' : undefined}
           >
             <Palette data-icon="inline-start" />
             {!isMobile && <span>皮肤</span>}
@@ -50,7 +54,7 @@ export default function ResumeConfigToolbar() {
             <Label className="text-sm font-medium">选择主题</Label>
             <Select
               value={theme.theme}
-              disabled={isToolbarLoading}
+              disabled={editingDisabled}
               onValueChange={value =>
                 updateTheme({
                   theme: value as typeof theme.theme,
@@ -73,9 +77,9 @@ export default function ResumeConfigToolbar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ResumeHistoryVersionDropdown />
+      <ResumeHistoryVersionDropdown reviewActive={reviewActive} />
 
-      <VariantLineageButton />
+      <VariantLineageButton reviewActive={reviewActive} />
 
       <ExportDialog
         trigger={(

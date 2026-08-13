@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { CommentAccessContext } from './api/client.ts'
 import type { ResumeCommentStoreState } from './store/types.ts'
-import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { attachStoredAnonymousCommentIdentity } from './api/anonymous-identity.ts'
 import { ResumeCommentClient } from './api/client.ts'
@@ -18,6 +18,7 @@ interface ResumeCommentContextValue {
   store: ReturnType<typeof createResumeCommentStore>
   beforeWrite?: () => Promise<void>
   invalidateAccess?: (reason: 'stale_release' | 'share_unavailable') => void
+  panelHeaderContent?: ReactNode
 }
 
 const ResumeCommentContext = createContext<ResumeCommentContextValue | null>(null)
@@ -30,6 +31,7 @@ export interface ResumeCommentProviderProps {
   refreshAccess?: () => Promise<CommentAccessContext>
   onAccessInvalidated?: (reason: 'stale_release' | 'share_unavailable') => void
   beforeWrite?: () => Promise<void>
+  panelHeaderContent?: ReactNode
 }
 
 function attachLegacyAnonymousCredential(client: ResumeCommentClient, access: CommentAccessContext) {
@@ -38,11 +40,20 @@ function attachLegacyAnonymousCredential(client: ResumeCommentClient, access: Co
 }
 
 function getAccessIdentityKey(access: CommentAccessContext) {
-  if (access.kind === 'owner')
-    return `owner:${'scopeId' in access ? access.scopeId : access.resumeId}`
+  if (access.kind === 'owner') {
+    return `owner:${'scopeId' in access
+      ? `scope:${access.scopeId}`
+      : 'historyVersionId' in access
+        ? `history:${access.historyVersionId}`
+        : 'shareReleaseId' in access
+          ? `share:${access.shareReleaseId}`
+          : `working:${access.resumeId}`}`
+  }
   if (access.kind === 'collaborator')
     return `collaborator:${access.accessToken}`
-  return `share:${access.shareId}:${access.releaseId}:${access.accessToken}`
+  // 15 分钟访问令牌只是同一发布批次的凭据轮换，不能被当成 scope 切换，
+  // 否则每次心跳刷新都会清空本地草稿和当前线程。
+  return `share:${access.shareId}:${access.releaseId}`
 }
 
 export function ResumeCommentProvider({
@@ -53,6 +64,7 @@ export function ResumeCommentProvider({
   refreshAccess,
   onAccessInvalidated,
   beforeWrite,
+  panelHeaderContent,
 }: ResumeCommentProviderProps) {
   const [store] = useState(createResumeCommentStore)
   const [client] = useState(() => {
@@ -60,11 +72,17 @@ export function ResumeCommentProvider({
     attachLegacyAnonymousCredential(value, access)
     return value
   })
+  const accessIdentityKey = getAccessIdentityKey(access)
+  const previousAccessIdentityKey = useRef(accessIdentityKey)
 
   useEffect(() => {
+    if (previousAccessIdentityKey.current !== accessIdentityKey) {
+      store.getState().beginScopeSwitch()
+      previousAccessIdentityKey.current = accessIdentityKey
+    }
     client.setAccessContext(access)
     attachLegacyAnonymousCredential(client, access)
-  }, [access, client])
+  }, [access, accessIdentityKey, client, store])
 
   const handleAccessInvalidated = useCallback((reason: 'stale_release' | 'share_unavailable') => {
     store.getState().setAccessState('unavailable', reason)
@@ -74,7 +92,7 @@ export function ResumeCommentProvider({
   }, [onAccessInvalidated, store])
 
   useCommentRealtime({
-    accessIdentityKey: getAccessIdentityKey(access),
+    accessIdentityKey,
     client,
     store,
     enabled,
@@ -87,8 +105,9 @@ export function ResumeCommentProvider({
     beforeWrite,
     client,
     invalidateAccess: handleAccessInvalidated,
+    panelHeaderContent,
     store,
-  }), [beforeWrite, client, handleAccessInvalidated, store])
+  }), [beforeWrite, client, handleAccessInvalidated, panelHeaderContent, store])
   return <ResumeCommentContext value={value}>{children}</ResumeCommentContext>
 }
 

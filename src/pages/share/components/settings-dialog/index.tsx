@@ -30,6 +30,7 @@ export default function SettingsDialog() {
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [passwordEnabled, setPasswordEnabled] = useState(false)
+  const [allowComments, setAllowComments] = useState(true)
   const [password, setPassword] = useState('')
   const [showCurrentPasswordState, setShowCurrentPasswordState] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
@@ -47,6 +48,7 @@ export default function SettingsDialog() {
     setLabel(share?.label ?? '')
     setExpiresAt(expiryIsoToDate(share?.expires_at ?? null))
     setPasswordEnabled(Boolean(share?.has_password))
+    setAllowComments(share?.allowComments ?? true)
     setPassword('')
     setShowCurrentPasswordState(false)
     setShowNewPassword(false)
@@ -71,6 +73,7 @@ export default function SettingsDialog() {
         password: passwordEnabled
           ? (nextPassword || undefined)
           : null,
+        allowComments,
       })
       toast.success('分享设置已更新')
       closeSettingsDialog()
@@ -92,7 +95,7 @@ export default function SettingsDialog() {
         <DialogHeader>
           <DialogTitle>编辑分享设置</DialogTitle>
           <DialogDescription>
-            修改链接名称、有效期与访问密码。保存后会在访问者下次打开或刷新同一链接时生效。
+            修改链接名称、有效期、访问密码与评论权限。关闭评论后，正在访问的用户也会自动转为只读。
           </DialogDescription>
         </DialogHeader>
 
@@ -111,6 +114,19 @@ export default function SettingsDialog() {
           <Field className="min-w-0">
             <FieldLabel>有效期</FieldLabel>
             <DateField value={expiresAt} onChange={setExpiresAt} />
+          </Field>
+
+          <Field orientation="horizontal" className="rounded-lg border p-3">
+            <FieldContent>
+              <FieldLabel htmlFor="edit-share-comments-enabled">允许评论</FieldLabel>
+              <FieldDescription>关闭后访问者只能查看，已有评论和草稿不会被删除。</FieldDescription>
+            </FieldContent>
+            <Switch
+              id="edit-share-comments-enabled"
+              checked={allowComments}
+              disabled={busy}
+              onCheckedChange={setAllowComments}
+            />
           </Field>
 
           <Field orientation="horizontal" className="rounded-lg border p-3">

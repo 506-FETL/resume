@@ -1,15 +1,17 @@
 import type { PendingCommentSelection } from '../store/types.ts'
-import { MessageSquarePlus } from 'lucide-react'
+import { Link2, MessageSquarePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { countCommentGraphemes } from '../anchors/graphemes.ts'
 
 export function SelectionAction({
   selection,
   disabled,
+  mode = 'comment',
   onComment,
 }: {
   selection: PendingCommentSelection
   disabled?: boolean
+  mode?: 'comment' | 'relink'
   onComment: () => void
 }) {
   const lastRect = selection.clientRects.at(-1)
@@ -18,6 +20,8 @@ export function SelectionAction({
   const left = Math.min(Math.max(lastRect.right - 52, 12), window.innerWidth - 116)
   const top = Math.min(lastRect.bottom + 8, window.innerHeight - 48)
   const selectedCount = countCommentGraphemes(selection.exactQuote)
+  const Icon = mode === 'relink' ? Link2 : MessageSquarePlus
+  const label = mode === 'relink' ? '关联到此处' : '评论'
   return (
     <>
       <div
@@ -32,8 +36,8 @@ export function SelectionAction({
           className="rounded-full bg-neutral-900 text-white shadow-xl hover:bg-neutral-800"
           onClick={onComment}
         >
-          <MessageSquarePlus />
-          评论
+          <Icon />
+          {label}
         </Button>
       </div>
       <div
@@ -44,11 +48,11 @@ export function SelectionAction({
         <Button
           disabled={disabled}
           className="h-11 w-full rounded-full bg-neutral-900 text-white shadow-xl hover:bg-neutral-800"
-          aria-label={`已选择 ${selectedCount} 个字，添加评论`}
+          aria-label={`已选择 ${selectedCount} 个字，${label}`}
           onClick={onComment}
         >
-          <MessageSquarePlus />
-          <span>{`已选择 ${selectedCount} 个字 · 评论`}</span>
+          <Icon />
+          <span>{`已选择 ${selectedCount} 个字 · ${label}`}</span>
         </Button>
       </div>
     </>

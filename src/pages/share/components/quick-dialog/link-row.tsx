@@ -1,6 +1,6 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Check, Copy, KeyRound, Pencil, RefreshCw, Trash2 } from 'lucide-react'
+import { Archive, Check, Copy, KeyRound, MessageSquareText, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -28,6 +28,7 @@ export function LinkRow({
     setActive,
     openVersionDialog,
     openSettingsDialog,
+    openArchiveDialog,
     openDeleteDialog,
   } = useShareStore()
   const reduceMotion = useReducedMotion()
@@ -91,9 +92,14 @@ export function LinkRow({
           )}
           {expired && <Badge variant="destructive">已过期</Badge>}
           {!share.is_active && <Badge variant="secondary">已关闭</Badge>}
+          {share.archivedAt && <Badge variant="secondary">已归档</Badge>}
+          <Badge variant="outline">
+            <MessageSquareText className="size-3" />
+            {share.allowComments ? '允许评论' : '仅查看'}
+          </Badge>
           <VersionBadge source={share.source} />
         </div>
-        <Switch checked={share.is_active} disabled={busy} onCheckedChange={handleToggleActive} aria-label="启用或关闭链接" />
+        <Switch checked={share.is_active} disabled={busy || Boolean(share.archivedAt)} onCheckedChange={handleToggleActive} aria-label="启用或关闭链接" />
       </div>
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5">
@@ -135,17 +141,23 @@ export function LinkRow({
       </div>
 
       <div className="flex min-w-0 flex-wrap gap-2">
-        <Button size="xs" variant="outline" disabled={busy} onClick={() => openSettingsDialog(share.id)}>
+        <Button size="xs" variant="outline" disabled={busy || Boolean(share.archivedAt)} onClick={() => openSettingsDialog(share.id)}>
           <Pencil data-icon="inline-start" />
           编辑设置
         </Button>
-        <Button size="xs" variant="outline" disabled={busy} onClick={() => openVersionDialog(share.id)}>
+        <Button size="xs" variant="outline" disabled={busy || Boolean(share.archivedAt)} onClick={() => openVersionDialog(share.id)}>
           <RefreshCw data-icon="inline-start" />
           更换分享版本
         </Button>
+        {!share.archivedAt && (
+          <Button size="xs" variant="outline" disabled={busy} onClick={() => openArchiveDialog(share.id)}>
+            <Archive data-icon="inline-start" />
+            归档
+          </Button>
+        )}
         <Button size="xs" variant="destructive" disabled={busy} onClick={() => openDeleteDialog(share.id)}>
           <Trash2 data-icon="inline-start" />
-          删除
+          永久删除
         </Button>
       </div>
     </motion.div>

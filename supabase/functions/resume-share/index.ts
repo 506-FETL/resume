@@ -7,6 +7,11 @@ import {
   signCommentToken,
 } from '../shared/resume-comment-auth.ts'
 import { buildCommentAnchorDocument } from '../shared/resume-comment-core.ts'
+import {
+  broadcastCommentInvalidation,
+  deriveOwnerRealtimeTopic,
+  deriveScopeRealtimeTopic,
+} from '../shared/resume-comment-events.ts'
 
 const PASSWORD_ALGORITHM = 'pbkdf2-sha256'
 const PASSWORD_ITERATIONS = 310_000
@@ -242,6 +247,67 @@ async function ensureShareCommentScope(
   return { id: data, projectionReferenceDate: referenceDate }
 }
 
+async function notifyShareCommentSettings({
+  admin,
+  shareId,
+  userId,
+  allowComments,
+  realtimeSecret,
+}: {
+  admin: AdminClient
+  shareId: string
+  userId: string
+  allowComments: boolean
+  realtimeSecret: string
+}) {
+  const { data: share, error: shareError } = await admin
+    .from('resume_shares')
+    .select('current_release_id')
+    .eq('id', shareId)
+    .eq('user_id', userId)
+    .single()
+  if (shareError || !share.current_release_id)
+    throw shareError ?? new Error('Current share release not found')
+
+  const { data: scope, error: scopeError } = await admin
+    .from('resume_comment_scopes')
+    .select('id')
+    .eq('kind', 'share_release')
+    .eq('share_release_id', share.current_release_id)
+    .single()
+  if (scopeError)
+    throw scopeError
+
+  const { data: eventSeqValue, error: eventError } = await admin.rpc(
+    'append_resume_comment_event',
+    {
+      p_scope_id: scope.id,
+      p_thread_id: null,
+      p_type: 'settings_changed',
+      p_actor_kind: 'user',
+      p_actor_id: userId,
+      p_payload: { allowComments },
+    },
+  )
+  if (eventError)
+    throw eventError
+
+  const topics = await Promise.all([
+    deriveScopeRealtimeTopic({
+      scopeId: scope.id,
+      releaseId: share.current_release_id,
+      secret: realtimeSecret,
+    }),
+    deriveOwnerRealtimeTopic({ userId, secret: realtimeSecret }),
+  ])
+  await broadcastCommentInvalidation({
+    admin,
+    topics: topics.map(item => item.topic),
+    eventSeq: Number(eventSeqValue),
+    type: 'settings_changed',
+  })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: jsonHeaders })
@@ -268,6 +334,7 @@ Deno.serve(async (req) => {
     let shareId: string | null = null
     let label: string | null = null
     let expiresAt: string | null = null
+    let allowComments: boolean | undefined
     let refreshOnly = false
 
     if (req.method === 'POST') {
@@ -286,6 +353,8 @@ Deno.serve(async (req) => {
         label = body.label
       if (typeof body.expiresAt === 'string')
         expiresAt = body.expiresAt
+      if (typeof body.allowComments === 'boolean')
+        allowComments = body.allowComments
       refreshOnly = body.refresh === true
     }
 
@@ -350,6 +419,7 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = {
         label,
         expires_at: expiresAt,
+        ...(allowComments === undefined ? {} : { allow_comments: allowComments }),
       }
       if (passwordProvided) {
         try {
@@ -375,6 +445,26 @@ Deno.serve(async (req) => {
       }
       if (!count)
         return json({ error: 'not_found' }, 404)
+      if (allowComments !== undefined) {
+        const realtimeSecret = Deno.env.get('RESUME_COMMENT_REALTIME_SECRET')
+          ?? Deno.env.get('RESUME_COMMENT_TOKEN_SECRET')
+          ?? serviceRoleKey
+        try {
+          await notifyShareCommentSettings({
+            admin,
+            shareId,
+            userId,
+            allowComments,
+            realtimeSecret,
+          })
+        }
+        catch (notifyError) {
+          console.error('notify_comment_settings_failed', {
+            shareId,
+            message: notifyError instanceof Error ? notifyError.message : 'unknown',
+          })
+        }
+      }
       return json({ ok: true })
     }
 

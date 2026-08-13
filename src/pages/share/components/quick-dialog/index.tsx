@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Spinner } from '@/components/ui/spinner'
 import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
+import ArchiveDialog from '../archive-dialog'
 import DeleteDialog from '../delete-dialog'
 import SettingsDialog from '../settings-dialog'
 import VersionDialog from '../version-dialog'
@@ -132,6 +133,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
         </DialogContent>
       </Dialog>
 
+      <ArchiveDialog />
       <SettingsDialog />
       <DeleteDialog />
       <VersionDialog getCurrentSnapshot={async () => getSnapshot()} />
