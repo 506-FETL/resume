@@ -72,14 +72,19 @@ Math.max(state.lastReadEventSeq, input.lastReadEventSeq)
 
 缓存键继续按稳定 `versionId + principalKey` 隔离，不包含 access token 或 release secret。
 
-## 4. 编辑页评论遮罩
+## 4. 评论统一 Drawer 与编辑页遮罩
 
-`WorkingResumeComments` 改为 `presentation="overlay"`。桌面与分享页共用 `CommentsPanel` 的 modal Drawer：
+编辑页和分享页的评论入口始终复用同一个 Base UI `CommentsPanel` Drawer，不得用 Dialog、Sheet、普通侧栏或条件分支替代。仅根据设备改变进入方向：
+
+- 移动端：`swipeDirection="down"`，从底部进入，固定 `60vh`；
+- 桌面端：`swipeDirection="right"`，从右侧进入，宽度约 400px。
+
+`WorkingResumeComments` 改为 `presentation="overlay"`。两类页面都使用 modal Drawer：
 
 - Overlay 使用现有 `bg-black/30`；
 - 评论专用 `overlayClassName` 保持 `backdrop-blur-none`；
 - 打开评论时继续收起编辑面板，关闭后按现有逻辑恢复；
-- 移动端本来已经强制 modal，不改变其底部方向和固定 `60vh` 高度。
+- 移动端本来已经强制 modal，不改变其底部方向和固定 `60vh` 高度；桌面端仍是右侧 Drawer，只新增与分享页一致的遮罩行为。
 
 ## 5. 移动端排序嵌套 Drawer
 
