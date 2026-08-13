@@ -18,6 +18,7 @@ import useResumeConfigStore from '@/store/resume/config'
  */
 export function useResumeStyles(appearanceOverride?: Partial<ResumeAppearanceConfig> | null) {
   const storeSpacingConfig = useResumeConfigStore(state => state.spacing)
+  const storeSpacingPreview = useResumeConfigStore(state => state.spacingPreview)
   const storeFontConfig = useResumeConfigStore(state => state.font)
   const storeThemeConfig = useResumeConfigStore(state => state.theme)
 
@@ -25,11 +26,11 @@ export function useResumeStyles(appearanceOverride?: Partial<ResumeAppearanceCon
     () => appearanceOverride
       ? normalizeResumeAppearance(appearanceOverride)
       : {
-          spacing: storeSpacingConfig,
+          spacing: storeSpacingPreview ?? storeSpacingConfig,
           font: storeFontConfig,
           theme: storeThemeConfig,
         },
-    [appearanceOverride, storeFontConfig, storeSpacingConfig, storeThemeConfig],
+    [appearanceOverride, storeFontConfig, storeSpacingConfig, storeSpacingPreview, storeThemeConfig],
   )
 
   const { spacing: spacingConfig, font: fontConfig, theme: themeConfig } = appearance

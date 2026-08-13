@@ -43,6 +43,7 @@ export function useResumeLoader() {
   // 清理函数
   useEffect(() => {
     return () => {
+      useResumeConfigStore.getState().discardSpacingPreview()
       useResumeStore.getState().cleanup()
       useCollaborationStore.getState().stopSharing({ silent: true })
     }
@@ -57,6 +58,8 @@ export function useResumeLoader() {
 
   // 加载简历数据
   useEffect(() => {
+    useResumeConfigStore.getState().discardSpacingPreview()
+
     if (!activeResumeId) {
       setLoading(false)
       return
