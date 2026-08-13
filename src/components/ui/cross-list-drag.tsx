@@ -1,10 +1,12 @@
 import type {
-  HTMLAttributes,
+  MouseEventHandler,
+  PointerEventHandler,
   PointerEvent as ReactPointerEvent,
   ReactNode,
   RefCallback,
   RefObject,
   TouchEvent as ReactTouchEvent,
+  TouchEventHandler,
 } from 'react'
 import type { DragAxis, DragPoint, DropDestination } from '@/lib/motion-drag'
 import { motion, useMotionValue, useReducedMotion } from 'motion/react'
@@ -96,9 +98,12 @@ interface CrossListDragContextValue {
   suppressClick: (event: React.MouseEvent<HTMLElement>, itemId: string) => void
 }
 
-interface CrossListDragItemProps extends HTMLAttributes<HTMLElement> {
+interface CrossListDragItemProps {
   'data-motion-drag-item': string
   'data-motion-drag-container-id': string
+  onPointerDown: PointerEventHandler<HTMLElement>
+  onTouchStart: TouchEventHandler<HTMLElement>
+  onClickCapture: MouseEventHandler<HTMLElement>
 }
 
 const CrossListDragContext = createContext<CrossListDragContextValue | null>(null)

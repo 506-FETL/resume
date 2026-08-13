@@ -14,6 +14,7 @@ const reorderSource = readFileSync(`${root}/src/components/ui/motion-reorder.tsx
 const mobileSortSource = readFileSync(`${root}/src/pages/resume/editor/components/sidebar/mobile-sort-drawer.tsx`, 'utf8')
 const desktopTabsSource = readFileSync(`${root}/src/pages/resume/editor/components/sidebar/index.tsx`, 'utf8')
 const accordionSource = readFileSync(`${root}/src/pages/resume/editor/components/edit-panel/accordion-editor.tsx`, 'utf8')
+const templateStructureSource = readFileSync(`${root}/src/pages/template/components/editor/structure-panel.tsx`, 'utf8')
 
 assert.deepEqual(moveArrayItem(['a', 'b', 'c'], 0, 2), ['b', 'c', 'a'])
 assert.deepEqual(moveArrayItem(['a', 'b', 'c'], 2, 0), ['c', 'a', 'b'])
@@ -55,5 +56,10 @@ assert.match(accordionSource, /Reorder\.Group/u)
 assert.match(accordionSource, /useMotionReorder/u)
 assert.doesNotMatch(desktopTabsSource, /@hello-pangea\/dnd/u)
 assert.doesNotMatch(accordionSource, /@hello-pangea\/dnd/u)
+assert.match(templateStructureSource, /CrossListDragProvider/u)
+assert.match(templateStructureSource, /useCrossListContainer/u)
+assert.match(templateStructureSource, /useCrossListItem/u)
+assert.match(templateStructureSource, /moveSectionRegion/u)
+assert.doesNotMatch(templateStructureSource, /@hello-pangea\/dnd/u)
 
 console.warn('motion drag verification passed')
