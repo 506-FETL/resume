@@ -5,7 +5,9 @@ import { useStore } from 'zustand'
 import {
   deriveCommentCacheKey,
   readCommentCache,
+  readCommentReadCursor,
   rememberCommentVersionHint,
+  updateCommentCacheReadCursor,
   writeCommentCache,
 } from '../api/cache.ts'
 import {
@@ -35,6 +37,15 @@ function accessChangedVersion(previous: CommentAccessContext, next: CommentAcces
 function isReadOnlyAccess(access: CommentAccessContext) {
   return (access.kind === 'share' && !access.commentsEnabled)
     || (access.kind === 'collaborator' && access.role === 'viewer')
+}
+
+function hasServerReadPrincipal(
+  access: CommentAccessContext,
+  authenticatedUserId: string | null,
+) {
+  return access.kind !== 'share'
+    || Boolean(authenticatedUserId)
+    || Boolean(access.anonymous)
 }
 
 export function useCommentRealtime({
@@ -136,10 +147,21 @@ export function useCommentRealtime({
       store.getState().setConnection('connecting')
       const marker = beginCommentPerformance('bootstrap')
       marker.countRequest()
-      const response = await client.bootstrapScope()
+      const [response, authenticatedUserId] = await Promise.all([
+        client.bootstrapScope(),
+        client.getAuthenticatedUserId(),
+      ])
       if (cancelled)
         return
       hasFreshBootstrap = true
+      const access = client.getAccessContext()
+      rememberCommentVersionHint(access, response.data.version.versionId)
+      const cacheKey = deriveCommentCacheKey(
+        access,
+        response.data.version.versionId,
+        authenticatedUserId,
+      )
+      const persistedReadEventSeq = cacheKey ? readCommentReadCursor(cacheKey) : 0
       store.getState().replaceScope({
         scope: response.data.scope,
         version: response.data.version,
@@ -147,22 +169,24 @@ export function useCommentRealtime({
         accessibleScopes: response.data.accessibleScopes,
         threads: response.data.threads,
         eventSeq: response.eventSeq,
-        lastReadEventSeq: response.data.lastReadEventSeq,
+        lastReadEventSeq: Math.max(
+          response.data.lastReadEventSeq,
+          persistedReadEventSeq,
+        ),
       })
-      const access = client.getAccessContext()
       store.getState().setAccessState(
         isReadOnlyAccess(access) ? 'read_only' : 'active',
       )
       connectRealtime(response.data.scopeRealtime)
-      const authenticatedUserId = await client.getAuthenticatedUserId()
-      rememberCommentVersionHint(access, response.data.version.versionId)
-      const cacheKey = deriveCommentCacheKey(
-        access,
-        response.data.version.versionId,
-        authenticatedUserId,
-      )
       if (cacheKey)
         writeCommentCache(cacheKey, response.data).catch(() => undefined)
+      if (
+        persistedReadEventSeq > response.data.lastReadEventSeq
+        && hasServerReadPrincipal(access, authenticatedUserId)
+      ) {
+        // 本机已读游标领先时补偿同步到服务端，覆盖上一次网络中断的回执失败。
+        client.markRead(persistedReadEventSeq).catch(() => undefined)
+      }
       marker.end({
         requestId: response.requestId,
         serverTiming: response.serverTiming,
@@ -264,11 +288,23 @@ export function useCommentReadReceipt({
       return
     }
     const timer = window.setTimeout(() => {
-      client.markRead(lastEventSeq)
-        .then(() => store.getState().markReadLocally(lastEventSeq))
-        .catch(() => {
-          // 未登录且尚未创建匿名身份的只读访问者没有 principal，保持未读即可。
-        })
+      const readEventSeq = lastEventSeq
+      // 视觉反馈不等待网络：用户正常打开并停留后，当前界面立即清除未读。
+      store.getState().markReadLocally(readEventSeq)
+      Promise.resolve().then(async () => {
+        const access = client.getAccessContext()
+        const authenticatedUserId = await client.getAuthenticatedUserId()
+        const versionId = store.getState().version?.versionId
+        const cacheKey = deriveCommentCacheKey(access, versionId, authenticatedUserId)
+        const persistenceTasks: Promise<unknown>[] = []
+        if (cacheKey)
+          persistenceTasks.push(updateCommentCacheReadCursor(cacheKey, readEventSeq))
+
+        if (hasServerReadPrincipal(access, authenticatedUserId))
+          persistenceTasks.push(client.markRead(readEventSeq))
+
+        await Promise.allSettled(persistenceTasks)
+      }).catch(() => undefined)
     }, 500)
     return () => window.clearTimeout(timer)
   }, [accessState, client, lastEventSeq, lastReadEventSeq, store, visible])

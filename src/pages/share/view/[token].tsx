@@ -313,7 +313,6 @@ function ShareResumeComments({
       <CommentSurface
         rootRef={rootRef}
         sourceLabel={sourceLabel}
-        presentation="overlay"
         permissions={{
           canCreate: allowComments,
           canModerateAll: false,

@@ -188,9 +188,7 @@ function Editor() {
   }, [activeTabId, commentReview, panelOpen, setPanelOpen, updateActiveTabId])
 
   const handleOpenSortDialog = useCallback(() => {
-    requestAnimationFrame(() => {
-      setSortDialogOpen(true)
-    })
+    setSortDialogOpen(true)
   }, [])
 
   if (loading) {
@@ -427,7 +425,6 @@ function WorkingResumeComments({
       <CommentSurface
         rootRef={rootRef}
         sourceLabel={sourceLabel}
-        presentation="docked"
         permissions={{
           canCreate,
           canModerateAll,

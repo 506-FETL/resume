@@ -29,6 +29,7 @@ interface ResumeCommentCacheSchema extends DBSchema {
 }
 
 let databasePromise: Promise<IDBPDatabase<ResumeCommentCacheSchema>> | null = null
+const READ_CURSOR_PREFIX = 'resume-comment-read-cursor:'
 
 function getDatabase() {
   if (typeof indexedDB === 'undefined')
@@ -48,6 +49,32 @@ function getDatabase() {
 
 export function serializeCommentCacheKey(key: CommentCacheKey) {
   return `version:${key.versionId}:principal:${key.principalKey}`
+}
+
+export function readCommentReadCursor(key: CommentCacheKey) {
+  if (typeof localStorage === 'undefined')
+    return 0
+  try {
+    const value = Number(localStorage.getItem(`${READ_CURSOR_PREFIX}${serializeCommentCacheKey(key)}`))
+    return Number.isSafeInteger(value) && value >= 0 ? value : 0
+  }
+  catch {
+    return 0
+  }
+}
+
+function persistCommentReadCursor(key: CommentCacheKey, eventSeq: number) {
+  if (typeof localStorage === 'undefined')
+    return
+  try {
+    const storageKey = `${READ_CURSOR_PREFIX}${serializeCommentCacheKey(key)}`
+    const current = Number(localStorage.getItem(storageKey))
+    const next = Math.max(Number.isSafeInteger(current) ? current : 0, eventSeq)
+    localStorage.setItem(storageKey, String(next))
+  }
+  catch {
+    // 私密模式或存储额度不足时仍可依靠内存状态与服务端回执。
+  }
 }
 
 export function deriveCommentCacheKey(
@@ -108,7 +135,30 @@ export async function readCommentCache(key: CommentCacheKey) {
   const database = getDatabase()
   if (!database)
     return null
-  return (await database).get('bootstrap', serializeCommentCacheKey(key))
+  const entry = await (await database).get('bootstrap', serializeCommentCacheKey(key))
+  if (!entry)
+    return null
+  return {
+    ...entry,
+    value: advanceCommentReadCursor(entry.value, readCommentReadCursor(key)),
+  }
+}
+
+export function advanceCommentReadCursor(
+  value: CachedCommentBootstrap,
+  eventSeq: number,
+): CachedCommentBootstrap {
+  const lastReadEventSeq = Math.max(value.lastReadEventSeq, eventSeq)
+  return {
+    ...value,
+    lastReadEventSeq,
+    accessibleScopes: value.accessibleScopes.map(scope => scope.id === value.scope.id
+      ? {
+          ...scope,
+          lastReadEventSeq: Math.max(scope.lastReadEventSeq, lastReadEventSeq),
+        }
+      : scope),
+  }
 }
 
 export async function writeCommentCache(
@@ -119,13 +169,46 @@ export async function writeCommentCache(
   if (!database)
     return
   const { scopeRealtime: _scopeRealtime, ownerRealtime: _ownerRealtime, ...cacheValue } = value
-  await (await database).put('bootstrap', {
-    key: serializeCommentCacheKey(key),
+  const resolved = await database
+  const serializedKey = serializeCommentCacheKey(key)
+  const transaction = resolved.transaction('bootstrap', 'readwrite')
+  const current = await transaction.store.get(serializedKey)
+  const persistedReadCursor = readCommentReadCursor(key)
+  const nextValue = advanceCommentReadCursor(
+    cacheValue,
+    Math.max(current?.value.lastReadEventSeq ?? 0, persistedReadCursor),
+  )
+  await transaction.store.put({
+    key: serializedKey,
     versionId: key.versionId,
     principalKey: key.principalKey,
     cachedAt: Date.now(),
-    value: cacheValue,
+    value: nextValue,
   })
+  await transaction.done
+}
+
+export async function updateCommentCacheReadCursor(
+  key: CommentCacheKey,
+  eventSeq: number,
+) {
+  // localStorage 先同步写入，确保用户查看后立即刷新也不会再次出现未读提示。
+  persistCommentReadCursor(key, eventSeq)
+  const database = getDatabase()
+  if (!database)
+    return
+  const resolved = await database
+  const serializedKey = serializeCommentCacheKey(key)
+  const transaction = resolved.transaction('bootstrap', 'readwrite')
+  const current = await transaction.store.get(serializedKey)
+  if (current) {
+    await transaction.store.put({
+      ...current,
+      cachedAt: Date.now(),
+      value: advanceCommentReadCursor(current.value, eventSeq),
+    })
+  }
+  await transaction.done
 }
 
 export async function deleteCommentCacheForPrincipal(principalKey: string) {

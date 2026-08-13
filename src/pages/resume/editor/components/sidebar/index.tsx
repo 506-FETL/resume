@@ -4,7 +4,7 @@ import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import { SideTabs, SideTabsWrapper, ViewPort } from '@/components/ui/side-tabs'
 import { ITEMS } from '../../const'
 import { FixedTab } from './fixed-tab'
-import { MobileSortDialog } from './mobile-sort-dialog'
+import { MobileSortDrawer } from './mobile-sort-drawer'
 import { SortableTab } from './sortable-tab'
 import { StaticTab } from './static-tab'
 
@@ -132,7 +132,7 @@ export default function SidebarEditor({
       <ViewPort items={ITEMS} fill={fill} stroke={stroke} />
 
       {isMobile && (
-        <MobileSortDialog
+        <MobileSortDrawer
           open={sortDialogOpen}
           order={order}
           onOpenChange={onSortDialogOpenChange}

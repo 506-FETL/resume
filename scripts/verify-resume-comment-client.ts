@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { deriveAnonymousAvatarVisual } from '../src/features/resume-comments/api/anonymous-identity.ts'
 import {
+  advanceCommentReadCursor,
   deriveCommentCacheKey,
   serializeCommentCacheKey,
 } from '../src/features/resume-comments/api/cache.ts'
@@ -140,6 +141,16 @@ assert.deepEqual(store.getState().draftsByThreadKey, {})
 store.getState().markReadLocally(7)
 store.getState().markReadLocally(3)
 assert.equal(store.getState().lastReadEventSeq, 7)
+store.getState().replaceScope({
+  scope: store.getState().scope!,
+  version: store.getState().version!,
+  counts: store.getState().counts,
+  accessibleScopes: store.getState().accessibleScopes,
+  threads: [],
+  eventSeq: 7,
+  lastReadEventSeq: 2,
+})
+assert.equal(store.getState().lastReadEventSeq, 7)
 
 assert.equal(decideCommentRealtimeRecovery(8, 8), 'ignore')
 assert.equal(decideCommentRealtimeRecovery(8, 9), 'incremental')
@@ -157,6 +168,26 @@ const cacheKey = deriveCommentCacheKey(shareAccess)
 assert.ok(cacheKey)
 assert.equal(serializeCommentCacheKey(cacheKey).includes(shareAccess.accessToken), false)
 assert.equal(serializeCommentCacheKey(cacheKey).includes(shareAccess.releaseId), false)
+const advancedCache = advanceCommentReadCursor({
+  scope: firstScope,
+  version,
+  counts,
+  accessibleScopes: [{
+    id: firstScope.id,
+    kind: firstScope.kind,
+    resumeId: firstScope.resumeId,
+    versionId: firstScope.versionId,
+    documentRevision: firstScope.documentRevision,
+    projectionReferenceDate: firstScope.projectionReferenceDate,
+    nextEventSeq: firstScope.nextEventSeq,
+    lastReadEventSeq: 2,
+    updatedAt: '2026-08-14T00:00:00.000Z',
+  }],
+  threads: [],
+  lastReadEventSeq: 2,
+}, 7)
+assert.equal(advancedCache.lastReadEventSeq, 7)
+assert.equal(advancedCache.accessibleScopes[0]?.lastReadEventSeq, 7)
 assert.equal(classifyCommentPerformance('cache', 47.1).level, 'normal')
 assert.equal(classifyCommentPerformance('bootstrap', 2_036.1).level, 'near_target')
 assert.equal(classifyCommentPerformance('bootstrap', 2_600).level, 'slow')
@@ -234,6 +265,14 @@ const commentClientSource = readFileSync(
   new URL('../src/features/resume-comments/api/client.ts', import.meta.url),
   'utf8',
 )
+const mobileSortDrawerSource = readFileSync(
+  new URL('../src/pages/resume/editor/components/sidebar/mobile-sort-drawer.tsx', import.meta.url),
+  'utf8',
+)
+const quickShareDialogSource = readFileSync(
+  new URL('../src/pages/share/components/quick-dialog/index.tsx', import.meta.url),
+  'utf8',
+)
 assert.equal(commentSurfaceSource.includes('useCommentReadReceipt'), false)
 assert.match(commentSurfaceSource, /activeThreadId=\{open \? activeThreadId : null\}/u)
 assert.match(commentSurfaceSource, /if \(!open\)[\s\S]*?setHoveredThread\(threadId\)/u)
@@ -259,6 +298,7 @@ assert.match(commentsPanelSource, /overlayClassName="supports-backdrop-filter:ba
 assert.match(commentsPanelSource, /\[--drawer-content-height:60vh\]/u)
 assert.match(commentsPanelSource, /\[--drawer-content-max-height:60vh\]/u)
 assert.doesNotMatch(commentsPanelSource, /\[--drawer-content-height:auto\]/u)
+assert.doesNotMatch(commentsPanelSource, /rounded-b-none|\[--drawer-inset:0px\]|border-x-0 border-b-0/u)
 assert.match(commentsPanelSource, /grid shrink-0 grid-cols-3/u)
 assert.match(commentsPanelSource, /flex min-h-0 flex-1 overflow-y-auto/u)
 assert.match(threadDetailSource, /flex shrink-0 items-center/u)
@@ -267,10 +307,25 @@ assert.match(commentMobileLayoutSource, /\(hover: none\) and \(pointer: coarse\)
 assert.match(commentBookmarkSource, /h-10 w-9/u)
 assert.doesNotMatch(commentBookmarkSource, /h-14 w-12/u)
 assert.match(drawerSource, /overlayClassName\?: string/u)
+assert.match(drawerSource, /data-base-ui-swipe-ignore=""/u)
 assert.match(editorSource, /<CommentReviewBanner/u)
+assert.doesNotMatch(editorSource, /presentation="docked"/u)
+assert.doesNotMatch(commentSurfaceSource, /presentation/u)
+assert.match(commentsPanelSource, /key="resume-comments-desktop"[\s\S]*?modal[\s\S]*?swipeDirection="right"/u)
+assert.match(mobileSortDrawerSource, /from '@\/components\/ui\/drawer'/u)
+assert.match(mobileSortDrawerSource, /swipeDirection="down"/u)
+assert.match(mobileSortDrawerSource, /showSwipeHandle/u)
+assert.doesNotMatch(mobileSortDrawerSource, /from '@\/components\/ui\/sheet'/u)
+assert.match(mobileSortDrawerSource, /Reorder, useDragControls/u)
+assert.match(mobileSortDrawerSource, /data-base-ui-swipe-ignore=""/u)
+assert.doesNotMatch(mobileSortDrawerSource, /@hello-pangea\/dnd/u)
+assert.match(quickShareDialogSource, /useIsMobile/u)
+assert.match(quickShareDialogSource, /swipeDirection="down"/u)
+assert.match(quickShareDialogSource, /showSwipeHandle/u)
 assert.match(commentReviewBannerSource, /历史版本只读，返回当前版本后可继续编辑/u)
-assert.match(commentReviewBannerSource, /flex shrink-0 justify-center/u)
-assert.doesNotMatch(commentReviewBannerSource, /absolute inset-x-0 top-3/u)
+assert.match(commentReviewBannerSource, /fixed left-1\/2/u)
+assert.match(commentReviewBannerSource, /inline-flex w-max max-w-full/u)
+assert.doesNotMatch(commentReviewBannerSource, /justify-center border-b bg-muted\/30/u)
 assert.doesNotMatch(commentClientSource, /['"]x-request-id['"]\s*:/u)
 assert.match(threadListSource, /<\/button>[\s\S]*?<CommentStatusBar/u)
 assert.doesNotMatch(threadListSource, /<Button[\s\S]*?<CommentStatusBar/u)

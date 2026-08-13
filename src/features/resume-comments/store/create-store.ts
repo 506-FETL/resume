@@ -60,6 +60,9 @@ export function createResumeCommentStore(): ResumeCommentStore {
 
     replaceScope: input => set((state) => {
       const scopeChanged = state.scope?.id !== input.scope.id
+      const lastReadEventSeq = scopeChanged
+        ? input.lastReadEventSeq
+        : Math.max(state.lastReadEventSeq, input.lastReadEventSeq)
       const draftsByScopeId = state.scope
         ? { ...state.draftsByScopeId, [state.scope.id]: state.draftsByThreadKey }
         : state.draftsByScopeId
@@ -67,7 +70,12 @@ export function createResumeCommentStore(): ResumeCommentStore {
         scope: input.scope,
         version: input.version,
         counts: input.counts,
-        accessibleScopes: input.accessibleScopes,
+        accessibleScopes: input.accessibleScopes.map(scope => scope.id === input.scope.id
+          ? {
+              ...scope,
+              lastReadEventSeq: Math.max(scope.lastReadEventSeq, lastReadEventSeq),
+            }
+          : scope),
         threadsById: indexThreads(input.threads),
         orderedThreadIds: orderThreads(input.threads, input.scope),
         events: input.events ?? [],
@@ -85,7 +93,9 @@ export function createResumeCommentStore(): ResumeCommentStore {
         relinkThreadId: scopeChanged ? null : state.relinkThreadId,
         relinkError: scopeChanged ? null : state.relinkError,
         lastEventSeq: input.eventSeq,
-        lastReadEventSeq: input.lastReadEventSeq,
+        // 同一 scope 的已读游标只能前进，避免较旧缓存或并发 bootstrap
+        // 把刚刚在界面里确认过的已读状态回滚成“有新评论”。
+        lastReadEventSeq,
         lastError: null,
         pendingEntities: {},
         mutationErrors: {},

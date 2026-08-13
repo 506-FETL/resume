@@ -16,7 +16,6 @@ export function CommentSurface({
   rootRef,
   enabled = true,
   sourceLabel = '当前简历',
-  presentation = 'overlay',
   permissions,
   layoutRevision,
   open: controlledOpen,
@@ -25,7 +24,6 @@ export function CommentSurface({
   rootRef: RefObject<HTMLElement | null>
   enabled?: boolean
   sourceLabel?: string
-  presentation?: 'overlay' | 'docked'
   permissions?: CommentUiPermissions
   layoutRevision?: string | number
   open?: boolean
@@ -208,7 +206,6 @@ export function CommentSurface({
       <CommentsPanel
         open={open}
         onOpenChange={setOpen}
-        presentation={presentation}
         sourceLabel={sourceLabel}
         permissions={resolvedPermissions}
         creating={creating}

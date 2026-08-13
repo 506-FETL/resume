@@ -2,11 +2,11 @@
 
 > **面向 AI 代理的工作者：** 必需子技能：使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实现此计划。步骤使用复选框（`- [ ]`）语法来跟踪进度。
 
-**目标：** 让评论在正常查看后立即并持久地变为已读，统一编辑页与分享页的响应式评论 Drawer 和遮罩，并消除移动端排序弹层的跨库焦点警告。
+**目标：** 让评论正常查看后立即并持久地变为已读，统一响应式 Drawer，恢复所有 Drawer 原生滚动，并消除移动排序首拖失败与触摸事件警告。
 
-**架构：** 已读游标在 Zustand、IndexedDB 和服务端三层单调推进；当前浏览器先即时确认阅读，再按可用身份后台同步服务端。编辑页与分享页始终复用同一个 Base UI 评论 Drawer，移动端从底部、桌面端从右侧进入，并统一使用 modal 遮罩；移动排序从 Radix Sheet 迁移到 Base UI 嵌套 Drawer，由同一弹层系统管理 aria-hidden、焦点和父子层级。
+**架构：** 已读游标在 Zustand、localStorage、IndexedDB 和服务端单调推进。评论始终复用 Base UI modal Drawer；移动分享迁移到底部 Drawer。Drawer Content 与关闭手势分区，正文原生滚动、顶部柄负责下滑；移动排序使用 Motion 指针排序并与 Drawer 手势隔离。
 
-**技术栈：** React 19、Zustand、IndexedDB (`idb`)、Base UI Drawer、Tailwind CSS、`@hello-pangea/dnd`、TypeScript。
+**技术栈：** React 19、Zustand、localStorage、IndexedDB (`idb`)、Base UI Drawer、Motion、Tailwind CSS、TypeScript。
 
 ---
 
@@ -19,6 +19,9 @@
 - 删除 `src/pages/resume/editor/components/sidebar/mobile-sort-dialog.tsx`：移除嵌套 Radix Sheet。
 - 创建 `src/pages/resume/editor/components/sidebar/mobile-sort-drawer.tsx`：Base UI 底部嵌套 Drawer 与排序内容。
 - 修改 `src/pages/resume/editor/components/sidebar/index.tsx`：装配新的排序 Drawer。
+- 修改 `src/components/ui/drawer.tsx`：通用内容区退出下滑手势仲裁，恢复原生滚动。
+- 修改 `src/pages/share/components/quick-dialog/index.tsx`：移动分享使用默认底部 Drawer。
+- 修改 `src/pages/resume/editor/components/comment-review-banner/index.tsx`：历史提示固定且按内容宽度收缩。
 - 修改 `scripts/verify-resume-comment-client.ts`：覆盖游标单调性、缓存更新和关键源码约束。
 - 修改 `docs/superpowers/verification/2026-08-14-version-centric-resume-comments.md`：记录本轮自动与交互验证证据。
 
@@ -51,7 +54,7 @@ assert.equal(store.getState().lastReadEventSeq, 7)
 
 ```ts
 assert.match(commentCacheSource, /updateCommentCacheReadCursor/u)
-assert.match(editorSource, /presentation="overlay"/u)
+assert.doesNotMatch(editorSource, /presentation="docked"/u)
 assert.match(mobileSortDrawerSource, /swipeDirection="down"/u)
 assert.match(mobileSortDrawerSource, /showSwipeHandle/u)
 assert.doesNotMatch(mobileSortDrawerSource, /@\/components\/ui\/sheet/u)
@@ -89,7 +92,7 @@ const lastReadEventSeq = scopeChanged
 
 - [ ] **步骤 2：增加缓存游标更新函数**
 
-在 `cache.ts` 增加纯函数和持久化函数：
+在 `cache.ts` 增加纯函数和 localStorage/IndexedDB 持久化函数：
 
 ```ts
 export function advanceCommentReadCursor<T extends CachedCommentBootstrap>(value: T, eventSeq: number): T {
@@ -130,7 +133,7 @@ store.getState().markReadLocally(readEventSeq)
 void syncReadReceipt({ client, store, eventSeq: readEventSeq })
 ```
 
-`syncReadReceipt` 获取认证用户 ID，派生 cache key 并更新 IndexedDB。只有 owner、collaborator、登录分享用户或已有匿名评论身份才调用 `client.markRead()`；纯匿名浏览者不发送必然失败的请求。
+`syncReadReceipt` 获取认证用户 ID，派生 cache key，先同步写入 localStorage 再更新 IndexedDB。只有 owner、collaborator、登录分享用户或已有匿名评论身份才调用 `client.markRead()`；下次 bootstrap 对本机领先游标做服务端补偿同步。
 
 - [ ] **步骤 4：bootstrap 缓存写入使用 Store 的有效游标**
 
@@ -156,21 +159,9 @@ pnpm exec tsc --noEmit
 - 修改：`src/pages/resume/editor/components/sidebar/index.tsx`
 - 修改：`scripts/verify-resume-comment-client.ts`
 
-- [ ] **步骤 1：编辑页评论改为 overlay**
+- [ ] **步骤 1：评论统一 modal Drawer**
 
-将 `WorkingResumeComments` 中的：
-
-```tsx
-presentation="docked"
-```
-
-替换为：
-
-```tsx
-presentation="overlay"
-```
-
-保持打开评论时收起编辑面板及关闭后恢复逻辑不变。
+删除 `presentation` 分支，编辑与分享无条件走 modal Drawer；保持打开评论时收起编辑面板及关闭后恢复逻辑不变。
 
 同时保留 `CommentsPanel` 的响应式方向约束：移动端 `swipeDirection="down"` 且固定 `60vh`，桌面端 `swipeDirection="right"` 且宽度约 400px。禁止引入 Dialog、Sheet 或独立页面组件模拟评论抽屉。
 
@@ -186,7 +177,7 @@ presentation="overlay"
   swipeDirection="down"
   showSwipeHandle
 >
-  <DrawerContent className="z-60 rounded-b-none border-x-0 border-b-0 [--drawer-content-height:min(80dvh,42rem)] [--drawer-content-max-height:80dvh] [--drawer-inset:0px]">
+  <DrawerContent className="[--drawer-content-height:min(80dvh,42rem)] [--drawer-content-max-height:80dvh]">
     <DrawerTitle>调整模块顺序</DrawerTitle>
     <DrawerDescription>长按并拖动模块进行排序，确认后应用。</DrawerDescription>
     {/* 可滚动拖拽列表与固定操作栏 */}
@@ -194,7 +185,7 @@ presentation="overlay"
 </Drawer>
 ```
 
-列表使用 `min-h-0 flex-1 overflow-y-auto`，Footer 使用 `shrink-0` 和 safe area；保留取消、确认与 `basics` 固定首位。
+列表使用 `min-h-0 flex-1 overflow-y-auto`，Footer 使用 `shrink-0` 和 safe area；排序用 Motion `Reorder` + 独立拖动柄并移除 hello-pangea Touch Sensor；保留取消、确认与 `basics` 固定首位。
 
 - [ ] **步骤 3：替换装配并移除跨库 Sheet**
 
@@ -216,9 +207,17 @@ pnpm exec eslint \
   src/pages/resume/editor/components/sidebar/mobile-sort-drawer.tsx
 ```
 
-预期：exit 0；排序源码不存在 Sheet，编辑评论使用 overlay。
+预期：exit 0；排序源码不存在 Sheet/hello-pangea，评论不存在 presentation 分支。
 
-### 任务 4：生产与真实交互验证
+### 任务 4：通用 Drawer 滚动、移动分享与历史提示
+
+- [ ] `DrawerPrimitive.Content` 加 `data-base-ui-swipe-ignore`，正文不参与下滑关闭仲裁；
+- [ ] 移动快速分享使用默认底部 Drawer，长内容独立滚动；
+- [ ] 评论保持默认 Drawer 外观，仅移动端固定 `60vh`；
+- [ ] 历史提示改为视口顶部 fixed、水平居中、内容宽度；
+- [ ] 实测编辑、评论、分享、排序滚动容器的 `scrollTop` 变化，排序入场期间首次拖动即换序。
+
+### 任务 5：生产与真实交互验证
 
 **文件：**
 - 修改：`docs/superpowers/verification/2026-08-14-version-centric-resume-comments.md`
@@ -257,7 +256,7 @@ git diff --check
 
 只记录实际执行的结果。若浏览器环境无法完成匿名或触控验证，明确标为待用户验收，不用静态检查替代交互结论。
 
-### 任务 5：差异审查与提交
+### 任务 6：差异审查与提交
 
 **文件：**
 - 审查：本计划列出的全部修改文件

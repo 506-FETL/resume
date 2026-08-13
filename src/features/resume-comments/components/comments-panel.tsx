@@ -154,7 +154,6 @@ function PanelBody({
 export function CommentsPanel({
   open,
   onOpenChange,
-  presentation,
   sourceLabel,
   permissions,
   creating,
@@ -162,7 +161,6 @@ export function CommentsPanel({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  presentation: 'overlay' | 'docked'
   sourceLabel: string
   permissions: CommentUiPermissions
   creating: boolean
@@ -193,7 +191,7 @@ export function CommentsPanel({
       aria-label="简历评论"
       overlayClassName="supports-backdrop-filter:backdrop-blur-none"
       className={isMobile
-        ? 'rounded-b-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] [--drawer-content-height:60vh] [--drawer-content-max-height:60vh] [--drawer-inset:0px]'
+        ? 'pb-[env(safe-area-inset-bottom)] [--drawer-content-height:60vh] [--drawer-content-max-height:60vh]'
         : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}
     >
       <DrawerTitle className="sr-only">简历评论</DrawerTitle>
@@ -222,7 +220,7 @@ export function CommentsPanel({
       key="resume-comments-desktop"
       open={open}
       onOpenChange={handleOpenChange}
-      modal={presentation === 'overlay'}
+      modal
       swipeDirection="right"
     >
       {content}
