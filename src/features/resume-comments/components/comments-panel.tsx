@@ -1,12 +1,11 @@
 import type { CommentThreadFilter } from './thread-list.tsx'
 import type { CommentUiPermissions } from './types.ts'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, X } from 'lucide-react'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer'
 import { useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { CommentComposer } from './comment-composer.tsx'
@@ -18,11 +17,13 @@ function PanelBody({
   permissions,
   creating,
   onCancelCreating,
+  onClose,
 }: {
   sourceLabel: string
   permissions: CommentUiPermissions
   creating: boolean
   onCancelCreating: () => void
+  onClose: () => void
 }) {
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
   const actions = useCommentActions()
@@ -65,6 +66,9 @@ function PanelBody({
             onClick={() => setHidden(!hidden)}
           >
             {hidden ? <Eye /> : <EyeOff />}
+          </Button>
+          <Button size="icon-sm" variant="ghost" aria-label="关闭评论" onClick={onClose}>
+            <X />
           </Button>
         </div>
         {accessState !== 'active'
@@ -141,34 +145,25 @@ export function CommentsPanel({
       permissions={permissions}
       creating={creating}
       onCancelCreating={onCancelCreating}
+      onClose={() => onOpenChange(false)}
     />
   )
-  if (presentation === 'docked') {
-    return open
-      ? (
-          <aside
-            data-resume-comment-ui
-            aria-label="简历评论"
-            className="flex h-full w-[400px] shrink-0 flex-col border-l bg-background shadow-xl"
-          >
-            {body}
-          </aside>
-        )
-      : null
-  }
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={presentation === 'overlay'}
+      swipeDirection="right"
+    >
+      <DrawerContent
         data-resume-comment-ui
-        side="right"
-        className={cn('w-[400px] max-w-[calc(100vw-16px)] gap-0 p-0 sm:max-w-[400px]')}
+        aria-label="简历评论"
+        className="[--drawer-content-width:min(400px,calc(100vw-1rem))]"
       >
-        <SheetHeader className="sr-only">
-          <SheetTitle>简历评论</SheetTitle>
-          <SheetDescription>{sourceLabel}</SheetDescription>
-        </SheetHeader>
+        <DrawerTitle className="sr-only">简历评论</DrawerTitle>
+        <DrawerDescription className="sr-only">{sourceLabel}</DrawerDescription>
         {body}
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   )
 }
