@@ -396,8 +396,9 @@ git commit -m "feat(comments): 建立评论数据与事务边界"
 - 创建：`scripts/verify-resume-comment-anchors.ts`
 - 修改：`package.json`
 - 修改：`supabase/functions/shared/resume-comment-core.ts`
+- 修改：`src/lib/supabase/resume/share.ts`（适配任务 3 强制要求 anchor document 的发布 RPC）
 
-- [ ] **步骤 1：定义严格领域联合类型**
+- [x] **步骤 1：定义严格领域联合类型**
 
 核心契约：
 
@@ -422,11 +423,11 @@ export interface CommentAnchor {
 
 thread、comment、event 和权限全部使用可辨识联合；客户端不能用可选布尔组合表达互斥身份。
 
-- [ ] **步骤 2：实现 NFC 与字素映射**
+- [x] **步骤 2：实现 NFC 与字素映射**
 
 `graphemes.ts` 统一使用 `new Intl.Segmenter(undefined, { granularity: 'grapheme' })`。导出字符串字素计数、切片、DOM Text UTF-16 offset → 字素 offset、字素 offset → DOM Text offset；所有输入先 `.normalize('NFC')`。
 
-- [ ] **步骤 3：构造与模板无关的权威 anchor document**
+- [x] **步骤 3：构造与模板无关的权威 anchor document**
 
 把纯投影和 document builder 实现在 `resume-comment-core.ts`；浏览器的 `projection.ts`、`document.ts` 只以相对路径重导出并补充前端类型。它是 Runtime、浏览器选区和 Edge Function 的唯一可见文案来源，统一处理年龄、单位、薪资、日期区间和空值，不允许 renderer 与 builder 各自拼字符串。`buildCommentAnchorDocument(resume, projectionReferenceDate)` 输出稳定顺序的节点：
 
@@ -443,11 +444,11 @@ interface CommentAnchorDocumentNode {
 
 `anchor_document` 同时保存 `projectionReferenceDate`。working 使用本次成功保存的日期；history 使用版本创建时间；share_release 使用 release 创建时间，使年龄等派生文案在不可变审阅中不会随自然日漂移。富文本使用受控、纯函数 HTML token scanner 生成段落、列表项、标题和引用块；只消费已允许标签并解码常用实体，script/style 内容丢弃，内联样式不拆块。document hash 对规范化节点 JSON 做 SHA-256。
 
-- [ ] **步骤 4：实现合法选区和重叠判断**
+- [x] **步骤 4：实现合法选区和重叠判断**
 
 `selection.ts` 必须：从 Range 两端向上查找同一个 `data-comment-node-key` 与 `data-comment-block-ordinal`；拒绝 collapsed、跨 node、跨 block、测量 source 和不可见页；生成 exactQuote/prefix/suffix；识别完全相同与部分重叠。
 
-- [ ] **步骤 5：实现固定顺序重定位**
+- [x] **步骤 5：实现固定顺序重定位**
 
 `relocateAnchor(anchor, nextNode)` 返回：
 
@@ -459,7 +460,7 @@ type RelocationResult =
 
 只在相同 nodeKey 内按“原偏移、唯一 quote + 上下文、唯一 quote、detached”顺序执行，禁止相似度和全文搜索。
 
-- [ ] **步骤 6：建立无需测试框架的断言脚本**
+- [x] **步骤 6：建立无需测试框架的断言脚本**
 
 在 package scripts 增加：
 
@@ -481,10 +482,12 @@ git diff --check
 
 预期：验证脚本输出 `resume comment anchor verification passed`，其余命令退出码为 `0`。
 
-- [ ] **步骤 8：提交锚点领域层**
+验证状态（2026-08-13）：`pnpm verify:comments`、TypeScript、定向 ESLint、生产构建和差异检查已通过；脚本覆盖 SHA-256、NFC、中文/英文/emoji/组合字符、跨 DOM Text 数据映射、跨块边界拒绝、富文本分块、稳定 nodeKey/hash、重定位、重叠和权限矩阵。本机没有 Deno，无法执行 `deno check`；共享核心已由 Node 原生 TypeScript strip-types 成功导入执行，因此本步骤暂不勾选 Deno 部分。
+
+- [x] **步骤 8：提交锚点领域层**
 
 ```bash
-git add package.json scripts/verify-resume-comment-anchors.ts supabase/functions/shared/resume-comment-core.ts src/features/resume-comments/types.ts src/features/resume-comments/const.ts src/features/resume-comments/anchors/types.ts src/features/resume-comments/anchors/graphemes.ts src/features/resume-comments/anchors/projection.ts src/features/resume-comments/anchors/document.ts src/features/resume-comments/anchors/selection.ts src/features/resume-comments/anchors/relocate.ts
+git add docs/superpowers/plans/2026-08-13-resume-full-text-comments.md package.json scripts/verify-resume-comment-anchors.ts supabase/functions/shared/resume-comment-core.ts src/features/resume-comments/types.ts src/features/resume-comments/const.ts src/features/resume-comments/anchors/types.ts src/features/resume-comments/anchors/graphemes.ts src/features/resume-comments/anchors/projection.ts src/features/resume-comments/anchors/document.ts src/features/resume-comments/anchors/selection.ts src/features/resume-comments/anchors/relocate.ts src/lib/supabase/resume/share.ts
 git diff --cached --name-status
 git commit -m "feat(comments): 实现语义锚点领域层"
 ```

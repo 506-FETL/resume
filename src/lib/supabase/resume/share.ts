@@ -1,6 +1,7 @@
 import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareReleaseSummary, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
+import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
 import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
 import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
 import { FORM_DATA_KEYS, FORM_FIELD_DEFAULTS } from '@/store/resume/const'
@@ -331,6 +332,11 @@ export async function publishResumeShareRelease(
   release: ResolvedResumeShareRelease,
 ): Promise<ResumeShareRecord> {
   const source = toShareVersionSourcePatch(release.source)
+  const projectionReferenceDate = new Date().toISOString().slice(0, 10)
+  const anchorDocument = buildCommentAnchorDocument(
+    release.snapshot,
+    projectionReferenceDate,
+  )
   const { error } = await supabase.rpc('publish_resume_share_release', {
     p_share_id: shareId,
     p_snapshot: release.snapshot,
@@ -341,6 +347,9 @@ export async function publishResumeShareRelease(
     p_source_version_no: source.source_version_no,
     p_source_version_label: source.source_version_label,
     p_source_version_created_at: source.source_version_created_at,
+    p_anchor_document: anchorDocument.document,
+    p_document_hash: anchorDocument.documentHash,
+    p_projection_reference_date: projectionReferenceDate,
   })
 
   if (error)
