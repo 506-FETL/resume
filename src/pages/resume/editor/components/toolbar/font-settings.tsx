@@ -1,10 +1,11 @@
 import { Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
-import { fontFamilyOptions } from '@/lib/schema'
+import { fontFamilyEnum, fontFamilyOptions } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeConfigStore from '@/store/resume/config'
 
@@ -17,8 +18,8 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
   const { font, updateFont } = useResumeConfigStore()
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <Button
           variant="outline"
           size={isMobile ? 'icon' : 'sm'}
@@ -28,14 +29,15 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
           <Type data-icon="inline-start" />
           {!isMobile && <span>字体</span>}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className={cn('w-80 max-w-[calc(100vw-2rem)]', isMobile && 'w-[calc(100vw-10rem)]')}
+      </PopoverTrigger>
+      <PopoverContent
+        aria-label="字体设置"
+        className={cn('w-80 max-w-[calc(100vw-2rem)] p-0', isMobile && 'w-[calc(100vw-10rem)]')}
         side={isMobile ? 'bottom' : 'right'}
         align={isMobile ? 'end' : 'start'}
       >
-        <DropdownMenuLabel className="text-base md:text-sm">字体设置</DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        <div className="px-2 py-1.5 text-base font-medium md:text-sm">字体设置</div>
+        <Separator />
 
         <div className="flex flex-col gap-4 p-3 md:p-4">
           <div className="flex flex-col gap-2">
@@ -43,7 +45,12 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
             <Select
               value={font.fontFamily}
               disabled={disabled}
-              onValueChange={(value: typeof font.fontFamily) => updateFont({ fontFamily: value })}
+              onValueChange={(value) => {
+                const parsed = fontFamilyEnum.safeParse(value)
+                if (parsed.success) {
+                  updateFont({ fontFamily: parsed.data })
+                }
+              }}
             >
               <SelectTrigger className="h-10">
                 <SelectValue placeholder="选择字体" />
@@ -79,7 +86,7 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
             />
           </div>
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverContent>
+    </Popover>
   )
 }
