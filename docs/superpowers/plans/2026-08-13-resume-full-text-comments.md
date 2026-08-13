@@ -518,7 +518,7 @@ git commit -m "feat(comments): 实现语义锚点领域层"
 - 修改：`src/components/resume/pagination/scaled-resume-document.tsx`
 - 创建：`src/features/resume-comments/anchors/geometry.ts`
 
-- [ ] **步骤 1：建立共享 CommentableText 边界**
+- [x] **步骤 1：建立共享 CommentableText 边界**
 
 在 `shared.tsx` 增加 `CommentableText` 与 `CommentableRichText`。字段节点统一输出：
 
@@ -534,13 +534,13 @@ git commit -m "feat(comments): 实现语义锚点领域层"
 
 富文本容器保留字段级 nodeKey，并把顶层语义块标记连续 ordinal；不得改变现有安全 HTML 过滤和视觉样式。
 
-- [ ] **步骤 2：所有 renderer 使用 stable entryId 与 field key**
+- [x] **步骤 2：所有 renderer 使用 stable entryId 与 field key**
 
 `RuntimeEntry` 接收 `sectionKey`、`entryId` 和各字段 key；标题、副标题、时间和正文分别成为节点。Basics、JobIntent、ApplicationInfo、自我评价和三个描述字段使用 `singleton`。数组 React key 从 index/content 改为 `entryId`。
 
 `ResumeTemplateRuntime` 增加可选 `projectionReferenceDate`，由 `TemplateRuntimeProviders` 放入 runtime context；renderer 的年龄、日期、单位和组合行一律调用任务 4 的投影函数。普通 working 预览默认当前日期，评论宿主、history 和 release 必须传 scope 中固定的 reference date。
 
-- [ ] **步骤 3：声明可见页、测量源与 Overlay 容器**
+- [x] **步骤 3：声明可见页、测量源与 Overlay 容器**
 
 分页组件输出：
 
@@ -551,7 +551,7 @@ git commit -m "feat(comments): 实现语义锚点领域层"
 
 Runtime 不读取评论 store，也不渲染高亮。
 
-- [ ] **步骤 4：实现可见矩形转换**
+- [x] **步骤 4：实现可见矩形转换**
 
 `geometry.ts` 只接受可见页内 Range，调用 `getClientRects()` 后：裁剪到 page viewport、过滤零面积与 overflow 外矩形、减去 page rect、除以实际 scale，合并同一行相邻矩形。页面重新分页后用 page index 重新解析，不持久化几何坐标。
 
@@ -567,7 +567,9 @@ git diff --check
 
 桌面浏览器比较修改前后单页、多页、内置模板和自定义模板；确认打印预览 DOM 中没有 Overlay。
 
-- [ ] **步骤 6：提交 Runtime 语义层**
+验证记录（2026-08-13）：`verify:comments`、TypeScript、定向 ESLint、生产构建和 `git diff --check` 通过；浏览器在 `scale < 1` 下检查了 6 套内置模板、单页/多页、普通字段属性、富文本连续 ordinal、测量源隔离和空 Overlay root。当前浏览器控制接口不能动态切换 viewport，且离线环境没有可用自定义模板/历史打印快照，因此桌面与移动双 viewport、自定义模板和实际打印预览 DOM 留到评论 UI 接入后的宿主联调，不将其记作已验证。
+
+- [x] **步骤 6：提交 Runtime 语义层**
 
 ```bash
 git add src/components/resume/runtime/ResumeTemplateRuntime.tsx src/components/resume/runtime/TemplateRuntimeProviders.tsx src/components/resume/runtime/context/resume-context.tsx src/components/resume/runtime/renderers/shared.tsx src/components/resume/runtime/renderers/ApplicationInfoRenderer.tsx src/components/resume/runtime/renderers/BasicsRenderer.tsx src/components/resume/runtime/renderers/CampusExperienceRenderer.tsx src/components/resume/runtime/renderers/EducationRenderer.tsx src/components/resume/runtime/renderers/HobbiesRenderer.tsx src/components/resume/runtime/renderers/HonorsCertificatesRenderer.tsx src/components/resume/runtime/renderers/InternshipExperienceRenderer.tsx src/components/resume/runtime/renderers/JobIntentRenderer.tsx src/components/resume/runtime/renderers/ProjectExperienceRenderer.tsx src/components/resume/runtime/renderers/SelfEvaluationRenderer.tsx src/components/resume/runtime/renderers/SkillsRenderer.tsx src/components/resume/runtime/renderers/WorkExperienceRenderer.tsx src/components/resume/pagination/canonical-paged-document.tsx src/components/resume/pagination/scaled-resume-document.tsx src/features/resume-comments/anchors/geometry.ts

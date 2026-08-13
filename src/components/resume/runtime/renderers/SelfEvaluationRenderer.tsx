@@ -1,5 +1,5 @@
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { RuntimeRichText, RuntimeSection } from './shared'
+import { buildCommentNodeKey, CommentableRichText, RuntimeSection } from './shared'
 
 export default function SelfEvaluationRenderer() {
   const { self_evaluation, getVisibility } = useTemplateResumeData()
@@ -10,7 +10,15 @@ export default function SelfEvaluationRenderer() {
 
   return (
     <RuntimeSection title="自我评价">
-      {self_evaluation.content ? <RuntimeRichText html={self_evaluation.content} /> : null}
+      {self_evaluation.content
+        ? (
+            <CommentableRichText
+              nodeKey={buildCommentNodeKey('self_evaluation', 'singleton', 'content')}
+              fieldLabel="自我评价"
+              html={self_evaluation.content}
+            />
+          )
+        : null}
     </RuntimeSection>
   )
 }

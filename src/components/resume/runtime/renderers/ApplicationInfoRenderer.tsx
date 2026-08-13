@@ -1,5 +1,5 @@
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { RuntimeSection } from './shared'
+import { buildCommentNodeKey, CommentableText, RuntimeSection } from './shared'
 import { useRuntimeStyles } from './utils'
 
 export default function ApplicationInfoRenderer() {
@@ -11,20 +11,24 @@ export default function ApplicationInfoRenderer() {
   }
 
   const fields = [
-    application_info.applicationSchool
-      ? `申请院校：${application_info.applicationSchool}`
-      : '',
-    application_info.applicationMajor
-      ? `申请专业：${application_info.applicationMajor}`
-      : '',
-  ].filter(Boolean)
+    {
+      visible: Boolean(application_info.applicationSchool),
+      nodeKey: buildCommentNodeKey('application_info', 'singleton', 'applicationSchool'),
+      label: '申请院校',
+    },
+    {
+      visible: Boolean(application_info.applicationMajor),
+      nodeKey: buildCommentNodeKey('application_info', 'singleton', 'applicationMajor'),
+      label: '申请专业',
+    },
+  ].filter(field => field.visible)
 
   return (
     <RuntimeSection title="申请信息">
       <div className="flex flex-wrap gap-2">
         {fields.map(field => (
           <span
-            key={field}
+            key={field.nodeKey}
             className="rounded-full border px-2 py-1"
             style={{
               fontSize: font.smallSize,
@@ -32,7 +36,7 @@ export default function ApplicationInfoRenderer() {
               borderColor: theme.primaryColor,
             }}
           >
-            {field}
+            <CommentableText nodeKey={field.nodeKey} fieldLabel={field.label} />
           </span>
         ))}
       </div>

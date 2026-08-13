@@ -1,5 +1,6 @@
 import type { CommentAnchor, CommentAnchorDocumentNode } from '../src/features/resume-comments/anchors/types.ts'
 import assert from 'node:assert/strict'
+import { mergeCommentPageRects } from '../src/features/resume-comments/anchors/geometry.ts'
 import {
   graphemeOffsetToTextPoint,
   graphemeOffsetToUtf16Offset,
@@ -230,6 +231,20 @@ assert.equal(
     { nodeKey: 'same', blockOrdinal: 1 },
   ),
   false,
+)
+
+assert.deepEqual(
+  mergeCommentPageRects([
+    { pageIndex: 0, x: 20, y: 10, width: 8, height: 4 },
+    { pageIndex: 0, x: 10, y: 10.4, width: 9, height: 4 },
+    { pageIndex: 0, x: 10, y: 30, width: 4, height: 4 },
+    { pageIndex: 1, x: 10, y: 10, width: 4, height: 4 },
+  ]),
+  [
+    { pageIndex: 0, x: 10, y: 10, width: 18, height: 4.4 },
+    { pageIndex: 0, x: 10, y: 30, width: 4, height: 4 },
+    { pageIndex: 1, x: 10, y: 10, width: 4, height: 4 },
+  ],
 )
 
 assert.equal(

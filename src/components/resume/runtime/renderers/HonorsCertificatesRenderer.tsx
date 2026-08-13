@@ -1,5 +1,5 @@
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { RuntimeRichText, RuntimeSection } from './shared'
+import { buildCommentNodeKey, CommentableRichText, CommentableText, RuntimeSection } from './shared'
 import { useRuntimeStyles } from './utils'
 
 export default function HonorsCertificatesRenderer() {
@@ -12,15 +12,21 @@ export default function HonorsCertificatesRenderer() {
 
   return (
     <RuntimeSection title="荣誉证书">
-      {honors_certificates.description ? <RuntimeRichText html={honors_certificates.description} /> : null}
+      {honors_certificates.description
+        ? (
+            <CommentableRichText
+              nodeKey={buildCommentNodeKey('honors_certificates', 'singleton', 'description')}
+              fieldLabel="荣誉证书描述"
+              html={honors_certificates.description}
+            />
+          )
+        : null}
       {honors_certificates.certificates.length > 0
         ? (
             <div className="flex flex-wrap gap-2">
-              {honors_certificates.certificates.map((item, index) => (
+              {honors_certificates.certificates.map(item => (
                 <span
-                  // 空/重复条目无稳定唯一内容，用 index 保证 key 唯一
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={`${item.name}-${index}`}
+                  key={item.entryId}
                   className="rounded-full border px-2 py-1"
                   style={{
                     fontSize: font.smallSize,
@@ -28,7 +34,10 @@ export default function HonorsCertificatesRenderer() {
                     borderColor: theme.primaryColor,
                   }}
                 >
-                  {item.name}
+                  <CommentableText
+                    nodeKey={buildCommentNodeKey('honors_certificates', item.entryId, 'name')}
+                    fieldLabel="荣誉证书"
+                  />
                 </span>
               ))}
             </div>

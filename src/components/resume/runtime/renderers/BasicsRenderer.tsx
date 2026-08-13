@@ -1,39 +1,52 @@
+import { useResumeContext } from '@/components/resume/runtime/context/resume-context'
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { getAge } from '@/utils/date'
+import { buildCommentNodeKey, CommentableText } from './shared'
 import { useRuntimeLayout, useRuntimeStyles } from './utils'
 
+interface CommentInlineField {
+  nodeKey: string
+  label: string
+}
+
 export default function BasicsRenderer() {
-  const { basics, job_intent, getVisibility } = useTemplateResumeData()
+  const { getVisibility } = useTemplateResumeData()
+  const { commentNodesByKey } = useResumeContext()
   const layout = useRuntimeLayout()
   const { font, spacing, theme } = useRuntimeStyles()
 
-  const contactFields = [basics.phone, basics.email].filter(Boolean)
-  const age = getAge(basics.birthMonth)
+  const field = (sectionKey: string, fieldKey: string, label: string): CommentInlineField => ({
+    nodeKey: buildCommentNodeKey(sectionKey, 'singleton', fieldKey),
+    label,
+  })
+  const contactFields = [
+    field('basics', 'phone', '手机号'),
+    field('basics', 'email', '邮箱'),
+  ].filter(item => commentNodesByKey.has(item.nodeKey))
   const singleColumnMetaFields = [
-    typeof age === 'number' ? `${age}岁` : '',
-    basics.gender !== '不填' ? basics.gender : '',
-    basics.nation,
-    basics.heightCm > 0 ? `${basics.heightCm}cm` : '',
-    basics.weightKg > 0 ? `${basics.weightKg}kg` : '',
-    basics.nativePlace,
-  ].filter(Boolean)
+    field('basics', 'age', '年龄'),
+    field('basics', 'gender', '性别'),
+    field('basics', 'nation', '民族'),
+    field('basics', 'height', '身高'),
+    field('basics', 'weight', '体重'),
+    field('basics', 'nativePlace', '籍贯'),
+  ].filter(item => commentNodesByKey.has(item.nodeKey))
   const metaFields = [
-    basics.gender !== '不填' ? basics.gender : '',
-    basics.workYears !== '不填' ? basics.workYears : '',
-    basics.nation,
-    basics.nativePlace,
-  ].filter(Boolean)
+    field('basics', 'gender', '性别'),
+    field('basics', 'workYears', '工作年限'),
+    field('basics', 'nation', '民族'),
+    field('basics', 'nativePlace', '籍贯'),
+  ].filter(item => commentNodesByKey.has(item.nodeKey))
   const jobIntentFields = [
-    job_intent.jobIntent,
-    job_intent.intentionalCity,
-    job_intent.expectedSalary ? `${job_intent.expectedSalary}K` : '',
-    job_intent.dateEntry !== '不填' ? job_intent.dateEntry : '',
-  ].filter(Boolean)
+    field('job_intent', 'jobIntent', '求职意向'),
+    field('job_intent', 'intentionalCity', '意向城市'),
+    field('job_intent', 'expectedSalary', '期望薪资'),
+    field('job_intent', 'dateEntry', '到岗时间'),
+  ].filter(item => commentNodesByKey.has(item.nodeKey))
   const mergedJobIntent = layout.skeleton === 'single-column' && getVisibility('job_intent')
     ? jobIntentFields
     : []
 
-  const renderInlineRow = (values: string[], prefix?: string) => {
+  const renderInlineRow = (values: CommentInlineField[], prefix?: string) => {
     if (values.length === 0) {
       return null
     }
@@ -55,7 +68,7 @@ export default function BasicsRenderer() {
       >
         {prefix
           ? (
-              <div key={`${prefix}-first-${firstValue}`} className="flex items-center">
+              <div key={`${prefix}-first-${firstValue.nodeKey}`} className="flex items-center">
                 <span
                   style={{
                     color: theme.textPrimary,
@@ -64,14 +77,18 @@ export default function BasicsRenderer() {
                 >
                   {prefix}
                 </span>
-                <span>{firstValue}</span>
+                <CommentableText nodeKey={firstValue.nodeKey} fieldLabel={firstValue.label} />
               </div>
             )
           : (
-              <span key={`${prefix ?? 'row'}-${firstValue}`}>{firstValue}</span>
+              <CommentableText
+                key={`${prefix ?? 'row'}-${firstValue.nodeKey}`}
+                nodeKey={firstValue.nodeKey}
+                fieldLabel={firstValue.label}
+              />
             )}
         {restValues.map(value => (
-          <div key={`${prefix ?? 'row'}-${value}`} className="flex items-center">
+          <div key={`${prefix ?? 'row'}-${value.nodeKey}`} className="flex items-center">
             <span
               aria-hidden="true"
               style={{
@@ -82,7 +99,7 @@ export default function BasicsRenderer() {
             >
               |
             </span>
-            <span>{value}</span>
+            <CommentableText nodeKey={value.nodeKey} fieldLabel={value.label} />
           </div>
         ))}
       </div>
@@ -106,7 +123,10 @@ export default function BasicsRenderer() {
             color: theme.primaryColor,
           }}
         >
-          {basics.name || '姓名'}
+          <CommentableText
+            nodeKey={buildCommentNodeKey('basics', 'singleton', 'name')}
+            fieldLabel="姓名"
+          />
         </h1>
         {renderInlineRow(mergedJobIntent, '求职意向：')}
         {renderInlineRow(singleColumnMetaFields)}
@@ -131,7 +151,10 @@ export default function BasicsRenderer() {
           color: theme.primaryColor,
         }}
       >
-        {basics.name || '姓名'}
+        <CommentableText
+          nodeKey={buildCommentNodeKey('basics', 'singleton', 'name')}
+          fieldLabel="姓名"
+        />
       </h1>
       {contactFields.length > 0
         ? (
@@ -143,7 +166,13 @@ export default function BasicsRenderer() {
                 fontSize: font.contentSize,
               }}
             >
-              {contactFields.map(value => <span key={value}>{value}</span>)}
+              {contactFields.map(value => (
+                <CommentableText
+                  key={value.nodeKey}
+                  nodeKey={value.nodeKey}
+                  fieldLabel={value.label}
+                />
+              ))}
             </div>
           )
         : null}
@@ -157,7 +186,13 @@ export default function BasicsRenderer() {
                 fontSize: font.smallSize,
               }}
             >
-              {metaFields.map(value => <span key={value}>{value}</span>)}
+              {metaFields.map(value => (
+                <CommentableText
+                  key={value.nodeKey}
+                  nodeKey={value.nodeKey}
+                  fieldLabel={value.label}
+                />
+              ))}
             </div>
           )
         : null}
