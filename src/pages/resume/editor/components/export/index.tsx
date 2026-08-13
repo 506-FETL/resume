@@ -31,7 +31,9 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>导出简历</DialogTitle>
-          <DialogDescription>选择导出格式，导出内容将与页面预览保持一致。</DialogDescription>
+          <DialogDescription>
+            PDF 保持页面排版；Word 可能根据打开设备的字体可用性替换字体。
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button

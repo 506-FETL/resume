@@ -21,6 +21,7 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
     <Popover>
       <PopoverTrigger asChild>
         <Button
+          aria-label={isMobile ? '字体设置' : undefined}
           variant="outline"
           size={isMobile ? 'icon' : 'sm'}
           className={cn(isMobile && 'size-9')}
@@ -77,6 +78,7 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
             </div>
             <Slider
               aria-label="文字大小"
+              aria-valuetext={`${font.fontSize}px`}
               value={[font.fontSize]}
               min={10}
               max={24}
