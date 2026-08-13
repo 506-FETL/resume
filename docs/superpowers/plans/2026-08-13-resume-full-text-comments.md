@@ -210,7 +210,7 @@ git commit -m "feat(resume): 添加稳定条目业务标识"
 - 修改：`src/lib/supabase/resume/share.ts`
 - 修改：`supabase/functions/resume-share/index.ts`
 
-- [ ] **步骤 1：创建 release 表并扩展分享主表**
+- [x] **步骤 1：创建 release 表并扩展分享主表**
 
 迁移创建 `resume_share_releases`，字段与规格 6.1 一致；为 `resume_shares` 增加：
 
@@ -223,11 +223,11 @@ ALTER TABLE public.resume_shares
 
 release 的 snapshot、template_manifest 和来源元数据均不可更新；owner 只能通过 RPC 发布，客户端不获得表级写权限。
 
-- [ ] **步骤 2：回填既有分享并添加延迟外键**
+- [x] **步骤 2：回填既有分享并添加延迟外键**
 
 按 share ID 稳定回填 `release_no = 1`，复制旧 snapshot、template_manifest、display_name 和来源字段，再设置 `current_release_id`。校验无遗漏后增加 `current_release_id → resume_share_releases(id)` 外键；迁移重跑不得创建第二个 release。
 
-- [ ] **步骤 3：实现原子发布 RPC**
+- [x] **步骤 3：实现原子发布 RPC**
 
 创建 `publish_resume_share_release(p_share_id, p_snapshot, p_template_manifest, p_display_name, p_source_*)`：
 
@@ -240,11 +240,11 @@ release 的 snapshot、template_manifest 和来源元数据均不可更新；own
 
 本迁移先允许 scope 为空；任务 3 完成后由第二个 RPC 版本强制原子创建 scope。
 
-- [ ] **步骤 4：领域层切换读取真源**
+- [x] **步骤 4：领域层切换读取真源**
 
 `ResumeShareRecord` 增加 `currentReleaseId`、`currentRelease`、`allowComments`、`archivedAt`。创建分享先写旧兼容列再创建 release；重新发布只调用 RPC。owner 列表和匿名 fetch 从 current release 返回快照，旧列仅保留兼容回滚用途。
 
-- [ ] **步骤 5：保持既有公开分享协议可用**
+- [x] **步骤 5：保持既有公开分享协议可用**
 
 `resume-share` 的 fetch 在没有评论迁移时先返回：
 
@@ -273,7 +273,9 @@ git diff --check
 
 预期：旧分享回填一条 release；同 URL 重新发布后 current release 变化；旧 release 行仍存在；公开读取仍只得到当前快照。
 
-- [ ] **步骤 7：提交发布批次基础**
+验证状态（2026-08-13）：TypeScript、前端与 Edge Function 定向 ESLint、生产构建和差异检查已通过；本机缺少 Docker/Podman 与 Deno，`supabase db reset` 和 `deno check` 无法执行，因此回填、重发和旧 release 保留仍为本地数据库环境恢复后的集成验收项，本步骤暂不勾选。
+
+- [x] **步骤 7：提交发布批次基础**
 
 ```bash
 git add supabase/migrations/20260813000001_add_resume_share_releases.sql src/lib/supabase/resume/share.types.ts src/lib/supabase/resume/share.ts supabase/functions/resume-share/index.ts

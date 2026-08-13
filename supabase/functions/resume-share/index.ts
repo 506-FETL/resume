@@ -20,7 +20,24 @@ interface GetResult {
   snapshot?: unknown
   template_manifest?: unknown
   display_name?: string | null
+  share_id?: string
+  release_id?: string
+  release_no?: number
+  allow_comments?: boolean
   error?: string
+}
+
+interface CurrentReleaseRow {
+  id: string
+  release_no: number
+  snapshot: unknown
+  template_manifest: unknown
+  display_name: string | null
+}
+
+function readCurrentRelease(value: unknown): CurrentReleaseRow | null {
+  const release = (Array.isArray(value) ? value[0] : value) as CurrentReleaseRow | null
+  return release?.id && Number.isInteger(release.release_no) ? release : null
 }
 
 function json(body: unknown, status = 200) {
@@ -309,15 +326,34 @@ Deno.serve(async (req) => {
 
     const { data, error } = await admin
       .from('resume_shares')
-      .select('id, snapshot, template_manifest, display_name, is_active, password_hash, expires_at')
+      .select(`
+        id,
+        is_active,
+        password_hash,
+        expires_at,
+        archived_at,
+        allow_comments,
+        current_release_id,
+        current_release:resume_share_releases!resume_shares_current_release_id_fkey(
+          id,
+          release_no,
+          snapshot,
+          template_manifest,
+          display_name
+        )
+      `)
       .eq('token', token)
       .maybeSingle()
 
     if (error || !data)
       return unavailable()
-    if (!data.is_active)
+    if (!data.is_active || data.archived_at)
       return unavailable()
     if (data.expires_at && new Date(data.expires_at).getTime() < Date.now())
+      return unavailable()
+
+    const currentRelease = readCurrentRelease(data.current_release)
+    if (!currentRelease || currentRelease.id !== data.current_release_id)
       return unavailable()
 
     if (data.password_hash) {
@@ -383,9 +419,13 @@ Deno.serve(async (req) => {
 
     // 匿名读取只返回固化快照、模板与标题，绝不返回 password_hash / user_id 等敏感字段。
     return json({
-      snapshot: data.snapshot,
-      template_manifest: data.template_manifest,
-      display_name: data.display_name,
+      snapshot: currentRelease.snapshot,
+      template_manifest: currentRelease.template_manifest,
+      display_name: currentRelease.display_name,
+      share_id: data.id,
+      release_id: currentRelease.id,
+      release_no: currentRelease.release_no,
+      allow_comments: data.allow_comments,
     } satisfies GetResult)
   }
   catch (err) {

@@ -35,6 +35,14 @@ export interface ResolvedResumeShareRelease extends ResumeShareSnapshotSource {
   source: ResolvedShareVersionSource
 }
 
+export interface ResumeShareReleaseSummary {
+  id: string
+  releaseNo: number
+  displayName: string | null
+  source: ShareVersionSource
+  createdAt: string
+}
+
 export type CurrentResumeShareSnapshotProvider
   = (resumeId: string) => Promise<ResumeShareSnapshotSource>
 
@@ -62,6 +70,10 @@ export interface ResumeShareRecord {
   last_viewed_at: string | null
   created_at: string
   updated_at: string
+  currentReleaseId: string
+  currentRelease: ResumeShareReleaseSummary
+  allowComments: boolean
+  archivedAt: string | null
   source: ShareVersionSource
 }
 
@@ -80,5 +92,9 @@ export interface ShareViewResult {
   snapshot?: PersistedResumeSnapshot
   templateManifest?: TemplateManifest
   displayName?: string | null
+  shareId?: string
+  releaseId?: string
+  releaseNo?: number
+  allowComments?: boolean
   unavailable?: boolean
 }
