@@ -7,25 +7,50 @@ ALTER TABLE public.resume_config
   ADD COLUMN IF NOT EXISTS derived_metadata jsonb NULL,
   ADD COLUMN IF NOT EXISTS derived_status text NULL;
 
-ALTER TABLE public.resume_config
-  ADD CONSTRAINT resume_config_parent_resume_id_fkey
-    FOREIGN KEY (parent_resume_id)
-    REFERENCES public.resume_config (resume_id)
-    ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'public.resume_config'::regclass
+      AND conname = 'resume_config_parent_resume_id_fkey'
+  ) THEN
+    ALTER TABLE public.resume_config
+      ADD CONSTRAINT resume_config_parent_resume_id_fkey
+        FOREIGN KEY (parent_resume_id)
+        REFERENCES public.resume_config (resume_id)
+        ON DELETE SET NULL;
+  END IF;
 
-ALTER TABLE public.resume_config
-  ADD CONSTRAINT resume_config_derived_status_check
-    CHECK (
-      derived_status IS NULL
-      OR derived_status IN ('generating', 'ready', 'failed')
-    );
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'public.resume_config'::regclass
+      AND conname = 'resume_config_derived_status_check'
+  ) THEN
+    ALTER TABLE public.resume_config
+      ADD CONSTRAINT resume_config_derived_status_check
+        CHECK (
+          derived_status IS NULL
+          OR derived_status IN ('generating', 'ready', 'failed')
+        );
+  END IF;
 
-ALTER TABLE public.resume_config
-  ADD CONSTRAINT resume_config_derived_metadata_is_object_check
-    CHECK (
-      derived_metadata IS NULL
-      OR jsonb_typeof(derived_metadata) = 'object'
-    );
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'public.resume_config'::regclass
+      AND conname = 'resume_config_derived_metadata_is_object_check'
+  ) THEN
+    ALTER TABLE public.resume_config
+      ADD CONSTRAINT resume_config_derived_metadata_is_object_check
+        CHECK (
+          derived_metadata IS NULL
+          OR jsonb_typeof(derived_metadata) = 'object'
+        );
+  END IF;
+END;
+$$;
 
 CREATE INDEX IF NOT EXISTS idx_resume_config_parent_resume_id
   ON public.resume_config USING btree (parent_resume_id)

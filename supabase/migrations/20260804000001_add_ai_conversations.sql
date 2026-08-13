@@ -14,11 +14,15 @@ CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_updated
 
 ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "ai_conversations_select_own" ON public.ai_conversations;
 CREATE POLICY "ai_conversations_select_own" ON public.ai_conversations
   FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ai_conversations_insert_own" ON public.ai_conversations;
 CREATE POLICY "ai_conversations_insert_own" ON public.ai_conversations
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ai_conversations_update_own" ON public.ai_conversations;
 CREATE POLICY "ai_conversations_update_own" ON public.ai_conversations
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ai_conversations_delete_own" ON public.ai_conversations;
 CREATE POLICY "ai_conversations_delete_own" ON public.ai_conversations
   FOR DELETE USING (auth.uid() = user_id);

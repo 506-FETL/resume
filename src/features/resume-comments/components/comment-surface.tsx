@@ -1,14 +1,9 @@
 import type { RefObject } from 'react'
 import type { CommentUiPermissions } from './types.ts'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { compareAnchorOverlap } from '../anchors/selection.ts'
-import {
-  useResumeCommentClient,
-  useResumeCommentContext,
-  useResumeCommentStore,
-} from '../context.tsx'
+import { useResumeCommentClient, useResumeCommentContext, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { useCommentReadReceipt } from '../hooks/use-comment-realtime.ts'
 import { useCommentSelection } from '../hooks/use-comment-selection.ts'
@@ -73,7 +68,6 @@ export function CommentSurface({
     rootRef,
     documentHash: scope?.documentHash ?? '',
     enabled: enabled && accessState !== 'unavailable',
-    onInvalidSelection: () => toast.info('请选择同一段落或字段内的文字'),
   })
   const { geometry } = useHighlightGeometry({
     rootRef,
