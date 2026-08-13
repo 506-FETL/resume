@@ -292,7 +292,7 @@ git commit -m "feat(share): 引入不可变发布批次"
 - 创建：`supabase/migrations/20260813000002_add_resume_comments.sql`
 - 创建：`supabase/tests/resume-comments.sql`
 
-- [ ] **步骤 1：按规格建立七类真源数据**
+- [x] **步骤 1：按规格建立七类真源数据**
 
 创建：
 
@@ -306,11 +306,11 @@ git commit -m "feat(share): 引入不可变发布批次"
 
 scope 使用部分唯一索引隔离 working、history、share_release，并保存 `projection_reference_date date not null`；comment 使用部分唯一索引保证每个 thread 只有一个 root；actor、parent、scope kind、anchor status 和 resolve actor 均用 CHECK 或触发器约束。
 
-- [ ] **步骤 2：把锚点文档和 revision 作为数据库并发边界**
+- [x] **步骤 2：把锚点文档和 revision 作为数据库并发边界**
 
 scope 必须保存 `anchor_document jsonb`、`document_hash text`、`document_revision integer`。线程保存 `anchor jsonb`、`anchor_status`、`revision`。数据库函数拒绝空 exactQuote、非法 offset、错误 nodeKey 和不匹配 document_hash；服务端任务还会做同一套 Zod 校验。
 
-- [ ] **步骤 3：建立事件序列、幂等和限流 RPC**
+- [x] **步骤 3：建立事件序列、幂等和限流 RPC**
 
 创建内部函数：
 
@@ -327,7 +327,7 @@ check_resume_comment_rate_limit(
 
 同一 actor + request_id 重放返回首次响应；event_seq 在 scope 内单调递增；限流返回 `retry_after_seconds`，不保存原始 IP。
 
-- [ ] **步骤 4：完成发布与 scope 原子创建**
+- [x] **步骤 4：完成发布与 scope 原子创建**
 
 在第二个迁移中使用 `CREATE OR REPLACE FUNCTION` 替换任务 2 的发布 RPC，使其必须接收由共用核心生成的 `p_anchor_document`、`p_document_hash` 和 `p_projection_reference_date`，并让新 release 与 share_release scope 在同一事务创建；不回写已应用的第一个迁移。新增：
 
@@ -340,7 +340,7 @@ check_resume_comment_rate_limit(
 
 历史 scope 懒创建；历史永久删除级联自身评论，但独立 share release 保留。另提供仅 service role 可调用的 `ensure_resume_share_release_comment_scope`：锁定 backfill release，在服务端已从 snapshot 构造权威文档后幂等补齐旧 release scope；公开请求不能直接调用或传入权威文档。
 
-- [ ] **步骤 5：锁死直接表访问**
+- [x] **步骤 5：锁死直接表访问**
 
 评论领域表全部启用 RLS，撤销 anon/authenticated 直接 SELECT/INSERT/UPDATE/DELETE；owner、collaborator 和 visitor 统一由 Edge Function service role 访问。Realtime 只广播不含正文的失效事件，客户端收到后经 API 增量拉取。
 
@@ -369,7 +369,9 @@ supabase db lint --local
 
 预期：三个命令退出码均为 `0`，SQL 脚本最后输出 `resume comments verification passed`。
 
-- [ ] **步骤 7：提交评论数据库**
+验证状态（2026-08-13）：使用 PostgreSQL 官方语法解析器内核 `pgsql-parser` 成功解析两个迁移和 SQL 验证脚本，并通过 `git diff --check`；本机缺少 Docker/Podman 与 `psql`，无法执行 `supabase db reset`、事务断言或 `supabase db lint --local`，因此本步骤暂不勾选，所有数据库行为仍需在本地 Supabase 环境实跑后确认。
+
+- [x] **步骤 7：提交评论数据库**
 
 ```bash
 git add supabase/migrations/20260813000002_add_resume_comments.sql supabase/tests/resume-comments.sql
