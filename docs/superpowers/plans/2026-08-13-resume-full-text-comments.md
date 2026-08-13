@@ -829,30 +829,35 @@ git commit -m "feat(comments): 实现桌面划词评论交互"
 
 **文件：**
 
-- 修改：`src/pages/resume/editor/components/preview/index.tsx`
 - 修改：`src/pages/resume/editor/index.tsx`
 - 创建：`src/pages/resume/editor/hooks/use-comment-review-mode.ts`
-- 修改：`src/pages/resume/editor/hooks/use-resume-loader.ts`
 - 创建：`src/features/resume-comments/api/working-document-sync.ts`
+- 修改：`src/features/resume-comments/api/client.ts`
+- 修改：`src/features/resume-comments/components/comment-surface.tsx`
+- 修改：`src/features/resume-comments/components/comments-panel.tsx`
+- 修改：`src/features/resume-comments/context.tsx`
+- 修改：`src/features/resume-comments/hooks/use-comment-actions.ts`
 - 修改：`src/store/resume/slices/sync.ts`
+- 修改：`supabase/functions/resume-comments/index.ts`
+- 修改：`scripts/verify-resume-comment-service.ts`
 
-- [ ] **步骤 1：在最终画布挂载当前 working scope**
+- [x] **步骤 1：在最终画布挂载当前 working scope**
 
 Preview 仅在 `mode === 'online'` 时将 `documentRef`、visible page root、resumeId、owner/current collaborator actor 和当前 ResumeSchema 注入 CommentProvider。全局评论按钮显示当前可访问 scope 未读；离线模式不请求 bootstrap，入口禁用并提示“转为在线简历后可评论”。不修改表单组件。
 
-- [ ] **步骤 2：让编辑面板与评论 Drawer 互斥**
+- [x] **步骤 2：让桌面编辑面板与评论侧栏互斥**
 
-桌面打开评论时关闭右侧 EditPanel 并记录之前状态；评论关闭后仅在用户未主动切换面板时恢复。移动端编辑 Drawer 与评论 Drawer 同时最多一个。此互斥状态留在 editor 页面 Store/本地 UI，不进入全局 resume Store。
+桌面打开评论时关闭右侧 EditPanel 并记录之前状态；评论关闭后仅在用户未主动切换面板时恢复。此互斥状态留在 editor 页面本地 UI，不进入全局 resume Store。移动端编辑 Drawer 与评论 Drawer 的互斥归入任务 11 的移动端交互统一处理。
 
-- [ ] **步骤 3：在成功同步之后更新权威 anchor document**
+- [x] **步骤 3：在成功同步之后更新权威 anchor document**
 
 `working-document-sync.ts` 提供注册/注销持久化完成监听器。`sync.ts` 在 `saveToSupabase` 与 `updateResumeConfig` 都成功后只通知一次，监听器再调用 `sync_working_document(document, hash, expectedRevision)`；评论文档同步失败不回滚已成功的简历保存，而是在评论 Store 标记待重试。本地未同步内容只投影高亮；从未同步内容创建评论时先触发现有 `manualSync()`，检查 `syncError`/`pendingChanges` 后再写评论，失败则保留草稿并显示可恢复错误。
 
-- [ ] **步骤 4：处理 document revision 竞争**
+- [x] **步骤 4：处理 document revision 竞争**
 
 sync 返回 stale_document 时拉取最新 scope，再对当前已保存 ResumeSchema 重建 document；不盲重试覆盖。服务端事务重定位全部未解决线程，客户端应用 anchor_moved/detached event。
 
-- [ ] **步骤 5：权限验证**
+- [x] **步骤 5：权限验证**
 
 owner 可管理任意当前评论；普通登录但无协作 token 的用户不能进入 working scope；collaborator 接入留给任务 13。登出或切换 resume 时销毁订阅、清选区和临时高亮。
 
@@ -862,12 +867,15 @@ owner 可管理任意当前评论；普通登录但无协作 token 的用户不�
 
 ```bash
 pnpm exec tsc --noEmit --pretty false
-pnpm exec eslint src/pages/resume/editor/components/preview/index.tsx src/pages/resume/editor/index.tsx src/pages/resume/editor/hooks/use-comment-review-mode.ts src/pages/resume/editor/hooks/use-resume-loader.ts src/features/resume-comments/api/working-document-sync.ts src/store/resume/slices/sync.ts
+pnpm exec eslint scripts/verify-resume-comment-service.ts src/pages/resume/editor/index.tsx src/pages/resume/editor/hooks/use-comment-review-mode.ts src/features/resume-comments/api/client.ts src/features/resume-comments/api/working-document-sync.ts src/features/resume-comments/context.tsx src/features/resume-comments/hooks/use-comment-actions.ts src/store/resume/slices/sync.ts
+pnpm verify:comment-service
 pnpm build
 git diff --check
 ```
 
-- [ ] **步骤 7：提交编辑器接入**
+验证记录（2026-08-14）：评论服务、客户端和锚点断言脚本，TypeScript、定向 ESLint、Deno Edge 检查、生产构建和差异检查均通过；签名篡改断言改为翻转解码后的实际字节，并连续运行 20 次稳定通过。浏览器真实创建并打开了一份离线简历，确认评论按钮禁用且提示“离线简历不能评论”，没有挂载评论侧栏。已登录的在线编辑器最初稳定复现 React `getSnapshot` 未缓存和 `Maximum update depth`，错误组件为 `CommentSurface`；根因是两处 Zustand selector 每次创建新的线程数组，统一改用仓库现有 `useShallow` 后，刷新可正常渲染简历，未再出现对应控制台错误。真实确认评论侧栏可打开、空线程分类正常、与 EditPanel 互斥且关闭后恢复原编辑面板。没有向真实简历写入测试评论，因此创建、唯一引用移动、detached、重复引用和保存失败矩阵仍保留为未验证，不能以静态通过替代。
+
+- [x] **步骤 7：提交编辑器接入**
 
 ```bash
 git add src/pages/resume/editor/components/preview/index.tsx src/pages/resume/editor/index.tsx src/pages/resume/editor/hooks/use-comment-review-mode.ts src/pages/resume/editor/hooks/use-resume-loader.ts src/features/resume-comments/api/working-document-sync.ts src/store/resume/slices/sync.ts

@@ -14,6 +14,7 @@ import {
   verifyCommentToken,
 } from '../shared/resume-comment-auth.ts'
 import {
+  buildCommentAnchorDocument,
   relocateResumeCommentAnchor,
   sha256Hex,
   stableStringify,
@@ -223,7 +224,39 @@ async function resolveAccess({
     if (!userId) {
       throw new CommentApiError('unauthorized', '请先登录', 401)
     }
-    const scope = await getScope(admin, readUuid(body, 'scopeId'))
+    let scopeId: string
+    if (typeof body.scopeId === 'string') {
+      scopeId = readUuid(body, 'scopeId')
+    }
+    else {
+      const resumeId = readUuid(body, 'resumeId')
+      const { data: resume, error } = await admin
+        .from('resume_config')
+        .select('resume_id,user_id,basics,job_intent,application_info,edu_background,work_experience,internship_experience,campus_experience,project_experience,skill_specialty,honors_certificates,self_evaluation,hobbies,order,visibility')
+        .eq('resume_id', resumeId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (error || !resume) {
+        throw new CommentApiError('not_found', '简历不存在', 404)
+      }
+      const projectionReferenceDate = new Date().toISOString().slice(0, 10)
+      const projected = buildCommentAnchorDocument(resume, projectionReferenceDate)
+      const { data, error: ensureError } = await admin.rpc(
+        'ensure_resume_working_comment_scope',
+        {
+          p_owner_user_id: userId,
+          p_resume_id: resumeId,
+          p_anchor_document: projected.document,
+          p_document_hash: projected.documentHash,
+          p_projection_reference_date: projectionReferenceDate,
+        },
+      )
+      if (ensureError || typeof data !== 'string') {
+        throw ensureError ?? new Error('Unable to ensure working comment scope')
+      }
+      scopeId = data
+    }
+    const scope = await getScope(admin, scopeId)
     if (scope.owner_user_id !== userId) {
       throw new CommentApiError('not_found', '评论空间不存在', 404)
     }

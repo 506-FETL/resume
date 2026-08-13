@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
+import { readFileSync } from 'node:fs'
 import {
   hashAnonymousSecret,
   signCommentToken,
   verifyCommentToken,
 } from '../supabase/functions/shared/resume-comment-auth.ts'
+import {
+  buildCommentAnchorDocument,
+} from '../supabase/functions/shared/resume-comment-core.ts'
 import {
   broadcastCommentInvalidation,
   deriveOwnerRealtimeTopic,
@@ -17,6 +21,14 @@ import {
   readCommentAnchor,
   readCommentOp,
 } from '../supabase/functions/shared/resume-comment-schema.ts'
+
+assert.match(
+  buildCommentAnchorDocument({ basics: { name: '张三' }, order: ['basics'] }, '2026-08-14').documentHash,
+  /^[0-9a-f]{64}$/u,
+)
+const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
+assert.match(edgeSource, /ensure_resume_working_comment_scope/u)
+assert.match(edgeSource, /buildCommentAnchorDocument\(resume, projectionReferenceDate\)/u)
 
 const secret = 'resume-comment-verification-secret-000000000000'
 const now = Math.floor(Date.now() / 1_000)
@@ -33,8 +45,15 @@ const sharePayload = {
 
 const token = await signCommentToken(sharePayload, secret)
 assert.deepEqual(await verifyCommentToken(token, 'share', secret), sharePayload)
+const [encodedPayload, encodedSignature] = token.split('.') as [string, string]
+const tamperedSignature = Buffer.from(encodedSignature, 'base64url')
+tamperedSignature[0] ^= 1
 await assert.rejects(
-  verifyCommentToken(`${token.slice(0, -1)}x`, 'share', secret),
+  verifyCommentToken(
+    `${encodedPayload}.${tamperedSignature.toString('base64url')}`,
+    'share',
+    secret,
+  ),
   (error: unknown) => error instanceof CommentApiError && error.code === 'unauthorized',
 )
 await assert.rejects(

@@ -24,6 +24,10 @@ export type CommentAccessContext
     scopeId: string
   }
   | {
+    kind: 'owner'
+    resumeId: string
+  }
+  | {
     kind: 'collaborator'
     accessToken: string
   }
@@ -429,7 +433,12 @@ export class ResumeCommentClient {
 
   private accessBody(): Record<string, unknown> {
     if (this.access.kind === 'owner') {
-      return { accessKind: 'owner', scopeId: this.access.scopeId }
+      return {
+        accessKind: 'owner',
+        ...('scopeId' in this.access
+          ? { scopeId: this.access.scopeId }
+          : { resumeId: this.access.resumeId }),
+      }
     }
     if (this.access.kind === 'collaborator') {
       return { accessKind: 'collaborator', accessToken: this.access.accessToken }

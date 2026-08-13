@@ -2,6 +2,7 @@ import type { RefObject } from 'react'
 import type { CommentUiPermissions } from './types.ts'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { compareAnchorOverlap } from '../anchors/selection.ts'
 import {
   useResumeCommentClient,
@@ -50,7 +51,9 @@ export function CommentSurface({
   }, [controlledOpen, onOpenChange])
   const scope = useResumeCommentStore(state => state.scope)
   const selection = useResumeCommentStore(state => state.selection)
-  const threads = useResumeCommentStore(state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean))
+  const threads = useResumeCommentStore(useShallow(
+    state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean),
+  ))
   const activeThreadId = useResumeCommentStore(state => state.activeThreadId)
   const setActiveThread = useResumeCommentStore(state => state.setActiveThread)
   const highlightsHidden = useResumeCommentStore(state => state.highlightsHidden)

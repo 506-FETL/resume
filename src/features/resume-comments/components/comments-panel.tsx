@@ -2,6 +2,7 @@ import type { CommentThreadFilter } from './thread-list.tsx'
 import type { CommentUiPermissions } from './types.ts'
 import { Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -25,7 +26,9 @@ function PanelBody({
 }) {
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
   const actions = useCommentActions()
-  const threads = useResumeCommentStore(state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean))
+  const threads = useResumeCommentStore(useShallow(
+    state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean),
+  ))
   const activeThreadId = useResumeCommentStore(state => state.activeThreadId)
   const setActiveThread = useResumeCommentStore(state => state.setActiveThread)
   const selection = useResumeCommentStore(state => state.selection)

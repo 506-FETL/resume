@@ -8,7 +8,7 @@ import {
 import { useResumeCommentContext } from '../context.tsx'
 
 export function useCommentActions() {
-  const { client, store } = useResumeCommentContext()
+  const { beforeWrite, client, store } = useResumeCommentContext()
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -38,10 +38,13 @@ export function useCommentActions() {
   const execute = useCallback(async <T>(
     action: string,
     operation: () => Promise<{ data: T, eventSeq: number }>,
+    requiresDocumentSync = false,
   ) => {
     setPendingAction(action)
     setErrorMessage(null)
     try {
+      if (requiresDocumentSync)
+        await beforeWrite?.()
       await prepareActor()
       const response = await operation()
       await refreshThreads(response.eventSeq)
@@ -54,18 +57,22 @@ export function useCommentActions() {
     finally {
       setPendingAction(null)
     }
-  }, [prepareActor, refreshThreads])
+  }, [beforeWrite, prepareActor, refreshThreads])
 
   const createThread = useCallback(async (body: string) => {
     const state = store.getState()
     if (!state.selection || !state.scope)
       return null
+    const selection = state.selection
     const response = await execute('create_thread', () => client.createThread({
-      anchor: state.selection!.anchor,
+      anchor: {
+        ...selection.anchor,
+        createdAtContentHash: store.getState().scope!.documentHash,
+      },
       body,
-      documentHash: state.scope!.documentHash,
-      originalPageIndex: state.selection!.originalPageIndex,
-    }))
+      documentHash: store.getState().scope!.documentHash,
+      originalPageIndex: selection.originalPageIndex,
+    }), true)
     if (response) {
       store.getState().setSelection(null)
       store.getState().clearDraft('new-thread')
@@ -121,11 +128,15 @@ export function useCommentActions() {
       const state = store.getState()
       if (!state.selection || !state.scope)
         return Promise.resolve(null)
+      const selection = state.selection
       return execute('relink_anchor', () => client.relinkAnchor(
         thread,
-        state.selection!.anchor,
-        state.scope!.documentHash,
-      )).then((response) => {
+        {
+          ...selection.anchor,
+          createdAtContentHash: store.getState().scope!.documentHash,
+        },
+        store.getState().scope!.documentHash,
+      ), true).then((response) => {
         if (response)
           store.getState().setSelection(null)
         return response

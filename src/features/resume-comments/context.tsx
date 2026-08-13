@@ -16,6 +16,7 @@ import { createResumeCommentStore } from './store/create-store.ts'
 interface ResumeCommentContextValue {
   client: ResumeCommentClient
   store: ReturnType<typeof createResumeCommentStore>
+  beforeWrite?: () => Promise<void>
 }
 
 const ResumeCommentContext = createContext<ResumeCommentContextValue | null>(null)
@@ -27,6 +28,7 @@ export interface ResumeCommentProviderProps {
   commentsVisible?: boolean
   refreshAccess?: () => Promise<CommentAccessContext>
   onAccessInvalidated?: (reason: 'stale_release' | 'share_unavailable') => void
+  beforeWrite?: () => Promise<void>
 }
 
 function attachLegacyAnonymousCredential(client: ResumeCommentClient, access: CommentAccessContext) {
@@ -41,6 +43,7 @@ export function ResumeCommentProvider({
   commentsVisible = false,
   refreshAccess,
   onAccessInvalidated,
+  beforeWrite,
 }: ResumeCommentProviderProps) {
   const [store] = useState(createResumeCommentStore)
   const [client] = useState(() => {
@@ -63,7 +66,7 @@ export function ResumeCommentProvider({
   })
   useCommentReadReceipt({ client, store, visible: enabled && commentsVisible })
 
-  const value = useMemo(() => ({ client, store }), [client, store])
+  const value = useMemo(() => ({ beforeWrite, client, store }), [beforeWrite, client, store])
   return <ResumeCommentContext value={value}>{children}</ResumeCommentContext>
 }
 

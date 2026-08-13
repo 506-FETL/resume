@@ -1,12 +1,16 @@
+import type { RefObject } from 'react'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
-import { Edit } from 'lucide-react'
+import { Edit, MessageSquareText } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
+import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
+import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
@@ -22,6 +26,7 @@ import { CollaborationRuntime } from './components/collaboration/collaboration-r
 import EditPanel from './components/edit-panel'
 import ResumePreview from './components/preview'
 import SidebarEditor from './components/sidebar'
+import { usePrepareWorkingCommentWrite, useWorkingDocumentCommentSync } from './hooks/use-comment-review-mode'
 import { useEditPanel } from './hooks/use-edit-panel'
 import { useResumeLoader } from './hooks/use-resume-loader'
 import { useScrollToSection } from './hooks/use-scroll-to-section'
@@ -31,8 +36,10 @@ function Editor() {
   const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const restoreEditPanelRef = useRef(false)
   const { theme } = useTheme()
-  const { loading } = useResumeLoader()
+  const { currentUser, loading } = useResumeLoader()
 
   const documentRef = useRef<HTMLDivElement | null>(null)
   const sourceRef = useRef<HTMLDivElement | null>(null)
@@ -47,6 +54,7 @@ function Editor() {
 
   const resumeName = useResumeStore(state => state.basics.name)
   const currentResumeId = useCurrentResumeStore(state => state.resumeId)
+  const editorMode = useResumeStore(state => state.mode)
   const resumes = useResumeListStore(state => state.resumes)
   const currentDisplayName = currentResumeId
     ? (resumes.find(resume => resume.resume_id === currentResumeId)?.display_name ?? null)
@@ -85,6 +93,20 @@ function Editor() {
 
   // 桌面编辑面板开关 + 左导航自动让位（桌面恒为右侧常驻侧栏）
   const { open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
+  const prepareCommentWrite = usePrepareWorkingCommentWrite(currentResumeId)
+  const handleCommentsOpenChange = useCallback((nextOpen: boolean) => {
+    setCommentsOpen(nextOpen)
+    if (nextOpen) {
+      restoreEditPanelRef.current = panelOpen
+      setPanelOpen(false)
+      if (open)
+        setOpen(false)
+      return
+    }
+    if (restoreEditPanelRef.current && !isMobile)
+      setPanelOpen(true)
+    restoreEditPanelRef.current = false
+  }, [isMobile, open, panelOpen, setPanelOpen])
   const scrollToSection = useScrollToSection(previewScrollRef)
   // 桌面：点 tab 既切换又滚动渲染区到对应章节；移动端走底部抽屉
   const useSidebarMode = !isMobile
@@ -144,8 +166,38 @@ function Editor() {
                   onToggleVisibility={toggleVisibility}
                   onClose={() => setPanelOpen(false)}
                 />
+                {currentResumeId && editorMode === 'online' && currentUser
+                  ? (
+                      <ResumeCommentProvider
+                        key={currentResumeId}
+                        access={{ kind: 'owner', resumeId: currentResumeId }}
+                        beforeWrite={prepareCommentWrite}
+                        commentsVisible={commentsOpen}
+                      >
+                        <WorkingResumeComments
+                          resumeId={currentResumeId}
+                          rootRef={documentRef}
+                          sourceLabel={currentDisplayName ?? resumeName ?? '当前简历'}
+                          currentUserId={currentUser?.id ?? null}
+                          open={commentsOpen}
+                          onOpenChange={handleCommentsOpenChange}
+                          layoutRevision={JSON.stringify(documentState.signature)}
+                        />
+                      </ResumeCommentProvider>
+                    )
+                  : (
+                      <Button
+                        variant="outline"
+                        disabled
+                        title={editorMode === 'offline' ? '离线简历不能评论' : '登录后才能评论'}
+                        className="fixed bottom-6 right-36 z-1 shadow-md"
+                      >
+                        <MessageSquareText />
+                        评论
+                      </Button>
+                    )}
                 <AnimatePresence>
-                  {!panelOpen && (
+                  {!panelOpen && !commentsOpen && (
                     <motion.div
                       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -156,7 +208,10 @@ function Editor() {
                       <Button
                         variant="outline"
                         className="shadow-md"
-                        onClick={() => setPanelOpen(true)}
+                        onClick={() => {
+                          setCommentsOpen(false)
+                          setPanelOpen(true)
+                        }}
                       >
                         <Edit />
                         编辑简历
@@ -219,6 +274,58 @@ function Editor() {
         )}
       />
     </CollaborationPanelProvider>
+  )
+}
+
+function WorkingResumeComments({
+  resumeId,
+  rootRef,
+  sourceLabel,
+  currentUserId,
+  open,
+  onOpenChange,
+  layoutRevision,
+}: {
+  resumeId: string
+  rootRef: RefObject<HTMLElement | null>
+  sourceLabel: string
+  currentUserId: string | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  layoutRevision: string
+}) {
+  useWorkingDocumentCommentSync(resumeId)
+  const hasUnread = useResumeCommentStore(state => state.lastEventSeq > state.lastReadEventSeq)
+  return (
+    <>
+      {!open
+        ? (
+            <Button
+              data-resume-comment-ui
+              variant="outline"
+              className="fixed bottom-6 right-36 z-1 shadow-md"
+              onClick={() => onOpenChange(true)}
+            >
+              <MessageSquareText />
+              评论
+              {hasUnread ? <Badge variant="destructive">新</Badge> : null}
+            </Button>
+          )
+        : null}
+      <CommentSurface
+        rootRef={rootRef}
+        sourceLabel={sourceLabel}
+        presentation="docked"
+        permissions={{
+          canCreate: true,
+          canModerateAll: true,
+          currentUserId,
+        }}
+        layoutRevision={layoutRevision}
+        open={open}
+        onOpenChange={onOpenChange}
+      />
+    </>
   )
 }
 
