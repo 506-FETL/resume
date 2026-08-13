@@ -680,20 +680,25 @@ git commit -m "feat(comments): 实现统一评论服务"
 - 创建：`src/features/resume-comments/api/client.ts`
 - 创建：`src/features/resume-comments/api/anonymous-identity.ts`
 - 创建：`src/features/resume-comments/api/realtime.ts`
+- 创建：`src/features/resume-comments/api/realtime-recovery.ts`
 - 创建：`src/features/resume-comments/store/types.ts`
 - 创建：`src/features/resume-comments/store/create-store.ts`
 - 创建：`src/features/resume-comments/context.tsx`
 - 创建：`src/features/resume-comments/hooks/use-comment-realtime.ts`
+- 创建：`scripts/verify-resume-comment-client.ts`
+- 修改：`supabase/migrations/20260813000003_add_resume_comment_api_transactions.sql`
+- 修改：`supabase/tests/resume-comments.sql`
+- 修改：`package.json`
 
-- [ ] **步骤 1：实现不泄漏页面细节的 API client**
+- [x] **步骤 1：实现不泄漏页面细节的 API client**
 
 client 接受 `CommentAccessContext`，每个写方法自动附 `requestId`、actor credential、release/document/thread revision。遇到 stale 错误只返回领域错误，不自动把草稿写到新版本。
 
-- [ ] **步骤 2：实现按分享链接隔离的匿名身份**
+- [x] **步骤 2：实现按分享链接隔离的匿名身份**
 
 localStorage key 为 `resume-comment-anonymous:<shareId>`，值只含 version、anonymousId、secret。首次评论前生成 256-bit secret 并调用 create identity；读取页面不强制创建身份。头像颜色和图形只由 anonymousId 派生，展示名恒为“匿名用户”。
 
-- [ ] **步骤 3：建立按 scope 隔离的 Store**
+- [x] **步骤 3：建立按 scope 隔离的 Store**
 
 Store 保存；owner 的 `bootstrap_scope` 同时返回当前可访问 scope 摘要和短期用户聚合 topic，visitor/collaborator 只返回被授权的单个 scope：
 
@@ -714,11 +719,11 @@ interface CommentScopeState {
 
 组件本地只保存输入展开、菜单和 Drawer snap；版本、线程、未读、草稿、选区和连接进入 Store。
 
-- [ ] **步骤 4：实现 event_seq 缺口补偿**
+- [x] **步骤 4：实现 event_seq 缺口补偿**
 
 Realtime 通知只有序号。连续序号触发增量拉取；断线、序号跳跃、token 过期或 schema version 不匹配触发 bootstrap。公开页面每 60 秒刷新分享状态；关闭评论转只读并保留草稿，归档转不可用。
 
-- [ ] **步骤 5：实现未读推进规则**
+- [x] **步骤 5：实现未读推进规则**
 
 自己事件不增加未读；新主评论、回复、reopen 按规格决定接收者。线程卡片进入 Drawer 可视区域并稳定 500ms 后调用 mark_read；乐观 UI 只降本地 badge，服务端失败后恢复。
 
@@ -732,7 +737,9 @@ git diff --check
 
 在浏览器 DevTools 切离线后创建草稿，确认不无限重试；恢复网络先 bootstrap，再允许显式重发；同 requestId 重发不重复创建。
 
-- [ ] **步骤 7：提交客户端领域状态**
+验证记录（2026-08-14）：`verify:comment-client` 已覆盖 scope 草稿隔离、离线状态、未读单调推进、连续序号增量和缺口 bootstrap；类型检查、定向 ESLint、服务/锚点脚本与 SQL parser 均通过。评论 Surface 尚未挂载到真实页面，因此 DevTools 离线交互和恢复后显式重发留到任务 8/10 接入页面后验证；数据库 request replay 的实际执行仍受本机缺少 Docker/Podman 限制。
+
+- [x] **步骤 7：提交客户端领域状态**
 
 ```bash
 git add src/features/resume-comments/api src/features/resume-comments/store src/features/resume-comments/context.tsx src/features/resume-comments/hooks/use-comment-realtime.ts

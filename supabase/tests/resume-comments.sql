@@ -381,7 +381,14 @@ BEGIN
       AND (
         SELECT count(*) FROM public.resume_comment_events
         WHERE thread_id = v_api_thread_id AND type = 'thread_created'
-      ) = 1,
+      ) = 1
+      AND (
+        SELECT last_read_event_seq
+        FROM public.resume_comment_read_states
+        WHERE scope_id = v_working_scope_id
+          AND principal_kind = 'user'
+          AND principal_user_id = v_owner_id
+      ) = (v_api_response ->> 'eventSeq')::bigint,
     '创建线程、主评论和 event 必须事务化且重放不重复'
   );
 

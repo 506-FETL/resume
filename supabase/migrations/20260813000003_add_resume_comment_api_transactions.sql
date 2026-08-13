@@ -435,6 +435,31 @@ BEGIN
   IF v_response IS NULL THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'not_found';
   END IF;
+  IF p_op <> 'mark_read' AND v_event_seq IS NOT NULL THEN
+    IF p_actor_kind = 'user' THEN
+      INSERT INTO public.resume_comment_read_states (
+        scope_id, principal_kind, principal_user_id, last_read_event_seq
+      ) VALUES (p_scope_id, 'user', p_actor_id, v_event_seq)
+      ON CONFLICT (scope_id, principal_user_id) WHERE principal_kind = 'user'
+      DO UPDATE SET
+        last_read_event_seq = GREATEST(
+          public.resume_comment_read_states.last_read_event_seq,
+          EXCLUDED.last_read_event_seq
+        ),
+        updated_at = now();
+    ELSE
+      INSERT INTO public.resume_comment_read_states (
+        scope_id, principal_kind, principal_anonymous_id, last_read_event_seq
+      ) VALUES (p_scope_id, 'anonymous', p_actor_id, v_event_seq)
+      ON CONFLICT (scope_id, principal_anonymous_id) WHERE principal_kind = 'anonymous'
+      DO UPDATE SET
+        last_read_event_seq = GREATEST(
+          public.resume_comment_read_states.last_read_event_seq,
+          EXCLUDED.last_read_event_seq
+        ),
+        updated_at = now();
+    END IF;
+  END IF;
   UPDATE public.resume_comment_requests
   SET response = v_response, completed_at = now()
   WHERE actor_key = p_actor_key AND request_id = p_request_id;
@@ -579,6 +604,16 @@ BEGIN
     'documentHash', p_document_hash,
     'eventSeq', v_event_seq
   );
+  INSERT INTO public.resume_comment_read_states (
+    scope_id, principal_kind, principal_user_id, last_read_event_seq
+  ) VALUES (p_scope_id, 'user', p_owner_user_id, v_event_seq)
+  ON CONFLICT (scope_id, principal_user_id) WHERE principal_kind = 'user'
+  DO UPDATE SET
+    last_read_event_seq = GREATEST(
+      public.resume_comment_read_states.last_read_event_seq,
+      EXCLUDED.last_read_event_seq
+    ),
+    updated_at = now();
   UPDATE public.resume_comment_requests
   SET response = v_response, completed_at = now()
   WHERE actor_key = p_actor_key AND request_id = p_request_id;
