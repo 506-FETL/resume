@@ -89,3 +89,28 @@ git diff --check
 - 当前环境未安装 Docker/Podman，因此未执行本地 `supabase db reset`；迁移会做 linked dry-run 与静态检查，但正式数据库应用仍需部署环境验证。
 - 远端 `20260814000001` 与 `20260814000002` 在本次验收过程中由外部流程应用；代理没有执行数据库 push。
 - 本次不执行 Edge Function 重新部署或 Git 远端推送。
+
+## 已读状态、响应式 Drawer 与滚动收口验证
+
+本轮在登录态本地开发服务中补齐了前述环境限制之后的交互证据：
+
+- 评论已读游标同时写入内存、IndexedDB 和当前浏览器 localStorage；登录用户异步同步服务端。打开面板后“有新评论”即时消失，关闭并刷新后保持已读。
+- 编辑页和分享页统一使用模态 Drawer：桌面从右侧打开，移动端从底部打开并固定为 `60vh`；编辑页与分享页都显示不模糊的深色遮罩。
+- `DrawerContent` 内容区使用原生触摸滚动并隔离 Base UI 关闭手势；评论详情、移动排序、快捷分享和父级编辑 Drawer 均实测可以纵向滚动。
+- 移动排序从打开子 Drawer 后第一次手柄拖动即成功，键盘方向键排序也成功；关闭子 Drawer 后父级编辑 Drawer 继续滚动。
+- 移动端快捷分享使用底部 Drawer，实测内容区可以从 `scrollTop=0` 滚动到非零位置。
+- 历史版本审阅提示使用顶部 fixed、内容宽度布局，桌面视口下不再占满整行，返回当前版本后提示立即移除。
+- 浏览器控制台在上述路径中没有触摸取消、`aria-hidden`、Drawer 上下文或 React 更新深度错误。
+
+本轮重新执行并返回 0：
+
+```bash
+pnpm verify:comments
+pnpm verify:comment-client
+pnpm verify:comment-service
+pnpm exec tsc -b --pretty false
+pnpm build
+git diff --check
+```
+
+Vite 仍仅输出仓库既有的大 chunk 提示。模拟移动视口验证不代替 iOS Safari 和 Android Chrome 的最终产品验收。
