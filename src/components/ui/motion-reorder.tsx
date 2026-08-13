@@ -54,19 +54,21 @@ export function useMotionReorder<T>({
   axis: _axis,
   onCommit,
   commitOnKeyboard = true,
+  syncValuesWhileIdle = true,
 }: {
   values: T[]
   axis: DragAxis
   onCommit: (values: T[]) => void
   commitOnKeyboard?: boolean
+  syncValuesWhileIdle?: boolean
 }): {
-    draft: T[]
-    setDraft: Dispatch<SetStateAction<T[]>>
-    dragging: boolean
-    startDragging: () => void
-    finishDragging: () => void
-    moveByKeyboard: (value: T, direction: -1 | 1) => void
-  } {
+  draft: T[]
+  setDraft: Dispatch<SetStateAction<T[]>>
+  dragging: boolean
+  startDragging: () => void
+  finishDragging: () => void
+  moveByKeyboard: (value: T, direction: -1 | 1) => void
+} {
   const [draft, setDraft] = useState(values)
   const [dragging, setDragging] = useState(false)
   const startSnapshotRef = useRef(values)
@@ -82,11 +84,11 @@ export function useMotionReorder<T>({
   }, [onCommit])
 
   useEffect(() => {
-    if (!dragging && !arraysEqual(draftRef.current, values)) {
+    if (syncValuesWhileIdle && !dragging && !arraysEqual(draftRef.current, values)) {
       setDraft(values)
       draftRef.current = values
     }
-  }, [dragging, values])
+  }, [dragging, syncValuesWhileIdle, values])
 
   const startDragging = useCallback(() => {
     startSnapshotRef.current = draftRef.current

@@ -33,7 +33,7 @@
 - 修改：当前工作区中尚未提交的评论、Drawer、移动排序和分享管理文件
 - 修改：`docs/superpowers/verification/2026-08-14-version-centric-resume-comments.md`
 
-- [ ] **步骤 1：运行现有评论验证**
+- [x] **步骤 1：运行现有评论验证**
 
 运行：
 
@@ -48,11 +48,11 @@ git diff --check
 
 预期：全部命令退出码为 0；构建无 TypeScript 或 Vite 错误。
 
-- [ ] **步骤 2：记录已完成的浏览器交互证据**
+- [x] **步骤 2：记录已完成的浏览器交互证据**
 
 在验证文档中记录：评论 Drawer、分享 Drawer、嵌套排序 Drawer 均可滚动；移动端排序第一次拖动生效；控制台无触摸取消、ARIA 或 React 警告。
 
-- [ ] **步骤 3：提交基线**
+- [x] **步骤 3：提交基线**
 
 ```bash
 git add docs/superpowers/plans/2026-08-14-comment-read-and-mobile-nested-drawer.md \
@@ -71,7 +71,7 @@ git commit -m "fix(comments): 收口已读状态与移动端抽屉交互"
 - 创建：`src/components/ui/cross-list-drag.tsx`
 - 创建：`scripts/verify-motion-drag.ts`
 
-- [ ] **步骤 1：实现无 DOM 的顺序与碰撞函数**
+- [x] **步骤 1：实现无 DOM 的顺序与碰撞函数**
 
 核心接口：
 
@@ -87,7 +87,7 @@ export function findDropIndex(point: DragPoint, items: DragRect[], axis: 'x' | '
 
 `findDropContainer` 只接受点落入的已注册容器；`findDropIndex` 按目标主轴中心点返回 `0..items.length`。
 
-- [ ] **步骤 2：实现单列表共享 Hook 和边缘滚动**
+- [x] **步骤 2：实现单列表共享 Hook 和边缘滚动**
 
 核心接口：
 
@@ -112,7 +112,7 @@ export function useMotionReorder<T>({
 
 拖动过程中只更新 `draft`，`finishDragging` 比较初始快照后最多提交一次。共享 `autoScrollAtEdge(container, point, axis)` 只滚动对应轴。
 
-- [ ] **步骤 3：实现跨列表 Provider**
+- [x] **步骤 3：实现跨列表 Provider**
 
 核心接口：
 
@@ -147,7 +147,7 @@ export function useCrossListItem(options: {
 
 Provider 使用 Pointer Events 管理单一活动拖拽；浮层通过 Portal 渲染到 `document.body`，使用 Motion 位移，`pointer-events: none`。交互控件后代不启动拖拽；`pointercancel`、`blur`、卸载都执行同一清理函数。
 
-- [ ] **步骤 4：添加验证脚本**
+- [x] **步骤 4：添加验证脚本**
 
 验证至少覆盖：
 
@@ -159,7 +159,7 @@ assert.equal(findDropIndex({ x: 20, y: 75 }, itemRects, 'y'), 1)
 
 并读取源码断言 Provider 处理 `pointercancel`、`cancelable` 和清理逻辑。
 
-- [ ] **步骤 5：运行基础验证并提交**
+- [x] **步骤 5：运行基础验证并提交**
 
 ```bash
 node --experimental-strip-types scripts/verify-motion-drag.ts
@@ -180,7 +180,7 @@ git commit -m "feat(drag): 添加 Motion 拖拽基础能力"
 - 修改：`src/pages/resume/editor/components/edit-panel/section-row.tsx`
 - 修改：`scripts/verify-motion-drag.ts`
 
-- [ ] **步骤 1：迁移桌面横向标签**
+- [x] **步骤 1：迁移桌面横向标签**
 
 使用：
 
@@ -196,15 +196,15 @@ git commit -m "feat(drag): 添加 Motion 拖拽基础能力"
 
 拖动只从原有 `GripVertical` 手柄启动；Switch 和 Tab 点击继续工作；结束时提交 `['basics', ...draft]`。
 
-- [ ] **步骤 2：迁移纵向 Accordion**
+- [x] **步骤 2：迁移纵向 Accordion**
 
 使用同一草稿 Hook 和 `Reorder.Group axis="y"`。开始拖动时记录 `draggingId`，`SectionRow` 只渲染紧凑表头；结束后恢复内容并提交一次顺序。
 
-- [ ] **步骤 3：让移动 Drawer 复用共享行为**
+- [x] **步骤 3：让移动 Drawer 复用共享行为**
 
 保留当前默认 Drawer、拖拽手柄、`data-base-ui-swipe-ignore` 和滚动布局，仅删除重复的草稿、键盘移动和边缘滚动代码。
 
-- [ ] **步骤 4：验证并提交**
+- [x] **步骤 4：验证并提交**
 
 ```bash
 node --experimental-strip-types scripts/verify-motion-drag.ts
@@ -226,11 +226,11 @@ git commit -m "refactor(editor): 统一模块排序为 Motion"
 - 修改：`src/pages/template/components/editor/structure-panel.tsx`
 - 修改：`scripts/verify-motion-drag.ts`
 
-- [ ] **步骤 1：接入跨列表 Provider**
+- [x] **步骤 1：接入跨列表 Provider**
 
 `main` 和 `sidebar` 分别注册容器及当前 `sectionId` 列表；卡片整行接入 `getDragProps()`，Switch 继续停止传播并被交互控件过滤器排除。
 
-- [ ] **步骤 2：提交栏内与跨栏结果**
+- [x] **步骤 2：提交栏内与跨栏结果**
 
 ```ts
 if (sourceId === destinationId) {
@@ -243,11 +243,11 @@ else {
 
 空栏也必须注册为有效目标；无效落点不更新 manifest。
 
-- [ ] **步骤 3：添加浮层、目标高亮和插入提示**
+- [x] **步骤 3：添加浮层、目标高亮和插入提示**
 
 浮层复用卡片的标题与 sectionId，但不渲染可交互 Switch；拖动源卡片降为 `opacity-40`，目标栏使用现有 `border-primary bg-primary/5` 视觉。
 
-- [ ] **步骤 4：验证并提交**
+- [x] **步骤 4：验证并提交**
 
 ```bash
 node --experimental-strip-types scripts/verify-motion-drag.ts
@@ -264,19 +264,19 @@ git commit -m "refactor(template): 迁移结构面板 Motion 拖拽"
 - 修改：`src/pages/tracker/components/board/index.tsx`
 - 修改：`scripts/verify-motion-drag.ts`
 
-- [ ] **步骤 1：注册看板列和整卡拖拽**
+- [x] **步骤 1：注册看板列和整卡拖拽**
 
 每个展开列注册为跨列表容器；折叠的“已终止”列不接受落点。职位卡片保持无手柄，Provider 自动排除卡片内部按钮、链接和表单控件。
 
-- [ ] **步骤 2：复用业务提交和确认**
+- [x] **步骤 2：复用业务提交和确认**
 
 `onDrop` 只在 `sourceId !== destinationId` 时处理。普通列调用 `commitMove`；`offer` 和 `rejected` 继续写入 `pendingMove` 并显示原有 `AlertDialog`。
 
-- [ ] **步骤 3：统一边缘自动滚动**
+- [x] **步骤 3：统一边缘自动滚动**
 
 注册看板横向滚动容器和每列纵向滚动容器；拖动点进入左右 120px 区域时滚动看板，进入列上下边缘时滚动当前列。删除旧的全局 `mousemove` 和 `isDraggingRef`。
 
-- [ ] **步骤 4：验证并提交**
+- [x] **步骤 4：验证并提交**
 
 ```bash
 node --experimental-strip-types scripts/verify-motion-drag.ts
@@ -295,7 +295,7 @@ git commit -m "refactor(tracker): 迁移看板 Motion 跨列拖拽"
 - 修改：`scripts/verify-motion-drag.ts`
 - 创建：`docs/superpowers/verification/2026-08-14-unified-motion-drag.md`
 
-- [ ] **步骤 1：移除旧依赖**
+- [x] **步骤 1：移除旧依赖**
 
 运行：
 
@@ -305,7 +305,7 @@ pnpm remove @hello-pangea/dnd
 
 确认 `package.json` 和 `pnpm-lock.yaml` 不再包含该包。
 
-- [ ] **步骤 2：运行全量静态验证**
+- [x] **步骤 2：运行全量静态验证**
 
 ```bash
 pnpm verify:comments
@@ -318,9 +318,9 @@ pnpm build
 git diff --check
 ```
 
-预期：全部退出码为 0；源码扫描没有旧拖拽 API。
+结果：除全仓 `pnpm lint` 命中 1902 个既有基线问题外，其余命令退出码为 0；本次改动文件定向 ESLint 通过，源码扫描没有旧拖拽 API。详见验证记录。
 
-- [ ] **步骤 3：浏览器交互验证**
+- [x] **步骤 3：浏览器交互验证**
 
 逐项验证：
 
@@ -331,7 +331,7 @@ git diff --check
 5. 看板卡片跨普通列成功，跨终态列显示确认，取消不更新；
 6. 所有页面控制台无触摸取消、ARIA、React 更新深度错误。
 
-- [ ] **步骤 4：记录证据并提交**
+- [x] **步骤 4：记录证据并提交**
 
 ```bash
 git add package.json pnpm-lock.yaml scripts/verify-motion-drag.ts \

@@ -1,19 +1,21 @@
+/* eslint-disable react-refresh/only-export-components */
 import type {
   MouseEventHandler,
   PointerEventHandler,
-  PointerEvent as ReactPointerEvent,
+  MouseEvent as ReactMouseEvent,
   ReactNode,
+  PointerEvent as ReactPointerEvent,
+  TouchEvent as ReactTouchEvent,
   RefCallback,
   RefObject,
-  TouchEvent as ReactTouchEvent,
   TouchEventHandler,
 } from 'react'
 import type { DragAxis, DragPoint, DropDestination } from '@/lib/motion-drag'
 import { motion, useMotionValue, useReducedMotion } from 'motion/react'
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -35,6 +37,7 @@ const INTERACTIVE_SELECTOR = [
   'input',
   'select',
   'textarea',
+  '[role="button"]',
   '[contenteditable="true"]',
   '[data-no-drag]',
 ].join(',')
@@ -95,15 +98,15 @@ interface CrossListDragContextValue {
     event: ReactTouchEvent<HTMLElement>,
     item: Pick<DragSession, 'itemId' | 'sourceId' | 'sourceIndex'>,
   ) => void
-  suppressClick: (event: React.MouseEvent<HTMLElement>, itemId: string) => void
+  suppressClick: (event: ReactMouseEvent<HTMLElement>, itemId: string) => void
 }
 
 interface CrossListDragItemProps {
   'data-motion-drag-item': string
   'data-motion-drag-container-id': string
-  onPointerDown: PointerEventHandler<HTMLElement>
-  onTouchStart: TouchEventHandler<HTMLElement>
-  onClickCapture: MouseEventHandler<HTMLElement>
+  'onPointerDown': PointerEventHandler<HTMLElement>
+  'onTouchStart': TouchEventHandler<HTMLElement>
+  'onClickCapture': MouseEventHandler<HTMLElement>
 }
 
 const CrossListDragContext = createContext<CrossListDragContextValue | null>(null)
@@ -401,7 +404,7 @@ export function CrossListDragProvider({
     sessionRef.current = session
   }, [activateSession])
 
-  const suppressClick = useCallback((event: React.MouseEvent<HTMLElement>, itemId: string) => {
+  const suppressClick = useCallback((event: ReactMouseEvent<HTMLElement>, itemId: string) => {
     const suppressed = suppressClickRef.current
     if (!suppressed || suppressed.itemId !== itemId || performance.now() > suppressed.until)
       return
@@ -427,8 +430,11 @@ export function CrossListDragProvider({
 
     const handlePointerUp = (event: PointerEvent) => {
       const session = sessionRef.current
-      if (session?.kind === 'pointer' && session.pointerId === event.pointerId)
+      if (session?.kind === 'pointer' && session.pointerId === event.pointerId) {
+        if (session.active)
+          updateDrag({ x: event.clientX, y: event.clientY })
         finishSession()
+      }
     }
 
     const handlePointerCancel = (event: PointerEvent) => {
@@ -460,8 +466,12 @@ export function CrossListDragProvider({
       const session = sessionRef.current
       if (!session || session.kind !== 'touch')
         return
-      if ([...event.changedTouches].some(item => item.identifier === session.pointerId))
-        finishSession()
+      const touch = [...event.changedTouches].find(item => item.identifier === session.pointerId)
+      if (!touch)
+        return
+      if (session.active)
+        updateDrag({ x: touch.clientX, y: touch.clientY })
+      finishSession()
     }
 
     const handleTouchCancel = (event: TouchEvent) => {
@@ -532,7 +542,7 @@ export function CrossListDragProvider({
 }
 
 function useCrossListDragContext(): CrossListDragContextValue {
-  const context = useContext(CrossListDragContext)
+  const context = use(CrossListDragContext)
   if (!context)
     throw new Error('Cross-list drag parts must be placed within CrossListDragProvider')
   return context
@@ -549,10 +559,10 @@ export function useCrossListContainer({
   axis?: DragAxis
   scrollRef?: RefObject<HTMLElement | null>
 }): {
-    ref: RefCallback<HTMLElement>
-    active: boolean
-    destinationIndex: number | null
-  } {
+  ref: RefCallback<HTMLElement>
+  active: boolean
+  destinationIndex: number | null
+} {
   const context = useCrossListDragContext()
   const { registerContainer, destination } = context
   const unregisterRef = useRef<(() => void) | null>(null)
@@ -596,25 +606,25 @@ export function useCrossListItem({
   containerId: string
   index: number
 }): {
-    dragging: boolean
-    getDragProps: () => CrossListDragItemProps
-  } {
+  dragging: boolean
+  getDragProps: () => CrossListDragItemProps
+} {
   const context = useCrossListDragContext()
   const { active, beginPointerDrag, beginTouchDrag, suppressClick } = context
   const getDragProps = useCallback((): CrossListDragItemProps => ({
     'data-motion-drag-item': id,
     'data-motion-drag-container-id': containerId,
-    onPointerDown: event => beginPointerDrag(event, {
+    'onPointerDown': event => beginPointerDrag(event, {
       itemId: id,
       sourceId: containerId,
       sourceIndex: index,
     }),
-    onTouchStart: event => beginTouchDrag(event, {
+    'onTouchStart': event => beginTouchDrag(event, {
       itemId: id,
       sourceId: containerId,
       sourceIndex: index,
     }),
-    onClickCapture: event => suppressClick(event, id),
+    'onClickCapture': event => suppressClick(event, id),
   }), [beginPointerDrag, beginTouchDrag, containerId, id, index, suppressClick])
 
   return {

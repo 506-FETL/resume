@@ -102,7 +102,7 @@ export function AccordionEditor({
   onUpdateOrder,
   onToggleVisibility,
 }: AccordionEditorProps) {
-  const orderDraggable = order.filter(id => id !== 'basics')
+  const sortableOrder = order.filter(id => id !== 'basics')
   const basicsItem = ITEMS.find(item => item.id === 'basics')!
   const openSections = useResumeStore(state => state.openSections)
   const setSectionOpen = useResumeStore(state => state.setSectionOpen)
@@ -113,7 +113,7 @@ export function AccordionEditor({
     finishDragging,
     moveByKeyboard,
   } = useMotionReorder({
-    values: orderDraggable,
+    values: sortableOrder,
     axis: 'y',
     onCommit: next => onUpdateOrder(['basics', ...next]),
   })

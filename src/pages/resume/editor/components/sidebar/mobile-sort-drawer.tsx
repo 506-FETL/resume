@@ -103,6 +103,7 @@ export function MobileSortDrawer({ open, order, onOpenChange, onConfirm }: Mobil
     axis: 'y',
     onCommit: () => {},
     commitOnKeyboard: false,
+    syncValuesWhileIdle: false,
   })
 
   useEffect(() => {

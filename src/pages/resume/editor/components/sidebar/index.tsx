@@ -35,7 +35,7 @@ export default function SidebarEditor({
   onUpdateOrder,
   onToggleVisibility,
 }: SidebarEditorProps) {
-  const orderDraggable = order.filter(id => id !== 'basics')
+  const sortableOrder = order.filter(id => id !== 'basics')
   const basicsItem = ITEMS.find(item => item.id === 'basics')!
   const {
     draft,
@@ -44,7 +44,7 @@ export default function SidebarEditor({
     finishDragging,
     moveByKeyboard,
   } = useMotionReorder({
-    values: orderDraggable,
+    values: sortableOrder,
     axis: 'x',
     onCommit: next => onUpdateOrder(['basics', ...next]),
   })
@@ -67,7 +67,7 @@ export default function SidebarEditor({
         ? (
             <SideTabs>
               {renderBasics()}
-              {orderDraggable.map((id) => {
+              {sortableOrder.map((id) => {
                 const item = ITEMS.find(it => it.id === id)!
                 const visibilityKey = item.id as VisibilityItemsType
                 return (

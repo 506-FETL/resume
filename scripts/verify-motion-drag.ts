@@ -9,6 +9,7 @@ import {
 } from '../src/lib/motion-drag.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
+const packageSource = readFileSync(`${root}/package.json`, 'utf8')
 const crossListSource = readFileSync(`${root}/src/components/ui/cross-list-drag.tsx`, 'utf8')
 const reorderSource = readFileSync(`${root}/src/components/ui/motion-reorder.tsx`, 'utf8')
 const mobileSortSource = readFileSync(`${root}/src/pages/resume/editor/components/sidebar/mobile-sort-drawer.tsx`, 'utf8')
@@ -51,6 +52,7 @@ assert.match(reorderSource, /startSnapshotRef/u)
 assert.match(reorderSource, /onCommitRef\.current\(next\)/u)
 assert.match(mobileSortSource, /useMotionReorder/u)
 assert.match(mobileSortSource, /data-base-ui-swipe-ignore/u)
+assert.match(mobileSortSource, /syncValuesWhileIdle: false/u)
 assert.match(desktopTabsSource, /Reorder\.Group/u)
 assert.match(desktopTabsSource, /useMotionReorder/u)
 assert.match(accordionSource, /Reorder\.Group/u)
@@ -69,5 +71,6 @@ assert.match(trackerBoardSource, /sourceId === destinationId/u)
 assert.match(trackerBoardSource, /newStatus === 'offer' \|\| newStatus === 'rejected'/u)
 assert.doesNotMatch(trackerBoardSource, /@hello-pangea\/dnd/u)
 assert.doesNotMatch(trackerBoardSource, /window\.addEventListener\('mousemove'/u)
+assert.doesNotMatch(packageSource, /@hello-pangea\/dnd/u)
 
 console.warn('motion drag verification passed')
