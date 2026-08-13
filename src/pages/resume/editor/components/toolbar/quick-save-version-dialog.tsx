@@ -41,6 +41,11 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
     onOpenChange(nextOpen)
   }
 
+  const notifyIfMounted = (notify: () => void) => {
+    if (isMountedRef.current)
+      notify()
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (savingRef.current)
@@ -60,7 +65,7 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
       const versions = await listResumeHistoryVersions(resumeId)
       const latest = versions[0]
       if (latest?.content_hash && latest.content_hash === nextHash) {
-        toast.info('内容没有变化，已是最新版本')
+        notifyIfMounted(() => toast.info('内容没有变化，已是最新版本'))
         completed = true
         return
       }
@@ -73,11 +78,11 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
         base_updated_at: record.updated_at,
         version_name: normalizedVersionName || null,
       })
-      toast.success('当前版本已保存')
+      notifyIfMounted(() => toast.success('当前版本已保存'))
       completed = true
     }
     catch (error) {
-      toast.error(error instanceof Error ? error.message : '保存版本失败')
+      notifyIfMounted(() => toast.error(error instanceof Error ? error.message : '保存版本失败'))
     }
     finally {
       savingRef.current = false
