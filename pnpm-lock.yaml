@@ -24,6 +24,9 @@ importers:
       '@floating-ui/react':
         specifier: ^0.27.16
         version: 0.27.19(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@fontsource-variable/arimo':
+        specifier: 5.2.8
+        version: 5.2.8
       '@fontsource-variable/noto-sans-sc':
         specifier: 5.2.10
         version: 5.2.10
@@ -33,6 +36,9 @@ importers:
       '@fontsource/lxgw-wenkai':
         specifier: 5.2.5
         version: 5.2.5
+      '@fontsource/zcool-xiaowei':
+        specifier: 5.2.8
+        version: 5.2.8
       '@hello-pangea/dnd':
         specifier: ^18.0.1
         version: 18.0.1(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -45,6 +51,9 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.8
         version: 1.1.8(react@19.2.5)
+      '@ibm/plex-sans-sc':
+        specifier: 1.1.0
+        version: 1.1.0
       '@mdx-js/rollup':
         specifier: ^3.1.1
         version: 3.1.1(rollup@4.60.1)
@@ -186,6 +195,9 @@ importers:
       dayjs:
         specifier: ^1.11.19
         version: 1.11.20
+      devicon:
+        specifier: 2.17.0
+        version: 2.17.0
       docx:
         specifier: ^9.5.1
         version: 9.6.1
@@ -987,6 +999,9 @@ packages:
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
+  '@fontsource-variable/arimo@5.2.8':
+    resolution: {integrity: sha512-1Na2/dZYm/fo8m0clAmIRRKLZsF0NuKzCdtQpI7yZN6bqNTgZzroTUYIN0KA4Qk9Iov6NA/zjRdsJLmc56dv/A==}
+
   '@fontsource-variable/noto-sans-sc@5.2.10':
     resolution: {integrity: sha512-zdk10i5HrDQTXI7ldD61zToX1fsgig8vDTsu7zB48SXOitWfuX0e5viZAwnkHuhwh096PU6X6i1AyAsbBCISpA==}
 
@@ -995,6 +1010,9 @@ packages:
 
   '@fontsource/lxgw-wenkai@5.2.5':
     resolution: {integrity: sha512-lIBouZW7qNw3VdVnjc0NC80iDfxjU7OnaKGaz6QHiHjC8z0fv9MyrHpeBMzkPnyEVabcpUu4Wf8DnaihfGVYtw==}
+
+  '@fontsource/zcool-xiaowei@5.2.8':
+    resolution: {integrity: sha512-HppFdc8Y0djYbSpK6FbMFhEaZJwfGE5yIKLN3d5q5V239NQxm3sULJjfbMYyAMKswhG6hNTtXQkt8lOl4OmoLA==}
 
   '@hello-pangea/dnd@18.0.1':
     resolution: {integrity: sha512-xojVWG8s/TGrKT1fC8K2tIWeejJYTAeJuj36zM//yEm/ZrnZUSFGS15BpO+jGZT1ybWvyXmeDJwPYb4dhWlbZQ==}
@@ -1036,6 +1054,13 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
+
+  '@ibm/plex-sans-sc@1.1.0':
+    resolution: {integrity: sha512-IkhORwgw/CrsUss7uW9Rj6KKSsGQoIyIaNWjjju/7sV7SYS3yk0c/DgZN/leIG3Co5lN/X4Or/sQaL+SdvmSIg==}
+
+  '@ibm/telemetry-js@1.11.0':
+    resolution: {integrity: sha512-RO/9j+URJnSfseWg9ZkEX9p+a3Ousd33DBU7rOafoZB08RqdzxFVYJ2/iM50dkBuD0o7WX7GYt1sLbNgCoE+pA==}
+    hasBin: true
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -3696,6 +3721,9 @@ packages:
 
   detect-node-es@1.1.0:
     resolution: {integrity: sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ==}
+
+  devicon@2.17.0:
+    resolution: {integrity: sha512-2nKUdjobJlmRSaCHa50PGsVq0VDURnq9gVzQoJggsM/NKN0tLhC/Uq2zmy2pH36Q/1q3gvYwp/GjTgv/R0Ysbg==}
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
@@ -7361,11 +7389,15 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
+  '@fontsource-variable/arimo@5.2.8': {}
+
   '@fontsource-variable/noto-sans-sc@5.2.10': {}
 
   '@fontsource-variable/noto-serif-sc@5.2.9': {}
 
   '@fontsource/lxgw-wenkai@5.2.5': {}
+
+  '@fontsource/zcool-xiaowei@5.2.8': {}
 
   '@hello-pangea/dnd@18.0.1(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
     dependencies:
@@ -7404,6 +7436,12 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.4.3': {}
+
+  '@ibm/plex-sans-sc@1.1.0':
+    dependencies:
+      '@ibm/telemetry-js': 1.11.0
+
+  '@ibm/telemetry-js@1.11.0': {}
 
   '@iconify/types@2.0.0': {}
 
@@ -10007,6 +10045,8 @@ snapshots:
   detect-libc@2.1.2: {}
 
   detect-node-es@1.1.0: {}
+
+  devicon@2.17.0: {}
 
   devlop@1.1.0:
     dependencies:

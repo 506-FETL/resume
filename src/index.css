@@ -3,6 +3,38 @@
 @plugin "@tailwindcss/typography";
 
 @font-face {
+  font-family: 'IBM Plex Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@ibm/plex-sans-sc/fonts/complete/woff2/hinted/IBMPlexSansSC-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@ibm/plex-sans-sc/fonts/complete/woff2/hinted/IBMPlexSansSC-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@ibm/plex-sans-sc/fonts/complete/woff2/hinted/IBMPlexSansSC-Bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'ZCOOL XiaoWei';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/zcool-xiaowei/files/zcool-xiaowei-chinese-simplified-400-normal.woff2') format('woff2');
+}
+
+@font-face {
   font-family: 'LXGW WenKai';
   font-style: normal;
   font-display: swap;

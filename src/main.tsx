@@ -4,8 +4,10 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import ErrorFallback from './components/ErrorBoundary'
+import '@fontsource-variable/arimo/wght.css'
 import '@fontsource-variable/noto-sans-sc/wght.css'
 import '@fontsource-variable/noto-serif-sc/wght.css'
+import 'devicon/devicon.min.css'
 import './index.css'
 
 const app = createRoot(document.getElementById('root')!)
