@@ -1,8 +1,15 @@
 import type { ResumeCommentThread } from '../types.ts'
+import type { CommentUiPermissions } from './types.ts'
 import { MessageSquareText } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { COMMENT_MOTION } from '../const.ts'
+import { useResumeCommentStore } from '../context.tsx'
+import { useCommentActions } from '../hooks/use-comment-actions.ts'
+import { CommentStatusBar } from './comment-status-bar.tsx'
+import { isCurrentCommentAuthor } from './types.ts'
 
 /* eslint-disable react-refresh/only-export-components */
 
@@ -52,11 +59,17 @@ export function ThreadList({
   threads,
   filter,
   onSelect,
+  permissions,
 }: {
   threads: ResumeCommentThread[]
   filter: CommentThreadFilter
   onSelect: (threadId: string) => void
+  permissions: CommentUiPermissions
 }) {
+  const actions = useCommentActions()
+  const reduceMotion = useReducedMotion()
+  const pendingEntities = useResumeCommentStore(state => state.pendingEntities)
+  const mutationErrors = useResumeCommentStore(state => state.mutationErrors)
   const filtered = filterCommentThreads(threads, filter)
   if (filtered.length === 0) {
     return (
@@ -68,42 +81,55 @@ export function ThreadList({
   }
   return (
     <div className="space-y-2 p-3">
-      {filtered.map((thread) => {
-        const root = thread.comments.find(comment => comment.parentId === null)
-        const replies = thread.comments.filter(comment => comment.parentId !== null).length
-        return (
-          <Button
-            key={thread.id}
-            variant="ghost"
-            className="h-auto w-full items-start justify-start whitespace-normal rounded-xl border border-transparent p-3 text-left hover:border-border hover:bg-muted/60"
-            onClick={() => onSelect(thread.id)}
-          >
-            <span className="min-w-0 flex-1 space-y-2">
-              <span className="flex items-start gap-2">
-                <span className="line-clamp-2 flex-1 border-l-2 border-amber-300 pl-2 text-xs text-muted-foreground">
-                  {thread.anchor.exactQuote}
+      <AnimatePresence initial={false} mode="popLayout">
+        {filtered.map((thread) => {
+          const root = thread.comments.find(comment => comment.parentId === null)
+          const replies = thread.comments.filter(comment => comment.parentId !== null).length
+          const resolveKey = `thread:${thread.id}:resolve`
+          const resolving = pendingEntities[resolveKey] === true
+          const resolveError = mutationErrors[resolveKey]
+          const canResolve = !thread.resolvedAt && (
+            permissions.canModerateAll
+            || Boolean(root && isCurrentCommentAuthor(root.author, permissions))
+          )
+          return (
+            <motion.div
+              key={thread.id}
+              layout
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, scale: 0.98 }}
+              transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
+            >
+              <Button
+                variant="ghost"
+                className="group h-auto w-full items-start justify-start whitespace-normal rounded-xl border border-transparent p-3 text-left hover:border-border hover:bg-muted/60"
+                onClick={() => onSelect(thread.id)}
+              >
+                <span className="min-w-0 flex-1 space-y-2">
+                  <span className="flex items-start gap-2">
+                    <span className="line-clamp-2 flex-1 border-l-2 border-amber-300 pl-2 text-xs text-muted-foreground">
+                      {thread.anchor.exactQuote}
+                    </span>
+                    {thread.anchorStatus === 'detached' ? <Badge variant="outline">已失联</Badge> : null}
+                  </span>
+                  <span className="line-clamp-3 block text-sm text-foreground">
+                    {root?.deletedAt ? '原评论已删除' : root?.body || '空评论'}
+                  </span>
+                  <ThreadAuthor thread={thread} />
+                  <CommentStatusBar
+                    replyCount={replies}
+                    canResolve={canResolve}
+                    resolving={resolving}
+                    error={resolveError}
+                    onResolve={() => actions.resolveThread(thread)}
+                  />
                 </span>
-                {thread.anchorStatus === 'detached' ? <Badge variant="outline">已失联</Badge> : null}
-              </span>
-              <span className="line-clamp-3 block text-sm text-foreground">
-                {root?.deletedAt ? '原评论已删除' : root?.body || '空评论'}
-              </span>
-              <span className="flex items-center justify-between gap-2">
-                <ThreadAuthor thread={thread} />
-                {replies > 0
-                  ? (
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {replies}
-                        {' '}
-                        条回复
-                      </span>
-                    )
-                  : null}
-              </span>
-            </span>
-          </Button>
-        )
-      })}
+              </Button>
+            </motion.div>
+          )
+        })}
+      </AnimatePresence>
     </div>
   )
 }

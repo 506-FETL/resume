@@ -94,6 +94,8 @@ function PanelBody({
                 placeholder="写下你的评论…"
                 autoFocus
                 disabled={!permissions.canCreate || accessState !== 'active' || actions.pendingAction !== null}
+                pending={actions.pendingAction === 'thread:new:create'}
+                pendingLabel="正在发送…"
                 onCancel={onCancelCreating}
                 onSubmit={async value => Boolean(await actions.createThread(value))}
               />
@@ -120,7 +122,12 @@ function PanelBody({
                 ))}
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
-                <ThreadList threads={threads} filter={filter} onSelect={setActiveThread} />
+                <ThreadList
+                  threads={threads}
+                  filter={filter}
+                  permissions={permissions}
+                  onSelect={setActiveThread}
+                />
               </div>
             </>
           )}

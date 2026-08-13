@@ -1,22 +1,14 @@
 import type { ReactNode } from 'react'
-import type { ResumeComment, ResumeCommentThread } from '../types.ts'
+import type { ResumeCommentThread } from '../types.ts'
 import type { CommentUiPermissions } from './types.ts'
-import { ArrowLeft, Link2, MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ArrowLeft, Link2, MoreHorizontal, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { useResumeCommentClient, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { CommentComposer } from './comment-composer.tsx'
+import { CommentTree } from './comment-tree.tsx'
 import { isCurrentCommentAuthor } from './types.ts'
-
-function formatTime(value: string) {
-  const timestamp = Date.parse(value)
-  return Number.isFinite(timestamp)
-    ? new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(timestamp)
-    : ''
-}
 
 const COMMENT_SECTION_LABELS: Record<string, string> = {
   basics: '基本信息',
@@ -72,131 +64,6 @@ function formatCommentField(nodeKey: string) {
   return [section, field].filter(Boolean).join(' · ')
 }
 
-function CommentBody({ body }: { body: string }) {
-  const parts = useMemo(() => {
-    const result: Array<{ key: number, text: string, link: boolean }> = []
-    const pattern = /https?:\/\/\S+|mailto:\S+/giu
-    let cursor = 0
-    for (const match of body.matchAll(pattern)) {
-      const index = match.index
-      if (index > cursor)
-        result.push({ key: cursor, text: body.slice(cursor, index), link: false })
-      result.push({ key: index, text: match[0], link: true })
-      cursor = index + match[0].length
-    }
-    if (cursor < body.length)
-      result.push({ key: cursor, text: body.slice(cursor), link: false })
-    return result
-  }, [body])
-  return (
-    <p className="whitespace-pre-wrap wrap-break-word text-sm leading-6">
-      {parts.map((part) => {
-        if (!part.link)
-          return <span key={part.key}>{part.text}</span>
-        try {
-          const url = new URL(part.text)
-          if (!['http:', 'https:', 'mailto:'].includes(url.protocol))
-            return <span key={part.key}>{part.text}</span>
-          return (
-            <a
-              key={part.key}
-              href={url.href}
-              target={url.protocol === 'mailto:' ? undefined : '_blank'}
-              rel="noreferrer noopener"
-              className="text-primary underline underline-offset-2"
-            >
-              {part.text}
-            </a>
-          )
-        }
-        catch {
-          return <span key={part.key}>{part.text}</span>
-        }
-      })}
-    </p>
-  )
-}
-
-function AuthorAvatar({ comment }: { comment: ResumeComment }) {
-  const image = comment.author.kind === 'user' ? comment.author.avatarUrl : null
-  return (
-    <Avatar className="size-8">
-      {image ? <AvatarImage src={image} alt="" /> : null}
-      <AvatarFallback>{comment.author.displayName.slice(0, 1)}</AvatarFallback>
-    </Avatar>
-  )
-}
-
-function CommentItem({
-  comment,
-  thread,
-  permissions,
-  actions,
-}: {
-  comment: ResumeComment
-  thread: ResumeCommentThread
-  permissions: CommentUiPermissions
-  actions: ReturnType<typeof useCommentActions>
-}) {
-  const [editing, setEditing] = useState(false)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const canManage = !comment.deletedAt && isCurrentCommentAuthor(comment.author, permissions)
-  return (
-    <article className="flex gap-3 py-3">
-      <AuthorAvatar comment={comment} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">{comment.author.displayName}</span>
-          <span className="text-xs text-muted-foreground">{formatTime(comment.createdAt)}</span>
-          {comment.editedAt ? <span className="text-xs text-muted-foreground">已编辑</span> : null}
-          {canManage
-            ? (
-                <div className="ml-auto flex items-center gap-1">
-                  {confirmingDelete
-                    ? (
-                        <>
-                          <Button size="xs" variant="destructive" onClick={() => actions.deleteComment(thread, comment.id)}>确认删除</Button>
-                          <Button size="xs" variant="ghost" onClick={() => setConfirmingDelete(false)}>取消</Button>
-                        </>
-                      )
-                    : (
-                        <>
-                          <Button size="xs" variant="ghost" onClick={() => setEditing(true)}>编辑</Button>
-                          <Button size="icon-xs" variant="ghost" aria-label="删除评论" onClick={() => setConfirmingDelete(true)}>
-                            <Trash2 />
-                          </Button>
-                        </>
-                      )}
-                </div>
-              )
-            : null}
-        </div>
-        {editing
-          ? (
-              <div className="mt-2">
-                <CommentComposer
-                  draftKey={`edit:${comment.id}`}
-                  initialValue={comment.body}
-                  submitLabel="保存"
-                  disabled={actions.pendingAction !== null}
-                  onCancel={() => setEditing(false)}
-                  onSubmit={async (value) => {
-                    const response = await actions.editComment(thread, comment.id, value)
-                    if (response)
-                      setEditing(false)
-                    return Boolean(response)
-                  }}
-                />
-              </div>
-            )
-          : comment.deletedAt
-            ? <p className="mt-1 text-sm italic text-muted-foreground">原评论已删除</p>
-            : <div className="mt-1"><CommentBody body={comment.body} /></div>}
-      </div>
-    </article>
-  )
-}
-
 export function ThreadDetail({
   thread,
   permissions,
@@ -212,13 +79,16 @@ export function ThreadDetail({
 }) {
   const actions = useCommentActions()
   const [confirmingThreadDelete, setConfirmingThreadDelete] = useState(false)
+  const [replyTarget, setReplyTarget] = useState<{
+    commentId: string
+    displayName: string
+  } | null>(null)
   const client = useResumeCommentClient()
   const relinkThreadId = useResumeCommentStore(state => state.relinkThreadId)
   const relinkError = useResumeCommentStore(state => state.relinkError)
   const cancelRelink = useResumeCommentStore(state => state.cancelRelink)
   const accessState = useResumeCommentStore(state => state.accessState)
   const root = thread.comments.find(comment => comment.parentId === null)
-  const replies = thread.comments.filter(comment => comment.parentId !== null)
   const access = client.getAccessContext()
   const effectivePermissions = {
     ...permissions,
@@ -298,11 +168,12 @@ export function ThreadDetail({
           )
         : null}
       <div className="min-h-0 flex-1 overflow-y-auto px-4">
-        {root ? <CommentItem comment={root} thread={thread} permissions={effectivePermissions} actions={actions} /> : null}
-        {replies.length > 0 ? <Separator /> : null}
-        {replies.map(comment => (
-          <CommentItem key={comment.id} comment={comment} thread={thread} permissions={effectivePermissions} actions={actions} />
-        ))}
+        <CommentTree
+          comments={thread.comments}
+          thread={thread}
+          permissions={effectivePermissions}
+          onReply={setReplyTarget}
+        />
       </div>
       {actions.errorMessage
         ? <p role="alert" className="px-4 py-2 text-xs text-destructive">{actions.errorMessage}</p>
@@ -310,11 +181,29 @@ export function ThreadDetail({
       {permissions.canCreate && accessState === 'active' && !thread.resolvedAt
         ? (
             <div className="border-t p-3">
+              {replyTarget
+                ? (
+                    <div className="mb-2 flex items-center justify-between rounded-md bg-muted px-2 py-1.5 text-xs text-muted-foreground">
+                      <span className="truncate">
+                        回复
+                        {' '}
+                        {replyTarget.displayName}
+                      </span>
+                      <Button size="xs" variant="ghost" onClick={() => setReplyTarget(null)}>取消</Button>
+                    </div>
+                  )
+                : null}
               <CommentComposer
-                draftKey={`reply:${thread.id}`}
-                placeholder="回复…"
+                draftKey={`reply:${thread.id}:${replyTarget?.commentId ?? 'root'}`}
+                placeholder={replyTarget ? `回复 ${replyTarget.displayName}…` : '回复…'}
                 disabled={actions.pendingAction !== null}
-                onSubmit={async value => Boolean(await actions.createReply(thread, value))}
+                pending={actions.pendingAction === `thread:${thread.id}:reply`}
+                onSubmit={async (value) => {
+                  const response = await actions.createReply(thread, value, replyTarget?.commentId)
+                  if (response)
+                    setReplyTarget(null)
+                  return Boolean(response)
+                }}
               />
             </div>
           )

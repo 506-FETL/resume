@@ -1,3 +1,4 @@
+import { LoaderCircle } from 'lucide-react'
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,6 +12,8 @@ export function CommentComposer({
   placeholder = '输入评论',
   submitLabel = '发送',
   disabled = false,
+  pending = false,
+  pendingLabel = '正在发送…',
   autoFocus = false,
   initialValue,
   onSubmit,
@@ -20,6 +23,8 @@ export function CommentComposer({
   placeholder?: string
   submitLabel?: string
   disabled?: boolean
+  pending?: boolean
+  pendingLabel?: string
   autoFocus?: boolean
   initialValue?: string
   onSubmit: (value: string) => Promise<boolean>
@@ -68,7 +73,10 @@ export function CommentComposer({
           {onCancel
             ? <Button type="button" size="sm" variant="ghost" onClick={onCancel}>取消</Button>
             : null}
-          <Button type="submit" size="sm" disabled={!valid || disabled}>{submitLabel}</Button>
+          <Button type="submit" size="sm" disabled={!valid || disabled || pending} aria-live="polite">
+            {pending ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : null}
+            {pending ? pendingLabel : submitLabel}
+          </Button>
         </div>
       </div>
     </form>
