@@ -4,6 +4,10 @@ import {
 } from './resume-comment-core.ts'
 
 export const COMMENT_API_OPS = [
+  'register_collaboration_session',
+  'join_collaboration_session',
+  'renew_collaboration_session',
+  'leave_collaboration_session',
   'create_anonymous_identity',
   'bootstrap_scope',
   'sync_working_document',

@@ -3,7 +3,7 @@ import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ORDERType } from '@/lib/schema'
 import { Edit, MessageSquareText } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import { CommentSourceSelector } from '@/features/resume-comments/components/com
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
 import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useCollaborationStore } from '@/lib/collaboration'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
@@ -63,6 +64,22 @@ function Editor() {
   const resumeName = useResumeStore(state => state.basics.name)
   const currentResumeId = useCurrentResumeStore(state => state.resumeId)
   const editorMode = useResumeStore(state => state.mode)
+  const collaborationRole = useCollaborationStore(state => state.role)
+  const collaborationCommentAccess = useCollaborationStore(state => state.commentAccess)
+  const collaborationRequested = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).has('collabSession')
+  const collaboratorMode = collaborationRole === 'guest'
+    || (collaborationRequested && collaborationRole !== 'host')
+  const collaboratorCommentContext = useMemo(() => collaborationCommentAccess
+    ? {
+        kind: 'collaborator' as const,
+        ...collaborationCommentAccess,
+      }
+    : null, [collaborationCommentAccess])
+  const refreshCollaboratorCommentAccess = useCallback(async () => {
+    const access = await useCollaborationStore.getState().refreshCommentAccess()
+    return { kind: 'collaborator' as const, ...access }
+  }, [])
   const resumes = useResumeListStore(state => state.resumes)
   const currentDisplayName = currentResumeId
     ? (resumes.find(resume => resume.resume_id === currentResumeId)?.display_name ?? null)
@@ -106,6 +123,8 @@ function Editor() {
     resumeId: currentResumeId,
     workingLabel: currentDisplayName ?? resumeName ?? '当前简历',
     enabled: commentsOpen,
+    collaboratorMode,
+    collaboratorAccess: collaboratorCommentContext,
   })
   const setReviewActive = useResumeReviewStore(state => state.setActive)
   useEffect(() => {
@@ -296,13 +315,17 @@ function Editor() {
               </div>
             </>
           )}
-      {currentResumeId && editorMode === 'online' && currentUser
+      {currentResumeId
+        && editorMode === 'online'
+        && currentUser
+        && (!collaboratorMode || collaboratorCommentContext)
         ? (
             <ResumeCommentProvider
               key={currentResumeId}
               access={commentReview.access}
-              beforeWrite={commentReview.isWorking ? prepareCommentWrite : undefined}
+              beforeWrite={!collaboratorMode && commentReview.isWorking ? prepareCommentWrite : undefined}
               commentsVisible={commentsOpen}
+              refreshAccess={collaboratorMode ? refreshCollaboratorCommentAccess : undefined}
               panelHeaderContent={(
                 <>
                   <CommentSourceSelector
@@ -319,10 +342,12 @@ function Editor() {
             >
               <WorkingResumeComments
                 resumeId={currentResumeId}
-                syncWorkingDocument={commentReview.isWorking}
+                syncWorkingDocument={!collaboratorMode && commentReview.isWorking}
                 rootRef={documentRef}
                 sourceLabel={commentReview.sourceLabel}
                 currentUserId={currentUser?.id ?? null}
+                canCreate={!collaboratorMode || collaborationCommentAccess?.role === 'editor'}
+                canModerateAll={!collaboratorMode}
                 open={commentsOpen}
                 onOpenChange={handleCommentsOpenChange}
                 layoutRevision={`${commentReview.selectedKey}:${JSON.stringify(documentState.signature)}`}
@@ -333,7 +358,11 @@ function Editor() {
             <Button
               variant="outline"
               disabled
-              title={editorMode === 'offline' ? '离线简历不能评论' : '登录后才能评论'}
+              title={editorMode === 'offline'
+                ? '离线简历不能评论'
+                : collaboratorMode
+                  ? '正在验证实时协作评论权限'
+                  : '登录后才能评论'}
               className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-20 shadow-md md:right-36 md:bottom-6 md:z-1"
             >
               <MessageSquareText />
@@ -357,6 +386,8 @@ function WorkingResumeComments({
   rootRef,
   sourceLabel,
   currentUserId,
+  canCreate,
+  canModerateAll,
   open,
   onOpenChange,
   layoutRevision,
@@ -366,6 +397,8 @@ function WorkingResumeComments({
   rootRef: RefObject<HTMLElement | null>
   sourceLabel: string
   currentUserId: string | null
+  canCreate: boolean
+  canModerateAll: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   layoutRevision: string
@@ -393,8 +426,8 @@ function WorkingResumeComments({
         sourceLabel={sourceLabel}
         presentation="docked"
         permissions={{
-          canCreate: true,
-          canModerateAll: true,
+          canCreate,
+          canModerateAll,
           currentUserId,
         }}
         layoutRevision={layoutRevision}

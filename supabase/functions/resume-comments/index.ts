@@ -10,6 +10,7 @@ import { corsHeaders } from '../shared/cors.ts'
 import {
   derivePasswordGeneration,
   hashAnonymousSecret,
+  signCommentToken,
   timingSafeStringEqual,
   verifyCommentToken,
 } from '../shared/resume-comment-auth.ts'
@@ -80,6 +81,25 @@ interface ShareRow {
   archived_at: string | null
   expires_at: string | null
   password_hash: string | null
+}
+
+interface CollaborationSessionRow {
+  session_id: string
+  resume_id: string
+  scope_id: string
+  owner_user_id: string
+  host_lease_id: string
+  default_role: 'editor' | 'viewer'
+  expires_at: string
+  revoked_at: string | null
+}
+
+interface CollaborationMemberRow {
+  session_id: string
+  user_id: string
+  role: 'editor' | 'viewer'
+  expires_at: string
+  revoked_at: string | null
 }
 
 interface ResolvedAccess {
@@ -153,6 +173,273 @@ async function getScope(admin: AdminClient, scopeId: string): Promise<ScopeRow> 
     throw new CommentApiError('not_found', '评论空间不存在', 404)
   }
   return data as ScopeRow
+}
+
+function readCollaborationSessionId(body: Record<string, unknown>) {
+  const sessionId = readRequiredString(body, 'sessionId', 64)
+  if (!/^[\w-]{16,64}$/u.test(sessionId)) {
+    throw new CommentApiError('not_found', '协作会话标识无效', 400)
+  }
+  return sessionId
+}
+
+function isFutureTimestamp(value: string) {
+  return Number.isFinite(Date.parse(value)) && Date.parse(value) > Date.now()
+}
+
+async function ensureWorkingScopeForOwner(
+  admin: AdminClient,
+  ownerUserId: string,
+  resumeId: string,
+) {
+  const { data: resume, error } = await admin
+    .from('resume_config')
+    .select('resume_id,user_id,basics,job_intent,application_info,edu_background,work_experience,internship_experience,campus_experience,project_experience,skill_specialty,honors_certificates,self_evaluation,hobbies,order,visibility')
+    .eq('resume_id', resumeId)
+    .eq('user_id', ownerUserId)
+    .maybeSingle()
+  if (error || !resume) {
+    throw new CommentApiError('not_found', '简历不存在', 404)
+  }
+  const projectionReferenceDate = new Date().toISOString().slice(0, 10)
+  const projected = buildCommentAnchorDocument(resume, projectionReferenceDate)
+  const { data, error: ensureError } = await admin.rpc(
+    'ensure_resume_working_comment_scope',
+    {
+      p_owner_user_id: ownerUserId,
+      p_resume_id: resumeId,
+      p_anchor_document: projected.document,
+      p_document_hash: projected.documentHash,
+      p_projection_reference_date: projectionReferenceDate,
+    },
+  )
+  if (ensureError || typeof data !== 'string') {
+    throw ensureError ?? new Error('Unable to ensure working comment scope')
+  }
+  return getScope(admin, data)
+}
+
+async function getActiveCollaborationSession(
+  admin: AdminClient,
+  sessionId: string,
+  resumeId: string,
+) {
+  const { data, error } = await admin
+    .from('resume_comment_collaboration_sessions')
+    .select('session_id,resume_id,scope_id,owner_user_id,host_lease_id,default_role,expires_at,revoked_at')
+    .eq('session_id', sessionId)
+    .eq('resume_id', resumeId)
+    .maybeSingle()
+  const session = data as CollaborationSessionRow | null
+  if (error || !session || session.revoked_at || !isFutureTimestamp(session.expires_at)) {
+    throw new CommentApiError('unauthorized', '协作会话已结束或不存在', 401)
+  }
+  return session
+}
+
+async function issueCollaboratorToken({
+  session,
+  member,
+  collaboratorSecret,
+}: {
+  session: CollaborationSessionRow
+  member: CollaborationMemberRow
+  collaboratorSecret: string
+}) {
+  const issuedAt = Math.floor(Date.now() / 1_000)
+  const sessionExpiresAt = Math.floor(Date.parse(session.expires_at) / 1_000)
+  const memberExpiresAt = Math.floor(Date.parse(member.expires_at) / 1_000)
+  const expiresAt = Math.min(issuedAt + 15 * 60, sessionExpiresAt, memberExpiresAt)
+  if (expiresAt <= issuedAt) {
+    throw new CommentApiError('unauthorized', '协作会话已失效', 401)
+  }
+  return {
+    accessToken: await signCommentToken({
+      version: 1,
+      kind: 'collaborator',
+      issuedAt,
+      expiresAt,
+      sessionId: session.session_id,
+      resumeId: session.resume_id,
+      scopeId: session.scope_id,
+      userId: member.user_id,
+      role: member.role,
+    }, collaboratorSecret),
+    expiresAt: new Date(expiresAt * 1_000).toISOString(),
+    sessionId: session.session_id,
+    resumeId: session.resume_id,
+    userId: member.user_id,
+    role: member.role,
+  }
+}
+
+async function handleCollaborationSessionOperation({
+  op,
+  req,
+  body,
+  admin,
+  collaboratorSecret,
+}: {
+  op: 'register_collaboration_session' | 'join_collaboration_session' | 'renew_collaboration_session' | 'leave_collaboration_session'
+  req: Request
+  body: Record<string, unknown>
+  admin: AdminClient
+  collaboratorSecret: string
+}) {
+  const userId = await authenticateUser(req, admin)
+  if (!userId) {
+    throw new CommentApiError('unauthorized', '请先登录', 401)
+  }
+  const sessionId = readCollaborationSessionId(body)
+  const resumeId = readUuid(body, 'resumeId')
+
+  if (op === 'register_collaboration_session') {
+    const scope = await ensureWorkingScopeForOwner(admin, userId, resumeId)
+    const { data: existing, error: existingError } = await admin
+      .from('resume_comment_collaboration_sessions')
+      .select('session_id,resume_id,owner_user_id,default_role,revoked_at')
+      .eq('session_id', sessionId)
+      .maybeSingle()
+    if (existingError) {
+      throw existingError
+    }
+    if (existing && (existing.resume_id !== resumeId || existing.owner_user_id !== userId)) {
+      throw new CommentApiError('unauthorized', '协作会话标识已被占用', 403)
+    }
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1_000).toISOString()
+    const hostLeaseId = crypto.randomUUID()
+    const { error } = await admin
+      .from('resume_comment_collaboration_sessions')
+      .upsert({
+        session_id: sessionId,
+        resume_id: resumeId,
+        scope_id: scope.id,
+        owner_user_id: userId,
+        host_lease_id: hostLeaseId,
+        // 角色只读取服务端已有配置；首次会话默认编辑者，绝不接收客户端角色字段。
+        default_role: existing?.default_role === 'viewer' ? 'viewer' : 'editor',
+        expires_at: expiresAt,
+        revoked_at: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'session_id' })
+    if (error) {
+      throw error
+    }
+    if (existing?.revoked_at) {
+      const { error: revokeError } = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ revoked_at: new Date().toISOString() })
+        .eq('session_id', sessionId)
+        .is('revoked_at', null)
+      if (revokeError) {
+        throw revokeError
+      }
+    }
+    else {
+      const { error: extendError } = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ expires_at: expiresAt })
+        .eq('session_id', sessionId)
+        .is('revoked_at', null)
+      if (extendError) {
+        throw extendError
+      }
+    }
+    return { sessionId, resumeId, expiresAt, hostLeaseId }
+  }
+
+  const session = await getActiveCollaborationSession(admin, sessionId, resumeId)
+  if (op === 'leave_collaboration_session') {
+    const revokedAt = new Date().toISOString()
+    if (session.owner_user_id === userId) {
+      const hostLeaseId = readUuid(body, 'hostLeaseId')
+      const sessionResult = await admin
+        .from('resume_comment_collaboration_sessions')
+        .update({ revoked_at: revokedAt, updated_at: revokedAt })
+        .eq('session_id', sessionId)
+        .eq('owner_user_id', userId)
+        .eq('host_lease_id', hostLeaseId)
+        .select('session_id')
+        .maybeSingle()
+      if (sessionResult.error) {
+        throw sessionResult.error
+      }
+      if (!sessionResult.data) {
+        return { sessionId, revoked: false }
+      }
+      const membersResult = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ revoked_at: revokedAt })
+        .eq('session_id', sessionId)
+        .is('revoked_at', null)
+      if (membersResult.error) {
+        throw membersResult.error
+      }
+    }
+    else {
+      const { error } = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ revoked_at: revokedAt })
+        .eq('session_id', sessionId)
+        .eq('user_id', userId)
+      if (error) {
+        throw error
+      }
+    }
+    return { sessionId, revoked: true }
+  }
+
+  let member: CollaborationMemberRow | null = null
+  if (op === 'join_collaboration_session') {
+    if (session.owner_user_id === userId) {
+      throw new CommentApiError('unauthorized', '简历所有者无需以协作者身份加入', 403)
+    }
+    const { data, error } = await admin
+      .from('resume_comment_collaboration_members')
+      .upsert({
+        session_id: sessionId,
+        user_id: userId,
+        role: session.default_role,
+        expires_at: session.expires_at,
+        revoked_at: null,
+        last_seen_at: new Date().toISOString(),
+      }, { onConflict: 'session_id,user_id' })
+      .select('session_id,user_id,role,expires_at,revoked_at')
+      .single()
+    if (error || !data) {
+      throw error ?? new Error('Unable to join collaboration comment session')
+    }
+    member = data as CollaborationMemberRow
+  }
+  else {
+    const { data, error } = await admin
+      .from('resume_comment_collaboration_members')
+      .select('session_id,user_id,role,expires_at,revoked_at')
+      .eq('session_id', sessionId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    member = data as CollaborationMemberRow | null
+    if (
+      error
+      || !member
+      || member.revoked_at
+      || !isFutureTimestamp(member.expires_at)
+    ) {
+      throw new CommentApiError('unauthorized', '协作者评论权限已失效', 401)
+    }
+    const { error: touchError } = await admin
+      .from('resume_comment_collaboration_members')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('session_id', sessionId)
+      .eq('user_id', userId)
+    if (touchError) {
+      throw touchError
+    }
+  }
+  if (!member) {
+    throw new CommentApiError('unauthorized', '协作者评论权限不存在', 401)
+  }
+  return issueCollaboratorToken({ session, member, collaboratorSecret })
 }
 
 async function resolveAnonymousIdentity({
@@ -293,31 +580,7 @@ async function resolveAccess({
     }
     else {
       const resumeId = readUuid(body, 'resumeId')
-      const { data: resume, error } = await admin
-        .from('resume_config')
-        .select('resume_id,user_id,basics,job_intent,application_info,edu_background,work_experience,internship_experience,campus_experience,project_experience,skill_specialty,honors_certificates,self_evaluation,hobbies,order,visibility')
-        .eq('resume_id', resumeId)
-        .eq('user_id', userId)
-        .maybeSingle()
-      if (error || !resume) {
-        throw new CommentApiError('not_found', '简历不存在', 404)
-      }
-      const projectionReferenceDate = new Date().toISOString().slice(0, 10)
-      const projected = buildCommentAnchorDocument(resume, projectionReferenceDate)
-      const { data, error: ensureError } = await admin.rpc(
-        'ensure_resume_working_comment_scope',
-        {
-          p_owner_user_id: userId,
-          p_resume_id: resumeId,
-          p_anchor_document: projected.document,
-          p_document_hash: projected.documentHash,
-          p_projection_reference_date: projectionReferenceDate,
-        },
-      )
-      if (ensureError || typeof data !== 'string') {
-        throw ensureError ?? new Error('Unable to ensure working comment scope')
-      }
-      scopeId = data
+      scopeId = (await ensureWorkingScopeForOwner(admin, userId, resumeId)).id
     }
     const scope = await getScope(admin, scopeId)
     if (scope.owner_user_id !== userId) {
@@ -347,11 +610,40 @@ async function resolveAccess({
       'collaborator',
       collaboratorSecret,
     )
-    const scope = await getScope(admin, token.scopeId)
+    const [scope, sessionResult, memberResult] = await Promise.all([
+      getScope(admin, token.scopeId),
+      admin
+        .from('resume_comment_collaboration_sessions')
+        .select('session_id,resume_id,scope_id,owner_user_id,host_lease_id,default_role,expires_at,revoked_at')
+        .eq('session_id', token.sessionId)
+        .maybeSingle(),
+      admin
+        .from('resume_comment_collaboration_members')
+        .select('session_id,user_id,role,expires_at,revoked_at')
+        .eq('session_id', token.sessionId)
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ])
+    const session = sessionResult.data as CollaborationSessionRow | null
+    const member = memberResult.data as CollaborationMemberRow | null
     if (
-      token.userId !== userId
+      sessionResult.error
+      || memberResult.error
+      || !session
+      || !member
+      || token.userId !== userId
+      || token.sessionId !== session.session_id
+      || token.resumeId !== session.resume_id
+      || token.scopeId !== session.scope_id
+      || token.role !== member.role
+      || member.user_id !== userId
+      || member.revoked_at
+      || session.revoked_at
+      || !isFutureTimestamp(member.expires_at)
+      || !isFutureTimestamp(session.expires_at)
       || scope.kind !== 'working'
       || scope.resume_id !== token.resumeId
+      || scope.owner_user_id !== session.owner_user_id
     ) {
       throw new CommentApiError('unauthorized', '协作评论凭证无效', 401)
     }
@@ -701,6 +993,21 @@ Deno.serve(async (req) => {
       throw new CommentApiError('not_found', '请求无效', 400)
     }
     const body = value
+    if (
+      op === 'register_collaboration_session'
+      || op === 'join_collaboration_session'
+      || op === 'renew_collaboration_session'
+      || op === 'leave_collaboration_session'
+    ) {
+      const data = await handleCollaborationSessionOperation({
+        op,
+        req,
+        body,
+        admin,
+        collaboratorSecret,
+      })
+      return success(data, 0)
+    }
     const access = await resolveAccess({
       req,
       body,

@@ -37,6 +37,7 @@ $$;
 DO $$
 DECLARE
   v_owner_id uuid := '00000000-0000-0000-0000-000000000301';
+  v_collaborator_id uuid := '00000000-0000-0000-0000-000000000314';
   v_resume_id uuid := '00000000-0000-0000-0000-000000000302';
   v_share_one_id uuid := '00000000-0000-0000-0000-000000000303';
   v_share_two_id uuid := '00000000-0000-0000-0000-000000000304';
@@ -110,6 +111,33 @@ BEGIN
 
   INSERT INTO public.resume_config (resume_id, user_id, display_name)
   VALUES (v_resume_id, v_owner_id, '评论验证简历');
+
+  INSERT INTO auth.users (
+    id,
+    instance_id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data
+  )
+  VALUES (
+    v_collaborator_id,
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'resume-comments-collaborator@example.com',
+    '',
+    now(),
+    now(),
+    now(),
+    '{}'::jsonb,
+    '{}'::jsonb
+  );
 
   INSERT INTO public.resume_config_versions (
     user_id,
@@ -235,6 +263,73 @@ BEGIN
       current_date
     ),
     'working scope 必须幂等'
+  );
+
+  INSERT INTO public.resume_comment_collaboration_sessions (
+    session_id,
+    resume_id,
+    scope_id,
+    owner_user_id,
+    default_role,
+    expires_at
+  ) VALUES (
+    'session-comment-0001',
+    v_resume_id,
+    v_working_scope_id,
+    v_owner_id,
+    'editor',
+    now() + interval '8 hours'
+  );
+  INSERT INTO public.resume_comment_collaboration_members (
+    session_id,
+    user_id,
+    role,
+    expires_at
+  ) VALUES (
+    'session-comment-0001',
+    v_collaborator_id,
+    'editor',
+    now() + interval '8 hours'
+  );
+  PERFORM pg_temp.assert_true(
+    EXISTS (
+      SELECT 1
+      FROM public.resume_comment_collaboration_sessions AS sessions
+      JOIN public.resume_comment_collaboration_members AS members
+        ON members.session_id = sessions.session_id
+      WHERE sessions.session_id = 'session-comment-0001'
+        AND sessions.resume_id = v_resume_id
+        AND sessions.scope_id = v_working_scope_id
+        AND sessions.owner_user_id = v_owner_id
+        AND members.user_id = v_collaborator_id
+        AND members.role = 'editor'
+    ),
+    '协作者权限必须绑定 session、resume、working scope 与用户'
+  );
+  PERFORM pg_temp.expect_error(
+    format(
+      'UPDATE public.resume_comment_collaboration_members SET role = %L WHERE session_id = %L AND user_id = %L',
+      'owner',
+      'session-comment-0001',
+      v_collaborator_id
+    ),
+    '客户端不能伪造 owner 协作角色'
+  );
+  PERFORM pg_temp.assert_true(
+    NOT has_table_privilege('authenticated', 'public.resume_comment_collaboration_sessions', 'INSERT')
+      AND NOT has_table_privilege('authenticated', 'public.resume_comment_collaboration_members', 'UPDATE'),
+    '协作评论会话与成员表只能由服务角色写入'
+  );
+  UPDATE public.resume_comment_collaboration_sessions
+  SET revoked_at = now()
+  WHERE session_id = 'session-comment-0001';
+  UPDATE public.resume_comment_collaboration_members
+  SET revoked_at = now()
+  WHERE session_id = 'session-comment-0001';
+  PERFORM pg_temp.assert_true(
+    (SELECT revoked_at IS NOT NULL FROM public.resume_comment_collaboration_sessions WHERE session_id = 'session-comment-0001')
+      AND (SELECT revoked_at IS NOT NULL FROM public.resume_comment_collaboration_members WHERE session_id = 'session-comment-0001' AND user_id = v_collaborator_id),
+    'host 停止协作后必须同时撤销会话与成员权限'
   );
 
   v_history_scope_id := public.ensure_resume_history_comment_scope(

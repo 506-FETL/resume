@@ -11,6 +11,15 @@ export interface CollaborationSelf extends CollaborationIdentity {
   peerId: string | null
 }
 
+export interface CollaborationCommentAccess {
+  accessToken: string
+  expiresAt: string
+  sessionId: string
+  resumeId: string
+  userId: string
+  role: 'editor' | 'viewer'
+}
+
 export interface CollaborationParticipantMetadata extends CollaborationIdentity {
   role: CollaborationRole | null
 }
@@ -41,6 +50,8 @@ export interface CollaborationSessionState {
   participants: Record<string, CollaborationParticipant>
   error: string | null
   self: CollaborationSelf | null
+  commentAccess: CollaborationCommentAccess | null
+  commentHostLeaseId: string | null
   shareEndedByRemote: boolean
 }
 
@@ -49,6 +60,7 @@ export interface CollaborationSessionActions {
   joinSession: (params: JoinShareParams) => Promise<void>
   resumeHosting: (params: JoinShareParams) => Promise<void>
   stopSharing: (options?: { silent?: boolean }) => void
+  refreshCommentAccess: () => Promise<CollaborationCommentAccess>
   handleRemoteShareEnd: () => void
   acknowledgeRemoteShareEnd: () => void
 }

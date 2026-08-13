@@ -38,6 +38,10 @@ export type CommentAccessContext
   | {
     kind: 'collaborator'
     accessToken: string
+    sessionId: string
+    resumeId: string
+    userId: string
+    role: 'editor' | 'viewer'
   }
   | {
     kind: 'share'

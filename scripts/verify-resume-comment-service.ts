@@ -29,6 +29,10 @@ assert.match(
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
 assert.match(edgeSource, /ensure_resume_working_comment_scope/u)
 assert.match(edgeSource, /buildCommentAnchorDocument\(resume, projectionReferenceDate\)/u)
+assert.match(edgeSource, /token\.resumeId !== session\.resume_id/u)
+assert.match(edgeSource, /token\.role !== member\.role/u)
+assert.match(edgeSource, /session\.revoked_at/u)
+assert.match(edgeSource, /\.eq\('host_lease_id', hostLeaseId\)/u)
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 assert.match(shareEdgeSource, /comment_access_token/u)
 assert.match(shareEdgeSource, /projection_reference_date/u)
@@ -65,6 +69,32 @@ await assert.rejects(
   (error: unknown) => error instanceof CommentApiError && error.code === 'unauthorized',
 )
 
+const collaboratorPayload = {
+  version: 1 as const,
+  kind: 'collaborator' as const,
+  issuedAt: now,
+  expiresAt: now + 15 * 60,
+  sessionId: 'session-comment-0001',
+  resumeId: '00000000-0000-4000-8000-000000000011',
+  scopeId: '00000000-0000-4000-8000-000000000012',
+  userId: '00000000-0000-4000-8000-000000000013',
+  role: 'editor' as const,
+}
+const collaboratorToken = await signCommentToken(collaboratorPayload, secret)
+assert.deepEqual(
+  await verifyCommentToken(collaboratorToken, 'collaborator', secret),
+  collaboratorPayload,
+)
+const [, collaboratorSignature] = collaboratorToken.split('.') as [string, string]
+const forgedRolePayload = Buffer.from(JSON.stringify({
+  ...collaboratorPayload,
+  role: 'viewer',
+})).toString('base64url')
+await assert.rejects(
+  verifyCommentToken(`${forgedRolePayload}.${collaboratorSignature}`, 'collaborator', secret),
+  (error: unknown) => error instanceof CommentApiError && error.code === 'unauthorized',
+)
+
 const anonymousSecret = Buffer.alloc(32, 7).toString('base64url')
 assert.match(await hashAnonymousSecret(anonymousSecret, secret), /^[0-9a-f]{64}$/u)
 assert.equal(normalizeCommentBody('  评论 👨‍👩‍👧‍👦  '), '评论 👨‍👩‍👧‍👦')
@@ -80,6 +110,10 @@ assert.equal(isSafeCommentLink('https://example.com/path'), true)
 assert.equal(isSafeCommentLink('mailto:user@example.com'), true)
 assert.equal(isSafeCommentLink('javascript:alert(1)'), false)
 assert.equal(readCommentOp({ op: 'create_thread' }), 'create_thread')
+assert.equal(
+  readCommentOp({ op: 'join_collaboration_session' }),
+  'join_collaboration_session',
+)
 assert.throws(
   () => readCommentOp({ op: 'unknown' }),
   (error: unknown) => error instanceof CommentApiError && error.code === 'not_found',

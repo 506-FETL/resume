@@ -25,6 +25,11 @@ function accessChangedRelease(previous: CommentAccessContext, next: CommentAcces
     && previous.releaseId !== next.releaseId
 }
 
+function isReadOnlyAccess(access: CommentAccessContext) {
+  return (access.kind === 'share' && !access.commentsEnabled)
+    || (access.kind === 'collaborator' && access.role === 'viewer')
+}
+
 export function useCommentRealtime({
   client,
   store,
@@ -80,7 +85,7 @@ export function useCommentRealtime({
       }
       client.setAccessContext(next)
       store.getState().setAccessState(
-        next.kind === 'share' && !next.commentsEnabled ? 'read_only' : 'active',
+        isReadOnlyAccess(next) ? 'read_only' : 'active',
       )
       return true
     }
@@ -99,7 +104,7 @@ export function useCommentRealtime({
       })
       const access = client.getAccessContext()
       store.getState().setAccessState(
-        access.kind === 'share' && !access.commentsEnabled ? 'read_only' : 'active',
+        isReadOnlyAccess(access) ? 'read_only' : 'active',
       )
       realtime.connect(response.data.scopeRealtime, {
         onInvalidation: (event) => {

@@ -39,10 +39,14 @@ export function useCommentReviewMode({
   resumeId,
   workingLabel,
   enabled,
+  collaboratorMode = false,
+  collaboratorAccess = null,
 }: {
   resumeId: string | null
   workingLabel: string
   enabled: boolean
+  collaboratorMode?: boolean
+  collaboratorAccess?: Extract<CommentAccessContext, { kind: 'collaborator' }> | null
 }): CommentReviewMode {
   const [sources, setSources] = useState<CommentSourceOption[]>([{
     key: 'working',
@@ -63,10 +67,13 @@ export function useCommentReviewMode({
     setManifestOverride(null)
     setProjectionReferenceDate(undefined)
     setSources([{ key: 'working', kind: 'working', label: '当前工作版本' }])
-  }, [resumeId])
+    setSourcesLoading(false)
+    setSwitching(false)
+    setError(null)
+  }, [collaboratorMode, resumeId])
 
   useEffect(() => {
-    if (!enabled || !resumeId)
+    if (!enabled || !resumeId || collaboratorMode)
       return
     let cancelled = false
     setSourcesLoading(true)
@@ -107,11 +114,13 @@ export function useCommentReviewMode({
     return () => {
       cancelled = true
     }
-  }, [enabled, resumeId])
+  }, [collaboratorMode, enabled, resumeId])
 
   const selectSource = useCallback(async (key: CommentSourceOption['key']) => {
     if (key === selectedKey)
       return true
+    if (collaboratorMode && key !== 'working')
+      return false
     const source = sources.find(item => item.key === key)
     if (!source)
       return false
@@ -145,7 +154,7 @@ export function useCommentReviewMode({
     finally {
       setSwitching(false)
     }
-  }, [selectedKey, sources])
+  }, [collaboratorMode, selectedKey, sources])
 
   useEffect(() => {
     const leaveDeletedHistory = (historyVersionId: number) => {
@@ -184,12 +193,14 @@ export function useCommentReviewMode({
 
   const selected = sources.find(source => source.key === selectedKey) ?? sources[0]!
   const access = useMemo<CommentAccessContext>(() => {
+    if (collaboratorMode && collaboratorAccess)
+      return collaboratorAccess
     if (selected.kind === 'history')
       return { kind: 'owner', historyVersionId: selected.historyVersionId }
     if (selected.kind === 'share_release')
       return { kind: 'owner', shareReleaseId: selected.shareReleaseId }
     return { kind: 'owner', resumeId: resumeId ?? '' }
-  }, [resumeId, selected])
+  }, [collaboratorAccess, collaboratorMode, resumeId, selected])
 
   return {
     sources,
