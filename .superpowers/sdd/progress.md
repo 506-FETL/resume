@@ -122,3 +122,16 @@
 - git diff --check：无输出。
 - 环境说明：FUSE 挂载的 node_modules 解析不全 + node 版本(需24)不符，改在本机(mounted PC 目录, node 24)执行 `pnpm install --no-frozen-lockfile` 后跑 lint/tsc/build。均未 commit。
 - 修复的 lint 项：React.PointerEvent→ReactPointerEvent 类型 import（no-undef）；compute-line-diff 用 Array.from 替代 new Array（unicorn/no-new-array）；diff-view key 加 eslint-disable(react/no-array-index-key)。
+
+# ==================================================
+# 简历编辑器 Toolbar 控件更新（计划: docs/superpowers/plans/2026-08-13-resume-toolbar-controls.md）
+基线 HEAD: 019db60
+约定: 用户已同意在当前 main 分支实现；仓库规则覆盖 worktree/TDD 默认，本任务不新增测试框架；不触碰 AGENTS.md、src/components/ui/sheet.tsx 和 .superpowers/brainstorm/。
+
+## 任务状态
+- [x] T1 正式间距与精细预览 Store 边界 — complete (commits 019db60..6ac5758, review clean)
+- [x] T2 间距粗/精细模式与退出保护 — complete (commits 6ac5758..253acbb, review clean)
+- [x] T3 六款项目自托管字体 — complete (commits 253acbb..148c034, review clean)
+- [x] T4 字体设置与字号滑杆 — complete (commits 148c034..867004b, review clean)
+- [x] T5 历史快速保存命名 Dialog — complete (commits 867004b..40414c6, review clean)
+- [x] T6 集成验证与回归检查 — complete (HEAD 4b1e247；desktop/mobile browser matrix + lint/tsc/build/diff-check；quick-save online E2E remains explicitly unverified because test identity was offline)
