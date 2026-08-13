@@ -189,6 +189,7 @@ export async function resolveResumeShareRelease(input: {
       source: { kind: 'current' },
       versionId: version.id,
       documentRevision: version.document_revision,
+      projectionReferenceDate: version.projection_reference_date,
     }
   }
 
@@ -214,6 +215,7 @@ export async function resolveResumeShareRelease(input: {
     },
     versionId: input.selection.versionId,
     documentRevision: version.document_revision,
+    projectionReferenceDate: version.projection_reference_date,
   }
 }
 
@@ -429,13 +431,14 @@ export async function publishResumeShareRelease(
   release: ResolvedResumeShareRelease,
 ): Promise<ResumeShareRecord> {
   const source = toShareVersionSourcePatch(release.source)
-  const projectionReferenceDate = new Date().toISOString().slice(0, 10)
+  const projectionReferenceDate = release.projectionReferenceDate
   const anchorDocument = buildCommentAnchorDocument(
     release.snapshot,
     projectionReferenceDate,
   )
   const { error } = await supabase.rpc('publish_resume_share_release', {
     p_share_id: shareId,
+    p_version_id: release.versionId,
     p_snapshot: release.snapshot,
     p_template_manifest: release.templateManifest,
     p_display_name: release.displayName,

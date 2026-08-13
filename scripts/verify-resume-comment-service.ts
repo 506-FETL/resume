@@ -27,15 +27,38 @@ assert.match(
   /^[0-9a-f]{64}$/u,
 )
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
-assert.match(edgeSource, /ensure_resume_working_comment_scope/u)
-assert.match(edgeSource, /buildCommentAnchorDocument\(resume, projectionReferenceDate\)/u)
+const migrationSource = readFileSync(
+  'supabase/migrations/20260814000001_add_version_centric_resume_comments.sql',
+  'utf8',
+)
+const transactionSource = readFileSync(
+  'supabase/migrations/20260813000003_add_resume_comment_api_transactions.sql',
+  'utf8',
+)
+assert.match(edgeSource, /ensure_resume_version_comment_scope/u)
+assert.doesNotMatch(edgeSource, /ensure_resume_working_comment_scope/u)
+assert.match(edgeSource, /execute_resume_version_comment_write/u)
+assert.match(edgeSource, /parentCommentId/u)
+assert.match(edgeSource, /op === 'list_events'/u)
+assert.match(edgeSource, /scheduleBackground\(notifyWrite/u)
+assert.match(edgeSource, /Server-Timing/u)
+assert.match(edgeSource, /X-Request-Id/u)
 assert.match(edgeSource, /token\.resumeId !== session\.resume_id/u)
 assert.match(edgeSource, /token\.role !== member\.role/u)
+assert.match(edgeSource, /token\.versionId !== scope\.version_id/u)
 assert.match(edgeSource, /session\.revoked_at/u)
 assert.match(edgeSource, /\.eq\('host_lease_id', hostLeaseId\)/u)
+assert.match(migrationSource, /kind = 'version'/u)
+assert.match(migrationSource, /version_id = p_version_id/u)
+assert.match(migrationSource, /invalid reply parent/u)
+assert.match(migrationSource, /SET parent_id = v_parent_id/u)
+assert.match(transactionSource, /SET body = '', deleted_at = now\(\)/u)
+assert.match(migrationSource, /version_id = v_version\.id/u)
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 assert.match(shareEdgeSource, /comment_access_token/u)
 assert.match(shareEdgeSource, /projection_reference_date/u)
+assert.match(shareEdgeSource, /version_id/u)
+assert.match(shareEdgeSource, /version:resume_config_versions/u)
 assert.match(shareEdgeSource, /if \(!refreshOnly\)/u)
 
 const secret = 'resume-comment-verification-secret-000000000000'
@@ -46,6 +69,7 @@ const sharePayload = {
   issuedAt: now,
   expiresAt: now + 15 * 60,
   shareId: '00000000-0000-4000-8000-000000000001',
+  versionId: 42,
   releaseId: '00000000-0000-4000-8000-000000000002',
   scopeId: '00000000-0000-4000-8000-000000000003',
   passwordGeneration: 'generation',
@@ -77,6 +101,7 @@ const collaboratorPayload = {
   sessionId: 'session-comment-0001',
   resumeId: '00000000-0000-4000-8000-000000000011',
   scopeId: '00000000-0000-4000-8000-000000000012',
+  versionId: 42,
   userId: '00000000-0000-4000-8000-000000000013',
   role: 'editor' as const,
 }
@@ -143,19 +168,19 @@ assert.deepEqual(readCommentAnchor({
 
 const scopeTopic = await deriveScopeRealtimeTopic({
   scopeId: sharePayload.scopeId,
-  releaseId: sharePayload.releaseId,
+  versionId: sharePayload.versionId,
   secret,
   nowSeconds: 1_800,
 })
 const sameScopeTopic = await deriveScopeRealtimeTopic({
   scopeId: sharePayload.scopeId,
-  releaseId: sharePayload.releaseId,
+  versionId: sharePayload.versionId,
   secret,
   nowSeconds: 2_699,
 })
 const nextScopeTopic = await deriveScopeRealtimeTopic({
   scopeId: sharePayload.scopeId,
-  releaseId: sharePayload.releaseId,
+  versionId: sharePayload.versionId,
   secret,
   nowSeconds: 2_700,
 })

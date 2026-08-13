@@ -35,6 +35,7 @@ export interface ResolvedResumeShareRelease extends ResumeShareSnapshotSource {
   source: ResolvedShareVersionSource
   versionId: number
   documentRevision: number
+  projectionReferenceDate: string
 }
 
 export interface ResumeShareReleaseSummary {

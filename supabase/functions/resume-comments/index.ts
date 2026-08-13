@@ -41,6 +41,7 @@ import {
 const jsonHeaders = {
   ...corsHeaders,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Expose-Headers': 'Server-Timing, X-Request-Id',
   'Content-Type': 'application/json',
   'Cache-Control': 'no-store',
 }
@@ -58,9 +59,10 @@ type SyncRelocation = ResumeCommentRelocationResult & { threadId: string }
 
 interface ScopeRow {
   id: string
-  kind: 'working' | 'history' | 'share_release'
+  kind: 'working' | 'history' | 'share_release' | 'version'
   owner_user_id: string
   resume_id: string
+  version_id: number | null
   history_version_id: number | null
   share_release_id: string | null
   anchor_document: {
@@ -70,6 +72,7 @@ interface ScopeRow {
   document_revision: number
   projection_reference_date: string
   next_event_seq: number
+  archived_at: string | null
 }
 
 interface ShareRow {
@@ -81,6 +84,7 @@ interface ShareRow {
   archived_at: string | null
   expires_at: string | null
   password_hash: string | null
+  version_id: number
 }
 
 interface CollaborationSessionRow {
@@ -112,6 +116,7 @@ interface ResolvedAccess {
   legacyAnonymousId: string | null
   share: ShareRow | null
   releaseId: string | null
+  versionId: number
   canWrite: boolean
   canManageAll: boolean
 }
@@ -135,6 +140,22 @@ function failure(error: CommentApiError) {
         : {}),
     },
   }, error.status)
+}
+
+function scheduleBackground(task: Promise<unknown>) {
+  const edgeRuntime = (globalThis as typeof globalThis & {
+    EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void }
+  }).EdgeRuntime
+  const guardedTask = task.catch((error) => {
+    console.error('resume-comment-background-task-failed', {
+      message: error instanceof Error ? error.message : 'unknown',
+    })
+  })
+  if (edgeRuntime?.waitUntil) {
+    edgeRuntime.waitUntil(guardedTask)
+    return
+  }
+  void guardedTask
 }
 
 function getClientAddress(req: Request) {
@@ -166,7 +187,7 @@ async function authenticateUser(req: Request, admin: AdminClient) {
 async function getScope(admin: AdminClient, scopeId: string): Promise<ScopeRow> {
   const { data, error } = await admin
     .from('resume_comment_scopes')
-    .select('id,kind,owner_user_id,resume_id,history_version_id,share_release_id,anchor_document,document_hash,document_revision,projection_reference_date,next_event_seq')
+    .select('id,kind,owner_user_id,resume_id,version_id,history_version_id,share_release_id,anchor_document,document_hash,document_revision,projection_reference_date,next_event_seq,archived_at')
     .eq('id', scopeId)
     .maybeSingle()
   if (error || !data) {
@@ -187,36 +208,81 @@ function isFutureTimestamp(value: string) {
   return Number.isFinite(Date.parse(value)) && Date.parse(value) > Date.now()
 }
 
-async function ensureWorkingScopeForOwner(
+async function ensureVersionScopeForOwner(
   admin: AdminClient,
   ownerUserId: string,
-  resumeId: string,
+  versionId: number,
 ) {
-  const { data: resume, error } = await admin
-    .from('resume_config')
-    .select('resume_id,user_id,basics,job_intent,application_info,edu_background,work_experience,internship_experience,campus_experience,project_experience,skill_specialty,honors_certificates,self_evaluation,hobbies,order,visibility')
-    .eq('resume_id', resumeId)
+  const { data: existing, error: existingError } = await admin
+    .from('resume_comment_scopes')
+    .select('id')
+    .eq('kind', 'version')
+    .eq('version_id', versionId)
+    .eq('owner_user_id', ownerUserId)
+    .is('archived_at', null)
+    .maybeSingle()
+  if (existingError)
+    throw existingError
+  if (existing?.id)
+    return getScope(admin, existing.id)
+
+  const { data: version, error } = await admin
+    .from('resume_config_versions')
+    .select('id,resume_id,user_id,snapshot,projection_reference_date,document_revision')
+    .eq('id', versionId)
     .eq('user_id', ownerUserId)
     .maybeSingle()
-  if (error || !resume) {
-    throw new CommentApiError('not_found', '简历不存在', 404)
+  if (error || !version) {
+    throw new CommentApiError('not_found', '简历版本不存在', 404)
   }
-  const projectionReferenceDate = new Date().toISOString().slice(0, 10)
-  const projected = buildCommentAnchorDocument(resume, projectionReferenceDate)
+  const projectionReferenceDate = String(version.projection_reference_date)
+  const projected = buildCommentAnchorDocument(version.snapshot, projectionReferenceDate)
   const { data, error: ensureError } = await admin.rpc(
-    'ensure_resume_working_comment_scope',
+    'ensure_resume_version_comment_scope',
     {
       p_owner_user_id: ownerUserId,
-      p_resume_id: resumeId,
+      p_version_id: version.id,
       p_anchor_document: projected.document,
       p_document_hash: projected.documentHash,
       p_projection_reference_date: projectionReferenceDate,
     },
   )
-  if (ensureError || typeof data !== 'string') {
-    throw ensureError ?? new Error('Unable to ensure working comment scope')
-  }
+  if (ensureError || typeof data !== 'string')
+    throw ensureError ?? new Error('Unable to ensure version comment scope')
   return getScope(admin, data)
+}
+
+async function resolveCurrentVersionId(
+  admin: AdminClient,
+  ownerUserId: string,
+  resumeId: string,
+) {
+  const { data, error } = await admin
+    .from('resume_config')
+    .select('current_version_id')
+    .eq('resume_id', resumeId)
+    .eq('user_id', ownerUserId)
+    .maybeSingle()
+  const versionId = Number(data?.current_version_id)
+  if (error || !Number.isSafeInteger(versionId) || versionId <= 0)
+    throw new CommentApiError('not_found', '简历当前版本不存在', 404)
+  return versionId
+}
+
+async function loadPersistedResumeSnapshot(
+  admin: AdminClient,
+  ownerUserId: string,
+  resumeId: string,
+) {
+  const { data, error } = await admin
+    .from('resume_config')
+    .select('type,basics,job_intent,application_info,edu_background,work_experience,internship_experience,campus_experience,project_experience,skill_specialty,honors_certificates,self_evaluation,hobbies,order,visibility,spacing,font,theme,template_binding')
+    .eq('resume_id', resumeId)
+    .eq('user_id', ownerUserId)
+    .maybeSingle()
+  if (error || !data)
+    throw new CommentApiError('not_found', '简历不存在', 404)
+  return data
 }
 
 async function getActiveCollaborationSession(
@@ -240,10 +306,12 @@ async function getActiveCollaborationSession(
 async function issueCollaboratorToken({
   session,
   member,
+  versionId,
   collaboratorSecret,
 }: {
   session: CollaborationSessionRow
   member: CollaborationMemberRow
+  versionId: number
   collaboratorSecret: string
 }) {
   const issuedAt = Math.floor(Date.now() / 1_000)
@@ -262,6 +330,7 @@ async function issueCollaboratorToken({
       sessionId: session.session_id,
       resumeId: session.resume_id,
       scopeId: session.scope_id,
+      versionId,
       userId: member.user_id,
       role: member.role,
     }, collaboratorSecret),
@@ -275,18 +344,17 @@ async function issueCollaboratorToken({
 
 async function handleCollaborationSessionOperation({
   op,
-  req,
+  userId,
   body,
   admin,
   collaboratorSecret,
 }: {
   op: 'register_collaboration_session' | 'join_collaboration_session' | 'renew_collaboration_session' | 'leave_collaboration_session'
-  req: Request
+  userId: string | null
   body: Record<string, unknown>
   admin: AdminClient
   collaboratorSecret: string
 }) {
-  const userId = await authenticateUser(req, admin)
   if (!userId) {
     throw new CommentApiError('unauthorized', '请先登录', 401)
   }
@@ -294,7 +362,8 @@ async function handleCollaborationSessionOperation({
   const resumeId = readUuid(body, 'resumeId')
 
   if (op === 'register_collaboration_session') {
-    const scope = await ensureWorkingScopeForOwner(admin, userId, resumeId)
+    const versionId = await resolveCurrentVersionId(admin, userId, resumeId)
+    const scope = await ensureVersionScopeForOwner(admin, userId, versionId)
     const { data: existing, error: existingError } = await admin
       .from('resume_comment_collaboration_sessions')
       .select('session_id,resume_id,owner_user_id,default_role,revoked_at')
@@ -439,19 +508,27 @@ async function handleCollaborationSessionOperation({
   if (!member) {
     throw new CommentApiError('unauthorized', '协作者评论权限不存在', 401)
   }
-  return issueCollaboratorToken({ session, member, collaboratorSecret })
+  const scope = await getScope(admin, session.scope_id)
+  if (scope.kind !== 'version' || scope.version_id == null)
+    throw new CommentApiError('unauthorized', '协作评论版本无效', 401)
+  return issueCollaboratorToken({
+    session,
+    member,
+    versionId: scope.version_id,
+    collaboratorSecret,
+  })
 }
 
 async function resolveAnonymousIdentity({
   admin,
   body,
-  shareId,
+  versionId,
   pepper,
   required,
 }: {
   admin: AdminClient
   body: Record<string, unknown>
-  shareId: string
+  versionId: number
   pepper: string
   required: boolean
 }): Promise<string | null> {
@@ -467,13 +544,13 @@ async function resolveAnonymousIdentity({
   const expectedHash = await hashAnonymousSecret(secret, pepper)
   const { data, error } = await admin
     .from('resume_comment_anonymous_identities')
-    .select('id,share_id,secret_hash,revoked_at')
+    .select('id,version_id,secret_hash,revoked_at')
     .eq('id', anonymousId)
     .maybeSingle()
   if (
     error
     || !data
-    || data.share_id !== shareId
+    || Number(data.version_id) !== versionId
     || data.revoked_at
     || !timingSafeStringEqual(expectedHash, data.secret_hash)
   ) {
@@ -490,14 +567,14 @@ async function resolveAnonymousIdentity({
 }
 
 async function resolveAccess({
-  req,
+  userId,
   body,
   admin,
   tokenSecret,
   collaboratorSecret,
   anonymousPepper,
 }: {
-  req: Request
+  userId: string | null
   body: Record<string, unknown>
   admin: AdminClient
   tokenSecret: string
@@ -505,49 +582,29 @@ async function resolveAccess({
   anonymousPepper: string
 }): Promise<ResolvedAccess> {
   const accessKind = readRequiredString(body, 'accessKind', 32)
-  const userId = await authenticateUser(req, admin)
 
   if (accessKind === 'owner') {
     if (!userId) {
       throw new CommentApiError('unauthorized', '请先登录', 401)
     }
-    let scopeId: string
+    let scope: ScopeRow
     if (typeof body.scopeId === 'string') {
-      scopeId = readUuid(body, 'scopeId')
+      scope = await getScope(admin, readUuid(body, 'scopeId'))
     }
-    else if (body.historyVersionId !== undefined) {
-      const historyVersionId = readNonNegativeInteger(body, 'historyVersionId')
-      const { data: version, error } = await admin
-        .from('resume_config_versions')
-        .select('id,resume_id,user_id,snapshot,created_at')
-        .eq('id', historyVersionId)
-        .eq('user_id', userId)
-        .maybeSingle()
-      if (error || !version) {
-        throw new CommentApiError('not_found', '历史版本不存在', 404)
-      }
-      const projectionReferenceDate = String(version.created_at).slice(0, 10)
-      const projected = buildCommentAnchorDocument(version.snapshot, projectionReferenceDate)
-      const { data, error: ensureError } = await admin.rpc(
-        'ensure_resume_history_comment_scope',
-        {
-          p_owner_user_id: userId,
-          p_history_version_id: historyVersionId,
-          p_anchor_document: projected.document,
-          p_document_hash: projected.documentHash,
-          p_projection_reference_date: projectionReferenceDate,
-        },
+    else if (body.versionId !== undefined || body.historyVersionId !== undefined) {
+      const versionId = readNonNegativeInteger(
+        body,
+        body.versionId !== undefined ? 'versionId' : 'historyVersionId',
       )
-      if (ensureError || typeof data !== 'string') {
-        throw ensureError ?? new Error('Unable to ensure history comment scope')
-      }
-      scopeId = data
+      if (versionId <= 0)
+        throw new CommentApiError('not_found', '简历版本不存在', 404)
+      scope = await ensureVersionScopeForOwner(admin, userId, versionId)
     }
     else if (typeof body.shareReleaseId === 'string') {
       const shareReleaseId = readUuid(body, 'shareReleaseId')
       const { data: release, error: releaseError } = await admin
         .from('resume_share_releases')
-        .select('id,share_id,snapshot,created_at')
+        .select('id,share_id')
         .eq('id', shareReleaseId)
         .maybeSingle()
       if (releaseError || !release) {
@@ -555,35 +612,24 @@ async function resolveAccess({
       }
       const { data: share, error: shareError } = await admin
         .from('resume_shares')
-        .select('id,user_id')
+        .select('id,user_id,version_id')
         .eq('id', release.share_id)
         .eq('user_id', userId)
         .maybeSingle()
       if (shareError || !share) {
         throw new CommentApiError('not_found', '分享反馈不存在', 404)
       }
-      const projectionReferenceDate = String(release.created_at).slice(0, 10)
-      const projected = buildCommentAnchorDocument(release.snapshot, projectionReferenceDate)
-      const { data, error: ensureError } = await admin.rpc(
-        'ensure_resume_share_release_comment_scope',
-        {
-          p_share_release_id: shareReleaseId,
-          p_anchor_document: projected.document,
-          p_document_hash: projected.documentHash,
-          p_projection_reference_date: projectionReferenceDate,
-        },
-      )
-      if (ensureError || typeof data !== 'string') {
-        throw ensureError ?? new Error('Unable to ensure share comment scope')
-      }
-      scopeId = data
+      const versionId = Number(share.version_id)
+      if (!Number.isSafeInteger(versionId) || versionId <= 0)
+        throw new CommentApiError('not_found', '分享版本不存在', 404)
+      scope = await ensureVersionScopeForOwner(admin, userId, versionId)
     }
     else {
       const resumeId = readUuid(body, 'resumeId')
-      scopeId = (await ensureWorkingScopeForOwner(admin, userId, resumeId)).id
+      const versionId = await resolveCurrentVersionId(admin, userId, resumeId)
+      scope = await ensureVersionScopeForOwner(admin, userId, versionId)
     }
-    const scope = await getScope(admin, scopeId)
-    if (scope.owner_user_id !== userId) {
+    if (scope.owner_user_id !== userId || scope.kind !== 'version' || scope.version_id == null) {
       throw new CommentApiError('not_found', '评论空间不存在', 404)
     }
     return {
@@ -595,7 +641,8 @@ async function resolveAccess({
       actorKey: `user:${userId}`,
       legacyAnonymousId: null,
       share: null,
-      releaseId: scope.share_release_id,
+      releaseId: null,
+      versionId: scope.version_id,
       canWrite: true,
       canManageAll: true,
     }
@@ -635,13 +682,15 @@ async function resolveAccess({
       || token.sessionId !== session.session_id
       || token.resumeId !== session.resume_id
       || token.scopeId !== session.scope_id
+      || token.versionId !== scope.version_id
       || token.role !== member.role
       || member.user_id !== userId
       || member.revoked_at
       || session.revoked_at
       || !isFutureTimestamp(member.expires_at)
       || !isFutureTimestamp(session.expires_at)
-      || scope.kind !== 'working'
+      || scope.kind !== 'version'
+      || scope.version_id == null
       || scope.resume_id !== token.resumeId
       || scope.owner_user_id !== session.owner_user_id
     ) {
@@ -657,6 +706,7 @@ async function resolveAccess({
       legacyAnonymousId: null,
       share: null,
       releaseId: null,
+      versionId: scope.version_id,
       canWrite: token.role === 'editor',
       canManageAll: false,
     }
@@ -674,7 +724,7 @@ async function resolveAccess({
     getScope(admin, token.scopeId),
     admin
       .from('resume_shares')
-      .select('id,user_id,current_release_id,allow_comments,is_active,archived_at,expires_at,password_hash')
+      .select('id,user_id,version_id,current_release_id,allow_comments,is_active,archived_at,expires_at,password_hash')
       .eq('id', token.shareId)
       .maybeSingle(),
   ])
@@ -689,10 +739,13 @@ async function resolveAccess({
     throw new CommentApiError('share_unavailable', '分享已不可用', 404)
   }
   if (
-    share.current_release_id !== token.releaseId
-    || scope.share_release_id !== token.releaseId
+    share.version_id !== token.versionId
+    || scope.version_id !== token.versionId
+    || scope.kind !== 'version'
+    || scope.archived_at
+    || share.current_release_id !== token.releaseId
   ) {
-    throw new CommentApiError('stale_release', '分享已发布新版本，请刷新后重试', 409)
+    throw new CommentApiError('stale_release', '分享版本已变化，请刷新后重试', 409)
   }
   const passwordGeneration = await derivePasswordGeneration(share.password_hash, tokenSecret)
   if (passwordGeneration !== token.passwordGeneration) {
@@ -704,7 +757,7 @@ async function resolveAccess({
     anonymousId = await resolveAnonymousIdentity({
       admin,
       body,
-      shareId: share.id,
+      versionId: token.versionId,
       pepper: anonymousPepper,
       required: !userId && isRecord(body.anonymous),
     })
@@ -724,13 +777,18 @@ async function resolveAccess({
     legacyAnonymousId: userId ? anonymousId : null,
     share,
     releaseId: token.releaseId,
+    versionId: token.versionId,
     canWrite: share.allow_comments,
     canManageAll: false,
   }
 }
 
-async function loadThreads(admin: AdminClient, scopeId: string) {
-  const { data, error } = await admin
+async function loadThreads(
+  admin: AdminClient,
+  scopeId: string,
+  threadIds?: string[],
+) {
+  let query = admin
     .from('resume_comment_threads')
     .select(`
       id,
@@ -761,7 +819,9 @@ async function loadThreads(admin: AdminClient, scopeId: string) {
     `)
     .eq('scope_id', scopeId)
     .is('deleted_at', null)
-    .order('last_activity_at', { ascending: false })
+  if (threadIds)
+    query = threadIds.length > 0 ? query.in('id', threadIds) : query.in('id', ['00000000-0000-0000-0000-000000000000'])
+  const { data, error } = await query.order('last_activity_at', { ascending: false })
   if (error) {
     throw error
   }
@@ -798,30 +858,23 @@ async function loadReadState(admin: AdminClient, access: ResolvedAccess) {
   return Number(data?.last_read_event_seq ?? 0)
 }
 
-async function loadAccessibleScopes(admin: AdminClient, userId: string) {
-  const [scopeResult, readResult] = await Promise.all([
-    admin
-      .from('resume_comment_scopes')
-      .select('id,kind,resume_id,history_version_id,share_release_id,projection_reference_date,document_revision,next_event_seq,updated_at')
-      .eq('owner_user_id', userId)
-      .order('updated_at', { ascending: false }),
-    admin
-      .from('resume_comment_read_states')
-      .select('scope_id,last_read_event_seq')
-      .eq('principal_kind', 'user')
-      .eq('principal_user_id', userId),
-  ])
-  if (scopeResult.error)
-    throw scopeResult.error
-  if (readResult.error)
-    throw readResult.error
-  const readByScopeId = new Map(
-    (readResult.data ?? []).map(row => [row.scope_id, Number(row.last_read_event_seq ?? 0)]),
-  )
-  return (scopeResult.data ?? []).map(scope => ({
-    ...scope,
-    last_read_event_seq: readByScopeId.get(scope.id) ?? 0,
-  }))
+async function loadThreadCounts(admin: AdminClient, scopeId: string) {
+  const { data, error } = await admin
+    .from('resume_comment_threads')
+    .select('anchor_status,resolved_at')
+    .eq('scope_id', scopeId)
+    .is('deleted_at', null)
+  if (error)
+    throw error
+  return (data ?? []).reduce((counts, thread) => {
+    if (thread.anchor_status === 'detached')
+      counts.detached += 1
+    else if (thread.resolved_at)
+      counts.resolved += 1
+    else
+      counts.unresolved += 1
+    return counts
+  }, { unresolved: 0, resolved: 0, detached: 0 })
 }
 
 async function issueTopics({
@@ -835,7 +888,7 @@ async function issueTopics({
 }) {
   const scopeTopic = await deriveScopeRealtimeTopic({
     scopeId: access.scope.id,
-    releaseId: access.releaseId,
+    versionId: access.versionId,
     secret: realtimeSecret,
   })
   const scopeRealtime = await issueRealtimeAccess({
@@ -959,6 +1012,7 @@ function writePayload(body: Record<string, unknown>, access: ResolvedAccess) {
   ;[
     'threadId',
     'commentId',
+    'parentCommentId',
     'expectedRevision',
     'documentHash',
     'originalPageIndex',
@@ -968,17 +1022,39 @@ function writePayload(body: Record<string, unknown>, access: ResolvedAccess) {
 }
 
 Deno.serve(async (req) => {
+  const requestStartedAt = performance.now()
+  const requestId = /^[0-9a-f-]{36}$/iu.test(req.headers.get('x-request-id') ?? '')
+    ? req.headers.get('x-request-id')!
+    : crypto.randomUUID()
+  let authDuration = 0
+  let accessDuration = 0
+  const finalize = (response: Response) => {
+    const totalDuration = performance.now() - requestStartedAt
+    const dbDuration = Math.max(0, totalDuration - authDuration - accessDuration)
+    response.headers.set('X-Request-Id', requestId)
+    response.headers.set(
+      'Server-Timing',
+      [
+        `auth;dur=${authDuration.toFixed(1)}`,
+        `access;dur=${accessDuration.toFixed(1)}`,
+        `db;dur=${dbDuration.toFixed(1)}`,
+        'broadcast;desc="scheduled after commit"',
+        `total;dur=${totalDuration.toFixed(1)}`,
+      ].join(', '),
+    )
+    return response
+  }
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: jsonHeaders })
+    return finalize(new Response('ok', { headers: jsonHeaders }))
   }
   if (req.method !== 'POST') {
-    return failure(new CommentApiError('not_found', '接口不存在', 404))
+    return finalize(failure(new CommentApiError('not_found', '接口不存在', 404)))
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !serviceRoleKey) {
-    return failure(new CommentApiError('unexpected', '评论服务暂时不可用', 500))
+    return finalize(failure(new CommentApiError('unexpected', '评论服务暂时不可用', 500)))
   }
   const tokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
   const collaboratorSecret = Deno.env.get('RESUME_COMMENT_COLLABORATOR_SECRET') ?? tokenSecret
@@ -993,6 +1069,9 @@ Deno.serve(async (req) => {
       throw new CommentApiError('not_found', '请求无效', 400)
     }
     const body = value
+    const authStartedAt = performance.now()
+    const userId = await authenticateUser(req, admin)
+    authDuration = performance.now() - authStartedAt
     if (
       op === 'register_collaboration_session'
       || op === 'join_collaboration_session'
@@ -1001,21 +1080,23 @@ Deno.serve(async (req) => {
     ) {
       const data = await handleCollaborationSessionOperation({
         op,
-        req,
+        userId,
         body,
         admin,
         collaboratorSecret,
       })
-      return success(data, 0)
+      return finalize(success(data, 0))
     }
+    const accessStartedAt = performance.now()
     const access = await resolveAccess({
-      req,
+      userId,
       body,
       admin,
       tokenSecret,
       collaboratorSecret,
       anonymousPepper,
     })
+    accessDuration = performance.now() - accessStartedAt
 
     if (op === 'create_anonymous_identity') {
       if (access.kind !== 'share' || access.userId) {
@@ -1030,7 +1111,7 @@ Deno.serve(async (req) => {
       const actorKey = `anonymous-new:${secretHash}`
       const replay = await readReplay(admin, actorKey, requestId)
       if (replay) {
-        return success(replay, Number(replay.eventSeq ?? access.scope.next_event_seq))
+        return finalize(success(replay, Number(replay.eventSeq ?? access.scope.next_event_seq)))
       }
       const networkAccess: ResolvedAccess = {
         ...access,
@@ -1045,8 +1126,9 @@ Deno.serve(async (req) => {
         threadId: null,
         pepper: anonymousPepper,
       })
-      const { data, error } = await admin.rpc('create_resume_comment_anonymous_identity', {
+      const { data, error } = await admin.rpc('create_resume_comment_anonymous_identity_v2', {
         p_share_id: access.share!.id,
+        p_version_id: access.versionId,
         p_scope_id: access.scope.id,
         p_secret_hash: secretHash,
         p_actor_key: actorKey,
@@ -1055,7 +1137,7 @@ Deno.serve(async (req) => {
       if (error) {
         throw error
       }
-      return success(data, Number(data.eventSeq))
+      return finalize(success(data, Number(data.eventSeq)))
     }
 
     if (op === 'bootstrap_scope') {
@@ -1064,18 +1146,17 @@ Deno.serve(async (req) => {
         loadReadState(admin, access),
         issueTopics({ access, realtimeSecret, tokenSecret }),
       ])
-      let accessibleScopes: unknown[] = []
-      if (access.kind === 'owner' && access.userId) {
-        accessibleScopes = await loadAccessibleScopes(admin, access.userId)
-      }
-      return success({
+      return finalize(success({
         scope: access.scope,
         threads,
         profiles,
         lastReadEventSeq,
-        accessibleScopes,
+        accessibleScopes: [{
+          ...access.scope,
+          last_read_event_seq: lastReadEventSeq,
+        }],
         ...realtime,
-      }, access.scope.next_event_seq)
+      }, access.scope.next_event_seq))
     }
 
     if (op === 'list_threads') {
@@ -1093,16 +1174,41 @@ Deno.serve(async (req) => {
       if (eventResult.error)
         throw eventResult.error
       const latestScope = await getScope(admin, access.scope.id)
-      return success({ threads, profiles, events: eventResult.data ?? [] }, latestScope.next_event_seq)
+      return finalize(success({ threads, profiles, events: eventResult.data ?? [] }, latestScope.next_event_seq))
+    }
+
+    if (op === 'list_events') {
+      const afterEventSeq = readNonNegativeInteger(body, 'afterEventSeq', 0)
+      const eventResult = await admin
+        .from('resume_comment_events')
+        .select('id,event_seq,thread_id,type,actor_kind,actor_id,sanitized_payload,created_at')
+        .eq('scope_id', access.scope.id)
+        .gt('event_seq', afterEventSeq)
+        .order('event_seq', { ascending: true })
+        .limit(500)
+      if (eventResult.error)
+        throw eventResult.error
+      const events = eventResult.data ?? []
+      const threadIds = Array.from(new Set(events.flatMap(event => event.thread_id ? [event.thread_id] : [])))
+      const [{ threads, profiles }, latestScope] = await Promise.all([
+        loadThreads(admin, access.scope.id, threadIds),
+        getScope(admin, access.scope.id),
+      ])
+      return finalize(success({ threads, profiles, events }, latestScope.next_event_seq))
     }
 
     if (op === 'issue_realtime_token') {
       const realtime = await issueTopics({ access, realtimeSecret, tokenSecret })
-      return success(realtime, access.scope.next_event_seq)
+      return finalize(success(realtime, access.scope.next_event_seq))
     }
 
     if (op === 'sync_working_document') {
-      if (access.kind !== 'owner' || !access.userId || access.scope.kind !== 'working') {
+      if (
+        access.kind !== 'owner'
+        || !access.userId
+        || access.scope.kind !== 'version'
+        || access.scope.version_id == null
+      ) {
         throw new CommentApiError('unauthorized', '只有简历所有者可以同步评论文档', 403)
       }
       const requestId = readRequestId(body)
@@ -1121,7 +1227,7 @@ Deno.serve(async (req) => {
       }
       const replay = await readReplay(admin, access.actorKey!, requestId)
       if (replay) {
-        return success(replay, Number(replay.eventSeq))
+        return finalize(success(replay, Number(replay.eventSeq)))
       }
       await enforceRateLimit({
         req,
@@ -1163,9 +1269,16 @@ Deno.serve(async (req) => {
         }
         relocations.push({ threadId: thread.id, ...result })
       }
-      const { data, error } = await admin.rpc('sync_resume_working_comment_document_v2', {
+      const snapshot = await loadPersistedResumeSnapshot(
+        admin,
+        access.userId,
+        access.scope.resume_id,
+      )
+      const { data, error } = await admin.rpc('sync_resume_version_comment_document_v3', {
         p_scope_id: access.scope.id,
+        p_version_id: access.versionId,
         p_owner_user_id: access.userId,
+        p_snapshot: snapshot,
         p_anchor_document: anchorDocument,
         p_document_hash: documentHash,
         p_expected_document_revision: expectedDocumentRevision,
@@ -1176,21 +1289,31 @@ Deno.serve(async (req) => {
       })
       if (error)
         throw error
-      await notifyWrite({ admin, access, realtimeSecret, eventSeq: Number(data.eventSeq), type: op })
-      return success(data, Number(data.eventSeq))
+      scheduleBackground(notifyWrite({
+        admin,
+        access,
+        realtimeSecret,
+        eventSeq: Number(data.eventSeq),
+        type: op,
+      }))
+      return finalize(success(data, Number(data.eventSeq)))
     }
 
     requireActor(access)
     const requestId = readRequestId(body)
     if (access.kind === 'share') {
       const expectedReleaseId = readUuid(body, 'releaseId')
-      if (expectedReleaseId !== access.releaseId) {
+      const expectedVersionId = readNonNegativeInteger(body, 'versionId')
+      if (
+        expectedReleaseId !== access.releaseId
+        || expectedVersionId !== access.versionId
+      ) {
         throw new CommentApiError('stale_release', '分享已发布新版本，请刷新后重试', 409)
       }
     }
     const replay = await readReplay(admin, access.actorKey!, requestId)
     if (replay) {
-      return success(replay, Number(replay.eventSeq))
+      return finalize(success(replay, Number(replay.eventSeq)))
     }
 
     const payload = writePayload(body, access)
@@ -1200,6 +1323,9 @@ Deno.serve(async (req) => {
     }
     if (['create_thread', 'create_reply', 'edit_comment'].includes(op)) {
       payload.body = normalizeCommentBody(body.body)
+    }
+    if (op === 'create_reply') {
+      payload.parentCommentId = readUuid(body, 'parentCommentId')
     }
     if (op !== 'mark_read') {
       requireWrite(access)
@@ -1229,7 +1355,7 @@ Deno.serve(async (req) => {
         pepper: anonymousPepper,
       })
     }
-    const { data, error } = await admin.rpc('execute_resume_comment_write', {
+    const { data, error } = await admin.rpc('execute_resume_version_comment_write', {
       p_op: op,
       p_scope_id: access.scope.id,
       p_actor_kind: access.actorKind,
@@ -1242,18 +1368,45 @@ Deno.serve(async (req) => {
       throw error
     const eventSeq = Number(data.eventSeq)
     if (op !== 'mark_read') {
-      await notifyWrite({ admin, access, realtimeSecret, eventSeq, type: op })
+      scheduleBackground(notifyWrite({
+        admin,
+        access,
+        realtimeSecret,
+        eventSeq,
+        type: op,
+      }))
     }
-    return success(data, eventSeq)
+    if (op === 'mark_read')
+      return finalize(success(data, eventSeq))
+    const threadId = typeof data.threadId === 'string' ? data.threadId : null
+    const [{ threads, profiles }, counts] = await Promise.all([
+      threadId
+        ? loadThreads(admin, access.scope.id, [threadId])
+        : Promise.resolve({ threads: [], profiles: [] }),
+      loadThreadCounts(admin, access.scope.id),
+    ])
+    return finalize(success({
+      ...data,
+      thread: threads[0] ?? null,
+      profiles,
+      counts,
+      event: {
+        event_seq: eventSeq,
+        thread_id: threadId,
+        type: op,
+        created_at: new Date().toISOString(),
+      },
+    }, eventSeq))
   }
   catch (error) {
     const mapped = mapDatabaseError(error)
     if (mapped.code === 'unexpected') {
       console.error('resume-comments failed', {
+        requestId,
         message: error instanceof Error ? error.message : 'unknown',
       })
     }
-    return failure(mapped)
+    return finalize(failure(mapped))
   }
 })
 
@@ -1272,7 +1425,7 @@ async function notifyWrite({
 }) {
   const topics = [await deriveScopeRealtimeTopic({
     scopeId: access.scope.id,
-    releaseId: access.releaseId,
+    versionId: access.versionId,
     secret: realtimeSecret,
   })]
   topics.push(await deriveOwnerRealtimeTopic({

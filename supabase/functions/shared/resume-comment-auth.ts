@@ -12,6 +12,7 @@ export interface CommentTokenBase {
 export interface ShareCommentAccessToken extends CommentTokenBase {
   kind: 'share'
   shareId: string
+  versionId: number
   releaseId: string
   scopeId: string
   passwordGeneration: string
@@ -22,6 +23,7 @@ export interface CollaboratorCommentAccessToken extends CommentTokenBase {
   sessionId: string
   resumeId: string
   scopeId: string
+  versionId: number
   userId: string
   role: 'editor' | 'viewer'
 }

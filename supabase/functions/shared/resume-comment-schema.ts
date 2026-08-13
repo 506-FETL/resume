@@ -12,6 +12,7 @@ export const COMMENT_API_OPS = [
   'bootstrap_scope',
   'sync_working_document',
   'list_threads',
+  'list_events',
   'create_thread',
   'create_reply',
   'edit_comment',

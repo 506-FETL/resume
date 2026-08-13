@@ -48,18 +48,18 @@ function currentBucket(nowSeconds: number): { bucket: number, expiresAt: number 
 
 export async function deriveScopeRealtimeTopic({
   scopeId,
-  releaseId,
+  versionId,
   secret,
   nowSeconds = Math.floor(Date.now() / 1_000),
 }: {
   scopeId: string
-  releaseId: string | null
+  versionId: number
   secret: string
   nowSeconds?: number
 }) {
   const { bucket, expiresAt } = currentBucket(nowSeconds)
   const digest = await topicDigest(
-    `${scopeId}:${releaseId ?? 'internal'}:${bucket}`,
+    `${scopeId}:version:${versionId}:${bucket}`,
     secret,
   )
   return { topic: `resume-comments:${digest}`, expiresAt }

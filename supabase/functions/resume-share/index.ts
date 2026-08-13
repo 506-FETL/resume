@@ -33,6 +33,8 @@ interface GetResult {
   share_id?: string
   release_id?: string
   release_no?: number
+  version_id?: number
+  document_revision?: number
   allow_comments?: boolean
   projection_reference_date?: string
   comment_scope_id?: string
@@ -48,6 +50,16 @@ interface CurrentReleaseRow {
   template_manifest: unknown
   display_name: string | null
   created_at: string
+}
+
+interface SharedVersionRow {
+  id: number
+  resume_id: string
+  user_id: string
+  snapshot: unknown
+  status: 'active' | 'frozen'
+  document_revision: number
+  projection_reference_date: string
 }
 
 function createAdminClient(url: string, serviceRoleKey: string) {
@@ -209,13 +221,14 @@ async function consumeOwnerWriteLimit(
 
 async function ensureShareCommentScope(
   admin: AdminClient,
-  release: CurrentReleaseRow,
+  version: SharedVersionRow,
 ) {
   const { data: existing, error: existingError } = await admin
     .from('resume_comment_scopes')
     .select('id,projection_reference_date')
-    .eq('kind', 'share_release')
-    .eq('share_release_id', release.id)
+    .eq('kind', 'version')
+    .eq('version_id', version.id)
+    .is('archived_at', null)
     .maybeSingle()
   if (existingError) {
     throw existingError
@@ -227,23 +240,20 @@ async function ensureShareCommentScope(
     }
   }
 
-  const referenceDate = release.created_at.slice(0, 10)
+  const referenceDate = version.projection_reference_date
   const { document, documentHash } = buildCommentAnchorDocument(
-    release.snapshot,
+    version.snapshot,
     referenceDate,
   )
-  const { data, error } = await admin.rpc(
-    'ensure_resume_share_release_comment_scope',
-    {
-      p_share_release_id: release.id,
-      p_anchor_document: document,
-      p_document_hash: documentHash,
-      p_projection_reference_date: referenceDate,
-    },
-  )
-  if (error || typeof data !== 'string') {
-    throw error ?? new Error('Unable to ensure share comment scope')
-  }
+  const { data, error } = await admin.rpc('ensure_resume_version_comment_scope', {
+    p_owner_user_id: version.user_id,
+    p_version_id: version.id,
+    p_anchor_document: document,
+    p_document_hash: documentHash,
+    p_projection_reference_date: referenceDate,
+  })
+  if (error || typeof data !== 'string')
+    throw error ?? new Error('Unable to ensure version comment scope')
   return { id: data, projectionReferenceDate: referenceDate }
 }
 
@@ -262,18 +272,19 @@ async function notifyShareCommentSettings({
 }) {
   const { data: share, error: shareError } = await admin
     .from('resume_shares')
-    .select('current_release_id')
+    .select('current_release_id,version_id')
     .eq('id', shareId)
     .eq('user_id', userId)
     .single()
-  if (shareError || !share.current_release_id)
+  if (shareError || !share.current_release_id || !share.version_id)
     throw shareError ?? new Error('Current share release not found')
 
   const { data: scope, error: scopeError } = await admin
     .from('resume_comment_scopes')
     .select('id')
-    .eq('kind', 'share_release')
-    .eq('share_release_id', share.current_release_id)
+    .eq('kind', 'version')
+    .eq('version_id', share.version_id)
+    .is('archived_at', null)
     .single()
   if (scopeError)
     throw scopeError
@@ -295,7 +306,7 @@ async function notifyShareCommentSettings({
   const topics = await Promise.all([
     deriveScopeRealtimeTopic({
       scopeId: scope.id,
-      releaseId: share.current_release_id,
+      versionId: share.version_id,
       secret: realtimeSecret,
     }),
     deriveOwnerRealtimeTopic({ userId, secret: realtimeSecret }),
@@ -481,7 +492,17 @@ Deno.serve(async (req) => {
         expires_at,
         archived_at,
         allow_comments,
+        version_id,
         current_release_id,
+        version:resume_config_versions!resume_shares_version_id_fkey(
+          id,
+          resume_id,
+          user_id,
+          snapshot,
+          status,
+          document_revision,
+          projection_reference_date
+        ),
         current_release:resume_share_releases!resume_shares_current_release_id_fkey(
           id,
           release_no,
@@ -503,6 +524,9 @@ Deno.serve(async (req) => {
 
     const currentRelease = readCurrentRelease(data.current_release)
     if (!currentRelease || currentRelease.id !== data.current_release_id)
+      return unavailable()
+    const version = (Array.isArray(data.version) ? data.version[0] : data.version) as SharedVersionRow | null
+    if (!version || version.id !== data.version_id)
       return unavailable()
 
     if (data.password_hash) {
@@ -569,7 +593,7 @@ Deno.serve(async (req) => {
     }
 
     const commentTokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
-    const commentScope = await ensureShareCommentScope(admin, currentRelease)
+    const commentScope = await ensureShareCommentScope(admin, version)
     const issuedAt = Math.floor(Date.now() / 1_000)
     const expiresAtSeconds = issuedAt + 15 * 60
     const passwordGeneration = await derivePasswordGeneration(
@@ -582,6 +606,7 @@ Deno.serve(async (req) => {
       issuedAt,
       expiresAt: expiresAtSeconds,
       shareId: data.id,
+      versionId: version.id,
       releaseId: currentRelease.id,
       scopeId: commentScope.id,
       passwordGeneration,
@@ -589,12 +614,14 @@ Deno.serve(async (req) => {
 
     // 匿名读取只返回固化快照、模板与标题，绝不返回 password_hash / user_id 等敏感字段。
     return json({
-      snapshot: currentRelease.snapshot,
+      snapshot: version.snapshot,
       template_manifest: currentRelease.template_manifest,
       display_name: currentRelease.display_name,
       share_id: data.id,
       release_id: currentRelease.id,
       release_no: currentRelease.release_no,
+      version_id: version.id,
+      document_revision: version.document_revision,
       allow_comments: data.allow_comments,
       projection_reference_date: commentScope.projectionReferenceDate,
       comment_scope_id: commentScope.id,

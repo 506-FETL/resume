@@ -383,6 +383,78 @@ CREATE INDEX IF NOT EXISTS idx_resume_comment_scopes_owner_version
   ON public.resume_comment_scopes (owner_user_id, version_id)
   WHERE kind = 'version' AND archived_at IS NULL;
 
+CREATE OR REPLACE FUNCTION public.ensure_resume_version_comment_scope(
+  p_owner_user_id uuid,
+  p_version_id bigint,
+  p_anchor_document jsonb,
+  p_document_hash text,
+  p_projection_reference_date date
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_version public.resume_config_versions%ROWTYPE;
+  v_scope_id uuid;
+BEGIN
+  PERFORM public.assert_resume_comment_service_role();
+  IF NOT public.is_valid_resume_comment_anchor_document(
+    p_anchor_document,
+    p_document_hash
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid anchor document';
+  END IF;
+  SELECT * INTO v_version
+  FROM public.resume_config_versions
+  WHERE id = p_version_id
+    AND user_id = p_owner_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'version not found';
+  END IF;
+
+  INSERT INTO public.resume_comment_scopes (
+    kind,
+    owner_user_id,
+    resume_id,
+    version_id,
+    anchor_document,
+    document_hash,
+    document_revision,
+    projection_reference_date,
+    next_event_seq
+  ) VALUES (
+    'version',
+    p_owner_user_id,
+    v_version.resume_id,
+    v_version.id,
+    p_anchor_document,
+    p_document_hash,
+    v_version.document_revision,
+    p_projection_reference_date,
+    0
+  ) ON CONFLICT DO NOTHING;
+
+  SELECT id INTO v_scope_id
+  FROM public.resume_comment_scopes
+  WHERE kind = 'version'
+    AND version_id = p_version_id
+    AND archived_at IS NULL;
+  IF v_scope_id IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'version scope not found';
+  END IF;
+  RETURN v_scope_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ensure_resume_version_comment_scope(
+  uuid, bigint, jsonb, text, date
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ensure_resume_version_comment_scope(
+  uuid, bigint, jsonb, text, date
+) TO service_role;
+
 UPDATE public.resume_comment_scopes AS scopes
 SET next_event_seq = coalesce(latest.event_seq, 0)
 FROM (
@@ -449,6 +521,83 @@ CREATE INDEX IF NOT EXISTS idx_resume_comment_anonymous_identities_version
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_resume_comment_anonymous_identity_secret_version
   ON public.resume_comment_anonymous_identities (version_id, secret_hash);
+
+CREATE OR REPLACE FUNCTION public.create_resume_comment_anonymous_identity_v2(
+  p_share_id uuid,
+  p_version_id bigint,
+  p_scope_id uuid,
+  p_secret_hash text,
+  p_actor_key text,
+  p_request_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_identity_id uuid;
+  v_response jsonb;
+  v_event_seq bigint;
+BEGIN
+  PERFORM public.assert_resume_comment_service_role();
+  INSERT INTO public.resume_comment_requests (actor_key, request_id)
+  VALUES (p_actor_key, p_request_id)
+  ON CONFLICT (actor_key, request_id) DO NOTHING;
+  IF NOT FOUND THEN
+    SELECT response INTO v_response
+    FROM public.resume_comment_requests
+    WHERE actor_key = p_actor_key AND request_id = p_request_id
+    FOR UPDATE;
+    IF v_response IS NULL THEN
+      RAISE EXCEPTION USING ERRCODE = '40001', MESSAGE = 'request_in_progress';
+    END IF;
+    RETURN v_response;
+  END IF;
+
+  SELECT scopes.next_event_seq INTO v_event_seq
+  FROM public.resume_comment_scopes AS scopes
+  JOIN public.resume_shares AS shares ON shares.id = p_share_id
+  WHERE scopes.id = p_scope_id
+    AND scopes.kind = 'version'
+    AND scopes.version_id = p_version_id
+    AND shares.version_id = p_version_id
+    AND shares.archived_at IS NULL
+    AND shares.is_active;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'share_unavailable';
+  END IF;
+
+  INSERT INTO public.resume_comment_anonymous_identities (
+    share_id,
+    version_id,
+    secret_hash
+  ) VALUES (
+    p_share_id,
+    p_version_id,
+    p_secret_hash
+  )
+  ON CONFLICT (version_id, secret_hash) DO UPDATE
+  SET last_seen_at = now()
+  RETURNING id INTO v_identity_id;
+
+  v_response := jsonb_build_object(
+    'anonymousId', v_identity_id,
+    'eventSeq', v_event_seq
+  );
+  UPDATE public.resume_comment_requests
+  SET response = v_response, completed_at = now()
+  WHERE actor_key = p_actor_key AND request_id = p_request_id;
+  RETURN v_response;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_resume_comment_anonymous_identity_v2(
+  uuid, bigint, uuid, text, text, uuid
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_resume_comment_anonymous_identity_v2(
+  uuid, bigint, uuid, text, text, uuid
+) TO service_role;
 
 -- 匿名作者/解决者只需与评论版本一致，不要求仍从同一分享链接进入。
 CREATE OR REPLACE FUNCTION public.validate_resume_comment_resolved_actor()
@@ -577,6 +726,287 @@ CREATE CONSTRAINT TRIGGER validate_resume_comment_parent
   ON public.resume_comments
   DEFERRABLE INITIALLY IMMEDIATE
   FOR EACH ROW EXECUTE FUNCTION public.validate_resume_comment_parent();
+
+CREATE OR REPLACE FUNCTION public.sync_resume_version_comment_document_v3(
+  p_scope_id uuid,
+  p_version_id bigint,
+  p_owner_user_id uuid,
+  p_snapshot jsonb,
+  p_anchor_document jsonb,
+  p_document_hash text,
+  p_expected_document_revision integer,
+  p_projection_reference_date date,
+  p_relocations jsonb,
+  p_actor_key text,
+  p_request_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_scope public.resume_comment_scopes%ROWTYPE;
+  v_version public.resume_config_versions%ROWTYPE;
+  v_item jsonb;
+  v_thread public.resume_comment_threads%ROWTYPE;
+  v_event_seq bigint;
+  v_response jsonb;
+BEGIN
+  PERFORM public.assert_resume_comment_service_role();
+  IF p_snapshot IS NULL OR jsonb_typeof(p_snapshot) <> 'object' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid resume snapshot';
+  END IF;
+  IF NOT public.is_valid_resume_comment_anchor_document(
+    p_anchor_document,
+    p_document_hash
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid anchor document';
+  END IF;
+  IF jsonb_typeof(p_relocations) <> 'array' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid relocations';
+  END IF;
+
+  SELECT * INTO v_scope
+  FROM public.resume_comment_scopes
+  WHERE id = p_scope_id
+    AND kind = 'version'
+    AND version_id = p_version_id
+    AND owner_user_id = p_owner_user_id
+    AND archived_at IS NULL
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'not_found';
+  END IF;
+
+  SELECT * INTO v_version
+  FROM public.resume_config_versions
+  WHERE id = p_version_id
+    AND resume_id = v_scope.resume_id
+    AND user_id = p_owner_user_id
+    AND status = 'active'
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'active version not found';
+  END IF;
+
+  INSERT INTO public.resume_comment_requests (actor_key, request_id)
+  VALUES (p_actor_key, p_request_id)
+  ON CONFLICT (actor_key, request_id) DO NOTHING;
+  IF NOT FOUND THEN
+    SELECT response INTO v_response
+    FROM public.resume_comment_requests
+    WHERE actor_key = p_actor_key AND request_id = p_request_id
+    FOR UPDATE;
+    IF v_response IS NULL THEN
+      RAISE EXCEPTION USING ERRCODE = '40001', MESSAGE = 'request_in_progress';
+    END IF;
+    RETURN v_response;
+  END IF;
+
+  IF v_scope.document_revision <> p_expected_document_revision
+    OR v_version.document_revision <> p_expected_document_revision THEN
+    RAISE EXCEPTION USING ERRCODE = '40001', MESSAGE = 'stale_document';
+  END IF;
+
+  UPDATE public.resume_config_versions
+  SET snapshot = p_snapshot,
+      content_hash = p_document_hash,
+      document_revision = document_revision + 1,
+      projection_reference_date = p_projection_reference_date,
+      base_updated_at = now()
+  WHERE id = p_version_id
+  RETURNING * INTO v_version;
+
+  UPDATE public.resume_comment_scopes
+  SET anchor_document = p_anchor_document,
+      document_hash = p_document_hash,
+      document_revision = document_revision + 1,
+      projection_reference_date = p_projection_reference_date
+  WHERE id = p_scope_id
+  RETURNING * INTO v_scope;
+
+  FOR v_item IN SELECT value FROM jsonb_array_elements(p_relocations)
+  LOOP
+    SELECT * INTO v_thread
+    FROM public.resume_comment_threads
+    WHERE id = (v_item ->> 'threadId')::uuid
+      AND scope_id = p_scope_id
+      AND deleted_at IS NULL
+      AND resolved_at IS NULL
+    FOR UPDATE;
+    IF NOT FOUND THEN
+      CONTINUE;
+    END IF;
+
+    IF v_item ->> 'status' = 'anchored' THEN
+      IF NOT public.is_valid_resume_comment_anchor_check(
+        v_item -> 'anchor',
+        p_anchor_document
+      ) THEN
+        RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid_selection';
+      END IF;
+      UPDATE public.resume_comment_threads
+      SET anchor = v_item -> 'anchor',
+          anchor_status = 'anchored',
+          revision = revision + 1,
+          updated_at = now()
+      WHERE id = v_thread.id;
+      v_event_seq := public.append_resume_comment_event(
+        p_scope_id,
+        v_thread.id,
+        'anchor_moved',
+        'system',
+        p_owner_user_id,
+        jsonb_build_object(
+          'contextChanged', coalesce((v_item ->> 'contextChanged')::boolean, false)
+        )
+      );
+    ELSIF v_item ->> 'status' = 'detached' THEN
+      UPDATE public.resume_comment_threads
+      SET anchor_status = 'detached',
+          revision = revision + 1,
+          updated_at = now()
+      WHERE id = v_thread.id;
+      v_event_seq := public.append_resume_comment_event(
+        p_scope_id,
+        v_thread.id,
+        'anchor_detached',
+        'system',
+        p_owner_user_id,
+        jsonb_build_object('reason', v_item ->> 'reason')
+      );
+    ELSE
+      RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid relocations';
+    END IF;
+  END LOOP;
+
+  v_event_seq := public.append_resume_comment_event(
+    p_scope_id,
+    NULL,
+    'document_synced',
+    'user',
+    p_owner_user_id,
+    jsonb_build_object(
+      'versionId', p_version_id,
+      'documentRevision', v_scope.document_revision
+    )
+  );
+  v_response := jsonb_build_object(
+    'versionId', p_version_id,
+    'documentRevision', v_scope.document_revision,
+    'documentHash', p_document_hash,
+    'eventSeq', v_event_seq
+  );
+  INSERT INTO public.resume_comment_read_states (
+    scope_id,
+    principal_kind,
+    principal_user_id,
+    last_read_event_seq
+  ) VALUES (
+    p_scope_id,
+    'user',
+    p_owner_user_id,
+    v_event_seq
+  )
+  ON CONFLICT (scope_id, principal_user_id) WHERE principal_kind = 'user'
+  DO UPDATE SET
+    last_read_event_seq = greatest(
+      public.resume_comment_read_states.last_read_event_seq,
+      excluded.last_read_event_seq
+    ),
+    updated_at = now();
+  UPDATE public.resume_comment_requests
+  SET response = v_response, completed_at = now()
+  WHERE actor_key = p_actor_key AND request_id = p_request_id;
+  RETURN v_response;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.sync_resume_version_comment_document_v3(
+  uuid, bigint, uuid, jsonb, jsonb, text, integer, date, jsonb, text, uuid
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_resume_version_comment_document_v3(
+  uuid, bigint, uuid, jsonb, jsonb, text, integer, date, jsonb, text, uuid
+) TO service_role;
+
+-- 复用已验证的写事务，并在同一个外层数据库事务中把回复挂到任意父评论。
+-- 父评论校验或更新失败会回滚内部写入与事件，不产生半完成回复。
+CREATE OR REPLACE FUNCTION public.execute_resume_version_comment_write(
+  p_op text,
+  p_scope_id uuid,
+  p_actor_kind text,
+  p_actor_id uuid,
+  p_actor_key text,
+  p_request_id uuid,
+  p_payload jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_response jsonb;
+  v_parent_id uuid;
+  v_comment_id uuid;
+  v_thread_id uuid;
+BEGIN
+  PERFORM public.assert_resume_comment_service_role();
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.resume_comment_scopes
+    WHERE id = p_scope_id
+      AND kind = 'version'
+      AND version_id IS NOT NULL
+      AND archived_at IS NULL
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'not_found';
+  END IF;
+
+  IF p_op = 'create_reply' THEN
+    v_parent_id := nullif(p_payload ->> 'parentCommentId', '')::uuid;
+    v_thread_id := nullif(p_payload ->> 'threadId', '')::uuid;
+    IF v_parent_id IS NULL OR NOT EXISTS (
+      SELECT 1
+      FROM public.resume_comments
+      WHERE id = v_parent_id
+        AND thread_id = v_thread_id
+    ) THEN
+      RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'invalid reply parent';
+    END IF;
+  END IF;
+
+  v_response := public.execute_resume_comment_write(
+    p_op,
+    p_scope_id,
+    p_actor_kind,
+    p_actor_id,
+    p_actor_key,
+    p_request_id,
+    p_payload
+  );
+
+  IF p_op = 'create_reply' THEN
+    v_comment_id := nullif(v_response ->> 'commentId', '')::uuid;
+    UPDATE public.resume_comments
+    SET parent_id = v_parent_id
+    WHERE id = v_comment_id
+      AND thread_id = v_thread_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'created reply not found';
+    END IF;
+  END IF;
+  RETURN v_response;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.execute_resume_version_comment_write(
+  text, uuid, text, uuid, text, uuid, jsonb
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.execute_resume_version_comment_write(
+  text, uuid, text, uuid, text, uuid, jsonb
+) TO service_role;
 
 -- 恢复锚点验证；迁移期间不可靠的旧锚点已标记 detached。
 CREATE TRIGGER validate_resume_comment_thread_anchor
@@ -771,6 +1201,149 @@ CREATE POLICY "resume_shares_insert_own" ON public.resume_shares
         AND resume_config_versions.user_id = auth.uid()
     )
   );
+
+-- 发布链接时把链接原子绑定到权威版本；不再为每个 release 创建独立评论空间。
+DROP FUNCTION IF EXISTS public.publish_resume_share_release(
+  uuid, jsonb, jsonb, text, text, bigint, integer, text, timestamptz,
+  jsonb, text, date
+);
+
+CREATE OR REPLACE FUNCTION public.publish_resume_share_release(
+  p_share_id uuid,
+  p_version_id bigint,
+  p_snapshot jsonb,
+  p_template_manifest jsonb,
+  p_display_name text,
+  p_source_kind text,
+  p_source_version_id bigint,
+  p_source_version_no integer,
+  p_source_version_label text,
+  p_source_version_created_at timestamptz,
+  p_anchor_document jsonb,
+  p_document_hash text,
+  p_projection_reference_date date
+)
+RETURNS TABLE (
+  release_id uuid,
+  release_no integer,
+  scope_id uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_share public.resume_shares%ROWTYPE;
+  v_version public.resume_config_versions%ROWTYPE;
+  v_release_id uuid;
+  v_release_no integer;
+  v_scope_id uuid;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'authentication required';
+  END IF;
+
+  SELECT * INTO v_share
+  FROM public.resume_shares
+  WHERE id = p_share_id
+  FOR UPDATE;
+  IF NOT FOUND OR v_share.user_id <> auth.uid() THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'resume share not found';
+  END IF;
+  IF v_share.archived_at IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '55000', MESSAGE = 'archived resume share cannot be published';
+  END IF;
+
+  SELECT * INTO v_version
+  FROM public.resume_config_versions
+  WHERE id = p_version_id
+    AND resume_id = v_share.resume_id
+    AND user_id = auth.uid();
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'resume version not found';
+  END IF;
+  IF p_snapshot IS DISTINCT FROM v_version.snapshot THEN
+    RAISE EXCEPTION USING ERRCODE = '40001', MESSAGE = 'stale version snapshot';
+  END IF;
+  IF jsonb_typeof(p_template_manifest) <> 'object'
+    OR NOT public.is_valid_resume_comment_anchor_document(p_anchor_document, p_document_hash)
+    OR p_projection_reference_date IS DISTINCT FROM v_version.projection_reference_date THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid version release document';
+  END IF;
+  IF p_source_kind NOT IN ('current', 'history') THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid source kind';
+  END IF;
+  IF p_source_kind = 'current' AND (
+    p_source_version_id IS NOT NULL
+    OR p_source_version_no IS NOT NULL
+    OR p_source_version_label IS NOT NULL
+    OR p_source_version_created_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'current source cannot include history metadata';
+  END IF;
+  IF p_source_kind = 'history' AND (
+    p_source_version_id IS NULL
+    OR p_source_version_id <> p_version_id
+    OR p_source_version_no IS NULL
+    OR p_source_version_label IS NULL
+    OR p_source_version_created_at IS NULL
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'history source metadata is incomplete';
+  END IF;
+
+  SELECT coalesce(max(release_no), 0) + 1 INTO v_release_no
+  FROM public.resume_share_releases
+  WHERE share_id = p_share_id;
+
+  INSERT INTO public.resume_share_releases (
+    share_id, release_no, snapshot, template_manifest, display_name,
+    source_kind, source_version_id, source_version_no, source_version_label,
+    source_version_created_at, created_by
+  ) VALUES (
+    p_share_id, v_release_no, v_version.snapshot, p_template_manifest, p_display_name,
+    p_source_kind, p_source_version_id, p_source_version_no, p_source_version_label,
+    p_source_version_created_at, auth.uid()
+  ) RETURNING id INTO v_release_id;
+
+  INSERT INTO public.resume_comment_scopes (
+    kind, owner_user_id, resume_id, version_id, anchor_document,
+    document_hash, document_revision, projection_reference_date
+  ) VALUES (
+    'version', auth.uid(), v_share.resume_id, v_version.id, p_anchor_document,
+    p_document_hash, v_version.document_revision, p_projection_reference_date
+  ) ON CONFLICT DO NOTHING;
+  SELECT id INTO v_scope_id
+  FROM public.resume_comment_scopes
+  WHERE kind = 'version'
+    AND version_id = v_version.id
+    AND archived_at IS NULL;
+
+  UPDATE public.resume_shares
+  SET version_id = v_version.id,
+      current_release_id = v_release_id,
+      snapshot = v_version.snapshot,
+      template_manifest = p_template_manifest,
+      display_name = p_display_name,
+      source_kind = p_source_kind,
+      source_version_id = p_source_version_id,
+      source_version_no = p_source_version_no,
+      source_version_label = p_source_version_label,
+      source_version_created_at = p_source_version_created_at,
+      updated_at = now()
+  WHERE id = p_share_id;
+
+  RETURN QUERY SELECT v_release_id, v_release_no, v_scope_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.publish_resume_share_release(
+  uuid, bigint, jsonb, jsonb, text, text, bigint, integer, text,
+  timestamptz, jsonb, text, date
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.publish_resume_share_release(
+  uuid, bigint, jsonb, jsonb, text, text, bigint, integer, text,
+  timestamptz, jsonb, text, date
+) TO authenticated;
 
 -- 阻止普通 UPDATE 修改冻结版本正文或破坏活动版本归属。
 CREATE OR REPLACE FUNCTION public.guard_resume_version_state()
