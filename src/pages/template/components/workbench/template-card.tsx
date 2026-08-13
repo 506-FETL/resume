@@ -90,15 +90,15 @@ function MobileActionDrawer({
   const [open, setOpen] = useState(false)
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="justify-between">
-          模板操作
-          <MoreHorizontal />
-        </Button>
+    <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
+      <DrawerTrigger
+        render={<Button type="button" variant="outline" size="sm" className="justify-between" />}
+      >
+        模板操作
+        <MoreHorizontal />
       </DrawerTrigger>
 
-      <DrawerContent className="rounded-t-[28px] border-border/70 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
+      <DrawerContent className="border-border/70 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
         <DrawerHeader className="text-left">
           <DrawerTitle>{title ? `${title} · 操作` : '模板操作'}</DrawerTitle>
           <DrawerDescription>{description ?? '选择要执行的操作。'}</DrawerDescription>

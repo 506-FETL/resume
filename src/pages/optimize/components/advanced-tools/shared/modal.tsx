@@ -54,18 +54,18 @@ export function AdvancedToolsModal({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="flex h-[92vh] min-w-0 flex-col overflow-hidden rounded-t-3xl border-border/70 bg-background/95 p-0 backdrop-blur">
+      <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
+        <DrawerContent className="flex h-[92vh] min-w-0 flex-col overflow-hidden border-border/70 bg-background/95 p-0 backdrop-blur">
           <DrawerHeader className="sr-only">
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{typeof description === 'string' ? description : '高级工具箱弹窗'}</DrawerDescription>
           </DrawerHeader>
           <ModalShell
             closeButton={(
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="关闭">
-                  <X className="size-4" />
-                </Button>
+              <DrawerClose
+                render={<Button variant="ghost" size="icon-sm" aria-label="关闭" />}
+              >
+                <X className="size-4" />
               </DrawerClose>
             )}
             description={description}

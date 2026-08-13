@@ -119,7 +119,7 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
         简历信息
         {renderSyncStatus({ isSyncing, pendingChanges, lastSyncTime })}
       </TitleTag>
-      {plain ? body : <DrawerDescription asChild>{body}</DrawerDescription>}
+      {plain ? body : <DrawerDescription render={body} />}
     </HeaderTag>
   )
 }

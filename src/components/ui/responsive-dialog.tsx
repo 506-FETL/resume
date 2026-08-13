@@ -25,6 +25,7 @@ import { AlertCircle } from 'lucide-react'
 const ResponsiveDialogContext = React.createContext<{
   activeSection: string
   setActiveSection: (id: string) => void
+  isMobile: boolean
   variant: 'default' | 'sidebar'
   errors?: Record<string, boolean>
 } | null>(null)
@@ -47,7 +48,7 @@ interface RootProps extends BaseProps {
 }
 
 interface ResponsiveDialogProps extends RootProps {
-  trigger?: React.ReactNode
+  trigger?: React.ReactElement
   variant?: 'default' | 'sidebar'
   errors?: Record<string, boolean>
 }
@@ -66,16 +67,17 @@ export function ResponsiveDialog({
   const contextValue = React.useMemo(() => ({
     activeSection,
     setActiveSection,
+    isMobile,
     variant,
     errors,
-  }), [activeSection, variant, errors])
+  }), [activeSection, errors, isMobile, variant])
 
   if (isMobile) {
     return (
       <ResponsiveDialogContext.Provider value={contextValue}>
-        <Drawer open={open} onOpenChange={onOpenChange}>
-          {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
-          <DrawerContent className="h-full">
+        <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
+          {trigger && <DrawerTrigger render={trigger} />}
+          <DrawerContent className="h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)]">
             {children}
           </DrawerContent>
         </Drawer>
@@ -135,8 +137,7 @@ export function ResponsiveDialogSidebar({
   title?: string
   description?: string
 }) {
-  const isMobile = useIsMobile()
-  const { variant } = useResponsiveDialogContext()
+  const { isMobile, variant } = useResponsiveDialogContext()
 
   if (isMobile || variant !== 'sidebar')
     return null
@@ -267,8 +268,7 @@ export function ResponsiveDialogSection({
   children: React.ReactNode
   className?: string
 }) {
-  const isMobile = useIsMobile()
-  const { variant } = useResponsiveDialogContext()
+  const { isMobile, variant } = useResponsiveDialogContext()
 
   return (
     <section id={id} className={cn('scroll-mt-6', className)}>
@@ -295,8 +295,7 @@ export function ResponsiveDialogHeader({
   children,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  const isMobile = useIsMobile()
-  const { variant } = useResponsiveDialogContext()
+  const { isMobile, variant } = useResponsiveDialogContext()
 
   if (variant === 'sidebar' && !isMobile) {
     return (
@@ -326,7 +325,7 @@ export function ResponsiveDialogTitle({
   children,
   ...props
 }: React.ComponentProps<typeof DialogTitle>) {
-  const isMobile = useIsMobile()
+  const { isMobile } = useResponsiveDialogContext()
 
   if (isMobile) {
     return (
@@ -348,7 +347,7 @@ export function ResponsiveDialogDescription({
   children,
   ...props
 }: React.ComponentProps<typeof DialogDescription>) {
-  const isMobile = useIsMobile()
+  const { isMobile } = useResponsiveDialogContext()
 
   if (isMobile) {
     return (
@@ -370,15 +369,13 @@ export function ResponsiveDialogFooter({
   children,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  const isMobile = useIsMobile()
+  const { isMobile } = useResponsiveDialogContext()
 
   if (isMobile) {
     return (
       <DrawerFooter className={className} {...props}>
         {children}
-        <DrawerClose asChild>
-          <button className="hidden" />
-        </DrawerClose>
+        <DrawerClose render={<button className="hidden" />} />
       </DrawerFooter>
     )
   }

@@ -113,9 +113,10 @@ export default function ActionDrawer({
   return (
     <Drawer
       open={open}
+      showSwipeHandle
       onOpenChange={handleDrawerOpenChange}
     >
-      <DrawerContent className="rounded-t-[28px]">
+      <DrawerContent>
         <DrawerHeader className="text-left">
           <DrawerTitle>{share?.label || '分享链接'}</DrawerTitle>
           <DrawerDescription>{share?.display_name || '选择要执行的操作'}</DrawerDescription>

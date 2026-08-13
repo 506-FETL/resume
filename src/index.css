@@ -50,6 +50,10 @@
   src: url('@fontsource/lxgw-wenkai/files/lxgw-wenkai-latin-700-normal.woff2') format('woff2');
 }
 
+body {
+  position: relative;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

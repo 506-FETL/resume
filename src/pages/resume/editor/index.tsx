@@ -170,15 +170,17 @@ function Editor() {
         : (
             // 移动端：底部抽屉
             <>
-              <Drawer open={open} onOpenChange={setOpen} handleOnly>
-                <DrawerTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="fixed bottom-6 left-1/2 z-1 -transform -translate-x-1/2"
-                    size="icon"
-                  >
-                    <Edit />
-                  </Button>
+              <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
+                <DrawerTrigger
+                  render={(
+                    <Button
+                      variant="outline"
+                      className="fixed bottom-6 left-1/2 z-1 -transform -translate-x-1/2"
+                      size="icon"
+                    />
+                  )}
+                >
+                  <Edit />
                 </DrawerTrigger>
                 <DrawerContent className="h-160">
                   <CollaborationControls onOpenSortDialog={handleOpenSortDialog} />

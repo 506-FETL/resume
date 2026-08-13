@@ -269,8 +269,8 @@ function AdvancedTools() {
           isMobile
             ? (
                 <DrawerFooter className="px-4 py-3 shrink-0 border-t bg-muted/30 md:flex md:flex-row md:gap-2 md:justify-end">
-                  <DrawerClose asChild>
-                    <Button variant="outline">取消</Button>
+                  <DrawerClose render={<Button variant="outline" />}>
+                    取消
                   </DrawerClose>
                   <Button onClick={handleRefreshContext} disabled={!activeTool || loadingContext}>
                     刷新数据

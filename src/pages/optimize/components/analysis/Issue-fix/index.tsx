@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react'
+import type { ReactElement } from 'react'
 import type { Severity } from '@/pages/optimize/types'
 import { Wand2 } from 'lucide-react'
 import { useRef, useState } from 'react'
@@ -18,11 +18,12 @@ import { startConfetti } from '@/utils'
 import Content from './content'
 
 interface IssueFixProps {
+  children: ReactElement
   id: string
   severity: Severity
 }
 
-function IssueFix({ id, severity, children }: PropsWithChildren<IssueFixProps>) {
+function IssueFix({ id, severity, children }: IssueFixProps) {
   const config = severityConfig[severity]
   const [open, setOpen] = useState(false)
   const [isFixing, setIsFixing] = useState(false)
@@ -122,10 +123,8 @@ function IssueFix({ id, severity, children }: PropsWithChildren<IssueFixProps>) 
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        {children}
-      </DrawerTrigger>
+    <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
+      <DrawerTrigger render={children} />
       <DrawerContent className="flex flex-col h-[85vh]">
         <DrawerHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
           <DrawerTitle className="flex items-center gap-2 text-base">
@@ -141,8 +140,8 @@ function IssueFix({ id, severity, children }: PropsWithChildren<IssueFixProps>) 
         <Content id={id} severity={severity} />
 
         <DrawerFooter className="px-4 py-3 shrink-0 border-t bg-muted/30 md:flex md:flex-row md:gap-2 md:justify-end">
-          <DrawerClose asChild>
-            <Button variant="outline">取消</Button>
+          <DrawerClose render={<Button variant="outline" />}>
+            取消
           </DrawerClose>
           <Button ref={triger} onClick={handleConfirm} disabled={isFixing || allFixed}>
             {allFixed ? '已修复' : '确认'}

@@ -1,6 +1,6 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import { History } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -18,8 +18,6 @@ interface HistoryDetailPanelProps {
   state: HistoryDetailPanelState
 }
 
-const DRAWER_EXIT_DURATION = 220
-
 export default function HistoryDetailPanel({
   state,
 }: HistoryDetailPanelProps) {
@@ -28,14 +26,8 @@ export default function HistoryDetailPanel({
   const [mobileOpen, setMobileOpen] = useState(false)
   const [renderedEntry, setRenderedEntry] = useState<typeof state.selectedEntry>(null)
   const [renderedVersion, setRenderedVersion] = useState(state.selectedVersion)
-  const closeTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (closeTimerRef.current) {
-      window.clearTimeout(closeTimerRef.current)
-      closeTimerRef.current = null
-    }
-
     if (state.selectedEntry !== null) {
       setRenderedEntry(state.selectedEntry)
       setRenderedVersion(state.selectedVersion)
@@ -45,21 +37,8 @@ export default function HistoryDetailPanel({
 
     if (renderedEntry !== null) {
       setMobileOpen(false)
-      closeTimerRef.current = window.setTimeout(() => {
-        setRenderedEntry(null)
-        setRenderedVersion(null)
-        closeTimerRef.current = null
-      }, DRAWER_EXIT_DURATION)
     }
   }, [renderedEntry, state.selectedEntry, state.selectedVersion])
-
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        window.clearTimeout(closeTimerRef.current)
-      }
-    }
-  }, [])
 
   const renderedState = useMemo(() => {
     if (state.selectedEntry !== null) {
@@ -92,17 +71,16 @@ export default function HistoryDetailPanel({
 
   const handleMobileClose = () => {
     setMobileOpen(false)
+  }
 
-    if (closeTimerRef.current) {
-      window.clearTimeout(closeTimerRef.current)
+  const handleMobileOpenChangeComplete = (open: boolean) => {
+    if (open) {
+      return
     }
 
-    closeTimerRef.current = window.setTimeout(() => {
-      closeTimerRef.current = null
-      state.requestCloseDetail()
-      setRenderedEntry(null)
-      setRenderedVersion(null)
-    }, DRAWER_EXIT_DURATION)
+    state.requestCloseDetail()
+    setRenderedEntry(null)
+    setRenderedVersion(null)
   }
 
   if (isMobile) {
@@ -110,13 +88,15 @@ export default function HistoryDetailPanel({
       <>
         <Drawer
           open={mobileOpen}
+          showSwipeHandle
+          onOpenChangeComplete={handleMobileOpenChangeComplete}
           onOpenChange={(open) => {
             if (!open) {
               handleMobileClose()
             }
           }}
         >
-          <DrawerContent className="flex h-[92dvh] max-h-[92dvh] flex-col overflow-hidden rounded-t-[28px] p-0">
+          <DrawerContent className="flex h-[92dvh] max-h-[92dvh] flex-col overflow-hidden p-0">
             <DrawerHeader className="sr-only">
               <DrawerTitle>{title}</DrawerTitle>
               <DrawerDescription>{description}</DrawerDescription>
@@ -126,8 +106,8 @@ export default function HistoryDetailPanel({
             </div>
             <Separator />
             <DrawerFooter className="shrink-0 bg-background/95 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 backdrop-blur supports-backdrop-filter:bg-background/80">
-              <DrawerClose asChild>
-                <Button variant="outline" onClick={handleMobileClose}>关闭</Button>
+              <DrawerClose render={<Button variant="outline" onClick={handleMobileClose} />}>
+                关闭
               </DrawerClose>
             </DrawerFooter>
           </DrawerContent>

@@ -355,8 +355,8 @@ export default function JobDrawer() {
   if (isMobile) {
     return (
       <>
-        <Drawer open={drawerOpen} onOpenChange={handleOpenChange}>
-          <DrawerContent className="flex h-[94dvh] max-h-[94dvh] flex-col overflow-hidden rounded-t-[28px] p-0">
+        <Drawer open={drawerOpen} onOpenChange={handleOpenChange} showSwipeHandle>
+          <DrawerContent className="flex h-[94dvh] max-h-[94dvh] flex-col overflow-hidden p-0">
             <DrawerHeader className="shrink-0 px-4 py-4 text-left">
               {headerContent}
               <DrawerTitle className="sr-only">{selectedJob.position}</DrawerTitle>
