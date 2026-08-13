@@ -7,7 +7,7 @@ import ErrorFallback from './components/ErrorBoundary'
 import '@fontsource-variable/arimo/wght.css'
 import '@fontsource-variable/noto-sans-sc/wght.css'
 import '@fontsource-variable/noto-serif-sc/wght.css'
-import 'devicon/devicon.min.css'
+import './styles/devicon.css'
 import './index.css'
 
 const app = createRoot(document.getElementById('root')!)

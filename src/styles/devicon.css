@@ -1,0 +1,238 @@
+/* Generated from devicon@2.17.0 (MIT); only includes icons used by CodeBlock. */
+
+@font-face {
+  font-family: 'devicon';
+  font-style: normal;
+  font-display: block;
+  font-weight: normal;
+  src: url('devicon/fonts/devicon.woff') format('woff');
+}
+
+[class^='devicon-'],
+[class*=' devicon-'] {
+  font-family: 'devicon' !important;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  line-height: 1;
+  speak: never;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.devicon-javascript-plain:before {
+  content: '\ea81';
+}
+
+.devicon-typescript-plain:before {
+  content: '\ec63';
+}
+
+.devicon-react-original:before {
+  content: '\ebbc';
+}
+
+.devicon-python-plain:before {
+  content: '\eb9c';
+}
+
+.devicon-java-plain:before {
+  content: '\ea7f';
+}
+
+.devicon-cplusplus-plain:before {
+  content: '\e99a';
+}
+
+.devicon-c-plain:before {
+  content: '\edae';
+}
+
+.devicon-csharp-plain:before {
+  content: '\e9a0';
+}
+
+.devicon-ruby-plain:before {
+  content: '\ebe3';
+}
+
+.devicon-go-original-wordmark:before {
+  content: '\ea3c';
+}
+
+.devicon-rust-original:before {
+  content: '\ebe6';
+}
+
+.devicon-php-plain:before {
+  content: '\eb68';
+}
+
+.devicon-swift-plain:before {
+  content: '\ec34';
+}
+
+.devicon-kotlin-plain:before {
+  content: '\eab5';
+}
+
+.devicon-html5-plain:before {
+  content: '\ea67';
+}
+
+.devicon-css3-plain:before {
+  content: '\e9a1';
+}
+
+.devicon-json-plain:before {
+  content: '\ea94';
+}
+
+.devicon-xml-plain:before {
+  content: '\ecb4';
+}
+
+.devicon-yaml-plain:before {
+  content: '\ecb5';
+}
+
+.devicon-markdown-original:before {
+  content: '\eadb';
+}
+
+.devicon-bash-plain:before {
+  content: '\ed55';
+}
+
+.devicon-mysql-plain:before {
+  content: '\eafd';
+}
+
+.devicon-docker-plain:before {
+  content: '\e9c3';
+}
+
+.devicon-vuejs-plain:before {
+  content: '\ec96';
+}
+
+.devicon-angularjs-plain:before {
+  content: '\ed54';
+}
+
+.devicon-svelte-plain:before {
+  content: '\ec30';
+}
+
+.devicon-nodejs-plain:before {
+  content: '\ed9e';
+}
+
+.devicon-javascript-plain.colored {
+  color: #f0db4f;
+}
+
+.devicon-typescript-plain.colored {
+  color: #007acc;
+}
+
+.devicon-react-original.colored {
+  color: #61dafb;
+}
+
+.devicon-python-plain.colored {
+  color: #ffd845;
+}
+
+.devicon-java-plain.colored {
+  color: #ea2d2e;
+}
+
+.devicon-cplusplus-plain.colored {
+  color: #004482;
+}
+
+.devicon-c-plain.colored {
+  color: #a9bacd;
+}
+
+.devicon-csharp-plain.colored {
+  color: #68217a;
+}
+
+.devicon-ruby-plain.colored {
+  color: #d91404;
+}
+
+.devicon-go-original-wordmark.colored {
+  color: #00acd7;
+}
+
+.devicon-rust-original.colored {
+  color: #000;
+}
+
+.devicon-php-plain.colored {
+  color: #777bb3;
+}
+
+.devicon-swift-plain.colored {
+  color: #f05138;
+}
+
+.devicon-kotlin-plain.colored {
+  color: #c711e1;
+}
+
+.devicon-html5-plain.colored {
+  color: #e54d26;
+}
+
+.devicon-css3-plain.colored {
+  color: #3d8fc6;
+}
+
+.devicon-json-plain.colored {
+  color: #505050;
+}
+
+.devicon-xml-plain.colored {
+  color: #005fad;
+}
+
+.devicon-yaml-plain.colored {
+  color: #cb171e;
+}
+
+.devicon-markdown-original.colored {
+  color: #000;
+}
+
+.devicon-bash-plain.colored {
+  color: #293138;
+}
+
+.devicon-mysql-plain.colored {
+  color: #00618a;
+}
+
+.devicon-docker-plain.colored {
+  color: #019bc6;
+}
+
+.devicon-vuejs-plain.colored {
+  color: #41b883;
+}
+
+.devicon-angularjs-plain.colored {
+  color: #c4473a;
+}
+
+.devicon-svelte-plain.colored {
+  color: #ff3e00;
+}
+
+.devicon-nodejs-plain.colored {
+  color: #5fa04e;
+}
