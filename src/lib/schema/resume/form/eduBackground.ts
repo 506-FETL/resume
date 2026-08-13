@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { resumeEntryIdSchema } from '../entry-id'
 
 const schoolName = z.string().trim().default('')
 export type SchoolName = z.infer<typeof schoolName>
@@ -16,6 +17,7 @@ const eduInfo = z.string().trim()
 export type EduInfo = z.infer<typeof eduInfo>
 
 const eduBackgroundItemSchema = z.object({
+  entryId: resumeEntryIdSchema,
   schoolName,
   professional,
   degree,
@@ -35,6 +37,7 @@ export type EduBackgroundFormType = z.infer<typeof eduBackgroundFormSchema>
 export const DEFAULT_EDU_BACKGROUND: EduBackgroundFormType = {
   items: [
     {
+      entryId: 'default_edu_background_1',
       schoolName: '',
       professional: '',
       degree: '不填',

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { honorsCertificatesFormSchema, PRESET_CERTIFICATES } from '@/lib/schema'
+import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { cn } from '@/lib/utils'
 import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
@@ -43,7 +44,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
       remove(existingIndex)
     }
     else {
-      append({ name: certificate } as any)
+      append({ entryId: createResumeEntryId(), name: certificate })
     }
   }
 
@@ -65,7 +66,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
       return
     }
 
-    append({ name: trimmedValue } as any)
+    append({ entryId: createResumeEntryId(), name: trimmedValue })
     setCustomCertificateInput('')
   }
 

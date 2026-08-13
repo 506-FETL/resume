@@ -1,6 +1,7 @@
 import type { StoreApi } from 'zustand'
 import type { ResumeState } from '../form'
 import { isOfflineResumeId, updateOfflineResume } from '@/lib/offline-resume-manager'
+import { hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { updateResumeConfig } from '@/lib/supabase/resume'
 import { getTimestamp } from '@/utils/date'
 import useCurrentResumeStore from '../current'
@@ -82,6 +83,7 @@ export function createSyncSlice(
           syncError: null,
           lastSyncTime: getTimestamp(),
           appearanceDirty: false,
+          entryIdMigrationReady: hasCompleteResumeEntryIds(resolvedDoc ?? state),
         })
       }
       catch (error) {

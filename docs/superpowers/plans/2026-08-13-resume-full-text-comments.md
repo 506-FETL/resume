@@ -112,12 +112,19 @@
 - 修改：`src/lib/schema/resume/form/skillSpecialty.ts`
 - 修改：`src/lib/schema/resume/normalize.ts`
 - 修改：`src/store/resume/slices/document.ts`
+- 修改：`src/store/resume/slices/sync.ts`
+- 修改：`src/lib/automerge/document/sync.ts`
+- 修改：`src/lib/template/fixtures/demo-resume.ts`
+- 修改：`src/lib/ai/tools/resume.ts`
+- 修改：`src/pages/optimize/utils.ts`
+- 修改：`src/pages/optimize/components/editors/skill-list-editor/index.tsx`
+- 修改：`src/pages/optimize/components/advanced-tools/formatter/utils.ts`
 - 修改：`src/pages/resume/editor/components/forms/hooks/use-resume-field-form.ts`
 - 修改：`src/pages/resume/editor/components/forms/skill-specialty/index.tsx`
 - 修改：`src/pages/resume/editor/components/forms/honors-certificates/index.tsx`
 - 修改：`src/pages/resume/editor/components/forms/hobbies/index.tsx`
 
-- [ ] **步骤 1：定义不会与 React Hook Form 冲突的 `entryId` 契约**
+- [x] **步骤 1：定义不会与 React Hook Form 冲突的 `entryId` 契约**
 
 先在不依赖 React、DOM、Zod 或 `Deno` 全局的 `resume-comment-core.ts` 实现 `stableStringify`、同步 FNV-1a 和 `createLegacyResumeEntryId`；`entry-id.ts` 只增加 Zod schema、随机 ID，并重导出共用 legacy 函数：
 
@@ -138,11 +145,11 @@ export function createLegacyResumeEntryId(input: {
 
 旧快照 ID 以 section、collection、index 和稳定 JSON 的两路 FNV-1a 32-bit 摘要构造 `legacy_<16位十六进制>`；该函数保持同步，使现有同步归一化链路无需改为 Promise。相同旧快照重复归一化必须得到相同值。不得只使用内容 hash，因为两个内容相同的并列条目仍需不同 ID。Edge Function 后续必须直接导入这一实现，不能复制算法。
 
-- [ ] **步骤 2：把 `entryId` 加入全部重复条目 schema 与默认值**
+- [x] **步骤 2：把 `entryId` 加入全部重复条目 schema 与默认值**
 
 `createExperienceSchema` 在 `z.object(fields)` 外统一合并 `entryId`；五类经历的 item 类型改为从完整 form schema 推导，教育、爱好、证书和技能项显式增加 `entryId`。五类经历与教育的默认首项分别使用固定且互不重复的 `default_<section>_1`，避免模块导入时产生随机数据。
 
-- [ ] **步骤 3：归一化旧快照并保持已有 ID**
+- [x] **步骤 3：归一化旧快照并保持已有 ID**
 
 在 `normalizeResumeFormData` 合并默认值后调用 `ensureResumeEntryIds`，覆盖：
 
@@ -161,13 +168,13 @@ const COLLECTIONS = [
 
 已有合法且在同一 collection 内唯一的 `entryId` 原样保留；缺失、空值或重复 ID 按 index 确定性修复。移动、远端同步、历史快照加载和分享快照加载都不能重新生成。
 
-- [ ] **步骤 4：让所有新增入口分配随机 ID**
+- [x] **步骤 4：让所有新增入口分配随机 ID**
 
-`useResumeFieldForm.onAddItem()` 改为 append 克隆对象并写入新的 `entryId`。技能、证书和爱好的预设添加与手输添加也显式调用 `createResumeEntryId()`；远端 `append` 不改写对方已经携带的 ID。
+`useResumeFieldForm.onAddItem()` 改为 append 克隆对象并写入新的 `entryId`。技能、证书和爱好的预设添加、手输添加以及优化页技能编辑器也显式调用 `createResumeEntryId()`；远端 `append` 不改写对方已经携带的 ID。模板演示快照使用固定 demo ID。AI 优化仍按既有协议输出不含内部 ID 的技能数组，应用建议、助手工具写入和替换快照时先由领域归一化补齐 ID，再执行严格 schema 校验，不能放宽 schema 或要求模型生成内部 ID。
 
-- [ ] **步骤 5：在线加载时一次性持久化 legacy ID**
+- [x] **步骤 5：在线加载时一次性持久化 legacy ID**
 
-`entry-id.ts` 增加 `collectMissingResumeEntryIdPatches(source, normalized)`。`document.ts` 初始化 Automerge 后若存在 patch，先用一次 `manager.change` 只写各数组项的 `entryId`，再走现有 `syncToSupabase()` 同时保存 Automerge 与 `resume_config`；加载 Promise 等迁移保存完成后才允许评论 bootstrap。迁移失败按现有同步错误处理，评论入口保持禁用，不能用只存在内存里的 ID 建 working scope。离线加载只做内存归一化，不创建评论 scope；以后转在线时由在线加载执行同一迁移。
+`entry-id.ts` 增加 `collectMissingResumeEntryIdPatches(source, normalized)`。`document.ts` 初始化 Automerge 后若存在 patch，先用一次 `manager.change` 只写各数组项的 `entryId`，再走现有 `syncToSupabase()` 同时保存 Automerge 与 `resume_config`；`DocumentSlice` 用 `entryIdMigrationReady` 暴露评论前置状态。加载 Promise 等迁移保存完成后才允许评论 bootstrap。迁移失败按现有同步错误处理，评论入口保持禁用，不能用只存在内存里的 ID 建 working scope；`sync.ts` 在后续成功保存且当前文档 ID 完整时把该状态恢复为 true。离线加载只做内存归一化，不创建评论 scope；以后转在线时由在线加载执行同一迁移。
 
 - [ ] **步骤 6：验证旧数据和表单行为**
 
@@ -175,17 +182,19 @@ const COLLECTIONS = [
 
 ```bash
 pnpm exec tsc --noEmit --pretty false
-pnpm exec eslint src/lib/schema/resume/entry-id.ts src/lib/schema/resume/form/shared.ts src/lib/schema/resume/form/eduBackground.ts src/lib/schema/resume/form/workExperience.ts src/lib/schema/resume/form/internshipExperience.ts src/lib/schema/resume/form/campusExperience.ts src/lib/schema/resume/form/projectExperience.ts src/lib/schema/resume/form/hobbies.ts src/lib/schema/resume/form/honorsCertificates.ts src/lib/schema/resume/form/skillSpecialty.ts src/lib/schema/resume/normalize.ts src/store/resume/slices/document.ts src/pages/resume/editor/components/forms/hooks/use-resume-field-form.ts src/pages/resume/editor/components/forms/skill-specialty/index.tsx src/pages/resume/editor/components/forms/honors-certificates/index.tsx src/pages/resume/editor/components/forms/hobbies/index.tsx
-deno check supabase/functions/shared/resume-comment-core.ts
+pnpm exec eslint src/lib/schema/resume/entry-id.ts src/lib/schema/resume/form/shared.ts src/lib/schema/resume/form/eduBackground.ts src/lib/schema/resume/form/workExperience.ts src/lib/schema/resume/form/internshipExperience.ts src/lib/schema/resume/form/campusExperience.ts src/lib/schema/resume/form/projectExperience.ts src/lib/schema/resume/form/hobbies.ts src/lib/schema/resume/form/honorsCertificates.ts src/lib/schema/resume/form/skillSpecialty.ts src/lib/schema/resume/normalize.ts src/store/resume/slices/document.ts src/store/resume/slices/sync.ts src/lib/automerge/document/sync.ts src/lib/template/fixtures/demo-resume.ts src/lib/ai/tools/resume.ts src/pages/optimize/utils.ts src/pages/optimize/components/editors/skill-list-editor/index.tsx src/pages/optimize/components/advanced-tools/formatter/utils.ts src/pages/resume/editor/components/forms/hooks/use-resume-field-form.ts src/pages/resume/editor/components/forms/skill-specialty/index.tsx src/pages/resume/editor/components/forms/honors-certificates/index.tsx src/pages/resume/editor/components/forms/hobbies/index.tsx
+if command -v deno >/dev/null 2>&1; then deno check supabase/functions/shared/resume-comment-core.ts; else node --experimental-strip-types -e "import('./supabase/functions/shared/resume-comment-core.ts')"; fi
 git diff --check
 ```
 
 手工确认：同一旧快照加载两次 ID 相同；重复旧 ID 被修复；在线首次加载后 Automerge 与 `resume_config` 都包含 ID；迁移保存失败时评论禁用；新增两个同内容条目 ID 不同；拖拽排序后 ID 跟随条目；保存历史和生成分享快照均包含 `entryId`。
 
-- [ ] **步骤 7：提交稳定条目 ID**
+验证状态（2026-08-13）：纯逻辑断言、TypeScript、定向 ESLint、生产构建和离线浏览器新增条目回归已通过；临时离线简历已删除。由于浏览器没有登录态，在线首次迁移双写、迁移失败禁用、历史/分享快照和真实拖拽仍保留为后续集成验收项，因此本步骤暂不勾选。
+
+- [x] **步骤 7：提交稳定条目 ID**
 
 ```bash
-git add supabase/functions/shared/resume-comment-core.ts src/lib/schema/resume/entry-id.ts src/lib/schema/resume/form/shared.ts src/lib/schema/resume/form/eduBackground.ts src/lib/schema/resume/form/workExperience.ts src/lib/schema/resume/form/internshipExperience.ts src/lib/schema/resume/form/campusExperience.ts src/lib/schema/resume/form/projectExperience.ts src/lib/schema/resume/form/hobbies.ts src/lib/schema/resume/form/honorsCertificates.ts src/lib/schema/resume/form/skillSpecialty.ts src/lib/schema/resume/normalize.ts src/store/resume/slices/document.ts src/pages/resume/editor/components/forms/hooks/use-resume-field-form.ts src/pages/resume/editor/components/forms/skill-specialty/index.tsx src/pages/resume/editor/components/forms/honors-certificates/index.tsx src/pages/resume/editor/components/forms/hobbies/index.tsx
+git add docs/superpowers/plans/2026-08-13-resume-full-text-comments.md supabase/functions/shared/resume-comment-core.ts src/lib/schema/resume/entry-id.ts src/lib/schema/resume/form/shared.ts src/lib/schema/resume/form/eduBackground.ts src/lib/schema/resume/form/workExperience.ts src/lib/schema/resume/form/internshipExperience.ts src/lib/schema/resume/form/campusExperience.ts src/lib/schema/resume/form/projectExperience.ts src/lib/schema/resume/form/hobbies.ts src/lib/schema/resume/form/honorsCertificates.ts src/lib/schema/resume/form/skillSpecialty.ts src/lib/schema/resume/normalize.ts src/store/resume/slices/document.ts src/store/resume/slices/sync.ts src/lib/automerge/document/sync.ts src/lib/template/fixtures/demo-resume.ts src/lib/ai/tools/resume.ts src/pages/optimize/utils.ts src/pages/optimize/components/editors/skill-list-editor/index.tsx src/pages/optimize/components/advanced-tools/formatter/utils.ts src/pages/resume/editor/components/forms/hooks/use-resume-field-form.ts src/pages/resume/editor/components/forms/skill-specialty/index.tsx src/pages/resume/editor/components/forms/honors-certificates/index.tsx src/pages/resume/editor/components/forms/hobbies/index.tsx
 git diff --cached --name-status
 git commit -m "feat(resume): 添加稳定条目业务标识"
 ```

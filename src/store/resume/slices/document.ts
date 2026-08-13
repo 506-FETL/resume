@@ -6,6 +6,7 @@ import type { AutomergeResumeDocument } from '@/lib/automerge'
 import dayjs from 'dayjs'
 import { DocumentManager } from '@/lib/automerge'
 import { getOfflineResumeById, isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches, hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { getTimestamp } from '@/utils/date'
 import { hasPersistedAppearance, mapSnapshotToState, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '../helpers'
@@ -21,12 +22,13 @@ export interface DocumentSlice {
   cloudAppearanceStatus: ResumeLoadResult['cloudAppearanceStatus']
   docHasPersistedAppearance: boolean
   appearanceDirty: boolean
+  entryIdMigrationReady: boolean
 
   loadResumeData: (resumeId: string, options?: { documentUrl?: string }) => Promise<ResumeLoadResult>
   cleanup: () => void
 }
 
-export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty'> = {
+export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady'> = {
   mode: null,
   currentResumeId: null,
   docManager: null,
@@ -36,6 +38,7 @@ export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 
   cloudAppearanceStatus: 'not_applicable',
   docHasPersistedAppearance: false,
   appearanceDirty: false,
+  entryIdMigrationReady: false,
 }
 
 export function createDocumentSlice(
@@ -65,6 +68,7 @@ export function createDocumentSlice(
         currentResumeId: resumeId,
         mode: isOfflineResumeId(resumeId) ? 'offline' : 'online',
         isInitialized: false,
+        entryIdMigrationReady: false,
       })
 
       if (isOfflineResumeId(resumeId)) {
@@ -87,6 +91,7 @@ export function createDocumentSlice(
           cloudAppearanceStatus: 'not_applicable',
           docHasPersistedAppearance: hasPersistedAppearance(data),
           appearanceDirty: false,
+          entryIdMigrationReady: false,
         })
         return {
           snapshot,
@@ -106,8 +111,18 @@ export function createDocumentSlice(
           sharedDocumentUrl: options?.documentUrl,
         })
         const handle = await manager.initialize()
+        const sourceDoc = handle.doc()
+        let docSnapshot = mapSourceToPersistedSnapshot(sourceDoc)
+        const entryIdPatches = collectMissingResumeEntryIdPatches(sourceDoc, docSnapshot)
+
+        if (entryIdPatches.length > 0) {
+          manager.change((doc) => {
+            applyResumeEntryIdPatches(doc, entryIdPatches)
+          })
+          docSnapshot = mapSourceToPersistedSnapshot(handle.doc())
+        }
+
         const doc = handle.doc()
-        const docSnapshot = mapSourceToPersistedSnapshot(doc)
         const cloudAppearanceResult = await getCloudAppearanceSource(resumeId)
         const cloudHasPersistedAppearance = cloudAppearanceResult.status === 'present'
         const docHasPersistedAppearance = hasPersistedAppearance(doc)
@@ -123,6 +138,7 @@ export function createDocumentSlice(
             ...prev,
             ...mapSnapshotToState(mapSourceToPersistedSnapshot(doc)),
             isInitialized: true,
+            entryIdMigrationReady: prev.entryIdMigrationReady && hasCompleteResumeEntryIds(doc),
           }))
         }
 
@@ -163,7 +179,13 @@ export function createDocumentSlice(
           cloudAppearanceStatus: cloudAppearanceResult.status,
           docHasPersistedAppearance,
           appearanceDirty: false,
+          entryIdMigrationReady: entryIdPatches.length === 0 && hasCompleteResumeEntryIds(doc),
         })
+
+        if (entryIdPatches.length > 0) {
+          await get().syncToSupabase()
+        }
+
         return {
           snapshot,
           hasPersistedAppearance: cloudHasPersistedAppearance || docHasPersistedAppearance,
@@ -177,6 +199,7 @@ export function createDocumentSlice(
           syncError: error instanceof Error ? error.message : '初始化失败',
           mode: 'online',
           cloudAppearanceStatus: 'error',
+          entryIdMigrationReady: false,
         })
         throw error
       }
@@ -197,6 +220,7 @@ export function createDocumentSlice(
         cloudAppearanceStatus: 'not_applicable',
         docHasPersistedAppearance: false,
         appearanceDirty: false,
+        entryIdMigrationReady: false,
       })
     },
   }

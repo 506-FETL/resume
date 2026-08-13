@@ -52,6 +52,7 @@ export const demoResumeData: TemplateResumeDataInput = {
     ...DEFAULT_EDU_BACKGROUND,
     items: [
       {
+        entryId: 'demo_edu_background_1',
         schoolName: '华东理工大学',
         professional: '数字媒体设计',
         degree: '本科',
@@ -64,12 +65,14 @@ export const demoResumeData: TemplateResumeDataInput = {
     ...DEFAULT_WORK_EXPERIENCE,
     items: [
       {
+        entryId: 'demo_work_experience_1',
         companyName: '半径科技',
         position: '产品设计师',
         workDuration: ['2022-03', '至今'],
         workInfo: '<ul><li>负责招聘与人才协同产品的体验设计，主导信息架构重构和关键流程优化。</li><li>牵头搭建模板系统与流程看板的视觉规范，推动核心转化率提升。</li><li>与前端和后端协作推进复杂配置型界面落地，沉淀可复用组件资产。</li></ul>',
       },
       {
+        entryId: 'demo_work_experience_2',
         companyName: '光栅互动',
         position: '高级 UI 设计师',
         workDuration: ['2020-07', '2022-02'],
@@ -81,6 +84,7 @@ export const demoResumeData: TemplateResumeDataInput = {
     ...DEFAULT_INTERNSHIP_EXPERIENCE,
     items: [
       {
+        entryId: 'demo_internship_experience_1',
         companyName: '像素工场',
         position: '体验设计实习生',
         internshipDuration: ['2021-07', '2021-12'],
@@ -92,6 +96,7 @@ export const demoResumeData: TemplateResumeDataInput = {
     ...DEFAULT_CAMPUS_EXPERIENCE,
     items: [
       {
+        entryId: 'demo_campus_experience_1',
         experienceName: '设计学院学生会',
         role: '视觉负责人',
         duration: ['2018-09', '2020-06'],
@@ -103,12 +108,14 @@ export const demoResumeData: TemplateResumeDataInput = {
     ...DEFAULT_PROJECT_EXPERIENCE,
     items: [
       {
+        entryId: 'demo_project_experience_1',
         projectName: '求职看板与简历工作台',
         participantRole: '产品设计 / 前端协作',
         projectDuration: ['2024-05', '2024-11'],
         projectInfo: '<ul><li>负责模板系统、求职流程看板与 AI 辅助优化模块的交互方案设计。</li><li>设计模板 manifest、运行时渲染链路和可视化编辑器结构。</li></ul>',
       },
       {
+        entryId: 'demo_project_experience_2',
         projectName: '企业招聘官网改版',
         participantRole: '体验设计负责人',
         projectDuration: ['2023-02', '2023-08'],
@@ -120,18 +127,18 @@ export const demoResumeData: TemplateResumeDataInput = {
     ...DEFAULT_SKILL_SPECIALTY,
     description: '熟悉复杂信息界面设计与组件化协作。',
     skills: [
-      { label: 'Figma', proficiencyLevel: '精通', displayType: 'percentage' },
-      { label: '设计系统', proficiencyLevel: '擅长', displayType: 'percentage' },
-      { label: '前端协作', proficiencyLevel: '熟练', displayType: 'percentage' },
+      { entryId: 'demo_skill_1', label: 'Figma', proficiencyLevel: '精通', displayType: 'percentage' },
+      { entryId: 'demo_skill_2', label: '设计系统', proficiencyLevel: '擅长', displayType: 'percentage' },
+      { entryId: 'demo_skill_3', label: '前端协作', proficiencyLevel: '熟练', displayType: 'percentage' },
     ],
   },
   honors_certificates: {
     ...DEFAULT_HONORS_CERTIFICATES,
     description: '连续两年获得学院奖学金，并持有常用职业技能证书。',
     certificates: [
-      { name: '英语六级' },
-      { name: '计算机二级' },
-      { name: '学院一等奖学金' },
+      { entryId: 'demo_certificate_1', name: '英语六级' },
+      { entryId: 'demo_certificate_2', name: '计算机二级' },
+      { entryId: 'demo_certificate_3', name: '学院一等奖学金' },
     ],
   },
   self_evaluation: {
@@ -142,9 +149,9 @@ export const demoResumeData: TemplateResumeDataInput = {
     ...DEFAULT_HOBBIES,
     description: '关注展览与城市观察，习惯通过摄影和写作积累设计灵感。',
     hobbies: [
-      { name: '摄影' },
-      { name: '旅行' },
-      { name: '跑步' },
+      { entryId: 'demo_hobby_1', name: '摄影' },
+      { entryId: 'demo_hobby_2', name: '旅行' },
+      { entryId: 'demo_hobby_3', name: '跑步' },
     ],
   },
   order: DEFAULT_ORDER,
