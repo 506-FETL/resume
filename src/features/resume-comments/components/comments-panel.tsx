@@ -12,9 +12,9 @@ import {
   DrawerTitle,
   DrawerVirtualKeyboardProvider,
 } from '@/components/ui/drawer'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { useResumeCommentContext, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
+import { useCommentMobileLayout } from '../hooks/use-comment-mobile-layout.ts'
 import { CommentComposer } from './comment-composer.tsx'
 import { ThreadDetail } from './thread-detail.tsx'
 import { filterCommentThreads, ThreadList } from './thread-list.tsx'
@@ -168,7 +168,7 @@ export function CommentsPanel({
   creating: boolean
   onCancelCreating: () => void
 }) {
-  const isMobile = useIsMobile()
+  const isMobile = useCommentMobileLayout()
   const beginRelink = useResumeCommentStore(state => state.beginRelink)
   const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen)
@@ -191,6 +191,7 @@ export function CommentsPanel({
     <DrawerContent
       data-resume-comment-ui
       aria-label="简历评论"
+      overlayClassName="supports-backdrop-filter:backdrop-blur-none"
       className={isMobile
         ? 'max-h-[92dvh] min-h-[min(22rem,70dvh)] rounded-b-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] [--drawer-content-height:auto] [--drawer-content-max-height:92dvh] [--drawer-inset:0px]'
         : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}

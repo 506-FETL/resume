@@ -24,7 +24,7 @@ export function CommentBookmark({
       animate={{ opacity: 1, x: 0 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 10 }}
       transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.contentDuration, ease: COMMENT_MOTION.ease }}
-      className={cn('fixed right-0 top-[max(5rem,calc(env(safe-area-inset-top)+4rem))] z-30', className)}
+      className={cn('fixed right-0 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-30', className)}
     >
       <Tooltip>
         <TooltipTrigger asChild>
@@ -33,12 +33,12 @@ export function CommentBookmark({
             size="icon"
             disabled={disabled}
             aria-label="展开评论"
-            className="relative h-14 w-12 rounded-r-none rounded-l-2xl border-r-0 bg-background/95 shadow-[0_6px_20px_rgb(0_0_0/0.12)] backdrop-blur hover:w-14 hover:bg-accent"
+            className="relative h-10 w-9 rounded-r-none rounded-l-xl border-r-0 bg-background shadow-[0_3px_12px_rgb(0_0_0/0.09)] transition-[width,background-color,box-shadow] hover:w-10 hover:bg-accent hover:shadow-[0_4px_14px_rgb(0_0_0/0.12)]"
             onClick={onOpen}
           >
-            <MessageSquareText className="size-5" />
+            <MessageSquareText className="size-4" />
             {unread
-              ? <span className="absolute right-2 top-2 size-2 rounded-full bg-amber-500 ring-2 ring-background" aria-label="有新评论" />
+              ? <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-amber-500 ring-1 ring-background" aria-label="有新评论" />
               : null}
           </Button>
         </TooltipTrigger>

@@ -26,6 +26,7 @@ import CollaborationPanelProvider from './components/collaboration'
 import { CollaborationControls } from './components/collaboration/collaboration-controls'
 import { CollaborationDialog } from './components/collaboration/collaboration-dialog'
 import { CollaborationRuntime } from './components/collaboration/collaboration-runtime'
+import { CommentReviewBanner } from './components/comment-review-banner'
 import EditPanel from './components/edit-panel'
 import ResumePreview from './components/preview'
 import SidebarEditor from './components/sidebar'
@@ -220,7 +221,18 @@ function Editor() {
             // 只有渲染区内部滚动，右侧编辑侧栏固定。
             <div className="relative h-full min-h-0 w-full">
               <div className="absolute inset-0 flex min-h-0 overflow-hidden">
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  <AnimatePresence>
+                    {!commentReview.isWorking
+                      ? (
+                          <CommentReviewBanner
+                            sourceLabel={commentReview.sourceLabel}
+                            switching={commentReview.switching}
+                            onReturn={() => handleCommentSourceChange('working').catch(() => undefined)}
+                          />
+                        )
+                      : null}
+                  </AnimatePresence>
                   <ResumePreview
                     resumeRef={documentRef}
                     sourceRef={sourceRef}
@@ -302,7 +314,18 @@ function Editor() {
                   </DrawerContent>
                 </Drawer>
               )}
-              <div className="flex flex-col md:flex-row min-h-screen overflow-auto">
+              <div className="relative flex min-h-screen flex-col overflow-auto md:flex-row">
+                <AnimatePresence>
+                  {!commentReview.isWorking
+                    ? (
+                        <CommentReviewBanner
+                          sourceLabel={commentReview.sourceLabel}
+                          switching={commentReview.switching}
+                          onReturn={() => handleCommentSourceChange('working').catch(() => undefined)}
+                        />
+                      )
+                    : null}
+                </AnimatePresence>
                 <ResumePreview
                   resumeRef={documentRef}
                   sourceRef={sourceRef}

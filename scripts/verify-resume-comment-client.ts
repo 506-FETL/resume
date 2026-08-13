@@ -202,6 +202,26 @@ const commentsPanelSource = readFileSync(
   new URL('../src/features/resume-comments/components/comments-panel.tsx', import.meta.url),
   'utf8',
 )
+const commentMobileLayoutSource = readFileSync(
+  new URL('../src/features/resume-comments/hooks/use-comment-mobile-layout.ts', import.meta.url),
+  'utf8',
+)
+const commentBookmarkSource = readFileSync(
+  new URL('../src/features/resume-comments/components/comment-bookmark.tsx', import.meta.url),
+  'utf8',
+)
+const drawerSource = readFileSync(
+  new URL('../src/components/ui/drawer.tsx', import.meta.url),
+  'utf8',
+)
+const editorSource = readFileSync(
+  new URL('../src/pages/resume/editor/index.tsx', import.meta.url),
+  'utf8',
+)
+const commentReviewBannerSource = readFileSync(
+  new URL('../src/pages/resume/editor/components/comment-review-banner/index.tsx', import.meta.url),
+  'utf8',
+)
 const threadListSource = readFileSync(
   new URL('../src/features/resume-comments/components/thread-list.tsx', import.meta.url),
   'utf8',
@@ -211,12 +231,35 @@ const commentClientSource = readFileSync(
   'utf8',
 )
 assert.equal(commentSurfaceSource.includes('useCommentReadReceipt'), false)
-assert.match(commentTreeSource, /depth < 1/u)
-assert.match(commentTreeSource, /depth >= 1/u)
+assert.match(commentSurfaceSource, /activeThreadId=\{open \? activeThreadId : null\}/u)
+assert.match(commentSurfaceSource, /if \(!open\)[\s\S]*?setHoveredThread\(threadId\)/u)
+assert.match(commentTreeSource, /depth < 2/u)
+assert.match(commentTreeSource, /depth >= 2/u)
+assert.match(commentTreeSource, /pl-7/u)
+assert.match(commentTreeSource, /-top-px left-0 h-\[calc\(1\.75rem\+1px\)\] w-7 rounded-bl-xl/u)
+assert.match(commentTreeSource, /-bottom-px left-0 top-\[calc\(1\.75rem-1px\)\]/u)
+assert.match(commentTreeSource, /<div className="ml-4 min-w-0">/u)
+assert.doesNotMatch(commentTreeSource, /depth > 0 \? 'ml-6'/u)
+assert.doesNotMatch(commentTreeSource, /depth > 0 \? 'ml-11'/u)
+assert.match(commentTreeSource, /const \[detailPath, setDetailPath\]/u)
+assert.match(commentTreeSource, /const \[navigationDirection, setNavigationDirection\]/u)
+assert.match(commentTreeSource, /setNavigationDirection\(-1\)/u)
+assert.match(commentTreeSource, /current\.slice\(0, -1\)/u)
 assert.match(
   commentsPanelSource,
   /<Drawer[\s\S]*?<DrawerVirtualKeyboardProvider>[\s\S]*?<\/DrawerVirtualKeyboardProvider>[\s\S]*?<\/Drawer>/u,
 )
+assert.match(commentsPanelSource, /useCommentMobileLayout/u)
+assert.match(commentsPanelSource, /swipeDirection="down"/u)
+assert.match(commentsPanelSource, /overlayClassName="supports-backdrop-filter:backdrop-blur-none"/u)
+assert.match(commentMobileLayoutSource, /\(hover: none\) and \(pointer: coarse\) and \(max-width: 1024px\)/u)
+assert.match(commentBookmarkSource, /h-10 w-9/u)
+assert.doesNotMatch(commentBookmarkSource, /h-14 w-12/u)
+assert.match(drawerSource, /overlayClassName\?: string/u)
+assert.match(editorSource, /<CommentReviewBanner/u)
+assert.match(commentReviewBannerSource, /历史版本只读，返回当前版本后可继续编辑/u)
+assert.match(commentReviewBannerSource, /flex shrink-0 justify-center/u)
+assert.doesNotMatch(commentReviewBannerSource, /absolute inset-x-0 top-3/u)
 assert.doesNotMatch(commentClientSource, /['"]x-request-id['"]\s*:/u)
 assert.match(threadListSource, /<\/button>[\s\S]*?<CommentStatusBar/u)
 assert.doesNotMatch(threadListSource, /<Button[\s\S]*?<CommentStatusBar/u)

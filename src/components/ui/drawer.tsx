@@ -100,8 +100,11 @@ function DrawerSwipeHandle({
 function DrawerContent({
   className,
   children,
+  overlayClassName,
   ...props
-}: DrawerPrimitive.Popup.Props) {
+}: DrawerPrimitive.Popup.Props & {
+  overlayClassName?: string
+}) {
   const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
   const swipeAxis =
     swipeDirection === "down" || swipeDirection === "up" ? "y" : "x"
@@ -109,7 +112,10 @@ function DrawerContent({
   return (
     <DrawerPortal data-slot="drawer-portal">
       {modal === true && (
-        <DrawerOverlay data-snap-points={hasSnapPoints ? "" : undefined} />
+        <DrawerOverlay
+          data-snap-points={hasSnapPoints ? "" : undefined}
+          className={overlayClassName}
+        />
       )}
       <DrawerPrimitive.Viewport
         data-slot="drawer-viewport"

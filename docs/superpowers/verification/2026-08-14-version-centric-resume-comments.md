@@ -56,6 +56,33 @@ pnpm verify:comment-service
 - 安全区、横屏、长评论树和深层“回复详情”的可滚动边界。
 - 弱网下匿名首次评论、失败回滚、重连后增量恢复。
 
+## 评论视觉精修增量验证
+
+本轮源码约束与静态检查已确认：
+
+- 评论面板使用领域专用媒体查询；小于 768px，或 1024px 内无 Hover 的粗指针设备统一使用底部 `swipeDirection="down"` Drawer，编辑页与分享页共用同一实现。
+- `DrawerContent` 仅为评论面板覆盖 Overlay 的 `backdrop-blur`，半透明遮罩仍保留，其他 Drawer 默认样式不变。
+- 评论书签收敛为约 36×40px、16px 图标和轻阴影。
+- 编辑页桌面与移动布局都在历史评论来源下显示持续可见的只读审阅条，并提供“返回当前版本”动作。
+- 评论树主视图最多展示三层，头像主干线和圆角支线使用随层级递增的坐标；第 3 层后代进入路径栈详情，返回只弹出一层。
+- 子回复轨道始终以当前内容盒内的头像中心为原点，避免嵌套层重复偏移；相邻线段在盒子边界重叠 1px，避免抗锯齿产生断缝。
+- 评论 Drawer 关闭时不再向高亮层传递 active/hovered ID，并忽略关闭态 Hover 写入，避免强高亮反弹。
+- 新增源码回归断言覆盖移动 Drawer、无模糊 Overlay、小书签、审阅条、三层树、路径栈与关闭态弱高亮。
+
+本轮执行并返回 0：
+
+```bash
+pnpm verify:comments
+pnpm verify:comment-client
+pnpm verify:comment-service
+pnpm exec tsc --noEmit
+pnpm exec eslint scripts/verify-resume-comment-client.ts src/features/resume-comments/components/comment-bookmark.tsx src/features/resume-comments/components/comment-surface.tsx src/features/resume-comments/components/comment-tree.tsx src/features/resume-comments/components/comments-panel.tsx src/features/resume-comments/hooks/use-comment-mobile-layout.ts src/pages/resume/editor/index.tsx src/pages/resume/editor/components/comment-review-banner/index.tsx
+pnpm build
+git diff --check
+```
+
+生产构建仍只有仓库既有的 chunk size 提示。上述结果证明领域逻辑、源码约束、类型与构建成立，不代替以下登录态交互验收：iOS/Android 首次开启的底部方向与高度、三层连接线实际视觉、逐层钻取与返回、历史版本切换时编辑面板恢复、关闭 Drawer 后强弱高亮状态。
+
 ## 环境限制
 
 - 当前环境未安装 Docker/Podman，因此未执行本地 `supabase db reset`；迁移会做 linked dry-run 与静态检查，但正式数据库应用仍需部署环境验证。

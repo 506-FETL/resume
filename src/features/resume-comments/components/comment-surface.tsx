@@ -80,6 +80,12 @@ export function CommentSurface({
     layoutRevision: `${layoutRevision ?? ''}:${scope?.documentRevision ?? 0}`,
   })
 
+  const handleHighlightHover = useCallback((threadId: string | null) => {
+    if (!open)
+      return
+    setHoveredThread(threadId)
+  }, [open, setHoveredThread])
+
   const openThread = useCallback((threadId: string) => {
     setPicker(null)
     setCreating(false)
@@ -168,10 +174,10 @@ export function CommentSurface({
       <HighlightOverlay
         rootRef={rootRef}
         geometry={geometry}
-        activeThreadId={activeThreadId}
-        hoveredThreadId={hoveredThreadId}
+        activeThreadId={open ? activeThreadId : null}
+        hoveredThreadId={open ? hoveredThreadId : null}
         hidden={highlightsHidden}
-        onHover={setHoveredThread}
+        onHover={handleHighlightHover}
         onPick={(threadIds, point) => {
           if (threadIds.length === 1)
             openThread(threadIds[0]!)

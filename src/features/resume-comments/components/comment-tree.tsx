@@ -2,7 +2,7 @@ import type { ResumeComment, ResumeCommentThread } from '../types.ts'
 import type { CommentUiPermissions } from './types.ts'
 import { ArrowLeft, LoaderCircle, MessageCircle, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -103,6 +103,7 @@ function CommentNode({
   actions,
   onReply,
   onOpenReplies,
+  isLast = true,
 }: {
   node: CommentTreeNode
   depth: number
@@ -111,6 +112,7 @@ function CommentNode({
   actions: ReturnType<typeof useCommentActions>
   onReply: (target: CommentReplyTarget) => void
   onOpenReplies: (commentId: string) => void
+  isLast?: boolean
 }) {
   const reduceMotion = useReducedMotion()
   const [editing, setEditing] = useState(false)
@@ -122,7 +124,9 @@ function CommentNode({
   const pending = useResumeCommentStore(state => Boolean(state.pendingEntities[editKey] || state.pendingEntities[deleteKey]))
   const error = useResumeCommentStore(state => state.mutationErrors[editKey] ?? state.mutationErrors[deleteKey])
   const image = comment.author.kind === 'user' ? comment.author.avatarUrl : null
-  const hiddenReplyCount = depth >= 1 ? countDescendants(node) : 0
+  const visibleChildren = depth < 2 ? node.children : []
+  const hiddenReplyCount = depth >= 2 ? countDescendants(node) : 0
+  const hasVisibleContinuation = visibleChildren.length > 0 || hiddenReplyCount > 0
 
   return (
     <motion.div
@@ -131,9 +135,22 @@ function CommentNode({
       animate={{ opacity: 1, y: 0 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, y: -4 }}
       transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
-      className={cn('relative min-w-0', depth > 0 && 'ml-4 border-l border-border/70 pl-3')}
+      className={cn('relative min-w-0', depth > 0 && 'pl-7')}
     >
-      <article className="group/comment flex min-w-0 gap-2.5 py-3">
+      {depth > 0
+        ? (
+            <>
+              <span aria-hidden className="pointer-events-none absolute -top-px left-0 h-[calc(1.75rem+1px)] w-7 rounded-bl-xl border-b border-l border-border/80" />
+              {!isLast
+                ? <span aria-hidden className="pointer-events-none absolute -bottom-px left-0 top-[calc(1.75rem-1px)] border-l border-border/80" />
+                : null}
+            </>
+          )
+        : null}
+      <article className="group/comment relative flex min-w-0 gap-2.5 py-3">
+        {hasVisibleContinuation
+          ? <span aria-hidden className="pointer-events-none absolute -bottom-px left-4 top-11 border-l border-border/80" />
+          : null}
         <Avatar className="size-8 shrink-0">
           {image ? <AvatarImage src={image} alt="" /> : null}
           <AvatarFallback>{comment.author.displayName.slice(0, 1)}</AvatarFallback>
@@ -209,33 +226,44 @@ function CommentNode({
           {error ? <p role="alert" className="mt-1 text-xs text-destructive">{error}</p> : null}
         </div>
       </article>
-      {depth < 1
-        ? node.children.map(child => (
-            <CommentNode
-              key={child.comment.id}
-              node={child}
-              depth={depth + 1}
-              thread={thread}
-              permissions={permissions}
-              actions={actions}
-              onReply={onReply}
-              onOpenReplies={onOpenReplies}
-            />
-          ))
+      {visibleChildren.length > 0
+        ? (
+            <div className="ml-4 min-w-0">
+              {visibleChildren.map((child, index) => (
+                <CommentNode
+                  key={child.comment.id}
+                  node={child}
+                  depth={depth + 1}
+                  thread={thread}
+                  permissions={permissions}
+                  actions={actions}
+                  onReply={onReply}
+                  onOpenReplies={onOpenReplies}
+                  isLast={index === visibleChildren.length - 1}
+                />
+              ))}
+            </div>
+          )
         : hiddenReplyCount > 0
           ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                className="mb-2 ml-10 h-8 rounded-lg text-xs"
-                onClick={() => onOpenReplies(comment.id)}
-              >
-                继续查看
-                {' '}
-                {hiddenReplyCount}
-                {' '}
-                条回复 →
-              </Button>
+              <div className="relative ml-4 min-w-0 pb-2 pl-7 pt-1">
+                <span aria-hidden className="pointer-events-none absolute -top-px left-0 h-[calc(1.25rem+1px)] w-7 rounded-bl-xl border-b border-l border-border/80" />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 max-w-full rounded-lg px-2.5 text-xs font-normal"
+                  onClick={() => onOpenReplies(comment.id)}
+                >
+                  <MessageCircle className="size-3.5" />
+                  <span className="truncate">
+                    继续查看
+                    {' '}
+                    {hiddenReplyCount}
+                    {' '}
+                    条回复
+                  </span>
+                </Button>
+              </div>
             )
           : null}
     </motion.div>
@@ -254,36 +282,71 @@ export function CommentTree({
   onReply: (target: CommentReplyTarget) => void
 }) {
   const actions = useCommentActions()
-  const [detailRootId, setDetailRootId] = useState<string | null>(null)
+  const reduceMotion = useReducedMotion()
+  const [detailPath, setDetailPath] = useState<string[]>([])
+  const [navigationDirection, setNavigationDirection] = useState<1 | -1>(1)
   const tree = useMemo(() => buildCommentTree(comments), [comments])
+  const detailRootId = detailPath.at(-1) ?? null
   const detailRoot = detailRootId ? tree.nodes.get(detailRootId) : null
   const roots = detailRoot ? [detailRoot] : tree.roots
 
+  useEffect(() => {
+    setDetailPath((current) => {
+      const next = current.filter(id => tree.nodes.has(id))
+      return next.length === current.length ? current : next
+    })
+  }, [tree.nodes])
+
+  const openReplyDetail = (commentId: string) => {
+    setNavigationDirection(1)
+    setDetailPath(current => [...current, commentId])
+  }
+
+  const backReplyDetail = () => {
+    setNavigationDirection(-1)
+    setDetailPath(current => current.slice(0, -1))
+  }
+
   return (
     <div className="min-w-0">
-      <AnimatePresence initial={false} mode="popLayout">
-        {detailRoot
-          ? (
-              <motion.div key={`detail:${detailRoot.comment.id}`} layout className="sticky top-0 z-10 -mx-1 flex items-center gap-2 border-b bg-background/95 px-1 py-2 backdrop-blur">
-                <Button size="icon-xs" variant="ghost" aria-label="返回上一级回复" onClick={() => setDetailRootId(null)}>
-                  <ArrowLeft />
-                </Button>
-                <span className="text-sm font-medium">回复详情</span>
-              </motion.div>
-            )
-          : null}
-        {roots.map(node => (
-          <CommentNode
-            key={node.comment.id}
-            node={node}
-            depth={0}
-            thread={thread}
-            permissions={permissions}
-            actions={actions}
-            onReply={onReply}
-            onOpenReplies={setDetailRootId}
-          />
-        ))}
+      <AnimatePresence initial={false} mode="wait" custom={navigationDirection}>
+        <motion.div
+          key={detailRootId ?? 'comment-tree-root'}
+          custom={navigationDirection}
+          variants={{
+            enter: (direction: number) => reduceMotion ? { opacity: 0 } : { opacity: 0, x: direction * 12 },
+            center: { opacity: 1, x: 0 },
+            exit: (direction: number) => reduceMotion ? { opacity: 0 } : { opacity: 0, x: direction * -12 },
+          }}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
+        >
+          {detailRoot
+            ? (
+                <div className="sticky top-0 z-10 -mx-1 flex items-center gap-2 border-b bg-background px-1 py-2">
+                  <Button size="icon-xs" variant="ghost" aria-label="返回上一级回复" onClick={backReplyDetail}>
+                    <ArrowLeft />
+                  </Button>
+                  <span className="text-sm font-medium">回复详情</span>
+                </div>
+              )
+            : null}
+          {roots.map((node, index) => (
+            <CommentNode
+              key={node.comment.id}
+              node={node}
+              depth={0}
+              thread={thread}
+              permissions={permissions}
+              actions={actions}
+              onReply={onReply}
+              onOpenReplies={openReplyDetail}
+              isLast={index === roots.length - 1}
+            />
+          ))}
+        </motion.div>
       </AnimatePresence>
     </div>
   )
