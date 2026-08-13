@@ -755,6 +755,7 @@ git commit -m "feat(comments): 建立评论客户端状态与实时补偿"
 
 - 创建：`src/features/resume-comments/hooks/use-comment-selection.ts`
 - 创建：`src/features/resume-comments/hooks/use-highlight-geometry.ts`
+- 创建：`src/features/resume-comments/hooks/use-comment-actions.ts`
 - 创建：`src/features/resume-comments/components/comment-surface.tsx`
 - 创建：`src/features/resume-comments/components/selection-action.tsx`
 - 创建：`src/features/resume-comments/components/highlight-overlay.tsx`
@@ -763,29 +764,32 @@ git commit -m "feat(comments): 建立评论客户端状态与实时补偿"
 - 创建：`src/features/resume-comments/components/thread-list.tsx`
 - 创建：`src/features/resume-comments/components/thread-detail.tsx`
 - 创建：`src/features/resume-comments/components/comment-composer.tsx`
+- 创建：`src/features/resume-comments/components/types.ts`
+- 修改：`src/components/resume/pagination/canonical-paged-document.tsx`
+- 修改：`src/features/resume-comments/const.ts`
 - 修改：`src/index.css`
 
-- [ ] **步骤 1：实现选区生命周期和非法提示**
+- [x] **步骤 1：实现选区生命周期和非法提示**
 
 桌面监听 `selectionchange`、pointerup 和 keyup；只解析 CommentProvider 宿主内的可见 Range。合法选区显示附近气泡；跨节点、跨 block、跨页时不创建 selection，并以短提示说明“请选择同一段落或字段内的文字”。Esc 先清气泡，再关闭线程详情。
 
-- [ ] **步骤 2：实现 Overlay 高亮和重叠选择**
+- [x] **步骤 2：实现 Overlay 高亮和重叠选择**
 
 每页独立绝对定位 Overlay，`pointer-events: none`；可点击命中层只覆盖几何矩形。未解决低透明暖黄，active 加强，resolved/detached 不画。相同或部分重叠矩形合并命中区域，点击后 ThreadPicker 展示引用、作者和最近活动。
 
-- [ ] **步骤 3：实现 400px 桌面 Drawer 内容**
+- [x] **步骤 3：实现 400px 桌面 Drawer 内容**
 
 `CommentsPanel` 接受 responsive presentation，不拥有页面级 Store。桌面宽度 400px；宽屏由宿主预留空间，窄桌面覆盖。顶部包含来源、未读、隐藏高亮；列表有未解决、已解决、失去锚点三个筛选。
 
-- [ ] **步骤 4：实现线程与一级回复**
+- [x] **步骤 4：实现线程与一级回复**
 
 root + replies 一层结构；作者菜单按权限显示编辑/删除；owner 可删除任意和整线程；root 作者/owner 可 resolve/reopen/relink。删除 root 且有回复时显示“原评论已删除”tombstone。
 
-- [ ] **步骤 5：实现纯文本 Composer**
+- [x] **步骤 5：实现纯文本 Composer**
 
 Textarea 支持换行、字素计数、2,000 上限和保留草稿。渲染正文时把安全 URL 切成 React `<a rel="noreferrer noopener">`；非法协议保持普通文字。未发送关闭不创建空线程，成功后才清选区和草稿。
 
-- [ ] **步骤 6：建立重算触发与打印双保险**
+- [x] **步骤 6：建立重算触发与打印双保险**
 
 字体 `document.fonts.ready`、ResizeObserver、分页完成、scale、窗口 resize、版本切换和 threads 变化时重算。CSS 增加：
 
@@ -809,7 +813,9 @@ git diff --check
 
 桌面 Chromium 验证：键盘选区、鼠标选区、同选区复用线程、部分重叠、隐藏高亮、筛选、编辑/删除/解决/重开、字体加载、resize、多页、scale < 1、打印预览。
 
-- [ ] **步骤 8：提交共享桌面评论层**
+验证记录（2026-08-14）：锚点/客户端脚本、类型检查、全评论目录 ESLint 和生产构建通过；高亮实现已按每个分页可见副本分别裁剪，并为打印 Overlay 增加统一隐藏属性。共享 Surface 尚未挂载到编辑器或分享路由，因此上述真实桌面交互矩阵留到任务 9/10 接入后执行，不能以本批静态通过代替。
+
+- [x] **步骤 8：提交共享桌面评论层**
 
 ```bash
 git add src/features/resume-comments/hooks/use-comment-selection.ts src/features/resume-comments/hooks/use-highlight-geometry.ts src/features/resume-comments/components/comment-surface.tsx src/features/resume-comments/components/selection-action.tsx src/features/resume-comments/components/highlight-overlay.tsx src/features/resume-comments/components/thread-picker.tsx src/features/resume-comments/components/comments-panel.tsx src/features/resume-comments/components/thread-list.tsx src/features/resume-comments/components/thread-detail.tsx src/features/resume-comments/components/comment-composer.tsx src/index.css

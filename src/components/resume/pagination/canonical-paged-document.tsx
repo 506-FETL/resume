@@ -201,6 +201,7 @@ export default function CanonicalPagedDocument({
                   <div
                     aria-hidden="true"
                     data-comment-overlay-root
+                    data-resume-comment-ui
                     className="pointer-events-none absolute inset-0"
                   />
                 )

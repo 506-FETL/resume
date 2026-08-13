@@ -54,6 +54,12 @@ body {
   position: relative;
 }
 
+@media print {
+  [data-resume-comment-ui] {
+    display: none !important;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
