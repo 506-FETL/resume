@@ -96,5 +96,9 @@ export interface ShareViewResult {
   releaseId?: string
   releaseNo?: number
   allowComments?: boolean
+  projectionReferenceDate?: string
+  commentScopeId?: string
+  commentAccessToken?: string
+  commentAccessExpiresAt?: string
   unavailable?: boolean
 }

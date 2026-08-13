@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { CommentAccessContext } from './api/client.ts'
 import type { ResumeCommentStoreState } from './store/types.ts'
-import { createContext, use, useEffect, useMemo, useState } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore } from 'zustand'
 import { attachStoredAnonymousCommentIdentity } from './api/anonymous-identity.ts'
 import { ResumeCommentClient } from './api/client.ts'
@@ -17,6 +17,7 @@ interface ResumeCommentContextValue {
   client: ResumeCommentClient
   store: ReturnType<typeof createResumeCommentStore>
   beforeWrite?: () => Promise<void>
+  invalidateAccess?: (reason: 'stale_release' | 'share_unavailable') => void
 }
 
 const ResumeCommentContext = createContext<ResumeCommentContextValue | null>(null)
@@ -34,6 +35,14 @@ export interface ResumeCommentProviderProps {
 function attachLegacyAnonymousCredential(client: ResumeCommentClient, access: CommentAccessContext) {
   if (access.kind === 'share')
     attachStoredAnonymousCommentIdentity(client, access.shareId)
+}
+
+function getAccessIdentityKey(access: CommentAccessContext) {
+  if (access.kind === 'owner')
+    return `owner:${'scopeId' in access ? access.scopeId : access.resumeId}`
+  if (access.kind === 'collaborator')
+    return `collaborator:${access.accessToken}`
+  return `share:${access.shareId}:${access.releaseId}:${access.accessToken}`
 }
 
 export function ResumeCommentProvider({
@@ -57,16 +66,29 @@ export function ResumeCommentProvider({
     attachLegacyAnonymousCredential(client, access)
   }, [access, client])
 
+  const handleAccessInvalidated = useCallback((reason: 'stale_release' | 'share_unavailable') => {
+    store.getState().setAccessState('unavailable', reason)
+    if (reason === 'stale_release')
+      store.getState().preserveDraftsForNextScope()
+    onAccessInvalidated?.(reason)
+  }, [onAccessInvalidated, store])
+
   useCommentRealtime({
+    accessIdentityKey: getAccessIdentityKey(access),
     client,
     store,
     enabled,
     refreshAccess,
-    onAccessInvalidated,
+    onAccessInvalidated: handleAccessInvalidated,
   })
   useCommentReadReceipt({ client, store, visible: enabled && commentsVisible })
 
-  const value = useMemo(() => ({ beforeWrite, client, store }), [beforeWrite, client, store])
+  const value = useMemo(() => ({
+    beforeWrite,
+    client,
+    invalidateAccess: handleAccessInvalidated,
+    store,
+  }), [beforeWrite, client, handleAccessInvalidated, store])
   return <ResumeCommentContext value={value}>{children}</ResumeCommentContext>
 }
 

@@ -367,11 +367,19 @@ export async function deleteResumeShare(shareId: string): Promise<void> {
 }
 
 /** 匿名读取分享内容（分享页调用；无需登录） */
-export async function fetchSharedResume(token: string, password?: string): Promise<ShareViewResult> {
+export async function fetchSharedResume(
+  token: string,
+  password?: string,
+  options: { refresh?: boolean } = {},
+): Promise<ShareViewResult> {
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, ...(password ? { password } : {}) }),
+    body: JSON.stringify({
+      token,
+      ...(password ? { password } : {}),
+      ...(options.refresh ? { refresh: true } : {}),
+    }),
   })
 
   const body = await res.json().catch(() => null) as {
@@ -384,6 +392,10 @@ export async function fetchSharedResume(token: string, password?: string): Promi
     release_id?: string
     release_no?: number
     allow_comments?: boolean
+    projection_reference_date?: string
+    comment_scope_id?: string
+    comment_access_token?: string
+    comment_access_expires_at?: string
   } | null
 
   if (!body)
@@ -411,5 +423,9 @@ export async function fetchSharedResume(token: string, password?: string): Promi
     releaseId: body.release_id,
     releaseNo: body.release_no,
     allowComments: body.allow_comments,
+    projectionReferenceDate: body.projection_reference_date,
+    commentScopeId: body.comment_scope_id,
+    commentAccessToken: body.comment_access_token,
+    commentAccessExpiresAt: body.comment_access_expires_at,
   }
 }

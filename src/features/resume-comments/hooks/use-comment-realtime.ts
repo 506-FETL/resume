@@ -16,6 +16,7 @@ interface UseCommentRealtimeOptions {
   enabled: boolean
   refreshAccess?: () => Promise<CommentAccessContext>
   onAccessInvalidated?: (reason: 'stale_release' | 'share_unavailable') => void
+  accessIdentityKey: string
 }
 
 function accessChangedRelease(previous: CommentAccessContext, next: CommentAccessContext) {
@@ -30,6 +31,7 @@ export function useCommentRealtime({
   enabled,
   refreshAccess,
   onAccessInvalidated,
+  accessIdentityKey,
 }: UseCommentRealtimeOptions) {
   useEffect(() => {
     if (!enabled)
@@ -145,7 +147,7 @@ export function useCommentRealtime({
       if (refreshTimer)
         window.clearInterval(refreshTimer)
     }
-  }, [client, enabled, onAccessInvalidated, refreshAccess, store])
+  }, [accessIdentityKey, client, enabled, onAccessInvalidated, refreshAccess, store])
 }
 
 export function useCommentReadReceipt({

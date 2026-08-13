@@ -89,6 +89,25 @@ store.getState().replaceScope({
 })
 assert.deepEqual(store.getState().draftsByThreadKey, {})
 
+store.getState().setDraft('new-thread', '重新发布后保留')
+store.getState().preserveDraftsForNextScope()
+store.getState().replaceScope({
+  scope: { ...firstScope, id: 'scope-3', kind: 'share_release' },
+  accessibleScopes: [],
+  threads: [],
+  eventSeq: 1,
+  lastReadEventSeq: 0,
+})
+assert.equal(store.getState().draftsByThreadKey['new-thread'], '重新发布后保留')
+store.getState().replaceScope({
+  scope: { ...firstScope, id: 'scope-4', kind: 'share_release' },
+  accessibleScopes: [],
+  threads: [],
+  eventSeq: 1,
+  lastReadEventSeq: 0,
+})
+assert.deepEqual(store.getState().draftsByThreadKey, {})
+
 store.getState().markReadLocally(7)
 store.getState().markReadLocally(3)
 assert.equal(store.getState().lastReadEventSeq, 7)

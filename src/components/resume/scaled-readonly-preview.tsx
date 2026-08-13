@@ -17,6 +17,7 @@ interface ScaledReadonlyPreviewProps {
   documentRef?: Ref<HTMLDivElement>
   sourceRef?: Ref<HTMLDivElement>
   onDocumentStateChange?: ResumeDocumentStateChange
+  projectionReferenceDate?: string
 }
 
 export default function ScaledReadonlyPreview({
@@ -27,6 +28,7 @@ export default function ScaledReadonlyPreview({
   documentRef,
   sourceRef,
   onDocumentStateChange,
+  projectionReferenceDate,
 }: ScaledReadonlyPreviewProps) {
   const [manifest, setManifest] = useState(() => getBuiltInTemplateManifest(data.type))
   const documentVersion = JSON.stringify([
@@ -34,6 +36,7 @@ export default function ScaledReadonlyPreview({
     manifest.id,
     manifest.version,
     appearance,
+    projectionReferenceDate,
   ])
 
   useEffect(() => {
@@ -85,6 +88,7 @@ export default function ScaledReadonlyPreview({
         data={data}
         manifest={manifest}
         appearance={appearance}
+        projectionReferenceDate={projectionReferenceDate}
       />
     </ScaledResumeDocument>
   )

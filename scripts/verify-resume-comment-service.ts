@@ -29,6 +29,10 @@ assert.match(
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
 assert.match(edgeSource, /ensure_resume_working_comment_scope/u)
 assert.match(edgeSource, /buildCommentAnchorDocument\(resume, projectionReferenceDate\)/u)
+const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
+assert.match(shareEdgeSource, /comment_access_token/u)
+assert.match(shareEdgeSource, /projection_reference_date/u)
+assert.match(shareEdgeSource, /if \(!refreshOnly\)/u)
 
 const secret = 'resume-comment-verification-secret-000000000000'
 const now = Math.floor(Date.now() / 1_000)

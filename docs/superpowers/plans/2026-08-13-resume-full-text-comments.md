@@ -892,38 +892,54 @@ git commit -m "feat(comments): 接入简历工作版本评论"
 - 创建：`src/pages/share/view/hooks/use-share-comment-access.ts`
 - 修改：`src/pages/share/view/[token].tsx`
 - 修改：`src/lib/supabase/resume/share.types.ts`
-- 修改：`src/pages/share/store/types.ts`
+- 修改：`src/lib/supabase/resume/share.ts`
+- 修改：`src/components/resume/scaled-readonly-preview.tsx`
+- 修改：`src/features/resume-comments/context.tsx`
+- 修改：`src/features/resume-comments/hooks/use-comment-actions.ts`
+- 修改：`src/features/resume-comments/hooks/use-comment-realtime.ts`
+- 修改：`src/features/resume-comments/store/create-store.ts`
+- 修改：`src/features/resume-comments/store/types.ts`
+- 修改：`supabase/functions/resume-share/index.ts`
+- 修改：`scripts/verify-resume-comment-client.ts`
+- 修改：`scripts/verify-resume-comment-service.ts`
 
-- [ ] **步骤 1：让公开页面只绑定 current release scope**
+- [x] **步骤 1：让公开页面只绑定 current release scope**
 
 从 fetch 结果取得 shareId、releaseId、scopeId、allowComments、accessToken、expiresAt 和 capability topic；CommentProvider 不接受外部任意 scopeId。分享页面不显示历史或旧 release 切换器。
 
-- [ ] **步骤 2：按登录状态选择新评论身份**
+- [x] **步骤 2：按登录状态选择新评论身份**
 
 已登录时新评论使用当前 `useCurrentUser` 的 user ID、姓名和头像；未登录时在第一次写入创建匿名身份。已登录请求仍携带当前 share 的旧匿名凭证，以便同浏览器编辑/删除旧匿名内容。
 
-- [ ] **步骤 3：实现评论关闭和分享状态变化**
+- [x] **步骤 3：实现评论关闭和分享状态变化**
 
 allow_comments=false 仍读取已有评论，但隐藏/禁用所有写操作。每 60 秒刷新状态；密码变化、过期、停用和归档按现有分享错误页处理；重新发布返回 stale_release 后清旧 scope、保留草稿并刷新当前页面快照。
+
+访问刷新使用 `refresh: true`，不重复累计分享浏览量；每次刷新签发新 15 分钟访问令牌并重启对应 Realtime。重新发布或写入返回 `stale_release` 时，只允许下一次 scope 切换携带现有草稿，选区和旧线程状态仍清空。公开 Runtime 使用 comment scope 的固定 `projectionReferenceDate`，避免年龄等派生文字与锚点文档漂移。
 
 - [ ] **步骤 4：验证匿名生命周期和多窗口实时**
 
 覆盖：未登录创建/编辑/删除；刷新后凭证恢复；清除 localStorage 后只能读不能管旧评论；登录后新评论显示用户信息且旧匿名仍可管；两个窗口互相收到评论/回复/resolve；不同 share URL 看不到彼此评论。
 
-- [ ] **步骤 5：静态验证与提交**
+- [x] **步骤 5：静态验证与提交**
 
 ```bash
 pnpm exec tsc --noEmit --pretty false
-pnpm exec eslint src/pages/share/view src/pages/share/store/types.ts src/lib/supabase/resume/share.types.ts
+pnpm exec eslint src/pages/share/view src/lib/supabase/resume/share.ts src/lib/supabase/resume/share.types.ts src/components/resume/scaled-readonly-preview.tsx src/features/resume-comments/context.tsx src/features/resume-comments/hooks/use-comment-actions.ts src/features/resume-comments/hooks/use-comment-realtime.ts src/features/resume-comments/store scripts/verify-resume-comment-client.ts scripts/verify-resume-comment-service.ts supabase/functions/resume-share/index.ts
+pnpm verify:comment-client
+pnpm verify:comment-service
+pnpm dlx deno-bin check --no-lock supabase/functions/resume-share/index.ts
 pnpm build
 git diff --check
 ```
 
 ```bash
-git add src/pages/share/view src/pages/share/store/types.ts src/lib/supabase/resume/share.types.ts
+git add src/pages/share/view src/lib/supabase/resume/share.ts src/lib/supabase/resume/share.types.ts src/components/resume/scaled-readonly-preview.tsx src/features/resume-comments/context.tsx src/features/resume-comments/hooks/use-comment-actions.ts src/features/resume-comments/hooks/use-comment-realtime.ts src/features/resume-comments/store/create-store.ts src/features/resume-comments/store/types.ts scripts/verify-resume-comment-client.ts scripts/verify-resume-comment-service.ts supabase/functions/resume-share/index.ts
 git diff --cached --name-status
 git commit -m "feat(comments): 接入分享匿名评论"
 ```
+
+验证记录（2026-08-14）：根据产品纠正，桌面评论面板已在独立提交 `59cae6b` 中统一改用项目 Base UI `Drawer`，编辑器为右侧非模态 Drawer，公开分享为右侧模态 Drawer，不再使用 `Sheet` 或常驻 `aside`。Task 10 的 TypeScript、定向 ESLint、评论客户端/服务断言、两支 Edge Deno 检查、生产构建和差异检查通过。已登录浏览器连接在进入分享管理页时中断，因此没有向真实分享写入测试评论；匿名创建/恢复/清存储失权、登录身份切换、双窗口 Realtime 与 URL 隔离矩阵仍保持未勾选，不能以静态验证代替。
 
 ---
 

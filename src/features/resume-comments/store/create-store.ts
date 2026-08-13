@@ -30,6 +30,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
     activeThreadId: null,
     selection: null,
     draftsByThreadKey: {},
+    preserveDraftsOnNextScope: false,
     lastEventSeq: 0,
     lastReadEventSeq: 0,
     highlightsHidden: false,
@@ -48,7 +49,10 @@ export function createResumeCommentStore(): ResumeCommentStore {
         activeThreadId: scopeChanged ? null : state.activeThreadId,
         selection: scopeChanged ? null : state.selection,
         // 草稿按 scope 隔离；如果服务端返回了另一个 scope，不把旧草稿带过去。
-        draftsByThreadKey: scopeChanged ? {} : state.draftsByThreadKey,
+        draftsByThreadKey: scopeChanged && !state.preserveDraftsOnNextScope
+          ? {}
+          : state.draftsByThreadKey,
+        preserveDraftsOnNextScope: false,
         lastEventSeq: input.eventSeq,
         lastReadEventSeq: input.lastReadEventSeq,
         lastError: null,
@@ -71,6 +75,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
       delete drafts[threadKey]
       return { draftsByThreadKey: drafts }
     }),
+    preserveDraftsForNextScope: () => set({ preserveDraftsOnNextScope: true }),
     setHighlightsHidden: hidden => set({ highlightsHidden: hidden }),
     setConnection: connection => set({ connection }),
     setAccessState: (accessState, lastError = null) => set({ accessState, lastError }),

@@ -8,7 +8,7 @@ import {
 import { useResumeCommentContext } from '../context.tsx'
 
 export function useCommentActions() {
-  const { beforeWrite, client, store } = useResumeCommentContext()
+  const { beforeWrite, client, invalidateAccess, store } = useResumeCommentContext()
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -51,13 +51,19 @@ export function useCommentActions() {
       return response
     }
     catch (error) {
+      if (
+        error instanceof ResumeCommentClientError
+        && (error.code === 'stale_release' || error.code === 'share_unavailable')
+      ) {
+        invalidateAccess?.(error.code)
+      }
       setErrorMessage(error instanceof Error ? error.message : '评论操作失败，请稍后重试')
       return null
     }
     finally {
       setPendingAction(null)
     }
-  }, [beforeWrite, prepareActor, refreshThreads])
+  }, [beforeWrite, invalidateAccess, prepareActor, refreshThreads])
 
   const createThread = useCallback(async (body: string) => {
     const state = store.getState()

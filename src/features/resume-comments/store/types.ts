@@ -57,6 +57,7 @@ export interface ResumeCommentStoreState {
   activeThreadId: string | null
   selection: PendingCommentSelection | null
   draftsByThreadKey: Record<string, string>
+  preserveDraftsOnNextScope: boolean
   lastEventSeq: number
   lastReadEventSeq: number
   highlightsHidden: boolean
@@ -81,6 +82,7 @@ export interface ResumeCommentStoreState {
   setSelection: (selection: PendingCommentSelection | null) => void
   setDraft: (threadKey: string, value: string) => void
   clearDraft: (threadKey: string) => void
+  preserveDraftsForNextScope: () => void
   setHighlightsHidden: (hidden: boolean) => void
   setConnection: (connection: CommentConnectionState) => void
   setAccessState: (state: CommentAccessState, error?: CommentErrorCode | null) => void

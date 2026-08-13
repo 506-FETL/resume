@@ -29,6 +29,7 @@ interface GetResult {
   release_id?: string
   release_no?: number
   allow_comments?: boolean
+  projection_reference_date?: string
   comment_scope_id?: string
   comment_access_token?: string
   comment_access_expires_at?: string
@@ -207,7 +208,7 @@ async function ensureShareCommentScope(
 ) {
   const { data: existing, error: existingError } = await admin
     .from('resume_comment_scopes')
-    .select('id')
+    .select('id,projection_reference_date')
     .eq('kind', 'share_release')
     .eq('share_release_id', release.id)
     .maybeSingle()
@@ -215,7 +216,10 @@ async function ensureShareCommentScope(
     throw existingError
   }
   if (existing?.id) {
-    return existing.id as string
+    return {
+      id: existing.id as string,
+      projectionReferenceDate: String(existing.projection_reference_date),
+    }
   }
 
   const referenceDate = release.created_at.slice(0, 10)
@@ -235,7 +239,7 @@ async function ensureShareCommentScope(
   if (error || typeof data !== 'string') {
     throw error ?? new Error('Unable to ensure share comment scope')
   }
-  return data
+  return { id: data, projectionReferenceDate: referenceDate }
 }
 
 Deno.serve(async (req) => {
@@ -264,6 +268,7 @@ Deno.serve(async (req) => {
     let shareId: string | null = null
     let label: string | null = null
     let expiresAt: string | null = null
+    let refreshOnly = false
 
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({})) as Record<string, unknown>
@@ -281,6 +286,7 @@ Deno.serve(async (req) => {
         label = body.label
       if (typeof body.expiresAt === 'string')
         expiresAt = body.expiresAt
+      refreshOnly = body.refresh === true
     }
 
     // ============ owner 密码写入分支 ============
@@ -464,14 +470,16 @@ Deno.serve(async (req) => {
     }
 
     // 校验通过后原子记录访问；统计失败不阻断简历查看。
-    const { error: viewError } = await admin.rpc('record_resume_share_view', {
-      p_share_id: data.id,
-    })
-    if (viewError)
-      console.error('record_resume_share_view failed:', viewError.message)
+    if (!refreshOnly) {
+      const { error: viewError } = await admin.rpc('record_resume_share_view', {
+        p_share_id: data.id,
+      })
+      if (viewError)
+        console.error('record_resume_share_view failed:', viewError.message)
+    }
 
     const commentTokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
-    const scopeId = await ensureShareCommentScope(admin, currentRelease)
+    const commentScope = await ensureShareCommentScope(admin, currentRelease)
     const issuedAt = Math.floor(Date.now() / 1_000)
     const expiresAtSeconds = issuedAt + 15 * 60
     const passwordGeneration = await derivePasswordGeneration(
@@ -485,7 +493,7 @@ Deno.serve(async (req) => {
       expiresAt: expiresAtSeconds,
       shareId: data.id,
       releaseId: currentRelease.id,
-      scopeId,
+      scopeId: commentScope.id,
       passwordGeneration,
     }, commentTokenSecret)
 
@@ -498,7 +506,8 @@ Deno.serve(async (req) => {
       release_id: currentRelease.id,
       release_no: currentRelease.release_no,
       allow_comments: data.allow_comments,
-      comment_scope_id: scopeId,
+      projection_reference_date: commentScope.projectionReferenceDate,
+      comment_scope_id: commentScope.id,
       comment_access_token: commentAccessToken,
       comment_access_expires_at: new Date(expiresAtSeconds * 1_000).toISOString(),
     } satisfies GetResult)
