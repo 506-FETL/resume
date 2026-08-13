@@ -119,7 +119,7 @@ export function useCommentActions() {
       () => client.createReply(thread, body, parentCommentId),
     )
     if (response)
-      store.getState().clearDraft(`reply:${thread.id}`)
+      store.getState().clearDraft(`reply:${thread.id}:${parentCommentId ?? 'root'}`)
     return response
   }, [client, execute, store])
 

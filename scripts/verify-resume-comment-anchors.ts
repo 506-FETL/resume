@@ -214,6 +214,24 @@ const changedContext = relocateAnchor(sourceAnchor, createNode('hello target cha
 assert.equal(changedContext.status, 'anchored')
 assert.equal(changedContext.status === 'anchored' && changedContext.contextChanged, true)
 
+const movedAfterDeletion = relocateAnchor(sourceAnchor, createNode('target omega'))
+assert.equal(movedAfterDeletion.status, 'anchored')
+assert.equal(
+  movedAfterDeletion.status === 'anchored' && movedAfterDeletion.anchor.startGraphemeOffset,
+  0,
+)
+
+const movedToAnotherSentence = relocateAnchor(
+  sourceAnchor,
+  createNode('完全不同的开头。alpha target omega。新的结尾'),
+)
+assert.equal(movedToAnotherSentence.status, 'anchored')
+
+assert.deepEqual(
+  relocateAnchor(sourceAnchor, createNode('alpha omega')),
+  { status: 'detached', reason: 'quote_missing' },
+)
+
 const ambiguous = relocateAnchor(sourceAnchor, createNode('target x target'))
 assert.deepEqual(ambiguous, { status: 'detached', reason: 'ambiguous' })
 assert.deepEqual(relocateAnchor(sourceAnchor, null), { status: 'detached', reason: 'node_missing' })

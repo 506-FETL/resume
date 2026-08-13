@@ -1,5 +1,5 @@
 import type { AccessibleCommentScopeSummary } from '../store/types.ts'
-import { FileClock, FilePenLine } from 'lucide-react'
+import { FileClock, FilePenLine, LoaderCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useResumeCommentStore } from '../context.tsx'
@@ -59,7 +59,10 @@ export function CommentSourceSelector({
       <Select value={value} disabled={loading} onValueChange={value => onChange(value as CommentSourceOption['key'])}>
         <SelectTrigger className="w-full" aria-label="评论来源">
           <SelectValue>
-            {selected ? <SourceLabel option={selected} /> : '当前工作版本'}
+            <span className="flex min-w-0 items-center gap-2">
+              {loading ? <LoaderCircle className="size-4 shrink-0 animate-spin" aria-label="正在加载评论来源" /> : null}
+              {selected ? <SourceLabel option={selected} /> : '当前工作版本'}
+            </span>
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
