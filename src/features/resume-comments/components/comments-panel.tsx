@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { CommentComposer } from './comment-composer.tsx'
@@ -139,26 +140,46 @@ export function CommentsPanel({
   creating: boolean
   onCancelCreating: () => void
 }) {
+  const isMobile = useIsMobile()
+  const [mobileSnapPoint, setMobileSnapPoint] = useState<number | string>(0.56)
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen)
+      setMobileSnapPoint(0.56)
+    onOpenChange(nextOpen)
+  }
   const body = (
     <PanelBody
       sourceLabel={sourceLabel}
       permissions={permissions}
       creating={creating}
       onCancelCreating={onCancelCreating}
-      onClose={() => onOpenChange(false)}
+      onClose={() => handleOpenChange(false)}
     />
   )
   return (
     <Drawer
       open={open}
-      onOpenChange={onOpenChange}
-      modal={presentation === 'overlay'}
-      swipeDirection="right"
+      onOpenChange={handleOpenChange}
+      modal={isMobile || presentation === 'overlay'}
+      swipeDirection={isMobile ? 'down' : 'right'}
+      showSwipeHandle={isMobile}
+      snapPoints={isMobile ? [0.56, 0.92] : undefined}
+      snapPoint={isMobile ? mobileSnapPoint : undefined}
+      onSnapPointChange={isMobile
+        ? (snapPoint) => {
+            if (snapPoint !== null)
+              setMobileSnapPoint(snapPoint)
+          }
+        : undefined}
     >
       <DrawerContent
         data-resume-comment-ui
         aria-label="简历评论"
-        className="[--drawer-content-width:min(400px,calc(100vw-1rem))]"
+        className="max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[env(safe-area-inset-bottom)] max-md:[--drawer-inset:0px] md:[--drawer-content-width:min(400px,calc(100vw-1rem))]"
+        onFocusCapture={(event) => {
+          if (isMobile && event.target instanceof HTMLTextAreaElement)
+            setMobileSnapPoint(0.92)
+        }}
       >
         <DrawerTitle className="sr-only">简历评论</DrawerTitle>
         <DrawerDescription className="sr-only">{sourceLabel}</DrawerDescription>

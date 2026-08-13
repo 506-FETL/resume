@@ -96,7 +96,7 @@ export function useCommentSelection({
       pointerSelecting.current = true
       store.getState().setSelection(null)
     }
-    const handlePointerUp = () => {
+    const handlePointerEnd = () => {
       pointerSelecting.current = false
       scheduleEvaluation()
     }
@@ -107,13 +107,15 @@ export function useCommentSelection({
     }
 
     root.addEventListener('pointerdown', handlePointerDown)
-    root.addEventListener('pointerup', handlePointerUp)
+    root.addEventListener('pointerup', handlePointerEnd)
+    root.addEventListener('pointercancel', handlePointerEnd)
     root.addEventListener('keyup', handleKeyUp)
     document.addEventListener('selectionchange', handleSelectionChange)
     return () => {
       cancelAnimationFrame(evaluationFrame.current)
       root.removeEventListener('pointerdown', handlePointerDown)
-      root.removeEventListener('pointerup', handlePointerUp)
+      root.removeEventListener('pointerup', handlePointerEnd)
+      root.removeEventListener('pointercancel', handlePointerEnd)
       root.removeEventListener('keyup', handleKeyUp)
       document.removeEventListener('selectionchange', handleSelectionChange)
     }

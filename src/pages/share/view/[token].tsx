@@ -287,7 +287,7 @@ function ShareResumeComments({
             <Button
               data-resume-comment-ui
               variant="outline"
-              className="fixed bottom-6 right-6 z-20 shadow-md"
+              className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-20 shadow-md md:right-6 md:bottom-6"
               onClick={() => onOpenChange(true)}
             >
               <MessageSquareText />

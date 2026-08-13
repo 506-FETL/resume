@@ -107,6 +107,11 @@ function Editor() {
       setPanelOpen(true)
     restoreEditPanelRef.current = false
   }, [isMobile, open, panelOpen, setPanelOpen])
+  const handleMobileEditOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (nextOpen && commentsOpen)
+      handleCommentsOpenChange(false)
+  }, [commentsOpen, handleCommentsOpenChange])
   const scrollToSection = useScrollToSection(previewScrollRef)
   // 桌面：点 tab 既切换又滚动渲染区到对应章节；移动端走底部抽屉
   const useSidebarMode = !isMobile
@@ -136,7 +141,7 @@ function Editor() {
     <CollaborationPanelProvider>
       <CollaborationRuntime
         drawerOpen={useSidebarMode ? false : open}
-        setDrawerOpen={useSidebarMode ? () => {} : setOpen}
+        setDrawerOpen={useSidebarMode ? () => {} : handleMobileEditOpenChange}
         activeTabId={activeTabId}
         updateActiveTabId={useSidebarMode ? handleActivateWithScroll : updateActiveTabId}
         scrollContainerRef={previewScrollRef}
@@ -166,36 +171,6 @@ function Editor() {
                   onToggleVisibility={toggleVisibility}
                   onClose={() => setPanelOpen(false)}
                 />
-                {currentResumeId && editorMode === 'online' && currentUser
-                  ? (
-                      <ResumeCommentProvider
-                        key={currentResumeId}
-                        access={{ kind: 'owner', resumeId: currentResumeId }}
-                        beforeWrite={prepareCommentWrite}
-                        commentsVisible={commentsOpen}
-                      >
-                        <WorkingResumeComments
-                          resumeId={currentResumeId}
-                          rootRef={documentRef}
-                          sourceLabel={currentDisplayName ?? resumeName ?? '当前简历'}
-                          currentUserId={currentUser?.id ?? null}
-                          open={commentsOpen}
-                          onOpenChange={handleCommentsOpenChange}
-                          layoutRevision={JSON.stringify(documentState.signature)}
-                        />
-                      </ResumeCommentProvider>
-                    )
-                  : (
-                      <Button
-                        variant="outline"
-                        disabled
-                        title={editorMode === 'offline' ? '离线简历不能评论' : '登录后才能评论'}
-                        className="fixed bottom-6 right-36 z-1 shadow-md"
-                      >
-                        <MessageSquareText />
-                        评论
-                      </Button>
-                    )}
                 <AnimatePresence>
                   {!panelOpen && !commentsOpen && (
                     <motion.div
@@ -225,7 +200,7 @@ function Editor() {
         : (
             // 移动端：底部抽屉
             <>
-              <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
+              <Drawer open={open} onOpenChange={handleMobileEditOpenChange} showSwipeHandle>
                 <DrawerTrigger
                   render={(
                     <Button
@@ -266,6 +241,36 @@ function Editor() {
               </div>
             </>
           )}
+      {currentResumeId && editorMode === 'online' && currentUser
+        ? (
+            <ResumeCommentProvider
+              key={currentResumeId}
+              access={{ kind: 'owner', resumeId: currentResumeId }}
+              beforeWrite={prepareCommentWrite}
+              commentsVisible={commentsOpen}
+            >
+              <WorkingResumeComments
+                resumeId={currentResumeId}
+                rootRef={documentRef}
+                sourceLabel={currentDisplayName ?? resumeName ?? '当前简历'}
+                currentUserId={currentUser?.id ?? null}
+                open={commentsOpen}
+                onOpenChange={handleCommentsOpenChange}
+                layoutRevision={JSON.stringify(documentState.signature)}
+              />
+            </ResumeCommentProvider>
+          )
+        : (
+            <Button
+              variant="outline"
+              disabled
+              title={editorMode === 'offline' ? '离线简历不能评论' : '登录后才能评论'}
+              className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-20 shadow-md md:right-36 md:bottom-6 md:z-1"
+            >
+              <MessageSquareText />
+              评论
+            </Button>
+          )}
       <CollaborationDialog />
       <QuickDialog
         getSnapshot={() => buildResumeShareSnapshotSource(
@@ -303,7 +308,7 @@ function WorkingResumeComments({
             <Button
               data-resume-comment-ui
               variant="outline"
-              className="fixed bottom-6 right-36 z-1 shadow-md"
+              className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-20 shadow-md md:right-36 md:bottom-6 md:z-1"
               onClick={() => onOpenChange(true)}
             >
               <MessageSquareText />
