@@ -213,6 +213,12 @@ function DrawerDescription({
   )
 }
 
+function DrawerVirtualKeyboardProvider({
+  ...props
+}: DrawerPrimitive.VirtualKeyboardProvider.Props) {
+  return <DrawerPrimitive.VirtualKeyboardProvider {...props} />
+}
+
 export {
   Drawer,
   DrawerPortal,
@@ -225,4 +231,5 @@ export {
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
+  DrawerVirtualKeyboardProvider,
 }

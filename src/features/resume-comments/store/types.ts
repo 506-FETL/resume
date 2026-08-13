@@ -56,6 +56,7 @@ export interface CommentMutationSnapshot {
   orderedThreadIds: string[]
   counts: CommentThreadCounts
   activeThreadId: string | null
+  hoveredThreadId: string | null
 }
 
 export interface ResumeCommentStoreState {
@@ -67,6 +68,7 @@ export interface ResumeCommentStoreState {
   orderedThreadIds: string[]
   events: ResumeCommentEvent[]
   activeThreadId: string | null
+  hoveredThreadId: string | null
   selection: PendingCommentSelection | null
   draftsByThreadKey: Record<string, string>
   draftsByScopeId: Record<string, Record<string, string>>
@@ -81,6 +83,7 @@ export interface ResumeCommentStoreState {
   lastError: CommentErrorCode | null
   pendingEntities: Record<string, true>
   mutationErrors: Record<string, string>
+  contentNotice: string | null
 
   replaceScope: (input: {
     scope: CommentScopeSummary
@@ -138,7 +141,9 @@ export interface ResumeCommentStoreState {
   beginPending: (entityKey: string) => void
   finishPending: (entityKey: string) => void
   failPending: (entityKey: string, message: string) => void
+  setContentNotice: (message: string | null) => void
   setActiveThread: (threadId: string | null) => void
+  setHoveredThread: (threadId: string | null) => void
   setSelection: (selection: PendingCommentSelection | null) => void
   setDraft: (threadKey: string, value: string) => void
   clearDraft: (threadKey: string) => void

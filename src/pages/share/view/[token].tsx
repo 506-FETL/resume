@@ -4,15 +4,14 @@ import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { ShareViewResult } from '@/lib/supabase/resume/share.types'
-import { MessageSquareText } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark.tsx'
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
 import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
 import useCurrentUser from '@/hooks/use-current-user'
@@ -32,6 +31,8 @@ type ViewState
       shareId: string
       releaseId: string
       releaseNo: number | null
+      versionId: number
+      documentRevision: number
       allowComments: boolean
       projectionReferenceDate: string | undefined
       commentAccess: ShareCommentAccess | null
@@ -83,6 +84,10 @@ export default function ResumeSharePage() {
     setState(previous => previous.phase === 'ready' && previous.releaseId === releaseId
       ? {
           ...previous,
+          snapshot: result.snapshot!,
+          templateManifest: result.templateManifest!,
+          versionId: result.versionId ?? previous.versionId,
+          documentRevision: result.documentRevision ?? previous.documentRevision,
           displayName: result.displayName ?? null,
           allowComments: result.allowComments === true,
           projectionReferenceDate: result.projectionReferenceDate,
@@ -96,6 +101,8 @@ export default function ResumeSharePage() {
           shareId: result.shareId ?? '',
           releaseId,
           releaseNo: result.releaseNo ?? null,
+          versionId: result.versionId ?? 0,
+          documentRevision: result.documentRevision ?? 0,
           allowComments: result.allowComments === true,
           projectionReferenceDate: result.projectionReferenceDate,
           commentAccess,
@@ -254,6 +261,7 @@ export default function ResumeSharePage() {
                 open={commentsOpen}
                 onOpenChange={setCommentsOpen}
                 layoutRevision={JSON.stringify(documentState.signature)}
+                documentRevision={state.documentRevision}
               />
             </ResumeCommentProvider>
           )
@@ -270,6 +278,7 @@ function ShareResumeComments({
   open,
   onOpenChange,
   layoutRevision,
+  documentRevision,
 }: {
   rootRef: RefObject<HTMLElement | null>
   sourceLabel: string
@@ -278,22 +287,27 @@ function ShareResumeComments({
   open: boolean
   onOpenChange: (open: boolean) => void
   layoutRevision: string
+  documentRevision: number
 }) {
   const hasUnread = useResumeCommentStore(state => state.lastEventSeq > state.lastReadEventSeq)
+  const selection = useResumeCommentStore(state => state.selection)
+  const setSelection = useResumeCommentStore(state => state.setSelection)
+  const setContentNotice = useResumeCommentStore(state => state.setContentNotice)
+  const previousRevision = useRef(documentRevision)
+  useEffect(() => {
+    if (previousRevision.current === documentRevision)
+      return
+    previousRevision.current = documentRevision
+    if (!selection)
+      return
+    setSelection(null)
+    setContentNotice('简历内容已更新，请重新选择文字后发送。已输入的评论草稿仍然保留。')
+  }, [documentRevision, selection, setContentNotice, setSelection])
   return (
     <>
       {!open
         ? (
-            <Button
-              data-resume-comment-ui
-              variant="outline"
-              className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-20 shadow-md md:right-6 md:bottom-6"
-              onClick={() => onOpenChange(true)}
-            >
-              <MessageSquareText />
-              评论
-              {hasUnread ? <Badge variant="destructive">新</Badge> : null}
-            </Button>
+            <CommentBookmark unread={hasUnread} onOpen={() => onOpenChange(true)} />
           )
         : null}
       <CommentSurface

@@ -1,15 +1,15 @@
 import type { RefObject } from 'react'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ORDERType } from '@/lib/schema'
-import { Edit, MessageSquareText } from 'lucide-react'
+import { Edit } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
+import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark.tsx'
 import { CommentSourceSelector } from '@/features/resume-comments/components/comment-source-selector.tsx'
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
 import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
@@ -349,26 +349,13 @@ function Editor() {
                 canCreate={!collaboratorMode || collaborationCommentAccess?.role === 'editor'}
                 canModerateAll={!collaboratorMode}
                 open={commentsOpen}
+                bookmarkVisible={!panelOpen && !open}
                 onOpenChange={handleCommentsOpenChange}
                 layoutRevision={`${commentReview.selectedKey}:${JSON.stringify(documentState.signature)}`}
               />
             </ResumeCommentProvider>
           )
-        : (
-            <Button
-              variant="outline"
-              disabled
-              title={editorMode === 'offline'
-                ? '离线简历不能评论'
-                : collaboratorMode
-                  ? '正在验证实时协作评论权限'
-                  : '登录后才能评论'}
-              className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-20 shadow-md md:right-36 md:bottom-6 md:z-1"
-            >
-              <MessageSquareText />
-              评论
-            </Button>
-          )}
+        : null}
       <CollaborationDialog />
       <QuickDialog
         getSnapshot={() => buildResumeShareSnapshotSource(
@@ -389,6 +376,7 @@ function WorkingResumeComments({
   canCreate,
   canModerateAll,
   open,
+  bookmarkVisible,
   onOpenChange,
   layoutRevision,
 }: {
@@ -400,6 +388,7 @@ function WorkingResumeComments({
   canCreate: boolean
   canModerateAll: boolean
   open: boolean
+  bookmarkVisible: boolean
   onOpenChange: (open: boolean) => void
   layoutRevision: string
 }) {
@@ -407,18 +396,9 @@ function WorkingResumeComments({
   const hasUnread = useResumeCommentStore(state => state.lastEventSeq > state.lastReadEventSeq)
   return (
     <>
-      {!open
+      {!open && bookmarkVisible
         ? (
-            <Button
-              data-resume-comment-ui
-              variant="outline"
-              className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-20 shadow-md md:right-36 md:bottom-6 md:z-1"
-              onClick={() => onOpenChange(true)}
-            >
-              <MessageSquareText />
-              评论
-              {hasUnread ? <Badge variant="destructive">新</Badge> : null}
-            </Button>
+            <CommentBookmark unread={hasUnread} onOpen={() => onOpenChange(true)} />
           )
         : null}
       <CommentSurface

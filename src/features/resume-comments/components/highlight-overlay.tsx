@@ -17,14 +17,18 @@ export function HighlightOverlay({
   rootRef,
   geometry,
   activeThreadId,
+  hoveredThreadId,
   hidden,
   onPick,
+  onHover,
 }: {
   rootRef: RefObject<HTMLElement | null>
   geometry: CommentThreadGeometry[]
   activeThreadId: string | null
+  hoveredThreadId: string | null
   hidden: boolean
   onPick: (threadIds: string[], point: { x: number, y: number }) => void
+  onHover: (threadId: string | null) => void
 }) {
   const root = rootRef.current
   if (!root || hidden)
@@ -50,8 +54,9 @@ export function HighlightOverlay({
           <span
             key={`${rect.threadId}-${rect.x}-${rect.y}-${rect.width}-${rect.height}`}
             className={cn(
-              'absolute rounded-[2px] bg-amber-300/35 mix-blend-multiply',
-              rect.threadId === activeThreadId && 'bg-amber-400/65 ring-1 ring-amber-500/70',
+              'absolute rounded-[2px] bg-amber-300/25 mix-blend-multiply transition-[background-color,box-shadow] duration-150',
+              (rect.threadId === activeThreadId || rect.threadId === hoveredThreadId)
+              && 'bg-amber-400/65 ring-1 ring-amber-500/70',
             )}
             style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
           />
@@ -74,6 +79,10 @@ export function HighlightOverlay({
                 .map(candidate => candidate.threadId)))
               onPick(ids, { x: event.clientX, y: event.clientY })
             }}
+            onPointerEnter={() => onHover(rect.threadId)}
+            onPointerLeave={() => onHover(null)}
+            onFocus={() => onHover(rect.threadId)}
+            onBlur={() => onHover(null)}
           />
         ))}
       </div>,

@@ -41,6 +41,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
     orderedThreadIds: [],
     events: [],
     activeThreadId: null,
+    hoveredThreadId: null,
     selection: null,
     draftsByThreadKey: {},
     draftsByScopeId: {},
@@ -55,6 +56,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
     lastError: null,
     pendingEntities: {},
     mutationErrors: {},
+    contentNotice: null,
 
     replaceScope: input => set((state) => {
       const scopeChanged = state.scope?.id !== input.scope.id
@@ -70,6 +72,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
         orderedThreadIds: orderThreads(input.threads, input.scope),
         events: input.events ?? [],
         activeThreadId: scopeChanged ? null : state.activeThreadId,
+        hoveredThreadId: scopeChanged ? null : state.hoveredThreadId,
         selection: scopeChanged ? null : state.selection,
         draftsByScopeId,
         // 草稿按 scope 隔离保存；stale release 切换时允许显式携带当前草稿。
@@ -86,6 +89,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
         lastError: null,
         pendingEntities: {},
         mutationErrors: {},
+        contentNotice: null,
       }
     }),
     replaceThreads: input => set(state => ({
@@ -125,6 +129,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
         orderedThreadIds: state.orderedThreadIds,
         counts: state.counts,
         activeThreadId: state.activeThreadId,
+        hoveredThreadId: state.hoveredThreadId,
       }
       const threadsById = { ...state.threadsById }
       if (input.removedThreadId)
@@ -221,7 +226,9 @@ export function createResumeCommentStore(): ResumeCommentStore {
         mutationErrors: { ...state.mutationErrors, [entityKey]: message },
       }
     }),
+    setContentNotice: contentNotice => set({ contentNotice }),
     setActiveThread: threadId => set({ activeThreadId: threadId }),
+    setHoveredThread: threadId => set({ hoveredThreadId: threadId }),
     setSelection: selection => set({ selection }),
     setDraft: (threadKey, value) => set(state => ({
       draftsByThreadKey: { ...state.draftsByThreadKey, [threadKey]: value },
@@ -240,6 +247,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
       orderedThreadIds: [],
       events: [],
       activeThreadId: null,
+      hoveredThreadId: null,
       selection: null,
       draftsByScopeId: state.scope
         ? { ...state.draftsByScopeId, [state.scope.id]: state.draftsByThreadKey }
@@ -252,6 +260,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
       connection: 'connecting',
       pendingEntities: {},
       mutationErrors: {},
+      contentNotice: null,
     })),
     beginRelink: relinkThreadId => set({ relinkThreadId, relinkError: null, selection: null }),
     cancelRelink: () => set({ relinkThreadId: null, relinkError: null, selection: null }),

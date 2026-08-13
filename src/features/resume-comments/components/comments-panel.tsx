@@ -5,7 +5,13 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+  DrawerVirtualKeyboardProvider,
+} from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useResumeCommentContext, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
@@ -42,6 +48,8 @@ function PanelBody({
   const lastEventSeq = useResumeCommentStore(state => state.lastEventSeq)
   const lastReadEventSeq = useResumeCommentStore(state => state.lastReadEventSeq)
   const accessState = useResumeCommentStore(state => state.accessState)
+  const contentNotice = useResumeCommentStore(state => state.contentNotice)
+  const setContentNotice = useResumeCommentStore(state => state.setContentNotice)
   const activeThread = activeThreadId ? threads.find(thread => thread.id === activeThreadId) : null
 
   if (activeThread) {
@@ -81,6 +89,14 @@ function PanelBody({
               <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
                 {accessState === 'read_only' ? '当前评论仅可查看，不能新增或回复。' : '当前评论版本已不可用，请刷新页面。'}
               </p>
+            )
+          : null}
+        {contentNotice
+          ? (
+              <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                <p className="flex-1">{contentNotice}</p>
+                <Button size="xs" variant="ghost" onClick={() => setContentNotice(null)}>知道了</Button>
+              </div>
             )
           : null}
         {panelHeaderContent}
@@ -153,11 +169,8 @@ export function CommentsPanel({
   onCancelCreating: () => void
 }) {
   const isMobile = useIsMobile()
-  const [mobileSnapPoint, setMobileSnapPoint] = useState<number | string>(0.56)
   const beginRelink = useResumeCommentStore(state => state.beginRelink)
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen)
-      setMobileSnapPoint(0.56)
     onOpenChange(nextOpen)
   }
   const body = (
@@ -174,35 +187,44 @@ export function CommentsPanel({
       }}
     />
   )
+  const content = (
+    <DrawerContent
+      data-resume-comment-ui
+      aria-label="简历评论"
+      className={isMobile
+        ? 'max-h-[92dvh] min-h-[min(22rem,70dvh)] rounded-b-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] [--drawer-content-height:auto] [--drawer-content-max-height:92dvh] [--drawer-inset:0px]'
+        : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}
+    >
+      <DrawerTitle className="sr-only">简历评论</DrawerTitle>
+      <DrawerDescription className="sr-only">{sourceLabel}</DrawerDescription>
+      {body}
+    </DrawerContent>
+  )
+  if (isMobile) {
+    return (
+      <DrawerVirtualKeyboardProvider>
+        <Drawer
+          key="resume-comments-mobile"
+          open={open}
+          onOpenChange={handleOpenChange}
+          modal
+          swipeDirection="down"
+          showSwipeHandle
+        >
+          {content}
+        </Drawer>
+      </DrawerVirtualKeyboardProvider>
+    )
+  }
   return (
     <Drawer
+      key="resume-comments-desktop"
       open={open}
       onOpenChange={handleOpenChange}
-      modal={isMobile || presentation === 'overlay'}
-      swipeDirection={isMobile ? 'down' : 'right'}
-      showSwipeHandle={isMobile}
-      snapPoints={isMobile ? [0.56, 0.92] : undefined}
-      snapPoint={isMobile ? mobileSnapPoint : undefined}
-      onSnapPointChange={isMobile
-        ? (snapPoint) => {
-            if (snapPoint !== null)
-              setMobileSnapPoint(snapPoint)
-          }
-        : undefined}
+      modal={presentation === 'overlay'}
+      swipeDirection="right"
     >
-      <DrawerContent
-        data-resume-comment-ui
-        aria-label="简历评论"
-        className="max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:pb-[env(safe-area-inset-bottom)] max-md:[--drawer-inset:0px] md:[--drawer-content-width:min(400px,calc(100vw-1rem))]"
-        onFocusCapture={(event) => {
-          if (isMobile && event.target instanceof HTMLTextAreaElement)
-            setMobileSnapPoint(0.92)
-        }}
-      >
-        <DrawerTitle className="sr-only">简历评论</DrawerTitle>
-        <DrawerDescription className="sr-only">{sourceLabel}</DrawerDescription>
-        {body}
-      </DrawerContent>
+      {content}
     </Drawer>
   )
 }

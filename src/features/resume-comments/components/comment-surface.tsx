@@ -42,19 +42,24 @@ export function CommentSurface({
     if (controlledOpen === undefined)
       setInternalOpen(value)
     onOpenChange?.(value)
-    if (!value)
+    if (!value) {
       setCreating(false)
-  }, [controlledOpen, onOpenChange])
+      store.getState().setActiveThread(null)
+      store.getState().setHoveredThread(null)
+    }
+  }, [controlledOpen, onOpenChange, store])
   const scope = useResumeCommentStore(state => state.scope)
   const selection = useResumeCommentStore(state => state.selection)
   const threads = useResumeCommentStore(useShallow(
     state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean),
   ))
   const activeThreadId = useResumeCommentStore(state => state.activeThreadId)
+  const hoveredThreadId = useResumeCommentStore(state => state.hoveredThreadId)
   const relinkThreadId = useResumeCommentStore(state => state.relinkThreadId)
   const cancelRelink = useResumeCommentStore(state => state.cancelRelink)
   const setRelinkError = useResumeCommentStore(state => state.setRelinkError)
   const setActiveThread = useResumeCommentStore(state => state.setActiveThread)
+  const setHoveredThread = useResumeCommentStore(state => state.setHoveredThread)
   const highlightsHidden = useResumeCommentStore(state => state.highlightsHidden)
   const accessState = useResumeCommentStore(state => state.accessState)
   const access = client.getAccessContext()
@@ -166,7 +171,9 @@ export function CommentSurface({
         rootRef={rootRef}
         geometry={geometry}
         activeThreadId={activeThreadId}
+        hoveredThreadId={hoveredThreadId}
         hidden={highlightsHidden}
+        onHover={setHoveredThread}
         onPick={(threadIds, point) => {
           if (threadIds.length === 1)
             openThread(threadIds[0]!)
