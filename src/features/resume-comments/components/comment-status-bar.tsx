@@ -7,12 +7,14 @@ export function CommentStatusBar({
   canResolve,
   resolving,
   error,
+  onOpen,
   onResolve,
 }: {
   replyCount: number
   canResolve: boolean
   resolving: boolean
   error?: string | null
+  onOpen: () => void
   onResolve: () => void
 }) {
   return (
@@ -43,12 +45,19 @@ export function CommentStatusBar({
         : null}
       {replyCount > 0
         ? (
-            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              className="shrink-0 text-muted-foreground"
+              aria-label={`查看 ${replyCount} 条回复`}
+              onClick={onOpen}
+            >
               <MessageCircle className="size-3.5" />
               {replyCount}
               {' '}
               条回复
-            </span>
+            </Button>
           )
         : null}
     </div>

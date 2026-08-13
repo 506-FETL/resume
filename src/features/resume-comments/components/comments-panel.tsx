@@ -202,18 +202,18 @@ export function CommentsPanel({
   )
   if (isMobile) {
     return (
-      <DrawerVirtualKeyboardProvider>
-        <Drawer
-          key="resume-comments-mobile"
-          open={open}
-          onOpenChange={handleOpenChange}
-          modal
-          swipeDirection="down"
-          showSwipeHandle
-        >
+      <Drawer
+        key="resume-comments-mobile"
+        open={open}
+        onOpenChange={handleOpenChange}
+        modal
+        swipeDirection="down"
+        showSwipeHandle
+      >
+        <DrawerVirtualKeyboardProvider>
           {content}
-        </Drawer>
-      </DrawerVirtualKeyboardProvider>
+        </DrawerVirtualKeyboardProvider>
+      </Drawer>
     )
   }
   return (

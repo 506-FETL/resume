@@ -18,6 +18,9 @@
 - 缓存 key 不包含 access token、release ID 或匿名 secret；跨版本 key 隔离。
 - 乐观操作失败能恢复线程、计数和活动状态；重复 event seq 被去重。
 - Realtime 序号断档优先拉取增量事件，不直接全量 bootstrap。
+- 性能观测按目标值与慢请求阈值分级：正常/轻微抖动写入浏览器 Performance Timeline，只有真正超过慢请求阈值才使用 warn；`Server-Timing` 会拆出鉴权、权限解析、线程、已读状态、版本和客户端额外等待。
+- 缓存读取与网络 bootstrap 并行启动，缓存晚于网络时不会覆盖新数据；IndexedDB 依赖改为静态加载，bootstrap 复用线程结果计算计数并减少一次数据库往返，已有版本作用域减少一次重复读取。
+- 评论列表卡片的主点击区域与“解决/查看回复”快捷按钮是同级交互，不再出现 `<button>` 嵌套导致的 hydration 警告。
 
 执行命令：
 
@@ -32,11 +35,20 @@ pnpm verify:comment-service
 - Edge Function：`resume-share` 与 `resume-comments` 通过 Deno check。
 - 前端与领域类型通过 `tsc --noEmit`。
 - 评论、编辑页和分享页相关文件通过定向 ESLint。
-- 生产构建、迁移 dry-run、`git diff --check` 的最终结果在交付前补录。
+- 生产构建通过；Vite 仅保留仓库既有的 chunk size 提示。
+- linked migration dry-run 返回 0；远端已由外部流程依次应用 `20260814000001` 与前向兼容迁移 `20260814000002`，最终 dry-run 返回 up-to-date。本次代理只执行检查，没有主动执行写入。
+- `git diff --check` 通过。
+- 全仓 `pnpm exec eslint .` 仍会被旧文档、生成文件和未触及模块中的约 1,879 个既有问题阻断；本次改动范围的定向 ESLint 已通过，未把既有基线问题混入本次修复。
+- `src/components/ui/drawer.tsx` 命中仓库既有 ignore 规则；强制 `--no-ignore` 会暴露该上游组件全文件 50 个既有格式问题，类型检查与生产构建均覆盖了本次新增导出。
 
 ## 浏览器交互验证
 
-待最终工程检查后执行并补录：桌面编辑页/分享页 Drawer、书签位置、高亮强弱切换、递归回复、快速解决、写入进度反馈。
+- 在本地开发服务完成未登录首页和“我的简历”页面的启动、加载与导航检查；未复现 `Maximum update depth exceeded`。
+- 当前内置浏览器没有登录态，本机也没有可复用的 Chrome/浏览器扩展会话，因此没有声称已完成在线简历评论主链路的真实交互验证。
+- 登录态实际测试暴露的 CORS 预检问题已定位为共享白名单遗漏 `x-request-id`；客户端已停止发送该非必要自定义请求头，现有远端白名单的 OPTIONS 实测可通过；共享 CORS 与回归断言也已补齐，后续部署后支持其他追踪调用方。
+- 移动端实际测试暴露的 `DrawerVirtualKeyboardProvider` 上下文错误已修正：Provider 现在位于 `Drawer.Root` 内部，并由源码约束验证组件嵌套顺序。
+- 桌面编辑页/分享页 Drawer、书签位置、高亮强弱切换、递归回复、快速解决、写入进度反馈留给登录态下的最终人工验收。
+- 未登录首页会记录一条既有“加载首页最近动态失败：用户未登陆”日志，与评论模块无关，未纳入本次范围。
 
 ## 需要真机验收
 
@@ -47,4 +59,5 @@ pnpm verify:comment-service
 ## 环境限制
 
 - 当前环境未安装 Docker/Podman，因此未执行本地 `supabase db reset`；迁移会做 linked dry-run 与静态检查，但正式数据库应用仍需部署环境验证。
-- 本次不执行生产数据库迁移、Edge Function 部署或远端推送。
+- 远端 `20260814000001` 与 `20260814000002` 在本次验收过程中由外部流程应用；代理没有执行数据库 push。
+- 本次不执行 Edge Function 重新部署或 Git 远端推送。

@@ -208,60 +208,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_resume_comment_scopes_share_release_unique
 CREATE INDEX IF NOT EXISTS idx_resume_comment_scopes_owner_resume
   ON public.resume_comment_scopes (owner_user_id, resume_id);
 
--- 实时协作网络仍负责文档同步；这两张表只保存评论权限所需的、可由
--- 服务端复核的会话与成员事实。浏览器不能直接写入，也不能自行声明角色。
-CREATE TABLE IF NOT EXISTS public.resume_comment_collaboration_sessions (
-  session_id text PRIMARY KEY,
-  resume_id uuid NOT NULL,
-  scope_id uuid NOT NULL,
-  owner_user_id uuid NOT NULL,
-  host_lease_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  default_role text NOT NULL DEFAULT 'editor',
-  expires_at timestamptz NOT NULL,
-  revoked_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT resume_comment_collaboration_sessions_resume_id_fkey
-    FOREIGN KEY (resume_id) REFERENCES public.resume_config (resume_id) ON DELETE CASCADE,
-  CONSTRAINT resume_comment_collaboration_sessions_scope_id_fkey
-    FOREIGN KEY (scope_id) REFERENCES public.resume_comment_scopes (id) ON DELETE CASCADE,
-  CONSTRAINT resume_comment_collaboration_sessions_owner_user_id_fkey
-    FOREIGN KEY (owner_user_id) REFERENCES auth.users (id) ON DELETE CASCADE,
-  CONSTRAINT resume_comment_collaboration_sessions_id_check
-    CHECK (session_id ~ '^[0-9A-Za-z_-]{16,64}$'),
-  CONSTRAINT resume_comment_collaboration_sessions_role_check
-    CHECK (default_role IN ('editor', 'viewer')),
-  CONSTRAINT resume_comment_collaboration_sessions_expiry_check
-    CHECK (expires_at > created_at)
-);
-
-CREATE INDEX IF NOT EXISTS idx_resume_comment_collaboration_sessions_resume
-  ON public.resume_comment_collaboration_sessions (resume_id, revoked_at, expires_at);
-
-CREATE TABLE IF NOT EXISTS public.resume_comment_collaboration_members (
-  session_id text NOT NULL,
-  user_id uuid NOT NULL,
-  role text NOT NULL,
-  expires_at timestamptz NOT NULL,
-  revoked_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  last_seen_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (session_id, user_id),
-  CONSTRAINT resume_comment_collaboration_members_session_id_fkey
-    FOREIGN KEY (session_id)
-    REFERENCES public.resume_comment_collaboration_sessions (session_id)
-    ON DELETE CASCADE,
-  CONSTRAINT resume_comment_collaboration_members_user_id_fkey
-    FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE CASCADE,
-  CONSTRAINT resume_comment_collaboration_members_role_check
-    CHECK (role IN ('editor', 'viewer')),
-  CONSTRAINT resume_comment_collaboration_members_expiry_check
-    CHECK (expires_at > created_at)
-);
-
-CREATE INDEX IF NOT EXISTS idx_resume_comment_collaboration_members_user
-  ON public.resume_comment_collaboration_members (user_id, revoked_at, expires_at);
-
 CREATE TABLE IF NOT EXISTS public.resume_comment_anonymous_identities (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   share_id uuid NOT NULL,
@@ -495,12 +441,6 @@ DROP TRIGGER IF EXISTS set_resume_comment_scopes_updated_at
   ON public.resume_comment_scopes;
 CREATE TRIGGER set_resume_comment_scopes_updated_at
   BEFORE UPDATE ON public.resume_comment_scopes
-  FOR EACH ROW EXECUTE FUNCTION public.set_resume_comment_updated_at();
-
-DROP TRIGGER IF EXISTS set_resume_comment_collaboration_sessions_updated_at
-  ON public.resume_comment_collaboration_sessions;
-CREATE TRIGGER set_resume_comment_collaboration_sessions_updated_at
-  BEFORE UPDATE ON public.resume_comment_collaboration_sessions
   FOR EACH ROW EXECUTE FUNCTION public.set_resume_comment_updated_at();
 
 DROP TRIGGER IF EXISTS set_resume_comment_threads_updated_at
@@ -1435,8 +1375,6 @@ $$;
 -- 评论正文与身份数据不向浏览器直连开放。Edge Function 使用 service_role
 -- 访问真源；Realtime 只消费后续服务端发布的脱敏失效通知。
 ALTER TABLE public.resume_comment_scopes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.resume_comment_collaboration_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.resume_comment_collaboration_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resume_comment_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resume_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resume_comment_anonymous_identities ENABLE ROW LEVEL SECURITY;
@@ -1446,10 +1384,6 @@ ALTER TABLE public.resume_comment_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resume_comment_rate_limits ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON TABLE public.resume_comment_scopes
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON TABLE public.resume_comment_collaboration_sessions
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON TABLE public.resume_comment_collaboration_members
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.resume_comment_threads
   FROM PUBLIC, anon, authenticated;
@@ -1467,10 +1401,6 @@ REVOKE ALL ON TABLE public.resume_comment_rate_limits
   FROM PUBLIC, anon, authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.resume_comment_scopes
-  TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.resume_comment_collaboration_sessions
-  TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.resume_comment_collaboration_members
   TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.resume_comment_threads
   TO service_role;

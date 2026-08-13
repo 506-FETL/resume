@@ -1,10 +1,15 @@
 import type { ResumeCommentThread } from '../src/features/resume-comments/types.ts'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { deriveAnonymousAvatarVisual } from '../src/features/resume-comments/api/anonymous-identity.ts'
 import {
   deriveCommentCacheKey,
   serializeCommentCacheKey,
 } from '../src/features/resume-comments/api/cache.ts'
+import {
+  classifyCommentPerformance,
+  parseCommentServerTiming,
+} from '../src/features/resume-comments/api/performance.ts'
 import { decideCommentRealtimeRecovery } from '../src/features/resume-comments/api/realtime-recovery.ts'
 import { createResumeCommentStore } from '../src/features/resume-comments/store/create-store.ts'
 
@@ -152,6 +157,13 @@ const cacheKey = deriveCommentCacheKey(shareAccess)
 assert.ok(cacheKey)
 assert.equal(serializeCommentCacheKey(cacheKey).includes(shareAccess.accessToken), false)
 assert.equal(serializeCommentCacheKey(cacheKey).includes(shareAccess.releaseId), false)
+assert.equal(classifyCommentPerformance('cache', 47.1).level, 'normal')
+assert.equal(classifyCommentPerformance('bootstrap', 2_036.1).level, 'near_target')
+assert.equal(classifyCommentPerformance('bootstrap', 2_600).level, 'slow')
+assert.deepEqual(
+  parseCommentServerTiming('auth;dur=12.4, access;dur=31.2, total;dur=128.8'),
+  { auth: 12.4, access: 31.2, total: 128.8 },
+)
 
 const beforeOptimistic = store.getState().threadsById
 const snapshot = store.getState().applyOptimisticMutation({
@@ -177,5 +189,36 @@ assert.deepEqual(
   deriveAnonymousAvatarVisual('anonymous-id'),
   deriveAnonymousAvatarVisual('anonymous-id'),
 )
+
+const commentSurfaceSource = readFileSync(
+  new URL('../src/features/resume-comments/components/comment-surface.tsx', import.meta.url),
+  'utf8',
+)
+const commentTreeSource = readFileSync(
+  new URL('../src/features/resume-comments/components/comment-tree.tsx', import.meta.url),
+  'utf8',
+)
+const commentsPanelSource = readFileSync(
+  new URL('../src/features/resume-comments/components/comments-panel.tsx', import.meta.url),
+  'utf8',
+)
+const threadListSource = readFileSync(
+  new URL('../src/features/resume-comments/components/thread-list.tsx', import.meta.url),
+  'utf8',
+)
+const commentClientSource = readFileSync(
+  new URL('../src/features/resume-comments/api/client.ts', import.meta.url),
+  'utf8',
+)
+assert.equal(commentSurfaceSource.includes('useCommentReadReceipt'), false)
+assert.match(commentTreeSource, /depth < 1/u)
+assert.match(commentTreeSource, /depth >= 1/u)
+assert.match(
+  commentsPanelSource,
+  /<Drawer[\s\S]*?<DrawerVirtualKeyboardProvider>[\s\S]*?<\/DrawerVirtualKeyboardProvider>[\s\S]*?<\/Drawer>/u,
+)
+assert.doesNotMatch(commentClientSource, /['"]x-request-id['"]\s*:/u)
+assert.match(threadListSource, /<\/button>[\s\S]*?<CommentStatusBar/u)
+assert.doesNotMatch(threadListSource, /<Button[\s\S]*?<CommentStatusBar/u)
 
 console.warn('resume comment client verification passed')

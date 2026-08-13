@@ -27,8 +27,17 @@ assert.match(
   /^[0-9a-f]{64}$/u,
 )
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
+const corsSource = readFileSync('supabase/functions/shared/cors.ts', 'utf8')
 const migrationSource = readFileSync(
   'supabase/migrations/20260814000001_add_version_centric_resume_comments.sql',
+  'utf8',
+)
+const forwardCompatibilityMigrationSource = readFileSync(
+  'supabase/migrations/20260814000002_ensure_comment_collaboration_and_active_version.sql',
+  'utf8',
+)
+const originalCommentMigrationSource = readFileSync(
+  'supabase/migrations/20260813000002_add_resume_comments.sql',
   'utf8',
 )
 const transactionSource = readFileSync(
@@ -43,6 +52,10 @@ assert.match(edgeSource, /op === 'list_events'/u)
 assert.match(edgeSource, /scheduleBackground\(notifyWrite/u)
 assert.match(edgeSource, /Server-Timing/u)
 assert.match(edgeSource, /X-Request-Id/u)
+assert.match(edgeSource, /timeOperation\('threads'/u)
+assert.match(edgeSource, /const counts = countThreadRows\(threads\)/u)
+assert.match(edgeSource, /return existing as ScopeRow/u)
+assert.match(corsSource, /x-request-id/u)
 assert.match(edgeSource, /stale_document/u)
 assert.match(edgeSource, /expectedDocumentRevision/u)
 assert.match(edgeSource, /loadThreads\(admin, access\.scope\.id, \[threadId\]\)/u)
@@ -62,6 +75,10 @@ assert.match(migrationSource, /p_expected_document_revision/u)
 assert.match(migrationSource, /stale_document/u)
 assert.match(migrationSource, /create_resume_comment_anonymous_identity_v2/u)
 assert.match(migrationSource, /version_id = p_version_id/u)
+assert.match(forwardCompatibilityMigrationSource, /initialize_resume_active_version/u)
+assert.match(forwardCompatibilityMigrationSource, /AFTER INSERT ON public\.resume_config/u)
+assert.match(forwardCompatibilityMigrationSource, /CREATE TABLE IF NOT EXISTS public\.resume_comment_collaboration_sessions/u)
+assert.doesNotMatch(originalCommentMigrationSource, /resume_comment_collaboration_sessions/u)
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 assert.match(shareEdgeSource, /comment_access_token/u)
 assert.match(shareEdgeSource, /projection_reference_date/u)

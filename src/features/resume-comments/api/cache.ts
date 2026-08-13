@@ -1,5 +1,6 @@
 import type { DBSchema, IDBPDatabase } from 'idb'
 import type { CommentAccessContext, CommentBootstrapResult } from './client.ts'
+import { openDB } from 'idb'
 
 export interface CommentCacheKey {
   versionId: number
@@ -32,7 +33,7 @@ let databasePromise: Promise<IDBPDatabase<ResumeCommentCacheSchema>> | null = nu
 function getDatabase() {
   if (typeof indexedDB === 'undefined')
     return null
-  databasePromise ??= import('idb').then(({ openDB }) => openDB<ResumeCommentCacheSchema>(
+  databasePromise ??= openDB<ResumeCommentCacheSchema>(
     'resume-comment-cache-v1',
     1,
     {
@@ -41,7 +42,7 @@ function getDatabase() {
         store.createIndex('principalKey', 'principalKey')
       },
     },
-  ))
+  )
   return databasePromise
 }
 

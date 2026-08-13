@@ -122,7 +122,7 @@ function CommentNode({
   const pending = useResumeCommentStore(state => Boolean(state.pendingEntities[editKey] || state.pendingEntities[deleteKey]))
   const error = useResumeCommentStore(state => state.mutationErrors[editKey] ?? state.mutationErrors[deleteKey])
   const image = comment.author.kind === 'user' ? comment.author.avatarUrl : null
-  const hiddenReplyCount = depth >= 2 ? countDescendants(node) : 0
+  const hiddenReplyCount = depth >= 1 ? countDescendants(node) : 0
 
   return (
     <motion.div
@@ -209,7 +209,7 @@ function CommentNode({
           {error ? <p role="alert" className="mt-1 text-xs text-destructive">{error}</p> : null}
         </div>
       </article>
-      {depth < 2
+      {depth < 1
         ? node.children.map(child => (
             <CommentNode
               key={child.comment.id}

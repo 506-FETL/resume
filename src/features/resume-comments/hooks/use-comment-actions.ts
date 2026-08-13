@@ -37,7 +37,12 @@ export function useCommentActions() {
 
   const execute = useCallback(async (
     entityKey: string,
-    operation: () => Promise<{ data: CommentMutationResult, eventSeq: number, requestId: string | null }>,
+    operation: () => Promise<{
+      data: CommentMutationResult
+      eventSeq: number
+      requestId: string | null
+      serverTiming: string | null
+    }>,
     requiresDocumentSync = false,
     optimistic?: {
       thread?: ResumeCommentThread | null
@@ -66,7 +71,10 @@ export function useCommentActions() {
         eventSeq: response.eventSeq,
       })
       store.getState().markReadLocally(response.eventSeq)
-      marker.end(response.requestId)
+      marker.end({
+        requestId: response.requestId,
+        serverTiming: response.serverTiming,
+      })
       return response
     }
     catch (error) {

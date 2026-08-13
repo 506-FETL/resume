@@ -656,7 +656,6 @@ export class ResumeCommentClient {
           'apikey': publishableKey,
           'Authorization': `Bearer ${authToken ?? publishableKey}`,
           'x-client-info': 'resume-app/comments',
-          'x-request-id': requestId,
         },
         body: JSON.stringify({
           op,

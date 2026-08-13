@@ -50,6 +50,7 @@ export function useCommentRealtime({
       return
 
     let cancelled = false
+    let hasFreshBootstrap = false
     let queue = Promise.resolve()
     let bootstrap: () => Promise<void>
     const realtime = new ResumeCommentRealtimeSubscription(client)
@@ -107,7 +108,10 @@ export function useCommentRealtime({
         events: list.data.events,
         eventSeq: list.eventSeq,
       })
-      marker.end(list.requestId)
+      marker.end({
+        requestId: list.requestId,
+        serverTiming: list.serverTiming,
+      })
     }
 
     const connectRealtime = (scopeRealtime: Parameters<typeof realtime.connect>[0]) => {
@@ -135,6 +139,7 @@ export function useCommentRealtime({
       const response = await client.bootstrapScope()
       if (cancelled)
         return
+      hasFreshBootstrap = true
       store.getState().replaceScope({
         scope: response.data.scope,
         version: response.data.version,
@@ -158,7 +163,11 @@ export function useCommentRealtime({
       )
       if (cacheKey)
         writeCommentCache(cacheKey, response.data).catch(() => undefined)
-      marker.end(response.requestId)
+      marker.end({
+        requestId: response.requestId,
+        serverTiming: response.serverTiming,
+        detail: { threadCount: response.data.threads.length },
+      })
     }
 
     const hydrateCache = async () => {
@@ -171,8 +180,10 @@ export function useCommentRealtime({
         return
       const marker = beginCommentPerformance('cache')
       const cached = await readCommentCache(cacheKey)
-      if (!cached || cancelled)
+      if (!cached || cancelled || hasFreshBootstrap) {
+        marker.end({ detail: { status: cached ? 'superseded' : 'miss' } })
         return
+      }
       store.getState().replaceScope({
         scope: cached.value.scope,
         version: cached.value.version,
@@ -182,7 +193,13 @@ export function useCommentRealtime({
         eventSeq: cached.value.scope.nextEventSeq,
         lastReadEventSeq: cached.value.lastReadEventSeq,
       })
-      marker.end()
+      marker.end({
+        detail: {
+          status: 'hit',
+          ageMs: Math.max(0, Date.now() - cached.cachedAt),
+          threadCount: cached.value.threads.length,
+        },
+      })
     }
 
     const handleOffline = () => {
@@ -194,11 +211,15 @@ export function useCommentRealtime({
     window.addEventListener('offline', handleOffline)
     window.addEventListener('online', handleOnline)
     enqueue(async () => {
-      await hydrateCache()
-      if (navigator.onLine)
-        await bootstrap()
-      else
-        handleOffline()
+      if (navigator.onLine) {
+        await Promise.all([
+          hydrateCache().catch(() => undefined),
+          bootstrap(),
+        ])
+      }
+      else {
+        await hydrateCache().catch(() => undefined).finally(handleOffline)
+      }
     })
 
     const refreshTimer = refreshAccess

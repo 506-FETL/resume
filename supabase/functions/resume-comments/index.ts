@@ -155,7 +155,7 @@ function scheduleBackground(task: Promise<unknown>) {
     edgeRuntime.waitUntil(guardedTask)
     return
   }
-  void guardedTask
+  guardedTask.catch(() => undefined)
 }
 
 function getClientAddress(req: Request) {
@@ -215,7 +215,7 @@ async function ensureVersionScopeForOwner(
 ) {
   const { data: existing, error: existingError } = await admin
     .from('resume_comment_scopes')
-    .select('id')
+    .select('id,kind,owner_user_id,resume_id,version_id,history_version_id,share_release_id,anchor_document,document_hash,document_revision,projection_reference_date,next_event_seq,archived_at')
     .eq('kind', 'version')
     .eq('version_id', versionId)
     .eq('owner_user_id', ownerUserId)
@@ -224,7 +224,7 @@ async function ensureVersionScopeForOwner(
   if (existingError)
     throw existingError
   if (existing?.id)
-    return getScope(admin, existing.id)
+    return existing as ScopeRow
 
   const { data: version, error } = await admin
     .from('resume_config_versions')
@@ -867,7 +867,11 @@ async function loadThreadCounts(admin: AdminClient, scopeId: string) {
     .is('deleted_at', null)
   if (error)
     throw error
-  return (data ?? []).reduce((counts, thread) => {
+  return countThreadRows(data ?? [])
+}
+
+function countThreadRows(threads: Array<{ anchor_status: string, resolved_at: string | null }>) {
+  return threads.reduce((counts, thread) => {
     if (thread.anchor_status === 'detached')
       counts.detached += 1
     else if (thread.resolved_at)
@@ -1052,6 +1056,16 @@ Deno.serve(async (req) => {
     : crypto.randomUUID()
   let authDuration = 0
   let accessDuration = 0
+  const operationDurations: Record<string, number> = {}
+  const timeOperation = async <T>(name: string, operation: () => Promise<T>) => {
+    const startedAt = performance.now()
+    try {
+      return await operation()
+    }
+    finally {
+      operationDurations[name] = performance.now() - startedAt
+    }
+  }
   const finalize = (response: Response) => {
     const totalDuration = performance.now() - requestStartedAt
     const dbDuration = Math.max(0, totalDuration - authDuration - accessDuration)
@@ -1062,6 +1076,9 @@ Deno.serve(async (req) => {
         `auth;dur=${authDuration.toFixed(1)}`,
         `access;dur=${accessDuration.toFixed(1)}`,
         `db;dur=${dbDuration.toFixed(1)}`,
+        ...Object.entries(operationDurations).map(([name, duration]) => (
+          `${name};dur=${duration.toFixed(1)}`
+        )),
         'broadcast;desc="scheduled after commit"',
         `total;dur=${totalDuration.toFixed(1)}`,
       ].join(', '),
@@ -1165,13 +1182,13 @@ Deno.serve(async (req) => {
     }
 
     if (op === 'bootstrap_scope') {
-      const [{ threads, profiles }, lastReadEventSeq, realtime, version, counts] = await Promise.all([
-        loadThreads(admin, access.scope.id),
-        loadReadState(admin, access),
-        issueTopics({ access, realtimeSecret, tokenSecret }),
-        loadVersionReference(admin, access.versionId),
-        loadThreadCounts(admin, access.scope.id),
+      const [{ threads, profiles }, lastReadEventSeq, realtime, version] = await Promise.all([
+        timeOperation('threads', () => loadThreads(admin, access.scope.id)),
+        timeOperation('read_state', () => loadReadState(admin, access)),
+        timeOperation('realtime_token', () => issueTopics({ access, realtimeSecret, tokenSecret })),
+        timeOperation('version', () => loadVersionReference(admin, access.versionId)),
       ])
+      const counts = countThreadRows(threads)
       return finalize(success({
         scope: access.scope,
         version,

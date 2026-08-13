@@ -5,7 +5,6 @@ import { useShallow } from 'zustand/react/shallow'
 import { compareAnchorOverlap } from '../anchors/selection.ts'
 import { useResumeCommentClient, useResumeCommentContext, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
-import { useCommentReadReceipt } from '../hooks/use-comment-realtime.ts'
 import { useCommentSelection } from '../hooks/use-comment-selection.ts'
 import { useHighlightGeometry } from '../hooks/use-highlight-geometry.ts'
 import { CommentsPanel } from './comments-panel.tsx'
@@ -80,7 +79,6 @@ export function CommentSurface({
     enabled,
     layoutRevision: `${layoutRevision ?? ''}:${scope?.documentRevision ?? 0}`,
   })
-  useCommentReadReceipt({ client, store, visible: open })
 
   const openThread = useCallback((threadId: string) => {
     setPicker(null)
