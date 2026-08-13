@@ -479,7 +479,7 @@ git commit -m "feat(comments): 重构递归评论树与操作反馈"
 
 - [ ] **步骤 3：实现移动固定高度与键盘**
 
-Drawer 固定 `height: 92dvh`，使用 `Drawer.VirtualKeyboardProvider`；头部、筛选栏和输入区固定，列表、空状态、评论树与新建评论区域在剩余空间滚动，处理 safe area 和横屏。
+Drawer 固定 `height: 60vh`，使用 `Drawer.VirtualKeyboardProvider`；头部、筛选栏和输入区固定，列表、空状态、评论树与新建评论区域在剩余空间滚动，处理 safe area 和横屏。
 
 - [ ] **步骤 4：修正高亮生命周期**
 

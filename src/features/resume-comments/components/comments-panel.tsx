@@ -193,7 +193,7 @@ export function CommentsPanel({
       aria-label="简历评论"
       overlayClassName="supports-backdrop-filter:backdrop-blur-none"
       className={isMobile
-        ? 'rounded-b-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] [--drawer-content-height:92dvh] [--drawer-content-max-height:92dvh] [--drawer-inset:0px]'
+        ? 'rounded-b-none border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] [--drawer-content-height:60vh] [--drawer-content-max-height:60vh] [--drawer-inset:0px]'
         : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}
     >
       <DrawerTitle className="sr-only">简历评论</DrawerTitle>

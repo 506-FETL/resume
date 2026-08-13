@@ -30,7 +30,7 @@
 - 或设备为 `hover: none`、`pointer: coarse` 且视口不超过 1024px：移动端；
 - 其余使用桌面右侧 Drawer。
 
-编辑页和分享页继续复用同一个 `CommentsPanel`，避免入口各自判断。移动端使用 `swipeDirection="down"`、底部定位、固定 `92dvh` 高度和虚拟键盘 Provider；头部、筛选栏与输入区固定，评论列表或评论树使用剩余空间独立滚动，切换筛选和详情时不改变 Drawer 高度。桌面仍从右侧进入。
+编辑页和分享页继续复用同一个 `CommentsPanel`，避免入口各自判断。移动端使用 `swipeDirection="down"`、底部定位、固定 `60vh` 高度和虚拟键盘 Provider；头部、筛选栏与输入区固定，评论列表或评论树使用剩余空间独立滚动，切换筛选和详情时不改变 Drawer 高度。桌面仍从右侧进入。
 
 ## 4. 书签入口
 

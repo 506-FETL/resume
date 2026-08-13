@@ -324,7 +324,7 @@
 
 ### 9.2 固定高度与内容滚动
 
-- Drawer 固定为 `92dvh`，列表、空状态与详情切换不改变外层高度；
+- Drawer 固定为 `60vh`，列表、空状态与详情切换不改变外层高度；
 - 头部、筛选栏和输入区固定，中间区域独立滚动；
 - 使用 Base UI `Drawer.VirtualKeyboardProvider` 协调软键盘；
 - 处理 `safe-area-inset-bottom`、横屏和极矮视口；
