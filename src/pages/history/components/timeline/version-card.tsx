@@ -67,46 +67,46 @@ export default function VersionCard({
       >
         <span
           className={cn(
-            'absolute -left-[33px] top-6 flex size-4 items-center justify-center rounded-full border-2 bg-background',
+            'absolute -left-[27px] top-4 flex size-3 items-center justify-center rounded-full border-2 bg-background',
             sourceMeta.nodeClassName,
           )}
         />
 
         <article
           className={cn(
-            'relative overflow-hidden rounded-2xl border border-border/70 bg-background transition-colors',
+            'relative overflow-hidden rounded-xl border border-border/70 bg-background transition-[color,background-color,border-color,box-shadow]',
             'hover:border-border/90 hover:shadow-xs',
             sourceMeta.surfaceClassName,
             showSelectedState && sourceMeta.selectedSurfaceClassName,
           )}
         >
-          <div className="flex items-start gap-3 px-4 py-4">
+          <div className="flex items-start gap-2.5 p-3">
             <button
               type="button"
-              className="flex min-w-0 flex-1 flex-col gap-4 text-left"
+              className="flex min-w-0 flex-1 flex-col gap-3 text-left"
               onClick={() => onSelectEntry(version.id)}
             >
-              <div className="flex min-w-0 flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className="rounded-full px-2 text-[11px]">
                     V
                     {version.version_no}
                   </Badge>
-                  <Badge className={sourceMeta.badgeClassName}>
+                  <Badge className={cn('rounded-full px-2 text-[11px]', sourceMeta.badgeClassName)}>
                     <SourceIcon data-icon="inline-start" />
                     {sourceMeta.label}
                   </Badge>
                   {version.milestone_name && (
-                    <Badge variant="outline" className="border-primary/20 text-primary">
+                    <Badge variant="outline" className="rounded-full border-primary/20 bg-primary/[0.035] px-2 text-[11px] text-primary dark:text-chart-1">
                       <Flag data-icon="inline-start" />
                       {version.milestone_name}
                     </Badge>
                   )}
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <div className="truncate text-base font-semibold sm:text-lg">{getVersionTitle(version)}</div>
-                  <div className="text-sm leading-6 text-muted-foreground">
+                <div className="flex flex-col gap-1">
+                  <div className="truncate text-sm font-semibold">{getVersionTitle(version)}</div>
+                  <div className="text-xs leading-5 text-muted-foreground">
                     {getVersionSubtitle(version)}
                     {' '}
                     ·
@@ -116,27 +116,27 @@ export default function VersionCard({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="outline">{formatDateTime(version.created_at)}</Badge>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] leading-4 text-muted-foreground">
+                <span>{formatDateTime(version.created_at)}</span>
               </div>
 
               {(version.description || (version.tags?.length ?? 0) > 0) && (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {version.description && (
-                    <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                    <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
                       {version.description}
                     </p>
                   )}
 
                   {(version.tags?.length ?? 0) > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {version.tags?.slice(0, 3).map(tag => (
-                        <Badge key={tag} variant="secondary">
+                        <Badge key={tag} variant="secondary" className="rounded-full px-2 text-[11px]">
                           {tag}
                         </Badge>
                       ))}
                       {(version.tags?.length ?? 0) > 3 && (
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="rounded-full px-2 text-[11px]">
                           +
                           {(version.tags?.length ?? 0) - 3}
                         </Badge>

@@ -42,8 +42,9 @@ export function collectPageBoundaries(root: HTMLElement) {
   const targetDocument = root.ownerDocument
   const targetNodeFilter = targetDocument.defaultView?.NodeFilter
   const rootRect = root.getBoundingClientRect()
-  const contentHeight = Math.max(root.scrollHeight, rootRect.height)
+  const layoutHeight = Math.max(root.scrollHeight, rootRect.height)
   const candidates: PageBoundary[] = [{ offset: 0, key: 'start' }]
+  let visibleContentBottom = 0
   const walker = targetDocument.createTreeWalker(
     root,
     targetNodeFilter?.SHOW_TEXT ?? 4,
@@ -57,11 +58,21 @@ export function collectPageBoundaries(root: HTMLElement) {
       const range = targetDocument.createRange()
       range.selectNodeContents(current)
       Array.from(range.getClientRects()).forEach((rect, lineIndex) => {
-        const offset = rect.top - rootRect.top
-        if (rect.width > 0 && rect.height > 0 && offset > BOUNDARY_EPSILON) {
+        const top = rect.top - rootRect.top
+        const bottom = rect.bottom - rootRect.top
+        if (rect.width > 0 && rect.height > 0) {
+          visibleContentBottom = Math.max(visibleContentBottom, bottom)
+
+          if (top > BOUNDARY_EPSILON) {
+            candidates.push({
+              offset: top,
+              key: hash(`${getNodePath(current!, root)}:${text}:${lineIndex}`),
+            })
+          }
+
           candidates.push({
-            offset,
-            key: hash(`${getNodePath(current!, root)}:${text}:${lineIndex}`),
+            offset: bottom,
+            key: hash(`${getNodePath(current!, root)}:${text}:${lineIndex}:end`),
           })
         }
       })
@@ -76,11 +87,16 @@ export function collectPageBoundaries(root: HTMLElement) {
     const rect = element.getBoundingClientRect()
     const top = rect.top - rootRect.top
     const bottom = rect.bottom - rootRect.top
-    if (rect.width > 0 && rect.height > 0 && top > BOUNDARY_EPSILON) {
-      candidates.push({
-        offset: top,
-        key: hash(`${getNodePath(element, root)}:atomic-start`),
-      })
+    if (rect.width > 0 && rect.height > 0) {
+      visibleContentBottom = Math.max(visibleContentBottom, bottom)
+
+      if (top > BOUNDARY_EPSILON) {
+        candidates.push({
+          offset: top,
+          key: hash(`${getNodePath(element, root)}:atomic-start`),
+        })
+      }
+
       candidates.push({
         offset: bottom,
         key: hash(`${getNodePath(element, root)}:atomic-end`),
@@ -88,6 +104,9 @@ export function collectPageBoundaries(root: HTMLElement) {
     }
   })
 
+  const contentHeight = visibleContentBottom > BOUNDARY_EPSILON
+    ? Math.min(layoutHeight, visibleContentBottom)
+    : layoutHeight
   candidates.push({ offset: contentHeight, key: 'end' })
   candidates.sort((left, right) => left.offset - right.offset)
 
@@ -163,10 +182,12 @@ export function createLayoutSignature({
   fontFamily: string
 }): ResumeLayoutSignature {
   const pageRect = page.getBoundingClientRect()
+  const contentHeight = segments.at(-1)?.end
+    ?? Math.max(source.scrollHeight, source.getBoundingClientRect().height)
   return {
     pageWidth: roundMetric(pageRect.width),
     pageHeight: roundMetric(pageRect.height),
-    contentHeight: roundMetric(Math.max(source.scrollHeight, source.getBoundingClientRect().height)),
+    contentHeight: roundMetric(contentHeight),
     fontFamily,
     pages: segments.map(segment => ({
       startKey: segment.startKey,

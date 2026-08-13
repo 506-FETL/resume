@@ -5,9 +5,10 @@ Always respond in Chinese-simplified.
 - `using-superpowers` 技能在本仓库的每个任务中**会自动激活**——代理（agents）必须遵循该技能，无需额外提示。
 - 每当任务涉及规划、设计、重构或构建功能（任何超出一行简单修改的工作）时，代理必须：
   1. 在任何实现之前调用 `brainstorming` 技能。
-  2. 在规格（spec）被批准后调用 `writing-plans` 技能。
-  3. 将规格保存到 `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`。
-  4. 将计划保存到 `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`。
+  2. 根据任务的复杂度来判断是否需要进行spec的编写，如果任务比较轻量级，就不需要写入 spec，直接进行实现即可；如果任务比较复杂，就进入下一步；
+  3. 在规格（spec）被批准后调用 `writing-plans` 技能。
+  4. 将规格保存到 `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`。
+  5. 将计划保存到 `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`。
 - 这些路径为强制要求；不要将规格/计划放到其他位置（不要使用 `docs/plans/`，也不要放在会话工作区的 markdown）。
 
 ## 通用规则

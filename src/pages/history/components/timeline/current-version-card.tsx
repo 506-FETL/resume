@@ -43,51 +43,51 @@ export default function CurrentVersionCard({
     <>
       <article
         className={cn(
-          'relative overflow-hidden rounded-2xl border border-primary/10 bg-linear-to-br from-primary/[0.05] via-background to-background transition-colors',
-          'hover:border-primary/20 hover:bg-primary/[0.04]',
-          selected && 'border-primary/25 bg-linear-to-br from-primary/[0.14] via-primary/[0.05] to-background ring-1 ring-primary/12',
+          'relative overflow-hidden rounded-xl border border-primary/12 bg-linear-to-br from-primary/[0.055] via-background to-background transition-[color,background-color,border-color,box-shadow]',
+          'hover:border-primary/20 hover:shadow-xs',
+          selected && 'border-primary/25 bg-linear-to-br from-primary/[0.1] via-primary/[0.035] to-background ring-1 ring-primary/10',
         )}
       >
-        <div className="flex items-start gap-3 px-4 py-4">
+        <div className="flex items-start gap-2.5 p-3">
           <button
             type="button"
-            className="flex min-w-0 flex-1 flex-col gap-4 text-left"
+            className="flex min-w-0 flex-1 flex-col gap-3 text-left"
             onClick={() => onSelectEntry('current')}
           >
-            <div className="flex min-w-0 flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="secondary" className="rounded-full border border-primary/10 bg-primary/[0.07] px-2 text-[11px] text-primary dark:text-chart-1">
                   <ShieldCheck data-icon="inline-start" />
                   当前版本
                 </Badge>
-                <Badge variant="outline" className={cn(!synced && versions.length > 0 && 'border-primary/20 text-primary')}>
+                <Badge variant="outline" className={cn('rounded-full px-2 text-[11px] text-muted-foreground', !synced && versions.length > 0 && 'border-primary/20 bg-primary/[0.035] text-primary dark:text-chart-1')}>
                   {versions.length > 0 && synced && <Sparkles data-icon="inline-start" />}
                   {syncLabel}
                 </Badge>
               </div>
 
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <div className="truncate text-base font-semibold sm:text-lg">{currentResume.displayName}</div>
-                <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+              <div className="flex min-w-0 flex-col gap-1">
+                <div className="truncate text-sm font-semibold">{currentResume.displayName}</div>
+                <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
                   {currentResume.description || '当前正在编辑的内容。'}
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] leading-4 text-muted-foreground">
+              <span>
                 上次改动
                 {' '}
                 {currentResume.updatedAt ? formatRelativeTime(currentResume.updatedAt) : '未知'}
-              </Badge>
+              </span>
               {currentResume.updatedAt && (
-                <Badge variant="outline">{formatDateTime(currentResume.updatedAt)}</Badge>
+                <span>{formatDateTime(currentResume.updatedAt)}</span>
               )}
-              <Badge variant="outline">
+              <span>
                 模板
                 {' '}
                 {getResumeTypeLabel(currentResume.type)}
-              </Badge>
+              </span>
             </div>
           </button>
 

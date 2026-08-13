@@ -109,7 +109,10 @@ export default function CanonicalPagedDocument({
           ref={setViewport}
           style={{
             position: 'absolute',
-            inset: `${pageMargin}px`,
+            top: `${pageMargin}px`,
+            right: `${pageMargin}px`,
+            bottom: 0,
+            left: `${pageMargin}px`,
           }}
         >
           <div
@@ -155,7 +158,10 @@ export default function CanonicalPagedDocument({
               data-resume-page-viewport
               style={{
                 position: 'absolute',
-                inset: `${pageMargin}px`,
+                top: `${pageMargin}px`,
+                right: `${pageMargin}px`,
+                bottom: 0,
+                left: `${pageMargin}px`,
                 overflow: 'hidden',
               }}
             >
