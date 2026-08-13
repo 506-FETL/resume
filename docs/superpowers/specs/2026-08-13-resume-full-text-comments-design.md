@@ -730,3 +730,13 @@ Composer 输入、临时菜单和 Drawer snap 状态使用组件本地状态；�
 8. 完整验证、兼容与文档。
 
 每个阶段都必须保持现有分享读取、编辑器预览和 PDF 导出可用。
+
+## 20. 实施事实与验证边界（2026-08-14）
+
+批准范围已按 16 个本地提交实现，包含稳定条目 ID、不可变分享发布批次、评论事务与语义锚点、桌面/移动 Surface、工作版本与公开分享接入、匿名身份、owner 多版本审阅、分享归档和实时协作者受限权限。
+
+桌面评论面板最终使用项目 Base UI `Drawer`：编辑器为右侧非模态 Drawer，分享页为右侧模态 Drawer；移动端使用底部 Drawer。协作者只绑定 working scope，角色由服务端会话成员记录决定。实现额外加入 host lease，避免页面刷新时旧页面的离开请求误撤销新页面恢复的主持会话；该机制不扩大批准的身份或评论范围。
+
+已验证：评论锚点/客户端/服务纯逻辑脚本、TypeScript、功能定向 ESLint、Deno check、生产构建、静态安全边界、未登录编辑器和无效分享错误边界，以及 767/768/769 px 下入口不重复。`Maximum update depth exceeded` 的已知根因是 Zustand selector 每次返回新线程数组，改用 `useShallow` 后未再复现。
+
+未验证：本地数据库迁移与 SQL 事务脚本、Edge HTTP 矩阵、当前 HEAD 的登录多身份桌面矩阵、双窗口 Realtime、真实打印/PDF，以及 iOS Safari/Android Chrome 真机。全仓 `pnpm lint` 仍受既有 lint 基线影响失败。完整证据和逐条验收状态见 `docs/superpowers/verification/2026-08-13-resume-full-text-comments.md`，不得把上述未验证项描述为已完成验收。

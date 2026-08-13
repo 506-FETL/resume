@@ -954,15 +954,15 @@ git commit -m "feat(comments): 接入分享匿名评论"
 - 修改：`src/pages/resume/editor/index.tsx`
 - 修改：`src/pages/share/view/[token].tsx`
 
-- [ ] **步骤 1：移动端保留浏览器原生选择体验**
+- [x] **步骤 1：移动端保留浏览器原生选择体验**
 
 在现有 `useIsMobile` 断点下不渲染桌面 floating bubble，不拦截 `contextmenu`、copy 或 selection handles。合法原生选区稳定后显示底部固定操作条：“已选择 N 个字 · 评论”。
 
-- [ ] **步骤 2：复用 Base UI Drawer 的两个 snap point**
+- [x] **步骤 2：复用 Base UI Drawer 的两个 snap point**
 
 评论面板移动 presentation 使用现有 `src/components/ui/drawer.tsx`，snap points 为 `0.56` 和 `0.92`，显示 swipe handle。打开/关闭不重置画布 scroll；关闭线程后滚动回原锚点仅在用户未主动滚动时执行。
 
-- [ ] **步骤 3：处理键盘、安全区和操作冲突**
+- [x] **步骤 3：处理键盘、安全区和操作冲突**
 
 Composer 聚焦时 Drawer 提升至 92%；底部 padding 使用 `env(safe-area-inset-bottom)`；操作条避开现有编辑器底部按钮。编辑 Drawer、评论 Drawer 和分享页其他 modal 同时最多打开一个。
 
@@ -981,7 +981,7 @@ Composer 聚焦时 Drawer 提升至 92%；底部 padding 使用 `env(safe-area-i
 
 记录设备、系统、浏览器版本和结果；失败时不得用静态检查宣称通过。
 
-- [ ] **步骤 6：静态验证与提交**
+- [x] **步骤 6：静态验证与提交**
 
 ```bash
 pnpm exec tsc --noEmit --pretty false
@@ -1022,27 +1022,27 @@ git commit -m "feat(comments): 完成移动端评论交互"
 - 修改：`src/pages/history/components/detail-panel/detail-header.tsx`
 - 修改：`src/lib/supabase/resume/history/queries.ts`
 
-- [ ] **步骤 1：实现 owner 评论来源列表**
+- [x] **步骤 1：实现 owner 评论来源列表**
 
 编辑器 Drawer 来源包含当前工作、历史版本、分享反馈和已归档分享。当前/历史按文档顺序，分享反馈按最后活动倒序，展示未读与 release 编号。同一 underlying V1 的两个 share release 始终是两个独立项。
 
-- [ ] **步骤 2：切换不可变只读审阅模式**
+- [x] **步骤 2：切换不可变只读审阅模式**
 
 选择 history/share release 时加载其 snapshot + template manifest + scope，保存当前编辑器 scroll、选中 section、EditPanel 状态和工作快照引用，画布切为只读。退出审阅恢复原工作版本与 UI；审阅模式禁止表单持久化和 working document sync。
 
-- [ ] **步骤 3：实现手动重新关联**
+- [x] **步骤 3：实现手动重新关联**
 
 detached 线程显示原引用和字段名。owner 或 root 作者点击“重新关联”后进入一次性选区模式，仅接受当前目标 scope 的合法文本，提交 expected thread revision + document hash；失败保留 thread 和选择提示。
 
-- [ ] **步骤 4：加入 `allow_comments` 设置**
+- [x] **步骤 4：加入 `allow_comments` 设置**
 
 分享设置 Dialog 增加默认开启的 Switch。关闭后 owner 内部仍能管理；公开页面收到设置事件后转只读。快速分享、管理页卡片和移动列表都显示“允许评论/仅查看”。
 
-- [ ] **步骤 5：区分归档和永久删除**
+- [x] **步骤 5：区分归档和永久删除**
 
 原主操作“删除分享”改为“归档分享”，由新 `archive-dialog` 确认：外部立即不可访问，owner 仍在“已归档”来源审阅。现有 `delete-dialog` 保留为次级“永久删除”，并明确 release 和评论不可恢复。重新发布同 URL 创建空评论的新 release，旧 release 仅 owner 可见。
 
-- [ ] **步骤 6：历史版本删除同步清理评论**
+- [x] **步骤 6：历史版本删除同步清理评论**
 
 历史删除改用 `delete_resume_history_version_with_comments` RPC；确认文案明确“该历史版本的内部评论也会永久删除，已发布分享不受影响”。删除成功后编辑器若正在审阅该 history，退出到 working。
 
@@ -1050,7 +1050,7 @@ detached 线程显示原引用和字段名。owner 或 root 作者点击“重�
 
 覆盖：working 保存 history 不复制评论；同 V1 两个链接隔离；同 URL republish 新 release 为空；旧 release owner 可审阅、visitor 不可读；历史删除清内部 scope、不影响 release；归档保留、永久删除级联。
 
-- [ ] **步骤 8：静态验证与提交**
+- [x] **步骤 8：静态验证与提交**
 
 ```bash
 pnpm exec tsc --noEmit --pretty false
@@ -1080,15 +1080,15 @@ git commit -m "feat(comments): 完成版本审阅与分享归档"
 - 修改：`supabase/functions/shared/resume-comment-auth.ts`
 - 修改：`supabase/migrations/20260813000002_add_resume_comments.sql`
 
-- [ ] **步骤 1：增加服务端可验证的协作成员记录**
+- [x] **步骤 1：增加服务端可验证的协作成员记录**
 
 迁移增加 `resume_comment_collaboration_sessions` 与 members：session_id、resume_id、owner_user_id、user_id、role、expires_at、revoked_at。只允许 service role 写；客户端声明 role 不参与授权。
 
-- [ ] **步骤 2：接入 host/join/leave 生命周期**
+- [x] **步骤 2：接入 host/join/leave 生命周期**
 
 owner 开始协作时注册 session；已登录 guest 成功加入后换取绑定 session_id/resume_id/user_id/role 的短期评论 token；续期需 active session；leave、host stop、resume 切换和超时撤销。
 
-- [ ] **步骤 3：限制协作者可见范围和动作**
+- [x] **步骤 3：限制协作者可见范围和动作**
 
 collaborator 只能 bootstrap working scope，不能请求 history/share feedback/archive；可创建、回复、编辑/删除自己的内容；只能 resolve/reopen/relink 自己创建的 root；不能删除他人或整线程。
 
@@ -1107,13 +1107,15 @@ pnpm exec eslint src/lib/collaboration/session/types.ts src/lib/collaboration/se
 git diff --check
 ```
 
-- [ ] **步骤 6：提交协作者权限**
+- [x] **步骤 6：提交协作者权限**
 
 ```bash
 git add supabase/migrations/20260813000002_add_resume_comments.sql supabase/tests/resume-comments.sql supabase/functions/shared/resume-comment-auth.ts supabase/functions/resume-comments/index.ts src/lib/collaboration/session/types.ts src/lib/collaboration/session/store.ts src/lib/collaboration/session/service.ts src/lib/collaboration/session/state.ts src/pages/resume/editor/hooks/use-collaboration-panel-value.ts
 git diff --cached --name-status
 git commit -m "feat(comments): 接入实时协作者权限"
 ```
+
+验证记录（2026-08-14）：协作会话与成员记录、host lease、join/renew/leave、working-only scope 和 editor/viewer UI 权限已在 `d966012` 提交。角色签名篡改、稳定 token 轮换键、跨 resume/session/member 的服务端复核已由服务脚本与静态检查覆盖；TypeScript、定向 ESLint、Deno check、三套评论脚本和生产构建通过。本机没有 Docker/Podman，SQL 和 HTTP 接口矩阵未实跑，因此步骤 4、5 保持未勾选。
 
 ---
 
@@ -1156,15 +1158,15 @@ Chromium 至少覆盖：owner working、history、两个 share、republish、arc
 
 记录 iOS Safari 与 Android Chrome 的设备、系统、浏览器版本和每项结果。若环境没有真实设备，明确标记“未验证”，不能用响应式桌面模拟替代完成状态。
 
-- [ ] **步骤 5：审计安全和隐私边界**
+- [x] **步骤 5：审计安全和隐私边界**
 
 确认：数据库无匿名 secret 原文和原始 IP；公开响应无 owner 私有版本列表；Realtime 无正文；评论表无直接 anon/authenticated grant；旧 release token 失效；URL 协议白名单；正文无 `dangerouslySetInnerHTML`；PDF/打印树无评论 UI。
 
-- [ ] **步骤 6：记录发布与回滚顺序**
+- [x] **步骤 6：记录发布与回滚顺序**
 
 验证文档写明：先部署迁移，再部署两个 Edge Function，再部署前端；旧列保留用于回滚。回滚前端时仍能从兼容旧列读取；不要回滚已产生 release/comment 数据的迁移。正式清理旧 snapshot 列必须另开规格与迁移。
 
-- [ ] **步骤 7：最终复核提交边界**
+- [x] **步骤 7：最终复核提交边界**
 
 ```bash
 git status --short
@@ -1175,13 +1177,15 @@ git diff upstream/feat/comment...HEAD --check
 
 确认没有 `.env`、本地 Supabase 数据、匿名 secret、截图、设备标识或 `.superpowers/brainstorm/` 进入提交。
 
-- [ ] **步骤 8：提交验证记录**
+- [x] **步骤 8：提交验证记录**
 
 ```bash
 git add docs/superpowers/specs/2026-08-13-resume-full-text-comments-design.md docs/superpowers/plans/2026-08-13-resume-full-text-comments.md docs/superpowers/verification/2026-08-13-resume-full-text-comments.md
 git diff --cached --name-status
 git commit -m "docs(comments): 记录全文评论验证结果"
 ```
+
+验证记录（2026-08-14）：完整证据见 `docs/superpowers/verification/2026-08-13-resume-full-text-comments.md`。纯逻辑、TypeScript、定向 ESLint、Deno check、生产构建、diff 与未登录浏览器错误边界通过；全仓 `pnpm lint` 因既有基线返回 1856 errors/12 warnings，本地数据库因缺少容器环境未运行，桌面登录态完整矩阵和 iOS/Android 真机均未验证。因此步骤 1–4 保持未勾选，功能不能宣称全链路验收完成。
 
 ---
 
