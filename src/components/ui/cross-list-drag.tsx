@@ -1,7 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
 import type {
+  KeyboardEventHandler,
   MouseEventHandler,
   PointerEventHandler,
+  KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   ReactNode,
   PointerEvent as ReactPointerEvent,
@@ -59,6 +61,7 @@ export interface CrossListScrollArea {
 
 interface ContainerRegistration {
   id: string
+  label: string
   element: HTMLElement
   itemIds: string[]
   axis: DragAxis
@@ -66,7 +69,7 @@ interface ContainerRegistration {
 }
 
 interface DragSession {
-  kind: 'pointer' | 'touch'
+  kind: 'pointer' | 'touch' | 'keyboard'
   pointerId: number
   itemId: string
   sourceId: string
@@ -80,6 +83,7 @@ interface DragSession {
 }
 
 interface ActiveDrag {
+  kind: DragSession['kind']
   itemId: string
   sourceId: string
   sourceIndex: number
@@ -98,14 +102,23 @@ interface CrossListDragContextValue {
     event: ReactTouchEvent<HTMLElement>,
     item: Pick<DragSession, 'itemId' | 'sourceId' | 'sourceIndex'>,
   ) => void
+  handleKeyboardDrag: (
+    event: ReactKeyboardEvent<HTMLElement>,
+    item: Pick<DragSession, 'itemId' | 'sourceId' | 'sourceIndex'>,
+  ) => void
   suppressClick: (event: ReactMouseEvent<HTMLElement>, itemId: string) => void
 }
 
 interface CrossListDragItemProps {
   'data-motion-drag-item': string
   'data-motion-drag-container-id': string
+  'role': 'listitem'
+  'tabIndex': number
+  'aria-roledescription': string
+  'aria-keyshortcuts': string
   'onPointerDown': PointerEventHandler<HTMLElement>
   'onTouchStart': TouchEventHandler<HTMLElement>
+  'onKeyDown': KeyboardEventHandler<HTMLElement>
   'onClickCapture': MouseEventHandler<HTMLElement>
 }
 
@@ -155,6 +168,7 @@ export function CrossListDragProvider({
   const overlayY = useMotionValue(0)
   const [active, setActive] = useState<ActiveDrag | null>(null)
   const [destination, setDestination] = useState<DropDestination | null>(null)
+  const [liveMessage, setLiveMessage] = useState('')
 
   useEffect(() => {
     scrollAreasRef.current = scrollAreas
@@ -320,6 +334,7 @@ export function CrossListDragProvider({
     document.body.style.cursor = 'grabbing'
     document.body.style.userSelect = 'none'
     setActive({
+      kind: session.kind,
       itemId: session.itemId,
       sourceId: session.sourceId,
       sourceIndex: session.sourceIndex,
@@ -334,7 +349,9 @@ export function CrossListDragProvider({
       return
     }
 
-    const result = session.active && session.destination
+    const destinationIsValid = session.destination !== null
+      && containersRef.current.has(session.destination.containerId)
+    const result = session.active && session.destination && destinationIsValid
       ? {
           itemId: session.itemId,
           sourceId: session.sourceId,
@@ -344,7 +361,7 @@ export function CrossListDragProvider({
         }
       : null
 
-    if (session.active) {
+    if (session.active && session.kind !== 'keyboard') {
       suppressClickRef.current = {
         itemId: session.itemId,
         until: performance.now() + 350,
@@ -403,6 +420,164 @@ export function CrossListDragProvider({
     session.touchTimer = window.setTimeout(activateSession, TOUCH_ACTIVATION_DELAY)
     sessionRef.current = session
   }, [activateSession])
+
+  const describeDestination = useCallback((next: DropDestination): string => {
+    const container = containersRef.current.get(next.containerId)
+    if (!container)
+      return ''
+    return `已移动到${container.label}第 ${next.index + 1} 位`
+  }, [])
+
+  const handleKeyboardDrag = useCallback((
+    event: ReactKeyboardEvent<HTMLElement>,
+    item: Pick<DragSession, 'itemId' | 'sourceId' | 'sourceIndex'>,
+  ) => {
+    if (isInteractiveTarget(event.target, event.currentTarget))
+      return
+
+    const session = sessionRef.current
+    if (!session) {
+      if (event.key !== ' ' && event.key !== 'Enter')
+        return
+      const source = containersRef.current.get(item.sourceId)
+      if (!source)
+        return
+
+      event.preventDefault()
+      event.stopPropagation()
+      const startRect = event.currentTarget.getBoundingClientRect()
+      const initialDestination = {
+        containerId: item.sourceId,
+        index: item.sourceIndex,
+      }
+      sessionRef.current = {
+        kind: 'keyboard',
+        pointerId: -1,
+        ...item,
+        itemElement: event.currentTarget,
+        startPoint: { x: startRect.left, y: startRect.top },
+        startRect,
+        active: true,
+        touchTimer: null,
+        destination: initialDestination,
+      }
+      setActive({ kind: 'keyboard', ...item, startRect })
+      setDestination(initialDestination)
+      setLiveMessage(`已拾取可拖动项目，当前位置为${source.label}第 ${item.sourceIndex + 1} 位`)
+      return
+    }
+
+    if (session.kind !== 'keyboard' || session.itemId !== item.itemId)
+      return
+
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      clearSession()
+      setLiveMessage('已取消拖动')
+      return
+    }
+
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault()
+      event.stopPropagation()
+      const finalDestination = session.destination
+      finishSession()
+      setLiveMessage(finalDestination
+        ? `已放置，${describeDestination(finalDestination)}`
+        : '已取消拖动')
+      return
+    }
+
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key))
+      return
+
+    event.preventDefault()
+    event.stopPropagation()
+    const containers = [...containersRef.current.values()]
+    const currentDestination = session.destination ?? {
+      containerId: session.sourceId,
+      index: session.sourceIndex,
+    }
+    let target = containersRef.current.get(currentDestination.containerId)
+    if (!target)
+      return
+
+    let nextIndex = currentDestination.index
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const currentContainerIndex = containers.findIndex(container => container.id === target?.id)
+      const containerDelta = event.key === 'ArrowLeft' ? -1 : 1
+      const nextContainer = containers[currentContainerIndex + containerDelta]
+      if (!nextContainer)
+        return
+      target = nextContainer
+      const targetLength = target.itemIds.filter(id => id !== session.itemId).length
+      nextIndex = Math.min(nextIndex, targetLength)
+    }
+    else {
+      const itemCountWithoutActive = target.itemIds.filter(id => id !== session.itemId).length
+      const itemDelta = event.key === 'ArrowUp' ? -1 : 1
+      nextIndex = Math.max(0, Math.min(itemCountWithoutActive, nextIndex + itemDelta))
+      if (nextIndex === currentDestination.index)
+        return
+    }
+
+    const nextDestination = { containerId: target.id, index: nextIndex }
+    session.destination = nextDestination
+    setDestination(nextDestination)
+    setLiveMessage(describeDestination(nextDestination))
+  }, [clearSession, describeDestination, finishSession])
+
+  useEffect(() => {
+    if (active?.kind !== 'keyboard')
+      return
+
+    const cancelKeyboardSession = () => {
+      if (sessionRef.current?.kind !== 'keyboard')
+        return
+      clearSession()
+      setLiveMessage('已取消拖动')
+    }
+    const handleFocusIn = (event: FocusEvent) => {
+      const session = sessionRef.current
+      if (session?.kind !== 'keyboard' || !(event.target instanceof Node))
+        return
+      if (!session.itemElement.contains(event.target))
+        cancelKeyboardSession()
+    }
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || sessionRef.current?.kind !== 'keyboard')
+        return
+      event.preventDefault()
+      event.stopPropagation()
+      cancelKeyboardSession()
+    }
+
+    document.addEventListener('focusin', handleFocusIn, true)
+    window.addEventListener('keydown', handleGlobalKeyDown, true)
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn, true)
+      window.removeEventListener('keydown', handleGlobalKeyDown, true)
+    }
+  }, [active, clearSession])
+
+  useEffect(() => {
+    const session = sessionRef.current
+    if (session?.kind !== 'keyboard')
+      return
+    const source = containersRef.current.get(session.sourceId)
+    const target = session.destination
+      ? containersRef.current.get(session.destination.containerId)
+      : null
+    if (
+      !session.itemElement.isConnected
+      || !source?.itemIds.includes(session.itemId)
+      || !target
+    ) {
+      clearSession()
+      setLiveMessage('拖动项目已变化，已取消拖动')
+    }
+  }, [active, children, clearSession, destination])
 
   const suppressClick = useCallback((event: ReactMouseEvent<HTMLElement>, itemId: string) => {
     const suppressed = suppressClickRef.current
@@ -509,13 +684,25 @@ export function CrossListDragProvider({
     registerContainer,
     beginPointerDrag,
     beginTouchDrag,
+    handleKeyboardDrag,
     suppressClick,
-  }), [active, beginPointerDrag, beginTouchDrag, destination, registerContainer, suppressClick])
+  }), [
+    active,
+    beginPointerDrag,
+    beginTouchDrag,
+    destination,
+    handleKeyboardDrag,
+    registerContainer,
+    suppressClick,
+  ])
 
   return (
     <CrossListDragContext value={context}>
       {children}
-      {active && typeof document !== 'undefined' && createPortal(
+      <div aria-atomic="true" aria-live="polite" className="sr-only">
+        {liveMessage}
+      </div>
+      {active?.kind !== 'keyboard' && active && typeof document !== 'undefined' && createPortal(
         <motion.div
           aria-hidden="true"
           initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
@@ -550,11 +737,13 @@ function useCrossListDragContext(): CrossListDragContextValue {
 
 export function useCrossListContainer({
   id,
+  label = id,
   itemIds,
   axis = 'y',
   scrollRef,
 }: {
   id: string
+  label?: string
   itemIds: string[]
   axis?: DragAxis
   scrollRef?: RefObject<HTMLElement | null>
@@ -562,29 +751,53 @@ export function useCrossListContainer({
   ref: RefCallback<HTMLElement>
   active: boolean
   destinationIndex: number | null
+  activeSourceId: string | null
+  activeSourceIndex: number | null
 } {
   const context = useCrossListDragContext()
-  const { registerContainer, destination } = context
+  const { active, registerContainer, destination } = context
   const unregisterRef = useRef<(() => void) | null>(null)
+  const elementRef = useRef<HTMLElement | null>(null)
   const itemIdsKey = itemIds.join('\u0000')
   const registeredItemIds = useMemo(
     () => itemIdsKey === '' ? [] : itemIdsKey.split('\u0000'),
     [itemIdsKey],
   )
+  const registrationRef = useRef({ label, itemIds: registeredItemIds, axis, scrollRef })
+  registrationRef.current = { label, itemIds: registeredItemIds, axis, scrollRef }
 
   const ref = useCallback<RefCallback<HTMLElement>>((element) => {
-    unregisterRef.current?.()
-    unregisterRef.current = null
+    elementRef.current = element
+    if (!element) {
+      unregisterRef.current?.()
+      unregisterRef.current = null
+      return
+    }
+    const registration = registrationRef.current
+    unregisterRef.current = registerContainer({
+      id,
+      label: registration.label,
+      element,
+      itemIds: registration.itemIds,
+      axis: registration.axis,
+      scrollElement: registration.scrollRef?.current ?? element,
+    })
+  }, [id, registerContainer])
+
+  useEffect(() => {
+    const element = elementRef.current
     if (element) {
+      const registration = registrationRef.current
       unregisterRef.current = registerContainer({
         id,
+        label: registration.label,
         element,
-        itemIds: registeredItemIds,
-        axis,
-        scrollElement: scrollRef?.current ?? element,
+        itemIds: registration.itemIds,
+        axis: registration.axis,
+        scrollElement: registration.scrollRef?.current ?? element,
       })
     }
-  }, [axis, id, registerContainer, registeredItemIds, scrollRef])
+  }, [axis, id, label, registerContainer, registeredItemIds, scrollRef])
 
   useEffect(() => () => unregisterRef.current?.(), [])
 
@@ -594,6 +807,8 @@ export function useCrossListContainer({
     destinationIndex: destination?.containerId === id
       ? destination.index
       : null,
+    activeSourceId: active?.sourceId ?? null,
+    activeSourceIndex: active?.sourceIndex ?? null,
   }
 }
 
@@ -610,10 +825,20 @@ export function useCrossListItem({
   getDragProps: () => CrossListDragItemProps
 } {
   const context = useCrossListDragContext()
-  const { active, beginPointerDrag, beginTouchDrag, suppressClick } = context
+  const {
+    active,
+    beginPointerDrag,
+    beginTouchDrag,
+    handleKeyboardDrag,
+    suppressClick,
+  } = context
   const getDragProps = useCallback((): CrossListDragItemProps => ({
     'data-motion-drag-item': id,
     'data-motion-drag-container-id': containerId,
+    'role': 'listitem',
+    'tabIndex': 0,
+    'aria-roledescription': '可拖动项目',
+    'aria-keyshortcuts': 'Space Enter ArrowUp ArrowDown ArrowLeft ArrowRight Escape',
     'onPointerDown': event => beginPointerDrag(event, {
       itemId: id,
       sourceId: containerId,
@@ -624,8 +849,21 @@ export function useCrossListItem({
       sourceId: containerId,
       sourceIndex: index,
     }),
+    'onKeyDown': event => handleKeyboardDrag(event, {
+      itemId: id,
+      sourceId: containerId,
+      sourceIndex: index,
+    }),
     'onClickCapture': event => suppressClick(event, id),
-  }), [beginPointerDrag, beginTouchDrag, containerId, id, index, suppressClick])
+  }), [
+    beginPointerDrag,
+    beginTouchDrag,
+    containerId,
+    handleKeyboardDrag,
+    id,
+    index,
+    suppressClick,
+  ])
 
   return {
     dragging: active?.itemId === id,

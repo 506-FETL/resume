@@ -344,15 +344,15 @@ git commit -m "chore(drag): 移除旧拖拽依赖并补齐验证"
 **文件：**
 - 修改：审查发现需要修复的对应文件
 
-- [ ] **步骤 1：请求代码审查**
+- [x] **步骤 1：请求代码审查**
 
 审查范围从规格提交 `16b2e19` 到当前 HEAD，并要求重点检查：指针监听清理、滚动竞争、交互控件误触、跨列表索引、业务状态提交次数和 reduced-motion。
 
-- [ ] **步骤 2：修复 Critical/Important 反馈**
+- [x] **步骤 2：修复 Critical/Important 反馈**
 
 每一项反馈都以源码和交互验证复核；Minor 只在不扩大范围时处理。
 
-- [ ] **步骤 3：重新运行最终门禁**
+- [x] **步骤 3：重新运行最终门禁**
 
 ```bash
 node --experimental-strip-types scripts/verify-motion-drag.ts
@@ -365,7 +365,7 @@ git status --short
 
 预期：所有命令退出码为 0，仅存在明确准备提交的文件。
 
-- [ ] **步骤 4：提交审查修复**
+- [x] **步骤 4：提交审查修复**
 
 ```bash
 git add src scripts docs package.json pnpm-lock.yaml

@@ -64,7 +64,7 @@ export function SortableTab({
             boxShadow: '0 12px 28px rgb(0 0 0 / 0.16)',
             zIndex: 10,
           }}
-      transition={MOTION_REORDER_TRANSITION}
+      transition={reduceMotion ? { duration: 0 } : MOTION_REORDER_TRANSITION}
       onDrag={(_event, info) => {
         const scrollContainer = itemRef.current?.parentElement?.parentElement
         autoScrollAtEdge(scrollContainer ?? null, info.point, 'x')

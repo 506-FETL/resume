@@ -67,13 +67,27 @@ export function useMotionReorder<T>({
   dragging: boolean
   startDragging: () => void
   finishDragging: () => void
+  cancelDragging: () => void
   moveByKeyboard: (value: T, direction: -1 | 1) => void
 } {
-  const [draft, setDraft] = useState(values)
+  const [draft, setDraftState] = useState(values)
   const [dragging, setDragging] = useState(false)
   const startSnapshotRef = useRef(values)
   const draftRef = useRef(draft)
   const onCommitRef = useRef(onCommit)
+  const cancelledRef = useRef(false)
+
+  const setDraft = useCallback<Dispatch<SetStateAction<T[]>>>((nextValue) => {
+    setDraftState((current) => {
+      if (cancelledRef.current)
+        return startSnapshotRef.current
+      const next = typeof nextValue === 'function'
+        ? nextValue(current)
+        : nextValue
+      draftRef.current = next
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     draftRef.current = draft
@@ -85,22 +99,45 @@ export function useMotionReorder<T>({
 
   useEffect(() => {
     if (syncValuesWhileIdle && !dragging && !arraysEqual(draftRef.current, values)) {
-      setDraft(values)
+      setDraftState(values)
       draftRef.current = values
     }
   }, [dragging, syncValuesWhileIdle, values])
 
   const startDragging = useCallback(() => {
+    cancelledRef.current = false
     startSnapshotRef.current = draftRef.current
     setDragging(true)
   }, [])
 
   const finishDragging = useCallback(() => {
+    if (cancelledRef.current) {
+      setDragging(false)
+      return
+    }
     const next = draftRef.current
     setDragging(false)
     if (!arraysEqual(startSnapshotRef.current, next))
       onCommitRef.current(next)
   }, [])
+
+  const cancelDragging = useCallback(() => {
+    cancelledRef.current = true
+    draftRef.current = startSnapshotRef.current
+    setDraftState(startSnapshotRef.current)
+    setDragging(false)
+  }, [])
+
+  useEffect(() => {
+    if (!dragging)
+      return
+    window.addEventListener('pointercancel', cancelDragging, true)
+    window.addEventListener('blur', cancelDragging)
+    return () => {
+      window.removeEventListener('pointercancel', cancelDragging, true)
+      window.removeEventListener('blur', cancelDragging)
+    }
+  }, [cancelDragging, dragging])
 
   const moveByKeyboard = useCallback((value: T, direction: -1 | 1) => {
     const current = draftRef.current
@@ -112,7 +149,7 @@ export function useMotionReorder<T>({
     const next = moveArrayItem(current, sourceIndex, destinationIndex)
     draftRef.current = next
     startSnapshotRef.current = next
-    setDraft(next)
+    setDraftState(next)
     if (commitOnKeyboard)
       onCommitRef.current(next)
   }, [commitOnKeyboard])
@@ -123,6 +160,7 @@ export function useMotionReorder<T>({
     dragging,
     startDragging,
     finishDragging,
+    cancelDragging,
     moveByKeyboard,
   }
 }

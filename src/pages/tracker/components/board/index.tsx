@@ -58,7 +58,7 @@ function BoardJobItem({
             opacity: { duration: 0.12 },
             delay: dragging ? 0 : Math.min(index, 8) * 0.03,
           }}
-      className="cursor-grab active:cursor-grabbing"
+      className="cursor-grab rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing"
     >
       <ColumnCard job={job} />
     </motion.div>
@@ -80,6 +80,7 @@ function BoardColumnDropArea({
   const itemIds = useMemo(() => jobs.map(job => job.id), [jobs])
   const { ref: registerContainerRef, active } = useCrossListContainer({
     id: status,
+    label: APPLICATION_STATUS_CONFIG[status].label,
     itemIds,
     axis: 'y',
     scrollRef,
@@ -92,6 +93,8 @@ function BoardColumnDropArea({
   return (
     <div
       ref={setContainerRef}
+      role="list"
+      aria-label={`${APPLICATION_STATUS_CONFIG[status].label}职位`}
       data-motion-drop-container={status}
       className={cn(
         'scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
@@ -192,11 +195,8 @@ export default function BoardView() {
       })
   }
 
-  const handleDrop = ({ itemId, sourceId, destinationId }: CrossListDropResult) => {
+  const handleDrop = ({ itemId, destinationId }: CrossListDropResult) => {
     const newStatus = destinationId as ApplicationStatus
-    if (sourceId === destinationId)
-      return
-
     const currentJob = useTrackerStore.getState().jobs.find(job => job.id === itemId)
     if (!currentJob || currentJob.status === newStatus)
       return

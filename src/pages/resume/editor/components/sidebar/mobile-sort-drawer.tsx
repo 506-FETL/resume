@@ -1,7 +1,7 @@
 import type { ReactNode, RefObject } from 'react'
 import type { ORDERType } from '@/lib/schema'
 import { GripVertical, X } from 'lucide-react'
-import { Reorder, useDragControls } from 'motion/react'
+import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +44,7 @@ function MobileSortItem({
   onKeyboardMove: (id: ORDERType, direction: -1 | 1) => void
 }) {
   const dragControls = useDragControls()
+  const reduceMotion = useReducedMotion()
 
   return (
     <Reorder.Item
@@ -55,12 +56,14 @@ function MobileSortItem({
       layout="position"
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      whileDrag={{
-        scale: 1.015,
-        boxShadow: '0 12px 28px rgb(0 0 0 / 0.16)',
-        zIndex: 10,
-      }}
-      transition={MOTION_REORDER_TRANSITION}
+      whileDrag={reduceMotion
+        ? { zIndex: 10 }
+        : {
+            scale: 1.015,
+            boxShadow: '0 12px 28px rgb(0 0 0 / 0.16)',
+            zIndex: 10,
+          }}
+      transition={reduceMotion ? { duration: 0 } : MOTION_REORDER_TRANSITION}
       onDrag={(_event, info) => {
         autoScrollAtEdge(scrollRef.current, info.point, 'y')
       }}
@@ -92,6 +95,7 @@ function MobileSortItem({
 export function MobileSortDrawer({ open, order, onOpenChange, onConfirm }: MobileSortDrawerProps) {
   const initialDraft = order.filter(id => id !== 'basics')
   const listRef = useRef<HTMLUListElement | null>(null)
+  const wasOpenRef = useRef(false)
   const {
     draft,
     setDraft,
@@ -107,8 +111,9 @@ export function MobileSortDrawer({ open, order, onOpenChange, onConfirm }: Mobil
   })
 
   useEffect(() => {
-    if (open)
+    if (open && !wasOpenRef.current)
       setDraft(order.filter(id => id !== 'basics'))
+    wasOpenRef.current = open
   }, [open, order, setDraft])
 
   const handleConfirm = () => {

@@ -46,7 +46,7 @@ function SectionCard({
       layout="position"
       transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
       className={cn(
-        'cursor-grab rounded-xl border bg-card p-3 shadow-sm transition-[border-color,box-shadow,opacity] active:cursor-grabbing',
+        'cursor-grab rounded-xl border bg-card p-3 shadow-sm transition-[border-color,box-shadow,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing',
         selected && 'border-primary ring-2 ring-primary/10',
         dragging && 'opacity-35',
       )}
@@ -71,11 +71,13 @@ function SectionCard({
 }
 
 function DropIndicator() {
+  const reduceMotion = useReducedMotion()
   return (
     <motion.div
       aria-hidden="true"
-      initial={{ opacity: 0, scaleX: 0.8 }}
+      initial={reduceMotion ? false : { opacity: 0, scaleX: 0.8 }}
       animate={{ opacity: 1, scaleX: 1 }}
+      transition={{ duration: reduceMotion ? 0 : 0.12 }}
       className="pointer-events-none h-0.5 rounded-full bg-primary"
     />
   )
@@ -99,12 +101,26 @@ function SectionList({
   onToggleVisible: (sectionId: string) => void
 }) {
   const itemIds = useMemo(() => items.map(item => item.sectionId), [items])
-  const { ref, active, destinationIndex } = useCrossListContainer({
+  const {
+    ref,
+    active,
+    destinationIndex,
+    activeSourceId,
+    activeSourceIndex,
+  } = useCrossListContainer({
     id: containerId,
+    label,
     itemIds,
     axis: 'y',
     scrollRef,
   })
+  const visualDestinationIndex = active
+    && destinationIndex !== null
+    && activeSourceId === containerId
+    && activeSourceIndex !== null
+    && destinationIndex > activeSourceIndex
+    ? destinationIndex + 1
+    : destinationIndex
 
   return (
     <div className="flex flex-col gap-3">
@@ -115,6 +131,8 @@ function SectionList({
 
       <div
         ref={ref}
+        role="list"
+        aria-label={`${label}模块`}
         data-motion-drop-container={containerId}
         className={cn(
           'flex min-h-30 flex-col gap-2 rounded-2xl border border-dashed p-3 transition-colors',
@@ -124,7 +142,7 @@ function SectionList({
         {items.length > 0
           ? items.map((section, index) => (
               <div key={section.sectionId} className="contents">
-                {active && destinationIndex === index && <DropIndicator />}
+                {active && visualDestinationIndex === index && <DropIndicator />}
                 <SectionCard
                   section={section}
                   containerId={containerId}
@@ -142,7 +160,7 @@ function SectionList({
                 拖动模块到这里
               </div>
             )}
-        {active && destinationIndex === items.length && <DropIndicator />}
+        {active && visualDestinationIndex === items.length && <DropIndicator />}
       </div>
     </div>
   )
@@ -172,8 +190,6 @@ export function TemplateStructurePanel() {
 
   const handleDrop = ({
     itemId,
-    sourceId,
-    sourceIndex,
     destinationId,
     destinationIndex,
   }: {
@@ -183,21 +199,32 @@ export function TemplateStructurePanel() {
     destinationId: string
     destinationIndex: number
   }) => {
-    const sourceRegion = sourceId as TemplateSection['region']
+    const latestManifest = useTemplateEditorStore.getState().manifestDraft
+    if (!latestManifest)
+      return
+
+    const sourceSection = latestManifest.sections.find(section => section.sectionId === itemId)
+    if (!sourceSection)
+      return
+
+    const sourceRegion = sourceSection.region
     const destinationRegion = destinationId as TemplateSection['region']
     if (sourceRegion === destinationRegion) {
-      const sections = sourceRegion === 'main' ? mainSections : sidebarSections
+      const sections = latestManifest.sections.filter(section => section.region === sourceRegion)
+      const latestSourceIndex = sections.findIndex(section => section.sectionId === itemId)
+      if (latestSourceIndex < 0)
+        return
       const orderedSectionIds = moveArrayItem(
         sections.map(section => section.sectionId),
-        sourceIndex,
+        latestSourceIndex,
         destinationIndex,
       )
       if (orderedSectionIds.some((id, index) => id !== sections[index]?.sectionId))
-        applyManifest(reorderSections(manifest, sourceRegion, orderedSectionIds))
+        applyManifest(reorderSections(latestManifest, sourceRegion, orderedSectionIds))
       return
     }
 
-    applyManifest(moveSectionRegion(manifest, itemId, destinationRegion, destinationIndex))
+    applyManifest(moveSectionRegion(latestManifest, itemId, destinationRegion, destinationIndex))
   }
 
   return (
