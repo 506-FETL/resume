@@ -1,4 +1,5 @@
-import { BrainCircuit, FileCheck2, Layers3, Target } from 'lucide-react'
+import { BrainCircuit, Layers3 } from 'lucide-react'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SCORE_LABELS } from '../../const'
@@ -15,43 +16,47 @@ export default function AssessmentBasisCard() {
     .filter(([, score]) => score.rationale)
 
   return (
-    <Card className="md:col-span-2 lg:col-span-4 overflow-hidden border-primary/15 shadow-sm">
-      <CardHeader className="border-b border-border/50 bg-muted/20 pb-4">
+    <Card className="min-w-0 overflow-hidden border-primary/10 shadow-sm">
+      <CardHeader className="border-b border-border/60 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="rounded-md bg-primary/10 p-2 text-primary">
+            <div className="rounded-md bg-primary/10 p-1.5 text-primary">
               <BrainCircuit className="size-4" />
             </div>
-            <CardTitle className="text-lg">本次评分依据</CardTitle>
+            <div>
+              <CardTitle className="text-base md:text-lg">各维度判断理由</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">点击维度查看完整说明</p>
+            </div>
           </div>
           <Badge variant="secondary" className="rounded-full">内容自适应评分 2.0</Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="grid gap-5 p-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <div className="rounded-xl border border-border/60 bg-background p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <FileCheck2 className="size-3.5" />
-                候选人画像
-              </div>
-              <p className="text-sm leading-6 text-foreground">{assessment.candidateProfile}</p>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-background p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Target className="size-3.5" />
-                推断方向
-              </div>
-              <p className="text-sm leading-6 text-foreground">{assessment.inferredTarget}</p>
-            </div>
-          </div>
+      <CardContent className="p-0">
+        <Accordion type="single" collapsible className="px-4 md:px-5">
+          {scoreRationales.map(([key, score]) => (
+            <AccordionItem key={key} value={key}>
+              <AccordionTrigger className="min-h-11 py-3 hover:no-underline">
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-3 pr-1">
+                  <span className="truncate">
+                    {SCORE_LABELS[key as keyof typeof SCORE_LABELS] ?? key}
+                  </span>
+                  <Badge variant="secondary" className="shrink-0 rounded-full">
+                    {score.score}
+                    /
+                    {score.max}
+                  </Badge>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pr-8 text-sm leading-6 text-muted-foreground">
+                {score.rationale}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
 
-          <div className="rounded-xl border border-primary/15 bg-primary/5 p-4">
-            <p className="text-sm leading-6 text-foreground">{assessment.basisSummary}</p>
-          </div>
-
-          <div className="space-y-2">
+        <div className="grid gap-4 border-t border-border/60 p-4 md:p-5 lg:grid-cols-2">
+          <div className="min-w-0 space-y-2">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Layers3 className="size-3.5" />
               实际参与评估的内容
@@ -64,36 +69,15 @@ export default function AssessmentBasisCard() {
               ))}
             </div>
           </div>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-xs font-medium text-muted-foreground">各维度判断理由</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {scoreRationales.map(([key, score]) => (
-              <div key={key} className="rounded-xl border border-border/60 bg-muted/15 p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium">
-                    {SCORE_LABELS[key as keyof typeof SCORE_LABELS] ?? key}
-                  </p>
-                  <Badge variant="secondary" className="shrink-0 rounded-full">
-                    {score.score}
-                    /
-                    {score.max}
-                  </Badge>
-                </div>
-                <p className="text-sm leading-6 text-muted-foreground">{score.rationale}</p>
-              </div>
-            ))}
-          </div>
 
           {assessment.evidenceSignals.length > 0 && (
-            <div className="rounded-xl border border-border/60 bg-background p-4">
+            <div className="min-w-0">
               <p className="mb-2 text-xs font-medium text-muted-foreground">关键证据信号</p>
-              <ul className="space-y-2">
+              <ul className="space-y-1.5">
                 {assessment.evidenceSignals.map(signal => (
-                  <li key={signal} className="flex items-start gap-2 text-sm leading-6">
+                  <li key={signal} className="flex min-w-0 items-start gap-2 text-sm leading-6">
                     <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
-                    <span>{signal}</span>
+                    <span className="wrap-break-word min-w-0">{signal}</span>
                   </li>
                 ))}
               </ul>

@@ -35,81 +35,98 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
   }, [scores])
 
   return (
-    <Card className="h-full group relative overflow-hidden shadow-sm border-primary/20 hover:shadow-md transition-all duration-300">
-      <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300 transform">
-        <Activity className="size-28 text-primary" />
-      </div>
-      <CardContent className="p-5 flex flex-col justify-between h-full relative">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-            <Activity className="size-4" />
+    <Card className="min-w-0 border-primary/15 shadow-sm">
+      <CardContent className="flex min-h-0 flex-col p-4 md:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="rounded-md bg-primary/10 p-1.5 text-primary">
+              <Activity className="size-4" />
+            </div>
+            <p className="text-sm font-medium">能力雷达图</p>
           </div>
-          <p className="text-sm font-medium text-muted-foreground">能力雷达图</p>
+          <span className="text-xs text-muted-foreground">五维评分</span>
         </div>
 
         {loading
           ? (
-              <div className="flex-1 flex items-center justify-center min-h-[180px]">
+              <div className="flex min-h-60 flex-1 items-center justify-center">
                 <Spinner className="size-6" />
               </div>
             )
           : chartData.length > 0
             ? (
-                <ChartContainer
-                  config={chartConfig}
-                  className="mx-auto w-full flex-1 max-h-[200px]"
-                >
-                  <RadarChart
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius="70%"
+                <>
+                  <ChartContainer
+                    aria-label="ATS 五维评分雷达图"
+                    config={chartConfig}
+                    className="mx-auto aspect-square w-full max-w-[18rem] flex-1"
                   >
-                    <ChartTooltip
-                      cursor={false}
-                      content={(
-                        <ChartTooltipContent
-                          labelFormatter={value => SCORE_LABELS[value as keyof typeof SCORE_LABELS] || value}
-                          formatter={(value, _, item) => (
-                            <div className="max-w-64 space-y-1.5">
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">{item.payload.raw}</span>
-                                <span className="text-muted-foreground">/</span>
-                                <span className="text-muted-foreground">{item.payload.max}</span>
-                                <span className="text-muted-foreground text-xs ml-1">
-                                  (
-                                  {value}
-                                  %)
-                                </span>
+                    <RadarChart
+                      accessibilityLayer
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="68%"
+                    >
+                      <ChartTooltip
+                        cursor={false}
+                        content={(
+                          <ChartTooltipContent
+                            labelFormatter={value => SCORE_LABELS[value as keyof typeof SCORE_LABELS] || value}
+                            formatter={(value, _, item) => (
+                              <div className="max-w-64 space-y-1.5">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium">{item.payload.raw}</span>
+                                  <span className="text-muted-foreground">/</span>
+                                  <span className="text-muted-foreground">{item.payload.max}</span>
+                                  <span className="ml-1 text-xs text-muted-foreground">
+                                    (
+                                    {value}
+                                    %)
+                                  </span>
+                                </div>
+                                {item.payload.rationale && (
+                                  <p className="whitespace-normal text-xs leading-5 text-muted-foreground">
+                                    {item.payload.rationale}
+                                  </p>
+                                )}
                               </div>
-                              {item.payload.rationale && (
-                                <p className="text-xs leading-5 text-muted-foreground whitespace-normal">
-                                  {item.payload.rationale}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        />
-                      )}
-                    />
-                    <PolarAngleAxis
-                      dataKey="category"
-                      tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                      tickLine={false}
-                    />
-                    <PolarGrid gridType="polygon" stroke="var(--border)" />
-                    <Radar
-                      dataKey="score"
-                      fill="var(--chart-1)"
-                      fillOpacity={0.4}
-                      stroke="var(--chart-1)"
-                      strokeWidth={2}
-                    />
-                  </RadarChart>
-                </ChartContainer>
+                            )}
+                          />
+                        )}
+                      />
+                      <PolarAngleAxis
+                        dataKey="category"
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                        tickLine={false}
+                      />
+                      <PolarGrid gridType="polygon" stroke="var(--border)" />
+                      <Radar
+                        dataKey="score"
+                        fill="var(--chart-1)"
+                        fillOpacity={0.28}
+                        stroke="var(--chart-1)"
+                        strokeWidth={2}
+                      />
+                    </RadarChart>
+                  </ChartContainer>
+
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 pt-3 text-xs sm:grid-cols-3 xl:grid-cols-2">
+                    {chartData.map(item => (
+                      <div key={item.category} className="flex min-w-0 items-center justify-between gap-2">
+                        <span className="truncate text-muted-foreground" title={item.category}>{item.category}</span>
+                        <span className="shrink-0 font-medium">
+                          {item.raw}
+                          /
+                          {item.max}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )
             : (
-                <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground min-h-[180px]">
+                <div className="flex min-h-60 flex-1 items-center justify-center text-sm text-muted-foreground">
                   暂无评分数据
                 </div>
               )}
