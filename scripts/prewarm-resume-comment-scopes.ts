@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { createClient } from '@supabase/supabase-js'
 import { buildCommentAnchorDocument } from '../supabase/functions/shared/resume-comment-core.ts'
 
@@ -12,6 +13,7 @@ interface ResumeVersionRow {
   id: number
   user_id: string
   snapshot: unknown
+  document_revision: number
   projection_reference_date: string
 }
 
@@ -27,7 +29,7 @@ function readRequiredEnvironment(name: string): string {
 
 function errorCategory(error: unknown): string {
   if (error instanceof Error && error.name) {
-    return error.name.replace(/[^a-zA-Z0-9_-]/gu, '_')
+    return error.name.replace(/[^\w-]/gu, '_')
   }
   return 'unknown_error'
 }
@@ -44,7 +46,7 @@ async function main() {
   while (true) {
     const { data, error } = await admin
       .from('resume_config_versions')
-      .select('id, user_id, snapshot, projection_reference_date, active_scopes:resume_comment_scopes!left(id)')
+      .select('id, user_id, snapshot, document_revision, projection_reference_date, active_scopes:resume_comment_scopes!left(id)')
       .eq('status', 'active')
       .gt('id', lastVersionId)
       .eq('active_scopes.kind', 'version')
@@ -73,6 +75,7 @@ async function main() {
             p_anchor_document: projected.document,
             p_document_hash: projected.documentHash,
             p_projection_reference_date: row.projection_reference_date,
+            p_expected_document_revision: row.document_revision,
           },
         )
         if (ensureError) {
@@ -98,13 +101,14 @@ async function main() {
     lastVersionId = rows[rows.length - 1]!.id
   }
 
+  // eslint-disable-next-line no-console -- 供计划任务采集的机器可读结果。
   console.log(JSON.stringify(summary))
   if (summary.failed > 0) {
     process.exitCode = 1
   }
 }
 
-void main().catch((error: unknown) => {
+main().catch((error: unknown) => {
   console.error(`prewarm_error:${errorCategory(error)}`)
   process.exitCode = 1
 })

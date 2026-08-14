@@ -426,9 +426,10 @@ async function buildBootstrapInput({
       resumeId = readUuid(body, 'resumeId')
     }
     else {
-      versionId = readNonNegativeInteger(body, 'versionId')
-      if (versionId <= 0)
+      const requestedVersionId = readNonNegativeInteger(body, 'versionId')
+      if (!isPositiveSafeInteger(requestedVersionId))
         throw new CommentApiError('not_found', '简历版本不存在', 404)
+      versionId = requestedVersionId
     }
     return {
       shareTokenSecret: null,
@@ -868,6 +869,21 @@ function mapBootstrapRpcError(error: unknown): CommentApiError {
     ?? bootstrapProtocolError('unexpected_rpc_error')
 }
 
+function mapBootstrapRepairError(error: unknown): CommentApiError {
+  if (
+    isRecord(error)
+    && error.code === 'P0409'
+    && error.message === 'stale_document'
+  ) {
+    return new CommentApiError(
+      'stale_document',
+      '简历内容已变化，请刷新后重试',
+      409,
+    )
+  }
+  return bootstrapProtocolError('scope_repair_failed')
+}
+
 async function bootstrapResumeComments(
   admin: AdminClient,
   input: BootstrapRpcInput,
@@ -919,15 +935,16 @@ async function repairBootstrapScope(
       p_anchor_document: projected.document,
       p_document_hash: projected.documentHash,
       p_projection_reference_date: repair.projectionReferenceDate,
+      p_expected_document_revision: repair.documentRevision,
     })
     if (error)
-      return bootstrapProtocolError('scope_repair_failed')
+      throw mapBootstrapRepairError(error)
     if (!isUuidValue(data))
       return bootstrapProtocolError('invalid_scope_repair_result')
     return data
   }
   catch (error) {
-    if (error instanceof BootstrapInternalError)
+    if (error instanceof BootstrapInternalError || error instanceof CommentApiError)
       throw error
     return bootstrapProtocolError('scope_repair_failed')
   }
@@ -970,6 +987,7 @@ async function ensureVersionScopeForOwner(
       p_anchor_document: projected.document,
       p_document_hash: projected.documentHash,
       p_projection_reference_date: projectionReferenceDate,
+      p_expected_document_revision: version.document_revision,
     },
   )
   if (ensureError || typeof data !== 'string')

@@ -243,6 +243,7 @@ async function ensureShareCommentScope(
     p_anchor_document: document,
     p_document_hash: documentHash,
     p_projection_reference_date: referenceDate,
+    p_expected_document_revision: version.document_revision,
   })
   if (error || typeof data !== 'string')
     throw error ?? new Error('Unable to ensure version comment scope')

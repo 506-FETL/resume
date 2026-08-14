@@ -714,13 +714,14 @@ EXCEPTION
 END;
 $$;
 
--- 既有 scope 只有在 owner / resume / version 三重权威链完全一致时才可复用。
-CREATE OR REPLACE FUNCTION public.ensure_resume_version_comment_scope(
+-- 在版本行锁内集中处理 authority、期望 revision/date 与 scope 创建。
+CREATE OR REPLACE FUNCTION private.ensure_resume_version_comment_scope_v1(
   p_owner_user_id uuid,
   p_version_id bigint,
   p_anchor_document jsonb,
   p_document_hash text,
-  p_projection_reference_date date
+  p_projection_reference_date date,
+  p_expected_document_revision bigint
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -731,14 +732,6 @@ DECLARE
   v_version public.resume_config_versions%ROWTYPE;
   v_scope public.resume_comment_scopes%ROWTYPE;
 BEGIN
-  PERFORM public.assert_resume_comment_service_role();
-  IF NOT public.is_valid_resume_comment_anchor_document(
-    p_anchor_document,
-    p_document_hash
-  ) THEN
-    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid anchor document';
-  END IF;
-
   SELECT versions.*
   INTO v_version
   FROM public.resume_config_versions AS versions
@@ -747,6 +740,38 @@ BEGIN
   FOR SHARE;
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'version not found';
+  END IF;
+
+  -- 五参数兼容入口的既有契约要求：即使 scope 已存在也必须验证输入文档。
+  IF NOT public.is_valid_resume_comment_anchor_document(
+    p_anchor_document,
+    p_document_hash
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid anchor document';
+  END IF;
+
+  SELECT scopes.*
+  INTO v_scope
+  FROM public.resume_comment_scopes AS scopes
+  WHERE scopes.kind = 'version'
+    AND scopes.version_id = p_version_id
+    AND scopes.archived_at IS NULL;
+
+  IF v_scope.id IS NOT NULL THEN
+    IF v_scope.owner_user_id <> p_owner_user_id
+      OR v_scope.resume_id <> v_version.resume_id
+      OR v_scope.version_id <> v_version.id THEN
+      RAISE EXCEPTION USING ERRCODE = '55000', MESSAGE = 'version scope authority conflict';
+    END IF;
+    RETURN v_scope.id;
+  END IF;
+
+  IF p_expected_document_revision IS NOT NULL AND (
+    p_expected_document_revision <= 0
+    OR v_version.document_revision IS DISTINCT FROM p_expected_document_revision
+    OR v_version.projection_reference_date IS DISTINCT FROM p_projection_reference_date
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0409', MESSAGE = 'stale_document';
   END IF;
 
   INSERT INTO public.resume_comment_scopes (
@@ -791,6 +816,65 @@ BEGIN
 END;
 $$;
 
+-- 保留五参数签名，兼容迁移先于旧 Edge 部署以及快速回滚窗口。
+CREATE OR REPLACE FUNCTION public.ensure_resume_version_comment_scope(
+  p_owner_user_id uuid,
+  p_version_id bigint,
+  p_anchor_document jsonb,
+  p_document_hash text,
+  p_projection_reference_date date
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  PERFORM public.assert_resume_comment_service_role();
+  RETURN private.ensure_resume_version_comment_scope_v1(
+    p_owner_user_id,
+    p_version_id,
+    p_anchor_document,
+    p_document_hash,
+    p_projection_reference_date,
+    NULL
+  );
+END;
+$$;
+
+-- 新调用方必须携带生成 anchor document 时观察到的 document revision。
+CREATE OR REPLACE FUNCTION public.ensure_resume_version_comment_scope(
+  p_owner_user_id uuid,
+  p_version_id bigint,
+  p_anchor_document jsonb,
+  p_document_hash text,
+  p_projection_reference_date date,
+  p_expected_document_revision bigint
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  PERFORM public.assert_resume_comment_service_role();
+  IF p_expected_document_revision IS NULL
+    OR p_expected_document_revision <= 0 THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '22023',
+      MESSAGE = 'invalid expected document revision';
+  END IF;
+  RETURN private.ensure_resume_version_comment_scope_v1(
+    p_owner_user_id,
+    p_version_id,
+    p_anchor_document,
+    p_document_hash,
+    p_projection_reference_date,
+    p_expected_document_revision
+  );
+END;
+$$;
+
 REVOKE ALL ON FUNCTION public.assert_resume_comment_service_role()
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.assert_resume_comment_service_role()
@@ -801,6 +885,9 @@ REVOKE ALL ON FUNCTION private.resolve_resume_comment_bootstrap_access_v1(
 ) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION private.build_resume_comment_bootstrap_v1(jsonb)
   FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION private.ensure_resume_version_comment_scope_v1(
+  uuid, bigint, jsonb, text, date, bigint
+) FROM PUBLIC, anon, authenticated, service_role;
 
 REVOKE ALL ON FUNCTION public.bootstrap_resume_comments_v1(
   integer, text, uuid, uuid, uuid, bigint, uuid, uuid, text, text, text, uuid, text
@@ -814,4 +901,11 @@ REVOKE ALL ON FUNCTION public.ensure_resume_version_comment_scope(
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.ensure_resume_version_comment_scope(
   uuid, bigint, jsonb, text, date
+) TO service_role;
+
+REVOKE ALL ON FUNCTION public.ensure_resume_version_comment_scope(
+  uuid, bigint, jsonb, text, date, bigint
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ensure_resume_version_comment_scope(
+  uuid, bigint, jsonb, text, date, bigint
 ) TO service_role;

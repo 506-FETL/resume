@@ -26,9 +26,19 @@ assert.match(
   buildCommentAnchorDocument({ basics: { name: '张三' }, order: ['basics'] }, '2026-08-14').documentHash,
   /^[0-9a-f]{64}$/u,
 )
+
+function readSourceSection(source: string, startMarker: string, endMarker: string): string {
+  const start = source.indexOf(startMarker)
+  const end = source.indexOf(endMarker, start + startMarker.length)
+  assert.ok(start >= 0, `Missing source marker: ${startMarker}`)
+  assert.ok(end > start, `Missing source marker: ${endMarker}`)
+  return source.slice(start, end)
+}
+
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
 const corsSource = readFileSync('supabase/functions/shared/cors.ts', 'utf8')
 const prewarmSource = readFileSync('scripts/prewarm-resume-comment-scopes.ts', 'utf8')
+const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 const migrationSource = readFileSync(
   'supabase/migrations/20260814000001_add_version_centric_resume_comments.sql',
   'utf8',
@@ -99,6 +109,39 @@ const bootstrapRepairSource = edgeSource.slice(
   edgeSource.indexOf('async function repairBootstrapScope'),
   edgeSource.indexOf('async function ensureVersionScopeForOwner'),
 )
+const bootstrapRepairErrorSource = readSourceSection(
+  edgeSource,
+  'function mapBootstrapRepairError',
+  'async function bootstrapResumeComments',
+)
+const ownerScopeEnsureSource = readSourceSection(
+  edgeSource,
+  'async function ensureVersionScopeForOwner',
+  'async function resolveCurrentVersionId',
+)
+const shareScopeEnsureSource = readSourceSection(
+  shareEdgeSource,
+  'async function ensureShareCommentScope',
+  'async function notifyShareCommentSettings',
+)
+const privateEnsureSource = readSourceSection(
+  bootstrapMigrationSource,
+  'CREATE OR REPLACE FUNCTION private.ensure_resume_version_comment_scope_v1',
+  '-- 保留五参数签名',
+)
+const publicFiveArgumentEnsureSource = readSourceSection(
+  bootstrapMigrationSource,
+  '-- 保留五参数签名',
+  '-- 新调用方必须携带',
+)
+const publicSixArgumentEnsureSource = readSourceSection(
+  bootstrapMigrationSource,
+  '-- 新调用方必须携带',
+  'REVOKE ALL ON FUNCTION public.assert_resume_comment_service_role()',
+)
+const normalizedPrivateEnsureSource = privateEnsureSource.replace(/\s+/gu, ' ')
+const normalizedPublicFiveArgumentEnsureSource = publicFiveArgumentEnsureSource.replace(/\s+/gu, ' ')
+const normalizedPublicSixArgumentEnsureSource = publicSixArgumentEnsureSource.replace(/\s+/gu, ' ')
 const handlerSource = edgeSource.slice(edgeSource.indexOf('Deno.serve'))
 const bootstrapBranchStart = handlerSource.indexOf('if (op === \'bootstrap_scope\')')
 const legacyAccessStart = handlerSource.indexOf('const access = await resolveAccess')
@@ -172,6 +215,11 @@ assert.match(
 )
 assert.equal(Number.isSafeInteger(0) && Number(0) > 0, false)
 assert.equal(Number.isSafeInteger(1) && Number(1) > 0, true)
+assert.equal(Number.isSafeInteger(1e100), false)
+assert.match(
+  bootstrapInputSource,
+  /const requestedVersionId = readNonNegativeInteger\(body, 'versionId'\)\s+if \(!isPositiveSafeInteger\(requestedVersionId\)\)\s+throw new CommentApiError\('not_found', '简历版本不存在', 404\)\s+versionId = requestedVersionId/u,
+)
 const scopeMissingValidatorStart = bootstrapValidatorSource.indexOf(
   'if (value.status === \'scope_missing\')',
 )
@@ -247,6 +295,47 @@ assert.match(
   /const canonicalScopeId = await timeOperation\('repair'[\s\S]*?repaired = true[\s\S]*?rpcInput = \{ \.\.\.rpcInput, p_scope_id: canonicalScopeId \}/u,
 )
 assert.match(bootstrapRepairSource, /buildCommentAnchorDocument\([\s\S]*?ensure_resume_version_comment_scope/u)
+assert.equal(
+  edgeSource.match(/admin\.rpc\(\s*'ensure_resume_version_comment_scope'/gu)?.length,
+  2,
+)
+assert.equal(
+  shareEdgeSource.match(/admin\.rpc\(\s*'ensure_resume_version_comment_scope'/gu)?.length,
+  1,
+)
+assert.equal(
+  prewarmSource.match(/admin\.rpc\(\s*'ensure_resume_version_comment_scope'/gu)?.length,
+  1,
+)
+assert.match(
+  bootstrapRepairSource,
+  /ensure_resume_version_comment_scope'[\s\S]*?p_expected_document_revision: repair\.documentRevision/u,
+)
+assert.match(
+  bootstrapRepairSource,
+  /if \(error\)\s+throw mapBootstrapRepairError\(error\)/u,
+)
+assert.match(
+  bootstrapRepairSource,
+  /error instanceof BootstrapInternalError \|\| error instanceof CommentApiError/u,
+)
+assert.match(
+  bootstrapRepairErrorSource,
+  /error\.code === 'P0409'\s+&& error\.message === 'stale_document'[\s\S]*?new CommentApiError\(\s*'stale_document',[\s\S]*?409,/u,
+)
+assert.doesNotMatch(bootstrapRepairErrorSource, /details|hint|error_description/u)
+assert.match(
+  ownerScopeEnsureSource,
+  /select\('id,resume_id,user_id,snapshot,projection_reference_date,document_revision'\)[\s\S]*?ensure_resume_version_comment_scope'[\s\S]*?p_expected_document_revision: version\.document_revision/u,
+)
+assert.match(
+  shareScopeEnsureSource,
+  /ensure_resume_version_comment_scope'[\s\S]*?p_expected_document_revision: version\.document_revision/u,
+)
+assert.match(
+  prewarmSource,
+  /interface ResumeVersionRow[\s\S]*?document_revision: number[\s\S]*?\.select\('id, user_id, snapshot, document_revision, projection_reference_date,[\s\S]*?ensure_resume_version_comment_scope'[\s\S]*?p_expected_document_revision: row\.document_revision/u,
+)
 assert.equal(
   bootstrapBranchSource.match(/assertCurrentSharePasswordGeneration\(/gu)?.length,
   2,
@@ -346,6 +435,78 @@ assert.match(forwardCompatibilityMigrationSource, /CREATE TABLE IF NOT EXISTS pu
 assert.doesNotMatch(originalCommentMigrationSource, /resume_comment_collaboration_sessions/u)
 assert.match(crossBlockAnchorMigrationSource, /end_block\.ordinal >= start_block\.ordinal/u)
 assert.match(crossBlockAnchorMigrationSource, /end_block\.end_offset/u)
+assert.equal(
+  bootstrapMigrationSource.match(
+    /CREATE OR REPLACE FUNCTION public\.ensure_resume_version_comment_scope\(/gu,
+  )?.length,
+  2,
+)
+assert.equal(
+  bootstrapMigrationSource.match(
+    /CREATE OR REPLACE FUNCTION private\.ensure_resume_version_comment_scope_v1\(/gu,
+  )?.length,
+  1,
+)
+assert.ok(normalizedPrivateEnsureSource.includes(
+  'CREATE OR REPLACE FUNCTION private.ensure_resume_version_comment_scope_v1( '
+  + 'p_owner_user_id uuid, p_version_id bigint, p_anchor_document jsonb, '
+  + 'p_document_hash text, p_projection_reference_date date, '
+  + 'p_expected_document_revision bigint ) RETURNS uuid LANGUAGE plpgsql '
+  + 'SECURITY DEFINER SET search_path = \'\'',
+))
+assert.ok(normalizedPublicFiveArgumentEnsureSource.includes(
+  'CREATE OR REPLACE FUNCTION public.ensure_resume_version_comment_scope( '
+  + 'p_owner_user_id uuid, p_version_id bigint, p_anchor_document jsonb, '
+  + 'p_document_hash text, p_projection_reference_date date ) RETURNS uuid '
+  + 'LANGUAGE plpgsql SECURITY DEFINER SET search_path = \'\'',
+))
+assert.doesNotMatch(publicFiveArgumentEnsureSource, /p_expected_document_revision/u)
+assert.match(
+  publicFiveArgumentEnsureSource,
+  /PERFORM public\.assert_resume_comment_service_role\(\);[\s\S]*?private\.ensure_resume_version_comment_scope_v1\([\s\S]*?p_projection_reference_date,\s+NULL\s+\)/u,
+)
+assert.ok(normalizedPublicSixArgumentEnsureSource.includes(
+  'CREATE OR REPLACE FUNCTION public.ensure_resume_version_comment_scope( '
+  + 'p_owner_user_id uuid, p_version_id bigint, p_anchor_document jsonb, '
+  + 'p_document_hash text, p_projection_reference_date date, '
+  + 'p_expected_document_revision bigint ) RETURNS uuid LANGUAGE plpgsql '
+  + 'SECURITY DEFINER SET search_path = \'\'',
+))
+assert.doesNotMatch(publicSixArgumentEnsureSource, /\bDEFAULT\b/u)
+assert.match(
+  publicSixArgumentEnsureSource,
+  /PERFORM public\.assert_resume_comment_service_role\(\);\s+IF p_expected_document_revision IS NULL\s+OR p_expected_document_revision <= 0 THEN\s+RAISE EXCEPTION USING\s+ERRCODE = '22023',\s+MESSAGE = 'invalid expected document revision';/u,
+)
+assert.match(
+  publicSixArgumentEnsureSource,
+  /private\.ensure_resume_version_comment_scope_v1\([\s\S]*?p_projection_reference_date,\s+p_expected_document_revision\s+\)/u,
+)
+const privateEnsureLockIndex = privateEnsureSource.indexOf('FOR SHARE;')
+const privateEnsureAnchorValidationIndex = privateEnsureSource.indexOf(
+  'IF NOT public.is_valid_resume_comment_anchor_document(',
+)
+const privateEnsureExistingScopeReturnIndex = privateEnsureSource.indexOf(
+  'IF v_scope.id IS NOT NULL THEN',
+)
+const privateEnsureExpectedRevisionIndex = privateEnsureSource.indexOf(
+  'IF p_expected_document_revision IS NOT NULL AND (',
+)
+const privateEnsureInsertIndex = privateEnsureSource.indexOf(
+  'INSERT INTO public.resume_comment_scopes',
+)
+assert.ok(privateEnsureLockIndex >= 0)
+assert.ok(privateEnsureAnchorValidationIndex > privateEnsureLockIndex)
+assert.ok(privateEnsureExistingScopeReturnIndex > privateEnsureAnchorValidationIndex)
+assert.ok(privateEnsureExpectedRevisionIndex > privateEnsureExistingScopeReturnIndex)
+assert.ok(privateEnsureInsertIndex > privateEnsureExpectedRevisionIndex)
+assert.match(
+  privateEnsureSource,
+  /v_version\.document_revision IS DISTINCT FROM p_expected_document_revision\s+OR v_version\.projection_reference_date IS DISTINCT FROM p_projection_reference_date[\s\S]*?ERRCODE = 'P0409', MESSAGE = 'stale_document'/u,
+)
+assert.match(
+  privateEnsureSource,
+  /document_revision,[\s\S]*?projection_reference_date,[\s\S]*?VALUES \([\s\S]*?v_version\.document_revision,\s+p_projection_reference_date,/u,
+)
 assert.ok(normalizedBootstrapMigrationSource.includes(
   'CREATE OR REPLACE FUNCTION public.bootstrap_resume_comments_v1( '
   + 'p_protocol_version integer, p_access_kind text, p_user_id uuid DEFAULT NULL, '
@@ -479,6 +640,18 @@ assert.match(
 )
 assert.match(
   normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON FUNCTION private\.ensure_resume_version_comment_scope_v1\( uuid, bigint, jsonb, text, date, bigint \) FROM PUBLIC, anon, authenticated, service_role;/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON FUNCTION public\.ensure_resume_version_comment_scope\( uuid, bigint, jsonb, text, date \) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ON FUNCTION public\.ensure_resume_version_comment_scope\( uuid, bigint, jsonb, text, date \) TO service_role;/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON FUNCTION public\.ensure_resume_version_comment_scope\( uuid, bigint, jsonb, text, date, bigint \) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ON FUNCTION public\.ensure_resume_version_comment_scope\( uuid, bigint, jsonb, text, date, bigint \) TO service_role;/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
   /REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated, service_role;/u,
 )
 const resolverSource = bootstrapMigrationSource.slice(
@@ -490,7 +663,6 @@ const resolverSource = bootstrapMigrationSource.slice(
   ),
 )
 assert.doesNotMatch(resolverSource, /FOR (?:KEY )?SHARE/u)
-const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 assert.match(shareEdgeSource, /authenticateSupabaseUser/u)
 assert.doesNotMatch(shareEdgeSource, /\.auth\.getUser\(/u)
 assert.match(shareEdgeSource, /comment_access_token/u)
