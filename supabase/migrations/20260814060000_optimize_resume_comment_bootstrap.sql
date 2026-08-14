@@ -176,7 +176,7 @@ BEGIN
       OR v_session.scope_id <> p_scope_id
       OR v_session.owner_user_id <> v_scope.owner_user_id
       OR v_member.user_id <> p_user_id
-      OR v_member.role <> p_collaborator_role
+      OR v_member.role IS DISTINCT FROM p_collaborator_role
       OR v_scope.kind <> 'version'
       OR v_scope.archived_at IS NOT NULL
       OR v_scope.resume_id <> p_resume_id
@@ -599,6 +599,7 @@ CREATE OR REPLACE FUNCTION public.bootstrap_resume_comments_v1(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
+STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
@@ -640,6 +641,7 @@ BEGIN
       OR p_version_id <= 0
       OR p_session_id IS NULL
       OR p_session_id !~ '^[0-9A-Za-z_-]{16,64}$'
+      OR p_collaborator_role IS NULL
       OR p_collaborator_role NOT IN ('editor', 'viewer')
       OR p_share_id IS NOT NULL
       OR p_release_id IS NOT NULL

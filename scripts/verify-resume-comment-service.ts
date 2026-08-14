@@ -108,11 +108,11 @@ assert.ok(normalizedBootstrapMigrationSource.includes(
   + 'p_release_id uuid DEFAULT NULL, p_password_generation text DEFAULT NULL, '
   + 'p_session_id text DEFAULT NULL, p_collaborator_role text DEFAULT NULL, '
   + 'p_anonymous_id uuid DEFAULT NULL, p_anonymous_secret_hash text DEFAULT NULL ) '
-  + 'RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = \'\'',
+  + 'RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = \'\'',
 ))
 assert.match(
   bootstrapMigrationSource,
-  /FUNCTION public\.bootstrap_resume_comments_v1\([\s\S]*?AS \$\$[\s\S]*?BEGIN\s+PERFORM public\.assert_resume_comment_service_role\(\);/u,
+  /FUNCTION public\.bootstrap_resume_comments_v1\([\s\S]*?LANGUAGE plpgsql\s+STABLE\s+SECURITY DEFINER\s+SET search_path = ''[\s\S]*?AS \$\$[\s\S]*?BEGIN\s+PERFORM public\.assert_resume_comment_service_role\(\);/u,
 )
 assert.match(
   bootstrapMigrationSource,
@@ -201,6 +201,14 @@ assert.match(
 )
 assert.match(bootstrapMigrationSource, /'canWrite', v_share\.allow_comments/u)
 assert.match(bootstrapMigrationSource, /'sharePasswordHash', v_share\.password_hash/u)
+assert.match(
+  bootstrapMigrationSource,
+  /p_collaborator_role IS NULL\s+OR p_collaborator_role NOT IN \('editor', 'viewer'\)/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /v_member\.role IS DISTINCT FROM p_collaborator_role/u,
+)
 assert.match(bootstrapMigrationSource, /ERRCODE = 'P0409', MESSAGE = 'stale_release'/u)
 assert.doesNotMatch(bootstrapMigrationSource, /ERRCODE = '40001', MESSAGE = 'stale_release'/u)
 assert.match(
