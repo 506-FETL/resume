@@ -1,0 +1,71 @@
+<h2>评论面板在桌面与移动端如何展开？</h2>
+<p class="subtitle">三种方案都从简历划词后的“评论”气泡进入。请选择最符合你预期的空间形态。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f4f5f7">
+      <div class="label">桌面端</div>
+      <div style="display:flex;height:190px;border:1px solid #d8dbe2;border-radius:10px;overflow:hidden;background:white">
+        <div style="flex:1;padding:16px 22px;font-size:10px;line-height:1.7;color:#59606d">
+          <strong style="display:block;font-size:13px;color:#20242c">工作经历</strong>
+          <span style="background:#fff1a8">负责产品从需求分析到完整交付</span>，推动核心能力稳定上线。
+          <div style="margin-top:18px;height:5px;background:#eceef2;border-radius:9px"></div>
+          <div style="margin-top:8px;width:75%;height:5px;background:#eceef2;border-radius:9px"></div>
+        </div>
+        <div style="width:36%;border-left:1px solid #e1e4e9;padding:13px;background:#fff">
+          <strong style="font-size:11px">评论</strong>
+          <div style="margin-top:12px;border:1px solid #dde1e7;border-radius:8px;padding:9px;font-size:9px">匿名用户<br><span style="color:#59606d">这里可以补充量化结果</span></div>
+          <div style="margin-top:9px;border:1px solid #dde1e7;border-radius:8px;padding:8px;font-size:9px;color:#9298a3">回复评论…</div>
+        </div>
+      </div>
+      <div class="label" style="margin-top:14px">移动端</div>
+      <div style="width:190px;height:210px;margin:auto;border:1px solid #d8dbe2;border-radius:16px;overflow:hidden;background:white;position:relative">
+        <div style="padding:18px;font-size:9px;line-height:1.7;color:#59606d"><strong style="font-size:12px;color:#20242c">工作经历</strong><br><span style="background:#fff1a8">负责产品从需求分析到完整交付</span>，推动能力上线。</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:105px;border-top:1px solid #dfe2e8;border-radius:16px 16px 0 0;background:white;padding:12px;box-shadow:0 -8px 20px #00000012;font-size:9px"><strong>评论</strong><div style="margin-top:9px;border:1px solid #dde1e7;border-radius:7px;padding:8px">匿名用户 · 补充量化结果</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 响应式 Drawer（推荐）</h3>
+      <p>桌面从右侧推入；移动端从底部上拉。简历仍保留上下文，符合不同设备的操作习惯。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f4f5f7">
+      <div class="label">桌面端</div>
+      <div style="height:190px;border:1px solid #d8dbe2;border-radius:10px;background:white;position:relative;padding:16px 22px;font-size:10px;line-height:1.7;color:#59606d">
+        <strong style="display:block;font-size:13px;color:#20242c">工作经历</strong>
+        <span style="background:#fff1a8">负责产品从需求分析到完整交付</span>，推动核心能力稳定上线。
+        <div style="position:absolute;right:12px;top:60px;width:42%;border:1px solid #d8dbe2;border-radius:9px;padding:11px;background:white;box-shadow:0 10px 28px #0000001c;font-size:9px"><strong>匿名用户</strong><br>这里可以补充量化结果<div style="margin-top:8px;border:1px solid #e1e4e9;border-radius:6px;padding:7px;color:#9298a3">回复…</div></div>
+      </div>
+      <div class="label" style="margin-top:14px">移动端</div>
+      <div style="width:190px;height:210px;margin:auto;border:1px solid #d8dbe2;border-radius:16px;overflow:hidden;background:white;position:relative">
+        <div style="padding:18px;font-size:9px;line-height:1.7;color:#59606d"><strong style="font-size:12px;color:#20242c">工作经历</strong><br><span style="background:#fff1a8">负责产品从需求分析到完整交付</span>，推动能力上线。</div>
+        <div style="position:absolute;left:14px;right:14px;top:76px;border:1px solid #d8dbe2;border-radius:9px;padding:10px;background:white;box-shadow:0 10px 25px #0000001c;font-size:9px"><strong>匿名用户</strong><br>补充量化结果<div style="margin-top:7px;color:#9298a3">回复…</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · 就地悬浮卡片</h3>
+      <p>评论紧贴选区，最像飞书侧边批注；但移动端空间拥挤，也容易遮挡简历内容。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f4f5f7">
+      <div class="label">桌面端</div>
+      <div style="display:flex;height:190px;border:1px solid #d8dbe2;border-radius:10px;overflow:hidden;background:white">
+        <div style="flex:1;padding:16px 22px;font-size:10px;line-height:1.7;color:#59606d"><strong style="display:block;font-size:13px;color:#20242c">工作经历</strong><span style="background:#fff1a8">负责产品从需求分析到完整交付</span>，推动核心能力稳定上线。</div>
+        <div style="width:36%;border-left:1px solid #e1e4e9;padding:13px;background:#fff"><strong style="font-size:11px">全部评论</strong><div style="margin-top:12px;font-size:9px;border-bottom:1px solid #eee;padding-bottom:9px">工作经历 · 2</div><div style="margin-top:9px;font-size:9px">项目经历 · 1</div></div>
+      </div>
+      <div class="label" style="margin-top:14px">移动端</div>
+      <div style="width:190px;height:210px;margin:auto;border:1px solid #d8dbe2;border-radius:16px;overflow:hidden;background:white">
+        <div style="height:30px;border-bottom:1px solid #e1e4e9;padding:10px 12px;font-size:9px"><strong>← 全部评论</strong></div>
+        <div style="padding:14px;font-size:9px"><div style="border:1px solid #dde1e7;border-radius:8px;padding:10px"><strong>工作经历</strong><br><span style="color:#9298a3">负责产品从需求分析…</span><br><br>补充量化结果</div><div style="margin-top:10px;border:1px solid #dde1e7;border-radius:8px;padding:10px">项目经历 · 修改措辞</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · 独立评论工作区</h3>
+      <p>桌面固定双栏；移动端进入单独评论页。适合集中审阅，但划词后会离开简历上下文。</p>
+    </div>
+  </div>
+</div>

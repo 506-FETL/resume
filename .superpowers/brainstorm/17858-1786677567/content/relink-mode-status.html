@@ -1,0 +1,213 @@
+<style>
+  .relink-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  .relink-card {
+    overflow: hidden;
+    border: 1px solid #e4e4e7;
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .relink-card:hover {
+    transform: translateY(-2px);
+    border-color: #a1a1aa;
+    box-shadow: 0 12px 28px rgb(24 24 27 / 8%);
+  }
+
+  .canvas {
+    position: relative;
+    min-height: 320px;
+    padding: 24px 18px;
+    overflow: hidden;
+    background: #f4f4f5;
+  }
+
+  .toolbar {
+    height: 30px;
+    margin: -24px -18px 18px;
+    border-bottom: 1px solid #e4e4e7;
+    background: rgb(255 255 255 / 92%);
+  }
+
+  .paper {
+    min-height: 230px;
+    padding: 25px 22px;
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 4px 14px rgb(24 24 27 / 5%);
+  }
+
+  .line { height: 6px; margin-top: 10px; border-radius: 99px; background: #d4d4d8; }
+  .line.dark { width: 44%; height: 8px; margin-bottom: 17px; background: #27272a; }
+  .line.short { width: 68%; }
+  .line.mid { width: 84%; }
+  .selection { width: 90%; height: 12px; margin-top: 10px; border-radius: 2px; background: #bfdbfe; }
+
+  .status {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    color: #18181b;
+    background: rgb(255 255 255 / 97%);
+    border: 1px solid #e4e4e7;
+    box-shadow: 0 8px 24px rgb(24 24 27 / 11%);
+    animation: status-in 2.1s cubic-bezier(.16, 1, .3, 1) infinite;
+  }
+
+  .status svg { width: 16px; height: 16px; flex: none; }
+  .status strong { display: block; font-size: 12px; line-height: 1.3; }
+  .status span { display: block; margin-top: 2px; color: #71717a; font-size: 10px; line-height: 1.35; }
+  .status button {
+    height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    color: #3f3f46;
+    background: #f4f4f5;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .top-status {
+    top: 45px;
+    left: 50%;
+    width: max-content;
+    max-width: calc(100% - 36px);
+    gap: 10px;
+    padding: 10px 10px 10px 12px;
+    border-radius: 9px;
+    transform: translateX(-50%);
+  }
+
+  .top-status .copy { min-width: 0; flex: 1; }
+
+  .bottom-status {
+    right: 35px;
+    bottom: 27px;
+    left: 35px;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 10px 9px 12px;
+    border-radius: 9px;
+  }
+
+  .bottom-status .main { display: flex; align-items: center; gap: 9px; }
+
+  .edge-status {
+    top: 56px;
+    right: 0;
+    max-width: 168px;
+    gap: 8px;
+    padding: 9px 8px 9px 10px;
+    border-right: 0;
+    border-radius: 9px 0 0 9px;
+  }
+
+  .edge-status button { padding: 0 7px; }
+
+  .copy-block { padding: 16px 17px 18px; }
+  .copy-block h3 { margin: 0 0 5px; font-size: 15px; }
+  .copy-block p { margin: 0; color: #71717a; font-size: 13px; line-height: 1.55; }
+  .recommended {
+    display: inline-flex;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    color: #1d4ed8;
+    background: #dbeafe;
+    font-size: 10px;
+    font-weight: 600;
+    vertical-align: 1px;
+  }
+
+  @keyframes status-in {
+    0%, 10% { opacity: 0; translate: 0 -5px; }
+    23%, 84% { opacity: 1; translate: 0 0; }
+    96%, 100% { opacity: 0; translate: 0 -3px; }
+  }
+
+  @media (max-width: 900px) {
+    .relink-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<h2>重新关联模式：持久提示放在哪里？</h2>
+<p class="subtitle">三种方案都直接对应 Shadcn 组件：Alert、Card 或 Badge/Button 组合；提示持续显示到成功关联或用户取消。</p>
+
+<div class="relink-grid">
+  <article class="relink-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="canvas">
+      <div class="toolbar"></div>
+      <div class="paper">
+        <div class="line dark"></div>
+        <div class="line"></div>
+        <div class="line mid"></div>
+        <div class="selection"></div>
+        <div class="line short"></div>
+      </div>
+      <div class="status top-status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></svg>
+        <div class="copy"><strong>正在重新关联评论</strong><span>请在简历中选择新的文字</span></div>
+        <button>取消</button>
+      </div>
+    </div>
+    <div class="copy-block">
+      <h3>A · 顶部居中 Alert <span class="recommended">推荐</span></h3>
+      <p>进入正文后第一眼可见，不遮挡选区末端；桌面和移动端都容易保持一致。</p>
+    </div>
+  </article>
+
+  <article class="relink-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="canvas">
+      <div class="toolbar"></div>
+      <div class="paper">
+        <div class="line dark"></div>
+        <div class="line"></div>
+        <div class="line mid"></div>
+        <div class="selection"></div>
+        <div class="line short"></div>
+      </div>
+      <div class="status bottom-status">
+        <div class="main">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></svg>
+          <div><strong>重新关联模式</strong><span>选择新文字后点击“关联到此处”</span></div>
+        </div>
+        <button>取消</button>
+      </div>
+    </div>
+    <div class="copy-block">
+      <h3>B · 底部悬浮 Card</h3>
+      <p>更像命令栏，状态感强；但可能与移动端底部动作按钮、软键盘和安全区竞争空间。</p>
+    </div>
+  </article>
+
+  <article class="relink-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="canvas">
+      <div class="toolbar"></div>
+      <div class="paper">
+        <div class="line dark"></div>
+        <div class="line"></div>
+        <div class="line mid"></div>
+        <div class="selection"></div>
+        <div class="line short"></div>
+      </div>
+      <div class="status edge-status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></svg>
+        <div><strong>重新关联中</strong><span>选择正文区域</span></div>
+        <button>取消</button>
+      </div>
+    </div>
+    <div class="copy-block">
+      <h3>C · 右侧边缘 Badge</h3>
+      <p>最节省画布空间，但提示较弱，容易和评论入口或右侧 Drawer 的视觉位置混淆。</p>
+    </div>
+  </article>
+</div>

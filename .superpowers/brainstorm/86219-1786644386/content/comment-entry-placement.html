@@ -1,0 +1,54 @@
+<h2>评论入口应该固定在哪个“右上角”？</h2>
+<p class="subtitle">三种方案都改为纯图标 + hover 提示“展开评论”，区别是它依附于预览区、简历纸张还是页面顶栏。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#eef2f7;min-height:260px">
+      <div style="height:34px;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:0 12px;color:#555;font-size:12px">编辑器工具栏</div>
+      <div style="position:relative;height:205px;background:#dfe5ec;padding:14px 46px 0 14px">
+        <div style="height:190px;background:white;border:1px solid #d7dce2;padding:18px;font-size:11px;color:#6b7280;line-height:1.7">
+          <b style="color:#111827">余明聪</b><br>求职意向：前端开发<br><br><b style="color:#111827">工作经历</b><hr><span style="background:#fde68a">参与风控中后台建设与评测平台开发</span>
+        </div>
+        <div style="position:absolute;right:8px;top:14px;width:34px;height:34px;border:1px solid #d1d5db;border-radius:17px;background:white;display:grid;place-items:center;box-shadow:0 2px 8px #0002;color:#2563eb;font-size:18px">▤</div>
+        <div style="position:absolute;right:46px;top:16px;background:#202124;color:white;border-radius:8px;padding:7px 9px;font-size:10px">展开评论</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 预览区右上角悬浮（推荐）</h3>
+      <p>固定在简历预览视口右上角，滚动简历时仍可见；打开编辑栏或评论 Drawer 时自动隐藏，不再遮挡。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#eef2f7;min-height:260px">
+      <div style="height:34px;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:0 12px;color:#555;font-size:12px">编辑器工具栏</div>
+      <div style="position:relative;height:205px;background:#dfe5ec;padding:14px 26px">
+        <div style="position:relative;height:190px;background:white;border:1px solid #d7dce2;padding:18px;font-size:11px;color:#6b7280;line-height:1.7">
+          <div style="position:absolute;right:8px;top:8px;width:34px;height:34px;border:1px solid #d1d5db;border-radius:17px;background:white;display:grid;place-items:center;box-shadow:0 2px 8px #0002;color:#2563eb;font-size:18px">▤</div>
+          <b style="color:#111827">余明聪</b><br>求职意向：前端开发<br><br><b style="color:#111827">工作经历</b><hr><span style="background:#fde68a">参与风控中后台建设与评测平台开发</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · 简历纸张右上角</h3>
+      <p>按钮属于简历纸张，随正文一起滚走；空间关系明确，但长简历向下滚动后入口不可见。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#eef2f7;min-height:260px">
+      <div style="height:42px;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:0 12px;color:#555;font-size:12px;gap:8px">
+        <b style="color:#111827;flex:1">简历</b><span>导出</span><div style="width:34px;height:34px;border:1px solid #d1d5db;border-radius:17px;background:white;display:grid;place-items:center;color:#2563eb;font-size:18px">▤</div>
+      </div>
+      <div style="height:197px;background:#dfe5ec;padding:14px 26px">
+        <div style="height:180px;background:white;border:1px solid #d7dce2;padding:18px;font-size:11px;color:#6b7280;line-height:1.7">
+          <b style="color:#111827">余明聪</b><br>求职意向：前端开发<br><br><b style="color:#111827">工作经历</b><hr><span style="background:#fde68a">参与风控中后台建设与评测平台开发</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · 页面顶栏入口</h3>
+      <p>与导出等操作并列，最稳定也最不遮挡正文，但不像你截图中的飞书悬浮入口。</p>
+    </div>
+  </div>
+</div>

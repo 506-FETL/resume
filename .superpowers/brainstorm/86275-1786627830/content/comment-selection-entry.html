@@ -1,0 +1,60 @@
+<h2>划词后，“评论”入口应该出现在哪里？</h2>
+<p class="subtitle">桌面端都保留贴近选区的气泡。差异主要在移动端如何避开系统自带的复制菜单和选区手柄。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#f4f5f7">
+      <div class="label">桌面：选区气泡</div>
+      <div style="height:130px;border:1px solid #d9dde5;border-radius:10px;background:white;padding:34px 22px;font-size:11px;line-height:1.8;position:relative;color:#555d69">
+        负责产品从 <span style="background:#fee996;color:#23272f">需求分析到完整交付</span>，推动核心能力上线。
+        <div style="position:absolute;left:88px;top:9px;background:#23272f;color:white;padding:7px 12px;border-radius:8px;font-size:10px">💬 评论</div>
+      </div>
+      <div class="label" style="margin-top:14px">移动：底部操作条</div>
+      <div style="width:190px;height:230px;margin:auto;border:1px solid #d9dde5;border-radius:18px;background:white;overflow:hidden;position:relative">
+        <div style="padding:48px 17px;font-size:10px;line-height:1.8;color:#555d69">负责产品从 <span style="background:#fee996;color:#23272f">需求分析到完整交付</span>，推动核心能力上线。</div>
+        <div style="position:absolute;left:10px;right:10px;bottom:12px;height:42px;border:1px solid #d9dde5;border-radius:13px;background:white;box-shadow:0 8px 24px #0000001a;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:9px;color:#777f8c"><span>已选择 9 个字</span><strong style="background:#23272f;color:white;border-radius:9px;padding:7px 12px">评论</strong></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 桌面气泡 + 移动底部操作条（推荐）</h3>
+      <p>桌面就近操作；移动端入口固定、好点击，不与原生复制菜单争抢位置。点击后操作条自然过渡为底部 Drawer。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#f4f5f7">
+      <div class="label">桌面与移动：都贴近选区</div>
+      <div style="height:130px;border:1px solid #d9dde5;border-radius:10px;background:white;padding:34px 22px;font-size:11px;line-height:1.8;position:relative;color:#555d69">
+        负责产品从 <span style="background:#fee996;color:#23272f">需求分析到完整交付</span>，推动核心能力上线。
+        <div style="position:absolute;left:88px;top:9px;background:#23272f;color:white;padding:7px 12px;border-radius:8px;font-size:10px">💬 评论</div>
+      </div>
+      <div style="width:190px;height:230px;margin:14px auto 0;border:1px solid #d9dde5;border-radius:18px;background:white;position:relative;overflow:hidden">
+        <div style="position:absolute;left:33px;top:19px;background:#f0f1f4;border:1px solid #d9dde5;border-radius:8px;padding:6px 9px;font-size:8px">复制　查询　共享</div>
+        <div style="padding:62px 17px;font-size:10px;line-height:1.8;color:#555d69">负责产品从 <span style="background:#fee996;color:#23272f">需求分析到完整交付</span>，推动核心能力上线。</div>
+        <div style="position:absolute;left:67px;top:111px;background:#23272f;color:white;padding:7px 12px;border-radius:8px;font-size:9px">💬 评论</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · 全平台选区气泡</h3>
+      <p>交互一致、最贴近参考产品；但移动端可能同时出现系统菜单、选区手柄和评论气泡，遮挡与误触风险最高。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:18px;background:#f4f5f7">
+      <div class="label">移动：选中后自动打开</div>
+      <div style="height:130px;border:1px solid #d9dde5;border-radius:10px;background:white;padding:34px 22px;font-size:11px;line-height:1.8;position:relative;color:#555d69">
+        负责产品从 <span style="background:#fee996;color:#23272f">需求分析到完整交付</span>，推动核心能力上线。
+        <div style="position:absolute;left:88px;top:9px;background:#23272f;color:white;padding:7px 12px;border-radius:8px;font-size:10px">💬 评论</div>
+      </div>
+      <div style="width:190px;height:230px;margin:14px auto 0;border:1px solid #d9dde5;border-radius:18px;background:white;overflow:hidden;position:relative">
+        <div style="padding:34px 17px;font-size:10px;line-height:1.8;color:#555d69">负责产品从 <span style="background:#fee996;color:#23272f">需求分析到完整交付</span>，推动核心能力上线。</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:112px;border-top:1px solid #dfe2e8;border-radius:18px 18px 0 0;background:white;padding:13px;box-shadow:0 -8px 20px #00000012;font-size:9px"><strong>添加评论</strong><div style="margin-top:10px;border:1px solid #d9dde5;border-radius:8px;padding:10px;color:#969ca7">输入评论…</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · 移动端自动打开 Drawer</h3>
+      <p>步骤最少，但用户只是想复制文字时也会被打断；容易把普通选择误判为评论意图。</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,63 @@
+<h2>递归回复文案与图标修正版</h2>
+<p class="subtitle">技术上仍支持递归，但用户界面只表达“回复谁”和“还有多少条回复”，不出现“深层”“层级”等实现词。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">每条评论下方的回复入口</div>
+    <div class="mockup-body" style="background:#fff;padding:20px">
+      <div style="display:flex;gap:9px">
+        <div style="width:29px;height:29px;border-radius:50%;background:linear-gradient(135deg,#dbeafe,#2563eb);flex:none"></div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:10px"><b>seams</b><span style="color:#94a3b8;margin-left:7px">01:05</span></div>
+          <p style="font-size:12px;line-height:1.6;margin:6px 0;color:#334155">这个数据来自哪一轮评测？</p>
+          <div style="height:28px;display:flex;align-items:center;gap:9px;color:#64748b;font-size:10px">
+            <button style="border:0;background:transparent;color:#2563eb;padding:4px 6px;display:flex;align-items:center;gap:5px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path><path d="M8 10h8M8 14h5"></path></svg>
+              回复
+            </button>
+            <button style="border:0;background:transparent;color:#64748b;padding:4px 6px">•••</button>
+          </div>
+          <div style="display:inline-block;margin-top:3px;background:#0f172a;color:#fff;border-radius:7px;padding:7px 9px;font-size:9px;position:relative">回复 seams<span style="position:absolute;left:12px;top:-4px;width:8px;height:8px;background:#0f172a;transform:rotate(45deg)"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">折叠与聚焦入口</div>
+    <div class="mockup-body" style="background:#fff;padding:20px">
+      <div style="border-left:1px solid #e2e8f0;padding-left:16px">
+        <div style="font-size:10px"><b>余明聪</b><span style="color:#94a3b8;margin-left:6px">01:08</span></div>
+        <p style="font-size:11px;color:#334155">来自 8 月 10 日的线上回放。</p>
+        <button style="margin-top:8px;border:0;background:#f1f5f9;border-radius:8px;padding:8px 11px;font-size:10px;color:#475569;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path><path d="M8 10h8M8 14h5"></path></svg>
+          继续查看 6 条回复
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">回复详情</div>
+    <div class="mockup-body" style="background:#fff;padding:15px 18px">
+      <div style="display:flex;align-items:center;border-bottom:1px solid #e2e8f0;padding-bottom:11px;font-size:10px"><span style="color:#2563eb">← 返回全部评论</span><b style="margin:auto">回复详情</b><span style="width:56px"></span></div>
+      <div style="border-left:2px solid #facc15;padding-left:9px;margin:12px 0;color:#64748b;font-size:10px">seams：这个数据来自哪一轮评测？</div>
+      <div style="border:1px solid #cbd5e1;border-radius:10px;padding:10px;margin-top:16px">
+        <div style="font-size:9px;color:#64748b;margin-bottom:7px">回复 @seams</div>
+        <div style="height:40px;color:#94a3b8;font-size:10px">输入回复…</div>
+        <div style="display:flex;justify-content:flex-end;gap:7px"><button style="border:0;background:transparent;font-size:9px">取消</button><button style="border:0;background:#2563eb;color:white;border-radius:7px;padding:6px 10px;font-size:9px">发送</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="option" data-choice="recursive-copy-v5" onclick="toggleSelect(this)">
+  <div class="letter">✓</div>
+  <div class="content">
+    <h3>确认本版图标与文案</h3>
+    <p>统一使用评论气泡图标；Tooltip 显示“回复 用户名”；入口显示“继续查看 N 条回复”；不展示技术层级。</p>
+  </div>
+</div>

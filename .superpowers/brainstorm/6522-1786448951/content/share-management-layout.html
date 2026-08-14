@@ -1,0 +1,99 @@
+<h2>分享管理 · 页面结构原型</h2>
+<p class="subtitle">独立业务模块：管理页 <code>/share</code>，匿名预览 <code>/share/view/:token</code></p>
+
+<div class="mockup">
+  <div class="mockup-header">Resume / 分享管理</div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:190px minmax(0,1fr);min-height:600px;background:#f8fafc">
+      <aside style="border-right:1px solid #e2e8f0;padding:18px 14px;background:white">
+        <div style="font-weight:700;margin-bottom:18px">Resume</div>
+        <div style="display:grid;gap:7px;font-size:13px">
+          <div style="padding:9px 10px;border-radius:8px">⌂ 首页</div>
+          <div style="padding:9px 10px;border-radius:8px">▤ 我的简历</div>
+          <div style="padding:9px 10px;border-radius:8px;background:#eaf1ff;color:#2457d6;font-weight:650">↗ 分享管理</div>
+          <div style="padding:9px 10px;border-radius:8px">▦ 求职看板</div>
+          <div style="padding:9px 10px;border-radius:8px">◫ 简历模板</div>
+        </div>
+      </aside>
+
+      <main style="min-width:0;padding:28px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px">
+          <div>
+            <div style="font-size:24px;font-weight:750">分享管理</div>
+            <div style="font-size:13px;color:#64748b;margin-top:5px">集中管理全部简历的只读链接、访问权限与快照版本</div>
+          </div>
+          <button style="border:0;border-radius:9px;background:#1d4ed8;color:white;padding:10px 14px">＋ 新建分享</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(190px,1.1fr) minmax(160px,.7fr) auto;gap:10px;margin-bottom:16px">
+          <div style="background:white;border:1px solid #dbe2ea;border-radius:9px;padding:10px 12px;color:#94a3b8">搜索名称、简历或链接</div>
+          <div style="background:white;border:1px solid #dbe2ea;border-radius:9px;padding:10px 12px">全部简历⌄</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="padding:8px 10px;border-radius:999px;background:#eaf1ff;color:#2457d6;font-size:12px">全部 8</span>
+            <span style="padding:8px 10px;border-radius:999px;background:white;border:1px solid #dbe2ea;font-size:12px">有效 5</span>
+            <span style="padding:8px 10px;border-radius:999px;background:white;border:1px solid #dbe2ea;font-size:12px">已关闭 3</span>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:12px">
+          <article style="background:white;border:1px solid #dbe2ea;border-radius:13px;padding:16px;min-width:0">
+            <div style="display:flex;justify-content:space-between;gap:14px">
+              <div style="min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <strong>字节 · 前端岗位</strong>
+                  <span style="font-size:11px;padding:3px 7px;border-radius:999px;background:#eaf1ff;color:#2457d6">全栈简历</span>
+                  <span style="font-size:11px;padding:3px 7px;border-radius:999px;background:#f1f5f9">密码保护</span>
+                </div>
+                <div style="font-size:12px;color:#64748b;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:580px">
+                  localhost:5173/share/view/022bd124…f45cc0d
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+                <span style="font-size:12px;color:#64748b">打开 4 次</span>
+                <span style="width:36px;height:20px;border-radius:999px;background:#2563eb;display:inline-block"></span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid #eef2f7">
+              <div style="font-size:12px;color:#64748b">最后查看 2026-08-11 19:28 · 长期有效</div>
+              <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">
+                <button style="padding:7px 9px;border:1px solid #dbe2ea;background:white;border-radius:7px">复制</button>
+                <button style="padding:7px 9px;border:1px solid #dbe2ea;background:white;border-radius:7px">预览</button>
+                <button style="padding:7px 9px;border:1px solid #dbe2ea;background:white;border-radius:7px">编辑设置</button>
+                <button style="padding:7px 9px;border:1px solid #dbe2ea;background:white;border-radius:7px">推送最新版</button>
+              </div>
+            </div>
+          </article>
+
+          <article style="background:white;border:1px solid #dbe2ea;border-radius:13px;padding:16px;opacity:.72">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong>猎头通用</strong>
+                <div style="font-size:12px;color:#64748b;margin-top:7px">resume.example.com/share/view/6d2d6abd…a1e1a720</div>
+              </div>
+              <span style="font-size:11px;padding:4px 8px;border-radius:999px;background:#f1f5f9">已关闭</span>
+            </div>
+          </article>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>这个结构解决</h4>
+    <ul>
+      <li>长链接不再撑宽 Dialog 或页面</li>
+      <li>跨简历统一筛选与管理</li>
+      <li>预览与管理都归属 share 业务目录</li>
+      <li>卡片只承担摘要，操作层级更清晰</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>需要确认</h4>
+    <ul>
+      <li>旧的 /resume/view/:token 是否永久跳转兼容</li>
+      <li>新路由统一为 /share/view/:token</li>
+    </ul>
+  </div>
+</div>

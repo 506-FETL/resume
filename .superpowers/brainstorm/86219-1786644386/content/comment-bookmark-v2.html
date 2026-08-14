@@ -1,0 +1,83 @@
+<h2>修正版：贴边“书签式”评论入口</h2>
+<p class="subtitle">不悬浮在纸张内部，也不进入顶栏。入口贴住预览容器右边界，右半部分藏在边界之外，像从侧栏伸入页面。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">桌面端 · 默认 / Hover</div>
+    <div class="mockup-body" style="padding:0;background:#eef2f7;overflow:hidden">
+      <div style="height:42px;background:#fff;border-bottom:1px solid #d8dde5;display:flex;align-items:center;padding:0 14px;gap:12px;font-size:11px;color:#6b7280">
+        <b style="color:#111827">简历编辑器</b><span style="margin-left:auto">分享</span><span>导出</span>
+      </div>
+      <div style="position:relative;height:310px;padding:24px 48px 20px 20px;overflow:hidden">
+        <div style="height:280px;background:#fff;border:1px solid #d8dde5;box-shadow:0 2px 8px #00000012;padding:22px;font-size:11px;line-height:1.8;color:#6b7280">
+          <b style="font-size:15px;color:#111827">余明聪</b><br>前端开发 · 成都<br><br>
+          <b style="color:#111827">工作经历</b><hr>
+          <span style="background:#fde68a;border-radius:2px">参与风控中后台建设与评测平台开发</span><br>
+          负责页面研发、数据链路和部署流程。
+        </div>
+
+        <div style="position:absolute;right:-38px;top:24px;width:92px;height:56px;border:1px solid #d6dbe3;border-radius:30px;background:#fff;box-shadow:0 3px 12px #1118271a;display:flex;align-items:center;padding-left:18px;color:#1f2937">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path><path d="M8 10h8M8 14h5"></path>
+          </svg>
+        </div>
+        <div style="position:absolute;right:62px;top:31px;background:#202124;color:#fff;border-radius:8px;padding:9px 12px;font-size:11px;box-shadow:0 4px 14px #0004">
+          展开评论
+          <span style="position:absolute;right:-6px;top:12px;width:12px;height:12px;background:#202124;transform:rotate(45deg)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">桌面端 · 打开评论</div>
+    <div class="mockup-body" style="padding:0;background:#eef2f7;overflow:hidden">
+      <div style="height:42px;background:#fff;border-bottom:1px solid #d8dde5;display:flex;align-items:center;padding:0 14px;font-size:11px;color:#6b7280"><b style="color:#111827">简历编辑器</b></div>
+      <div style="display:flex;height:310px">
+        <div style="flex:1;padding:22px 12px 20px 20px;overflow:hidden">
+          <div style="height:270px;background:#fff;border:1px solid #d8dde5;padding:20px;font-size:10px;line-height:1.8;color:#6b7280">
+            <b style="color:#111827">余明聪</b><br><br><b style="color:#111827">工作经历</b><hr><span style="background:#fde68a">参与风控中后台建设</span>
+          </div>
+        </div>
+        <div style="width:190px;background:#fff;border-left:1px solid #d8dde5;box-shadow:-8px 0 18px #11182712;display:flex;flex-direction:column">
+          <div style="padding:13px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;font-size:12px"><b>评论</b><span style="margin-left:auto">×</span></div>
+          <div style="padding:12px;font-size:10px;color:#6b7280">未解决　　已解决　　失去锚点</div>
+          <div style="margin:0 10px;padding:10px;border:1px solid #e5e7eb;border-radius:10px;font-size:10px"><span style="border-left:2px solid #facc15;padding-left:6px;color:#6b7280">参与风控中后台建设…</span><p style="color:#111827">这里可以突出你的量化结果</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">移动端 · 同一入口，点击后从底部打开 Drawer</div>
+    <div class="mockup-body" style="display:flex;gap:36px;justify-content:center;background:#eef2f7;padding:24px">
+      <div style="position:relative;width:180px;height:300px;background:#fff;border:1px solid #d8dde5;overflow:hidden">
+        <div style="height:36px;border-bottom:1px solid #e5e7eb;padding:10px;font-size:10px"><b>简历</b></div>
+        <div style="padding:20px 14px;font-size:9px;line-height:1.7;color:#6b7280"><b style="color:#111827">余明聪</b><br><br><b style="color:#111827">工作经历</b><hr><span style="background:#fde68a">参与风控平台建设</span></div>
+        <div style="position:absolute;right:-25px;top:48px;width:62px;height:40px;border:1px solid #d6dbe3;border-radius:22px;background:white;box-shadow:0 2px 8px #0002;display:flex;align-items:center;padding-left:11px">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1f2937" stroke-width="1.8"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
+        </div>
+      </div>
+
+      <div style="position:relative;width:180px;height:300px;background:#d1d5db;border:1px solid #cbd5e1;overflow:hidden">
+        <div style="padding:18px;font-size:8px;color:#6b7280">简历正文在遮罩下保持原位置</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:224px;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -8px 24px #0002;display:flex;flex-direction:column">
+          <div style="width:42px;height:4px;border-radius:3px;background:#e5e7eb;margin:8px auto"></div>
+          <div style="padding:4px 12px 10px;border-bottom:1px solid #e5e7eb;font-size:10px"><b>评论</b><span style="float:right">×</span></div>
+          <div style="padding:10px;font-size:8px;color:#6b7280">未解决　　已解决　　失去锚点</div>
+          <div style="margin:0 9px;border:1px solid #e5e7eb;border-radius:8px;padding:8px;font-size:8px">这里可以突出量化结果</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="option" data-choice="bookmark-v2" onclick="toggleSelect(this)">
+  <div class="letter">✓</div>
+  <div class="content">
+    <h3>确认采用这套书签入口</h3>
+    <p>桌面右侧 Drawer、移动底部 Drawer；入口始终贴住预览容器右边界，打开 Drawer 后隐藏。</p>
+  </div>
+</div>
