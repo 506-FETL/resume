@@ -36,6 +36,14 @@ const VALUE_TYPES = new Set<ValueType>([
   'string_array',
   'object_array',
 ])
+const PERSISTED_VALUE_TYPES = new Set<ValueType>([
+  ...VALUE_TYPES,
+  'object',
+  'date_range',
+  'skill_list',
+  'skill_item',
+  'certificate_list',
+])
 const USER_INPUT_PLACEHOLDER_PATTERN = /待补充\s*[：:]/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -203,24 +211,111 @@ export function hasUnresolvedSuggestionInput(suggestions: Suggestion[]): boolean
   return suggestions.some(suggestion => !isSuggestionReadyToApply(suggestion))
 }
 
-export function ensureAtsFindingsHaveSuggestions(findings: FindingsGroup | null | undefined): FindingsGroup {
-  const source = findings ?? { high: [], medium: [], low: [] }
-  const ensureFinding = (finding: Finding): Finding | null => {
-    if ((finding.fix.suggestions ?? []).length > 0) {
+export function ensureAtsFindingsHaveSuggestions(findings: unknown): FindingsGroup {
+  const source = isRecord(findings) ? findings : {}
+
+  const normalizeLocate = (value: unknown): Finding['locate'] | null => {
+    if (!isRecord(value) || typeof value.path !== 'string' || value.path.trim().length === 0)
+      return null
+
+    return {
+      path: value.path.trim(),
+      sectionLabel: typeof value.sectionLabel === 'string' ? value.sectionLabel : '',
+      fieldLabel: typeof value.fieldLabel === 'string' ? value.fieldLabel : '',
+      itemLabel: typeof value.itemLabel === 'string' ? value.itemLabel : null,
+    }
+  }
+
+  const normalizeEvidenceEntry = (value: unknown): Evidence | null => {
+    if (!isRecord(value) || !Object.hasOwn(value, 'rawValue') || value.rawValue === undefined)
+      return null
+
+    const locate = normalizeLocate(value.locate)
+    if (!locate)
+      return null
+
+    return {
+      text: typeof value.text === 'string' ? value.text : '',
+      rawValue: value.rawValue as Evidence['rawValue'],
+      locate,
+    }
+  }
+
+  const normalizeSuggestionEntry = (value: unknown): Suggestion | null => {
+    if (!isRecord(value) || !Object.hasOwn(value, 'after') || value.after === undefined)
+      return null
+
+    const locate = normalizeLocate(value.locate)
+    const kind = value.kind
+    const valueType = value.valueType
+    if (
+      !locate
+      || !SUGGESTION_KINDS.has(kind as SuggestionKind)
+      || !PERSISTED_VALUE_TYPES.has(valueType as ValueType)
+    ) {
+      return null
+    }
+
+    return {
+      kind: kind as SuggestionKind,
+      valueType: toInternalSuggestionValueType(valueType as ValueType, locate.path),
+      locate,
+      before: (value.before ?? null) as Suggestion['before'],
+      after: value.after as Suggestion['after'],
+      reason: typeof value.reason === 'string' ? value.reason : '',
+      fixed: value.fixed === true,
+      ...(value.requiresUserInput === true ? { requiresUserInput: true } : {}),
+    }
+  }
+
+  const ensureFinding = (value: unknown): Finding | null => {
+    if (!isRecord(value) || !isRecord(value.fix) || !isRecord(value.why) || !Array.isArray(value.why.evidence))
+      return null
+
+    const locate = normalizeLocate(value.locate)
+    const id = readString(value.id)
+    const title = readString(value.title)
+    if (!locate || !id || !title)
+      return null
+
+    const evidence = value.why.evidence
+      .map(normalizeEvidenceEntry)
+      .filter((entry): entry is Evidence => entry !== null)
+    const suggestions = (Array.isArray(value.fix.suggestions) ? value.fix.suggestions : [])
+      .map(normalizeSuggestionEntry)
+      .filter((entry): entry is Suggestion => entry !== null)
+    const fixSummary = readString(value.fix.summary, title)
+    const steps = Array.isArray(value.fix.steps)
+      ? value.fix.steps.filter((step): step is string => typeof step === 'string')
+      : []
+    const finding: Finding = {
+      id,
+      type: readString(value.type, 'content_issue'),
+      title,
+      locate,
+      why: {
+        summary: readString(value.why.summary, title),
+        evidence,
+      },
+      fix: {
+        summary: fixSummary,
+        steps,
+        suggestions,
+      },
+    }
+
+    if (suggestions.length > 0) {
       return {
         ...finding,
         fix: {
           ...finding.fix,
-          suggestions: finding.fix.suggestions.map(suggestion => ({
-            ...suggestion,
-            valueType: toInternalSuggestionValueType(suggestion.valueType, suggestion.locate.path),
-          })),
+          suggestions,
         },
       }
     }
 
-    const evidence = finding.why.evidence.find(item => item.locate.path === finding.locate.path)
-    if (!evidence)
+    const matchingEvidence = evidence.find(item => item.locate.path === locate.path)
+    if (!matchingEvidence)
       return null
 
     return {
@@ -228,22 +323,22 @@ export function ensureAtsFindingsHaveSuggestions(findings: FindingsGroup | null 
       fix: {
         ...finding.fix,
         suggestions: [buildFallbackSuggestion({
-          locate: finding.locate,
-          rawValue: evidence.rawValue,
+          locate,
+          rawValue: matchingEvidence.rawValue,
           requiredWithinEntry: true,
-        }, finding.fix.summary, finding.fix.steps)],
+        }, fixSummary, steps)],
       },
     }
   }
 
-  const ensureGroup = (group: Finding[]) => group
+  const ensureGroup = (group: unknown) => (Array.isArray(group) ? group : [])
     .map(ensureFinding)
     .filter((finding): finding is Finding => finding !== null)
 
   return {
-    high: ensureGroup(source.high ?? []),
-    medium: ensureGroup(source.medium ?? []),
-    low: ensureGroup(source.low ?? []),
+    high: ensureGroup(source.high),
+    medium: ensureGroup(source.medium),
+    low: ensureGroup(source.low),
   }
 }
 

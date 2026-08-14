@@ -79,11 +79,55 @@ assert.equal(countPendingAtsFindings(findings([
   finding('done-2', [true, true]),
 ])), 0)
 
+const malformedSeverityGroups = {
+  high: {},
+  medium: null,
+  low: 'invalid',
+} as unknown as FindingsGroup
+assert.doesNotThrow(() => countPendingAtsFindings(malformedSeverityGroups))
+assert.equal(countPendingAtsFindings(malformedSeverityGroups), 0)
+
+const malformedFindings = {
+  high: [null, 'invalid', {}, {
+    id: 'missing-safe-structure',
+    locate: null,
+    fix: { suggestions: [null] },
+    why: { evidence: [null] },
+  }],
+  medium: [],
+  low: [],
+} as unknown as FindingsGroup
+assert.doesNotThrow(() => countPendingAtsFindings(malformedFindings))
+assert.equal(countPendingAtsFindings(malformedFindings), 0)
+
+const fallbackCandidate = finding('malformed-suggestions-with-valid-evidence', [], 'matching')
+const malformedSuggestionAndEvidence = findings([{
+  ...fallbackCandidate,
+  why: {
+    ...fallbackCandidate.why,
+    evidence: [
+      null,
+      ...fallbackCandidate.why.evidence,
+      { locate: null },
+    ],
+  },
+  fix: {
+    ...fallbackCandidate.fix,
+    suggestions: [null, { locate: null }],
+  },
+} as unknown as Finding])
+assert.doesNotThrow(() => countPendingAtsFindings(malformedSuggestionAndEvidence))
+assert.equal(countPendingAtsFindings(malformedSuggestionAndEvidence), 1)
+
 const dashboardSource = readFileSync(new URL('../src/pages/index/insights.ts', import.meta.url), 'utf8')
 const atsRepositorySource = readFileSync(new URL('../src/lib/supabase/resume/ats.ts', import.meta.url), 'utf8')
+const atsStatusSource = readFileSync(new URL('../src/lib/ats/status.ts', import.meta.url), 'utf8')
+const optimizeStoreSource = readFileSync(new URL('../src/pages/optimize/store.ts', import.meta.url), 'utf8')
 
 assert.match(dashboardSource, /countPendingAtsFindings\(summary\.findings\)/)
 assert.doesNotMatch(dashboardSource, /summary\.todo_items\?\.length/)
 assert.match(atsRepositorySource, /\.select\('[^']*findings[^']*'\)/)
+assert.match(atsStatusSource, /ensureAtsFindingsHaveSuggestions\(findings\)/)
+assert.match(optimizeStoreSource, /ensureAtsFindingsHaveSuggestions\(config\.findings\)/)
 
 stdout.write('Dashboard ATS pending verification passed.\n')

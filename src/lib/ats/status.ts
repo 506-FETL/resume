@@ -1,4 +1,4 @@
-import type { Finding, FindingsGroup, Severity } from '../schema/ats.ts'
+import type { Finding, Severity } from '../schema/ats.ts'
 import { ensureAtsFindingsHaveSuggestions } from './result.ts'
 
 const SEVERITIES: Severity[] = ['high', 'medium', 'low']
@@ -11,7 +11,7 @@ export function isAtsFindingPending(finding: Finding): boolean {
     || suggestions.some(suggestion => suggestion?.fixed !== true)
 }
 
-export function countPendingAtsFindings(findings: FindingsGroup | null | undefined): number {
+export function countPendingAtsFindings(findings: unknown): number {
   const effectiveFindings = ensureAtsFindingsHaveSuggestions(findings)
 
   return SEVERITIES.reduce((total, severity) => {
