@@ -1,7 +1,7 @@
 import type { ResumeToolContext } from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import type { AtsEvaluationResult } from '@/pages/optimize/types'
-import { getResumeEvidenceStats } from '@/lib/ats'
+import { getResumeEvidenceStats, isMeaningfulAtsValue } from '@/lib/ats'
 import { fetchResumeDataForAnalysis } from '@/pages/optimize/utils'
 import { SECTION_LABEL_MAP } from './const'
 import { isStructurallyEmpty, normalizeDateRange, normalizeDateToken, normalizeInlineText, normalizeMultilineText } from './text'
@@ -45,8 +45,9 @@ function buildExperienceBlock(
 }
 
 export function getResumeSections(resume: ResumeSchema): ResumeSection[] {
+  const candidateName = normalizeInlineText(resume.basics.name)
   const basicsLines = [
-    ['姓名', resume.basics.name],
+    ['姓名', candidateName.toLowerCase() === 'granular resume' ? '' : candidateName],
     ['电话', normalizeInlineText(resume.basics.phone)],
     ['邮箱', normalizeInlineText(resume.basics.email).toLowerCase()],
     ['工作年限', resume.basics.workYears === '不填' ? '' : resume.basics.workYears],
@@ -83,50 +84,77 @@ export function getResumeSections(resume: ResumeSchema): ResumeSection[] {
     .filter(([, value]) => !isStructurallyEmpty(value))
     .map(([label, value]) => `${label}：${value}`)
 
-  const educationLines = resume.edu_background.items.flatMap((item, index) => {
-    const meta = [
-      normalizeInlineText(item.professional),
-      item.degree === '不填' ? '' : item.degree,
-      ...normalizeDateRange(item.duration).filter(Boolean),
-    ].filter(Boolean)
+  const educationLines = resume.edu_background.items
+    .filter(item => [item.schoolName, item.professional, item.degree, item.duration, item.eduInfo]
+      .some(isMeaningfulAtsValue))
+    .flatMap((item, index) => {
+      const meta = [
+        normalizeInlineText(item.professional),
+        item.degree === '不填' ? '' : item.degree,
+        ...normalizeDateRange(item.duration).filter(Boolean),
+      ].filter(Boolean)
 
-    return [
-      `${index + 1}. ${normalizeInlineText(item.schoolName) || '未填写学校'}`,
-      meta.length > 0 ? `   ${meta.join(' | ')}` : '',
-      ...normalizeMultilineText(item.eduInfo)
-        .split('\n')
-        .filter(Boolean)
-        .map(line => `   - ${line}`),
-    ].filter(Boolean)
-  })
+      return [
+        `${index + 1}. ${normalizeInlineText(item.schoolName) || '未填写学校'}`,
+        meta.length > 0 ? `   ${meta.join(' | ')}` : '',
+        ...normalizeMultilineText(item.eduInfo)
+          .split('\n')
+          .filter(Boolean)
+          .map(line => `   - ${line}`),
+      ].filter(Boolean)
+    })
 
-  const workBlock = buildExperienceBlock('工作经历', resume.work_experience.items.map(item => ({
-    heading: item.companyName,
-    subheading: [item.position],
-    duration: normalizeDateRange(item.workDuration),
-    description: item.workInfo,
-  })))
+  const workBlock = buildExperienceBlock(
+    '工作经历',
+    resume.work_experience.items
+      .filter(item => [item.companyName, item.position, item.workDuration, item.workInfo]
+        .some(isMeaningfulAtsValue))
+      .map(item => ({
+        heading: item.companyName,
+        subheading: [item.position],
+        duration: normalizeDateRange(item.workDuration),
+        description: item.workInfo,
+      })),
+  )
 
-  const internshipBlock = buildExperienceBlock('实习经历', resume.internship_experience.items.map(item => ({
-    heading: item.companyName,
-    subheading: [item.position],
-    duration: normalizeDateRange(item.internshipDuration),
-    description: item.internshipInfo,
-  })))
+  const internshipBlock = buildExperienceBlock(
+    '实习经历',
+    resume.internship_experience.items
+      .filter(item => [item.companyName, item.position, item.internshipDuration, item.internshipInfo]
+        .some(isMeaningfulAtsValue))
+      .map(item => ({
+        heading: item.companyName,
+        subheading: [item.position],
+        duration: normalizeDateRange(item.internshipDuration),
+        description: item.internshipInfo,
+      })),
+  )
 
-  const campusBlock = buildExperienceBlock('校园经历', resume.campus_experience.items.map(item => ({
-    heading: item.experienceName,
-    subheading: [item.role],
-    duration: normalizeDateRange(item.duration),
-    description: item.campusInfo,
-  })))
+  const campusBlock = buildExperienceBlock(
+    '校园经历',
+    resume.campus_experience.items
+      .filter(item => [item.experienceName, item.role, item.duration, item.campusInfo]
+        .some(isMeaningfulAtsValue))
+      .map(item => ({
+        heading: item.experienceName,
+        subheading: [item.role],
+        duration: normalizeDateRange(item.duration),
+        description: item.campusInfo,
+      })),
+  )
 
-  const projectBlock = buildExperienceBlock('项目经历', resume.project_experience.items.map(item => ({
-    heading: item.projectName,
-    subheading: [item.participantRole],
-    duration: normalizeDateRange(item.projectDuration),
-    description: item.projectInfo,
-  })))
+  const projectBlock = buildExperienceBlock(
+    '项目经历',
+    resume.project_experience.items
+      .filter(item => [item.projectName, item.participantRole, item.projectDuration, item.projectInfo]
+        .some(isMeaningfulAtsValue))
+      .map(item => ({
+        heading: item.projectName,
+        subheading: [item.participantRole],
+        duration: normalizeDateRange(item.projectDuration),
+        description: item.projectInfo,
+      })),
+  )
 
   const skillLines = [
     normalizeMultilineText(resume.skill_specialty.description),

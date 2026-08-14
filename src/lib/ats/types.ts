@@ -22,6 +22,7 @@ export interface AtsAssessmentSection {
 export interface AtsAssessmentScope {
   evaluatedSections: string[]
   ignoredEmptySections: string[]
+  hasCandidateName: boolean
   hasContactMethod: boolean
 }
 

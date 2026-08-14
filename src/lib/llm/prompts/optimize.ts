@@ -7,6 +7,7 @@ function serializeAssessmentInput(input: AtsAssessmentInput): string {
     sections: input.sections,
     scope: {
       evaluatedSections: input.scope.evaluatedSections,
+      hasCandidateName: input.scope.hasCandidateName,
       hasContactMethod: input.scope.hasContactMethod,
     },
   }, null, 2)
@@ -30,9 +31,10 @@ export function buildOptimizePrompt(input: AtsAssessmentInput): string {
 5. 联系方式属于简历可用性信号：
    - scope.hasContactMethod=false 时，可以降低 ATS 可解析性并指出至少需要一种稳定联系方式；
    - 已有手机号或邮箱任意一种时，不得因为另一种为空机械扣分。
-6. 没有显式求职意向时，应先尝试从岗位、经历、项目角色和技能推断方向。只有现有内容确实无法形成清晰定位时才降低岗位定位与相关性。
-7. 数字只是成果证据的一种。职责边界、技术或业务细节、交付物、影响范围、复杂度、作品和可验证结果也属于有效证据，不得要求每条经历都必须出现百分比或数字。
-8. 禁止编造姓名、公司、学校、岗位、日期、技能、项目、职责、成果、数字、证书或其它事实。
+6. scope.hasCandidateName=false 表示姓名为空或仍是产品默认占位名，应按简历可用性问题处理；不得把“Granular Resume”当作真实姓名。
+7. 没有显式求职意向时，应先尝试从岗位、经历、项目角色和技能推断方向。只有现有内容确实无法形成清晰定位时才降低岗位定位与相关性。
+8. 数字只是成果证据的一种。职责边界、技术或业务细节、交付物、影响范围、复杂度、作品和可验证结果也属于有效证据，不得要求每条经历都必须出现百分比或数字。
+9. 禁止编造姓名、公司、学校、岗位、日期、技能、项目、职责、成果、数字、证书或其它事实。
 
 ========================
 二、内部判断顺序

@@ -17,7 +17,7 @@ import type {
   ValueType,
 } from '../schema/ats.ts'
 import type { AtsAssessmentField, AtsAssessmentInput } from './types.ts'
-import { flattenAssessmentFields } from './assessment-input.ts'
+import { flattenAssessmentFields, isMeaningfulAtsValue } from './assessment-input.ts'
 import { ATS_SCORE_MAX } from './constants.ts'
 
 const SCORE_KEYS = Object.keys(ATS_SCORE_MAX) as ScoreKey[]
@@ -85,7 +85,15 @@ function deepEqual(left: unknown, right: unknown): boolean {
 }
 
 function buildFieldCatalog(input: AtsAssessmentInput): Map<string, AtsAssessmentField> {
-  return new Map(flattenAssessmentFields(input).map(field => [field.locate.path, field]))
+  const contactPaths = new Set(['basics.phone', 'basics.email'])
+  const fields = flattenAssessmentFields(input).filter((field) => {
+    if (!input.scope.hasContactMethod || !contactPaths.has(field.locate.path))
+      return true
+
+    return isMeaningfulAtsValue(field.rawValue)
+  })
+
+  return new Map(fields.map(field => [field.locate.path, field]))
 }
 
 function resolveField(

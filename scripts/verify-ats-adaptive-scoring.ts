@@ -191,10 +191,62 @@ function verifyExperienceSectionsCanSubstituteForWork() {
 
 function verifyContactSignal() {
   const resume = createResume()
-  assert.equal(buildAtsAssessmentInput(resume).scope.hasContactMethod, false)
+  const emptyContactInput = buildAtsAssessmentInput(resume)
+  assert.equal(emptyContactInput.scope.hasContactMethod, false)
+  assert.equal(emptyContactInput.scope.hasCandidateName, true)
+  assert.equal(
+    flattenAssessmentFields(emptyContactInput)
+      .find(field => field.locate.path === 'basics.email')
+      ?.requiredWithinEntry,
+    false,
+  )
 
   resume.basics.email = 'candidate@example.com'
   assert.equal(buildAtsAssessmentInput(resume).scope.hasContactMethod, true)
+
+  resume.basics.name = 'Granular Resume'
+  assert.equal(buildAtsAssessmentInput(resume).scope.hasCandidateName, false)
+}
+
+function verifyAlternativeContactMethodIsNotPenalized() {
+  const resume = createResume()
+  resume.basics.phone = '13800000000'
+  const input = buildAtsAssessmentInput(resume)
+  const emailField = flattenAssessmentFields(input)
+    .find(field => field.locate.path === 'basics.email')
+  assert.ok(emailField)
+
+  const draft: AtsLlmDraft = {
+    scores: {
+      job_match: { score: 20, max: 25 },
+      content_completeness: { score: 20, max: 25 },
+      impact_quantification: { score: 15, max: 20 },
+      ats_parsing: { score: 15, max: 15 },
+      format_readability: { score: 12, max: 15 },
+    },
+    findings: {
+      high: [],
+      medium: [{
+        id: 'M-001',
+        type: 'missing_email',
+        title: '缺少邮箱',
+        locate: emailField.locate,
+        why: {
+          summary: '已有手机号时不应要求邮箱。',
+          evidence: [{
+            text: '邮箱为空。',
+            rawValue: '',
+            locate: emailField.locate,
+          }],
+        },
+        fix: { summary: '补充邮箱', steps: ['补充邮箱'], suggestions: [] },
+      }],
+      low: [],
+    },
+  }
+
+  const normalized = normalizeAtsEvaluationResult(draft, input)
+  assert.equal(normalized.findings.medium.length, 0)
 }
 
 function verifyAdaptivePromptContract() {
@@ -382,14 +434,21 @@ function verifyContentEvidenceMetrics() {
     new URL('../src/pages/optimize/components/advanced-tools/benchmark/utils.ts', import.meta.url),
     'utf8',
   )
+  const previewSource = readFileSync(
+    new URL('../src/pages/optimize/components/advanced-tools/shared/resume.ts', import.meta.url),
+    'utf8',
+  )
   assert.doesNotMatch(benchmarkSource, /filledSectionCount|projectCount|certificateCount|selfEvaluationLength/)
   assert.doesNotMatch(benchmarkSource, /补齐项目|补齐证书|补齐自我评价/)
+  assert.match(previewSource, /\.filter\(item => \[item\.projectName, item\.participantRole, item\.projectDuration, item\.projectInfo\]/)
+  assert.match(previewSource, /candidateName\.toLowerCase\(\) === 'granular resume'/)
 }
 
 verifyEmptyOptionalSectionsAreNeutral()
 verifyOriginalIndexesArePreserved()
 verifyExperienceSectionsCanSubstituteForWork()
 verifyContactSignal()
+verifyAlternativeContactMethodIsNotPenalized()
 verifyAdaptivePromptContract()
 verifyResultNormalization()
 verifyContentEvidenceMetrics()

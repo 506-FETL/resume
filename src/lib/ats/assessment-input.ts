@@ -160,8 +160,8 @@ function createSingleItemSection(
 function createBasicsSection(resume: ResumeSchema): AtsAssessmentSection {
   const fields: AtsAssessmentField[] = [
     createField({ sectionKey: 'basics', fieldKey: 'name', path: 'basics.name', rawValue: resume.basics.name, requiredWithinEntry: true, itemLabel: null }),
-    createField({ sectionKey: 'basics', fieldKey: 'phone', path: 'basics.phone', rawValue: resume.basics.phone, requiredWithinEntry: true, itemLabel: null }),
-    createField({ sectionKey: 'basics', fieldKey: 'email', path: 'basics.email', rawValue: resume.basics.email, requiredWithinEntry: true, itemLabel: null }),
+    createField({ sectionKey: 'basics', fieldKey: 'phone', path: 'basics.phone', rawValue: resume.basics.phone, itemLabel: null }),
+    createField({ sectionKey: 'basics', fieldKey: 'email', path: 'basics.email', rawValue: resume.basics.email, itemLabel: null }),
   ]
 
   if (isMeaningfulAtsValue(resume.basics.workYears)) {
@@ -379,6 +379,8 @@ export function buildAtsAssessmentInput(resume: ResumeSchema): AtsAssessmentInpu
       ignoredEmptySections: optionalSectionKeys
         .filter(key => !evaluatedSectionKeys.has(key))
         .map(key => ATS_SECTION_LABELS[key]),
+      hasCandidateName: isMeaningfulAtsValue(resume.basics.name)
+        && normalizePlainText(resume.basics.name).toLowerCase() !== 'granular resume',
       hasContactMethod: isMeaningfulAtsValue(resume.basics.phone) || isMeaningfulAtsValue(resume.basics.email),
     },
   }
