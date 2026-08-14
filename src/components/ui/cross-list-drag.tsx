@@ -324,6 +324,8 @@ export function CrossListDragProvider({
       return
     session.active = true
     session.touchTimer = null
+    if (session.kind === 'pointer' && !session.itemElement.hasPointerCapture(session.pointerId))
+      session.itemElement.setPointerCapture(session.pointerId)
     session.startRect = session.itemElement.getBoundingClientRect()
     overlayX.set(0)
     overlayY.set(0)
@@ -393,7 +395,6 @@ export function CrossListDragProvider({
       touchTimer: null,
       destination: null,
     }
-    event.currentTarget.setPointerCapture(event.pointerId)
   }, [])
 
   const beginTouchDrag = useCallback((

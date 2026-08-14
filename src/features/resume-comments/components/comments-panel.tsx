@@ -190,7 +190,7 @@ export function CommentsPanel({
       aria-label="简历评论"
       overlayClassName="supports-backdrop-filter:backdrop-blur-none"
       className={isMobile
-        ? 'pb-[env(safe-area-inset-bottom)] [--drawer-content-height:60vh] [--drawer-content-max-height:60vh]'
+        ? 'h-[60vh]'
         : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}
     >
       <DrawerTitle className="sr-only">简历评论</DrawerTitle>
@@ -206,7 +206,6 @@ export function CommentsPanel({
         onOpenChange={handleOpenChange}
         modal
         swipeDirection="down"
-        showSwipeHandle
       >
         <DrawerVirtualKeyboardProvider>
           {content}
