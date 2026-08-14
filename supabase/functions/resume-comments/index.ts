@@ -814,7 +814,7 @@ function validateBootstrapRpcResult(
       || !isUuidValue(value.repair.ownerUserId)
       || !isUuidValue(value.repair.resumeId)
       || !isPositiveSafeInteger(value.repair.versionId)
-      || !isNonNegativeSafeInteger(value.repair.documentRevision)
+      || !isPositiveSafeInteger(value.repair.documentRevision)
       || !isRecord(value.repair.snapshot)
       || !isDateOnly(value.repair.projectionReferenceDate)
       || (input.p_version_id !== null && value.repair.versionId !== input.p_version_id)

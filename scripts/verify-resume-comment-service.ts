@@ -167,8 +167,31 @@ assert.match(
   /input\.p_access_kind === 'collaborator'[\s\S]*?!isRecord\(value\.repair\.snapshot\)[\s\S]*?projectionReferenceDate/u,
 )
 assert.match(
-  bootstrapValidatorSource,
-  /!isPositiveSafeInteger\(value\.repair\.versionId\)[\s\S]*?!isNonNegativeSafeInteger\(value\.repair\.documentRevision\)/u,
+  edgeSource,
+  /function isPositiveSafeInteger\(value: unknown\): value is number \{\s*return Number\.isSafeInteger\(value\) && Number\(value\) > 0\s*\}/u,
+)
+assert.equal(Number.isSafeInteger(0) && Number(0) > 0, false)
+assert.equal(Number.isSafeInteger(1) && Number(1) > 0, true)
+const scopeMissingValidatorStart = bootstrapValidatorSource.indexOf(
+  'if (value.status === \'scope_missing\')',
+)
+const scopeMissingValidatorEnd = bootstrapValidatorSource.indexOf(
+  'if (!isNonNegativeSafeInteger(value.eventSeq))',
+  scopeMissingValidatorStart,
+)
+assert.ok(scopeMissingValidatorStart >= 0)
+assert.ok(scopeMissingValidatorEnd > scopeMissingValidatorStart)
+const scopeMissingValidatorSource = bootstrapValidatorSource.slice(
+  scopeMissingValidatorStart,
+  scopeMissingValidatorEnd,
+)
+assert.match(
+  scopeMissingValidatorSource,
+  /!isPositiveSafeInteger\(value\.repair\.versionId\)[\s\S]*?!isPositiveSafeInteger\(value\.repair\.documentRevision\)/u,
+)
+assert.doesNotMatch(
+  scopeMissingValidatorSource,
+  /isNonNegativeSafeInteger\(value\.repair\.documentRevision\)/u,
 )
 assert.match(
   bootstrapValidatorSource,
@@ -246,9 +269,27 @@ assert.match(
   bootstrapBranchSource,
   /data: \{ \.\.\.result\.bootstrap, \.\.\.realtime \}/u,
 )
+const bootstrapSuccessResponseStart = bootstrapBranchSource.indexOf(
+  'return finalize(json({',
+)
+const bootstrapSuccessResponseEndMarker = 'eventSeq: result.eventSeq,\n      }))'
+const bootstrapSuccessResponseEnd = bootstrapBranchSource.indexOf(
+  bootstrapSuccessResponseEndMarker,
+  bootstrapSuccessResponseStart,
+)
+assert.ok(bootstrapSuccessResponseStart >= 0)
+assert.ok(bootstrapSuccessResponseEnd > bootstrapSuccessResponseStart)
+const bootstrapSuccessResponseSource = bootstrapBranchSource.slice(
+  bootstrapSuccessResponseStart,
+  bootstrapSuccessResponseEnd + bootstrapSuccessResponseEndMarker.length,
+)
+assert.match(
+  bootstrapSuccessResponseSource,
+  /ok: true,[\s\S]*?protocolVersion: 1,[\s\S]*?meta: \{ authMode, repair: repaired, coldStart \},[\s\S]*?data: \{ \.\.\.result\.bootstrap, \.\.\.realtime \},[\s\S]*?eventSeq: result\.eventSeq/u,
+)
 assert.doesNotMatch(
-  bootstrapBranchSource.slice(bootstrapBranchSource.indexOf('return finalize(json')),
-  /\.\.\.result\.access|\.\.\.result\.repair|sharePasswordHash/u,
+  bootstrapSuccessResponseSource,
+  /result\.access|result\.repair|sharePasswordHash/u,
 )
 
 assert.match(
