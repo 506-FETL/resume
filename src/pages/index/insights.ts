@@ -1,6 +1,7 @@
 import type { Resume } from './types'
 import type { ApplicationStatus } from '@/pages/tracker/types'
 import { useEffect, useMemo, useState } from 'react'
+import { countPendingAtsFindings } from '@/lib/ats'
 import { listAtsSummaries, listJobApplicationSummaries, listResumeHistoryVersionSummaries } from '@/lib/supabase/resume'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '@/pages/tracker/const'
 import { getDaysUntil, isJobPendingFollowUp } from '@/pages/tracker/utils'
@@ -114,7 +115,7 @@ export function useDashboardInsights(resumes: Resume[], resumesLoading: boolean)
           : null
 
         const atsTodoTotal = latestAtsList.reduce(
-          (sum, summary) => sum + (summary.todo_items?.length ?? 0),
+          (sum, summary) => sum + countPendingAtsFindings(summary.findings),
           0,
         )
         const resumesWithoutAts = onlineResumes.filter(resume => !atsMap.has(resume.resume_id)).length

@@ -1,17 +1,13 @@
-import type { Finding, FindingsGroup, Severity } from '../../types'
+import type { FindingsGroup, Severity } from '../../types'
 import { Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
+import { isAtsFindingPending } from '@/lib/ats'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '../../const'
 import useAtsStore from '../../store'
 import FindingItem from './finding-item'
-
-function isFindingPending(finding: Finding) {
-  const suggestions = finding.fix.suggestions || []
-  return suggestions.length === 0 || suggestions.some(suggestion => !suggestion.fixed)
-}
 
 function countAllFindings(findings: FindingsGroup | undefined) {
   if (!findings) {
@@ -27,7 +23,7 @@ export default function IssueAnalysis() {
   const severityOrder: Severity[] = ['high', 'medium', 'low']
 
   const pendingCounts = severityOrder.reduce<Record<Severity, number>>((accumulator, severity) => {
-    accumulator[severity] = (findings?.[severity] ?? []).filter(isFindingPending).length
+    accumulator[severity] = (findings?.[severity] ?? []).filter(isAtsFindingPending).length
     return accumulator
   }, { high: 0, medium: 0, low: 0 })
 

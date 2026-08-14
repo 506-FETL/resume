@@ -1,4 +1,4 @@
-import type { AtsCreatePayload, AtsEvaluationResult, AtsPersistPatch, AtsRecordId, FixChecklistItem, Summary } from '@/lib/schema/ats'
+import type { AtsCreatePayload, AtsEvaluationResult, AtsPersistPatch, AtsRecordId, FindingsGroup, FixChecklistItem, Summary } from '@/lib/schema/ats'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { sanitizeAtsPersistInput } from './utils'
@@ -8,6 +8,7 @@ export interface AtsSummaryRecord {
   resume_id: string
   created_at: string
   todo_items: string[]
+  findings: FindingsGroup | null
   summary: Pick<Summary, 'overall_score'> | null
 }
 
@@ -39,7 +40,7 @@ export async function listAtsSummaries() {
 
   const { data, error } = await supabase
     .from('ats')
-    .select('id,resume_id,created_at,todo_items,summary')
+    .select('id,resume_id,created_at,todo_items,findings,summary')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
