@@ -260,7 +260,7 @@ function Editor() {
                       className="fixed bottom-6 right-6 z-1"
                     >
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         className="shadow-md"
                         onClick={() => {
                           setCommentsOpen(false)

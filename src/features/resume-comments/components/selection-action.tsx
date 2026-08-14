@@ -46,7 +46,7 @@ export function SelectionAction({
         onPointerDown={event => event.preventDefault()}
       >
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           disabled={disabled || !isPresent}
           onClick={onComment}

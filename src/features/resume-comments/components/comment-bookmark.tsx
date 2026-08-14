@@ -29,11 +29,11 @@ export function CommentBookmark({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            variant="outline"
+            variant="secondary"
             size="icon"
             disabled={disabled}
             aria-label="展开评论"
-            className="relative h-10 w-9 rounded-r-none rounded-l-xl border-r-0 bg-background shadow-[0_3px_12px_rgb(0_0_0/0.09)] transition-[width,background-color,box-shadow] hover:w-10 hover:bg-accent hover:shadow-[0_4px_14px_rgb(0_0_0/0.12)]"
+            className="relative rounded-r-none rounded-l-xl border-r-0 shadow-[0_3px_12px_rgb(0_0_0/0.09)] transition-[width,background-color,box-shadow] hover:w-10 hover:shadow-[0_4px_14px_rgb(0_0_0/0.12)]"
             onClick={onOpen}
           >
             <MessageSquareText className="size-4" />

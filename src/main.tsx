@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from 'react-error-boundary'
 import { BrowserRouter } from 'react-router-dom'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import App from './App'
 import ErrorFallback from './components/ErrorBoundary'
 import '@fontsource-variable/arimo/wght.css'
@@ -16,7 +17,9 @@ app.render(
   <StrictMode>
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <BrowserRouter>
-        <App />
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
       </BrowserRouter>
     </ErrorBoundary>
   </StrictMode>,
