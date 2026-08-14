@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "verify:ats": "node --experimental-strip-types scripts/verify-ats-adaptive-scoring.ts",
     "verify:comments": "node --experimental-strip-types scripts/verify-resume-comment-anchors.ts",
     "verify:comment-client": "node --experimental-strip-types scripts/verify-resume-comment-client.ts",
     "verify:comment-service": "node --experimental-strip-types scripts/verify-resume-comment-service.ts",
