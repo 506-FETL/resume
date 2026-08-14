@@ -747,15 +747,15 @@ git commit -m "docs(comments): 记录评论性能兼容发布验证"
 
 - 修改：`docs/superpowers/verification/2026-08-14-resume-comments-bootstrap-performance.md`
 
-- [ ] **步骤 1：确认兼容代码和回滚点**
+- [x] **步骤 1：确认兼容代码和回滚点**
 
 确认三个 Edge Function 已通过旧 HS token 验证，JWKS 当前状态已记录，旧函数版本可部署回滚。任何一项失败都停止密钥操作。
 
-- [ ] **步骤 2：创建非对称 standby key**
+- [x] **步骤 2：创建非对称 standby key**
 
 在 Supabase Dashboard 的 Auth Signing Keys 中执行 legacy JWT secret migration，创建 Supabase 推荐的非对称 standby key。此操作不迁移数据库、不撤销旧 key。
 
-- [ ] **步骤 3：确认 JWKS 已发布**
+- [x] **步骤 3：确认 JWKS 已发布**
 
 ```bash
 curl -fsS "https://bitxrpdtlohlnywgusfw.supabase.co/auth/v1/.well-known/jwks.json" | jq '.keys | map({kid,kty,alg,use})'
@@ -763,15 +763,15 @@ curl -fsS "https://bitxrpdtlohlnywgusfw.supabase.co/auth/v1/.well-known/jwks.jso
 
 预期至少一个非对称公钥，输出中不包含私钥材料。
 
-- [ ] **步骤 4：旋转 standby 为 current 并保留旧 key**
+- [x] **步骤 4：旋转 standby 为 current 并保留旧 key**
 
 把新非对称 key 设为 current；legacy key 保留为 previously used，本次不 revoke/delete。刷新一个合法会话获取新 access token，禁止把 token 写入日志或验证文档。
 
-- [ ] **步骤 5：验证新旧 token 和本地热路径**
+- [x] **步骤 5：验证新旧 token 和本地热路径**
 
 旧 token 应继续成功且 `authMode=legacy_auth`；刷新后的新 token 应成功且 `authMode=local_jwks`。同一 isolate 连续调用确认 `auth_local` 阶段不再出现远程 Auth 往返；重新验证 comments/share/llm-proxy 身份矩阵。
 
-- [ ] **步骤 6：异常时按顺序回滚**
+- [x] **步骤 6：异常时按顺序回滚**（本次未触发异常；旧 key 与 Edge 回滚点均保留）
 
 若新 token 被 Edge 拒绝，先恢复上一 Edge 版本；若仍不兼容，把 legacy key 恢复为 current。不得撤销任何仍被会话使用的 key。把症状、回滚动作和最终状态记录到验证文档。
 
@@ -785,11 +785,11 @@ curl -fsS "https://bitxrpdtlohlnywgusfw.supabase.co/auth/v1/.well-known/jwks.jso
 - 修改：`docs/superpowers/verification/2026-08-14-resume-comments-bootstrap-performance.md`
 - 修改：`docs/superpowers/plans/2026-08-14-resume-comments-bootstrap-performance-optimization.md`
 
-- [ ] **步骤 1：执行 `auto` 与 `us-east-1` 重复基准**
+- [ ] **步骤 1：执行 `auto` 与 `us-east-1` 重复基准**（新旧 token 的两区域 20 轮热样本、首次 OPTIONS、首次 JWKS 与 repair 样本已记录；真实浏览器预检缓存后和明确 cold-isolate 分组仍缺证据）
 
 对相同用户、access body、scope 和数据，每组至少 20 个正常热样本；冷 isolate、首次 JWKS、legacy JWT、local JWT、首次 OPTIONS、预检缓存后和 repair 分组记录。报告 count、P50、P95、max、Edge region、响应字节和全部 Server-Timing 阶段。
 
-- [ ] **步骤 2：按确定性规则选择区域**
+- [x] **步骤 2：按确定性规则选择区域**
 
 正常热路径优先选择 P95 更低的配置，同时要求 P50 没有显著回退；差异落在网络抖动范围时保留 `auto`。只有 `us-east-1` 明确胜出时才把 `VITE_RESUME_COMMENTS_FUNCTION_REGION=us-east-1` 作为部署环境配置，并记录失去自动故障转移的权衡。
 
