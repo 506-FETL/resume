@@ -274,7 +274,7 @@ export function getAtsGrade(score: number): string
 export function normalizeAtsEvaluationResult(
   draft: AtsLlmDraft,
   input: AtsAssessmentInput,
-): AtsCreatePayload
+): AtsWritableFields
 ```
 
 每项 score 取有限整数并限制到量表范围，覆盖 max，根据五项和生成总分与等级。
@@ -291,7 +291,8 @@ export function normalizeAtsEvaluationResult(
 const assessmentInput = buildAtsAssessmentInput(resumeData)
 const streamResult = await runAtsStructured(assessmentInput, onUpdate)
 const draft = parseLlmJsonObject<AtsLlmDraft>(streamResult.content)
-const payload = normalizeAtsEvaluationResult(draft, assessmentInput)
+const normalized = normalizeAtsEvaluationResult(draft, assessmentInput)
+const payload = buildAtsCreatePayload(normalized, currentResumeId)
 ```
 
 保留 `finishReason === 'length'` 和仅返回思考过程的错误分支。

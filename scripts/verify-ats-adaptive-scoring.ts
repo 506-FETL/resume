@@ -1,9 +1,11 @@
+import type { AtsLlmDraft } from '../src/lib/schema/ats.ts'
 import type { ResumeSchema } from '../src/lib/schema/resume/form/index.ts'
 import assert from 'node:assert/strict'
 import {
   ATS_SCORE_TOTAL,
   buildAtsAssessmentInput,
   flattenAssessmentFields,
+  normalizeAtsEvaluationResult,
 } from '../src/lib/ats/index.ts'
 import { buildOptimizePrompt } from '../src/lib/llm/prompts/optimize.ts'
 
@@ -212,10 +214,147 @@ function verifyAdaptivePromptContract() {
   assert.doesNotMatch(prompt, /Locate\.path 白名单/)
 }
 
+function verifyResultNormalization() {
+  const resume = createResume()
+  resume.work_experience.items = [
+    {
+      entryId: 'work-empty-0',
+      companyName: '',
+      position: '',
+      workDuration: ['', ''],
+      workInfo: '',
+    },
+    {
+      entryId: 'work-used-1',
+      companyName: '示例科技',
+      position: '前端开发工程师',
+      workDuration: ['2024-01', '至今'],
+      workInfo: '<p>负责核心业务交付。</p>',
+    },
+  ]
+  const input = buildAtsAssessmentInput(resume)
+  const validField = flattenAssessmentFields(input)
+    .find(field => field.locate.path === 'work_experience.items[1].workInfo')
+  assert.ok(validField)
+  const validLocate = validField.locate
+  const invalidLocate = {
+    path: 'project_experience.items[0].projectInfo',
+    sectionLabel: '项目经历',
+    fieldLabel: '项目描述',
+    itemLabel: '项目 1',
+  }
+
+  const draft: AtsLlmDraft = {
+    version: '2.0',
+    meta: {
+      document_version: 2,
+      language: 'zh',
+      generated_at: '2026-08-14T00:00:00.000Z',
+      mode: 'general_ats_check',
+      inputDigest: '',
+      rubricVersion: '2.0',
+      assessment: {
+        candidateProfile: '具有业务交付经验的前端开发候选人',
+        inferredTarget: '前端开发工程师',
+        basisSummary: '根据已有工作经历综合判断。',
+        evaluatedSections: ['伪造模块'],
+        evidenceSignals: ['已有核心业务交付经历'],
+      },
+    },
+    readabilityIndex: {
+      score: 8,
+      scale: { min: 1, max: 10 },
+      summary: '表达清楚。',
+    },
+    scores: {
+      job_match: { score: 22, max: 30, rationale: '岗位定位清楚。' },
+      content_completeness: { score: 20, max: 20, rationale: '已有工作证据。' },
+      impact_quantification: { score: 15, max: 20, rationale: '成果证据仍可加强。' },
+      ats_parsing: { score: 12, max: 20, rationale: '关键信息可提取。' },
+      format_readability: { score: 13, max: 20, rationale: '表达较清晰。' },
+    },
+    summary: {
+      overall_score: 999,
+      grade: '错误等级',
+      top_risks: ['不应直接信任'],
+      next_actions: [{ title: '强化工作成果', priority: 1, locate: validLocate }],
+    },
+    todo_items: ['补项目经历'],
+    fixChecklist: [],
+    findings: {
+      high: [{
+        id: 'H-any',
+        type: 'weak_impact',
+        title: '工作成果证据仍可加强',
+        locate: validLocate,
+        why: {
+          summary: '现有描述只有职责，成果不够明确。',
+          evidence: [{
+            text: '当前描述为“负责核心业务交付”。',
+            rawValue: '<p>负责核心业务交付。</p>',
+            locate: validLocate,
+          }],
+        },
+        fix: {
+          summary: '补充真实的交付结果与影响范围',
+          steps: ['说明交付对象', '补充真实结果'],
+          suggestions: [{
+            kind: 'replace_text',
+            valueType: 'html_string',
+            locate: validLocate,
+            before: '<p>负责核心业务交付。</p>',
+            after: '<p>负责核心业务交付（待补充：具体范围和结果）。</p>',
+            reason: '补足可验证结果。',
+            fixed: false,
+          }],
+        },
+      }],
+      medium: [{
+        id: 'M-any',
+        type: 'missing_project',
+        title: '错误的空模块问题',
+        locate: invalidLocate,
+        why: {
+          summary: '不应保留。',
+          evidence: [{ text: '空项目。', rawValue: '', locate: invalidLocate }],
+        },
+        fix: { summary: '补项目', steps: ['补项目'], suggestions: [] },
+      }],
+      low: [{
+        id: 'L-any',
+        type: 'mismatched_evidence',
+        title: '原文不一致的问题',
+        locate: validLocate,
+        why: {
+          summary: '证据原值不一致。',
+          evidence: [{ text: '错误证据。', rawValue: '不是原文', locate: validLocate }],
+        },
+        fix: { summary: '不应保留', steps: ['不应保留'], suggestions: [] },
+      }],
+    },
+  }
+
+  const normalized = normalizeAtsEvaluationResult(draft, input)
+  const findingPaths = Object.values(normalized.findings)
+    .flatMap(findings => findings.map(finding => finding.locate.path))
+
+  assert.equal(normalized.summary.overall_score, 82)
+  assert.equal(normalized.summary.grade, '优秀')
+  assert.equal(normalized.scores.job_match.max, 25)
+  assert.equal(normalized.scores.ats_parsing.max, 15)
+  assert.deepEqual(normalized.meta.assessment?.evaluatedSections, input.scope.evaluatedSections)
+  assert.equal(findingPaths.includes(invalidLocate.path), false)
+  assert.equal(findingPaths.includes(validLocate.path), true)
+  assert.equal(normalized.findings.low.length, 0)
+  assert.deepEqual(normalized.todo_items, ['工作成果证据仍可加强'])
+  assert.equal(normalized.fixChecklist.length, 1)
+}
+
 verifyEmptyOptionalSectionsAreNeutral()
 verifyOriginalIndexesArePreserved()
 verifyExperienceSectionsCanSubstituteForWork()
 verifyContactSignal()
 verifyAdaptivePromptContract()
+verifyResultNormalization()
 
 console.warn('ATS adaptive scoring verification passed.')

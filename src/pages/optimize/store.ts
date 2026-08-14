@@ -2,7 +2,7 @@ import type { AdvancedToolKey, ResumeToolContext } from './components/advanced-t
 import type { AnalysisState, AtsCreatePayload, AtsEvaluationResult, AtsLlmDraft } from './types'
 import { toast } from 'sonner'
 import { create } from 'zustand'
-import { buildAtsAssessmentInput } from '@/lib/ats'
+import { buildAtsAssessmentInput, normalizeAtsEvaluationResult } from '@/lib/ats'
 import { parseLlmJsonObject, runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
 import { createAtsConfig, getAtsFromUserId, updateAtsConfig, updateFixChecklist } from '@/lib/supabase/resume'
@@ -235,11 +235,12 @@ const useAtsStore = create<AtsStore>()(
         updateLog('result', '已收到结果')
 
         const result = parseLlmJsonObject<AtsLlmDraft>(finalContent)
+        const normalizedResult = normalizeAtsEvaluationResult(result, assessmentInput)
 
         setAnalysisState({ status: 'saving' })
         updateLog('save', '正在保存分析报告...')
 
-        const payload: AtsCreatePayload = buildAtsCreatePayload(result, currentResumeId)
+        const payload: AtsCreatePayload = buildAtsCreatePayload(normalizedResult, currentResumeId)
         const existingAts = atsConfigs?.find(a => a.resume_id === currentResumeId)
 
         if (existingAts) {
