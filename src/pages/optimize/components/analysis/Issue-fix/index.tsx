@@ -142,7 +142,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
 
         <Content id={id} severity={severity} />
 
-        <DrawerFooter className="shrink-0 border-t bg-muted/30 px-4 py-3 md:flex md:flex-row md:justify-end md:gap-2">
+        <DrawerFooter className="shrink-0 border-t bg-muted/30 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:flex md:flex-row md:justify-end md:gap-2">
           <DrawerClose render={<Button variant="outline" />}>
             取消
           </DrawerClose>

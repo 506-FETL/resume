@@ -4,7 +4,7 @@ import { AlignLeft, BriefcaseBusiness, Gauge, Sparkles, Target, TrendingUp, Tria
 import { useMemo } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
-import { ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard } from '../shared/primitives'
+import { ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard, ToolStatsGrid } from '../shared/primitives'
 import { getMetricStatusClassName } from '../shared/suggestions'
 import { buildBenchmarkReport } from './utils'
 
@@ -68,7 +68,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
           badge={<ToolMetaBadge tone={benchmarkResult.profileConfidence >= 60 ? 'primary' : 'warning'}>{`置信度 ${benchmarkResult.profileConfidence}%`}</ToolMetaBadge>}
         />
         <ToolPanelBody className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <ToolStatsGrid>
             <ToolStatCard
               label="画像置信度"
               value={`${benchmarkResult.profileConfidence}%`}
@@ -101,7 +101,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
               tone={atsMetric ? getMetricTone(atsMetric) : 'default'}
               badge={<ToolMetaBadge tone={atsMetric ? getMetricTone(atsMetric) : 'default'}>关键指标</ToolMetaBadge>}
             />
-          </div>
+          </ToolStatsGrid>
 
           <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
             <div className="flex items-center justify-between gap-3">
@@ -119,7 +119,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
         </ToolPanelBody>
       </ToolPanelCard>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {benchmarkResult.metrics.map((metric) => {
           const progressValue = metric.target && metric.target > 0
             ? Math.min(100, Math.round((metric.current / metric.target) * 100))

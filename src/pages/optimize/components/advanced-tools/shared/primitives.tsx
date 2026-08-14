@@ -13,7 +13,7 @@ export function ToolPanelCard({
   className,
 }: PropsWithChildren<{ className?: string }>) {
   return (
-    <Card className={cn('min-w-0 border-border/60 bg-card shadow-none', className)}>
+    <Card className={cn('min-w-0 gap-0 border-border/60 bg-card py-0 shadow-none', className)}>
       {children}
     </Card>
   )
@@ -33,7 +33,7 @@ export function ToolPanelHeader({
   title: string
 }) {
   return (
-    <CardHeader className="border-b border-border/50 p-4 md:p-5">
+    <CardHeader className="p-4 pb-2 md:p-5 md:pb-2">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 flex-1 gap-3">
           {Icon && (
@@ -59,7 +59,23 @@ export function ToolPanelBody({
   children,
   className,
 }: PropsWithChildren<{ className?: string }>) {
-  return <CardContent className={cn('min-w-0 p-4 md:p-5', className)}>{children}</CardContent>
+  return <CardContent className={cn('min-w-0 p-4 pt-2 md:p-5 md:pt-3', className)}>{children}</CardContent>
+}
+
+export function ToolStatsGrid({
+  children,
+  className,
+}: PropsWithChildren<{ className?: string }>) {
+  return (
+    <div
+      className={cn(
+        'grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60 sm:grid-cols-2 xl:grid-cols-4',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function ToolStatCard({
@@ -80,7 +96,7 @@ export function ToolStatCard({
   const toneClass = TOOL_TONE_CLASS_MAP[tone]
 
   return (
-    <div className="h-full w-full min-w-0 rounded-lg border border-border/60 bg-muted/10 p-3.5 md:p-4">
+    <div className="h-full w-full min-w-0 bg-card p-3.5 md:p-4">
       <div className="flex min-w-0 items-center gap-2.5">
         {Icon && (
           <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-md', toneClass.icon)}>

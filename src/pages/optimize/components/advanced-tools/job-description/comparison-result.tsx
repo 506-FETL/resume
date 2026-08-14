@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard } from '../shared/primitives'
+import { ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard, ToolStatsGrid } from '../shared/primitives'
 import { getSectionScoreClassName } from '../shared/suggestions'
 
 interface JobDescriptionComparisonResultViewProps {
@@ -34,7 +34,7 @@ export default function ComparisonResultView({
 
   return (
     <>
-      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <ToolStatsGrid>
         <ToolStatCard
           label="岗位匹配度"
           value={`${result.matchScore}%`}
@@ -71,7 +71,7 @@ export default function ComparisonResultView({
             </ToolMetaBadge>
           )}
         />
-      </div>
+      </ToolStatsGrid>
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[1.1fr_1.4fr]">
         <ToolPanelCard>
@@ -186,7 +186,7 @@ export default function ComparisonResultView({
           <TabsTrigger value="advice">优化建议</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sections" className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <TabsContent value="sections" className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
           {result.sectionMatches.map(section => (
             <ToolPanelCard key={section.sectionKey}>
               <ToolPanelBody>
@@ -222,7 +222,7 @@ export default function ComparisonResultView({
           ))}
         </TabsContent>
 
-        <TabsContent value="advice" className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <TabsContent value="advice" className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
           {(result.recommendations.length > 0
             ? result.recommendations
             : ['当前 JD 命中情况已经比较完整，下一步更值得打磨的是量化结果和经历排序。']).map(item => (

@@ -10,7 +10,7 @@ import { updateAtsConfig } from '@/lib/supabase/resume'
 import useAtsStore from '@/pages/optimize/store'
 import { startConfetti } from '@/utils'
 import { formatToolError } from '../shared/config'
-import { ToolEmptyState, ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard } from '../shared/primitives'
+import { ToolEmptyState, ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard, ToolStatsGrid } from '../shared/primitives'
 import FormatterFindingCard from './finding-card'
 import { applySuggestionsToResume, buildBatchOptimizationResult, markAppliedSuggestionsAsFixed, updateFindingPendingSuggestions } from './utils'
 
@@ -143,39 +143,41 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
             </ToolMetaBadge>
           )}
         />
-        <ToolPanelBody className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <ToolStatCard
-            label="待处理问题"
-            value={batchResult.pendingIssueCount}
-            hint="分析结果里仍未完成的问题数量"
-            icon={CircleAlert}
-            tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}
-            badge={<ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>问题总览</ToolMetaBadge>}
-          />
-          <ToolStatCard
-            label="待执行建议"
-            value={batchResult.pendingSuggestionCount}
-            hint="所有未执行的结构化修复建议"
-            icon={ListChecks}
-            tone="info"
-            badge={<ToolMetaBadge tone="info">建议池</ToolMetaBadge>}
-          />
-          <ToolStatCard
-            label="可一键完成"
-            value={batchResult.autoApplicableIssueCount}
-            hint="本次预计直接完成的问题数量"
-            icon={Sparkles}
-            tone="success"
-            badge={<ToolMetaBadge tone="success">自动应用</ToolMetaBadge>}
-          />
-          <ToolStatCard
-            label="冲突保留"
-            value={batchResult.conflictedSuggestionCount}
-            hint="同字段冲突时保留更高优先级建议"
-            icon={TriangleAlert}
-            tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}
-            badge={<ToolMetaBadge tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}>{batchResult.conflictedSuggestionCount > 0 ? '需人工确认' : '无冲突'}</ToolMetaBadge>}
-          />
+        <ToolPanelBody>
+          <ToolStatsGrid>
+            <ToolStatCard
+              label="待处理问题"
+              value={batchResult.pendingIssueCount}
+              hint="分析结果里仍未完成的问题数量"
+              icon={CircleAlert}
+              tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}
+              badge={<ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>问题总览</ToolMetaBadge>}
+            />
+            <ToolStatCard
+              label="待执行建议"
+              value={batchResult.pendingSuggestionCount}
+              hint="所有未执行的结构化修复建议"
+              icon={ListChecks}
+              tone="info"
+              badge={<ToolMetaBadge tone="info">建议池</ToolMetaBadge>}
+            />
+            <ToolStatCard
+              label="可一键完成"
+              value={batchResult.autoApplicableIssueCount}
+              hint="本次预计直接完成的问题数量"
+              icon={Sparkles}
+              tone="success"
+              badge={<ToolMetaBadge tone="success">自动应用</ToolMetaBadge>}
+            />
+            <ToolStatCard
+              label="冲突保留"
+              value={batchResult.conflictedSuggestionCount}
+              hint="同字段冲突时保留更高优先级建议"
+              icon={TriangleAlert}
+              tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}
+              badge={<ToolMetaBadge tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}>{batchResult.conflictedSuggestionCount > 0 ? '需人工确认' : '无冲突'}</ToolMetaBadge>}
+            />
+          </ToolStatsGrid>
         </ToolPanelBody>
       </ToolPanelCard>
 
