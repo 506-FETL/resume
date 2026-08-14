@@ -39,7 +39,7 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
             </ToolMetaBadge>
           )}
         />
-        <ToolPanelBody className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ToolPanelBody className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <ToolStatCard
             label="有效能力证据"
             value={preview.stats.evidenceCount}
@@ -123,7 +123,7 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
                 复制纯文本
               </Button>
             </div>
-            <div className="max-h-[420px] overflow-auto rounded-xl border border-border/60 bg-muted/20 p-4 text-[13px] leading-6 text-foreground [&_blockquote]:mb-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-background/80 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_h1]:mb-2 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mb-1 [&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:mb-3 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-background/80 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5">
+            <div className="overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-4 text-[13px] leading-6 text-foreground sm:max-h-[420px] sm:overflow-y-auto [&_blockquote]:mb-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-background/80 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_h1]:mb-2 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mb-1 [&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:mb-3 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-background/80 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5">
               <Markdown>{preview.plainText || '暂无可预览内容'}</Markdown>
             </div>
           </ToolPanelBody>

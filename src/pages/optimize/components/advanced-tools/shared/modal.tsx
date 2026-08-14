@@ -67,7 +67,7 @@ export function AdvancedToolsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[min(88dvh,56rem)] min-h-0 w-[min(70rem,calc(100vw-3rem))] max-w-none flex-col gap-0 overflow-hidden p-0"
+        className="flex h-[min(90dvh,60rem)] min-h-0 w-[min(90rem,calc(100vw-4rem))] max-w-none flex-col gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
         <DialogHeader className="shrink-0 border-b border-border/60 p-5 text-left md:px-6">

@@ -34,7 +34,7 @@ export default function ComparisonResultView({
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <ToolStatCard
           label="岗位匹配度"
           value={`${result.matchScore}%`}
@@ -73,7 +73,7 @@ export default function ComparisonResultView({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[1.1fr_1.4fr]">
         <ToolPanelCard>
           <ToolPanelHeader
             title="匹配概览"
@@ -101,7 +101,7 @@ export default function ComparisonResultView({
           </ToolPanelBody>
         </ToolPanelCard>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid min-w-0 gap-4 md:grid-cols-2">
           <ToolPanelCard>
             <ToolPanelHeader
               title="已覆盖关键词"
@@ -142,7 +142,7 @@ export default function ComparisonResultView({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid min-w-0 gap-4 md:grid-cols-2">
         <ToolPanelCard>
           <ToolPanelHeader
             title="匹配亮点"
@@ -186,7 +186,7 @@ export default function ComparisonResultView({
           <TabsTrigger value="advice">优化建议</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sections" className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <TabsContent value="sections" className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {result.sectionMatches.map(section => (
             <ToolPanelCard key={section.sectionKey}>
               <ToolPanelBody>
@@ -222,7 +222,7 @@ export default function ComparisonResultView({
           ))}
         </TabsContent>
 
-        <TabsContent value="advice" className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <TabsContent value="advice" className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {(result.recommendations.length > 0
             ? result.recommendations
             : ['当前 JD 命中情况已经比较完整，下一步更值得打磨的是量化结果和经历排序。']).map(item => (

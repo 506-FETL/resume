@@ -265,26 +265,15 @@ function AdvancedTools() {
         open={open}
         meta={resumeSummary
           ? (
-              <>
-                <Badge variant="secondary" className="rounded-full">{resumeSummary.title}</Badge>
-                <Badge variant="outline" className="rounded-full">{resumeSummary.jobIntent}</Badge>
-                <Badge variant="outline" className="rounded-full">
-                  有效证据
-                  {' '}
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="max-w-64 truncate font-medium text-foreground">{resumeSummary.title}</span>
+                <span>{resumeSummary.jobIntent}</span>
+                <span>
                   {resumeSummary.evidenceCount}
-                  {' 条'}
-                </Badge>
-                <Badge
-                  className={resumeContext?.resumeType === 'offline'
-                    ? 'rounded-full border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                    : 'rounded-full border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300'}
-                >
-                  {resumeContext?.resumeType === 'offline' ? '本地简历' : '在线简历'}
-                </Badge>
-                {activeToolDefinition && (
-                  <Badge className={activeToolDefinition.badgeClassName}>{activeToolDefinition.badge}</Badge>
-                )}
-              </>
+                  {' 条有效证据'}
+                </span>
+                <span>{resumeContext?.resumeType === 'offline' ? '本地简历' : '在线简历'}</span>
+              </div>
             )
           : undefined}
         title={activeToolDefinition?.title || '高级工具箱'}

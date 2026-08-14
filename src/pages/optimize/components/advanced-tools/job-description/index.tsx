@@ -135,7 +135,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
                 id={jobDescriptionId}
                 value={jobDescription}
                 onChange={event => setJobDescription(sessionKey, event.target.value)}
-                className="max-h-50 resize-y border-border/60 bg-background md:max-h-60 lg:max-h-80 xl:max-h-100"
+                className="min-h-40 resize-y border-border/60 bg-background sm:max-h-60 lg:max-h-80 xl:max-h-100"
                 placeholder="粘贴职位描述、岗位职责、任职要求或加分项。"
               />
               <FieldDescription>
@@ -151,8 +151,8 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               </FieldDescription>
             </Field>
           </FieldGroup>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={handleCompare} disabled={analyzing || !jobDescription.trim()}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+            <Button className="w-full sm:w-auto" onClick={handleCompare} disabled={analyzing || !jobDescription.trim()}>
               {analyzing
                 ? <Spinner data-icon="inline-start" />
                 : <Target data-icon="inline-start" />}
@@ -161,6 +161,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
             <Button
               type="button"
               variant="outline"
+              className="w-full sm:w-auto"
               disabled={!canDerive}
               onClick={() => {
                 const task = useJdVariantStore.getState().tasks[resumeContext.resumeId]
@@ -173,7 +174,9 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               派生针对性简历
             </Button>
             {jobDescriptionLength > 0 && (
-              <ToolMetaBadge tone="info">建议包含职责、要求、加分项三部分</ToolMetaBadge>
+              <span className="self-start sm:self-auto">
+                <ToolMetaBadge tone="info">建议包含职责、要求、加分项三部分</ToolMetaBadge>
+              </span>
             )}
           </div>
         </ToolPanelBody>

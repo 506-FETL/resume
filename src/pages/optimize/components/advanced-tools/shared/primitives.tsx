@@ -13,7 +13,7 @@ export function ToolPanelCard({
   className,
 }: PropsWithChildren<{ className?: string }>) {
   return (
-    <Card className={cn('min-w-0 border-border/60 bg-card shadow-sm', className)}>
+    <Card className={cn('min-w-0 border-border/60 bg-card shadow-none', className)}>
       {children}
     </Card>
   )
@@ -80,19 +80,19 @@ export function ToolStatCard({
   const toneClass = TOOL_TONE_CLASS_MAP[tone]
 
   return (
-    <div className={cn('h-full w-full min-w-0 rounded-xl border p-3.5 shadow-sm md:p-4', toneClass.card)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground">{label}</p>
-          {badge}
-        </div>
+    <div className="h-full w-full min-w-0 rounded-lg border border-border/60 bg-muted/10 p-3.5 md:p-4">
+      <div className="flex min-w-0 items-center gap-2.5">
         {Icon && (
-          <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', toneClass.icon)}>
+          <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-md', toneClass.icon)}>
             <Icon className="size-4" />
           </div>
         )}
+        <p className="min-w-0 text-sm font-medium leading-5 text-muted-foreground">{label}</p>
       </div>
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{value}</p>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+        <p className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{value}</p>
+        {badge}
+      </div>
       {hint && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hint}</p>}
     </div>
   )

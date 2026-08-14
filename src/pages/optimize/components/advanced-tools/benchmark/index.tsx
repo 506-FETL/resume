@@ -68,7 +68,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
           badge={<ToolMetaBadge tone={benchmarkResult.profileConfidence >= 60 ? 'primary' : 'warning'}>{`置信度 ${benchmarkResult.profileConfidence}%`}</ToolMetaBadge>}
         />
         <ToolPanelBody className="space-y-4">
-          <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <ToolStatCard
               label="画像置信度"
               value={`${benchmarkResult.profileConfidence}%`}
@@ -119,7 +119,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
         </ToolPanelBody>
       </ToolPanelCard>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {benchmarkResult.metrics.map((metric) => {
           const progressValue = metric.target && metric.target > 0
             ? Math.min(100, Math.round((metric.current / metric.target) * 100))

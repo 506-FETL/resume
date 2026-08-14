@@ -121,86 +121,84 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
-        <ToolPanelCard>
-          <ToolPanelHeader
-            action={(
-              <Button
-                ref={actionButtonRef}
-                className="w-full sm:w-auto"
-                onClick={handleApply}
-                disabled={applying || !activeAtsConfig || batchResult.autoApplicableSuggestionCount === 0}
-              >
-                <Wand2 className="size-4" />
-                {actionLabel}
-              </Button>
-            )}
-            title="一键优化"
-            description="直接复用“简历问题分析”里的修复建议，一次性把当前可自动执行的改动写回简历。"
-            icon={Wand2}
-            badge={(
-              <ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>
-                {batchResult.pendingIssueCount > 0 ? `${batchResult.pendingIssueCount} 个待处理问题` : '自动修复已完成'}
-              </ToolMetaBadge>
-            )}
+      <ToolPanelCard>
+        <ToolPanelHeader
+          action={(
+            <Button
+              ref={actionButtonRef}
+              className="w-full sm:w-auto"
+              onClick={handleApply}
+              disabled={applying || !activeAtsConfig || batchResult.autoApplicableSuggestionCount === 0}
+            >
+              <Wand2 className="size-4" />
+              {actionLabel}
+            </Button>
+          )}
+          title="一键优化"
+          description="直接复用“简历问题分析”里的修复建议，一次性把当前可自动执行的改动写回简历。"
+          icon={Wand2}
+          badge={(
+            <ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>
+              {batchResult.pendingIssueCount > 0 ? `${batchResult.pendingIssueCount} 个待处理问题` : '自动修复已完成'}
+            </ToolMetaBadge>
+          )}
+        />
+        <ToolPanelBody className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <ToolStatCard
+            label="待处理问题"
+            value={batchResult.pendingIssueCount}
+            hint="分析结果里仍未完成的问题数量"
+            icon={CircleAlert}
+            tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}
+            badge={<ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>问题总览</ToolMetaBadge>}
           />
-          <ToolPanelBody className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            <ToolStatCard
-              label="待处理问题"
-              value={batchResult.pendingIssueCount}
-              hint="分析结果里仍未完成的问题数量"
-              icon={CircleAlert}
-              tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}
-              badge={<ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>问题总览</ToolMetaBadge>}
-            />
-            <ToolStatCard
-              label="待执行建议"
-              value={batchResult.pendingSuggestionCount}
-              hint="所有未执行的结构化修复建议"
-              icon={ListChecks}
-              tone="info"
-              badge={<ToolMetaBadge tone="info">建议池</ToolMetaBadge>}
-            />
-            <ToolStatCard
-              label="可一键完成"
-              value={batchResult.autoApplicableIssueCount}
-              hint="本次预计直接完成的问题数量"
-              icon={Sparkles}
-              tone="success"
-              badge={<ToolMetaBadge tone="success">自动应用</ToolMetaBadge>}
-            />
-            <ToolStatCard
-              label="冲突保留"
-              value={batchResult.conflictedSuggestionCount}
-              hint="同字段冲突时保留更高优先级建议"
-              icon={TriangleAlert}
-              tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}
-              badge={<ToolMetaBadge tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}>{batchResult.conflictedSuggestionCount > 0 ? '需人工确认' : '无冲突'}</ToolMetaBadge>}
-            />
-          </ToolPanelBody>
-        </ToolPanelCard>
+          <ToolStatCard
+            label="待执行建议"
+            value={batchResult.pendingSuggestionCount}
+            hint="所有未执行的结构化修复建议"
+            icon={ListChecks}
+            tone="info"
+            badge={<ToolMetaBadge tone="info">建议池</ToolMetaBadge>}
+          />
+          <ToolStatCard
+            label="可一键完成"
+            value={batchResult.autoApplicableIssueCount}
+            hint="本次预计直接完成的问题数量"
+            icon={Sparkles}
+            tone="success"
+            badge={<ToolMetaBadge tone="success">自动应用</ToolMetaBadge>}
+          />
+          <ToolStatCard
+            label="冲突保留"
+            value={batchResult.conflictedSuggestionCount}
+            hint="同字段冲突时保留更高优先级建议"
+            icon={TriangleAlert}
+            tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}
+            badge={<ToolMetaBadge tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}>{batchResult.conflictedSuggestionCount > 0 ? '需人工确认' : '无冲突'}</ToolMetaBadge>}
+          />
+        </ToolPanelBody>
+      </ToolPanelCard>
 
-        <ToolPanelCard>
-          <ToolPanelHeader
-            title="执行摘要"
-            description="先处理高优先级且无字段冲突的问题，剩余冲突项保留给你逐条确认。"
-            icon={FileText}
-            badge={<ToolMetaBadge tone="primary">{`${batchResult.summary.length} 条说明`}</ToolMetaBadge>}
-          />
-          <ToolPanelBody>
-            <div className="space-y-3">
-              {batchResult.summary.map(line => (
-                <div key={line} className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 text-sm leading-6 text-muted-foreground">
-                  <div className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Sparkles className="size-3.5" />
-                  </div>
-                  <p>{line}</p>
+      <ToolPanelCard>
+        <ToolPanelHeader
+          title="执行摘要"
+          description="先处理高优先级且无字段冲突的问题，剩余冲突项保留给你逐条确认。"
+          icon={FileText}
+          badge={<ToolMetaBadge tone="primary">{`${batchResult.summary.length} 条说明`}</ToolMetaBadge>}
+        />
+        <ToolPanelBody>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {batchResult.summary.map(line => (
+              <div key={line} className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 text-sm leading-6 text-muted-foreground">
+                <div className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Sparkles className="size-3.5" />
                 </div>
-              ))}
-            </div>
-          </ToolPanelBody>
-        </ToolPanelCard>
-      </div>
+                <p>{line}</p>
+              </div>
+            ))}
+          </div>
+        </ToolPanelBody>
+      </ToolPanelCard>
 
       {!activeAtsConfig
         ? (
