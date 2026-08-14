@@ -13,11 +13,19 @@ export type CachedCommentBootstrap = Omit<
 >
 
 export interface CommentCacheEntry {
+  protocolVersion: 1
   key: string
   versionId: number
   principalKey: string
   cachedAt: number
   value: CachedCommentBootstrap
+}
+
+export function isCommentCacheEntryCompatible(value: unknown): value is CommentCacheEntry {
+  return Boolean(value)
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && (value as { protocolVersion?: unknown }).protocolVersion === 1
 }
 
 interface ResumeCommentCacheSchema extends DBSchema {
@@ -136,7 +144,7 @@ export async function readCommentCache(key: CommentCacheKey) {
   if (!database)
     return null
   const entry = await (await database).get('bootstrap', serializeCommentCacheKey(key))
-  if (!entry)
+  if (!isCommentCacheEntryCompatible(entry))
     return null
   return {
     ...entry,
@@ -176,9 +184,13 @@ export async function writeCommentCache(
   const persistedReadCursor = readCommentReadCursor(key)
   const nextValue = advanceCommentReadCursor(
     cacheValue,
-    Math.max(current?.value.lastReadEventSeq ?? 0, persistedReadCursor),
+    Math.max(
+      isCommentCacheEntryCompatible(current) ? current.value.lastReadEventSeq : 0,
+      persistedReadCursor,
+    ),
   )
   await transaction.store.put({
+    protocolVersion: 1,
     key: serializedKey,
     versionId: key.versionId,
     principalKey: key.principalKey,
@@ -201,7 +213,7 @@ export async function updateCommentCacheReadCursor(
   const serializedKey = serializeCommentCacheKey(key)
   const transaction = resolved.transaction('bootstrap', 'readwrite')
   const current = await transaction.store.get(serializedKey)
-  if (current) {
+  if (isCommentCacheEntryCompatible(current)) {
     await transaction.store.put({
       ...current,
       cachedAt: Date.now(),

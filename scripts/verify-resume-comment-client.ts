@@ -5,11 +5,15 @@ import { deriveAnonymousAvatarVisual } from '../src/features/resume-comments/api
 import {
   advanceCommentReadCursor,
   deriveCommentCacheKey,
+  isCommentCacheEntryCompatible,
   serializeCommentCacheKey,
 } from '../src/features/resume-comments/api/cache.ts'
 import {
-  classifyCommentPerformance,
+  calculateCommentTransportOverhead,
+  getCommentPerformanceSnapshot,
   parseCommentServerTiming,
+  recordCommentPerformanceSample,
+  resetCommentPerformanceSamples,
 } from '../src/features/resume-comments/api/performance.ts'
 import { decideCommentRealtimeRecovery } from '../src/features/resume-comments/api/realtime-recovery.ts'
 import { createResumeCommentStore } from '../src/features/resume-comments/store/create-store.ts'
@@ -43,6 +47,23 @@ function thread(
     lastActivityAt,
     deletedAt: null,
     comments: [],
+  }
+}
+
+function readSourceSection(source: string, startMarker: string, endMarker: string) {
+  const start = source.indexOf(startMarker)
+  assert.notEqual(start, -1, `缺少源码起点：${startMarker}`)
+  const end = source.indexOf(endMarker, start + startMarker.length)
+  assert.notEqual(end, -1, `缺少源码终点：${endMarker}`)
+  return source.slice(start, end)
+}
+
+function assertSourceOrder(source: string, markers: string[]) {
+  let previous = -1
+  for (const marker of markers) {
+    const current = source.indexOf(marker)
+    assert.ok(current > previous, `源码顺序不符合预期：${marker}`)
+    previous = current
   }
 }
 
@@ -188,12 +209,95 @@ const advancedCache = advanceCommentReadCursor({
 }, 7)
 assert.equal(advancedCache.lastReadEventSeq, 7)
 assert.equal(advancedCache.accessibleScopes[0]?.lastReadEventSeq, 7)
-assert.equal(classifyCommentPerformance('cache', 47.1).level, 'normal')
-assert.equal(classifyCommentPerformance('bootstrap', 2_036.1).level, 'near_target')
-assert.equal(classifyCommentPerformance('bootstrap', 2_600).level, 'slow')
+assert.equal(isCommentCacheEntryCompatible({ protocolVersion: 1 }), true)
+assert.equal(isCommentCacheEntryCompatible({}), false)
+assert.equal(isCommentCacheEntryCompatible({ protocolVersion: 2 }), false)
 assert.deepEqual(
-  parseCommentServerTiming('auth;dur=12.4, access;dur=31.2, total;dur=128.8'),
-  { auth: 12.4, access: 31.2, total: 128.8 },
+  parseCommentServerTiming([
+    'auth_anonymous;dur=12.4',
+    'rpc;dur=31.2',
+    'rpc;dur=99',
+    'edge_total;dur=128.8',
+    'total;dur=130',
+    'db;dur=88',
+    'unknown;dur=9',
+    'repair;dur=',
+    'serialize;dur=NaN',
+    'auth_local;dur=Infinity',
+    'auth_legacy;dur=-1',
+  ].join(',')),
+  {
+    auth_anonymous: 12.4,
+    rpc: 31.2,
+    edge_total: 128.8,
+    total: 130,
+  },
+)
+assert.ok(Math.abs(calculateCommentTransportOverhead(
+  { fetch_headers: 180, response_body: 900 },
+  { edge_total: 128.8, total: 130 },
+) - 51.2) < 1e-9)
+assert.equal(calculateCommentTransportOverhead(
+  { fetch_headers: 100 },
+  { edge_total: 128.8 },
+), 0)
+
+const basePerformanceDimensions = {
+  authMode: 'anonymous' as const,
+  coldStart: false,
+  repair: false,
+  protocolVersion: 1 as const,
+  edgeRegion: 'us-east-1' as const,
+}
+resetCommentPerformanceSamples()
+for (let duration = 1; duration <= 55; duration += 1) {
+  recordCommentPerformanceSample({
+    stage: 'bootstrap',
+    duration,
+    dimensions: basePerformanceDimensions,
+  })
+}
+assert.deepEqual(getCommentPerformanceSnapshot(), [{
+  stage: 'bootstrap',
+  ...basePerformanceDimensions,
+  count: 50,
+  windowSize: 50,
+  p50: 30,
+  p95: 53,
+  max: 55,
+}])
+
+resetCommentPerformanceSamples()
+const dimensionVariants = [
+  basePerformanceDimensions,
+  { ...basePerformanceDimensions, authMode: 'local_jwks' as const },
+  { ...basePerformanceDimensions, coldStart: true },
+  { ...basePerformanceDimensions, repair: true },
+  { ...basePerformanceDimensions, protocolVersion: 'unknown' as const },
+  { ...basePerformanceDimensions, edgeRegion: 'other' as const },
+]
+for (const [duration, dimensions] of dimensionVariants.entries()) {
+  recordCommentPerformanceSample({
+    stage: 'bootstrap',
+    duration,
+    dimensions,
+  })
+}
+recordCommentPerformanceSample({
+  stage: 'bootstrap',
+  duration: 99,
+  dimensions: {
+    ...basePerformanceDimensions,
+    edgeRegion: 'arbitrary-region' as 'other',
+  },
+})
+const dimensionBuckets = getCommentPerformanceSnapshot()
+assert.equal(dimensionBuckets.length, dimensionVariants.length)
+assert.equal(dimensionBuckets.reduce((total, bucket) => total + bucket.count, 0), 7)
+assert.equal(dimensionBuckets.some(bucket => bucket.edgeRegion === 'arbitrary-region'), false)
+assert.equal(
+  dimensionBuckets.some(bucket => Object.hasOwn(bucket, 'requestId')),
+  false,
 )
 
 const beforeOptimistic = store.getState().threadsById
@@ -265,6 +369,18 @@ const commentClientSource = readFileSync(
   new URL('../src/features/resume-comments/api/client.ts', import.meta.url),
   'utf8',
 )
+const commentPerformanceSource = readFileSync(
+  new URL('../src/features/resume-comments/api/performance.ts', import.meta.url),
+  'utf8',
+)
+const commentCacheSource = readFileSync(
+  new URL('../src/features/resume-comments/api/cache.ts', import.meta.url),
+  'utf8',
+)
+const commentRealtimeHookSource = readFileSync(
+  new URL('../src/features/resume-comments/hooks/use-comment-realtime.ts', import.meta.url),
+  'utf8',
+)
 const mobileSortDrawerSource = readFileSync(
   new URL('../src/pages/resume/editor/components/sidebar/mobile-sort-drawer.tsx', import.meta.url),
   'utf8',
@@ -324,7 +440,93 @@ assert.match(commentReviewBannerSource, /历史版本只读，返回当前版本
 assert.match(commentReviewBannerSource, /fixed left-1\/2/u)
 assert.match(commentReviewBannerSource, /inline-flex w-max max-w-full/u)
 assert.doesNotMatch(commentReviewBannerSource, /justify-center border-b bg-muted\/30/u)
-assert.doesNotMatch(commentClientSource, /['"]x-request-id['"]\s*:/u)
+const commentRequestSource = readSourceSection(
+  commentClientSource,
+  '  private async request<T>',
+  '\n  }\n}',
+)
+const bootstrapSource = readSourceSection(
+  commentRealtimeHookSource,
+  '    bootstrap = async () => {',
+  '\n    const hydrateCache = async () => {',
+)
+const cacheCursorUpdateSource = readSourceSection(
+  commentCacheSource,
+  'export async function updateCommentCacheReadCursor(',
+  '\nexport async function deleteCommentCacheForPrincipal(',
+)
+const bootstrapTelemetryDecisionSource = readSourceSection(
+  commentRequestSource,
+  '    const telemetry = op === \'bootstrap_scope\'',
+  '\n    return {',
+)
+
+assert.match(commentClientSource, /result\.protocolVersion !== 1/u)
+assert.match(commentClientSource, /!isCommentAuthMode\(meta\.authMode\)/u)
+assert.match(commentClientSource, /typeof meta\.repair !== 'boolean'/u)
+assert.match(commentClientSource, /typeof meta\.coldStart !== 'boolean'/u)
+assert.match(commentClientSource, /const telemetry = op === 'bootstrap_scope'/u)
+assert.equal(bootstrapTelemetryDecisionSource.trimEnd().endsWith(': null'), true)
+assert.match(commentClientSource, /async bootstrapScope\(\): Promise<CommentApiSuccess<CommentBootstrapResult, CommentResponseTelemetry>>/u)
+assert.match(commentClientSource, /if \(!response\.telemetry\)/u)
+assertSourceOrder(commentRequestSource, [
+  'const authStartedAt = performance.now()',
+  'const authToken = await getCommentAuthToken()',
+  'clientDurations.auth_token = performance.now() - authStartedAt',
+  'const url = new URL(',
+  'const requestHeaders = {',
+  'const requestBody = JSON.stringify({',
+  'const fetchStartedAt = performance.now()',
+  'const response = await fetch(',
+  'clientDurations.fetch_headers = performance.now() - fetchStartedAt',
+  'const responseBodyStartedAt = performance.now()',
+  'responseText = await response.text()',
+  'payload = JSON.parse(responseText)',
+  'clientDurations.response_body = performance.now() - responseBodyStartedAt',
+  'if (!response.ok || result.ok !== true)',
+  'const telemetry = op === \'bootstrap_scope\'',
+])
+assert.match(commentRequestSource, /const requestId = isUuid\(input\.requestId\) \? input\.requestId : crypto\.randomUUID\(\)/u)
+assert.match(commentRequestSource, /['"]x-request-id['"]: requestId/u)
+assert.match(commentRequestSource, /const responseRequestId = isUuid\(responseRequestIdHeader\)/u)
+assert.match(commentRequestSource, /url\.searchParams\.set\('forceFunctionRegion', region\)/u)
+assert.match(commentRequestSource, /response\.headers\.get\('x-sb-edge-region'\)/u)
+assert.doesNotMatch(commentRequestSource, /['"]x-sb-edge-region['"]\s*:/u)
+assert.match(commentRequestSource, /new TextEncoder\(\)\.encode\(responseText\)\.byteLength/u)
+assert.match(commentRequestSource, /serverTiming: response\.headers\.get\('server-timing'\)/u)
+assert.doesNotMatch(commentRequestSource, /response\.json\(/u)
+assert.doesNotMatch(commentClientSource, /scope_missing/u)
+assertSourceOrder(commentClientSource, [
+  'const normalizeStartedAt = performance.now()',
+  'const data = normalizeBootstrap(response.data)',
+  'const normalizeDuration = performance.now() - normalizeStartedAt',
+  'normalize: normalizeDuration',
+])
+
+assert.match(commentCacheSource, /export interface CommentCacheEntry \{\s*protocolVersion: 1/u)
+assert.match(commentCacheSource, /if \(!isCommentCacheEntryCompatible\(entry\)\)\s*return null/u)
+assert.match(commentCacheSource, /protocolVersion: 1,\s*key: serializedKey/u)
+assert.match(cacheCursorUpdateSource, /if \(isCommentCacheEntryCompatible\(current\)\) \{[\s\S]*?transaction\.store\.put/u)
+assert.doesNotMatch(commentCacheSource, /CommentResponseTelemetry|authMode|coldStart|repair|requestId|serverTiming|accessToken|jwt/iu)
+assert.match(commentCacheSource, /'scopeRealtime' \| 'ownerRealtime'/u)
+
+assertSourceOrder(bootstrapSource, [
+  'const authenticatedUserIdPromise = client.getAuthenticatedUserId()',
+  'const response = await client.bootstrapScope()',
+  'hasFreshBootstrap = true',
+  'marker.mergeClientDurations(response.telemetry.clientDurations)',
+  'const authenticatedUserId = await authenticatedUserIdPromise',
+  'marker.measureSync(\'store_commit\'',
+  'marker.measureSync(\n        \'realtime_connect\'',
+  'marker.end({',
+  'void writeCommentCache(cacheKey, response.data).catch',
+  'void client.markRead(persistedReadEventSeq).catch',
+])
+assert.doesNotMatch(bootstrapSource, /await\s+(?:writeCommentCache|client\.markRead)/u)
+assert.match(commentRealtimeHookSource, /!cached \|\| cancelled \|\| hasFreshBootstrap/u)
+
+assert.doesNotMatch(commentPerformanceSource, /performanceBudgets|clientOverhead|warningMs|targetMs/u)
+assert.doesNotMatch(commentPerformanceSource, /['"]db['"]/u)
 assert.match(threadListSource, /<\/button>[\s\S]*?<CommentStatusBar/u)
 assert.doesNotMatch(threadListSource, /<Button[\s\S]*?<CommentStatusBar/u)
 

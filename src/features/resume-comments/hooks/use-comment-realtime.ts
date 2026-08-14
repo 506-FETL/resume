@@ -138,13 +138,15 @@ export function useCommentRealtime({
       store.getState().setConnection('connecting')
       const marker = beginCommentPerformance('bootstrap')
       marker.countRequest()
-      const [response, authenticatedUserId] = await Promise.all([
-        client.bootstrapScope(),
-        client.getAuthenticatedUserId(),
-      ])
+      const authenticatedUserIdPromise = client.getAuthenticatedUserId()
+      const response = await client.bootstrapScope()
       if (cancelled)
         return
       hasFreshBootstrap = true
+      marker.mergeClientDurations(response.telemetry.clientDurations)
+      const authenticatedUserId = await authenticatedUserIdPromise
+      if (cancelled)
+        return
       const access = client.getAccessContext()
       rememberCommentVersionHint(access, response.data.version.versionId)
       const cacheKey = deriveCommentCacheKey(
@@ -153,36 +155,45 @@ export function useCommentRealtime({
         authenticatedUserId,
       )
       const persistedReadEventSeq = cacheKey ? readCommentReadCursor(cacheKey) : 0
-      store.getState().replaceScope({
-        scope: response.data.scope,
-        version: response.data.version,
-        counts: response.data.counts,
-        accessibleScopes: response.data.accessibleScopes,
-        threads: response.data.threads,
-        eventSeq: response.eventSeq,
-        lastReadEventSeq: Math.max(
-          response.data.lastReadEventSeq,
-          persistedReadEventSeq,
-        ),
+      marker.measureSync('store_commit', () => {
+        store.getState().replaceScope({
+          scope: response.data.scope,
+          version: response.data.version,
+          counts: response.data.counts,
+          accessibleScopes: response.data.accessibleScopes,
+          threads: response.data.threads,
+          eventSeq: response.eventSeq,
+          lastReadEventSeq: Math.max(
+            response.data.lastReadEventSeq,
+            persistedReadEventSeq,
+          ),
+        })
+        store.getState().setAccessState(
+          isReadOnlyAccess(access) ? 'read_only' : 'active',
+        )
       })
-      store.getState().setAccessState(
-        isReadOnlyAccess(access) ? 'read_only' : 'active',
+      marker.measureSync(
+        'realtime_connect',
+        () => connectRealtime(response.data.scopeRealtime),
       )
-      connectRealtime(response.data.scopeRealtime)
-      if (cacheKey)
-        writeCommentCache(cacheKey, response.data).catch(() => undefined)
+      marker.end({
+        requestId: response.requestId,
+        serverTiming: response.serverTiming,
+        telemetry: response.telemetry,
+        detail: { threadCount: response.data.threads.length },
+      })
+      if (cacheKey) {
+        // eslint-disable-next-line no-void
+        void writeCommentCache(cacheKey, response.data).catch(() => undefined)
+      }
       if (
         persistedReadEventSeq > response.data.lastReadEventSeq
         && hasServerReadPrincipal(access, authenticatedUserId)
       ) {
         // 本机已读游标领先时补偿同步到服务端，覆盖上一次网络中断的回执失败。
-        client.markRead(persistedReadEventSeq).catch(() => undefined)
+        // eslint-disable-next-line no-void
+        void client.markRead(persistedReadEventSeq).catch(() => undefined)
       }
-      marker.end({
-        requestId: response.requestId,
-        serverTiming: response.serverTiming,
-        detail: { threadCount: response.data.threads.length },
-      })
     }
 
     const hydrateCache = async () => {

@@ -94,11 +94,36 @@ export interface CommentDocumentSyncResult {
   event: ResumeCommentEvent
 }
 
-export interface CommentApiSuccess<T> {
+export type CommentAuthMode = 'anonymous' | 'local_jwks' | 'legacy_auth'
+
+export type CommentBootstrapClientStage
+  = | 'auth_token'
+    | 'fetch_headers'
+    | 'response_body'
+    | 'normalize'
+    | 'store_commit'
+    | 'realtime_connect'
+
+export interface CommentResponseTelemetry {
+  protocolVersion: 1
+  authMode: CommentAuthMode
+  repair: boolean
+  coldStart: boolean
+  edgeRegion: string | null
+  /** 解码响应文本重新编码后的 UTF-8 字节数。 */
+  responseBytes: number
+  clientDurations: Partial<Record<CommentBootstrapClientStage, number>>
+}
+
+export interface CommentApiSuccess<
+  T,
+  TTelemetry extends CommentResponseTelemetry | null = CommentResponseTelemetry | null,
+> {
   data: T
   eventSeq: number
   requestId: string | null
   serverTiming: string | null
+  telemetry: TTelemetry
 }
 
 export class ResumeCommentClientError extends Error {
@@ -141,6 +166,16 @@ const COMMENT_EVENT_TYPES = new Set<ResumeCommentEventType>([
   'document_synced',
   'settings_changed',
 ])
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
+
+function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value)
+}
+
+function isCommentAuthMode(value: unknown): value is CommentAuthMode {
+  return value === 'anonymous' || value === 'local_jwks' || value === 'legacy_auth'
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -358,6 +393,44 @@ function normalizeBootstrap(value: unknown): CommentBootstrapResult {
   }
 }
 
+function readBootstrapTelemetry({
+  result,
+  edgeRegion,
+  responseBytes,
+  clientDurations,
+  requestId,
+}: {
+  result: Record<string, unknown>
+  edgeRegion: string | null
+  responseBytes: number
+  clientDurations: Partial<Record<CommentBootstrapClientStage, number>>
+  requestId: string
+}): CommentResponseTelemetry {
+  const meta = asRecord(result.meta)
+  if (
+    result.protocolVersion !== 1
+    || !isCommentAuthMode(meta.authMode)
+    || typeof meta.repair !== 'boolean'
+    || typeof meta.coldStart !== 'boolean'
+  ) {
+    throw new ResumeCommentClientError(
+      'unexpected',
+      '评论服务协议不兼容',
+      undefined,
+      requestId,
+    )
+  }
+  return {
+    protocolVersion: 1,
+    authMode: meta.authMode,
+    repair: meta.repair,
+    coldStart: meta.coldStart,
+    edgeRegion,
+    responseBytes,
+    clientDurations,
+  }
+}
+
 function normalizeMutation(value: unknown): CommentMutationResult {
   const data = asRecord(value)
   const normalizedThreads = data.thread
@@ -448,9 +521,30 @@ export class ResumeCommentClient {
     return cachedAuthUserId ?? null
   }
 
-  async bootstrapScope(): Promise<CommentApiSuccess<CommentBootstrapResult>> {
+  async bootstrapScope(): Promise<CommentApiSuccess<CommentBootstrapResult, CommentResponseTelemetry>> {
     const response = await this.request<unknown>('bootstrap_scope')
-    return { ...response, data: normalizeBootstrap(response.data) }
+    if (!response.telemetry) {
+      throw new ResumeCommentClientError(
+        'unexpected',
+        '评论服务协议不兼容',
+        undefined,
+        response.requestId ?? undefined,
+      )
+    }
+    const normalizeStartedAt = performance.now()
+    const data = normalizeBootstrap(response.data)
+    const normalizeDuration = performance.now() - normalizeStartedAt
+    return {
+      ...response,
+      data,
+      telemetry: {
+        ...response.telemetry,
+        clientDurations: {
+          ...response.telemetry.clientDurations,
+          normalize: normalizeDuration,
+        },
+      },
+    }
   }
 
   async listThreads(afterEventSeq: number): Promise<CommentApiSuccess<CommentThreadListResult>> {
@@ -644,27 +738,38 @@ export class ResumeCommentClient {
     op: string,
     input: Record<string, unknown> = {},
   ): Promise<CommentApiSuccess<T>> {
+    const clientDurations: Partial<Record<CommentBootstrapClientStage, number>> = {}
+    const authStartedAt = performance.now()
     const authToken = await getCommentAuthToken()
+    clientDurations.auth_token = performance.now() - authStartedAt
     const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-    const requestId = crypto.randomUUID()
+    const requestId = isUuid(input.requestId) ? input.requestId : crypto.randomUUID()
+    const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-comments`)
+    const region = import.meta.env.VITE_RESUME_COMMENTS_FUNCTION_REGION ?? 'auto'
+    if (region !== 'auto')
+      url.searchParams.set('forceFunctionRegion', region)
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'apikey': publishableKey,
+      'Authorization': `Bearer ${authToken ?? publishableKey}`,
+      'x-client-info': 'resume-app/comments',
+      'x-request-id': requestId,
+    }
+    const requestBody = JSON.stringify({
+      op,
+      ...this.accessBody(),
+      ...(this.access.kind === 'share'
+        ? { releaseId: this.access.releaseId, versionId: this.access.versionId }
+        : {}),
+      ...input,
+    })
+    const fetchStartedAt = performance.now()
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-comments`,
+      url,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': publishableKey,
-          'Authorization': `Bearer ${authToken ?? publishableKey}`,
-          'x-client-info': 'resume-app/comments',
-        },
-        body: JSON.stringify({
-          op,
-          ...this.accessBody(),
-          ...(this.access.kind === 'share'
-            ? { releaseId: this.access.releaseId, versionId: this.access.versionId }
-            : {}),
-          ...input,
-        }),
+        headers: requestHeaders,
+        body: requestBody,
       },
     ).catch(() => {
       throw new ResumeCommentClientError(
@@ -674,9 +779,23 @@ export class ResumeCommentClient {
         requestId,
       )
     })
-    const payload = await response.json().catch(() => null)
+    clientDurations.fetch_headers = performance.now() - fetchStartedAt
+    const responseRequestIdHeader = response.headers.get('x-request-id')
+    const responseRequestId = isUuid(responseRequestIdHeader)
+      ? responseRequestIdHeader
+      : requestId
+    const responseBodyStartedAt = performance.now()
+    let responseText = ''
+    let payload: unknown = null
+    try {
+      responseText = await response.text()
+      payload = JSON.parse(responseText)
+    }
+    catch {
+      payload = null
+    }
+    clientDurations.response_body = performance.now() - responseBodyStartedAt
     const result = asRecord(payload)
-    const responseRequestId = response.headers.get('x-request-id') ?? requestId
     if (!response.ok || result.ok !== true) {
       const error = asRecord(result.error)
       const code = String(error.code ?? 'unexpected') as CommentErrorCode
@@ -688,11 +807,21 @@ export class ResumeCommentClient {
         error.details,
       )
     }
+    const telemetry = op === 'bootstrap_scope'
+      ? readBootstrapTelemetry({
+          result,
+          edgeRegion: response.headers.get('x-sb-edge-region')?.trim() || null,
+          responseBytes: new TextEncoder().encode(responseText).byteLength,
+          clientDurations,
+          requestId: responseRequestId,
+        })
+      : null
     return {
       data: result.data as T,
       eventSeq: asNumber(result.eventSeq),
       requestId: responseRequestId,
       serverTiming: response.headers.get('server-timing'),
+      telemetry,
     }
   }
 }
