@@ -239,9 +239,11 @@ export function useCommentRealtime({
     window.addEventListener('online', handleOnline)
     enqueue(async () => {
       if (navigator.onLine) {
+        const bootstrapPromise = bootstrap()
+        const cacheHydrationPromise = hydrateCache().catch(() => undefined)
         await Promise.all([
-          hydrateCache().catch(() => undefined),
-          bootstrap(),
+          bootstrapPromise,
+          cacheHydrationPromise,
         ])
       }
       else {

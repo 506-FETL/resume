@@ -469,6 +469,11 @@ const bootstrapRequestStartSource = readSourceSection(
   '      marker.countRequest()\n',
   '\n      if (cancelled)',
 )
+const initialOnlineBootstrapSource = readSourceSection(
+  commentRealtimeHookSource,
+  '    enqueue(async () => {\n      if (navigator.onLine) {',
+  '\n      else {',
+)
 const cacheCursorUpdateSource = readSourceSection(
   commentCacheSource,
   'export async function updateCommentCacheReadCursor(',
@@ -525,7 +530,29 @@ assertMutationRejected(
   verifyBootstrapTelemetryGuard,
 )
 assert.match(commentClientSource, /const telemetry = op === 'bootstrap_scope'/u)
-assert.equal(bootstrapTelemetryDecisionSource.trimEnd().endsWith(': null'), true)
+function verifyBootstrapTelemetryDecision(candidate: string) {
+  assertSourceOrder(candidate, [
+    'const telemetry = op === \'bootstrap_scope\'',
+    '? readBootstrapTelemetry({',
+    '\n          result,',
+    'response.headers.get(\'x-sb-edge-region\')',
+    'new TextEncoder().encode(responseText).byteLength',
+    '\n        })',
+    '\n      : null',
+  ])
+  assert.equal(candidate.split('\n').filter(line => line === '          result,').length, 1)
+  assert.equal(candidate.includes('\n          result:'), false)
+}
+verifyBootstrapTelemetryDecision(bootstrapTelemetryDecisionSource)
+assertMutationRejected(
+  'bootstrap telemetry receives original result',
+  bootstrapTelemetryDecisionSource,
+  bootstrapTelemetryDecisionSource.replace(
+    '          result,',
+    '          result: { protocolVersion: 1, meta: { authMode: \'anonymous\', repair: false, coldStart: false } },',
+  ),
+  verifyBootstrapTelemetryDecision,
+)
 assert.match(commentClientSource, /async bootstrapScope\(\): Promise<CommentApiSuccess<CommentBootstrapResult, CommentResponseTelemetry>>/u)
 assert.match(commentClientSource, /if \(!response\.telemetry\)/u)
 assertSourceOrder(commentRequestSource, [
@@ -651,6 +678,32 @@ assertMutationRejected(
     ].join('\n'),
   ),
   verifyBootstrapRequestStart,
+)
+function verifyInitialOnlineBootstrapStart(candidate: string) {
+  assertSourceOrder(candidate, [
+    'if (navigator.onLine) {',
+    'const bootstrapPromise = bootstrap()',
+    'const cacheHydrationPromise = hydrateCache().catch(() => undefined)',
+    'await Promise.all([',
+    '\n          bootstrapPromise,',
+    '\n          cacheHydrationPromise,',
+  ])
+}
+verifyInitialOnlineBootstrapStart(initialOnlineBootstrapSource)
+assertMutationRejected(
+  'initial online bootstrap starts before cache hydration',
+  initialOnlineBootstrapSource,
+  initialOnlineBootstrapSource.replace(
+    [
+      '        const bootstrapPromise = bootstrap()',
+      '        const cacheHydrationPromise = hydrateCache().catch(() => undefined)',
+    ].join('\n'),
+    [
+      '        const cacheHydrationPromise = hydrateCache().catch(() => undefined)',
+      '        const bootstrapPromise = bootstrap()',
+    ].join('\n'),
+  ),
+  verifyInitialOnlineBootstrapStart,
 )
 assert.doesNotMatch(bootstrapSource, /await\s+(?:writeCommentCache|client\.markRead)/u)
 assert.match(commentRealtimeHookSource, /!cached \|\| cancelled \|\| hasFreshBootstrap/u)
