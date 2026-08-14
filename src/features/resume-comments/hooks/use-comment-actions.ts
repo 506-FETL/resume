@@ -2,9 +2,7 @@ import type { CommentMutationResult } from '../api/client.ts'
 import type { ResumeCommentThread } from '../types.ts'
 import { useCallback, useState } from 'react'
 import { ensureAnonymousCommentIdentity } from '../api/anonymous-identity.ts'
-import {
-  ResumeCommentClientError,
-} from '../api/client.ts'
+import { ResumeCommentClientError } from '../api/client.ts'
 import { beginCommentPerformance } from '../api/performance.ts'
 import { useResumeCommentContext } from '../context.tsx'
 
@@ -15,10 +13,13 @@ export function useCommentActions() {
 
   const prepareActor = useCallback(async () => {
     const access = client.getAccessContext()
+
     if (access.kind !== 'share')
       return
+
     if (!access.commentsEnabled)
       throw new ResumeCommentClientError('comments_disabled', '当前分享已关闭评论')
+
     if (!await client.hasAuthenticatedSession())
       await ensureAnonymousCommentIdentity(client, access.versionId)
   }, [client])
@@ -26,11 +27,13 @@ export function useCommentActions() {
   const refreshThreads = useCallback(async (eventSeq?: number) => {
     const lastEventSeq = store.getState().lastEventSeq
     const response = await client.listEvents(lastEventSeq)
+
     store.getState().applyRealtimePatch({
       threads: response.data.threads,
       events: response.data.events,
       eventSeq: response.eventSeq,
     })
+
     if (eventSeq !== undefined)
       store.getState().markReadLocally(eventSeq)
   }, [client, store])
@@ -52,17 +55,22 @@ export function useCommentActions() {
   ) => {
     setPendingAction(entityKey)
     setErrorMessage(null)
+
     const snapshot = store.getState().applyOptimisticMutation({
       entityKey,
       ...optimistic,
     })
     const marker = beginCommentPerformance('mutation')
+
     try {
       if (requiresDocumentSync)
         await beforeWrite?.()
+
       await prepareActor()
+
       marker.countRequest()
       const response = await operation()
+
       store.getState().commitMutation(entityKey, {
         thread: response.data.thread,
         removedThreadId: optimistic?.removedThreadId,
@@ -75,6 +83,7 @@ export function useCommentActions() {
         requestId: response.requestId,
         serverTiming: response.serverTiming,
       })
+
       return response
     }
     catch (error) {
@@ -84,6 +93,7 @@ export function useCommentActions() {
       ) {
         invalidateAccess?.(error.code)
       }
+
       const message = error instanceof Error ? error.message : '评论操作失败，请稍后重试'
       store.getState().rollbackMutation(entityKey, snapshot, message)
       setErrorMessage(message)
@@ -96,8 +106,10 @@ export function useCommentActions() {
 
   const createThread = useCallback(async (body: string) => {
     const state = store.getState()
+
     if (!state.selection || !state.scope)
       return null
+
     const selection = state.selection
     const response = await execute('thread:new:create', () => client.createThread({
       anchor: {
@@ -108,6 +120,7 @@ export function useCommentActions() {
       documentHash: store.getState().scope!.documentHash,
       originalPageIndex: selection.originalPageIndex,
     }), true)
+
     if (response) {
       store.getState().setSelection(null)
       store.getState().clearDraft('new-thread')
@@ -126,8 +139,10 @@ export function useCommentActions() {
       `thread:${thread.id}:reply`,
       () => client.createReply(thread, body, parentCommentId),
     )
+
     if (response)
       store.getState().clearDraft(`reply:${thread.id}:${parentCommentId ?? 'root'}`)
+
     return response
   }, [client, execute, store])
 
@@ -142,14 +157,17 @@ export function useCommentActions() {
         ? { ...comment, body, editedAt: new Date().toISOString() }
         : comment),
     }
+
     const response = await execute(
       `comment:${commentId}:edit`,
       () => client.editComment(thread, commentId, body),
       false,
       { thread: optimisticThread },
     )
+
     if (response)
       store.getState().clearDraft(`edit:${commentId}`)
+
     return response
   }, [client, execute, store])
 

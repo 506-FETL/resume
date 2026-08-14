@@ -1,13 +1,6 @@
 import type { StoreApi } from 'zustand/vanilla'
 import type { CommentAnchor } from '../anchors/types.ts'
-import type {
-  CommentErrorCode,
-  CommentScopeKind,
-  CommentThreadCounts,
-  CommentVersionReference,
-  ResumeCommentEvent,
-  ResumeCommentThread,
-} from '../types.ts'
+import type { CommentErrorCode, CommentScopeKind, CommentThreadCounts, CommentVersionReference, ResumeCommentEvent, ResumeCommentThread } from '../types.ts'
 
 export interface CommentScopeSummary {
   id: string

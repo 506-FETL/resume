@@ -5,13 +5,8 @@ import { createContext, use, useCallback, useEffect, useMemo, useRef, useState }
 import { useStore } from 'zustand'
 import { attachStoredAnonymousCommentIdentity } from './api/anonymous-identity.ts'
 import { ResumeCommentClient } from './api/client.ts'
-import {
-  useCommentReadReceipt,
-  useCommentRealtime,
-} from './hooks/use-comment-realtime.ts'
+import { useCommentReadReceipt, useCommentRealtime } from './hooks/use-comment-realtime.ts'
 import { createResumeCommentStore } from './store/create-store.ts'
-
-/* eslint-disable react-refresh/only-export-components */
 
 interface ResumeCommentContextValue {
   client: ResumeCommentClient

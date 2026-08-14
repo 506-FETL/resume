@@ -2,18 +2,10 @@ import type { RefObject } from 'react'
 import type { CommentPageRect } from '../anchors/geometry.ts'
 import type { ResumeCommentThread } from '../types.ts'
 import { useCallback, useEffect, useState } from 'react'
-import {
-  commentDomGraphemeOffsetToPoint,
-  findCommentDomBlockAtOffset,
-  findCommentDomBlockByOrdinal,
-  projectCommentDomNode,
-} from '../anchors/dom-projection.ts'
+import { commentDomGraphemeOffsetToPoint, findCommentDomBlockAtOffset, findCommentDomBlockByOrdinal, projectCommentDomNode } from '../anchors/dom-projection.ts'
 import { rangeToVisiblePageRects } from '../anchors/geometry.ts'
 import { graphemeSlice } from '../anchors/graphemes.ts'
-import {
-  COMMENT_HIDDEN_PAGE_SELECTOR,
-  COMMENT_MEASUREMENT_SOURCE_SELECTOR,
-} from '../const.ts'
+import { COMMENT_HIDDEN_PAGE_SELECTOR, COMMENT_MEASUREMENT_SOURCE_SELECTOR } from '../const.ts'
 
 export interface CommentThreadGeometry {
   threadId: string

@@ -1,9 +1,4 @@
-import type {
-  CommentAnchorDocument,
-  CommentAnchorDocumentBlock,
-  CommentAnchorDocumentNode,
-  CommentAnchorDocumentResult,
-} from '../../../../supabase/functions/shared/resume-comment-core.ts'
+import type { CommentAnchorDocument, CommentAnchorDocumentBlock, CommentAnchorDocumentNode, CommentAnchorDocumentResult } from '../../../../supabase/functions/shared/resume-comment-core.ts'
 
 export type {
   CommentAnchorDocument,

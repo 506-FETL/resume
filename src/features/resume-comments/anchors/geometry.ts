@@ -1,7 +1,4 @@
-import {
-  COMMENT_HIDDEN_PAGE_SELECTOR,
-  COMMENT_MEASUREMENT_SOURCE_SELECTOR,
-} from '../const.ts'
+import { COMMENT_HIDDEN_PAGE_SELECTOR, COMMENT_MEASUREMENT_SOURCE_SELECTOR } from '../const.ts'
 
 const COMMENT_PAGE_SELECTOR = '[data-resume-page-index]'
 const COMMENT_PAGE_VIEWPORT_SELECTOR = '[data-resume-page-viewport]'

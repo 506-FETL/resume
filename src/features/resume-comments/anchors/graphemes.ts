@@ -1,8 +1,4 @@
-import {
-  countCommentGraphemes,
-  normalizeCommentText,
-  splitCommentGraphemes,
-} from '../../../../supabase/functions/shared/resume-comment-core.ts'
+import { countCommentGraphemes, normalizeCommentText, splitCommentGraphemes } from '../../../../supabase/functions/shared/resume-comment-core.ts'
 
 export { countCommentGraphemes, normalizeCommentText, splitCommentGraphemes }
 

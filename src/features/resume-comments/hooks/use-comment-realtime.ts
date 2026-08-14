@@ -2,22 +2,13 @@ import type { CommentAccessContext, ResumeCommentClient } from '../api/client.ts
 import type { ResumeCommentStore } from '../store/types.ts'
 import { useEffect } from 'react'
 import { useStore } from 'zustand'
-import {
-  deriveCommentCacheKey,
-  readCommentCache,
-  readCommentReadCursor,
-  rememberCommentVersionHint,
-  updateCommentCacheReadCursor,
-  writeCommentCache,
-} from '../api/cache.ts'
+import { deriveCommentCacheKey, readCommentCache, readCommentReadCursor, rememberCommentVersionHint, updateCommentCacheReadCursor, writeCommentCache } from '../api/cache.ts'
 import {
   isResumeCommentClientError,
 } from '../api/client.ts'
 import { beginCommentPerformance } from '../api/performance.ts'
 import { decideCommentRealtimeRecovery } from '../api/realtime-recovery.ts'
-import {
-  ResumeCommentRealtimeSubscription,
-} from '../api/realtime.ts'
+import { ResumeCommentRealtimeSubscription } from '../api/realtime.ts'
 
 interface UseCommentRealtimeOptions {
   client: ResumeCommentClient

@@ -1,8 +1,4 @@
-import {
-  countCommentGraphemes,
-  graphemeOffsetToUtf16Offset,
-  splitCommentGraphemes,
-} from './graphemes.ts'
+import { countCommentGraphemes, graphemeOffsetToUtf16Offset, splitCommentGraphemes } from './graphemes.ts'
 import { normalizeCommentRichTextBlock } from './projection.ts'
 
 export interface CommentDomPoint {
