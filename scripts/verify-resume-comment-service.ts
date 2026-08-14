@@ -66,8 +66,6 @@ assert.match(edgeSource, /authenticateSupabaseUser/u)
 assert.doesNotMatch(edgeSource, /\.auth\.getUser\(/u)
 assert.match(corsSource, /Access-Control-Max-Age/u)
 assert.match(corsSource, /X-Sb-Edge-Region/u)
-assert.match(edgeSource, /timeOperation\('threads'/u)
-assert.match(edgeSource, /const counts = countThreadRows\(threads\)/u)
 assert.match(edgeSource, /return existing as ScopeRow/u)
 assert.match(corsSource, /x-request-id/u)
 assert.match(
@@ -84,6 +82,213 @@ assert.match(edgeSource, /token\.role !== member\.role/u)
 assert.match(edgeSource, /token\.versionId !== scope\.version_id/u)
 assert.match(edgeSource, /session\.revoked_at/u)
 assert.match(edgeSource, /\.eq\('host_lease_id', hostLeaseId\)/u)
+
+const bootstrapInputSource = edgeSource.slice(
+  edgeSource.indexOf('async function buildBootstrapInput'),
+  edgeSource.indexOf('function bootstrapProtocolError'),
+)
+const bootstrapValidatorSource = edgeSource.slice(
+  edgeSource.indexOf('function validateBootstrapAccess'),
+  edgeSource.indexOf('function mapBootstrapRpcError'),
+)
+const bootstrapRpcHelperSource = edgeSource.slice(
+  edgeSource.indexOf('function mapBootstrapRpcError'),
+  edgeSource.indexOf('async function assertCurrentSharePasswordGeneration'),
+)
+const bootstrapRepairSource = edgeSource.slice(
+  edgeSource.indexOf('async function repairBootstrapScope'),
+  edgeSource.indexOf('async function ensureVersionScopeForOwner'),
+)
+const handlerSource = edgeSource.slice(edgeSource.indexOf('Deno.serve'))
+const bootstrapBranchStart = handlerSource.indexOf('if (op === \'bootstrap_scope\')')
+const legacyAccessStart = handlerSource.indexOf('const access = await resolveAccess')
+assert.ok(bootstrapBranchStart >= 0)
+assert.ok(legacyAccessStart > bootstrapBranchStart)
+const bootstrapBranchSource = handlerSource.slice(bootstrapBranchStart, legacyAccessStart)
+
+assert.equal(
+  edgeSource.match(/admin\.rpc\('bootstrap_resume_comments_v1'/gu)?.length,
+  1,
+)
+assert.doesNotMatch(
+  bootstrapBranchSource,
+  /resolveAccess|loadThreads|loadReadState|loadVersionReference|Promise\.all/u,
+)
+assert.match(
+  bootstrapInputSource,
+  /body\.historyVersionId !== undefined \|\| body\.shareReleaseId !== undefined/u,
+)
+assert.match(
+  bootstrapInputSource,
+  /\['scopeId', 'resumeId', 'versionId'\][\s\S]*?locatorKeys\.length !== 1/u,
+)
+assert.match(bootstrapInputSource, /validateCollaboratorTokenClaims\(verifiedToken, userId\)/u)
+assert.match(bootstrapInputSource, /validateShareTokenClaims\(verifiedToken\)/u)
+const collaboratorClaimsSource = edgeSource.slice(
+  edgeSource.indexOf('function validateCollaboratorTokenClaims'),
+  edgeSource.indexOf('function validateShareTokenClaims'),
+)
+for (const collaboratorClaimCheck of [
+  'value.kind !== \'collaborator\'',
+  '!isUuidValue(value.scopeId)',
+  '!isUuidValue(value.resumeId)',
+  '!isUuidValue(value.userId)',
+  'value.userId !== userId',
+  '!COLLABORATION_SESSION_PATTERN.test(value.sessionId)',
+  '!isPositiveSafeInteger(value.versionId)',
+  'value.role !== \'editor\' && value.role !== \'viewer\'',
+]) {
+  assert.ok(collaboratorClaimsSource.includes(collaboratorClaimCheck))
+}
+assert.match(
+  edgeSource,
+  /value\.kind !== 'share'[\s\S]*?!isUuidValue\(value\.shareId\)[\s\S]*?!isUuidValue\(value\.releaseId\)[\s\S]*?!isUuidValue\(value\.scopeId\)[\s\S]*?!isPositiveSafeInteger\(value\.versionId\)[\s\S]*?value\.passwordGeneration\.trim\(\)\.length === 0/u,
+)
+assert.match(
+  bootstrapInputSource,
+  /if \(isRecord\(body\.anonymous\)\)[\s\S]*?hashAnonymousSecret\(anonymousSecret, anonymousPepper\)[\s\S]*?if \(!userId\)[\s\S]*?invalidBootstrapCredential\('匿名评论凭证无效'\)/u,
+)
+assert.doesNotMatch(bootstrapInputSource, /\badmin\b|\.from\(|\.rpc\(/u)
+const bootstrapRpcInputSource = edgeSource.slice(
+  edgeSource.indexOf('interface BootstrapRpcInput'),
+  edgeSource.indexOf('interface BootstrapInputContext'),
+)
+assert.doesNotMatch(
+  bootstrapRpcInputSource,
+  /p_access_token|p_jwt|p_anonymous_secret(?:\s|:)/u,
+)
+
+assert.match(
+  bootstrapValidatorSource,
+  /value\.protocolVersion !== 1[\s\S]*?value\.status !== 'ok' && value\.status !== 'scope_missing'/u,
+)
+assert.match(
+  bootstrapValidatorSource,
+  /input\.p_access_kind === 'collaborator'[\s\S]*?!isRecord\(value\.repair\.snapshot\)[\s\S]*?projectionReferenceDate/u,
+)
+assert.match(
+  bootstrapValidatorSource,
+  /!isPositiveSafeInteger\(value\.repair\.versionId\)[\s\S]*?!isNonNegativeSafeInteger\(value\.repair\.documentRevision\)/u,
+)
+assert.match(
+  bootstrapValidatorSource,
+  /scopeValue\.id !== access\.scopeId[\s\S]*?scopeValue\.owner_user_id !== access\.ownerUserId[\s\S]*?scopeValue\.version_id !== access\.versionId[\s\S]*?scopeValue\.next_event_seq !== eventSeq/u,
+)
+assert.match(
+  bootstrapValidatorSource,
+  /!Array\.isArray\(value\.threads\)[\s\S]*?!Array\.isArray\(value\.profiles\)[\s\S]*?!Array\.isArray\(value\.accessibleScopes\)/u,
+)
+assert.match(
+  bootstrapValidatorSource,
+  /typeof node\.nodeKey === 'string'/u,
+)
+assert.match(
+  bootstrapValidatorSource,
+  /value\.accessibleScopes\.length !== 1[\s\S]*?accessibleScope\.id !== access\.scopeId[\s\S]*?accessibleScope\.last_read_event_seq !== value\.lastReadEventSeq/u,
+)
+assert.doesNotMatch(bootstrapValidatorSource, /\sas\s/u)
+assert.doesNotMatch(
+  bootstrapValidatorSource,
+  /\.\.\.value|\.\.\.scopeValue|\.\.\.versionValue|\.\.\.countsValue/u,
+)
+assert.match(
+  bootstrapValidatorSource,
+  /return \{\s*scope,\s*version: \{[\s\S]*?counts: \{[\s\S]*?threads: value\.threads,[\s\S]*?profiles: value\.profiles,[\s\S]*?accessibleScopes: \[\{/u,
+)
+assert.match(
+  edgeSource,
+  /interface BootstrapScope[\s\S]*?nodes: Array<\{ nodeKey: string \}>/u,
+)
+
+assert.match(
+  bootstrapRpcHelperSource,
+  /`\$\{error\.code\}:\$\{error\.message\}`/u,
+)
+for (const expectedMapping of [
+  '42501:unauthorized',
+  'P0002:not_found',
+  'P0404:share_unavailable',
+  'P0403:comments_disabled',
+  'P0409:stale_release',
+]) {
+  assert.ok(bootstrapRpcHelperSource.includes(expectedMapping))
+}
+assert.doesNotMatch(bootstrapRpcHelperSource, /details|hint|error_description/u)
+
+assert.match(
+  bootstrapBranchSource,
+  /result\.status === 'scope_missing'[\s\S]*?&& !repaired[\s\S]*?rpcInput\.p_access_kind === 'owner' \|\| rpcInput\.p_access_kind === 'share'/u,
+)
+assert.match(
+  bootstrapBranchSource,
+  /const canonicalScopeId = await timeOperation\('repair'[\s\S]*?repaired = true[\s\S]*?rpcInput = \{ \.\.\.rpcInput, p_scope_id: canonicalScopeId \}/u,
+)
+assert.match(bootstrapRepairSource, /buildCommentAnchorDocument\([\s\S]*?ensure_resume_version_comment_scope/u)
+assert.equal(
+  bootstrapBranchSource.match(/assertCurrentSharePasswordGeneration\(/gu)?.length,
+  2,
+)
+const firstPasswordCheck = bootstrapBranchSource.indexOf('assertCurrentSharePasswordGeneration')
+const repairCall = bootstrapBranchSource.indexOf('timeOperation(\'repair\'')
+const secondPasswordCheck = bootstrapBranchSource.indexOf(
+  'assertCurrentSharePasswordGeneration',
+  firstPasswordCheck + 1,
+)
+const realtimeCall = bootstrapBranchSource.indexOf('timeOperation(\'realtime_token\'')
+assert.ok(firstPasswordCheck >= 0 && firstPasswordCheck < repairCall)
+assert.ok(secondPasswordCheck > repairCall && secondPasswordCheck < realtimeCall)
+assert.match(bootstrapBranchSource, /if \(result\.status !== 'ok'\)/u)
+assert.match(
+  edgeSource,
+  /derivePasswordGeneration\([\s\S]*?result\.access\.sharePasswordHash[\s\S]*?timingSafeStringEqual\(currentGeneration, input\.p_password_generation\)/u,
+)
+assert.match(
+  bootstrapBranchSource,
+  /data: \{ \.\.\.result\.bootstrap, \.\.\.realtime \}/u,
+)
+assert.doesNotMatch(
+  bootstrapBranchSource.slice(bootstrapBranchSource.indexOf('return finalize(json')),
+  /\.\.\.result\.access|\.\.\.result\.repair|sharePasswordHash/u,
+)
+
+assert.match(
+  handlerSource,
+  /operationDurations\[name\] = \(operationDurations\[name\] \?\? 0\) \+ duration/u,
+)
+assert.equal(bootstrapBranchSource.match(/timeOperation\('rpc'/gu)?.length, 2)
+assert.equal(bootstrapBranchSource.match(/timeOperation\('repair'/gu)?.length, 1)
+assert.match(
+  handlerSource,
+  /const serializeStartedAt = performance\.now\(\)[\s\S]*?const serializedBody = JSON\.stringify\(body\)[\s\S]*?recordTiming\('serialize', performance\.now\(\) - serializeStartedAt\)[\s\S]*?new Response\(serializedBody/u,
+)
+assert.doesNotMatch(edgeSource, /db;dur|access;dur|total;dur|broadcast;desc|Math\.max\(0, total/u)
+for (const timingName of [
+  'auth_anonymous',
+  'auth_local',
+  'auth_legacy',
+  'access_token',
+  'rpc',
+  'repair',
+  'realtime_token',
+  'serialize',
+  'edge_total',
+]) {
+  assert.ok(edgeSource.includes(timingName))
+}
+assert.match(handlerSource, /const coldStart = nextRequestIsColdStart[\s\S]*?nextRequestIsColdStart = false/u)
+assert.match(handlerSource, /const requestId = isUuidValue\(requestIdHeader\)/u)
+assert.match(handlerSource, /Deno\.env\.get\('SB_REGION'\)/u)
+assert.doesNotMatch(handlerSource, /headers\.get\(['"]x-sb-edge-region/iu)
+assert.match(handlerSource, /response\.headers\.set\('X-Request-Id', requestId\)/u)
+assert.match(handlerSource, /response\.headers\.set\('X-Sb-Edge-Region', edgeRegion\)/u)
+assert.match(
+  bootstrapBranchSource,
+  /meta: \{ authMode, repair: repaired, coldStart \}/u,
+)
+assert.match(
+  handlerSource,
+  /if \(req\.method === 'OPTIONS'\) \{\s*return finalize\(new Response\('ok'/u,
+)
 assert.match(migrationSource, /kind = 'version'/u)
 assert.match(migrationSource, /version_id = p_version_id/u)
 assert.match(migrationSource, /invalid reply parent/u)

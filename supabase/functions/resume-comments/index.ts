@@ -60,6 +60,11 @@ type ActorKind = 'user' | 'anonymous'
 type AccessKind = 'owner' | 'collaborator' | 'share'
 type SyncRelocation = ResumeCommentRelocationResult & { threadId: string }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
+const COLLABORATION_SESSION_PATTERN = /^[\w-]{16,64}$/u
+
+let nextRequestIsColdStart = true
+
 interface ScopeRow {
   id: string
   kind: 'working' | 'history' | 'share_release' | 'version'
@@ -124,25 +129,131 @@ interface ResolvedAccess {
   canManageAll: boolean
 }
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: jsonHeaders })
+interface BootstrapRpcInput {
+  p_protocol_version: 1
+  p_access_kind: AccessKind
+  p_user_id: string | null
+  p_scope_id: string | null
+  p_resume_id: string | null
+  p_version_id: number | null
+  p_share_id: string | null
+  p_release_id: string | null
+  p_password_generation: string | null
+  p_session_id: string | null
+  p_collaborator_role: 'editor' | 'viewer' | null
+  p_anonymous_id: string | null
+  p_anonymous_secret_hash: string | null
 }
 
-function success(data: unknown, eventSeq: number) {
-  return json({ ok: true, data, eventSeq })
+interface BootstrapInputContext {
+  rpcInput: BootstrapRpcInput
+  shareTokenSecret: string | null
 }
 
-function failure(error: CommentApiError) {
-  return json({
-    ok: false,
-    error: {
-      code: error.code,
-      message: error.message,
-      ...(error.retryAfterSeconds
-        ? { retryAfterSeconds: error.retryAfterSeconds }
-        : {}),
-    },
-  }, error.status)
+interface BootstrapAccessEnvelope {
+  kind: AccessKind
+  userId: string | null
+  actorKind: ActorKind | null
+  actorId: string | null
+  actorKey: string | null
+  legacyAnonymousId: string | null
+  canWrite: boolean
+  canManageAll: boolean
+  scopeId: string
+  versionId: number
+  ownerUserId: string
+  shareId: string | null
+  releaseId: string | null
+  sharePasswordHash: string | null
+}
+
+interface BootstrapScope {
+  id: string
+  kind: 'version'
+  owner_user_id: string
+  resume_id: string
+  version_id: number
+  history_version_id: null
+  share_release_id: null
+  anchor_document: {
+    nodes: Array<{ nodeKey: string }>
+  }
+  document_hash: string
+  document_revision: number
+  projection_reference_date: string
+  next_event_seq: number
+  archived_at: null
+}
+
+interface BootstrapVersion {
+  id: number
+  version_no: number
+  version_name: string | null
+  milestone_name: string | null
+  status: 'active' | 'frozen'
+  content_hash: string | null
+  document_revision: number
+  projection_reference_date: string
+  shared_link_count: number
+}
+
+interface BootstrapPayload {
+  scope: BootstrapScope
+  version: BootstrapVersion
+  counts: {
+    unresolved: number
+    resolved: number
+    detached: number
+  }
+  threads: unknown[]
+  profiles: unknown[]
+  accessibleScopes: unknown[]
+  lastReadEventSeq: number
+}
+
+interface BootstrapRepairEnvelope {
+  ownerUserId: string
+  resumeId: string
+  versionId: number
+  documentRevision: number
+  snapshot: Record<string, unknown>
+  projectionReferenceDate: string
+}
+
+type BootstrapRpcResult
+  = | {
+    protocolVersion: 1
+    status: 'scope_missing'
+    access: Pick<BootstrapAccessEnvelope, 'kind' | 'sharePasswordHash'>
+    repair: BootstrapRepairEnvelope
+  }
+  | {
+    protocolVersion: 1
+    status: 'ok'
+    access: BootstrapAccessEnvelope
+    bootstrap: BootstrapPayload
+    eventSeq: number
+  }
+
+type BootstrapTimingName
+  = | 'auth_anonymous'
+    | 'auth_local'
+    | 'auth_legacy'
+    | 'access_token'
+    | 'rpc'
+    | 'repair'
+    | 'realtime_token'
+    | 'serialize'
+    | 'edge_total'
+
+class BootstrapInternalError extends Error {
+  readonly category: string
+
+  constructor(category: string) {
+    super('resume comments bootstrap internal failure')
+    this.name = 'BootstrapInternalError'
+    this.category = category
+  }
 }
 
 function scheduleBackground(task: Promise<unknown>) {
@@ -198,6 +309,628 @@ function readCollaborationSessionId(body: Record<string, unknown>) {
 
 function isFutureTimestamp(value: string) {
   return Number.isFinite(Date.parse(value)) && Date.parse(value) > Date.now()
+}
+
+function isUuidValue(value: unknown): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value)
+}
+
+function isPositiveSafeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && Number(value) > 0
+}
+
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && Number(value) >= 0
+}
+
+function isDateOnly(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value))
+    return false
+  const parsed = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
+function invalidBootstrapCredential(message = '评论访问凭证无效'): never {
+  throw new CommentApiError('unauthorized', message, 401)
+}
+
+function validateCollaboratorTokenClaims(
+  value: unknown,
+  userId: string,
+): {
+  scopeId: string
+  resumeId: string
+  userId: string
+  sessionId: string
+  versionId: number
+  role: 'editor' | 'viewer'
+} {
+  if (
+    !isRecord(value)
+    || value.kind !== 'collaborator'
+    || !isUuidValue(value.scopeId)
+    || !isUuidValue(value.resumeId)
+    || !isUuidValue(value.userId)
+    || value.userId !== userId
+    || typeof value.sessionId !== 'string'
+    || !COLLABORATION_SESSION_PATTERN.test(value.sessionId)
+    || !isPositiveSafeInteger(value.versionId)
+    || (value.role !== 'editor' && value.role !== 'viewer')
+  ) {
+    return invalidBootstrapCredential('协作评论凭证无效')
+  }
+  return {
+    scopeId: value.scopeId,
+    resumeId: value.resumeId,
+    userId: value.userId,
+    sessionId: value.sessionId,
+    versionId: value.versionId,
+    role: value.role === 'editor' ? 'editor' : 'viewer',
+  }
+}
+
+function validateShareTokenClaims(value: unknown) {
+  if (
+    !isRecord(value)
+    || value.kind !== 'share'
+    || !isUuidValue(value.shareId)
+    || !isUuidValue(value.releaseId)
+    || !isUuidValue(value.scopeId)
+    || !isPositiveSafeInteger(value.versionId)
+    || typeof value.passwordGeneration !== 'string'
+    || value.passwordGeneration.trim().length === 0
+  ) {
+    return invalidBootstrapCredential()
+  }
+  return {
+    shareId: value.shareId,
+    releaseId: value.releaseId,
+    scopeId: value.scopeId,
+    versionId: value.versionId,
+    passwordGeneration: value.passwordGeneration,
+  }
+}
+
+async function buildBootstrapInput({
+  userId,
+  body,
+  tokenSecret,
+  collaboratorSecret,
+  anonymousPepper,
+}: {
+  userId: string | null
+  body: Record<string, unknown>
+  tokenSecret: string
+  collaboratorSecret: string
+  anonymousPepper: string
+}): Promise<BootstrapInputContext> {
+  const accessKind = readRequiredString(body, 'accessKind', 32)
+  if (accessKind === 'owner') {
+    if (!userId)
+      return invalidBootstrapCredential('请先登录')
+    if (body.historyVersionId !== undefined || body.shareReleaseId !== undefined) {
+      throw new CommentApiError('not_found', '评论访问参数无效', 400)
+    }
+    const locatorKeys = ['scopeId', 'resumeId', 'versionId']
+      .filter(key => body[key] !== undefined)
+    if (locatorKeys.length !== 1) {
+      throw new CommentApiError('not_found', '评论访问参数无效', 400)
+    }
+    let scopeId: string | null = null
+    let resumeId: string | null = null
+    let versionId: number | null = null
+    if (locatorKeys[0] === 'scopeId') {
+      scopeId = readUuid(body, 'scopeId')
+    }
+    else if (locatorKeys[0] === 'resumeId') {
+      resumeId = readUuid(body, 'resumeId')
+    }
+    else {
+      versionId = readNonNegativeInteger(body, 'versionId')
+      if (versionId <= 0)
+        throw new CommentApiError('not_found', '简历版本不存在', 404)
+    }
+    return {
+      shareTokenSecret: null,
+      rpcInput: {
+        p_protocol_version: 1,
+        p_access_kind: 'owner',
+        p_user_id: userId,
+        p_scope_id: scopeId,
+        p_resume_id: resumeId,
+        p_version_id: versionId,
+        p_share_id: null,
+        p_release_id: null,
+        p_password_generation: null,
+        p_session_id: null,
+        p_collaborator_role: null,
+        p_anonymous_id: null,
+        p_anonymous_secret_hash: null,
+      },
+    }
+  }
+
+  if (accessKind === 'collaborator') {
+    if (!userId)
+      return invalidBootstrapCredential('请先登录')
+    const verifiedToken = await verifyCommentToken(
+      readRequiredString(body, 'accessToken', 4_096),
+      'collaborator',
+      collaboratorSecret,
+    )
+    const token = validateCollaboratorTokenClaims(verifiedToken, userId)
+    return {
+      shareTokenSecret: null,
+      rpcInput: {
+        p_protocol_version: 1,
+        p_access_kind: 'collaborator',
+        p_user_id: userId,
+        p_scope_id: token.scopeId,
+        p_resume_id: token.resumeId,
+        p_version_id: token.versionId,
+        p_share_id: null,
+        p_release_id: null,
+        p_password_generation: null,
+        p_session_id: token.sessionId,
+        p_collaborator_role: token.role,
+        p_anonymous_id: null,
+        p_anonymous_secret_hash: null,
+      },
+    }
+  }
+
+  if (accessKind !== 'share')
+    return invalidBootstrapCredential('评论访问方式无效')
+  const verifiedToken = await verifyCommentToken(
+    readRequiredString(body, 'accessToken', 4_096),
+    'share',
+    tokenSecret,
+  )
+  const token = validateShareTokenClaims(verifiedToken)
+  let anonymousId: string | null = null
+  let anonymousSecretHash: string | null = null
+  if (isRecord(body.anonymous)) {
+    try {
+      anonymousId = readUuid(body.anonymous, 'id')
+      const anonymousSecret = readRequiredString(body.anonymous, 'secret', 128)
+      anonymousSecretHash = await hashAnonymousSecret(anonymousSecret, anonymousPepper)
+    }
+    catch {
+      if (!userId)
+        return invalidBootstrapCredential('匿名评论凭证无效')
+      anonymousId = null
+      anonymousSecretHash = null
+    }
+  }
+  return {
+    shareTokenSecret: tokenSecret,
+    rpcInput: {
+      p_protocol_version: 1,
+      p_access_kind: 'share',
+      p_user_id: userId,
+      p_scope_id: token.scopeId,
+      p_resume_id: null,
+      p_version_id: token.versionId,
+      p_share_id: token.shareId,
+      p_release_id: token.releaseId,
+      p_password_generation: token.passwordGeneration,
+      p_session_id: null,
+      p_collaborator_role: null,
+      p_anonymous_id: anonymousId,
+      p_anonymous_secret_hash: anonymousSecretHash,
+    },
+  }
+}
+
+function bootstrapProtocolError(category: string): never {
+  throw new BootstrapInternalError(category)
+}
+
+function readProtocolNullableUuid(
+  value: Record<string, unknown>,
+  field: string,
+): string | null {
+  if (value[field] === null)
+    return null
+  if (!isUuidValue(value[field]))
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  return value[field]
+}
+
+function readProtocolNullableString(
+  value: Record<string, unknown>,
+  field: string,
+): string | null {
+  if (value[field] === null)
+    return null
+  if (typeof value[field] !== 'string')
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  return value[field]
+}
+
+function validateBootstrapAccess(
+  value: unknown,
+  input: BootstrapRpcInput,
+): BootstrapAccessEnvelope {
+  if (!isRecord(value))
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  const userId = readProtocolNullableUuid(value, 'userId')
+  const actorId = readProtocolNullableUuid(value, 'actorId')
+  const legacyAnonymousId = readProtocolNullableUuid(value, 'legacyAnonymousId')
+  const shareId = readProtocolNullableUuid(value, 'shareId')
+  const releaseId = readProtocolNullableUuid(value, 'releaseId')
+  const sharePasswordHash = readProtocolNullableString(value, 'sharePasswordHash')
+  if (
+    value.kind !== input.p_access_kind
+    || userId !== input.p_user_id
+    || (value.actorKind !== null && value.actorKind !== 'user' && value.actorKind !== 'anonymous')
+    || (typeof value.actorKey !== 'string' && value.actorKey !== null)
+    || typeof value.canWrite !== 'boolean'
+    || typeof value.canManageAll !== 'boolean'
+    || !isUuidValue(value.scopeId)
+    || !isPositiveSafeInteger(value.versionId)
+    || !isUuidValue(value.ownerUserId)
+    || (input.p_scope_id !== null && value.scopeId !== input.p_scope_id)
+    || (input.p_version_id !== null && value.versionId !== input.p_version_id)
+  ) {
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  }
+
+  if (input.p_access_kind === 'owner') {
+    if (
+      userId === null
+      || value.ownerUserId !== userId
+      || value.actorKind !== 'user'
+      || actorId !== userId
+      || value.actorKey !== `user:${userId}`
+      || legacyAnonymousId !== null
+      || shareId !== null
+      || releaseId !== null
+      || sharePasswordHash !== null
+      || value.canWrite !== true
+      || value.canManageAll !== true
+    ) {
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    }
+  }
+  else if (input.p_access_kind === 'collaborator') {
+    if (
+      userId === null
+      || value.actorKind !== 'user'
+      || actorId !== userId
+      || value.actorKey !== `user:${userId}`
+      || legacyAnonymousId !== null
+      || shareId !== null
+      || releaseId !== null
+      || sharePasswordHash !== null
+      || value.canWrite !== (input.p_collaborator_role === 'editor')
+      || value.canManageAll !== false
+    ) {
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    }
+  }
+  else {
+    if (
+      shareId !== input.p_share_id
+      || releaseId !== input.p_release_id
+      || value.canManageAll !== false
+    ) {
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    }
+    if (userId !== null) {
+      if (
+        value.actorKind !== 'user'
+        || actorId !== userId
+        || value.actorKey !== `user:${userId}`
+        || (legacyAnonymousId !== null && legacyAnonymousId !== input.p_anonymous_id)
+      ) {
+        return bootstrapProtocolError('invalid_rpc_protocol')
+      }
+    }
+    else if (input.p_anonymous_id !== null) {
+      if (
+        value.actorKind !== 'anonymous'
+        || actorId !== input.p_anonymous_id
+        || value.actorKey !== `anonymous:${input.p_anonymous_id}`
+        || legacyAnonymousId !== null
+      ) {
+        return bootstrapProtocolError('invalid_rpc_protocol')
+      }
+    }
+    else if (
+      value.actorKind !== null
+      || actorId !== null
+      || value.actorKey !== null
+      || legacyAnonymousId !== null
+    ) {
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    }
+  }
+
+  return {
+    kind: input.p_access_kind,
+    userId,
+    actorKind: value.actorKind === 'user' || value.actorKind === 'anonymous'
+      ? value.actorKind
+      : null,
+    actorId,
+    actorKey: typeof value.actorKey === 'string' ? value.actorKey : null,
+    legacyAnonymousId,
+    canWrite: value.canWrite,
+    canManageAll: value.canManageAll,
+    scopeId: value.scopeId,
+    versionId: value.versionId,
+    ownerUserId: value.ownerUserId,
+    shareId,
+    releaseId,
+    sharePasswordHash,
+  }
+}
+
+function validateBootstrapPayload(
+  value: unknown,
+  access: BootstrapAccessEnvelope,
+  eventSeq: number,
+): BootstrapPayload {
+  if (!isRecord(value))
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  const scopeValue = value.scope
+  const versionValue = value.version
+  const countsValue = value.counts
+  if (
+    !isRecord(scopeValue)
+    || !isRecord(versionValue)
+    || !isRecord(countsValue)
+    || !Array.isArray(value.threads)
+    || !Array.isArray(value.profiles)
+    || !Array.isArray(value.accessibleScopes)
+    || !isNonNegativeSafeInteger(value.lastReadEventSeq)
+  ) {
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  }
+  const anchorDocument = scopeValue.anchor_document
+  if (
+    scopeValue.kind !== 'version'
+    || scopeValue.id !== access.scopeId
+    || scopeValue.owner_user_id !== access.ownerUserId
+    || !isUuidValue(scopeValue.resume_id)
+    || scopeValue.version_id !== access.versionId
+    || scopeValue.history_version_id !== null
+    || scopeValue.share_release_id !== null
+    || typeof scopeValue.document_hash !== 'string'
+    || !isNonNegativeSafeInteger(scopeValue.document_revision)
+    || !isDateOnly(scopeValue.projection_reference_date)
+    || scopeValue.next_event_seq !== eventSeq
+    || scopeValue.archived_at !== null
+    || !isRecord(anchorDocument)
+    || !Array.isArray(anchorDocument.nodes)
+    || !anchorDocument.nodes.every(node => (
+      isRecord(node) && typeof node.nodeKey === 'string'
+    ))
+    || versionValue.id !== access.versionId
+    || !isNonNegativeSafeInteger(versionValue.version_no)
+    || (versionValue.version_name !== null && typeof versionValue.version_name !== 'string')
+    || (versionValue.milestone_name !== null && typeof versionValue.milestone_name !== 'string')
+    || (versionValue.status !== 'active' && versionValue.status !== 'frozen')
+    || (versionValue.content_hash !== null && typeof versionValue.content_hash !== 'string')
+    || !isNonNegativeSafeInteger(versionValue.document_revision)
+    || !isDateOnly(versionValue.projection_reference_date)
+    || !isNonNegativeSafeInteger(versionValue.shared_link_count)
+    || !isNonNegativeSafeInteger(countsValue.unresolved)
+    || !isNonNegativeSafeInteger(countsValue.resolved)
+    || !isNonNegativeSafeInteger(countsValue.detached)
+    || value.accessibleScopes.length !== 1
+  ) {
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  }
+  const accessibleScope = value.accessibleScopes[0]
+  if (
+    !isRecord(accessibleScope)
+    || accessibleScope.id !== access.scopeId
+    || accessibleScope.owner_user_id !== access.ownerUserId
+    || accessibleScope.version_id !== access.versionId
+    || accessibleScope.next_event_seq !== eventSeq
+    || accessibleScope.last_read_event_seq !== value.lastReadEventSeq
+  ) {
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  }
+  const nodes = anchorDocument.nodes.map((node) => {
+    if (!isRecord(node) || typeof node.nodeKey !== 'string')
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    return { nodeKey: node.nodeKey }
+  })
+  const scope: BootstrapScope = {
+    id: scopeValue.id,
+    kind: 'version',
+    owner_user_id: scopeValue.owner_user_id,
+    resume_id: scopeValue.resume_id,
+    version_id: scopeValue.version_id,
+    history_version_id: null,
+    share_release_id: null,
+    anchor_document: { nodes },
+    document_hash: scopeValue.document_hash,
+    document_revision: scopeValue.document_revision,
+    projection_reference_date: scopeValue.projection_reference_date,
+    next_event_seq: scopeValue.next_event_seq,
+    archived_at: null,
+  }
+  const versionName = typeof versionValue.version_name === 'string'
+    ? versionValue.version_name
+    : null
+  const milestoneName = typeof versionValue.milestone_name === 'string'
+    ? versionValue.milestone_name
+    : null
+  const contentHash = typeof versionValue.content_hash === 'string'
+    ? versionValue.content_hash
+    : null
+  return {
+    scope,
+    version: {
+      id: versionValue.id,
+      version_no: versionValue.version_no,
+      version_name: versionName,
+      milestone_name: milestoneName,
+      status: versionValue.status,
+      content_hash: contentHash,
+      document_revision: versionValue.document_revision,
+      projection_reference_date: versionValue.projection_reference_date,
+      shared_link_count: versionValue.shared_link_count,
+    },
+    counts: {
+      unresolved: countsValue.unresolved,
+      resolved: countsValue.resolved,
+      detached: countsValue.detached,
+    },
+    threads: value.threads,
+    profiles: value.profiles,
+    accessibleScopes: [{
+      ...scope,
+      last_read_event_seq: value.lastReadEventSeq,
+    }],
+    lastReadEventSeq: value.lastReadEventSeq,
+  }
+}
+
+function validateBootstrapRpcResult(
+  value: unknown,
+  input: BootstrapRpcInput,
+): BootstrapRpcResult {
+  if (
+    !isRecord(value)
+    || value.protocolVersion !== 1
+    || (value.status !== 'ok' && value.status !== 'scope_missing')
+  ) {
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  }
+  if (value.status === 'scope_missing') {
+    if (
+      input.p_access_kind === 'collaborator'
+      || !isRecord(value.access)
+      || value.access.kind !== input.p_access_kind
+      || (value.access.sharePasswordHash !== null
+        && typeof value.access.sharePasswordHash !== 'string')
+      || (input.p_access_kind === 'owner' && value.access.sharePasswordHash !== null)
+      || !isRecord(value.repair)
+      || !isUuidValue(value.repair.ownerUserId)
+      || !isUuidValue(value.repair.resumeId)
+      || !isPositiveSafeInteger(value.repair.versionId)
+      || !isNonNegativeSafeInteger(value.repair.documentRevision)
+      || !isRecord(value.repair.snapshot)
+      || !isDateOnly(value.repair.projectionReferenceDate)
+      || (input.p_version_id !== null && value.repair.versionId !== input.p_version_id)
+      || (input.p_resume_id !== null && value.repair.resumeId !== input.p_resume_id)
+      || (input.p_access_kind === 'owner' && value.repair.ownerUserId !== input.p_user_id)
+    ) {
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    }
+    return {
+      protocolVersion: 1,
+      status: 'scope_missing',
+      access: {
+        kind: input.p_access_kind,
+        sharePasswordHash: typeof value.access.sharePasswordHash === 'string'
+          ? value.access.sharePasswordHash
+          : null,
+      },
+      repair: {
+        ownerUserId: value.repair.ownerUserId,
+        resumeId: value.repair.resumeId,
+        versionId: value.repair.versionId,
+        documentRevision: value.repair.documentRevision,
+        snapshot: value.repair.snapshot,
+        projectionReferenceDate: value.repair.projectionReferenceDate,
+      },
+    }
+  }
+  if (!isNonNegativeSafeInteger(value.eventSeq))
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  const access = validateBootstrapAccess(value.access, input)
+  return {
+    protocolVersion: 1,
+    status: 'ok',
+    access,
+    bootstrap: validateBootstrapPayload(value.bootstrap, access, value.eventSeq),
+    eventSeq: value.eventSeq,
+  }
+}
+
+function mapBootstrapRpcError(error: unknown): CommentApiError {
+  if (!isRecord(error) || typeof error.code !== 'string' || typeof error.message !== 'string')
+    return bootstrapProtocolError('unexpected_rpc_error')
+  const mapping: Record<string, CommentApiError> = {
+    '42501:unauthorized': new CommentApiError('unauthorized', '没有权限访问评论', 401),
+    'P0002:not_found': new CommentApiError('not_found', '评论空间不存在', 404),
+    'P0404:share_unavailable': new CommentApiError('share_unavailable', '分享已不可用', 404),
+    'P0403:comments_disabled': new CommentApiError('comments_disabled', '当前分享已关闭评论', 403),
+    'P0409:stale_release': new CommentApiError('stale_release', '分享版本已变化，请刷新后重试', 409),
+  }
+  return mapping[`${error.code}:${error.message}`]
+    ?? bootstrapProtocolError('unexpected_rpc_error')
+}
+
+async function bootstrapResumeComments(
+  admin: AdminClient,
+  input: BootstrapRpcInput,
+): Promise<BootstrapRpcResult> {
+  const { data, error } = await admin.rpc('bootstrap_resume_comments_v1', input)
+  if (error)
+    throw mapBootstrapRpcError(error)
+  return validateBootstrapRpcResult(data, input)
+}
+
+async function assertCurrentSharePasswordGeneration({
+  result,
+  input,
+  tokenSecret,
+}: {
+  result: BootstrapRpcResult
+  input: BootstrapRpcInput
+  tokenSecret: string | null
+}) {
+  if (input.p_access_kind !== 'share')
+    return
+  if (!tokenSecret || input.p_password_generation === null)
+    return bootstrapProtocolError('invalid_share_password_context')
+  const currentGeneration = await derivePasswordGeneration(
+    result.access.sharePasswordHash,
+    tokenSecret,
+  )
+  if (!timingSafeStringEqual(currentGeneration, input.p_password_generation)) {
+    throw new CommentApiError(
+      'share_unavailable',
+      '分享访问状态已变化，请重新验证',
+      401,
+    )
+  }
+}
+
+async function repairBootstrapScope(
+  admin: AdminClient,
+  repair: BootstrapRepairEnvelope,
+): Promise<string> {
+  try {
+    const projected = buildCommentAnchorDocument(
+      repair.snapshot,
+      repair.projectionReferenceDate,
+    )
+    const { data, error } = await admin.rpc('ensure_resume_version_comment_scope', {
+      p_owner_user_id: repair.ownerUserId,
+      p_version_id: repair.versionId,
+      p_anchor_document: projected.document,
+      p_document_hash: projected.documentHash,
+      p_projection_reference_date: repair.projectionReferenceDate,
+    })
+    if (error)
+      return bootstrapProtocolError('scope_repair_failed')
+    if (!isUuidValue(data))
+      return bootstrapProtocolError('invalid_scope_repair_result')
+    return data
+  }
+  catch (error) {
+    if (error instanceof BootstrapInternalError)
+      throw error
+    return bootstrapProtocolError('scope_repair_failed')
+  }
 }
 
 async function ensureVersionScopeForOwner(
@@ -832,6 +1565,8 @@ async function loadThreads(
   return { threads, profiles: profiles.data ?? [] }
 }
 
+// 旧 bootstrap/recovery 快速回滚仍需保留此读取器。
+// eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
 async function loadReadState(admin: AdminClient, access: ResolvedAccess) {
   if (!access.actorKind || !access.actorId) {
     return 0
@@ -874,6 +1609,8 @@ function countThreadRows(threads: Array<{ anchor_status: string, resolved_at: st
   }, { unresolved: 0, resolved: 0, detached: 0 })
 }
 
+// 旧 bootstrap/recovery 快速回滚仍需保留此读取器。
+// eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
 async function loadVersionReference(admin: AdminClient, versionId: number) {
   const [versionResult, shareCountResult] = await Promise.all([
     admin
@@ -902,7 +1639,12 @@ async function issueTopics({
   realtimeSecret,
   tokenSecret,
 }: {
-  access: ResolvedAccess
+  access: {
+    kind: AccessKind
+    scope: { id: string }
+    userId: string | null
+    versionId: number
+  }
   realtimeSecret: string
   tokenSecret: string
 }) {
@@ -1043,40 +1785,64 @@ function writePayload(body: Record<string, unknown>, access: ResolvedAccess) {
 
 Deno.serve(async (req) => {
   const requestStartedAt = performance.now()
-  const requestId = /^[0-9a-f-]{36}$/iu.test(req.headers.get('x-request-id') ?? '')
-    ? req.headers.get('x-request-id')!
+  const coldStart = nextRequestIsColdStart
+  nextRequestIsColdStart = false
+  const requestIdHeader = req.headers.get('x-request-id')
+  const requestId = isUuidValue(requestIdHeader)
+    ? requestIdHeader
     : crypto.randomUUID()
-  let authDuration = 0
-  let accessDuration = 0
-  const operationDurations: Record<string, number> = {}
-  const timeOperation = async <T>(name: string, operation: () => Promise<T>) => {
+  const configuredRegion = Deno.env.get('SB_REGION')?.trim() ?? ''
+  const edgeRegion = /^[\w.-]{1,128}$/u.test(configuredRegion)
+    ? configuredRegion
+    : null
+  const operationDurations: Partial<Record<BootstrapTimingName, number>> = {}
+  const recordTiming = (name: BootstrapTimingName, duration: number) => {
+    operationDurations[name] = (operationDurations[name] ?? 0) + duration
+  }
+  const timeOperation = async <T>(
+    name: BootstrapTimingName,
+    operation: () => Promise<T>,
+  ) => {
     const startedAt = performance.now()
     try {
       return await operation()
     }
     finally {
-      operationDurations[name] = performance.now() - startedAt
+      recordTiming(name, performance.now() - startedAt)
     }
   }
   const finalize = (response: Response) => {
-    const totalDuration = performance.now() - requestStartedAt
-    const dbDuration = Math.max(0, totalDuration - authDuration - accessDuration)
+    operationDurations.edge_total = performance.now() - requestStartedAt
     response.headers.set('X-Request-Id', requestId)
+    if (edgeRegion)
+      response.headers.set('X-Sb-Edge-Region', edgeRegion)
     response.headers.set(
       'Server-Timing',
-      [
-        `auth;dur=${authDuration.toFixed(1)}`,
-        `access;dur=${accessDuration.toFixed(1)}`,
-        `db;dur=${dbDuration.toFixed(1)}`,
-        ...Object.entries(operationDurations).map(([name, duration]) => (
-          `${name};dur=${duration.toFixed(1)}`
-        )),
-        'broadcast;desc="scheduled after commit"',
-        `total;dur=${totalDuration.toFixed(1)}`,
-      ].join(', '),
+      Object.entries(operationDurations)
+        .map(([name, duration]) => `${name};dur=${duration.toFixed(1)}`)
+        .join(', '),
     )
     return response
   }
+  const json = (body: unknown, status = 200) => {
+    const serializeStartedAt = performance.now()
+    const serializedBody = JSON.stringify(body)
+    recordTiming('serialize', performance.now() - serializeStartedAt)
+    return new Response(serializedBody, { status, headers: jsonHeaders })
+  }
+  const success = (data: unknown, eventSeq: number) => (
+    json({ ok: true, data, eventSeq })
+  )
+  const failure = (error: CommentApiError) => json({
+    ok: false,
+    error: {
+      code: error.code,
+      message: error.message,
+      ...(error.retryAfterSeconds
+        ? { retryAfterSeconds: error.retryAfterSeconds }
+        : {}),
+    },
+  }, error.status)
   if (req.method === 'OPTIONS') {
     return finalize(new Response('ok', { headers: jsonHeaders }))
   }
@@ -1103,12 +1869,17 @@ Deno.serve(async (req) => {
     }
     const body = value
     const authStartedAt = performance.now()
-    const { userId } = await authenticateSupabaseUser({
+    const { userId, authMode } = await authenticateSupabaseUser({
       request: req,
       client: admin,
       supabaseUrl,
     })
-    authDuration = performance.now() - authStartedAt
+    const authTimingName: BootstrapTimingName = authMode === 'anonymous'
+      ? 'auth_anonymous'
+      : authMode === 'local_jwks'
+        ? 'auth_local'
+        : 'auth_legacy'
+    recordTiming(authTimingName, performance.now() - authStartedAt)
     if (
       op === 'register_collaboration_session'
       || op === 'join_collaboration_session'
@@ -1124,7 +1895,74 @@ Deno.serve(async (req) => {
       })
       return finalize(success(data, 0))
     }
-    const accessStartedAt = performance.now()
+
+    if (op === 'bootstrap_scope') {
+      const bootstrapInput = await timeOperation('access_token', () => (
+        buildBootstrapInput({
+          userId,
+          body,
+          tokenSecret,
+          collaboratorSecret,
+          anonymousPepper,
+        })
+      ))
+      let rpcInput = bootstrapInput.rpcInput
+      let repaired = false
+      let result = await timeOperation('rpc', () => (
+        bootstrapResumeComments(admin, rpcInput)
+      ))
+      await timeOperation('access_token', () => (
+        assertCurrentSharePasswordGeneration({
+          result,
+          input: rpcInput,
+          tokenSecret: bootstrapInput.shareTokenSecret,
+        })
+      ))
+      if (
+        result.status === 'scope_missing'
+        && !repaired
+        && (rpcInput.p_access_kind === 'owner' || rpcInput.p_access_kind === 'share')
+      ) {
+        const repairEnvelope = result.repair
+        const canonicalScopeId = await timeOperation('repair', () => (
+          repairBootstrapScope(admin, repairEnvelope)
+        ))
+        repaired = true
+        if (rpcInput.p_access_kind === 'share') {
+          rpcInput = { ...rpcInput, p_scope_id: canonicalScopeId }
+        }
+        result = await timeOperation('rpc', () => (
+          bootstrapResumeComments(admin, rpcInput)
+        ))
+        await timeOperation('access_token', () => (
+          assertCurrentSharePasswordGeneration({
+            result,
+            input: rpcInput,
+            tokenSecret: bootstrapInput.shareTokenSecret,
+          })
+        ))
+      }
+      if (result.status !== 'ok')
+        return bootstrapProtocolError('scope_missing_after_repair')
+      const realtime = await timeOperation('realtime_token', () => issueTopics({
+        access: {
+          kind: result.access.kind,
+          scope: { id: result.bootstrap.scope.id },
+          userId: result.access.userId,
+          versionId: result.access.versionId,
+        },
+        realtimeSecret,
+        tokenSecret,
+      }))
+      return finalize(json({
+        ok: true,
+        protocolVersion: 1,
+        meta: { authMode, repair: repaired, coldStart },
+        data: { ...result.bootstrap, ...realtime },
+        eventSeq: result.eventSeq,
+      }))
+    }
+
     const access = await resolveAccess({
       userId,
       body,
@@ -1133,7 +1971,6 @@ Deno.serve(async (req) => {
       collaboratorSecret,
       anonymousPepper,
     })
-    accessDuration = performance.now() - accessStartedAt
 
     if (op === 'create_anonymous_identity') {
       if (access.kind !== 'share' || access.userId) {
@@ -1175,29 +2012,6 @@ Deno.serve(async (req) => {
         throw error
       }
       return finalize(success(data, Number(data.eventSeq)))
-    }
-
-    if (op === 'bootstrap_scope') {
-      const [{ threads, profiles }, lastReadEventSeq, realtime, version] = await Promise.all([
-        timeOperation('threads', () => loadThreads(admin, access.scope.id)),
-        timeOperation('read_state', () => loadReadState(admin, access)),
-        timeOperation('realtime_token', () => issueTopics({ access, realtimeSecret, tokenSecret })),
-        timeOperation('version', () => loadVersionReference(admin, access.versionId)),
-      ])
-      const counts = countThreadRows(threads)
-      return finalize(success({
-        scope: access.scope,
-        version,
-        counts,
-        threads,
-        profiles,
-        lastReadEventSeq,
-        accessibleScopes: [{
-          ...access.scope,
-          last_read_event_seq: lastReadEventSeq,
-        }],
-        ...realtime,
-      }, access.scope.next_event_seq))
     }
 
     if (op === 'list_threads') {
@@ -1470,6 +2284,15 @@ Deno.serve(async (req) => {
   catch (error) {
     if (error instanceof SupabaseAuthenticationError) {
       return finalize(failure(new CommentApiError('unauthorized', '登录凭证无效', 401)))
+    }
+    if (error instanceof BootstrapInternalError) {
+      console.error('resume-comments-bootstrap-failed', {
+        requestId,
+        category: error.category,
+      })
+      return finalize(failure(
+        new CommentApiError('unexpected', '评论服务暂时不可用', 500),
+      ))
     }
     const mapped = mapDatabaseError(error)
     if (mapped.code === 'unexpected') {
