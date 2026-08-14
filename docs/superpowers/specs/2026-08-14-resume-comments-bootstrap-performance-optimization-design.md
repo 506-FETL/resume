@@ -2,7 +2,7 @@
 
 - 日期：2026-08-14
 - 主题：`resume-comments-bootstrap-performance-optimization`
-- 状态：待书面规格审查
+- 状态：已批准，进入实施
 - 范围：浏览器 → Supabase Edge Function → Auth/PostgREST → PostgreSQL 的评论 bootstrap 链路
 
 ## 1. 背景
