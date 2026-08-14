@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { CommentUiPermissions } from './types.ts'
+import { AnimatePresence } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { compareAnchorOverlap } from '../anchors/selection.ts'
@@ -9,6 +10,7 @@ import { useCommentSelection } from '../hooks/use-comment-selection.ts'
 import { useHighlightGeometry } from '../hooks/use-highlight-geometry.ts'
 import { CommentsPanel } from './comments-panel.tsx'
 import { HighlightOverlay } from './highlight-overlay.tsx'
+import { RelinkStatusAlert } from './relink-status-alert.tsx'
 import { SelectionAction } from './selection-action.tsx'
 import { ThreadPicker } from './thread-picker.tsx'
 
@@ -35,16 +37,6 @@ export function CommentSurface({
   const [creating, setCreating] = useState(false)
   const [picker, setPicker] = useState<{ threadIds: string[], point: { x: number, y: number } } | null>(null)
   const open = controlledOpen ?? internalOpen
-  const setOpen = useCallback((value: boolean) => {
-    if (controlledOpen === undefined)
-      setInternalOpen(value)
-    onOpenChange?.(value)
-    if (!value) {
-      setCreating(false)
-      store.getState().setActiveThread(null)
-      store.getState().setHoveredThread(null)
-    }
-  }, [controlledOpen, onOpenChange, store])
   const scope = useResumeCommentStore(state => state.scope)
   const selection = useResumeCommentStore(state => state.selection)
   const threads = useResumeCommentStore(useShallow(
@@ -71,6 +63,17 @@ export function CommentSurface({
     documentHash: scope?.documentHash ?? '',
     enabled: enabled && accessState !== 'unavailable',
   })
+  const setOpen = useCallback((value: boolean) => {
+    if (controlledOpen === undefined)
+      setInternalOpen(value)
+    onOpenChange?.(value)
+    if (!value) {
+      clearSelection()
+      setCreating(false)
+      store.getState().setActiveThread(null)
+      store.getState().setHoveredThread(null)
+    }
+  }, [clearSelection, controlledOpen, onOpenChange, store])
   const { geometry } = useHighlightGeometry({
     rootRef,
     threads,
@@ -107,6 +110,7 @@ export function CommentSurface({
         setOpen(true)
         return
       }
+      clearSelection()
       cancelRelink()
       openThread(thread.id)
       return
@@ -131,18 +135,19 @@ export function CommentSurface({
     setActiveThread(null)
     setCreating(true)
     setOpen(true)
-  }, [actions, cancelRelink, openThread, relinkThreadId, selection, setActiveThread, setOpen, setRelinkError, threads])
+  }, [actions, cancelRelink, clearSelection, openThread, relinkThreadId, selection, setActiveThread, setOpen, setRelinkError, threads])
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape')
         return
-      if (selection) {
+      if (relinkThreadId) {
         clearSelection()
+        cancelRelink()
         return
       }
-      if (relinkThreadId) {
-        cancelRelink()
+      if (selection) {
+        clearSelection()
         return
       }
       if (picker) {
@@ -183,16 +188,30 @@ export function CommentSurface({
             setPicker({ threadIds, point })
         }}
       />
-      {selection
-        ? (
-            <SelectionAction
-              selection={selection}
-              disabled={!resolvedPermissions.canCreate || accessState !== 'active'}
-              mode={relinkThreadId ? 'relink' : 'comment'}
-              onComment={() => handleSelectionComment().catch(() => undefined)}
-            />
-          )
-        : null}
+      <AnimatePresence initial={false}>
+        {relinkThreadId && !open
+          ? (
+              <RelinkStatusAlert
+                onCancel={() => {
+                  clearSelection()
+                  cancelRelink()
+                }}
+              />
+            )
+          : null}
+      </AnimatePresence>
+      <AnimatePresence initial={false}>
+        {selection && !open && !picker
+          ? (
+              <SelectionAction
+                selection={selection}
+                disabled={!resolvedPermissions.canCreate || accessState !== 'active'}
+                mode={relinkThreadId ? 'relink' : 'comment'}
+                onComment={() => handleSelectionComment().catch(() => undefined)}
+              />
+            )
+          : null}
+      </AnimatePresence>
       {picker
         ? (
             <ThreadPicker

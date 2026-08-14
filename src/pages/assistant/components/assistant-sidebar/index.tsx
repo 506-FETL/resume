@@ -1,11 +1,8 @@
+import type { CSSProperties } from 'react'
+import { X } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useAssistantNavigation } from '../../hooks/use-assistant-navigation'
 import useAssistantStore from '../../store'
 import ConversationList from '../conversation-list'
@@ -41,15 +38,35 @@ export default function AssistantSidebar() {
         <SidebarBody expanded={sidebarExpanded} />
       </motion.aside>
 
-      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
-        <SheetContent side="left" className="w-[min(88vw,320px)] gap-0 p-0">
-          <SheetHeader className="border-b pr-12 text-left">
-            <SheetTitle>对话历史</SheetTitle>
-            <SheetDescription>切换、新建或管理 AI 助手的对话</SheetDescription>
-          </SheetHeader>
-          <SidebarBody expanded mobile />
-        </SheetContent>
-      </Sheet>
+      <Drawer open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen} swipeDirection="left">
+        <DrawerContent
+          className="gap-0 overflow-hidden p-0"
+          style={{
+            '--drawer-content-height': 'calc(100dvh - 1rem)',
+            '--drawer-content-width': 'min(88vw, 320px)',
+          } as CSSProperties}
+        >
+          <DrawerHeader className="border-b pr-12 text-left">
+            <DrawerTitle>对话历史</DrawerTitle>
+            <DrawerDescription>切换、新建或管理 AI 助手的对话</DrawerDescription>
+          </DrawerHeader>
+          <DrawerClose
+            render={(
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground"
+                aria-label="关闭对话历史"
+              />
+            )}
+          >
+            <X className="size-4" />
+          </DrawerClose>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <SidebarBody expanded mobile />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </>
   )
 }

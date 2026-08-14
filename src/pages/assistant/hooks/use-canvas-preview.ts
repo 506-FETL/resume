@@ -9,7 +9,7 @@ import { useCanvasModel } from './use-canvas-model'
 
 interface ResumeOption { resumeId: string, name: string }
 
-// 模块级缓存：跨组件卸载/重挂（折叠画布、切换侧边栏、移动端 Sheet）复用，
+// 模块级缓存：跨组件卸载/重挂（折叠画布、切换侧边栏、移动端 Drawer）复用，
 // 避免重新加载时的骨架闪烁
 const snapshotCache = new Map<string, ResumeSnapshot>()
 

@@ -4,6 +4,7 @@ import { relocateResumeCommentAnchor } from '../../../../supabase/functions/shar
 export function relocateAnchor(
   anchor: CommentAnchor,
   nextNode: CommentAnchorDocumentNode | null | undefined,
+  nextDocumentHash?: string,
 ): RelocationResult {
-  return relocateResumeCommentAnchor(anchor, nextNode)
+  return relocateResumeCommentAnchor(anchor, nextNode, nextDocumentHash)
 }

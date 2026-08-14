@@ -1304,6 +1304,7 @@ Deno.serve(async (req) => {
         const result = relocateResumeCommentAnchor(
           anchor,
           nodeMap.get(anchor.nodeKey),
+          documentHash,
         )
         if (result.status === 'detached') {
           relocations.push({ threadId: thread.id, ...result })

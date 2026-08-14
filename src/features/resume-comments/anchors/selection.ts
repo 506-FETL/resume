@@ -1,7 +1,9 @@
 import type { AnchorOverlap, CommentAnchor, ResolvedCommentSelection } from './types.ts'
 import { COMMENT_ANCHOR_CONTEXT_GRAPHEMES, COMMENT_HIDDEN_PAGE_SELECTOR, COMMENT_MEASUREMENT_SOURCE_SELECTOR } from '../const.ts'
 import { sha256Hex } from './document.ts'
-import { countCommentGraphemes, graphemeSlice, normalizeCommentText } from './graphemes.ts'
+import { commentDomPointToGraphemeOffset, findCommentDomBlockByOrdinal, projectCommentDomNode } from './dom-projection.ts'
+import { graphemeSlice } from './graphemes.ts'
+import { normalizeCommentRichTextBlock } from './projection.ts'
 
 interface ResolveCommentSelectionOptions {
   documentHash: string
@@ -18,7 +20,7 @@ export function areCommentSelectionBoundariesCompatible(
   start: CommentSelectionBoundaryIdentity,
   end: CommentSelectionBoundaryIdentity,
 ): boolean {
-  return start.nodeKey === end.nodeKey && start.blockOrdinal === end.blockOrdinal
+  return start.nodeKey === end.nodeKey
 }
 
 function toElement(node: Node): Element | null {
@@ -40,52 +42,14 @@ function readSelectionBoundary(node: Node) {
   return { blockElement, nodeElement, blockOrdinal, nodeKey }
 }
 
-function textBeforePoint(root: HTMLElement, container: Node, offset: number): string {
-  const range = root.ownerDocument.createRange()
-  range.selectNodeContents(root)
-  range.setEnd(container, offset)
-  return normalizeCommentText(range.toString())
-}
-
-function collectNodeText(nodeElement: HTMLElement): {
-  text: string
-  blockStarts: Map<number, number>
-} {
-  const blockElements = [
-    ...(nodeElement.matches('[data-comment-block-ordinal]') ? [nodeElement] : []),
-    ...Array.from(
-      nodeElement.querySelectorAll<HTMLElement>('[data-comment-block-ordinal]'),
-    ),
-  ].filter(element => element.closest('[data-comment-node-key]') === nodeElement)
-  const ordered = blockElements
-    .map(element => ({
-      element,
-      ordinal: Number(element.dataset.commentBlockOrdinal),
-    }))
-    .filter(item => Number.isInteger(item.ordinal) && item.ordinal >= 0)
-    .sort((left, right) => left.ordinal - right.ordinal)
-
-  const blockStarts = new Map<number, number>()
-  let text = ''
-  let cursor = 0
-  ordered.forEach(({ element, ordinal }, index) => {
-    const blockText = normalizeCommentText(element.textContent ?? '')
-    if (index > 0) {
-      text += '\n'
-      cursor += 1
-    }
-    blockStarts.set(ordinal, cursor)
-    text += blockText
-    cursor += countCommentGraphemes(blockText)
-  })
-  return { text, blockStarts }
-}
-
 export function resolveCommentSelection(
   range: Range,
   options: ResolveCommentSelectionOptions,
 ): ResolvedCommentSelection | null {
   if (range.collapsed) {
+    return null
+  }
+  if (!normalizeCommentRichTextBlock(range.toString())) {
     return null
   }
 
@@ -95,7 +59,6 @@ export function resolveCommentSelection(
     !start
     || !end
     || start.nodeElement !== end.nodeElement
-    || start.blockElement !== end.blockElement
     || !areCommentSelectionBoundariesCompatible(start, end)
   ) {
     return null
@@ -114,22 +77,37 @@ export function resolveCommentSelection(
     return null
   }
 
-  const { text: nodeText, blockStarts } = collectNodeText(start.nodeElement)
-  const blockStart = blockStarts.get(start.blockOrdinal)
-  if (blockStart === undefined) {
+  const projection = projectCommentDomNode(start.nodeElement)
+  const startBlock = findCommentDomBlockByOrdinal(projection, start.blockOrdinal)
+  const endBlock = findCommentDomBlockByOrdinal(projection, end.blockOrdinal)
+  if (
+    !startBlock
+    || !endBlock
+    || startBlock.element !== start.blockElement
+    || endBlock.element !== end.blockElement
+  ) {
     return null
   }
-  const startOffset = blockStart + countCommentGraphemes(
-    textBeforePoint(start.blockElement, range.startContainer, range.startOffset),
+  const localStart = commentDomPointToGraphemeOffset(
+    start.blockElement,
+    range.startContainer,
+    range.startOffset,
   )
-  const endOffset = blockStart + countCommentGraphemes(
-    textBeforePoint(start.blockElement, range.endContainer, range.endOffset),
+  const localEnd = commentDomPointToGraphemeOffset(
+    end.blockElement,
+    range.endContainer,
+    range.endOffset,
   )
+  if (localStart === null || localEnd === null) {
+    return null
+  }
+  const startOffset = startBlock.startGraphemeOffset + localStart
+  const endOffset = endBlock.startGraphemeOffset + localEnd
   if (startOffset >= endOffset) {
     return null
   }
 
-  const exactQuote = graphemeSlice(nodeText, startOffset, endOffset)
+  const exactQuote = graphemeSlice(projection.text, startOffset, endOffset)
   if (!exactQuote) {
     return null
   }
@@ -141,16 +119,16 @@ export function resolveCommentSelection(
     blockOrdinal: start.blockOrdinal,
     exactQuote,
     prefix: graphemeSlice(
-      nodeText,
+      projection.text,
       Math.max(0, startOffset - COMMENT_ANCHOR_CONTEXT_GRAPHEMES),
       startOffset,
     ),
     suffix: graphemeSlice(
-      nodeText,
+      projection.text,
       endOffset,
       endOffset + COMMENT_ANCHOR_CONTEXT_GRAPHEMES,
     ),
-    nodeTextHash: sha256Hex(nodeText),
+    nodeTextHash: sha256Hex(projection.text),
     createdAtContentHash: options.documentHash,
   }
 
@@ -163,7 +141,7 @@ export function resolveCommentSelection(
 }
 
 export function compareAnchorOverlap(left: CommentAnchor, right: CommentAnchor): AnchorOverlap {
-  if (left.nodeKey !== right.nodeKey || left.blockOrdinal !== right.blockOrdinal) {
+  if (left.nodeKey !== right.nodeKey) {
     return 'none'
   }
   if (

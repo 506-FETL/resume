@@ -1,4 +1,5 @@
 export {
+  normalizeCommentRichTextBlock,
   normalizeCommentText,
   projectCommentRichTextBlocks,
 } from '../../../../supabase/functions/shared/resume-comment-core.ts'

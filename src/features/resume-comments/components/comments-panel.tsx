@@ -180,8 +180,7 @@ export function CommentsPanel({
       onClose={() => handleOpenChange(false)}
       onBeginRelink={(threadId) => {
         beginRelink(threadId)
-        if (isMobile)
-          handleOpenChange(false)
+        handleOpenChange(false)
       }}
     />
   )

@@ -1,9 +1,9 @@
-import type { PointerEvent as ReactPointerEvent } from 'react'
-import { PanelRightClose } from 'lucide-react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import { PanelRightClose, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -67,15 +67,35 @@ export default function AssistantCanvas() {
 
   if (isMobile) {
     return (
-      <Sheet open={canvasMobileOpen} onOpenChange={setCanvasMobileOpen}>
-        <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
-          <SheetHeader className="border-b pr-12 text-left">
-            <SheetTitle>画布</SheetTitle>
-            <SheetDescription>实时预览简历与本轮变更</SheetDescription>
-          </SheetHeader>
-          <CanvasInner />
-        </SheetContent>
-      </Sheet>
+      <Drawer open={canvasMobileOpen} onOpenChange={setCanvasMobileOpen} swipeDirection="right">
+        <DrawerContent
+          className="gap-0 overflow-hidden p-0"
+          style={{
+            '--drawer-content-height': 'calc(100dvh - 1rem)',
+            '--drawer-content-width': 'min(calc(100vw - 1rem), 28rem)',
+          } as CSSProperties}
+        >
+          <DrawerHeader className="border-b pr-12 text-left">
+            <DrawerTitle>画布</DrawerTitle>
+            <DrawerDescription>实时预览简历与本轮变更</DrawerDescription>
+          </DrawerHeader>
+          <DrawerClose
+            render={(
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground"
+                aria-label="关闭画布"
+              />
+            )}
+          >
+            <X className="size-4" />
+          </DrawerClose>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <CanvasInner />
+          </div>
+        </DrawerContent>
+      </Drawer>
     )
   }
 

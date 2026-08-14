@@ -2,8 +2,7 @@
 import type React from 'react'
 import type { CommentAnchorDocumentNode } from '@/features/resume-comments/anchors/types.ts'
 import { Element } from 'html-react-parser'
-import { normalizeCommentText } from '@/features/resume-comments/anchors/graphemes.ts'
-import { projectCommentRichTextBlocks } from '@/features/resume-comments/anchors/projection.ts'
+import { normalizeCommentRichTextBlock, projectCommentRichTextBlocks } from '@/features/resume-comments/anchors/projection.ts'
 import { parseSanitizedHtml } from '@/lib/safe-html'
 import { useResumeContext } from '../context/resume-context'
 import { useRuntimeStyles } from './utils'
@@ -54,13 +53,6 @@ function domNodeText(node: Element['childNodes'][number]): string {
     return '\n'
   }
   return node.childNodes.map(domNodeText).join('')
-}
-
-function normalizeRichBlockText(value: string): string {
-  return normalizeCommentText(value)
-    .replace(/[\t\f\v ]+/gu, ' ')
-    .replace(/ *\n */gu, '\n')
-    .trim()
 }
 
 export function CommentableText({
@@ -122,7 +114,7 @@ export function CommentableRichText({
         return
       }
 
-      const blockText = normalizeRichBlockText(domNode.childNodes.map(domNodeText).join(''))
+      const blockText = normalizeCommentRichTextBlock(domNode.childNodes.map(domNodeText).join(''))
       const projectedBlock = projectedBlocks[blockOrdinal]
       if (!blockText || !projectedBlock || blockText !== projectedBlock.text) {
         return

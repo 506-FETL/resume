@@ -372,7 +372,7 @@ function decodeHtmlText(value: string): string {
   return value.replace(/&(?:amp|apos|gt|lt|nbsp|quot|#\d+|#x[0-9a-f]+);/giu, decodeHtmlEntity)
 }
 
-function normalizeHtmlBlockText(value: string): string {
+export function normalizeCommentRichTextBlock(value: string): string {
   return normalizeCommentText(value)
     .replace(/[\t\f\v ]+/gu, ' ')
     .replace(/ *\n */gu, '\n')
@@ -388,7 +388,7 @@ export function projectCommentRichTextBlocks(html: string): CommentProjectedBloc
   let buffer = ''
 
   const flush = () => {
-    const text = normalizeHtmlBlockText(buffer)
+    const text = normalizeCommentRichTextBlock(buffer)
     if (text) {
       blocks.push({ text })
     }
@@ -841,12 +841,18 @@ function moveResumeCommentAnchor(
   anchor: ResumeCommentAnchor,
   node: CommentAnchorDocumentNode,
   start: number,
+  nextDocumentHash?: string,
 ): ResumeCommentAnchor | null {
   const end = start + countCommentGraphemes(anchor.exactQuote)
-  const block = node.blocks.find(item => (
-    start >= item.startGraphemeOffset && end <= item.endGraphemeOffset
+  const startBlock = node.blocks.find(item => (
+    start >= item.startGraphemeOffset
+    && start <= item.endGraphemeOffset
   ))
-  if (!block) {
+  const endBlock = node.blocks.find(item => (
+    end >= item.startGraphemeOffset
+    && end <= item.endGraphemeOffset
+  ))
+  if (!startBlock || !endBlock) {
     return null
   }
   const context = readCommentAnchorContext(node.text, start, end)
@@ -854,16 +860,18 @@ function moveResumeCommentAnchor(
     ...anchor,
     startGraphemeOffset: start,
     endGraphemeOffset: end,
-    blockOrdinal: block.ordinal,
+    blockOrdinal: startBlock.ordinal,
     prefix: context.prefix,
     suffix: context.suffix,
     nodeTextHash: node.nodeTextHash,
+    createdAtContentHash: nextDocumentHash ?? anchor.createdAtContentHash,
   }
 }
 
 export function relocateResumeCommentAnchor(
   anchor: ResumeCommentAnchor,
   nextNode: CommentAnchorDocumentNode | null | undefined,
+  nextDocumentHash?: string,
 ): ResumeCommentRelocationResult {
   if (!nextNode || nextNode.nodeKey !== anchor.nodeKey) {
     return { status: 'detached', reason: 'node_missing' }
@@ -874,7 +882,12 @@ export function relocateResumeCommentAnchor(
     anchor.endGraphemeOffset,
   )
   if (originalQuote === anchor.exactQuote) {
-    const nextAnchor = moveResumeCommentAnchor(anchor, nextNode, anchor.startGraphemeOffset)
+    const nextAnchor = moveResumeCommentAnchor(
+      anchor,
+      nextNode,
+      anchor.startGraphemeOffset,
+      nextDocumentHash,
+    )
     if (!nextAnchor) {
       return { status: 'detached', reason: 'quote_missing' }
     }
@@ -910,7 +923,12 @@ export function relocateResumeCommentAnchor(
   if (selectedOffset === null) {
     return { status: 'detached', reason: 'ambiguous' }
   }
-  const nextAnchor = moveResumeCommentAnchor(anchor, nextNode, selectedOffset)
+  const nextAnchor = moveResumeCommentAnchor(
+    anchor,
+    nextNode,
+    selectedOffset,
+    nextDocumentHash,
+  )
   if (!nextAnchor) {
     return { status: 'detached', reason: 'quote_missing' }
   }

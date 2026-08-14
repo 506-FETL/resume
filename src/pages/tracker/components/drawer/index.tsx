@@ -1,15 +1,15 @@
+import type { CSSProperties } from 'react'
 import type { ApplicationStatus, DrawerTab } from '../../types'
-import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, XCircle } from 'lucide-react'
+import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
@@ -156,7 +156,7 @@ export default function JobDrawer() {
           </Badge>
           <span className="truncate text-muted-foreground">{selectedJob.company}</span>
         </div>
-        <SheetTitle className="line-clamp-1 text-lg leading-tight tracking-tight">{selectedJob.position}</SheetTitle>
+        <DrawerTitle className="line-clamp-1 text-lg leading-tight tracking-tight">{selectedJob.position}</DrawerTitle>
       </div>
     </div>
   )
@@ -352,37 +352,47 @@ export default function JobDrawer() {
     </AlertDialog>
   )
 
-  if (isMobile) {
-    return (
-      <>
-        <Drawer open={drawerOpen} onOpenChange={handleOpenChange} showSwipeHandle>
-          <DrawerContent className="flex h-[94dvh] max-h-[94dvh] flex-col overflow-hidden p-0">
-            <DrawerHeader className="shrink-0 px-4 py-4 text-left">
-              {headerContent}
-              <DrawerTitle className="sr-only">{selectedJob.position}</DrawerTitle>
-              <DrawerDescription className="sr-only">{selectedJob.company}</DrawerDescription>
-            </DrawerHeader>
-            <Separator />
-            {body}
-          </DrawerContent>
-        </Drawer>
-        {confirmDialog}
-      </>
-    )
-  }
-
   return (
     <>
-      <Sheet open={drawerOpen} onOpenChange={handleOpenChange}>
-        <SheetContent side="right" className="flex  flex-col gap-0 overflow-hidden p-0 sm:max-w-xl md:max-w-2xl lg:max-w-4xl">
-          <SheetHeader className="shrink-0 px-5 py-4 pr-12 lg:px-6 lg:pr-14">
+      <Drawer
+        open={drawerOpen}
+        onOpenChange={handleOpenChange}
+        swipeDirection={isMobile ? 'down' : 'right'}
+        showSwipeHandle={isMobile}
+      >
+        <DrawerContent
+          className="flex min-h-0 flex-col gap-0 overflow-hidden p-0"
+          style={{
+            '--drawer-content-height': isMobile ? '94dvh' : 'calc(100dvh - 1rem)',
+            '--drawer-content-max-height': isMobile ? '94dvh' : 'none',
+            ...(isMobile ? {} : { '--drawer-content-width': 'min(92vw, 56rem)' }),
+          } as CSSProperties}
+        >
+          <DrawerHeader
+            className={cn(
+              'shrink-0 py-4 pr-12 text-left',
+              isMobile ? 'px-4' : 'px-5 lg:px-6 lg:pr-14',
+            )}
+          >
             {headerContent}
-            <SheetDescription className="sr-only">{selectedJob.company}</SheetDescription>
-          </SheetHeader>
+            <DrawerDescription className="sr-only">{selectedJob.company}</DrawerDescription>
+          </DrawerHeader>
+          <DrawerClose
+            render={(
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground"
+                aria-label="关闭职位详情"
+              />
+            )}
+          >
+            <X className="size-4" />
+          </DrawerClose>
           <Separator />
           {body}
-        </SheetContent>
-      </Sheet>
+        </DrawerContent>
+      </Drawer>
       {confirmDialog}
     </>
   )

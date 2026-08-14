@@ -36,6 +36,10 @@ const forwardCompatibilityMigrationSource = readFileSync(
   'supabase/migrations/20260814000002_ensure_comment_collaboration_and_active_version.sql',
   'utf8',
 )
+const crossBlockAnchorMigrationSource = readFileSync(
+  'supabase/migrations/20260814050307_allow_cross_block_resume_comment_anchors.sql',
+  'utf8',
+)
 const originalCommentMigrationSource = readFileSync(
   'supabase/migrations/20260813000002_add_resume_comments.sql',
   'utf8',
@@ -58,6 +62,7 @@ assert.match(edgeSource, /return existing as ScopeRow/u)
 assert.match(corsSource, /x-request-id/u)
 assert.match(edgeSource, /stale_document/u)
 assert.match(edgeSource, /expectedDocumentRevision/u)
+assert.match(edgeSource, /nodeMap\.get\(anchor\.nodeKey\),\s+documentHash/u)
 assert.match(edgeSource, /loadThreads\(admin, access\.scope\.id, \[threadId\]\)/u)
 assert.doesNotMatch(edgeSource, /await notifyWrite/u)
 assert.match(edgeSource, /token\.resumeId !== session\.resume_id/u)
@@ -79,6 +84,8 @@ assert.match(forwardCompatibilityMigrationSource, /initialize_resume_active_vers
 assert.match(forwardCompatibilityMigrationSource, /AFTER INSERT ON public\.resume_config/u)
 assert.match(forwardCompatibilityMigrationSource, /CREATE TABLE IF NOT EXISTS public\.resume_comment_collaboration_sessions/u)
 assert.doesNotMatch(originalCommentMigrationSource, /resume_comment_collaboration_sessions/u)
+assert.match(crossBlockAnchorMigrationSource, /end_block\.ordinal >= start_block\.ordinal/u)
+assert.match(crossBlockAnchorMigrationSource, /end_block\.end_offset/u)
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 assert.match(shareEdgeSource, /comment_access_token/u)
 assert.match(shareEdgeSource, /projection_reference_date/u)

@@ -18,6 +18,7 @@ import { resolveCommentPermissions } from '../src/features/resume-comments/types
 import {
   buildCommentAnchorDocument,
   countCommentGraphemes,
+  normalizeCommentRichTextBlock,
   projectCommentRichTextBlocks,
   sha256Hex,
 } from '../supabase/functions/shared/resume-comment-core.ts'
@@ -119,9 +120,10 @@ assert.deepEqual(
 )
 
 assert.deepEqual(
-  projectCommentRichTextBlocks('<p>Hello &amp; 世界</p><li>第二<strong>段</strong></li><style>bad</style>'),
-  [{ text: 'Hello & 世界' }, { text: '第二段' }],
+  projectCommentRichTextBlocks('<p>  Hello   &amp;<br> 世界  </p><li>第二<strong>段</strong></li><style>bad</style>'),
+  [{ text: 'Hello &\n世界' }, { text: '第二段' }],
 )
+assert.equal(normalizeCommentRichTextBlock('  Hello   & \n 世界  '), 'Hello &\n世界')
 
 const firstBuild = buildCommentAnchorDocument(resume, '2026-08-13')
 const secondBuild = buildCommentAnchorDocument(structuredClone(resume), '2026-08-13')
@@ -202,6 +204,55 @@ const unchanged = relocateAnchor(sourceAnchor, createNode(sourceText))
 assert.equal(unchanged.status, 'anchored')
 assert.equal(unchanged.status === 'anchored' && unchanged.moved, false)
 
+const crossBlockText = 'alpha\nbeta'
+const crossBlockAnchor = createAnchor(crossBlockText, 'pha\nbe')
+const crossBlockNode: CommentAnchorDocumentNode = {
+  ...createNode(crossBlockText),
+  blocks: [
+    { ordinal: 0, startGraphemeOffset: 0, endGraphemeOffset: 5 },
+    { ordinal: 1, startGraphemeOffset: 6, endGraphemeOffset: 10 },
+  ],
+}
+const crossBlockResult = relocateAnchor(crossBlockAnchor, crossBlockNode)
+assert.equal(crossBlockResult.status, 'anchored')
+assert.equal(
+  crossBlockResult.status === 'anchored' && crossBlockResult.anchor.blockOrdinal,
+  0,
+)
+
+const movedCrossBlockNode: CommentAnchorDocumentNode = {
+  ...createNode('zero\nalpha\nbeta'),
+  blocks: [
+    { ordinal: 0, startGraphemeOffset: 0, endGraphemeOffset: 4 },
+    { ordinal: 1, startGraphemeOffset: 5, endGraphemeOffset: 10 },
+    { ordinal: 2, startGraphemeOffset: 11, endGraphemeOffset: 15 },
+  ],
+}
+const relocatedDocumentHash = 'b'.repeat(64)
+const movedCrossBlockResult = relocateAnchor(
+  crossBlockAnchor,
+  movedCrossBlockNode,
+  relocatedDocumentHash,
+)
+assert.equal(movedCrossBlockResult.status, 'anchored')
+assert.equal(movedCrossBlockResult.status === 'anchored' && movedCrossBlockResult.moved, true)
+assert.equal(
+  movedCrossBlockResult.status === 'anchored' && movedCrossBlockResult.anchor.startGraphemeOffset,
+  7,
+)
+assert.equal(
+  movedCrossBlockResult.status === 'anchored' && movedCrossBlockResult.anchor.endGraphemeOffset,
+  13,
+)
+assert.equal(
+  movedCrossBlockResult.status === 'anchored' && movedCrossBlockResult.anchor.blockOrdinal,
+  1,
+)
+assert.equal(
+  movedCrossBlockResult.status === 'anchored' && movedCrossBlockResult.anchor.createdAtContentHash,
+  relocatedDocumentHash,
+)
+
 const uniquelyMoved = relocateAnchor(sourceAnchor, createNode('new alpha target omega'))
 assert.equal(uniquelyMoved.status, 'anchored')
 assert.equal(uniquelyMoved.status === 'anchored' && uniquelyMoved.moved, true)
@@ -239,14 +290,23 @@ assert.deepEqual(relocateAnchor(sourceAnchor, null), { status: 'detached', reaso
 const adjacentAnchor = { ...sourceAnchor, startGraphemeOffset: 12, endGraphemeOffset: 15 }
 const partialAnchor = { ...sourceAnchor, startGraphemeOffset: 10, endGraphemeOffset: 14 }
 const containedAnchor = { ...sourceAnchor, startGraphemeOffset: 7, endGraphemeOffset: 10 }
+const crossBlockOverlappingAnchor = { ...sourceAnchor, blockOrdinal: 1, startGraphemeOffset: 7, endGraphemeOffset: 10 }
 assert.equal(compareAnchorOverlap(sourceAnchor, sourceAnchor), 'exact')
 assert.equal(compareAnchorOverlap(sourceAnchor, adjacentAnchor), 'none')
 assert.equal(compareAnchorOverlap(sourceAnchor, partialAnchor), 'partial')
 assert.equal(compareAnchorOverlap(sourceAnchor, containedAnchor), 'contains')
+assert.notEqual(compareAnchorOverlap(sourceAnchor, crossBlockOverlappingAnchor), 'none')
 assert.equal(
   areCommentSelectionBoundariesCompatible(
     { nodeKey: 'same', blockOrdinal: 0 },
     { nodeKey: 'same', blockOrdinal: 1 },
+  ),
+  true,
+)
+assert.equal(
+  areCommentSelectionBoundariesCompatible(
+    { nodeKey: 'left', blockOrdinal: 0 },
+    { nodeKey: 'right', blockOrdinal: 0 },
   ),
   false,
 )
