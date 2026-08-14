@@ -246,10 +246,10 @@ function AdvancedTools() {
                 <Badge variant="secondary" className="rounded-full">{resumeSummary.title}</Badge>
                 <Badge variant="outline" className="rounded-full">{resumeSummary.jobIntent}</Badge>
                 <Badge variant="outline" className="rounded-full">
-                  已填板块
+                  有效证据
                   {' '}
-                  {resumeSummary.sectionCount}
-                  /12
+                  {resumeSummary.evidenceCount}
+                  {' 条'}
                 </Badge>
                 <Badge
                   className={resumeContext?.resumeType === 'offline'

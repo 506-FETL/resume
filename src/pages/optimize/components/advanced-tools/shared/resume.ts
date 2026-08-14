@@ -1,6 +1,7 @@
 import type { ResumeToolContext } from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import type { AtsEvaluationResult } from '@/pages/optimize/types'
+import { getResumeEvidenceStats } from '@/lib/ats'
 import { fetchResumeDataForAnalysis } from '@/pages/optimize/utils'
 import { SECTION_LABEL_MAP } from './const'
 import { isStructurallyEmpty, normalizeDateRange, normalizeDateToken, normalizeInlineText, normalizeMultilineText } from './text'
@@ -173,33 +174,12 @@ export function getResumeSections(resume: ResumeSchema): ResumeSection[] {
   }))
 }
 
-export function countFilledSections(resume: ResumeSchema) {
-  return getResumeSections(resume).filter(section => section.lines.length > 0).length
-}
-
-export function countQuantifiedEntries(resume: ResumeSchema) {
-  const texts = [
-    ...resume.work_experience.items.map(item => item.workInfo),
-    ...resume.internship_experience.items.map(item => item.internshipInfo),
-    ...resume.campus_experience.items.map(item => item.campusInfo),
-    ...resume.project_experience.items.map(item => item.projectInfo),
-  ]
-    .map(text => normalizeMultilineText(text))
-    .filter(Boolean)
-
-  if (texts.length === 0) {
-    return 0
-  }
-
-  const quantifiedCount = texts.filter(text => /\d+|%|百分之|提升|增长|降低|节省|转化|覆盖|gmv|roi|uv|pv/i.test(text)).length
-  return quantifiedCount / texts.length
-}
-
 export function getAdvancedToolResumeSummary(resume: ResumeSchema) {
+  const evidenceStats = getResumeEvidenceStats(resume)
   return {
     title: normalizeInlineText(resume.basics.name) || '未命名简历',
     jobIntent: normalizeInlineText(resume.job_intent.jobIntent) || '未填写求职意向',
-    sectionCount: countFilledSections(resume),
+    evidenceCount: evidenceStats.evidenceCount,
   }
 }
 

@@ -1,10 +1,12 @@
 import type { AtsLlmDraft } from '../src/lib/schema/ats.ts'
 import type { ResumeSchema } from '../src/lib/schema/resume/form/index.ts'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   ATS_SCORE_TOTAL,
   buildAtsAssessmentInput,
   flattenAssessmentFields,
+  getResumeEvidenceStats,
   normalizeAtsEvaluationResult,
 } from '../src/lib/ats/index.ts'
 import { buildOptimizePrompt } from '../src/lib/llm/prompts/optimize.ts'
@@ -350,11 +352,46 @@ function verifyResultNormalization() {
   assert.equal(normalized.fixChecklist.length, 1)
 }
 
+function verifyContentEvidenceMetrics() {
+  const resume = createResume()
+  resume.job_intent.jobIntent = '前端开发工程师'
+  resume.work_experience.items = [
+    {
+      entryId: 'work-rich-0',
+      companyName: '示例科技',
+      position: '前端开发工程师',
+      workDuration: ['2023-01', '2024-01'],
+      workInfo: '<p>负责组件平台建设，推动核心模块上线并支撑多个业务团队复用。</p>',
+    },
+    {
+      entryId: 'work-rich-1',
+      companyName: '示例网络',
+      position: '高级前端开发工程师',
+      workDuration: ['2024-02', '至今'],
+      workInfo: '<p>主导性能治理与工程化改造，降低页面加载耗时并完成稳定交付。</p>',
+    },
+  ]
+
+  const stats = getResumeEvidenceStats(resume)
+  assert.equal(stats.evidenceCount, 2)
+  assert.equal(stats.substantiveRatio, 1)
+  assert.equal(stats.impactEvidenceRatio, 1)
+  assert.equal(stats.positioningConsistency >= 0.8, true)
+
+  const benchmarkSource = readFileSync(
+    new URL('../src/pages/optimize/components/advanced-tools/benchmark/utils.ts', import.meta.url),
+    'utf8',
+  )
+  assert.doesNotMatch(benchmarkSource, /filledSectionCount|projectCount|certificateCount|selfEvaluationLength/)
+  assert.doesNotMatch(benchmarkSource, /补齐项目|补齐证书|补齐自我评价/)
+}
+
 verifyEmptyOptionalSectionsAreNeutral()
 verifyOriginalIndexesArePreserved()
 verifyExperienceSectionsCanSubstituteForWork()
 verifyContactSignal()
 verifyAdaptivePromptContract()
 verifyResultNormalization()
+verifyContentEvidenceMetrics()
 
 console.warn('ATS adaptive scoring verification passed.')

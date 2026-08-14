@@ -41,9 +41,9 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
         />
         <ToolPanelBody className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <ToolStatCard
-            label="有效板块"
-            value={preview.stats.sectionCount}
-            hint="当前有内容的核心板块数"
+            label="有效能力证据"
+            value={preview.stats.evidenceCount}
+            hint="跨经历类型汇总的真实内容证据"
             icon={FileText}
             tone="info"
             badge={<ToolMetaBadge tone="info">结构信息</ToolMetaBadge>}
@@ -115,7 +115,7 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
           />
           <ToolPanelBody className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <ToolMetaBadge tone="info">{`${preview.stats.sectionCount} 个板块`}</ToolMetaBadge>
+              <ToolMetaBadge tone="info">{`${preview.stats.evidenceCount} 条有效证据`}</ToolMetaBadge>
               <ToolMetaBadge tone="success">{`${preview.stats.keywordCount} 个关键词`}</ToolMetaBadge>
               <ToolMetaBadge tone="default">{`${preview.stats.lineCount} 行文本`}</ToolMetaBadge>
               <Button size="xs" onClick={handleCopy}>

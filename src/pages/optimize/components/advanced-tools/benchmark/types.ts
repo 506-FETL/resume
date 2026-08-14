@@ -1,11 +1,8 @@
 export interface BenchmarkTargets {
-  experienceCount: number
-  projectCount: number
-  skillCount: number
-  quantifiedRatio: number
-  certificateCount: number
-  selfEvaluationLength: number
-  filledSectionCount: number
+  evidenceCount: number
+  substantiveRatio: number
+  impactEvidenceRatio: number
+  positioningConsistency: number
   atsScore: number | null
 }
 

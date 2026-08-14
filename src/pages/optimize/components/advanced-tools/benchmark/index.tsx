@@ -1,6 +1,6 @@
 import type { ResumeToolContext } from '../shared/types'
 import type { BenchmarkMetric } from './types'
-import { Award, Blocks, Briefcase, FolderKanban, Gauge, MessageSquareText, Sparkles, Target, TrendingUp, TriangleAlert, Trophy, Wrench } from 'lucide-react'
+import { AlignLeft, BriefcaseBusiness, Gauge, Sparkles, Target, TrendingUp, TriangleAlert, Trophy } from 'lucide-react'
 import { useMemo } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
@@ -26,22 +26,16 @@ function getMetricTone(metric: BenchmarkMetric) {
 
 function getMetricIcon(metricKey: string) {
   switch (metricKey) {
-    case 'experience':
-      return Briefcase
-    case 'project':
-      return FolderKanban
-    case 'skills':
-      return Wrench
-    case 'quantifiedRatio':
+    case 'evidenceCount':
+      return BriefcaseBusiness
+    case 'substantiveRatio':
+      return AlignLeft
+    case 'impactEvidenceRatio':
       return TrendingUp
-    case 'certificates':
-      return Award
-    case 'selfEvaluation':
-      return MessageSquareText
-    case 'filledSections':
-      return Blocks
-    case 'atsScore':
+    case 'positioningConsistency':
       return Target
+    case 'atsScore':
+      return Gauge
     default:
       return Gauge
   }
@@ -53,12 +47,19 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
     [resumeContext],
   )
 
-  const goodMetricCount = benchmarkResult.metrics.filter(metric => metric.status === 'good').length
-  const pendingMetricCount = benchmarkResult.metrics.filter(metric => metric.status !== 'good').length
+  const goodMetricCount = benchmarkResult.metrics
+    .filter(metric => metric.target !== null && metric.status === 'good')
+    .length
+  const pendingMetricCount = benchmarkResult.metrics
+    .filter(metric => metric.target !== null && metric.status !== 'good')
+    .length
   const atsMetric = benchmarkResult.metrics.find(metric => metric.key === 'atsScore')
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+        以下指标用于观察现有内容的证据结构，不要求固定模块组合，也不直接参与 ATS 总分。
+      </div>
       <ToolPanelCard>
         <ToolPanelHeader
           title={benchmarkResult.profileLabel}
@@ -79,7 +80,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             <ToolStatCard
               label="达标指标"
               value={goodMetricCount}
-              hint="已经达到当前岗位基准水平的项"
+              hint="达到当前内容参考水平的项"
               icon={Trophy}
               tone="success"
               badge={<ToolMetaBadge tone="success">优势项</ToolMetaBadge>}
@@ -87,7 +88,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             <ToolStatCard
               label="待补指标"
               value={pendingMetricCount}
-              hint="建议优先补齐的关键指标数量"
+              hint="建议优先加强的内容指标数量"
               icon={TriangleAlert}
               tone={pendingMetricCount > 0 ? 'warning' : 'success'}
               badge={<ToolMetaBadge tone={pendingMetricCount > 0 ? 'warning' : 'success'}>{pendingMetricCount > 0 ? '优先补强' : '已达标'}</ToolMetaBadge>}
@@ -95,7 +96,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             <ToolStatCard
               label="ATS 总分"
               value={atsMetric?.displayCurrent ?? '0'}
-              hint="当前 ATS 分数与画像目标的接近程度"
+              hint="独立生成的内容自适应 ATS 分数"
               icon={Target}
               tone={atsMetric ? getMetricTone(atsMetric) : 'default'}
               badge={<ToolMetaBadge tone={atsMetric ? getMetricTone(atsMetric) : 'default'}>关键指标</ToolMetaBadge>}
@@ -183,7 +184,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                 : (
                     <div className="flex items-start gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm leading-6 text-green-800 dark:text-green-200">
                       <Sparkles className="mt-0.5 size-4 shrink-0" />
-                      <span>当前优势还不够突出，建议先把核心经历和技能补齐。</span>
+                      <span>当前优势证据还不够集中，可以优先强化最能证明目标能力的真实内容。</span>
                     </div>
                   )}
             </div>
@@ -208,7 +209,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                 : (
                     <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
                       <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                      <span>当前和基准的主要指标已经比较接近，可以继续打磨关键词和结果表达。</span>
+                      <span>当前内容证据与参考指标已经比较接近，可以继续打磨定位一致性和表达细节。</span>
                     </div>
                   )}
             </div>

@@ -13,7 +13,7 @@ export interface ResumeToolContext {
 export interface ResumeToolSummary {
   title: string
   jobIntent: string
-  sectionCount: number
+  evidenceCount: number
 }
 
 export interface AdvancedToolDefinition {

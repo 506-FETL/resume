@@ -1,5 +1,5 @@
 export interface AtsPreviewStats {
-  sectionCount: number
+  evidenceCount: number
   lineCount: number
   characterCount: number
   keywordCount: number
