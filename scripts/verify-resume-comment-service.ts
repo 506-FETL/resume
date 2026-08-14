@@ -47,6 +47,7 @@ function readCorsHeaderValue(source: string, name: string): string {
 
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
 const corsSource = readFileSync('supabase/functions/shared/cors.ts', 'utf8')
+const benchmarkSource = readFileSync('scripts/benchmark-resume-comments-bootstrap.ts', 'utf8')
 const prewarmSource = readFileSync('scripts/prewarm-resume-comment-scopes.ts', 'utf8')
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 const migrationSource = readFileSync(
@@ -95,6 +96,16 @@ const exposedCorsHeaders = new Set(
 )
 assert.ok(exposedCorsHeaders.has('x-comment-auth-mode'))
 assert.ok(exposedCorsHeaders.has('x-comment-scope-repair'))
+const optionsGateSource = readSourceSection(
+  benchmarkSource,
+  'const options = await runOptions(config, region)',
+  'const samples: Sample[] = []',
+)
+assert.match(optionsGateSource, /options\.status < 200 \|\| options\.status >= 300/u)
+assert.match(
+  optionsGateSource,
+  /throw new Error\('benchmark OPTIONS request was not successful'\)/u,
+)
 assert.match(
   prewarmSource,
   /console\.log\(JSON\.stringify\(summary\)\)[\s\S]*?if \(summary\.failed > 0\) \{\s*process\.exitCode = 1/u,

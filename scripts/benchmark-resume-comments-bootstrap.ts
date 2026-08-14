@@ -170,6 +170,8 @@ async function main() {
   const config = readConfig()
   for (const region of regions) {
     const options = await runOptions(config, region)
+    if (options.status < 200 || options.status >= 300)
+      throw new Error('benchmark OPTIONS request was not successful')
     const samples: Sample[] = []
     for (let index = 0; index < config.samples; index += 1) {
       samples.push(await runPost(config, region))
