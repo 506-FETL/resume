@@ -49,6 +49,11 @@ const transactionSource = readFileSync(
   'supabase/migrations/20260813000003_add_resume_comment_api_transactions.sql',
   'utf8',
 )
+const bootstrapMigrationSource = readFileSync(
+  'supabase/migrations/20260814060000_optimize_resume_comment_bootstrap.sql',
+  'utf8',
+)
+const normalizedBootstrapMigrationSource = bootstrapMigrationSource.replace(/\s+/gu, ' ')
 assert.match(edgeSource, /ensure_resume_version_comment_scope/u)
 assert.doesNotMatch(edgeSource, /ensure_resume_working_comment_scope/u)
 assert.match(edgeSource, /execute_resume_version_comment_write/u)
@@ -95,6 +100,142 @@ assert.match(forwardCompatibilityMigrationSource, /CREATE TABLE IF NOT EXISTS pu
 assert.doesNotMatch(originalCommentMigrationSource, /resume_comment_collaboration_sessions/u)
 assert.match(crossBlockAnchorMigrationSource, /end_block\.ordinal >= start_block\.ordinal/u)
 assert.match(crossBlockAnchorMigrationSource, /end_block\.end_offset/u)
+assert.ok(normalizedBootstrapMigrationSource.includes(
+  'CREATE OR REPLACE FUNCTION public.bootstrap_resume_comments_v1( '
+  + 'p_protocol_version integer, p_access_kind text, p_user_id uuid DEFAULT NULL, '
+  + 'p_scope_id uuid DEFAULT NULL, p_resume_id uuid DEFAULT NULL, '
+  + 'p_version_id bigint DEFAULT NULL, p_share_id uuid DEFAULT NULL, '
+  + 'p_release_id uuid DEFAULT NULL, p_password_generation text DEFAULT NULL, '
+  + 'p_session_id text DEFAULT NULL, p_collaborator_role text DEFAULT NULL, '
+  + 'p_anonymous_id uuid DEFAULT NULL, p_anonymous_secret_hash text DEFAULT NULL ) '
+  + 'RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = \'\'',
+))
+assert.match(
+  bootstrapMigrationSource,
+  /FUNCTION public\.bootstrap_resume_comments_v1\([\s\S]*?AS \$\$[\s\S]*?BEGIN\s+PERFORM public\.assert_resume_comment_service_role\(\);/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /p_access_kind NOT IN \('owner', 'collaborator', 'share'\)/u,
+)
+assert.doesNotMatch(
+  bootstrapMigrationSource,
+  /p_access_kind NOT IN \([^)]*'anonymous'/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /CREATE OR REPLACE FUNCTION private\.resolve_resume_comment_bootstrap_access_v1\([\s\S]*?LANGUAGE plpgsql\s+STABLE\s+SECURITY DEFINER\s+SET search_path = ''/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /CREATE OR REPLACE FUNCTION private\.build_resume_comment_bootstrap_v1\(\s*p_access jsonb/u,
+)
+assert.equal(
+  bootstrapMigrationSource.match(/SECURITY DEFINER/gu)?.length,
+  bootstrapMigrationSource.match(/SET search_path = ''/gu)?.length,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /thread_rows AS MATERIALIZED \([\s\S]*?FROM public\.resume_comment_threads AS threads/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /comment_rows AS MATERIALIZED \([\s\S]*?JOIN thread_rows AS threads/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /thread_counts AS \([\s\S]*?FROM thread_rows AS threads/u,
+)
+assert.equal(
+  bootstrapMigrationSource.match(/FROM public\.resume_comment_threads AS threads/gu)?.length,
+  1,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /ORDER BY comments\.created_at ASC, comments\.id ASC/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /ORDER BY threads\.last_activity_at DESC, threads\.id ASC/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /profile_user_ids AS MATERIALIZED \([\s\S]*?UNION[\s\S]*?threads\.resolved_by_kind = 'user'/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /'nodes', coalesce\([\s\S]*?jsonb_build_object\('nodeKey', nodes\.value ->> 'nodeKey'\)/u,
+)
+assert.doesNotMatch(
+  bootstrapMigrationSource,
+  /nodes\.value\s*->>?\s*'(?:text|blocks)'/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /JOIN public\.resume_share_releases AS releases\s+ON releases\.id = shares\.current_release_id\s+AND releases\.share_id = shares\.id/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /'accessibleScopes', pg_catalog\.jsonb_build_array\([\s\S]*?'last_read_event_seq', cursor\.value/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /WHEN 'user' THEN[\s\S]*?states\.principal_kind = 'user'[\s\S]*?states\.principal_user_id = access\.actor_id/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /WHEN 'anonymous' THEN[\s\S]*?states\.principal_kind = 'anonymous'[\s\S]*?states\.principal_anonymous_id = access\.actor_id/u,
+)
+assert.doesNotMatch(
+  bootstrapMigrationSource,
+  /(?:UPDATE|INSERT INTO)\s+public\.resume_comment_(?:anonymous_identities|collaboration_members)[\s\S]{1,240}\blast_seen_at\b/u,
+)
+assert.match(
+  bootstrapMigrationSource,
+  /identities\.id = p_anonymous_id[\s\S]*?identities\.version_id = p_version_id[\s\S]*?identities\.secret_hash = p_anonymous_secret_hash[\s\S]*?identities\.revoked_at IS NULL/u,
+)
+assert.doesNotMatch(bootstrapMigrationSource, /identities\.share_id = p_share_id/u)
+assert.match(
+  bootstrapMigrationSource,
+  /ELSIF p_user_id IS NULL\s+AND \(p_anonymous_id IS NOT NULL OR p_anonymous_secret_hash IS NOT NULL\)/u,
+)
+assert.match(bootstrapMigrationSource, /'canWrite', v_share\.allow_comments/u)
+assert.match(bootstrapMigrationSource, /'sharePasswordHash', v_share\.password_hash/u)
+assert.match(bootstrapMigrationSource, /ERRCODE = 'P0409', MESSAGE = 'stale_release'/u)
+assert.doesNotMatch(bootstrapMigrationSource, /ERRCODE = '40001', MESSAGE = 'stale_release'/u)
+assert.match(
+  bootstrapMigrationSource,
+  /v_scope\.owner_user_id <> p_owner_user_id\s+OR v_scope\.resume_id <> v_version\.resume_id\s+OR v_scope\.version_id <> v_version\.id/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON FUNCTION public\.assert_resume_comment_service_role\(\) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ON FUNCTION public\.assert_resume_comment_service_role\(\) TO service_role;/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON FUNCTION public\.bootstrap_resume_comments_v1\( integer, text, uuid, uuid, uuid, bigint, uuid, uuid, text, text, text, uuid, text \) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ON FUNCTION public\.bootstrap_resume_comments_v1\( integer, text, uuid, uuid, uuid, bigint, uuid, uuid, text, text, text, uuid, text \) TO service_role;/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON FUNCTION private\.resolve_resume_comment_bootstrap_access_v1\([\s\S]*?\) FROM PUBLIC, anon, authenticated, service_role;/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON FUNCTION private\.build_resume_comment_bootstrap_v1\(jsonb\) FROM PUBLIC, anon, authenticated, service_role;/u,
+)
+assert.match(
+  normalizedBootstrapMigrationSource,
+  /REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated, service_role;/u,
+)
+const resolverSource = bootstrapMigrationSource.slice(
+  bootstrapMigrationSource.indexOf(
+    'CREATE OR REPLACE FUNCTION private.resolve_resume_comment_bootstrap_access_v1',
+  ),
+  bootstrapMigrationSource.indexOf(
+    'CREATE OR REPLACE FUNCTION private.build_resume_comment_bootstrap_v1',
+  ),
+)
+assert.doesNotMatch(resolverSource, /FOR (?:KEY )?SHARE/u)
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
 assert.match(shareEdgeSource, /authenticateSupabaseUser/u)
 assert.doesNotMatch(shareEdgeSource, /\.auth\.getUser\(/u)
