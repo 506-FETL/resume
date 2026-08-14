@@ -99,6 +99,9 @@ async function main() {
   }
 
   console.log(JSON.stringify(summary))
+  if (summary.failed > 0) {
+    process.exitCode = 1
+  }
 }
 
 void main().catch((error: unknown) => {

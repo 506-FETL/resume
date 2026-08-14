@@ -28,6 +28,7 @@ assert.match(
 )
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
 const corsSource = readFileSync('supabase/functions/shared/cors.ts', 'utf8')
+const prewarmSource = readFileSync('scripts/prewarm-resume-comment-scopes.ts', 'utf8')
 const migrationSource = readFileSync(
   'supabase/migrations/20260814000001_add_version_centric_resume_comments.sql',
   'utf8',
@@ -60,6 +61,10 @@ assert.match(edgeSource, /timeOperation\('threads'/u)
 assert.match(edgeSource, /const counts = countThreadRows\(threads\)/u)
 assert.match(edgeSource, /return existing as ScopeRow/u)
 assert.match(corsSource, /x-request-id/u)
+assert.match(
+  prewarmSource,
+  /console\.log\(JSON\.stringify\(summary\)\)[\s\S]*?if \(summary\.failed > 0\) \{\s*process\.exitCode = 1/u,
+)
 assert.match(edgeSource, /stale_document/u)
 assert.match(edgeSource, /expectedDocumentRevision/u)
 assert.match(edgeSource, /nodeMap\.get\(anchor\.nodeKey\),\s+documentHash/u)
