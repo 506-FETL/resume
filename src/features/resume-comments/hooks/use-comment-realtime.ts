@@ -138,8 +138,9 @@ export function useCommentRealtime({
       store.getState().setConnection('connecting')
       const marker = beginCommentPerformance('bootstrap')
       marker.countRequest()
+      const responsePromise = client.bootstrapScope()
       const authenticatedUserIdPromise = client.getAuthenticatedUserId()
-      const response = await client.bootstrapScope()
+      const response = await responsePromise
       if (cancelled)
         return
       hasFreshBootstrap = true

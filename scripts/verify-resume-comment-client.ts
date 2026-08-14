@@ -67,6 +67,20 @@ function assertSourceOrder(source: string, markers: string[]) {
   }
 }
 
+function assertMutationRejected(
+  label: string,
+  source: string,
+  mutant: string,
+  verify: (candidate: string) => void,
+) {
+  assert.notEqual(mutant, source, `mutation 未命中：${label}`)
+  assert.throws(
+    () => verify(mutant),
+    { name: 'AssertionError' },
+    `verifier 未拒绝 mutation：${label}`,
+  )
+}
+
 const store = createResumeCommentStore()
 const firstScope = {
   id: 'scope-1',
@@ -450,10 +464,40 @@ const bootstrapSource = readSourceSection(
   '    bootstrap = async () => {',
   '\n    const hydrateCache = async () => {',
 )
+const bootstrapRequestStartSource = readSourceSection(
+  bootstrapSource,
+  '      marker.countRequest()\n',
+  '\n      if (cancelled)',
+)
 const cacheCursorUpdateSource = readSourceSection(
   commentCacheSource,
   'export async function updateCommentCacheReadCursor(',
   '\nexport async function deleteCommentCacheForPrincipal(',
+)
+const bootstrapTelemetrySource = readSourceSection(
+  commentClientSource,
+  'function readBootstrapTelemetry({',
+  '\nfunction normalizeMutation(',
+)
+const bootstrapTelemetryGuardSource = readSourceSection(
+  bootstrapTelemetrySource,
+  '  if (\n',
+  '\n  ) {',
+)
+const fetchRequestSource = readSourceSection(
+  commentRequestSource,
+  '    const response = await fetch(',
+  '\n    ).catch',
+)
+const writeCommentCacheSource = readSourceSection(
+  commentCacheSource,
+  'export async function writeCommentCache(',
+  '\nexport async function updateCommentCacheReadCursor(',
+)
+const cachedBootstrapTypeSource = readSourceSection(
+  commentCacheSource,
+  'export type CachedCommentBootstrap = Omit<',
+  '\n\nexport interface CommentCacheEntry',
 )
 const bootstrapTelemetryDecisionSource = readSourceSection(
   commentRequestSource,
@@ -461,10 +505,25 @@ const bootstrapTelemetryDecisionSource = readSourceSection(
   '\n    return {',
 )
 
-assert.match(commentClientSource, /result\.protocolVersion !== 1/u)
-assert.match(commentClientSource, /!isCommentAuthMode\(meta\.authMode\)/u)
-assert.match(commentClientSource, /typeof meta\.repair !== 'boolean'/u)
-assert.match(commentClientSource, /typeof meta\.coldStart !== 'boolean'/u)
+function verifyBootstrapTelemetryGuard(candidate: string) {
+  assert.equal(candidate, [
+    '  if (',
+    '    result.protocolVersion !== 1',
+    '    || !isCommentAuthMode(meta.authMode)',
+    '    || typeof meta.repair !== \'boolean\'',
+    '    || typeof meta.coldStart !== \'boolean\'',
+  ].join('\n'))
+}
+verifyBootstrapTelemetryGuard(bootstrapTelemetryGuardSource)
+assertMutationRejected(
+  'bootstrap protocol/meta OR guard',
+  bootstrapTelemetryGuardSource,
+  bootstrapTelemetryGuardSource.replace(
+    '    || !isCommentAuthMode(meta.authMode)',
+    '    && !isCommentAuthMode(meta.authMode)',
+  ),
+  verifyBootstrapTelemetryGuard,
+)
 assert.match(commentClientSource, /const telemetry = op === 'bootstrap_scope'/u)
 assert.equal(bootstrapTelemetryDecisionSource.trimEnd().endsWith(': null'), true)
 assert.match(commentClientSource, /async bootstrapScope\(\): Promise<CommentApiSuccess<CommentBootstrapResult, CommentResponseTelemetry>>/u)
@@ -496,6 +555,25 @@ assert.match(commentRequestSource, /new TextEncoder\(\)\.encode\(responseText\)\
 assert.match(commentRequestSource, /serverTiming: response\.headers\.get\('server-timing'\)/u)
 assert.doesNotMatch(commentRequestSource, /response\.json\(/u)
 assert.doesNotMatch(commentClientSource, /scope_missing/u)
+function verifyFetchRequest(candidate: string) {
+  assertSourceOrder(candidate, [
+    'const response = await fetch(',
+    '\n      url,',
+    '\n      {',
+    'method: \'POST\'',
+    'headers: requestHeaders',
+    'body: requestBody',
+  ])
+  assert.equal(candidate.match(/headers: requestHeaders/gu)?.length, 1)
+  assert.equal(candidate.match(/body: requestBody/gu)?.length, 1)
+}
+verifyFetchRequest(fetchRequestSource)
+assertMutationRejected(
+  'fetch RequestInit headers wiring',
+  fetchRequestSource,
+  fetchRequestSource.replace('        headers: requestHeaders,\n', ''),
+  verifyFetchRequest,
+)
 assertSourceOrder(commentClientSource, [
   'const normalizeStartedAt = performance.now()',
   'const data = normalizeBootstrap(response.data)',
@@ -508,11 +586,40 @@ assert.match(commentCacheSource, /if \(!isCommentCacheEntryCompatible\(entry\)\)
 assert.match(commentCacheSource, /protocolVersion: 1,\s*key: serializedKey/u)
 assert.match(cacheCursorUpdateSource, /if \(isCommentCacheEntryCompatible\(current\)\) \{[\s\S]*?transaction\.store\.put/u)
 assert.doesNotMatch(commentCacheSource, /CommentResponseTelemetry|authMode|coldStart|repair|requestId|serverTiming|accessToken|jwt/iu)
-assert.match(commentCacheSource, /'scopeRealtime' \| 'ownerRealtime'/u)
+assert.equal(cachedBootstrapTypeSource, [
+  'export type CachedCommentBootstrap = Omit<',
+  '  CommentBootstrapResult,',
+  '  \'scopeRealtime\' | \'ownerRealtime\'',
+  '>',
+].join('\n'))
+function verifyCacheProjection(candidate: string) {
+  assert.match(
+    candidate,
+    /const \{ scopeRealtime: _scopeRealtime, ownerRealtime: _ownerRealtime, \.\.\.cacheValue \} = value/u,
+  )
+  assertSourceOrder(candidate, [
+    '...cacheValue } = value',
+    'const nextValue = advanceCommentReadCursor(',
+    '\n    cacheValue,',
+    '\n    value: nextValue,',
+  ])
+  assert.doesNotMatch(candidate, /const cacheValue = value/u)
+}
+verifyCacheProjection(writeCommentCacheSource)
+assertMutationRejected(
+  'cache token-safe projection',
+  writeCommentCacheSource,
+  writeCommentCacheSource.replace(
+    '  const { scopeRealtime: _scopeRealtime, ownerRealtime: _ownerRealtime, ...cacheValue } = value',
+    '  const cacheValue = value',
+  ),
+  verifyCacheProjection,
+)
 
 assertSourceOrder(bootstrapSource, [
+  'const responsePromise = client.bootstrapScope()',
   'const authenticatedUserIdPromise = client.getAuthenticatedUserId()',
-  'const response = await client.bootstrapScope()',
+  'const response = await responsePromise',
   'hasFreshBootstrap = true',
   'marker.mergeClientDurations(response.telemetry.clientDurations)',
   'const authenticatedUserId = await authenticatedUserIdPromise',
@@ -522,6 +629,29 @@ assertSourceOrder(bootstrapSource, [
   'void writeCommentCache(cacheKey, response.data).catch',
   'void client.markRead(persistedReadEventSeq).catch',
 ])
+function verifyBootstrapRequestStart(candidate: string) {
+  assertSourceOrder(candidate, [
+    'const responsePromise = client.bootstrapScope()',
+    'const authenticatedUserIdPromise = client.getAuthenticatedUserId()',
+    'const response = await responsePromise',
+  ])
+}
+verifyBootstrapRequestStart(bootstrapRequestStartSource)
+assertMutationRejected(
+  'bootstrap starts auth_token timing before shared auth lookup',
+  bootstrapRequestStartSource,
+  bootstrapRequestStartSource.replace(
+    [
+      '      const responsePromise = client.bootstrapScope()',
+      '      const authenticatedUserIdPromise = client.getAuthenticatedUserId()',
+    ].join('\n'),
+    [
+      '      const authenticatedUserIdPromise = client.getAuthenticatedUserId()',
+      '      const responsePromise = client.bootstrapScope()',
+    ].join('\n'),
+  ),
+  verifyBootstrapRequestStart,
+)
 assert.doesNotMatch(bootstrapSource, /await\s+(?:writeCommentCache|client\.markRead)/u)
 assert.match(commentRealtimeHookSource, /!cached \|\| cancelled \|\| hasFreshBootstrap/u)
 
