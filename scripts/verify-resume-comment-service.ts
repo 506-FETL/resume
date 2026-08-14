@@ -35,6 +35,16 @@ function readSourceSection(source: string, startMarker: string, endMarker: strin
   return source.slice(start, end)
 }
 
+function readCorsHeaderValue(source: string, name: string): string {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const matched = source.match(new RegExp(
+    `['\"]${escapedName}['\"]\\s*:\\s*['\"]([^'\"]+)['\"]`,
+    'u',
+  ))
+  assert.ok(matched, `Missing CORS header: ${name}`)
+  return matched[1]
+}
+
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
 const corsSource = readFileSync('supabase/functions/shared/cors.ts', 'utf8')
 const prewarmSource = readFileSync('scripts/prewarm-resume-comment-scopes.ts', 'utf8')
@@ -78,6 +88,13 @@ assert.match(corsSource, /Access-Control-Max-Age/u)
 assert.match(corsSource, /X-Sb-Edge-Region/u)
 assert.match(edgeSource, /return existing as ScopeRow/u)
 assert.match(corsSource, /x-request-id/u)
+const exposedCorsHeaders = new Set(
+  readCorsHeaderValue(corsSource, 'Access-Control-Expose-Headers')
+    .split(',')
+    .map(header => header.trim().toLowerCase()),
+)
+assert.ok(exposedCorsHeaders.has('x-comment-auth-mode'))
+assert.ok(exposedCorsHeaders.has('x-comment-scope-repair'))
 assert.match(
   prewarmSource,
   /console\.log\(JSON\.stringify\(summary\)\)[\s\S]*?if \(summary\.failed > 0\) \{\s*process\.exitCode = 1/u,
@@ -359,9 +376,9 @@ assert.match(
   /data: \{ \.\.\.result\.bootstrap, \.\.\.realtime \}/u,
 )
 const bootstrapSuccessResponseStart = bootstrapBranchSource.indexOf(
-  'return finalize(json({',
+  'const bootstrapResponse = json({',
 )
-const bootstrapSuccessResponseEndMarker = 'eventSeq: result.eventSeq,\n      }))'
+const bootstrapSuccessResponseEndMarker = 'return finalize(bootstrapResponse)'
 const bootstrapSuccessResponseEnd = bootstrapBranchSource.indexOf(
   bootstrapSuccessResponseEndMarker,
   bootstrapSuccessResponseStart,
@@ -375,6 +392,14 @@ const bootstrapSuccessResponseSource = bootstrapBranchSource.slice(
 assert.match(
   bootstrapSuccessResponseSource,
   /ok: true,[\s\S]*?protocolVersion: 1,[\s\S]*?meta: \{ authMode, repair: repaired, coldStart \},[\s\S]*?data: \{ \.\.\.result\.bootstrap, \.\.\.realtime \},[\s\S]*?eventSeq: result\.eventSeq/u,
+)
+assert.match(
+  bootstrapSuccessResponseSource,
+  /bootstrapResponse\.headers\.set\('X-Comment-Auth-Mode', authMode\)/u,
+)
+assert.match(
+  bootstrapSuccessResponseSource,
+  /bootstrapResponse\.headers\.set\('X-Comment-Scope-Repair', String\(repaired\)\)/u,
 )
 assert.doesNotMatch(
   bootstrapSuccessResponseSource,

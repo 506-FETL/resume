@@ -1972,13 +1972,16 @@ Deno.serve(async (req) => {
         realtimeSecret,
         tokenSecret,
       }))
-      return finalize(json({
+      const bootstrapResponse = json({
         ok: true,
         protocolVersion: 1,
         meta: { authMode, repair: repaired, coldStart },
         data: { ...result.bootstrap, ...realtime },
         eventSeq: result.eventSeq,
-      }))
+      })
+      bootstrapResponse.headers.set('X-Comment-Auth-Mode', authMode)
+      bootstrapResponse.headers.set('X-Comment-Scope-Repair', String(repaired))
+      return finalize(bootstrapResponse)
     }
 
     const access = await resolveAccess({

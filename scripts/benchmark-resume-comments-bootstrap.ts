@@ -6,7 +6,12 @@ interface BenchmarkConfig {
   jwt: string | null
   accessBody: Record<string, unknown>
   samples: number
+  expectedAuthMode: AuthMode | null
+  expectedRepair: RepairStatus | null
 }
+
+type AuthMode = 'anonymous' | 'local_jwks' | 'legacy_auth'
+type RepairStatus = 'true' | 'false'
 
 interface Sample {
   elapsedMs: number
@@ -19,6 +24,8 @@ interface Sample {
 }
 
 const regions = ['auto', 'us-east-1'] as const
+const authModes = new Set<AuthMode>(['anonymous', 'local_jwks', 'legacy_auth'])
+const repairStatuses = new Set<RepairStatus>(['true', 'false'])
 
 function readRequiredEnvironment(name: string): string {
   const value = process.env[name]?.trim()
@@ -28,11 +35,24 @@ function readRequiredEnvironment(name: string): string {
   return value
 }
 
+function readOptionalExpectedValue<T extends string>(
+  name: string,
+  allowedValues: ReadonlySet<T>,
+): T | null {
+  const rawValue = process.env[name]
+  if (rawValue === undefined)
+    return null
+  const value = rawValue.trim()
+  if (!allowedValues.has(value as T))
+    throw new Error(`${name} has an invalid value`)
+  return value as T
+}
+
 function readConfig(): BenchmarkConfig {
   const samplesValue = process.env.RESUME_COMMENTS_BENCHMARK_SAMPLES ?? '20'
-  const samples = Number.parseInt(samplesValue, 10)
-  if (!Number.isSafeInteger(samples) || samples < 1) {
-    throw new Error('RESUME_COMMENTS_BENCHMARK_SAMPLES must be a positive integer')
+  const samples = Number(samplesValue)
+  if (!Number.isSafeInteger(samples) || samples < 20) {
+    throw new Error('RESUME_COMMENTS_BENCHMARK_SAMPLES must be an integer of at least 20')
   }
 
   const accessBodyValue = process.env.RESUME_COMMENTS_ACCESS_BODY ?? '{}'
@@ -53,6 +73,14 @@ function readConfig(): BenchmarkConfig {
     jwt: process.env.SUPABASE_JWT?.trim() || null,
     accessBody: accessBody as Record<string, unknown>,
     samples,
+    expectedAuthMode: readOptionalExpectedValue(
+      'RESUME_COMMENTS_EXPECT_AUTH_MODE',
+      authModes,
+    ),
+    expectedRepair: readOptionalExpectedValue(
+      'RESUME_COMMENTS_EXPECT_REPAIR',
+      repairStatuses,
+    ),
   }
 }
 
@@ -125,6 +153,19 @@ async function runPost(config: BenchmarkConfig, region: typeof regions[number]):
   }
 }
 
+function assertSample(sample: Sample, config: BenchmarkConfig) {
+  if (sample.status < 200 || sample.status >= 300)
+    throw new Error('benchmark POST sample was not successful')
+  if (!sample.authMode || !authModes.has(sample.authMode as AuthMode))
+    throw new Error('benchmark POST sample did not include a valid auth mode')
+  if (!sample.repair || !repairStatuses.has(sample.repair as RepairStatus))
+    throw new Error('benchmark POST sample did not include a valid scope repair status')
+  if (config.expectedAuthMode && sample.authMode !== config.expectedAuthMode)
+    throw new Error('benchmark POST sample auth mode did not match the expected value')
+  if (config.expectedRepair && sample.repair !== config.expectedRepair)
+    throw new Error('benchmark POST sample scope repair status did not match the expected value')
+}
+
 async function main() {
   const config = readConfig()
   for (const region of regions) {
@@ -133,6 +174,8 @@ async function main() {
     for (let index = 0; index < config.samples; index += 1) {
       samples.push(await runPost(config, region))
     }
+    for (const sample of samples)
+      assertSample(sample, config)
     if (
       region !== 'auto'
       && samples.some(sample => sample.edgeRegion !== region)
