@@ -45,27 +45,32 @@ function Header() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4">
-        <div className="space-y-1">
+    <div className="min-w-0">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0 space-y-1.5">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
+            <div className="rounded-lg bg-primary/10 p-2">
               <Sparkles className="size-5 text-primary" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">ATS 优化助手</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">ATS 优化助手</h1>
           </div>
-          <p className="text-sm text-muted-foreground pl-11 max-w-lg">
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
             基于 AI 深度分析，为您提供专业的简历优化建议，提升通过 ATS 筛选的概率。
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 pl-11">
-          <ResumeManager />
-          <AnalysisActions
-            hasAnalysis={Boolean(hasAnalysis)}
-            isProcessing={isProcessing}
-            onViewAnalysis={handleViewAnalysis}
-            onStartAnalysis={handleStartAnalysis}
-          />
+
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
+          <div className="min-w-0 [&_[data-slot=dialog-trigger]]:w-full sm:[&_[data-slot=dialog-trigger]]:w-auto">
+            <ResumeManager />
+          </div>
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row [&>button]:w-full sm:[&>button]:w-auto">
+            <AnalysisActions
+              hasAnalysis={Boolean(hasAnalysis)}
+              isProcessing={isProcessing}
+              onViewAnalysis={handleViewAnalysis}
+              onStartAnalysis={handleStartAnalysis}
+            />
+          </div>
         </div>
       </div>
 

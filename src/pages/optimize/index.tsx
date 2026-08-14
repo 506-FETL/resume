@@ -15,25 +15,25 @@ function Optimize() {
   }, [init])
 
   return (
-    <div className="pt-10 relative">
-      <div className="fixed left-0 right-0 top-13 z-1 backdrop-blur-sm">
+    <div className="relative min-w-0">
+      <div className="sticky top-13 z-10">
         <ProTips />
       </div>
-      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+      <main className="mx-auto w-full max-w-[90rem] space-y-4 px-4 py-5 sm:px-6 md:space-y-6 md:py-8 lg:px-8">
         <Header />
         <OptimizeDashboard />
 
-        <div className="grid gap-8 lg:grid-cols-12 items-start">
-          <div className="lg:col-span-8 space-y-8">
+        <div className="grid min-w-0 items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0">
             <IssueAnalysis />
           </div>
 
-          <div className="lg:col-span-4 space-y-8">
+          <div className="min-w-0 xl:sticky xl:top-26">
             <RepairChecklist />
           </div>
         </div>
         <AdvancedTools />
-      </div>
+      </main>
     </div>
   )
 }

@@ -12,10 +12,10 @@ export default function ProTips() {
   ]
 
   return (
-    <div className="w-full bg-amber-50/80 dark:bg-amber-950/20 border-y border-amber-200/50 dark:border-amber-900/50">
+    <div className="w-full border-y border-amber-200/50 bg-amber-50/90 backdrop-blur-sm dark:border-amber-900/50 dark:bg-amber-950/80">
       <Marquee
         pauseOnHover
-        className="[--gap:3rem] py-2"
+        className="py-1.5 [--gap:3rem]"
       >
         {tips.map(tip => (
           <div key={tip} className="flex items-center gap-2 shrink-0">
