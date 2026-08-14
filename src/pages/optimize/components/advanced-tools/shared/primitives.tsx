@@ -13,7 +13,7 @@ export function ToolPanelCard({
   className,
 }: PropsWithChildren<{ className?: string }>) {
   return (
-    <Card className={cn('min-w-0 border-border/60 bg-card/95 shadow-sm', className)}>
+    <Card className={cn('min-w-0 border-border/60 bg-card shadow-sm', className)}>
       {children}
     </Card>
   )
@@ -33,11 +33,11 @@ export function ToolPanelHeader({
   title: string
 }) {
   return (
-    <CardHeader className="border-b border-border/50 pb-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0 flex flex-1 gap-3">
+    <CardHeader className="border-b border-border/50 p-4 md:p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-1 gap-3">
           {Icon && (
-            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Icon className="size-4" />
             </div>
           )}
@@ -49,7 +49,7 @@ export function ToolPanelHeader({
             {description && <p className="text-sm leading-6 text-muted-foreground">{description}</p>}
           </div>
         </div>
-        {action && <div className="shrink-0 self-start">{action}</div>}
+        {action && <div className="w-full shrink-0 lg:w-auto lg:self-start">{action}</div>}
       </div>
     </CardHeader>
   )
@@ -80,20 +80,20 @@ export function ToolStatCard({
   const toneClass = TOOL_TONE_CLASS_MAP[tone]
 
   return (
-    <div className={cn('h-full w-full min-w-0 rounded-xl border p-4 shadow-sm', toneClass.card)}>
+    <div className={cn('h-full w-full min-w-0 rounded-xl border p-3.5 shadow-sm md:p-4', toneClass.card)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="text-xs font-medium tracking-wide text-muted-foreground">{label}</p>
           {badge}
         </div>
         {Icon && (
-          <div className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl', toneClass.icon)}>
+          <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', toneClass.icon)}>
             <Icon className="size-4" />
           </div>
         )}
       </div>
-      <p className="mt-4 text-3xl font-semibold tracking-tight text-foreground">{value}</p>
-      {hint && <p className="mt-3 text-xs leading-5 text-muted-foreground">{hint}</p>}
+      <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{value}</p>
+      {hint && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hint}</p>}
     </div>
   )
 }
@@ -106,11 +106,11 @@ export function ToolEmptyState({
   title: string
 }) {
   return (
-    <div className="flex min-h-60 flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
-      <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-8 text-center">
+      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Sparkles className="size-5" />
       </div>
-      <p className="mt-4 text-sm font-medium">{title}</p>
+      <p className="mt-3 text-sm font-medium">{title}</p>
       <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
     </div>
   )

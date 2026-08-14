@@ -159,7 +159,7 @@ function AdvancedTools() {
   function renderToolContent() {
     if (loadingContext) {
       return (
-        <div className="flex h-[360px] flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+        <div className="flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground">
           <div className="size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
           <p className="text-sm">正在准备工具结果...</p>
         </div>
@@ -168,7 +168,7 @@ function AdvancedTools() {
 
     if (!resumeContext || !activeTool) {
       return (
-        <div className="flex h-[280px] flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+        <div className="flex min-h-48 flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
           <p className="text-sm">请先选择简历，再打开工具箱。</p>
         </div>
       )
@@ -198,20 +198,19 @@ function AdvancedTools() {
   return (
     <>
       <Card className="border-primary/10 shadow-sm">
-        <CardHeader className="border-b border-border/50 pb-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Badge className="rounded-full bg-primary/10 text-primary">Optimize Suite</Badge>
+        <CardHeader className="border-b border-border/50 p-4 md:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base font-semibold md:text-lg">高级工具箱</CardTitle>
                 <Badge variant="outline" className="rounded-full">4 个工具</Badge>
               </div>
-              <CardTitle className="text-2xl font-bold tracking-tight">高级工具箱</CardTitle>
-              <CardDescription className="max-w-2xl text-sm leading-7">
-                基于当前选中的简历做局部比对、格式修复、ATS 预览和岗位基准分析。工具复用现有 ATS 与在线/离线简历数据流，不再维护平行逻辑。
+              <CardDescription className="max-w-2xl text-xs leading-5 md:text-sm md:leading-6">
+                基于当前简历进行 JD 比对、格式修复、ATS 预览和岗位基准分析。
               </CardDescription>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Badge
                 className={hasSelectedResume
                   ? 'rounded-full border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
@@ -223,8 +222,8 @@ function AdvancedTools() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <CardContent className="p-4 md:p-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {TOOL_DEFINITIONS.map(tool => (
               <ToolCard
                 key={tool.key}
