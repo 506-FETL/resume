@@ -1,6 +1,6 @@
 /* global Deno */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsHeaders } from '../shared/cors.ts'
 import {
   derivePasswordGeneration,
@@ -12,6 +12,10 @@ import {
   deriveOwnerRealtimeTopic,
   deriveScopeRealtimeTopic,
 } from '../shared/resume-comment-events.ts'
+import {
+  authenticateSupabaseUser,
+  SupabaseAuthenticationError,
+} from '../shared/supabase-auth.ts'
 
 const PASSWORD_ALGORITHM = 'pbkdf2-sha256'
 const PASSWORD_ITERATIONS = 310_000
@@ -178,18 +182,6 @@ async function verifyPassword(password: string, storedHash: string) {
   const expectedDigest = base64UrlToBytes(digestValue)
   const actualDigest = await derivePasswordKey(password, salt, iterations)
   return timingSafeEqual(actualDigest, expectedDigest)
-}
-
-async function authenticateOwner(
-  req: Request,
-  admin: AdminClient,
-) {
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
-  if (!jwt)
-    return null
-  const { data, error } = await admin.auth.getUser(jwt)
-  return error ? null : (data.user?.id ?? null)
 }
 
 async function verifyShareOwnership(
@@ -373,7 +365,11 @@ Deno.serve(async (req) => {
     // 用 body.shareId 定位（不复用 token），带 owner JWT 鉴权。
     // 明文密码有值 → PBKDF2-SHA256 hash 写入 password_hash；清除密码 → 写 null。
     if (op === 'set_password') {
-      const userId = await authenticateOwner(req, admin)
+      const { userId } = await authenticateSupabaseUser({
+        request: req,
+        client: admin,
+        supabaseUrl,
+      })
       if (!userId)
         return json({ error: 'unauthorized' }, 401)
       if (!shareId)
@@ -411,7 +407,11 @@ Deno.serve(async (req) => {
     }
 
     if (op === 'update_settings') {
-      const userId = await authenticateOwner(req, admin)
+      const { userId } = await authenticateSupabaseUser({
+        request: req,
+        client: admin,
+        supabaseUrl,
+      })
       if (!userId)
         return json({ error: 'unauthorized' }, 401)
       if (!shareId)
@@ -630,6 +630,8 @@ Deno.serve(async (req) => {
     } satisfies GetResult)
   }
   catch (err) {
+    if (err instanceof SupabaseAuthenticationError)
+      return json({ error: 'unauthorized' }, 401)
     console.error('resume-share failed:', err instanceof Error ? err.message : err)
     return json({ error: 'unexpected' }, 500)
   }

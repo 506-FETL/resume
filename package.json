@@ -11,6 +11,7 @@
     "verify:comments": "node --experimental-strip-types scripts/verify-resume-comment-anchors.ts",
     "verify:comment-client": "node --experimental-strip-types scripts/verify-resume-comment-client.ts",
     "verify:comment-service": "node --experimental-strip-types scripts/verify-resume-comment-service.ts",
+    "verify:edge-auth": "node --experimental-strip-types scripts/verify-supabase-edge-auth.ts",
     "benchmark:comments": "node --experimental-strip-types scripts/benchmark-resume-comments-bootstrap.ts",
     "prewarm:comments": "node --experimental-strip-types scripts/prewarm-resume-comment-scopes.ts",
     "verify:drag": "node --experimental-strip-types scripts/verify-motion-drag.ts",

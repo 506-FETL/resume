@@ -1,7 +1,11 @@
 /* global Deno */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsHeaders } from '../shared/cors.ts'
+import {
+  authenticateSupabaseUser,
+  SupabaseAuthenticationError,
+} from '../shared/supabase-auth.ts'
 
 interface LLMProxyRequest {
   messages: unknown[]
@@ -117,6 +121,30 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(
+        JSON.stringify({ error: 'Supabase service credentials not configured' }),
+        { status: 500, headers: jsonHeaders },
+      )
+    }
+
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const { userId } = await authenticateSupabaseUser({
+      request: req,
+      client: admin,
+      supabaseUrl,
+    })
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'unauthorized' }),
+        { status: 401, headers: jsonHeaders },
+      )
+    }
+
     const {
       messages,
       model = 'deepseek-v4-pro',
@@ -141,39 +169,6 @@ Deno.serve(async (req) => {
           status: 500,
           headers: jsonHeaders,
         },
-      )
-    }
-
-    // ============ 额度拦截（服务端强约束）============
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(
-        JSON.stringify({ error: 'Supabase service credentials not configured' }),
-        { status: 500, headers: jsonHeaders },
-      )
-    }
-
-    // 从 Authorization 头取 JWT，用 service-role client 反查用户（未登录 → 401）
-    const authHeader = req.headers.get('Authorization') ?? ''
-    const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
-    if (!jwt) {
-      return new Response(
-        JSON.stringify({ error: 'unauthorized' }),
-        { status: 401, headers: jsonHeaders },
-      )
-    }
-
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-
-    const { data: userData, error: userErr } = await admin.auth.getUser(jwt)
-    const userId = userData?.user?.id
-    if (userErr || !userId) {
-      return new Response(
-        JSON.stringify({ error: 'unauthorized' }),
-        { status: 401, headers: jsonHeaders },
       )
     }
 
@@ -290,6 +285,12 @@ Deno.serve(async (req) => {
     })
   }
   catch (error: unknown) {
+    if (error instanceof SupabaseAuthenticationError) {
+      return new Response(
+        JSON.stringify({ error: 'unauthorized' }),
+        { status: 401, headers: jsonHeaders },
+      )
+    }
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Unexpected error',

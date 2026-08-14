@@ -5,7 +5,7 @@ import type {
   ResumeCommentAnchor,
   ResumeCommentRelocationResult,
 } from '../shared/resume-comment-core.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsHeaders } from '../shared/cors.ts'
 import {
   derivePasswordGeneration,
@@ -37,11 +37,14 @@ import {
   readRequiredString,
   readUuid,
 } from '../shared/resume-comment-schema.ts'
+import {
+  authenticateSupabaseUser,
+  SupabaseAuthenticationError,
+} from '../shared/supabase-auth.ts'
 
 const jsonHeaders = {
   ...corsHeaders,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Expose-Headers': 'Server-Timing, X-Request-Id',
   'Content-Type': 'application/json',
   'Cache-Control': 'no-store',
 }
@@ -171,17 +174,6 @@ async function hashNetworkKey(value: string, pepper: string) {
     new TextEncoder().encode(`${pepper}:network:${value}`),
   )
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
-}
-
-async function authenticateUser(req: Request, admin: AdminClient) {
-  const jwt = (req.headers.get('Authorization') ?? '')
-    .replace(/^Bearer\s+/iu, '')
-    .trim()
-  if (!jwt) {
-    return null
-  }
-  const { data, error } = await admin.auth.getUser(jwt)
-  return error ? null : data.user?.id ?? null
 }
 
 async function getScope(admin: AdminClient, scopeId: string): Promise<ScopeRow> {
@@ -1111,7 +1103,11 @@ Deno.serve(async (req) => {
     }
     const body = value
     const authStartedAt = performance.now()
-    const userId = await authenticateUser(req, admin)
+    const { userId } = await authenticateSupabaseUser({
+      request: req,
+      client: admin,
+      supabaseUrl,
+    })
     authDuration = performance.now() - authStartedAt
     if (
       op === 'register_collaboration_session'
@@ -1472,6 +1468,9 @@ Deno.serve(async (req) => {
     }, eventSeq))
   }
   catch (error) {
+    if (error instanceof SupabaseAuthenticationError) {
+      return finalize(failure(new CommentApiError('unauthorized', '登录凭证无效', 401)))
+    }
     const mapped = mapDatabaseError(error)
     if (mapped.code === 'unexpected') {
       console.error('resume-comments failed', {

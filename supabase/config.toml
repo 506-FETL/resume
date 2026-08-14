@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.resume-comments]
 verify_jwt = false
+
+[functions.llm-proxy]
+verify_jwt = false
