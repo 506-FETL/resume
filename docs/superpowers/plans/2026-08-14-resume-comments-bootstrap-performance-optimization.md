@@ -68,7 +68,6 @@
 - 创建：`scripts/verify-resume-comment-anchors.ts`
 - 创建：`scripts/verify-resume-comment-client.ts`
 - 创建：`scripts/verify-resume-comment-service.ts`
-- 创建：`scripts/verify-supabase-edge-auth.ts`
 - 创建：`scripts/benchmark-resume-comments-bootstrap.ts`
 - 创建：`scripts/prewarm-resume-comment-scopes.ts`
 - 创建：`docs/superpowers/verification/2026-08-14-resume-comments-bootstrap-performance.md`
@@ -87,25 +86,7 @@ git show 3fb59a6^:scripts/verify-resume-comment-service.ts > /tmp/verify-resume-
 
 使用 `apply_patch` 将三份内容加入仓库；不得直接以 shell 重定向写工作区文件。
 
-- [ ] **步骤 2：增加共享鉴权断言脚本入口**
-
-`verify-supabase-edge-auth.ts` 使用注入的 `getClaims` stub，固定以下断言矩阵：
-
-```ts
-await assert.doesNotReject(() => authenticateSupabaseUser({
-  request: request(),
-  client: claimsClient({ shouldNotCall: true }),
-  supabaseUrl,
-}))
-assert.equal((await authenticate(validEs256)).authMode, 'local_jwks')
-assert.equal((await authenticate(validHs256)).authMode, 'legacy_auth')
-await assert.rejects(() => authenticate(invalidIssuer), SupabaseAuthenticationError)
-await assert.rejects(() => authenticate(expired), SupabaseAuthenticationError)
-```
-
-脚本必须覆盖：无 Authorization、不含三段的匹配 publishable key、不匹配的畸形 Bearer、`getClaims` error、HS256、ES256、RS256、未知 alg、错误 `iss`/`aud`/`exp`/`sub`/`role`/`session_id`。
-
-- [ ] **步骤 3：增加无泄密基准脚本**
+- [ ] **步骤 2：增加无泄密基准脚本**
 
 `benchmark-resume-comments-bootstrap.ts` 只从环境变量读取请求配置：
 
@@ -123,7 +104,7 @@ const regions = ['auto', 'us-east-1'] as const
 
 每组默认 20 次 POST，单独记录首次 OPTIONS；输出 `count/P50/P95/max`、`Server-Timing`、`x-sb-edge-region`、`authMode`、`repair` 和响应字节数。日志只能显示 HTTP 状态、统计量和非敏感元数据，禁止打印 headers、body、JWT 或访问上下文。
 
-- [ ] **步骤 4：增加缺失 scope 预热脚本**
+- [ ] **步骤 3：增加缺失 scope 预热脚本**
 
 预热脚本复用共享投影，分页处理而不把整库快照驻留内存：
 
@@ -140,7 +121,7 @@ const PAGE_SIZE = 100
 
 脚本必须要求 `SUPABASE_URL` 和 `SUPABASE_SERVICE_ROLE_KEY`，只查询缺少活动 version scope 的版本；每项调用 `buildCommentAnchorDocument()` 和 `ensure_resume_version_comment_scope`。输出仅包含 summary，任何错误日志只包含错误类别，不包含 snapshot、用户/简历/版本/scope ID 或 credential。
 
-- [ ] **步骤 5：固定依赖与可执行命令**
+- [ ] **步骤 4：固定依赖与可执行命令**
 
 将依赖固定为：
 
@@ -154,18 +135,17 @@ const PAGE_SIZE = 100
 "verify:comments": "node --experimental-strip-types scripts/verify-resume-comment-anchors.ts",
 "verify:comment-client": "node --experimental-strip-types scripts/verify-resume-comment-client.ts",
 "verify:comment-service": "node --experimental-strip-types scripts/verify-resume-comment-service.ts",
-"verify:edge-auth": "node --experimental-strip-types scripts/verify-supabase-edge-auth.ts",
 "benchmark:comments": "node --experimental-strip-types scripts/benchmark-resume-comments-bootstrap.ts",
 "prewarm:comments": "node --experimental-strip-types scripts/prewarm-resume-comment-scopes.ts"
 ```
 
 运行 `pnpm install --lockfile-only` 更新 lockfile。
 
-- [ ] **步骤 6：记录优化前基线**
+- [ ] **步骤 5：记录优化前基线**
 
 验证文档写入已确认的同机基线：原告警 6702 ms、Edge 3573.7 ms、Auth 1382.2 ms、access 913.1 ms、线程阶段 1273.2 ms；补充当前函数版本、数据库区域、自动 Edge 区域，以及 OPTIONS/匿名 POST 的重复探测结果。明确旧 `db` 和 `clientOverhead` 仅为残差口径。
 
-- [ ] **步骤 7：运行恢复后的基线验证**
+- [ ] **步骤 6：运行恢复后的基线验证**
 
 ```bash
 pnpm verify:comments
@@ -177,10 +157,10 @@ git diff --check
 
 预期：三个脚本均实际存在并通过；若旧性能阈值断言因后续接口尚未实现而失败，只允许在任务 5 更新对应断言，不能删除验证入口。
 
-- [ ] **步骤 8：提交验证基线**
+- [ ] **步骤 7：提交验证基线**
 
 ```bash
-git add package.json pnpm-lock.yaml scripts/verify-resume-comment-anchors.ts scripts/verify-resume-comment-client.ts scripts/verify-resume-comment-service.ts scripts/verify-supabase-edge-auth.ts scripts/benchmark-resume-comments-bootstrap.ts scripts/prewarm-resume-comment-scopes.ts docs/superpowers/verification/2026-08-14-resume-comments-bootstrap-performance.md docs/superpowers/specs/2026-08-14-resume-comments-bootstrap-performance-optimization-design.md docs/superpowers/plans/2026-08-14-resume-comments-bootstrap-performance-optimization.md
+git add package.json pnpm-lock.yaml scripts/verify-resume-comment-anchors.ts scripts/verify-resume-comment-client.ts scripts/verify-resume-comment-service.ts scripts/benchmark-resume-comments-bootstrap.ts scripts/prewarm-resume-comment-scopes.ts docs/superpowers/verification/2026-08-14-resume-comments-bootstrap-performance.md docs/superpowers/specs/2026-08-14-resume-comments-bootstrap-performance-optimization-design.md docs/superpowers/plans/2026-08-14-resume-comments-bootstrap-performance-optimization.md
 git diff --cached --name-status
 git commit -m "test(comments): 恢复性能优化验证基线"
 ```
@@ -192,6 +172,8 @@ git commit -m "test(comments): 恢复性能优化验证基线"
 **文件：**
 
 - 创建：`supabase/functions/shared/supabase-auth.ts`
+- 创建：`scripts/verify-supabase-edge-auth.ts`
+- 修改：`package.json`
 - 修改：`supabase/functions/shared/cors.ts`
 - 修改：`supabase/functions/resume-comments/index.ts`
 - 修改：`supabase/functions/resume-share/index.ts`
@@ -237,7 +219,29 @@ UUID_PATTERN.test(session_id)
 
 只在验签成功后读取已验证 header：`HS256 → legacy_auth`，`ES256/RS256 → local_jwks`，其他算法拒绝。不得读取 `user_metadata` 或 `app_metadata` 授权，不得自行实现 JWT 签名验证。
 
-- [ ] **步骤 2：给共享 CORS 增加预检缓存**
+- [ ] **步骤 2：增加共享鉴权断言脚本入口**
+
+`verify-supabase-edge-auth.ts` 使用注入的 `getClaims` stub，固定以下断言矩阵：
+
+```ts
+await assert.doesNotReject(() => authenticateSupabaseUser({
+  request: request(),
+  client: claimsClient({ shouldNotCall: true }),
+  supabaseUrl,
+}))
+assert.equal((await authenticate(validEs256)).authMode, 'local_jwks')
+assert.equal((await authenticate(validHs256)).authMode, 'legacy_auth')
+await assert.rejects(() => authenticate(invalidIssuer), SupabaseAuthenticationError)
+await assert.rejects(() => authenticate(expired), SupabaseAuthenticationError)
+```
+
+脚本必须覆盖：无 Authorization、不含三段的匹配 publishable key、不匹配的畸形 Bearer、`getClaims` error、HS256、ES256、RS256、未知 alg、错误 `iss`/`aud`/`exp`/`sub`/`role`/`session_id`。同时在 `package.json` 增加：
+
+```json
+"verify:edge-auth": "node --experimental-strip-types scripts/verify-supabase-edge-auth.ts"
+```
+
+- [ ] **步骤 3：给共享 CORS 增加预检缓存**
 
 ```ts
 export const corsHeaders = {
@@ -251,7 +255,7 @@ export const corsHeaders = {
 
 `resume-comments` 可覆盖方法为 `POST, OPTIONS`，但不得缩小 expose headers。
 
-- [ ] **步骤 3：接入三个 Edge Function**
+- [ ] **步骤 4：接入三个 Edge Function**
 
 三个函数把导入固定为：
 
@@ -261,7 +265,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 
 `resume-comments` 删除 `authenticateUser()`；`resume-share` 删除 `authenticateOwner()`；`llm-proxy` 删除内联 `getUser()`。共享鉴权错误必须映射 401；`llm-proxy` 在 quota RPC 和 DeepSeek fetch 前要求 `identity.userId` 非空。公开 share GET/读取 POST 不调用共享鉴权。
 
-- [ ] **步骤 4：显式配置函数体鉴权**
+- [ ] **步骤 5：显式配置函数体鉴权**
 
 `supabase/config.toml` 最终为：
 
@@ -276,7 +280,7 @@ verify_jwt = false
 verify_jwt = false
 ```
 
-- [ ] **步骤 5：验证鉴权和供应链固定**
+- [ ] **步骤 6：验证鉴权和供应链固定**
 
 ```bash
 pnpm verify:edge-auth
@@ -287,10 +291,10 @@ git diff --check
 
 预期：匿名分支从未调用 stub `getClaims`，完整 claims 矩阵通过；源码中不存在 `@supabase/supabase-js@2'` 或 `.auth.getUser(`。
 
-- [ ] **步骤 6：提交共享鉴权**
+- [ ] **步骤 7：提交共享鉴权**
 
 ```bash
-git add supabase/config.toml supabase/functions/shared/supabase-auth.ts supabase/functions/shared/cors.ts supabase/functions/resume-comments/index.ts supabase/functions/resume-share/index.ts supabase/functions/llm-proxy/index.ts scripts/verify-supabase-edge-auth.ts scripts/verify-resume-comment-service.ts
+git add package.json supabase/config.toml supabase/functions/shared/supabase-auth.ts supabase/functions/shared/cors.ts supabase/functions/resume-comments/index.ts supabase/functions/resume-share/index.ts supabase/functions/llm-proxy/index.ts scripts/verify-supabase-edge-auth.ts scripts/verify-resume-comment-service.ts
 git diff --cached --name-status
 git commit -m "perf(auth): 将 Edge JWT 校验迁移到本地"
 ```
