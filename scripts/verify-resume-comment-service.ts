@@ -485,8 +485,58 @@ const privateEnsureLockIndex = privateEnsureSource.indexOf('FOR SHARE;')
 const privateEnsureAnchorValidationIndex = privateEnsureSource.indexOf(
   'IF NOT public.is_valid_resume_comment_anchor_document(',
 )
-const privateEnsureExistingScopeReturnIndex = privateEnsureSource.indexOf(
-  'IF v_scope.id IS NOT NULL THEN',
+const existingScopeBranchStartMarker = 'IF v_scope.id IS NOT NULL THEN'
+const existingScopeBranchEndMarker = 'IF p_expected_document_revision IS NOT NULL AND ('
+const existingScopeAuthorityCondition = [
+  'IF v_scope.owner_user_id <> p_owner_user_id',
+  '      OR v_scope.resume_id <> v_version.resume_id',
+  '      OR v_scope.version_id <> v_version.id THEN',
+].join('\n')
+
+function assertExistingScopeAuthority(source: string): string {
+  const branchSource = readSourceSection(
+    source,
+    existingScopeBranchStartMarker,
+    existingScopeBranchEndMarker,
+  )
+  const authorityConditionIndex = branchSource.indexOf(existingScopeAuthorityCondition)
+  const authorityFailureIndex = branchSource.indexOf(
+    'RAISE EXCEPTION USING ERRCODE = \'55000\', MESSAGE = \'version scope authority conflict\';',
+  )
+  const returnIndex = branchSource.indexOf('RETURN v_scope.id;')
+  assert.ok(authorityConditionIndex >= 0)
+  assert.ok(authorityFailureIndex > authorityConditionIndex)
+  assert.ok(returnIndex > authorityFailureIndex)
+  return branchSource
+}
+
+const existingScopeAuthoritySource = assertExistingScopeAuthority(privateEnsureSource)
+const existingAuthorityConditionIndex = existingScopeAuthoritySource.indexOf(
+  existingScopeAuthorityCondition,
+)
+const existingScopeReturnIndex = existingScopeAuthoritySource.indexOf('RETURN v_scope.id;')
+const existingScopeWithoutAuthority = existingScopeAuthoritySource.slice(
+  0,
+  existingAuthorityConditionIndex,
+) + existingScopeAuthoritySource.slice(existingScopeReturnIndex)
+const privateEnsureWithoutExistingAuthority = privateEnsureSource.replace(
+  existingScopeAuthoritySource,
+  existingScopeWithoutAuthority,
+)
+assert.notEqual(privateEnsureWithoutExistingAuthority, privateEnsureSource)
+assert.throws(() => assertExistingScopeAuthority(privateEnsureWithoutExistingAuthority))
+
+const postInsertAuthoritySource = readSourceSection(
+  privateEnsureSource,
+  'IF v_scope.id IS NULL THEN',
+  'RETURN v_scope.id;\nEND;',
+)
+assert.match(
+  postInsertAuthoritySource,
+  /IF v_scope\.owner_user_id <> p_owner_user_id\s+OR v_scope\.resume_id <> v_version\.resume_id\s+OR v_scope\.version_id <> v_version\.id THEN[\s\S]*?RAISE EXCEPTION USING ERRCODE = '55000', MESSAGE = 'version scope authority conflict';/u,
+)
+const privateEnsureExistingScopeIndex = privateEnsureSource.indexOf(
+  existingScopeBranchStartMarker,
 )
 const privateEnsureExpectedRevisionIndex = privateEnsureSource.indexOf(
   'IF p_expected_document_revision IS NOT NULL AND (',
@@ -496,8 +546,8 @@ const privateEnsureInsertIndex = privateEnsureSource.indexOf(
 )
 assert.ok(privateEnsureLockIndex >= 0)
 assert.ok(privateEnsureAnchorValidationIndex > privateEnsureLockIndex)
-assert.ok(privateEnsureExistingScopeReturnIndex > privateEnsureAnchorValidationIndex)
-assert.ok(privateEnsureExpectedRevisionIndex > privateEnsureExistingScopeReturnIndex)
+assert.ok(privateEnsureExistingScopeIndex > privateEnsureAnchorValidationIndex)
+assert.ok(privateEnsureExpectedRevisionIndex > privateEnsureExistingScopeIndex)
 assert.ok(privateEnsureInsertIndex > privateEnsureExpectedRevisionIndex)
 assert.match(
   privateEnsureSource,
@@ -618,10 +668,6 @@ assert.match(
 )
 assert.match(bootstrapMigrationSource, /ERRCODE = 'P0409', MESSAGE = 'stale_release'/u)
 assert.doesNotMatch(bootstrapMigrationSource, /ERRCODE = '40001', MESSAGE = 'stale_release'/u)
-assert.match(
-  bootstrapMigrationSource,
-  /v_scope\.owner_user_id <> p_owner_user_id\s+OR v_scope\.resume_id <> v_version\.resume_id\s+OR v_scope\.version_id <> v_version\.id/u,
-)
 assert.match(
   normalizedBootstrapMigrationSource,
   /REVOKE ALL ON FUNCTION public\.assert_resume_comment_service_role\(\) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ON FUNCTION public\.assert_resume_comment_service_role\(\) TO service_role;/u,
