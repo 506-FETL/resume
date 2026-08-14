@@ -237,33 +237,7 @@ function AdvancedTools() {
       </Card>
 
       <AdvancedToolsModal
-        description={(
-          <div className="space-y-3">
-            <p>{activeToolDefinition?.description}</p>
-            {resumeSummary && (
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="rounded-full">{resumeSummary.title}</Badge>
-                <Badge variant="outline" className="rounded-full">{resumeSummary.jobIntent}</Badge>
-                <Badge variant="outline" className="rounded-full">
-                  有效证据
-                  {' '}
-                  {resumeSummary.evidenceCount}
-                  {' 条'}
-                </Badge>
-                <Badge
-                  className={resumeContext?.resumeType === 'offline'
-                    ? 'rounded-full border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                    : 'rounded-full border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300'}
-                >
-                  {resumeContext?.resumeType === 'offline' ? '本地简历' : '在线简历'}
-                </Badge>
-                {activeToolDefinition && (
-                  <Badge className={activeToolDefinition.badgeClassName}>{activeToolDefinition.badge}</Badge>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        description={activeToolDefinition?.description || '基于当前简历提供专项分析与优化。'}
         footer={
           isMobile
             ? (
@@ -289,6 +263,30 @@ function AdvancedTools() {
         }
         onOpenChange={handleOpenChange}
         open={open}
+        meta={resumeSummary
+          ? (
+              <>
+                <Badge variant="secondary" className="rounded-full">{resumeSummary.title}</Badge>
+                <Badge variant="outline" className="rounded-full">{resumeSummary.jobIntent}</Badge>
+                <Badge variant="outline" className="rounded-full">
+                  有效证据
+                  {' '}
+                  {resumeSummary.evidenceCount}
+                  {' 条'}
+                </Badge>
+                <Badge
+                  className={resumeContext?.resumeType === 'offline'
+                    ? 'rounded-full border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                    : 'rounded-full border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300'}
+                >
+                  {resumeContext?.resumeType === 'offline' ? '本地简历' : '在线简历'}
+                </Badge>
+                {activeToolDefinition && (
+                  <Badge className={activeToolDefinition.badgeClassName}>{activeToolDefinition.badge}</Badge>
+                )}
+              </>
+            )
+          : undefined}
         title={activeToolDefinition?.title || '高级工具箱'}
       >
         {renderToolContent()}

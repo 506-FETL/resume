@@ -53,7 +53,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
     return null
 
   return (
-    <div className="space-y-4 sm:space-y-5 lg:space-y-8 overflow-auto p-4 md:p-6 h-full">
+    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:space-y-5 md:p-6 lg:space-y-8">
       {/* 信息概览卡片 */}
       <div className="space-y-1.5 lg:space-y-2">
         <span className={cn('text-xs lg:text-sm font-medium text-muted-foreground flex items-center gap-1.5 lg:gap-2', config.textColor)}>

@@ -94,21 +94,21 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
         <DialogTrigger asChild>
           {children}
         </DialogTrigger>
-        <DialogContent className="flex flex-col h-[85vh] max-w-5xl! w-[64vw] gap-0 p-0">
-          <DialogHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
+        <DialogContent className="flex h-[min(88dvh,56rem)] min-h-0 w-[min(70rem,calc(100vw-3rem))] max-w-none flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b px-4 pt-4 pb-3 md:px-5">
             <DialogTitle className="flex items-center gap-2 text-base">
-              <Wand2 className="size-4 text-primary shrink-0" />
+              <Wand2 className="size-4 shrink-0 text-primary" />
               <span>问题修复详情</span>
-              <Badge className={cn('text-xs px-2 py-0.5 rounded-full', config.badgeBg, config.badgeText)}>
+              <Badge className={cn('rounded-full px-2 py-0.5 text-xs', config.badgeBg, config.badgeText)}>
                 <config.icon className="size-3 lg:size-4" />
               </Badge>
             </DialogTitle>
-            <DialogDescription className={cn('text-xs text-muted-foreground/90 text-left line-clamp-2', config.badgeText)}>{finding.title}</DialogDescription>
+            <DialogDescription className={cn('line-clamp-2 text-left text-xs text-muted-foreground/90', config.badgeText)}>{finding.title}</DialogDescription>
           </DialogHeader>
 
           <Content id={id} severity={severity} />
 
-          <DialogFooter className="px-4 py-3 shrink-0 border-t bg-muted/30">
+          <DialogFooter className="shrink-0 border-t bg-muted/30 px-4 py-3">
             <DialogClose asChild>
               <Button variant="outline">取消</Button>
             </DialogClose>
@@ -125,21 +125,24 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
   return (
     <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
       <DrawerTrigger render={children} />
-      <DrawerContent className="flex flex-col h-[85vh]">
-        <DrawerHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
-          <DrawerTitle className="flex items-center gap-2 text-base">
-            <Wand2 className="size-4 text-primary shrink-0" />
+      <DrawerContent
+        className="h-[92dvh]"
+        overlayClassName="supports-backdrop-filter:backdrop-blur-none"
+      >
+        <DrawerHeader className="shrink-0 border-b px-4 pt-4 pb-3 text-left">
+          <DrawerTitle className="flex items-center gap-2 text-left text-base">
+            <Wand2 className="size-4 shrink-0 text-primary" />
             <span>问题修复详情</span>
-            <Badge className={cn('text-xs px-2 py-0.5 rounded-full', config.badgeBg, config.badgeText)}>
+            <Badge className={cn('rounded-full px-2 py-0.5 text-xs', config.badgeBg, config.badgeText)}>
               <config.icon className="size-3 lg:size-4" />
             </Badge>
           </DrawerTitle>
-          <DrawerDescription className={cn('text-xs text-muted-foreground/90 text-left line-clamp-2', config.badgeText)}>{finding.title}</DrawerDescription>
+          <DrawerDescription className={cn('line-clamp-2 text-left text-xs text-muted-foreground/90', config.badgeText)}>{finding.title}</DrawerDescription>
         </DrawerHeader>
 
         <Content id={id} severity={severity} />
 
-        <DrawerFooter className="px-4 py-3 shrink-0 border-t bg-muted/30 md:flex md:flex-row md:gap-2 md:justify-end">
+        <DrawerFooter className="shrink-0 border-t bg-muted/30 px-4 py-3 md:flex md:flex-row md:justify-end md:gap-2">
           <DrawerClose render={<Button variant="outline" />}>
             取消
           </DrawerClose>
