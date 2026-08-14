@@ -1,3 +1,5 @@
+import process from 'node:process'
+
 interface BenchmarkConfig {
   url: string
   publishableKey: string
@@ -75,20 +77,28 @@ function summarize(samples: Sample[]) {
   }
 }
 
-function requestHeaders(config: BenchmarkConfig, region: typeof regions[number]): HeadersInit {
+function requestUrl(config: BenchmarkConfig, region: typeof regions[number]) {
+  const url = new URL(config.url)
+  if (region !== 'auto')
+    url.searchParams.set('forceFunctionRegion', region)
+  else
+    url.searchParams.delete('forceFunctionRegion')
+  return url
+}
+
+function requestHeaders(config: BenchmarkConfig): Record<string, string> {
   return {
-    apikey: config.publishableKey,
+    'apikey': config.publishableKey,
     ...(config.jwt ? { Authorization: `Bearer ${config.jwt}` } : {}),
     'Content-Type': 'application/json',
-    'x-sb-edge-region': region,
   }
 }
 
 async function runOptions(config: BenchmarkConfig, region: typeof regions[number]) {
   const startedAt = performance.now()
-  const response = await fetch(config.url, {
+  const response = await fetch(requestUrl(config, region), {
     method: 'OPTIONS',
-    headers: requestHeaders(config, region),
+    headers: requestHeaders(config),
   })
   return {
     elapsedMs: Number((performance.now() - startedAt).toFixed(1)),
@@ -98,9 +108,9 @@ async function runOptions(config: BenchmarkConfig, region: typeof regions[number
 
 async function runPost(config: BenchmarkConfig, region: typeof regions[number]): Promise<Sample> {
   const startedAt = performance.now()
-  const response = await fetch(config.url, {
+  const response = await fetch(requestUrl(config, region), {
     method: 'POST',
-    headers: requestHeaders(config, region),
+    headers: requestHeaders(config),
     body: JSON.stringify(config.accessBody),
   })
   const responseText = await response.text()
@@ -123,11 +133,17 @@ async function main() {
     for (let index = 0; index < config.samples; index += 1) {
       samples.push(await runPost(config, region))
     }
-    console.log(JSON.stringify({ region, options, ...summarize(samples) }))
+    if (
+      region !== 'auto'
+      && samples.some(sample => sample.edgeRegion !== region)
+    ) {
+      throw new Error('forced function region was not honored')
+    }
+    process.stdout.write(`${JSON.stringify({ region, options, ...summarize(samples) })}\n`)
   }
 }
 
-void main().catch(() => {
+main().catch(() => {
   console.error('benchmark_failed')
   process.exitCode = 1
 })

@@ -395,6 +395,10 @@ const commentRealtimeHookSource = readFileSync(
   new URL('../src/features/resume-comments/hooks/use-comment-realtime.ts', import.meta.url),
   'utf8',
 )
+const commentBenchmarkSource = readFileSync(
+  new URL('./benchmark-resume-comments-bootstrap.ts', import.meta.url),
+  'utf8',
+)
 const mobileSortDrawerSource = readFileSync(
   new URL('../src/pages/resume/editor/components/sidebar/mobile-sort-drawer.tsx', import.meta.url),
   'utf8',
@@ -578,6 +582,15 @@ assert.match(commentRequestSource, /const responseRequestId = isUuid\(responseRe
 assert.match(commentRequestSource, /url\.searchParams\.set\('forceFunctionRegion', region\)/u)
 assert.match(commentRequestSource, /response\.headers\.get\('x-sb-edge-region'\)/u)
 assert.doesNotMatch(commentRequestSource, /['"]x-sb-edge-region['"]\s*:/u)
+assert.match(commentBenchmarkSource, /url\.searchParams\.set\('forceFunctionRegion', region\)/u)
+assert.match(commentBenchmarkSource, /url\.searchParams\.delete\('forceFunctionRegion'\)/u)
+assert.equal(
+  commentBenchmarkSource.match(/fetch\(requestUrl\(config, region\)/gu)?.length,
+  2,
+)
+assert.match(commentBenchmarkSource, /response\.headers\.get\('x-sb-edge-region'\)/u)
+assert.match(commentBenchmarkSource, /samples\.some\(sample => sample\.edgeRegion !== region\)/u)
+assert.doesNotMatch(commentBenchmarkSource, /['"]x-sb-edge-region['"]\s*:/u)
 assert.match(commentRequestSource, /new TextEncoder\(\)\.encode\(responseText\)\.byteLength/u)
 assert.match(commentRequestSource, /serverTiming: response\.headers\.get\('server-timing'\)/u)
 assert.doesNotMatch(commentRequestSource, /response\.json\(/u)
