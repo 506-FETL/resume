@@ -3,11 +3,11 @@ import type { SkillItem } from '@/lib/schema'
 import { AlertCircle, AlertTriangle, Brain, Calendar, CloudUpload, Database, FileText, Info, Sparkles, Tag } from 'lucide-react'
 
 export const SCORE_LABELS = {
-  job_match: '职位匹配度',
-  ats_parsing: 'ATS 解析度',
-  format_readability: '格式可读性',
-  content_completeness: '内容完整度',
-  impact_quantification: '影响力量化',
+  job_match: '岗位定位与相关性',
+  content_completeness: '内容充分度',
+  impact_quantification: '成果与证据强度',
+  ats_parsing: 'ATS 可解析性',
+  format_readability: '表达与阅读体验',
 }
 
 export const severityConfig: Record<Severity, SeverityConfigVariant> = {

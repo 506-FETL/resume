@@ -30,6 +30,7 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
       score: Math.round((value.score / value.max) * 100),
       raw: value.score,
       max: value.max,
+      rationale: value.rationale,
     }))
   }, [scores])
 
@@ -70,15 +71,22 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
                         <ChartTooltipContent
                           labelFormatter={value => SCORE_LABELS[value as keyof typeof SCORE_LABELS] || value}
                           formatter={(value, _, item) => (
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">{item.payload.raw}</span>
-                              <span className="text-muted-foreground">/</span>
-                              <span className="text-muted-foreground">{item.payload.max}</span>
-                              <span className="text-muted-foreground text-xs ml-1">
-                                (
-                                {value}
-                                %)
-                              </span>
+                            <div className="max-w-64 space-y-1.5">
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">{item.payload.raw}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-muted-foreground">{item.payload.max}</span>
+                                <span className="text-muted-foreground text-xs ml-1">
+                                  (
+                                  {value}
+                                  %)
+                                </span>
+                              </div>
+                              {item.payload.rationale && (
+                                <p className="text-xs leading-5 text-muted-foreground whitespace-normal">
+                                  {item.payload.rationale}
+                                </p>
+                              )}
                             </div>
                           )}
                         />

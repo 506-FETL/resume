@@ -25,6 +25,7 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
     return null
 
   const suggestions = finding.fix.suggestions || []
+  const hasSuggestions = suggestions.length > 0
   const isFixed = suggestions.length > 0 && suggestions.every(s => s.fixed)
 
   return (
@@ -124,23 +125,31 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
                 </ul>
               )}
             </div>
-            <div className="pt-1">
-              <IssueFix id={id} severity={severity}>
-                <Button
-                  size="sm"
-                  variant={isFixed ? 'outline' : 'default'}
-                  className={cn(
-                    'h-7 sm:h-8 text-xs font-medium',
-                    !isFixed && severity === 'high' && 'bg-destructive hover:bg-destructive/90 text-white',
-                    !isFixed && severity === 'medium' && 'bg-amber-600 hover:bg-amber-700 text-white',
-                    !isFixed && severity === 'low' && 'bg-blue-600 hover:bg-blue-700 text-white',
-                    isFixed && 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700',
-                  )}
-                >
-                  {isFixed ? '查看详情' : '查看详情 & 自动修复'}
-                </Button>
-              </IssueFix>
-            </div>
+            {hasSuggestions
+              ? (
+                  <div className="pt-1">
+                    <IssueFix id={id} severity={severity}>
+                      <Button
+                        size="sm"
+                        variant={isFixed ? 'outline' : 'default'}
+                        className={cn(
+                          'h-7 sm:h-8 text-xs font-medium',
+                          !isFixed && severity === 'high' && 'bg-destructive hover:bg-destructive/90 text-white',
+                          !isFixed && severity === 'medium' && 'bg-amber-600 hover:bg-amber-700 text-white',
+                          !isFixed && severity === 'low' && 'bg-blue-600 hover:bg-blue-700 text-white',
+                          isFixed && 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700',
+                        )}
+                      >
+                        {isFixed ? '查看详情' : '查看详情 & 自动修复'}
+                      </Button>
+                    </IssueFix>
+                  </div>
+                )
+              : (
+                  <p className="rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-xs leading-5 text-muted-foreground">
+                    此问题需要结合真实情况补充信息，暂不支持自动修复。
+                  </p>
+                )}
           </div>
         </div>
       </CollapsibleContent>

@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import useAtsStore from '../../store'
 import { calculateRating, calculateReadabilityRating } from '../../utils'
+import AssessmentBasisCard from './assessment-basis-card'
 import MetricCard from './metric-card'
 import ScoresRadarChart from './scores-radar-chart'
 
@@ -12,7 +13,11 @@ export default function OptimizeDashboard() {
 
   const totalTasks = fixChecklist?.length || 0
   const completedTasks = fixChecklist?.filter(item => item.isDone).length || 0
-  const progress = Math.round((completedTasks / totalTasks) * 100)
+  const progress = !currentAtsConfig
+    ? 0
+    : totalTasks === 0
+      ? 100
+      : Math.round((completedTasks / totalTasks) * 100)
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -58,14 +63,19 @@ export default function OptimizeDashboard() {
             <div className="space-y-2">
               <Progress value={progress} className="h-2.5 bg-muted" />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {progress === 100
-                  ? '完美！您已完成所有优化项。'
-                  : '继续完成剩余优化项以提升评分。'}
+                {!currentAtsConfig
+                  ? '生成 ATS 报告后显示优化进度。'
+                  : totalTasks === 0
+                    ? '当前未发现必须修改项。'
+                    : progress === 100
+                      ? '您已完成当前报告中的所有优化项。'
+                      : '继续完成剩余优化项以提升评分。'}
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
+      <AssessmentBasisCard />
     </div>
   )
 }

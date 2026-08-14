@@ -20,7 +20,7 @@ export default function RepairChecklist() {
           <CardTitle className="text-lg font-bold">优化修复清单</CardTitle>
         </div>
         <CardDescription className="text-sm">
-          完成以下建议以提升简历评分
+          仅展示基于当前真实内容发现的可执行问题
         </CardDescription>
       </CardHeader>
 
@@ -40,9 +40,9 @@ export default function RepairChecklist() {
                       <ClipboardCheck className="size-8 text-green-600 dark:text-green-400" />
                     </div>
                     <div className="space-y-1 max-w-xs">
-                      <h3 className="text-base font-semibold">暂无待修复项</h3>
+                      <h3 className="text-base font-semibold">当前未发现必须修改项</h3>
                       <p className="text-sm text-muted-foreground">
-                        您的简历已经非常出色，未检测到明显的格式或内容问题。
+                        本次评分已综合现有内容，不会因为未使用某个模板模块而生成任务。
                       </p>
                     </div>
                   </div>
