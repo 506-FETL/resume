@@ -35,21 +35,21 @@ export default function IssueAnalysis() {
   const totalFindings = countAllFindings(findings)
 
   return (
-    <Card className="overflow-hidden shadow-sm border-primary/10">
-      <CardHeader className="pb-4 border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="p-2 rounded-md bg-primary/10 text-primary">
+    <Card className="overflow-hidden border-primary/10 shadow-sm">
+      <CardHeader className="border-b p-4 md:p-5">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <div className="rounded-md bg-primary/10 p-1.5 text-primary">
               <Search className="size-4" />
             </div>
             <span>简历问题分析</span>
           </CardTitle>
           {totalPendingIssues > 0
             ? (
-                <Badge variant="outline" className="rounded-full py-1 px-3 gap-2 border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10 transition-colors">
+                <Badge variant="outline" className="gap-2 rounded-full border-destructive/30 bg-destructive/5 px-3 py-1 text-destructive transition-colors hover:bg-destructive/10">
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
                   </span>
                   <span className="font-medium">
                     {totalPendingIssues}
@@ -67,21 +67,21 @@ export default function IssueAnalysis() {
               : null}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6 pt-6">
+      <CardContent className="space-y-4 p-4 md:p-5">
         {loading
           ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+              <div className="flex items-center justify-center gap-3 py-8 text-muted-foreground">
                 <Spinner className="size-6 animate-spin text-primary" />
               </div>
             )
           : !findings || totalFindings === 0
               ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <div className="p-4 bg-muted/50 rounded-full mb-3">
-                      <Search className="size-8 opacity-40" />
+                  <div className="flex flex-col items-center justify-center px-4 py-8 text-center text-muted-foreground">
+                    <div className="mb-3 rounded-full bg-muted/50 p-3">
+                      <Search className="size-6 opacity-40" />
                     </div>
                     <p className="text-sm font-medium">暂无检测到的问题</p>
-                    <p className="text-xs text-muted-foreground/80 mt-1">您的简历表现良好！</p>
+                    <p className="mt-1 text-xs text-muted-foreground/80">您的简历表现良好！</p>
                   </div>
                 )
               : severityOrder.map((severity) => {
@@ -94,7 +94,7 @@ export default function IssueAnalysis() {
                   const pendingCount = pendingCounts[severity]
 
                   return (
-                    <div key={severity} className="space-y-3">
+                    <div key={severity} className="space-y-2.5">
                       <div className="flex items-center gap-2 px-1">
                         <div className={config.textColor}>
                           <Icon className="size-4" />
@@ -114,7 +114,7 @@ export default function IssueAnalysis() {
                               </Badge>
                             )}
                       </div>
-                      <div className="space-y-3 pl-2 sm:pl-3">
+                      <div className="space-y-2.5 sm:pl-2">
                         {issues.map(issue => (
                           <FindingItem key={issue.id} id={issue.id} severity={severity} />
                         ))}
