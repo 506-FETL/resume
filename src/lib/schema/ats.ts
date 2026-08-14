@@ -63,6 +63,16 @@ export interface Meta {
   generated_at: string
   mode: Mode
   inputDigest: string
+  rubricVersion?: '2.0' | string
+  assessment?: AtsAssessmentMeta
+}
+
+export interface AtsAssessmentMeta {
+  candidateProfile: string
+  inferredTarget: string
+  basisSummary: string
+  evaluatedSections: string[]
+  evidenceSignals: string[]
 }
 
 export interface ReadabilityIndex {
@@ -94,6 +104,7 @@ export interface Summary {
 export interface ScoreItem {
   score: number
   max: number
+  rationale?: string
 }
 
 export type Scores = Record<ScoreKey, ScoreItem>

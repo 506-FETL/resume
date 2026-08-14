@@ -1,5 +1,5 @@
-import type { ResumeSchema } from '../schema/resume/form/index.ts'
 import type { RawValue } from '../schema/ats.ts'
+import type { ResumeSchema } from '../schema/resume/form/index.ts'
 import type { AtsAssessmentField, AtsAssessmentInput, AtsAssessmentItem, AtsAssessmentSection } from './types.ts'
 import { ATS_FIELD_LABELS, ATS_SECTION_LABELS } from './constants.ts'
 

@@ -1,9 +1,11 @@
 import type { ResumeSchema } from '../src/lib/schema/resume/form/index.ts'
 import assert from 'node:assert/strict'
 import {
+  ATS_SCORE_TOTAL,
   buildAtsAssessmentInput,
   flattenAssessmentFields,
 } from '../src/lib/ats/index.ts'
+import { buildOptimizePrompt } from '../src/lib/llm/prompts/optimize.ts'
 
 function createResume(): ResumeSchema {
   return {
@@ -191,9 +193,29 @@ function verifyContactSignal() {
   assert.equal(buildAtsAssessmentInput(resume).scope.hasContactMethod, true)
 }
 
+function verifyAdaptivePromptContract() {
+  const resume = createResume()
+  resume.work_experience.items = [{
+    entryId: 'work-used-0',
+    companyName: '示例科技',
+    position: '工程师',
+    workDuration: ['2024-01', '至今'],
+    workInfo: '<p>负责核心业务交付。</p>',
+  }]
+
+  const prompt = buildOptimizePrompt(buildAtsAssessmentInput(resume))
+
+  assert.equal(ATS_SCORE_TOTAL, 100)
+  assert.match(prompt, /未出现在 sections 的模块代表用户没有使用该模板模块/)
+  assert.match(prompt, /不得因为该模块缺失而扣分/)
+  assert.doesNotMatch(prompt, /"ignoredEmptySections"/)
+  assert.doesNotMatch(prompt, /Locate\.path 白名单/)
+}
+
 verifyEmptyOptionalSectionsAreNeutral()
 verifyOriginalIndexesArePreserved()
 verifyExperienceSectionsCanSubstituteForWork()
 verifyContactSignal()
+verifyAdaptivePromptContract()
 
-console.log('ATS adaptive scoring verification passed.')
+console.warn('ATS adaptive scoring verification passed.')

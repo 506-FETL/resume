@@ -2,6 +2,7 @@ import type { AdvancedToolKey, ResumeToolContext } from './components/advanced-t
 import type { AnalysisState, AtsCreatePayload, AtsEvaluationResult, AtsLlmDraft } from './types'
 import { toast } from 'sonner'
 import { create } from 'zustand'
+import { buildAtsAssessmentInput } from '@/lib/ats'
 import { parseLlmJsonObject, runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
 import { createAtsConfig, getAtsFromUserId, updateAtsConfig, updateFixChecklist } from '@/lib/supabase/resume'
@@ -195,6 +196,7 @@ const useAtsStore = create<AtsStore>()(
         setAnalysisState({ status: 'fetching' })
         updateLog('fetch', '正在获取简历...')
         const resumeData = await fetchResumeDataForAnalysis(currentResumeId, false)
+        const assessmentInput = buildAtsAssessmentInput(resumeData)
         updateLog('fetch', '准备上传至LLM', true)
 
         setAnalysisState({ status: 'sending' })
@@ -204,7 +206,7 @@ const useAtsStore = create<AtsStore>()(
         // 回调仅用于驱动流式 UI。此前用节流回调闭包重建 finalContent，会因 throttle/flush 时序
         // 丢失最后一段内容而误报「未返回有效内容」。
         const { content: finalContent, reasoning: finalReasoning, finishReason } = await runAtsStructured(
-          resumeData,
+          assessmentInput,
           ({ content: streamContent, reasoning: streamReasoning }) => {
             if (streamReasoning) {
               setAnalysisState({ status: 'thinking', reasoning: streamReasoning })

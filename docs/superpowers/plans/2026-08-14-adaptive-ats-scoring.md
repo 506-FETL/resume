@@ -203,7 +203,7 @@ export interface ScoreItem {
 
 - [ ] **步骤 2：重写 v2 提示词**
 
-`optimize.ts` 改为接收 `<<<ASSESSMENT_INPUT>>>`，明确：只评估 `sections`；`ignoredEmptySections` 不得扣分或生成建议；不同经历可互相证明能力；Locate 只能来自输入；按 25/25/20/15/15 评分；风险 0–3、行动 0–4、清单 0–6；不得编造事实。
+`optimize.ts` 改为接收 `AtsAssessmentInput`，序列化时排除 `ignoredEmptySections`，明确：只评估 `sections`；未出现在 `sections` 的模块不得扣分或生成建议；不同经历可互相证明能力；Locate 只能来自输入；按 25/25/20/15/15 评分；风险 0–3、行动 0–4、清单 0–6；不得编造事实。
 
 删除固定 `[0]` 白名单、固定风险数量、固定项目四段、固定技能 5–8 项、固定教育描述段数等模板诱导规则。保留 JSON、原值一致性和安全建议约束。
 
@@ -221,7 +221,7 @@ response_format: { type: 'json_object' },
 
 - [ ] **步骤 4：增加契约断言**
 
-验证脚本断言提示词包含 `ignoredEmptySections`、`不得扣分`，不再包含写死的 `items[0]` 限制，并断言 `ATS_SCORE_TOTAL === 100`。
+验证脚本断言提示词包含“未出现在 sections 的模块不得扣分”，序列化输入不包含 `ignoredEmptySections`，不再包含写死的 `items[0]` 限制，并断言 `ATS_SCORE_TOTAL === 100`。
 
 - [ ] **步骤 5：验证**
 

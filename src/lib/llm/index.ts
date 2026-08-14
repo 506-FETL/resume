@@ -1,4 +1,5 @@
 import type { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions'
+import type { AtsAssessmentInput } from '../ats/types.ts'
 import type { ResumeSchema } from '../schema'
 import type { RewriteRequestArgs } from '@/components/ai-rewrite/types'
 import type { EditableResumeView } from '@/components/jd-variant/types'
@@ -7,7 +8,7 @@ import { REWRITE_TEMPERATURE } from '@/components/ai-rewrite/const'
 import { callLLM } from './call'
 import { buildJdParsePrompt, buildJdRewritePrompt, JD_VARIANT_PARSE_TEMPERATURE, JD_VARIANT_REWRITE_TEMPERATURE } from './prompts/jd-variant'
 import { createJobDescriptionAnalysisPrompt } from './prompts/job-description'
-import { optimize_prompt } from './prompts/optimize'
+import { buildOptimizePrompt } from './prompts/optimize'
 import { buildRewritePrompt } from './prompts/rewrite'
 
 interface StreamUpdate {
@@ -195,28 +196,26 @@ export function parseLlmJsonObject<T>(value: string): T {
 }
 
 export async function runAtsStructured(
-  resumeConfig: ResumeSchema,
+  assessmentInput: AtsAssessmentInput,
   onUpdate?: (data: StreamUpdate) => void,
   options?: { throttleMs?: number },
 ) {
-  const promptText = optimize_prompt.replace('<<<RESUME_JSON>>>', JSON.stringify(resumeConfig, null, 2))
+  const promptText = buildOptimizePrompt(assessmentInput)
   const req = {
     messages: [
       {
         role: 'system',
-        content: `你是一个 ATS 简历评估引擎。你将收到一份用户上传的“简历 JSON”（字段固定，包含基本信息、求职意向、教育/工作/项目等）。你的任务是：仅根据该简历 JSON 的内容，生成一份「AtsEvaluationResult」评估结果 JSON。`,
+        content: '你是 ATS 简历评估引擎。请先综合判断本次真实内容的适用性与证据强度，再只输出符合约定的评估 JSON；未提供的可选模板模块不得扣分。',
       },
       { role: 'user', content: promptText },
     ],
     response_format: {
       type: 'json_object',
     },
-    // ATS 结果 schema 很大，放宽 max_tokens 降低截断导致的 JSON 解析失败。
-    max_tokens: 8192,
-    // 关闭思考模式：ATS 是结构化 JSON 抽取任务，无需链式思考。
-    // 开启时模型会先输出大量 reasoning_content，挤占 token 预算，导致「只返回思考过程」或正文被截断。
-    // 关闭后整段预算都用于产出结果，同时缩短耗时。
-    thinking: { type: 'disabled' },
+    // 思考模式用于先判断候选人画像、模块适用性与跨模块证据，再生成结构化报告。
+    // 同步提高输出预算，避免 reasoning_content 挤占最终 JSON 的可用空间。
+    max_tokens: 16384,
+    thinking: { type: 'enabled' },
     // 标记本次调用为 ATS 用途（服务端据系统提示词权威判定 cost，此字段仅作辅助/日志）。
     action: 'ats',
   } as ChatCompletionCreateParamsBase & { action?: string, thinking?: { type: string } }
