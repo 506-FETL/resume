@@ -61,28 +61,29 @@ export default function OverviewSummaryCard({ completedTasks, loading, progress,
 
   return (
     <Card className="min-w-0 border-primary/15 shadow-sm">
-      <CardContent className="grid min-w-0 gap-5 p-5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center md:gap-6 md:p-6">
-        <div className="min-w-0 sm:border-r sm:border-border/60 sm:pr-5">
-          <p className="text-xs font-medium text-muted-foreground">综合评分</p>
-          <div className="mt-2 flex items-end gap-2">
-            <span className={cn('text-5xl font-bold tracking-tight', calculateRating(overallScore))}>
-              {overallScore}
-            </span>
-            <span className="pb-1 text-sm text-muted-foreground">/ 100</span>
+      <CardContent className="min-w-0 p-5 md:p-6">
+        <div className="grid min-w-0 items-start gap-5 sm:grid-cols-[10rem_minmax(0,1fr)] md:gap-7">
+          <div className="relative min-w-0 pt-1">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground">综合评分</p>
+            <div className="mt-2 flex items-end gap-2">
+              <span className={cn('tabular-nums text-6xl leading-none font-black tracking-[-0.07em] md:text-7xl', calculateRating(overallScore))}>
+                {overallScore}
+              </span>
+              <span className="pb-1.5 text-sm text-muted-foreground">/ 100</span>
+            </div>
+            <Badge variant="secondary" className="mt-3 rounded-full px-3">
+              {summary?.grade || '待评估'}
+            </Badge>
           </div>
-          <p className="mt-1 text-sm font-medium">{summary?.grade || '待评估'}</p>
-          <Progress value={overallScore} aria-label={`综合评分 ${overallScore} 分`} className="mt-4 h-2" />
-        </div>
 
-        <div className="min-w-0 space-y-4">
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 space-y-2.5 sm:pt-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-medium text-muted-foreground">本次评分结论</p>
               {meta?.rubricVersion === '2.0' && (
                 <Badge variant="secondary" className="rounded-full">内容自适应评分 2.0</Badge>
               )}
             </div>
-            <h2 className="wrap-break-word text-base font-semibold leading-6 md:text-lg">
+            <h2 className="wrap-break-word text-lg font-semibold leading-7 tracking-tight md:text-xl md:leading-8">
               {assessment?.basisSummary || readabilityIndex?.summary || '已完成当前简历的综合评估'}
             </h2>
             {assessment?.candidateProfile && (
@@ -90,7 +91,7 @@ export default function OverviewSummaryCard({ completedTasks, loading, progress,
                 {assessment.candidateProfile}
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-0.5">
               {assessment?.inferredTarget && (
                 <Badge variant="outline" className="max-w-full rounded-full">
                   <Target className="size-3.5" />
@@ -110,39 +111,39 @@ export default function OverviewSummaryCard({ completedTasks, loading, progress,
                 : null}
             </div>
           </div>
+        </div>
 
-          <div className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2">
-            <div className="flex min-w-0 items-start gap-3">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <FileText className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">可读性指数</p>
-                <p className={cn('mt-0.5 text-lg font-semibold', calculateReadabilityRating(readabilityScore))}>
-                  {readabilityScore}
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">/ 10</span>
-                </p>
-                {readabilityIndex?.summary && (
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{readabilityIndex.summary}</p>
-                )}
-              </div>
+        <div className="mt-5 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2 md:mt-6">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <FileText className="size-4" />
             </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">可读性指数</p>
+              <p className={cn('mt-0.5 text-lg font-semibold', calculateReadabilityRating(readabilityScore))}>
+                {readabilityScore}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">/ 10</span>
+              </p>
+              {readabilityIndex?.summary && (
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{readabilityIndex.summary}</p>
+              )}
+            </div>
+          </div>
 
-            <div className="flex min-w-0 items-start gap-3">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <CheckCircle2 className="size-4" />
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <CheckCircle2 className="size-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">优化完成度</p>
+                <p className="text-sm font-semibold">
+                  {progress}
+                  %
+                </p>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">优化完成度</p>
-                  <p className="text-sm font-semibold">
-                    {progress}
-                    %
-                  </p>
-                </div>
-                <Progress value={progress} aria-label={`优化完成度 ${progress}%`} className="mt-2 h-1.5" />
-                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{progressDescription}</p>
-              </div>
+              <Progress value={progress} aria-label={`优化完成度 ${progress}%`} className="mt-2 h-1.5" />
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{progressDescription}</p>
             </div>
           </div>
         </div>

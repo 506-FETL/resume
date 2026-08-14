@@ -15,7 +15,7 @@ export default function OptimizeDashboard() {
       : Math.round((completedTasks / totalTasks) * 100)
 
   return (
-    <div className="grid min-w-0 gap-4 md:gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,.65fr)]">
+    <div className="grid min-w-0 items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,.65fr)]">
       <OverviewSummaryCard
         completedTasks={completedTasks}
         loading={loading}

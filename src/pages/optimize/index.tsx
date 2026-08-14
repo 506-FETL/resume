@@ -17,7 +17,7 @@ function Optimize() {
 
   return (
     <div className="relative min-w-0">
-      <div className="sticky top-13 z-10">
+      <div className="sticky top-0 z-10">
         <ProTips />
       </div>
       <main className="mx-auto w-full max-w-[90rem] space-y-4 px-4 py-5 sm:px-6 md:space-y-6 md:py-8 lg:px-8">

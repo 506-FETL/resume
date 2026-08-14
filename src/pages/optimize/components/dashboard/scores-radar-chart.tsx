@@ -59,14 +59,15 @@ export default function ScoresRadarChart({ scores, loading = false }: ScoresRada
                   <ChartContainer
                     aria-label="ATS 五维评分雷达图"
                     config={chartConfig}
-                    className="mx-auto aspect-square w-full max-w-[18rem] flex-1"
+                    className="mx-auto h-72 w-full max-w-[24rem] flex-none aspect-auto sm:h-80"
                   >
                     <RadarChart
                       accessibilityLayer
                       data={chartData}
                       cx="50%"
                       cy="50%"
-                      outerRadius="68%"
+                      margin={{ top: 30, right: 52, bottom: 30, left: 52 }}
+                      outerRadius="64%"
                     >
                       <ChartTooltip
                         cursor={false}
