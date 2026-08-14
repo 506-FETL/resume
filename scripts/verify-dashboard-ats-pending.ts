@@ -4,20 +4,34 @@ import { readFileSync } from 'node:fs'
 import { stdout } from 'node:process'
 import { countPendingAtsFindings, isAtsFindingPending } from '../src/lib/ats/status.ts'
 
-function finding(id: string, fixedStates: boolean[]): Finding {
+function finding(
+  id: string,
+  fixedStates: boolean[],
+  evidenceMode: 'matching' | 'mismatched' | 'none' = 'none',
+): Finding {
+  const locate = {
+    path: 'basics.name',
+    sectionLabel: '基本信息',
+    fieldLabel: '姓名',
+    itemLabel: null,
+  }
+
   return {
     id,
     type: 'verification',
     title: id,
-    locate: {
-      path: 'basics.name',
-      sectionLabel: '基本信息',
-      fieldLabel: '姓名',
-      itemLabel: null,
-    },
+    locate,
     why: {
       summary: '验证首页 ATS 待办统计',
-      evidence: [],
+      evidence: evidenceMode === 'none'
+        ? []
+        : [{
+            text: '旧值',
+            rawValue: '旧值',
+            locate: evidenceMode === 'matching'
+              ? locate
+              : { ...locate, path: 'basics.email', fieldLabel: '邮箱' },
+          }],
     },
     fix: {
       summary: '验证首页 ATS 待办统计',
@@ -51,9 +65,15 @@ assert.equal(isAtsFindingPending(finding('missing-suggestion', [])), true)
 assert.equal(countPendingAtsFindings(undefined), 0)
 assert.equal(countPendingAtsFindings(findings()), 0)
 assert.equal(countPendingAtsFindings(findings([
+  finding('empty-without-matching-evidence', [], 'mismatched'),
+])), 0)
+assert.equal(countPendingAtsFindings(findings([
+  finding('empty-with-matching-evidence', [], 'matching'),
+])), 1)
+assert.equal(countPendingAtsFindings(findings([
   finding('done', [true]),
   finding('pending', [false]),
-], [finding('incomplete', [])], [finding('also-done', [true, true])])), 2)
+], [finding('incomplete', [], 'matching')], [finding('also-done', [true, true])])), 2)
 assert.equal(countPendingAtsFindings(findings([
   finding('done-1', [true]),
   finding('done-2', [true, true]),
