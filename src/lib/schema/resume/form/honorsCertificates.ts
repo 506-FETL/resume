@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { resumeEntryIdSchema } from '../entry-id'
 
 // 预设荣誉证书
 export const PRESET_CERTIFICATES = [
@@ -17,6 +18,7 @@ export const PRESET_CERTIFICATES = [
 export type PresetCertificate = (typeof PRESET_CERTIFICATES)[number]
 
 export const certificateItemSchema = z.object({
+  entryId: resumeEntryIdSchema,
   name: z.string().trim(),
 })
 

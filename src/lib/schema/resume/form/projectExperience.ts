@@ -15,15 +15,15 @@ export type ProjectInfo = z.infer<typeof projectInfo>
 
 const projectExperienceFields = { projectName, participantRole, projectDuration, projectInfo }
 
-export type ProjectExperienceItem = z.infer<z.ZodObject<typeof projectExperienceFields>>
-
 export const projectExperienceFormSchema = createExperienceSchema(projectExperienceFields)
 
 export type ProjectExperienceFormType = z.infer<typeof projectExperienceFormSchema>
+export type ProjectExperienceItem = ProjectExperienceFormType['items'][number]
 
 export const DEFAULT_PROJECT_EXPERIENCE: ProjectExperienceFormType = {
   items: [
     {
+      entryId: 'default_project_experience_1',
       projectName: '',
       participantRole: '',
       projectDuration: ['', ''],

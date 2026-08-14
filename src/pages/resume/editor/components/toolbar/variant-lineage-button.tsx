@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useCurrentResumeStore from '@/store/resume/current'
 
-export function VariantLineageButton() {
+export function VariantLineageButton({ reviewActive = false }: { reviewActive?: boolean }) {
   const isMobile = useIsMobile()
   const { resumeId } = useCurrentResumeStore()
   const resumes = useResumeListStore(s => s.resumes)
@@ -35,7 +35,7 @@ export function VariantLineageButton() {
     return findRoot(item.parent_resume_id)
   }
   const rootId = findRoot(resumeId)
-  const disabled = !resumeId || !parentId
+  const disabled = reviewActive || !resumeId || !parentId
 
   const { tree } = useVariantLineage(disabled ? null : rootId)
 
@@ -55,6 +55,7 @@ export function VariantLineageButton() {
             className={cn(isMobile && 'size-9')}
             disabled={disabled}
             aria-label="查看血缘"
+            title={reviewActive ? '请先切回当前工作版本' : undefined}
           >
             <GitBranch data-icon="inline-start" />
             {!isMobile && <span>血缘</span>}

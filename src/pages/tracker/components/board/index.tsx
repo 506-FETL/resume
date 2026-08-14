@@ -1,9 +1,9 @@
-import type { DropResult } from '@hello-pangea/dnd'
-import type { ApplicationStatus } from '../../types'
-import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
+import type { RefCallback } from 'react'
+import type { ApplicationStatus, JobApplication } from '../../types'
+import type { CrossListDropResult } from '@/components/ui/cross-list-drag'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -16,6 +16,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
+import {
+  CrossListDragProvider,
+  useCrossListContainer,
+  useCrossListItem,
+} from '@/components/ui/cross-list-drag'
 import { updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, BOARD_COLUMNS } from '../../const'
@@ -23,44 +28,124 @@ import useTrackerStore from '../../store'
 import { appendStatusChangeActivity, autoCompleteStages, filterJobs, getTrackerErrorMessage } from '../../utils'
 import { ColumnCard } from './column-card'
 
-const EDGE_THRESHOLD = 120
-const SCROLL_SPEED = 80
+function BoardJobItem({
+  job,
+  containerId,
+  index,
+  reduceMotion,
+}: {
+  job: JobApplication
+  containerId: ApplicationStatus
+  index: number
+  reduceMotion: boolean | null
+}) {
+  const { dragging, getDragProps } = useCrossListItem({
+    id: job.id,
+    containerId,
+    index,
+  })
+
+  return (
+    <motion.div
+      {...getDragProps()}
+      layout="position"
+      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: dragging ? 0.3 : 1, y: 0 }}
+      transition={reduceMotion
+        ? { duration: 0 }
+        : {
+            layout: { type: 'spring', stiffness: 500, damping: 40 },
+            opacity: { duration: 0.12 },
+            delay: dragging ? 0 : Math.min(index, 8) * 0.03,
+          }}
+      className="cursor-grab rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing"
+    >
+      <ColumnCard job={job} />
+    </motion.div>
+  )
+}
+
+function BoardColumnDropArea({
+  status,
+  jobs,
+  highlighted,
+  reduceMotion,
+}: {
+  status: ApplicationStatus
+  jobs: JobApplication[]
+  highlighted: boolean
+  reduceMotion: boolean | null
+}) {
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const itemIds = useMemo(() => jobs.map(job => job.id), [jobs])
+  const { ref: registerContainerRef, active } = useCrossListContainer({
+    id: status,
+    label: APPLICATION_STATUS_CONFIG[status].label,
+    itemIds,
+    axis: 'y',
+    scrollRef,
+  })
+  const setContainerRef = useCallback<RefCallback<HTMLDivElement>>((element) => {
+    scrollRef.current = element
+    registerContainerRef(element)
+  }, [registerContainerRef])
+
+  return (
+    <div
+      ref={setContainerRef}
+      role="list"
+      aria-label={`${APPLICATION_STATUS_CONFIG[status].label}职位`}
+      data-motion-drop-container={status}
+      className={cn(
+        'scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
+        active && 'bg-primary/5 ring-1 ring-primary/30',
+        highlighted && !active && 'border-primary/40 bg-primary/5',
+      )}
+    >
+      {jobs.length > 0
+        ? jobs.map((job, index) => (
+            <BoardJobItem
+              key={job.id}
+              job={job}
+              containerId={status}
+              index={index}
+              reduceMotion={reduceMotion}
+            />
+          ))
+        : (
+            <div className="flex min-h-[96px] flex-1 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground/70">
+              拖拽职位至此
+            </div>
+          )}
+    </div>
+  )
+}
+
+function JobOverlay({ job }: { job: JobApplication }) {
+  return (
+    <div className="rounded-lg shadow-xl ring-1 ring-primary/20">
+      <ColumnCard job={job} />
+    </div>
+  )
+}
 
 export default function BoardView() {
-  const { jobs, filterStatus, metricFilter, searchKeyword, showArchived, syncJob, restoreJobsSnapshot, rejectedCollapsed, toggleRejectedCollapsed } = useTrackerStore()
-  const reduce = useReducedMotion()
+  const {
+    jobs,
+    filterStatus,
+    metricFilter,
+    searchKeyword,
+    showArchived,
+    syncJob,
+    restoreJobsSnapshot,
+    rejectedCollapsed,
+    toggleRejectedCollapsed,
+  } = useTrackerStore()
+  const reduceMotion = useReducedMotion()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const columnRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const isDraggingRef = useRef(false)
   const [pendingMove, setPendingMove] = useState<{ jobId: string, newStatus: ApplicationStatus } | null>(null)
 
-  // 拖拽时在库内置自动滚动基础上叠加加速
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current)
-        return
-      const container = scrollContainerRef.current
-      if (!container)
-        return
-
-      const rect = container.getBoundingClientRect()
-      const mouseX = e.clientX
-
-      if (mouseX < rect.left + EDGE_THRESHOLD) {
-        const intensity = (rect.left + EDGE_THRESHOLD - mouseX) / EDGE_THRESHOLD
-        container.scrollLeft -= SCROLL_SPEED * Math.max(intensity, 0.15)
-      }
-      else if (mouseX > rect.right - EDGE_THRESHOLD) {
-        const intensity = (mouseX - (rect.right - EDGE_THRESHOLD)) / EDGE_THRESHOLD
-        container.scrollLeft += SCROLL_SPEED * Math.max(intensity, 0.15)
-      }
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
-
-  // 搜索结果在每一列内独立过滤（不按 filterStatus 隐藏列，保留所有列以便拖拽改状态）
   const filteredJobs = filterJobs(jobs, null, searchKeyword, showArchived, metricFilter)
   const getJobsByStatus = (status: ApplicationStatus) =>
     filteredJobs.filter(job => job.status === status)
@@ -79,24 +164,14 @@ export default function BoardView() {
     }
   }, [])
 
-  // filterStatus 变化时滚动到对应列（仅当横向滚动时才生效）
   useEffect(() => {
-    if (filterStatus && BOARD_COLUMNS.some(c => c.status === filterStatus)) {
-      requestAnimationFrame(() => {
-        scrollToColumn(filterStatus)
-      })
-    }
+    if (filterStatus && BOARD_COLUMNS.some(column => column.status === filterStatus))
+      requestAnimationFrame(() => scrollToColumn(filterStatus))
   }, [filterStatus, scrollToColumn])
 
-  const handleDragStart = () => {
-    isDraggingRef.current = true
-  }
-
-  // 提交状态变更（乐观更新 + 落库 + 失败回滚）
   const commitMove = (jobId: string, newStatus: ApplicationStatus) => {
     const previousState = useTrackerStore.getState()
     const currentJob = previousState.jobs.find(job => job.id === jobId)
-
     if (!currentJob || currentJob.status === newStatus)
       return
 
@@ -107,13 +182,10 @@ export default function BoardView() {
       stage_details: updatedStageDetails,
       activities: appendStatusChangeActivity(currentJob, newStatus),
     }
-
     syncJob(optimisticJob)
 
     updateCompany(jobId, optimisticJob)
-      .then((savedJob) => {
-        syncJob(savedJob)
-      })
+      .then(savedJob => syncJob(savedJob))
       .catch((error) => {
         restoreJobsSnapshot({
           jobs: previousState.jobs,
@@ -123,34 +195,38 @@ export default function BoardView() {
       })
   }
 
-  const handleDragEnd = (result: DropResult) => {
-    isDraggingRef.current = false
-
-    const { destination, draggableId } = result
-    if (!destination)
-      return
-
-    const newStatus = destination.droppableId as ApplicationStatus
-    const currentJob = useTrackerStore.getState().jobs.find(job => job.id === draggableId)
-
+  const handleDrop = ({ itemId, destinationId }: CrossListDropResult) => {
+    const newStatus = destinationId as ApplicationStatus
+    const currentJob = useTrackerStore.getState().jobs.find(job => job.id === itemId)
     if (!currentJob || currentJob.status === newStatus)
       return
 
-    // 终态需二次确认，避免误拖
     if (newStatus === 'offer' || newStatus === 'rejected') {
-      setPendingMove({ jobId: draggableId, newStatus })
+      setPendingMove({ jobId: itemId, newStatus })
       return
     }
-
-    commitMove(draggableId, newStatus)
+    commitMove(itemId, newStatus)
   }
 
+  const scrollAreas = [{
+    ref: scrollContainerRef,
+    axis: 'x' as const,
+    threshold: 120,
+    maxStep: 24,
+  }]
   const isColumnHighlighted = (status: ApplicationStatus) =>
     filterStatus !== null && filterStatus === status
 
   return (
     <>
-      <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <CrossListDragProvider
+        onDrop={handleDrop}
+        scrollAreas={scrollAreas}
+        renderOverlay={(jobId) => {
+          const job = useTrackerStore.getState().jobs.find(item => item.id === jobId)
+          return job ? <JobOverlay job={job} /> : null
+        }}
+      >
         <div
           ref={scrollContainerRef}
           className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-x-auto overflow-y-hidden overscroll-x-contain"
@@ -165,9 +241,11 @@ export default function BoardView() {
               return (
                 <div
                   key={column.status}
-                  ref={(el) => {
-                    if (el)
-                      columnRefs.current.set(column.status, el)
+                  ref={(element) => {
+                    if (element)
+                      columnRefs.current.set(column.status, element)
+                    else
+                      columnRefs.current.delete(column.status)
                   }}
                   className={cn(
                     'flex h-full min-h-0 flex-col',
@@ -222,49 +300,12 @@ export default function BoardView() {
                             </Badge>
                           </div>
 
-                          <Droppable droppableId={column.status}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.droppableProps}
-                                className={cn(
-                                  'scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
-                                  snapshot.isDraggingOver && 'bg-primary/5 ring-1 ring-primary/30',
-                                  highlighted && !snapshot.isDraggingOver && 'border-primary/40 bg-primary/5',
-                                )}
-                              >
-                                {columnJobs.length > 0
-                                  ? (
-                                      columnJobs.map((job, index) => (
-                                        <Draggable key={job.id} draggableId={job.id} index={index}>
-                                          {(dragProvided, dragSnapshot) => (
-                                            <div
-                                              ref={dragProvided.innerRef}
-                                              {...dragProvided.draggableProps}
-                                              {...dragProvided.dragHandleProps}
-                                              className={dragSnapshot.isDragging ? 'opacity-90 shadow-lg' : ''}
-                                            >
-                                              <motion.div
-                                                initial={reduce || dragSnapshot.isDragging ? false : { opacity: 0, y: 6 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.18, delay: Math.min(index, 8) * 0.03 }}
-                                              >
-                                                <ColumnCard job={job} />
-                                              </motion.div>
-                                            </div>
-                                          )}
-                                        </Draggable>
-                                      ))
-                                    )
-                                  : (
-                                      <div className="flex min-h-[96px] flex-1 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground/70">
-                                        拖拽职位至此
-                                      </div>
-                                    )}
-                                {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
+                          <BoardColumnDropArea
+                            status={column.status}
+                            jobs={columnJobs}
+                            highlighted={highlighted}
+                            reduceMotion={reduceMotion}
+                          />
                         </>
                       )}
                 </div>
@@ -272,7 +313,7 @@ export default function BoardView() {
             })}
           </div>
         </div>
-      </DragDropContext>
+      </CrossListDragProvider>
 
       <AlertDialog open={pendingMove !== null} onOpenChange={open => !open && setPendingMove(null)}>
         <AlertDialogContent>

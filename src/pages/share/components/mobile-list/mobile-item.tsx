@@ -1,6 +1,6 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Copy, Eye, LockKeyhole } from 'lucide-react'
+import { Copy, Eye, LockKeyhole, MessageSquareText } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -65,6 +65,7 @@ export default function MobileItem({
           'min-w-0 cursor-pointer gap-0 overflow-hidden rounded-xl p-3 py-3 shadow-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           status === 'inactive' && 'bg-muted/30 opacity-75',
           status === 'expired' && 'border-red-200 dark:border-red-900',
+          status === 'archived' && 'bg-muted/40 opacity-75',
         )}
         onClick={event => handleOpen(event.currentTarget)}
         onKeyDown={(event) => {
@@ -128,6 +129,10 @@ export default function MobileItem({
           <span className="inline-flex items-center gap-1">
             <Eye className="size-3" />
             {share.view_count}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <MessageSquareText className="size-3" />
+            {share.allowComments ? '允许评论' : '仅查看'}
           </span>
         </div>
       </Card>

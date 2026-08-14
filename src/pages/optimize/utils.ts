@@ -2,7 +2,7 @@ import type { AnalysisAction, AnalysisState, AnalysisStatus, StepConfig, ValueTy
 import type { AutomergeResumeDocument } from '@/lib/automerge'
 import type { ResumeSchema } from '@/lib/schema'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
-import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_WORK_EXPERIENCE } from '@/lib/schema'
+import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_WORK_EXPERIENCE, normalizeResumeFormData } from '@/lib/schema'
 import { getResumeById } from '@/lib/supabase/resume'
 import { ANALYSIS_INITIAL_STATE, ANALYSIS_STATUS_ORDER, FIELD_LABEL_MAP, PREVIEW_RENDERER_MAP } from './const'
 
@@ -30,7 +30,7 @@ function mapDocToResumeSchema(doc: Partial<AutomergeResumeDocument> | null | und
     return sanitizeDeep(val as T)
   }
 
-  return {
+  return normalizeResumeFormData({
     basics: getVal('basics', DEFAULT_BASICS),
     job_intent: getVal('job_intent', DEFAULT_JOB_INTENT, 'jobIntent'),
     application_info: getVal('application_info', DEFAULT_APPLICATION_INFO, 'applicationInfo'),
@@ -43,7 +43,7 @@ function mapDocToResumeSchema(doc: Partial<AutomergeResumeDocument> | null | und
     honors_certificates: getVal('honors_certificates', DEFAULT_HONORS_CERTIFICATES, 'honorsCertificates'),
     self_evaluation: getVal('self_evaluation', DEFAULT_SELF_EVALUATION, 'selfEvaluation'),
     hobbies: getVal('hobbies', DEFAULT_HOBBIES),
-  } as ResumeSchema
+  })
 }
 
 export async function fetchResumeDataForAnalysis(id: string, isOffline: boolean): Promise<ResumeSchema> {

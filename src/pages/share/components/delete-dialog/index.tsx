@@ -56,7 +56,7 @@ export default function DeleteDialog() {
           <AlertDialogDescription>
             删除「
             {renderedShare?.label || '未命名链接'}
-            」后链接立即失效，访问记录无法恢复。
+            」后，全部发布批次、访问记录和评论都会永久删除且无法恢复。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

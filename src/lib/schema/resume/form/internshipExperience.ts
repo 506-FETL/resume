@@ -15,15 +15,15 @@ export type InternshipInfo = z.infer<typeof internshipInfo>
 
 const internshipExperienceFields = { companyName, position, internshipDuration, internshipInfo }
 
-export type InternshipExperienceItem = z.infer<z.ZodObject<typeof internshipExperienceFields>>
-
 export const internshipExperienceFormSchema = createExperienceSchema(internshipExperienceFields)
 
 export type InternshipExperienceFormType = z.infer<typeof internshipExperienceFormSchema>
+export type InternshipExperienceItem = InternshipExperienceFormType['items'][number]
 
 export const DEFAULT_INTERNSHIP_EXPERIENCE: InternshipExperienceFormType = {
   items: [
     {
+      entryId: 'default_internship_experience_1',
       companyName: '',
       position: '',
       internshipDuration: ['', ''],

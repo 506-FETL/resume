@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { PRESET_SKILLS, PROFICIENCY_PERCENTAGE_MAP, skillSpecialtyFormSchema } from '@/lib/schema/resume/form/skillSpecialty'
 import { cn } from '@/lib/utils'
 import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
@@ -53,6 +54,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
     }
     else {
       append({
+        entryId: createResumeEntryId(),
         label: skillLabel,
         proficiencyLevel: '熟练',
         displayType: 'percentage',
@@ -79,6 +81,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
     }
 
     append({
+      entryId: createResumeEntryId(),
       label: trimmedLabel,
       proficiencyLevel: '熟练',
       displayType: 'percentage',

@@ -1,5 +1,5 @@
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { RuntimeRichText, RuntimeSection } from './shared'
+import { buildCommentNodeKey, CommentableRichText, CommentableText, RuntimeSection } from './shared'
 import { useRuntimeStyles } from './utils'
 
 export default function SkillsRenderer() {
@@ -12,15 +12,21 @@ export default function SkillsRenderer() {
 
   return (
     <RuntimeSection title="技能特长">
-      {skill_specialty.description ? <RuntimeRichText html={skill_specialty.description} /> : null}
+      {skill_specialty.description
+        ? (
+            <CommentableRichText
+              nodeKey={buildCommentNodeKey('skill_specialty', 'singleton', 'description')}
+              fieldLabel="技能描述"
+              html={skill_specialty.description}
+            />
+          )
+        : null}
       {skill_specialty.skills.length > 0
         ? (
             <div className="flex flex-wrap gap-2">
-              {skill_specialty.skills.map((skill, index) => (
+              {skill_specialty.skills.map(skill => (
                 <span
-                  // 空/重复技能项无稳定唯一内容，用 index 保证 key 唯一（避免 undefined-undefined 重复 key）
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={`${skill.label}-${skill.proficiencyLevel}-${index}`}
+                  key={skill.entryId}
                   className="rounded-full border px-2 py-1"
                   style={{
                     fontSize: font.smallSize,
@@ -28,11 +34,10 @@ export default function SkillsRenderer() {
                     borderColor: theme.primaryColor,
                   }}
                 >
-                  {skill.label}
-                  {' '}
-                  ·
-                  {' '}
-                  {skill.proficiencyLevel}
+                  <CommentableText
+                    nodeKey={buildCommentNodeKey('skill_specialty', skill.entryId, 'skill')}
+                    fieldLabel="技能"
+                  />
                 </span>
               ))}
             </div>

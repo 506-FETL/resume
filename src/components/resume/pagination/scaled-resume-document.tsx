@@ -89,6 +89,7 @@ export default function ScaledResumeDocument({
         >
           <div
             ref={setCanvas}
+            data-resume-scale={scale}
             className="absolute left-0 top-0 origin-top-left"
             style={{
               transform: `scale(${scale})`,
@@ -102,6 +103,7 @@ export default function ScaledResumeDocument({
               documentRef={documentRef}
               sourceRef={sourceRef}
               onStateChange={onStateChange}
+              commentOverlayRoot
             >
               {children}
             </CanonicalPagedDocument>

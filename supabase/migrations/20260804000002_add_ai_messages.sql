@@ -16,11 +16,15 @@ CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation_created
 
 ALTER TABLE public.ai_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "ai_messages_select_own" ON public.ai_messages;
 CREATE POLICY "ai_messages_select_own" ON public.ai_messages
   FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ai_messages_insert_own" ON public.ai_messages;
 CREATE POLICY "ai_messages_insert_own" ON public.ai_messages
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ai_messages_update_own" ON public.ai_messages;
 CREATE POLICY "ai_messages_update_own" ON public.ai_messages
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "ai_messages_delete_own" ON public.ai_messages;
 CREATE POLICY "ai_messages_delete_own" ON public.ai_messages
   FOR DELETE USING (auth.uid() = user_id);

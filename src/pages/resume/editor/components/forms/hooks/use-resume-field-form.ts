@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 
 interface UseResumeFieldFormOptions<
   TFieldValues extends FieldValues,
@@ -51,7 +52,10 @@ export function useResumeFieldForm<
 
   function onAddItem() {
     if (defaultItem) {
-      append(defaultItem as any)
+      append({
+        ...defaultItem,
+        entryId: createResumeEntryId(),
+      } as any)
     }
   }
 

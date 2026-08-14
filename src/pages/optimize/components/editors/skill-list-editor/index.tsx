@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { PROFICIENCY_PERCENTAGE_MAP } from '@/lib/schema/resume/form/skillSpecialty'
 import { DISPLAY_TYPES, PRESET_SKILLS, PROFICIENCY_LEVELS } from '../../../const'
 
@@ -24,7 +25,7 @@ function SkillListEditor({ value, onChange }: {
       onChange(value.filter(s => s.label !== label))
     }
     else {
-      onChange([{ label, proficiencyLevel: '熟练', displayType: 'percentage' }, ...value])
+      onChange([{ entryId: createResumeEntryId(), label, proficiencyLevel: '熟练', displayType: 'percentage' }, ...value])
     }
   }
 
@@ -32,7 +33,7 @@ function SkillListEditor({ value, onChange }: {
     const trimmed = customInput.trim()
     if (!trimmed || isSkillAdded(trimmed))
       return
-    onChange([{ label: trimmed, proficiencyLevel: '熟练', displayType: 'percentage' }, ...value])
+    onChange([{ entryId: createResumeEntryId(), label: trimmed, proficiencyLevel: '熟练', displayType: 'percentage' }, ...value])
     setCustomInput('')
   }
 
@@ -110,7 +111,7 @@ function SkillListEditor({ value, onChange }: {
 
                 return (
                   <motion.div
-                    key={`skill-${skill.label}`}
+                    key={skill.entryId}
                     layout
                     initial={{ opacity: 0, height: 0, scale: 0.9 }}
                     animate={{ opacity: 1, height: 'auto', scale: 1 }}

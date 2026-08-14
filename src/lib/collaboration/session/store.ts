@@ -10,7 +10,13 @@ import useResumeStore from '@/store/resume/form'
 import { useRichTextCollabStore } from '../richtext'
 import { createCollaborationSessionId } from '../shared'
 import { createSessionCallbacks } from './callbacks'
-import { enableCollaborationSession } from './service'
+import {
+  enableCollaborationSession,
+  joinCollaborationCommentSession,
+  leaveCollaborationCommentSession,
+  registerCollaborationCommentSession,
+  renewCollaborationCommentSession,
+} from './service'
 import {
   createConnectedSessionState,
   createInitialCollaborationSessionState,
@@ -29,6 +35,22 @@ async function activateSession(
 ) {
   const { get, set } = access
 
+  const commentAuthorization = params.role === 'guest'
+    ? await joinCollaborationCommentSession({
+        sessionId: params.sessionId,
+        resumeId: params.resumeId,
+      }).then(commentAccess => ({
+        commentAccess,
+        commentHostLeaseId: null,
+      }))
+    : await registerCollaborationCommentSession({
+        sessionId: params.sessionId,
+        resumeId: params.resumeId,
+      }).then(registration => ({
+        commentAccess: null,
+        commentHostLeaseId: registration.hostLeaseId,
+      }))
+
   const result = await enableCollaborationSession({
     ...params,
     getState: get,
@@ -36,8 +58,16 @@ async function activateSession(
     createCallbacks: createSessionCallbacks,
     getDocumentManager: () => useResumeStore.getState().docManager,
   })
+    .catch((error) => {
+      leaveCollaborationCommentSession({
+        sessionId: params.sessionId,
+        resumeId: params.resumeId,
+        hostLeaseId: commentAuthorization.commentHostLeaseId ?? undefined,
+      }).catch(() => undefined)
+      throw error
+    })
 
-  set(createConnectedSessionState(result))
+  set(createConnectedSessionState(result, commentAuthorization))
   rememberSessionRole({
     sessionId: result.sessionId,
     resumeId: result.resumeId,
@@ -153,6 +183,14 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
 
     const docManager = useResumeStore.getState().docManager
 
+    if (state.sessionId && state.resumeId) {
+      leaveCollaborationCommentSession({
+        sessionId: state.sessionId,
+        resumeId: state.resumeId,
+        hostLeaseId: state.commentHostLeaseId ?? undefined,
+      }).catch(() => undefined)
+    }
+
     if (state.role === 'host' && state.sessionId && docManager) {
       docManager.broadcastCollaborationEvent('share-ended', { reason: 'host_closed' })
     }
@@ -179,6 +217,22 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
   },
 
+  refreshCommentAccess: async () => {
+    const state = get()
+    if (state.role !== 'guest' || !state.sessionId || !state.resumeId) {
+      throw new Error('当前不处于协作者评论会话')
+    }
+    const commentAccess = await renewCollaborationCommentSession({
+      sessionId: state.sessionId,
+      resumeId: state.resumeId,
+    })
+    if (get().sessionId !== state.sessionId || get().role !== 'guest') {
+      throw new Error('协作会话已切换')
+    }
+    set({ commentAccess })
+    return commentAccess
+  },
+
   handleRemoteShareEnd: () => {
     const state = get()
 
@@ -188,6 +242,13 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
 
     useResumeStore.getState().docManager?.disableCollaboration()
     useRichTextCollabStore.getState().stop()
+
+    if (state.sessionId && state.resumeId) {
+      leaveCollaborationCommentSession({
+        sessionId: state.sessionId,
+        resumeId: state.resumeId,
+      }).catch(() => undefined)
+    }
 
     if (state.sessionId && state.resumeId && state.self) {
       clearStoredSession(state.sessionId, state.resumeId, state.self.userId)

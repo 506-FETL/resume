@@ -40,6 +40,8 @@ export function createInitialCollaborationSessionState(): CollaborationSessionSt
     participants: {},
     error: null,
     self: null,
+    commentAccess: null,
+    commentHostLeaseId: null,
     shareEndedByRemote: false,
   }
 }
@@ -77,7 +79,13 @@ export function removeParticipant(
   return next
 }
 
-export function createConnectedSessionState(result: CollaborationActivationResult): Partial<CollaborationSessionState> {
+export function createConnectedSessionState(
+  result: CollaborationActivationResult,
+  commentAuthorization: Pick<
+    CollaborationSessionState,
+    'commentAccess' | 'commentHostLeaseId'
+  > = { commentAccess: null, commentHostLeaseId: null },
+): Partial<CollaborationSessionState> {
   const selfParticipant = result.self.peerId
     ? createParticipant(result.self.peerId, {
         userId: result.self.userId,
@@ -97,6 +105,7 @@ export function createConnectedSessionState(result: CollaborationActivationResul
     roomName: result.roomName,
     participants: selfParticipant ? { [selfParticipant.peerId]: selfParticipant } : {},
     self: result.self,
+    ...commentAuthorization,
     error: null,
     shareEndedByRemote: false,
   }
@@ -116,6 +125,8 @@ export function createStoppedSessionState(
     participants: {},
     error: null,
     self: null,
+    commentAccess: null,
+    commentHostLeaseId: null,
     shareEndedByRemote: false,
     ...overrides,
   }

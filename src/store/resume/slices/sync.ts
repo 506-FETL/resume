@@ -1,9 +1,12 @@
 import type { StoreApi } from 'zustand'
 import type { ResumeState } from '../form'
+import { notifyWorkingDocumentPersisted } from '@/features/resume-comments/api/working-document-sync.ts'
 import { isOfflineResumeId, updateOfflineResume } from '@/lib/offline-resume-manager'
+import { hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { updateResumeConfig } from '@/lib/supabase/resume'
 import { getTimestamp } from '@/utils/date'
 import useCurrentResumeStore from '../current'
+import { mapSourceToPersistedSnapshot } from '../helpers'
 import { buildResumeConfigPayload, clearSyncTimers, getPersistedSnapshot } from '../helpers/sync-service'
 
 export interface SyncSlice {
@@ -69,20 +72,23 @@ export function createSyncSlice(
         await state.docManager.saveToSupabase(state.docHandle)
         // 使用 Automerge 文档冲突解决后的最终内容同步到 resume_config
         const resolvedDoc = state.docHandle?.doc()
-        if (resolvedDoc) {
-          await updateResumeConfig(resumeId, buildResumeConfigPayload(state, resolvedDoc))
-        }
-        else {
+        const persistedPayload = resolvedDoc
+          ? buildResumeConfigPayload(state, resolvedDoc)
           // 降级：如果无法获取 Automerge 文档，使用本地状态
-          await updateResumeConfig(resumeId, buildResumeConfigPayload(state))
-        }
+          : buildResumeConfigPayload(state)
+        await updateResumeConfig(resumeId, persistedPayload)
         set({
           isSyncing: false,
           pendingChanges: false,
           syncError: null,
           lastSyncTime: getTimestamp(),
           appearanceDirty: false,
+          entryIdMigrationReady: hasCompleteResumeEntryIds(resolvedDoc ?? state),
         })
+        await notifyWorkingDocumentPersisted(
+          resumeId,
+          mapSourceToPersistedSnapshot(persistedPayload),
+        )
       }
       catch (error) {
         set({

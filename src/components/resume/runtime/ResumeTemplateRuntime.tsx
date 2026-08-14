@@ -30,10 +30,12 @@ export function ResumeTemplateRuntime({
   data,
   manifest,
   appearance,
+  projectionReferenceDate = new Date().toISOString().slice(0, 10),
 }: {
   data: TemplateResumeData
   manifest: TemplateManifest
   appearance?: Partial<ResumeAppearanceConfig> | null
+  projectionReferenceDate?: string
 }) {
   const resolvedManifest = resolveTemplateManifest(manifest)
   const layout = layoutSkeletonRegistry[resolvedManifest.layout.skeleton]
@@ -80,6 +82,7 @@ export function ResumeTemplateRuntime({
       data={data}
       appearance={appearance}
       layout={resolvedManifest.layout}
+      projectionReferenceDate={projectionReferenceDate}
     >
       {layout({
         manifest: resolvedManifest,

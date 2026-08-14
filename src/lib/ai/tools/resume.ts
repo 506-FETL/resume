@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import { resumeSchema } from '@/lib/schema'
+import { normalizeResumeSection, resumeSchema } from '@/lib/schema'
 import { getAllResumesFromUser, getResumeById } from '@/lib/supabase/resume'
 import { applyResumeFieldToDocument, FORM_DATA_KEYS, useCurrentResumeStore, useResumeStore } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
@@ -106,7 +106,8 @@ registerTool({
       return { error: `value 必须是【${SECTION_LABELS[sectionKey] ?? sectionKey}】模块的内容对象` }
 
     const merged = { ...(before as Record<string, unknown> | null ?? {}), ...(rawValue as Record<string, unknown>) }
-    const parsed = resumeSchema.shape[sectionKey].safeParse(merged)
+    const normalized = normalizeResumeSection(sectionKey, merged)
+    const parsed = resumeSchema.shape[sectionKey].safeParse(normalized)
     if (!parsed.success) {
       return {
         error: `写入【${SECTION_LABELS[sectionKey] ?? sectionKey}】的数据不符合该模块的字段结构约束，已拒绝写入：${formatSectionIssues(parsed.error)}。请先用 get_resume_detail 查看该模块的现有结构，再严格按相同结构重新提供 value。`,

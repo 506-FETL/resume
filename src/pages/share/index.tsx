@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
+import ArchiveDialog from './components/archive-dialog'
 import Content from './components/content'
 import DeleteDialog from './components/delete-dialog'
 import Header from './components/header'
@@ -26,6 +27,7 @@ export default function Management() {
       <Header />
       <Toolbar />
       <Content />
+      <ArchiveDialog />
       <SettingsDialog />
       <DeleteDialog />
       <VersionDialog getCurrentSnapshot={getResumeSnapshotById} />

@@ -13,7 +13,9 @@ import * as React from 'react'
  * @returns 当前视口是否小于断点宽度
  */
 export function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState(() => (
+    typeof window !== 'undefined' && window.innerWidth < breakpoint
+  ))
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`)
@@ -25,5 +27,5 @@ export function useIsMobile(breakpoint = 768) {
     return () => mql.removeEventListener('change', onChange)
   }, [breakpoint])
 
-  return !!isMobile
+  return isMobile
 }

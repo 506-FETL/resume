@@ -2,6 +2,16 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../shared/cors.ts'
+import {
+  derivePasswordGeneration,
+  signCommentToken,
+} from '../shared/resume-comment-auth.ts'
+import { buildCommentAnchorDocument } from '../shared/resume-comment-core.ts'
+import {
+  broadcastCommentInvalidation,
+  deriveOwnerRealtimeTopic,
+  deriveScopeRealtimeTopic,
+} from '../shared/resume-comment-events.ts'
 
 const PASSWORD_ALGORITHM = 'pbkdf2-sha256'
 const PASSWORD_ITERATIONS = 310_000
@@ -20,7 +30,49 @@ interface GetResult {
   snapshot?: unknown
   template_manifest?: unknown
   display_name?: string | null
+  share_id?: string
+  release_id?: string
+  release_no?: number
+  version_id?: number
+  document_revision?: number
+  allow_comments?: boolean
+  projection_reference_date?: string
+  comment_scope_id?: string
+  comment_access_token?: string
+  comment_access_expires_at?: string
   error?: string
+}
+
+interface CurrentReleaseRow {
+  id: string
+  release_no: number
+  snapshot: unknown
+  template_manifest: unknown
+  display_name: string | null
+  created_at: string
+}
+
+interface SharedVersionRow {
+  id: number
+  resume_id: string
+  user_id: string
+  snapshot: unknown
+  status: 'active' | 'frozen'
+  document_revision: number
+  projection_reference_date: string
+}
+
+function createAdminClient(url: string, serviceRoleKey: string) {
+  return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+type AdminClient = ReturnType<typeof createAdminClient>
+
+function readCurrentRelease(value: unknown): CurrentReleaseRow | null {
+  const release = (Array.isArray(value) ? value[0] : value) as CurrentReleaseRow | null
+  return release?.id && Number.isInteger(release.release_no) ? release : null
 }
 
 function json(body: unknown, status = 200) {
@@ -130,7 +182,7 @@ async function verifyPassword(password: string, storedHash: string) {
 
 async function authenticateOwner(
   req: Request,
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
 ) {
   const authHeader = req.headers.get('Authorization') ?? ''
   const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
@@ -141,7 +193,7 @@ async function authenticateOwner(
 }
 
 async function verifyShareOwnership(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   shareId: string,
   userId: string,
 ) {
@@ -155,7 +207,7 @@ async function verifyShareOwnership(
 }
 
 async function consumeOwnerWriteLimit(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   userId: string,
 ) {
   const { data, error } = await admin.rpc('consume_resume_share_owner_write', {
@@ -165,6 +217,106 @@ async function consumeOwnerWriteLimit(
     p_block_seconds: 60,
   })
   return !error && Boolean(data)
+}
+
+async function ensureShareCommentScope(
+  admin: AdminClient,
+  version: SharedVersionRow,
+) {
+  const { data: existing, error: existingError } = await admin
+    .from('resume_comment_scopes')
+    .select('id,projection_reference_date')
+    .eq('kind', 'version')
+    .eq('version_id', version.id)
+    .is('archived_at', null)
+    .maybeSingle()
+  if (existingError) {
+    throw existingError
+  }
+  if (existing?.id) {
+    return {
+      id: existing.id as string,
+      projectionReferenceDate: String(existing.projection_reference_date),
+    }
+  }
+
+  const referenceDate = version.projection_reference_date
+  const { document, documentHash } = buildCommentAnchorDocument(
+    version.snapshot,
+    referenceDate,
+  )
+  const { data, error } = await admin.rpc('ensure_resume_version_comment_scope', {
+    p_owner_user_id: version.user_id,
+    p_version_id: version.id,
+    p_anchor_document: document,
+    p_document_hash: documentHash,
+    p_projection_reference_date: referenceDate,
+  })
+  if (error || typeof data !== 'string')
+    throw error ?? new Error('Unable to ensure version comment scope')
+  return { id: data, projectionReferenceDate: referenceDate }
+}
+
+async function notifyShareCommentSettings({
+  admin,
+  shareId,
+  userId,
+  allowComments,
+  realtimeSecret,
+}: {
+  admin: AdminClient
+  shareId: string
+  userId: string
+  allowComments: boolean
+  realtimeSecret: string
+}) {
+  const { data: share, error: shareError } = await admin
+    .from('resume_shares')
+    .select('current_release_id,version_id')
+    .eq('id', shareId)
+    .eq('user_id', userId)
+    .single()
+  if (shareError || !share.current_release_id || !share.version_id)
+    throw shareError ?? new Error('Current share release not found')
+
+  const { data: scope, error: scopeError } = await admin
+    .from('resume_comment_scopes')
+    .select('id')
+    .eq('kind', 'version')
+    .eq('version_id', share.version_id)
+    .is('archived_at', null)
+    .single()
+  if (scopeError)
+    throw scopeError
+
+  const { data: eventSeqValue, error: eventError } = await admin.rpc(
+    'append_resume_comment_event',
+    {
+      p_scope_id: scope.id,
+      p_thread_id: null,
+      p_type: 'settings_changed',
+      p_actor_kind: 'user',
+      p_actor_id: userId,
+      p_payload: { allowComments },
+    },
+  )
+  if (eventError)
+    throw eventError
+
+  const topics = await Promise.all([
+    deriveScopeRealtimeTopic({
+      scopeId: scope.id,
+      versionId: share.version_id,
+      secret: realtimeSecret,
+    }),
+    deriveOwnerRealtimeTopic({ userId, secret: realtimeSecret }),
+  ])
+  await broadcastCommentInvalidation({
+    admin,
+    topics: topics.map(item => item.topic),
+    eventSeq: Number(eventSeqValue),
+    type: 'settings_changed',
+  })
 }
 
 Deno.serve(async (req) => {
@@ -180,9 +332,7 @@ Deno.serve(async (req) => {
   if (!supabaseUrl || !serviceRoleKey) {
     return json({ error: 'service credentials not configured' }, 500)
   }
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  const admin = createAdminClient(supabaseUrl, serviceRoleKey)
 
   try {
     // ============ 匿名读取：GET ?token / POST { token, password }（读取意图） ============
@@ -195,6 +345,8 @@ Deno.serve(async (req) => {
     let shareId: string | null = null
     let label: string | null = null
     let expiresAt: string | null = null
+    let allowComments: boolean | undefined
+    let refreshOnly = false
 
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({})) as Record<string, unknown>
@@ -212,6 +364,9 @@ Deno.serve(async (req) => {
         label = body.label
       if (typeof body.expiresAt === 'string')
         expiresAt = body.expiresAt
+      if (typeof body.allowComments === 'boolean')
+        allowComments = body.allowComments
+      refreshOnly = body.refresh === true
     }
 
     // ============ owner 密码写入分支 ============
@@ -275,6 +430,7 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = {
         label,
         expires_at: expiresAt,
+        ...(allowComments === undefined ? {} : { allow_comments: allowComments }),
       }
       if (passwordProvided) {
         try {
@@ -300,6 +456,26 @@ Deno.serve(async (req) => {
       }
       if (!count)
         return json({ error: 'not_found' }, 404)
+      if (allowComments !== undefined) {
+        const realtimeSecret = Deno.env.get('RESUME_COMMENT_REALTIME_SECRET')
+          ?? Deno.env.get('RESUME_COMMENT_TOKEN_SECRET')
+          ?? serviceRoleKey
+        try {
+          await notifyShareCommentSettings({
+            admin,
+            shareId,
+            userId,
+            allowComments,
+            realtimeSecret,
+          })
+        }
+        catch (notifyError) {
+          console.error('notify_comment_settings_failed', {
+            shareId,
+            message: notifyError instanceof Error ? notifyError.message : 'unknown',
+          })
+        }
+      }
       return json({ ok: true })
     }
 
@@ -309,15 +485,48 @@ Deno.serve(async (req) => {
 
     const { data, error } = await admin
       .from('resume_shares')
-      .select('id, snapshot, template_manifest, display_name, is_active, password_hash, expires_at')
+      .select(`
+        id,
+        is_active,
+        password_hash,
+        expires_at,
+        archived_at,
+        allow_comments,
+        version_id,
+        current_release_id,
+        version:resume_config_versions!resume_shares_version_id_fkey(
+          id,
+          resume_id,
+          user_id,
+          snapshot,
+          status,
+          document_revision,
+          projection_reference_date
+        ),
+        current_release:resume_share_releases!resume_shares_current_release_id_fkey(
+          id,
+          release_no,
+          snapshot,
+          template_manifest,
+          display_name,
+          created_at
+        )
+      `)
       .eq('token', token)
       .maybeSingle()
 
     if (error || !data)
       return unavailable()
-    if (!data.is_active)
+    if (!data.is_active || data.archived_at)
       return unavailable()
     if (data.expires_at && new Date(data.expires_at).getTime() < Date.now())
+      return unavailable()
+
+    const currentRelease = readCurrentRelease(data.current_release)
+    if (!currentRelease || currentRelease.id !== data.current_release_id)
+      return unavailable()
+    const version = (Array.isArray(data.version) ? data.version[0] : data.version) as SharedVersionRow | null
+    if (!version || version.id !== data.version_id)
       return unavailable()
 
     if (data.password_hash) {
@@ -375,17 +584,49 @@ Deno.serve(async (req) => {
     }
 
     // 校验通过后原子记录访问；统计失败不阻断简历查看。
-    const { error: viewError } = await admin.rpc('record_resume_share_view', {
-      p_share_id: data.id,
-    })
-    if (viewError)
-      console.error('record_resume_share_view failed:', viewError.message)
+    if (!refreshOnly) {
+      const { error: viewError } = await admin.rpc('record_resume_share_view', {
+        p_share_id: data.id,
+      })
+      if (viewError)
+        console.error('record_resume_share_view failed:', viewError.message)
+    }
+
+    const commentTokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
+    const commentScope = await ensureShareCommentScope(admin, version)
+    const issuedAt = Math.floor(Date.now() / 1_000)
+    const expiresAtSeconds = issuedAt + 15 * 60
+    const passwordGeneration = await derivePasswordGeneration(
+      data.password_hash,
+      commentTokenSecret,
+    )
+    const commentAccessToken = await signCommentToken({
+      version: 1,
+      kind: 'share',
+      issuedAt,
+      expiresAt: expiresAtSeconds,
+      shareId: data.id,
+      versionId: version.id,
+      releaseId: currentRelease.id,
+      scopeId: commentScope.id,
+      passwordGeneration,
+    }, commentTokenSecret)
 
     // 匿名读取只返回固化快照、模板与标题，绝不返回 password_hash / user_id 等敏感字段。
     return json({
-      snapshot: data.snapshot,
-      template_manifest: data.template_manifest,
-      display_name: data.display_name,
+      snapshot: version.snapshot,
+      template_manifest: currentRelease.template_manifest,
+      display_name: currentRelease.display_name,
+      share_id: data.id,
+      release_id: currentRelease.id,
+      release_no: currentRelease.release_no,
+      version_id: version.id,
+      document_revision: version.document_revision,
+      allow_comments: data.allow_comments,
+      projection_reference_date: commentScope.projectionReferenceDate,
+      comment_scope_id: commentScope.id,
+      comment_access_token: commentAccessToken,
+      comment_access_expires_at: new Date(expiresAtSeconds * 1_000).toISOString(),
     } satisfies GetResult)
   }
   catch (err) {

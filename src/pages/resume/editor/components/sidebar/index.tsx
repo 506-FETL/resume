@@ -1,10 +1,10 @@
-import type { DropResult } from '@hello-pangea/dnd'
 import type { ORDERType, VisibilityItemsType } from '@/lib/schema'
-import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
+import { Reorder } from 'motion/react'
+import { useMotionReorder } from '@/components/ui/motion-reorder'
 import { SideTabs, SideTabsWrapper, ViewPort } from '@/components/ui/side-tabs'
 import { ITEMS } from '../../const'
 import { FixedTab } from './fixed-tab'
-import { MobileSortDialog } from './mobile-sort-dialog'
+import { MobileSortDrawer } from './mobile-sort-drawer'
 import { SortableTab } from './sortable-tab'
 import { StaticTab } from './static-tab'
 
@@ -22,8 +22,6 @@ interface SidebarEditorProps {
   onToggleVisibility: (id: VisibilityItemsType) => void
 }
 
-const DROPPABLE_ID = 'resume-sidebar-tabs'
-
 export default function SidebarEditor({
   activeTabId,
   order,
@@ -37,18 +35,19 @@ export default function SidebarEditor({
   onUpdateOrder,
   onToggleVisibility,
 }: SidebarEditorProps) {
-  const orderDraggable = order.filter(id => id !== 'basics')
+  const sortableOrder = order.filter(id => id !== 'basics')
   const basicsItem = ITEMS.find(item => item.id === 'basics')!
-
-  const handleDragEnd = (result: DropResult) => {
-    const { source, destination } = result
-    if (!destination || source.index === destination.index)
-      return
-    const next = [...orderDraggable]
-    const [moved] = next.splice(source.index, 1)
-    next.splice(destination.index, 0, moved)
-    onUpdateOrder(['basics', ...next])
-  }
+  const {
+    draft,
+    setDraft,
+    startDragging,
+    finishDragging,
+    moveByKeyboard,
+  } = useMotionReorder({
+    values: sortableOrder,
+    axis: 'x',
+    onCommit: next => onUpdateOrder(['basics', ...next]),
+  })
 
   const renderBasics = () => (
     <FixedTab
@@ -68,7 +67,7 @@ export default function SidebarEditor({
         ? (
             <SideTabs>
               {renderBasics()}
-              {orderDraggable.map((id) => {
+              {sortableOrder.map((id) => {
                 const item = ITEMS.find(it => it.id === id)!
                 const visibilityKey = item.id as VisibilityItemsType
                 return (
@@ -88,51 +87,43 @@ export default function SidebarEditor({
             </SideTabs>
           )
         : (
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <SideTabs>
-                {renderBasics()}
-                <Droppable droppableId={DROPPABLE_ID} direction="horizontal">
-                  {droppable => (
-                    <div
-                      ref={droppable.innerRef}
-                      {...droppable.droppableProps}
-                      className="flex flex-row gap-3"
-                    >
-                      {orderDraggable.map((id, index) => {
-                        const item = ITEMS.find(it => it.id === id)!
-                        const visibilityKey = item.id as VisibilityItemsType
-                        return (
-                          <Draggable key={id} draggableId={id} index={index}>
-                            {(draggable, snapshot) => (
-                              <SortableTab
-                                id={visibilityKey}
-                                label={item.label}
-                                icon={item.icon}
-                                visible={!visibilityState[visibilityKey]}
-                                active={activeTabId === item.id}
-                                isDragging={snapshot.isDragging}
-                                innerRef={draggable.innerRef}
-                                draggableProps={draggable.draggableProps}
-                                dragHandleProps={draggable.dragHandleProps}
-                                onActivate={() => onUpdateActiveTabId(item.id)}
-                                onToggleVisibility={() => onToggleVisibility(visibilityKey)}
-                              />
-                            )}
-                          </Draggable>
-                        )
-                      })}
-                      {droppable.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </SideTabs>
-            </DragDropContext>
+            <SideTabs>
+              {renderBasics()}
+              <Reorder.Group
+                as="div"
+                axis="x"
+                values={draft}
+                onReorder={setDraft}
+                layoutScroll
+                className="flex flex-row gap-3"
+              >
+                {draft.map((id) => {
+                  const item = ITEMS.find(it => it.id === id)!
+                  const visibilityKey = item.id as VisibilityItemsType
+                  return (
+                    <SortableTab
+                      key={id}
+                      id={visibilityKey}
+                      label={item.label}
+                      icon={item.icon}
+                      visible={!visibilityState[visibilityKey]}
+                      active={activeTabId === item.id}
+                      onActivate={() => onUpdateActiveTabId(item.id)}
+                      onToggleVisibility={() => onToggleVisibility(visibilityKey)}
+                      onDragStart={startDragging}
+                      onDragEnd={finishDragging}
+                      onKeyboardMove={moveByKeyboard}
+                    />
+                  )
+                })}
+              </Reorder.Group>
+            </SideTabs>
           )}
 
       <ViewPort items={ITEMS} fill={fill} stroke={stroke} />
 
       {isMobile && (
-        <MobileSortDialog
+        <MobileSortDrawer
           open={sortDialogOpen}
           order={order}
           onOpenChange={onSortDialogOpenChange}

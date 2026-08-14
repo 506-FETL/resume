@@ -95,11 +95,12 @@ export default function Toolbar() {
         </PopoverContent>
       </Popover>
       <Tabs value={statusFilter} onValueChange={value => setStatusFilter(value as ShareStatusFilter)}>
-        <TabsList className="grid w-full grid-cols-4 sm:w-auto">
+        <TabsList className="grid w-full grid-cols-5 sm:w-auto">
           <TabsTrigger value="all">全部</TabsTrigger>
           <TabsTrigger value="active">有效</TabsTrigger>
           <TabsTrigger value="inactive">关闭</TabsTrigger>
           <TabsTrigger value="expired">过期</TabsTrigger>
+          <TabsTrigger value="archived">归档</TabsTrigger>
         </TabsList>
       </Tabs>
     </div>

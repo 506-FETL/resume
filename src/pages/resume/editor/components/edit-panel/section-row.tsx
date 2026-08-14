@@ -1,9 +1,7 @@
-import type { DraggableProvidedDraggableProps, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd'
-import type { ReactNode, Ref } from 'react'
+import type { PointerEventHandler, ReactNode } from 'react'
 import type { ORDERType } from '@/lib/schema'
 import { ChevronDown, GripVertical } from 'lucide-react'
 import { Accordion as AccordionPrimitive } from 'radix-ui'
-import { createPortal } from 'react-dom'
 import { AccordionContent, AccordionItem } from '@/components/ui/accordion'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -18,9 +16,8 @@ interface SectionRowProps {
   /** basics 固定置顶：无拖拽柄、无显隐开关 */
   fixed?: boolean
   isDragging?: boolean
-  innerRef?: Ref<HTMLDivElement>
-  draggableProps?: DraggableProvidedDraggableProps
-  dragHandleProps?: DraggableProvidedDragHandleProps | null
+  onDragHandlePointerDown?: PointerEventHandler<HTMLSpanElement>
+  onKeyboardMove?: (direction: -1 | 1) => void
   onToggleVisibility?: () => void
 }
 
@@ -28,9 +25,8 @@ interface SectionRowProps {
  * 编辑区单行：卡片式折叠项。表头为「拖拽柄 + 图标 + 名称 + 展开箭头 + 显隐开关」，
  * 点表头就地展开该模块表单。直接组合 radix 原语以获得整行布局控制（不改 ui/accordion 原语）。
  *
- * 拖拽中：整行 createPortal 到 body（脱离面板滚动容器裁剪、层级正确，复用 sortable-tab 思路），
- * 并省略 AccordionContent —— 展开态被拖动时只拖动紧凑表头卡片，而非整块长表单。
- * 外层 div（承载 innerRef/draggableProps）始终稳定，仅表单 body 在拖拽期间短暂卸载，落下后从 store 重新填充。
+ * 拖拽中由外层 Motion Reorder.Item 提升层级，并省略 AccordionContent；
+ * 展开态被拖动时只移动紧凑表头卡片，落下后从 store 恢复表单内容。
  */
 export function SectionRow({
   id,
@@ -40,15 +36,12 @@ export function SectionRow({
   visible,
   fixed = false,
   isDragging = false,
-  innerRef,
-  draggableProps,
-  dragHandleProps,
+  onDragHandlePointerDown,
+  onKeyboardMove,
   onToggleVisibility,
 }: SectionRowProps) {
-  const row = (
+  return (
     <div
-      ref={innerRef}
-      {...draggableProps}
       className={cn(
         'rounded-lg border bg-card transition-shadow',
         isDragging && 'shadow-lg ring-1 ring-primary/20',
@@ -60,10 +53,22 @@ export function SectionRow({
           {!fixed
             ? (
                 <span
-                  {...dragHandleProps}
-                  onPointerDownCapture={e => e.stopPropagation()}
-                  className="shrink-0 cursor-grab rounded p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                  role="button"
+                  tabIndex={0}
+                  onPointerDown={(event) => {
+                    event.stopPropagation()
+                    onDragHandlePointerDown?.(event)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      onKeyboardMove?.(event.key === 'ArrowUp' ? -1 : 1)
+                    }
+                  }}
+                  className="touch-none shrink-0 cursor-grab rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
                   aria-label={`拖动「${label}」模块调整顺序`}
+                  aria-keyshortcuts="ArrowUp ArrowDown"
                 >
                   <GripVertical className="size-4" />
                 </span>
@@ -104,10 +109,4 @@ export function SectionRow({
       </AccordionItem>
     </div>
   )
-
-  // 拖拽中：portal 到 body，避免被面板滚动容器裁剪、层级压制（复用 sortable-tab 思路）
-  if (isDragging && typeof document !== 'undefined')
-    return createPortal(row, document.body)
-
-  return row
 }

@@ -14,6 +14,7 @@ interface CanonicalPagedDocumentProps {
   documentRef?: Ref<HTMLDivElement>
   sourceRef?: Ref<HTMLDivElement>
   onStateChange?: ResumeDocumentStateChange
+  commentOverlayRoot?: boolean
 }
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
@@ -32,6 +33,7 @@ export default function CanonicalPagedDocument({
   documentRef,
   sourceRef,
   onStateChange,
+  commentOverlayRoot = false,
 }: PropsWithChildren<CanonicalPagedDocumentProps>) {
   const { appearance: resolvedAppearance, font } = useResumeStyles(appearance)
   const pageMargin = resolvedAppearance.spacing.pageMargin
@@ -90,7 +92,8 @@ export default function CanonicalPagedDocument({
 
   const measurementSource = (
     <div
-      aria-hidden
+      aria-hidden="true"
+      data-resume-measurement-source="true"
       className="pointer-events-none fixed top-0 opacity-0"
       style={{
         left: '-100000px',
@@ -117,7 +120,7 @@ export default function CanonicalPagedDocument({
         >
           <div
             ref={handleSourceRef}
-            data-resume-source
+            data-resume-source="true"
             style={{
               fontFamily: font.fontFamily,
               fontSynthesis: 'none',
@@ -147,6 +150,8 @@ export default function CanonicalPagedDocument({
           <div
             key={`${segment.startKey}-${segment.endKey}`}
             data-resume-page
+            data-resume-page-index={index}
+            data-comment-page-visibility="visible"
             className="mx-auto overflow-hidden rounded-md border bg-white shadow-md"
             style={{
               width: A4_PAGE_WIDTH,
@@ -191,6 +196,16 @@ export default function CanonicalPagedDocument({
                 </div>
               </div>
             </div>
+            {commentOverlayRoot
+              ? (
+                  <div
+                    aria-hidden="true"
+                    data-comment-overlay-root
+                    data-resume-comment-ui
+                    className="pointer-events-none absolute inset-0"
+                  />
+                )
+              : null}
           </div>
         ))}
       </div>

@@ -8,6 +8,7 @@ export interface SettingsPayload {
   label: string | null
   expiresAt: string | null
   password: string | null | undefined
+  allowComments: boolean
 }
 
 export interface VersionOptionsEntry {
@@ -50,6 +51,7 @@ export interface ShareDataSlice {
     shareId: string,
     release: ResolvedResumeShareRelease,
   ) => Promise<void>
+  archive: (shareId: string) => Promise<void>
   remove: (shareId: string) => Promise<void>
 }
 
@@ -61,6 +63,8 @@ export interface ShareUiSlice {
   statusFilter: ShareStatusFilter
   settingsDialogOpen: boolean
   settingsShareId: string | null
+  archiveDialogOpen: boolean
+  archiveShareId: string | null
   deleteDialogOpen: boolean
   deleteShareId: string | null
   versionDialogOpen: boolean
@@ -73,6 +77,8 @@ export interface ShareUiSlice {
   setStatusFilter: (value: ShareStatusFilter) => void
   openSettingsDialog: (shareId: string) => void
   closeSettingsDialog: () => void
+  openArchiveDialog: (shareId: string) => void
+  closeArchiveDialog: () => void
   openDeleteDialog: (shareId: string) => void
   closeDeleteDialog: () => void
   openVersionDialog: (shareId: string) => void

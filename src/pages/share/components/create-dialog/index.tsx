@@ -9,6 +9,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
+import { Switch } from '@/components/ui/switch'
 import { getResumeSnapshotById, resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import { cn } from '@/lib/utils'
 import useShareStore from '../../store'
@@ -38,6 +39,7 @@ export default function CreateDialog({
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
+  const [allowComments, setAllowComments] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [selection, setSelection] = useState<ShareVersionSelection>({ kind: 'current' })
   const resumes = useMemo(
@@ -58,6 +60,7 @@ export default function CreateDialog({
     setPassword('')
     setShowPassword(false)
     setExpiresAt(undefined)
+    setAllowComments(true)
     setSelection({ kind: 'current' })
   }
 
@@ -76,6 +79,7 @@ export default function CreateDialog({
         label: label.trim() || null,
         password: password.trim() || null,
         expiresAt: dateToExpiryIso(expiresAt),
+        allowComments,
       })
       toast.success('分享链接已生成')
       reset()
@@ -203,6 +207,15 @@ export default function CreateDialog({
           <Field className="min-w-0 sm:col-span-2">
             <FieldLabel>有效期</FieldLabel>
             <DateField value={expiresAt} onChange={setExpiresAt} />
+          </Field>
+          <Field orientation="horizontal" className="min-w-0 rounded-lg border p-3 sm:col-span-2">
+            <FieldLabel htmlFor="new-share-comments">允许访问者评论</FieldLabel>
+            <Switch
+              id="new-share-comments"
+              checked={allowComments}
+              disabled={submitting}
+              onCheckedChange={setAllowComments}
+            />
           </Field>
         </FieldGroup>
 

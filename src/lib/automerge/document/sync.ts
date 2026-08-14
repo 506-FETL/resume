@@ -3,6 +3,8 @@ import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { Suggestion } from '@/lib/schema/ats'
 import { set, toPath } from 'lodash'
 import { toast } from 'sonner'
+import { normalizeResumeFormData } from '@/lib/schema'
+import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches } from '@/lib/schema/resume/entry-id'
 import { getResumeById, updateResumeConfig } from '@/lib/supabase/resume'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { setLeaf } from '@/pages/optimize/utils'
@@ -34,6 +36,12 @@ export async function syncAutomergeDocument(
     validSuggestions.forEach((suggestion) => {
       setLeaf(doc, toPath(suggestion.locate.path), suggestion.after)
     })
+
+    const normalized = normalizeResumeFormData(doc)
+    applyResumeEntryIdPatches(
+      doc,
+      collectMissingResumeEntryIdPatches(doc, normalized),
+    )
   })
 
   await manager.saveToSupabase(handle)
@@ -48,6 +56,12 @@ export async function syncAutomergeDocument(
     validSuggestions.forEach((suggestion) => {
       set(resumeConfig, suggestion.locate.path, suggestion.after)
     })
+
+    const normalized = normalizeResumeFormData(resumeConfig)
+    applyResumeEntryIdPatches(
+      resumeConfig,
+      collectMissingResumeEntryIdPatches(resumeConfig, normalized),
+    )
 
     await updateResumeConfig(resumeId, resumeConfig)
   }
@@ -118,7 +132,7 @@ function pickResumePayload(
   source: Partial<ResumeDocumentSnapshot | AutomergeResumeDocument>,
   fallback: ResumeDocumentSnapshot,
 ): ResumeDocumentSnapshot {
-  return {
+  const payload = {
     basics: cloneResumeValue(source.basics ?? fallback.basics),
     job_intent: cloneResumeValue(source.job_intent ?? fallback.job_intent),
     application_info: cloneResumeValue(source.application_info ?? fallback.application_info),
@@ -137,6 +151,11 @@ function pickResumePayload(
     spacing: cloneResumeValue(source.spacing ?? fallback.spacing),
     font: cloneResumeValue(source.font ?? fallback.font),
     theme: cloneResumeValue(source.theme ?? fallback.theme),
+  }
+
+  return {
+    ...payload,
+    ...normalizeResumeFormData(payload),
   }
 }
 

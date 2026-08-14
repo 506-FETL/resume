@@ -1,6 +1,7 @@
-import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
+import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareReleaseSummary, ResumeShareReviewPayload, ResumeShareReviewRelease, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
+import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
 import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
 import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
 import { FORM_DATA_KEYS, FORM_FIELD_DEFAULTS } from '@/store/resume/const'
@@ -8,31 +9,107 @@ import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { getResumeById, RESUME_PERSISTED_SELECTOR } from './form'
-import { getResumeHistoryVersionForShare } from './history'
+import { getCurrentResumeVersion, getResumeVersionForShare } from './history'
 import { readShareVersionSource, toShareVersionSourcePatch } from './share-version'
 
-const SHARE_SELECT = 'id,resume_id,user_id,token,label,display_name,is_active,has_password,expires_at,view_count,last_viewed_at,created_at,updated_at,source_kind,source_version_id,source_version_no,source_version_label,source_version_created_at'
-
-function toRecord(row: Record<string, any>): ResumeShareRecord {
-  const {
+const SHARE_SELECT = `
+  id,
+  resume_id,
+  user_id,
+  token,
+  label,
+  is_active,
+  has_password,
+  expires_at,
+  view_count,
+  last_viewed_at,
+  created_at,
+  updated_at,
+  current_release_id,
+  allow_comments,
+  archived_at,
+  version_id,
+  version:resume_config_versions!resume_shares_version_id_fkey(
+    id,
+    document_revision,
+    status
+  ),
+  current_release:resume_share_releases!resume_shares_current_release_id_fkey(
+    id,
+    release_no,
+    display_name,
     source_kind,
     source_version_id,
     source_version_no,
     source_version_label,
     source_version_created_at,
+    created_at
+  )
+`
+
+function toReleaseSummary(value: unknown): ResumeShareReleaseSummary {
+  const row = (Array.isArray(value) ? value[0] : value) as Record<string, any> | null
+  if (!row?.id || !Number.isInteger(row.release_no)) {
+    throw new Error('分享链接缺少当前发布批次')
+  }
+
+  return {
+    id: row.id,
+    releaseNo: row.release_no,
+    displayName: row.display_name ?? null,
+    source: readShareVersionSource({
+      source_kind: row.source_kind,
+      source_version_id: row.source_version_id,
+      source_version_no: row.source_version_no,
+      source_version_label: row.source_version_label,
+      source_version_created_at: row.source_version_created_at,
+    }),
+    createdAt: row.created_at,
+  }
+}
+
+function toRecord(row: Record<string, any>): ResumeShareRecord {
+  const {
+    current_release_id,
+    current_release,
+    allow_comments,
+    archived_at,
+    version_id,
+    version,
     ...record
   } = row
+  const currentRelease = toReleaseSummary(current_release)
+  const currentVersion = (Array.isArray(version) ? version[0] : version) as Record<string, any> | null
+  if (current_release_id !== currentRelease.id) {
+    throw new Error('分享链接当前发布批次不一致')
+  }
+  if (!currentVersion || !Number.isSafeInteger(version_id) || currentVersion.id !== version_id) {
+    throw new Error('分享链接缺少有效版本')
+  }
 
   return {
     ...record,
-    source: readShareVersionSource({
-      source_kind,
-      source_version_id,
-      source_version_no,
-      source_version_label,
-      source_version_created_at,
-    }),
+    display_name: currentRelease.displayName,
+    currentReleaseId: current_release_id,
+    currentRelease,
+    versionId: version_id,
+    documentRevision: Number(currentVersion.document_revision ?? 1),
+    allowComments: allow_comments,
+    archivedAt: archived_at ?? null,
+    source: currentRelease.source,
   } as ResumeShareRecord
+}
+
+async function getResumeShareRecord(shareId: string): Promise<ResumeShareRecord> {
+  const { data, error } = await supabase
+    .from('resume_shares')
+    .select(SHARE_SELECT)
+    .eq('id', shareId)
+    .single()
+
+  if (error)
+    throw error
+  return toRecord(data)
 }
 
 function generateToken() {
@@ -103,13 +180,20 @@ export async function resolveResumeShareRelease(input: {
   getCurrentSource: CurrentResumeShareSnapshotProvider
 }): Promise<ResolvedResumeShareRelease> {
   if (input.selection.kind === 'current') {
+    const version = await getCurrentResumeVersion(input.resumeId)
     return {
-      ...await input.getCurrentSource(input.resumeId),
+      ...await buildResumeShareSnapshotSource(
+        mapSourceToPersistedSnapshot(version.snapshot),
+        input.displayName,
+      ),
       source: { kind: 'current' },
+      versionId: version.id,
+      documentRevision: version.document_revision,
+      projectionReferenceDate: version.projection_reference_date,
     }
   }
 
-  const version = await getResumeHistoryVersionForShare(
+  const version = await getResumeVersionForShare(
     input.resumeId,
     input.selection.versionId,
   )
@@ -129,6 +213,9 @@ export async function resolveResumeShareRelease(input: {
         || '未命名版本',
       versionCreatedAt: version.created_at,
     },
+    versionId: input.selection.versionId,
+    documentRevision: version.document_revision,
+    projectionReferenceDate: version.projection_reference_date,
   }
 }
 
@@ -143,6 +230,7 @@ export async function listResumeShares(resumeId: string): Promise<ResumeShareRec
     .select(SHARE_SELECT)
     .eq('user_id', user.id)
     .eq('resume_id', resumeId)
+    .not('current_release_id', 'is', null)
     .order('created_at', { ascending: false })
 
   if (error)
@@ -159,6 +247,7 @@ export async function listAllResumeShares(): Promise<ResumeShareRecord[]> {
     .from('resume_shares')
     .select(SHARE_SELECT)
     .eq('user_id', user.id)
+    .not('current_release_id', 'is', null)
     .order('created_at', { ascending: false })
 
   if (error)
@@ -189,34 +278,36 @@ export async function createResumeShareRelease(
       snapshot: release.snapshot,
       template_manifest: release.templateManifest,
       expires_at: options.expiresAt ?? null,
+      allow_comments: options.allowComments ?? true,
+      version_id: release.versionId,
       ...toShareVersionSourcePatch(release.source),
-      // 带密码时先不激活，密码写成功后再激活，避免残留可匿名访问的无密码记录
-      ...(hasPassword ? { is_active: false } : {}),
+      // 发布批次和密码都就绪前保持关闭，避免公开读取到半初始化记录。
+      is_active: false,
     })
-    .select(SHARE_SELECT)
+    .select('id')
     .single()
 
   if (error)
     throw error
 
-  const record = toRecord(data)
-
-  if (hasPassword) {
-    try {
-      await updateResumeShareSettings(record.id, {
+  try {
+    await publishResumeShareRelease(data.id, release)
+    if (hasPassword) {
+      await updateResumeShareSettings(data.id, {
         label: options.label ?? null,
         expiresAt: options.expiresAt ?? null,
         password: options.password!,
+        allowComments: options.allowComments ?? true,
       })
-      await setResumeShareActive(record.id, true)
-      return { ...record, has_password: true, is_active: true }
     }
-    catch (error) {
-      await deleteResumeShare(record.id).catch(() => undefined)
-      throw error
-    }
+
+    await setResumeShareActive(data.id, true)
+    return getResumeShareRecord(data.id)
   }
-  return record
+  catch (error) {
+    await deleteResumeShare(data.id).catch(() => undefined)
+    throw error
+  }
 }
 
 /** 撤销 / 启用 */
@@ -235,6 +326,7 @@ export async function updateResumeShareSettings(
     label: string | null
     expiresAt: string | null
     password: string | null | undefined
+    allowComments: boolean
   },
 ): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -253,6 +345,7 @@ export async function updateResumeShareSettings(
       shareId,
       label: settings.label,
       expiresAt: settings.expiresAt,
+      allowComments: settings.allowComments,
       ...(settings.password !== undefined ? { password: settings.password } : {}),
     }),
   })
@@ -262,43 +355,130 @@ export async function updateResumeShareSettings(
   }
 }
 
-/** 发布一份完整 release，内容与来源在同一次 UPDATE 中保持一致。 */
+export async function listResumeShareReviewReleases(
+  resumeId: string,
+): Promise<ResumeShareReviewRelease[]> {
+  const user = await getCurrentUser()
+  if (!user)
+    throw new Error('用户未登录')
+
+  const { data, error } = await supabase
+    .from('resume_share_releases')
+    .select(`
+      id,
+      share_id,
+      release_no,
+      display_name,
+      created_at,
+      share:resume_shares!inner(
+        id,
+        resume_id,
+        user_id,
+        label,
+        archived_at,
+        current_release_id
+      )
+    `)
+    .eq('share.resume_id', resumeId)
+    .eq('share.user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error)
+    throw error
+  return (data ?? []).map((row: Record<string, any>) => {
+    const share = (Array.isArray(row.share) ? row.share[0] : row.share) as Record<string, any>
+    return {
+      id: row.id,
+      shareId: row.share_id,
+      releaseNo: row.release_no,
+      shareLabel: share?.label ?? null,
+      displayName: row.display_name ?? null,
+      archivedAt: share?.archived_at ?? null,
+      isCurrent: share?.current_release_id === row.id,
+      createdAt: row.created_at,
+    }
+  })
+}
+
+export async function getResumeShareReleaseForReview(
+  releaseId: string,
+): Promise<ResumeShareReviewPayload> {
+  const { data, error } = await supabase
+    .from('resume_share_releases')
+    .select('snapshot,template_manifest,display_name')
+    .eq('id', releaseId)
+    .single()
+  if (error)
+    throw error
+  return {
+    snapshot: data.snapshot as PersistedResumeSnapshot,
+    templateManifest: data.template_manifest as TemplateManifest,
+    displayName: data.display_name ?? null,
+  }
+}
+
+export async function archiveResumeShare(shareId: string): Promise<void> {
+  const { error } = await supabase.rpc('archive_resume_share', {
+    p_share_id: shareId,
+  })
+  if (error)
+    throw error
+}
+
+/** 原子创建不可变 release，并切换分享链接的 current release 指针。 */
 export async function publishResumeShareRelease(
   shareId: string,
   release: ResolvedResumeShareRelease,
 ): Promise<ResumeShareRecord> {
-  const { data, error } = await supabase
-    .from('resume_shares')
-    .update({
-      snapshot: release.snapshot,
-      template_manifest: release.templateManifest,
-      display_name: release.displayName,
-      ...toShareVersionSourcePatch(release.source),
-    })
-    .eq('id', shareId)
-    .select(SHARE_SELECT)
-    .single()
+  const source = toShareVersionSourcePatch(release.source)
+  const projectionReferenceDate = release.projectionReferenceDate
+  const anchorDocument = buildCommentAnchorDocument(
+    release.snapshot,
+    projectionReferenceDate,
+  )
+  const { error } = await supabase.rpc('publish_resume_share_release', {
+    p_share_id: shareId,
+    p_version_id: release.versionId,
+    p_snapshot: release.snapshot,
+    p_template_manifest: release.templateManifest,
+    p_display_name: release.displayName,
+    p_source_kind: source.source_kind,
+    p_source_version_id: source.source_version_id,
+    p_source_version_no: source.source_version_no,
+    p_source_version_label: source.source_version_label,
+    p_source_version_created_at: source.source_version_created_at,
+    p_anchor_document: anchorDocument.document,
+    p_document_hash: anchorDocument.documentHash,
+    p_projection_reference_date: projectionReferenceDate,
+  })
 
   if (error)
     throw error
-  return toRecord(data)
+  return getResumeShareRecord(shareId)
 }
 
 export async function deleteResumeShare(shareId: string): Promise<void> {
-  const { error } = await supabase
-    .from('resume_shares')
-    .delete()
-    .eq('id', shareId)
+  const { error } = await supabase.rpc('delete_resume_share_permanently', {
+    p_share_id: shareId,
+  })
   if (error)
     throw error
 }
 
 /** 匿名读取分享内容（分享页调用；无需登录） */
-export async function fetchSharedResume(token: string, password?: string): Promise<ShareViewResult> {
+export async function fetchSharedResume(
+  token: string,
+  password?: string,
+  options: { refresh?: boolean } = {},
+): Promise<ShareViewResult> {
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, ...(password ? { password } : {}) }),
+    body: JSON.stringify({
+      token,
+      ...(password ? { password } : {}),
+      ...(options.refresh ? { refresh: true } : {}),
+    }),
   })
 
   const body = await res.json().catch(() => null) as {
@@ -307,6 +487,16 @@ export async function fetchSharedResume(token: string, password?: string): Promi
     snapshot?: PersistedResumeSnapshot
     template_manifest?: TemplateManifest
     display_name?: string | null
+    share_id?: string
+    release_id?: string
+    release_no?: number
+    version_id?: number
+    document_revision?: number
+    allow_comments?: boolean
+    projection_reference_date?: string
+    comment_scope_id?: string
+    comment_access_token?: string
+    comment_access_expires_at?: string
   } | null
 
   if (!body)
@@ -330,5 +520,15 @@ export async function fetchSharedResume(token: string, password?: string): Promi
     snapshot: body.snapshot,
     templateManifest: body.template_manifest,
     displayName: body.display_name ?? null,
+    shareId: body.share_id,
+    releaseId: body.release_id,
+    releaseNo: body.release_no,
+    versionId: body.version_id,
+    documentRevision: body.document_revision,
+    allowComments: body.allow_comments,
+    projectionReferenceDate: body.projection_reference_date,
+    commentScopeId: body.comment_scope_id,
+    commentAccessToken: body.comment_access_token,
+    commentAccessExpiresAt: body.comment_access_expires_at,
   }
 }

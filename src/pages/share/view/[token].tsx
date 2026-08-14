@@ -1,6 +1,9 @@
+import type { RefObject } from 'react'
+import type { ShareCommentAccess } from './hooks/use-share-comment-access'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
+import type { ShareViewResult } from '@/lib/supabase/resume/share.types'
 import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -8,9 +11,14 @@ import { buildTemplateResumeData } from '@/components/resume/runtime/context/res
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark.tsx'
+import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
+import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
+import useCurrentUser from '@/hooks/use-current-user'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { fetchSharedResume } from '@/lib/supabase/resume/share'
 import PdfExport from '../components/pdf-export'
+import { readShareCommentAccess, useShareCommentAccess } from './hooks/use-share-comment-access'
 
 type ViewState
   = | { phase: 'loading' }
@@ -20,6 +28,14 @@ type ViewState
       snapshot: PersistedResumeSnapshot
       templateManifest: TemplateManifest
       displayName: string | null
+      shareId: string
+      releaseId: string
+      releaseNo: number | null
+      versionId: number
+      documentRevision: number
+      allowComments: boolean
+      projectionReferenceDate: string | undefined
+      commentAccess: ShareCommentAccess | null
     }
     | { phase: 'unavailable' }
 
@@ -28,9 +44,12 @@ export default function ResumeSharePage() {
   const reduceMotion = useReducedMotion()
   const [state, setState] = useState<ViewState>({ phase: 'loading' })
   const [password, setPassword] = useState('')
+  const [verifiedPassword, setVerifiedPassword] = useState<string>()
   const [submitting, setSubmitting] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
   const requestIdRef = useRef(0)
   const documentRef = useRef<HTMLDivElement>(null)
+  const currentUser = useCurrentUser()
   const [documentState, setDocumentState] = useState<ResumeDocumentState>({
     status: 'measuring',
     signature: null,
@@ -39,7 +58,58 @@ export default function ResumeSharePage() {
     error: null,
   })
 
-  const load = useCallback(async (nextPassword?: string) => {
+  const applyResult = useCallback((result: ShareViewResult, acceptedPassword?: string) => {
+    if (result.unavailable) {
+      setState({ phase: 'unavailable' })
+      return
+    }
+    if (result.needPassword) {
+      setVerifiedPassword(undefined)
+      setState({
+        phase: 'password',
+        wrong: Boolean(result.wrongPassword),
+        rateLimited: Boolean(result.rateLimited),
+      })
+      return
+    }
+    if (!result.snapshot || !result.templateManifest) {
+      setState({ phase: 'unavailable' })
+      return
+    }
+
+    if (acceptedPassword !== undefined)
+      setVerifiedPassword(acceptedPassword)
+    const releaseId = result.releaseId ?? ''
+    const commentAccess = readShareCommentAccess(result)
+    setState(previous => previous.phase === 'ready' && previous.releaseId === releaseId
+      ? {
+          ...previous,
+          snapshot: result.snapshot!,
+          templateManifest: result.templateManifest!,
+          versionId: result.versionId ?? previous.versionId,
+          documentRevision: result.documentRevision ?? previous.documentRevision,
+          displayName: result.displayName ?? null,
+          allowComments: result.allowComments === true,
+          projectionReferenceDate: result.projectionReferenceDate,
+          commentAccess,
+        }
+      : {
+          phase: 'ready',
+          snapshot: result.snapshot!,
+          templateManifest: result.templateManifest!,
+          displayName: result.displayName ?? null,
+          shareId: result.shareId ?? '',
+          releaseId,
+          releaseNo: result.releaseNo ?? null,
+          versionId: result.versionId ?? 0,
+          documentRevision: result.documentRevision ?? 0,
+          allowComments: result.allowComments === true,
+          projectionReferenceDate: result.projectionReferenceDate,
+          commentAccess,
+        })
+  }, [])
+
+  const load = useCallback(async (nextPassword?: string, refresh = false) => {
     const requestId = ++requestIdRef.current
     if (!token) {
       setState({ phase: 'unavailable' })
@@ -47,30 +117,11 @@ export default function ResumeSharePage() {
     }
 
     try {
-      const result = await fetchSharedResume(token, nextPassword)
+      const result = await fetchSharedResume(token, nextPassword, { refresh })
       if (requestId !== requestIdRef.current)
         return
-      if (result.unavailable) {
-        setState({ phase: 'unavailable' })
-        return
-      }
-      if (result.needPassword) {
-        setState({
-          phase: 'password',
-          wrong: Boolean(result.wrongPassword),
-          rateLimited: Boolean(result.rateLimited),
-        })
-        return
-      }
-      if (result.snapshot && result.templateManifest) {
-        setState({
-          phase: 'ready',
-          snapshot: result.snapshot,
-          templateManifest: result.templateManifest,
-          displayName: result.displayName ?? null,
-        })
-        return
-      }
+      applyResult(result, nextPassword)
+      return
     }
     catch {
       // 匿名查看页不暴露网络或服务端错误细节。
@@ -78,10 +129,25 @@ export default function ResumeSharePage() {
 
     if (requestId === requestIdRef.current)
       setState({ phase: 'unavailable' })
-  }, [token])
+  }, [applyResult, token])
+
+  const handleRefreshResult = useCallback((result: ShareViewResult) => {
+    applyResult(result)
+  }, [applyResult])
+  const refreshCommentAccess = useShareCommentAccess({
+    token,
+    password: verifiedPassword,
+    onRefreshResult: handleRefreshResult,
+  })
+  const handleCommentAccessInvalidated = useCallback(() => {
+    load(verifiedPassword, true).catch(() => setState({ phase: 'unavailable' }))
+  }, [load, verifiedPassword])
 
   useEffect(() => {
     setState({ phase: 'loading' })
+    setPassword('')
+    setVerifiedPassword(undefined)
+    setCommentsOpen(false)
     load().catch(() => setState({ phase: 'unavailable' }))
     return () => {
       requestIdRef.current += 1
@@ -174,11 +240,89 @@ export default function ResumeSharePage() {
               manifest={state.templateManifest}
               documentRef={documentRef}
               onDocumentStateChange={setDocumentState}
+              projectionReferenceDate={state.projectionReferenceDate}
             />
           )}
         </div>
       </main>
+      {state.commentAccess
+        ? (
+            <ResumeCommentProvider
+              access={state.commentAccess.context}
+              commentsVisible={commentsOpen}
+              refreshAccess={refreshCommentAccess}
+              onAccessInvalidated={handleCommentAccessInvalidated}
+            >
+              <ShareResumeComments
+                rootRef={documentRef}
+                sourceLabel={`${state.displayName || '简历'}${state.releaseNo ? ` · 第 ${state.releaseNo} 版` : ''}`}
+                allowComments={state.allowComments}
+                currentUserId={currentUser?.id ?? null}
+                open={commentsOpen}
+                onOpenChange={setCommentsOpen}
+                layoutRevision={JSON.stringify(documentState.signature)}
+                documentRevision={state.documentRevision}
+              />
+            </ResumeCommentProvider>
+          )
+        : null}
     </motion.div>
+  )
+}
+
+function ShareResumeComments({
+  rootRef,
+  sourceLabel,
+  allowComments,
+  currentUserId,
+  open,
+  onOpenChange,
+  layoutRevision,
+  documentRevision,
+}: {
+  rootRef: RefObject<HTMLElement | null>
+  sourceLabel: string
+  allowComments: boolean
+  currentUserId: string | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  layoutRevision: string
+  documentRevision: number
+}) {
+  const hasUnread = useResumeCommentStore(state => state.lastEventSeq > state.lastReadEventSeq)
+  const selection = useResumeCommentStore(state => state.selection)
+  const setSelection = useResumeCommentStore(state => state.setSelection)
+  const setContentNotice = useResumeCommentStore(state => state.setContentNotice)
+  const previousRevision = useRef(documentRevision)
+  useEffect(() => {
+    if (previousRevision.current === documentRevision)
+      return
+    previousRevision.current = documentRevision
+    if (!selection)
+      return
+    setSelection(null)
+    setContentNotice('简历内容已更新，请重新选择文字后发送。已输入的评论草稿仍然保留。')
+  }, [documentRevision, selection, setContentNotice, setSelection])
+  return (
+    <>
+      {!open
+        ? (
+            <CommentBookmark unread={hasUnread} onOpen={() => onOpenChange(true)} />
+          )
+        : null}
+      <CommentSurface
+        rootRef={rootRef}
+        sourceLabel={sourceLabel}
+        permissions={{
+          canCreate: allowComments,
+          canModerateAll: false,
+          currentUserId,
+        }}
+        layoutRevision={layoutRevision}
+        open={open}
+        onOpenChange={onOpenChange}
+      />
+    </>
   )
 }
 

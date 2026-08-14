@@ -2,6 +2,7 @@ import type { BatchOptimizationItem, BatchOptimizationResult } from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import type { Finding, FindingsGroup, Suggestion } from '@/pages/optimize/types'
 import { toPath } from 'lodash'
+import { ensureResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { setLeaf } from '@/pages/optimize/utils'
 import { SEVERITY_ORDER } from './const'
 
@@ -261,5 +262,5 @@ export function applySuggestionsToResume(resume: ResumeSchema, suggestions: Sugg
     setLeaf(nextResume, toPath(suggestion.locate.path), suggestion.after)
   })
 
-  return nextResume
+  return ensureResumeEntryIds(nextResume)
 }

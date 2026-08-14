@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { Switch } from '@/components/ui/switch'
 import { dateToExpiryIso } from '../../utils'
 import VersionSelector from '../version-selector'
 import VisibilityIcon from '../visibility-icon'
@@ -34,6 +35,7 @@ export function CreateForm({
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
+  const [allowComments, setAllowComments] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
   const handleCreate = async () => {
@@ -43,6 +45,7 @@ export function CreateForm({
         label: label.trim() || null,
         password: password.trim() || null,
         expiresAt: dateToExpiryIso(expiresAt),
+        allowComments,
       })
       if (!created)
         return
@@ -50,6 +53,7 @@ export function CreateForm({
       setPassword('')
       setShowPassword(false)
       setExpiresAt(undefined)
+      setAllowComments(true)
       setSelection({ kind: 'current' })
     }
     finally {
@@ -109,6 +113,15 @@ export function CreateForm({
         <Field className="min-w-0 sm:col-span-2">
           <FieldLabel>有效期（可选）</FieldLabel>
           <DateField value={expiresAt} onChange={setExpiresAt} />
+        </Field>
+        <Field orientation="horizontal" className="min-w-0 rounded-lg border p-3 sm:col-span-2">
+          <FieldLabel htmlFor="quick-share-comments">允许访问者评论</FieldLabel>
+          <Switch
+            id="quick-share-comments"
+            checked={allowComments}
+            disabled={submitting}
+            onCheckedChange={setAllowComments}
+          />
         </Field>
       </FieldGroup>
       <Button onClick={handleCreate} disabled={submitting} className="self-start">

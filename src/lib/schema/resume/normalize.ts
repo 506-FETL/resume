@@ -1,4 +1,5 @@
 import type { ResumeSchema } from './form'
+import { ensureResumeEntryIds, ensureResumeSectionEntryIds } from './entry-id'
 import {
   DEFAULT_APPLICATION_INFO,
   DEFAULT_BASICS,
@@ -72,14 +73,17 @@ export function normalizeResumeSection<K extends keyof ResumeSchema>(
   key: K,
   value: unknown,
 ): ResumeSchema[K] {
-  return mergeWithDefaults(value, RESUME_FORM_DEFAULTS[key]) as ResumeSchema[K]
+  const normalized = mergeWithDefaults(value, RESUME_FORM_DEFAULTS[key]) as ResumeSchema[K]
+  return ensureResumeSectionEntryIds(key, normalized)
 }
 
 export function normalizeResumeFormData(value: unknown): ResumeSchema {
   const source = isRecord(value) ? value : {}
   const keys = Object.keys(RESUME_FORM_DEFAULTS) as (keyof ResumeSchema)[]
 
-  return Object.fromEntries(
+  const normalized = Object.fromEntries(
     keys.map(key => [key, normalizeResumeSection(key, source[key])]),
   ) as ResumeSchema
+
+  return ensureResumeEntryIds(normalized)
 }

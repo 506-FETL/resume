@@ -15,15 +15,15 @@ export type WorkExperienceInfo = z.infer<typeof workInfo>
 
 const workExperienceFields = { companyName, position, workDuration, workInfo }
 
-export type WorkExperienceItem = z.infer<z.ZodObject<typeof workExperienceFields>>
-
 export const workExperienceFormSchema = createExperienceSchema(workExperienceFields)
 
 export type WorkExperienceFormType = z.infer<typeof workExperienceFormSchema>
+export type WorkExperienceItem = WorkExperienceFormType['items'][number]
 
 export const DEFAULT_WORK_EXPERIENCE: WorkExperienceFormType = {
   items: [
     {
+      entryId: 'default_work_experience_1',
       companyName: '',
       position: '',
       workDuration: ['', ''],

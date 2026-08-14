@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { hobbiesFormSchema, PRESET_HOBBIES } from '@/lib/schema'
+import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
@@ -43,7 +44,7 @@ function HobbiesForm({ className }: { className?: string }) {
       remove(existingIndex)
     }
     else {
-      append({ name: hobby } as any)
+      append({ entryId: createResumeEntryId(), name: hobby })
     }
   }
 
@@ -65,7 +66,7 @@ function HobbiesForm({ className }: { className?: string }) {
       return
     }
 
-    append({ name: trimmedValue } as any)
+    append({ entryId: createResumeEntryId(), name: trimmedValue })
     setCustomHobbyInput('')
   }
 

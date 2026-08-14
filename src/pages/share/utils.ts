@@ -1,7 +1,7 @@
 import type { VersionDialogSelection } from './types'
 import type { ResumeShareRecord, ShareVersionSelection, ShareVersionSource } from '@/lib/supabase/resume/share.types'
 
-export type ShareStatusFilter = 'all' | 'active' | 'inactive' | 'expired'
+export type ShareStatusFilter = 'all' | 'active' | 'inactive' | 'expired' | 'archived'
 
 export function formatShareVersionSource(source: ShareVersionSource) {
   return source.kind === 'current'
@@ -67,6 +67,8 @@ export function expiryIsoToDate(value: string | null) {
 }
 
 export function deriveShareStatus(share: ResumeShareRecord): Exclude<ShareStatusFilter, 'all'> {
+  if (share.archivedAt)
+    return 'archived'
   if (share.expires_at && new Date(share.expires_at).getTime() < Date.now())
     return 'expired'
   return share.is_active ? 'active' : 'inactive'

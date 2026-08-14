@@ -1,5 +1,5 @@
 import { useTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { formatRange, rangeHasValue, rangeKey } from './duration'
+import { rangeHasValue } from './duration'
 import { RuntimeEntry, RuntimeSection } from './shared'
 
 export default function ProjectExperienceRenderer() {
@@ -14,15 +14,17 @@ export default function ProjectExperienceRenderer() {
 
   return (
     <RuntimeSection title="项目经历">
-      {items.map((item, index) => (
+      {items.map(item => (
         <RuntimeEntry
-          // 空/重复条目无稳定唯一内容，用 index 保证 key 唯一
-          // eslint-disable-next-line react/no-array-index-key
-          key={`${item.projectName}-${item.participantRole}-${rangeKey(item.projectDuration)}-${index}`}
-          title={item.projectName || '项目'}
-          subtitle={item.participantRole}
-          duration={formatRange(item.projectDuration)}
-          content={item.projectInfo}
+          key={item.entryId}
+          sectionKey="project_experience"
+          entryId={item.entryId}
+          titleFieldKey="projectName"
+          titleFieldLabel="项目名称"
+          subtitleFieldKey="participantRole"
+          subtitleFieldLabel="项目角色"
+          contentFieldLabel="项目经历描述"
+          contentHtml={item.projectInfo}
         />
       ))}
     </RuntimeSection>

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { resumeEntryIdSchema } from '../entry-id'
 
 export const PRESET_HOBBIES = [
   '篮球',
@@ -18,6 +19,7 @@ export const PRESET_HOBBIES = [
 export type PresetHobby = (typeof PRESET_HOBBIES)[number]
 
 export const hobbyItemSchema = z.object({
+  entryId: resumeEntryIdSchema,
   name: z.string().trim(),
 })
 

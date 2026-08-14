@@ -33,6 +33,34 @@ export type ResolvedShareVersionSource
 
 export interface ResolvedResumeShareRelease extends ResumeShareSnapshotSource {
   source: ResolvedShareVersionSource
+  versionId: number
+  documentRevision: number
+  projectionReferenceDate: string
+}
+
+export interface ResumeShareReleaseSummary {
+  id: string
+  releaseNo: number
+  displayName: string | null
+  source: ShareVersionSource
+  createdAt: string
+}
+
+export interface ResumeShareReviewRelease {
+  id: string
+  shareId: string
+  releaseNo: number
+  shareLabel: string | null
+  displayName: string | null
+  archivedAt: string | null
+  isCurrent: boolean
+  createdAt: string
+}
+
+export interface ResumeShareReviewPayload {
+  snapshot: PersistedResumeSnapshot
+  templateManifest: TemplateManifest
+  displayName: string | null
 }
 
 export type CurrentResumeShareSnapshotProvider
@@ -62,6 +90,12 @@ export interface ResumeShareRecord {
   last_viewed_at: string | null
   created_at: string
   updated_at: string
+  currentReleaseId: string
+  currentRelease: ResumeShareReleaseSummary
+  versionId: number
+  documentRevision: number
+  allowComments: boolean
+  archivedAt: string | null
   source: ShareVersionSource
 }
 
@@ -70,6 +104,7 @@ export interface CreateShareOptions {
   label?: string | null
   password?: string | null
   expiresAt?: string | null
+  allowComments?: boolean
 }
 
 /** 匿名访问分享页的读取结果 */
@@ -80,5 +115,15 @@ export interface ShareViewResult {
   snapshot?: PersistedResumeSnapshot
   templateManifest?: TemplateManifest
   displayName?: string | null
+  shareId?: string
+  releaseId?: string
+  releaseNo?: number
+  versionId?: number
+  documentRevision?: number
+  allowComments?: boolean
+  projectionReferenceDate?: string
+  commentScopeId?: string
+  commentAccessToken?: string
+  commentAccessExpiresAt?: string
   unavailable?: boolean
 }

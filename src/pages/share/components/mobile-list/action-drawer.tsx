@@ -1,5 +1,5 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Eye, History, Power, Settings2, Trash2 } from 'lucide-react'
+import { Archive, Eye, History, Power, Settings2, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,7 @@ export default function ActionDrawer({
   const {
     pendingShareIds,
     openSettingsDialog,
+    openArchiveDialog,
     openDeleteDialog,
     openVersionDialog,
     setActive,
@@ -83,27 +84,34 @@ export default function ActionDrawer({
     handleDrawerOpenChange(false)
   }
 
+  const handleArchive = () => {
+    if (!share)
+      return
+    openArchiveDialog(share.id)
+    handleDrawerOpenChange(false)
+  }
+
   const actions = [
     { key: 'preview', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" onClick={handlePreview}>
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={Boolean(share?.archivedAt)} onClick={handlePreview}>
         <Eye data-icon="inline-start" />
         预览
       </Button>
     ) },
     { key: 'settings', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleSettings}>
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy || Boolean(share?.archivedAt)} onClick={handleSettings}>
         <Settings2 data-icon="inline-start" />
         编辑设置
       </Button>
     ) },
     { key: 'version', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleVersion}>
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy || Boolean(share?.archivedAt)} onClick={handleVersion}>
         <History data-icon="inline-start" />
         更换分享版本
       </Button>
     ) },
     { key: 'power', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleToggleActive}>
+      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy || Boolean(share?.archivedAt)} onClick={handleToggleActive}>
         <Power data-icon="inline-start" />
         {share?.is_active ? '关闭链接' : '启用链接'}
       </Button>
@@ -132,6 +140,19 @@ export default function ActionDrawer({
               {action.node}
             </motion.div>
           ))}
+          {!share?.archivedAt && (
+            <motion.div
+              className="col-span-2"
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.16, delay: reduceMotion ? 0 : actions.length * 0.035 }}
+            >
+              <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleArchive}>
+                <Archive data-icon="inline-start" />
+                归档分享
+              </Button>
+            </motion.div>
+          )}
           <motion.div
             className="col-span-2"
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}

@@ -8,6 +8,7 @@ export type ResumeVersionSourceType
     | 'import'
 
 export type RestoreStrategy = 'with_backup' | 'without_backup'
+export type ResumeVersionStatus = 'active' | 'frozen'
 
 export type ResumeSnapshot = PersistedResumeSnapshot
 
@@ -28,11 +29,18 @@ export interface ResumeHistoryVersionMeta {
   base_updated_at: string | null
   company_id: string | null
   submitted_at: string | null
+  status: ResumeVersionStatus
+  document_revision: number
+  projection_reference_date: string
 }
 
 // 轻量列表行（DB 返回，无 snapshot）与归一后的列表项
 export type ResumeHistoryVersionListRow = ResumeHistoryVersionMeta
 export type ResumeHistoryVersionListItem = ResumeHistoryVersionMeta
+
+export interface ResumeVersionListItem extends ResumeHistoryVersionMeta {
+  shared_link_count: number
+}
 
 // 完整版本行/记录（含 snapshot）——create/update/restore 返回、按需加载后使用
 export type ResumeHistoryVersionRow = ResumeHistoryVersionMeta & { snapshot: ResumeSnapshot | Record<string, unknown> }
@@ -46,6 +54,9 @@ export interface ResumeHistoryShareReleaseRow {
   milestone_name: string | null
   created_at: string
   snapshot: ResumeSnapshot | Record<string, unknown>
+  status: ResumeVersionStatus
+  document_revision: number
+  projection_reference_date: string
 }
 
 export interface ResumeHistoryResumeRecord {

@@ -1,6 +1,6 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Copy, Eye, History, LockKeyhole, MoreHorizontal, Power, Settings2, Trash2 } from 'lucide-react'
+import { Archive, Copy, Eye, History, LockKeyhole, MessageSquareText, MoreHorizontal, Power, Settings2, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
   const {
     pendingShareIds,
     openSettingsDialog,
+    openArchiveDialog,
     openDeleteDialog,
     openVersionDialog,
     setActive,
@@ -78,6 +79,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
         'min-w-0 gap-0 overflow-hidden rounded-xl py-0 shadow-sm transition-colors hover:border-primary/25',
         status === 'inactive' && 'bg-muted/30 opacity-75',
         status === 'expired' && 'border-red-200 dark:border-red-900',
+        status === 'archived' && 'bg-muted/40 opacity-75',
       )}
       >
         <div className="min-w-0 p-3">
@@ -126,6 +128,10 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
               </span>
             )}
             <span className="inline-flex items-center gap-1">
+              <MessageSquareText className="size-3" />
+              {share.allowComments ? '允许评论' : '仅查看'}
+            </span>
+            <span className="inline-flex items-center gap-1">
               <Eye className="size-3" />
               {share.view_count}
             </span>
@@ -137,7 +143,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
           <div className="mt-3 flex justify-end gap-1 border-t pt-2.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="预览" onClick={handlePreview}>
+                <Button variant="ghost" size="icon-sm" aria-label="预览" disabled={Boolean(share.archivedAt)} onClick={handlePreview}>
                   <Eye data-icon="inline-start" />
                 </Button>
               </TooltipTrigger>
@@ -145,7 +151,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="编辑设置" disabled={busy} onClick={() => openSettingsDialog(share.id)}>
+                <Button variant="ghost" size="icon-sm" aria-label="编辑设置" disabled={busy || Boolean(share.archivedAt)} onClick={() => openSettingsDialog(share.id)}>
                   <Settings2 data-icon="inline-start" />
                 </Button>
               </TooltipTrigger>
@@ -159,17 +165,23 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem disabled={busy} onClick={() => openVersionDialog(share.id)}>
+                  <DropdownMenuItem disabled={busy || Boolean(share.archivedAt)} onClick={() => openVersionDialog(share.id)}>
                     <History data-icon="inline-start" />
                     更换分享版本
                   </DropdownMenuItem>
-                  <DropdownMenuItem disabled={busy} onClick={handleToggleActive}>
+                  <DropdownMenuItem disabled={busy || Boolean(share.archivedAt)} onClick={handleToggleActive}>
                     <Power data-icon="inline-start" />
                     {share.is_active ? '关闭链接' : '启用链接'}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
+                  {!share.archivedAt && (
+                    <DropdownMenuItem disabled={busy} onClick={() => openArchiveDialog(share.id)}>
+                      <Archive data-icon="inline-start" />
+                      归档分享
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem variant="destructive" disabled={busy} onClick={() => openDeleteDialog(share.id)}>
                     <Trash2 data-icon="inline-start" />
                     永久删除
