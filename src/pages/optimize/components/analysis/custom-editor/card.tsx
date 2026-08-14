@@ -1,4 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react'
+import type { CertificateItem } from '@/lib/schema/resume/form/honorsCertificates'
 import type { SkillItem } from '@/lib/schema/resume/form/skillSpecialty'
 import type { AfterValue, Suggestion, ValueType } from '@/pages/optimize/types'
 import { Check, Edit3, RotateCcw } from 'lucide-react'
@@ -7,6 +8,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { isSuggestionReadyToApply } from '@/lib/ats'
 import { cn } from '@/lib/utils'
 import { KIND_CONFIG } from '@/pages/optimize/const'
 import { detectValueType, isEmptyValue, renderPreview } from '@/pages/optimize/utils'
@@ -28,7 +32,7 @@ const EDITOR_MAP: Record<string, (props: { value: AfterValue, onChange: (newValu
   ),
   certificate_list: ({ value, onChange }) => (
     <CertificateListEditor
-      value={value as Array<{ name: string }>}
+      value={value as CertificateItem[]}
       onChange={onChange}
     />
   ),
@@ -75,7 +79,8 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
 
   const handleValueChange = useCallback((updatedValue: AfterValue) => {
     setInternalValue(updatedValue)
-    onChange({ ...suggestion, after: updatedValue })
+    const candidate = { ...suggestion, after: updatedValue, requiresUserInput: false }
+    onChange({ ...candidate, requiresUserInput: !isSuggestionReadyToApply(candidate) })
   }, [suggestion, onChange])
 
   const handleOk = () => {
@@ -224,6 +229,29 @@ function ValueEditor({ value, valueType, onChange }: {
   valueType: ValueType
   onChange: (newValue: AfterValue) => void
 }) {
+  if (valueType === 'number') {
+    return (
+      <Input
+        type="number"
+        value={typeof value === 'number' ? value : ''}
+        onChange={(event) => {
+          const nextValue = event.currentTarget.valueAsNumber
+          if (Number.isFinite(nextValue))
+            onChange(nextValue)
+        }}
+      />
+    )
+  }
+
+  if (valueType === 'boolean') {
+    return (
+      <label className="flex items-center gap-2 text-sm text-foreground">
+        <Checkbox checked={Boolean(value)} onCheckedChange={checked => onChange(checked === true)} />
+        {value ? '是' : '否'}
+      </label>
+    )
+  }
+
   const detectedType = detectValueType(value)
 
   if (valueType === 'html_string') {

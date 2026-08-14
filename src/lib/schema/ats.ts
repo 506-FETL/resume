@@ -21,6 +21,8 @@ export type SuggestionKind
 
 export type ValueType
   = | 'string'
+    | 'number'
+    | 'boolean'
     | 'html_string'
     | 'string_array'
     | 'object_array'
@@ -128,6 +130,7 @@ export interface Suggestion {
   after: AfterValue | null
   reason: string
   fixed: boolean
+  requiresUserInput?: boolean
 }
 
 export interface FixBlock {

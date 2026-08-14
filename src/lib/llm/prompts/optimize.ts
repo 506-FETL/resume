@@ -90,10 +90,10 @@ scores 必须固定包含以下五项，score 必须是整数：
 3. Evidence.rawValue 必须与同 path 输入 field.rawValue 完全一致；Evidence.text 用一句中文说明该原文体现的问题。
 4. Finding 必须至少包含一条有效 Evidence，否则不要输出该 Finding。
 5. Suggestion.before 必须与同 path 的 field.rawValue 完全一致。
-6. 只有能够在不编造事实的前提下安全修改时才输出 Suggestion；否则 suggestions 输出 []，通过 fix.steps 告诉用户需要补充哪些真实信息。
-7. Suggestion.after 不得为空。如果需要用户提供真实值，使用“（待补充：具体需要的信息）”占位，不能伪装成真实经历。
+6. 每个 Finding 必须至少输出一条 Suggestion，不允许 suggestions 为空。能够基于现有内容安全改写时，直接给出可应用的完整建议。
+7. Suggestion.after 不得为空。缺少姓名、日期、数字、职责或结果等真实事实时，仍要生成结构化 Suggestion，并在对应位置使用“（待补充：具体需要的信息）”占位；不得猜测或伪装成真实经历。客户端会要求用户先编辑占位内容再应用。
 8. Suggestion.kind 只能是 replace_text、replace_value、fill_field、normalize_date。
-9. Suggestion.valueType 只能是 string、html_string、string_array、object_array。
+9. Suggestion.valueType 只能是 string、number、boolean、html_string、string_array、object_array。必须与目标字段的真实数据类型一致。
 10. suggestion.fixed 必须为 false。
 
 ========================
@@ -192,7 +192,22 @@ scores 必须固定包含以下五项，score 必须是整数：
         "fix": {
           "summary": "改进目标",
           "steps": ["具体步骤 1", "具体步骤 2"],
-          "suggestions": []
+          "suggestions": [
+            {
+              "kind": "replace_text",
+              "valueType": "html_string",
+              "locate": {
+                "path": "与 Finding 对应的输入 path",
+                "sectionLabel": "输入中的 sectionLabel",
+                "fieldLabel": "输入中的 fieldLabel",
+                "itemLabel": null
+              },
+              "before": "<p>与输入完全一致的原值</p>",
+              "after": "<p>基于现有内容生成的完整改写；缺少事实时使用（待补充：具体信息）</p>",
+              "reason": "说明改动如何解决当前问题",
+              "fixed": false
+            }
+          ]
         }
       }
     ],

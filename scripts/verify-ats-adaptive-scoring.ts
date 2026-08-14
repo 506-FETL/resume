@@ -1,12 +1,14 @@
-import type { AtsLlmDraft } from '../src/lib/schema/ats.ts'
+import type { AtsLlmDraft, FindingsGroup } from '../src/lib/schema/ats.ts'
 import type { ResumeSchema } from '../src/lib/schema/resume/form/index.ts'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   ATS_SCORE_TOTAL,
   buildAtsAssessmentInput,
+  ensureAtsFindingsHaveSuggestions,
   flattenAssessmentFields,
   getResumeEvidenceStats,
+  hasUnresolvedSuggestionInput,
   normalizeAtsEvaluationResult,
 } from '../src/lib/ats/index.ts'
 import { buildOptimizePrompt } from '../src/lib/llm/prompts/optimize.ts'
@@ -264,6 +266,8 @@ function verifyAdaptivePromptContract() {
   assert.equal(ATS_SCORE_TOTAL, 100)
   assert.match(prompt, /未出现在 sections 的模块代表用户没有使用该模板模块/)
   assert.match(prompt, /不得因为该模块缺失而扣分/)
+  assert.match(prompt, /每个 Finding 必须至少输出一条 Suggestion/)
+  assert.doesNotMatch(prompt, /否则 suggestions 输出 \[\]/)
   assert.doesNotMatch(prompt, /"ignoredEmptySections"/)
   assert.doesNotMatch(prompt, /Locate\.path 白名单/)
 }
@@ -363,17 +367,46 @@ function verifyResultNormalization() {
           }],
         },
       }],
-      medium: [{
-        id: 'M-any',
-        type: 'missing_project',
-        title: '错误的空模块问题',
-        locate: invalidLocate,
-        why: {
-          summary: '不应保留。',
-          evidence: [{ text: '空项目。', rawValue: '', locate: invalidLocate }],
+      medium: [
+        {
+          id: 'M-any',
+          type: 'missing_project',
+          title: '错误的空模块问题',
+          locate: invalidLocate,
+          why: {
+            summary: '不应保留。',
+            evidence: [{ text: '空项目。', rawValue: '', locate: invalidLocate }],
+          },
+          fix: { summary: '补项目', steps: ['补项目'], suggestions: [] },
         },
-        fix: { summary: '补项目', steps: ['补项目'], suggestions: [] },
-      }],
+        {
+          id: 'M-fallback',
+          type: 'missing_actionable_suggestion',
+          title: '缺少结构化修复建议',
+          locate: validLocate,
+          why: {
+            summary: '模型识别了问题，但漏掉了结构化修复建议。',
+            evidence: [{
+              text: '当前描述需要补充真实结果。',
+              rawValue: '<p>负责核心业务交付。</p>',
+              locate: validLocate,
+            }],
+          },
+          fix: {
+            summary: '补充真实的交付范围和结果',
+            steps: ['填写真实的影响范围和交付结果'],
+            suggestions: [{
+              kind: 'replace_value',
+              valueType: 'number',
+              locate: validLocate,
+              before: '<p>负责核心业务交付。</p>',
+              after: 42,
+              reason: '错误地把富文本字段改成数字。',
+              fixed: false,
+            }],
+          },
+        },
+      ],
       low: [{
         id: 'L-any',
         type: 'mismatched_evidence',
@@ -400,8 +433,84 @@ function verifyResultNormalization() {
   assert.equal(findingPaths.includes(invalidLocate.path), false)
   assert.equal(findingPaths.includes(validLocate.path), true)
   assert.equal(normalized.findings.low.length, 0)
-  assert.deepEqual(normalized.todo_items, ['工作成果证据仍可加强'])
-  assert.equal(normalized.fixChecklist.length, 1)
+  assert.equal(normalized.findings.medium.length, 1)
+  assert.equal(normalized.findings.medium[0].fix.suggestions.length, 1)
+  const fallbackSuggestion = normalized.findings.medium[0].fix.suggestions[0]
+  assert.match(String(fallbackSuggestion.after), /待补充/)
+  assert.equal(hasUnresolvedSuggestionInput([fallbackSuggestion]), true)
+  assert.equal(hasUnresolvedSuggestionInput([{
+    ...fallbackSuggestion,
+    after: '<p>负责核心业务交付，并支撑三个业务团队完成上线。</p>',
+    requiresUserInput: false,
+  }]), false)
+  assert.deepEqual(normalized.todo_items, ['工作成果证据仍可加强', '缺少结构化修复建议'])
+  assert.equal(normalized.fixChecklist.length, 2)
+}
+
+function verifyLegacyFallbackKeepsFieldTypes() {
+  const buildFinding = (path: string, fieldLabel: string, rawValue: FindingsGroup['high'][number]['why']['evidence'][number]['rawValue']) => ({
+    id: `legacy-${path}`,
+    type: 'legacy_missing_suggestion',
+    title: `${fieldLabel}需要完善`,
+    locate: { path, sectionLabel: '测试模块', fieldLabel, itemLabel: null },
+    why: {
+      summary: `${fieldLabel}需要补充真实信息。`,
+      evidence: [{
+        text: `${fieldLabel}当前信息不完整。`,
+        rawValue,
+        locate: { path, sectionLabel: '测试模块', fieldLabel, itemLabel: null },
+      }],
+    },
+    fix: { summary: `完善${fieldLabel}`, steps: [`填写真实的${fieldLabel}`], suggestions: [] },
+  })
+
+  const findings = ensureAtsFindingsHaveSuggestions({
+    high: [buildFinding('skill_specialty.skills', '技能', [])],
+    medium: [buildFinding('honors_certificates.certificates', '证书', [])],
+    low: [buildFinding('job_intent.expectedSalary', '期望薪资', 0)],
+  } as FindingsGroup)
+
+  assert.equal(findings.high[0].fix.suggestions[0].valueType, 'skill_list')
+  assert.equal(findings.medium[0].fix.suggestions[0].valueType, 'certificate_list')
+  assert.equal(findings.low[0].fix.suggestions[0].valueType, 'number')
+  assert.deepEqual(findings.high[0].fix.suggestions[0].after, [{
+    entryId: 'ats_pending_skill',
+    label: '（待补充：填写真实的技能）',
+    proficiencyLevel: '一般',
+    displayType: 'text',
+  }])
+  assert.deepEqual(findings.medium[0].fix.suggestions[0].after, [{
+    entryId: 'ats_pending_certificate',
+    name: '（待补充：填写真实的证书）',
+  }])
+  assert.equal(hasUnresolvedSuggestionInput([
+    findings.high[0].fix.suggestions[0],
+    findings.medium[0].fix.suggestions[0],
+    findings.low[0].fix.suggestions[0],
+  ]), true)
+
+  const legacySkillFinding = buildFinding('skill_specialty.skills', '技能', [])
+  legacySkillFinding.fix.suggestions = [{
+    kind: 'replace_value',
+    valueType: 'object_array',
+    locate: legacySkillFinding.locate,
+    before: [],
+    after: [{
+      entryId: 'legacy-skill-1',
+      label: 'TypeScript',
+      proficiencyLevel: '熟练',
+      displayType: 'percentage',
+    }],
+    reason: '历史通用集合类型。',
+    fixed: false,
+  }]
+  const migrated = ensureAtsFindingsHaveSuggestions({
+    high: [legacySkillFinding],
+    medium: [],
+    low: [],
+  } as FindingsGroup)
+  assert.equal(migrated.high[0].fix.suggestions[0].valueType, 'skill_list')
+  assert.equal(hasUnresolvedSuggestionInput(migrated.high[0].fix.suggestions), false)
 }
 
 function verifyContentEvidenceMetrics() {
@@ -451,6 +560,7 @@ verifyContactSignal()
 verifyAlternativeContactMethodIsNotPenalized()
 verifyAdaptivePromptContract()
 verifyResultNormalization()
+verifyLegacyFallbackKeepsFieldTypes()
 verifyContentEvidenceMetrics()
 
 console.warn('ATS adaptive scoring verification passed.')

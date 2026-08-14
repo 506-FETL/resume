@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from 'react'
+import type { CertificateItem } from '@/lib/schema/resume/form/honorsCertificates'
 import { Plus, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
@@ -6,11 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { PRESET_CERTIFICATES } from '../../../const'
 
 function CertificateListEditor({ value, onChange }: {
-  value: Array<{ name: string }>
-  onChange: (val: Array<{ name: string }>) => void
+  value: CertificateItem[]
+  onChange: (val: CertificateItem[]) => void
 }) {
   const [customInput, setCustomInput] = useState('')
 
@@ -21,7 +23,7 @@ function CertificateListEditor({ value, onChange }: {
       onChange(value.filter(c => c.name !== name))
     }
     else {
-      onChange([{ name }, ...value])
+      onChange([{ entryId: createResumeEntryId(), name }, ...value])
     }
   }
 
@@ -29,7 +31,7 @@ function CertificateListEditor({ value, onChange }: {
     const trimmed = customInput.trim()
     if (!trimmed || isCertAdded(trimmed))
       return
-    onChange([{ name: trimmed }, ...value])
+    onChange([{ entryId: createResumeEntryId(), name: trimmed }, ...value])
     setCustomInput('')
   }
 

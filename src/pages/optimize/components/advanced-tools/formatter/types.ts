@@ -8,6 +8,7 @@ export interface BatchOptimizationItem {
   locationText: string
   pendingSuggestionCount: number
   pendingSuggestions: Suggestion[]
+  requiresInputSuggestionCount: number
   severity: Severity
   steps: string[]
   title: string
@@ -22,6 +23,7 @@ export interface BatchOptimizationResult {
   items: BatchOptimizationItem[]
   pendingIssueCount: number
   pendingSuggestionCount: number
+  requiresInputSuggestionCount: number
   suggestionsToApply: Suggestion[]
   summary: string[]
   totalIssueCount: number

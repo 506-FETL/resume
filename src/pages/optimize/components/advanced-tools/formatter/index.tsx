@@ -4,6 +4,7 @@ import { CircleAlert, FileText, ListChecks, Sparkles, TriangleAlert, Wand2 } fro
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { ensureAtsFindingsHaveSuggestions } from '@/lib/ats'
 import { syncAutomergeDocument } from '@/lib/automerge'
 import { updateOfflineResume } from '@/lib/offline-resume-manager'
 import { updateAtsConfig } from '@/lib/supabase/resume'
@@ -34,8 +35,12 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
   }, [currentAtsConfig, resumeContext.atsConfig, resumeContext.resumeId])
 
   useEffect(() => {
-    setEditableFindings(activeAtsConfig?.findings ?? null)
-  }, [activeAtsConfig?.findings])
+    setEditableFindings(
+      activeAtsConfig
+        ? ensureAtsFindingsHaveSuggestions(activeAtsConfig.findings)
+        : null,
+    )
+  }, [activeAtsConfig])
 
   const effectiveFindings = editableFindings ?? activeAtsConfig?.findings ?? null
 
@@ -64,7 +69,11 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
     }
 
     if (batchResult.autoApplicableSuggestionCount === 0) {
-      toast.info('剩余问题存在同字段冲突，请回到问题分析逐条确认')
+      toast.info(
+        batchResult.requiresInputSuggestionCount > 0
+          ? '请先在下方补充真实信息，再一键应用'
+          : '剩余问题存在同字段冲突，请逐条确认',
+      )
       return
     }
 
@@ -98,8 +107,8 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
       startConfetti(actionButtonRef)
 
       toast.success(
-        batchResult.conflictedSuggestionCount > 0
-          ? `已应用 ${batchResult.autoApplicableSuggestionCount} 条优化，剩余冲突建议请逐条确认`
+        batchResult.conflictedSuggestionCount > 0 || batchResult.requiresInputSuggestionCount > 0
+          ? `已应用 ${batchResult.autoApplicableSuggestionCount} 条优化，剩余建议请补充或逐条确认`
           : '已完成当前简历的一键优化',
       )
     }
@@ -116,7 +125,9 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
     : batchResult.autoApplicableSuggestionCount > 0
       ? `一键应用 ${batchResult.autoApplicableSuggestionCount} 条建议`
       : batchResult.pendingIssueCount > 0
-        ? '存在冲突，需逐项确认'
+        ? batchResult.requiresInputSuggestionCount > 0
+          ? '先补充真实信息'
+          : '存在冲突，需逐项确认'
         : '已全部处理'
 
   return (
@@ -128,7 +139,7 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
               ref={actionButtonRef}
               className="w-full sm:w-auto"
               onClick={handleApply}
-              disabled={applying || !activeAtsConfig || batchResult.autoApplicableSuggestionCount === 0}
+              disabled={applying || !activeAtsConfig || batchResult.pendingIssueCount === 0}
             >
               <Wand2 className="size-4" />
               {actionLabel}
@@ -170,12 +181,12 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
               badge={<ToolMetaBadge tone="success">自动应用</ToolMetaBadge>}
             />
             <ToolStatCard
-              label="冲突保留"
-              value={batchResult.conflictedSuggestionCount}
-              hint="同字段冲突时保留更高优先级建议"
+              label="需人工确认"
+              value={batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount}
+              hint="补充真实信息或确认同字段冲突"
               icon={TriangleAlert}
-              tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}
-              badge={<ToolMetaBadge tone={batchResult.conflictedSuggestionCount > 0 ? 'danger' : 'default'}>{batchResult.conflictedSuggestionCount > 0 ? '需人工确认' : '无冲突'}</ToolMetaBadge>}
+              tone={batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount > 0 ? 'warning' : 'default'}
+              badge={<ToolMetaBadge tone={batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount > 0 ? 'warning' : 'default'}>{batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount > 0 ? '待确认' : '无需确认'}</ToolMetaBadge>}
             />
           </ToolStatsGrid>
         </ToolPanelBody>

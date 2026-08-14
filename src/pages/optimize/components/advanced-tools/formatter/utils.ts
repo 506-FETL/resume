@@ -2,6 +2,7 @@ import type { BatchOptimizationItem, BatchOptimizationResult } from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import type { Finding, FindingsGroup, Suggestion } from '@/pages/optimize/types'
 import { toPath } from 'lodash'
+import { isSuggestionReadyToApply } from '@/lib/ats'
 import { ensureResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { setLeaf } from '@/pages/optimize/utils'
 import { SEVERITY_ORDER } from './const'
@@ -35,6 +36,7 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
   let pendingSuggestionCount = 0
   let autoApplicableSuggestionCount = 0
   let conflictedSuggestionCount = 0
+  let requiresInputSuggestionCount = 0
   let autoApplicableIssueCount = 0
 
   SEVERITY_ORDER.forEach((severity) => {
@@ -57,12 +59,19 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
 
       let autoApplicableInFinding = 0
       let conflictedInFinding = 0
+      let requiresInputInFinding = 0
 
       pendingSuggestions.forEach(({ id, suggestion }) => {
         const nextAfterKey = JSON.stringify(suggestion.after)
         const existingAfterKey = appliedAfterByPath.get(suggestion.locate.path)
 
         pendingSuggestionCount += 1
+
+        if (!isSuggestionReadyToApply(suggestion)) {
+          requiresInputSuggestionCount += 1
+          requiresInputInFinding += 1
+          return
+        }
 
         if (!existingAfterKey) {
           suggestionsToApply.push(suggestion)
@@ -84,7 +93,7 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
         conflictedInFinding += 1
       })
 
-      if (conflictedInFinding === 0) {
+      if (conflictedInFinding === 0 && requiresInputInFinding === 0) {
         autoApplicableIssueCount += 1
       }
 
@@ -96,6 +105,7 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
         locationText: buildLocationText(finding),
         pendingSuggestionCount: pendingSuggestions.length,
         pendingSuggestions: pendingSuggestions.map(item => item.suggestion),
+        requiresInputSuggestionCount: requiresInputInFinding,
         severity,
         steps: finding.fix.steps,
         title: finding.title,
@@ -112,9 +122,14 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
         : [
             `当前共有 ${pendingIssueCount} 个待处理问题，包含 ${pendingSuggestionCount} 条未执行建议。`,
             `本次可直接一键应用 ${autoApplicableSuggestionCount} 条建议，预计完成 ${autoApplicableIssueCount} 个问题。`,
+            requiresInputSuggestionCount > 0
+              ? `另有 ${requiresInputSuggestionCount} 条建议需要先补充真实信息，填写完成后即可自动应用。`
+              : '',
             conflictedSuggestionCount > 0
               ? `另有 ${conflictedSuggestionCount} 条建议与更高优先级问题修改同一字段，已保留为待处理。`
-              : '所有待处理建议都可以直接批量应用。',
+              : requiresInputSuggestionCount > 0
+                ? '完成真实信息补充后，剩余建议即可继续批量应用。'
+                : '所有待处理建议都可以直接批量应用。',
             fixedIssueCount > 0 ? `另外已有 ${fixedIssueCount} 个问题在此前完成修复。` : '',
           ].filter(Boolean)
 
@@ -127,6 +142,7 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
     items,
     pendingIssueCount,
     pendingSuggestionCount,
+    requiresInputSuggestionCount,
     suggestionsToApply,
     summary,
     totalIssueCount,

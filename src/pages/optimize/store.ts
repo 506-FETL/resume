@@ -2,7 +2,7 @@ import type { AdvancedToolKey, ResumeToolContext } from './components/advanced-t
 import type { AnalysisState, AtsCreatePayload, AtsEvaluationResult, AtsLlmDraft } from './types'
 import { toast } from 'sonner'
 import { create } from 'zustand'
-import { buildAtsAssessmentInput, normalizeAtsEvaluationResult } from '@/lib/ats'
+import { buildAtsAssessmentInput, ensureAtsFindingsHaveSuggestions, normalizeAtsEvaluationResult } from '@/lib/ats'
 import { parseLlmJsonObject, runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
 import { createAtsConfig, getAtsFromUserId, updateAtsConfig, updateFixChecklist } from '@/lib/supabase/resume'
@@ -49,7 +49,11 @@ const useAtsStore = create<AtsStore>()(
       try {
         set({ loading: true })
 
-        const data = await getAtsFromUserId()
+        const rawData = await getAtsFromUserId()
+        const data = rawData?.map(config => ({
+          ...config,
+          findings: ensureAtsFindingsHaveSuggestions(config.findings),
+        })) ?? null
 
         set({ atsConfigs: data })
         if (data && data.length > 0) {

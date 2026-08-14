@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { Badge } from '@/components/ui/badge'
 import { CodeBlock } from '@/components/ui/code-block'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { hasUnresolvedSuggestionInput } from '@/lib/ats'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '@/pages/optimize/const'
 import useAtsStore from '@/pages/optimize/store'
@@ -32,6 +33,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
 
   const steps = finding.fix.steps.length > 0 ? finding.fix.steps : ['暂无具体步骤说明']
   const suggestions = finding.fix.suggestions || []
+  const needsUserInput = hasUnresolvedSuggestionInput(suggestions)
 
   const beforeCode = JSON.stringify(suggestions.map(s => s.before ?? null), null, 2)
   const afterCode = JSON.stringify(suggestions.map(s => s.after ?? null), null, 2)
@@ -107,7 +109,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
         </div>
       </div>
 
-      <Tabs defaultValue="summary" className="">
+      <Tabs defaultValue={needsUserInput ? 'edit' : 'summary'} className="">
         <TabsList>
           <TabsTrigger value="summary">
             <FileDiff className="size-3 sm:size-3.5 lg:size-4 shrink-0" />
@@ -126,6 +128,11 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
         </TabsList>
 
         <div className="border rounded-lg bg-card p-2">
+          {needsUserInput && (
+            <div className="mx-1 mb-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-800 dark:text-amber-200">
+              这条建议需要你补充或确认真实信息。请在“自定义”中完成编辑，系统确认后即可应用。
+            </div>
+          )}
           <div className="flex items-center gap-2 mb-2 px-1">
             <Badge variant="outline" className="text-xs font-normal px-2 py-0.5 h-6 bg-background">
               共

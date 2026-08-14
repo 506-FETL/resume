@@ -30,10 +30,13 @@ const SUGGESTION_KINDS = new Set<SuggestionKind>([
 ])
 const VALUE_TYPES = new Set<ValueType>([
   'string',
+  'number',
+  'boolean',
   'html_string',
   'string_array',
   'object_array',
 ])
+const USER_INPUT_PLACEHOLDER_PATTERN = /待补充\s*[：:]/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -55,6 +58,193 @@ function readStringList(value: unknown, maxLength: number): string[] {
 
 function readFiniteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildFallbackSuggestion(
+  field: AtsAssessmentField,
+  fixSummary: string,
+  steps: string[],
+): Suggestion {
+  const instruction = readString(steps[0], readString(fixSummary, `完善${field.locate.fieldLabel}`))
+    .replace(/[。；;]+$/g, '')
+    .slice(0, 48)
+  const placeholder = `（待补充：${instruction}）`
+  const { rawValue } = field
+  const normalizedPath = field.locate.path.toLowerCase()
+
+  if (Array.isArray(rawValue) && /(?:^|\.)skills$/.test(normalizedPath)) {
+    return {
+      kind: 'replace_value',
+      valueType: 'skill_list',
+      locate: field.locate,
+      before: rawValue,
+      after: rawValue.length > 0
+        ? rawValue
+        : [{
+            entryId: 'ats_pending_skill',
+            label: placeholder,
+            proficiencyLevel: '一般',
+            displayType: 'text',
+          }],
+      reason: '请先补充并确认真实技能信息，再应用这条修复建议。',
+      fixed: false,
+      requiresUserInput: true,
+    }
+  }
+
+  if (Array.isArray(rawValue) && /(?:^|\.)(?:certificates|hobbies)$/.test(normalizedPath)) {
+    return {
+      kind: 'replace_value',
+      valueType: normalizedPath.endsWith('.certificates') ? 'certificate_list' : 'object_array',
+      locate: field.locate,
+      before: rawValue,
+      after: rawValue.length > 0
+        ? rawValue
+        : [{ entryId: `ats_pending_${normalizedPath.endsWith('.certificates') ? 'certificate' : 'hobby'}`, name: placeholder }],
+      reason: '请先补充并确认真实信息，再应用这条修复建议。',
+      fixed: false,
+      requiresUserInput: true,
+    }
+  }
+
+  if (Array.isArray(rawValue) && rawValue.every(item => typeof item === 'string')) {
+    const isDateRange = /duration|dateRange|时间|日期/i.test(`${field.locate.path} ${field.locate.fieldLabel}`)
+    return {
+      kind: isDateRange ? 'normalize_date' : 'replace_value',
+      valueType: 'string_array',
+      locate: field.locate,
+      before: rawValue,
+      after: isDateRange
+        ? ['（待补充：开始时间）', '（待补充：结束时间）']
+        : [placeholder],
+      reason: '请先补充并确认真实信息，再应用这条修复建议。',
+      fixed: false,
+      requiresUserInput: true,
+    }
+  }
+
+  if (Array.isArray(rawValue) && rawValue.every(item => isRecord(item))) {
+    return {
+      kind: 'replace_value',
+      valueType: 'object_array',
+      locate: field.locate,
+      before: rawValue,
+      after: [{ content: placeholder }],
+      reason: '请先补充并确认真实信息，再应用这条修复建议。',
+      fixed: false,
+      requiresUserInput: true,
+    }
+  }
+
+  if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+    return {
+      kind: 'replace_value',
+      valueType: typeof rawValue === 'number' ? 'number' : 'boolean',
+      locate: field.locate,
+      before: rawValue,
+      after: rawValue,
+      reason: `请先填写并确认真实的${field.locate.fieldLabel}，再应用这条修复建议。`,
+      fixed: false,
+      requiresUserInput: true,
+    }
+  }
+
+  const isHtmlField = typeof rawValue === 'string'
+    && (/<[a-z][\s\S]*>/i.test(rawValue) || /(?:info|description|\.content)$/i.test(field.locate.path))
+
+  return {
+    kind: isHtmlField ? 'replace_text' : rawValue ? 'replace_value' : 'fill_field',
+    valueType: isHtmlField ? 'html_string' : 'string',
+    locate: field.locate,
+    before: rawValue,
+    after: isHtmlField ? `<p>${escapeHtml(placeholder)}</p>` : placeholder,
+    reason: '请先补充并确认真实信息，再应用这条修复建议。',
+    fixed: false,
+    requiresUserInput: true,
+  }
+}
+
+function valueContainsUserInputPlaceholder(value: unknown): boolean {
+  if (typeof value === 'string')
+    return USER_INPUT_PLACEHOLDER_PATTERN.test(value)
+  if (Array.isArray(value))
+    return value.some(valueContainsUserInputPlaceholder)
+  if (isRecord(value))
+    return Object.values(value).some(valueContainsUserInputPlaceholder)
+  return false
+}
+
+function toInternalSuggestionValueType(valueType: ValueType, path: string): ValueType {
+  if (valueType !== 'object_array')
+    return valueType
+
+  const normalizedPath = path.toLowerCase()
+  if (/(?:^|\.)skills$/.test(normalizedPath))
+    return 'skill_list'
+  if (/(?:^|\.)certificates$/.test(normalizedPath))
+    return 'certificate_list'
+  return valueType
+}
+
+export function suggestionNeedsUserInput(suggestion: Suggestion): boolean {
+  return suggestion.requiresUserInput === true || valueContainsUserInputPlaceholder(suggestion.after)
+}
+
+export function hasUnresolvedSuggestionInput(suggestions: Suggestion[]): boolean {
+  return suggestions.some(suggestion => !isSuggestionReadyToApply(suggestion))
+}
+
+export function ensureAtsFindingsHaveSuggestions(findings: FindingsGroup | null | undefined): FindingsGroup {
+  const source = findings ?? { high: [], medium: [], low: [] }
+  const ensureFinding = (finding: Finding): Finding | null => {
+    if ((finding.fix.suggestions ?? []).length > 0) {
+      return {
+        ...finding,
+        fix: {
+          ...finding.fix,
+          suggestions: finding.fix.suggestions.map(suggestion => ({
+            ...suggestion,
+            valueType: toInternalSuggestionValueType(suggestion.valueType, suggestion.locate.path),
+          })),
+        },
+      }
+    }
+
+    const evidence = finding.why.evidence.find(item => item.locate.path === finding.locate.path)
+    if (!evidence)
+      return null
+
+    return {
+      ...finding,
+      fix: {
+        ...finding.fix,
+        suggestions: [buildFallbackSuggestion({
+          locate: finding.locate,
+          rawValue: evidence.rawValue,
+          requiredWithinEntry: true,
+        }, finding.fix.summary, finding.fix.steps)],
+      },
+    }
+  }
+
+  const ensureGroup = (group: Finding[]) => group
+    .map(ensureFinding)
+    .filter((finding): finding is Finding => finding !== null)
+
+  return {
+    high: ensureGroup(source.high ?? []),
+    medium: ensureGroup(source.medium ?? []),
+    low: ensureGroup(source.low ?? []),
+  }
 }
 
 function clampInteger(value: number, min: number, max: number): number {
@@ -128,6 +318,12 @@ function normalizeScores(rawScores: unknown): Scores {
 }
 
 function isNonEmptyAfter(value: unknown, valueType: ValueType): value is AfterValue {
+  if (valueType === 'number')
+    return typeof value === 'number' && Number.isFinite(value)
+
+  if (valueType === 'boolean')
+    return typeof value === 'boolean'
+
   if (valueType === 'string' || valueType === 'html_string') {
     if (typeof value !== 'string')
       return false
@@ -145,6 +341,117 @@ function isNonEmptyAfter(value: unknown, valueType: ValueType): value is AfterVa
     return Array.isArray(value) && value.length > 0 && value.every(item => isRecord(item))
   }
 
+  return false
+}
+
+function isNonEmptyPlainText(value: unknown): value is string {
+  if (typeof value !== 'string')
+    return false
+  return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').trim().length > 0
+}
+
+function hasValidEntryId(value: Record<string, unknown>): boolean {
+  return typeof value.entryId === 'string' && value.entryId.trim().length > 0
+}
+
+function isSuggestionTypeCompatibleWithBefore(suggestion: Suggestion): boolean {
+  const { before, locate, valueType } = suggestion
+  if (before === null || before === undefined)
+    return true
+  if (typeof before === 'string')
+    return valueType === 'string' || valueType === 'html_string'
+  if (typeof before === 'number')
+    return valueType === 'number'
+  if (typeof before === 'boolean')
+    return valueType === 'boolean'
+  if (Array.isArray(before) && before.length === 0) {
+    const path = locate.path.toLowerCase()
+    if (/(?:^|\.)skills$/.test(path))
+      return valueType === 'skill_list'
+    if (/(?:^|\.)certificates$/.test(path))
+      return valueType === 'certificate_list'
+    if (/(?:^|\.)hobbies$/.test(path))
+      return valueType === 'object_array'
+    return valueType === 'string_array' || valueType === 'date_range'
+  }
+  if (Array.isArray(before) && before.every(item => typeof item === 'string'))
+    return valueType === 'string_array' || valueType === 'date_range'
+  if (Array.isArray(before) && before.every(item => isRecord(item)))
+    return valueType === 'object_array' || valueType === 'skill_list' || valueType === 'certificate_list'
+  if (isRecord(before))
+    return valueType === 'object' || valueType === 'skill_item'
+  return false
+}
+
+export function isSuggestionReadyToApply(suggestion: Suggestion): boolean {
+  if (suggestionNeedsUserInput(suggestion) || !isSuggestionTypeCompatibleWithBefore(suggestion))
+    return false
+
+  const { after, kind, locate, valueType } = suggestion
+  if (kind === 'replace_text' && valueType !== 'html_string')
+    return false
+  if (kind === 'normalize_date' && valueType !== 'string_array' && valueType !== 'date_range')
+    return false
+
+  if (valueType === 'string' || valueType === 'html_string')
+    return isNonEmptyPlainText(after)
+  if (valueType === 'number')
+    return typeof after === 'number' && Number.isFinite(after)
+  if (valueType === 'boolean')
+    return typeof after === 'boolean'
+  if (valueType === 'string_array' || valueType === 'date_range') {
+    return Array.isArray(after)
+      && after.length > 0
+      && (kind !== 'normalize_date' || after.length === 2)
+      && after.every(item => typeof item === 'string' && item.trim().length > 0)
+  }
+  if (valueType === 'skill_list') {
+    const levels = new Set(['一般', '良好', '熟练', '擅长', '精通'])
+    const displayTypes = new Set(['text', 'percentage'])
+    return Array.isArray(after) && after.length > 0 && after.every(item => (
+      isRecord(item)
+      && hasValidEntryId(item)
+      && isNonEmptyPlainText(item.label)
+      && levels.has(String(item.proficiencyLevel))
+      && displayTypes.has(String(item.displayType))
+    ))
+  }
+  if (valueType === 'certificate_list') {
+    return Array.isArray(after) && after.length > 0 && after.every(item => (
+      isRecord(item) && hasValidEntryId(item) && isNonEmptyPlainText(item.name)
+    ))
+  }
+  if (valueType === 'object_array') {
+    if (!Array.isArray(after) || after.length === 0 || !after.every(item => isRecord(item)))
+      return false
+    if (/(?:^|\.)hobbies$/.test(locate.path.toLowerCase())) {
+      return after.every(item => hasValidEntryId(item) && isNonEmptyPlainText(item.name))
+    }
+    return true
+  }
+  if (valueType === 'object' || valueType === 'skill_item')
+    return isRecord(after) && Object.keys(after).length > 0
+
+  return false
+}
+
+function isValueTypeCompatibleWithField(valueType: ValueType, field: AtsAssessmentField): boolean {
+  const { rawValue } = field
+  if (typeof rawValue === 'string')
+    return valueType === 'string' || valueType === 'html_string'
+  if (typeof rawValue === 'number')
+    return valueType === 'number'
+  if (typeof rawValue === 'boolean')
+    return valueType === 'boolean'
+  if (Array.isArray(rawValue) && rawValue.length === 0) {
+    return /(?:^|\.)(?:skills|certificates|hobbies)$/.test(field.locate.path.toLowerCase())
+      ? valueType === 'object_array'
+      : valueType === 'string_array'
+  }
+  if (Array.isArray(rawValue) && rawValue.every(item => typeof item === 'string'))
+    return valueType === 'string_array'
+  if (Array.isArray(rawValue) && rawValue.every(item => isRecord(item)))
+    return valueType === 'object_array'
   return false
 }
 
@@ -166,6 +473,8 @@ function normalizeSuggestion(
 
   const normalizedKind = kind as SuggestionKind
   const normalizedValueType = valueType as ValueType
+  if (!isValueTypeCompatibleWithField(normalizedValueType, field))
+    return null
   if (!isNonEmptyAfter(rawSuggestion.after, normalizedValueType))
     return null
 
@@ -178,7 +487,7 @@ function normalizeSuggestion(
 
   return {
     kind: normalizedKind,
-    valueType: normalizedValueType,
+    valueType: toInternalSuggestionValueType(normalizedValueType, field.locate.path),
     locate: field.locate,
     before: field.rawValue as AfterValue,
     after: rawSuggestion.after,
@@ -225,7 +534,7 @@ function normalizeFinding(
         .map(item => normalizeEvidence(item, catalog))
         .filter((item): item is Evidence => item !== null)
     : []
-  if (evidence.length === 0)
+  if (evidence.length === 0 || !evidence.some(item => item.locate.path === field.locate.path))
     return null
 
   const suggestions = Array.isArray(rawFix.suggestions)
@@ -233,6 +542,8 @@ function normalizeFinding(
         .map(item => normalizeSuggestion(item, catalog))
         .filter((item): item is Suggestion => item !== null)
     : []
+  const fixSummary = readString(rawFix.summary, title)
+  const steps = readStringList(rawFix.steps, 4)
 
   return {
     type: readString(rawFinding.type, 'content_issue').replace(/\W+/g, '_').toLowerCase(),
@@ -243,9 +554,11 @@ function normalizeFinding(
       evidence,
     },
     fix: {
-      summary: readString(rawFix.summary, title),
-      steps: readStringList(rawFix.steps, 4),
-      suggestions,
+      summary: fixSummary,
+      steps,
+      suggestions: suggestions.length > 0
+        ? suggestions
+        : [buildFallbackSuggestion(field, fixSummary, steps)],
     },
   }
 }
@@ -257,7 +570,7 @@ function normalizeFindings(
   const source = isRecord(rawFindings) ? rawFindings : {}
   const prefixes: Record<Severity, string> = { high: 'H', medium: 'M', low: 'L' }
 
-  return Object.fromEntries(SEVERITIES.map((severity) => {
+  const findings = Object.fromEntries(SEVERITIES.map((severity) => {
     const rawGroup = Array.isArray(source[severity]) ? source[severity] : []
     const normalized = rawGroup
       .map(item => normalizeFinding(item, catalog))
@@ -268,6 +581,8 @@ function normalizeFindings(
       }))
     return [severity, normalized]
   })) as unknown as FindingsGroup
+
+  return ensureAtsFindingsHaveSuggestions(findings)
 }
 
 function flattenFindingsWithSeverity(findings: FindingsGroup) {

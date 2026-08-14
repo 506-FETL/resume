@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { hasUnresolvedSuggestionInput } from '@/lib/ats'
 import { syncAutomergeDocument } from '@/lib/automerge'
 import { updateAtsConfig } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
@@ -33,9 +34,26 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
 
   const finding = currentAtsConfig?.findings?.[severity]?.find(f => f.id === id)
   const allFixed = finding?.fix.suggestions?.length ? finding.fix.suggestions.every(s => s.fixed) : false
+  const needsUserInput = hasUnresolvedSuggestionInput(finding?.fix.suggestions ?? [])
 
   const handleConfirm = async () => {
     if (!currentAtsConfig) {
+      return
+    }
+
+    const updatedSuggestions = currentAtsConfig
+      .findings[severity]
+      .find(f => f.id === id)
+      ?.fix
+      .suggestions ?? []
+
+    if (updatedSuggestions.length === 0) {
+      toast.error('当前修复建议不完整，请重新运行 ATS 检测')
+      return
+    }
+
+    if (hasUnresolvedSuggestionInput(updatedSuggestions)) {
+      toast.info('请先在“自定义”中填写真实信息，再确认应用')
       return
     }
 
@@ -54,24 +72,16 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
       return f
     })
 
-    const updatedSuggestions = currentAtsConfig
-      .findings[severity]
-      .find(f => f.id === id)
-      ?.fix
-      .suggestions
-
     try {
       await updateAtsConfig(currentAtsConfig.id, {
         findings: { ...currentAtsConfig.findings, [severity]: updatedFinding },
       })
 
-      if (updatedSuggestions && updatedSuggestions.length > 0) {
-        await syncAutomergeDocument(
-          currentAtsConfig.resume_id,
-          updatedSuggestions,
-          { syncToResumeConfig: true },
-        )
-      }
+      await syncAutomergeDocument(
+        currentAtsConfig.resume_id,
+        updatedSuggestions,
+        { syncToResumeConfig: true },
+      )
 
       update('findings', { ...currentAtsConfig.findings, [severity]: updatedFinding })
       startConfetti(triger)
@@ -94,7 +104,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
         <DialogTrigger asChild>
           {children}
         </DialogTrigger>
-        <DialogContent className="flex h-[min(88dvh,56rem)] min-h-0 w-[min(70rem,calc(100vw-3rem))] max-w-none flex-col gap-0 overflow-hidden p-0">
+        <DialogContent className="flex h-[min(88dvh,56rem)] min-h-0 w-[min(90rem,calc(100vw-4rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(90rem,calc(100vw-4rem))]">
           <DialogHeader className="shrink-0 border-b px-4 pt-4 pb-3 md:px-5">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Wand2 className="size-4 shrink-0 text-primary" />
@@ -113,7 +123,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
               <Button variant="outline">取消</Button>
             </DialogClose>
             <Button ref={triger} onClick={handleConfirm} disabled={isFixing || allFixed}>
-              {allFixed ? '已修复' : '确认'}
+              {allFixed ? '已修复' : needsUserInput ? '补充后应用' : '确认修复'}
               {isFixing ? <Spinner /> : null}
             </Button>
           </DialogFooter>
@@ -147,7 +157,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
             取消
           </DrawerClose>
           <Button ref={triger} onClick={handleConfirm} disabled={isFixing || allFixed}>
-            {allFixed ? '已修复' : '确认'}
+            {allFixed ? '已修复' : needsUserInput ? '补充后应用' : '确认修复'}
             {isFixing && <Spinner /> }
           </Button>
         </DrawerFooter>
