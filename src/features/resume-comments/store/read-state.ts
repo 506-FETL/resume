@@ -41,13 +41,16 @@ export function applyCommentEventsToThreadReadStates(
     if (event.type !== 'thread_created' && event.type !== 'comment_replied')
       continue
     const existing = next[event.threadId]
+    const latestCommentEventSeq = Math.max(
+      existing?.latestCommentEventSeq ?? 0,
+      event.eventSeq,
+    )
     next[event.threadId] = {
       threadId: event.threadId,
-      latestCommentEventSeq: Math.max(
-        existing?.latestCommentEventSeq ?? 0,
-        event.eventSeq,
-      ),
-      lastReadEventSeq: existing?.lastReadEventSeq ?? 0,
+      latestCommentEventSeq,
+      lastReadEventSeq: event.isOwn
+        ? Math.max(existing?.lastReadEventSeq ?? 0, event.eventSeq)
+        : existing?.lastReadEventSeq ?? 0,
     }
   }
   return next

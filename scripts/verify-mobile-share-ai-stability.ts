@@ -83,9 +83,11 @@ const trackerStore = read('src/pages/tracker/store.ts')
 assert.match(overview, /aria-expanded=\{mobileExpanded\}/u)
 assert.match(overview, /<AnimatePresence initial=\{false\}>/u)
 assert.match(overview, /exit=\{reduce \? \{ opacity: 0 \} : \{ opacity: 0, height: 0 \}\}/u)
-assert.match(overview, /bg-primary text-primary-foreground/u)
-assert.match(overview, /aria-pressed:bg-primary aria-pressed:text-primary-foreground/u)
-assert.match(overview, /group-aria-pressed:text-primary-foreground\/75/u)
+assert.equal(
+  overview.match(/border-primary\/50 bg-primary\/5 text-foreground shadow-inner/gu)?.length,
+  2,
+)
+assert.doesNotMatch(overview, /aria-pressed:bg-primary|bg-primary text-primary-foreground/u)
 assert.match(overview, /md:hidden/u)
 assert.match(trackerDrawer, /const mobileFooter = isMobile/u)
 assert.match(trackerDrawer, /setActiveTab\(selectedJob\.status === 'interview' \? 'interview' : 'follow-up'\)/u)

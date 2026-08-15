@@ -120,6 +120,7 @@ export interface ResumeCommentEvent {
   type: ResumeCommentEventType
   threadId: string | null
   createdAt: string
+  isOwn?: boolean
 }
 
 export interface CommentThreadReadState {

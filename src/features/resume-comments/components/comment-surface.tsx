@@ -230,16 +230,19 @@ export function CommentSurface({
             )
           : null}
       </AnimatePresence>
-      {picker
-        ? (
-            <ThreadPicker
-              threads={pickedThreads}
-              point={picker.point}
-              onSelect={openThread}
-              onClose={() => setPicker(null)}
-            />
-          )
-        : null}
+      <AnimatePresence initial={false}>
+        {picker
+          ? (
+              <ThreadPicker
+                key="resume-comment-thread-picker"
+                threads={pickedThreads}
+                point={picker.point}
+                onSelect={openThread}
+                onClose={() => setPicker(null)}
+              />
+            )
+          : null}
+      </AnimatePresence>
       <CommentsPanel
         open={open}
         onOpenChange={setOpen}

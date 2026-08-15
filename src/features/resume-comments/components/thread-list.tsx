@@ -82,7 +82,7 @@ export function ThreadList({
     )
   }
   return (
-    <div className="space-y-2 p-3">
+    <div className="w-full min-w-0 space-y-2 p-3">
       <AnimatePresence initial={false} mode="popLayout">
         {filtered.map((thread) => {
           const root = thread.comments.find(comment => comment.parentId === null)
@@ -99,13 +99,14 @@ export function ThreadList({
             <motion.div
               key={thread.id}
               layout
+              className="w-full min-w-0"
               initial={reduceMotion ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, scale: 0.98 }}
               transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
             >
               <div className={cn(
-                'group rounded-xl border transition-colors hover:border-border hover:bg-muted/60 focus-within:border-border focus-within:ring-2 focus-within:ring-ring/40',
+                'group w-full min-w-0 rounded-xl border transition-colors hover:border-border hover:bg-muted/60 focus-within:border-border focus-within:ring-2 focus-within:ring-ring/40',
                 unread
                   ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/25'
                   : 'border-transparent',

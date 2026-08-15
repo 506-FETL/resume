@@ -61,14 +61,14 @@ export default function OverviewBar() {
                 type="button"
                 aria-pressed={metricFilter === metric.key}
                 className={cn(
-                  'flex min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1 transition-colors',
+                  'flex min-w-0 flex-col items-center justify-center rounded-lg border px-1 py-1 transition-colors',
                   metricFilter === metric.key
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted/70 active:bg-muted',
+                    ? 'border-primary/50 bg-primary/5 text-foreground shadow-inner'
+                    : 'border-transparent hover:bg-muted/70 active:bg-muted',
                 )}
                 onClick={() => setMetricFilter(metric.key)}
               >
-                <span className={cn('text-[10px]', metricFilter === metric.key ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
+                <span className="text-[10px] text-muted-foreground">
                   {metric.label}
                 </span>
                 <span className="text-base font-semibold leading-tight tabular-nums">{metric.value}</span>
@@ -101,10 +101,15 @@ export default function OverviewBar() {
                 <button
                   type="button"
                   aria-pressed={metricFilter === 'pending'}
-                  className="group flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    metricFilter === 'pending'
+                      ? 'border-primary/50 bg-primary/5 text-foreground shadow-inner'
+                      : 'border-transparent bg-muted/50',
+                  )}
                   onClick={() => setMetricFilter('pending')}
                 >
-                  <span className="text-[10px] text-muted-foreground group-aria-pressed:text-primary-foreground/75">待跟进</span>
+                  <span className="text-[10px] text-muted-foreground">待跟进</span>
                   <span className="font-semibold tabular-nums">{stats.pending}</span>
                 </button>
               </div>

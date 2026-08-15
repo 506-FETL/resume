@@ -35,6 +35,15 @@ function readSourceSection(source: string, startMarker: string, endMarker: strin
   return source.slice(start, end)
 }
 
+function assertSourceOrder(source: string, markers: string[]) {
+  let previous = -1
+  for (const marker of markers) {
+    const current = source.indexOf(marker)
+    assert.ok(current > previous, `源码顺序不符合预期：${marker}`)
+    previous = current
+  }
+}
+
 function readCorsHeaderValue(source: string, name: string): string {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
   const matched = source.match(new RegExp(
@@ -79,6 +88,29 @@ const threadReadMigrationSource = readFileSync(
   'utf8',
 )
 const normalizedBootstrapMigrationSource = bootstrapMigrationSource.replace(/\s+/gu, ' ')
+const eventProjectionSource = readSourceSection(
+  edgeSource,
+  'function projectCommentEventsForAccess',
+  '\ninterface BootstrapRpcInput',
+)
+const genericWriteResponseSource = readSourceSection(
+  edgeSource,
+  '    let data: Record<string, unknown>',
+  '\n    const eventSeq = Number(data.eventSeq)',
+)
+const genericWriteCompletionSource = readSourceSection(
+  edgeSource,
+  '    let data: Record<string, unknown>',
+  '\n  }\n  catch (error)',
+)
+const finalMutationResponseSource = genericWriteCompletionSource.slice(
+  genericWriteCompletionSource.indexOf('    const eventSeq = Number(data.eventSeq)'),
+)
+const documentSyncSource = readSourceSection(
+  edgeSource,
+  '    if (op === \'sync_working_document\')',
+  '\n    requireActor(access)',
+)
 assert.match(edgeSource, /ensure_resume_version_comment_scope/u)
 assert.doesNotMatch(edgeSource, /ensure_resume_working_comment_scope/u)
 assert.match(edgeSource, /execute_resume_version_comment_write/u)
@@ -87,6 +119,26 @@ assert.match(edgeSource, /op === 'list_events'/u)
 assert.match(edgeSource, /op === 'mark_thread_read'/u)
 assert.match(edgeSource, /mark_resume_comment_thread_read_v1/u)
 assert.match(edgeSource, /threadReadStates/u)
+assert.match(edgeSource, /create_thread: 'thread_created'/u)
+assert.match(edgeSource, /create_reply: 'comment_replied'/u)
+assert.match(edgeSource, /function projectCommentEventsForAccess/u)
+assert.match(edgeSource, /value\.actor_kind === access\.actorKind/u)
+assert.match(edgeSource, /value\.actor_id === access\.actorId/u)
+assert.doesNotMatch(eventProjectionSource, /actor_kind:|actor_id:/u)
+assert.match(edgeSource, /events: projectCommentEventsForAccess\(eventResult\.data \?\? \[\], access\)/u)
+assert.match(edgeSource, /events: projectCommentEventsForAccess\(events, access\)/u)
+assert.match(edgeSource, /type: resolveCommentEventType\(op\),[\s\S]*?is_own: true/u)
+assert.match(genericWriteResponseSource, /if \(replay\)[\s\S]*?data = replay[\s\S]*?else \{[\s\S]*?execute_resume_version_comment_write/u)
+assert.match(genericWriteResponseSource, /scheduleBackground\(notifyWrite/u)
+assert.match(documentSyncSource, /if \(replay\)[\s\S]*?loadThreads\(admin, access\.scope\.id\)[\s\S]*?loadThreadCounts\(admin, access\.scope\.id\)/u)
+assert.match(documentSyncSource, /\.\.\.replay,[\s\S]*?threads,[\s\S]*?profiles,[\s\S]*?counts,[\s\S]*?type: 'document_synced'/u)
+assert.doesNotMatch(documentSyncSource, /return finalize\(success\(replay,/u)
+assertSourceOrder(finalMutationResponseSource, [
+  '    const eventSeq = Number(data.eventSeq)',
+  '    const threadId = typeof data.threadId',
+  'event: {',
+  'type: resolveCommentEventType(op),',
+])
 assert.match(edgeSource, /scheduleBackground\(notifyWrite/u)
 assert.match(edgeSource, /Server-Timing/u)
 assert.match(edgeSource, /X-Request-Id/u)

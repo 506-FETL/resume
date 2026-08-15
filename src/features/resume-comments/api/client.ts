@@ -368,6 +368,7 @@ function normalizeEvents(value: unknown): ResumeCommentEvent[] {
       type,
       threadId: asNullableString(event.thread_id),
       createdAt: String(event.created_at ?? ''),
+      isOwn: event.is_own === true,
     }]
   })
 }
@@ -466,6 +467,7 @@ function normalizeMutation(value: unknown): CommentMutationResult {
     type: 'settings_changed',
     threadId: asNullableString(data.threadId),
     createdAt: new Date().toISOString(),
+    isOwn: true,
   }
   return {
     thread,

@@ -5,6 +5,7 @@ import type {
   ResumeCommentAnchor,
   ResumeCommentRelocationResult,
 } from '../shared/resume-comment-core.ts'
+import type { CommentApiOp } from '../shared/resume-comment-schema.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsHeaders } from '../shared/cors.ts'
 import {
@@ -127,6 +128,42 @@ interface ResolvedAccess {
   versionId: number
   canWrite: boolean
   canManageAll: boolean
+}
+
+const COMMENT_EVENT_TYPE_BY_OP: Partial<Record<CommentApiOp, string>> = {
+  sync_working_document: 'document_synced',
+  create_thread: 'thread_created',
+  create_reply: 'comment_replied',
+  edit_comment: 'comment_edited',
+  delete_comment: 'comment_deleted',
+  delete_thread: 'thread_deleted',
+  resolve_thread: 'thread_resolved',
+  reopen_thread: 'thread_reopened',
+  relink_anchor: 'anchor_relinked',
+}
+
+function resolveCommentEventType(op: CommentApiOp) {
+  return COMMENT_EVENT_TYPE_BY_OP[op] ?? op
+}
+
+function projectCommentEventsForAccess(events: unknown[], access: ResolvedAccess) {
+  return events.flatMap((value) => {
+    if (!isRecord(value))
+      return []
+    return [{
+      event_seq: value.event_seq,
+      thread_id: value.thread_id,
+      type: value.type,
+      sanitized_payload: value.sanitized_payload,
+      created_at: value.created_at,
+      is_own: Boolean(
+        access.actorKind
+        && access.actorId
+        && value.actor_kind === access.actorKind
+        && value.actor_id === access.actorId,
+      ),
+    }]
+  })
 }
 
 interface BootstrapRpcInput {
@@ -2092,7 +2129,11 @@ Deno.serve(async (req) => {
       if (eventResult.error)
         throw eventResult.error
       const latestScope = await getScope(admin, access.scope.id)
-      return finalize(success({ threads, profiles, events: eventResult.data ?? [] }, latestScope.next_event_seq))
+      return finalize(success({
+        threads,
+        profiles,
+        events: projectCommentEventsForAccess(eventResult.data ?? [], access),
+      }, latestScope.next_event_seq))
     }
 
     if (op === 'list_events') {
@@ -2112,7 +2153,11 @@ Deno.serve(async (req) => {
         loadThreads(admin, access.scope.id, threadIds),
         getScope(admin, access.scope.id),
       ])
-      return finalize(success({ threads, profiles, events }, latestScope.next_event_seq))
+      return finalize(success({
+        threads,
+        profiles,
+        events: projectCommentEventsForAccess(events, access),
+      }, latestScope.next_event_seq))
     }
 
     if (op === 'issue_realtime_token') {
@@ -2145,7 +2190,26 @@ Deno.serve(async (req) => {
       }
       const replay = await readReplay(admin, access.actorKey!, requestId)
       if (replay) {
-        return finalize(success(replay, Number(replay.eventSeq)))
+        if (!isRecord(replay))
+          throw new CommentApiError('unexpected', '评论文档同步响应无效', 500)
+        const eventSeq = Number(replay.eventSeq)
+        const [{ threads, profiles }, counts] = await Promise.all([
+          loadThreads(admin, access.scope.id),
+          loadThreadCounts(admin, access.scope.id),
+        ])
+        return finalize(success({
+          ...replay,
+          threads,
+          profiles,
+          counts,
+          event: {
+            event_seq: eventSeq,
+            thread_id: null,
+            type: 'document_synced',
+            created_at: new Date().toISOString(),
+            is_own: true,
+          },
+        }, eventSeq))
       }
       await enforceRateLimit({
         req,
@@ -2213,7 +2277,7 @@ Deno.serve(async (req) => {
         access,
         realtimeSecret,
         eventSeq: Number(data.eventSeq),
-        type: op,
+        type: resolveCommentEventType(op),
       }))
       const eventSeq = Number(data.eventSeq)
       const [{ threads, profiles }, counts] = await Promise.all([
@@ -2234,6 +2298,7 @@ Deno.serve(async (req) => {
           thread_id: null,
           type: 'document_synced',
           created_at: new Date().toISOString(),
+          is_own: true,
         },
       }, eventSeq))
     }
@@ -2251,11 +2316,13 @@ Deno.serve(async (req) => {
       }
     }
     const replay = await readReplay(admin, access.actorKey!, requestId)
-    if (replay) {
-      return finalize(success(replay, Number(replay.eventSeq)))
-    }
 
     if (op === 'mark_thread_read') {
+      if (replay) {
+        if (!isRecord(replay))
+          throw new CommentApiError('unexpected', '评论已读响应无效', 500)
+        return finalize(success(replay, Number(replay.eventSeq)))
+      }
       const threadId = readUuid(body, 'threadId')
       const eventSeq = readNonNegativeInteger(body, 'eventSeq')
       const { data, error } = await admin.rpc('mark_resume_comment_thread_read_v1', {
@@ -2272,66 +2339,77 @@ Deno.serve(async (req) => {
       return finalize(success(data, Number(data.eventSeq)))
     }
 
-    const payload = writePayload(body, access)
-    if (['create_thread', 'relink_anchor'].includes(op)) {
-      payload.anchor = readCommentAnchor(body.anchor)
-      payload.documentHash = readRequiredString(body, 'documentHash', 64)
+    let data: Record<string, unknown>
+    if (replay) {
+      if (!isRecord(replay))
+        throw new CommentApiError('unexpected', '评论重试响应无效', 500)
+      data = replay
     }
-    if (['create_thread', 'create_reply', 'edit_comment'].includes(op)) {
-      payload.body = normalizeCommentBody(body.body)
-    }
-    if (op === 'create_reply') {
-      payload.parentCommentId = readUuid(body, 'parentCommentId')
-    }
-    if (op !== 'mark_read') {
-      requireWrite(access)
-    }
-    if (op === 'delete_thread' && !access.canManageAll) {
-      throw new CommentApiError('unauthorized', '只有简历所有者可以删除整条线程', 403)
-    }
-    if (
-      ['create_reply', 'edit_comment', 'delete_comment', 'delete_thread', 'resolve_thread', 'reopen_thread', 'relink_anchor'].includes(op)
-    ) {
-      payload.threadId = readUuid(body, 'threadId')
-      payload.expectedRevision = readNonNegativeInteger(body, 'expectedRevision')
-    }
-    if (['edit_comment', 'delete_comment'].includes(op)) {
-      payload.commentId = readUuid(body, 'commentId')
-    }
-    if (op === 'mark_read') {
-      payload.eventSeq = readNonNegativeInteger(body, 'eventSeq')
-    }
+    else {
+      const payload = writePayload(body, access)
+      if (['create_thread', 'relink_anchor'].includes(op)) {
+        payload.anchor = readCommentAnchor(body.anchor)
+        payload.documentHash = readRequiredString(body, 'documentHash', 64)
+      }
+      if (['create_thread', 'create_reply', 'edit_comment'].includes(op)) {
+        payload.body = normalizeCommentBody(body.body)
+      }
+      if (op === 'create_reply') {
+        payload.parentCommentId = readUuid(body, 'parentCommentId')
+      }
+      if (op !== 'mark_read') {
+        requireWrite(access)
+      }
+      if (op === 'delete_thread' && !access.canManageAll) {
+        throw new CommentApiError('unauthorized', '只有简历所有者可以删除整条线程', 403)
+      }
+      if (
+        ['create_reply', 'edit_comment', 'delete_comment', 'delete_thread', 'resolve_thread', 'reopen_thread', 'relink_anchor'].includes(op)
+      ) {
+        payload.threadId = readUuid(body, 'threadId')
+        payload.expectedRevision = readNonNegativeInteger(body, 'expectedRevision')
+      }
+      if (['edit_comment', 'delete_comment'].includes(op)) {
+        payload.commentId = readUuid(body, 'commentId')
+      }
+      if (op === 'mark_read') {
+        payload.eventSeq = readNonNegativeInteger(body, 'eventSeq')
+      }
 
-    if (op !== 'mark_read') {
-      await enforceRateLimit({
-        req,
-        admin,
-        access,
-        threadId: typeof payload.threadId === 'string' ? payload.threadId : null,
-        pepper: anonymousPepper,
+      if (op !== 'mark_read') {
+        await enforceRateLimit({
+          req,
+          admin,
+          access,
+          threadId: typeof payload.threadId === 'string' ? payload.threadId : null,
+          pepper: anonymousPepper,
+        })
+      }
+      const result = await admin.rpc('execute_resume_version_comment_write', {
+        p_op: op,
+        p_scope_id: access.scope.id,
+        p_actor_kind: access.actorKind,
+        p_actor_id: access.actorId,
+        p_actor_key: access.actorKey,
+        p_request_id: requestId,
+        p_payload: payload,
       })
+      if (result.error)
+        throw result.error
+      if (!isRecord(result.data))
+        throw new CommentApiError('unexpected', '评论响应无效', 500)
+      data = result.data
+      if (op !== 'mark_read') {
+        scheduleBackground(notifyWrite({
+          admin,
+          access,
+          realtimeSecret,
+          eventSeq: Number(data.eventSeq),
+          type: resolveCommentEventType(op),
+        }))
+      }
     }
-    const { data, error } = await admin.rpc('execute_resume_version_comment_write', {
-      p_op: op,
-      p_scope_id: access.scope.id,
-      p_actor_kind: access.actorKind,
-      p_actor_id: access.actorId,
-      p_actor_key: access.actorKey,
-      p_request_id: requestId,
-      p_payload: payload,
-    })
-    if (error)
-      throw error
     const eventSeq = Number(data.eventSeq)
-    if (op !== 'mark_read') {
-      scheduleBackground(notifyWrite({
-        admin,
-        access,
-        realtimeSecret,
-        eventSeq,
-        type: op,
-      }))
-    }
     if (op === 'mark_read')
       return finalize(success(data, eventSeq))
     const threadId = typeof data.threadId === 'string' ? data.threadId : null
@@ -2356,8 +2434,9 @@ Deno.serve(async (req) => {
       event: {
         event_seq: eventSeq,
         thread_id: threadId,
-        type: op,
+        type: resolveCommentEventType(op),
         created_at: new Date().toISOString(),
+        is_own: true,
       },
     }, eventSeq))
   }

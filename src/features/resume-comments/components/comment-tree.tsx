@@ -131,11 +131,11 @@ function CommentNode({
   return (
     <motion.div
       layout
-      initial={reduceMotion ? false : { opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, y: -4 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 7, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, y: -4, scale: 0.985 }}
       transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
-      className={cn('relative min-w-0', depth > 0 && 'pl-7')}
+      className={cn('relative w-full min-w-0', depth > 0 && 'pl-7')}
     >
       {depth > 0
         ? (
@@ -226,22 +226,24 @@ function CommentNode({
           {error ? <p role="alert" className="mt-1 text-xs text-destructive">{error}</p> : null}
         </div>
       </article>
-      {visibleChildren.length > 0
+      {depth < 2
         ? (
             <div className="ml-4 min-w-0">
-              {visibleChildren.map((child, index) => (
-                <CommentNode
-                  key={child.comment.id}
-                  node={child}
-                  depth={depth + 1}
-                  thread={thread}
-                  permissions={permissions}
-                  actions={actions}
-                  onReply={onReply}
-                  onOpenReplies={onOpenReplies}
-                  isLast={index === visibleChildren.length - 1}
-                />
-              ))}
+              <AnimatePresence>
+                {visibleChildren.map((child, index) => (
+                  <CommentNode
+                    key={child.comment.id}
+                    node={child}
+                    depth={depth + 1}
+                    thread={thread}
+                    permissions={permissions}
+                    actions={actions}
+                    onReply={onReply}
+                    onOpenReplies={onOpenReplies}
+                    isLast={index === visibleChildren.length - 1}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
           )
         : hiddenReplyCount > 0
@@ -309,7 +311,7 @@ export function CommentTree({
 
   return (
     <div className="min-w-0">
-      <AnimatePresence initial={false} mode="wait" custom={navigationDirection}>
+      <AnimatePresence mode="wait" custom={navigationDirection}>
         <motion.div
           key={detailRootId ?? 'comment-tree-root'}
           custom={navigationDirection}
@@ -333,19 +335,21 @@ export function CommentTree({
                 </div>
               )
             : null}
-          {roots.map((node, index) => (
-            <CommentNode
-              key={node.comment.id}
-              node={node}
-              depth={0}
-              thread={thread}
-              permissions={permissions}
-              actions={actions}
-              onReply={onReply}
-              onOpenReplies={openReplyDetail}
-              isLast={index === roots.length - 1}
-            />
-          ))}
+          <AnimatePresence>
+            {roots.map((node, index) => (
+              <CommentNode
+                key={node.comment.id}
+                node={node}
+                depth={0}
+                thread={thread}
+                permissions={permissions}
+                actions={actions}
+                onReply={onReply}
+                onOpenReplies={openReplyDetail}
+                isLast={index === roots.length - 1}
+              />
+            ))}
+          </AnimatePresence>
         </motion.div>
       </AnimatePresence>
     </div>

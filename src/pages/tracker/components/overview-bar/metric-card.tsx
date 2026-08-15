@@ -27,11 +27,11 @@ export function MetricCard({ label, value, active, accent, onClick, index }: Met
       className={cn(
         'relative flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors',
         active
-          ? 'border-primary bg-primary text-primary-foreground'
+          ? 'border-primary/50 bg-primary/5 text-foreground shadow-inner'
           : 'border-transparent hover:bg-accent',
       )}
     >
-      <span className={cn('text-xs', active ? 'text-primary-foreground/75' : 'text-muted-foreground')}>{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <span className={cn(
         'text-xl font-semibold tabular-nums',
         accent && value > 0 && !active && 'text-amber-600',

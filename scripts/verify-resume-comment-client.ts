@@ -17,7 +17,10 @@ import {
 } from '../src/features/resume-comments/api/performance.ts'
 import { decideCommentRealtimeRecovery } from '../src/features/resume-comments/api/realtime-recovery.ts'
 import { createResumeCommentStore } from '../src/features/resume-comments/store/create-store.ts'
-import { getUnreadCommentThreadIds } from '../src/features/resume-comments/store/read-state.ts'
+import {
+  applyCommentEventsToThreadReadStates,
+  getUnreadCommentThreadIds,
+} from '../src/features/resume-comments/store/read-state.ts'
 
 const anchor = {
   nodeKey: 'work:entry-1:description',
@@ -156,6 +159,31 @@ threadReadStore.getState().restoreReadSnapshot(beforeThreadRead)
 assert.deepEqual(unreadThreadIds(), ['thread-a', 'thread-b'])
 threadReadStore.getState().markAllReadLocally(10)
 assert.deepEqual(unreadThreadIds(), [])
+
+const ownEventReadStates = applyCommentEventsToThreadReadStates({}, [{
+  eventSeq: 11,
+  type: 'comment_replied',
+  threadId: 'thread-own',
+  createdAt: '2026-08-16T01:00:00.000Z',
+  isOwn: true,
+}])
+assert.deepEqual(ownEventReadStates['thread-own'], {
+  threadId: 'thread-own',
+  latestCommentEventSeq: 11,
+  lastReadEventSeq: 11,
+})
+const otherEventReadStates = applyCommentEventsToThreadReadStates(ownEventReadStates, [{
+  eventSeq: 12,
+  type: 'comment_replied',
+  threadId: 'thread-own',
+  createdAt: '2026-08-16T01:01:00.000Z',
+  isOwn: false,
+}])
+assert.deepEqual(otherEventReadStates['thread-own'], {
+  threadId: 'thread-own',
+  latestCommentEventSeq: 12,
+  lastReadEventSeq: 11,
+})
 
 store.getState().setDraft('new-thread', '不要丢失的草稿')
 store.getState().setConnection('offline')
@@ -427,6 +455,18 @@ const threadListSource = readFileSync(
   new URL('../src/features/resume-comments/components/thread-list.tsx', import.meta.url),
   'utf8',
 )
+const threadPickerSource = readFileSync(
+  new URL('../src/features/resume-comments/components/thread-picker.tsx', import.meta.url),
+  'utf8',
+)
+const trackerOverviewSource = readFileSync(
+  new URL('../src/pages/tracker/components/overview-bar/index.tsx', import.meta.url),
+  'utf8',
+)
+const trackerMetricCardSource = readFileSync(
+  new URL('../src/pages/tracker/components/overview-bar/metric-card.tsx', import.meta.url),
+  'utf8',
+)
 const commentClientSource = readFileSync(
   new URL('../src/features/resume-comments/api/client.ts', import.meta.url),
   'utf8',
@@ -475,6 +515,10 @@ assert.match(commentTreeSource, /pl-7/u)
 assert.match(commentTreeSource, /-top-px left-0 h-\[calc\(1\.75rem\+1px\)\] w-7 rounded-bl-xl/u)
 assert.match(commentTreeSource, /-bottom-px left-0 top-\[calc\(1\.75rem-1px\)\]/u)
 assert.match(commentTreeSource, /<div className="ml-4 min-w-0">/u)
+assert.equal(commentTreeSource.match(/<AnimatePresence>/gu)?.length, 2)
+assert.match(commentTreeSource, /\{depth < 2[\s\S]*?<AnimatePresence>[\s\S]*?visibleChildren\.map/u)
+assert.doesNotMatch(commentTreeSource, /\{visibleChildren\.length > 0\s*\?|mode="popLayout"/u)
+assert.match(commentTreeSource, /opacity: 0, y: 7, scale: 0\.985/u)
 assert.doesNotMatch(commentTreeSource, /depth > 0 \? 'ml-6'/u)
 assert.doesNotMatch(commentTreeSource, /depth > 0 \? 'ml-11'/u)
 assert.match(commentTreeSource, /const \[detailPath, setDetailPath\]/u)
@@ -516,6 +560,20 @@ assert.match(commentSelectionSource, /completionArmed\.current/u)
 assert.match(commentSelectionSource, /scheduleEvaluation\(120\)/u)
 assert.equal(commentSelectionSource.match(/requestAnimationFrame\(/gu)?.length, 2)
 assert.match(threadDetailSource, /flex shrink-0 items-center/u)
+assert.match(threadListSource, /w-full min-w-0 space-y-2 p-3/u)
+assert.match(threadListSource, /className="w-full min-w-0"/u)
+assert.match(commentSurfaceSource, /<AnimatePresence initial=\{false\}>[\s\S]*?<ThreadPicker[\s\S]*?key="resume-comment-thread-picker"/u)
+assert.match(threadPickerSource, /className="fixed inset-0 z-60"/u)
+assert.match(threadPickerSource, /onPointerDown=\{onClose\}/u)
+assert.match(threadPickerSource, /exit=\{reduceMotion \? \{ opacity: 0 \} : \{ opacity: 0, y: 4, scale: 0\.98 \}\}/u)
+assert.match(commentClientSource, /isOwn: event\.is_own === true/u)
+assert.match(trackerMetricCardSource, /border-primary\/50 bg-primary\/5 text-foreground shadow-inner/u)
+assert.doesNotMatch(trackerMetricCardSource, /bg-primary text-primary-foreground/u)
+assert.equal(
+  trackerOverviewSource.match(/border-primary\/50 bg-primary\/5 text-foreground shadow-inner/gu)?.length,
+  2,
+)
+assert.doesNotMatch(trackerOverviewSource, /aria-pressed:bg-primary|bg-primary text-primary-foreground/u)
 assert.match(threadDetailSource, /shrink-0 border-t p-3/u)
 assert.match(commentMobileLayoutSource, /\(hover: none\) and \(pointer: coarse\) and \(max-width: 1024px\)/u)
 assert.doesNotMatch(commentBookmarkSource, /h-14 w-12/u)
