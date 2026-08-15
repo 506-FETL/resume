@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button'
 import { countCommentGraphemes } from '../anchors/graphemes.ts'
 import { COMMENT_MOTION } from '../const.ts'
 
+const SELECTION_ACTION_HIDDEN = { opacity: 0, y: 6, scale: 0.96 }
+const SELECTION_ACTION_EXIT_EASE = [0.64, 0, 0.78, 0] as const
+
 export function SelectionAction({
   selection,
   disabled,
@@ -27,13 +30,25 @@ export function SelectionAction({
   const Icon = mode === 'relink' ? Link2 : MessageSquarePlus
   const label = mode === 'relink' ? '关联到此处' : '评论'
   const motionProps = {
-    initial: reduceMotion ? false : { opacity: 0, y: 6, scale: 0.96 },
-    animate: { opacity: 1, y: 0, scale: 1 },
-    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4, scale: 0.98 },
-    transition: {
-      duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration,
-      ease: COMMENT_MOTION.ease,
+    initial: reduceMotion ? false : SELECTION_ACTION_HIDDEN,
+    animate: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration,
+        ease: COMMENT_MOTION.ease,
+      },
     },
+    exit: reduceMotion
+      ? { opacity: 0, transition: { duration: 0 } }
+      : {
+          ...SELECTION_ACTION_HIDDEN,
+          transition: {
+            duration: 0.14,
+            ease: SELECTION_ACTION_EXIT_EASE,
+          },
+        },
   }
   return (
     <>
