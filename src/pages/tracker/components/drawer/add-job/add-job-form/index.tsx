@@ -1,10 +1,10 @@
 import type { AddJobFormData } from '../types'
 import { BriefcaseBusiness, FileText, MapPin, Sparkles } from 'lucide-react'
-import { Combobox } from '@/components/ui/combobox'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ResponsiveDialogSection } from '@/components/ui/responsive-dialog'
 import { COMMON_CITIES, COMMON_COMPANIES, COMMON_POSITIONS } from '../../../../const'
+import { TrackerCombobox } from '../../tracker-combobox'
 
 interface AddJobFormProps {
   formData: AddJobFormData
@@ -32,11 +32,11 @@ export function AddJobForm({ formData, onChange }: AddJobFormProps) {
               {' '}
               <span className="text-destructive">*</span>
             </FieldLabel>
-            <Combobox
+            <TrackerCombobox
               id="position"
               placeholder="搜索或输入职位名称"
               value={formData.position}
-              onChange={v => onChange('position', v)}
+              onChange={value => onChange('position', value)}
               options={COMMON_POSITIONS}
             />
           </Field>
@@ -46,11 +46,11 @@ export function AddJobForm({ formData, onChange }: AddJobFormProps) {
               {' '}
               <span className="text-destructive">*</span>
             </FieldLabel>
-            <Combobox
+            <TrackerCombobox
               id="company"
               placeholder="搜索或输入公司名称"
               value={formData.company}
-              onChange={v => onChange('company', v)}
+              onChange={value => onChange('company', value)}
               options={COMMON_COMPANIES}
             />
           </Field>
@@ -60,11 +60,11 @@ export function AddJobForm({ formData, onChange }: AddJobFormProps) {
               {' '}
               <span className="text-destructive">*</span>
             </FieldLabel>
-            <Combobox
+            <TrackerCombobox
               id="location"
               placeholder="搜索或输入地点"
               value={formData.location}
-              onChange={v => onChange('location', v)}
+              onChange={value => onChange('location', value)}
               options={COMMON_CITIES}
             />
           </Field>

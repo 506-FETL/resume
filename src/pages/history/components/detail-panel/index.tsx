@@ -96,7 +96,7 @@ export default function HistoryDetailPanel({
             }
           }}
         >
-          <DrawerContent className="flex h-[92dvh] max-h-[92dvh] flex-col overflow-hidden p-0">
+          <DrawerContent className="flex flex-col overflow-hidden p-0">
             <DrawerHeader className="sr-only">
               <DrawerTitle>{title}</DrawerTitle>
               <DrawerDescription>{description}</DrawerDescription>

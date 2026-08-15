@@ -60,6 +60,15 @@ interface TrackerStore {
   prependJob: (job: JobApplication) => void
 }
 
+let pendingDrawerOpenFrame: number | null = null
+
+function cancelPendingDrawerOpen() {
+  if (pendingDrawerOpenFrame === null)
+    return
+  cancelAnimationFrame(pendingDrawerOpenFrame)
+  pendingDrawerOpenFrame = null
+}
+
 const useTrackerStore = create<TrackerStore>()(set => ({
   // 初始状态
   jobs: [],
@@ -137,8 +146,19 @@ const useTrackerStore = create<TrackerStore>()(set => ({
       }
     })
   },
-  openJobDrawer: job => set({ selectedJob: job, drawerOpen: true }),
-  closeJobDrawer: () => set({ drawerOpen: false }),
+  openJobDrawer: (job) => {
+    cancelPendingDrawerOpen()
+    set({ selectedJob: job, drawerOpen: false })
+    // Base UI 需要先渲染一次关闭态的 Popup，下一帧切换 open 才能应用 starting-style。
+    pendingDrawerOpenFrame = requestAnimationFrame(() => {
+      pendingDrawerOpenFrame = null
+      set(state => state.selectedJob?.id === job.id ? { drawerOpen: true } : {})
+    })
+  },
+  closeJobDrawer: () => {
+    cancelPendingDrawerOpen()
+    set({ drawerOpen: false })
+  },
   openAddDrawer: () => set({ addDrawerOpen: true }),
   closeAddDrawer: () => set({ addDrawerOpen: false }),
   syncJob: (job) => {

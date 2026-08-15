@@ -1,8 +1,6 @@
 import type { CSSProperties } from 'react'
-import { X } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Button } from '@/components/ui/button'
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useAssistantNavigation } from '../../hooks/use-assistant-navigation'
 import useAssistantStore from '../../store'
 import ConversationList from '../conversation-list'
@@ -46,22 +44,10 @@ export default function AssistantSidebar() {
             '--drawer-content-width': 'min(88vw, 320px)',
           } as CSSProperties}
         >
-          <DrawerHeader className="border-b pr-12 text-left">
+          <DrawerHeader className="border-b text-left">
             <DrawerTitle>对话历史</DrawerTitle>
             <DrawerDescription>切换、新建或管理 AI 助手的对话</DrawerDescription>
           </DrawerHeader>
-          <DrawerClose
-            render={(
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground"
-                aria-label="关闭对话历史"
-              />
-            )}
-          >
-            <X className="size-4" />
-          </DrawerClose>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <SidebarBody expanded mobile />
           </div>

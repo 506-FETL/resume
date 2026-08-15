@@ -15,6 +15,7 @@
     "benchmark:comments": "node --experimental-strip-types scripts/benchmark-resume-comments-bootstrap.ts",
     "prewarm:comments": "node --experimental-strip-types scripts/prewarm-resume-comment-scopes.ts",
     "verify:drag": "node --experimental-strip-types scripts/verify-motion-drag.ts",
+    "verify:mobile-stability": "node --experimental-strip-types scripts/verify-mobile-share-ai-stability.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },

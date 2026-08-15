@@ -1,13 +1,13 @@
 import type { CSSProperties } from 'react'
 import type { ApplicationStatus, DrawerTab } from '../../types'
-import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
+import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, XCircle } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -28,6 +28,7 @@ import ProgressTimeline from './progress-timeline'
 import DrawerStageDetail from './stage-detail'
 
 type ConfirmKind = 'reject' | 'delete' | 'jump-offer' | null
+const DRAWER_TAB_TRIGGER_CLASS = 'h-10 flex-1 rounded-none border-x-0 border-t-0 border-b-2 border-transparent after:hidden data-[state=active]:border-foreground'
 
 export default function JobDrawer() {
   const { selectedJob, drawerOpen, closeJobDrawer, syncJob, restoreJobsSnapshot, removeJobs } = useTrackerStore()
@@ -130,8 +131,18 @@ export default function JobDrawer() {
     }
   }
 
-  if (!selectedJob)
-    return null
+  if (!selectedJob) {
+    return (
+      <>
+        <Drawer
+          open={false}
+          onOpenChange={handleOpenChange}
+          swipeDirection={isMobile ? 'down' : 'right'}
+          showSwipeHandle={isMobile}
+        />
+      </>
+    )
+  }
 
   const statusConfig = APPLICATION_STATUS_CONFIG[selectedJob.status]
   const displayStage = viewingStage || selectedJob.status
@@ -139,14 +150,14 @@ export default function JobDrawer() {
   const canStepBack = APPLICATION_STATUS_ORDER.indexOf(selectedJob.status) > 0 && selectedJob.status !== 'rejected'
 
   const titleBlock = (
-    <div className="flex items-start gap-3">
-      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className={cn('flex items-start', isMobile ? 'gap-2.5' : 'gap-3')}>
+      <div className={cn('flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary', isMobile ? 'size-10' : 'size-11')}>
         <CompanyLogo
           logo={selectedJob.company_logo}
           company={selectedJob.company}
           icon={BriefcaseBusiness}
-          imgClassName="size-7"
-          iconClassName="size-5"
+          imgClassName={isMobile ? 'size-6' : 'size-7'}
+          iconClassName={isMobile ? 'size-4.5' : 'size-5'}
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -156,14 +167,58 @@ export default function JobDrawer() {
           </Badge>
           <span className="truncate text-muted-foreground">{selectedJob.company}</span>
         </div>
-        <DrawerTitle className="line-clamp-1 text-lg leading-tight tracking-tight">{selectedJob.position}</DrawerTitle>
+        <DrawerTitle className={cn('line-clamp-1 leading-tight tracking-tight', isMobile ? 'text-base' : 'text-lg')}>{selectedJob.position}</DrawerTitle>
       </div>
     </div>
   )
 
   const nextAction = getTrackerNextAction(selectedJob)
 
-  const toolbar = !isEditing && (
+  const actionMenu = (includeEdit: boolean) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant={includeEdit ? 'outline' : 'ghost'}
+          size={includeEdit ? 'icon' : 'icon-sm'}
+          aria-label="更多操作"
+        >
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        {includeEdit && (
+          <DropdownMenuItem onClick={() => setIsEditing(true)}>
+            <Pencil className="size-4" />
+            编辑信息
+          </DropdownMenuItem>
+        )}
+        {includeEdit && <DropdownMenuSeparator />}
+        <DropdownMenuItem disabled={!canStepBack} onClick={handleStepBack}>
+          <ArrowLeft className="size-4" />
+          回退到上一阶段
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={selectedJob.status === 'rejected'}
+          onClick={() => setConfirmKind('reject')}
+          className="text-destructive focus:text-destructive"
+        >
+          <XCircle className="size-4" />
+          终止该流程
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleArchive}>
+          <Archive className="size-4" />
+          {selectedJob.archived ? '取消归档' : '归档'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setConfirmKind('delete')} className="text-destructive focus:text-destructive">
+          <Trash2 className="size-4" />
+          删除该记录
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  const desktopToolbar = !isEditing && (
     <div className="flex items-center gap-1">
       {nextAction.targetStatus && (
         <Button
@@ -185,45 +240,26 @@ export default function JobDrawer() {
         <Pencil className="size-3.5" />
         <span className="hidden sm:inline">编辑信息</span>
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="更多操作">
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuItem disabled={!canStepBack} onClick={handleStepBack}>
-            <ArrowLeft className="size-4" />
-            回退到上一阶段
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={selectedJob.status === 'rejected'}
-            onClick={() => setConfirmKind('reject')}
-            className="text-destructive focus:text-destructive"
-          >
-            <XCircle className="size-4" />
-            终止该流程
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleArchive}>
-            <Archive className="size-4" />
-            {selectedJob.archived ? '取消归档' : '归档'}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setConfirmKind('delete')} className="text-destructive focus:text-destructive">
-            <Trash2 className="size-4" />
-            删除该记录
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {actionMenu(false)}
     </div>
   )
+
+  const handlePrimaryAction = () => {
+    if (nextAction.targetStatus) {
+      handleStageJump(nextAction.targetStatus)
+      return
+    }
+
+    setIsEditing(false)
+    setActiveTab(selectedJob.status === 'interview' ? 'interview' : 'follow-up')
+  }
 
   const headerContent = (
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         {titleBlock}
         <div className="flex shrink-0 items-center gap-1">
-          {toolbar}
+          {!isMobile && desktopToolbar}
         </div>
       </div>
       <DrawerMetaBar />
@@ -232,7 +268,7 @@ export default function JobDrawer() {
 
   const body = (
     <div className="scrollbar-gutter-stable scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      <div className="px-5 py-5 lg:px-6">
+      <div className={cn(isMobile ? 'px-4 py-4' : 'px-5 py-5 lg:px-6')}>
         {isEditing
           ? (
               <div className="flex flex-col gap-4">
@@ -248,10 +284,13 @@ export default function JobDrawer() {
             )
           : (
               <Tabs value={activeTab} onValueChange={v => setActiveTab(v as DrawerTab)}>
-                <TabsList>
-                  <TabsTrigger value="follow-up" className="flex-1">跟进</TabsTrigger>
-                  <TabsTrigger value="interview" className="flex-1">阶段详情</TabsTrigger>
-                  <TabsTrigger value="documents" className="flex-1">简历 & 联系人</TabsTrigger>
+                <TabsList
+                  variant="line"
+                  className="sticky top-0 z-20 w-full rounded-none border-b bg-popover p-0 shadow-[0_6px_10px_-10px_rgba(0,0,0,0.45)]"
+                >
+                  <TabsTrigger value="follow-up" className={DRAWER_TAB_TRIGGER_CLASS}>跟进</TabsTrigger>
+                  <TabsTrigger value="interview" className={DRAWER_TAB_TRIGGER_CLASS}>阶段详情</TabsTrigger>
+                  <TabsTrigger value="documents" className={DRAWER_TAB_TRIGGER_CLASS}>简历 & 联系人</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="follow-up" className="mt-5">
@@ -352,6 +391,16 @@ export default function JobDrawer() {
     </AlertDialog>
   )
 
+  const mobileFooter = isMobile && !isEditing && (
+    <div className="flex shrink-0 items-center gap-2 border-t bg-popover px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+      {actionMenu(true)}
+      <Button className="min-w-0 flex-1" onClick={handlePrimaryAction}>
+        <span className="truncate">{nextAction.label}</span>
+        <ArrowRight className="size-4" />
+      </Button>
+    </div>
+  )
+
   return (
     <>
       <Drawer
@@ -362,35 +411,26 @@ export default function JobDrawer() {
       >
         <DrawerContent
           className="flex min-h-0 flex-col gap-0 overflow-hidden p-0"
-          style={{
-            '--drawer-content-height': isMobile ? '94dvh' : 'calc(100dvh - 1rem)',
-            '--drawer-content-max-height': isMobile ? '94dvh' : 'none',
-            ...(isMobile ? {} : { '--drawer-content-width': 'min(92vw, 56rem)' }),
-          } as CSSProperties}
+          style={isMobile
+            ? undefined
+            : {
+                '--drawer-content-height': 'calc(100dvh - 1rem)',
+                '--drawer-content-max-height': 'none',
+                '--drawer-content-width': 'min(92vw, 56rem)',
+              } as CSSProperties}
         >
           <DrawerHeader
             className={cn(
-              'shrink-0 py-4 pr-12 text-left',
-              isMobile ? 'px-4' : 'px-5 lg:px-6 lg:pr-14',
+              'shrink-0 text-left',
+              isMobile ? 'px-4 py-3' : 'px-5 py-4 lg:px-6',
             )}
           >
             {headerContent}
             <DrawerDescription className="sr-only">{selectedJob.company}</DrawerDescription>
           </DrawerHeader>
-          <DrawerClose
-            render={(
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground"
-                aria-label="关闭职位详情"
-              />
-            )}
-          >
-            <X className="size-4" />
-          </DrawerClose>
           <Separator />
           {body}
+          {mobileFooter}
         </DrawerContent>
       </Drawer>
       {confirmDialog}

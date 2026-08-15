@@ -615,7 +615,7 @@ Deno.serve(async (req) => {
 
     // 匿名读取只返回固化快照、模板与标题，绝不返回 password_hash / user_id 等敏感字段。
     return json({
-      snapshot: version.snapshot,
+      snapshot: currentRelease.snapshot,
       template_manifest: currentRelease.template_manifest,
       display_name: currentRelease.display_name,
       share_id: data.id,

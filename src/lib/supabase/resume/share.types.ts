@@ -1,3 +1,4 @@
+import type { CommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 
@@ -36,6 +37,8 @@ export interface ResolvedResumeShareRelease extends ResumeShareSnapshotSource {
   versionId: number
   documentRevision: number
   projectionReferenceDate: string
+  commentAnchorDocument: CommentAnchorDocument
+  commentDocumentHash: string
 }
 
 export interface ResumeShareReleaseSummary {

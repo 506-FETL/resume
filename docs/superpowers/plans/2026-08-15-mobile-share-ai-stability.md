@@ -23,6 +23,8 @@
 - [ ] 保留 owner/share/version/source/comment 校验，移除公开快照与完整版本快照的全量相等比较。
 - [ ] 校验 `p_snapshot` 与模板清单为 object；release 和 share 保存 `p_snapshot`。
 - [ ] 给函数增加短 `lock_timeout`，保留行锁的原子 release_no 与指针切换。
+- [ ] 提交预期 `document_revision`，对版本行加共享锁并拒绝解析后发生的并发版本变化。
+- [ ] 限定 `release_no` 聚合列的表别名，避免与 `RETURNS TABLE` 输出变量歧义。
 - [ ] `ResolvedResumeShareRelease` 携带由完整版本生成的评论锚点与 hash；公开 snapshot 继续脱敏。
 - [ ] 客户端 RPC 增加按 share id 的 Promise 合并、有限请求超时和中文错误映射。
 - [ ] 匿名 Edge Function 返回 `currentRelease.snapshot`，不再返回 `version.snapshot`。
@@ -50,10 +52,13 @@
 
 - [ ] 手机端 Overview 渲染一行响应率与三项核心指标，保留指标筛选。
 - [ ] 增加可访问的展开按钮，按需显示待跟进；桌面 Overview 不变。
+- [ ] 手机端指标选中态与桌面端统一为黑底白字，保持卡片尺寸与布局不变。
 - [ ] 手机端职位头部压缩且不渲染工具栏，桌面头部工具栏不变。
 - [ ] 移动端“更多”包含编辑、回退、终止、归档和删除。
 - [ ] 增加固定底部主操作；有下一阶段时推进，没有时切换到对应详情。
 - [ ] 正文保持独立滚动，底部操作作为 flex sibling，不覆盖内容。
+- [ ] 初始关闭态保持 Drawer Root 挂载，保证第一次点击职位卡也有进入动画。
+- [ ] Overview 展开内容通过退出动画后再卸载；Drawer Tab 使用单层下划线并覆盖阶段时间线层级。
 
 ## 任务 4：修复 AI 搜索与代码块主题
 

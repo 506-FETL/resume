@@ -136,7 +136,6 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
     <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
       <DrawerTrigger render={children} />
       <DrawerContent
-        className="h-[92dvh]"
         overlayClassName="supports-backdrop-filter:backdrop-blur-none"
       >
         <DrawerHeader className="shrink-0 border-b px-4 pt-4 pb-3 text-left">

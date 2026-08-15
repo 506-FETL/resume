@@ -77,7 +77,7 @@ export function ResponsiveDialog({
       <ResponsiveDialogContext.Provider value={contextValue}>
         <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
           {trigger && <DrawerTrigger render={trigger} />}
-          <DrawerContent className="h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)]">
+          <DrawerContent>
             {children}
           </DrawerContent>
         </Drawer>

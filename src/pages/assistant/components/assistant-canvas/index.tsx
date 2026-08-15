@@ -1,9 +1,9 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
-import { PanelRightClose, X } from 'lucide-react'
+import { PanelRightClose } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -75,22 +75,10 @@ export default function AssistantCanvas() {
             '--drawer-content-width': 'min(calc(100vw - 1rem), 28rem)',
           } as CSSProperties}
         >
-          <DrawerHeader className="border-b pr-12 text-left">
+          <DrawerHeader className="border-b text-left">
             <DrawerTitle>画布</DrawerTitle>
             <DrawerDescription>实时预览简历与本轮变更</DrawerDescription>
           </DrawerHeader>
-          <DrawerClose
-            render={(
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground"
-                aria-label="关闭画布"
-              />
-            )}
-          >
-            <X className="size-4" />
-          </DrawerClose>
           <div className="min-h-0 flex-1 overflow-hidden">
             <CanvasInner />
           </div>

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Combobox } from '@/components/ui/combobox'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { updateCompany } from '@/lib/supabase/resume'
 import { COMMON_CITIES, COMMON_COMPANIES, COMMON_POSITIONS } from '../../const'
 import useTrackerStore from '../../store'
 import { getTrackerErrorMessage } from '../../utils'
+import { TrackerCombobox } from './tracker-combobox'
 
 function parseSalaryRange(salary: string): { min: string, max: string } {
   if (!salary)
@@ -80,10 +80,10 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
       <FieldGroup className="gap-3">
         <Field>
           <FieldLabel htmlFor="company">公司名称</FieldLabel>
-          <Combobox
+          <TrackerCombobox
             id="company"
             value={formData.company}
-            onChange={v => handleChange('company', v)}
+            onChange={value => handleChange('company', value)}
             options={COMMON_COMPANIES}
             placeholder="搜索或输入公司名称"
           />
@@ -91,10 +91,10 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
 
         <Field>
           <FieldLabel htmlFor="position">职位名称</FieldLabel>
-          <Combobox
+          <TrackerCombobox
             id="position"
             value={formData.position}
-            onChange={v => handleChange('position', v)}
+            onChange={value => handleChange('position', value)}
             options={COMMON_POSITIONS}
             placeholder="搜索或输入职位名称"
           />
@@ -102,10 +102,10 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
 
         <Field>
           <FieldLabel htmlFor="location">工作地点</FieldLabel>
-          <Combobox
+          <TrackerCombobox
             id="location"
             value={formData.location}
-            onChange={v => handleChange('location', v)}
+            onChange={value => handleChange('location', value)}
             options={COMMON_CITIES}
             placeholder="搜索或输入地点"
           />

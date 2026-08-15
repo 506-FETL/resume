@@ -36,12 +36,14 @@ function CommandDialog({
   description = "Search for a command to run...",
   children,
   className,
+  commandProps,
   showCloseButton = false,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   title?: string
   description?: string
   className?: string
+  commandProps?: React.ComponentProps<typeof CommandPrimitive>
   showCloseButton?: boolean
 }) {
   return (
@@ -57,7 +59,9 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        <Command {...commandProps}>
+          {children}
+        </Command>
       </DialogContent>
     </Dialog>
   )

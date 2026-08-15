@@ -1,6 +1,6 @@
 import type { ReactNode, RefObject } from 'react'
 import type { ORDERType } from '@/lib/schema'
-import { GripVertical, X } from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
@@ -131,23 +131,13 @@ export function MobileSortDrawer({ open, order, onOpenChange, onConfirm }: Mobil
     >
       <DrawerContent
         aria-label="调整模块顺序"
-        className="z-[60] [--drawer-content-height:min(80dvh,42rem)] [--drawer-content-max-height:80dvh]"
+        className="z-[60]"
       >
-        <DrawerHeader className="relative px-6 pt-4 pb-4 text-left">
-          <DrawerTitle className="pr-10 text-lg font-semibold">调整模块顺序</DrawerTitle>
-          <DrawerDescription className="pr-10 text-sm">
+        <DrawerHeader className="px-6 pt-4 pb-4 text-left">
+          <DrawerTitle className="text-lg font-semibold">调整模块顺序</DrawerTitle>
+          <DrawerDescription className="text-sm">
             按住左侧拖动图标调整顺序，确认后应用。
           </DrawerDescription>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            className="absolute right-4 top-3"
-            aria-label="关闭模块排序"
-            onClick={() => onOpenChange(false)}
-          >
-            <X />
-          </Button>
         </DrawerHeader>
 
         <Reorder.Group

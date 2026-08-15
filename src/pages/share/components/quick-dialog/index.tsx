@@ -1,6 +1,5 @@
 import type { SnapshotProvider } from '../../types'
 import type { CreateShareOptions, ShareVersionSelection } from '@/lib/supabase/resume/share.types'
-import { X } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -148,20 +147,10 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
               swipeDirection="down"
               showSwipeHandle
             >
-              <DrawerContent className="[--drawer-content-height:calc(100dvh-1rem)] [--drawer-content-max-height:calc(100dvh-1rem)]">
-                <DrawerHeader className="relative shrink-0 px-6 pt-4 pb-4 text-left">
-                  <DrawerTitle className="pr-10 text-lg font-semibold">{title}</DrawerTitle>
-                  <DrawerDescription className="pr-10">{description}</DrawerDescription>
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="ghost"
-                    className="absolute right-4 top-3"
-                    aria-label="关闭分享管理"
-                    onClick={closeDialog}
-                  >
-                    <X />
-                  </Button>
+              <DrawerContent>
+                <DrawerHeader className="shrink-0 px-6 pt-4 pb-4 text-left">
+                  <DrawerTitle className="text-lg font-semibold">{title}</DrawerTitle>
+                  <DrawerDescription>{description}</DrawerDescription>
                 </DrawerHeader>
                 <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
                   {body}

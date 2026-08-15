@@ -154,8 +154,9 @@ export const CodeBlock: FC<CodeBlockProps> = ({
 
 	return (
 		<div
+			data-code-block=""
 			className={cn(
-				"relative my-4 rounded-lg border overflow-hidden",
+				"not-prose relative my-4 overflow-hidden rounded-lg border",
 				"border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950",
 				className,
 			)}
@@ -233,7 +234,7 @@ export const CodeBlock: FC<CodeBlockProps> = ({
 							</div>
 						)}
 						<div
-							className="flex-1 p-4 text-sm [&>pre]:!bg-transparent [&>pre]:!p-0 [&>pre]:!m-0"
+							className="min-w-max flex-1 p-4 text-sm [&>pre]:!m-0 [&>pre]:!bg-transparent [&>pre]:!p-0"
 						>
 							{parseSanitizedHtml(highlightedHtml)}
 						</div>

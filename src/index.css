@@ -288,6 +288,16 @@ body {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+[data-code-block] .shiki {
+  background-color: transparent !important;
+}
+
+.dark [data-code-block] .shiki,
+.dark [data-code-block] .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: transparent !important;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
