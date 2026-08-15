@@ -44,9 +44,11 @@ function PanelBody({
   const selection = useResumeCommentStore(state => state.selection)
   const hidden = useResumeCommentStore(state => state.highlightsHidden)
   const setHidden = useResumeCommentStore(state => state.setHighlightsHidden)
-  const unreadThreadIds = useResumeCommentStore(state => getUnreadCommentThreadIds(
-    state.threadReadStateById,
-    state.lastReadEventSeq,
+  const unreadThreadIds = useResumeCommentStore(useShallow(
+    state => getUnreadCommentThreadIds(
+      state.threadReadStateById,
+      state.lastReadEventSeq,
+    ),
   ))
   const accessState = useResumeCommentStore(state => state.accessState)
   const contentNotice = useResumeCommentStore(state => state.contentNotice)

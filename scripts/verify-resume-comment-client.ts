@@ -478,7 +478,18 @@ assert.match(commentsPanelSource, /grid shrink-0 grid-cols-3/u)
 assert.match(commentsPanelSource, /flex min-h-0 flex-1 overflow-y-auto/u)
 assert.match(commentsPanelSource, /actions\.markThreadRead\(threadId\)/u)
 assert.match(commentsPanelSource, /actions\.markAllRead\(\)/u)
+assert.match(
+  commentsPanelSource,
+  /const unreadThreadIds = useResumeCommentStore\(useShallow\([\s\S]*?getUnreadCommentThreadIds/u,
+)
 assert.match(commentActionsSource, /latestCommentEventSeq <= Math\.max/u)
+assert.match(commentSelectionSource, /function getEventTargetElement\(target: EventTarget \| null\)/u)
+assert.match(commentSelectionSource, /if \(target instanceof Element\)/u)
+assert.match(commentSelectionSource, /if \(target instanceof Node\)[\s\S]*?target\.parentElement/u)
+assert.equal(
+  commentSelectionSource.match(/const target = getEventTargetElement\(event\.target\)/gu)?.length,
+  2,
+)
 assert.match(commentSelectionSource, /document\.addEventListener\('pointerup', handlePointerEnd, true\)/u)
 assert.match(commentSelectionSource, /document\.addEventListener\('pointercancel', handlePointerEnd, true\)/u)
 assert.match(commentSelectionSource, /pointerSelecting\.current \|\| keyboardSelecting\.current/u)

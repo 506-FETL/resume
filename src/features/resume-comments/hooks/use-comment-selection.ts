@@ -19,6 +19,14 @@ function rangeBelongsToRoot(range: Range, root: HTMLElement) {
   return Boolean(common && root.contains(common))
 }
 
+function getEventTargetElement(target: EventTarget | null) {
+  if (target instanceof Element)
+    return target
+  if (target instanceof Node)
+    return target.parentElement
+  return null
+}
+
 function toPendingSelection(
   resolved: NonNullable<ReturnType<typeof resolveCommentSelection>>,
 ): PendingCommentSelection | null {
@@ -159,7 +167,7 @@ export function useCommentSelection({
       scheduleEvaluation(120)
     }
     const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Element | null
+      const target = getEventTargetElement(event.target)
       if (
         !target
         || !root.contains(target)
@@ -170,7 +178,7 @@ export function useCommentSelection({
       beginSelectionInteraction('pointer')
     }
     const handleSelectStart = (event: Event) => {
-      const target = event.target as Element | null
+      const target = getEventTargetElement(event.target)
       if (
         !target
         || !root.contains(target)
