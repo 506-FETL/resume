@@ -14,6 +14,12 @@ interface UseCollaborationPanelValueParams {
   userDisplayName: string
 }
 
+const CONNECTION_PHASE_LABELS = {
+  registering: '正在创建协作会话',
+  connecting: '正在连接协作服务',
+  syncing: '正在同步当前简历',
+} as const
+
 export function useCollaborationPanelValue({
   currentUser,
   activeResumeId,
@@ -48,6 +54,7 @@ export function useCollaborationPanelValue({
     participants,
     isSharing,
     isCollabConnecting,
+    collaborationConnectionPhase,
     shareUrl,
     collaborationRole,
     startSharing,
@@ -62,6 +69,7 @@ export function useCollaborationPanelValue({
     participants: state.participants,
     isSharing: state.isSharing,
     isCollabConnecting: state.isConnecting,
+    collaborationConnectionPhase: state.connectionPhase,
     shareUrl: state.shareUrl,
     collaborationRole: state.role,
     startSharing: state.startSharing,
@@ -86,7 +94,12 @@ export function useCollaborationPanelValue({
     return null
   }, [mode, currentUser, isDocumentInitialized])
 
-  const shareButtonTooltip = collabDisabledReason ?? (isSharing ? '查看协作信息' : '开启实时协作')
+  const collaborationConnectionLabel = collaborationConnectionPhase
+    ? CONNECTION_PHASE_LABELS[collaborationConnectionPhase]
+    : null
+  const shareButtonTooltip = collabDisabledReason
+    ?? collaborationConnectionLabel
+    ?? (isSharing ? '查看协作信息' : '开启实时协作')
   const canCopyLink = typeof navigator !== 'undefined' && !!navigator.clipboard
 
   const handleManualSync = useCallback(() => manualSync(), [manualSync])
@@ -208,7 +221,15 @@ export function useCollaborationPanelValue({
   }, [acknowledgeRemoteShareEnd, navigate, shareEndedByRemote])
 
   const openCollaborationDialog = useCallback(() => setCollabDialogOpen(true), [])
-  const closeCollaborationDialog = useCallback(() => setCollabDialogOpen(false), [])
+  const closeCollaborationDialog = useCallback(() => {
+    if (!useCollaborationStore.getState().isConnecting)
+      setCollabDialogOpen(false)
+  }, [])
+  const setCollaborationDialogOpen = useCallback((open: boolean) => {
+    if (!open && useCollaborationStore.getState().isConnecting)
+      return
+    setCollabDialogOpen(open)
+  }, [])
 
   return {
     isMobile,
@@ -217,6 +238,8 @@ export function useCollaborationPanelValue({
     lastSyncTime,
     isSharing,
     isCollabConnecting,
+    collaborationConnectionPhase,
+    collaborationConnectionLabel,
     collabDisabledReason,
     shareButtonTooltip,
     participantCount,
@@ -231,6 +254,6 @@ export function useCollaborationPanelValue({
     onStopSharing: handleStopSharing,
     openCollaborationDialog,
     closeCollaborationDialog,
-    setCollaborationDialogOpen: setCollabDialogOpen,
+    setCollaborationDialogOpen,
   }
 }

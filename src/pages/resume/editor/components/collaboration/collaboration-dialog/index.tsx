@@ -26,6 +26,7 @@ export function CollaborationDialog() {
     onStartSharing,
     canStartSharing,
     isCollabConnecting,
+    collaborationConnectionLabel,
   } = useCollaborationPanel()
 
   return (
@@ -48,6 +49,7 @@ export function CollaborationDialog() {
                 onStartSharing={onStartSharing}
                 canStartSharing={canStartSharing}
                 isCollabConnecting={isCollabConnecting}
+                collaborationConnectionLabel={collaborationConnectionLabel}
                 onClose={closeCollaborationDialog}
               />
             )}
@@ -119,12 +121,14 @@ function StartSharingContent({
   onStartSharing,
   canStartSharing,
   isCollabConnecting,
+  collaborationConnectionLabel,
   onClose,
 }: {
   collaborationError: string | null
   onStartSharing: () => void | Promise<void>
   canStartSharing: boolean
   isCollabConnecting: boolean
+  collaborationConnectionLabel: string | null
   onClose: () => void
 }) {
   return (
@@ -141,12 +145,12 @@ function StartSharingContent({
       </div>
       {collaborationError && <p className="text-sm text-destructive">{collaborationError}</p>}
       <DialogFooter className="flex justify-between sm:justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose} disabled={isCollabConnecting}>
           取消
         </Button>
         <Button type="button" onClick={onStartSharing} disabled={!canStartSharing}>
           {isCollabConnecting && <Loader2 className="mr-2 size-4 animate-spin" />}
-          确认开启
+          {collaborationConnectionLabel ?? '确认开启'}
         </Button>
       </DialogFooter>
     </>

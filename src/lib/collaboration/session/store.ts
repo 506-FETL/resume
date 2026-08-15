@@ -1,4 +1,5 @@
 import type {
+  CollaborationConnectionPhase,
   CollaborationSessionSetState,
   CollaborationSessionStore,
   JoinShareParams,
@@ -24,6 +25,13 @@ import {
 } from './state'
 import { clearStoredSession, rememberSessionRole } from './storage'
 
+function setConnectionPhase(
+  set: CollaborationSessionSetState,
+  phase: Exclude<CollaborationConnectionPhase, null>,
+) {
+  set({ isConnecting: true, connectionPhase: phase, error: null })
+}
+
 async function activateSession(
   params:
     | (StartShareParams & { sessionId: string, role: 'host', shouldSaveSnapshot: boolean })
@@ -34,6 +42,8 @@ async function activateSession(
   },
 ) {
   const { get, set } = access
+
+  setConnectionPhase(set, params.role === 'guest' ? 'connecting' : 'registering')
 
   const commentAuthorization = params.role === 'guest'
     ? await joinCollaborationCommentSession({
@@ -51,12 +61,14 @@ async function activateSession(
         commentHostLeaseId: registration.hostLeaseId,
       }))
 
+  setConnectionPhase(set, 'connecting')
   const result = await enableCollaborationSession({
     ...params,
     getState: get,
     setState: set,
     createCallbacks: createSessionCallbacks,
     getDocumentManager: () => useResumeStore.getState().docManager,
+    onPhaseChange: phase => setConnectionPhase(set, phase),
   })
     .catch((error) => {
       leaveCollaborationCommentSession({
@@ -93,6 +105,9 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
   ...createInitialCollaborationSessionState(),
 
   startSharing: async ({ resumeId, userId, userName }) => {
+    if (get().isConnecting)
+      return
+
     const existingSession = get().sessionId
 
     if (existingSession) {
@@ -116,13 +131,16 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
     catch (error) {
       const message = error instanceof Error ? error.message : '开启协作失败'
-      set({ isConnecting: false, error: message })
+      set({ isConnecting: false, connectionPhase: null, error: message })
       toast.error(message)
       throw error
     }
   },
 
   joinSession: async ({ sessionId, resumeId, userId, userName }) => {
+    if (get().isConnecting)
+      return
+
     if (get().sessionId === sessionId && get().isSharing) {
       return
     }
@@ -144,13 +162,16 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
     catch (error) {
       const message = error instanceof Error ? error.message : '加入协作失败'
-      set({ isConnecting: false, error: message })
+      set({ isConnecting: false, connectionPhase: null, error: message })
       toast.error(message)
       throw error
     }
   },
 
   resumeHosting: async ({ sessionId, resumeId, userId, userName }) => {
+    if (get().isConnecting)
+      return
+
     try {
       await activateSession(
         {
@@ -168,7 +189,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
     catch (error) {
       const message = error instanceof Error ? error.message : '恢复协作失败'
-      set({ isConnecting: false, error: message })
+      set({ isConnecting: false, connectionPhase: null, error: message })
       toast.error(message)
       throw error
     }

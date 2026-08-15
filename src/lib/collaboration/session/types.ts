@@ -40,9 +40,16 @@ export interface JoinShareParams extends StartShareParams {
   sessionId: string
 }
 
+export type CollaborationConnectionPhase
+  = | 'registering'
+    | 'connecting'
+    | 'syncing'
+    | null
+
 export interface CollaborationSessionState {
   isSharing: boolean
   isConnecting: boolean
+  connectionPhase: CollaborationConnectionPhase
   role: CollaborationRole | null
   sessionId: string | null
   shareUrl: string | null

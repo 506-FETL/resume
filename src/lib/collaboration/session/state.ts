@@ -32,6 +32,7 @@ export function createInitialCollaborationSessionState(): CollaborationSessionSt
   return {
     isSharing: false,
     isConnecting: false,
+    connectionPhase: null,
     role: null,
     sessionId: null,
     shareUrl: null,
@@ -98,6 +99,7 @@ export function createConnectedSessionState(
   return {
     isSharing: true,
     isConnecting: false,
+    connectionPhase: null,
     role: result.role,
     sessionId: result.sessionId,
     shareUrl: result.shareUrl,
@@ -117,6 +119,7 @@ export function createStoppedSessionState(
   return {
     isSharing: false,
     isConnecting: false,
+    connectionPhase: null,
     role: null,
     sessionId: null,
     shareUrl: null,

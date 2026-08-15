@@ -26,6 +26,7 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
     openCollaborationDialog,
     isSharing,
     isCollabConnecting,
+    collaborationConnectionLabel,
     collabDisabledReason,
     shareButtonTooltip,
     participantCount,
@@ -77,7 +78,7 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
                   : isSharing
                     ? <Radio className="size-4" />
                     : <Share2 className="size-4" />}
-                {!isMobile && (isSharing ? '协作中' : '开启协作')}
+                {!isMobile && (collaborationConnectionLabel ?? (isSharing ? '协作中' : '开启协作'))}
               </Button>
             </span>
           </TooltipTrigger>
