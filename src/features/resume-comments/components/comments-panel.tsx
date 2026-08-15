@@ -1,3 +1,4 @@
+import type { PendingCommentCreationSnapshot } from '../store/types.ts'
 import type { CommentThreadFilter } from './thread-list.tsx'
 import type { CommentUiPermissions } from './types.ts'
 import { Eye, EyeOff } from 'lucide-react'
@@ -23,14 +24,16 @@ import { filterCommentThreads, ThreadList } from './thread-list.tsx'
 function PanelBody({
   sourceLabel,
   permissions,
-  creating,
+  creationSnapshot,
   onCancelCreating,
+  onFinishCreating,
   onBeginRelink,
 }: {
   sourceLabel: string
   permissions: CommentUiPermissions
-  creating: boolean
+  creationSnapshot: PendingCommentCreationSnapshot | null
   onCancelCreating: () => void
+  onFinishCreating: () => void
   onBeginRelink: (threadId: string) => void
 }) {
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
@@ -41,7 +44,6 @@ function PanelBody({
   ))
   const activeThreadId = useResumeCommentStore(state => state.activeThreadId)
   const setActiveThread = useResumeCommentStore(state => state.setActiveThread)
-  const selection = useResumeCommentStore(state => state.selection)
   const hidden = useResumeCommentStore(state => state.highlightsHidden)
   const setHidden = useResumeCommentStore(state => state.setHighlightsHidden)
   const unreadThreadIds = useResumeCommentStore(useShallow(
@@ -122,10 +124,10 @@ function PanelBody({
           ? <p role="alert" className="mt-2 text-xs text-destructive">{actions.errorMessage}</p>
           : null}
       </header>
-      {creating && selection
+      {creationSnapshot
         ? (
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <p className="mb-3 border-l-2 border-amber-300 pl-3 text-sm text-muted-foreground">{selection.exactQuote}</p>
+              <p className="mb-3 border-l-2 border-amber-300 pl-3 text-sm text-muted-foreground">{creationSnapshot.selection.exactQuote}</p>
               <CommentComposer
                 draftKey="new-thread"
                 placeholder="写下你的评论…"
@@ -134,7 +136,13 @@ function PanelBody({
                 pending={actions.pendingAction === 'thread:new:create'}
                 pendingLabel="正在发送…"
                 onCancel={onCancelCreating}
-                onSubmit={async value => Boolean(await actions.createThread(value))}
+                onSubmit={async (value) => {
+                  const response = await actions.createThread(value, creationSnapshot)
+                  if (!response)
+                    return false
+                  onFinishCreating()
+                  return true
+                }}
               />
               {actions.errorMessage ? <p className="mt-2 text-xs text-destructive">{actions.errorMessage}</p> : null}
             </div>
@@ -178,15 +186,17 @@ export function CommentsPanel({
   onOpenChange,
   sourceLabel,
   permissions,
-  creating,
+  creationSnapshot,
   onCancelCreating,
+  onFinishCreating,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   sourceLabel: string
   permissions: CommentUiPermissions
-  creating: boolean
+  creationSnapshot: PendingCommentCreationSnapshot | null
   onCancelCreating: () => void
+  onFinishCreating: () => void
 }) {
   const isMobile = useCommentMobileLayout()
   const beginRelink = useResumeCommentStore(state => state.beginRelink)
@@ -197,8 +207,9 @@ export function CommentsPanel({
     <PanelBody
       sourceLabel={sourceLabel}
       permissions={permissions}
-      creating={creating}
+      creationSnapshot={creationSnapshot}
       onCancelCreating={onCancelCreating}
+      onFinishCreating={onFinishCreating}
       onBeginRelink={(threadId) => {
         beginRelink(threadId)
         handleOpenChange(false)

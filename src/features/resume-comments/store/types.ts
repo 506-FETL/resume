@@ -41,6 +41,12 @@ export interface PendingCommentSelection {
   }>
 }
 
+export interface PendingCommentCreationSnapshot {
+  selection: PendingCommentSelection
+  scopeId: string
+  scopeEpoch: number
+}
+
 export type CommentConnectionState = 'idle' | 'connecting' | 'live' | 'offline'
 export type CommentAccessState = 'active' | 'read_only' | 'unavailable'
 
@@ -60,6 +66,7 @@ export interface CommentReadSnapshot {
 
 export interface ResumeCommentStoreState {
   scope: CommentScopeSummary | null
+  scopeEpoch: number
   version: CommentVersionReference | null
   counts: CommentThreadCounts
   accessibleScopes: AccessibleCommentScopeSummary[]

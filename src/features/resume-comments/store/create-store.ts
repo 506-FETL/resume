@@ -41,6 +41,7 @@ function indexThreads(threads: ResumeCommentThread[]) {
 export function createResumeCommentStore(): ResumeCommentStore {
   return createStore<ResumeCommentStoreState>()((set, get) => ({
     scope: null,
+    scopeEpoch: 0,
     version: null,
     counts: { unresolved: 0, resolved: 0, detached: 0 },
     accessibleScopes: [],
@@ -83,6 +84,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
         : state.draftsByScopeId
       return {
         scope: input.scope,
+        scopeEpoch: scopeChanged ? state.scopeEpoch + 1 : state.scopeEpoch,
         version: input.version,
         counts: input.counts,
         accessibleScopes: input.accessibleScopes.map(scope => scope.id === input.scope.id
@@ -279,6 +281,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
     preserveDraftsForNextScope: () => set({ preserveDraftsOnNextScope: true }),
     beginScopeSwitch: () => set(state => ({
       scope: null,
+      scopeEpoch: state.scopeEpoch + 1,
       version: null,
       counts: { unresolved: 0, resolved: 0, detached: 0 },
       threadsById: {},

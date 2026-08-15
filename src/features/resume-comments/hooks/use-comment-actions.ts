@@ -1,4 +1,5 @@
 import type { CommentMutationResult } from '../api/client.ts'
+import type { PendingCommentCreationSnapshot } from '../store/types.ts'
 import type { ResumeCommentThread } from '../types.ts'
 import { useCallback, useState } from 'react'
 import { ensureAnonymousCommentIdentity } from '../api/anonymous-identity.ts'
@@ -10,6 +11,13 @@ import {
 import { ResumeCommentClientError } from '../api/client.ts'
 import { beginCommentPerformance } from '../api/performance.ts'
 import { useResumeCommentContext } from '../context.tsx'
+
+class CommentScopeChangedError extends Error {
+  constructor() {
+    super('评论来源已切换，请在当前版本重新操作')
+    this.name = 'CommentScopeChangedError'
+  }
+}
 
 export function useCommentActions() {
   const { beforeWrite, client, invalidateAccess, store } = useResumeCommentContext()
@@ -72,6 +80,18 @@ export function useCommentActions() {
       counts?: ReturnType<typeof store.getState>['counts']
     },
   ) => {
+    const initialState = store.getState()
+    const mutationScopeId = initialState.scope?.id ?? null
+    const mutationScopeEpoch = initialState.scopeEpoch
+    const isMutationScopeCurrent = () => {
+      const currentState = store.getState()
+      return currentState.scope?.id === mutationScopeId
+        && currentState.scopeEpoch === mutationScopeEpoch
+    }
+    const assertMutationScopeCurrent = () => {
+      if (!isMutationScopeCurrent())
+        throw new CommentScopeChangedError()
+    }
     setPendingAction(entityKey)
     setErrorMessage(null)
 
@@ -85,10 +105,13 @@ export function useCommentActions() {
       if (requiresDocumentSync)
         await beforeWrite?.()
 
+      assertMutationScopeCurrent()
       await prepareActor()
+      assertMutationScopeCurrent()
 
       marker.countRequest()
       const response = await operation()
+      assertMutationScopeCurrent()
 
       store.getState().commitMutation(entityKey, {
         thread: response.data.thread,
@@ -125,7 +148,8 @@ export function useCommentActions() {
       }
 
       const message = error instanceof Error ? error.message : '评论操作失败，请稍后重试'
-      store.getState().rollbackMutation(entityKey, snapshot, message)
+      if (isMutationScopeCurrent())
+        store.getState().rollbackMutation(entityKey, snapshot, message)
       setErrorMessage(message)
       return null
     }
@@ -200,13 +224,26 @@ export function useCommentActions() {
     }
   }, [client, resolveReadContext, store])
 
-  const createThread = useCallback(async (body: string) => {
+  const createThread = useCallback(async (
+    body: string,
+    creationSnapshot?: PendingCommentCreationSnapshot,
+  ) => {
     const state = store.getState()
+    const selection = creationSnapshot?.selection ?? state.selection
 
-    if (!state.selection || !state.scope)
+    if (!selection || !state.scope)
       return null
+    if (
+      creationSnapshot
+      && (
+        creationSnapshot.scopeId !== state.scope.id
+        || creationSnapshot.scopeEpoch !== state.scopeEpoch
+      )
+    ) {
+      setErrorMessage('评论来源已切换，请在当前版本重新划词后评论')
+      return null
+    }
 
-    const selection = state.selection
     const response = await execute('thread:new:create', () => client.createThread({
       anchor: {
         ...selection.anchor,

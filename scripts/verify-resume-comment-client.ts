@@ -105,6 +105,7 @@ const version = {
   sharedLinkCount: 2,
 }
 const counts = { unresolved: 2, resolved: 1, detached: 0 }
+assert.equal(store.getState().scopeEpoch, 0)
 store.getState().replaceScope({
   scope: firstScope,
   version,
@@ -118,6 +119,7 @@ store.getState().replaceScope({
   eventSeq: 8,
   lastReadEventSeq: 4,
 })
+assert.equal(store.getState().scopeEpoch, 1)
 assert.deepEqual(store.getState().orderedThreadIds, [
   'open-newer',
   'open-older',
@@ -169,6 +171,7 @@ store.getState().replaceScope({
   eventSeq: 9,
   lastReadEventSeq: 4,
 })
+assert.equal(store.getState().scopeEpoch, 1)
 assert.equal(store.getState().draftsByThreadKey['new-thread'], '不要丢失的草稿')
 
 store.getState().replaceScope({
@@ -180,7 +183,12 @@ store.getState().replaceScope({
   eventSeq: 1,
   lastReadEventSeq: 0,
 })
+assert.equal(store.getState().scopeEpoch, 2)
 assert.deepEqual(store.getState().draftsByThreadKey, {})
+
+const switchingStore = createResumeCommentStore()
+switchingStore.getState().beginScopeSwitch()
+assert.equal(switchingStore.getState().scopeEpoch, 1)
 
 store.getState().setDraft('new-thread', '重新发布后保留')
 store.getState().preserveDraftsForNextScope()
@@ -450,6 +458,17 @@ const quickShareDialogSource = readFileSync(
 assert.equal(commentSurfaceSource.includes('useCommentReadReceipt'), false)
 assert.match(commentSurfaceSource, /activeThreadId=\{open \? activeThreadId : null\}/u)
 assert.match(commentSurfaceSource, /if \(!open\)[\s\S]*?setHoveredThread\(threadId\)/u)
+assert.match(commentSurfaceSource, /useState<PendingCommentCreationSnapshot \| null>\(null\)/u)
+assert.match(commentSurfaceSource, /setCreationSnapshot\(\{[\s\S]*?selection,[\s\S]*?scopeId: scope\.id,[\s\S]*?scopeEpoch,[\s\S]*?\}\)[\s\S]*?setOpen\(true\)/u)
+assert.match(commentSurfaceSource, /creationSnapshot\.scopeId === scope\?\.id[\s\S]*?creationSnapshot\.scopeEpoch === scopeEpoch[\s\S]*?setCreationSnapshot\(null\)/u)
+assert.match(commentsPanelSource, /creationSnapshot: PendingCommentCreationSnapshot \| null/u)
+assert.match(commentsPanelSource, /\{creationSnapshot[\s\S]*?actions\.createThread\(value, creationSnapshot\)[\s\S]*?onFinishCreating\(\)/u)
+assert.doesNotMatch(commentsPanelSource, /creating && selection/u)
+assert.match(commentActionsSource, /creationSnapshot\?: PendingCommentCreationSnapshot/u)
+assert.match(commentActionsSource, /const selection = creationSnapshot\?\.selection \?\? state\.selection/u)
+assert.match(commentActionsSource, /const mutationScopeEpoch = initialState\.scopeEpoch/u)
+assert.match(commentActionsSource, /assertMutationScopeCurrent\(\)[\s\S]*?await prepareActor\(\)[\s\S]*?assertMutationScopeCurrent\(\)[\s\S]*?const response = await operation\(\)[\s\S]*?assertMutationScopeCurrent\(\)/u)
+assert.match(commentActionsSource, /if \(isMutationScopeCurrent\(\)\)[\s\S]*?rollbackMutation/u)
 assert.match(commentTreeSource, /depth < 2/u)
 assert.match(commentTreeSource, /depth >= 2/u)
 assert.match(commentTreeSource, /pl-7/u)

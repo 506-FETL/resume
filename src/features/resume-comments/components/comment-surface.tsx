@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import type { PendingCommentCreationSnapshot } from '../store/types.ts'
 import type { CommentUiPermissions } from './types.ts'
 import { AnimatePresence } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -34,10 +35,11 @@ export function CommentSurface({
   const client = useResumeCommentClient()
   const { store } = useResumeCommentContext()
   const [internalOpen, setInternalOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
+  const [creationSnapshot, setCreationSnapshot] = useState<PendingCommentCreationSnapshot | null>(null)
   const [picker, setPicker] = useState<{ threadIds: string[], point: { x: number, y: number } } | null>(null)
   const open = controlledOpen ?? internalOpen
   const scope = useResumeCommentStore(state => state.scope)
+  const scopeEpoch = useResumeCommentStore(state => state.scopeEpoch)
   const selection = useResumeCommentStore(state => state.selection)
   const threads = useResumeCommentStore(useShallow(
     state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean),
@@ -69,7 +71,7 @@ export function CommentSurface({
     onOpenChange?.(value)
     if (!value) {
       clearSelection()
-      setCreating(false)
+      setCreationSnapshot(null)
       store.getState().setActiveThread(null)
       store.getState().setHoveredThread(null)
     }
@@ -89,13 +91,13 @@ export function CommentSurface({
 
   const openThread = useCallback((threadId: string) => {
     setPicker(null)
-    setCreating(false)
+    setCreationSnapshot(null)
     setActiveThread(threadId)
     setOpen(true)
   }, [setActiveThread, setOpen])
 
   const handleSelectionComment = useCallback(async () => {
-    if (!selection)
+    if (!selection || !scope)
       return
     if (relinkThreadId) {
       const thread = threads.find(item => item.id === relinkThreadId)
@@ -133,9 +135,25 @@ export function CommentSurface({
       return
     }
     setActiveThread(null)
-    setCreating(true)
+    setCreationSnapshot({
+      selection,
+      scopeId: scope.id,
+      scopeEpoch,
+    })
     setOpen(true)
-  }, [actions, cancelRelink, clearSelection, openThread, relinkThreadId, selection, setActiveThread, setOpen, setRelinkError, threads])
+  }, [actions, cancelRelink, clearSelection, openThread, relinkThreadId, scope, scopeEpoch, selection, setActiveThread, setOpen, setRelinkError, threads])
+
+  useEffect(() => {
+    if (!creationSnapshot)
+      return
+    if (
+      creationSnapshot.scopeId === scope?.id
+      && creationSnapshot.scopeEpoch === scopeEpoch
+    ) {
+      return
+    }
+    setCreationSnapshot(null)
+  }, [creationSnapshot, scope?.id, scopeEpoch])
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -227,9 +245,10 @@ export function CommentSurface({
         onOpenChange={setOpen}
         sourceLabel={sourceLabel}
         permissions={resolvedPermissions}
-        creating={creating}
+        creationSnapshot={creationSnapshot}
+        onFinishCreating={() => setCreationSnapshot(null)}
         onCancelCreating={() => {
-          setCreating(false)
+          setCreationSnapshot(null)
           setOpen(false)
         }}
       />
