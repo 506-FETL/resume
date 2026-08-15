@@ -2,7 +2,7 @@ import type { PropsWithChildren, ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 interface AdvancedToolsModalProps extends PropsWithChildren {
@@ -36,23 +36,15 @@ export function AdvancedToolsModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-        <DrawerContent
-          className="h-[92dvh]"
-          overlayClassName="supports-backdrop-filter:backdrop-blur-none"
-        >
+        <DrawerContent overlayClassName="supports-backdrop-filter:backdrop-blur-none">
           <DrawerHeader className="border-b border-border/60 pb-4 text-left">
-            <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0">
               <div className="min-w-0 space-y-1">
                 <DrawerTitle>{title}</DrawerTitle>
                 <DrawerDescription className="wrap-break-word text-left leading-5">
                   {description}
                 </DrawerDescription>
               </div>
-              <DrawerClose
-                render={<Button variant="ghost" size="icon-sm" aria-label="关闭" />}
-              >
-                <X className="size-4" />
-              </DrawerClose>
             </div>
             {meta && <div className="flex flex-wrap gap-2 pt-2 text-left">{meta}</div>}
           </DrawerHeader>
