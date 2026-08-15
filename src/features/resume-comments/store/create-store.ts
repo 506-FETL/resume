@@ -1,6 +1,11 @@
 import type { ResumeCommentThread } from '../types.ts'
 import type { ResumeCommentStore, ResumeCommentStoreState } from './types.ts'
 import { createStore } from 'zustand/vanilla'
+import {
+  applyCommentEventsToThreadReadStates,
+  indexCommentThreadReadStates,
+  mergeCommentThreadReadStateMaps,
+} from './read-state.ts'
 
 function orderThreads(
   threads: ResumeCommentThread[],
@@ -52,6 +57,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
     relinkError: null,
     lastEventSeq: 0,
     lastReadEventSeq: 0,
+    threadReadStateById: {},
     highlightsHidden: false,
     connection: 'idle',
     accessState: 'active',
@@ -65,6 +71,13 @@ export function createResumeCommentStore(): ResumeCommentStore {
       const lastReadEventSeq = scopeChanged
         ? input.lastReadEventSeq
         : Math.max(state.lastReadEventSeq, input.lastReadEventSeq)
+      const incomingThreadReadStates = indexCommentThreadReadStates(input.threadReadStates)
+      const threadReadStateById = scopeChanged
+        ? incomingThreadReadStates
+        : mergeCommentThreadReadStateMaps(
+            state.threadReadStateById,
+            incomingThreadReadStates,
+          )
       const draftsByScopeId = state.scope
         ? { ...state.draftsByScopeId, [state.scope.id]: state.draftsByThreadKey }
         : state.draftsByScopeId
@@ -98,6 +111,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
         // 同一 scope 的已读游标只能前进，避免较旧缓存或并发 bootstrap
         // 把刚刚在界面里确认过的已读状态回滚成“有新评论”。
         lastReadEventSeq,
+        threadReadStateById,
         lastError: null,
         pendingEntities: {},
         mutationErrors: {},
@@ -114,6 +128,10 @@ export function createResumeCommentStore(): ResumeCommentStore {
             : scope)
         : state.accessibleScopes,
       lastEventSeq: input.eventSeq,
+      threadReadStateById: applyCommentEventsToThreadReadStates(
+        state.threadReadStateById,
+        input.events,
+      ),
       lastError: null,
     })),
     applyMutation: input => set((state) => {
@@ -129,6 +147,10 @@ export function createResumeCommentStore(): ResumeCommentStore {
         counts: input.counts,
         events: [...state.events, input.event].slice(-500),
         lastEventSeq: Math.max(state.lastEventSeq, input.eventSeq),
+        threadReadStateById: applyCommentEventsToThreadReadStates(
+          state.threadReadStateById,
+          [input.event],
+        ),
         activeThreadId: input.removedThreadId === state.activeThreadId
           ? null
           : state.activeThreadId,
@@ -188,6 +210,10 @@ export function createResumeCommentStore(): ResumeCommentStore {
           .sort((left, right) => left.eventSeq - right.eventSeq)
           .slice(-500),
         lastEventSeq: Math.max(state.lastEventSeq, input.eventSeq),
+        threadReadStateById: applyCommentEventsToThreadReadStates(
+          state.threadReadStateById,
+          input.events,
+        ),
       }
     }),
     applyDocumentSync: input => set((state) => {
@@ -269,6 +295,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
       relinkError: null,
       lastEventSeq: 0,
       lastReadEventSeq: 0,
+      threadReadStateById: {},
       connection: 'connecting',
       pendingEntities: {},
       mutationErrors: {},
@@ -290,6 +317,66 @@ export function createResumeCommentStore(): ResumeCommentStore {
               : scope)
           : state.accessibleScopes,
       }
+    }),
+    markThreadReadLocally: (threadId, eventSeq) => {
+      const state = get()
+      const snapshot = {
+        lastReadEventSeq: state.lastReadEventSeq,
+        threadReadStateById: state.threadReadStateById,
+        accessibleScopes: state.accessibleScopes,
+      }
+      const current = state.threadReadStateById[threadId]
+      set({
+        threadReadStateById: {
+          ...state.threadReadStateById,
+          [threadId]: {
+            threadId,
+            latestCommentEventSeq: Math.max(
+              current?.latestCommentEventSeq ?? 0,
+              eventSeq,
+            ),
+            lastReadEventSeq: Math.max(
+              current?.lastReadEventSeq ?? 0,
+              eventSeq,
+            ),
+          },
+        },
+      })
+      return snapshot
+    },
+    markAllReadLocally: (eventSeq) => {
+      const state = get()
+      const snapshot = {
+        lastReadEventSeq: state.lastReadEventSeq,
+        threadReadStateById: state.threadReadStateById,
+        accessibleScopes: state.accessibleScopes,
+      }
+      set({
+        lastReadEventSeq: Math.max(state.lastReadEventSeq, eventSeq),
+        threadReadStateById: Object.fromEntries(
+          Object.entries(state.threadReadStateById).map(([threadId, threadState]) => [
+            threadId,
+            {
+              ...threadState,
+              lastReadEventSeq: Math.max(
+                threadState.lastReadEventSeq,
+                threadState.latestCommentEventSeq,
+              ),
+            },
+          ]),
+        ),
+        accessibleScopes: state.scope
+          ? state.accessibleScopes.map(scope => scope.id === state.scope!.id
+              ? { ...scope, lastReadEventSeq: Math.max(scope.lastReadEventSeq, eventSeq) }
+              : scope)
+          : state.accessibleScopes,
+      })
+      return snapshot
+    },
+    restoreReadSnapshot: snapshot => set({
+      lastReadEventSeq: snapshot.lastReadEventSeq,
+      threadReadStateById: snapshot.threadReadStateById,
+      accessibleScopes: snapshot.accessibleScopes,
     }),
   }))
 }

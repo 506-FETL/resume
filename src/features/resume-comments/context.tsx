@@ -5,7 +5,7 @@ import { createContext, use, useCallback, useEffect, useMemo, useRef, useState }
 import { useStore } from 'zustand'
 import { attachStoredAnonymousCommentIdentity } from './api/anonymous-identity.ts'
 import { ResumeCommentClient } from './api/client.ts'
-import { useCommentReadReceipt, useCommentRealtime } from './hooks/use-comment-realtime.ts'
+import { useCommentRealtime } from './hooks/use-comment-realtime.ts'
 import { createResumeCommentStore } from './store/create-store.ts'
 
 interface ResumeCommentContextValue {
@@ -22,7 +22,6 @@ export interface ResumeCommentProviderProps {
   access: CommentAccessContext
   children: ReactNode
   enabled?: boolean
-  commentsVisible?: boolean
   refreshAccess?: () => Promise<CommentAccessContext>
   onAccessInvalidated?: (reason: 'stale_release' | 'share_unavailable') => void
   beforeWrite?: () => Promise<void>
@@ -53,7 +52,6 @@ export function ResumeCommentProvider({
   access,
   children,
   enabled = true,
-  commentsVisible = false,
   refreshAccess,
   onAccessInvalidated,
   beforeWrite,
@@ -92,8 +90,6 @@ export function ResumeCommentProvider({
     refreshAccess,
     onAccessInvalidated: handleAccessInvalidated,
   })
-  useCommentReadReceipt({ client, store, visible: enabled && commentsVisible })
-
   const value = useMemo(() => ({
     beforeWrite,
     client,

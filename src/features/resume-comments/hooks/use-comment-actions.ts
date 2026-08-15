@@ -2,6 +2,11 @@ import type { CommentMutationResult } from '../api/client.ts'
 import type { ResumeCommentThread } from '../types.ts'
 import { useCallback, useState } from 'react'
 import { ensureAnonymousCommentIdentity } from '../api/anonymous-identity.ts'
+import {
+  deriveCommentCacheKey,
+  updateCommentCacheReadCursor,
+  updateCommentCacheThreadReadCursor,
+} from '../api/cache.ts'
 import { ResumeCommentClientError } from '../api/client.ts'
 import { beginCommentPerformance } from '../api/performance.ts'
 import { useResumeCommentContext } from '../context.tsx'
@@ -10,6 +15,20 @@ export function useCommentActions() {
   const { beforeWrite, client, invalidateAccess, store } = useResumeCommentContext()
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const resolveReadContext = useCallback(async () => {
+    const access = client.getAccessContext()
+    const authenticatedUserId = await client.getAuthenticatedUserId()
+    const versionId = store.getState().version?.versionId
+    return {
+      access,
+      authenticatedUserId,
+      cacheKey: deriveCommentCacheKey(access, versionId, authenticatedUserId),
+      hasServerPrincipal: access.kind !== 'share'
+        || Boolean(authenticatedUserId)
+        || Boolean(access.anonymous),
+    }
+  }, [client, store])
 
   const prepareActor = useCallback(async () => {
     const access = client.getAccessContext()
@@ -78,7 +97,18 @@ export function useCommentActions() {
         event: response.data.event,
         eventSeq: response.eventSeq,
       })
-      store.getState().markReadLocally(response.eventSeq)
+      if (
+        response.data.event.threadId
+        && (
+          response.data.event.type === 'thread_created'
+          || response.data.event.type === 'comment_replied'
+        )
+      ) {
+        store.getState().markThreadReadLocally(
+          response.data.event.threadId,
+          response.eventSeq,
+        )
+      }
       marker.end({
         requestId: response.requestId,
         serverTiming: response.serverTiming,
@@ -103,6 +133,72 @@ export function useCommentActions() {
       setPendingAction(null)
     }
   }, [beforeWrite, invalidateAccess, prepareActor, store])
+
+  const markThreadRead = useCallback(async (threadId: string) => {
+    const state = store.getState()
+    const readState = state.threadReadStateById[threadId]
+    if (!readState)
+      return
+    if (readState.latestCommentEventSeq <= Math.max(
+      readState.lastReadEventSeq,
+      state.lastReadEventSeq,
+    )) {
+      return
+    }
+    const eventSeq = readState.latestCommentEventSeq
+    const snapshot = store.getState().markThreadReadLocally(threadId, eventSeq)
+    const entityKey = `thread:${threadId}:read`
+    setPendingAction(entityKey)
+    setErrorMessage(null)
+    try {
+      const { cacheKey, hasServerPrincipal } = await resolveReadContext()
+      let scopeLastReadEventSeq: number | undefined
+      if (hasServerPrincipal) {
+        const response = await client.markThreadRead(threadId, eventSeq)
+        const value = Number(response.data.scopeLastReadEventSeq)
+        if (Number.isSafeInteger(value) && value >= 0) {
+          scopeLastReadEventSeq = value
+          store.getState().markReadLocally(value)
+        }
+      }
+      if (cacheKey) {
+        await updateCommentCacheThreadReadCursor(
+          cacheKey,
+          threadId,
+          eventSeq,
+          scopeLastReadEventSeq,
+        )
+      }
+    }
+    catch (error) {
+      store.getState().restoreReadSnapshot(snapshot)
+      setErrorMessage(error instanceof Error ? error.message : '标记评论已读失败')
+    }
+    finally {
+      setPendingAction(null)
+    }
+  }, [client, resolveReadContext, store])
+
+  const markAllRead = useCallback(async () => {
+    const eventSeq = store.getState().lastEventSeq
+    const snapshot = store.getState().markAllReadLocally(eventSeq)
+    setPendingAction('comments:mark-all-read')
+    setErrorMessage(null)
+    try {
+      const { cacheKey, hasServerPrincipal } = await resolveReadContext()
+      if (hasServerPrincipal)
+        await client.markRead(eventSeq)
+      if (cacheKey)
+        await updateCommentCacheReadCursor(cacheKey, eventSeq)
+    }
+    catch (error) {
+      store.getState().restoreReadSnapshot(snapshot)
+      setErrorMessage(error instanceof Error ? error.message : '全部标记已读失败')
+    }
+    finally {
+      setPendingAction(null)
+    }
+  }, [client, resolveReadContext, store])
 
   const createThread = useCallback(async (body: string) => {
     const state = store.getState()
@@ -175,6 +271,8 @@ export function useCommentActions() {
     pendingAction,
     errorMessage,
     clearError: () => setErrorMessage(null),
+    markThreadRead,
+    markAllRead,
     refreshThreads,
     createThread,
     createReply,

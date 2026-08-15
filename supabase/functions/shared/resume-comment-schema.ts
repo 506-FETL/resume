@@ -22,6 +22,7 @@ export const COMMENT_API_OPS = [
   'reopen_thread',
   'relink_anchor',
   'mark_read',
+  'mark_thread_read',
   'issue_realtime_token',
 ] as const
 

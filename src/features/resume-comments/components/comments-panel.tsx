@@ -1,6 +1,6 @@
 import type { CommentThreadFilter } from './thread-list.tsx'
 import type { CommentUiPermissions } from './types.ts'
-import { Eye, EyeOff, X } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +15,7 @@ import {
 import { useResumeCommentContext, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { useCommentMobileLayout } from '../hooks/use-comment-mobile-layout.ts'
+import { getUnreadCommentThreadIds } from '../store/read-state.ts'
 import { CommentComposer } from './comment-composer.tsx'
 import { ThreadDetail } from './thread-detail.tsx'
 import { filterCommentThreads, ThreadList } from './thread-list.tsx'
@@ -24,14 +25,12 @@ function PanelBody({
   permissions,
   creating,
   onCancelCreating,
-  onClose,
   onBeginRelink,
 }: {
   sourceLabel: string
   permissions: CommentUiPermissions
   creating: boolean
   onCancelCreating: () => void
-  onClose: () => void
   onBeginRelink: (threadId: string) => void
 }) {
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
@@ -45,12 +44,18 @@ function PanelBody({
   const selection = useResumeCommentStore(state => state.selection)
   const hidden = useResumeCommentStore(state => state.highlightsHidden)
   const setHidden = useResumeCommentStore(state => state.setHighlightsHidden)
-  const lastEventSeq = useResumeCommentStore(state => state.lastEventSeq)
-  const lastReadEventSeq = useResumeCommentStore(state => state.lastReadEventSeq)
+  const unreadThreadIds = useResumeCommentStore(state => getUnreadCommentThreadIds(
+    state.threadReadStateById,
+    state.lastReadEventSeq,
+  ))
   const accessState = useResumeCommentStore(state => state.accessState)
   const contentNotice = useResumeCommentStore(state => state.contentNotice)
   const setContentNotice = useResumeCommentStore(state => state.setContentNotice)
   const activeThread = activeThreadId ? threads.find(thread => thread.id === activeThreadId) : null
+  const selectThread = (threadId: string) => {
+    setActiveThread(threadId)
+    actions.markThreadRead(threadId).catch(() => undefined)
+  }
 
   if (activeThread) {
     return (
@@ -66,12 +71,26 @@ function PanelBody({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="shrink-0 border-b px-4 pb-3 pt-4">
-        <div className="flex items-center gap-2 pr-8">
+        <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold">评论</h2>
             <p className="truncate text-xs text-muted-foreground">{sourceLabel}</p>
           </div>
-          {lastEventSeq > lastReadEventSeq ? <Badge>有新评论</Badge> : null}
+          {unreadThreadIds.length > 0
+            ? <Badge>{`新评论 ${unreadThreadIds.length}`}</Badge>
+            : null}
+          {unreadThreadIds.length > 0
+            ? (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  disabled={actions.pendingAction === 'comments:mark-all-read'}
+                  onClick={() => actions.markAllRead().catch(() => undefined)}
+                >
+                  全部已读
+                </Button>
+              )
+            : null}
           <Button
             size="icon-sm"
             variant="ghost"
@@ -79,9 +98,6 @@ function PanelBody({
             onClick={() => setHidden(!hidden)}
           >
             {hidden ? <Eye /> : <EyeOff />}
-          </Button>
-          <Button size="icon-sm" variant="ghost" aria-label="关闭评论" onClick={onClose}>
-            <X />
           </Button>
         </div>
         {accessState !== 'active'
@@ -100,6 +116,9 @@ function PanelBody({
             )
           : null}
         {panelHeaderContent}
+        {actions.errorMessage
+          ? <p role="alert" className="mt-2 text-xs text-destructive">{actions.errorMessage}</p>
+          : null}
       </header>
       {creating && selection
         ? (
@@ -142,7 +161,8 @@ function PanelBody({
                   threads={threads}
                   filter={filter}
                   permissions={permissions}
-                  onSelect={setActiveThread}
+                  unreadThreadIds={unreadThreadIds}
+                  onSelect={selectThread}
                 />
               </div>
             </>
@@ -177,7 +197,6 @@ export function CommentsPanel({
       permissions={permissions}
       creating={creating}
       onCancelCreating={onCancelCreating}
-      onClose={() => handleOpenChange(false)}
       onBeginRelink={(threadId) => {
         beginRelink(threadId)
         handleOpenChange(false)
@@ -190,7 +209,7 @@ export function CommentsPanel({
       aria-label="简历评论"
       overlayClassName="supports-backdrop-filter:backdrop-blur-none"
       className={isMobile
-        ? 'h-[60vh]'
+        ? undefined
         : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}
     >
       <DrawerTitle className="sr-only">简历评论</DrawerTitle>

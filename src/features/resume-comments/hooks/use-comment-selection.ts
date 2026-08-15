@@ -48,36 +48,55 @@ export function useCommentSelection({
 }: UseCommentSelectionOptions) {
   const { store } = useResumeCommentContext()
   const pointerSelecting = useRef(false)
+  const keyboardSelecting = useRef(false)
+  const completionArmed = useRef(false)
+  const interactionGeneration = useRef(0)
   const evaluationFrame = useRef(0)
+  const stabilizationFrame = useRef(0)
+  const evaluationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const clearSelection = useCallback(() => {
+  const hidePendingSelection = useCallback(() => {
     store.getState().setSelection(null)
-    window.getSelection()?.removeAllRanges()
   }, [store])
 
+  const clearSelection = useCallback(() => {
+    hidePendingSelection()
+    window.getSelection()?.removeAllRanges()
+  }, [hidePendingSelection])
+
   const evaluate = useCallback(() => {
-    if (!enabled || !documentHash)
+    if (
+      !enabled
+      || !documentHash
+      || pointerSelecting.current
+      || keyboardSelecting.current
+    ) {
       return
+    }
     const root = rootRef.current
     const selection = window.getSelection()
-    if (!root || !selection || selection.rangeCount !== 1)
+    if (!root || !selection || selection.rangeCount !== 1) {
+      hidePendingSelection()
       return
+    }
     const range = selection.getRangeAt(0)
-    if (!rangeBelongsToRoot(range, root))
+    if (!rangeBelongsToRoot(range, root)) {
+      hidePendingSelection()
       return
+    }
     if (range.collapsed) {
-      store.getState().setSelection(null)
+      hidePendingSelection()
       return
     }
     const resolved = resolveCommentSelection(range, { documentHash })
     const pending = resolved ? toPendingSelection(resolved) : null
     if (!pending) {
-      store.getState().setSelection(null)
+      hidePendingSelection()
       onInvalidSelection?.()
       return
     }
     store.getState().setSelection(pending)
-  }, [documentHash, enabled, onInvalidSelection, rootRef, store])
+  }, [documentHash, enabled, hidePendingSelection, onInvalidSelection, rootRef, store])
 
   useEffect(() => {
     if (!enabled)
@@ -86,40 +105,168 @@ export function useCommentSelection({
     if (!root)
       return
 
-    const scheduleEvaluation = () => {
+    const cancelScheduledEvaluation = () => {
+      if (evaluationTimer.current !== null) {
+        clearTimeout(evaluationTimer.current)
+        evaluationTimer.current = null
+      }
       cancelAnimationFrame(evaluationFrame.current)
-      evaluationFrame.current = requestAnimationFrame(evaluate)
+      cancelAnimationFrame(stabilizationFrame.current)
+    }
+    const scheduleEvaluation = (delay = 0) => {
+      cancelScheduledEvaluation()
+      const generation = interactionGeneration.current
+      evaluationTimer.current = setTimeout(() => {
+        evaluationTimer.current = null
+        evaluationFrame.current = requestAnimationFrame(() => {
+          stabilizationFrame.current = requestAnimationFrame(() => {
+            if (
+              generation !== interactionGeneration.current
+              || pointerSelecting.current
+              || keyboardSelecting.current
+            ) {
+              return
+            }
+            completionArmed.current = false
+            evaluate()
+          })
+        })
+      }, delay)
+    }
+    const beginSelectionInteraction = (kind: 'pointer' | 'keyboard') => {
+      interactionGeneration.current += 1
+      if (kind === 'pointer')
+        pointerSelecting.current = true
+      else
+        keyboardSelecting.current = true
+      completionArmed.current = false
+      cancelScheduledEvaluation()
+      hidePendingSelection()
+    }
+    const finishSelectionInteraction = (kind: 'pointer' | 'keyboard') => {
+      const wasSelecting = kind === 'pointer'
+        ? pointerSelecting.current
+        : keyboardSelecting.current
+      if (!wasSelecting) {
+        return
+      }
+      if (kind === 'pointer')
+        pointerSelecting.current = false
+      else
+        keyboardSelecting.current = false
+      completionArmed.current = true
+      interactionGeneration.current += 1
+      scheduleEvaluation(120)
     }
     const handlePointerDown = (event: PointerEvent) => {
-      if ((event.target as Element | null)?.closest('[data-resume-comment-ui]'))
+      const target = event.target as Element | null
+      if (
+        !target
+        || !root.contains(target)
+        || target.closest('[data-resume-comment-ui]')
+      ) {
         return
-      pointerSelecting.current = true
-      store.getState().setSelection(null)
+      }
+      beginSelectionInteraction('pointer')
+    }
+    const handleSelectStart = (event: Event) => {
+      const target = event.target as Element | null
+      if (
+        !target
+        || !root.contains(target)
+        || target.closest('[data-resume-comment-ui]')
+        || pointerSelecting.current
+      ) {
+        return
+      }
+      beginSelectionInteraction('pointer')
     }
     const handlePointerEnd = () => {
-      pointerSelecting.current = false
-      scheduleEvaluation()
+      finishSelectionInteraction('pointer')
     }
-    const handleKeyUp = () => scheduleEvaluation()
+    const selectionKeys = new Set([
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Home',
+      'End',
+      'PageUp',
+      'PageDown',
+    ])
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        pointerSelecting.current = false
+        keyboardSelecting.current = false
+        interactionGeneration.current += 1
+        cancelScheduledEvaluation()
+        hidePendingSelection()
+        return
+      }
+      const selectsAll = event.key.toLowerCase() === 'a' && (event.metaKey || event.ctrlKey)
+      if (
+        ((event.shiftKey && selectionKeys.has(event.key)) || selectsAll)
+        && !keyboardSelecting.current
+      ) {
+        beginSelectionInteraction('keyboard')
+      }
+    }
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'Shift' || (keyboardSelecting.current && !event.shiftKey))
+        finishSelectionInteraction('keyboard')
+    }
     const handleSelectionChange = () => {
-      if (!pointerSelecting.current)
-        scheduleEvaluation()
+      if (pointerSelecting.current || keyboardSelecting.current) {
+        cancelScheduledEvaluation()
+        hidePendingSelection()
+        return
+      }
+      cancelScheduledEvaluation()
+      hidePendingSelection()
+      // 只有明确收到结束事件后才允许重新计时；孤立的选区变化绝不展示按钮。
+      if (completionArmed.current)
+        scheduleEvaluation(120)
+    }
+    const cancelInteraction = () => {
+      pointerSelecting.current = false
+      keyboardSelecting.current = false
+      completionArmed.current = false
+      interactionGeneration.current += 1
+      cancelScheduledEvaluation()
+      hidePendingSelection()
+    }
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden')
+        cancelInteraction()
     }
 
-    root.addEventListener('pointerdown', handlePointerDown)
-    root.addEventListener('pointerup', handlePointerEnd)
-    root.addEventListener('pointercancel', handlePointerEnd)
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.addEventListener('selectstart', handleSelectStart, true)
+    document.addEventListener('pointerup', handlePointerEnd, true)
+    document.addEventListener('pointercancel', handlePointerEnd, true)
+    root.addEventListener('keydown', handleKeyDown)
     root.addEventListener('keyup', handleKeyUp)
     document.addEventListener('selectionchange', handleSelectionChange)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', cancelInteraction)
     return () => {
-      cancelAnimationFrame(evaluationFrame.current)
-      root.removeEventListener('pointerdown', handlePointerDown)
-      root.removeEventListener('pointerup', handlePointerEnd)
-      root.removeEventListener('pointercancel', handlePointerEnd)
+      cancelInteraction()
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+      document.removeEventListener('selectstart', handleSelectStart, true)
+      document.removeEventListener('pointerup', handlePointerEnd, true)
+      document.removeEventListener('pointercancel', handlePointerEnd, true)
+      root.removeEventListener('keydown', handleKeyDown)
       root.removeEventListener('keyup', handleKeyUp)
       document.removeEventListener('selectionchange', handleSelectionChange)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', cancelInteraction)
     }
-  }, [enabled, evaluate, rootRef, store])
+  }, [enabled, evaluate, hidePendingSelection, rootRef])
+
+  useEffect(() => {
+    if (!enabled)
+      hidePendingSelection()
+  }, [enabled, hidePendingSelection])
 
   return { clearSelection, evaluateSelection: evaluate }
 }

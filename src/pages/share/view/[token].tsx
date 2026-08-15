@@ -249,7 +249,6 @@ export default function ResumeSharePage() {
         ? (
             <ResumeCommentProvider
               access={state.commentAccess.context}
-              commentsVisible={commentsOpen}
               refreshAccess={refreshCommentAccess}
               onAccessInvalidated={handleCommentAccessInvalidated}
             >
@@ -289,7 +288,11 @@ function ShareResumeComments({
   layoutRevision: string
   documentRevision: number
 }) {
-  const hasUnread = useResumeCommentStore(state => state.lastEventSeq > state.lastReadEventSeq)
+  const hasUnread = useResumeCommentStore(state => Object.values(state.threadReadStateById)
+    .some(thread => thread.latestCommentEventSeq > Math.max(
+      thread.lastReadEventSeq,
+      state.lastReadEventSeq,
+    )))
   const selection = useResumeCommentStore(state => state.selection)
   const setSelection = useResumeCommentStore(state => state.setSelection)
   const setContentNotice = useResumeCommentStore(state => state.setContentNotice)

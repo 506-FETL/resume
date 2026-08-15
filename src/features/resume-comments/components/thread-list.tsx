@@ -4,6 +4,7 @@ import { MessageSquareText } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { COMMENT_MOTION } from '../const.ts'
 import { useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
@@ -59,11 +60,13 @@ export function ThreadList({
   filter,
   onSelect,
   permissions,
+  unreadThreadIds,
 }: {
   threads: ResumeCommentThread[]
   filter: CommentThreadFilter
   onSelect: (threadId: string) => void
   permissions: CommentUiPermissions
+  unreadThreadIds: string[]
 }) {
   const actions = useCommentActions()
   const reduceMotion = useReducedMotion()
@@ -87,6 +90,7 @@ export function ThreadList({
           const resolveKey = `thread:${thread.id}:resolve`
           const resolving = pendingEntities[resolveKey] === true
           const resolveError = mutationErrors[resolveKey]
+          const unread = unreadThreadIds.includes(thread.id)
           const canResolve = !thread.resolvedAt && (
             permissions.canModerateAll
             || Boolean(root && isCurrentCommentAuthor(root.author, permissions))
@@ -100,7 +104,13 @@ export function ThreadList({
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, scale: 0.98 }}
               transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
             >
-              <div className="group rounded-xl border border-transparent transition-colors hover:border-border hover:bg-muted/60 focus-within:border-border focus-within:ring-2 focus-within:ring-ring/40">
+              <div className={cn(
+                'group rounded-xl border transition-colors hover:border-border hover:bg-muted/60 focus-within:border-border focus-within:ring-2 focus-within:ring-ring/40',
+                unread
+                  ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/25'
+                  : 'border-transparent',
+              )}
+              >
                 <button
                   type="button"
                   className="block w-full min-w-0 space-y-2 rounded-xl p-3 pb-2 text-left outline-none"
@@ -110,7 +120,10 @@ export function ThreadList({
                     <span className="line-clamp-2 flex-1 border-l-2 border-amber-300 pl-2 text-xs text-muted-foreground">
                       {thread.anchor.exactQuote}
                     </span>
-                    {thread.anchorStatus === 'detached' ? <Badge variant="outline">已失联</Badge> : null}
+                    <span className="flex shrink-0 items-center gap-1">
+                      {unread ? <Badge variant="secondary">新评论</Badge> : null}
+                      {thread.anchorStatus === 'detached' ? <Badge variant="outline">已失联</Badge> : null}
+                    </span>
                   </span>
                   <span className="line-clamp-3 block text-sm text-foreground">
                     {root?.deletedAt ? '原评论已删除' : root?.body || '空评论'}

@@ -1,4 +1,5 @@
 import type { DBSchema, IDBPDatabase } from 'idb'
+import type { CommentThreadReadState } from '../types.ts'
 import type { CommentAccessContext, CommentBootstrapResult } from './client.ts'
 import { openDB } from 'idb'
 
@@ -26,6 +27,32 @@ export function isCommentCacheEntryCompatible(value: unknown): value is CommentC
     && typeof value === 'object'
     && !Array.isArray(value)
     && (value as { protocolVersion?: unknown }).protocolVersion === 1
+}
+
+function normalizeCachedThreadReadStates(value: CachedCommentBootstrap) {
+  return Array.isArray(value.threadReadStates) ? value.threadReadStates : []
+}
+
+function mergeThreadReadStates(
+  current: CommentThreadReadState[],
+  incoming: CommentThreadReadState[],
+) {
+  const merged = new Map(current.map(state => [state.threadId, state]))
+  for (const state of incoming) {
+    const existing = merged.get(state.threadId)
+    merged.set(state.threadId, {
+      threadId: state.threadId,
+      latestCommentEventSeq: Math.max(
+        existing?.latestCommentEventSeq ?? 0,
+        state.latestCommentEventSeq,
+      ),
+      lastReadEventSeq: Math.max(
+        existing?.lastReadEventSeq ?? 0,
+        state.lastReadEventSeq,
+      ),
+    })
+  }
+  return [...merged.values()]
 }
 
 interface ResumeCommentCacheSchema extends DBSchema {
@@ -148,7 +175,10 @@ export async function readCommentCache(key: CommentCacheKey) {
     return null
   return {
     ...entry,
-    value: advanceCommentReadCursor(entry.value, readCommentReadCursor(key)),
+    value: advanceCommentReadCursor({
+      ...entry.value,
+      threadReadStates: normalizeCachedThreadReadStates(entry.value),
+    }, readCommentReadCursor(key)),
   }
 }
 
@@ -183,7 +213,15 @@ export async function writeCommentCache(
   const current = await transaction.store.get(serializedKey)
   const persistedReadCursor = readCommentReadCursor(key)
   const nextValue = advanceCommentReadCursor(
-    cacheValue,
+    {
+      ...cacheValue,
+      threadReadStates: mergeThreadReadStates(
+        isCommentCacheEntryCompatible(current)
+          ? normalizeCachedThreadReadStates(current.value)
+          : [],
+        cacheValue.threadReadStates,
+      ),
+    },
     Math.max(
       isCommentCacheEntryCompatible(current) ? current.value.lastReadEventSeq : 0,
       persistedReadCursor,
@@ -218,6 +256,45 @@ export async function updateCommentCacheReadCursor(
       ...current,
       cachedAt: Date.now(),
       value: advanceCommentReadCursor(current.value, eventSeq),
+    })
+  }
+  await transaction.done
+}
+
+export async function updateCommentCacheThreadReadCursor(
+  key: CommentCacheKey,
+  threadId: string,
+  eventSeq: number,
+  scopeLastReadEventSeq?: number,
+) {
+  const database = getDatabase()
+  if (!database)
+    return
+  const resolved = await database
+  const serializedKey = serializeCommentCacheKey(key)
+  const transaction = resolved.transaction('bootstrap', 'readwrite')
+  const current = await transaction.store.get(serializedKey)
+  if (isCommentCacheEntryCompatible(current)) {
+    const states = normalizeCachedThreadReadStates(current.value)
+    const existing = states.find(state => state.threadId === threadId)
+    const nextState = {
+      threadId,
+      latestCommentEventSeq: Math.max(existing?.latestCommentEventSeq ?? 0, eventSeq),
+      lastReadEventSeq: Math.max(existing?.lastReadEventSeq ?? 0, eventSeq),
+    }
+    const value = {
+      ...current.value,
+      threadReadStates: [
+        ...states.filter(state => state.threadId !== threadId),
+        nextState,
+      ],
+    }
+    await transaction.store.put({
+      ...current,
+      cachedAt: Date.now(),
+      value: scopeLastReadEventSeq === undefined
+        ? value
+        : advanceCommentReadCursor(value, scopeLastReadEventSeq),
     })
   }
   await transaction.done

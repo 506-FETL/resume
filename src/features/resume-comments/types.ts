@@ -122,6 +122,12 @@ export interface ResumeCommentEvent {
   createdAt: string
 }
 
+export interface CommentThreadReadState {
+  threadId: string
+  latestCommentEventSeq: number
+  lastReadEventSeq: number
+}
+
 export type CommentErrorCode
   = | 'unauthorized'
     | 'share_unavailable'

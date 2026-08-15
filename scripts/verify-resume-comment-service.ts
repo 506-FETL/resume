@@ -74,12 +74,19 @@ const bootstrapMigrationSource = readFileSync(
   'supabase/migrations/20260814060000_optimize_resume_comment_bootstrap.sql',
   'utf8',
 )
+const threadReadMigrationSource = readFileSync(
+  'supabase/migrations/20260816000002_add_resume_comment_thread_read_states.sql',
+  'utf8',
+)
 const normalizedBootstrapMigrationSource = bootstrapMigrationSource.replace(/\s+/gu, ' ')
 assert.match(edgeSource, /ensure_resume_version_comment_scope/u)
 assert.doesNotMatch(edgeSource, /ensure_resume_working_comment_scope/u)
 assert.match(edgeSource, /execute_resume_version_comment_write/u)
 assert.match(edgeSource, /parentCommentId/u)
 assert.match(edgeSource, /op === 'list_events'/u)
+assert.match(edgeSource, /op === 'mark_thread_read'/u)
+assert.match(edgeSource, /mark_resume_comment_thread_read_v1/u)
+assert.match(edgeSource, /threadReadStates/u)
 assert.match(edgeSource, /scheduleBackground\(notifyWrite/u)
 assert.match(edgeSource, /Server-Timing/u)
 assert.match(edgeSource, /X-Request-Id/u)
@@ -460,6 +467,28 @@ assert.match(migrationSource, /version_id = p_version_id/u)
 assert.match(migrationSource, /invalid reply parent/u)
 assert.match(migrationSource, /SET parent_id = v_parent_id/u)
 assert.match(transactionSource, /SET body = '', deleted_at = now\(\)/u)
+assert.match(threadReadMigrationSource, /CREATE TABLE private\.resume_comment_thread_read_states/u)
+assert.match(threadReadMigrationSource, /resume_comment_thread_read_states_thread_fk_idx/u)
+assert.match(threadReadMigrationSource, /resume_comment_thread_read_states_user_fk_idx/u)
+assert.match(threadReadMigrationSource, /resume_comment_thread_read_states_anonymous_fk_idx/u)
+assert.match(
+  threadReadMigrationSource,
+  /REVOKE ALL ON TABLE private\.resume_comment_thread_read_states\s+FROM PUBLIC, anon, authenticated, service_role/u,
+)
+assert.match(threadReadMigrationSource, /CREATE OR REPLACE FUNCTION public\.mark_resume_comment_thread_read_v1/u)
+assert.match(threadReadMigrationSource, /latest\.latest_event_seq > GREATEST/u)
+assert.match(threadReadMigrationSource, /IF NOT v_has_unread THEN/u)
+assert.match(threadReadMigrationSource, /SET last_read_event_seq = v_previous_read_event_seq/u)
+assert.match(threadReadMigrationSource, /build_resume_comment_bootstrap_without_thread_reads_v1/u)
+assert.match(threadReadMigrationSource, /'\{bootstrap,threadReadStates\}'/u)
+assert.equal(
+  threadReadMigrationSource.match(/RENAME TO execute_resume_version_comment_write_without_thread_reads_v1/gu)?.length,
+  1,
+)
+assert.equal(
+  threadReadMigrationSource.match(/RENAME TO sync_resume_version_comment_document_without_read_cursor_v1/gu)?.length,
+  1,
+)
 assert.match(migrationSource, /version_id = v_version\.id/u)
 assert.match(migrationSource, /p_expected_document_revision/u)
 assert.match(migrationSource, /stale_document/u)
@@ -827,6 +856,7 @@ assert.equal(isSafeCommentLink('https://example.com/path'), true)
 assert.equal(isSafeCommentLink('mailto:user@example.com'), true)
 assert.equal(isSafeCommentLink('javascript:alert(1)'), false)
 assert.equal(readCommentOp({ op: 'create_thread' }), 'create_thread')
+assert.equal(readCommentOp({ op: 'mark_thread_read' }), 'mark_thread_read')
 assert.equal(
   readCommentOp({ op: 'join_collaboration_session' }),
   'join_collaboration_session',

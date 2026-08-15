@@ -1,6 +1,6 @@
 import type { StoreApi } from 'zustand/vanilla'
 import type { CommentAnchor } from '../anchors/types.ts'
-import type { CommentErrorCode, CommentScopeKind, CommentThreadCounts, CommentVersionReference, ResumeCommentEvent, ResumeCommentThread } from '../types.ts'
+import type { CommentErrorCode, CommentScopeKind, CommentThreadCounts, CommentThreadReadState, CommentVersionReference, ResumeCommentEvent, ResumeCommentThread } from '../types.ts'
 
 export interface CommentScopeSummary {
   id: string
@@ -52,6 +52,12 @@ export interface CommentMutationSnapshot {
   hoveredThreadId: string | null
 }
 
+export interface CommentReadSnapshot {
+  lastReadEventSeq: number
+  threadReadStateById: Record<string, CommentThreadReadState>
+  accessibleScopes: AccessibleCommentScopeSummary[]
+}
+
 export interface ResumeCommentStoreState {
   scope: CommentScopeSummary | null
   version: CommentVersionReference | null
@@ -70,6 +76,7 @@ export interface ResumeCommentStoreState {
   relinkError: string | null
   lastEventSeq: number
   lastReadEventSeq: number
+  threadReadStateById: Record<string, CommentThreadReadState>
   highlightsHidden: boolean
   connection: CommentConnectionState
   accessState: CommentAccessState
@@ -87,6 +94,7 @@ export interface ResumeCommentStoreState {
     events?: ResumeCommentEvent[]
     eventSeq: number
     lastReadEventSeq: number
+    threadReadStates?: CommentThreadReadState[]
   }) => void
   replaceThreads: (input: {
     threads: ResumeCommentThread[]
@@ -149,6 +157,9 @@ export interface ResumeCommentStoreState {
   setConnection: (connection: CommentConnectionState) => void
   setAccessState: (state: CommentAccessState, error?: CommentErrorCode | null) => void
   markReadLocally: (eventSeq: number) => void
+  markThreadReadLocally: (threadId: string, eventSeq: number) => CommentReadSnapshot
+  markAllReadLocally: (eventSeq: number) => CommentReadSnapshot
+  restoreReadSnapshot: (snapshot: CommentReadSnapshot) => void
 }
 
 export type ResumeCommentStore = StoreApi<ResumeCommentStoreState>

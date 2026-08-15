@@ -17,6 +17,7 @@ import {
 } from '../src/features/resume-comments/api/performance.ts'
 import { decideCommentRealtimeRecovery } from '../src/features/resume-comments/api/realtime-recovery.ts'
 import { createResumeCommentStore } from '../src/features/resume-comments/store/create-store.ts'
+import { getUnreadCommentThreadIds } from '../src/features/resume-comments/store/read-state.ts'
 
 const anchor = {
   nodeKey: 'work:entry-1:description',
@@ -122,6 +123,37 @@ assert.deepEqual(store.getState().orderedThreadIds, [
   'open-older',
   'resolved-newer',
 ])
+
+const threadReadStore = createResumeCommentStore()
+threadReadStore.getState().replaceScope({
+  scope: firstScope,
+  version,
+  counts,
+  accessibleScopes: [],
+  threads: [
+    thread('thread-a', '2026-08-14T09:00:00.000Z'),
+    thread('thread-b', '2026-08-14T10:00:00.000Z'),
+  ],
+  eventSeq: 10,
+  lastReadEventSeq: 4,
+  threadReadStates: [
+    { threadId: 'thread-a', latestCommentEventSeq: 9, lastReadEventSeq: 4 },
+    { threadId: 'thread-b', latestCommentEventSeq: 10, lastReadEventSeq: 4 },
+  ],
+})
+function unreadThreadIds() {
+  return getUnreadCommentThreadIds(
+    threadReadStore.getState().threadReadStateById,
+    threadReadStore.getState().lastReadEventSeq,
+  ).sort()
+}
+assert.deepEqual(unreadThreadIds(), ['thread-a', 'thread-b'])
+const beforeThreadRead = threadReadStore.getState().markThreadReadLocally('thread-a', 9)
+assert.deepEqual(unreadThreadIds(), ['thread-b'])
+threadReadStore.getState().restoreReadSnapshot(beforeThreadRead)
+assert.deepEqual(unreadThreadIds(), ['thread-a', 'thread-b'])
+threadReadStore.getState().markAllReadLocally(10)
+assert.deepEqual(unreadThreadIds(), [])
 
 store.getState().setDraft('new-thread', '不要丢失的草稿')
 store.getState().setConnection('offline')
@@ -355,6 +387,14 @@ const commentMobileLayoutSource = readFileSync(
   new URL('../src/features/resume-comments/hooks/use-comment-mobile-layout.ts', import.meta.url),
   'utf8',
 )
+const commentSelectionSource = readFileSync(
+  new URL('../src/features/resume-comments/hooks/use-comment-selection.ts', import.meta.url),
+  'utf8',
+)
+const commentActionsSource = readFileSync(
+  new URL('../src/features/resume-comments/hooks/use-comment-actions.ts', import.meta.url),
+  'utf8',
+)
 const commentBookmarkSource = readFileSync(
   new URL('../src/features/resume-comments/components/comment-bookmark.tsx', import.meta.url),
   'utf8',
@@ -429,11 +469,22 @@ assert.match(
 assert.match(commentsPanelSource, /useCommentMobileLayout/u)
 assert.match(commentsPanelSource, /swipeDirection="down"/u)
 assert.match(commentsPanelSource, /overlayClassName="supports-backdrop-filter:backdrop-blur-none"/u)
-assert.match(commentsPanelSource, /h-\[60vh\]/u)
+assert.doesNotMatch(commentsPanelSource, /h-\[(?:60|70)vh\]/u)
+assert.match(drawerSource, /data-\[swipe-axis=y\]:\[--drawer-content-height:70dvh\]/u)
+assert.match(drawerSource, /data-\[swipe-axis=y\]:\[--drawer-content-max-height:70dvh\]/u)
 assert.doesNotMatch(commentsPanelSource, /\[--drawer-content-height:auto\]|\[--drawer-content-max-height:auto\]/u)
 assert.doesNotMatch(commentsPanelSource, /rounded-b-none|\[--drawer-inset:0px\]|border-x-0 border-b-0/u)
 assert.match(commentsPanelSource, /grid shrink-0 grid-cols-3/u)
 assert.match(commentsPanelSource, /flex min-h-0 flex-1 overflow-y-auto/u)
+assert.match(commentsPanelSource, /actions\.markThreadRead\(threadId\)/u)
+assert.match(commentsPanelSource, /actions\.markAllRead\(\)/u)
+assert.match(commentActionsSource, /latestCommentEventSeq <= Math\.max/u)
+assert.match(commentSelectionSource, /document\.addEventListener\('pointerup', handlePointerEnd, true\)/u)
+assert.match(commentSelectionSource, /document\.addEventListener\('pointercancel', handlePointerEnd, true\)/u)
+assert.match(commentSelectionSource, /pointerSelecting\.current \|\| keyboardSelecting\.current/u)
+assert.match(commentSelectionSource, /completionArmed\.current/u)
+assert.match(commentSelectionSource, /scheduleEvaluation\(120\)/u)
+assert.equal(commentSelectionSource.match(/requestAnimationFrame\(/gu)?.length, 2)
 assert.match(threadDetailSource, /flex shrink-0 items-center/u)
 assert.match(threadDetailSource, /shrink-0 border-t p-3/u)
 assert.match(commentMobileLayoutSource, /\(hover: none\) and \(pointer: coarse\) and \(max-width: 1024px\)/u)
@@ -640,7 +691,8 @@ function verifyCacheProjection(candidate: string) {
   assertSourceOrder(candidate, [
     '...cacheValue } = value',
     'const nextValue = advanceCommentReadCursor(',
-    '\n    cacheValue,',
+    '\n      ...cacheValue,',
+    'threadReadStates: mergeThreadReadStates(',
     '\n    value: nextValue,',
   ])
   assert.doesNotMatch(candidate, /const cacheValue = value/u)
@@ -666,7 +718,7 @@ assertSourceOrder(bootstrapSource, [
   'marker.measureSync(\'store_commit\'',
   'marker.measureSync(\n        \'realtime_connect\'',
   'marker.end({',
-  'void writeCommentCache(cacheKey, response.data).catch',
+  'void writeCommentCache(cacheKey, {',
   'void client.markRead(persistedReadEventSeq).catch',
 ])
 function verifyBootstrapRequestStart(candidate: string) {

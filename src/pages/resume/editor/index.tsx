@@ -292,7 +292,7 @@ function Editor() {
                   >
                     <Edit />
                   </DrawerTrigger>
-                  <DrawerContent className="h-160">
+                  <DrawerContent>
                     <CollaborationControls onOpenSortDialog={handleOpenSortDialog} />
                     <div className="@container/panel p-4 overflow-y-auto overflow-x-hidden">
                       <SidebarEditor
@@ -345,7 +345,6 @@ function Editor() {
               key={currentResumeId}
               access={commentReview.access}
               beforeWrite={!collaboratorMode && commentReview.isWorking ? prepareCommentWrite : undefined}
-              commentsVisible={commentsOpen}
               refreshAccess={collaboratorMode ? refreshCollaboratorCommentAccess : undefined}
               panelHeaderContent={(
                 <>
@@ -414,7 +413,11 @@ function WorkingResumeComments({
   layoutRevision: string
 }) {
   useWorkingDocumentCommentSync(resumeId, syncWorkingDocument)
-  const hasUnread = useResumeCommentStore(state => state.lastEventSeq > state.lastReadEventSeq)
+  const hasUnread = useResumeCommentStore(state => Object.values(state.threadReadStateById)
+    .some(thread => thread.latestCommentEventSeq > Math.max(
+      thread.lastReadEventSeq,
+      state.lastReadEventSeq,
+    )))
   return (
     <>
       {!open && bookmarkVisible

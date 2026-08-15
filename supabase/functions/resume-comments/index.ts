@@ -209,6 +209,12 @@ interface BootstrapPayload {
   profiles: unknown[]
   accessibleScopes: unknown[]
   lastReadEventSeq: number
+  threadReadStates: Array<{
+    threadId: string
+    latestCommentEventSeq: number
+    lastReadEventSeq: number
+    unread: boolean
+  }>
 }
 
 interface BootstrapRepairEnvelope {
@@ -685,6 +691,7 @@ function validateBootstrapPayload(
     || !Array.isArray(value.threads)
     || !Array.isArray(value.profiles)
     || !Array.isArray(value.accessibleScopes)
+    || !Array.isArray(value.threadReadStates)
     || !isNonNegativeSafeInteger(value.lastReadEventSeq)
   ) {
     return bootstrapProtocolError('invalid_rpc_protocol')
@@ -732,6 +739,40 @@ function validateBootstrapPayload(
     || accessibleScope.version_id !== access.versionId
     || accessibleScope.next_event_seq !== eventSeq
     || accessibleScope.last_read_event_seq !== value.lastReadEventSeq
+  ) {
+    return bootstrapProtocolError('invalid_rpc_protocol')
+  }
+  const threadIds = new Set<string>()
+  const threadReadStates = value.threadReadStates.map((item) => {
+    if (
+      !isRecord(item)
+      || !isUuidValue(item.threadId)
+      || threadIds.has(item.threadId)
+      || !isNonNegativeSafeInteger(item.latestCommentEventSeq)
+      || !isNonNegativeSafeInteger(item.lastReadEventSeq)
+      || item.latestCommentEventSeq > eventSeq
+      || item.lastReadEventSeq > eventSeq
+      || typeof item.unread !== 'boolean'
+      || item.unread !== (item.latestCommentEventSeq > item.lastReadEventSeq)
+    ) {
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    }
+    threadIds.add(item.threadId)
+    return {
+      threadId: item.threadId,
+      latestCommentEventSeq: item.latestCommentEventSeq,
+      lastReadEventSeq: item.lastReadEventSeq,
+      unread: item.unread,
+    }
+  })
+  const payloadThreadIds = new Set(value.threads.flatMap((thread) => {
+    if (!isRecord(thread) || !isUuidValue(thread.id))
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    return [thread.id]
+  }))
+  if (
+    payloadThreadIds.size !== threadIds.size
+    || [...payloadThreadIds].some(threadId => !threadIds.has(threadId))
   ) {
     return bootstrapProtocolError('invalid_rpc_protocol')
   }
@@ -789,6 +830,7 @@ function validateBootstrapPayload(
       last_read_event_seq: value.lastReadEventSeq,
     }],
     lastReadEventSeq: value.lastReadEventSeq,
+    threadReadStates,
   }
 }
 
@@ -2211,6 +2253,23 @@ Deno.serve(async (req) => {
     const replay = await readReplay(admin, access.actorKey!, requestId)
     if (replay) {
       return finalize(success(replay, Number(replay.eventSeq)))
+    }
+
+    if (op === 'mark_thread_read') {
+      const threadId = readUuid(body, 'threadId')
+      const eventSeq = readNonNegativeInteger(body, 'eventSeq')
+      const { data, error } = await admin.rpc('mark_resume_comment_thread_read_v1', {
+        p_scope_id: access.scope.id,
+        p_thread_id: threadId,
+        p_actor_kind: access.actorKind,
+        p_actor_id: access.actorId,
+        p_actor_key: access.actorKey,
+        p_request_id: requestId,
+        p_event_seq: eventSeq,
+      })
+      if (error)
+        throw error
+      return finalize(success(data, Number(data.eventSeq)))
     }
 
     const payload = writePayload(body, access)

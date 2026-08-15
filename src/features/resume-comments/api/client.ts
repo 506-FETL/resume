@@ -7,6 +7,7 @@ import type {
   CommentAuthor,
   CommentErrorCode,
   CommentThreadCounts,
+  CommentThreadReadState,
   CommentVersionReference,
   ResumeComment,
   ResumeCommentEvent,
@@ -65,6 +66,7 @@ export interface CommentBootstrapResult {
   accessibleScopes: AccessibleCommentScopeSummary[]
   threads: ResumeCommentThread[]
   lastReadEventSeq: number
+  threadReadStates: CommentThreadReadState[]
   scopeRealtime: CommentRealtimeAccess
   ownerRealtime: CommentRealtimeAccess | null
 }
@@ -379,6 +381,26 @@ function normalizeRealtimeAccess(value: unknown): CommentRealtimeAccess {
   }
 }
 
+function normalizeThreadReadStates(value: unknown): CommentThreadReadState[] {
+  const threadIds = new Set<string>()
+  return asArray(value).map((item) => {
+    const state = asRecord(item)
+    const threadId = String(state.threadId ?? '')
+    const latestCommentEventSeq = asNumber(state.latestCommentEventSeq)
+    const lastReadEventSeq = asNumber(state.lastReadEventSeq)
+    if (
+      !threadId
+      || threadIds.has(threadId)
+      || latestCommentEventSeq < 0
+      || lastReadEventSeq < 0
+    ) {
+      throw new ResumeCommentClientError('unexpected', '评论已读状态协议不兼容')
+    }
+    threadIds.add(threadId)
+    return { threadId, latestCommentEventSeq, lastReadEventSeq }
+  })
+}
+
 function normalizeBootstrap(value: unknown): CommentBootstrapResult {
   const data = asRecord(value)
   return {
@@ -388,6 +410,7 @@ function normalizeBootstrap(value: unknown): CommentBootstrapResult {
     accessibleScopes: asArray(data.accessibleScopes).map(normalizeAccessibleScope),
     threads: normalizeThreads(data.threads, data.profiles),
     lastReadEventSeq: asNumber(data.lastReadEventSeq),
+    threadReadStates: normalizeThreadReadStates(data.threadReadStates),
     scopeRealtime: normalizeRealtimeAccess(data.scopeRealtime),
     ownerRealtime: data.ownerRealtime ? normalizeRealtimeAccess(data.ownerRealtime) : null,
   }
@@ -687,6 +710,10 @@ export class ResumeCommentClient {
 
   markRead(eventSeq: number) {
     return this.writeRaw('mark_read', { eventSeq })
+  }
+
+  markThreadRead(threadId: string, eventSeq: number) {
+    return this.writeRaw('mark_thread_read', { threadId, eventSeq })
   }
 
   private async mutate<TInput extends Record<string, unknown>>(op: string, input: TInput) {

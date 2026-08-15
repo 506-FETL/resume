@@ -1,8 +1,7 @@
 import type { CommentAccessContext, ResumeCommentClient } from '../api/client.ts'
 import type { ResumeCommentStore } from '../store/types.ts'
 import { useEffect } from 'react'
-import { useStore } from 'zustand'
-import { deriveCommentCacheKey, readCommentCache, readCommentReadCursor, rememberCommentVersionHint, updateCommentCacheReadCursor, writeCommentCache } from '../api/cache.ts'
+import { deriveCommentCacheKey, readCommentCache, readCommentReadCursor, rememberCommentVersionHint, writeCommentCache } from '../api/cache.ts'
 import {
   isResumeCommentClientError,
 } from '../api/client.ts'
@@ -156,6 +155,25 @@ export function useCommentRealtime({
         authenticatedUserId,
       )
       const persistedReadEventSeq = cacheKey ? readCommentReadCursor(cacheKey) : 0
+      const cached = cacheKey ? await readCommentCache(cacheKey) : null
+      const cachedThreadReadStates = cached?.value.threadReadStates ?? []
+      const serverThreadReadStateById = new Map(
+        response.data.threadReadStates.map(state => [state.threadId, state]),
+      )
+      const mergedThreadReadStates = response.data.threadReadStates.map((state) => {
+        const cachedState = cachedThreadReadStates.find(item => item.threadId === state.threadId)
+        return {
+          ...state,
+          latestCommentEventSeq: Math.max(
+            state.latestCommentEventSeq,
+            cachedState?.latestCommentEventSeq ?? 0,
+          ),
+          lastReadEventSeq: Math.max(
+            state.lastReadEventSeq,
+            cachedState?.lastReadEventSeq ?? 0,
+          ),
+        }
+      })
       marker.measureSync('store_commit', () => {
         store.getState().replaceScope({
           scope: response.data.scope,
@@ -168,6 +186,7 @@ export function useCommentRealtime({
             response.data.lastReadEventSeq,
             persistedReadEventSeq,
           ),
+          threadReadStates: mergedThreadReadStates,
         })
         store.getState().setAccessState(
           isReadOnlyAccess(access) ? 'read_only' : 'active',
@@ -185,7 +204,10 @@ export function useCommentRealtime({
       })
       if (cacheKey) {
         // eslint-disable-next-line no-void
-        void writeCommentCache(cacheKey, response.data).catch(() => undefined)
+        void writeCommentCache(cacheKey, {
+          ...response.data,
+          threadReadStates: mergedThreadReadStates,
+        }).catch(() => undefined)
       }
       if (
         persistedReadEventSeq > response.data.lastReadEventSeq
@@ -194,6 +216,17 @@ export function useCommentRealtime({
         // 本机已读游标领先时补偿同步到服务端，覆盖上一次网络中断的回执失败。
         // eslint-disable-next-line no-void
         void client.markRead(persistedReadEventSeq).catch(() => undefined)
+      }
+      if (hasServerReadPrincipal(access, authenticatedUserId)) {
+        for (const cachedState of cachedThreadReadStates) {
+          const serverState = serverThreadReadStateById.get(cachedState.threadId)
+          if (cachedState.lastReadEventSeq > (serverState?.lastReadEventSeq ?? 0)) {
+            client.markThreadRead(
+              cachedState.threadId,
+              cachedState.lastReadEventSeq,
+            ).catch(() => undefined)
+          }
+        }
       }
     }
 
@@ -219,6 +252,7 @@ export function useCommentRealtime({
         threads: cached.value.threads,
         eventSeq: cached.value.scope.nextEventSeq,
         lastReadEventSeq: cached.value.lastReadEventSeq,
+        threadReadStates: cached.value.threadReadStates,
       })
       marker.end({
         detail: {
@@ -268,49 +302,4 @@ export function useCommentRealtime({
         window.clearInterval(refreshTimer)
     }
   }, [accessIdentityKey, client, enabled, onAccessInvalidated, refreshAccess, store])
-}
-
-export function useCommentReadReceipt({
-  client,
-  store,
-  visible,
-}: {
-  client: ResumeCommentClient
-  store: ResumeCommentStore
-  visible: boolean
-}) {
-  const lastEventSeq = useStore(store, state => state.lastEventSeq)
-  const lastReadEventSeq = useStore(store, state => state.lastReadEventSeq)
-  const accessState = useStore(store, state => state.accessState)
-
-  useEffect(() => {
-    if (
-      !visible
-      || accessState === 'unavailable'
-      || lastEventSeq <= lastReadEventSeq
-      || document.visibilityState !== 'visible'
-    ) {
-      return
-    }
-    const timer = window.setTimeout(() => {
-      const readEventSeq = lastEventSeq
-      // 视觉反馈不等待网络：用户正常打开并停留后，当前界面立即清除未读。
-      store.getState().markReadLocally(readEventSeq)
-      Promise.resolve().then(async () => {
-        const access = client.getAccessContext()
-        const authenticatedUserId = await client.getAuthenticatedUserId()
-        const versionId = store.getState().version?.versionId
-        const cacheKey = deriveCommentCacheKey(access, versionId, authenticatedUserId)
-        const persistenceTasks: Promise<unknown>[] = []
-        if (cacheKey)
-          persistenceTasks.push(updateCommentCacheReadCursor(cacheKey, readEventSeq))
-
-        if (hasServerReadPrincipal(access, authenticatedUserId))
-          persistenceTasks.push(client.markRead(readEventSeq))
-
-        await Promise.allSettled(persistenceTasks)
-      }).catch(() => undefined)
-    }, 500)
-    return () => window.clearTimeout(timer)
-  }, [accessState, client, lastEventSeq, lastReadEventSeq, store, visible])
 }
