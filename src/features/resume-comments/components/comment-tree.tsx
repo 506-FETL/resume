@@ -130,7 +130,7 @@ function CommentNode({
 
   return (
     <motion.div
-      layout
+      layout="position"
       initial={reduceMotion ? false : { opacity: 0, y: 7, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, y: -4, scale: 0.985 }}
