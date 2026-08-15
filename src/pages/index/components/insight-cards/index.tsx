@@ -176,7 +176,7 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
       <CardHead
         icon={<LineChartIcon className="size-4" />}
         title="ATS 分数趋势"
-        description="各简历最近一次检测得分"
+        description="最近 8 次检测得分"
       />
       <CardContent className="flex-1 pt-0">
         {loading

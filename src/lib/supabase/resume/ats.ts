@@ -23,6 +23,8 @@ export async function getAtsFromUserId() {
     .from('ats')
     .select('*')
     .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
 
   if (error) {
     throw error
@@ -43,6 +45,7 @@ export async function listAtsSummaries() {
     .select('id,resume_id,created_at,todo_items,findings,summary')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
 
   if (error) {
     throw error

@@ -303,6 +303,39 @@ export function isJobPendingFollowUp(job: PendingFollowUpJob): boolean {
   return getDaysInStage(job) >= TRACKER_FOLLOW_UP_STALE_DAYS
 }
 
+function comparePendingFollowUpUrgency(left: JobApplication, right: JobApplication) {
+  const leftHasDate = getDaysUntil(left.next_action_date) !== null
+  const rightHasDate = getDaysUntil(right.next_action_date) !== null
+  if (leftHasDate !== rightHasDate)
+    return leftHasDate ? -1 : 1
+
+  if (leftHasDate && rightHasDate) {
+    const dateDifference = left.next_action_date!.localeCompare(right.next_action_date!)
+    if (dateDifference !== 0)
+      return dateDifference
+  }
+
+  const updatedDifference = Date.parse(left.updated_at) - Date.parse(right.updated_at)
+  if (Number.isFinite(updatedDifference) && updatedDifference !== 0)
+    return updatedDifference
+  return left.id.localeCompare(right.id)
+}
+
+export function resolveTrackerMetricStatus(
+  jobs: JobApplication[],
+  metric: TrackerMetricKey | null,
+): ApplicationStatus | null {
+  if (!metric)
+    return null
+  if (metric !== 'pending')
+    return metric
+
+  const [pendingJob] = [...jobs]
+    .filter(isJobPendingFollowUp)
+    .sort(comparePendingFollowUpUrgency)
+  return pendingJob?.status ?? null
+}
+
 export type NextActionTone = 'overdue' | 'today' | 'upcoming'
 
 export interface NextActionBadge {

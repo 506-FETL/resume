@@ -5,7 +5,7 @@ import { create } from 'zustand'
 import { buildAtsAssessmentInput, ensureAtsFindingsHaveSuggestions, normalizeAtsEvaluationResult } from '@/lib/ats'
 import { parseLlmJsonObject, runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
-import { createAtsConfig, getAtsFromUserId, updateAtsConfig, updateFixChecklist } from '@/lib/supabase/resume'
+import { createAtsConfig, getAtsFromUserId, updateFixChecklist } from '@/lib/supabase/resume'
 import { uploadOfflineResumeToCloud } from '@/lib/supabase/resume/form'
 import { buildAtsCreatePayload } from '@/lib/supabase/resume/utils'
 import { getErrorMessage } from '@/utils'
@@ -50,10 +50,15 @@ const useAtsStore = create<AtsStore>()(
         set({ loading: true })
 
         const rawData = await getAtsFromUserId()
-        const data = rawData?.map(config => ({
+        const latestByResume = new Map<string, AtsEvaluationResult>()
+        for (const config of rawData ?? []) {
+          if (!latestByResume.has(config.resume_id))
+            latestByResume.set(config.resume_id, config)
+        }
+        const data = [...latestByResume.values()].map(config => ({
           ...config,
           findings: ensureAtsFindingsHaveSuggestions(config.findings),
-        })) ?? null
+        }))
 
         set({ atsConfigs: data })
         if (data && data.length > 0) {
@@ -157,7 +162,7 @@ const useAtsStore = create<AtsStore>()(
     }
 
     const startAnalysis = async (options?: { onComplete?: () => void }) => {
-      const { selectedResumeId, selectedResumeType, atsConfigs } = get()
+      const { selectedResumeId, selectedResumeType } = get()
 
       if (!selectedResumeId) {
         toast.error('请先选择一份简历')
@@ -245,18 +250,9 @@ const useAtsStore = create<AtsStore>()(
         updateLog('save', '正在保存分析报告...')
 
         const payload: AtsCreatePayload = buildAtsCreatePayload(normalizedResult, currentResumeId)
-        const existingAts = atsConfigs?.find(a => a.resume_id === currentResumeId)
-
-        if (existingAts) {
-          await updateAtsConfig(existingAts.id, payload)
-          updateLog('save', '报告已更新', true)
-          toast.success('ATS 分析报告已更新')
-        }
-        else {
-          await createAtsConfig(payload)
-          updateLog('save', '报告已生成', true)
-          toast.success('ATS 分析报告已生成')
-        }
+        await createAtsConfig(payload)
+        updateLog('save', '报告已生成', true)
+        toast.success('ATS 分析报告已生成')
 
         await init()
 

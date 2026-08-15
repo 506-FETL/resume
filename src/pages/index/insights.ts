@@ -43,6 +43,15 @@ const EMPTY_FUNNEL: DashboardFunnel = {
   atsResumeCount: 0,
 }
 
+function compareAtsSummaryChronologically<
+  T extends { id: string | number, created_at: string },
+>(left: T, right: T) {
+  const dateDifference = diffDates(left.created_at, right.created_at)
+  if (dateDifference !== 0)
+    return dateDifference
+  return String(left.id).localeCompare(String(right.id), undefined, { numeric: true })
+}
+
 // 一次拉取 job / ats 概览，产出求职漏斗指标与聚合行动清单，供统计卡与今日待办共用
 export function useDashboardInsights(resumes: Resume[], resumesLoading: boolean): DashboardInsights {
   const onlineResumes = useMemo(
@@ -98,7 +107,7 @@ export function useDashboardInsights(resumes: Resume[], resumesLoading: boolean)
         const atsMap = new Map<string, (typeof atsSummaries)[number]>()
         for (const summary of atsSummaries) {
           const existing = atsMap.get(summary.resume_id)
-          if (!existing || diffDates(summary.created_at, existing.created_at) > 0)
+          if (!existing || compareAtsSummaryChronologically(summary, existing) > 0)
             atsMap.set(summary.resume_id, summary)
         }
 
@@ -368,7 +377,7 @@ const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
  * 一次拉取 job / ats / version 概览，聚合出首页四个扩展模块的数据：
  * - 待跟进 Top3：isJobPendingFollowUp 口径，按 next_action 紧迫度排序
  * - 求职漏斗：saved→…→offer 按当前状态分布（非历史漏斗，避免 summary 缺 stage_details）
- * - ATS 趋势：每份简历最近一次检测分，按时间正序（最多取近 8 次）
+ * - ATS 趋势：所有在线简历最近 8 次检测分，按时间正序
  * - 本周活跃度：近 7 天编辑（version）与投递（job.updated_at）事件按日计数
  * 复用与 useDashboardInsights 相同的 summary 接口，均基于现有数据源、无需新表。
  */
@@ -447,19 +456,12 @@ export function useDashboardExtras(resumes: Resume[], resumesLoading: boolean): 
           count: activeJobs.filter(job => job.status === status).length,
         }))
 
-        // —— ATS 趋势：每份简历最近一次分，按时间正序，最多近 8 份 ——
+        // —— ATS 趋势：所有在线简历最近 8 次检测，按时间稳定正序 ——
         const onlineIds = new Set(onlineResumes.map(resume => resume.resume_id))
-        const latestAtsByResume = new Map<string, (typeof atsSummaries)[number]>()
-        for (const summary of atsSummaries) {
-          if (!onlineIds.has(summary.resume_id))
-            continue
-          const existing = latestAtsByResume.get(summary.resume_id)
-          if (!existing || diffDates(summary.created_at, existing.created_at) > 0)
-            latestAtsByResume.set(summary.resume_id, summary)
-        }
-        const atsTrend: AtsTrendPoint[] = [...latestAtsByResume.values()]
+        const atsTrend: AtsTrendPoint[] = atsSummaries
+          .filter(summary => onlineIds.has(summary.resume_id))
           .filter(summary => typeof summary.summary?.overall_score === 'number')
-          .sort((a, b) => diffDates(a.created_at, b.created_at))
+          .sort(compareAtsSummaryChronologically)
           .slice(-8)
           .map((summary, index) => ({
             index,

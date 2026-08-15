@@ -25,7 +25,7 @@ import { updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, BOARD_COLUMNS } from '../../const'
 import useTrackerStore from '../../store'
-import { appendStatusChangeActivity, autoCompleteStages, filterJobs, getTrackerErrorMessage } from '../../utils'
+import { appendStatusChangeActivity, autoCompleteStages, filterJobs, getTrackerErrorMessage, resolveTrackerMetricStatus } from '../../utils'
 import { ColumnCard } from './column-card'
 
 function BoardJobItem({
@@ -146,9 +146,14 @@ export default function BoardView() {
   const columnRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [pendingMove, setPendingMove] = useState<{ jobId: string, newStatus: ApplicationStatus } | null>(null)
 
-  const filteredJobs = filterJobs(jobs, null, searchKeyword, showArchived, metricFilter)
+  const filteredJobs = filterJobs(jobs, null, searchKeyword, showArchived, null)
   const getJobsByStatus = (status: ApplicationStatus) =>
     filteredJobs.filter(job => job.status === status)
+  const metricStatus = useMemo(
+    () => resolveTrackerMetricStatus(jobs, metricFilter),
+    [jobs, metricFilter],
+  )
+  const highlightedStatus = filterStatus ?? metricStatus
 
   const scrollToColumn = useCallback((status: string) => {
     const container = scrollContainerRef.current
@@ -160,14 +165,14 @@ export default function BoardView() {
     const columnRect = columnEl.getBoundingClientRect()
     if (columnRect.left < containerRect.left || columnRect.right > containerRect.right) {
       const scrollLeft = columnEl.offsetLeft - container.offsetLeft - 16
-      container.scrollTo({ left: scrollLeft, behavior: 'smooth' })
+      container.scrollTo({ left: scrollLeft, behavior: reduceMotion ? 'auto' : 'smooth' })
     }
-  }, [])
+  }, [reduceMotion])
 
   useEffect(() => {
-    if (filterStatus && BOARD_COLUMNS.some(column => column.status === filterStatus))
-      requestAnimationFrame(() => scrollToColumn(filterStatus))
-  }, [filterStatus, scrollToColumn])
+    if (highlightedStatus && BOARD_COLUMNS.some(column => column.status === highlightedStatus))
+      requestAnimationFrame(() => scrollToColumn(highlightedStatus))
+  }, [highlightedStatus, scrollToColumn])
 
   const commitMove = (jobId: string, newStatus: ApplicationStatus) => {
     const previousState = useTrackerStore.getState()
@@ -215,7 +220,7 @@ export default function BoardView() {
     maxStep: 24,
   }]
   const isColumnHighlighted = (status: ApplicationStatus) =>
-    filterStatus !== null && filterStatus === status
+    highlightedStatus === status
 
   return (
     <>
