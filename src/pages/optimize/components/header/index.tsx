@@ -59,18 +59,15 @@ function Header() {
           </p>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-          <div className="min-w-0 [&_[data-slot=dialog-trigger]]:w-full sm:[&_[data-slot=dialog-trigger]]:w-auto">
-            <ResumeManager />
-          </div>
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row [&>button]:w-full sm:[&>button]:w-auto">
-            <AnalysisActions
-              hasAnalysis={Boolean(hasAnalysis)}
-              isProcessing={isProcessing}
-              onViewAnalysis={handleViewAnalysis}
-              onStartAnalysis={handleStartAnalysis}
-            />
-          </div>
+        <div className="flex flex-row gap-2 flex-wrap items-center">
+          <ResumeManager />
+          <AnalysisActions
+            hasAnalysis={Boolean(hasAnalysis)}
+            isProcessing={isProcessing}
+            onViewAnalysis={handleViewAnalysis}
+            onStartAnalysis={handleStartAnalysis}
+          />
+
         </div>
       </div>
 

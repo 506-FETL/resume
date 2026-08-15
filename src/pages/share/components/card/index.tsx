@@ -73,7 +73,6 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
         delay: reduceMotion ? 0 : Math.min(index, 12) * 0.025,
         layout: { duration: reduceMotion ? 0 : 0.2 },
       }}
-      className="min-w-0"
     >
       <Card className={cn(
         'min-w-0 gap-0 overflow-hidden rounded-xl py-0 shadow-sm transition-colors hover:border-primary/25',
@@ -119,8 +118,11 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
             </Button>
           </div>
 
-          <div className="mt-3 flex min-w-0 items-center gap-3 text-[11px] text-muted-foreground">
+          <div className="mt-2">
             <VersionBadge source={share.source} />
+          </div>
+
+          <div className="mt-3 flex min-w-0 items-center gap-3 text-[11px] text-muted-foreground">
             {share.has_password && (
               <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-300">
                 <LockKeyhole className="size-3" />
@@ -163,7 +165,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
                   <MoreHorizontal data-icon="inline-start" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="center" className="w-full">
                 <DropdownMenuGroup>
                   <DropdownMenuItem disabled={busy || Boolean(share.archivedAt)} onClick={() => openVersionDialog(share.id)}>
                     <History data-icon="inline-start" />

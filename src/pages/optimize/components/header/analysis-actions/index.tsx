@@ -18,10 +18,9 @@ export function AnalysisActions({ hasAnalysis, isProcessing, onViewAnalysis, onS
         <Button
           variant="secondary"
           size="sm"
-          className="h-9 px-4"
           onClick={onViewAnalysis}
         >
-          <Search className="mr-2 h-4 w-4" />
+          <Search />
           查看分析
         </Button>
       )}
