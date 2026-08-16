@@ -6,13 +6,11 @@ interface HydrateDraftPayload {
   templateId?: string | null
   manifest: TemplateManifest
   previewResumeId?: string | null
-  publishIntent?: 'private' | 'published'
 }
 
 interface MarkSavedPayload {
   templateId?: string | null
   manifest?: TemplateManifest | null
-  publishIntent?: 'private' | 'published'
 }
 
 interface TemplateEditorState {
@@ -22,13 +20,11 @@ interface TemplateEditorState {
   previewResumeId: string | null
   dirty: boolean
   saving: boolean
-  publishIntent: 'private' | 'published'
 
   hydrateDraft: (payload: HydrateDraftPayload) => void
   setSelectedSection: (sectionId: string | null) => void
   applyManifest: (nextManifest: TemplateManifest | ((current: TemplateManifest) => TemplateManifest)) => void
   setPreviewResumeId: (resumeId: string | null) => void
-  setPublishIntent: (intent: 'private' | 'published') => void
   markSaving: (saving: boolean) => void
   markSaved: (payload?: MarkSavedPayload) => void
   resetEditor: () => void
@@ -41,7 +37,6 @@ const INITIAL_STATE = {
   previewResumeId: null,
   dirty: false,
   saving: false,
-  publishIntent: 'private' as const,
 }
 
 const useTemplateEditorStore = create<TemplateEditorState>()(set => ({
@@ -55,7 +50,6 @@ const useTemplateEditorStore = create<TemplateEditorState>()(set => ({
       previewResumeId: payload.previewResumeId ?? null,
       dirty: false,
       saving: false,
-      publishIntent: payload.publishIntent ?? payload.manifest.meta.visibility,
     }),
 
   setSelectedSection: sectionId => set({ selectedSectionId: sectionId }),
@@ -70,27 +64,19 @@ const useTemplateEditorStore = create<TemplateEditorState>()(set => ({
         ? nextManifest(state.manifestDraft)
         : nextManifest
 
-      const nextPublishIntent = resolvedManifest.meta.visibility !== state.manifestDraft.meta.visibility
-        ? resolvedManifest.meta.visibility
-        : state.publishIntent
-
       return {
         manifestDraft: cloneTemplateManifest(resolvedManifest),
         dirty: true,
-        publishIntent: nextPublishIntent,
       }
     }),
 
   setPreviewResumeId: previewResumeId => set({ previewResumeId }),
-
-  setPublishIntent: publishIntent => set({ publishIntent, dirty: true }),
 
   markSaving: saving => set({ saving }),
 
   markSaved: payload => set(state => ({
     templateId: payload?.templateId ?? state.templateId,
     manifestDraft: payload?.manifest ? cloneTemplateManifest(payload.manifest) : state.manifestDraft,
-    publishIntent: payload?.publishIntent ?? state.publishIntent,
     dirty: false,
     saving: false,
   })),

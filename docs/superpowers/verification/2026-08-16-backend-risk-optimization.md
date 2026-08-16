@@ -129,3 +129,33 @@ supabase migration list --linked
 - 已移除 `resume_config` 上不会改变行值的 AFTER `resume_config_updated` 触发器；生产对象将在新迁移中显式删除。
 - `supabase start` 失败证据：`docker: command not found (podman also not found)`。因此 fresh reset 仍是部署前硬门禁。
 - 链接库 lint 证实旧模板函数引用不存在字段/表或类型不匹配，`cleanup_expired_sessions` 引用不存在的 `sync_sessions`；这些不是迁移恢复引入的问题，将按函数 inventory 删除或修复。
+
+## 任务 2：高权限函数封堵
+
+- 已用 Supabase CLI 创建 `harden_privileged_function_access` 迁移。
+- AI 内部 check/consume RPC 仅保留 service role；无参 quota 读取仅保留 authenticated/service role。
+- 默认函数权限不再向 PUBLIC、anon、authenticated 自动授予 EXECUTE。
+- 八个无仓库调用点、无数据库依赖的旧模板函数保留对象但撤销浏览器执行权。
+- GitHub 通用读取在发起 HTTP 前强制匹配 `506-FETL/resume`；浏览器共享缓存写回已删除。
+- `pnpm exec tsc -b --pretty false`：退出码 `0`。
+- 目标 ESLint：退出码 `0`；动画原语文件受仓库 ignore 规则影响，使用 `--no-warn-ignored` 后在任务 3 的组合目标 lint 中通过。
+
+## 任务 3：基础表 RLS 与模板边界
+
+线上迁移前聚合检查：
+
+- `ats.user_id` 空值：0。
+- ATS、协作文档、版本、公司、派生简历父引用的所有者冲突：均为 0。
+- 当前简历及历史版本中的 community 模板 binding：均为 0（同时检查 camelCase/snake_case 快照键）。
+- 四条 identity sequence 均存在：`resume_config_id_seq`、`resume_config_versions_id_seq`、`ats_id_seq`、`resume_templates_id_seq`。
+
+实现结果：
+
+- 六类基础表清空历史 permissive policy 后重建 authenticated owner-only 策略。
+- child insert/update 通过不接受任意 user ID 的 private SECURITY DEFINER helper 校验父简历属于当前 JWT 用户，避免自引用 RLS 递归。
+- anon 无基础表及 share/release/comment 基表直接 DML；分享跨用户访问仍只能走 Edge。
+- `resume_templates.visibility` 数据与约束收敛为 `private`；社区目录、发布控件、community store/API 和跨用户运行时读取已移除。
+- 遗留 `community` binding 类型只用于识别旧数据，运行时直接返回 `null`，不会查询其他用户模板。
+- `pnpm exec tsc -b --pretty false`：退出码 `0`。
+- 模板/RLS 相关目标 ESLint（含 `--no-warn-ignored`）：退出码 `0`。
+- `supabase test db supabase/tests/database/001_base_rls.sql --local`：退出码 `1`，原因是本地 54322 无数据库容器；测试文件已创建但尚未动态执行。

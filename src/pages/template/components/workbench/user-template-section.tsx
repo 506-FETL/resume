@@ -1,5 +1,5 @@
 import type { TemplateRecord } from '@/lib/resume-template/schema'
-import { ArrowRight, Eye, FolderCode, Globe, LoaderCircle, Lock, Proportions, SquarePen, Trash2 } from 'lucide-react'
+import { ArrowRight, Eye, FolderCode, LoaderCircle, SquarePen, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -99,24 +99,14 @@ function DeleteTemplateButton({
 
 export function UserTemplateSection() {
   const { userTemplates: templates } = useUserTemplatesStore()
-  const { createResumeWithTemplate, openUserTemplateEditor, toggleUserTemplatePublish, setTab } = useTemplateWorkbenchStore()
-  const [publishingId, setPublishingId] = useState<string | null>(null)
+  const { createResumeWithTemplate, openUserTemplateEditor, setTab } = useTemplateWorkbenchStore()
   const sectionMeta = TEMPLATE_CENTER_TAB_META.mine
-  const publishedCount = templates.filter(template => template.meta.visibility === 'published').length
-  const privateCount = templates.length - publishedCount
 
   const sectionHeader = (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary">{templates.length > 0 ? `${templates.length} 个模板` : '等待创建'}</Badge>
-        {templates.length > 0
-          ? (
-              <>
-                <Badge variant="outline">{`${publishedCount} 已发布`}</Badge>
-                <Badge variant="outline">{`${privateCount} 私有`}</Badge>
-              </>
-            )
-          : null}
+        {templates.length > 0 ? <Badge variant="outline">仅自己可见</Badge> : null}
       </div>
       <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{sectionMeta.description}</p>
     </div>
@@ -140,25 +130,11 @@ export function UserTemplateSection() {
                 <Eye />
                 查看官方模板
               </Button>
-              <Button variant="outline" onClick={() => setTab('community')}>
-                <Proportions />
-                浏览社区模板
-              </Button>
             </EmptyContent>
           </EmptyHeader>
         </Empty>
       </div>
     )
-  }
-
-  const handleTogglePublish = async (templateId: string, nextVisibility: 'private' | 'published') => {
-    setPublishingId(templateId)
-    try {
-      await toggleUserTemplatePublish(templateId, nextVisibility)
-    }
-    finally {
-      setPublishingId(null)
-    }
   }
 
   return (
@@ -207,32 +183,17 @@ export function UserTemplateSection() {
                     label: '直接使用',
                     icon: ArrowRight,
                     onClick: async () => createResumeWithTemplate('user', template.id),
-                    disabled: publishingId === template.id,
                   },
                   {
                     label: '继续编辑',
                     icon: SquarePen,
                     onClick: () => openUserTemplateEditor(template.id),
                     variant: 'secondary',
-                    disabled: publishingId === template.id,
-                  },
-                  {
-                    label: template.meta.visibility === 'published' ? '取消发布' : '发布',
-                    icon: template.meta.visibility === 'published' ? Lock : Globe,
-                    onClick: async () => handleTogglePublish(
-                      template.id,
-                      template.meta.visibility === 'published' ? 'private' : 'published',
-                    ),
-                    variant: 'outline',
-                    loading: publishingId === template.id,
-                    disabled: publishingId != null,
                   },
                 ]}
                 tags={(
                   <>
-                    <Badge variant={template.meta.visibility === 'published' ? 'default' : 'secondary'}>
-                      {template.meta.visibility === 'published' ? '已发布' : '私有'}
-                    </Badge>
+                    <Badge variant="secondary">私有</Badge>
                     <Badge variant="outline">{formatSkeletonLabel(template.manifest.layout.skeleton)}</Badge>
                   </>
                 )}

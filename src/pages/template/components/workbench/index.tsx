@@ -3,21 +3,18 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TEMPLATE_CENTER_TAB_META } from '../../const'
-import { useCommunityTemplatesStore, useOfficialTemplatesStore, useTemplateWorkbenchStore, useUserTemplatesStore } from '../../store'
-import { CommunityTemplateSection } from './community-template-section'
+import { useOfficialTemplatesStore, useTemplateWorkbenchStore, useUserTemplatesStore } from '../../store'
 import { OfficialTemplateSection } from './official-template-section'
 import { UserTemplateSection } from './user-template-section'
 
-const WORKBENCH_TAB_ORDER: TemplateWorkbenchTab[] = ['official', 'community', 'mine']
+const WORKBENCH_TAB_ORDER: TemplateWorkbenchTab[] = ['official', 'mine']
 
 function TemplateWorkbench() {
   const { activeTab, setTab } = useTemplateWorkbenchStore()
   const { officialTemplates } = useOfficialTemplatesStore()
-  const { communityTemplates } = useCommunityTemplatesStore()
   const { userTemplates } = useUserTemplatesStore()
   const tabCounts: Record<TemplateWorkbenchTab, number> = {
     official: officialTemplates.length,
-    community: communityTemplates.length,
     mine: userTemplates.length,
   }
   const tabItems = WORKBENCH_TAB_ORDER.map(key => ({
@@ -48,10 +45,6 @@ function TemplateWorkbench() {
 
           <TabsContent value="official">
             <OfficialTemplateSection />
-          </TabsContent>
-
-          <TabsContent value="community">
-            <CommunityTemplateSection />
           </TabsContent>
 
           <TabsContent value="mine">

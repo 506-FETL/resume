@@ -1,15 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TEMPLATE_CENTER_SUMMARY_ITEMS } from '../../const'
-import { useCommunityTemplatesStore, useOfficialTemplatesStore, useUserTemplatesStore } from '../../store'
+import { useOfficialTemplatesStore, useUserTemplatesStore } from '../../store'
 
 export default function WorkbenchHero() {
   const { officialTemplates } = useOfficialTemplatesStore()
-  const { communityTemplates } = useCommunityTemplatesStore()
   const { userTemplates } = useUserTemplatesStore()
 
   const summaryCounts = {
     official: officialTemplates.length,
-    community: communityTemplates.length,
     mine: userTemplates.length,
   }
 
@@ -23,7 +21,7 @@ export default function WorkbenchHero() {
 
       <CardContent className="flex flex-col gap-6">
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {TEMPLATE_CENTER_SUMMARY_ITEMS.map((item) => {
             const Icon = item.icon
 

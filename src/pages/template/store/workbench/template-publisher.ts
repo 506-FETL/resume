@@ -5,16 +5,14 @@ import { createResumeFromTemplate } from '@/lib/supabase/resume/form'
 import { createUserTemplate, updateUserTemplate } from '@/lib/supabase/template'
 import useResumeListStore from '@/pages/resume/store'
 import useCurrentResumeStore from '@/store/resume/current'
-import { updateTemplateMeta, validateTemplateForPublish, validateTemplateForSave } from '../../utils'
-import useCommunityTemplatesStore from '../community-templates'
+import { updateTemplateMeta, validateTemplateForSave } from '../../utils'
 import useTemplateEditorStore from '../editor'
 import useOfficialTemplatesStore from '../official-templates'
 import { reconcileTemplateForUi } from '../shared'
 import useUserTemplatesStore from '../user-templates'
 
 export interface TemplatePublisherSlice {
-  createResumeWithTemplate: (sourceKind: 'official' | 'community' | 'user', templateId: string) => Promise<void>
-  toggleUserTemplatePublish: (templateId: string, nextVisibility: 'private' | 'published') => Promise<void>
+  createResumeWithTemplate: (sourceKind: 'official' | 'user', templateId: string) => Promise<void>
   deleteUserTemplateRecord: (templateId: string) => Promise<void>
   saveActiveTemplate: () => Promise<void>
   saveActiveTemplateAsCopy: () => Promise<void>
@@ -52,10 +50,6 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
       }
     },
 
-    toggleUserTemplatePublish: async (templateId, nextVisibility) => {
-      await useUserTemplatesStore.getState().togglePublish(templateId, nextVisibility)
-    },
-
     deleteUserTemplateRecord: async (templateId) => {
       try {
         await useUserTemplatesStore.getState().deleteTemplate(templateId)
@@ -81,12 +75,10 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
         return
 
       const nextManifest = updateTemplateMeta(manifestDraft, {
-        visibility: editorState.publishIntent,
+        visibility: 'private',
         status: 'active',
       })
-      const validation = editorState.publishIntent === 'published'
-        ? validateTemplateForPublish(nextManifest)
-        : validateTemplateForSave(nextManifest)
+      const validation = validateTemplateForSave(nextManifest)
 
       if (!validation.valid) {
         const [firstIssue] = validation.issues
@@ -101,20 +93,17 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
       try {
         const state = get()
         const selectedOfficialTemplate = useOfficialTemplatesStore.getState().findTemplate(state.selectedTemplateId)
-        const selectedCommunityTemplate = useCommunityTemplatesStore.getState().findTemplate(state.selectedTemplateId)
         const selectedUserTemplate = useUserTemplatesStore.getState().findTemplate(state.selectedTemplateId)
         const basedOnTemplateId = state.source === 'official'
           ? selectedOfficialTemplate?.id
-          : state.source === 'community'
-            ? selectedCommunityTemplate?.source.basedOnTemplateId ?? selectedCommunityTemplate?.id
-            : selectedUserTemplate?.id
+          : selectedUserTemplate?.id
 
         const savedTemplate = editorState.templateId
           ? await updateUserTemplate(editorState.templateId, {
               manifest: nextManifest,
               name: nextManifest.meta.name,
               description: nextManifest.meta.description,
-              visibility: editorState.publishIntent,
+              visibility: 'private',
               status: 'active',
             })
           : await createUserTemplate({
@@ -122,7 +111,7 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
               basedOnTemplateId,
               name: nextManifest.meta.name,
               description: nextManifest.meta.description,
-              visibility: editorState.publishIntent,
+              visibility: 'private',
               status: 'active',
             })
 
@@ -130,14 +119,13 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
           manifest: nextManifest,
           name: nextManifest.meta.name,
           description: nextManifest.meta.description,
-          visibility: editorState.publishIntent,
+          visibility: 'private',
           status: 'active',
         })
 
         editorState.markSaved({
           templateId: syncedTemplate.id,
           manifest: syncedTemplate.manifest,
-          publishIntent: syncedTemplate.meta.visibility,
         })
         useUserTemplatesStore.getState().upsertAndSync(syncedTemplate)
         set({
@@ -146,7 +134,7 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
           selectedTemplateId: syncedTemplate.id,
         })
         useUserTemplatesStore.getState().setLastOpenedUserTemplateId(syncedTemplate.id)
-        toast.success(editorState.publishIntent === 'published' ? '模板已发布' : '模板已保存')
+        toast.success('模板已保存')
       }
       catch (saveError) {
         editorState.markSaving(false)
@@ -183,14 +171,11 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
       try {
         const state = get()
         const selectedOfficialTemplate = useOfficialTemplatesStore.getState().findTemplate(state.selectedTemplateId)
-        const selectedCommunityTemplate = useCommunityTemplatesStore.getState().findTemplate(state.selectedTemplateId)
         const selectedUserTemplate = useUserTemplatesStore.getState().findTemplate(state.selectedTemplateId)
         const savedTemplate = await createUserTemplate({
           manifest: duplicatedManifest,
           basedOnTemplateId: editorState.templateId
             ?? selectedOfficialTemplate?.id
-            ?? selectedCommunityTemplate?.source.basedOnTemplateId
-            ?? selectedCommunityTemplate?.id
             ?? selectedUserTemplate?.id,
           name: duplicatedManifest.meta.name,
           description: duplicatedManifest.meta.description,
@@ -201,7 +186,6 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
         editorState.markSaved({
           templateId: savedTemplate.id,
           manifest: savedTemplate.manifest,
-          publishIntent: savedTemplate.meta.visibility,
         })
         useUserTemplatesStore.getState().upsertAndSync(savedTemplate)
         set({

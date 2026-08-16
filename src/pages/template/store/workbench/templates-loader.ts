@@ -2,9 +2,8 @@ import type { NavigateFunction } from 'react-router-dom'
 import type { StoreApi } from 'zustand'
 import type { LoadTemplateOptions } from '../shared'
 import type { WorkbenchState } from './types'
-import { listPublishedCommunityTemplates, listUserTemplates } from '@/lib/supabase/template'
-import useCommunityTemplatesStore from '../community-templates'
-import { mergeCommunityTemplates, mergeUserTemplates, reconcileLastOpenedUserTemplateId } from '../shared'
+import { listUserTemplates } from '@/lib/supabase/template'
+import { mergeUserTemplates, reconcileLastOpenedUserTemplateId } from '../shared'
 import useUserTemplatesStore from '../user-templates'
 
 export interface TemplatesLoaderSlice {
@@ -31,10 +30,7 @@ export function createTemplatesLoaderSlice(set: Set): TemplatesLoaderSlice {
       set({ error: null })
 
       try {
-        const [communityTemplates, userTemplates] = await Promise.all([
-          listPublishedCommunityTemplates(),
-          listUserTemplates(),
-        ])
+        const userTemplates = await listUserTemplates()
 
         const userStore = useUserTemplatesStore.getState()
         const nextUserTemplates = mergeUserTemplates(userTemplates, userStore.userTemplates)
@@ -42,9 +38,6 @@ export function createTemplatesLoaderSlice(set: Set): TemplatesLoaderSlice {
         userStore.setUserTemplates(nextUserTemplates)
         userStore.setLastOpenedUserTemplateId(
           reconcileLastOpenedUserTemplateId(userTemplates, userStore.lastOpenedUserTemplateId),
-        )
-        useCommunityTemplatesStore.getState().setCommunityTemplates(
-          mergeCommunityTemplates(communityTemplates, nextUserTemplates),
         )
       }
       catch (loadError) {

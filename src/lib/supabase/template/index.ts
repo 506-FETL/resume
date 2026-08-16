@@ -41,13 +41,13 @@ export interface UpdateUserTemplatePatch {
   status?: TemplateStatus
 }
 
-export type TemplateSourceKind = 'official' | 'community' | 'user'
+export type TemplateSourceKind = 'official' | 'user'
 
 export type ResolvedTemplateSource = {
   kind: 'official'
   template: OfficialTemplateCatalogItem
 } | {
-  kind: 'community' | 'user'
+  kind: 'user'
   template: TemplateRecord
 }
 
@@ -188,21 +188,6 @@ export async function listUserTemplates() {
   return (data as ResumeTemplateRow[]).map(mapRowToTemplateRecord)
 }
 
-export async function listPublishedCommunityTemplates() {
-  const { data, error } = await supabase
-    .from('resume_templates')
-    .select('template_id,user_id,family_id,based_on_template_id,name,description,visibility,status,manifest,created_at,updated_at')
-    .eq('visibility', 'published')
-    .eq('status', 'active')
-    .order('updated_at', { ascending: false })
-
-  if (error) {
-    throw error
-  }
-
-  return (data as ResumeTemplateRow[]).map(mapRowToTemplateRecord)
-}
-
 export async function getUserTemplateById(templateId: string) {
   const user = await requireCurrentUser()
   const { data, error } = await supabase
@@ -210,22 +195,6 @@ export async function getUserTemplateById(templateId: string) {
     .select('template_id,user_id,family_id,based_on_template_id,name,description,visibility,status,manifest,created_at,updated_at')
     .eq('user_id', user.id)
     .eq('template_id', templateId)
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return mapRowToTemplateRecord(data as ResumeTemplateRow)
-}
-
-export async function getPublishedCommunityTemplateById(templateId: string) {
-  const { data, error } = await supabase
-    .from('resume_templates')
-    .select('template_id,user_id,family_id,based_on_template_id,name,description,visibility,status,manifest,created_at,updated_at')
-    .eq('template_id', templateId)
-    .eq('visibility', 'published')
-    .eq('status', 'active')
     .single()
 
   if (error) {
@@ -266,13 +235,6 @@ export async function resolveTemplateSource(
     return {
       kind: 'official',
       template,
-    }
-  }
-
-  if (source === 'community') {
-    return {
-      kind: 'community',
-      template: await getPublishedCommunityTemplateById(templateId),
     }
   }
 
@@ -333,13 +295,6 @@ export async function updateUserTemplate(templateId: string, patch: UpdateUserTe
 
   // UPDATE 未返回行（可能因 RLS 策略），回退到重新查询
   return getUserTemplateById(templateId)
-}
-
-export async function publishUserTemplate(templateId: string) {
-  return updateUserTemplate(templateId, {
-    visibility: 'published',
-    status: 'active',
-  })
 }
 
 export async function archiveUserTemplate(templateId: string) {

@@ -1,10 +1,7 @@
 import type { TemplateManifest } from '../schema'
 import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
 import type { TemplateSourceKind } from '@/lib/supabase/template'
-import {
-  getPublishedCommunityTemplateById,
-  getUserTemplateById,
-} from '@/lib/supabase/template'
+import { getUserTemplateById } from '@/lib/supabase/template'
 import { cloneTemplateManifest } from '../defaults'
 import { getOfficialTemplateCatalogItem } from '../registry/official-template-catalog'
 
@@ -16,10 +13,8 @@ function resolveLegacyResumeTypeFromOfficialTemplateId(templateId?: string | nul
   return getOfficialTemplateCatalogItem(templateId)?.source.legacyResumeType ?? 'default'
 }
 
-async function getUserSourceManifest(source: 'community' | 'user', templateId: string) {
-  const template = source === 'community'
-    ? await getPublishedCommunityTemplateById(templateId)
-    : await getUserTemplateById(templateId)
+async function getUserSourceManifest(templateId: string) {
+  const template = await getUserTemplateById(templateId)
 
   return {
     manifest: cloneTemplateManifest(template.manifest),
@@ -41,7 +36,12 @@ export async function getManifestFromTemplateBinding(
     return officialTemplate ? cloneTemplateManifest(officialTemplate.manifest) : null
   }
 
-  const { manifest } = await getUserSourceManifest(binding.source, binding.templateId)
+  // Legacy community bindings are recognized but never resolved across users.
+  if (binding.source === 'community') {
+    return null
+  }
+
+  const { manifest } = await getUserSourceManifest(binding.templateId)
   return manifest
 }
 
@@ -53,6 +53,6 @@ export async function getResumeTypeFromTemplateSource(
     return resolveLegacyResumeTypeFromOfficialTemplateId(templateId)
   }
 
-  const { resumeType } = await getUserSourceManifest(source, templateId)
+  const { resumeType } = await getUserSourceManifest(templateId)
   return resumeType
 }
