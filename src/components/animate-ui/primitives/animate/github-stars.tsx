@@ -23,7 +23,7 @@ import {
 
 } from '@/hooks/use-is-in-view'
 import { getStrictContext } from '@/lib/get-strict-context'
-import { getGithubStars, setGithubStars } from '@/lib/supabase/github-stars'
+import { getGithubStars } from '@/lib/supabase/github-stars'
 import { cn } from '@/lib/utils'
 
 interface GithubStarsContextType {
@@ -100,14 +100,13 @@ function GithubStars({
             return
           }
 
-          // stale：服务端 pgsql-http 不可用，走兜底——前端 fetch 后写回共享表
+          // stale：仅在当前页面读取 GitHub 公共 API，不把浏览器数据写回共享缓存。
           const res = await fetch(`https://api.github.com/repos/${username}/${repo}`)
           const data = await res.json()
           if (cancelled)
             return
           if (data && typeof data.stargazers_count === 'number') {
             setStars(data.stargazers_count)
-            setGithubStars(username, repo, data.stargazers_count).catch(() => {})
           }
           else {
             // 兜底 fetch 也失败：用服务端返回的旧缓存兜底
