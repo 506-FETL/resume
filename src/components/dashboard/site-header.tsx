@@ -49,10 +49,7 @@ export function SiteHeader() {
       </AnimatePresence>
 
       <div className="ml-auto flex items-center gap-2">
-        <GithubStars
-          username="506-FETL"
-          repo="resume"
-        >
+        <GithubStars>
           <div className="p-1 bg-muted flex items-center gap-1 rounded">
             <GithubStarsNumber className="text-muted-foreground font-medium" />
             <GithubStarsParticles>

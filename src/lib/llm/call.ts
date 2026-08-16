@@ -1,5 +1,6 @@
 import type { ChatCompletionChunk, ChatCompletionCreateParams } from 'openai/resources/chat/completions'
 import { Stream } from 'openai/streaming'
+import { applyAiQuotaReservation } from '@/store/ai-quota'
 import supabase from '../supabase/client'
 
 // 额度超限错误：供上层（P3 UI）识别并展示「明日 0 点恢复」等提示。
@@ -23,6 +24,7 @@ export class QuotaExceededError extends Error {
 // 仅作无害透传，服务端不据此扣费（cost 完全由服务端根据 payload 权威判定）。
 export interface CallLLMExtras {
   action?: string
+  requestId?: string
 }
 
 export async function callLLM(
@@ -35,6 +37,7 @@ export async function callLLM(
     temperature = 0,
     stream = true,
     action,
+    requestId: providedRequestId,
     ...rest
   } = req
 
@@ -46,12 +49,14 @@ export async function callLLM(
   }
 
   const controller = abortController ?? new AbortController()
+  const requestId = providedRequestId ?? crypto.randomUUID()
 
   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llm-proxy`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      'X-Request-Id': requestId,
     },
     body: JSON.stringify({
       model,
@@ -64,6 +69,24 @@ export async function callLLM(
     }),
     signal: controller.signal,
   })
+
+  const quotaRemaining = Number(response.headers.get('x-ai-quota-remaining'))
+  const quotaDailyLimit = Number(response.headers.get('x-ai-quota-daily-limit'))
+  const quotaResetAt = response.headers.get('x-ai-quota-reset-at')
+  const quotaUnlimited = response.headers.get('x-ai-quota-unlimited') === 'true'
+
+  if (
+    Number.isFinite(quotaRemaining)
+    && Number.isFinite(quotaDailyLimit)
+    && quotaResetAt
+  ) {
+    applyAiQuotaReservation({
+      remaining: quotaRemaining,
+      dailyLimit: quotaDailyLimit,
+      resetAt: quotaResetAt,
+      unlimited: quotaUnlimited,
+    })
+  }
 
   if (!response.ok) {
     const errorText = await response.text()

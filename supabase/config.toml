@@ -1,3 +1,7 @@
+[api]
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
 [functions.resume-share]
 verify_jwt = false
 
@@ -5,4 +9,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.llm-proxy]
+verify_jwt = false
+
+[functions.github-stars-refresh]
+verify_jwt = false
+
+[functions.backend-ops-monitor]
 verify_jwt = false

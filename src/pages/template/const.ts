@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
-import { FolderOpen, Sparkles, Users } from 'lucide-react'
+import { FolderOpen, Sparkles } from 'lucide-react'
 
-type TemplateCenterTabKey = 'official' | 'community' | 'mine'
+type TemplateCenterTabKey = 'official' | 'mine'
 
 interface TemplateCenterTabMeta {
   label: string
@@ -22,11 +22,6 @@ export const TEMPLATE_CENTER_TAB_META: Record<TemplateCenterTabKey, TemplateCent
     description: '从稳定、可直接使用的官方模板快速开始。',
     icon: Sparkles,
   },
-  community: {
-    label: '社区',
-    description: '浏览用户公开发布的模板灵感，复制后继续定制。',
-    icon: Users,
-  },
   mine: {
     label: '我的',
     description: '沉淀你的常用模板配置，随时继续编辑与复用。',
@@ -40,12 +35,6 @@ export const TEMPLATE_CENTER_SUMMARY_ITEMS: TemplateCenterSummaryItem[] = [
     label: '官方模板',
     description: '可直接使用或进入自定义',
     icon: Sparkles,
-  },
-  {
-    key: 'community',
-    label: '社区模板',
-    description: '来自社区公开发布的灵感模板',
-    icon: Users,
   },
   {
     key: 'mine',

@@ -38,6 +38,7 @@ export const COMMENT_ERROR_CODES = [
   'invalid_selection',
   'anchor_detached',
   'rate_limited',
+  'database_deadlock',
   'content_too_long',
   'not_found',
   'unexpected',

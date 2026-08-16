@@ -2,8 +2,8 @@ import type { TemplateRecord } from '@/lib/resume-template/schema'
 import { updateTemplateMeta } from '../utils'
 
 export type TemplateWorkbenchMode = 'library' | 'editor'
-export type TemplateWorkbenchSource = 'official' | 'community' | 'user' | null
-export type TemplateWorkbenchTab = 'official' | 'community' | 'mine'
+export type TemplateWorkbenchSource = 'official' | 'user' | null
+export type TemplateWorkbenchTab = 'official' | 'mine'
 
 export interface LoadTemplateOptions {
   silent?: boolean
@@ -20,32 +20,6 @@ export interface TemplateUiPatch {
 export function upsertTemplate(templates: TemplateRecord[], template: TemplateRecord) {
   const nextTemplates = [template, ...templates.filter(item => item.id !== template.id)]
   return nextTemplates.sort((left: TemplateRecord, right: TemplateRecord) =>
-    new Date(right.meta.updatedAt).getTime() - new Date(left.meta.updatedAt).getTime(),
-  )
-}
-
-export function isCommunityVisibleTemplate(template: TemplateRecord) {
-  return template.meta.visibility === 'published' && template.meta.status === 'active'
-}
-
-export function mergeCommunityTemplates(communityTemplates: TemplateRecord[], userTemplates: TemplateRecord[]) {
-  const userTemplateIds = new Set(userTemplates.map(template => template.id))
-  const nextTemplates = [
-    ...communityTemplates.filter(template => !userTemplateIds.has(template.id) && isCommunityVisibleTemplate(template)),
-    ...userTemplates.filter(isCommunityVisibleTemplate),
-  ]
-
-  const templateMap = new Map<string, TemplateRecord>()
-
-  for (const template of nextTemplates) {
-    const currentTemplate = templateMap.get(template.id)
-
-    if (!currentTemplate || new Date(template.meta.updatedAt).getTime() >= new Date(currentTemplate.meta.updatedAt).getTime()) {
-      templateMap.set(template.id, template)
-    }
-  }
-
-  return [...templateMap.values()].sort((left, right) =>
     new Date(right.meta.updatedAt).getTime() - new Date(left.meta.updatedAt).getTime(),
   )
 }

@@ -169,9 +169,6 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
           <div className="flex flex-col gap-1">
             <h2 className="text-2xl font-semibold tracking-tight">{getVersionTitle(selectedVersion)}</h2>
-            <p className="text-sm text-muted-foreground">
-              {selectedVersion.description || '查看该版本的简历内容，或恢复到这一版。'}
-            </p>
           </div>
         </div>
 
@@ -181,36 +178,55 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
                 <>
                   <div
                     className={cn(
-                      'grid gap-2',
-                      isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2',
+                      'grid gap-2 justify-center',
+                      isMobile ? 'grid-cols-5' : 'grid-cols-2',
                     )}
                   >
                     <Button
+                      className="w-full"
                       variant="outline"
-                      className="w-full justify-center"
+                      size={isMobile ? 'icon' : 'default'}
                       disabled={!canCompare}
                       title={canCompare ? undefined : '还没有可对比的版本'}
                       onClick={() => setCompareOpen(true)}
                     >
                       <GitCompare data-icon="inline-start" />
-                      对比
+                      {!isMobile && '对比'}
                     </Button>
+
                     <VersionPdfExportButton
+                      className="w-full"
                       versionId={selectedVersion.id}
                       documentTitle={getVersionTitle(selectedVersion)}
-                      className="w-full justify-center"
                     />
-                    <Button variant="outline" className="w-full justify-center" onClick={() => setRestoreTargetId(selectedVersion.id)}>
+
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => setRestoreTargetId(selectedVersion.id)}
+                      size={isMobile ? 'icon' : 'default'}
+                    >
                       <RotateCcw data-icon="inline-start" />
-                      恢复此版本
+                      {!isMobile && '恢复此版本'}
                     </Button>
-                    <Button className="w-full justify-center" onClick={state.startEditing}>
+
+                    <Button
+                      className="w-full"
+                      size={isMobile ? 'icon' : 'default'}
+                      onClick={state.startEditing}
+                    >
                       <Edit3 data-icon="inline-start" />
-                      编辑信息
+                      {!isMobile && '编辑信息'}
                     </Button>
-                    <Button variant="destructive" className="w-full justify-center" onClick={() => setDeleteTargetId(selectedVersion.id)}>
+
+                    <Button
+                      className="w-full"
+                      variant="destructive"
+                      onClick={() => setDeleteTargetId(selectedVersion.id)}
+                      size={isMobile ? 'icon' : 'default'}
+                    >
                       <Trash2 data-icon="inline-start" />
-                      删除版本
+                      {!isMobile && '删除版本'}
                     </Button>
                   </div>
                 </>

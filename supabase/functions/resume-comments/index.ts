@@ -7,7 +7,9 @@ import type {
 } from '../shared/resume-comment-core.ts'
 import type { CommentApiOp } from '../shared/resume-comment-schema.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
-import { corsHeaders } from '../shared/cors.ts'
+import { corsPreflightResponse, isOriginAllowed } from '../shared/cors.ts'
+import { recordOperationMetric, scheduleBackground } from '../shared/operation-metrics.ts'
+import { createRequestContext } from '../shared/request-context.ts'
 import {
   derivePasswordGeneration,
   hashAnonymousSecret,
@@ -42,13 +44,6 @@ import {
   authenticateSupabaseUser,
   SupabaseAuthenticationError,
 } from '../shared/supabase-auth.ts'
-
-const jsonHeaders = {
-  ...corsHeaders,
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json',
-  'Cache-Control': 'no-store',
-}
 
 function createAdminClient(url: string, serviceRoleKey: string) {
   return createClient(url, serviceRoleKey, {
@@ -297,22 +292,6 @@ class BootstrapInternalError extends Error {
     this.name = 'BootstrapInternalError'
     this.category = category
   }
-}
-
-function scheduleBackground(task: Promise<unknown>) {
-  const edgeRuntime = (globalThis as typeof globalThis & {
-    EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void }
-  }).EdgeRuntime
-  const guardedTask = task.catch((error) => {
-    console.error('resume-comment-background-task-failed', {
-      message: error instanceof Error ? error.message : 'unknown',
-    })
-  })
-  if (edgeRuntime?.waitUntil) {
-    edgeRuntime.waitUntil(guardedTask)
-    return
-  }
-  guardedTask.catch(() => undefined)
 }
 
 function getClientAddress(req: Request) {
@@ -1844,6 +1823,13 @@ function mapDatabaseError(error: unknown): CommentApiError {
   if (error instanceof CommentApiError) {
     return error
   }
+  if (isRecord(error) && error.code === '40P01') {
+    return new CommentApiError(
+      'database_deadlock',
+      '请求发生并发冲突，请重试',
+      409,
+    )
+  }
   const message = isRecord(error) && typeof error.message === 'string'
     ? error.message
     : ''
@@ -1881,18 +1867,17 @@ function writePayload(body: Record<string, unknown>, access: ResolvedAccess) {
 }
 
 Deno.serve(async (req) => {
+  const context = createRequestContext(req, 'resume-comments', 'allowlist')
   const requestStartedAt = performance.now()
   const coldStart = nextRequestIsColdStart
   nextRequestIsColdStart = false
-  const requestIdHeader = req.headers.get('x-request-id')
-  const requestId = isUuidValue(requestIdHeader)
-    ? requestIdHeader
-    : crypto.randomUUID()
-  const configuredRegion = Deno.env.get('SB_REGION')?.trim() ?? ''
-  const edgeRegion = /^[\w.-]{1,128}$/u.test(configuredRegion)
-    ? configuredRegion
-    : null
+  const requestId = context.requestId
   const operationDurations: Partial<Record<BootstrapTimingName, number>> = {}
+  let operation = 'comment_request'
+  let responseErrorCode: string | undefined
+  let responseSqlState: string | undefined
+  let adminForMetrics: AdminClient | null = null
+  let metricRecorded = false
   const recordTiming = (name: BootstrapTimingName, duration: number) => {
     operationDurations[name] = (operationDurations[name] ?? 0) + duration
   }
@@ -1910,38 +1895,88 @@ Deno.serve(async (req) => {
   }
   const finalize = (response: Response) => {
     operationDurations.edge_total = performance.now() - requestStartedAt
-    response.headers.set('X-Request-Id', requestId)
-    if (edgeRegion)
-      response.headers.set('X-Sb-Edge-Region', edgeRegion)
+    const sharedHeaders = context.responseHeaders()
+    sharedHeaders.forEach((value, key) => response.headers.set(key, value))
     response.headers.set(
       'Server-Timing',
       Object.entries(operationDurations)
         .map(([name, duration]) => `${name};dur=${duration.toFixed(1)}`)
         .join(', '),
     )
+    if (adminForMetrics && !metricRecorded) {
+      metricRecorded = true
+      const outcome = response.status >= 500
+        ? 'server_error' as const
+        : response.status >= 400
+          ? 'client_error' as const
+          : 'success' as const
+      scheduleBackground(recordOperationMetric(adminForMetrics, {
+        requestId,
+        functionName: 'resume-comments',
+        operation,
+        outcome,
+        errorCode: responseErrorCode,
+        sqlState: responseSqlState,
+        status: response.status,
+        durationMs: context.durationMs(),
+      }), 'operation_metric_failed')
+      if (response.status >= 500 || responseErrorCode === 'database_deadlock') {
+        context.log({
+          level: responseErrorCode === 'database_deadlock' ? 'warn' : 'error',
+          event: 'request_failed',
+          operation,
+          status: response.status,
+          errorCode: responseErrorCode ?? 'unexpected',
+          sqlState: responseSqlState,
+        })
+      }
+    }
     return response
   }
   const json = (body: unknown, status = 200) => {
     const serializeStartedAt = performance.now()
     const serializedBody = JSON.stringify(body)
     recordTiming('serialize', performance.now() - serializeStartedAt)
-    return new Response(serializedBody, { status, headers: jsonHeaders })
+    return new Response(serializedBody, {
+      status,
+      headers: context.responseHeaders({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+      }),
+    })
   }
-  const success = (data: unknown, eventSeq: number) => (
-    json({ ok: true, data, eventSeq })
-  )
-  const failure = (error: CommentApiError) => json({
-    ok: false,
-    error: {
-      code: error.code,
-      message: error.message,
-      ...(error.retryAfterSeconds
-        ? { retryAfterSeconds: error.retryAfterSeconds }
-        : {}),
-    },
-  }, error.status)
+  const success = (data: unknown, eventSeq: number) => {
+    responseErrorCode = undefined
+    responseSqlState = undefined
+    return json({ ok: true, data, eventSeq })
+  }
+  const failure = (error: CommentApiError) => {
+    responseErrorCode = error.code
+    return json({
+      ok: false,
+      error: {
+        code: error.code,
+        message: error.message,
+        ...(error.retryAfterSeconds
+          ? { retryAfterSeconds: error.retryAfterSeconds }
+          : {}),
+      },
+    }, error.status)
+  }
   if (req.method === 'OPTIONS') {
-    return finalize(new Response('ok', { headers: jsonHeaders }))
+    const response = corsPreflightResponse(req, 'allowlist')
+    response.headers.set('X-Request-Id', requestId)
+    return response
+  }
+  if (!isOriginAllowed(req, 'allowlist')) {
+    context.log({
+      level: 'warn',
+      event: 'request_rejected',
+      operation,
+      status: 403,
+      errorCode: 'origin_forbidden',
+    })
+    return context.json({ error: 'origin_forbidden' }, 403)
   }
   if (req.method !== 'POST') {
     return finalize(failure(new CommentApiError('not_found', '接口不存在', 404)))
@@ -1950,6 +1985,13 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !serviceRoleKey) {
+    context.log({
+      level: 'error',
+      event: 'request_failed',
+      operation,
+      status: 500,
+      errorCode: 'service_not_configured',
+    })
     return finalize(failure(new CommentApiError('unexpected', '评论服务暂时不可用', 500)))
   }
   const tokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
@@ -1957,10 +1999,12 @@ Deno.serve(async (req) => {
   const anonymousPepper = Deno.env.get('RESUME_COMMENT_ANONYMOUS_PEPPER') ?? tokenSecret
   const realtimeSecret = Deno.env.get('RESUME_COMMENT_REALTIME_SECRET') ?? tokenSecret
   const admin = createAdminClient(supabaseUrl, serviceRoleKey)
+  adminForMetrics = admin
 
   try {
     const value = await req.json().catch(() => null)
     const op = readCommentOp(value)
+    operation = op
     if (!isRecord(value)) {
       throw new CommentApiError('not_found', '请求无效', 400)
     }
@@ -2445,22 +2489,23 @@ Deno.serve(async (req) => {
       return finalize(failure(new CommentApiError('unauthorized', '登录凭证无效', 401)))
     }
     if (error instanceof BootstrapInternalError) {
-      console.error('resume-comments-bootstrap-failed', {
-        requestId,
-        category: error.category,
-      })
-      return finalize(failure(
+      const response = failure(
         new CommentApiError('unexpected', '评论服务暂时不可用', 500),
-      ))
+      )
+      responseErrorCode = error.category === 'scope_repair_failed'
+        ? 'database_conflict'
+        : 'database_unexpected'
+      return finalize(response)
     }
+    responseSqlState = isRecord(error) && typeof error.code === 'string'
+      && /^[0-9A-Z]{5}$/u.test(error.code)
+      ? error.code
+      : undefined
     const mapped = mapDatabaseError(error)
-    if (mapped.code === 'unexpected') {
-      console.error('resume-comments failed', {
-        requestId,
-        message: error instanceof Error ? error.message : 'unknown',
-      })
-    }
-    return finalize(failure(mapped))
+    const response = failure(mapped)
+    if (mapped.code === 'unexpected')
+      responseErrorCode = responseSqlState ? 'database_unexpected' : 'unexpected'
+    return finalize(response)
   }
 })
 

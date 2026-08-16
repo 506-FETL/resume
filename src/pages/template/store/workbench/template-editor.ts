@@ -2,7 +2,6 @@ import type { StoreApi } from 'zustand'
 import type { TemplateWorkbenchMode, TemplateWorkbenchSource, TemplateWorkbenchTab } from '../shared'
 import type { WorkbenchState } from './types'
 import { toast } from 'sonner'
-import useCommunityTemplatesStore from '../community-templates'
 import useTemplateEditorStore from '../editor'
 import useOfficialTemplatesStore from '../official-templates'
 import useUserTemplatesStore from '../user-templates'
@@ -19,7 +18,6 @@ export interface TemplateEditorSlice {
   openOfficialTemplateEditor: (templateId: string) => void
   openUserTemplateEditor: (templateId: string) => void
   customizeOfficialTemplate: (templateId: string) => void
-  customizeCommunityTemplate: (templateId: string) => Promise<void>
   resetActiveTemplateDraft: () => void
 }
 
@@ -100,23 +98,6 @@ export function createTemplateEditorSlice(set: Set, get: Get): TemplateEditorSli
       get().openOfficialTemplateEditor(templateId)
     },
 
-    customizeCommunityTemplate: async (templateId) => {
-      const communityStore = useCommunityTemplatesStore.getState()
-      const template = communityStore.findTemplate(templateId)
-
-      if (!template) {
-        toast.error('模板不存在或已被移除')
-        return
-      }
-
-      communityStore.hydrateTemplateDraft(template)
-      set({
-        mode: 'editor',
-        source: 'community',
-        selectedTemplateId: templateId,
-      })
-    },
-
     resetActiveTemplateDraft: () => {
       const state = get()
 
@@ -124,13 +105,6 @@ export function createTemplateEditorSlice(set: Set, get: Get): TemplateEditorSli
         const selectedOfficialTemplate = useOfficialTemplatesStore.getState().findTemplate(state.selectedTemplateId)
         if (selectedOfficialTemplate)
           useOfficialTemplatesStore.getState().hydrateTemplateDraft(selectedOfficialTemplate.id)
-        return
-      }
-
-      if (state.source === 'community') {
-        const selectedCommunityTemplate = useCommunityTemplatesStore.getState().findTemplate(state.selectedTemplateId)
-        if (selectedCommunityTemplate)
-          useCommunityTemplatesStore.getState().hydrateTemplateDraft(selectedCommunityTemplate)
         return
       }
 

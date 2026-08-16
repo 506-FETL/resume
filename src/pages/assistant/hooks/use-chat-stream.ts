@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { buildUserContext, runAgent } from '@/lib/ai/agent'
 import { QuotaExceededError } from '@/lib/llm/call'
 import { createConversation, deleteConversation, insertMessage, touchConversation, updateConversation } from '@/lib/supabase/ai'
-import { decrementAiQuota, refetchAiQuota } from '@/store/ai-quota'
+import { refetchAiQuota } from '@/store/ai-quota'
 import { openUpgradeDialog } from '@/store/upgrade-dialog'
 import { getErrorMessage } from '@/utils'
 import { CONVERSATION_TITLE_MAX_LEN, DEFAULT_CONVERSATION_TITLE } from '../const'
@@ -121,8 +121,6 @@ export function useChatStream() {
     let finalUsage: { input: number, output: number, total: number } | null = null
 
     try {
-      // 本轮即将消耗一次额度：先本地乐观递减，让 composer 剩余数立即回落，完成后再 refetch 校正
-      decrementAiQuota()
       const context = await buildUserContext().catch(() => undefined)
       const finalParts = await runAgent({
         history: useAssistantStore.getState().messages,

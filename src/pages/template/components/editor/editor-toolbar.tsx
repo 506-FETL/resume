@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTemplateEditorStore, useTemplateWorkbenchStore } from '../../store'
 
 export function TemplateEditorToolbar() {
-  const { manifestDraft, dirty, saving, publishIntent, templateId, setPublishIntent } = useTemplateEditorStore()
+  const { manifestDraft, dirty, saving, templateId } = useTemplateEditorStore()
   const { openLibrary, resetActiveTemplateDraft, saveActiveTemplate, saveActiveTemplateAsCopy } = useTemplateWorkbenchStore()
   const [backDialogOpen, setBackDialogOpen] = useState(false)
 
@@ -61,22 +60,6 @@ export function TemplateEditorToolbar() {
             ? '保存会覆盖当前模板；另存为会保留当前模板，并创建一份新的个人模板副本。'
             : '当前模板还未保存。点击保存后会把它创建到“我的模板”里。'}
         </p>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm text-muted-foreground">可见性</span>
-          <Select
-            value={publishIntent}
-            onValueChange={value => setPublishIntent(value as 'private' | 'published')}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="private">私有</SelectItem>
-              <SelectItem value="published">发布</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <AlertDialog open={backDialogOpen} onOpenChange={setBackDialogOpen}>
