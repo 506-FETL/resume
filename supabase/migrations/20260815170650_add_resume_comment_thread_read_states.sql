@@ -1,3 +1,4 @@
+-- Keep the local ledger version aligned with the already-applied remote migration.
 CREATE TABLE private.resume_comment_thread_read_states (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   scope_id uuid NOT NULL REFERENCES public.resume_comment_scopes (id) ON DELETE CASCADE,

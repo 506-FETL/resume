@@ -103,8 +103,8 @@ supabase migration list --linked
 
 | 阶段 | 命令或场景 | 退出码/结果 | 结论 |
 | --- | --- | --- | --- |
-| 迁移基线 | `supabase db reset --local` | 未执行 | 实施任务 1 更新 |
-| SQL lint | `supabase db lint --local --level warning` | 未执行 | 实施任务 1 更新 |
+| 迁移基线 | `supabase start` / `supabase db reset --local` | `1` / 未执行 | 本机无 Docker/Podman；不得记为通过，部署前需在隔离环境补验 |
+| SQL lint | `supabase db lint --linked --level warning` | `0` | 线上现有旧模板/会话函数有 8 个 error、2 个 warning；任务 2/7 处理后复跑 |
 | pgTAP | `supabase test db --local` | 未执行 | 实施任务 8 更新 |
 | 并发 | `pnpm verify:database` | 未执行 | 实施任务 8 更新 |
 | Edge | `pnpm verify:edge-context` | 未执行 | 实施任务 6 更新 |
@@ -120,3 +120,12 @@ supabase migration list --linked
 ## 部署记录
 
 尚未部署。这里将在任务 12 记录迁移 dry-run、账本 repair、数据库迁移、Edge Function 版本、cron/Vault 配置、生产只读核验与 smoke 结果。
+
+## 任务 1：迁移基线恢复
+
+- 已恢复八条真实历史迁移，并在最早迁移中前置 `update_updated_at_column()` 与 `uuid-ossp`。
+- 已删除 CLI 不会执行且重复建表的 `init_table.sql`。
+- 已将本地两条 20260816 文件名对齐为线上 `20260815164604` / `20260815170650`；此后 `migration list --linked` 只剩八条预期的历史 local-only 版本。
+- 已移除 `resume_config` 上不会改变行值的 AFTER `resume_config_updated` 触发器；生产对象将在新迁移中显式删除。
+- `supabase start` 失败证据：`docker: command not found (podman also not found)`。因此 fresh reset 仍是部署前硬门禁。
+- 链接库 lint 证实旧模板函数引用不存在字段/表或类型不匹配，`cleanup_expired_sessions` 引用不存在的 `sync_sessions`；这些不是迁移恢复引入的问题，将按函数 inventory 删除或修复。
