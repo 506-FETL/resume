@@ -127,6 +127,8 @@ export function deriveCommentCacheKey(
       ? { versionId, principalKey: `owner:${authenticatedUserId}` }
       : null
   }
+  if (access.kind === 'collaborator')
+    return { versionId, principalKey: `user:${access.userId}` }
   return {
     versionId,
     principalKey: authenticatedUserId

@@ -13,6 +13,7 @@ import { createRequestContext } from '../shared/request-context.ts'
 import {
   derivePasswordGeneration,
   hashAnonymousSecret,
+  signCommentToken,
   timingSafeStringEqual,
   verifyCommentToken,
 } from '../shared/resume-comment-auth.ts'
@@ -52,10 +53,11 @@ function createAdminClient(url: string, serviceRoleKey: string) {
 
 type AdminClient = ReturnType<typeof createAdminClient>
 type ActorKind = 'user' | 'anonymous'
-type AccessKind = 'owner' | 'share'
+type AccessKind = 'owner' | 'collaborator' | 'share'
 type SyncRelocation = ResumeCommentRelocationResult & { threadId: string }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
+const COLLABORATION_SESSION_PATTERN = /^[\w-]{16,64}$/u
 
 let nextRequestIsColdStart = true
 
@@ -89,6 +91,25 @@ interface ShareRow {
   version_id: number
 }
 
+interface CollaborationSessionRow {
+  session_id: string
+  resume_id: string
+  scope_id: string
+  owner_user_id: string
+  host_lease_id: string
+  default_role: 'editor' | 'viewer'
+  expires_at: string
+  revoked_at: string | null
+}
+
+interface CollaborationMemberRow {
+  session_id: string
+  user_id: string
+  role: 'editor' | 'viewer'
+  expires_at: string
+  revoked_at: string | null
+}
+
 interface ResolvedAccess {
   kind: AccessKind
   scope: ScopeRow
@@ -115,13 +136,6 @@ const COMMENT_EVENT_TYPE_BY_OP: Partial<Record<CommentApiOp, string>> = {
   reopen_thread: 'thread_reopened',
   relink_anchor: 'anchor_relinked',
 }
-
-const RETIRED_COLLABORATION_OPS = new Set<CommentApiOp>([
-  'register_collaboration_session',
-  'join_collaboration_session',
-  'renew_collaboration_session',
-  'leave_collaboration_session',
-])
 
 function resolveCommentEventType(op: CommentApiOp) {
   return COMMENT_EVENT_TYPE_BY_OP[op] ?? op
@@ -307,6 +321,18 @@ async function getScope(admin: AdminClient, scopeId: string): Promise<ScopeRow> 
   return data as ScopeRow
 }
 
+function readCollaborationSessionId(body: Record<string, unknown>) {
+  const sessionId = readRequiredString(body, 'sessionId', 64)
+  if (!/^[\w-]{16,64}$/u.test(sessionId)) {
+    throw new CommentApiError('not_found', '协作会话标识无效', 400)
+  }
+  return sessionId
+}
+
+function isFutureTimestamp(value: string) {
+  return Number.isFinite(Date.parse(value)) && Date.parse(value) > Date.now()
+}
+
 function isUuidValue(value: unknown): value is string {
   return typeof value === 'string' && UUID_PATTERN.test(value)
 }
@@ -328,6 +354,41 @@ function isDateOnly(value: unknown): value is string {
 
 function invalidBootstrapCredential(message = '评论访问凭证无效'): never {
   throw new CommentApiError('unauthorized', message, 401)
+}
+
+function validateCollaboratorTokenClaims(
+  value: unknown,
+  userId: string,
+): {
+  scopeId: string
+  resumeId: string
+  userId: string
+  sessionId: string
+  versionId: number
+  role: 'editor' | 'viewer'
+} {
+  if (
+    !isRecord(value)
+    || value.kind !== 'collaborator'
+    || !isUuidValue(value.scopeId)
+    || !isUuidValue(value.resumeId)
+    || !isUuidValue(value.userId)
+    || value.userId !== userId
+    || typeof value.sessionId !== 'string'
+    || !COLLABORATION_SESSION_PATTERN.test(value.sessionId)
+    || !isPositiveSafeInteger(value.versionId)
+    || (value.role !== 'editor' && value.role !== 'viewer')
+  ) {
+    return invalidBootstrapCredential('协作评论凭证无效')
+  }
+  return {
+    scopeId: value.scopeId,
+    resumeId: value.resumeId,
+    userId: value.userId,
+    sessionId: value.sessionId,
+    versionId: value.versionId,
+    role: value.role === 'editor' ? 'editor' : 'viewer',
+  }
 }
 
 function validateShareTokenClaims(value: unknown) {
@@ -356,11 +417,13 @@ async function buildBootstrapInput({
   userId,
   body,
   tokenSecret,
+  collaboratorSecret,
   anonymousPepper,
 }: {
   userId: string | null
   body: Record<string, unknown>
   tokenSecret: string
+  collaboratorSecret: string
   anonymousPepper: string
 }): Promise<BootstrapInputContext> {
   const accessKind = readRequiredString(body, 'accessKind', 32)
@@ -404,6 +467,35 @@ async function buildBootstrapInput({
         p_password_generation: null,
         p_session_id: null,
         p_collaborator_role: null,
+        p_anonymous_id: null,
+        p_anonymous_secret_hash: null,
+      },
+    }
+  }
+
+  if (accessKind === 'collaborator') {
+    if (!userId)
+      return invalidBootstrapCredential('请先登录')
+    const verifiedToken = await verifyCommentToken(
+      readRequiredString(body, 'accessToken', 4_096),
+      'collaborator',
+      collaboratorSecret,
+    )
+    const token = validateCollaboratorTokenClaims(verifiedToken, userId)
+    return {
+      shareTokenSecret: null,
+      rpcInput: {
+        p_protocol_version: 1,
+        p_access_kind: 'collaborator',
+        p_user_id: userId,
+        p_scope_id: token.scopeId,
+        p_resume_id: token.resumeId,
+        p_version_id: token.versionId,
+        p_share_id: null,
+        p_release_id: null,
+        p_password_generation: null,
+        p_session_id: token.sessionId,
+        p_collaborator_role: token.role,
         p_anonymous_id: null,
         p_anonymous_secret_hash: null,
       },
@@ -520,6 +612,22 @@ function validateBootstrapAccess(
       || sharePasswordHash !== null
       || value.canWrite !== true
       || value.canManageAll !== true
+    ) {
+      return bootstrapProtocolError('invalid_rpc_protocol')
+    }
+  }
+  else if (input.p_access_kind === 'collaborator') {
+    if (
+      userId === null
+      || value.actorKind !== 'user'
+      || actorId !== userId
+      || value.actorKey !== `user:${userId}`
+      || legacyAnonymousId !== null
+      || shareId !== null
+      || releaseId !== null
+      || sharePasswordHash !== null
+      || value.canWrite !== (input.p_collaborator_role === 'editor')
+      || value.canManageAll !== false
     ) {
       return bootstrapProtocolError('invalid_rpc_protocol')
     }
@@ -755,7 +863,8 @@ function validateBootstrapRpcResult(
   }
   if (value.status === 'scope_missing') {
     if (
-      !isRecord(value.access)
+      input.p_access_kind === 'collaborator'
+      || !isRecord(value.access)
       || value.access.kind !== input.p_access_kind
       || (value.access.sharePasswordHash !== null
         && typeof value.access.sharePasswordHash !== 'string')
@@ -977,6 +1086,241 @@ async function loadPersistedResumeSnapshot(
   return data
 }
 
+async function getActiveCollaborationSession(
+  admin: AdminClient,
+  sessionId: string,
+  resumeId: string,
+) {
+  const { data, error } = await admin
+    .from('resume_comment_collaboration_sessions')
+    .select('session_id,resume_id,scope_id,owner_user_id,host_lease_id,default_role,expires_at,revoked_at')
+    .eq('session_id', sessionId)
+    .eq('resume_id', resumeId)
+    .maybeSingle()
+  const session = data as CollaborationSessionRow | null
+  if (error || !session || session.revoked_at || !isFutureTimestamp(session.expires_at)) {
+    throw new CommentApiError('unauthorized', '协作会话已结束或不存在', 401)
+  }
+  return session
+}
+
+async function issueCollaboratorToken({
+  session,
+  member,
+  versionId,
+  collaboratorSecret,
+}: {
+  session: CollaborationSessionRow
+  member: CollaborationMemberRow
+  versionId: number
+  collaboratorSecret: string
+}) {
+  const issuedAt = Math.floor(Date.now() / 1_000)
+  const sessionExpiresAt = Math.floor(Date.parse(session.expires_at) / 1_000)
+  const memberExpiresAt = Math.floor(Date.parse(member.expires_at) / 1_000)
+  const expiresAt = Math.min(issuedAt + 15 * 60, sessionExpiresAt, memberExpiresAt)
+  if (expiresAt <= issuedAt) {
+    throw new CommentApiError('unauthorized', '协作会话已失效', 401)
+  }
+  return {
+    accessToken: await signCommentToken({
+      version: 1,
+      kind: 'collaborator',
+      issuedAt,
+      expiresAt,
+      sessionId: session.session_id,
+      resumeId: session.resume_id,
+      scopeId: session.scope_id,
+      versionId,
+      userId: member.user_id,
+      role: member.role,
+    }, collaboratorSecret),
+    expiresAt: new Date(expiresAt * 1_000).toISOString(),
+    sessionId: session.session_id,
+    resumeId: session.resume_id,
+    versionId,
+    userId: member.user_id,
+    role: member.role,
+  }
+}
+
+async function handleCollaborationSessionOperation({
+  op,
+  userId,
+  body,
+  admin,
+  collaboratorSecret,
+}: {
+  op: 'register_collaboration_session' | 'join_collaboration_session' | 'renew_collaboration_session' | 'leave_collaboration_session'
+  userId: string | null
+  body: Record<string, unknown>
+  admin: AdminClient
+  collaboratorSecret: string
+}) {
+  if (!userId) {
+    throw new CommentApiError('unauthorized', '请先登录', 401)
+  }
+  const sessionId = readCollaborationSessionId(body)
+  const resumeId = readUuid(body, 'resumeId')
+
+  if (op === 'register_collaboration_session') {
+    const versionId = await resolveCurrentVersionId(admin, userId, resumeId)
+    const scope = await ensureVersionScopeForOwner(admin, userId, versionId)
+    const { data: existing, error: existingError } = await admin
+      .from('resume_comment_collaboration_sessions')
+      .select('session_id,resume_id,owner_user_id,default_role,revoked_at')
+      .eq('session_id', sessionId)
+      .maybeSingle()
+    if (existingError) {
+      throw existingError
+    }
+    if (existing && (existing.resume_id !== resumeId || existing.owner_user_id !== userId)) {
+      throw new CommentApiError('unauthorized', '协作会话标识已被占用', 403)
+    }
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1_000).toISOString()
+    const hostLeaseId = crypto.randomUUID()
+    const { error } = await admin
+      .from('resume_comment_collaboration_sessions')
+      .upsert({
+        session_id: sessionId,
+        resume_id: resumeId,
+        scope_id: scope.id,
+        owner_user_id: userId,
+        host_lease_id: hostLeaseId,
+        // 角色只读取服务端已有配置；首次会话默认编辑者，绝不接收客户端角色字段。
+        default_role: existing?.default_role === 'viewer' ? 'viewer' : 'editor',
+        expires_at: expiresAt,
+        revoked_at: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'session_id' })
+    if (error) {
+      throw error
+    }
+    if (existing?.revoked_at) {
+      const { error: revokeError } = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ revoked_at: new Date().toISOString() })
+        .eq('session_id', sessionId)
+        .is('revoked_at', null)
+      if (revokeError) {
+        throw revokeError
+      }
+    }
+    else {
+      const { error: extendError } = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ expires_at: expiresAt })
+        .eq('session_id', sessionId)
+        .is('revoked_at', null)
+      if (extendError) {
+        throw extendError
+      }
+    }
+    return { sessionId, resumeId, expiresAt, hostLeaseId }
+  }
+
+  const session = await getActiveCollaborationSession(admin, sessionId, resumeId)
+  if (op === 'leave_collaboration_session') {
+    const revokedAt = new Date().toISOString()
+    if (session.owner_user_id === userId) {
+      const hostLeaseId = readUuid(body, 'hostLeaseId')
+      const sessionResult = await admin
+        .from('resume_comment_collaboration_sessions')
+        .update({ revoked_at: revokedAt, updated_at: revokedAt })
+        .eq('session_id', sessionId)
+        .eq('owner_user_id', userId)
+        .eq('host_lease_id', hostLeaseId)
+        .select('session_id')
+        .maybeSingle()
+      if (sessionResult.error) {
+        throw sessionResult.error
+      }
+      if (!sessionResult.data) {
+        return { sessionId, revoked: false }
+      }
+      const membersResult = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ revoked_at: revokedAt })
+        .eq('session_id', sessionId)
+        .is('revoked_at', null)
+      if (membersResult.error) {
+        throw membersResult.error
+      }
+    }
+    else {
+      const { error } = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ revoked_at: revokedAt })
+        .eq('session_id', sessionId)
+        .eq('user_id', userId)
+      if (error) {
+        throw error
+      }
+    }
+    return { sessionId, revoked: true }
+  }
+
+  let member: CollaborationMemberRow | null = null
+  if (op === 'join_collaboration_session') {
+    if (session.owner_user_id === userId) {
+      throw new CommentApiError('unauthorized', '简历所有者无需以协作者身份加入', 403)
+    }
+    const { data, error } = await admin
+      .from('resume_comment_collaboration_members')
+      .upsert({
+        session_id: sessionId,
+        user_id: userId,
+        role: session.default_role,
+        expires_at: session.expires_at,
+        revoked_at: null,
+        last_seen_at: new Date().toISOString(),
+      }, { onConflict: 'session_id,user_id' })
+      .select('session_id,user_id,role,expires_at,revoked_at')
+      .single()
+    if (error || !data) {
+      throw error ?? new Error('Unable to join collaboration comment session')
+    }
+    member = data as CollaborationMemberRow
+  }
+  else {
+    const { data, error } = await admin
+      .from('resume_comment_collaboration_members')
+      .select('session_id,user_id,role,expires_at,revoked_at')
+      .eq('session_id', sessionId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    member = data as CollaborationMemberRow | null
+    if (
+      error
+      || !member
+      || member.revoked_at
+      || !isFutureTimestamp(member.expires_at)
+    ) {
+      throw new CommentApiError('unauthorized', '协作者评论权限已失效', 401)
+    }
+    const { error: touchError } = await admin
+      .from('resume_comment_collaboration_members')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('session_id', sessionId)
+      .eq('user_id', userId)
+    if (touchError) {
+      throw touchError
+    }
+  }
+  if (!member) {
+    throw new CommentApiError('unauthorized', '协作者评论权限不存在', 401)
+  }
+  const scope = await getScope(admin, session.scope_id)
+  if (scope.kind !== 'version' || scope.version_id == null)
+    throw new CommentApiError('unauthorized', '协作评论版本无效', 401)
+  return issueCollaboratorToken({
+    session,
+    member,
+    versionId: scope.version_id,
+    collaboratorSecret,
+  })
+}
+
 async function resolveAnonymousIdentity({
   admin,
   body,
@@ -1029,12 +1373,14 @@ async function resolveAccess({
   body,
   admin,
   tokenSecret,
+  collaboratorSecret,
   anonymousPepper,
 }: {
   userId: string | null
   body: Record<string, unknown>
   admin: AdminClient
   tokenSecret: string
+  collaboratorSecret: string
   anonymousPepper: string
 }): Promise<ResolvedAccess> {
   const accessKind = readRequiredString(body, 'accessKind', 32)
@@ -1101,6 +1447,70 @@ async function resolveAccess({
       versionId: scope.version_id,
       canWrite: true,
       canManageAll: true,
+    }
+  }
+
+  if (accessKind === 'collaborator') {
+    if (!userId) {
+      throw new CommentApiError('unauthorized', '请先登录', 401)
+    }
+    const token = await verifyCommentToken(
+      readRequiredString(body, 'accessToken', 4_096),
+      'collaborator',
+      collaboratorSecret,
+    )
+    const [scope, sessionResult, memberResult] = await Promise.all([
+      getScope(admin, token.scopeId),
+      admin
+        .from('resume_comment_collaboration_sessions')
+        .select('session_id,resume_id,scope_id,owner_user_id,host_lease_id,default_role,expires_at,revoked_at')
+        .eq('session_id', token.sessionId)
+        .maybeSingle(),
+      admin
+        .from('resume_comment_collaboration_members')
+        .select('session_id,user_id,role,expires_at,revoked_at')
+        .eq('session_id', token.sessionId)
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ])
+    const session = sessionResult.data as CollaborationSessionRow | null
+    const member = memberResult.data as CollaborationMemberRow | null
+    if (
+      sessionResult.error
+      || memberResult.error
+      || !session
+      || !member
+      || token.userId !== userId
+      || token.sessionId !== session.session_id
+      || token.resumeId !== session.resume_id
+      || token.scopeId !== session.scope_id
+      || token.versionId !== scope.version_id
+      || token.role !== member.role
+      || member.user_id !== userId
+      || member.revoked_at
+      || session.revoked_at
+      || !isFutureTimestamp(member.expires_at)
+      || !isFutureTimestamp(session.expires_at)
+      || scope.kind !== 'version'
+      || scope.version_id == null
+      || scope.resume_id !== token.resumeId
+      || scope.owner_user_id !== session.owner_user_id
+    ) {
+      throw new CommentApiError('unauthorized', '协作评论凭证无效', 401)
+    }
+    return {
+      kind: 'collaborator',
+      scope,
+      userId,
+      actorKind: 'user',
+      actorId: userId,
+      actorKey: `user:${userId}`,
+      legacyAnonymousId: null,
+      share: null,
+      releaseId: null,
+      versionId: scope.version_id,
+      canWrite: token.role === 'editor',
+      canManageAll: false,
     }
   }
 
@@ -1585,6 +1995,7 @@ Deno.serve(async (req) => {
     return finalize(failure(new CommentApiError('unexpected', '评论服务暂时不可用', 500)))
   }
   const tokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
+  const collaboratorSecret = Deno.env.get('RESUME_COMMENT_COLLABORATOR_SECRET') ?? tokenSecret
   const anonymousPepper = Deno.env.get('RESUME_COMMENT_ANONYMOUS_PEPPER') ?? tokenSecret
   const realtimeSecret = Deno.env.get('RESUME_COMMENT_REALTIME_SECRET') ?? tokenSecret
   const admin = createAdminClient(supabaseUrl, serviceRoleKey)
@@ -1598,13 +2009,6 @@ Deno.serve(async (req) => {
       throw new CommentApiError('not_found', '请求无效', 400)
     }
     const body = value
-    if (RETIRED_COLLABORATION_OPS.has(op) || body.accessKind === 'collaborator') {
-      throw new CommentApiError(
-        'unauthorized',
-        '跨账号实时协作已停用',
-        403,
-      )
-    }
     const authStartedAt = performance.now()
     const { userId, authMode } = await authenticateSupabaseUser({
       request: req,
@@ -1617,12 +2021,29 @@ Deno.serve(async (req) => {
         ? 'auth_local'
         : 'auth_legacy'
     recordTiming(authTimingName, performance.now() - authStartedAt)
+    if (
+      op === 'register_collaboration_session'
+      || op === 'join_collaboration_session'
+      || op === 'renew_collaboration_session'
+      || op === 'leave_collaboration_session'
+    ) {
+      const data = await handleCollaborationSessionOperation({
+        op,
+        userId,
+        body,
+        admin,
+        collaboratorSecret,
+      })
+      return finalize(success(data, 0))
+    }
+
     if (op === 'bootstrap_scope') {
       const bootstrapInput = await timeOperation('access_token', () => (
         buildBootstrapInput({
           userId,
           body,
           tokenSecret,
+          collaboratorSecret,
           anonymousPepper,
         })
       ))
@@ -1691,6 +2112,7 @@ Deno.serve(async (req) => {
       body,
       admin,
       tokenSecret,
+      collaboratorSecret,
       anonymousPepper,
     })
 

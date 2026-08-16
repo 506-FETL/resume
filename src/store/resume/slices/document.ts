@@ -24,7 +24,7 @@ export interface DocumentSlice {
   appearanceDirty: boolean
   entryIdMigrationReady: boolean
 
-  loadResumeData: (resumeId: string) => Promise<ResumeLoadResult>
+  loadResumeData: (resumeId: string, options?: { documentUrl?: string }) => Promise<ResumeLoadResult>
   cleanup: () => void
 }
 
@@ -48,7 +48,7 @@ export function createDocumentSlice(
   return {
     ...documentDefaults,
 
-    loadResumeData: async (resumeId: string) => {
+    loadResumeData: async (resumeId: string, options?: { documentUrl?: string }) => {
       const { docManager, cleanupFns } = get()
 
       if (cleanupFns.length > 0) {
@@ -107,7 +107,9 @@ export function createDocumentSlice(
       }
 
       try {
-        const manager = new DocumentManager(resumeId, user.id)
+        const manager = new DocumentManager(resumeId, user.id, {
+          sharedDocumentUrl: options?.documentUrl,
+        })
         const handle = await manager.initialize()
         const sourceDoc = handle.doc()
         let docSnapshot = mapSourceToPersistedSnapshot(sourceDoc)

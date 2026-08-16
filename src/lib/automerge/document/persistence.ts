@@ -15,19 +15,35 @@ interface AutomergeSnapshotRow {
 export class AutomergeDocumentPersistence {
   private readonly resumeId: string
   private readonly userId: string
+  private readonly sharedDocumentUrl?: string
   private canPersistToSupabase: boolean
 
-  constructor(resumeId: string, userId: string) {
+  constructor(resumeId: string, userId: string, sharedDocumentUrl?: string) {
     this.resumeId = resumeId
     this.userId = userId
-    this.canPersistToSupabase = true
+    this.sharedDocumentUrl = sharedDocumentUrl
+    this.canPersistToSupabase = !sharedDocumentUrl
   }
 
   canPersist() {
     return this.canPersistToSupabase
   }
 
+  getSharedDocumentUrl() {
+    return this.sharedDocumentUrl
+  }
+
   async loadHandle(repo: Repo): Promise<DocHandle<AutomergeResumeDocument> | null> {
+    if (this.sharedDocumentUrl) {
+      const sharedHandle = await this.loadHandleByUrl(repo, this.sharedDocumentUrl, {
+        source: 'shared documentUrl',
+      })
+
+      if (sharedHandle) {
+        return sharedHandle
+      }
+    }
+
     return this.loadPersistedHandle(repo)
   }
 
@@ -151,6 +167,22 @@ export class AutomergeDocumentPersistence {
     }
 
     return data as AutomergeSnapshotRow | null
+  }
+
+  private async loadHandleByUrl(
+    repo: Repo,
+    documentUrl: string,
+    options: { source: string },
+  ): Promise<DocHandle<AutomergeResumeDocument> | null> {
+    try {
+      const handle = await repo.find<AutomergeResumeDocument>(documentUrl as any)
+      await handle.whenReady()
+      return handle
+    }
+    catch (error) {
+      console.warn(`[AutomergeDocumentPersistence] load handle from ${options.source} failed:`, error)
+      return null
+    }
   }
 }
 

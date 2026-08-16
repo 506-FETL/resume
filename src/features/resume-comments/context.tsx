@@ -41,6 +41,8 @@ function getAccessIdentityKey(access: CommentAccessContext) {
         ? `version:${access.versionId}`
         : `resume:${access.resumeId}`}`
   }
+  if (access.kind === 'collaborator')
+    return `collaborator:${access.sessionId}:${access.resumeId}:${access.userId}`
   // 15 分钟访问令牌只是同一发布批次的凭据轮换，不能被当成 scope 切换，
   // 否则每次心跳刷新都会清空本地草稿和当前线程。
   return `share-version:${access.versionId}`

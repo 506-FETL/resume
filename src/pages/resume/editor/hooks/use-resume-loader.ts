@@ -2,6 +2,7 @@ import type { SupabaseUser } from '../types'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { useCollaborationStore } from '@/lib/collaboration'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume'
@@ -23,6 +24,7 @@ export function useResumeLoader() {
   const setCurrentUser = useUserStore(state => state.setCurrentUser)
 
   const queryResumeId = searchParams.get('resumeId')
+  const documentUrlParam = searchParams.get('docUrl')
   const activeResumeId = queryResumeId ?? resumeId ?? undefined
 
   // 获取当前用户
@@ -43,6 +45,7 @@ export function useResumeLoader() {
     return () => {
       useResumeConfigStore.getState().discardSpacingPreview()
       useResumeStore.getState().cleanup()
+      useCollaborationStore.getState().stopSharing({ silent: true })
     }
   }, [])
 
@@ -65,7 +68,9 @@ export function useResumeLoader() {
     let cancelled = false
     setLoading(true)
 
-    loadResumeData(activeResumeId)
+    loadResumeData(activeResumeId, {
+      documentUrl: documentUrlParam ?? undefined,
+    })
       .then(async ({ snapshot, hasPersistedAppearance, cloudAppearanceStatus, mode }) => {
         if (cancelled)
           return
@@ -104,7 +109,7 @@ export function useResumeLoader() {
     return () => {
       cancelled = true
     }
-  }, [activeResumeId, loadResumeData, navigate])
+  }, [activeResumeId, documentUrlParam, loadResumeData, navigate])
 
   // 监听简历删除
   useEffect(() => {
