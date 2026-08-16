@@ -87,7 +87,7 @@ VALUES
     '10000000-0000-0000-0000-000000000001',
     'rls-a',
     'A template',
-    'published',
+    'private',
     'active',
     '{}'::jsonb
   ),
@@ -96,7 +96,7 @@ VALUES
     '10000000-0000-0000-0000-000000000002',
     'rls-b',
     'B template',
-    'published',
+    'private',
     'active',
     '{}'::jsonb
   );
@@ -117,7 +117,7 @@ SELECT extensions.is(
 SELECT extensions.is(
   (SELECT count(*) FROM public.resume_templates),
   1::bigint,
-  'published templates remain owner-only'
+  'templates remain owner-only regardless of legacy publication state'
 );
 
 SELECT extensions.throws_ok(

@@ -12,9 +12,9 @@ VALUES
 
 INSERT INTO public.user_quotas (user_id, plan, daily_limit, used_today, last_reset_date)
 VALUES
-  ('40000000-0000-0000-0000-000000000001', 'free', 3, 0, current_date),
-  ('40000000-0000-0000-0000-000000000002', 'free', 3, 0, current_date),
-  ('40000000-0000-0000-0000-000000000003', 'root', 3, 0, current_date);
+  ('40000000-0000-0000-0000-000000000001', 'free', 3, 0, (timezone('UTC', now()))::date),
+  ('40000000-0000-0000-0000-000000000002', 'free', 3, 0, (timezone('UTC', now()))::date),
+  ('40000000-0000-0000-0000-000000000003', 'root', 3, 0, (timezone('UTC', now()))::date);
 
 SELECT extensions.is(
   (public.reserve_ai_credits(

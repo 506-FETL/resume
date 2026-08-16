@@ -3,6 +3,7 @@
   "type": "module",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@10.33.3",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,6 +14,8 @@
     "verify:comment-service": "node --experimental-strip-types scripts/verify-resume-comment-service.ts",
     "verify:edge-auth": "node --experimental-strip-types scripts/verify-supabase-edge-auth.ts",
     "verify:edge-context": "node --experimental-strip-types scripts/verify-edge-request-context.ts",
+    "verify:database": "supabase db reset --local && supabase test db --local && node --experimental-strip-types scripts/verify-database-concurrency.ts",
+    "verify:github-stars": "node --experimental-strip-types scripts/verify-github-stars-cache.ts",
     "benchmark:comments": "node --experimental-strip-types scripts/benchmark-resume-comments-bootstrap.ts",
     "prewarm:comments": "node --experimental-strip-types scripts/prewarm-resume-comment-scopes.ts",
     "verify:drag": "node --experimental-strip-types scripts/verify-motion-drag.ts",

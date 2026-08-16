@@ -111,7 +111,7 @@ supabase migration list --linked
 | GitHub 缓存 | `pnpm verify:github-stars` | 未执行 | 实施任务 9 更新 |
 | TypeScript | `pnpm exec tsc -b --pretty false` | `0` | 当前任务 7 工作树类型检查通过；任务 11 将在最终提交重跑 |
 | 全量 lint | `pnpm lint` | 未执行 | 实施任务 11 更新 |
-| 构建 | `pnpm build` | 未执行 | 实施任务 11 更新 |
+| 构建 | `pnpm build` | `0` | 生产构建通过；仍有既有循环 chunk/大 chunk warning |
 | 生产 ACL/RLS | 只读 catalog 查询 | 未执行 | 部署后更新 |
 | 真实分享/评论 | 浏览器业务 smoke | 未执行 | 部署后更新 |
 | 真实 AI 断流 | 浏览器/网络故障注入 | 未执行 | 部署后更新 |
@@ -182,3 +182,14 @@ supabase migration list --linked
 - 新增 `003_comment_concurrency_contracts.sql`、`004_function_security.sql` 和 20 轮多连接并发脚本，覆盖锁顺序、幂等、死锁、函数 ACL、默认权限、私有 schema 与评论/分享基表不可直连。
 - `pnpm run verify:comment-service`、`pnpm run verify:edge-context`、`pnpm run verify:edge-auth`、`pnpm exec tsc -b --pretty false`、本次文件目标 ESLint 和 `git diff --check`：退出码均为 `0`。
 - 两个 pgTAP 文件与并发脚本的动态执行退出码均为 `1`：本地 `127.0.0.1:54322` 拒绝连接，根因仍是本机无 Docker/Podman；测试代码已落地，但 fresh-reset、真实 SQL 执行和 20 轮并发结果仍是部署前硬门禁，不能记为通过。
+
+## 任务 8：Fresh reset 与 CI 门禁
+
+- `package.json` 已固定 pnpm `10.33.3`，并增加 `verify:database` 与预留给任务 9 的 `verify:github-stars` 统一命令。
+- 新增 GitHub Actions 数据库契约 workflow：固定 Node 24、pnpm 10.33.3、Supabase CLI 2.111.0，并将 checkout、setup-node、pnpm 与 Supabase setup action 固定到已核对的 commit SHA；workflow 仅授予 `contents: read`。
+- CI 在 Ubuntu Docker runner 上执行 `supabase db start → fresh reset → 全部 pgTAP → 20 轮并发 → db lint → Edge 安全契约 → TypeScript → 目标 ESLint → production build`，任一步非零均阻止合并。
+- `001_base_rls.sql` 的模板夹具已改为最终约束允许的 `private`；`002_ai_quota.sql` 的测试日桶改为显式 UTC 日期，不再依赖 session/database timezone。
+- YAML 通过当前 Ruby/Psych 实际解析，workflow 与 `package.json` 通过 Prettier；首次错误来自当前 Psych 不支持 `safe_load_file` 且 Prettier 无 SQL parser，改用同库 `safe_load(File.read(...))` 并只检查支持的文件后退出码为 `0`。
+- CI 目标 ESLint 退出码 `0`，保留 3 条既有 React Fast Refresh warning；扩大到整个 editor 目录会命中与本任务无关的 import-order 既有错误，因此 workflow 使用明确文件白名单。
+- `pnpm build` 退出码 `0`，保留既有 Tiptap/Radix 循环 chunk 和大 chunk warning。
+- `pnpm verify:database` 本机退出码 `1`，失败于 `supabase db reset --local` 的 `LegacyDbBootstrapError: failed to inspect service`；CI 文件已建立，但尚未在 GitHub runner 上产生 fresh-reset/pgTAP/并发通过证据。
