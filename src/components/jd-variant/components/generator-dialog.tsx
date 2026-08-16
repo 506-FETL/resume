@@ -130,14 +130,13 @@ export function JdVariantDialog({
         <ResponsiveDialogHeader className="shrink-0 gap-3 border-b px-6 pb-5 pt-6 text-left">
           <ResponsiveDialogTitle>JD 驱动派生简历</ResponsiveDialogTitle>
           <ResponsiveDialogDescription aria-live="polite">
-            根据目标岗位局部优化简历文案，事实型字段保持不变。
             <span className="sr-only">{`当前第 ${stepIndex} / ${total} 步`}</span>
           </ResponsiveDialogDescription>
           <GeneratorStepIndicator phase={state.phase} />
         </ResponsiveDialogHeader>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-h-[220px] px-6 py-5">
+          <div className="min-h-55 px-6 py-5">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={state.phase}

@@ -67,7 +67,7 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
         </div>
         <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
       </CollapsibleTrigger>
-      <CollapsibleContent>
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down motion-reduce:animate-none">
         <div className={cn(
           'px-3 sm:px-4 pb-3 sm:pb-4 space-y-3',
           !isFixed && config.bgColor,

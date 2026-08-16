@@ -6,19 +6,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
-import { useDashboardTimeline } from '../../insights'
-import useIndexStore from '../../store'
-import { EntrySkeleton } from '../skeleton'
 
-function Entry() {
+function Entry({
+  events,
+  timelineLoading,
+  resumeCount,
+}: {
+  events: TimelineEvent[]
+  timelineLoading: boolean
+  resumeCount: number
+}) {
   const navigate = useNavigate()
-  const resumes = useIndexStore(s => s.resumes)
-  const loading = useIndexStore(s => s.loading)
-  const { events, loading: timelineLoading } = useDashboardTimeline(resumes, loading)
-
-  if (loading) {
-    return <EntrySkeleton />
-  }
 
   return (
     <div className="grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2">
@@ -96,7 +94,7 @@ function Entry() {
                   <div className="pt-3 border-t flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
                       共
-                      <span className="font-medium text-foreground mx-1">{resumes.length}</span>
+                      <span className="font-medium text-foreground mx-1">{resumeCount}</span>
                       份简历
                     </p>
                     <Button

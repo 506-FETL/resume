@@ -84,7 +84,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       」
     </>
   )
-  const description = '生成所选版本的只读快照，别人无需登录即可查看。你可随时关闭链接或更换分享版本。'
+  const description = '生成一个分享链接，让他人查看你的简历'
   const body = (
     <>
       <CreateForm

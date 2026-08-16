@@ -90,6 +90,14 @@
   }
 }
 
+/* 仅用于让 Radix Presence 等待弹窗内层的 Motion 退出动画。 */
+@keyframes advanced-tools-modal-presence {
+  from,
+  to {
+    opacity: 1;
+  }
+}
+
 /* ====== 协作 UI 同步动画 ====== */
 
 /* 点击波纹扩散 */

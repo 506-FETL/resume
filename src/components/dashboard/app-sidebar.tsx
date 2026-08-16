@@ -1,15 +1,26 @@
 import type React from 'react'
 import { FileText } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { AssistantEntry } from './assistant-entry'
 import { Data } from './const'
 import { NavOptions } from './nav-options'
 import { NavUser } from './nav-user'
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ onClick, ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { isMobile, setOpenMobile } = useSidebar()
+
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar
+      collapsible="icon"
+      {...props}
+      onClick={(event) => {
+        onClick?.(event)
+
+        if (isMobile && event.target instanceof Element && event.target.closest('a[href]'))
+          setOpenMobile(false)
+      }}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

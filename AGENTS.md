@@ -25,6 +25,14 @@ Always respond in Chinese-simplified.
 - **React Context**：仅用于限定在组件子树内的 UI 状态（例如 `DragContext`、`SidebarContext`、`DropzoneContext`）。不要用于多个页面需要的全局数据。
 - **本地状态（`useState`）**：用于限定在单个组件内的临时 UI 状态（对话框、表单输入、切换开关）。
 
+# UI 组件兼容性与加载状态
+
+- 从 shadcn/ui 文档或 registry 同步样式前，必须先确认底层 primitive。Radix 使用 `data-state="open|closed"`，Tailwind 选择器应写为 `data-[state=open]` / `data-[state=closed]`；Base UI 使用 `data-open` / `data-closed`。禁止在两套 primitive 之间直接照搬状态选择器。
+- 每个 `DialogContent` 都必须关联 `DialogDescription`；没有可见说明时使用 `className="sr-only"` 提供简短描述，避免无障碍警告。
+- 修改共享 Dialog 动画时，必须同时验证遮罩和内容的进入、退出动画，并至少抽查创建简历、创建分享以及简历优化弹窗等代表性调用点。
+- 弹窗动画验收必须至少连续执行两轮完整的打开与关闭，并覆盖退出尚未结束时再次打开的反向切换；不得只以首次挂载有动画作为通过依据。
+- 首页等聚合页面的异步模块必须使用各自真实依赖对应的加载状态；不同数据源应并发加载，单个模块完成后立即展示，不得用一个跨模块 `Promise.all` 或共享 `loading` 阻塞无关模块。
+
 # 提交信息生成规则
 
 生成中文的提交信息，并且提交格式为：type(scope): description，这个只需要第一行写入，并且有且只有一个，在下方分条写出详细信息，并且注意事项：

@@ -16,16 +16,6 @@ export function AddJobForm({ formData, onChange }: AddJobFormProps) {
     <>
       <ResponsiveDialogSection id="basic" title="基本信息">
         <FieldGroup className="gap-5">
-          <div className="rounded-2xl border border-border/60 bg-primary/5 p-4 shadow-sm mb-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
-              <Sparkles className="size-3" />
-              新建跟进记录
-            </div>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              先记录岗位、公司和地点就够了。状态、简历和 JD 链接可以现在补齐，也可以后续继续完善。
-            </p>
-          </div>
-
           <Field>
             <FieldLabel htmlFor="position" className="items-center">
               职位名称

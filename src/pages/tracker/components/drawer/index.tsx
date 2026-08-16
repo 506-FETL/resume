@@ -416,7 +416,7 @@ export default function JobDrawer() {
             : {
                 '--drawer-content-height': 'calc(100dvh - 1rem)',
                 '--drawer-content-max-height': 'none',
-                '--drawer-content-width': 'min(92vw, 56rem)',
+                '--drawer-content-width': 'min(40vw, 56rem)',
               } as CSSProperties}
         >
           <DrawerHeader

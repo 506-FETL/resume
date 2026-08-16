@@ -5,64 +5,76 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { NumberTicker } from '@/components/ui/number-ticker'
 import { cn } from '@/lib/utils'
-import { StatsSkeleton } from '../skeleton'
+import { StatSkeleton } from '../skeleton'
 
 interface StatisticalCardProps {
   funnel: DashboardFunnel
-  loading: boolean
+  jobsLoading: boolean
+  atsLoading: boolean
 }
 
-function StatisticalCard({ funnel, loading }: StatisticalCardProps) {
+function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardProps) {
   const navigate = useNavigate()
-
-  if (loading) {
-    return <StatsSkeleton />
-  }
-
   const hasAts = funnel.avgAtsScore !== null
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-      <StatCard
-        title="已投递"
-        value={funnel.applied}
-        description={funnel.applied > 0 ? '累计投递的岗位数' : '去求职看板添加第一个岗位'}
-        guide={funnel.applied === 0}
-        onGuideClick={funnel.applied === 0 ? () => navigate('/tracker') : undefined}
-        icon={<Send className="size-4 text-blue-500" />}
-        iconBg="bg-blue-500/8"
-      />
-      <StatCard
-        title="面试进行中"
-        value={funnel.interview}
-        description={funnel.interview > 0 ? '进入面试阶段的岗位' : '还没有面试安排'}
-        guide={funnel.interview === 0}
-        icon={<Users className="size-4 text-violet-500" />}
-        iconBg="bg-violet-500/8"
-      />
-      <StatCard
-        title="收到 Offer"
-        value={funnel.offer}
-        description={funnel.offer > 0 ? '已拿到录用的岗位' : '继续加油，Offer 在路上'}
-        guide={funnel.offer === 0}
-        icon={<CircleCheckBig className="size-4 text-emerald-500" />}
-        iconBg="bg-emerald-500/8"
-      />
-      <StatCard
-        title="平均 ATS 分"
-        value={funnel.avgAtsScore ?? 0}
-        suffix={hasAts ? '分' : undefined}
-        placeholder={hasAts ? undefined : '—'}
-        description={
-          funnel.atsResumeCount > 0
-            ? `${funnel.atsResumeCount} 份简历检测均分`
-            : '去做一次 ATS 检测吧'
-        }
-        guide={funnel.atsResumeCount === 0}
-        onGuideClick={funnel.atsResumeCount === 0 ? () => navigate('/optimize') : undefined}
-        icon={<Sparkles className="size-4 text-primary" />}
-        iconBg="bg-primary/8"
-      />
+      {jobsLoading
+        ? (
+            <>
+              <StatSkeleton />
+              <StatSkeleton />
+              <StatSkeleton />
+            </>
+          )
+        : (
+            <>
+              <StatCard
+                title="已投递"
+                value={funnel.applied}
+                description={funnel.applied > 0 ? '累计投递的岗位数' : '去求职看板添加第一个岗位'}
+                guide={funnel.applied === 0}
+                onGuideClick={funnel.applied === 0 ? () => navigate('/tracker') : undefined}
+                icon={<Send className="size-4 text-blue-500" />}
+                iconBg="bg-blue-500/8"
+              />
+              <StatCard
+                title="面试进行中"
+                value={funnel.interview}
+                description={funnel.interview > 0 ? '进入面试阶段的岗位' : '还没有面试安排'}
+                guide={funnel.interview === 0}
+                icon={<Users className="size-4 text-violet-500" />}
+                iconBg="bg-violet-500/8"
+              />
+              <StatCard
+                title="收到 Offer"
+                value={funnel.offer}
+                description={funnel.offer > 0 ? '已拿到录用的岗位' : '继续加油，Offer 在路上'}
+                guide={funnel.offer === 0}
+                icon={<CircleCheckBig className="size-4 text-emerald-500" />}
+                iconBg="bg-emerald-500/8"
+              />
+            </>
+          )}
+      {atsLoading
+        ? <StatSkeleton />
+        : (
+            <StatCard
+              title="平均 ATS 分"
+              value={funnel.avgAtsScore ?? 0}
+              suffix={hasAts ? '分' : undefined}
+              placeholder={hasAts ? undefined : '—'}
+              description={
+                funnel.atsResumeCount > 0
+                  ? `${funnel.atsResumeCount} 份简历检测均分`
+                  : '去做一次 ATS 检测吧'
+              }
+              guide={funnel.atsResumeCount === 0}
+              onGuideClick={funnel.atsResumeCount === 0 ? () => navigate('/optimize') : undefined}
+              icon={<Sparkles className="size-4 text-primary" />}
+              iconBg="bg-primary/8"
+            />
+          )}
     </div>
   )
 }

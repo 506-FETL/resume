@@ -18,14 +18,16 @@ const useIndexStore = create<IndexStore>()(set => ({
   loading: true,
   isOnline: false,
   async loadData() {
-    set({ loading: true })
+    set({ loading: true, isOnline: false })
     try {
       const user = await getCurrentUser()
       let onlineResumes: Resume[] = []
-      let isOnline = false
+      const isOnline = Boolean(user)
+
+      // 认证状态一旦确定就立即发布，让不依赖简历列表的首页模块先开始加载。
+      set({ isOnline })
 
       if (user) {
-        isOnline = true
         const rawOnlineResumes = await getAllResumesFromUser()
         onlineResumes = rawOnlineResumes.map(r => ({
           ...r,

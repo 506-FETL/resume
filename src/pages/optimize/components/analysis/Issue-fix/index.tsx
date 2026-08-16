@@ -104,7 +104,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
         <DialogTrigger asChild>
           {children}
         </DialogTrigger>
-        <DialogContent className="flex h-[min(88dvh,56rem)] min-h-0 w-[min(90rem,calc(100vw-4rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(90rem,calc(100vw-4rem))]">
+        <DialogContent className="flex h-[min(88dvh,56rem)] min-h-0 w-[60vw] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-[60vw] data-[state=open]:slide-in-from-bottom-3 data-[state=open]:duration-200 data-[state=open]:ease-out data-[state=closed]:slide-out-to-bottom-2 data-[state=closed]:duration-150 data-[state=closed]:ease-in motion-reduce:animate-none">
           <DialogHeader className="shrink-0 border-b px-4 pt-4 pb-3 md:px-5">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Wand2 className="size-4 shrink-0 text-primary" />

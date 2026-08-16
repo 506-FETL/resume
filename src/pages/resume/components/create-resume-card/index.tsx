@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -115,80 +115,79 @@ export default function CreateResumeCard() {
           <p className="text-sm text-muted-foreground">开始制作你的专属简历</p>
         </CardFooter>
       </Card>
-      {isCreating && (
-        <Dialog open={isCreating} onOpenChange={setIsCreating}>
-          <DialogContent className="sm:max-w-135">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">创建新简历</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateResume}>
-              <FieldGroup className="gap-6 py-6">
-                {/* 简历名称 */}
-                <Field>
-                  <FieldLabel htmlFor="display_name">简历名称</FieldLabel>
-                  <Input
-                    id="display_name"
-                    placeholder="例如: 前端开发工程师简历"
-                    value={displayName}
-                    onChange={e => setDisplayName(e.target.value)}
-                    maxLength={50}
-                    className="h-11"
-                  />
-                  <FieldDescription>
-                    为你的简历起一个容易识别的名称 (
-                    {displayName.length}
-                    /50)
-                  </FieldDescription>
-                </Field>
+      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <DialogContent className="sm:max-w-135">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">创建新简历</DialogTitle>
+            <DialogDescription className="sr-only">填写简历名称、描述并选择基础模板类型。</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateResume}>
+            <FieldGroup className="gap-6 py-6">
+              {/* 简历名称 */}
+              <Field>
+                <FieldLabel htmlFor="display_name">简历名称</FieldLabel>
+                <Input
+                  id="display_name"
+                  placeholder="例如: 前端开发工程师简历"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  maxLength={50}
+                  className="h-11"
+                />
+                <FieldDescription>
+                  为你的简历起一个容易识别的名称 (
+                  {displayName.length}
+                  /50)
+                </FieldDescription>
+              </Field>
 
-                {/* 简历描述 */}
-                <Field>
-                  <FieldLabel htmlFor="description">简历描述</FieldLabel>
-                  <Textarea
-                    id="description"
-                    placeholder="例如: 用于投递互联网公司的前端技术岗位"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    rows={3}
-                    maxLength={200}
-                    className="resize-none"
-                  />
-                  <FieldDescription>
-                    简要描述这份简历的用途 (
-                    {description.length}
-                    /200)
-                  </FieldDescription>
-                </Field>
+              {/* 简历描述 */}
+              <Field>
+                <FieldLabel htmlFor="description">简历描述</FieldLabel>
+                <Textarea
+                  id="description"
+                  placeholder="例如: 用于投递互联网公司的前端技术岗位"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  rows={3}
+                  maxLength={200}
+                  className="resize-none"
+                />
+                <FieldDescription>
+                  简要描述这份简历的用途 (
+                  {description.length}
+                  /200)
+                </FieldDescription>
+              </Field>
 
-                <Field>
-                  <FieldLabel htmlFor="template_type">基础模板类型</FieldLabel>
-                  <Select value={selectedType} onValueChange={value => setSelectedType(value as ResumeType)}>
-                    <SelectTrigger className="h-11" id="template_type">
-                      <SelectValue placeholder="选择基础模板类型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="default">默认</SelectItem>
-                        <SelectItem value="modern">现代</SelectItem>
-                        <SelectItem value="simple">简约</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="template_type">基础模板类型</FieldLabel>
+                <Select value={selectedType} onValueChange={value => setSelectedType(value as ResumeType)}>
+                  <SelectTrigger className="h-11" id="template_type">
+                    <SelectValue placeholder="选择基础模板类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="default">默认</SelectItem>
+                      <SelectItem value="modern">现代</SelectItem>
+                      <SelectItem value="simple">简约</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </FieldGroup>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
-                  取消
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? '创建中...' : '创建简历'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
+                取消
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? '创建中...' : '创建简历'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

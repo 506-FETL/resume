@@ -5,7 +5,7 @@ import Header from './components/header'
 import { ActivityCard, AtsTrendCard, FollowUpCard, FunnelCard } from './components/insight-cards'
 import StatisticalCard from './components/statistical-card'
 import { TodoCard } from './components/todo'
-import { useDashboardExtras, useDashboardInsights } from './insights'
+import { useDashboardExtras, useDashboardInsights, useDashboardResources, useDashboardTimeline } from './insights'
 import useIndexStore from './store'
 
 const Container = {
@@ -35,8 +35,11 @@ export default function DashboardPage() {
   const loadData = useIndexStore(s => s.loadData)
   const resumes = useIndexStore(s => s.resumes)
   const resumesLoading = useIndexStore(s => s.loading)
-  const insights = useDashboardInsights(resumes, resumesLoading)
-  const extras = useDashboardExtras(resumes, resumesLoading)
+  const isOnline = useIndexStore(s => s.isOnline)
+  const resources = useDashboardResources(!resumesLoading || isOnline, isOnline)
+  const insights = useDashboardInsights(resumes, resumesLoading, resources)
+  const extras = useDashboardExtras(resumes, resumesLoading, resources)
+  const timeline = useDashboardTimeline(resumes, resumesLoading, resources)
 
   useEffect(() => {
     loadData()
@@ -69,27 +72,31 @@ export default function DashboardPage() {
         />
       </motion.div>
 
-      {!extras.loading && insights.hasCloudResume && extras.followUps.length > 0 && (
+      {!extras.followUpsLoading && extras.followUps.length > 0 && (
         <motion.div variants={MotionItem}>
           <FollowUpCard followUps={extras.followUps} total={extras.followUpTotal} />
         </motion.div>
       )}
 
       <motion.div variants={MotionItem}>
-        <StatisticalCard funnel={insights.funnel} loading={insights.loading} />
+        <StatisticalCard
+          funnel={insights.funnel}
+          jobsLoading={insights.jobsLoading}
+          atsLoading={insights.atsLoading}
+        />
       </motion.div>
 
       <motion.div variants={MotionItem} className="grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2">
-        <FunnelCard funnel={extras.funnel} loading={extras.loading} />
-        <AtsTrendCard trend={extras.atsTrend} loading={extras.loading} />
+        <FunnelCard funnel={extras.funnel} loading={extras.funnelLoading} />
+        <AtsTrendCard trend={extras.atsTrend} loading={extras.atsTrendLoading} />
       </motion.div>
 
       <motion.div variants={MotionItem}>
-        <ActivityCard activity={extras.activity} loading={extras.loading} />
+        <ActivityCard activity={extras.activity} loading={extras.activityLoading} />
       </motion.div>
 
       <motion.div variants={MotionItem}>
-        <Entry />
+        <Entry events={timeline.events} timelineLoading={timeline.loading} resumeCount={resumes.length} />
       </motion.div>
     </motion.div>
   )
