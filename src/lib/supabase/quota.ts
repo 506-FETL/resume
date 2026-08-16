@@ -7,6 +7,8 @@ export interface AiQuota {
   usedToday: number
   remaining: number
   lastResetDate: string
+  quotaDate: string
+  resetAt: string
   unlimited: boolean
 }
 
@@ -16,10 +18,12 @@ interface RawAiQuota {
   used_today: number
   remaining: number
   last_reset_date: string
+  quota_date: string
+  reset_at: string
   unlimited: boolean
 }
 
-// 读取当前登录用户的额度（惰性重置在函数内完成）。供后续 UI 使用。
+// 只读当前登录用户的 UTC 日桶；函数不会写入或取行锁。
 export async function getAiQuota(): Promise<AiQuota> {
   const { data, error } = await supabase.rpc('get_ai_quota')
 
@@ -33,6 +37,8 @@ export async function getAiQuota(): Promise<AiQuota> {
     usedToday: raw.used_today ?? 0,
     remaining: raw.remaining ?? 0,
     lastResetDate: raw.last_reset_date ?? '',
+    quotaDate: raw.quota_date ?? raw.last_reset_date ?? '',
+    resetAt: raw.reset_at ?? '',
     unlimited: raw.unlimited ?? false,
   }
 }

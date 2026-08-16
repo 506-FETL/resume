@@ -14,8 +14,15 @@ interface AiQuotaStore {
   currentUserId: string | null | undefined
   // 拉取额度；并发去重，多个展示位同时挂载只会打一次请求
   fetchQuota: () => Promise<void>
-  // 乐观递减：AI 发送后先本地减一，完成/超额后再 fetchQuota 校正
-  decrementOptimistic: () => void
+  // 用 llm-proxy 预留响应中的权威额度更新展示，不猜测 light/heavy cost。
+  applyReservation: (reservation: AiQuotaReservation) => void
+}
+
+export interface AiQuotaReservation {
+  remaining: number
+  dailyLimit: number
+  resetAt: string
+  unlimited: boolean
 }
 
 // 模块级 in-flight，保证并发调用共享同一次请求
@@ -49,12 +56,22 @@ const useAiQuotaStore = create<AiQuotaStore>((set, get) => ({
     })()
     return inflight
   },
-  decrementOptimistic: () => {
+  applyReservation: (reservation) => {
     const { quota } = get()
     if (!quota)
       return
-    const remaining = Math.max(0, quota.remaining - 1)
-    set({ quota: { ...quota, remaining, usedToday: quota.usedToday + 1 } })
+    set({
+      quota: {
+        ...quota,
+        dailyLimit: reservation.dailyLimit,
+        remaining: reservation.remaining,
+        usedToday: reservation.unlimited
+          ? quota.usedToday
+          : Math.max(0, reservation.dailyLimit - reservation.remaining),
+        resetAt: reservation.resetAt,
+        unlimited: reservation.unlimited,
+      },
+    })
   },
 }))
 
@@ -65,9 +82,8 @@ export function refetchAiQuota() {
   return useAiQuotaStore.getState().fetchQuota()
 }
 
-// 非组件上下文乐观递减
-export function decrementAiQuota() {
-  useAiQuotaStore.getState().decrementOptimistic()
+export function applyAiQuotaReservation(reservation: AiQuotaReservation) {
+  useAiQuotaStore.getState().applyReservation(reservation)
 }
 
 // ============ 登录态权威来源：onAuthStateChange ============
