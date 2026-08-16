@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT extensions.plan(10);
+SELECT extensions.plan(11);
 
 SELECT extensions.ok(
   NOT EXISTS (
@@ -62,11 +62,29 @@ SELECT extensions.ok(
     WHERE namespaces.nspname = 'private'
       AND (
         has_function_privilege('anon', functions.oid, 'EXECUTE')
-        OR has_function_privilege('authenticated', functions.oid, 'EXECUTE')
         OR has_function_privilege('service_role', functions.oid, 'EXECUTE')
+        OR (
+          has_function_privilege('authenticated', functions.oid, 'EXECUTE')
+          AND functions.oid <>
+            'private.current_user_owns_resume(uuid)'::regprocedure
+        )
       )
   ),
-  'private functions have no direct client or service execution grant'
+  'private functions deny clients except the authenticated RLS ownership helper'
+);
+
+SELECT extensions.ok(
+  has_function_privilege(
+    'authenticated',
+    'private.current_user_owns_resume(uuid)',
+    'EXECUTE'
+  )
+  AND NOT has_function_privilege(
+    'anon',
+    'private.current_user_owns_resume(uuid)',
+    'EXECUTE'
+  ),
+  'authenticated RLS can evaluate ownership without exposing the helper to anon'
 );
 
 SELECT extensions.ok(
@@ -97,8 +115,17 @@ SELECT extensions.ok(
       pg_catalog.format('public.%I', protected.table_name),
       operation.privilege_name
     )
+      AND NOT (
+        client.role_name = 'authenticated'
+        AND (
+          (protected.table_name = 'resume_share_releases'
+            AND operation.privilege_name = 'SELECT')
+          OR (protected.table_name = 'resume_shares'
+            AND operation.privilege_name = 'DELETE')
+        )
+      )
   ),
-  'share and comment tables are reachable only through Edge service code'
+  'share and comment tables expose only the documented owner-side grants'
 );
 
 SELECT extensions.ok(
@@ -151,6 +178,7 @@ SELECT extensions.ok(
     CROSS JOIN LATERAL pg_catalog.aclexplode(defaults.defaclacl) AS grants
     WHERE namespaces.nspname = 'public'
       AND defaults.defaclobjtype = 'f'
+      AND defaults.defaclrole = current_user::regrole
       AND grants.grantee IN (
         0,
         'anon'::regrole::oid,
@@ -158,7 +186,7 @@ SELECT extensions.ok(
       )
       AND grants.privilege_type = 'EXECUTE'
   ),
-  'new public functions do not inherit browser execute grants'
+  'new application functions do not inherit browser execute grants'
 );
 
 SELECT * FROM extensions.finish();

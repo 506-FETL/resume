@@ -130,7 +130,7 @@ BEGIN
   DO UPDATE SET
     request_count = private.backend_operation_metrics.request_count + 1,
     duration_ms_sum = private.backend_operation_metrics.duration_ms_sum + EXCLUDED.duration_ms_sum,
-    duration_ms_max = pg_catalog.greatest(
+    duration_ms_max = greatest(
       private.backend_operation_metrics.duration_ms_max,
       EXCLUDED.duration_ms_max
     ),

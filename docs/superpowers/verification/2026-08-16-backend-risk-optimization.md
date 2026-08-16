@@ -103,14 +103,17 @@ supabase migration list --linked
 
 | 阶段 | 命令或场景 | 退出码/结果 | 结论 |
 | --- | --- | --- | --- |
-| 迁移基线 | `supabase start` / `supabase db reset --local` | `1` / 未执行 | 本机无 Docker/Podman；不得记为通过，部署前需在隔离环境补验 |
-| SQL lint | `supabase db lint --linked --level warning` | `0` | 线上现有旧模板/会话函数有 8 个 error、2 个 warning；任务 2/7 处理后复跑 |
-| pgTAP | `supabase test db --local` | 未执行 | 实施任务 8 更新 |
-| 并发 | `pnpm verify:database` | 未执行 | 实施任务 8 更新 |
+| 迁移基线 | 隔离 Supabase 项目两次 `supabase db reset --linked --no-seed --yes` | `0` / `0` | 两次均从空库完整应用 41 条迁移；不再以本机 Docker 缺失代替数据库证据 |
+| SQL lint | 隔离项目 `supabase db lint --linked --level warning --fail-on error` | `0` | 0 error；保留 2 条既有 warning：协作 resolver 未使用参数、bootstrap 的 STABLE/VOLATILE 标注 |
+| pgTAP | 隔离项目直接执行 `supabase/tests/database/*.sql` 并汇总 TAP | 两次均 `83/83`、0 failures | 基础 RLS 8、AI 22、锁序 10、函数安全 11、维护 32；每次都在 fresh reset 后执行 |
+| 并发 | 隔离项目 pooler 直连 20 轮 | `0` | 版本竞态 36 success/4 retryable/0 deadlock；幂等与限流各 40/40 success、0 deadlock；维护锁竞争安全跳过 |
 | Edge | `pnpm run verify:edge-context` / `pnpm run verify:edge-auth` | `0` / `0` | request ID、CORS、函数体鉴权顺序静态契约通过；不等于 Deno 运行时或真实浏览器验收 |
-| GitHub 缓存 | `pnpm verify:github-stars` | 未执行 | 实施任务 9 更新 |
-| TypeScript | `pnpm exec tsc -b --pretty false` | 未执行 | 实施任务 11 更新 |
-| 全量 lint | `pnpm lint` | 未执行 | 实施任务 11 更新 |
+| GitHub 缓存 | `pnpm verify:github-stars` | `0` | 固定仓库、只读前端和受控 Edge 刷新静态契约通过 |
+| 维护任务 | `pnpm verify:maintenance` | `0` | TTL、批量、Vault、Cron、告警及 webhook 脱敏静态/行为契约通过 |
+| TypeScript | `pnpm exec tsc -b --pretty false` | `0` | 应用类型检查通过 |
+| 目标 lint | CI 文件白名单 ESLint | `0`（3 warnings） | 本轮后端文件无 error；保留既有 Fast Refresh warning |
+| 全量 lint | `pnpm lint` | `1` | 仓库既有 `.superpowers` 产物等产生 4141 errors；不把目标 lint 通过扩大为全仓通过 |
+| Deno | `pnpm dlx deno-bin@2.2.7 check ...` | `0` | 五个 Edge 入口全部通过 Deno 类型检查 |
 | 构建 | `pnpm build` | `0` | 生产构建通过；仍有既有循环 chunk/大 chunk warning |
 | 生产 ACL/RLS | 只读 catalog 查询 | 未执行 | 部署后更新 |
 | 真实分享/评论 | 浏览器业务 smoke | 未执行 | 部署后更新 |
@@ -119,7 +122,7 @@ supabase migration list --linked
 
 ## 部署记录
 
-尚未部署。这里将在任务 12 记录迁移 dry-run、账本 repair、数据库迁移、Edge Function 版本、cron/Vault 配置、生产只读核验与 smoke 结果。
+生产尚未部署。隔离验证使用的临时项目均已显式删除，`supabase projects list` 只剩生产项目 `bitxrpdtlohlnywgusfw` 且已重新链接。这里将在任务 12 记录迁移 dry-run、账本 repair、数据库迁移、Edge Function 版本、cron/Vault 配置、生产只读核验与 smoke 结果。
 
 ## 任务 1：迁移基线恢复
 
@@ -134,8 +137,9 @@ supabase migration list --linked
 
 - 已用 Supabase CLI 创建 `harden_privileged_function_access` 迁移。
 - AI 内部 check/consume RPC 仅保留 service role；无参 quota 读取仅保留 authenticated/service role。
-- 默认函数权限不再向 PUBLIC、anon、authenticated 自动授予 EXECUTE。
+- `postgres` 所有者的默认函数权限不再向 PUBLIC、anon、authenticated 自动授予 EXECUTE；托管迁移角色无法修改平台所有者 `supabase_admin` 的默认 ACL，因此平台对象由显式业务函数 inventory 排除，全部业务 RPC 继续由逐签名 ACL 与 catalog 契约覆盖。
 - 八个无仓库调用点、无数据库依赖的旧模板函数保留对象但撤销浏览器执行权。
+- 旧模板函数属于线上历史漂移、空库迁移链不创建；ACL 收紧改为 catalog 驱动的“对象存在才执行”，兼顾生产封堵与 fresh reset。
 - GitHub 通用读取在发起 HTTP 前强制匹配 `506-FETL/resume`；浏览器共享缓存写回已删除。
 - `pnpm exec tsc -b --pretty false`：退出码 `0`。
 - 目标 ESLint：退出码 `0`；动画原语文件受仓库 ignore 规则影响，使用 `--no-warn-ignored` 后在任务 3 的组合目标 lint 中通过。
@@ -200,4 +204,33 @@ supabase migration list --linked
 - `github-stars-refresh` 只接受 POST、空对象请求体和独立 maintenance bearer token；仓库 URL 固定在服务端，使用 5 秒超时、ETag/304、严格非负整数校验，失败只更新失败元数据而不覆盖最后成功 stars。
 - 前端改为无参只读缓存；删除浏览器直连 GitHub 和客户端回写。缓存缺失/损坏/读取失败时隐藏该非核心展示，不把未知值显示为 0；陈旧缓存继续展示最后成功值。
 - `pnpm run verify:github-stars`、目标 ESLint、`pnpm exec tsc -b --pretty false`、`git diff --check` 与 `pnpm build`：退出码均为 `0`；build 仍只有既有循环 chunk/大 chunk warning。
-- 本机没有 Deno 与本地 Supabase 数据库，因此 Edge 运行时、迁移执行和真实 GitHub 200/304/限流故障注入尚未动态验证；定时调度与告警由任务 10 落地，部署前仍需 fresh reset 和隔离环境 smoke。
+- 任务 9 完成时本机未预装 Deno；任务 10 已通过临时 Deno CLI 补做类型检查。本地 Supabase 数据库仍不可用，因此迁移执行和真实 GitHub 200/304/限流故障注入尚未动态验证，部署前仍需 fresh reset 和隔离环境 smoke。
+
+## 任务 10：定时清理、额度对账与运维告警
+
+- 新增私有维护配置、运行历史、告警状态和 AI usage 日聚合；临时清理与 Edge 外呼默认关闭，迁移应用时不会立即删除数据或请求外网。
+- 清理函数使用事务 advisory lock、每表 100–5000 行上限、`FOR UPDATE SKIP LOCKED`、2 秒锁超时和 30 秒语句超时。锁超时记 skipped、语句超时记 failed；幂等/限流数据保留 48 小时。过期 member 先分批删除，仅在无 member 后删除过期 session，避免级联突破批量上限；有效协作会话及其编辑、评论能力不受影响。
+- AI pending 只由 5 分钟 reconciler 最终化，通用清理不直接删除；已最终化流水保留 180 天并先按 UTC quota date、action、final state 聚合，再删除明细。
+- `pg_cron` 建立固定名称的 AI 对账、Edge 响应对账、小时清理、每日 catch-up、运维 monitor 和每 6 小时 GitHub refresh；Edge 外呼仅允许两个固定函数名，URL 与维护 token 从 Vault 读取，网络超时 10 秒。入队只记 queued，响应对账联合响应表与请求队列：仍排队的陈旧请求保持 queued 并告警，只有响应和队列都不存在时才记 missing。Supabase 托管的 pg_net 对象由 `supabase_admin` 管理，平台 ACL 不能作为唯一隔离证据；Data API exposed schemas 已显式排除 `net`/`private`，且 public RPC 不允许调用任意 URL，部署时另以 `Accept-Profile: net` 做云端拒绝验证。
+- 告警覆盖 AI 结算失败、评论服务错误/死锁、分享读取错误、维护连续 3 次失败/AI pending 积压/连续满批，以及 GitHub 缓存陈旧；同一 active alert 外部通知冷却 1 小时。
+- `backend-ops-monitor` 仅接受带 maintenance bearer 的 POST 空对象；可选 webhook 只允许 HTTPS，载荷只含固定告警 code、计数、布尔状态与窗口。未配置 webhook 时结构化 warning 且不 ack，不声称已接通外部投递。
+- 新增 32 项 pgTAP 维护契约，除 101 条过期错误事件的 100 行单批上限、AI 流水聚合与重复收敛外，还覆盖 public RPC 不得调用任意 pg_net URL、2xx/401/超时/缺失响应最终化、有效协作 session/member 保留、101 个过期协作 member 的分批清理、空 session 删除，以及 blocked/边界限流桶保留。并发脚本另覆盖清理 advisory lock 竞争。隔离项目两次 fresh reset 后五组 pgTAP 均为 83/83、0 failures。
+- `pnpm run verify:maintenance`、`pnpm run verify:github-stars`、评论/Edge 三项既有 verifier、目标 ESLint、`pnpm exec tsc -b --pretty false`、`git diff --check`、SQL parser 与五个 Edge 入口的 Deno check：退出码均为 `0`。
+- `pnpm build`：退出码 `0`，仍只有既有循环 chunk/大 chunk warning。隔离链接库 lint 为 0 error、2 条既有 warning；`Accept-Profile: net` 使用临时项目 secret key 探测返回 HTTP 406 / `PGRST106 Invalid schema: net`。外部 webhook 未配置，因此真实投递仍不声称已验收。
+
+## 任务 11：隔离环境完整数据库验证
+
+- Supabase 组织为 Free plan，preview branch 创建返回 402；改用组织剩余的免费项目名额创建一次性隔离项目，没有复制生产数据。最终验证项目 `eobtugytjmeevirfrsgn` 只写入迁移和合成夹具，验证完成后已不可恢复地删除；随后重新链接生产项目并确认项目列表只剩生产。
+- 动态重放过程中发现并修复：托管迁移角色不能修改 `supabase_admin` 默认 ACL；生产漂移函数不能成为空库依赖；`greatest`/`extract`/`position` 不能当普通 `pg_catalog` 函数限定；RLS helper 在 deny-by-default ACL 后需给 authenticated 精确 EXECUTE；AI `INSERT ... RETURNING` 冲突时布尔变量为 NULL，必须 `coalesce` 进入幂等重放；锁序测试应检查真实锁定顺序；TAP catalog 扫描必须排除 aggregate。
+- 正式 20 轮使用 `pg` 独立连接直连隔离 pooler，避免 Management API 临时登录角色与随机响应 boundary 污染并发结果。复审后进一步收紧脚本：直连 URL 必须显式选择 `linked`、匹配显式非生产项目 ref、当前链接项目、Supabase pooler 主机和 `postgres` 数据库；生产 ref 在连接前硬拒绝。直连还必须通过 `DATABASE_CONCURRENCY_CA_CERT_PATH` 提供项目 CA，启用证书链与主机名校验，拒绝 URL 中全部 query/fragment 覆盖项，并从已验证的 URL 组件构造客户端而非继续传入原始连接串。此前 20 轮是在已验证为一次性非生产项目、启用 TLS 但未校验证书链的条件下采集；结果保留为并发行为证据，不再作为最终传输安全配置的验收证据。
+- 并发结果：版本竞态 40 个事务中 36 success、4 retryable、0 deadlock，P50 1643.4 ms、P95 1942.5 ms、max 1994.4 ms；幂等 40/40 success、0 deadlock，P50 1703.8 ms、P95 2013.3 ms、max 2051.5 ms；限流 40/40 success、0 deadlock，P50 1653.3 ms、P95 1896.1 ms、max 2284.8 ms；维护 cleanup advisory lock 竞争返回 `skipped_already_running`。
+- 完成动态验证后的新鲜本地门禁：维护/GitHub/comment/Edge verifier、目标 ESLint、`tsc -b`、Deno 五入口 check、production build、`git diff --check` 全部退出 0。build 保留既有循环 chunk/大 chunk warning；数据库 lint 保留上述 2 条既有 warning。
+- 最终实现审查发现并修复直连并发脚本的三项门禁缺口：仅设置 DB URL 可绕过 `linked` 检查、原始 URL query 可覆盖连接目标/TLS、cleanup 失败未影响退出码。修复后要求显式隔离项目 ref、当前链接一致、项目 CA 与证书/主机校验，拒绝全部 query/fragment，并对夹具删除及读回结果做硬断言。复审未发现剩余 Critical/Important；目标 ESLint、`tsc -b` 与工作树/index diff-check 均退出 `0`。
+
+## 任务 12：生产部署前回滚点与只读预检
+
+- 已确认链接项目为 `bitxrpdtlohlnywgusfw`；远端迁移账本与本地在 `20260815170650` 前一致，八条早期恢复迁移仅在本地账本出现，七条本轮迁移尚未应用。
+- 逐项只读 catalog 检查确认八条恢复迁移对应的核心表、列和 helper 已在线上存在，因此后续只能修复历史账本，不能重放其 SQL。
+- 生产数据库 `TimeZone=UTC`；部署前尚未安装 `pg_cron`/`pg_net`，也不存在 `cron.job`，与新增维护迁移的前置状态一致。
+- Supabase CLI 的常规 dump 路径因本机无 Docker 不可用，Free plan 也未提供可列出的物理/PITR 备份。安装本地 `libpq 18.6` 后，通过 CLI 短期登录角色与本地 `pg_dump --schema-only` 生成真实逻辑回滚点；文件为 `supabase/.temp/backups/2026-08-16-pre-backend-risk-schema.sql`（gitignored），大小 250084 bytes，包含 29 个 schema/table/function/type/sequence/view DDL，且无 `COPY`/`INSERT`，SHA-256 为 `b6bec2041d99709d9b4a2cd01c99b7556897aca953583bf96abde40370fa3704`。
+- 部署前 Edge 基线：`llm-proxy` v30、`resume-share` v22、`resume-comments` v18；`github-stars-refresh` 与 `backend-ops-monitor` 尚未部署。秘密列表仅核对名称，未回显或记录原值；`APP_ALLOWED_ORIGINS` 与 `BACKEND_MAINTENANCE_TOKEN` 尚未配置。

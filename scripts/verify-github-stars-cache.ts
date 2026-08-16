@@ -14,6 +14,7 @@ const migration = readFileSync(
   'utf8',
 )
 const edge = readFileSync('supabase/functions/github-stars-refresh/index.ts', 'utf8')
+const maintenanceAuth = readFileSync('supabase/functions/shared/maintenance-auth.ts', 'utf8')
 const client = readFileSync('src/lib/supabase/github-stars.ts', 'utf8')
 const component = readFileSync(
   'src/components/animate-ui/primitives/animate/github-stars.tsx',
@@ -64,7 +65,9 @@ assert.doesNotMatch(migration, /DROP EXTENSION[^;]*CASCADE/iu)
 
 assert.match(edge, /request\.method !== 'POST'/u)
 assert.match(edge, /BACKEND_MAINTENANCE_TOKEN/u)
-assert.match(edge, /constantTimeEqual\(suppliedToken, maintenanceToken\)/u)
+assert.match(edge, /hasValidMaintenanceToken\(request, maintenanceToken\)/u)
+assert.match(maintenanceAuth, /difference \|=/u)
+assert.match(maintenanceAuth, /leftBytes\.length \^ rightBytes\.length/u)
 assert.match(edge, /const rawBody = await request\.text\(\)/u)
 assert.match(edge, /JSON\.parse\(rawBody\)/u)
 assert.match(edge, /Object\.keys\(body\)\.length > 0/u)

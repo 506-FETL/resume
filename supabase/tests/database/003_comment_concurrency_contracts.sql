@@ -5,11 +5,11 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT extensions.plan(10);
 
 SELECT extensions.ok(
-  pg_catalog.position(
+  position(
     'pg_advisory_xact_lock' IN pg_catalog.pg_get_functiondef(
       'public.sync_resume_version_comment_document_v3(uuid,bigint,uuid,jsonb,jsonb,text,integer,date,jsonb,text,uuid)'::regprocedure
     )
-  ) < pg_catalog.position(
+  ) < position(
     'FROM public.resume_config AS configs' IN pg_catalog.pg_get_functiondef(
       'public.sync_resume_version_comment_document_v3(uuid,bigint,uuid,jsonb,jsonb,text,integer,date,jsonb,text,uuid)'::regprocedure
     )
@@ -18,20 +18,20 @@ SELECT extensions.ok(
 );
 
 SELECT extensions.ok(
-  pg_catalog.position(
+  position(
     'FROM public.resume_config AS configs' IN pg_catalog.pg_get_functiondef(
       'public.sync_resume_version_comment_document_v3(uuid,bigint,uuid,jsonb,jsonb,text,integer,date,jsonb,text,uuid)'::regprocedure
     )
-  ) < pg_catalog.position(
+  ) < position(
     'FROM public.resume_config_versions AS versions' IN pg_catalog.pg_get_functiondef(
       'public.sync_resume_version_comment_document_v3(uuid,bigint,uuid,jsonb,jsonb,text,integer,date,jsonb,text,uuid)'::regprocedure
     )
   )
-  AND pg_catalog.position(
+  AND position(
     'FROM public.resume_config_versions AS versions' IN pg_catalog.pg_get_functiondef(
       'public.sync_resume_version_comment_document_v3(uuid,bigint,uuid,jsonb,jsonb,text,integer,date,jsonb,text,uuid)'::regprocedure
     )
-  ) < pg_catalog.position(
+  ) < position(
     'FROM public.resume_comment_scopes AS scopes' IN pg_catalog.pg_get_functiondef(
       'public.sync_resume_version_comment_document_v3(uuid,bigint,uuid,jsonb,jsonb,text,integer,date,jsonb,text,uuid)'::regprocedure
     )
@@ -40,20 +40,20 @@ SELECT extensions.ok(
 );
 
 SELECT extensions.ok(
-  pg_catalog.position(
+  position(
     'FROM public.resume_config' IN pg_catalog.pg_get_functiondef(
       'public.create_next_resume_version(uuid,text)'::regprocedure
     )
-  ) < pg_catalog.position(
+  ) < position(
     'FROM public.resume_config_versions' IN pg_catalog.pg_get_functiondef(
       'public.create_next_resume_version(uuid,text)'::regprocedure
     )
   )
-  AND pg_catalog.position(
+  AND position(
     'FROM public.resume_config_versions' IN pg_catalog.pg_get_functiondef(
       'public.create_next_resume_version(uuid,text)'::regprocedure
     )
-  ) < pg_catalog.position(
+  ) < position(
     'FROM public.resume_comment_scopes' IN pg_catalog.pg_get_functiondef(
       'public.create_next_resume_version(uuid,text)'::regprocedure
     )

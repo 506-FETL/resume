@@ -3,6 +3,7 @@
 import type { GithubRefreshErrorCode } from './core.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsPreflightResponse, isOriginAllowed } from '../shared/cors.ts'
+import { hasValidMaintenanceToken } from '../shared/maintenance-auth.ts'
 import { recordOperationMetric, scheduleBackground } from '../shared/operation-metrics.ts'
 import { createRequestContext } from '../shared/request-context.ts'
 import {
@@ -29,24 +30,6 @@ function createAdminClient(url: string, serviceRoleKey: string) {
 }
 
 type AdminClient = ReturnType<typeof createAdminClient>
-
-function constantTimeEqual(left: string, right: string) {
-  const encoder = new TextEncoder()
-  const leftBytes = encoder.encode(left)
-  const rightBytes = encoder.encode(right)
-  let difference = leftBytes.length ^ rightBytes.length
-  const length = Math.max(leftBytes.length, rightBytes.length)
-  for (let index = 0; index < length; index += 1)
-    difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0)
-  return difference === 0
-}
-
-function readBearerToken(request: Request) {
-  const authorization = request.headers.get('authorization')?.trim() ?? ''
-  if (authorization.slice(0, 7).toLowerCase() !== 'bearer ')
-    return ''
-  return authorization.slice(7).trim()
-}
 
 async function recordFailure(
   admin: AdminClient,
@@ -105,7 +88,12 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   const maintenanceToken = Deno.env.get('BACKEND_MAINTENANCE_TOKEN')
-  if (!supabaseUrl || !serviceRoleKey || !maintenanceToken) {
+  if (
+    !supabaseUrl
+    || !serviceRoleKey
+    || !maintenanceToken
+    || maintenanceToken.length < 32
+  ) {
     return respond(
       { error: 'service_not_configured' },
       500,
@@ -114,8 +102,7 @@ Deno.serve(async (request) => {
     )
   }
 
-  const suppliedToken = readBearerToken(request)
-  if (!suppliedToken || !constantTimeEqual(suppliedToken, maintenanceToken))
+  if (!hasValidMaintenanceToken(request, maintenanceToken))
     return respond({ error: 'unauthorized' }, 401, 'client_error', 'unauthorized')
 
   const rawBody = await request.text()

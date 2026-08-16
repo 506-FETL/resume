@@ -153,19 +153,10 @@ BEGIN
     )
   );
 
-  SELECT versions.resume_id
+  SELECT configs.resume_id
   INTO v_resume_id
-  FROM public.resume_config_versions AS versions
-  WHERE versions.id = p_version_id
-    AND versions.user_id = p_owner_user_id;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'not_found';
-  END IF;
-
-  PERFORM 1
   FROM public.resume_config AS configs
-  WHERE configs.resume_id = v_resume_id
-    AND configs.user_id = p_owner_user_id
+  WHERE configs.user_id = p_owner_user_id
     AND configs.current_version_id = p_version_id
   FOR UPDATE;
   IF NOT FOUND THEN
@@ -249,6 +240,12 @@ BEGIN
   END LOOP;
 END;
 $$;
+
+-- RLS policies on owner tables evaluate this boolean helper as the caller.
+-- Keep the private schema hidden from PostgREST while allowing the policy
+-- expression itself to execute for authenticated users.
+GRANT EXECUTE ON FUNCTION private.current_user_owns_resume(uuid)
+  TO authenticated;
 
 -- Browser-facing owner APIs.
 GRANT EXECUTE ON FUNCTION public.ai_message_visible_text(jsonb)

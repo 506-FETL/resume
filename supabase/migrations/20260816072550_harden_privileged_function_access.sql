@@ -4,10 +4,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   GRANT EXECUTE ON FUNCTIONS TO service_role;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
-  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon, authenticated;
-ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
-  GRANT EXECUTE ON FUNCTIONS TO service_role;
+-- Supabase 托管迁移角色不能修改平台所有者 supabase_admin 的默认权限。
+-- 业务函数由 postgres 创建并受上面的默认 ACL 约束；所有已存在函数及后续迁移
+-- 仍通过显式 REVOKE/GRANT 和 catalog 契约测试收敛，避免空库重放因 42501 中断。
 
 -- The quota check and mutation functions accept an explicit user id and are Edge-only.
 REVOKE ALL ON FUNCTION public.check_ai_quota(uuid, integer)
@@ -26,33 +25,36 @@ ALTER FUNCTION public.check_ai_quota(uuid, integer) SET search_path = '';
 ALTER FUNCTION public.consume_ai_credits(uuid, integer, text) SET search_path = '';
 ALTER FUNCTION public.get_ai_quota() SET search_path = '';
 
--- These legacy template functions have no repository call sites or database dependants.
--- Keep the objects for compatibility diagnosis, but expose them only to the service role.
-REVOKE ALL ON FUNCTION public.decrement_template_likes(uuid)
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.get_resume_template(uuid)
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.has_liked_template(uuid, uuid)
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.increment_template_likes(uuid)
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.increment_template_usage(uuid)
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.switch_resume_template(uuid, uuid, jsonb)
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.sync_template_to_resume_config()
-  FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.update_template_custom_config(uuid, jsonb)
-  FROM PUBLIC, anon, authenticated;
-
-GRANT EXECUTE ON FUNCTION public.decrement_template_likes(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.get_resume_template(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.has_liked_template(uuid, uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.increment_template_likes(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.increment_template_usage(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.switch_resume_template(uuid, uuid, jsonb) TO service_role;
-GRANT EXECUTE ON FUNCTION public.sync_template_to_resume_config() TO service_role;
-GRANT EXECUTE ON FUNCTION public.update_template_custom_config(uuid, jsonb) TO service_role;
+-- These legacy template functions exist on production but are absent from the replayable
+-- migration history. Tighten them when present without making a fresh database depend on drift.
+DO $$
+DECLARE
+  v_signature text;
+BEGIN
+  FOREACH v_signature IN ARRAY ARRAY[
+    'public.decrement_template_likes(uuid)',
+    'public.get_resume_template(uuid)',
+    'public.has_liked_template(uuid,uuid)',
+    'public.increment_template_likes(uuid)',
+    'public.increment_template_usage(uuid)',
+    'public.switch_resume_template(uuid,uuid,jsonb)',
+    'public.sync_template_to_resume_config()',
+    'public.update_template_custom_config(uuid,jsonb)'
+  ]
+  LOOP
+    IF pg_catalog.to_regprocedure(v_signature) IS NOT NULL THEN
+      EXECUTE pg_catalog.format(
+        'REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated',
+        v_signature
+      );
+      EXECUTE pg_catalog.format(
+        'GRANT EXECUTE ON FUNCTION %s TO service_role',
+        v_signature
+      );
+    END IF;
+  END LOOP;
+END;
+$$;
 
 -- Until the Edge cache replacement lands, keep the current signature but hard-code the only
 -- product repository before any database HTTP call or cache lookup.

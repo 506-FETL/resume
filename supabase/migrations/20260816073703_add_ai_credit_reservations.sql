@@ -88,13 +88,13 @@ INSERT INTO public.ai_quota_daily_usage (
 SELECT
   user_id,
   (pg_catalog.timezone('UTC', pg_catalog.now()))::date,
-  pg_catalog.greatest(used_today, 0),
+  greatest(used_today, 0),
   pg_catalog.now()
 FROM public.user_quotas
 WHERE last_reset_date = (pg_catalog.timezone('UTC', pg_catalog.now()))::date
   AND used_today > 0
 ON CONFLICT (user_id, quota_date) DO UPDATE
-SET consumed_credits = pg_catalog.greatest(
+SET consumed_credits = greatest(
       public.ai_quota_daily_usage.consumed_credits,
       EXCLUDED.consumed_credits
     ),
@@ -146,7 +146,7 @@ BEGIN
     'used_today', v_consumed,
     'remaining', CASE
       WHEN v_unlimited THEN v_daily_limit
-      ELSE pg_catalog.greatest(v_daily_limit - v_consumed, 0)
+      ELSE greatest(v_daily_limit - v_consumed, 0)
     END,
     'last_reset_date', v_quota_date,
     'quota_date', v_quota_date,
@@ -219,7 +219,10 @@ BEGIN
   WHERE request_id = p_request_id
   FOR UPDATE;
 
-  IF NOT v_inserted THEN
+  -- INSERT .. RETURNING assigns NULL when ON CONFLICT inserts no row. Treat
+  -- that as the replay path; plain `NOT v_inserted` would evaluate to NULL
+  -- and incorrectly continue into a second quota decision.
+  IF NOT coalesce(v_inserted, false) THEN
     IF v_request.user_id IS DISTINCT FROM p_user_id
        OR v_request.action IS DISTINCT FROM p_action
        OR v_request.reserved_cost IS DISTINCT FROM p_weight THEN
@@ -277,7 +280,7 @@ BEGIN
       'ok', false,
       'error', 'quota_exceeded',
       'state', 'rejected',
-      'remaining', pg_catalog.greatest(v_quota.daily_limit - v_usage.consumed_credits, 0),
+      'remaining', greatest(v_quota.daily_limit - v_usage.consumed_credits, 0),
       'daily_limit', v_quota.daily_limit,
       'reset_at', v_reset_at,
       'unlimited', false,
@@ -300,7 +303,7 @@ BEGIN
 
   v_remaining := CASE
     WHEN v_unlimited THEN v_quota.daily_limit
-    ELSE pg_catalog.greatest(v_quota.daily_limit - v_usage.consumed_credits, 0)
+    ELSE greatest(v_quota.daily_limit - v_usage.consumed_credits, 0)
   END;
 
   RETURN pg_catalog.jsonb_build_object(
@@ -492,7 +495,7 @@ BEGIN
 
   IF v_request.quota_debited > 0 THEN
     UPDATE public.ai_quota_daily_usage
-    SET consumed_credits = pg_catalog.greatest(
+    SET consumed_credits = greatest(
           consumed_credits - v_request.quota_debited,
           0
         ),
@@ -548,7 +551,7 @@ BEGIN
     ELSE
       IF v_request.quota_debited > 0 THEN
         UPDATE public.ai_quota_daily_usage
-        SET consumed_credits = pg_catalog.greatest(
+        SET consumed_credits = greatest(
               consumed_credits - v_request.quota_debited,
               0
             ),

@@ -42,11 +42,11 @@
 
 | 数据 | 有效期/保留期 | 删除条件 |
 | --- | --- | --- |
-| `resume_comment_requests` | 48 小时 | `completed_at` 非空且早于 cutoff；异常残留的 NULL response 超过 24 小时由监控确认无活跃事务后删除 |
+| `resume_comment_requests` | 48 小时 | `completed_at` 非空且早于 cutoff；异常残留的 NULL response 同样超过 48 小时后删除 |
 | `resume_comment_rate_limits` | 48 小时无活动 | window 已结束、`blocked_until` 为空或早于 cutoff、`updated_at` 早于 cutoff |
 | `resume_share_rate_limits` | 48 小时无活动 | window 与 block 均过期；父 share 删除仍由 FK cascade |
 | `resume_share_owner_rate_limits` | 48 小时无活动 | window 与 block 均过期 |
-| collaboration sessions/members | 24 小时宽限 | `expires_at` 或 `revoked_at` 早于 24 小时 cutoff；先删 session，members 由 FK cascade |
+| collaboration sessions/members | 24 小时宽限 | `expires_at` 或 `revoked_at` 早于 24 小时 cutoff；先分批删过期 member，仅在 session 已无 member 时再删 session，禁止用 FK cascade 绕过批量上限 |
 | AI `pending` request | 15 分钟 | 不由通用 DELETE；先由 AI reconciler settle/release |
 | AI finalized request | 180 天 | settled/released/rejected 且 finalized_at 早于 cutoff；先保留聚合 usage |
 | `backend_error_events` | 7 天 | created_at 早于 cutoff |
@@ -65,6 +65,7 @@
 - 表与表之间使用独立短事务更理想；如果 pg_cron 只能调用单函数，则单次每表最多一批并设置 statement/lock timeout。
 - 返回 JSON 统计仅包含每表删除数和总耗时，不包含被删 key。
 - 使用 PostgreSQL advisory lock 或稳定 job 锁，避免同一清理任务重叠执行；获取不到锁就安全退出。
+- `lock_timeout` 单独记为 skipped/warning，`statement_timeout` 单独记为 failed；不能依赖不会捕获 `QUERY_CANCELED` 的 `WHEN OTHERS`。
 
 AI pending reconciliation 与物理删除分离。任何 pending 行必须先被状态机最终化，通用清理绝不直接减/删额度请求。
 
@@ -73,8 +74,11 @@ AI pending reconciliation 与物理删除分离。任何 pending 行必须先被
 - 每小时执行一次 transient cleanup。
 - 每 5 分钟执行 AI pending reconciler。
 - 每日低峰执行一次更大批次 catch-up，但仍有单次上限。
+- `pg_net` 外呼只记为 queued；每分钟同时读取 `net._http_response` 与 `net.http_request_queue`。2xx、非 2xx、传输错误和超时按响应最终化；只有超过 2 分钟且响应表、请求队列都不存在时才记 missing。仍在队列中的陈旧请求保持 queued 并触发积压告警，异步入队成功不得记作 Edge 任务成功。
 
 job 名称固定且迁移幂等：部署前按名称 unschedule 旧 job，再 schedule 新 job。启用 `pg_cron` 时不指定扩展版本，以符合当前 Supabase 扩展策略。
+
+启用 `pg_net` 后对 `net` schema、表、序列和原始网络函数执行 best-effort 撤权；Supabase 托管环境可能由 `supabase_admin` 在扩展安装后恢复平台 ACL，因此不可把该 REVOKE 当作唯一边界。强制边界是 Data API 的 exposed schemas 明确只含 `public`、`storage`、`graphql_public`，不得包含 `net` 或 `private`；`public` schema 不提供任何可调用任意 URL 的包装 RPC，只有 postgres 所有者执行的固定名称私有包装函数能够外呼。部署验收必须用 `Accept-Profile: net` 证明 Data API 拒绝该 schema。
 
 ## 索引与 vacuum
 
@@ -101,6 +105,7 @@ job 名称固定且迁移幂等：部署前按名称 unschedule 旧 job，再 sc
 ## 可观测性与失败处理
 
 - 每次 job 记录 started/completed/failed、删除总数和 duration 到运维指标。
+- 成功清理额外持久化各表删除数的脱敏 JSON；只含固定表名和计数，不含请求、用户、分享或会话标识。
 - 单次失败由下个周期重试；连续 3 次失败告警。
 - 删除数达到 batch 上限连续 3 次标记 backlog warning，提示增大频率而不是无限增大事务。
 - lock timeout 视为 skipped/warning，不阻塞业务。
@@ -113,6 +118,7 @@ job 名称固定且迁移幂等：部署前按名称 unschedule 旧 job，再 sc
 - 重复执行清理结果幂等；并发启动两个任务只有一个实际工作。
 - 10 万行合成数据下单批删除不超过 batch size，锁与执行时间在阈值内。
 - cron job 唯一、调度正确、失败能在 metrics/alert 中看到。
+- HTTP 401、500、传输超时和响应缺失都必须由响应对账记录为失败；告警还要读取 `cron.job_run_details`，避免 SQL 语句级失败静默。
 - 清理后用户分享、评论重试/幂等、协作会话和 AI 额度行为不变。
 - 线上初次运行前先以 SELECT 预览各表候选计数，并把实际删除数量与预览对比。
 

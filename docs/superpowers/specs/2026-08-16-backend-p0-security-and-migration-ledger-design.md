@@ -82,7 +82,7 @@ Edge Function 继续使用 service-role 客户端调用两个内部 RPC，前端
 - `sync_template_to_resume_config()`
 - `update_template_custom_config(uuid, jsonb)`
 
-仓库全量 RPC 调用搜索没有这些名称，线上依赖检查也没有发现触发器使用它们，因此收紧直接执行权不会影响当前代码路径。对象保留是为了让历史数据或未知旧客户端出现兼容性反馈时仍能基于原定义设计安全替代，而不是仓促恢复越权权限。
+仓库全量 RPC 调用搜索没有这些名称，线上依赖检查也没有发现触发器使用它们，因此收紧直接执行权不会影响当前代码路径。这些对象属于线上历史漂移，空库迁移链不会创建；安全迁移必须通过 catalog 判断“存在才收紧”，不能让不存在的兼容对象破坏 fresh reset。对象保留是为了让历史数据或未知旧客户端出现兼容性反馈时仍能基于原定义设计安全替代，而不是仓促恢复越权权限。
 
 ### GitHub Stars
 
@@ -94,11 +94,13 @@ Edge Function 继续使用 service-role 客户端调用两个内部 RPC，前端
 
 ### 默认函数权限
 
-安全迁移分别修改 `postgres` 与 `supabase_admin` 在 `public` schema 下的默认函数权限：
+安全迁移修改业务函数所有者 `postgres` 在 `public` schema 下的默认函数权限：
 
 - 撤销 `PUBLIC`、`anon` 与 `authenticated` 对未来函数的默认执行权。
 - 保留 `service_role` 的默认执行权，避免 Edge 内部 RPC 因新增函数漏配而不可用。
 - 任何确实面向浏览器的函数，都必须在创建函数的同一迁移中按完整签名显式授权。
+
+托管 Supabase 的迁移登录角色无权修改平台所有者 `supabase_admin` 的默认权限；强行执行会以 `42501` 破坏 remote fresh reset。平台函数不作为业务 RPC 暴露边界，现有与后续业务函数统一由显式 ACL、catalog 契约测试和 `postgres` 默认权限覆盖。
 
 本批次不修改表和序列的默认权限。表数据仍由 RLS 与显式策略保护，扩大该范围会带来不必要的兼容性风险。
 
