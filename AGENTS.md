@@ -14,6 +14,7 @@ Always respond in Chinese-simplified.
 # 通用规则
 
 - 除非用户明确要求执行 `git push`，否则不要推送到任何远端。
+- 当任务包含 Supabase 数据库迁移或 Edge Functions 变更时，在全部开发与验证完成后，代理必须负责将变更部署到当前已链接的 Supabase 云端项目，并完成迁移账本、函数版本和线上 smoke 核验；不得把部署步骤留给用户手工执行。若部署门禁尚未满足，应继续排除问题或建立等价的隔离验证环境；只有确实缺少用户凭据、项目权限或其他无法自行取得的外部授权时，才请求用户介入。
 - 当前仓库没有写测试，因此不需要执行TDD开发流程
 - 默认在当前分支上工作，除非用户明确要求创建或切换分支。
 - 在 `src/pages` 下创建或重构页面时，遵循 history-style 模块结构，包含 `components/`、`hooks/`、`const.ts`、`index.tsx`、`store.ts`、`types.ts` 和 `utils.ts`；使用 kebab-case 命名，组件以文件夹导出（`index.tsx`），并通过将共享页面状态/动作提升到页面的 store 中来避免多级 prop 传递。
