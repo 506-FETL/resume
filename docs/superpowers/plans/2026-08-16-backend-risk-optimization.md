@@ -2,9 +2,9 @@
 
 > **面向 AI 代理的工作者：** 必需子技能：使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 逐任务实现此计划。步骤使用复选框（`- [ ]`）语法来跟踪进度。
 
-**目标：** 在不改变“固定 1/3 积分”产品计费规则的前提下，完成数据库权限、AI 额度原子性、迁移重放、可观测性、锁顺序、临时数据清理和 GitHub Stars 缓存的系统性收敛，并把唯一跨用户边界限制为持有效分享凭据的快照读取与评论域读写。
+**目标：** 在不改变“固定 1/3 积分”产品计费规则的前提下，完成数据库权限、AI 额度原子性、迁移重放、可观测性、锁顺序、临时数据清理和 GitHub Stars 缓存的系统性收敛，并把跨用户边界限制为有效分享凭据和有效实时协作链接各自绑定的最小资源范围。
 
-**架构：** 浏览器只直接访问当前登录用户拥有的数据；分享快照和评论统一经 `resume-share` / `resume-comments` Edge Function 校验签名作用域。AI 请求先在数据库原子预留固定积分，再调用 DeepSeek，并根据是否已向客户端交付内容进行结算或释放；后台定时任务负责超时对账、临时表清理、指标告警与 GitHub Stars 刷新。
+**架构：** 浏览器只直接访问当前登录用户拥有的数据；分享快照和评论统一经 `resume-share` / `resume-comments` Edge Function 校验签名作用域。实时协作链接允许登录后的持有者编辑其绑定的单份共享 Automerge 文档并读写该版本评论域，但不授予 owner 其他数据访问权。AI 请求先在数据库原子预留固定积分，再调用 DeepSeek，并根据是否已向客户端交付内容进行结算或释放；后台定时任务负责超时对账、临时表清理、指标告警与 GitHub Stars 刷新。
 
 **技术栈：** PostgreSQL / RLS / PL/pgSQL / pgTAP / pg_cron / pg_net / Supabase Edge Functions（Deno + TypeScript）/ React + Zustand / GitHub Actions
 
@@ -30,7 +30,7 @@
 | 用户基础数据、ATS、版本、协作文档、公司、用户模板 | 无直接读写 | 仅本人数据 | 后端受控访问 |
 | 分享快照 | 仅通过 `resume-share` 且持有效分享凭据读取指定快照 | 同左 | 受控管理 |
 | 分享评论域 | 仅通过 `resume-comments` 且持有效分享凭据读取/写入该域 | 同左 | 受控管理 |
-| 跨账号协作会话 | 无读写 | 无读写 | 不作为用户间授权边界 |
+| 跨账号协作会话 | 不支持未登录加入 | 持有效链接可编辑该会话绑定的共享简历并评论 | 受控管理会话、租约与评论 scope |
 | AI 额度 | 无 RPC 执行权 | 仅由 `llm-proxy` 代表当前 JWT 用户操作 | Edge 内部执行 |
 | GitHub Stars | 只读固定仓库缓存 | 只读固定仓库缓存 | 定时刷新写入 |
 
@@ -450,7 +450,7 @@ git commit -m "feat(backend): 统一请求追踪与安全响应"
 - 创建：`supabase/tests/database/003_comment_concurrency_contracts.sql`
 - 创建：`supabase/tests/database/004_function_security.sql`
 
-> 权限边界补充：同批移除 `resume-comments` 对跨账号 `collaborator` 会话的注册、加入、续租与 bootstrap 授权，并增加 A/B 账号负向契约。唯一保留的跨用户路径是有效分享快照及其签名评论域。
+> 权限边界补充：必须保留 `resume-comments` 对跨账号 `collaborator` 会话的注册、加入、续租与 bootstrap 授权。任何持链接的登录用户默认可编辑共享简历并评论，但 Edge 必须校验签名 token、当前用户绑定、session/member 有效期、撤销状态、角色和精确的 resume/version/scope；A/B 账号负向契约验证该能力不能横向读取 owner 的其他数据。
 - 创建：`scripts/verify-database-concurrency.ts`
 
 - [ ] **步骤 1：创建函数加固迁移**

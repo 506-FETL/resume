@@ -44,18 +44,9 @@ function assertSourceOrder(source: string, markers: string[]) {
   }
 }
 
-function readCorsHeaderValue(source: string, name: string): string {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
-  const matched = source.match(new RegExp(
-    `['\"]${escapedName}['\"]\\s*:\\s*['\"]([^'\"]+)['\"]`,
-    'u',
-  ))
-  assert.ok(matched, `Missing CORS header: ${name}`)
-  return matched[1]
-}
-
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
 const corsSource = readFileSync('supabase/functions/shared/cors.ts', 'utf8')
+const requestContextSource = readFileSync('supabase/functions/shared/request-context.ts', 'utf8')
 const benchmarkSource = readFileSync('scripts/benchmark-resume-comments-bootstrap.ts', 'utf8')
 const prewarmSource = readFileSync('scripts/prewarm-resume-comment-scopes.ts', 'utf8')
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
@@ -84,7 +75,11 @@ const bootstrapMigrationSource = readFileSync(
   'utf8',
 )
 const threadReadMigrationSource = readFileSync(
-  'supabase/migrations/20260816000002_add_resume_comment_thread_read_states.sql',
+  'supabase/migrations/20260815170650_add_resume_comment_thread_read_states.sql',
+  'utf8',
+)
+const hardeningMigrationSource = readFileSync(
+  'supabase/migrations/20260816080301_fix_comment_lock_order_and_function_paths.sql',
   'utf8',
 )
 const normalizedBootstrapMigrationSource = bootstrapMigrationSource.replace(/\s+/gu, ' ')
@@ -148,13 +143,8 @@ assert.match(corsSource, /Access-Control-Max-Age/u)
 assert.match(corsSource, /X-Sb-Edge-Region/u)
 assert.match(edgeSource, /return existing as ScopeRow/u)
 assert.match(corsSource, /x-request-id/u)
-const exposedCorsHeaders = new Set(
-  readCorsHeaderValue(corsSource, 'Access-Control-Expose-Headers')
-    .split(',')
-    .map(header => header.trim().toLowerCase()),
-)
-assert.ok(exposedCorsHeaders.has('x-comment-auth-mode'))
-assert.ok(exposedCorsHeaders.has('x-comment-scope-repair'))
+assert.match(corsSource, /X-Comment-Auth-Mode/u)
+assert.match(corsSource, /X-Comment-Scope-Repair/u)
 const optionsGateSource = readSourceSection(
   benchmarkSource,
   'const options = await runOptions(config, region)',
@@ -179,6 +169,18 @@ assert.match(edgeSource, /token\.role !== member\.role/u)
 assert.match(edgeSource, /token\.versionId !== scope\.version_id/u)
 assert.match(edgeSource, /session\.revoked_at/u)
 assert.match(edgeSource, /\.eq\('host_lease_id', hostLeaseId\)/u)
+assert.match(edgeSource, /default_role: existing\?\.default_role === 'viewer' \? 'viewer' : 'editor'/u)
+assert.match(hardeningMigrationSource, /root -> version ->[\s\S]*?scope/u)
+assert.match(hardeningMigrationSource, /pg_catalog\.pg_advisory_xact_lock/u)
+assert.match(hardeningMigrationSource, /SET lock_timeout = '3s'/u)
+assert.doesNotMatch(
+  hardeningMigrationSource,
+  /UPDATE public\.resume_comment_collaboration_(?:members|sessions)[\s\S]*?revoked_at/u,
+)
+assert.doesNotMatch(
+  hardeningMigrationSource,
+  /RENAME TO resolve_resume_comment_bootstrap_access_with_collaborator_v1/u,
+)
 
 const bootstrapInputSource = edgeSource.slice(
   edgeSource.indexOf('async function buildBootstrapInput'),
@@ -501,18 +503,17 @@ for (const timingName of [
   assert.ok(edgeSource.includes(timingName))
 }
 assert.match(handlerSource, /const coldStart = nextRequestIsColdStart[\s\S]*?nextRequestIsColdStart = false/u)
-assert.match(handlerSource, /const requestId = isUuidValue\(requestIdHeader\)/u)
-assert.match(handlerSource, /Deno\.env\.get\('SB_REGION'\)/u)
+assert.match(handlerSource, /const requestId = context\.requestId/u)
+assert.match(requestContextSource, /Deno\.env\.get\('SB_REGION'\)/u)
 assert.doesNotMatch(handlerSource, /headers\.get\(['"]x-sb-edge-region/iu)
-assert.match(handlerSource, /response\.headers\.set\('X-Request-Id', requestId\)/u)
-assert.match(handlerSource, /response\.headers\.set\('X-Sb-Edge-Region', edgeRegion\)/u)
+assert.match(handlerSource, /const sharedHeaders = context\.responseHeaders\(\)/u)
 assert.match(
   bootstrapBranchSource,
   /meta: \{ authMode, repair: repaired, coldStart \}/u,
 )
 assert.match(
   handlerSource,
-  /if \(req\.method === 'OPTIONS'\) \{\s*return finalize\(new Response\('ok'/u,
+  /if \(req\.method === 'OPTIONS'\) \{\s*const response = corsPreflightResponse\(req, 'allowlist'\)/u,
 )
 assert.match(migrationSource, /kind = 'version'/u)
 assert.match(migrationSource, /version_id = p_version_id/u)

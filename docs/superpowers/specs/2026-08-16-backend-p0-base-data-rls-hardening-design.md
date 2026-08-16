@@ -15,9 +15,9 @@
 ## 目标
 
 - 浏览器角色只能读写当前 `auth.uid()` 拥有的简历、版本、ATS、求职记录和 Automerge 文档。
-- 匿名或其他登录用户唯一允许的跨用户访问，是通过分享链接读取该次发布的不可变简历快照，并凭分享评论令牌读写该分享范围内的评论。
-- 现有 `collaborator` 会话不再构成第二条跨账号授权边界：其他登录用户不得借协作会话读写 owner 的编辑态简历、版本或评论域。保留同一 owner 的本人会话不产生跨用户权限。
-- 上述共享访问只能走 `resume-share` / `resume-comments` Edge Function；浏览器角色不能直连基础表或评论表。
+- 匿名或其他登录用户允许的第一类跨用户访问，是通过分享链接读取该次发布的不可变简历快照，并凭分享评论令牌读写该分享范围内的评论。
+- 第二类跨用户访问是实时协作：任何持有效协作链接的登录用户都可加入该会话，默认以 editor 身份编辑该会话绑定的单份 Automerge 简历并读写其评论域；链接不能扩展为 owner 其他简历、历史版本、ATS、公司、模板或账户数据的读取能力。
+- 分享快照/评论只能走 `resume-share` / `resume-comments` Edge Function；实时文档经会话绑定的协作传输层同步，协作者评论仍走 `resume-comments`。浏览器角色不能借任一路径直连 owner 基础表或评论表。
 - 用户模板和其他基础数据一样只能由 owner 读取和写入；`published` 不再自动构成跨用户读取授权。
 - 关联数据写入同时验证父资源归属，不能把自己的 ATS、版本、公司或 Automerge 行挂到他人的简历。
 - 删除所有重复、含糊和无条件放行的历史策略，每个角色/操作只保留必要的显式策略。
@@ -106,12 +106,12 @@ RLS 迁移在单一事务内完成：撤销 grants、删除旧策略、创建新
 - A 不能把自己的子记录挂到 B 的 `resume_id`。
 - 匿名用户看不到任何基础表；A 也看不到、不能修改或删除 B 的模板，无论模板 visibility/status 为何。
 - 有效匿名分享请求只能读取指定分享当前发布批次的最小快照；不能借 share ID、resume ID 或评论 token 查询 owner 的 `resume_config`、其他版本、ATS、Tracker、Automerge 或模板。
-- 用户 B 无法注册、加入、续租或使用 owner A 的 `collaborator` 会话；伪造的 collaborator token 不能读取评论 bootstrap 或实时数据。
+- 未持有效协作链接的用户 B 无法注册、加入、续租或使用 owner A 的 `collaborator` 会话；持有效链接并登录后可编辑会话绑定的共享文档并评论，但不能读取 owner A 的其他数据。伪造、过期、撤销或 user/session/scope/version/role 不匹配的 collaborator token 不能读取评论 bootstrap 或实时数据。
 - 有效评论 token 只能访问其绑定的 scope，并且不能直接调用评论表 Data API。
 - service role 的分享、评论和后台流程仍能读取所需基础数据。
 - catalog 查询确认六表不存在 `qual=true` 或 `with_check=true` 的宽松私有数据策略，也不存在同角色同操作的重复 permissive 策略。
 
-业务冒烟覆盖：创建、编辑、删除简历；保存 ATS；Tracker 增删改；Automerge 读取/upsert；历史版本读取与保存；本人模板创建、发布、归档和删除；匿名分享读取与评论；社区模板入口不再泄露其他用户模板。
+业务冒烟覆盖：创建、编辑、删除简历；保存 ATS；Tracker 增删改；Automerge 读取/upsert；历史版本读取与保存；本人模板创建、发布、归档和删除；匿名分享读取与评论；持链接登录用户加入实时协作、编辑共享简历并评论；社区模板入口不再泄露其他用户模板。
 
 上线后重新运行 Supabase Security Advisor 与 Performance Advisor。RLS advisor 的相关越权和重复策略告警必须消失；服务端专用表“RLS 开启但无策略”的 INFO 可保留，因为它们有意只允许 service role 绕过 RLS。
 

@@ -88,7 +88,7 @@ supabase migration list --linked
 - `company` 的策略按用户过滤，但底层 grants 仍过宽，需与其他基础表一起最小化。
 - 评论基表 `resume_comments`、`resume_comment_threads` 当前只授权 `service_role`，应保持该边界。
 
-实施后的目标是：`anon` 对基础表没有直接读写；`authenticated` 仅操作本人及父资源同属本人的记录；跨用户访问只允许持有效分享凭据经 `resume-share` / `resume-comments` Edge Function 读取指定快照和读写指定评论域。
+实施后的目标是：`anon` 对基础表没有直接读写；`authenticated` 仅直接操作本人及父资源同属本人的记录；跨用户访问只允许有效分享凭据访问指定快照/评论域，或有效协作链接持有者经会话与租约校验编辑绑定的共享文档并评论。
 
 ### 临时表规模
 
