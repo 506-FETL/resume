@@ -105,11 +105,11 @@ supabase migration list --linked
 | --- | --- | --- | --- |
 | 迁移基线 | `supabase start` / `supabase db reset --local` | `1` / 未执行 | 本机无 Docker/Podman；不得记为通过，部署前需在隔离环境补验 |
 | SQL lint | `supabase db lint --linked --level warning` | `0` | 线上现有旧模板/会话函数有 8 个 error、2 个 warning；任务 2/7 处理后复跑 |
-| pgTAP | `supabase test db --local` | 未执行 | 实施任务 8 更新 |
-| 并发 | `pnpm verify:database` | 未执行 | 实施任务 8 更新 |
+| pgTAP | `supabase test db supabase/tests/database/003_comment_concurrency_contracts.sql --local` / `004_function_security.sql` | `1` / `1` | 本地 54322 无数据库；测试已写但未动态执行 |
+| 并发 | `node --experimental-strip-types scripts/verify-database-concurrency.ts` | `1` | 本地数据库不可用；20 轮并发尚无运行证据 |
 | Edge | `pnpm run verify:edge-context` / `pnpm run verify:edge-auth` | `0` / `0` | request ID、CORS、函数体鉴权顺序静态契约通过；不等于 Deno 运行时或真实浏览器验收 |
 | GitHub 缓存 | `pnpm verify:github-stars` | 未执行 | 实施任务 9 更新 |
-| TypeScript | `pnpm exec tsc -b --pretty false` | 未执行 | 实施任务 11 更新 |
+| TypeScript | `pnpm exec tsc -b --pretty false` | `0` | 当前任务 7 工作树类型检查通过；任务 11 将在最终提交重跑 |
 | 全量 lint | `pnpm lint` | 未执行 | 实施任务 11 更新 |
 | 构建 | `pnpm build` | 未执行 | 实施任务 11 更新 |
 | 生产 ACL/RLS | 只读 catalog 查询 | 未执行 | 部署后更新 |
@@ -171,3 +171,14 @@ supabase migration list --linked
 - 评论数据库 `40P01` 已映射为可重试 `database_deadlock`，同时保留 SQLSTATE 仅用于脱敏指标。
 - `pnpm run verify:edge-context`、`pnpm run verify:edge-auth`、目标 ESLint、`pnpm exec tsc -b --pretty false` 和 `git diff --check`：退出码均为 `0`。
 - 本机无 `deno`，因此 `deno check` 未执行；SQL pgTAP/fresh reset 仍受 Docker/Podman 缺失阻断，不记为通过。
+
+## 任务 7：评论锁顺序、函数安全与协作会话退役
+
+- 已将评论写入和已读操作的请求幂等标识作为第一把事务级 advisory lock；版本文档同步统一按 `resume root → active version → comment scope` 加锁，并为冲突路径设置 3 秒 `lock_timeout`。
+- 已通过只读链接库 catalog 查询确认迁移中重命名/包装的五个关键函数签名与生产现状一致；该检查退出码为 `0`，没有执行迁移或写入生产数据。
+- public/private SQL 与 PL/pgSQL 函数统一固定 `search_path=''`，默认撤销 PUBLIC/anon/authenticated/service_role 执行权，再按浏览器所有者 API 与 Edge service API 显式白名单授权。
+- 跨账号实时协作已三层退役：浏览器不再展示或自动加入协作会话，编辑器不再接受 `docUrl` 加载外部 Automerge 文档，`resume-comments` 删除协作者签发/续租/访问实现并对历史操作及 `accessKind=collaborator` 固定返回 403；数据库迁移撤销全部存量租约并在 bootstrap resolver 再次拒绝协作者参数。
+- 分享快照和分享评论未被移除：客户端评论访问类型只保留 owner/share，匿名身份仍严格绑定分享的 version scope。
+- 新增 `003_comment_concurrency_contracts.sql`、`004_function_security.sql` 和 20 轮多连接并发脚本，覆盖锁顺序、幂等、死锁、函数 ACL、默认权限、私有 schema 与评论/分享基表不可直连。
+- `pnpm run verify:comment-service`、`pnpm run verify:edge-context`、`pnpm run verify:edge-auth`、`pnpm exec tsc -b --pretty false`、本次文件目标 ESLint 和 `git diff --check`：退出码均为 `0`。
+- 两个 pgTAP 文件与并发脚本的动态执行退出码均为 `1`：本地 `127.0.0.1:54322` 拒绝连接，根因仍是本机无 Docker/Podman；测试代码已落地，但 fresh-reset、真实 SQL 执行和 20 轮并发结果仍是部署前硬门禁，不能记为通过。

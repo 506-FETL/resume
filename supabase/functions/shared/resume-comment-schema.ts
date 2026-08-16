@@ -4,6 +4,7 @@ import {
 } from './resume-comment-core.ts'
 
 export const COMMENT_API_OPS = [
+  // 仅用于让旧客户端得到稳定的 403 退役响应；Edge 中已无对应处理实现。
   'register_collaboration_session',
   'join_collaboration_session',
   'renew_collaboration_session',

@@ -44,18 +44,13 @@ function assertSourceOrder(source: string, markers: string[]) {
   }
 }
 
-function readCorsHeaderValue(source: string, name: string): string {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
-  const matched = source.match(new RegExp(
-    `['\"]${escapedName}['\"]\\s*:\\s*['\"]([^'\"]+)['\"]`,
-    'u',
-  ))
-  assert.ok(matched, `Missing CORS header: ${name}`)
-  return matched[1]
-}
-
 const edgeSource = readFileSync('supabase/functions/resume-comments/index.ts', 'utf8')
+const commentClientSource = readFileSync('src/features/resume-comments/api/client.ts', 'utf8')
+const editorSource = readFileSync('src/pages/resume/editor/index.tsx', 'utf8')
+const resumeLoaderSource = readFileSync('src/pages/resume/editor/hooks/use-resume-loader.ts', 'utf8')
+const persistenceSource = readFileSync('src/lib/automerge/document/persistence.ts', 'utf8')
 const corsSource = readFileSync('supabase/functions/shared/cors.ts', 'utf8')
+const requestContextSource = readFileSync('supabase/functions/shared/request-context.ts', 'utf8')
 const benchmarkSource = readFileSync('scripts/benchmark-resume-comments-bootstrap.ts', 'utf8')
 const prewarmSource = readFileSync('scripts/prewarm-resume-comment-scopes.ts', 'utf8')
 const shareEdgeSource = readFileSync('supabase/functions/resume-share/index.ts', 'utf8')
@@ -84,7 +79,11 @@ const bootstrapMigrationSource = readFileSync(
   'utf8',
 )
 const threadReadMigrationSource = readFileSync(
-  'supabase/migrations/20260816000002_add_resume_comment_thread_read_states.sql',
+  'supabase/migrations/20260815170650_add_resume_comment_thread_read_states.sql',
+  'utf8',
+)
+const hardeningMigrationSource = readFileSync(
+  'supabase/migrations/20260816080301_fix_comment_lock_order_and_function_paths.sql',
   'utf8',
 )
 const normalizedBootstrapMigrationSource = bootstrapMigrationSource.replace(/\s+/gu, ' ')
@@ -148,13 +147,8 @@ assert.match(corsSource, /Access-Control-Max-Age/u)
 assert.match(corsSource, /X-Sb-Edge-Region/u)
 assert.match(edgeSource, /return existing as ScopeRow/u)
 assert.match(corsSource, /x-request-id/u)
-const exposedCorsHeaders = new Set(
-  readCorsHeaderValue(corsSource, 'Access-Control-Expose-Headers')
-    .split(',')
-    .map(header => header.trim().toLowerCase()),
-)
-assert.ok(exposedCorsHeaders.has('x-comment-auth-mode'))
-assert.ok(exposedCorsHeaders.has('x-comment-scope-repair'))
+assert.match(corsSource, /X-Comment-Auth-Mode/u)
+assert.match(corsSource, /X-Comment-Scope-Repair/u)
 const optionsGateSource = readSourceSection(
   benchmarkSource,
   'const options = await runOptions(config, region)',
@@ -174,11 +168,15 @@ assert.match(edgeSource, /expectedDocumentRevision/u)
 assert.match(edgeSource, /nodeMap\.get\(anchor\.nodeKey\),\s+documentHash/u)
 assert.match(edgeSource, /loadThreads\(admin, access\.scope\.id, \[threadId\]\)/u)
 assert.doesNotMatch(edgeSource, /await notifyWrite/u)
-assert.match(edgeSource, /token\.resumeId !== session\.resume_id/u)
-assert.match(edgeSource, /token\.role !== member\.role/u)
-assert.match(edgeSource, /token\.versionId !== scope\.version_id/u)
-assert.match(edgeSource, /session\.revoked_at/u)
-assert.match(edgeSource, /\.eq\('host_lease_id', hostLeaseId\)/u)
+assert.match(edgeSource, /RETIRED_COLLABORATION_OPS\.has\(op\) \|\| body\.accessKind === 'collaborator'/u)
+assert.doesNotMatch(edgeSource, /handleCollaborationSessionOperation|validateCollaboratorTokenClaims|RESUME_COMMENT_COLLABORATOR_SECRET/u)
+assert.doesNotMatch(commentClientSource, /kind: 'collaborator'|accessKind: 'collaborator'/u)
+assert.doesNotMatch(editorSource, /CollaborationRuntime|CollaborationDialog|useCollaborationStore|collabSession/u)
+assert.doesNotMatch(resumeLoaderSource, /docUrl|documentUrl|useCollaborationStore/u)
+assert.doesNotMatch(persistenceSource, /sharedDocumentUrl|loadHandleByUrl/u)
+assert.match(hardeningMigrationSource, /p_access_kind = 'collaborator'[\s\S]*?ERRCODE = '42501', MESSAGE = 'unauthorized'/u)
+assert.match(hardeningMigrationSource, /UPDATE public\.resume_comment_collaboration_members[\s\S]*?WHERE revoked_at IS NULL/u)
+assert.match(hardeningMigrationSource, /UPDATE public\.resume_comment_collaboration_sessions[\s\S]*?WHERE revoked_at IS NULL/u)
 
 const bootstrapInputSource = edgeSource.slice(
   edgeSource.indexOf('async function buildBootstrapInput'),
@@ -252,24 +250,11 @@ assert.match(
   bootstrapInputSource,
   /\['scopeId', 'resumeId', 'versionId'\][\s\S]*?locatorKeys\.length !== 1/u,
 )
-assert.match(bootstrapInputSource, /validateCollaboratorTokenClaims\(verifiedToken, userId\)/u)
 assert.match(bootstrapInputSource, /validateShareTokenClaims\(verifiedToken\)/u)
-const collaboratorClaimsSource = edgeSource.slice(
-  edgeSource.indexOf('function validateCollaboratorTokenClaims'),
-  edgeSource.indexOf('function validateShareTokenClaims'),
+assert.doesNotMatch(
+  bootstrapInputSource,
+  /accessKind === 'collaborator'|validateCollaboratorTokenClaims|verifyCommentToken\([^)]*'collaborator'/u,
 )
-for (const collaboratorClaimCheck of [
-  'value.kind !== \'collaborator\'',
-  '!isUuidValue(value.scopeId)',
-  '!isUuidValue(value.resumeId)',
-  '!isUuidValue(value.userId)',
-  'value.userId !== userId',
-  '!COLLABORATION_SESSION_PATTERN.test(value.sessionId)',
-  '!isPositiveSafeInteger(value.versionId)',
-  'value.role !== \'editor\' && value.role !== \'viewer\'',
-]) {
-  assert.ok(collaboratorClaimsSource.includes(collaboratorClaimCheck))
-}
 assert.match(
   edgeSource,
   /value\.kind !== 'share'[\s\S]*?!isUuidValue\(value\.shareId\)[\s\S]*?!isUuidValue\(value\.releaseId\)[\s\S]*?!isUuidValue\(value\.scopeId\)[\s\S]*?!isPositiveSafeInteger\(value\.versionId\)[\s\S]*?value\.passwordGeneration\.trim\(\)\.length === 0/u,
@@ -292,10 +277,7 @@ assert.match(
   bootstrapValidatorSource,
   /value\.protocolVersion !== 1[\s\S]*?value\.status !== 'ok' && value\.status !== 'scope_missing'/u,
 )
-assert.match(
-  bootstrapValidatorSource,
-  /input\.p_access_kind === 'collaborator'[\s\S]*?!isRecord\(value\.repair\.snapshot\)[\s\S]*?projectionReferenceDate/u,
-)
+assert.doesNotMatch(bootstrapValidatorSource, /input\.p_access_kind === 'collaborator'/u)
 assert.match(
   edgeSource,
   /function isPositiveSafeInteger\(value: unknown\): value is number \{\s*return Number\.isSafeInteger\(value\) && Number\(value\) > 0\s*\}/u,
@@ -501,18 +483,17 @@ for (const timingName of [
   assert.ok(edgeSource.includes(timingName))
 }
 assert.match(handlerSource, /const coldStart = nextRequestIsColdStart[\s\S]*?nextRequestIsColdStart = false/u)
-assert.match(handlerSource, /const requestId = isUuidValue\(requestIdHeader\)/u)
-assert.match(handlerSource, /Deno\.env\.get\('SB_REGION'\)/u)
+assert.match(handlerSource, /const requestId = context\.requestId/u)
+assert.match(requestContextSource, /Deno\.env\.get\('SB_REGION'\)/u)
 assert.doesNotMatch(handlerSource, /headers\.get\(['"]x-sb-edge-region/iu)
-assert.match(handlerSource, /response\.headers\.set\('X-Request-Id', requestId\)/u)
-assert.match(handlerSource, /response\.headers\.set\('X-Sb-Edge-Region', edgeRegion\)/u)
+assert.match(handlerSource, /const sharedHeaders = context\.responseHeaders\(\)/u)
 assert.match(
   bootstrapBranchSource,
   /meta: \{ authMode, repair: repaired, coldStart \}/u,
 )
 assert.match(
   handlerSource,
-  /if \(req\.method === 'OPTIONS'\) \{\s*return finalize\(new Response\('ok'/u,
+  /if \(req\.method === 'OPTIONS'\) \{\s*const response = corsPreflightResponse\(req, 'allowlist'\)/u,
 )
 assert.match(migrationSource, /kind = 'version'/u)
 assert.match(migrationSource, /version_id = p_version_id/u)
@@ -861,38 +842,6 @@ await assert.rejects(
   ),
   (error: unknown) => error instanceof CommentApiError && error.code === 'unauthorized',
 )
-await assert.rejects(
-  verifyCommentToken(token, 'collaborator', secret),
-  (error: unknown) => error instanceof CommentApiError && error.code === 'unauthorized',
-)
-
-const collaboratorPayload = {
-  version: 1 as const,
-  kind: 'collaborator' as const,
-  issuedAt: now,
-  expiresAt: now + 15 * 60,
-  sessionId: 'session-comment-0001',
-  resumeId: '00000000-0000-4000-8000-000000000011',
-  scopeId: '00000000-0000-4000-8000-000000000012',
-  versionId: 42,
-  userId: '00000000-0000-4000-8000-000000000013',
-  role: 'editor' as const,
-}
-const collaboratorToken = await signCommentToken(collaboratorPayload, secret)
-assert.deepEqual(
-  await verifyCommentToken(collaboratorToken, 'collaborator', secret),
-  collaboratorPayload,
-)
-const [, collaboratorSignature] = collaboratorToken.split('.') as [string, string]
-const forgedRolePayload = Buffer.from(JSON.stringify({
-  ...collaboratorPayload,
-  role: 'viewer',
-})).toString('base64url')
-await assert.rejects(
-  verifyCommentToken(`${forgedRolePayload}.${collaboratorSignature}`, 'collaborator', secret),
-  (error: unknown) => error instanceof CommentApiError && error.code === 'unauthorized',
-)
-
 const anonymousSecret = Buffer.alloc(32, 7).toString('base64url')
 assert.match(await hashAnonymousSecret(anonymousSecret, secret), /^[0-9a-f]{64}$/u)
 assert.equal(normalizeCommentBody('  评论 👨‍👩‍👧‍👦  '), '评论 👨‍👩‍👧‍👦')

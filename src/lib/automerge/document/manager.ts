@@ -6,10 +6,6 @@ import { getAutomergeRepo } from '../repo'
 import { createResumeDocument, touchDocumentMetadata } from './factory'
 import { AutomergeDocumentPersistence } from './persistence'
 
-interface DocumentManagerOptions {
-  sharedDocumentUrl?: string
-}
-
 export class DocumentManager {
   private readonly resumeId: string
   private readonly userId: string
@@ -20,10 +16,10 @@ export class DocumentManager {
   private saveListeners = new Set<(result: DocumentSaveResult) => void>()
   private saveStartListeners = new Set<() => void>()
 
-  constructor(resumeId: string, userId: string, options: DocumentManagerOptions = {}) {
+  constructor(resumeId: string, userId: string) {
     this.resumeId = resumeId
     this.userId = userId
-    this.persistence = new AutomergeDocumentPersistence(resumeId, userId, options.sharedDocumentUrl)
+    this.persistence = new AutomergeDocumentPersistence(resumeId, userId)
   }
 
   async initialize() {
@@ -126,7 +122,7 @@ export class DocumentManager {
   }
 
   getDocumentUrl(): string | null {
-    return this.handle?.url ?? this.persistence.getSharedDocumentUrl() ?? null
+    return this.handle?.url ?? null
   }
 
   getDocumentId(): string | null {

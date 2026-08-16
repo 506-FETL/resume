@@ -3,7 +3,7 @@ import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ORDERType } from '@/lib/schema'
 import { Edit } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,6 @@ import { CommentSourceSelector } from '@/features/resume-comments/components/com
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
 import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useCollaborationStore } from '@/lib/collaboration'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
@@ -24,8 +23,6 @@ import useResumeExportStore from '@/store/resume/export'
 import useResumeStore from '@/store/resume/form'
 import CollaborationPanelProvider from './components/collaboration'
 import { CollaborationControls } from './components/collaboration/collaboration-controls'
-import { CollaborationDialog } from './components/collaboration/collaboration-dialog'
-import { CollaborationRuntime } from './components/collaboration/collaboration-runtime'
 import { CommentReviewBanner } from './components/comment-review-banner'
 import EditPanel from './components/edit-panel'
 import ResumePreview from './components/preview'
@@ -65,22 +62,6 @@ function Editor() {
   const resumeName = useResumeStore(state => state.basics.name)
   const currentResumeId = useCurrentResumeStore(state => state.resumeId)
   const editorMode = useResumeStore(state => state.mode)
-  const collaborationRole = useCollaborationStore(state => state.role)
-  const collaborationCommentAccess = useCollaborationStore(state => state.commentAccess)
-  const collaborationRequested = typeof window !== 'undefined'
-    && new URLSearchParams(window.location.search).has('collabSession')
-  const collaboratorMode = collaborationRole === 'guest'
-    || (collaborationRequested && collaborationRole !== 'host')
-  const collaboratorCommentContext = useMemo(() => collaborationCommentAccess
-    ? {
-        kind: 'collaborator' as const,
-        ...collaborationCommentAccess,
-      }
-    : null, [collaborationCommentAccess])
-  const refreshCollaboratorCommentAccess = useCallback(async () => {
-    const access = await useCollaborationStore.getState().refreshCommentAccess()
-    return { kind: 'collaborator' as const, ...access }
-  }, [])
   const resumes = useResumeListStore(state => state.resumes)
   const currentDisplayName = currentResumeId
     ? (resumes.find(resume => resume.resume_id === currentResumeId)?.display_name ?? null)
@@ -124,8 +105,6 @@ function Editor() {
     resumeId: currentResumeId,
     workingLabel: currentDisplayName ?? resumeName ?? '当前简历',
     enabled: commentsOpen,
-    collaboratorMode,
-    collaboratorAccess: collaboratorCommentContext,
   })
   const setReviewActive = useResumeReviewStore(state => state.setActive)
   useEffect(() => {
@@ -204,14 +183,6 @@ function Editor() {
 
   return (
     <CollaborationPanelProvider>
-      <CollaborationRuntime
-        drawerOpen={useSidebarMode ? false : open}
-        setDrawerOpen={useSidebarMode ? () => {} : handleMobileEditOpenChange}
-        activeTabId={activeTabId}
-        updateActiveTabId={useSidebarMode ? handleActivateWithScroll : updateActiveTabId}
-        scrollContainerRef={previewScrollRef}
-      />
-
       {useSidebarMode
         ? (
             // 桌面侧栏形态：外层 relative + h-full 撑满 dashboard 内容区，内层 absolute inset-0 精确填满，
@@ -339,13 +310,11 @@ function Editor() {
       {currentResumeId
         && editorMode === 'online'
         && currentUser
-        && (!collaboratorMode || collaboratorCommentContext)
         ? (
             <ResumeCommentProvider
               key={currentResumeId}
               access={commentReview.access}
-              beforeWrite={!collaboratorMode && commentReview.isWorking ? prepareCommentWrite : undefined}
-              refreshAccess={collaboratorMode ? refreshCollaboratorCommentAccess : undefined}
+              beforeWrite={commentReview.isWorking ? prepareCommentWrite : undefined}
               panelHeaderContent={(
                 <>
                   <CommentSourceSelector
@@ -362,12 +331,12 @@ function Editor() {
             >
               <WorkingResumeComments
                 resumeId={currentResumeId}
-                syncWorkingDocument={!collaboratorMode && commentReview.isWorking}
+                syncWorkingDocument={commentReview.isWorking}
                 rootRef={documentRef}
                 sourceLabel={commentReview.sourceLabel}
                 currentUserId={currentUser?.id ?? null}
-                canCreate={!collaboratorMode || collaborationCommentAccess?.role === 'editor'}
-                canModerateAll={!collaboratorMode}
+                canCreate
+                canModerateAll
                 open={commentsOpen}
                 bookmarkVisible={!panelOpen && !open}
                 onOpenChange={handleCommentsOpenChange}
@@ -376,7 +345,6 @@ function Editor() {
             </ResumeCommentProvider>
           )
         : null}
-      <CollaborationDialog />
       <QuickDialog
         getSnapshot={() => buildResumeShareSnapshotSource(
           useResumeStore.getState().getPersistedSnapshot(),

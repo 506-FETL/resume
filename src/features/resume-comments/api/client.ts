@@ -35,15 +35,6 @@ export type CommentAccessContext
     versionId: number
   }
   | {
-    kind: 'collaborator'
-    accessToken: string
-    sessionId: string
-    resumeId: string
-    userId: string
-    role: 'editor' | 'viewer'
-    versionId: number
-  }
-  | {
     kind: 'share'
     accessToken: string
     shareId: string
@@ -739,13 +730,6 @@ export class ResumeCommentClient {
           : 'versionId' in this.access
             ? { versionId: this.access.versionId }
             : { resumeId: this.access.resumeId }),
-      }
-    }
-    if (this.access.kind === 'collaborator') {
-      return {
-        accessKind: 'collaborator',
-        accessToken: this.access.accessToken,
-        versionId: this.access.versionId,
       }
     }
     return {

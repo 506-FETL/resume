@@ -1,7 +1,6 @@
-import { ArrowUpDown, Clock, Link2, Loader2, Radio, Save, Share2 } from 'lucide-react'
+import { ArrowUpDown, Clock, Link2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
@@ -23,13 +22,6 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
     pendingChanges,
     lastSyncTime,
     onManualSync,
-    openCollaborationDialog,
-    isSharing,
-    isCollabConnecting,
-    collaborationConnectionLabel,
-    collabDisabledReason,
-    shareButtonTooltip,
-    participantCount,
   } = useCollaborationPanel()
 
   const resumeId = useCurrentResumeStore(state => state.resumeId)
@@ -60,30 +52,6 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
           <Save className="size-4" />
           {!isMobile && '手动保存'}
         </Button>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Button
-                size={isMobile ? 'icon' : 'sm'}
-                variant={isSharing ? 'default' : 'outline'}
-                onClick={openCollaborationDialog}
-                disabled={Boolean(collabDisabledReason) || isCollabConnecting}
-                className={cn(
-                  'transition-colors',
-                  isSharing && !isCollabConnecting && 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm',
-                )}
-              >
-                {isCollabConnecting
-                  ? <Loader2 className="size-4 animate-spin" />
-                  : isSharing
-                    ? <Radio className="size-4" />
-                    : <Share2 className="size-4" />}
-                {!isMobile && (collaborationConnectionLabel ?? (isSharing ? '协作中' : '开启协作'))}
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{shareButtonTooltip}</TooltipContent>
-        </Tooltip>
         <Button
           size={isMobile ? 'icon' : 'sm'}
           variant="outline"
@@ -94,12 +62,6 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
           <Link2 className="size-4" />
           {!isMobile && '分享'}
         </Button>
-        {isSharing && (
-          <span className="text-xs font-medium text-emerald-600">
-            协作人数
-            {participantCount}
-          </span>
-        )}
         {isMobile && onOpenSortDialog && (
           <Button
             size="icon"

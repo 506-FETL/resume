@@ -4,7 +4,7 @@ const encoder = new TextEncoder()
 
 export interface CommentTokenBase {
   version: 1
-  kind: 'share' | 'collaborator' | 'realtime'
+  kind: 'share' | 'realtime'
   issuedAt: number
   expiresAt: number
 }
@@ -18,16 +18,6 @@ export interface ShareCommentAccessToken extends CommentTokenBase {
   passwordGeneration: string
 }
 
-export interface CollaboratorCommentAccessToken extends CommentTokenBase {
-  kind: 'collaborator'
-  sessionId: string
-  resumeId: string
-  scopeId: string
-  versionId: number
-  userId: string
-  role: 'editor' | 'viewer'
-}
-
 export interface RealtimeCommentAccessToken extends CommentTokenBase {
   kind: 'realtime'
   topic: string
@@ -37,7 +27,6 @@ export interface RealtimeCommentAccessToken extends CommentTokenBase {
 
 export type CommentAccessToken
   = | ShareCommentAccessToken
-    | CollaboratorCommentAccessToken
     | RealtimeCommentAccessToken
 
 function bytesToBase64Url(bytes: Uint8Array): string {
@@ -86,7 +75,7 @@ function readTokenPayload(value: unknown): CommentAccessToken {
   if (
     !isRecord(value)
     || value.version !== 1
-    || !['share', 'collaborator', 'realtime'].includes(String(value.kind))
+    || !['share', 'realtime'].includes(String(value.kind))
     || !Number.isInteger(value.issuedAt)
     || !Number.isInteger(value.expiresAt)
   ) {

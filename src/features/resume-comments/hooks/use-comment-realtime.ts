@@ -25,8 +25,7 @@ function accessChangedVersion(previous: CommentAccessContext, next: CommentAcces
 }
 
 function isReadOnlyAccess(access: CommentAccessContext) {
-  return (access.kind === 'share' && !access.commentsEnabled)
-    || (access.kind === 'collaborator' && access.role === 'viewer')
+  return access.kind === 'share' && !access.commentsEnabled
 }
 
 function hasServerReadPrincipal(
