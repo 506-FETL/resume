@@ -192,3 +192,12 @@ supabase migration list --linked
 - CI 目标 ESLint 退出码 `0`，保留 3 条既有 React Fast Refresh warning；扩大到整个 editor 目录会命中与本任务无关的 import-order 既有错误，因此 workflow 使用明确文件白名单。
 - `pnpm build` 退出码 `0`，保留既有 Tiptap/Radix 循环 chunk 和大 chunk warning。
 - `pnpm verify:database` 本机退出码 `1`，失败于 `supabase db reset --local` 的 `LegacyDbBootstrapError: failed to inspect service`；CI 文件已建立，但尚未在 GitHub runner 上产生 fresh-reset/pgTAP/并发通过证据。
+
+## 任务 9：GitHub Stars Edge 缓存
+
+- 迁移将 `github_stars` 收敛为固定 `506-fetl/resume` 单行缓存，浏览器仅有 SELECT；旧参数化 get/set RPC 被删除，无参读取函数使用 SECURITY INVOKER，`http` 扩展仅以 RESTRICT 语义删除。
+- 只读链接库预检确认当前缓存只有一条目标仓库记录、没有非目标仓库记录，因此固定仓库约束不会丢弃或猜测迁移现有数据。
+- `github-stars-refresh` 只接受 POST、空对象请求体和独立 maintenance bearer token；仓库 URL 固定在服务端，使用 5 秒超时、ETag/304、严格非负整数校验，失败只更新失败元数据而不覆盖最后成功 stars。
+- 前端改为无参只读缓存；删除浏览器直连 GitHub 和客户端回写。缓存缺失/损坏/读取失败时隐藏该非核心展示，不把未知值显示为 0；陈旧缓存继续展示最后成功值。
+- `pnpm run verify:github-stars`、目标 ESLint、`pnpm exec tsc -b --pretty false`、`git diff --check` 与 `pnpm build`：退出码均为 `0`；build 仍只有既有循环 chunk/大 chunk warning。
+- 本机没有 Deno 与本地 Supabase 数据库，因此 Edge 运行时、迁移执行和真实 GitHub 200/304/限流故障注入尚未动态验证；定时调度与告警由任务 10 落地，部署前仍需 fresh reset 和隔离环境 smoke。

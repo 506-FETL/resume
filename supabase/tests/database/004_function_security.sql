@@ -49,9 +49,8 @@ SELECT extensions.ok(
     WHERE namespaces.nspname IN ('public', 'private')
       AND functions.prosecdef
       AND has_function_privilege('anon', functions.oid, 'EXECUTE')
-      AND functions.oid <> 'public.get_github_stars(text,text)'::regprocedure
   ),
-  'anon security-definer execution is limited to the temporary read-only stars API'
+  'anon cannot execute any application security-definer function'
 );
 
 SELECT extensions.ok(

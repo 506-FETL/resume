@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.llm-proxy]
 verify_jwt = false
+
+[functions.github-stars-refresh]
+verify_jwt = false

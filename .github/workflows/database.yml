@@ -78,6 +78,7 @@ jobs:
           pnpm run verify:comment-service
           pnpm run verify:edge-context
           pnpm run verify:edge-auth
+          pnpm run verify:github-stars
 
       - name: Type-check application
         run: pnpm exec tsc -b --pretty false
@@ -87,10 +88,13 @@ jobs:
           pnpm exec eslint
           scripts/verify-database-concurrency.ts
           scripts/verify-edge-request-context.ts
+          scripts/verify-github-stars-cache.ts
           scripts/verify-resume-comment-service.ts
           scripts/verify-supabase-edge-auth.ts
           supabase/functions/shared/*.ts
           supabase/functions/llm-proxy/index.ts
+          supabase/functions/github-stars-refresh/core.ts
+          supabase/functions/github-stars-refresh/index.ts
           supabase/functions/resume-share/index.ts
           supabase/functions/resume-comments/index.ts
           src/features/resume-comments/api/cache.ts
@@ -100,6 +104,9 @@ jobs:
           src/lib/automerge/document/manager.ts
           src/lib/automerge/document/persistence.ts
           src/lib/supabase/quota.ts
+          src/lib/supabase/github-stars.ts
+          src/components/animate-ui/primitives/animate/github-stars.tsx
+          src/components/dashboard/site-header.tsx
           src/pages/resume/editor/components/collaboration/collaboration-controls/index.tsx
           src/pages/resume/editor/components/collaboration/index.tsx
           src/pages/resume/editor/hooks/use-collaboration-panel-value.ts

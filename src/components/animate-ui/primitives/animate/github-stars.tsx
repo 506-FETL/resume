@@ -41,8 +41,6 @@ const [GithubStarsProvider, useGithubStars]
 type GithubStarsProps = WithAsChild<
   {
     children: React.ReactNode
-    username?: string
-    repo?: string
     value?: number
     delay?: number
   } & UseIsInViewOptions
@@ -52,8 +50,6 @@ type GithubStarsProps = WithAsChild<
 function GithubStars({
   ref,
   children,
-  username,
-  repo,
   value,
   delay = 0,
   inView = false,
@@ -69,7 +65,8 @@ function GithubStars({
 
   const [stars, setStars] = React.useState(value ?? 0)
   const [currentStars, setCurrentStars] = React.useState(0)
-  const [isLoading, setIsLoading] = React.useState(true)
+  const [isLoading, setIsLoading] = React.useState(value === undefined)
+  const [hasValue, setHasValue] = React.useState(value !== undefined)
   const isCompleted = React.useMemo(
     () => currentStars === stars,
     [currentStars, stars],
@@ -78,10 +75,14 @@ function GithubStars({
   const Component = asChild ? Slot : motion.div
 
   React.useEffect(() => {
-    if (value !== undefined && username && repo)
+    if (value !== undefined) {
+      setStars(value)
+      setHasValue(true)
+      setIsLoading(false)
       return
-    if (!isInView || !username || !repo) {
-      setStars(0)
+    }
+    if (!isInView) {
+      setHasValue(false)
       setIsLoading(true)
       return
     }
@@ -89,32 +90,21 @@ function GithubStars({
     let cancelled = false
 
     const timeout = setTimeout(() => {
-      // 服务端缓存 + 懒刷新（超 1 天服务端拉取并回写，否则返回缓存）。全局共享一份，避免每客户端各自打 GitHub。
-      getGithubStars(username, repo)
-        .then(async (result) => {
+      getGithubStars()
+        .then((result) => {
           if (cancelled)
             return
-
-          if (!result.stale) {
+          if (result) {
             setStars(result.stars)
-            return
-          }
-
-          // stale：仅在当前页面读取 GitHub 公共 API，不把浏览器数据写回共享缓存。
-          const res = await fetch(`https://api.github.com/repos/${username}/${repo}`)
-          const data = await res.json()
-          if (cancelled)
-            return
-          if (data && typeof data.stargazers_count === 'number') {
-            setStars(data.stargazers_count)
+            setHasValue(true)
           }
           else {
-            // 兜底 fetch 也失败：用服务端返回的旧缓存兜底
-            setStars(result.stars)
+            setHasValue(false)
           }
         })
         .catch(() => {
-          // GitHub stars 加载失败是非关键路径，静默降级避免打扰用户
+          if (!cancelled)
+            setHasValue(false)
         })
         .finally(() => {
           if (!cancelled)
@@ -126,7 +116,7 @@ function GithubStars({
       cancelled = true
       clearTimeout(timeout)
     }
-  }, [username, repo, value, isInView, delay])
+  }, [value, isInView, delay])
 
   return (
     <GithubStarsProvider
@@ -139,7 +129,7 @@ function GithubStars({
         setCurrentStars,
       }}
     >
-      {!isLoading && (
+      {!isLoading && hasValue && (
         <Component ref={localRef} {...props}>
           {children}
         </Component>
@@ -181,7 +171,9 @@ function GithubStarsIcon<T extends React.ElementType>({
   ...props
 }: GithubStarsIconProps<T>) {
   const { stars, currentStars, isCompleted } = useGithubStars()
-  const fillPercentage = (currentStars / stars) * 100
+  const fillPercentage = stars === 0
+    ? (isCompleted ? 100 : 0)
+    : Math.min(100, Math.max(0, (currentStars / stars) * 100))
 
   return (
     <div style={{ position: 'relative' }}>
