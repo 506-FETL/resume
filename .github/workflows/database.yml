@@ -84,6 +84,7 @@ jobs:
           pnpm run verify:edge-context
           pnpm run verify:edge-auth
           pnpm run verify:github-stars
+          pnpm run verify:llm-proxy
           pnpm run verify:maintenance
 
       - name: Type-check Edge functions
@@ -105,9 +106,11 @@ jobs:
           scripts/verify-backend-maintenance.ts
           scripts/verify-edge-request-context.ts
           scripts/verify-github-stars-cache.ts
+          scripts/verify-llm-proxy-failures.ts
           scripts/verify-resume-comment-service.ts
           scripts/verify-supabase-edge-auth.ts
           supabase/functions/shared/*.ts
+          supabase/functions/llm-proxy/core.ts
           supabase/functions/llm-proxy/index.ts
           supabase/functions/github-stars-refresh/core.ts
           supabase/functions/github-stars-refresh/index.ts

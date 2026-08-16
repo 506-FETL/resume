@@ -8,6 +8,10 @@ import {
   authenticateSupabaseUser,
   SupabaseAuthenticationError,
 } from '../shared/supabase-auth.ts'
+import {
+  classifyUpstreamFailure,
+  streamFailureDeliveryState,
+} from './core.ts'
 
 interface LLMProxyRequest {
   messages?: unknown
@@ -208,18 +212,6 @@ function quotaHeaders(reservation: ReservationResult) {
     headers.set('X-AI-Quota-Reset-At', reservation.reset_at)
   headers.set('X-AI-Quota-Unlimited', String(Boolean(reservation.unlimited)))
   return headers
-}
-
-function upstreamError(status: number) {
-  if (status === 400 || status === 422)
-    return { code: 'upstream_invalid_request', status: 400, failure: `upstream_${status}` }
-  if (status === 401)
-    return { code: 'upstream_auth', status: 502, failure: 'upstream_401' }
-  if (status === 402)
-    return { code: 'upstream_balance', status: 503, failure: 'upstream_402' }
-  if (status === 429)
-    return { code: 'upstream_rate_limited', status: 429, failure: 'upstream_429' }
-  return { code: 'upstream_unavailable', status: 503, failure: `upstream_${status}` }
 }
 
 function readSqlState(error: unknown) {
@@ -550,7 +542,7 @@ Deno.serve(async (request) => {
     if (!upstream.ok) {
       clearTimeout(timeoutId)
       request.signal.removeEventListener('abort', abortUpstream)
-      const mapped = upstreamError(upstream.status)
+      const mapped = classifyUpstreamFailure(upstream.status)
       await release(mapped.failure)
       context.log({
         level: upstream.status >= 500 || upstream.status === 402 ? 'error' : 'warn',
@@ -649,7 +641,7 @@ Deno.serve(async (request) => {
       async start(controller) {
         const failStream = async (code: string) => {
           upstreamController?.abort()
-          const finalState = deliveryStarted ? 'partial' : 'none'
+          const finalState = streamFailureDeliveryState(deliveryStarted)
           await finishLedger(finalState, code)
           context.log({
             level: 'error',
@@ -722,7 +714,7 @@ Deno.serve(async (request) => {
         upstreamController?.abort()
         await reader.cancel().catch(() => undefined)
         if (!ledgerFinalized) {
-          const finalState = deliveryStarted ? 'partial' : 'none'
+          const finalState = streamFailureDeliveryState(deliveryStarted)
           await finishLedger(finalState, 'client_cancelled')
           record('client_error', 499, 'client_cancelled')
         }

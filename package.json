@@ -16,6 +16,7 @@
     "verify:edge-context": "node --experimental-strip-types scripts/verify-edge-request-context.ts",
     "verify:database": "supabase db reset --local && supabase test db --local && node --experimental-strip-types scripts/verify-database-concurrency.ts",
     "verify:github-stars": "node --experimental-strip-types scripts/verify-github-stars-cache.ts",
+    "verify:llm-proxy": "node --experimental-strip-types scripts/verify-llm-proxy-failures.ts",
     "verify:maintenance": "node --experimental-strip-types scripts/verify-backend-maintenance.ts",
     "benchmark:comments": "node --experimental-strip-types scripts/benchmark-resume-comments-bootstrap.ts",
     "prewarm:comments": "node --experimental-strip-types scripts/prewarm-resume-comment-scopes.ts",
