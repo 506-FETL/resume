@@ -155,9 +155,11 @@ assert.doesNotMatch(shareSource.slice(anonymousShareBranch), /authenticateSupaba
 const llmSource = functionSources[2]
 const llmAuthIndex = llmSource.indexOf('await authenticateSupabaseUser')
 assert.ok(llmAuthIndex >= 0)
-assert.ok(llmAuthIndex < llmSource.indexOf('await req.json()'))
-assert.ok(llmAuthIndex < llmSource.indexOf('check_ai_quota'))
-assert.ok(llmAuthIndex < llmSource.indexOf('api.deepseek.com'))
+assert.ok(llmAuthIndex < llmSource.indexOf('await request.text()'))
+assert.doesNotMatch(llmSource, /admin\.rpc\('check_ai_quota'/u)
+assert.doesNotMatch(llmSource, /admin\.rpc\('consume_ai_credits'/u)
+assert.ok(llmAuthIndex < llmSource.indexOf('admin.rpc(\'reserve_ai_credits\''))
+assert.ok(llmAuthIndex < llmSource.indexOf('await fetch(DEEPSEEK_URL'))
 
 const configSource = readFileSync('supabase/config.toml', 'utf8')
 for (const functionName of ['resume-share', 'resume-comments', 'llm-proxy']) {

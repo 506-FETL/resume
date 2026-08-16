@@ -16,6 +16,7 @@
 
 - 浏览器角色只能读写当前 `auth.uid()` 拥有的简历、版本、ATS、求职记录和 Automerge 文档。
 - 匿名或其他登录用户唯一允许的跨用户访问，是通过分享链接读取该次发布的不可变简历快照，并凭分享评论令牌读写该分享范围内的评论。
+- 现有 `collaborator` 会话不再构成第二条跨账号授权边界：其他登录用户不得借协作会话读写 owner 的编辑态简历、版本或评论域。保留同一 owner 的本人会话不产生跨用户权限。
 - 上述共享访问只能走 `resume-share` / `resume-comments` Edge Function；浏览器角色不能直连基础表或评论表。
 - 用户模板和其他基础数据一样只能由 owner 读取和写入；`published` 不再自动构成跨用户读取授权。
 - 关联数据写入同时验证父资源归属，不能把自己的 ATS、版本、公司或 Automerge 行挂到他人的简历。
@@ -105,6 +106,7 @@ RLS 迁移在单一事务内完成：撤销 grants、删除旧策略、创建新
 - A 不能把自己的子记录挂到 B 的 `resume_id`。
 - 匿名用户看不到任何基础表；A 也看不到、不能修改或删除 B 的模板，无论模板 visibility/status 为何。
 - 有效匿名分享请求只能读取指定分享当前发布批次的最小快照；不能借 share ID、resume ID 或评论 token 查询 owner 的 `resume_config`、其他版本、ATS、Tracker、Automerge 或模板。
+- 用户 B 无法注册、加入、续租或使用 owner A 的 `collaborator` 会话；伪造的 collaborator token 不能读取评论 bootstrap 或实时数据。
 - 有效评论 token 只能访问其绑定的 scope，并且不能直接调用评论表 Data API。
 - service role 的分享、评论和后台流程仍能读取所需基础数据。
 - catalog 查询确认六表不存在 `qual=true` 或 `with_check=true` 的宽松私有数据策略，也不存在同角色同操作的重复 permissive 策略。

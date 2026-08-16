@@ -139,6 +139,7 @@ export type CommentErrorCode
     | 'invalid_selection'
     | 'anchor_detached'
     | 'rate_limited'
+    | 'database_deadlock'
     | 'content_too_long'
     | 'not_found'
     | 'unexpected'

@@ -1,7 +1,9 @@
 /* global Deno */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
-import { corsHeaders } from '../shared/cors.ts'
+import { corsPreflightResponse } from '../shared/cors.ts'
+import { recordOperationMetric, scheduleBackground } from '../shared/operation-metrics.ts'
+import { createRequestContext } from '../shared/request-context.ts'
 import {
   derivePasswordGeneration,
   signCommentToken,
@@ -21,13 +23,6 @@ const PASSWORD_ALGORITHM = 'pbkdf2-sha256'
 const PASSWORD_ITERATIONS = 310_000
 const PASSWORD_KEY_LENGTH = 32
 const PASSWORD_SALT_LENGTH = 16
-
-const jsonHeaders = {
-  ...corsHeaders,
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Content-Type': 'application/json',
-  'Cache-Control': 'no-store',
-}
 
 interface GetResult {
   needPassword?: boolean
@@ -77,15 +72,6 @@ type AdminClient = ReturnType<typeof createAdminClient>
 function readCurrentRelease(value: unknown): CurrentReleaseRow | null {
   const release = (Array.isArray(value) ? value[0] : value) as CurrentReleaseRow | null
   return release?.id && Number.isInteger(release.release_no) ? release : null
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: jsonHeaders })
-}
-
-// 统一「不可用」文案：不区分 不存在 / 已关闭 / 已过期，降低探测。
-function unavailable() {
-  return json({ error: 'unavailable' }, 404)
 }
 
 function getClientAddress(req: Request) {
@@ -313,19 +299,64 @@ async function notifyShareCommentSettings({
 }
 
 Deno.serve(async (req) => {
+  const context = createRequestContext(req, 'resume-share', 'public')
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: jsonHeaders })
+    const response = corsPreflightResponse(req, 'public')
+    response.headers.set('X-Request-Id', context.requestId)
+    return response
   }
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return json({ error: 'method_not_allowed' }, 405)
+    return context.json({ error: 'method_not_allowed' }, 405)
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !serviceRoleKey) {
-    return json({ error: 'service credentials not configured' }, 500)
+    context.log({
+      level: 'error',
+      event: 'request_failed',
+      operation: 'share_access',
+      status: 500,
+      errorCode: 'service_not_configured',
+    })
+    return context.json({ error: 'service_not_configured' }, 500)
   }
   const admin = createAdminClient(supabaseUrl, serviceRoleKey)
+  let operation = 'share_access'
+  const json = (body: unknown, status = 200, metricErrorCode?: string) => {
+    const responseErrorCode = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+      ? body.error
+      : undefined
+    const errorCode = metricErrorCode ?? responseErrorCode
+    const outcome = status >= 500
+      ? 'server_error' as const
+      : status >= 400
+        ? 'client_error' as const
+        : 'success' as const
+    scheduleBackground(recordOperationMetric(admin, {
+      requestId: context.requestId,
+      functionName: 'resume-share',
+      operation,
+      outcome,
+      errorCode,
+      status,
+      durationMs: context.durationMs(),
+    }), 'operation_metric_failed')
+    if (status >= 500) {
+      context.log({
+        level: 'error',
+        event: 'request_failed',
+        operation,
+        status,
+        errorCode: errorCode ?? 'unexpected',
+      })
+    }
+    return context.json(body, status, {
+      'Server-Timing': `edge_total;dur=${context.durationMs().toFixed(1)}`,
+    })
+  }
+  // 统一「不可用」文案：不区分不存在、关闭或过期，降低探测。
+  const unavailable = () => json({ error: 'unavailable' }, 404, 'share_unavailable')
 
   try {
     // ============ 匿名读取：GET ?token / POST { token, password }（读取意图） ============
@@ -344,6 +375,9 @@ Deno.serve(async (req) => {
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({})) as Record<string, unknown>
       op = typeof body.op === 'string' ? body.op : null
+      operation = op === 'set_password' || op === 'update_settings'
+        ? 'owner_write'
+        : 'share_access'
       if (typeof body.token === 'string')
         token = body.token
       if (Object.hasOwn(body, 'password')) {
@@ -386,10 +420,13 @@ Deno.serve(async (req) => {
       try {
         nextHash = password ? await hashPassword(password) : null
       }
-      catch (error) {
-        console.error('hash_password_failed', {
-          shareId,
-          message: error instanceof Error ? error.message : 'unknown',
+      catch {
+        context.log({
+          level: 'error',
+          event: 'password_hash_failed',
+          operation,
+          status: 500,
+          errorCode: 'unexpected',
         })
         return json({ error: 'unexpected' }, 500)
       }
@@ -399,7 +436,14 @@ Deno.serve(async (req) => {
         .eq('id', shareId)
         .eq('user_id', userId)
       if (error) {
-        console.error('set_password_failed', { shareId, message: error.message })
+        context.log({
+          level: 'error',
+          event: 'database_write_failed',
+          operation,
+          status: 500,
+          errorCode: 'database_unexpected',
+          sqlState: error.code,
+        })
         return json({ error: 'unexpected' }, 500)
       }
       if (!count)
@@ -437,10 +481,13 @@ Deno.serve(async (req) => {
         try {
           patch.password_hash = password ? await hashPassword(password) : null
         }
-        catch (error) {
-          console.error('hash_password_failed', {
-            shareId,
-            message: error instanceof Error ? error.message : 'unknown',
+        catch {
+          context.log({
+            level: 'error',
+            event: 'password_hash_failed',
+            operation,
+            status: 500,
+            errorCode: 'unexpected',
           })
           return json({ error: 'unexpected' }, 500)
         }
@@ -452,7 +499,14 @@ Deno.serve(async (req) => {
         .eq('id', shareId)
         .eq('user_id', userId)
       if (error) {
-        console.error('update_settings_failed', { shareId, message: error.message })
+        context.log({
+          level: 'error',
+          event: 'database_write_failed',
+          operation,
+          status: 500,
+          errorCode: 'database_unexpected',
+          sqlState: error.code,
+        })
         return json({ error: 'unexpected' }, 500)
       }
       if (!count)
@@ -470,10 +524,13 @@ Deno.serve(async (req) => {
             realtimeSecret,
           })
         }
-        catch (notifyError) {
-          console.error('notify_comment_settings_failed', {
-            shareId,
-            message: notifyError instanceof Error ? notifyError.message : 'unknown',
+        catch {
+          context.log({
+            level: 'warn',
+            event: 'comment_notification_failed',
+            operation,
+            status: 200,
+            errorCode: 'database_unexpected',
           })
         }
       }
@@ -566,10 +623,13 @@ Deno.serve(async (req) => {
       try {
         ok = await verifyPassword(password, data.password_hash)
       }
-      catch (error) {
-        console.error('verify_password_failed', {
-          shareId: data.id,
-          message: error instanceof Error ? error.message : 'unknown',
+      catch {
+        context.log({
+          level: 'error',
+          event: 'password_verify_failed',
+          operation,
+          status: 503,
+          errorCode: 'unexpected',
         })
         return json({ error: 'temporarily_unavailable' }, 503)
       }
@@ -580,8 +640,16 @@ Deno.serve(async (req) => {
         p_share_id: data.id,
         p_key_hash: clientKey,
       })
-      if (clearError)
-        console.error('clear_resume_share_password_attempts failed:', clearError.message)
+      if (clearError) {
+        context.log({
+          level: 'warn',
+          event: 'password_attempt_cleanup_failed',
+          operation,
+          status: 200,
+          errorCode: 'database_unexpected',
+          sqlState: clearError.code,
+        })
+      }
     }
 
     // 校验通过后原子记录访问；统计失败不阻断简历查看。
@@ -589,8 +657,16 @@ Deno.serve(async (req) => {
       const { error: viewError } = await admin.rpc('record_resume_share_view', {
         p_share_id: data.id,
       })
-      if (viewError)
-        console.error('record_resume_share_view failed:', viewError.message)
+      if (viewError) {
+        context.log({
+          level: 'warn',
+          event: 'view_counter_failed',
+          operation,
+          status: 200,
+          errorCode: 'database_unexpected',
+          sqlState: viewError.code,
+        })
+      }
     }
 
     const commentTokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
@@ -633,7 +709,17 @@ Deno.serve(async (req) => {
   catch (err) {
     if (err instanceof SupabaseAuthenticationError)
       return json({ error: 'unauthorized' }, 401)
-    console.error('resume-share failed:', err instanceof Error ? err.message : err)
+    const sqlState = err && typeof err === 'object' && 'code' in err && typeof err.code === 'string'
+      ? err.code
+      : undefined
+    context.log({
+      level: 'error',
+      event: 'request_failed',
+      operation,
+      status: 500,
+      errorCode: 'unexpected',
+      sqlState,
+    })
     return json({ error: 'unexpected' }, 500)
   }
 })

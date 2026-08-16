@@ -107,7 +107,7 @@ supabase migration list --linked
 | SQL lint | `supabase db lint --linked --level warning` | `0` | 线上现有旧模板/会话函数有 8 个 error、2 个 warning；任务 2/7 处理后复跑 |
 | pgTAP | `supabase test db --local` | 未执行 | 实施任务 8 更新 |
 | 并发 | `pnpm verify:database` | 未执行 | 实施任务 8 更新 |
-| Edge | `pnpm verify:edge-context` | 未执行 | 实施任务 6 更新 |
+| Edge | `pnpm run verify:edge-context` / `pnpm run verify:edge-auth` | `0` / `0` | request ID、CORS、函数体鉴权顺序静态契约通过；不等于 Deno 运行时或真实浏览器验收 |
 | GitHub 缓存 | `pnpm verify:github-stars` | 未执行 | 实施任务 9 更新 |
 | TypeScript | `pnpm exec tsc -b --pretty false` | 未执行 | 实施任务 11 更新 |
 | 全量 lint | `pnpm lint` | 未执行 | 实施任务 11 更新 |
@@ -159,3 +159,15 @@ supabase migration list --linked
 - `pnpm exec tsc -b --pretty false`：退出码 `0`。
 - 模板/RLS 相关目标 ESLint（含 `--no-warn-ignored`）：退出码 `0`。
 - `supabase test db supabase/tests/database/001_base_rls.sql --local`：退出码 `1`，原因是本地 54322 无数据库容器；测试文件已创建但尚未动态执行。
+
+## 任务 4–6：AI 预留结算、请求追踪与 CORS
+
+- 已建立 UTC 日桶、AI request ledger 及 reserve/mark/settle/release/reconcile RPC；固定 1/3 积分规则不变，token usage 仅用于成本观测。
+- `llm-proxy` 改为「鉴权 → 原子预留 → DeepSeek → 首个有意义内容前持久化 delivery started → 完成/部分结算」；上游失败或未交付释放预留，结算失败单独记入可告警指标。
+- 已强制上游流返回 usage，并补齐非流式 `message` 返回的有效内容判定；对外错误不再返回 DeepSeek/数据库原始正文。
+- 三个 Edge Function 已统一 UUID `X-Request-Id`、`Server-Timing`、Edge region、结构化脱敏日志和后台指标写入；验证期间发现并修复 request ID UUID 正则遗漏连字符的问题。
+- `resume-share` 保留公开 CORS，但只返回指定分享的当前不可变 release 快照和短期评论凭据；owner 写分支仍校验 JWT、所有权和限流。
+- `llm-proxy` / `resume-comments` 使用 `APP_ALLOWED_ORIGINS` 精确白名单；生产默认域为 `https://506resume.vercel.app`，无 Origin 的非浏览器请求仍需通过原业务鉴权。
+- 评论数据库 `40P01` 已映射为可重试 `database_deadlock`，同时保留 SQLSTATE 仅用于脱敏指标。
+- `pnpm run verify:edge-context`、`pnpm run verify:edge-auth`、目标 ESLint、`pnpm exec tsc -b --pretty false` 和 `git diff --check`：退出码均为 `0`。
+- 本机无 `deno`，因此 `deno check` 未执行；SQL pgTAP/fresh reset 仍受 Docker/Podman 缺失阻断，不记为通过。

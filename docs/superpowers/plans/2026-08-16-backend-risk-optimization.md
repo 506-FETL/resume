@@ -30,6 +30,7 @@
 | 用户基础数据、ATS、版本、协作文档、公司、用户模板 | 无直接读写 | 仅本人数据 | 后端受控访问 |
 | 分享快照 | 仅通过 `resume-share` 且持有效分享凭据读取指定快照 | 同左 | 受控管理 |
 | 分享评论域 | 仅通过 `resume-comments` 且持有效分享凭据读取/写入该域 | 同左 | 受控管理 |
+| 跨账号协作会话 | 无读写 | 无读写 | 不作为用户间授权边界 |
 | AI 额度 | 无 RPC 执行权 | 仅由 `llm-proxy` 代表当前 JWT 用户操作 | Edge 内部执行 |
 | GitHub Stars | 只读固定仓库缓存 | 只读固定仓库缓存 | 定时刷新写入 |
 
@@ -448,6 +449,8 @@ git commit -m "feat(backend): 统一请求追踪与安全响应"
 - 创建：`supabase/migrations/*_fix_comment_lock_order_and_function_paths.sql`
 - 创建：`supabase/tests/database/003_comment_concurrency_contracts.sql`
 - 创建：`supabase/tests/database/004_function_security.sql`
+
+> 权限边界补充：同批移除 `resume-comments` 对跨账号 `collaborator` 会话的注册、加入、续租与 bootstrap 授权，并增加 A/B 账号负向契约。唯一保留的跨用户路径是有效分享快照及其签名评论域。
 - 创建：`scripts/verify-database-concurrency.ts`
 
 - [ ] **步骤 1：创建函数加固迁移**
