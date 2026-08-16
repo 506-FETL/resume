@@ -41,16 +41,32 @@ export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 
   entryIdMigrationReady: false,
 }
 
+class ResumeLoadSupersededError extends Error {
+  constructor() {
+    super('简历加载已被新的请求替代')
+    this.name = 'ResumeLoadSupersededError'
+  }
+}
+
 export function createDocumentSlice(
   set: StoreApi<ResumeState>['setState'],
   get: StoreApi<ResumeState>['getState'],
 ): DocumentSlice {
+  let latestLoadRequestId = 0
+
   return {
     ...documentDefaults,
 
     loadResumeData: async (resumeId: string, options?: { documentUrl?: string }) => {
+      const requestId = ++latestLoadRequestId
+      const isCurrentRequest = () => requestId === latestLoadRequestId
+      const assertCurrentRequest = () => {
+        if (!isCurrentRequest())
+          throw new ResumeLoadSupersededError()
+      }
       const { docManager, cleanupFns } = get()
 
+      clearSyncTimers()
       if (cleanupFns.length > 0) {
         cleanupFns.forEach(fn => fn())
       }
@@ -73,6 +89,7 @@ export function createDocumentSlice(
 
       if (isOfflineResumeId(resumeId)) {
         const offlineResume = await getOfflineResumeById(resumeId)
+        assertCurrentRequest()
         if (!offlineResume) {
           throw new Error('离线简历不存在')
         }
@@ -102,15 +119,18 @@ export function createDocumentSlice(
       }
 
       const user = await getCurrentUser()
+      assertCurrentRequest()
       if (!user) {
         throw new Error('用户未登录')
       }
 
+      let manager: DocumentManager | null = null
       try {
-        const manager = new DocumentManager(resumeId, user.id, {
+        manager = new DocumentManager(resumeId, user.id, {
           sharedDocumentUrl: options?.documentUrl,
         })
         const handle = await manager.initialize()
+        assertCurrentRequest()
         const sourceDoc = handle.doc()
         let docSnapshot = mapSourceToPersistedSnapshot(sourceDoc)
         const entryIdPatches = collectMissingResumeEntryIdPatches(sourceDoc, docSnapshot)
@@ -124,6 +144,7 @@ export function createDocumentSlice(
 
         const doc = handle.doc()
         const cloudAppearanceResult = await getCloudAppearanceSource(resumeId)
+        assertCurrentRequest()
         const cloudHasPersistedAppearance = cloudAppearanceResult.status === 'present'
         const docHasPersistedAppearance = hasPersistedAppearance(doc)
         const snapshot = cloudHasPersistedAppearance
@@ -131,7 +152,7 @@ export function createDocumentSlice(
           : docSnapshot
 
         const changeHandler = ({ doc }: { doc: AutomergeResumeDocument | null }) => {
-          if (!doc)
+          if (!doc || !isCurrentRequest())
             return
 
           set(prev => ({
@@ -146,10 +167,14 @@ export function createDocumentSlice(
         const offChange = () => handle.off('change', changeHandler)
 
         const offSaveStart = manager.onSaveStart(() => {
+          if (!isCurrentRequest())
+            return
           set({ isSyncing: true })
         })
 
         const offSave = manager.onSaveResult(({ success, error }) => {
+          if (!isCurrentRequest())
+            return
           if (success) {
             set({
               isSyncing: false,
@@ -166,6 +191,7 @@ export function createDocumentSlice(
           }
         })
 
+        assertCurrentRequest()
         set({
           ...mapSnapshotToState(snapshot),
           docManager: manager,
@@ -184,6 +210,7 @@ export function createDocumentSlice(
 
         if (entryIdPatches.length > 0) {
           await get().syncToSupabase()
+          assertCurrentRequest()
         }
 
         return {
@@ -194,6 +221,12 @@ export function createDocumentSlice(
         }
       }
       catch (error) {
+        if (!isCurrentRequest()) {
+          manager?.destroy()
+          throw new ResumeLoadSupersededError()
+        }
+
+        manager?.destroy()
         set({
           isSyncing: false,
           syncError: error instanceof Error ? error.message : '初始化失败',
@@ -206,6 +239,7 @@ export function createDocumentSlice(
     },
 
     cleanup: () => {
+      latestLoadRequestId += 1
       const { cleanupFns, docManager } = get()
       cleanupFns.forEach(fn => fn())
       docManager?.destroy()
