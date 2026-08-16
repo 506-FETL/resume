@@ -294,7 +294,7 @@ function Editor() {
                   </DrawerTrigger>
                   <DrawerContent>
                     <CollaborationControls onOpenSortDialog={handleOpenSortDialog} />
-                    <div className="@container/panel p-4 overflow-y-auto overflow-x-hidden">
+                    <div className="@container/panel flex min-h-0 flex-1 flex-col overflow-hidden p-4">
                       <SidebarEditor
                         activeTabId={activeTabId}
                         order={order}

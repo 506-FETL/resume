@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { ResumeCommentThread } from '../types.ts'
 import type { CommentUiPermissions } from './types.ts'
-import { ArrowLeft, Link2, MoreHorizontal, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Link2, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useResumeCommentClient, useResumeCommentStore } from '../context.tsx'
@@ -129,8 +129,8 @@ export function ThreadDetail({
                 </div>
               )
             : (
-                <Button size="icon-sm" variant="ghost" aria-label="线程菜单" onClick={() => setConfirmingThreadDelete(true)}>
-                  <MoreHorizontal />
+                <Button size="icon-sm" variant="ghost" aria-label="删除评论线程" onClick={() => setConfirmingThreadDelete(true)}>
+                  <Trash2 />
                 </Button>
               )
           : null}

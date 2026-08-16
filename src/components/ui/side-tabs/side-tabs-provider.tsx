@@ -18,6 +18,8 @@ interface Props {
   fill?: string
   radius?: number
   controlDown?: number
+  /** 使用父容器的可用高度，内容区内部滚动，不再由内容撑高整个组件 */
+  fillAvailableHeight?: boolean
 }
 
 interface BoxState {
@@ -102,6 +104,7 @@ export function SideTabsProvider({
   orientation = 'vertical',
   radius = 12,
   controlDown = 12,
+  fillAvailableHeight = false,
   children,
   ...props
 }: PropsWithChildren<Props>) {
@@ -137,23 +140,26 @@ export function SideTabsProvider({
     const cRect = container.getBoundingClientRect()
     const tRect = tabs.getBoundingClientRect()
     const innerH = contentEl.scrollHeight || 0
-    const h = Math.max(minHeight, innerH + padding * 2)
+    const measuredHeight = Math.max(minHeight, innerH + padding * 2)
 
     if (orientation === 'horizontal') {
       const x = tRect.right - cRect.left + gapPx
       const rawW = cRect.right - (tRect.right + gapPx) - cRect.left
       const w = Math.max(0, rawW)
-      const totalHeight = Math.max(h, tRect.height)
-      dispatch({ type: 'set-box', value: { x, y: 0, w, h, totalHeight } })
+      const totalHeight = Math.max(measuredHeight, tRect.height)
+      dispatch({ type: 'set-box', value: { x, y: 0, w, h: measuredHeight, totalHeight } })
       return
     }
 
     const y = tRect.bottom - cRect.top + gapPx
     const w = Math.max(0, cRect.width)
     const x = 0
+    const h = fillAvailableHeight
+      ? Math.max(0, cRect.height - y)
+      : measuredHeight
     const totalHeight = y + h
     dispatch({ type: 'set-box', value: { x, y, w, h, totalHeight } })
-  }, [gapPx, minHeight, orientation, padding])
+  }, [fillAvailableHeight, gapPx, minHeight, orientation, padding])
 
   /** 计算单条闭合 outline 路径 */
   const computeOutline = useCallback(() => {
@@ -286,7 +292,15 @@ export function SideTabsProvider({
     if (contentRef.current)
       ro.observe(contentRef.current)
 
-    const onScrollOrResize = () => {
+    const onScrollOrResize = (event: Event) => {
+      if (
+        fillAvailableHeight
+        && event.type === 'scroll'
+        && event.target instanceof Node
+        && contentRef.current?.contains(event.target)
+      ) {
+        return
+      }
       recomputeGeometry()
     }
     window.addEventListener('resize', onScrollOrResize)
@@ -296,7 +310,7 @@ export function SideTabsProvider({
       window.removeEventListener('resize', onScrollOrResize)
       window.removeEventListener('scroll', onScrollOrResize, true)
     }
-  }, [recomputeGeometry])
+  }, [fillAvailableHeight, recomputeGeometry])
 
   const value: SideTabsContextValue = useMemo(() => ({
     active,
@@ -317,8 +331,13 @@ export function SideTabsProvider({
     <SideTabsContext value={value}>
       <motion.div
         ref={containerRef}
-        className={cn('relative mx-auto flex', orientation === 'horizontal' ? 'flex-row' : 'flex-col', className)}
-        animate={{ height: Math.max(minHeight, box.totalHeight) }}
+        className={cn(
+          'relative mx-auto flex',
+          orientation === 'horizontal' ? 'flex-row' : 'flex-col',
+          fillAvailableHeight && 'h-full min-h-0 w-full overflow-hidden',
+          className,
+        )}
+        animate={fillAvailableHeight ? undefined : { height: Math.max(minHeight, box.totalHeight) }}
         transition={{
           type: 'spring',
           stiffness: 200,

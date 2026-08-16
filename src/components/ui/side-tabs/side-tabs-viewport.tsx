@@ -12,15 +12,18 @@ export function ViewPort({
   strokeWidth = 1,
   items,
   className,
+  scrollable = false,
 }: {
   fill?: string
   stroke?: string
   strokeWidth?: number
   items: { id: string, content: ReactNode }[]
   className?: string
+  scrollable?: boolean
 }) {
   const { box, outlineD, contentRef, active, padding } = useSideTabsContext()
   const activeItem = useMemo(() => items.find(item => item.id === active), [items, active])
+
   return (
     <>
       <svg
@@ -68,8 +71,19 @@ export function ViewPort({
               pointerEvents: 'auto',
             }}
           >
-            <div ref={contentRef}>
-              <AnimatePresence mode="wait">
+            <div
+              ref={contentRef}
+              className={cn(
+                scrollable && 'h-full min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]',
+              )}
+            >
+              <AnimatePresence
+                mode="wait"
+                onExitComplete={() => {
+                  if (scrollable && contentRef.current)
+                    contentRef.current.scrollTop = 0
+                }}
+              >
                 {activeItem && (
                   <motion.div
                     key={activeItem.id}
@@ -80,7 +94,7 @@ export function ViewPort({
                       duration: 0.2,
                       ease: [0.25, 0.1, 0.25, 1.0],
                     }}
-                    className={cn('p-6', className)}
+                    className={cn('p-6', scrollable && 'min-h-full', className)}
                   >
                     {activeItem.content}
                   </motion.div>

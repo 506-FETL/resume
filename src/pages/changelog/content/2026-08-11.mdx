@@ -1,0 +1,47 @@
+---
+title: '编辑器、历史版本与导出统一升级'
+date: '2026-08-11'
+tags: ['Editor', 'History', 'Export']
+version: '0.18'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.18</Badge>
+这次更新围绕“更顺畅地编辑、更清楚地回看、更一致地导出”展开。编辑区结构、历史版本和分页渲染使用了更统一的规则。
+
+- **单项展开编辑区** — 同一时间聚焦一个简历模块，也可以再次点击收起
+- **历史版本对比** — 查看两个版本之间的内容变化，减少手工逐段核对
+- **重复保存识别** — 内容没有变化时避免生成无意义的重复版本
+- **版本与投递关联** — 为历史版本记录目标岗位和投递日期
+- **预览与 PDF 一致** — 桌面、移动端、分享页、历史页和导出使用统一的分页与字体规则
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='editor'>
+    <AccordionTrigger>编辑区有哪些变化？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>模块编辑改为更紧凑的折叠结构，降低长简历中的滚动和定位成本</li>
+        <li>模块开合状态可以在协作中同步，同时保留单项展开约束</li>
+        <li>移动端编辑和折叠列表重新适配，减少控件拥挤和内容跳动</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='history-export'>
+    <AccordionTrigger>版本和导出为什么更稳定？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>历史列表减少不必要的数据载荷，并为版本补充岗位关联信息</li>
+        <li>长文本分页会识别真实文本行，尽量避免内容截断或跨页重叠</li>
+        <li>屏幕缩放与分页测量互相隔离，预览缩放不再影响最终导出尺寸</li>
+        <li>字体资源和渲染入口统一，降低不同页面之间的排版偏差</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

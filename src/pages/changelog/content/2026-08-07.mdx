@@ -1,0 +1,47 @@
+---
+title: '全局 AI 求职助手上线'
+date: '2026-08-07'
+tags: ['AI', 'Assistant', 'Dashboard']
+version: '0.17'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.17</Badge>
+AI 助手从单次生成工具升级为贯穿简历与求职管理的全局工作台。它可以理解当前上下文、连续对话，并在确认后协助完成实际操作。
+
+- **连续对话与上下文理解** — 结合当前简历、历史版本和求职记录回答问题
+- **可确认的工具操作** — 修改简历或求职数据前先展示差异和操作摘要
+- **实时画布预览** — 在对话旁查看简历、版本、求职看板和变更结果
+- **会话搜索与管理** — 搜索历史内容，继续、重命名或删除已有会话
+- **AI 额度体系** — 展示剩余额度和使用状态，并在额度不足时给出明确提示
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='assistant-workflow'>
+    <AccordionTrigger>助手可以完成哪些工作？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>分析和修改简历字段，并在应用前展示修改内容</li>
+        <li>查询、新增或调整求职记录，涉及写入时等待用户确认</li>
+        <li>通过画布查看简历预览、版本时间线、求职看板和变更记录</li>
+        <li>流式展示回答与工具进度，失败后可以重试，不必重新开始整段对话</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='workspace'>
+    <AccordionTrigger>首页和求职工作台同步更新了什么？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>首页重新整理简历完成度、求职数据和下一步待办</li>
+        <li>求职看板优化概览、筛选、详情和跨列拖拽反馈</li>
+        <li>助手侧栏、流式动画和移动端布局更加紧凑稳定</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

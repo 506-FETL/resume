@@ -62,10 +62,14 @@ export default function SidebarEditor({
   )
 
   return (
-    <SideTabsWrapper defaultId={activeTabId}>
+    <SideTabsWrapper
+      defaultId={activeTabId}
+      fillAvailableHeight={isMobile}
+      className={isMobile ? 'h-full min-h-0 w-full' : undefined}
+    >
       {isMobile
         ? (
-            <SideTabs>
+            <SideTabs className="shrink-0">
               {renderBasics()}
               {sortableOrder.map((id) => {
                 const item = ITEMS.find(it => it.id === id)!
@@ -120,7 +124,7 @@ export default function SidebarEditor({
             </SideTabs>
           )}
 
-      <ViewPort items={ITEMS} fill={fill} stroke={stroke} />
+      <ViewPort items={ITEMS} fill={fill} stroke={stroke} scrollable={isMobile} />
 
       {isMobile && (
         <MobileSortDrawer

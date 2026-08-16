@@ -1,0 +1,49 @@
+---
+title: '按版本分享与外观精细控制'
+date: '2026-08-13'
+tags: ['Sharing', 'Fonts', 'Toolbar']
+version: '0.19'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.19</Badge>
+分享链接现在明确对应一份简历版本，编辑器工具栏也补充了更细的字体、字号、间距和版本保存控制。
+
+- **按版本创建分享** — 可以选择当前内容或任一历史版本生成只读链接
+- **原链接更换版本** — 保留分享地址的同时发布另一个已保存版本
+- **集中管理分享链接** — 查看、筛选、编辑、归档和删除已有链接
+- **更多自托管字体** — 新增多款中文与西文字体，跨设备显示更一致
+- **精细间距与字号** — 支持整数级字号和可确认的精细间距输入
+- **命名快速保存** — 从工具栏保存版本时可以填写可选名称
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='sharing'>
+    <AccordionTrigger>按版本分享如何工作？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>创建链接时会记录来源版本，分享内容不会因为后续编辑而意外变化</li>
+        <li>需要更新内容时，可以在原链接中选择另一个当前或历史版本发布</li>
+        <li>已删除的历史来源会明确标记，不会静默回退到当前简历</li>
+        <li>桌面与移动端使用一致的分享管理动作和状态反馈</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='appearance'>
+    <AccordionTrigger>外观控制细化了哪些部分？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>字体选择覆盖思源黑体、IBM Plex Sans SC、思源宋体、霞鹜文楷、Arimo 和站酷小薇体</li>
+        <li>字号可以在 10–24px 范围内通过滑杆逐级调整</li>
+        <li>精细间距先作用于实时预览，确认后才保存、同步和用于导出</li>
+        <li>快速保存支持可选版本名称，留空时仍按普通版本保存</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>

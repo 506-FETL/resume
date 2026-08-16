@@ -40,11 +40,11 @@ export default function AssessmentBasisCard() {
               key={key}
               value={key}
               className={cn(
-                'rounded-xl border border-transparent bg-muted/25 px-3 transition-[background-color,border-color] duration-200 last:border-b hover:border-primary/15 hover:bg-muted/40 data-[state=open]:border-primary/20 data-[state=open]:bg-primary/[0.04] md:px-4',
+                'rounded-xl border border-transparent bg-muted/25 px-3 transition-[background-color,border-color] duration-200 last:border-b hover:border-primary/15 hover:bg-muted/40 data-[state=open]:border-primary/20 data-[state=open]:bg-primary/4 md:px-4',
                 index === scoreRationales.length - 1 && scoreRationales.length % 2 === 1 && 'md:col-span-2',
               )}
             >
-              <AccordionTrigger className="min-h-14 py-3 hover:no-underline">
+              <AccordionTrigger className="min-h-14 items-center py-3 hover:no-underline">
                 <span className="flex min-w-0 flex-1 items-center gap-3 pr-1">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs">
                     {String(index + 1).padStart(2, '0')}

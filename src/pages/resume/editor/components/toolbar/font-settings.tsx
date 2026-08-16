@@ -33,14 +33,14 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
       </PopoverTrigger>
       <PopoverContent
         aria-label="字体设置"
-        className={cn('w-80 max-w-[calc(100vw-2rem)] p-0', isMobile && 'w-[calc(100vw-10rem)]')}
+        className={cn('w-80 max-w-[calc(100vw-2rem)] gap-0 p-0', isMobile && 'w-[calc(100vw-10rem)]')}
         side={isMobile ? 'bottom' : 'right'}
         align={isMobile ? 'end' : 'start'}
       >
-        <div className="px-2 py-1.5 text-base font-medium md:text-sm">字体设置</div>
+        <div className="p-2 text-base font-medium md:text-sm">字体设置</div>
         <Separator />
 
-        <div className="flex flex-col gap-4 p-3 md:p-4">
+        <div className="flex flex-col gap-4 p-3 md:gap-6 md:p-4">
           <div className="flex flex-col gap-2">
             <Label className="text-sm font-medium">字体样式</Label>
             <Select
@@ -53,7 +53,7 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
                 }
               }}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger className="h-10 w-full">
                 <SelectValue placeholder="选择字体" />
               </SelectTrigger>
               <SelectContent>

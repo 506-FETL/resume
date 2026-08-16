@@ -1,0 +1,60 @@
+---
+title: '全文评论、ATS 评估与跨端稳定性'
+date: '2026-08-16'
+tags: ['Comments', 'ATS', 'Stability']
+version: '0.20'
+---
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+
+<Badge className='mr-1'>V 0.20</Badge>
+简历审阅和 ATS 优化形成更完整的闭环：正文可以直接划词讨论，评分会根据实际内容自适应；评论、分享、协作和移动端弹层也完成了一轮稳定性收敛。
+
+- **全文划词评论** — 对简历正文创建评论线程，并支持多层回复、解决、重开和删除
+- **版本级审阅** — 工作版本、历史版本和分享访问使用统一、稳定的评论空间
+- **匿名分享评论** — 分享访客无需账号也能以匿名身份参与讨论
+- **未读与锚点处理** — 按线程确认未读，原文变化后可以将评论重新关联到新位置
+- **ATS 自适应评分** — 根据简历实际内容确定评估范围和评分依据，并展示各维度判断理由和证据信号
+- **移动端与交互稳定性** — 统一抽屉、拖拽、焦点恢复、滚动和选择菜单行为
+
+<Accordion type='multiple' className='w-full not-prose'>
+  <AccordionItem value='comments'>
+    <AccordionTrigger>评论审阅覆盖哪些场景？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>简历拥有者、实时协作者和分享访客可以在各自权限范围内参与评论</li>
+        <li>评论支持多层回复、线程状态管理、删除确认和失效锚点重新关联</li>
+        <li>未读状态按线程推进，新增回复不会导致整棵评论树抖动或重复刷新</li>
+        <li>初始化和增量同步链路减少重复请求，并改善移动端抽屉中的滚动体验</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='ats'>
+    <AccordionTrigger>ATS 评估有什么不同？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>评分只基于当前简历实际存在且可评估的内容，不再依赖固定模块清单</li>
+        <li>总览展示各维度分数、判断理由、参与评估模块和关键证据信号</li>
+        <li>问题清单、建议填充和高级工具重新适配桌面与手机布局</li>
+        <li>异常历史检测数据会安全归一化，不再阻断首页或优化页展示</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value='stability'>
+    <AccordionTrigger>跨端细节还修复了什么？</AccordionTrigger>
+    <AccordionContent className='flex flex-col gap-4 text-balance'>
+      <ul className='list-disc space-y-2 pl-4'>
+        <li>编辑器、模板结构和求职看板统一拖拽反馈，并补充取消、键盘和触控边界</li>
+        <li>编辑模块使用独立的内容滚动区，移动端工具栏保持固定，减少长表单撑高页面</li>
+        <li>分享权限、协作开启阶段和评论开关展示进一步校正</li>
+        <li>评估项箭头、字体设置面板和评论删除入口完成细节对齐</li>
+      </ul>
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
