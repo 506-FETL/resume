@@ -47,35 +47,28 @@ assert.notEqual(
   readOrCreateRequestId(request(undefined, 'not-a-request-id')),
 )
 
-const productionOrigin = 'https://506resume.vercel.app'
+const productionOrigin = 'https://www.506resume.cc'
 const localOrigin = 'http://localhost:5173'
-const rejectedOrigin = 'https://506resume.vercel.app.attacker.example'
+const thirdPartyOrigin = 'https://third-party.example'
 
-for (const origin of [productionOrigin, localOrigin, 'https://staging.example.com']) {
+for (const origin of [productionOrigin, localOrigin, 'https://staging.example.com', thirdPartyOrigin]) {
   const allowedRequest = request(origin)
   assert.equal(isOriginAllowed(allowedRequest, 'allowlist'), true)
   assert.equal(
     buildCorsHeaders(allowedRequest, 'allowlist').get('Access-Control-Allow-Origin'),
-    origin,
+    '*',
   )
+  assert.equal(corsPreflightResponse(allowedRequest, 'allowlist').status, 200)
 }
-
-const rejectedRequest = request(rejectedOrigin)
-assert.equal(isOriginAllowed(rejectedRequest, 'allowlist'), false)
-assert.equal(
-  buildCorsHeaders(rejectedRequest, 'allowlist').has('Access-Control-Allow-Origin'),
-  false,
-)
-assert.equal(corsPreflightResponse(rejectedRequest, 'allowlist').status, 403)
 
 const serverRequest = request()
 assert.equal(isOriginAllowed(serverRequest, 'allowlist'), true)
 assert.equal(
-  buildCorsHeaders(serverRequest, 'allowlist').has('Access-Control-Allow-Origin'),
-  false,
+  buildCorsHeaders(serverRequest, 'allowlist').get('Access-Control-Allow-Origin'),
+  '*',
 )
 
-const publicHeaders = buildCorsHeaders(rejectedRequest, 'public')
+const publicHeaders = buildCorsHeaders(request(thirdPartyOrigin), 'public')
 assert.equal(publicHeaders.get('Access-Control-Allow-Origin'), '*')
 assert.match(publicHeaders.get('Access-Control-Expose-Headers') ?? '', /X-Request-Id/u)
 assert.match(publicHeaders.get('Access-Control-Expose-Headers') ?? '', /X-AI-Quota-Remaining/u)
@@ -89,7 +82,7 @@ const contextResponse = context.json({ ok: true })
 assert.equal(context.requestId, validRequestId)
 assert.equal(contextResponse.headers.get('X-Request-Id'), validRequestId)
 assert.equal(contextResponse.headers.get('X-Sb-Edge-Region'), 'us-east-1')
-assert.equal(contextResponse.headers.get('Access-Control-Allow-Origin'), productionOrigin)
+assert.equal(contextResponse.headers.get('Access-Control-Allow-Origin'), '*')
 assert.equal(contextResponse.headers.get('Cache-Control'), 'no-store')
 
 function source(path: string) {

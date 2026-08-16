@@ -13,6 +13,8 @@
 
 本记录只保存对象、权限、计数、命令和退出码，不保存 JWT、用户 ID、分享 token、简历内容或服务密钥。静态检查、Node/HTTP 验证和数据库契约均不能替代真实浏览器交互；生产 smoke 结果将在部署阶段单独记录。
 
+> 2026-08-17 后续产品决策覆盖：共享 CORS 已改为对所有 Origin 返回 `Access-Control-Allow-Origin: *`，不再执行来源白名单拒绝；原有 Bearer/API key、业务权限与维护 token 校验保持不变。下文关于恶意 Origin 返回 403 的内容仅记录 2026-08-16 当时状态，不代表当前生产策略。变更后五个 Edge Function 均重新部署为 ACTIVE；第三方 Origin 对五个函数的 OPTIONS 均返回 200，且 OPTIONS 与无凭据 POST 响应均携带 wildcard CORS 头。
+
 ## 用户工作区保护
 
 实施开始前存在下列用户自有未提交修改，本计划不修改、不暂存、不提交：
