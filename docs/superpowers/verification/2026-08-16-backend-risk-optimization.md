@@ -234,3 +234,39 @@ supabase migration list --linked
 - 生产数据库 `TimeZone=UTC`；部署前尚未安装 `pg_cron`/`pg_net`，也不存在 `cron.job`，与新增维护迁移的前置状态一致。
 - Supabase CLI 的常规 dump 路径因本机无 Docker 不可用，Free plan 也未提供可列出的物理/PITR 备份。安装本地 `libpq 18.6` 后，通过 CLI 短期登录角色与本地 `pg_dump --schema-only` 生成真实逻辑回滚点；文件为 `supabase/.temp/backups/2026-08-16-pre-backend-risk-schema.sql`（gitignored），大小 250084 bytes，包含 29 个 schema/table/function/type/sequence/view DDL，且无 `COPY`/`INSERT`，SHA-256 为 `b6bec2041d99709d9b4a2cd01c99b7556897aca953583bf96abde40370fa3704`。
 - 部署前 Edge 基线：`llm-proxy` v30、`resume-share` v22、`resume-comments` v18；`github-stars-refresh` 与 `backend-ops-monitor` 尚未部署。秘密列表仅核对名称，未回显或记录原值；`APP_ALLOWED_ORIGINS` 与 `BACKEND_MAINTENANCE_TOKEN` 尚未配置。
+
+## 任务 12：生产部署与动态验收
+
+- 对八条已通过 catalog 逐项确认的早期迁移执行 `migration repair --status applied`；再次列账后八条 local/remote 对齐。`db push --dry-run` 精确只列出本轮七条迁移，无 seed/roles；正式 push 退出码 `0`，最终 41 条迁移全部 local/remote 对齐。
+- 生产迁移后确认 `TimeZone=UTC`、`pg_stat_statements`/`pg_cron`/`pg_net` 已安装、遗留 `http` 扩展与 `set_github_stars` RPC 已删除。六个受管 cron 均 active；AI 对账、Edge 响应对账、运维 monitor、GitHub refresh 已实际 `succeeded`，小时/每日清理在首次计划时刻前为 `not_run_yet`，另已手工执行同一有界清理函数验证。
+- 清理启用前预览命中 75 条过期评论幂等记录、12 条过期限流桶，协作 session/member 候选均为 0。启用 `cleanup_enabled=true` 与 `edge_jobs_enabled=true` 后单批处理 87 条、`batchLimitHit=false`、耗时 34 ms；实时协作总量前后均为 7 个 session、2 个 member。
+- 随机 64 字符维护 token 同时写入 Edge secret `BACKEND_MAINTENANCE_TOKEN` 与 Vault `resume_backend_maintenance_token`；项目 URL 写入 Vault，`APP_ALLOWED_ORIGINS=https://506resume.vercel.app`。命令与记录仅保留名称，不回显值。没有现成 `OPS_ALERT_WEBHOOK_URL`，因此外部 webhook 投递仍未配置；内部告警求值、告警状态、结构化日志和指标已启用，且无 webhook 时不会错误 ack。
+- 五个 Edge Function 均部署为 ACTIVE 且 `verify_jwt=false`：`llm-proxy` v33、`resume-share` v24、`resume-comments` v20、`github-stars-refresh` v1、`backend-ops-monitor` v1；认证继续由函数体执行。无 maintenance token 的两个维护端点均返回 401；最终版 `llm-proxy` 无认证 POST 返回 401 / `auth_invalid`，恶意 Origin 预检返回 403 且无 allow-origin；`resume-comments` 的恶意 Origin 预检同为 403；公开 `resume-share` 预检为 200 且保留 wildcard。
+- `private`/`net` 的 Data API 探测均返回 406 / `PGRST106`；anon 直读 owner 简历表与协作会话表均返回 401 / `42501`。生产 catalog 同时确认所有应用 SQL 函数固定空 `search_path`、PUBLIC/anon 无 SECURITY DEFINER 执行权、private schema 无客户端 USAGE、六张 owner 表均启用 RLS 且没有无条件读取策略。
+- AI 生产 smoke 使用一次性已确认账号执行非流式 1 分 chat 与 3 分 ATS 请求，均返回 200；日桶为 used=4、remaining=16，两条流水均 `settled/completed` 且 debit 合计 4。随后删除临时账号并确认 auth、日桶、AI 流水全部级联清空。另由生产直接使用的纯分类函数覆盖 DeepSeek 400/401/402/422/429/500/503 映射，断流前/后分别映射 `none`/`partial`；数据库 22 项 AI pgTAP 覆盖预留、幂等、交付标记、结算、释放与超时对账。
+- 公开分享/匿名评论 smoke 使用一次性合成简历：不可变 release 读取、评论 bootstrap、32 字节 base64url 匿名身份、锚点评论写入均成功。锚点从 Edge 返回的 release snapshot 使用共享核心算法在客户端侧重建；bootstrap 仅返回脱敏 `nodeKey`。账号、简历、分享、release、scope/thread/comment 全部级联删除，按设计独立保留的两条幂等记录与对应限流桶再按固定 request id/actor bucket 精确删除；最终零残留。
+- 实时协作 smoke 使用两个一次性登录账号：owner 注册 session 返回 200，链接持有者加入返回 200 且服务端角色为 `editor`；Realtime/comment bootstrap 与协作者评论写入均为 200。协作者用自身 JWT 直读 owner `resume_config` 返回 200 空数组，证明链接授权未扩展到 owner 基表。清理后合成用户/简历/session/member/comment/幂等桶均为 0，原有 7 个 session、2 个 member 保持不变。
+- GitHub 定时刷新及手工 dispatch 均成功，固定缓存行为 `506-fetl/resume`、`consecutive_failures=0`、无错误码；anon 新只读 RPC 返回 200，旧任意参数写 RPC 返回 404 / `PGRST202`。Edge dispatch 两条均由 queue/response 对账收敛为 `succeeded`。
+- 部署后 15 分钟告警快照：AI 结算失败、评论死锁/错误、分享错误、cron/维护失败、过期 pending、陈旧 dispatch 全部为 0，active alerts 与 notifications due 均为 0。生产 `db lint --level warning` 退出码 `0`、0 error，仅保留 1 条既有 unused parameter warning。
+
+## 任务 13：风险覆盖与最终一致性
+
+| 原始风险 | 代码与迁移 | 契约、动态验收与回滚证据 |
+| --- | --- | --- |
+| AI 计费与上游调用非原子 | `20260816073703_add_ai_credit_reservations.sql`；`llm-proxy` 原子预留、交付标记、结算/释放与超时对账 | `002_ai_quota.sql` 22 项、上游 400/401/402/422/429/500/503 与断流状态 verifier、生产 1 分/3 分请求守恒 |
+| 缺统一可观测性 | `20260816074307_add_backend_operation_metrics.sql`、共享 request context、维护告警与结构化 operation metrics | request-id/Edge verifier、六类 cron 实跑、15 分钟关键错误率与积压均为 0；外部 webhook 未配置的缺口显式保留 |
+| SQL 逻辑难测试 | 五组 pgTAP、并发验证器与固定版本 CI | 两次隔离项目 fresh reset，pgTAP 83/83；workflow 对数据库、Edge、应用和构建建立硬门禁 |
+| 额度重置时区不一致 | AI 日桶和额度 RPC 显式使用 UTC 日期并由 SQL 返回 reset 时刻 | AI pgTAP、生产 `TimeZone=UTC`、生产 1 分/3 分 smoke |
+| `get_ai_quota()` 只读路径取行锁 | `20260816073703_add_ai_credit_reservations.sql` 将展示读取改为无锁计算，落库重置只在预留路径 | AI pgTAP 与生产 catalog 确认 lock-free、显式 UTC |
+| pgsql-http 在事务内访问 GitHub | `20260816084543_move_github_stars_to_edge_cache.sql` 与 `github-stars-refresh`；删除 `http` 扩展及任意写 RPC | GitHub verifier、cron/手工 refresh 成功、新读 RPC 200、旧写 RPC 404 |
+| 幂等/限流表无清理 | `20260816170453_add_backend_maintenance_jobs.sql` 的 48 小时有界清理、日聚合与 180 天 AI 明细保留 | `005_maintenance_contracts.sql`、清理锁竞争、生产预览后单批安全清理 87 条且协作数据不变 |
+| 评论加锁顺序仅靠约定 | `20260816080301_fix_comment_lock_order_and_function_paths.sql` 统一 scope/version 锁序 | `003_comment_concurrency_contracts.sql`；20 轮版本、幂等、限流竞态均 0 deadlock，`40P01` 已进入指标 |
+| 登录函数 CORS 过宽 | 共享 CORS 按函数类型区分：登录态函数显式来源白名单，公开分享继续 wildcard | Edge auth verifier；生产恶意 Origin 对 `llm-proxy`/评论为 403，公开分享为 200 |
+| 初始化 SQL 无法从零重放 | 删除非标准 `init_table.sql`，恢复八条时间戳迁移并修正历史迁移依赖 | 两次空项目 41 条迁移重放；生产逐项 catalog 确认后 repair，最终 local/remote 41 条一致；部署前 schema-only 快照可回滚 |
+| `search_path` 历史不统一 | `20260816072550` 与 `20260816080301` 统一空 `search_path` 和全限定引用 | `004_function_security.sql` 与生产 catalog 确认全部应用函数满足；生产 lint 0 error |
+| 新增核验：基础表 RLS 越权面 | `20260816072828_harden_base_table_rls.sql` 收紧六张 owner 表、模板与 helper ACL；分享/协作只经受控 Edge capability | `001_base_rls.sql`、`004_function_security.sql`、生产 anon/跨用户 Data API 负向验证；公开分享评论及双账号实时协作正向 smoke 均通过 |
+
+- 最终重新查询远端迁移账本，41 条迁移 local/remote 全部一致；生产 `db lint --level warning` 再次退出 `0`，仍只有既有 `private.resolve_resume_comment_bootstrap_access_v1` 未使用参数 warning。
+- 最终 `llm-proxy` v33 部署退出 `0`，上传内容明确包含新增 `core.ts`；部署后函数列表为上述五个 ACTIVE 版本，无认证/恶意来源 smoke 分别返回预期的 401/403。
+- 隔离环境及生产 smoke 都只使用合成账号/简历/请求；各次 finally 或精确补偿清理后已读回确认零夹具残留，原有实时协作总量维持 7 个 session、2 个 member。未读取或记录真实用户数据与 token。
+- 两个用户自有 history 页面文件始终未暂存、未进入本任务提交；未执行 `git push`。当前缺口只有未提供 `OPS_ALERT_WEBHOOK_URL`，因此不能声称外部告警投递已接通；内部告警求值、状态、指标与日志已上线。

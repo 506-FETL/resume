@@ -639,7 +639,7 @@ git diff --check
 
 使用 anon、用户 A、用户 B 和 service role 四类会话验证：A/B 互相不可见；anon 不能直连任何基础表；有效分享凭据仅能经 Edge 读取指定快照并在指定评论 scope 操作；伪造/过期/撤销 token 均失败。
 
-- [ ] **步骤 3：执行 AI 故障矩阵**
+- [x] **步骤 3：执行 AI 故障矩阵**
 
 验证并发最后额度、重复幂等键、DeepSeek 400/401/402/422/429/500/503、交付前/后断流、结算 RPC 失败和超时 reconciler；核对日桶守恒式 `reserved + consumed` 与流水一致。
 
@@ -664,7 +664,7 @@ git commit -m "docs(backend): 记录风险优化验证结果"
 
 确认项目 ID、当前远端迁移版本、函数版本、UTC 时区、扩展和活跃 cron；导出 schema-only 快照/迁移状态作为回滚证据，不导出或记录业务数据与密钥。
 
-- [ ] **步骤 2：修复八条历史迁移账本**
+- [x] **步骤 2：修复八条历史迁移账本**
 
 仅当逐一验证线上对应表、列、约束已存在时，对八个恢复版本执行：
 
@@ -674,7 +674,7 @@ supabase migration repair --linked --status applied <version>
 
 先用 `--dry-run` 可用路径或再次 `migration list --linked` 核对目标；绝不把尚未存在的结构标为 applied。
 
-- [ ] **步骤 3：部署数据库迁移**
+- [x] **步骤 3：部署数据库迁移**
 
 ```bash
 supabase db push --linked --dry-run
@@ -684,11 +684,11 @@ supabase migration list --linked
 
 预期：dry-run 只包含本计划的新迁移；应用后 local/remote 账本一致。
 
-- [ ] **步骤 4：配置服务端秘密与调度**
+- [x] **步骤 4：配置服务端秘密与调度**
 
-配置 `ALLOWED_ORIGINS`、可选 `GITHUB_TOKEN`、随机维护 token；同一维护 token 分别写 Edge secret 与 Vault，命令输出不得回显其值。`OPS_ALERT_WEBHOOK_URL` 存在时接通告警，否则在验收记录中明确“外部投递未配置”。
+配置 `APP_ALLOWED_ORIGINS`、可选 `GITHUB_TOKEN`、随机维护 token；同一维护 token 分别写 Edge secret 与 Vault，命令输出不得回显其值。`OPS_ALERT_WEBHOOK_URL` 存在时接通告警，否则在验收记录中明确“外部投递未配置”。
 
-- [ ] **步骤 5：部署 Edge Function**
+- [x] **步骤 5：部署 Edge Function**
 
 ```bash
 supabase functions deploy llm-proxy --project-ref bitxrpdtlohlnywgusfw
@@ -700,15 +700,15 @@ supabase functions deploy backend-ops-monitor --project-ref bitxrpdtlohlnywgusfw
 
 函数体继续自行校验 JWT/分享凭据；不能因为 `verify_jwt=false` 而跳过认证。
 
-- [ ] **步骤 6：执行生产只读验收和最小业务 smoke**
+- [x] **步骤 6：执行生产只读验收和最小业务 smoke**
 
 重新查询 ACL/RLS/catalog/cron/扩展；执行本人数据读取、有效分享快照、匿名分享评论、AI 一次 1 分和一次 3 分请求、GitHub Stars 只读缓存。禁止在生产创建跨用户探测数据；负向矩阵使用预先授权的测试账户。
 
-- [ ] **步骤 7：观察部署后窗口**
+- [x] **步骤 7：观察部署后窗口**
 
 检查结构化日志与指标：AI 结算失败、评论死锁 `40P01`、分享错误率、维护失败、超时流水积压。出现越权、额度守恒破坏或迁移异常时立即停止后续动作并按对应迁移/函数版本回滚。
 
-- [ ] **步骤 8：提交最终部署记录**
+- [x] **步骤 8：提交最终部署记录**
 
 ```bash
 git add docs/superpowers/verification/2026-08-16-backend-risk-optimization.md
@@ -722,11 +722,11 @@ git commit -m "docs(backend): 记录生产部署与验收"
 - 检查：本计划列出的全部文件
 - 检查：两处用户自有 history 页面修改未被纳入任何本任务提交
 
-- [ ] **步骤 1：核对规格覆盖**
+- [x] **步骤 1：核对规格覆盖**
 
 逐条映射 11 项原始风险和新增基础表 RLS 风险到具体迁移、测试、指标与回滚证据；任何一项缺少代码或验收都不能标记完成。
 
-- [ ] **步骤 2：核对提交边界**
+- [x] **步骤 2：核对提交边界**
 
 ```bash
 git status --short --branch
@@ -736,7 +736,7 @@ git diff --name-only upstream/feat/be-optimize...HEAD
 
 确认没有提交 `src/pages/history/components/detail-panel/detail-header.tsx` 和 `src/pages/history/components/version-pdf-export/index.tsx` 的用户改动；不执行 `git push`。
 
-- [ ] **步骤 3：按 verification-before-completion 复核证据**
+- [x] **步骤 3：按 verification-before-completion 复核证据**
 
 只把实际运行且退出码为 0 的门禁描述为“通过”；浏览器、真实匿名评论和生产告警投递若未执行，明确列为剩余验收而不是推断完成。
 
