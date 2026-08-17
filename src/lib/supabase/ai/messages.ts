@@ -13,21 +13,44 @@ function mapMessage(row: any): AiMessage {
   }
 }
 
-export async function listMessages(conversationId: string): Promise<AiMessage[]> {
+export interface ListMessagesResult {
+  messages: AiMessage[]
+  hasMore: boolean
+}
+
+// 默认取最新 limit 条（按 created_at 倒序取后在内存 reverse 为升序）；
+// before 为已加载最早消息的 created_at，用于向上加载更早的历史。
+export async function listMessages(
+  conversationId: string,
+  options: { limit?: number, before?: string } = {},
+): Promise<ListMessagesResult> {
   const user = await getCurrentUser()
   if (!user)
     throw new Error('用户未登录')
 
-  const { data, error } = await supabase
+  const limit = options.limit ?? 30
+  let query = supabase
     .from('ai_messages')
     .select('*')
     .eq('conversation_id', conversationId)
     .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false }) // 同一 created_at 时以 id 做二级排序保证稳定性
+    .limit(limit + 1) // 多取一条判断是否还有更早的
 
+  if (options.before)
+    query = query.lt('created_at', options.before)
+
+  const { data, error } = await query
   if (error)
     throw error
-  return (data || []).map(mapMessage)
+
+  const rows = data || []
+  const hasMore = rows.length > limit
+  const page = hasMore ? rows.slice(0, limit) : rows
+  // 倒序取回后 reverse 成升序（旧 → 新）
+  const messages = page.map(mapMessage).reverse()
+  return { messages, hasMore }
 }
 
 export async function insertMessage(
