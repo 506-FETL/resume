@@ -597,6 +597,9 @@ function projectExperienceCollection(
   const usedIds = new Set<string>()
   readArray(entries).forEach((value, index) => {
     const entry = readRecord(value)
+    if (entry.hidden === true) {
+      return
+    }
     const entryId = buildEntryId(sectionKey, collectionKey, index, entry, usedIds)
     const subtitle = fields.subtitleProject
       ? fields.subtitleProject(entry)
