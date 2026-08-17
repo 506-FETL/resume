@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { resumeEntryIdSchema } from '../entry-id'
+import { hiddenField } from './shared'
 
 const schoolName = z.string().trim().default('')
 export type SchoolName = z.infer<typeof schoolName>
@@ -18,6 +19,7 @@ export type EduInfo = z.infer<typeof eduInfo>
 
 const eduBackgroundItemSchema = z.object({
   entryId: resumeEntryIdSchema,
+  hidden: hiddenField,
   schoolName,
   professional,
   degree,

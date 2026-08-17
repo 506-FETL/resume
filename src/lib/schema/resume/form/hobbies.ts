@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { resumeEntryIdSchema } from '../entry-id'
+import { hiddenField } from './shared'
 
 export const PRESET_HOBBIES = [
   '篮球',
@@ -20,7 +21,7 @@ export type PresetHobby = (typeof PRESET_HOBBIES)[number]
 
 export const hobbyItemSchema = z.object({
   entryId: resumeEntryIdSchema,
-  hidden: z.boolean().optional(),
+  hidden: hiddenField,
   name: z.string().trim(),
 })
 

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { resumeEntryIdSchema } from '../entry-id'
+import { hiddenField } from './shared'
 
 const proficiencyLevelEnum = z.enum(['一般', '良好', '熟练', '擅长', '精通'])
 export type ProficiencyLevel = z.infer<typeof proficiencyLevelEnum>
@@ -37,7 +38,7 @@ export type PresetSkill = (typeof PRESET_SKILLS)[number]
 // 单个技能特长项
 export const skillItemSchema = z.object({
   entryId: resumeEntryIdSchema,
-  hidden: z.boolean().optional(),
+  hidden: hiddenField,
   label: z.string().trim(),
   proficiencyLevel: proficiencyLevelEnum,
   displayType: displayTypeEnum,
