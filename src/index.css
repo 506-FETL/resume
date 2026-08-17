@@ -326,3 +326,43 @@ body {
     animation: none;
   }
 }
+
+/* 变更记录「定位」目标：给简历各章节留出 sticky 标题栏高度的滚动边距，避免滚动到顶部时被遮挡 */
+[id^="resume-section-"] {
+  scroll-margin-top: 4rem;
+}
+
+/* 变更记录「定位」高亮：飞书风格——主色柔光背景 + ring 描边脉冲两次后淡出，醒目且不突兀 */
+@keyframes resume-locate-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 55%, transparent);
+    background-color: color-mix(in oklch, var(--primary) 16%, transparent);
+  }
+  35% {
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 30%, transparent);
+    background-color: color-mix(in oklch, var(--primary) 12%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 12%, transparent);
+    background-color: color-mix(in oklch, var(--primary) 8%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    background-color: transparent;
+  }
+}
+
+.resume-locate-highlight {
+  border-radius: 8px;
+  outline: 2px solid color-mix(in oklch, var(--primary) 70%, transparent);
+  outline-offset: 2px;
+  animation: resume-locate-pulse 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transition: outline-color 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-locate-highlight {
+    animation: none;
+    background-color: color-mix(in oklch, var(--primary) 12%, transparent);
+  }
+}

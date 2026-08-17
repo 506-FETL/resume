@@ -22,6 +22,7 @@ export interface AiConversation {
   id: string
   userId: string
   title: string
+  resumeId: string | null
   createdAt: string
   updatedAt: string
 }

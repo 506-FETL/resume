@@ -24,6 +24,8 @@ export function invalidateCanvasSnapshot(resumeId?: string): void {
 
 export function useCanvasPreview() {
   const { previewResumeId, setPreviewResumeId, canvasRefreshTick, canvasActiveTab } = useAssistantStore()
+  const activeConversationId = useAssistantStore(s => s.activeConversationId)
+  const conversations = useAssistantStore(s => s.conversations)
   const currentResumeId = useCurrentResumeStore(s => s.resumeId)
   const clearCurrentResume = useCurrentResumeStore(s => s.clearCurrentResume)
   const { writes } = useCanvasModel()
@@ -34,6 +36,12 @@ export function useCanvasPreview() {
     () => (previewResumeId ? snapshotCache.get(previewResumeId) ?? null : null),
   )
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'empty'>('idle')
+
+  // 当前会话绑定的简历（画布预览按会话切换的核心）：优先于全局当前简历。
+  const boundResumeId = useMemo(
+    () => conversations.find(c => c.id === activeConversationId)?.resumeId ?? null,
+    [conversations, activeConversationId],
+  )
 
   // 仅统计「已应用」的简历写操作 → 确认卡出现时(awaiting-confirm)不触发，
   // 用户确认并写入 DB 后(state=result)才刷新，避免读到旧数据
@@ -83,11 +91,16 @@ export function useCanvasPreview() {
     if (currentResumeId && !hasCurrentResume)
       clearCurrentResume()
 
-    const nextPreviewResumeId = hasCurrentResume
-      ? currentResumeId
-      : previewResumeId && availableIds.has(previewResumeId)
-        ? previewResumeId
-        : options[0]?.resumeId ?? null
+    // 优先级：当前会话绑定的简历 > 全局当前简历 > 上次预览 > 列表首个。
+    // 这样切换会话时，画布预览跟随该会话正在查看/修改的简历，而非全局当前简历。
+    const hasBoundResume = Boolean(boundResumeId && availableIds.has(boundResumeId))
+    const nextPreviewResumeId = hasBoundResume
+      ? boundResumeId
+      : hasCurrentResume
+        ? currentResumeId
+        : previewResumeId && availableIds.has(previewResumeId)
+          ? previewResumeId
+          : options[0]?.resumeId ?? null
 
     if (nextPreviewResumeId !== previewResumeId)
       setPreviewResumeId(nextPreviewResumeId)
@@ -96,7 +109,7 @@ export function useCanvasPreview() {
       setSnapshot(null)
       setStatus('empty')
     }
-  }, [clearCurrentResume, currentResumeId, options, optionsLoadedForCurrentId, optionsStatus, previewResumeId, setPreviewResumeId])
+  }, [boundResumeId, clearCurrentResume, currentResumeId, options, optionsLoadedForCurrentId, optionsStatus, previewResumeId, setPreviewResumeId])
 
   // 拉取被预览简历
   useEffect(() => {

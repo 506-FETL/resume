@@ -1,7 +1,8 @@
 import type { CanvasChange, CanvasModel } from '../../../types'
 import type { FormDataMap } from '@/store/resume'
-import { ChevronRight, Crosshair, RefreshCw, RotateCcw, Undo2 } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Crosshair, RefreshCw, RotateCcw, Undo2 } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { updateMessage } from '@/lib/supabase/ai'
+import { DURATION, EASE, staggerDelay } from '@/lib/motion'
 import { applyResumeFieldToDocument, useCurrentResumeStore } from '@/store/resume'
 import useAssistantStore from '../../../store'
 import { retryToolCall } from '../../../tool-retry'
@@ -70,6 +72,7 @@ function StateBadge({ state }: { state: CanvasChange['state'] }) {
 export default function ChangeLog({ model }: { model: CanvasModel }) {
   const bumpCanvasRefresh = useAssistantStore(s => s.bumpCanvasRefresh)
   const requestCanvasTab = useAssistantStore(s => s.requestCanvasTab)
+  const reduceMotion = useReducedMotion()
   const [undoneIds, setUndoneIds] = useState<Set<string>>(() => new Set())
   const [redoneIds, setRedoneIds] = useState<Set<string>>(() => new Set())
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -77,6 +80,41 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
   const [undoAllPending, setUndoAllPending] = useState(false)
   const [reapplyPending, setReapplyPending] = useState(false)
   const [retryAllPending, setRetryAllPending] = useState(false)
+
+  // 可折叠项（带 diff/摘要详情）id 集合
+  const collapsibleIds = useMemo(
+    () => model.writes.filter(c => c.detail).map(c => c.id),
+    [model.writes],
+  )
+  // 受控展开状态：默认展开 diff 类详情。新变更进来时补充其默认态（不覆盖用户手动折叠过的项）。
+  const [openIds, setOpenIds] = useState<Set<string>>(
+    () => new Set(model.writes.filter(c => c.detail?.kind === 'diff').map(c => c.id)),
+  )
+  const [seenIds, setSeenIds] = useState<Set<string>>(() => new Set(model.writes.map(c => c.id)))
+  useEffect(() => {
+    const freshDiffIds = model.writes.filter(c => c.detail?.kind === 'diff' && !seenIds.has(c.id)).map(c => c.id)
+    const unseen = model.writes.filter(c => !seenIds.has(c.id)).map(c => c.id)
+    if (unseen.length === 0)
+      return
+    if (freshDiffIds.length > 0)
+      setOpenIds(prev => new Set([...prev, ...freshDiffIds]))
+    setSeenIds(prev => new Set([...prev, ...unseen]))
+  }, [model.writes, seenIds])
+
+  const setCollapsibleOpen = (id: string, open: boolean) => {
+    setOpenIds((prev) => {
+      const next = new Set(prev)
+      if (open)
+        next.add(id)
+      else
+        next.delete(id)
+      return next
+    })
+  }
+  const allExpanded = collapsibleIds.length > 0 && collapsibleIds.every(id => openIds.has(id))
+  const toggleAll = () => {
+    setOpenIds(allExpanded ? new Set() : new Set(collapsibleIds))
+  }
 
   // 统一的"是否已撤销"判断：本地状态优先（redoneIds > undoneIds），否则用持久化标记
   const isUndoneItem = (change: CanvasChange): boolean =>
@@ -229,21 +267,16 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
         }
         return
       }
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      // 临时高亮：用 box-shadow ring（支持 transition 渐变），1.8s 后淡出移除
-      const prevBoxShadow = el.style.boxShadow
-      const prevBorderRadius = el.style.borderRadius
-      const prevTransition = el.style.transition
-      el.style.transition = 'box-shadow 0.3s ease'
-      el.style.borderRadius = '4px'
-      el.style.boxShadow = '0 0 0 2px var(--primary)'
-      setTimeout(() => {
-        el.style.boxShadow = prevBoxShadow
-        setTimeout(() => {
-          el.style.borderRadius = prevBorderRadius
-          el.style.transition = prevTransition
-        }, 300)
-      }, 1800)
+      // 滚到标题栏下方（section 已设 scroll-mt，避免被 sticky 标题栏遮挡），不使用 center 以免遮挡上半部分
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      // 飞书风格定位高亮：主色柔光背景 + ring 脉冲，动画结束后自动移除
+      el.classList.remove('resume-locate-highlight')
+      // 强制 reflow 以便重复点击同一目标时能重新触发动画
+      void el.offsetWidth
+      el.classList.add('resume-locate-highlight')
+      const clear = () => el.classList.remove('resume-locate-highlight')
+      el.addEventListener('animationend', clear, { once: true })
+      setTimeout(clear, 2200)
     }
     requestAnimationFrame(() => tryScroll(0))
   }
@@ -256,7 +289,8 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
   const undoableChanges = model.writes.filter(c => c.undo && c.state === 'result' && !isUndoneItem(c))
   const redoableChanges = model.writes.filter(c => isUndoneItem(c) && c.undo && c.detail?.kind === 'diff')
   const errorChanges = model.writes.filter(c => c.state === 'error')
-  const showTopBar = undoableChanges.length > 0 || redoableChanges.length > 0 || errorChanges.length > 0
+  const canCollapseAll = collapsibleIds.length > 0
+  const showTopBar = undoableChanges.length > 0 || redoableChanges.length > 0 || errorChanges.length > 0 || canCollapseAll
 
   return (
     <ScrollArea className="h-full min-h-0">
@@ -300,11 +334,23 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
                 {retryAllPending ? '重试中…' : `重试全部失败 (${errorChanges.length})`}
               </Button>
             )}
+            {canCollapseAll && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-7 gap-1 px-2 text-xs"
+                onClick={toggleAll}
+              >
+                {allExpanded
+                  ? <><ChevronsDownUp className="size-3.5" />全部折叠</>
+                  : <><ChevronsUpDown className="size-3.5" />全部展开</>}
+              </Button>
+            )}
           </div>
         )}
 
         {/* 变更列表 */}
-        {model.writes.map((change) => {
+        {model.writes.map((change, itemIndex) => {
           const isUndone = isUndoneItem(change)
           const canUndo = !!change.undo && change.state === 'result' && !isUndone
           const canRedo = isUndone && !!change.undo && change.detail?.kind === 'diff'
@@ -370,37 +416,53 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
             : null
 
           // 没有 diff/摘要的变更（如保存/恢复历史版本）：渲染为普通行
-          if (!change.detail) {
-            return (
-              <div key={change.id} className="rounded-lg border bg-background overflow-hidden">
-                <div className="flex items-center justify-between gap-2 p-2.5 text-sm">
-                  <span className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate font-medium">{change.title}</span>
-                    {change.stat && <DiffStat additions={change.stat.additions} deletions={change.stat.deletions} />}
-                  </span>
-                  {stateBadge}
+          const itemNode = !change.detail
+            ? (
+                <div className="rounded-lg border bg-background overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 p-2.5 text-sm">
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate font-medium">{change.title}</span>
+                      {change.stat && <DiffStat additions={change.stat.additions} deletions={change.stat.deletions} />}
+                    </span>
+                    {stateBadge}
+                  </div>
+                  {actionRow}
                 </div>
-                {actionRow}
-              </div>
-            )
-          }
+              )
+            : (
+                <Collapsible
+                  open={openIds.has(change.id)}
+                  onOpenChange={open => setCollapsibleOpen(change.id, open)}
+                  className="rounded-lg border bg-background overflow-hidden"
+                >
+                  <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 p-2.5 text-left text-sm">
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                      <span className="min-w-0 flex-1 truncate font-medium">{change.title}</span>
+                      {change.stat && <DiffStat additions={change.stat.additions} deletions={change.stat.deletions} />}
+                    </span>
+                    {stateBadge}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                    <div className="border-t p-2.5 text-xs">
+                      {change.detail.kind === 'diff'
+                        ? <FieldDiffView sectionKey={change.undo?.sectionKey ?? ''} before={change.detail.before} after={change.detail.after} />
+                        : <p className="text-muted-foreground">{change.detail.text}</p>}
+                    </div>
+                  </CollapsibleContent>
+                  {actionRow}
+                </Collapsible>
+              )
+
           return (
-            <Collapsible key={change.id} defaultOpen={change.detail.kind === 'diff'} className="rounded-lg border bg-background overflow-hidden">
-              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 p-2.5 text-left text-sm">
-                <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
-                  <span className="min-w-0 flex-1 truncate font-medium">{change.title}</span>
-                  {change.stat && <DiffStat additions={change.stat.additions} deletions={change.stat.deletions} />}
-                </span>
-                {stateBadge}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="border-t p-2.5 text-xs">
-                {change.detail.kind === 'diff'
-                  ? <FieldDiffView sectionKey={change.undo?.sectionKey ?? ''} before={change.detail.before} after={change.detail.after} />
-                  : <p className="text-muted-foreground">{change.detail.text}</p>}
-              </CollapsibleContent>
-              {actionRow}
-            </Collapsible>
+            <motion.div
+              key={change.id}
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, delay: reduceMotion ? 0 : staggerDelay(itemIndex) }}
+            >
+              {itemNode}
+            </motion.div>
           )
         })}
       </div>

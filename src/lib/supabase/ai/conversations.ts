@@ -8,6 +8,7 @@ function mapConversation(row: any): AiConversation {
     id: row.id,
     userId: row.user_id,
     title: row.title,
+    resumeId: row.resume_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -101,6 +102,22 @@ export async function touchConversation(id: string): Promise<void> {
   const { error } = await supabase
     .from('ai_conversations')
     .update({ updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error)
+    throw error
+}
+
+// 绑定该会话当前查看/编辑的简历（画布预览按会话切换用）。不触碰 updated_at，避免打开简历就把会话顶上去。
+export async function updateConversationResumeBinding(id: string, resumeId: string | null): Promise<void> {
+  const user = await getCurrentUser()
+  if (!user)
+    throw new Error('用户未登录')
+
+  const { error } = await supabase
+    .from('ai_conversations')
+    .update({ resume_id: resumeId })
     .eq('id', id)
     .eq('user_id', user.id)
 

@@ -5,11 +5,27 @@ import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, 
 import { buildResumeSnapshot, normalizeHistoryVersionListItem } from '@/pages/history/utils'
 import useTrackerStore from '@/pages/tracker/store'
 import { FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
+import { updateConversationResumeBinding } from '@/lib/supabase/ai'
+import useAssistantStore from '@/pages/assistant/store'
 import { requestConfirm } from '../agent/confirm-bridge'
 import { registerTool } from '../agent/tool-registry'
 
 // 简历「基础模板类型」的合法取值（与创建简历卡片一致）
 const RESUME_TYPES: ResumeType[] = ['default', 'modern', 'simple']
+
+// 把简历绑定到当前会话：更新内存态（画布预览即时切换）并持久化，
+// 使助手画布预览跟随每个会话正在查看/修改的简历，而非全局当前简历。
+function bindResumeToActiveConversation(resumeId: string): void {
+  const { activeConversationId, conversations, upsertConversation } = useAssistantStore.getState()
+  if (!activeConversationId)
+    return
+  const conversation = conversations.find(c => c.id === activeConversationId)
+  if (conversation && conversation.resumeId !== resumeId)
+    upsertConversation({ ...conversation, resumeId })
+  void updateConversationResumeBinding(activeConversationId, resumeId).catch(() => {
+    // 持久化失败静默：内存态已更新，切设备时回退到全局当前简历
+  })
+}
 
 function normalizeResumeType(value: unknown): ResumeType {
   return RESUME_TYPES.includes(value as ResumeType) ? (value as ResumeType) : 'default'
@@ -75,6 +91,7 @@ registerTool({
           await updateResumeConfig(resumeId, sectionColumns)
         // 自动在编辑器打开新简历
         useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
+        bindResumeToActiveConversation(resumeId)
         // 统一红绿 diff：新建 → before 为空，after 为简历名称/描述
         const afterLines = [`名称：${displayName}`]
         if (args.description)
@@ -218,6 +235,7 @@ registerTool({
       const resume = await getAccessibleResumeById(resumeId)
       const type = normalizeResumeType(resume.type ?? args.type)
       useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
+      bindResumeToActiveConversation(resumeId)
       return { ok: true, resumeId, type, storage: resume.storage }
     }
     catch (error) {
