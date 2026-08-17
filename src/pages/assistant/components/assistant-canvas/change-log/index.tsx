@@ -11,7 +11,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { updateMessage } from '@/lib/supabase/ai'
 import { applyResumeFieldToDocument, useCurrentResumeStore } from '@/store/resume'
 import useAssistantStore from '../../../store'
-import { DiffStat, DiffView } from '../../diff/diff-view'
+import { DiffStat } from '../../diff/diff-view'
+import { FieldDiffView } from '../../diff/field-diff-view'
 
 // 将撤销状态写回对应 tool-call part（内存态 + DB 持久化），刷新后仍显示「已撤销」
 async function markChangeUndone(toolCallId: string): Promise<void> {
@@ -107,7 +108,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
               </CollapsibleTrigger>
               <CollapsibleContent className="border-t p-2.5 text-xs">
                 {change.detail.kind === 'diff'
-                  ? <DiffView before={change.detail.before} after={change.detail.after} />
+                  ? <FieldDiffView sectionKey={change.undo?.sectionKey ?? ''} before={change.detail.before} after={change.detail.after} />
                   : <p className="text-muted-foreground">{change.detail.text}</p>}
               </CollapsibleContent>
               {canUndo && (

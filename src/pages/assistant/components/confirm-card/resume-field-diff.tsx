@@ -1,10 +1,11 @@
-import { DiffView } from '../diff/diff-view'
+import { FieldDiffView } from '../diff/field-diff-view'
 
 interface ResumeFieldDiffProps {
+  sectionKey: string
   before: unknown
   after: unknown
 }
 
-export function ResumeFieldDiff({ before, after }: ResumeFieldDiffProps) {
-  return <DiffView before={before} after={after} />
+export function ResumeFieldDiff({ sectionKey, before, after }: ResumeFieldDiffProps) {
+  return <FieldDiffView sectionKey={sectionKey} before={before} after={after} />
 }

@@ -24,7 +24,7 @@ export default function ConfirmCard() {
       <div className="px-4 py-3">
         <p className="mb-3 text-sm font-medium text-foreground">{preview.title}</p>
         {preview.kind === 'resume-field'
-          ? <ResumeFieldDiff before={preview.before} after={preview.after} />
+          ? <ResumeFieldDiff sectionKey={preview.sectionKey ?? ''} before={preview.before} after={preview.after} />
           : <JobChangeSummary summary={preview.summary ?? ''} />}
       </div>
       <div className="flex justify-end gap-2 border-t bg-muted/20 px-4 py-2.5">
