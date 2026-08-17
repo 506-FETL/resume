@@ -19,6 +19,7 @@ export type PresetCertificate = (typeof PRESET_CERTIFICATES)[number]
 
 export const certificateItemSchema = z.object({
   entryId: resumeEntryIdSchema,
+  hidden: z.boolean().optional().default(false),
   name: z.string().trim(),
 })
 

@@ -20,6 +20,7 @@ export type PresetHobby = (typeof PRESET_HOBBIES)[number]
 
 export const hobbyItemSchema = z.object({
   entryId: resumeEntryIdSchema,
+  hidden: z.boolean().optional().default(false),
   name: z.string().trim(),
 })
 

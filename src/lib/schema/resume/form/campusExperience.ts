@@ -24,6 +24,7 @@ export const DEFAULT_CAMPUS_EXPERIENCE: CampusExperienceFormType = {
   items: [
     {
       entryId: 'default_campus_experience_1',
+      hidden: false,
       experienceName: '',
       role: '',
       duration: ['', ''],

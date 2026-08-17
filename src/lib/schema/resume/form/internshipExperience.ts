@@ -24,6 +24,7 @@ export const DEFAULT_INTERNSHIP_EXPERIENCE: InternshipExperienceFormType = {
   items: [
     {
       entryId: 'default_internship_experience_1',
+      hidden: false,
       companyName: '',
       position: '',
       internshipDuration: ['', ''],

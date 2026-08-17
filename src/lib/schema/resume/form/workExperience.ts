@@ -24,6 +24,7 @@ export const DEFAULT_WORK_EXPERIENCE: WorkExperienceFormType = {
   items: [
     {
       entryId: 'default_work_experience_1',
+      hidden: false,
       companyName: '',
       position: '',
       workDuration: ['', ''],

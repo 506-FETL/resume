@@ -24,6 +24,7 @@ export const DEFAULT_PROJECT_EXPERIENCE: ProjectExperienceFormType = {
   items: [
     {
       entryId: 'default_project_experience_1',
+      hidden: false,
       projectName: '',
       participantRole: '',
       projectDuration: ['', ''],
