@@ -42,6 +42,9 @@ interface AssistantStore {
   streamingParts: AiMessagePart[]
   composerDraft: string
   pendingConfirm: { id: string, toolName: string, preview: ConfirmPreview, resolve: (confirmed: boolean) => void } | null
+  hasMoreMessages: boolean
+  loadingOlder: boolean
+  oldestMessageCursor: string | null
   loadingConversations: boolean
   loadingMessages: boolean
   sidebarExpanded: boolean
@@ -67,7 +70,9 @@ interface AssistantStore {
   upsertConversation: (conv: AiConversation) => void
   removeConversationLocal: (id: string) => void
   setActiveConversationId: (id: string | null) => void
-  setConversationView: (conversationId: string | null, messages: AiMessage[], targetMessageId?: string | null) => void
+  setConversationView: (conversationId: string | null, messages: AiMessage[], options?: { targetMessageId?: string | null, hasMore?: boolean }) => void
+  prependOlderMessages: (older: AiMessage[], hasMore: boolean) => void
+  setLoadingOlder: (v: boolean) => void
   setMessages: (list: AiMessage[]) => void
   appendMessage: (msg: AiMessage) => void
   replaceMessage: (id: string, msg: AiMessage) => void
@@ -109,6 +114,9 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   streamingParts: [],
   composerDraft: '',
   pendingConfirm: null,
+  hasMoreMessages: false,
+  loadingOlder: false,
+  oldestMessageCursor: null,
   loadingConversations: false,
   loadingMessages: false,
   sidebarExpanded: readStoredBoolean(ASSISTANT_SIDEBAR_STORAGE_KEY, true),
@@ -146,15 +154,25 @@ const useAssistantStore = create<AssistantStore>()(set => ({
     messages: state.activeConversationId === id ? [] : state.messages,
   })),
   setActiveConversationId: id => set({ activeConversationId: id }),
-  setConversationView: (conversationId, messages, targetMessageId = null) => set(state => ({
+  setConversationView: (conversationId, messages, options) => set(state => ({
     activeConversationId: conversationId,
     messages,
-    targetMessageId,
+    targetMessageId: options?.targetMessageId ?? null,
+    hasMoreMessages: options?.hasMore ?? false,
+    oldestMessageCursor: messages[0]?.createdAt ?? null,
+    loadingOlder: false,
     pendingConversationId: null,
     conversationLoadRequestId: null,
     loadingMessages: false,
     conversationViewVersion: state.conversationViewVersion + 1,
   })),
+  prependOlderMessages: (older, hasMore) => set(state => ({
+    messages: [...older, ...state.messages],
+    hasMoreMessages: hasMore,
+    oldestMessageCursor: older[0]?.createdAt ?? state.oldestMessageCursor,
+    loadingOlder: false,
+  })),
+  setLoadingOlder: v => set({ loadingOlder: v }),
   setMessages: list => set({ messages: list }),
   appendMessage: msg => set(state => ({ messages: [...state.messages, msg] })),
   replaceMessage: (id, msg) => set(state => ({ messages: state.messages.map(m => (m.id === id ? msg : m)) })),

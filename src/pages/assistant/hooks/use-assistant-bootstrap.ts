@@ -40,11 +40,11 @@ export function useAssistantBootstrap() {
             initializing: false,
             loadingConversations: false,
           })
-          useAssistantStore.getState().setConversationView(null, [])
+          useAssistantStore.getState().setConversationView(null, [], {})
           return
         }
 
-        const messages = await listMessages(restored.id)
+        const { messages, hasMore } = await listMessages(restored.id, { limit: 30 })
         if (cancelled)
           return
 
@@ -52,7 +52,7 @@ export function useAssistantBootstrap() {
           initializing: false,
           loadingConversations: false,
         })
-        useAssistantStore.getState().setConversationView(restored.id, messages)
+        useAssistantStore.getState().setConversationView(restored.id, messages, { hasMore })
         writeLastConversationId(restored.id)
       }
       catch (error) {
@@ -60,7 +60,7 @@ export function useAssistantBootstrap() {
           return
         if (getErrorMessage(error) === '用户未登录') {
           useAssistantStore.getState().setConversations([])
-          useAssistantStore.getState().setConversationView(null, [])
+          useAssistantStore.getState().setConversationView(null, [], {})
         }
         useAssistantStore.setState({
           initializing: false,

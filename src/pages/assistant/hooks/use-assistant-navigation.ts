@@ -64,14 +64,14 @@ export function useAssistantNavigation(bindShortcuts = false) {
     })
 
     try {
-      const messages = await listMessages(id)
+      const { messages, hasMore } = await listMessages(id, { limit: 30 })
       if (useAssistantStore.getState().conversationLoadRequestId !== requestId)
         return false
 
       useAssistantStore.getState().setConversationView(
         id,
         messages,
-        options.targetMessageId ?? null,
+        { targetMessageId: options.targetMessageId, hasMore },
       )
       writeLastConversationId(id)
       if (options.closeOverlays !== false)
@@ -131,7 +131,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
       if (candidate)
         await openConversation(candidate.id)
       else
-        useAssistantStore.getState().setConversationView(null, [])
+        useAssistantStore.getState().setConversationView(null, [], {})
     }
     catch (error) {
       toast.error('删除失败', { description: getErrorMessage(error) })
@@ -148,6 +148,23 @@ export function useAssistantNavigation(bindShortcuts = false) {
   const toggleSidebar = useCallback(() => {
     const state = useAssistantStore.getState()
     state.setSidebarExpanded(!state.sidebarExpanded)
+  }, [])
+
+  const loadOlderMessages = useCallback(async () => {
+    const s = useAssistantStore.getState()
+    if (s.loadingOlder || !s.hasMoreMessages || !s.activeConversationId || !s.oldestMessageCursor)
+      return
+    useAssistantStore.getState().setLoadingOlder(true)
+    const convId = s.activeConversationId
+    try {
+      const { messages, hasMore } = await listMessages(convId, { limit: 30, before: s.oldestMessageCursor })
+      if (useAssistantStore.getState().activeConversationId !== convId)
+        return
+      useAssistantStore.getState().prependOlderMessages(messages, hasMore)
+    }
+    catch {
+      useAssistantStore.getState().setLoadingOlder(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -186,5 +203,6 @@ export function useAssistantNavigation(bindShortcuts = false) {
     deleteAndSelectConversation,
     returnToWorkspace,
     toggleSidebar,
+    loadOlderMessages,
   }
 }
