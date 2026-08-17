@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { FieldArrayWithId, FieldValues, UseFormReturn } from 'react-hook-form'
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
@@ -41,19 +41,20 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
   return (
     <Form {...form}>
       <form id={formId} className={cn('flex flex-col gap-6', className)}>
-        {fields.map((item, index) => (
-          <motion.div key={item.id} layout>
-            {index > 0 && <Separator className="my-6" />}
+        {fields.map((item, index) => {
+          const hidden = form.watch(`items.${index}.hidden` as any)
+          return (
+            <motion.div key={item.id} layout>
+              {index > 0 && <Separator className="my-6" />}
 
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  {title}
-                  {multiple ? `#${index + 1}` : ''}
-                </h3>
-                {multiple && (
+              <div className={cn('flex flex-col gap-4', hidden && 'opacity-50')}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {title}
+                    {multiple ? `#${index + 1}` : ''}
+                  </h3>
                   <div className="flex items-center gap-0.5">
-                    {move && (
+                    {multiple && move && (
                       <>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -87,24 +88,42 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
                         </Tooltip>
                       </>
                     )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => remove(index)}
-                      className="h-8 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                      {!isMobile && <span className="ml-1">删除</span>}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => {
+                            form.setValue(`items.${index}.hidden` as any, !hidden as any, { shouldDirty: true })
+                          }}
+                          aria-label={`${hidden ? '显示' : '隐藏'}${title}${multiple ? `#${index + 1}` : ''}`}
+                        >
+                          {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{hidden ? '显示此项' : '隐藏此项（内容保留）'}</TooltipContent>
+                    </Tooltip>
+                    {multiple && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => remove(index)}
+                        className="h-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                        {!isMobile && <span className="ml-1">删除</span>}
+                      </Button>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
 
-              {renderItem(index, item)}
-            </div>
-          </motion.div>
-        ))}
+                {renderItem(index, item)}
+              </div>
+            </motion.div>
+          )
+        })}
 
         <Button
           type="button"

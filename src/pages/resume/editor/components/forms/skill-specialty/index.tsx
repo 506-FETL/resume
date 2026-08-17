@@ -1,5 +1,5 @@
 import type { DisplayType, ProficiencyLevel } from '@/lib/schema/resume/form/skillSpecialty'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Eye, EyeOff, Plus, Trash2, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { PRESET_SKILLS, PROFICIENCY_PERCENTAGE_MAP, skillSpecialtyFormSchema } from '@/lib/schema/resume/form/skillSpecialty'
@@ -162,106 +163,128 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
             <div className="flex flex-col gap-4">
               <FormLabel>技能列表</FormLabel>
               <div className="grid grid-cols-1 gap-3 @md/panel:grid-cols-2 @2xl/panel:grid-cols-3">
-                {fields.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, scale: 0.96, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96, y: -20 }}
-                    transition={{
-                      duration: 0.5,
-                      ease: [0.34, 1.56, 0.64, 1],
-                    }}
-                    layout
-                    className="flex flex-col gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow"
-                  >
-                    {/* 技能标签和删除按钮 */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-base truncate">{item.label}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => remove(index)}
-                        className="size-8 shrink-0 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 />
-                      </Button>
-                    </div>
+                {fields.map((item, index) => {
+                  const hidden = form.watch(`skills.${index}.hidden` as any)
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.96, y: -20 }}
+                      transition={{
+                        duration: 0.5,
+                        ease: [0.34, 1.56, 0.64, 1],
+                      }}
+                      layout
+                      className={cn('flex flex-col gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
+                    >
+                      {/* 技能标签和操作按钮 */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-base truncate">{item.label}</span>
+                        <div className="flex items-center gap-0.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  form.setValue(`skills.${index}.hidden` as any, !hidden, { shouldDirty: true })
+                                }}
+                                aria-label={`${hidden ? '显示' : '隐藏'}技能 ${item.label}`}
+                                className="size-8 shrink-0 p-0"
+                              >
+                                {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{hidden ? '显示此技能' : '隐藏此技能（内容保留）'}</TooltipContent>
+                          </Tooltip>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => remove(index)}
+                            className="size-8 shrink-0 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </div>
+                      </div>
 
-                    {/* 熟练程度和展示方式 */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        name={`skills.${index}.proficiencyLevel`}
-                        control={form.control}
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col gap-1">
-                            <FormLabel className="text-xs text-muted-foreground">熟练程度</FormLabel>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="h-9 text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectGroup>
-                                    {proficiencyLevels.map(level => (
-                                      <SelectItem key={level} value={level}>
-                                        {level}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                      {/* 熟练程度和展示方式 */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormField
+                          name={`skills.${index}.proficiencyLevel`}
+                          control={form.control}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col gap-1">
+                              <FormLabel className="text-xs text-muted-foreground">熟练程度</FormLabel>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <SelectTrigger className="h-9 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectGroup>
+                                      {proficiencyLevels.map(level => (
+                                        <SelectItem key={level} value={level}>
+                                          {level}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        name={`skills.${index}.displayType`}
-                        control={form.control}
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col gap-1">
-                            <FormLabel className="text-xs text-muted-foreground">展示方式</FormLabel>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="h-9 text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectGroup>
-                                    {displayTypes.map(type => (
-                                      <SelectItem key={type.value} value={type.value}>
-                                        {type.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                        <FormField
+                          name={`skills.${index}.displayType`}
+                          control={form.control}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col gap-1">
+                              <FormLabel className="text-xs text-muted-foreground">展示方式</FormLabel>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <SelectTrigger className="h-9 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectGroup>
+                                      {displayTypes.map(type => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                    {/* 显示预览 */}
-                    <div className="flex flex-col gap-2 pt-2 border-t">
-                      <span className="text-sm font-semibold text-primary">
-                        {(() => {
-                          const proficiency = form.watch(`skills.${index}.proficiencyLevel`)
-                          const displayTypeValue = form.watch(`skills.${index}.displayType`)
-                          return displayTypeValue === 'percentage' && proficiency
-                            ? `${PROFICIENCY_PERCENTAGE_MAP[proficiency]}%`
-                            : proficiency || '熟练'
-                        })()}
-                      </span>
-                      <Progress
-                        value={PROFICIENCY_PERCENTAGE_MAP[form.watch(`skills.${index}.proficiencyLevel`)!]}
-                        className="h-2"
-                      />
-                    </div>
-                  </motion.div>
-                ))}
+                      {/* 显示预览 */}
+                      <div className="flex flex-col gap-2 pt-2 border-t">
+                        <span className="text-sm font-semibold text-primary">
+                          {(() => {
+                            const proficiency = form.watch(`skills.${index}.proficiencyLevel`)
+                            const displayTypeValue = form.watch(`skills.${index}.displayType`)
+                            return displayTypeValue === 'percentage' && proficiency
+                              ? `${PROFICIENCY_PERCENTAGE_MAP[proficiency]}%`
+                              : proficiency || '熟练'
+                          })()}
+                        </span>
+                        <Progress
+                          value={PROFICIENCY_PERCENTAGE_MAP[form.watch(`skills.${index}.proficiencyLevel`)!]}
+                          className="h-2"
+                        />
+                      </div>
+                    </motion.div>
+                  )
+                })}
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { Plus, Trash2, X } from 'lucide-react'
+import { Eye, EyeOff, Plus, Trash2, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { honorsCertificatesFormSchema, PRESET_CERTIFICATES } from '@/lib/schema'
 import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
@@ -144,6 +145,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
               <div className="grid grid-cols-2 @md/panel:grid-cols-4 @2xl/panel:grid-cols-6 gap-3">
                 {fields.map((item, index) => {
                   const certificateValue = form.watch(`certificates.${index}.name`)
+                  const hidden = form.watch(`certificates.${index}.hidden` as any)
                   return (
                     <motion.div
                       key={item.id}
@@ -155,20 +157,39 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
                         ease: [0.34, 1.56, 0.64, 1],
                       }}
                       layout
-                      className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:shadow-md transition-shadow"
+                      className={cn('flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
                     >
                       <span className="font-medium text-base truncate flex-1">{certificateValue}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          remove(index)
-                        }}
-                        className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                      <div className="flex items-center gap-0.5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                form.setValue(`certificates.${index}.hidden` as any, !hidden as any, { shouldDirty: true })
+                              }}
+                              aria-label={`${hidden ? '显示' : '隐藏'}证书 ${certificateValue}`}
+                              className="size-8 p-0"
+                            >
+                              {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{hidden ? '显示此证书' : '隐藏此证书（内容保留）'}</TooltipContent>
+                        </Tooltip>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            remove(index)
+                          }}
+                          className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </motion.div>
                   )
                 })}
