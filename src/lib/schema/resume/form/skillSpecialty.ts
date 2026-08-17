@@ -37,7 +37,7 @@ export type PresetSkill = (typeof PRESET_SKILLS)[number]
 // 单个技能特长项
 export const skillItemSchema = z.object({
   entryId: resumeEntryIdSchema,
-  hidden: z.boolean().optional().default(false),
+  hidden: z.boolean().optional(),
   label: z.string().trim(),
   proficiencyLevel: proficiencyLevelEnum,
   displayType: displayTypeEnum,
