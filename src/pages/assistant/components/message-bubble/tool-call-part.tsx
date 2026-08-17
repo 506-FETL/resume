@@ -5,8 +5,9 @@ import { getToolCategoryIcon } from '@/lib/utils/tool-icons'
 import useAssistantStore from '../../store'
 import { retryToolCall } from '../../tool-retry'
 import { TOOL_CANVAS_META } from '../../utils'
-import { computeLineDiff, diffStat } from '../diff/compute-line-diff'
+import { computeFieldDiff } from '../diff/compute-field-diff'
 import { DiffStat } from '../diff/diff-view'
+import { SECTION_LABELS } from '../diff/field-labels'
 
 type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
 
@@ -16,12 +17,15 @@ interface ToolCallPartProps {
 
 function statOf(part: ToolCallPart): { additions: number, deletions: number } | null {
   const result = part.result
-  if (result && typeof result === 'object' && 'before' in result && 'after' in result) {
-    const r = result as { before: unknown, after: unknown }
-    const s = diffStat(computeLineDiff(r.before, r.after))
-    if (s.additions > 0 || s.deletions > 0)
-      return s
-  }
+  const sectionKey = (part.args as { sectionKey?: string } | undefined)?.sectionKey
+  if (!sectionKey || !result || typeof result !== 'object' || !('before' in result) || !('after' in result))
+    return null
+  const r = result as { before: unknown, after: unknown }
+  const changes = computeFieldDiff(SECTION_LABELS[sectionKey] ?? sectionKey, r.before, r.after)
+  const additions = changes.filter(c => c.kind !== 'removed').length
+  const deletions = changes.filter(c => c.kind !== 'added').length
+  if (additions > 0 || deletions > 0)
+    return { additions, deletions }
   return null
 }
 
