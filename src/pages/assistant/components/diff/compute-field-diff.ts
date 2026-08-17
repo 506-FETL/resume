@@ -1,4 +1,4 @@
-import { fieldLabel, HIDDEN_DIFF_FIELDS } from './field-labels'
+import { fieldLabel, HIDDEN_DIFF_FIELDS, SECTION_LABELS } from './field-labels'
 
 export interface FieldChange {
   path: string // 展示用路径，如 "工作经历 #1 · 公司名称"
@@ -140,4 +140,10 @@ export function computeFieldDiff(sectionLabel: string, before: unknown, after: u
     }
   }
   return out
+}
+
+// 统计某模块 before→after 的字段变更条数（供对话流工具行的 +N -N 统计使用）
+export function fieldChangeCount(sectionKey: string, before: unknown, after: unknown): number {
+  const label = SECTION_LABELS[sectionKey] ?? sectionKey
+  return computeFieldDiff(label, before, after).length
 }

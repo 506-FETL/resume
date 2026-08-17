@@ -30,9 +30,4 @@ export function FieldDiffView({ sectionKey, before, after }: { sectionKey: strin
   )
 }
 
-export function fieldChangeCount(sectionKey: string, before: unknown, after: unknown): number {
-  const label = SECTION_LABELS[sectionKey] ?? sectionKey
-  return computeFieldDiff(label, before, after).length
-}
-
 export type { FieldChange }
