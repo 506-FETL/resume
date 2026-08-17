@@ -78,7 +78,7 @@ function formatSectionIssues(error: z.ZodError): string {
 
 registerTool({
   name: 'update_current_resume_field',
-  description: `修改「当前正在编辑」的简历的某个模块内容。仅当用户已在编辑器打开某份简历时可用。sectionKey 可选值：${FORM_DATA_KEYS.join(', ')}。value 为该模块的新内容对象（结构需与该模块一致）。此操作需用户确认。`,
+  description: `修改「当前正在编辑」的简历的某个模块内容。仅当用户已在编辑器打开某份简历时可用。sectionKey 可选值：${FORM_DATA_KEYS.join(', ')}。value 为该模块的新内容对象，其字段结构必须严格匹配 system 中「简历模块字段结构」的说明（特别注意：列表字段是对象数组而非字符串数组；时间字段是长度为 2 的字符串数组；enum 只能取给定值）。此操作需用户确认。`,
   parameters: {
     type: 'object',
     properties: {

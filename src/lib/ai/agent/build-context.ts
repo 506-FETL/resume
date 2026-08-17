@@ -1,3 +1,4 @@
+import { getResumeSchemaDoc } from '@/lib/ai/schema-doc'
 import { listAccessibleResumes } from '@/lib/resume-access'
 import { getCompanies } from '@/lib/supabase/resume'
 import { getUserProfile } from '@/lib/supabase/user'
@@ -65,6 +66,8 @@ export async function buildUserContext(): Promise<string> {
     // 忽略概况拉取失败
   }
 
-  lines.push('你可调用工具完整读写用户数据：读取任意简历内容/看板/ATS/派生血缘/历史版本；新建/删除/重命名简历、打开简历、修改当前简历字段；保存/恢复/删除简历历史版本；新增/修改/删除看板职位。所有写操作会先弹卡请用户确认。需要新建完整简历时用 create_resume（可带 sections 预填内容），不要回答“不支持创建简历”。')
+  lines.push('你可调用工具完整读写用户数据：读取任意简历内容/看板/ATS/派生血缘/历史版本；新建/删除/重命名简历、打开简历、修改当前简历字段；保存/恢复/删除简历历史版本；新增/修改/删除看板职位。所有写操作会先弹卡请用户确认。需要新建完整简历时用 create_resume（可带 sections 预填内容），不要回答"不支持创建简历"。')
+  lines.push('')
+  lines.push(getResumeSchemaDoc())
   return lines.join('\n')
 }
