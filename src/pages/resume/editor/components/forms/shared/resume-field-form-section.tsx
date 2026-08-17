@@ -47,9 +47,9 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
             <motion.div key={item.id} layout>
               {index > 0 && <Separator className="my-6" />}
 
-              <div className={cn('flex flex-col gap-4', hidden && 'opacity-50')}>
+              <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-muted-foreground">
+                  <h3 className={cn('text-sm font-medium text-muted-foreground', hidden && 'opacity-50')}>
                     {title}
                     {multiple ? `#${index + 1}` : ''}
                   </h3>
@@ -119,7 +119,9 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
                   </div>
                 </div>
 
-                {renderItem(index, item)}
+                <div className={cn(hidden && 'opacity-50')}>
+                  {renderItem(index, item)}
+                </div>
               </div>
             </motion.div>
           )
