@@ -1,4 +1,4 @@
-import { fieldLabel, HIDDEN_DIFF_FIELDS } from './field-labels.ts'
+import { fieldLabel, HIDDEN_DIFF_FIELDS } from './field-labels'
 
 export interface FieldChange {
   path: string // 展示用路径，如 "工作经历 #1 · 公司名称"
