@@ -227,9 +227,14 @@ export async function fetchVariantTree(currentResumeId: string): Promise<Variant
       .select('resume_id,parent_resume_id,display_name,derived_status,derived_metadata,linked_jd_text')
       .eq('user_id', user.id)
       .eq('resume_id', walker)
-      .single()
+      .maybeSingle()
     if (error) {
       throw error
+    }
+    // 查不到行（如协作者受 RLS 限制读不到所有者的 resume_config）：返回仅含当前节点的最小血缘，
+    // 避免 .single() 的 0 行 406 报错在控制台刷红，同时血缘按钮已在协作者场景禁用。
+    if (!data) {
+      break
     }
     rootRow = data as RawNode
     if (!rootRow.parent_resume_id) {
@@ -238,7 +243,18 @@ export async function fetchVariantTree(currentResumeId: string): Promise<Variant
     walker = rootRow.parent_resume_id
   }
   if (!rootRow) {
-    throw new Error('未找到任何节点')
+    return {
+      root: {
+        resumeId: currentResumeId,
+        displayName: '未命名简历',
+        derivedStatus: null,
+        generatedAt: null,
+        jdSnippet: null,
+        matchRate: null,
+        children: [],
+      },
+      currentId: currentResumeId,
+    }
   }
 
   const root = toTreeNode(rootRow)

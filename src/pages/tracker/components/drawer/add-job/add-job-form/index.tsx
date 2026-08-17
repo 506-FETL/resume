@@ -1,5 +1,5 @@
 import type { AddJobFormData } from '../types'
-import { BriefcaseBusiness, FileText, MapPin, Sparkles } from 'lucide-react'
+import { BriefcaseBusiness, FileText, MapPin } from 'lucide-react'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ResponsiveDialogSection } from '@/components/ui/responsive-dialog'

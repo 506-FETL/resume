@@ -26,12 +26,13 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   peerMetadata?: PeerMetadata = undefined
   private readonly resumeId: string
   private readonly sessionId: string
-  private readonly callbacks: CollaborationCallbacks
+  private callbacks: CollaborationCallbacks
   private readonly channelName: string
-  private readonly presenceMetadata: Record<string, unknown>
+  private presenceMetadata: Record<string, unknown>
   private ready = false
   private localDocumentId: string | null = null
   private pendingMessages: PendingSyncMessage[] = []
+  private channelReadyResolvers: Array<() => void> = []
 
   constructor(resumeId: string, sessionId: string, callbacks: CollaborationCallbacks = {}) {
     super()
@@ -40,6 +41,17 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     this.callbacks = callbacks
     this.channelName = `automerge:resume:${resumeId}:${sessionId}`
     this.presenceMetadata = callbacks.presenceMetadata || {}
+  }
+
+  // 复用同一会话的适配器时升级回调（预连接用轻量回调，正式 join 后替换为带 toast/participants 的完整回调）。
+  // 若通道已就绪且 presence 变化，重新 track，让对端拿到正确的协作者身份（userName/color/role）。
+  setCallbacks(callbacks: CollaborationCallbacks) {
+    this.callbacks = callbacks
+    if (callbacks.presenceMetadata) {
+      this.presenceMetadata = callbacks.presenceMetadata
+      if (this.ready)
+        void this.trackPresence()
+    }
   }
 
   setLocalDocumentId(documentId: string | null) {
@@ -52,6 +64,26 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
 
   isReady(): boolean {
     return this.ready
+  }
+
+  // 通道 SUBSCRIBED 后 resolve。协作者需等通道就绪（有对端可同步）后再 find(docUrl)。
+  whenChannelReady(timeoutMs?: number): Promise<void> {
+    if (this.ready)
+      return Promise.resolve()
+
+    return new Promise<void>((resolve) => {
+      let settled = false
+      const done = () => {
+        if (settled)
+          return
+        settled = true
+        resolve()
+      }
+      this.channelReadyResolvers.push(done)
+      if (typeof timeoutMs === 'number') {
+        setTimeout(done, timeoutMs)
+      }
+    })
   }
 
   whenReady() {
@@ -206,24 +238,32 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   }
 
   private subscribeToChannel(peerMetadata?: PeerMetadata) {
+    this.peerMetadata = peerMetadata ?? this.peerMetadata
     this.channel?.subscribe(async (status) => {
       if (status !== 'SUBSCRIBED') {
         return
       }
 
-      await this.channel?.track({
-        peerId: String(this.peerId),
-        metadata: {
-          ...(peerMetadata || {}),
-          ...this.presenceMetadata,
-          peerId: String(this.peerId),
-        },
-        online_at: new Date().toISOString(),
-        sessionId: this.sessionId,
-      })
+      await this.trackPresence()
 
       this.ready = true
       this.callbacks.onChannelReady?.(this.channelName)
+      const resolvers = this.channelReadyResolvers
+      this.channelReadyResolvers = []
+      resolvers.forEach(resolve => resolve())
+    })
+  }
+
+  private async trackPresence() {
+    await this.channel?.track({
+      peerId: String(this.peerId),
+      metadata: {
+        ...(this.peerMetadata || {}),
+        ...this.presenceMetadata,
+        peerId: String(this.peerId),
+      },
+      online_at: new Date().toISOString(),
+      sessionId: this.sessionId,
     })
   }
 

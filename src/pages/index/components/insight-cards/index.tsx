@@ -192,9 +192,22 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                    <XAxis
+                      dataKey="index"
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      ticks={trend.map(point => point.index)}
+                      interval={0}
+                      tickFormatter={(value: number) => trend[value]?.label ?? ''}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    />
                     <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel ?? ''} />}
+                    />
                     <Area dataKey="score" type="monotone" stroke="var(--chart-2)" strokeWidth={2} fill="url(#ats-trend-fill)" />
                   </AreaChart>
                 </ChartContainer>

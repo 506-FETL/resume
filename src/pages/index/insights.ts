@@ -5,7 +5,7 @@ import { countPendingAtsFindings } from '@/lib/ats'
 import { listAtsSummaries, listJobApplicationSummaries, listResumeHistoryVersionSummaries } from '@/lib/supabase/resume'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '@/pages/tracker/const'
 import { getDaysUntil, isJobPendingFollowUp } from '@/pages/tracker/utils'
-import { diffDates, formatRelativeTime } from '@/utils/date'
+import { diffDates, formatDateTime, formatRelativeTime, formatTime } from '@/utils/date'
 
 // 求职漏斗核心指标（首页统计卡数据源）
 export interface DashboardFunnel {
@@ -360,7 +360,10 @@ export interface FunnelStage {
 export interface AtsTrendPoint {
   index: number
   score: number
+  // x 轴刻度短文案（相对时间；同一相对时间的多次检测追加 HH:mm 以区分）
   label: string
+  // tooltip 完整时间文案
+  fullLabel: string
 }
 
 // 近 7 天单日活跃度
@@ -442,16 +445,31 @@ export function useDashboardExtras(
 
     // —— ATS 趋势：所有在线简历最近 8 次检测，按时间稳定正序 ——
     const onlineIds = new Set(onlineResumes.map(resume => resume.resume_id))
-    const atsTrend: AtsTrendPoint[] = atsSummaries
+    const orderedAtsSummaries = atsSummaries
       .filter(summary => onlineIds.has(summary.resume_id))
       .filter(summary => typeof summary.summary?.overall_score === 'number')
       .sort(compareAtsSummaryChronologically)
       .slice(-8)
-      .map((summary, index) => ({
-        index,
-        score: summary.summary!.overall_score as number,
-        label: formatRelativeTime(summary.created_at),
-      }))
+    // 相对时间可能重复（如多次检测都落在「1 天前」），先统计每个相对文案出现次数，
+    // 重复的追加 HH:mm 以保证 x 轴刻度文案可区分，避免类目轴把多点塌陷到同一坐标
+    const relativeLabelCounts = orderedAtsSummaries.reduce<Record<string, number>>((acc, summary) => {
+      const key = formatRelativeTime(summary.created_at)
+      acc[key] = (acc[key] ?? 0) + 1
+      return acc
+    }, {})
+    const atsTrend: AtsTrendPoint[] = orderedAtsSummaries
+      .map((summary, index) => {
+        const relative = formatRelativeTime(summary.created_at)
+        const label = relativeLabelCounts[relative] > 1
+          ? `${relative} ${formatTime(summary.created_at).slice(0, 5)}`
+          : relative
+        return {
+          index,
+          score: summary.summary!.overall_score as number,
+          label,
+          fullLabel: formatDateTime(summary.created_at),
+        }
+      })
 
     // —— 本周活跃度：本周一→周日，编辑（version）+ 投递（job.updated_at）按日计数 ——
     // 用本地日期键（避免 toISOString 的 UTC 偏移在东八区把事件算到前一天）

@@ -22,6 +22,8 @@ export class CollaborationSessionManager {
 
   async enable(sessionId: string, callbacks: CollaborationCallbacks = {}) {
     if (this.adapter && this.currentSessionId === sessionId) {
+      // 复用同会话适配器（如协作者预连接后正式 join），升级为完整回调
+      this.adapter.setCallbacks(callbacks)
       return this.adapter
     }
 
@@ -45,6 +47,11 @@ export class CollaborationSessionManager {
     this.syncHandle(this.options.getHandle())
 
     return adapter
+  }
+
+  // 等待网络通道就绪（协作者在 find(docUrl) 前调用，确保有对端可同步）
+  async whenChannelReady(timeoutMs?: number): Promise<void> {
+    await this.adapter?.whenChannelReady(timeoutMs)
   }
 
   disable() {

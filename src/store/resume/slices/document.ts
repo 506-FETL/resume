@@ -25,7 +25,7 @@ export interface DocumentSlice {
   appearanceDirty: boolean
   entryIdMigrationReady: boolean
 
-  loadResumeData: (resumeId: string, options?: { documentUrl?: string }) => Promise<ResumeLoadResult>
+  loadResumeData: (resumeId: string, options?: { documentUrl?: string, collaborationSessionId?: string, presenceMetadata?: Record<string, unknown> }) => Promise<ResumeLoadResult>
   cleanup: () => void
 }
 
@@ -58,7 +58,7 @@ export function createDocumentSlice(
   return {
     ...documentDefaults,
 
-    loadResumeData: async (resumeId: string, options?: { documentUrl?: string }) => {
+    loadResumeData: async (resumeId: string, options?: { documentUrl?: string, collaborationSessionId?: string, presenceMetadata?: Record<string, unknown> }) => {
       const requestId = ++latestLoadRequestId
       const isCurrentRequest = () => requestId === latestLoadRequestId
       const assertCurrentRequest = () => {
@@ -138,6 +138,12 @@ export function createDocumentSlice(
 
         manager = new DocumentManager(resumeId, user.id, {
           sharedDocumentUrl: options?.documentUrl,
+          sharedCollaboration: options?.documentUrl && options?.collaborationSessionId
+            ? {
+                sessionId: options.collaborationSessionId,
+                presenceMetadata: options.presenceMetadata,
+              }
+            : undefined,
         })
         const handle = await manager.initialize()
         assertCurrentRequest()

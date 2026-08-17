@@ -12,6 +12,7 @@ import { useRichTextCollabStore } from '../richtext'
 import { createCollaborationSessionId } from '../shared'
 import { createSessionCallbacks } from './callbacks'
 import {
+  CollaborationOperationError,
   enableCollaborationSession,
   joinCollaborationCommentSession,
   leaveCollaborationCommentSession,
@@ -161,6 +162,13 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       toast.info('已加入实时协作', { description: '正在与发起者同步内容' })
     }
     catch (error) {
+      // 简历所有者点开自己的协作链接（换设备/清缓存导致本地无 host 角色记录）时，
+      // 后端返回 unauthorized；此时他本就是所有者，无缝转为以主持人身份恢复协作，避免误报错误。
+      if (error instanceof CollaborationOperationError && error.code === 'unauthorized') {
+        set({ isConnecting: false, connectionPhase: null, error: null })
+        await get().resumeHosting({ sessionId, resumeId, userId, userName })
+        return
+      }
       const message = error instanceof Error ? error.message : '加入协作失败'
       set({ isConnecting: false, connectionPhase: null, error: message })
       toast.error(message)

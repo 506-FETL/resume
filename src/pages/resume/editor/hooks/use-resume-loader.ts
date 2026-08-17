@@ -2,7 +2,8 @@ import type { SupabaseUser } from '../types'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { useCollaborationStore } from '@/lib/collaboration'
+import { getUserDisplayName } from '@/hooks/use-current-user'
+import { getParticipantColor, useCollaborationStore } from '@/lib/collaboration'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { isResumeNotFoundError } from '@/lib/resume-id'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
@@ -26,6 +27,7 @@ export function useResumeLoader() {
 
   const queryResumeId = searchParams.get('resumeId')
   const documentUrlParam = searchParams.get('docUrl')
+  const collabSessionParam = searchParams.get('collabSession')
   const activeResumeId = queryResumeId ?? resumeId ?? undefined
 
   // 获取当前用户
@@ -69,8 +71,21 @@ export function useResumeLoader() {
     let cancelled = false
     setLoading(true)
 
+    // 协作者场景：URL 带 docUrl + collabSession。把会话信息传入加载流程，
+    // 让文档管理器先挂载网络适配器再 find(docUrl)，避免零 peer 回退成空白文档。
+    const collaborationUser = useUserStore.getState().currentUser
+    const presenceMetadata = documentUrlParam && collabSessionParam && collaborationUser
+      ? {
+          userId: collaborationUser.id,
+          userName: getUserDisplayName(collaborationUser) || `用户-${collaborationUser.id.slice(0, 6)}`,
+          color: getParticipantColor(collaborationUser.id),
+        }
+      : undefined
+
     loadResumeData(activeResumeId, {
       documentUrl: documentUrlParam ?? undefined,
+      collaborationSessionId: documentUrlParam ? collabSessionParam ?? undefined : undefined,
+      presenceMetadata,
     })
       .then(async ({ snapshot, hasPersistedAppearance, cloudAppearanceStatus, mode }) => {
         if (cancelled)
@@ -112,7 +127,7 @@ export function useResumeLoader() {
     return () => {
       cancelled = true
     }
-  }, [activeResumeId, clearCurrentResume, documentUrlParam, loadResumeData, navigate])
+  }, [activeResumeId, clearCurrentResume, documentUrlParam, collabSessionParam, loadResumeData, navigate])
 
   // 监听简历删除
   useEffect(() => {

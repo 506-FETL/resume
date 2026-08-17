@@ -3,17 +3,26 @@ import type { CollaborationCallbacks, DocumentSaveResult } from '../shared'
 import type { AutomergeResumeDocument, ChangeFn } from './schema'
 import { CollaborationSessionManager } from '../collaboration/session-manager'
 import { getAutomergeRepo } from '../repo'
+import { SHARED_DOCUMENT_ADAPTER_READY_TIMEOUT_MS } from '../shared'
 import { createResumeDocument, touchDocumentMetadata } from './factory'
 import { AutomergeDocumentPersistence } from './persistence'
 
+interface SharedCollaborationInit {
+  sessionId: string
+  presenceMetadata?: Record<string, unknown>
+}
+
 interface DocumentManagerOptions {
   sharedDocumentUrl?: string
+  // 协作者通过共享 docUrl 加载时，先用该会话信息挂载网络适配器再 find，避免零 peer 回退空白文档
+  sharedCollaboration?: SharedCollaborationInit
 }
 
 export class DocumentManager {
   private readonly resumeId: string
   private readonly userId: string
   private readonly persistence: AutomergeDocumentPersistence
+  private readonly sharedCollaboration?: SharedCollaborationInit
   private handle: DocHandle<AutomergeResumeDocument> | null = null
   private repo: Repo | null = null
   private collaboration: CollaborationSessionManager | null = null
@@ -23,6 +32,7 @@ export class DocumentManager {
   constructor(resumeId: string, userId: string, options: DocumentManagerOptions = {}) {
     this.resumeId = resumeId
     this.userId = userId
+    this.sharedCollaboration = options.sharedCollaboration
     this.persistence = new AutomergeDocumentPersistence(resumeId, userId, options.sharedDocumentUrl)
   }
 
@@ -34,6 +44,15 @@ export class DocumentManager {
     const repo = getAutomergeRepo(this.resumeId)
     this.repo = repo
     this.collaboration ??= this.createCollaborationSession(repo)
+
+    // 协作者场景：先挂载网络适配器并等通道就绪，使随后的 repo.find(docUrl) 有对端可同步，
+    // 避免零 peer 时被立即判定 unavailable 而回退到新建空白文档（导致协作者简历为空）。
+    if (this.persistence.getSharedDocumentUrl() && this.sharedCollaboration) {
+      await this.collaboration.enable(this.sharedCollaboration.sessionId, {
+        presenceMetadata: this.sharedCollaboration.presenceMetadata,
+      })
+      await this.collaboration.whenChannelReady(SHARED_DOCUMENT_ADAPTER_READY_TIMEOUT_MS)
+    }
 
     const existingHandle = await this.persistence.loadHandle(repo)
 

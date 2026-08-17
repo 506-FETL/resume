@@ -15,7 +15,9 @@ export interface VariantLineageTreeDialogProps {
 }
 
 export function VariantLineageTreeDialog({ open, onOpenChange, rootResumeId, currentResumeId, onOpen }: VariantLineageTreeDialogProps) {
-  const { tree, loading, error } = useVariantLineage(rootResumeId)
+  // 仅在弹窗打开时才拉取血缘：弹窗常驻挂载，若无条件按 rootId 查询，
+  // 协作者一进编辑器就会用自己的 user_id 查所有者的 resume_config，触发 406 噪音。
+  const { tree, loading, error } = useVariantLineage(open ? rootResumeId : null)
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
