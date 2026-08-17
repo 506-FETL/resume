@@ -332,37 +332,30 @@ body {
   scroll-margin-top: 4rem;
 }
 
-/* 变更记录「定位」高亮：飞书风格——主色柔光背景 + ring 描边脉冲两次后淡出，醒目且不突兀 */
-@keyframes resume-locate-pulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 55%, transparent);
-    background-color: color-mix(in oklch, var(--primary) 16%, transparent);
-  }
-  35% {
-    box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 30%, transparent);
-    background-color: color-mix(in oklch, var(--primary) 12%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 12%, transparent);
-    background-color: color-mix(in oklch, var(--primary) 8%, transparent);
+/* 变更记录「定位」高亮：与简历评论一致的黄色高亮（amber），带内边距（box-shadow 向外扩 6px 形成留白），
+   高亮后淡出，醒目且协调 */
+@keyframes resume-locate-highlight-fade {
+  0%,
+  60% {
+    background-color: rgb(251 191 36 / 0.5);
+    box-shadow: 0 0 0 6px rgb(251 191 36 / 0.5), 0 0 0 7px rgb(245 158 11 / 0.7);
   }
   100% {
-    box-shadow: 0 0 0 0 transparent;
-    background-color: transparent;
+    background-color: rgb(251 191 36 / 0);
+    box-shadow: 0 0 0 6px rgb(251 191 36 / 0), 0 0 0 7px rgb(245 158 11 / 0);
   }
 }
 
 .resume-locate-highlight {
-  border-radius: 8px;
-  outline: 2px solid color-mix(in oklch, var(--primary) 70%, transparent);
-  outline-offset: 2px;
-  animation: resume-locate-pulse 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  transition: outline-color 0.3s ease;
+  border-radius: 4px;
+  /* box-shadow 向外扩散形成「内边距」观感，不占布局、不挤压相邻内容 */
+  animation: resume-locate-highlight-fade 2.2s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .resume-locate-highlight {
     animation: none;
-    background-color: color-mix(in oklch, var(--primary) 12%, transparent);
+    background-color: rgb(251 191 36 / 0.4);
+    box-shadow: 0 0 0 6px rgb(251 191 36 / 0.4);
   }
 }

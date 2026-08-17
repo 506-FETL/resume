@@ -3,7 +3,7 @@ import type { CollaborationCallbacks, DocumentSaveResult } from '../shared'
 import type { AutomergeResumeDocument, ChangeFn } from './schema'
 import { CollaborationSessionManager } from '../collaboration/session-manager'
 import { getAutomergeRepo } from '../repo'
-import { SHARED_DOCUMENT_ADAPTER_READY_TIMEOUT_MS } from '../shared'
+import { SHARED_DOCUMENT_PEER_WAIT_TIMEOUT_MS } from '../shared'
 import { createResumeDocument, touchDocumentMetadata } from './factory'
 import { AutomergeDocumentPersistence } from './persistence'
 
@@ -14,7 +14,7 @@ interface SharedCollaborationInit {
 
 interface DocumentManagerOptions {
   sharedDocumentUrl?: string
-  // 协作者通过共享 docUrl 加载时，先用该会话信息挂载网络适配器再 find，避免零 peer 回退空白文档
+  // 协作者通过共享 docUrl 加载时，用该会话信息「先连接、等对端、再 find」，与 host 共用同一 documentId
   sharedCollaboration?: SharedCollaborationInit
 }
 
@@ -45,13 +45,20 @@ export class DocumentManager {
     this.repo = repo
     this.collaboration ??= this.createCollaborationSession(repo)
 
-    // 协作者场景：先挂载网络适配器并等通道就绪，使随后的 repo.find(docUrl) 有对端可同步，
-    // 避免零 peer 时被立即判定 unavailable 而回退到新建空白文档（导致协作者简历为空）。
-    if (this.persistence.getSharedDocumentUrl() && this.sharedCollaboration) {
-      await this.collaboration.enable(this.sharedCollaboration.sessionId, {
-        presenceMetadata: this.sharedCollaboration.presenceMetadata,
-      })
-      await this.collaboration.whenChannelReady(SHARED_DOCUMENT_ADAPTER_READY_TIMEOUT_MS)
+    // 协作者首次加载共享文档：先挂适配器、等 host 上线后 find(docUrl)，与 host 共用同一 documentId 原生同步。
+    // 成功即用该 handle；失败（host 不在线/超时）再走下方回退逻辑。
+    const sharedDocumentUrl = this.persistence.getSharedDocumentUrl()
+    if (sharedDocumentUrl && this.sharedCollaboration) {
+      const sharedHandle = await this.collaboration.prepareSharedDocument(
+        this.sharedCollaboration.sessionId,
+        sharedDocumentUrl,
+        SHARED_DOCUMENT_PEER_WAIT_TIMEOUT_MS,
+        { presenceMetadata: this.sharedCollaboration.presenceMetadata },
+      )
+      if (sharedHandle) {
+        // prepareSharedDocument 内部已通过 attachHandle 绑定并 syncHandle，这里直接返回
+        return sharedHandle
+      }
     }
 
     const existingHandle = await this.persistence.loadHandle(repo)

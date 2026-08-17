@@ -68,23 +68,28 @@ export function useResumeLoader() {
       return
     }
 
+    // 协作者场景（有 docUrl + collabSession）：等 currentUser 就绪再加载，
+    // 确保 presence 身份正确、且能触发「先连接后 find」的协作者初始化路径
+    const isCollaboratorLoad = Boolean(documentUrlParam && collabSessionParam)
+    if (isCollaboratorLoad && !currentUser) {
+      setLoading(true)
+      return
+    }
+
     let cancelled = false
     setLoading(true)
 
-    // 协作者场景：URL 带 docUrl + collabSession。把会话信息传入加载流程，
-    // 让文档管理器先挂载网络适配器再 find(docUrl)，避免零 peer 回退成空白文档。
-    const collaborationUser = useUserStore.getState().currentUser
-    const presenceMetadata = documentUrlParam && collabSessionParam && collaborationUser
+    const presenceMetadata = isCollaboratorLoad && currentUser
       ? {
-          userId: collaborationUser.id,
-          userName: getUserDisplayName(collaborationUser) || `用户-${collaborationUser.id.slice(0, 6)}`,
-          color: getParticipantColor(collaborationUser.id),
+          userId: currentUser.id,
+          userName: getUserDisplayName(currentUser) || `用户-${currentUser.id.slice(0, 6)}`,
+          color: getParticipantColor(currentUser.id),
         }
       : undefined
 
     loadResumeData(activeResumeId, {
       documentUrl: documentUrlParam ?? undefined,
-      collaborationSessionId: documentUrlParam ? collabSessionParam ?? undefined : undefined,
+      collaborationSessionId: isCollaboratorLoad ? collabSessionParam ?? undefined : undefined,
       presenceMetadata,
     })
       .then(async ({ snapshot, hasPersistedAppearance, cloudAppearanceStatus, mode }) => {
@@ -127,7 +132,7 @@ export function useResumeLoader() {
     return () => {
       cancelled = true
     }
-  }, [activeResumeId, clearCurrentResume, documentUrlParam, collabSessionParam, loadResumeData, navigate])
+  }, [activeResumeId, clearCurrentResume, documentUrlParam, collabSessionParam, currentUser, loadResumeData, navigate])
 
   // 监听简历删除
   useEffect(() => {

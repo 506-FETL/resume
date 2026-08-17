@@ -267,16 +267,17 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
         }
         return
       }
-      // 滚到标题栏下方（section 已设 scroll-mt，避免被 sticky 标题栏遮挡），不使用 center 以免遮挡上半部分
-      el.scrollIntoView({ block: 'start', behavior: 'smooth' })
-      // 飞书风格定位高亮：主色柔光背景 + ring 脉冲，动画结束后自动移除
+      // 用 nearest：仅当目标不在可视区时才滚动最小距离（配合 scroll-margin 让其落在 sticky 标题栏下方），
+      // 已在可视区则完全不滚动，避免"移动窗口把内容顶出/遮挡"
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      // 与简历评论一致的黄色高亮，动画结束后自动移除
       el.classList.remove('resume-locate-highlight')
       // 强制 reflow 以便重复点击同一目标时能重新触发动画
       void el.offsetWidth
       el.classList.add('resume-locate-highlight')
       const clear = () => el.classList.remove('resume-locate-highlight')
       el.addEventListener('animationend', clear, { once: true })
-      setTimeout(clear, 2200)
+      setTimeout(clear, 2400)
     }
     requestAnimationFrame(() => tryScroll(0))
   }

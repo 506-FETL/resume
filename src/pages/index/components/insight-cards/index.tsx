@@ -196,8 +196,10 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
                       dataKey="index"
                       type="number"
                       domain={['dataMin', 'dataMax']}
-                      ticks={trend.map(point => point.index)}
-                      interval={0}
+                      interval="preserveStartEnd"
+                      minTickGap={24}
+                      tickMargin={8}
+                      height={24}
                       tickFormatter={(value: number) => trend[value]?.label ?? ''}
                       tickLine={false}
                       axisLine={false}
