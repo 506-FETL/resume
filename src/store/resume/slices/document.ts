@@ -6,6 +6,7 @@ import type { AutomergeResumeDocument } from '@/lib/automerge'
 import dayjs from 'dayjs'
 import { DocumentManager } from '@/lib/automerge'
 import { getOfflineResumeById, isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { ResumeNotFoundError } from '@/lib/resume-id'
 import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches, hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { getTimestamp } from '@/utils/date'
@@ -126,6 +127,15 @@ export function createDocumentSlice(
 
       let manager: DocumentManager | null = null
       try {
+        // 自有云端简历先验证 resume_config 行存在，避免已删除的 UUID 被初始化成一份空白 Automerge 文档。
+        // 共享 documentUrl 可能不允许当前用户读取所有者的 resume_config，因此保留原共享加载路径。
+        const initialCloudAppearanceResult = options?.documentUrl
+          ? null
+          : await getCloudAppearanceSource(resumeId)
+        assertCurrentRequest()
+        if (initialCloudAppearanceResult?.resumeExists === false)
+          throw new ResumeNotFoundError()
+
         manager = new DocumentManager(resumeId, user.id, {
           sharedDocumentUrl: options?.documentUrl,
         })
@@ -143,7 +153,7 @@ export function createDocumentSlice(
         }
 
         const doc = handle.doc()
-        const cloudAppearanceResult = await getCloudAppearanceSource(resumeId)
+        const cloudAppearanceResult = initialCloudAppearanceResult ?? await getCloudAppearanceSource(resumeId)
         assertCurrentRequest()
         const cloudHasPersistedAppearance = cloudAppearanceResult.status === 'present'
         const docHasPersistedAppearance = hasPersistedAppearance(doc)

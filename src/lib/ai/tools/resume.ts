@@ -1,23 +1,29 @@
 import type { z } from 'zod'
+import { getAccessibleResumeById, listAccessibleResumes } from '@/lib/resume-access'
 import { normalizeResumeSection, resumeSchema } from '@/lib/schema'
-import { getAllResumesFromUser, getResumeById } from '@/lib/supabase/resume'
-import { applyResumeFieldToDocument, FORM_DATA_KEYS, useCurrentResumeStore, useResumeStore } from '@/store/resume'
+import { applyResumeFieldToDocument, FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
 import { registerTool } from '../agent/tool-registry'
 
 registerTool({
   name: 'list_resumes',
-  description: '列出当前用户的所有简历（名称、类型、派生状态）。当用户问有哪些简历、想对比/选择简历时使用。',
+  description: '列出当前用户可访问的所有本地和云端简历（名称、类型、存储位置、派生状态）。当用户问有哪些简历、想对比/选择简历时使用。',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   mode: 'read',
   execute: async () => {
     try {
-      const rows = (await getAllResumesFromUser()) as Array<Record<string, unknown>> | null
-      if (!rows || rows.length === 0)
+      const rows = await listAccessibleResumes()
+      if (rows.length === 0)
         return { count: 0, message: '用户还没有任何简历' }
       return {
         count: rows.length,
-        resumes: rows.map(r => ({ resumeId: r.resume_id, name: r.display_name ?? '未命名', type: r.type ?? 'unknown', derivedStatus: r.derived_status ?? null })),
+        resumes: rows.map(r => ({
+          resumeId: r.resume_id,
+          name: r.display_name ?? '未命名',
+          type: r.type ?? 'unknown',
+          storage: r.storage,
+          derivedStatus: r.derived_status ?? null,
+        })),
       }
     }
     catch (error) {
@@ -38,10 +44,7 @@ registerTool({
   mode: 'read',
   execute: async (args) => {
     try {
-      const data = await getResumeById(String(args.resumeId), '*')
-      if (!data)
-        return { error: '未找到该简历' }
-      return data
+      return await getAccessibleResumeById(String(args.resumeId))
     }
     catch (error) {
       return { error: error instanceof Error ? error.message : '读取简历内容失败' }
@@ -95,9 +98,15 @@ registerTool({
     if (!FORM_DATA_KEYS.includes(sectionKey))
       return { error: `无效的模块键：${sectionKey}` }
 
-    // 「变更前」以 DB 为准（助手页可能未加载编辑器内存态），回退到内存态
-    const dbRow = await getResumeById<Record<string, unknown>>(currentId, sectionKey).catch(() => null)
-    const before = dbRow?.[sectionKey] ?? useResumeStore.getState().getResumeFormData()[sectionKey]
+    // 助手页未必挂载编辑器，必须直接读取目标数据源，不能用共享 store 的默认表单作为修改基线。
+    let current: Record<string, unknown>
+    try {
+      current = await getAccessibleResumeById(currentId)
+    }
+    catch (error) {
+      return { error: error instanceof Error ? error.message : '读取当前简历失败' }
+    }
+    const before = current[sectionKey]
 
     // value 必须是对象；以完整模块内容为基线合并本次改动，再按该模块的字段结构（zod schema）校验，
     // 拒绝结构错误的写入（如把技能写成空对象/字符串数组），避免简历渲染成一排空标签。

@@ -4,6 +4,7 @@ import type { ResumeState } from '../form'
 import type { AutomergeResumeDocument } from '@/lib/automerge'
 import type { PersistedResumeSnapshot, ResumeAppearancePatch } from '@/lib/schema'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { isResumeNotFoundError } from '@/lib/resume-id'
 import { getResumeById } from '@/lib/supabase/resume/form'
 import { getFormPayload, hasPersistedAppearance, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '.'
 import useResumeConfigStore from '../config'
@@ -107,19 +108,23 @@ export function applyResumeChange(
 export async function getCloudAppearanceSource(resumeId: string): Promise<{
   status: 'present' | 'missing' | 'error'
   appearance: ResumeAppearancePatch | null
+  resumeExists: boolean | null
 }> {
   try {
     const appearance = await getResumeById(resumeId, 'spacing,font,theme')
     return {
       status: hasPersistedAppearance(appearance) ? 'present' : 'missing',
       appearance,
+      resumeExists: true,
     }
   }
   catch (error) {
-    console.warn('Failed to read cloud appearance snapshot:', error)
+    if (!isResumeNotFoundError(error))
+      console.warn('Failed to read cloud appearance snapshot:', error)
     return {
       status: 'error',
       appearance: null,
+      resumeExists: isResumeNotFoundError(error) ? false : null,
     }
   }
 }

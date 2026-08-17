@@ -1,8 +1,12 @@
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
 export async function updateResumeConfig(resumeId: string, data: Record<string, any>) {
+  if (!isCloudResumeId(resumeId))
+    throw new ResumeNotFoundError()
+
   const user = await getCurrentUser()
 
   if (!user)

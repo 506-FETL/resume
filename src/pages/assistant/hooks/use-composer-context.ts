@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getAllResumesFromUser, getCompanies } from '@/lib/supabase/resume'
+import { listAccessibleResumes } from '@/lib/resume-access'
+import { getCompanies } from '@/lib/supabase/resume'
 
 export interface ResumeRef {
   resumeId: string
@@ -21,11 +22,11 @@ export function useComposerContext() {
     let alive = true
     ;(async () => {
       try {
-        const rows = (await getAllResumesFromUser()) as Array<Record<string, unknown>> | null
-        if (alive && rows) {
+        const rows = await listAccessibleResumes()
+        if (alive) {
           setResumes(
             rows.slice(0, 20).map(r => ({
-              resumeId: String(r.resume_id ?? ''),
+              resumeId: r.resume_id,
               name: String(r.display_name ?? '未命名简历'),
             })),
           )

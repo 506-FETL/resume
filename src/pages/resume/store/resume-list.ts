@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { deleteOfflineResume, getAllOfflineResumes, isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { deleteResume as deleteResumeApi, getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { getCurrentUser } from '@/lib/supabase/user'
+import useCurrentResumeStore from '@/store/resume/current'
 import { getErrorMessage } from '@/utils'
 
 export interface ResumeListSlice {
@@ -18,6 +19,12 @@ export interface ResumeListSlice {
 }
 
 type SetState = StoreApi<ResumeListState>['setState']
+
+function clearDeletedCurrentResume(resumeId: string) {
+  const currentResume = useCurrentResumeStore.getState()
+  if (currentResume.resumeId === resumeId)
+    currentResume.clearCurrentResume()
+}
 
 export function createResumeListSlice(set: SetState): ResumeListSlice {
   return {
@@ -83,11 +90,13 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
               resumes: state.resumes.filter(r => r.resume_id !== id),
               offlineResumes: state.offlineResumes.filter(r => r.resume_id !== id),
             }))
+            clearDeletedCurrentResume(id)
           })
         : deleteResumeApi(id).then(() => {
             set(state => ({
               resumes: state.resumes.filter(r => r.resume_id !== id),
             }))
+            clearDeletedCurrentResume(id)
           })
 
       toast.promise(deletePromise, {

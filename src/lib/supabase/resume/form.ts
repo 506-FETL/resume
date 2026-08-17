@@ -1,5 +1,6 @@
 import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
 import type { TemplateSourceKind } from '@/lib/supabase/template'
+import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
 import { getResumeTypeFromTemplateSource } from '@/lib/resume-template/runtime'
 import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import supabase from '../client'
@@ -53,6 +54,9 @@ export async function getAllResumesFromUser() {
 }
 
 export async function getResumeById<T = Record<string, unknown>>(id: string, selector = '*') {
+  if (!isCloudResumeId(id))
+    throw new ResumeNotFoundError()
+
   const user = await getCurrentUser()
 
   if (!user)
@@ -63,11 +67,14 @@ export async function getResumeById<T = Record<string, unknown>>(id: string, sel
     .select(selector)
     .eq('user_id', user.id)
     .eq('resume_id', id)
-    .single()
+    .maybeSingle()
 
   if (error) {
     throw error
   }
+
+  if (!data)
+    throw new ResumeNotFoundError()
 
   return data as T
 }
@@ -174,6 +181,9 @@ export async function createResumeFromTemplate(input: {
  * @param by 按哪个列删除，默认 'resume_id'
  */
 export async function deleteResume(id: string, by: 'resume_id' | 'id' = 'resume_id') {
+  if (by === 'resume_id' && !isCloudResumeId(id))
+    throw new ResumeNotFoundError()
+
   const user = await getCurrentUser()
 
   if (!user)

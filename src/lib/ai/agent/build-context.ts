@@ -1,6 +1,7 @@
-import { getAllResumesFromUser, getCompanies } from '@/lib/supabase/resume'
+import { listAccessibleResumes } from '@/lib/resume-access'
+import { getCompanies } from '@/lib/supabase/resume'
 import { getUserProfile } from '@/lib/supabase/user'
-import { useCurrentResumeStore, useResumeStore } from '@/store/resume'
+import { useCurrentResumeStore } from '@/store/resume'
 
 // 轻量用户概况（不含正文，注入 system 头，给 agent 基本盘感知）
 export async function buildUserContext(): Promise<string> {
@@ -15,11 +16,17 @@ export async function buildUserContext(): Promise<string> {
     lines.push(`今天：${today}。`)
   }
 
+  let accessibleResumes: Awaited<ReturnType<typeof listAccessibleResumes>> = []
+  let resumeListLoaded = false
   try {
-    const resumes = (await getAllResumesFromUser()) as Array<Record<string, unknown>> | null
-    if (resumes && resumes.length > 0) {
-      const list = resumes.slice(0, 10).map((r, i) => `#${i + 1}「${r.display_name ?? '未命名'}」(${r.type ?? 'unknown'}, resumeId=${r.resume_id})`).join('；')
-      lines.push(`简历（共 ${resumes.length} 份）：${list}`)
+    accessibleResumes = await listAccessibleResumes()
+    resumeListLoaded = true
+    if (accessibleResumes.length > 0) {
+      const list = accessibleResumes.slice(0, 10).map((resume, index) => {
+        const storage = resume.storage === 'local' ? '本地' : '云端'
+        return `#${index + 1}「${resume.display_name ?? '未命名'}」(${resume.type ?? 'unknown'}, ${storage}, resumeId=${resume.resume_id})`
+      }).join('；')
+      lines.push(`简历（共 ${accessibleResumes.length} 份）：${list}`)
     }
     else {
       lines.push('简历：用户还没有简历。')
@@ -30,11 +37,13 @@ export async function buildUserContext(): Promise<string> {
   }
 
   const currentId = useCurrentResumeStore.getState().resumeId
-  if (currentId) {
-    const name = useResumeStore.getState().getResumeFormData().basics?.name
-    lines.push(`当前正在编辑：resumeId=${currentId}${name ? `（${name}）` : ''}`)
+  const currentResume = currentId
+    ? accessibleResumes.find(resume => resume.resume_id === currentId)
+    : null
+  if (currentId && currentResume) {
+    lines.push(`当前正在编辑：resumeId=${currentId}（${currentResume.display_name ?? '未命名'}，${currentResume.storage === 'local' ? '本地' : '云端'}）`)
   }
-  else {
+  else if (!currentId || resumeListLoaded) {
     lines.push('当前未在编辑器打开任何简历（修改简历字段前需用户先打开）。')
   }
 

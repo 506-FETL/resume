@@ -1,9 +1,9 @@
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { useEffect, useMemo, useState } from 'react'
-import { getAllResumesFromUser, getResumeById } from '@/lib/supabase/resume'
+import { getAccessibleResumeById, listAccessibleResumes } from '@/lib/resume-access'
+import { isResumeNotFoundError } from '@/lib/resume-id'
 import { buildResumeSnapshot } from '@/pages/history/utils'
 import useCurrentResumeStore from '@/store/resume/current'
-import { getErrorMessage } from '@/utils'
 import useAssistantStore from '../store'
 import { useCanvasModel } from './use-canvas-model'
 
@@ -25,8 +25,11 @@ export function invalidateCanvasSnapshot(resumeId?: string): void {
 export function useCanvasPreview() {
   const { previewResumeId, setPreviewResumeId, canvasRefreshTick, canvasActiveTab } = useAssistantStore()
   const currentResumeId = useCurrentResumeStore(s => s.resumeId)
+  const clearCurrentResume = useCurrentResumeStore(s => s.clearCurrentResume)
   const { writes } = useCanvasModel()
   const [options, setOptions] = useState<ResumeOption[]>([])
+  const [optionsStatus, setOptionsStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [optionsLoadedForCurrentId, setOptionsLoadedForCurrentId] = useState<string | null | undefined>(undefined)
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(
     () => (previewResumeId ? snapshotCache.get(previewResumeId) ?? null : null),
   )
@@ -41,38 +44,71 @@ export function useCanvasPreview() {
 
   // 下拉选项
   useEffect(() => {
-    getAllResumesFromUser()
+    let cancelled = false
+    setOptionsStatus('loading')
+    setOptionsLoadedForCurrentId(undefined)
+    const currentIdAtLoad = currentResumeId
+    listAccessibleResumes()
       .then((rows) => {
-        const list = ((rows ?? []) as Array<Record<string, unknown>>).map(r => ({
+        if (cancelled)
+          return
+        const list = rows.map(r => ({
           resumeId: String(r.resume_id),
           name: String(r.display_name ?? '未命名'),
         }))
         setOptions(list)
+        setOptionsLoadedForCurrentId(currentIdAtLoad)
+        setOptionsStatus('ready')
       })
-      .catch(() => setOptions([]))
-  }, [resumeWriteCount])
+      .catch(() => {
+        if (!cancelled) {
+          setOptionsStatus('error')
+          setSnapshot(null)
+          setStatus('error')
+        }
+      })
 
-  // 种子：previewResumeId 为空时跟随全局当前编辑简历
-  useEffect(() => {
-    if (!previewResumeId && currentResumeId)
-      setPreviewResumeId(currentResumeId)
-  }, [currentResumeId, previewResumeId, setPreviewResumeId])
+    return () => {
+      cancelled = true
+    }
+  }, [currentResumeId, resumeWriteCount])
 
-  // AI open/create 改了当前编辑简历 → 联动切换预览
+  // 列表成功后再解析目标，避免把本地 ID 或已失效 ID 直接送入错误的数据源。
   useEffect(() => {
-    if (currentResumeId && currentResumeId !== previewResumeId)
-      setPreviewResumeId(currentResumeId)
-    // 仅在 currentResumeId 变化时联动
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentResumeId])
+    if (optionsStatus !== 'ready' || optionsLoadedForCurrentId !== currentResumeId)
+      return
+
+    const availableIds = new Set(options.map(option => option.resumeId))
+    const hasCurrentResume = Boolean(currentResumeId && availableIds.has(currentResumeId))
+    if (currentResumeId && !hasCurrentResume)
+      clearCurrentResume()
+
+    const nextPreviewResumeId = hasCurrentResume
+      ? currentResumeId
+      : previewResumeId && availableIds.has(previewResumeId)
+        ? previewResumeId
+        : options[0]?.resumeId ?? null
+
+    if (nextPreviewResumeId !== previewResumeId)
+      setPreviewResumeId(nextPreviewResumeId)
+
+    if (!nextPreviewResumeId) {
+      setSnapshot(null)
+      setStatus('empty')
+    }
+  }, [clearCurrentResume, currentResumeId, options, optionsLoadedForCurrentId, optionsStatus, previewResumeId, setPreviewResumeId])
 
   // 拉取被预览简历
   useEffect(() => {
+    if (optionsStatus !== 'ready')
+      return
     if (!previewResumeId) {
       setSnapshot(null)
-      setStatus(options.length === 0 ? 'empty' : 'idle')
+      setStatus('empty')
       return
     }
+    if (!options.some(option => option.resumeId === previewResumeId))
+      return
     // 只在简历 tab 激活时拉取；切到简历 tab 时（canvasActiveTab 依赖变化）每次都重新加载最新 DB 数据，
     // 一劳永逸地避免画布停留在旧内容（预览面板 forceMount 常驻，故用 tab 激活作为刷新时机）
     if (canvasActiveTab !== 'resume')
@@ -87,7 +123,7 @@ export function useCanvasPreview() {
     else {
       setStatus('loading')
     }
-    getResumeById(previewResumeId, '*')
+    getAccessibleResumeById(previewResumeId)
       .then((data) => {
         if (cancelled)
           return
@@ -99,16 +135,22 @@ export function useCanvasPreview() {
       .catch((error) => {
         if (cancelled)
           return
-        getErrorMessage(error)
+        if (isResumeNotFoundError(error)) {
+          snapshotCache.delete(previewResumeId)
+          setOptions(current => current.filter(option => option.resumeId !== previewResumeId))
+          if (currentResumeId === previewResumeId)
+            clearCurrentResume()
+          setPreviewResumeId(null)
+        }
         if (!snapshotCache.has(previewResumeId)) {
           setSnapshot(null)
-          setStatus('error')
+          setStatus(isResumeNotFoundError(error) ? 'empty' : 'error')
         }
       })
     return () => {
       cancelled = true
     }
-  }, [previewResumeId, resumeWriteCount, options.length, canvasRefreshTick, canvasActiveTab])
+  }, [canvasActiveTab, canvasRefreshTick, clearCurrentResume, currentResumeId, options, optionsStatus, previewResumeId, resumeWriteCount, setPreviewResumeId])
 
   const currentName = options.find(o => o.resumeId === previewResumeId)?.name ?? null
 

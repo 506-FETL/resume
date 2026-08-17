@@ -1,5 +1,7 @@
 import type { ResumeType } from '@/lib/schema'
-import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResume, deleteResumeHistoryVersion, getCompanies, getResumeById, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
+import { isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { deleteAccessibleResume, getAccessibleResumeById, updateAccessibleResumeMeta } from '@/lib/resume-access'
+import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResumeHistoryVersion, getCompanies, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
 import { buildResumeSnapshot, normalizeHistoryVersionListItem } from '@/pages/history/utils'
 import useTrackerStore from '@/pages/tracker/store'
 import { FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
@@ -112,11 +114,13 @@ registerTool({
     if (Object.keys(patch).length === 0)
       return { error: '没有需要更新的字段（display_name / description）' }
 
-    // 读取当前元信息作为「变更前」，避免 before 为空
-    const current = await getResumeById<{ display_name?: string, description?: string }>(
-      resumeId,
-      'display_name, description',
-    ).catch(() => ({} as { display_name?: string, description?: string }))
+    let current: Awaited<ReturnType<typeof getAccessibleResumeById>>
+    try {
+      current = await getAccessibleResumeById(resumeId)
+    }
+    catch (error) {
+      return { error: error instanceof Error ? error.message : '读取简历信息失败' }
+    }
 
     const beforeParts: string[] = []
     const afterParts: string[] = []
@@ -141,7 +145,7 @@ registerTool({
         after,
       },
       apply: async () => {
-        await updateResumeConfig(resumeId, patch)
+        await updateAccessibleResumeMeta(resumeId, patch)
         return { ok: true, resumeId, before, after }
       },
     })
@@ -150,7 +154,7 @@ registerTool({
 
 registerTool({
   name: 'delete_resume',
-  description: '删除一份简历（含其云端内容）。resumeId 从 list_resumes 获得。不可恢复，此操作需用户确认。',
+  description: '删除一份本地或云端简历。resumeId 从 list_resumes 获得。不可恢复，此操作需用户确认。',
   parameters: {
     type: 'object',
     properties: { resumeId: { type: 'string', description: '简历 resume_id' } },
@@ -163,23 +167,30 @@ registerTool({
     if (!resumeId)
       return { error: '缺少 resumeId' }
 
+    let current: Awaited<ReturnType<typeof getAccessibleResumeById>>
+    try {
+      current = await getAccessibleResumeById(resumeId)
+    }
+    catch (error) {
+      return { error: error instanceof Error ? error.message : '读取简历信息失败' }
+    }
+
+    const displayName = String(current.display_name || '未命名简历')
+
     return requestConfirm({
       id: crypto.randomUUID(),
       toolName: 'delete_resume',
       preview: {
         kind: 'resume-delete',
         title: '删除简历',
-        summary: `将永久删除简历（resumeId=${resumeId}）及其全部内容，无法恢复。`,
+        summary: `将永久删除简历「${displayName}」及其全部内容，无法恢复。`,
       },
       apply: async () => {
-        // 删除前读取名称，生成统一红绿 diff（整体删除为红色）
-        const current = await getResumeById<{ display_name?: string }>(resumeId, 'display_name')
-          .catch(() => ({} as { display_name?: string }))
-        await deleteResume(resumeId, 'resume_id')
+        await deleteAccessibleResume(resumeId)
         // 若删除的是当前打开的简历，清空当前编辑态
         if (useCurrentResumeStore.getState().resumeId === resumeId)
           useCurrentResumeStore.getState().clearCurrentResume()
-        return { ok: true, resumeId, before: `名称：${current.display_name || resumeId}`, after: '' }
+        return { ok: true, resumeId, before: `名称：${displayName}`, after: '' }
       },
     })
   },
@@ -202,8 +213,16 @@ registerTool({
     const resumeId = String(args.resumeId ?? '')
     if (!resumeId)
       return { error: '缺少 resumeId' }
-    useCurrentResumeStore.getState().setCurrentResume(resumeId, normalizeResumeType(args.type))
-    return { ok: true, resumeId }
+
+    try {
+      const resume = await getAccessibleResumeById(resumeId)
+      const type = normalizeResumeType(resume.type ?? args.type)
+      useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
+      return { ok: true, resumeId, type, storage: resume.storage }
+    }
+    catch (error) {
+      return { error: error instanceof Error ? error.message : '打开简历失败' }
+    }
   },
 })
 
@@ -223,6 +242,8 @@ registerTool({
     const resumeId = useCurrentResumeStore.getState().resumeId
     if (!resumeId)
       return { error: '当前没有打开任何简历。请先在编辑器打开要保存版本的简历。' }
+    if (isOfflineResumeId(resumeId))
+      return { error: '本地简历暂不支持历史版本，请先同步到云端。' }
 
     return requestConfirm({
       id: crypto.randomUUID(),
@@ -267,6 +288,8 @@ registerTool({
     const resumeId = useCurrentResumeStore.getState().resumeId
     if (!resumeId)
       return { error: '当前没有打开任何简历。请先在编辑器打开要恢复的简历。' }
+    if (isOfflineResumeId(resumeId))
+      return { error: '本地简历暂不支持历史版本，请先同步到云端。' }
 
     const versionId = Number(args.versionId)
     if (!Number.isFinite(versionId))

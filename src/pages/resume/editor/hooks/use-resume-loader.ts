@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useCollaborationStore } from '@/lib/collaboration'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { isResumeNotFoundError } from '@/lib/resume-id'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume'
 import { getCurrentUser } from '@/lib/supabase/user'
@@ -18,7 +19,7 @@ export function useResumeLoader() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  const { resumeId, setCurrentResume } = useCurrentResumeStore()
+  const { resumeId, setCurrentResume, clearCurrentResume } = useCurrentResumeStore()
   const loadResumeData = useResumeStore(state => state.loadResumeData)
   const currentUser = useUserStore(state => state.currentUser)
   const setCurrentUser = useUserStore(state => state.setCurrentUser)
@@ -97,6 +98,8 @@ export function useResumeLoader() {
       .catch((error: unknown) => {
         if (cancelled)
           return
+        if (isResumeNotFoundError(error) && useCurrentResumeStore.getState().resumeId === activeResumeId)
+          clearCurrentResume()
         toast.error(`加载简历失败, ${getErrorMessage(error, '未知错误')}`)
         navigate('/resume')
       })
@@ -109,7 +112,7 @@ export function useResumeLoader() {
     return () => {
       cancelled = true
     }
-  }, [activeResumeId, documentUrlParam, loadResumeData, navigate])
+  }, [activeResumeId, clearCurrentResume, documentUrlParam, loadResumeData, navigate])
 
   // 监听简历删除
   useEffect(() => {
