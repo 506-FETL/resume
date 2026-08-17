@@ -18,7 +18,7 @@ export default function JobIntentRenderer() {
   ].filter(field => field.visible)
 
   return (
-    <RuntimeSection title="求职意向">
+    <RuntimeSection title="求职意向" sectionKey="job_intent">
       {fields.length > 0
         ? (
             <p className="m-0">

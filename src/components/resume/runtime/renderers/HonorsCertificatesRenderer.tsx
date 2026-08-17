@@ -11,7 +11,7 @@ export default function HonorsCertificatesRenderer() {
   }
 
   return (
-    <RuntimeSection title="荣誉证书">
+    <RuntimeSection title="荣誉证书" sectionKey="honors_certificates">
       {honors_certificates.description
         ? (
             <CommentableRichText

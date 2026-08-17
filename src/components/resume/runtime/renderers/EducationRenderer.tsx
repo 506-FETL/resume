@@ -14,7 +14,7 @@ export default function EducationRenderer() {
     && (item.schoolName || item.professional || item.eduInfo || rangeHasValue(item.duration)))
 
   return (
-    <RuntimeSection title="教育经历">
+    <RuntimeSection title="教育经历" sectionKey="edu_background">
       {items.map(item => (
         <RuntimeEntry
           key={item.entryId}

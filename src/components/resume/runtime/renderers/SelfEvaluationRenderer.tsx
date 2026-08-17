@@ -9,7 +9,7 @@ export default function SelfEvaluationRenderer() {
   }
 
   return (
-    <RuntimeSection title="自我评价">
+    <RuntimeSection title="自我评价" sectionKey="self_evaluation">
       {self_evaluation.content
         ? (
             <CommentableRichText

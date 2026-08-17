@@ -11,7 +11,7 @@ export default function HobbiesRenderer() {
   }
 
   return (
-    <RuntimeSection title="兴趣爱好">
+    <RuntimeSection title="兴趣爱好" sectionKey="hobbies">
       {hobbies.description
         ? (
             <CommentableRichText

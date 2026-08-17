@@ -14,7 +14,7 @@ export default function WorkExperienceRenderer() {
     && (item.companyName || item.position || item.workInfo || rangeHasValue(item.workDuration)))
 
   return (
-    <RuntimeSection title="工作经历">
+    <RuntimeSection title="工作经历" sectionKey="work_experience">
       {items.map(item => (
         <RuntimeEntry
           key={item.entryId}

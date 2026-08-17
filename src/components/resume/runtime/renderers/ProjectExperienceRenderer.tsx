@@ -14,7 +14,7 @@ export default function ProjectExperienceRenderer() {
     && (item.projectName || item.participantRole || item.projectInfo || rangeHasValue(item.projectDuration)))
 
   return (
-    <RuntimeSection title="项目经历">
+    <RuntimeSection title="项目经历" sectionKey="project_experience">
       {items.map(item => (
         <RuntimeEntry
           key={item.entryId}

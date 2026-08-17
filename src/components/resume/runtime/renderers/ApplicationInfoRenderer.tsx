@@ -24,7 +24,7 @@ export default function ApplicationInfoRenderer() {
   ].filter(field => field.visible)
 
   return (
-    <RuntimeSection title="申请信息">
+    <RuntimeSection title="申请信息" sectionKey="application_info">
       <div className="flex flex-wrap gap-2">
         {fields.map(field => (
           <span

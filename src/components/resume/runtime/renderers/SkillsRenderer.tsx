@@ -11,7 +11,7 @@ export default function SkillsRenderer() {
   }
 
   return (
-    <RuntimeSection title="技能特长">
+    <RuntimeSection title="技能特长" sectionKey="skill_specialty">
       {skill_specialty.description
         ? (
             <CommentableRichText

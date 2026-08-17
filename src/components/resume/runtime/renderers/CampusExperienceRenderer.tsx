@@ -14,7 +14,7 @@ export default function CampusExperienceRenderer() {
     && (item.experienceName || item.role || item.campusInfo || rangeHasValue(item.duration)))
 
   return (
-    <RuntimeSection title="校园经历">
+    <RuntimeSection title="校园经历" sectionKey="campus_experience">
       {items.map(item => (
         <RuntimeEntry
           key={item.entryId}

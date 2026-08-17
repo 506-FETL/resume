@@ -156,15 +156,17 @@ export function CommentableRichText({
 
 export function RuntimeSection({
   title,
+  sectionKey,
   children,
 }: {
   title: string
+  sectionKey?: string
   children: React.ReactNode
 }) {
   const { font, spacing, theme } = useRuntimeStyles()
 
   return (
-    <section>
+    <section id={sectionKey ? `resume-section-${sectionKey}` : undefined}>
       <h2
         className="m-0 border-b-2"
         style={{
