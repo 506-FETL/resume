@@ -10,7 +10,8 @@ export default function ProjectExperienceRenderer() {
   }
 
   const items = project_experience.items.filter(item =>
-    item.projectName || item.participantRole || item.projectInfo || rangeHasValue(item.projectDuration))
+    !item.hidden
+    && (item.projectName || item.participantRole || item.projectInfo || rangeHasValue(item.projectDuration)))
 
   return (
     <RuntimeSection title="项目经历">

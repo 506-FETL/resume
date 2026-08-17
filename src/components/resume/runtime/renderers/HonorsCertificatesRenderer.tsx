@@ -21,28 +21,31 @@ export default function HonorsCertificatesRenderer() {
             />
           )
         : null}
-      {honors_certificates.certificates.length > 0
-        ? (
-            <div className="flex flex-wrap gap-2">
-              {honors_certificates.certificates.map(item => (
-                <span
-                  key={item.entryId}
-                  className="rounded-full border px-2 py-1"
-                  style={{
-                    fontSize: font.smallSize,
-                    color: theme.textPrimary,
-                    borderColor: theme.primaryColor,
-                  }}
-                >
-                  <CommentableText
-                    nodeKey={buildCommentNodeKey('honors_certificates', item.entryId, 'name')}
-                    fieldLabel="荣誉证书"
-                  />
-                </span>
-              ))}
-            </div>
-          )
-        : null}
+      {(() => {
+        const visibleCerts = honors_certificates.certificates.filter(item => !item.hidden)
+        return visibleCerts.length > 0
+          ? (
+              <div className="flex flex-wrap gap-2">
+                {visibleCerts.map(item => (
+                  <span
+                    key={item.entryId}
+                    className="rounded-full border px-2 py-1"
+                    style={{
+                      fontSize: font.smallSize,
+                      color: theme.textPrimary,
+                      borderColor: theme.primaryColor,
+                    }}
+                  >
+                    <CommentableText
+                      nodeKey={buildCommentNodeKey('honors_certificates', item.entryId, 'name')}
+                      fieldLabel="荣誉证书"
+                    />
+                  </span>
+                ))}
+              </div>
+            )
+          : null
+      })()}
     </RuntimeSection>
   )
 }

@@ -21,28 +21,31 @@ export default function HobbiesRenderer() {
             />
           )
         : null}
-      {hobbies.hobbies.length > 0
-        ? (
-            <div className="flex flex-wrap gap-2">
-              {hobbies.hobbies.map(item => (
-                <span
-                  key={item.entryId}
-                  className="rounded-full border px-2 py-1"
-                  style={{
-                    fontSize: font.smallSize,
-                    color: theme.textPrimary,
-                    borderColor: theme.primaryColor,
-                  }}
-                >
-                  <CommentableText
-                    nodeKey={buildCommentNodeKey('hobbies', item.entryId, 'name')}
-                    fieldLabel="兴趣爱好"
-                  />
-                </span>
-              ))}
-            </div>
-          )
-        : null}
+      {(() => {
+        const visibleHobbies = hobbies.hobbies.filter(item => !item.hidden)
+        return visibleHobbies.length > 0
+          ? (
+              <div className="flex flex-wrap gap-2">
+                {visibleHobbies.map(item => (
+                  <span
+                    key={item.entryId}
+                    className="rounded-full border px-2 py-1"
+                    style={{
+                      fontSize: font.smallSize,
+                      color: theme.textPrimary,
+                      borderColor: theme.primaryColor,
+                    }}
+                  >
+                    <CommentableText
+                      nodeKey={buildCommentNodeKey('hobbies', item.entryId, 'name')}
+                      fieldLabel="兴趣爱好"
+                    />
+                  </span>
+                ))}
+              </div>
+            )
+          : null
+      })()}
     </RuntimeSection>
   )
 }

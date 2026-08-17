@@ -10,7 +10,8 @@ export default function InternshipExperienceRenderer() {
   }
 
   const items = internship_experience.items.filter(item =>
-    item.companyName || item.position || item.internshipInfo || rangeHasValue(item.internshipDuration))
+    !item.hidden
+    && (item.companyName || item.position || item.internshipInfo || rangeHasValue(item.internshipDuration)))
 
   return (
     <RuntimeSection title="实习经历">

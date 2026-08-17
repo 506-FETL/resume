@@ -10,7 +10,8 @@ export default function WorkExperienceRenderer() {
   }
 
   const items = work_experience.items.filter(item =>
-    item.companyName || item.position || item.workInfo || rangeHasValue(item.workDuration))
+    !item.hidden
+    && (item.companyName || item.position || item.workInfo || rangeHasValue(item.workDuration)))
 
   return (
     <RuntimeSection title="工作经历">

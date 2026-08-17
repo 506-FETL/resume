@@ -10,7 +10,8 @@ export default function EducationRenderer() {
   }
 
   const items = edu_background.items.filter(item =>
-    item.schoolName || item.professional || item.eduInfo || rangeHasValue(item.duration))
+    !item.hidden
+    && (item.schoolName || item.professional || item.eduInfo || rangeHasValue(item.duration)))
 
   return (
     <RuntimeSection title="教育经历">

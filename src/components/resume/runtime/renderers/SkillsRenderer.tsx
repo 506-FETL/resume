@@ -21,28 +21,31 @@ export default function SkillsRenderer() {
             />
           )
         : null}
-      {skill_specialty.skills.length > 0
-        ? (
-            <div className="flex flex-wrap gap-2">
-              {skill_specialty.skills.map(skill => (
-                <span
-                  key={skill.entryId}
-                  className="rounded-full border px-2 py-1"
-                  style={{
-                    fontSize: font.smallSize,
-                    color: theme.textPrimary,
-                    borderColor: theme.primaryColor,
-                  }}
-                >
-                  <CommentableText
-                    nodeKey={buildCommentNodeKey('skill_specialty', skill.entryId, 'skill')}
-                    fieldLabel="技能"
-                  />
-                </span>
-              ))}
-            </div>
-          )
-        : null}
+      {(() => {
+        const visibleSkills = skill_specialty.skills.filter(s => !s.hidden)
+        return visibleSkills.length > 0
+          ? (
+              <div className="flex flex-wrap gap-2">
+                {visibleSkills.map(skill => (
+                  <span
+                    key={skill.entryId}
+                    className="rounded-full border px-2 py-1"
+                    style={{
+                      fontSize: font.smallSize,
+                      color: theme.textPrimary,
+                      borderColor: theme.primaryColor,
+                    }}
+                  >
+                    <CommentableText
+                      nodeKey={buildCommentNodeKey('skill_specialty', skill.entryId, 'skill')}
+                      fieldLabel="技能"
+                    />
+                  </span>
+                ))}
+              </div>
+            )
+          : null
+      })()}
     </RuntimeSection>
   )
 }

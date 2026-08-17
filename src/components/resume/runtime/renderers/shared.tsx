@@ -218,7 +218,7 @@ export function RuntimeEntry({
   const duration = useCommentProjectionNode(durationNodeKey)
   const content = useCommentProjectionNode(contentNodeKey)
 
-  if (!title) {
+  if (!title && !subtitle && !duration && !content) {
     return null
   }
 

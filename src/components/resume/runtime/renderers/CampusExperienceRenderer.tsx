@@ -10,7 +10,8 @@ export default function CampusExperienceRenderer() {
   }
 
   const items = campus_experience.items.filter(item =>
-    item.experienceName || item.role || item.campusInfo || rangeHasValue(item.duration))
+    !item.hidden
+    && (item.experienceName || item.role || item.campusInfo || rangeHasValue(item.duration)))
 
   return (
     <RuntimeSection title="校园经历">
