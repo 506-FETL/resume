@@ -9,6 +9,7 @@ interface AutoScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> 
   renderOverlay?: (state: { atBottom: boolean, scrollToBottom: () => void }) => React.ReactNode
 }
 
+// 判定"是否已接近底部"的阈值：仅用于同步"回到底部"按钮与恢复跟随，不用于判断用户是否脱离
 const BOTTOM_THRESHOLD = 30
 
 export function AutoScrollContainer({
@@ -20,34 +21,91 @@ export function AutoScrollContainer({
   ...props
 }: AutoScrollContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const isAtBottomRef = useRef(true)
+  // followRef：是否处于"自动跟随底部"状态。只有用户主动向上滚动才会解除跟随。
+  const followRef = useRef(true)
+  // programmaticRef：标记正在进行程序化滚动，避免其触发的 scroll 事件被误判为用户操作
+  const programmaticRef = useRef(false)
   const [atBottom, setAtBottom] = useState(true)
 
-  const handleScroll = useCallback(() => {
+  const measureAtBottom = useCallback(() => {
     const el = containerRef.current
-    if (!el) return
+    if (!el)
+      return true
     const { scrollTop, scrollHeight, clientHeight } = el
-    const bottom = scrollHeight - scrollTop - clientHeight <= BOTTOM_THRESHOLD
-    isAtBottomRef.current = bottom
-    setAtBottom(bottom)
+    return scrollHeight - scrollTop - clientHeight <= BOTTOM_THRESHOLD
+  }, [])
+
+  const scrollToBottomNow = useCallback((behavior: ScrollBehavior) => {
+    const el = containerRef.current
+    if (!el)
+      return
+    programmaticRef.current = true
+    el.scrollTo({ top: el.scrollHeight, behavior })
+    // 程序化滚动可能异步派发 scroll 事件，下一帧再解除标记
+    requestAnimationFrame(() => {
+      programmaticRef.current = false
+    })
   }, [])
 
   const scrollToBottom = useCallback(() => {
-    const el = containerRef.current
-    if (!el) return
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-  }, [])
+    followRef.current = true
+    setAtBottom(true)
+    scrollToBottomNow('smooth')
+  }, [scrollToBottomNow])
+
+  // scroll 事件仅用于同步"回到底部"按钮显隐，不改变跟随状态（跟随只由用户 wheel/touch 意图决定）
+  const handleScroll = useCallback(() => {
+    if (programmaticRef.current)
+      return
+    setAtBottom(measureAtBottom())
+  }, [measureAtBottom])
+
+  // 用户主动上滚（滚轮上滚 / 触摸下拉）→ 解除跟随；滚回底部由 handleUserMaybeReturn 恢复
+  const handleUserScrollIntent = useCallback((deltaUp: boolean) => {
+    if (deltaUp) {
+      followRef.current = false
+    }
+    else if (measureAtBottom()) {
+      followRef.current = true
+    }
+    setAtBottom(measureAtBottom())
+  }, [measureAtBottom])
 
   useEffect(() => {
-    if (enabled && isAtBottomRef.current && containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight
+    const el = containerRef.current
+    if (!el)
+      return
+    const onWheel = (e: WheelEvent) => handleUserScrollIntent(e.deltaY < 0)
+    let lastTouchY = 0
+    const onTouchStart = (e: TouchEvent) => {
+      lastTouchY = e.touches[0]?.clientY ?? 0
     }
-  }, [dependency, enabled])
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? 0
+      handleUserScrollIntent(y > lastTouchY)
+      lastTouchY = y
+    }
+    el.addEventListener('wheel', onWheel, { passive: true })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+    }
+  }, [handleUserScrollIntent])
 
-  // 当 enabled 变为 true 时（新一轮流式输出开始），重置为跟随底部
+  // 依赖变化（新增消息/流式追加）时，若仍处于跟随态就贴底
+  useEffect(() => {
+    if (enabled && followRef.current) {
+      scrollToBottomNow('auto')
+    }
+  }, [dependency, enabled, scrollToBottomNow])
+
+  // enabled 变为 true（新一轮流式开始）时重置为跟随
   useEffect(() => {
     if (enabled) {
-      isAtBottomRef.current = true
+      followRef.current = true
       setAtBottom(true)
     }
   }, [enabled])
