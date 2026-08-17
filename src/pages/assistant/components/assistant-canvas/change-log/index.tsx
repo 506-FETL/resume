@@ -236,7 +236,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
       const prevTransition = el.style.transition
       el.style.transition = 'box-shadow 0.3s ease'
       el.style.borderRadius = '4px'
-      el.style.boxShadow = '0 0 0 2px hsl(var(--primary))'
+      el.style.boxShadow = '0 0 0 2px var(--primary)'
       setTimeout(() => {
         el.style.boxShadow = prevBoxShadow
         setTimeout(() => {

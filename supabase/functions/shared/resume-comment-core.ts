@@ -703,6 +703,9 @@ function projectCollectionSections(
   const usedSkillIds = new Set<string>()
   readArray(skillSection.skills).forEach((value, index) => {
     const entry = readRecord(value)
+    if (entry.hidden === true) {
+      return
+    }
     const entryId = buildEntryId('skill_specialty', 'skills', index, entry, usedSkillIds)
     const label = readString(entry.label).trim()
     const proficiency = readString(entry.proficiencyLevel).trim()
@@ -720,6 +723,9 @@ function projectCollectionSections(
   const usedCertificateIds = new Set<string>()
   readArray(certificateSection.certificates).forEach((value, index) => {
     const entry = readRecord(value)
+    if (entry.hidden === true) {
+      return
+    }
     pushTextNode(
       sections.honors_certificates,
       'honors_certificates',
@@ -734,6 +740,9 @@ function projectCollectionSections(
   const usedHobbyIds = new Set<string>()
   readArray(hobbySection.hobbies).forEach((value, index) => {
     const entry = readRecord(value)
+    if (entry.hidden === true) {
+      return
+    }
     pushTextNode(
       sections.hobbies,
       'hobbies',

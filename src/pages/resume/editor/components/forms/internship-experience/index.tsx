@@ -146,7 +146,7 @@ function InternshipExperienceForm({ className }: { className?: string }) {
             control={form.control}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>实习描述</FormLabel>
+                <FormLabel className="mt-4">实习描述</FormLabel>
                 <FormControl>
                   <RichTextFieldEditor
                     sectionKey="internship_experience"

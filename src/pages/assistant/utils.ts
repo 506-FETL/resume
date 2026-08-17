@@ -1,6 +1,6 @@
 import type { CanvasChange, CanvasChangeAction, CanvasChangeCategory, CanvasModel } from './types'
 import type { AiConversation, AiMessage, AiMessagePart } from '@/lib/ai/types'
-import { computeLineDiff, diffStat } from './components/diff/compute-line-diff'
+import { fieldDiffStat } from './components/diff/compute-field-diff'
 import { ASSISTANT_LAST_CONVERSATION_STORAGE_KEY } from './const'
 
 export function readStoredBoolean(key: string, fallback: boolean): boolean {
@@ -138,7 +138,11 @@ export function deriveCanvasModel(messages: AiMessage[], streamingParts: AiMessa
     }
     const args = (part.args ?? {}) as Record<string, unknown>
     const detail = meta.category === 'read' ? undefined : summarizeChange(part.toolName, args, part.result)
-    const stat = detail?.kind === 'diff' ? diffStat(computeLineDiff(detail.before, detail.after)) : undefined
+    // 徽标增删统计与对话流工具行统一走字段级口径（避免同一改动两处数字不一致）
+    const sectionKey = typeof args.sectionKey === 'string' ? args.sectionKey : undefined
+    const stat = detail?.kind === 'diff' && sectionKey
+      ? fieldDiffStat(sectionKey, detail.before, detail.after) ?? undefined
+      : undefined
     // 「修改当前简历字段」成功后可撤销：把该模块写回 before
     let undo: CanvasChange['undo']
     if (part.toolName === 'update_current_resume_field' && part.state === 'result'

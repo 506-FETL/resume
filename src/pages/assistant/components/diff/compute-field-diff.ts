@@ -142,8 +142,14 @@ export function computeFieldDiff(sectionLabel: string, before: unknown, after: u
   return out
 }
 
-// 统计某模块 before→after 的字段变更条数（供对话流工具行的 +N -N 统计使用）
-export function fieldChangeCount(sectionKey: string, before: unknown, after: unknown): number {
+// 字段级变更的增删统计（供对话流工具行与变更记录徽标统一口径使用）：
+// changed 同时计入 additions 与 deletions（一处修改既是旧值删除也是新值新增）。
+export function fieldDiffStat(sectionKey: string, before: unknown, after: unknown): { additions: number, deletions: number } | null {
   const label = SECTION_LABELS[sectionKey] ?? sectionKey
-  return computeFieldDiff(label, before, after).length
+  const changes = computeFieldDiff(label, before, after)
+  const additions = changes.filter(c => c.kind !== 'removed').length
+  const deletions = changes.filter(c => c.kind !== 'added').length
+  if (additions > 0 || deletions > 0)
+    return { additions, deletions }
+  return null
 }
