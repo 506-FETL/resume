@@ -230,19 +230,19 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
         return
       }
       el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      // 临时高亮：加 outline 1.8s 后移除
-      const prevOutline = el.style.outline
-      const prevOutlineOffset = el.style.outlineOffset
+      // 临时高亮：用 box-shadow ring（支持 transition 渐变），1.8s 后淡出移除
+      const prevBoxShadow = el.style.boxShadow
       const prevBorderRadius = el.style.borderRadius
-      el.style.outline = '2px solid hsl(var(--primary))'
-      el.style.outlineOffset = '4px'
+      const prevTransition = el.style.transition
+      el.style.transition = 'box-shadow 0.3s ease'
       el.style.borderRadius = '4px'
-      el.style.transition = 'outline 0.3s ease'
+      el.style.boxShadow = '0 0 0 2px hsl(var(--primary))'
       setTimeout(() => {
-        el.style.outline = prevOutline
-        el.style.outlineOffset = prevOutlineOffset
-        el.style.borderRadius = prevBorderRadius
-        el.style.transition = ''
+        el.style.boxShadow = prevBoxShadow
+        setTimeout(() => {
+          el.style.borderRadius = prevBorderRadius
+          el.style.transition = prevTransition
+        }, 300)
       }, 1800)
     }
     requestAnimationFrame(() => tryScroll(0))

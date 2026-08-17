@@ -109,6 +109,7 @@ export default function BasicsRenderer() {
   if (layout.skeleton === 'single-column') {
     return (
       <header
+        id="resume-section-basics"
         className="flex flex-col items-center text-center"
         style={{
           marginBottom: spacing.sectionMargin,
@@ -137,6 +138,7 @@ export default function BasicsRenderer() {
 
   return (
     <header
+      id="resume-section-basics"
       className="flex flex-col items-center text-center"
       style={{
         marginBottom: spacing.sectionMargin,
