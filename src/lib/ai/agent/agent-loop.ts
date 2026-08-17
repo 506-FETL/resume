@@ -11,6 +11,8 @@ import { getTool, toApiToolDefs } from './tool-registry'
 export interface AgentCallbacks {
   onReasoning?: (full: string) => void
   onText?: (full: string) => void
+  // 流式期间：一旦解析出工具函数名即触发（每个工具仅首次触发一次），用于即时上屏 pending 轨迹行
+  onToolCallPending?: (call: { id: string, name: string }) => void
   onToolCallStart?: (call: { id: string, name: string, args: Record<string, unknown>, awaitingConfirm?: boolean }) => void
   onToolResult?: (id: string, result: unknown, isError: boolean, cancelled?: boolean) => void
   // 累计 token 用量（本轮多步求和），每步结束回调一次
@@ -58,10 +60,18 @@ export async function runAgent(options: AgentRunOptions): Promise<AiMessagePart[
     try {
       const stream = await callLLM(req as any, requestController)
 
+      const seenPendingTools = new Set<string>()
       for await (const chunk of stream) {
         if (signal.aborted)
           throw new DOMException('aborted', 'AbortError')
         parser.push(chunk)
+        // 仅在 id 已就绪时上屏（避免 idx-N 兜底 key 与 onToolCallStart 真实 id 不匹配产生重复行）
+        for (const p of parser.pendingToolCalls()) {
+          if (p.name && p.id && !seenPendingTools.has(p.id)) {
+            seenPendingTools.add(p.id)
+            callbacks.onToolCallPending?.({ id: p.id, name: p.name })
+          }
+        }
       }
     }
     finally {

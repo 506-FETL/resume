@@ -148,8 +148,23 @@ export function useChatStream() {
             }
             pushDraft()
           },
+          onToolCallPending: (call) => {
+            // 已存在同 id 的工具行则跳过，避免重复
+            const exists = draft.some(p => p.type === 'tool-call' && p.toolCallId === call.id)
+            if (!exists) {
+              draft.push({ type: 'tool-call', toolCallId: call.id, toolName: call.name, args: {}, state: 'call' })
+              textIdx = -1
+              reasoningIdx = -1
+              pushDraft()
+            }
+          },
           onToolCallStart: (call) => {
-            draft.push({ type: 'tool-call', toolCallId: call.id, toolName: call.name, args: call.args, state: call.awaitingConfirm ? 'awaiting-confirm' : 'call' })
+            const i = draft.findIndex(p => p.type === 'tool-call' && p.toolCallId === call.id)
+            const next = { type: 'tool-call' as const, toolCallId: call.id, toolName: call.name, args: call.args, state: call.awaitingConfirm ? 'awaiting-confirm' as const : 'call' as const }
+            if (i >= 0)
+              draft[i] = next
+            else
+              draft.push(next)
             // 工具调用后，后续文本/推理应另起新块
             textIdx = -1
             reasoningIdx = -1

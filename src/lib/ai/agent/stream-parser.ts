@@ -69,6 +69,13 @@ export class StreamParser {
       this.finishReason = choice.finish_reason
   }
 
+  // 进行中的工具调用快照（按 index 排序，返回已到达的 id/name，供流式期间即时上屏）
+  pendingToolCalls(): Array<{ index: number, id: string, name: string }> {
+    return [...this.toolAcc.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([index, v]) => ({ index, id: v.id, name: v.name }))
+  }
+
   result(): { text: string, reasoning: string, toolCalls: ParsedToolCall[], finishReason: string | null, usage: StreamUsage | null } {
     const toolCalls: ParsedToolCall[] = [...this.toolAcc.entries()]
       .sort((a, b) => a[0] - b[0])
