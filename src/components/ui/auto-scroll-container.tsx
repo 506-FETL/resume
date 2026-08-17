@@ -57,18 +57,26 @@ export function AutoScrollContainer({
   const handleScroll = useCallback(() => {
     if (programmaticRef.current)
       return
+    // 跟随态下按钮本就不应出现；跳过更新可避免 smooth 滚动动画期间按钮闪回
+    if (followRef.current) {
+      if (atBottom)
+        return
+      setAtBottom(true)
+      return
+    }
     setAtBottom(measureAtBottom())
-  }, [measureAtBottom])
+  }, [atBottom, measureAtBottom])
 
-  // 用户主动上滚（滚轮上滚 / 触摸下拉）→ 解除跟随；滚回底部由 handleUserMaybeReturn 恢复
+  // 用户主动上滚（滚轮上滚 / 触摸下拉）→ 解除跟随；滚回底部则恢复
   const handleUserScrollIntent = useCallback((deltaUp: boolean) => {
+    const isBottom = measureAtBottom()
     if (deltaUp) {
       followRef.current = false
     }
-    else if (measureAtBottom()) {
+    else if (isBottom) {
       followRef.current = true
     }
-    setAtBottom(measureAtBottom())
+    setAtBottom(isBottom)
   }, [measureAtBottom])
 
   useEffect(() => {
@@ -95,20 +103,22 @@ export function AutoScrollContainer({
     }
   }, [handleUserScrollIntent])
 
-  // 依赖变化（新增消息/流式追加）时，若仍处于跟随态就贴底
-  useEffect(() => {
-    if (enabled && followRef.current) {
-      scrollToBottomNow('auto')
-    }
-  }, [dependency, enabled, scrollToBottomNow])
-
-  // enabled 变为 true（新一轮流式开始）时重置为跟随
+  // enabled 变为 true（新一轮流式开始）时重置为跟随。
+  // 必须声明在下方"依赖变化贴底"effect 之前：当 enabled 与 dependency 同帧变化时，
+  // React 按声明顺序执行，先重置 followRef 再判断是否贴底，避免新会话首个 token 漏追。
   useEffect(() => {
     if (enabled) {
       followRef.current = true
       setAtBottom(true)
     }
   }, [enabled])
+
+  // 依赖变化（新增消息/流式追加）时，若仍处于跟随态就贴底
+  useEffect(() => {
+    if (enabled && followRef.current) {
+      scrollToBottomNow('auto')
+    }
+  }, [dependency, enabled, scrollToBottomNow])
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
