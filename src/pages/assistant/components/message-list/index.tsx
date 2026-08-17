@@ -1,11 +1,12 @@
 import { ArrowDown, Sparkles } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Shimmer } from '@/components/ai/shimmer'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CONVERSATION_BOTTOM_TARGET, MESSAGE_HIGHLIGHT_DURATION_MS } from '../../const'
+import { useAssistantNavigation } from '../../hooks/use-assistant-navigation'
 import { useChatStream } from '../../hooks/use-chat-stream'
 import useAssistantStore from '../../store'
 import ConfirmCard from '../confirm-card'
@@ -14,9 +15,11 @@ import { MessageBubble } from '../message-bubble'
 const LIST_SKELETON_KEYS = ['msg-skeleton-1', 'msg-skeleton-2', 'msg-skeleton-3'] as const
 
 export default function MessageList() {
-  const { messages, streaming, streamingParts, streamingUsage, usageByMessageId, pendingConfirm, initializing, loadingMessages: loading, conversationViewVersion, targetMessageId, setTargetMessageId } = useAssistantStore()
+  const { messages, streaming, streamingParts, streamingUsage, usageByMessageId, pendingConfirm, initializing, loadingMessages: loading, conversationViewVersion, targetMessageId, setTargetMessageId, hasMoreMessages, loadingOlder } = useAssistantStore()
   const { regenerateFrom, editUserMessageAndRerun } = useChatStream()
+  const { loadOlderMessages } = useAssistantNavigation()
   const shouldReduceMotion = useReducedMotion()
+  const topSentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!targetMessageId || initializing || loading)
@@ -51,6 +54,28 @@ export default function MessageList() {
       window.clearTimeout(timer)
     }
   }, [initializing, loading, messages, setTargetMessageId, shouldReduceMotion, targetMessageId])
+
+  // 顶部哨兵：进入视口时加载更早消息，并补偿 scrollTop 避免视口跳动
+  useEffect(() => {
+    const sentinel = topSentinelRef.current
+    if (!sentinel || !hasMoreMessages)
+      return
+    const root = sentinel.closest('.overflow-auto') as HTMLElement | null
+    const io = new IntersectionObserver(async (entries) => {
+      if (!entries[0].isIntersecting || loadingOlder || !hasMoreMessages)
+        return
+      const before = root?.scrollHeight ?? 0
+      await loadOlderMessages()
+      requestAnimationFrame(() => {
+        if (root) {
+          const after = root.scrollHeight
+          root.scrollTop += after - before
+        }
+      })
+    }, { root, threshold: 0.1 })
+    io.observe(sentinel)
+    return () => io.disconnect()
+  }, [hasMoreMessages, loadingOlder, loadOlderMessages])
 
   if (initializing || loading) {
     return (
@@ -98,6 +123,11 @@ export default function MessageList() {
       )}
     >
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-6 lg:px-8">
+        {hasMoreMessages && (
+          <div ref={topSentinelRef} className="flex justify-center py-2">
+            {loadingOlder && <Skeleton className="h-4 w-24 rounded-full" />}
+          </div>
+        )}
         {messages.map(message => (
           <motion.div
             key={message.id}
