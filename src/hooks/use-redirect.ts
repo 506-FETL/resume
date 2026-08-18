@@ -15,12 +15,18 @@ export default function useAlreadyLoggedRedirect(redirect: string = '/') {
   const navigate = useNavigate()
 
   useEffect(() => {
+    let cancelled = false
+
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession()
-      if (data.session) {
+      if (!cancelled && data.session) {
         navigate(redirect, { replace: true })
       }
     }
     checkUser()
+
+    return () => {
+      cancelled = true
+    }
   }, [navigate, redirect])
 }

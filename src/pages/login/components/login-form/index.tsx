@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { SignInWithEmailAndPassword } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
+import useUserStore from '@/store/user'
 
 interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
   redirect: string
@@ -25,7 +26,8 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
     setError(null)
 
     try {
-      await SignInWithEmailAndPassword(email, password)
+      const user = await SignInWithEmailAndPassword(email, password)
+      useUserStore.getState().setCurrentUser(user)
 
       navigate(redirect, { replace: true })
     }
