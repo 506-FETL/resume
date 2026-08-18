@@ -20,7 +20,7 @@ interface AutomergeSnapshotRow {
 export class AutomergeDocumentPersistence {
   private readonly resumeId: string
   private readonly userId: string
-  private canPersistToSupabase: boolean
+  private readonly canPersistToSupabase: boolean
 
   constructor(resumeId: string, userId: string, source: DocumentInitializationSource) {
     this.resumeId = resumeId
@@ -94,15 +94,10 @@ export class AutomergeDocumentPersistence {
       .maybeSingle()
 
     if (error) {
-      if (error.code === 'PGRST116' || error.code === '42501') {
-        this.canPersistToSupabase = false
-      }
-
       return null
     }
 
     if (!data) {
-      this.canPersistToSupabase = false
       return null
     }
 
@@ -144,10 +139,6 @@ export class AutomergeDocumentPersistence {
       )
 
     if (error) {
-      if ((error as any)?.code === '42501' || (error as any)?.status === 403) {
-        this.canPersistToSupabase = false
-      }
-
       return {
         success: false,
         error,
@@ -165,10 +156,6 @@ export class AutomergeDocumentPersistence {
       .maybeSingle()
 
     if (error) {
-      if (error.code === '42501') {
-        this.canPersistToSupabase = false
-      }
-
       if (error.code !== 'PGRST116') {
         console.warn('[AutomergeDocumentPersistence] fetch snapshot failed:', error)
       }

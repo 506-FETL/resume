@@ -313,9 +313,20 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       }
 
       if (options.saveSnapshot) {
-        await docManager.saveToSupabase()
+        await useResumeStore.getState().syncToSupabase()
         if (generation !== activeGeneration) {
           throw new CollaborationOperationError('协作会话已切换', { code: 'session_changed' })
+        }
+
+        const resumeState = useResumeStore.getState()
+        if (
+          resumeState.docManager !== docManager
+          || resumeState.currentResumeId !== params.resumeId
+        ) {
+          throw new CollaborationOperationError('协作简历已切换', { code: 'session_changed' })
+        }
+        if (resumeState.syncError) {
+          throw new Error(`共享前保存简历失败：${resumeState.syncError}`)
         }
         setPhase('authorizing')
       }

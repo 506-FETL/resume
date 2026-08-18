@@ -9,7 +9,6 @@ import { getOfflineResumeById, isOfflineResumeId } from '@/lib/offline-resume-ma
 import { ResumeNotFoundError } from '@/lib/resume-id'
 import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches, hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { getCurrentUser } from '@/lib/supabase/user'
-import { getTimestamp } from '@/utils/date'
 import useResumeConfigStore from '../config'
 import { hasPersistedAppearance, mapSnapshotToState, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '../helpers'
 import { clearSyncTimers, getCloudAppearanceSource, scheduleOnlinePersist } from '../helpers/sync-service'
@@ -25,6 +24,7 @@ export interface DocumentSlice {
   docHasPersistedAppearance: boolean
   appearanceDirty: boolean
   entryIdMigrationReady: boolean
+  documentChangeRevision: number
 
   loadResumeData: (resumeId: string, options?: ResumeLoadOptions) => Promise<ResumeLoadResult>
   cleanup: () => void
@@ -34,7 +34,7 @@ export interface ResumeLoadOptions {
   source?: DocumentInitializationSource
 }
 
-export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady'> = {
+export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady' | 'documentChangeRevision'> = {
   mode: null,
   currentResumeId: null,
   docManager: null,
@@ -45,6 +45,7 @@ export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 
   docHasPersistedAppearance: false,
   appearanceDirty: false,
   entryIdMigrationReady: false,
+  documentChangeRevision: 0,
 }
 
 class ResumeLoadSupersededError extends Error {
@@ -98,6 +99,7 @@ export function createDocumentSlice(
         isInitialized: false,
         cloudAppearanceStatus: source.kind === 'collaboration' ? 'not_applicable' : 'error',
         entryIdMigrationReady: false,
+        documentChangeRevision: 0,
       })
 
       if (isOfflineResumeId(resumeId)) {
@@ -122,6 +124,7 @@ export function createDocumentSlice(
           docHasPersistedAppearance: hasPersistedAppearance(data),
           appearanceDirty: false,
           entryIdMigrationReady: false,
+          documentChangeRevision: 0,
         })
         return {
           snapshot,
@@ -181,20 +184,23 @@ export function createDocumentSlice(
             return
 
           const nextSnapshot = mapSourceToPersistedSnapshot(doc)
-          if (source.kind === 'collaboration') {
-            // 共享文档是 guest 外观的唯一真实来源；远端主题/字体/间距
-            // 更改不得被本地 legacy 配置覆盖。replaceConfig 不会触发反向写入。
-            useResumeConfigStore.getState().replaceConfig(nextSnapshot)
-          }
+          const canPersist = manager?.canPersist() === true
+          // 合并后的 Automerge 文档是 owner 与 guest 的共同外观真源。
+          // replaceConfig 仅更新本地 store，不会触发反向写入。
+          useResumeConfigStore.getState().replaceConfig(nextSnapshot)
 
           set(prev => ({
             ...prev,
             ...mapSnapshotToState(nextSnapshot),
             isInitialized: true,
+            pendingChanges: canPersist ? true : prev.pendingChanges,
+            documentChangeRevision: canPersist
+              ? prev.documentChangeRevision + 1
+              : prev.documentChangeRevision,
             entryIdMigrationReady: prev.entryIdMigrationReady && hasCompleteResumeEntryIds(doc),
           }))
 
-          if (manager?.canPersist()) {
+          if (canPersist) {
             scheduleOnlinePersist(() => get().syncToSupabase())
           }
         }
@@ -202,37 +208,12 @@ export function createDocumentSlice(
         handle.on('change', changeHandler)
         const offChange = () => handle.off('change', changeHandler)
 
-        const offSaveStart = manager.onSaveStart(() => {
-          if (!isCurrentRequest())
-            return
-          set({ isSyncing: true })
-        })
-
-        const offSave = manager.onSaveResult(({ success, error }) => {
-          if (!isCurrentRequest())
-            return
-          if (success) {
-            set({
-              isSyncing: false,
-              pendingChanges: false,
-              syncError: null,
-              lastSyncTime: getTimestamp(),
-            })
-          }
-          else {
-            set({
-              isSyncing: false,
-              syncError: error instanceof Error ? error.message : '同步失败',
-            })
-          }
-        })
-
         assertCurrentRequest()
         set({
           ...mapSnapshotToState(snapshot),
           docManager: manager,
           docHandle: handle,
-          cleanupFns: [offChange, offSaveStart, offSave],
+          cleanupFns: [offChange],
           isSyncing: false,
           pendingChanges: false,
           syncError: null,
@@ -242,6 +223,7 @@ export function createDocumentSlice(
           docHasPersistedAppearance,
           appearanceDirty: false,
           entryIdMigrationReady: entryIdPatches.length === 0 && hasCompleteResumeEntryIds(doc),
+          documentChangeRevision: 0,
         })
 
         if (entryIdPatches.length > 0 && source.kind === 'owner') {
@@ -291,6 +273,7 @@ export function createDocumentSlice(
         docHasPersistedAppearance: false,
         appearanceDirty: false,
         entryIdMigrationReady: false,
+        documentChangeRevision: 0,
       })
     },
   }
