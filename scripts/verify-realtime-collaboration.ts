@@ -109,6 +109,46 @@ const { sanitizeAppRedirect } = await jiti.import<
 const { decodeDocumentData, encodeBytesToBase64 } = await jiti.import<
   typeof import('../src/lib/automerge/shared/utils.ts')
 >('../src/lib/automerge/shared/utils.ts')
+const { getParticipantColor } = await jiti.import<
+  typeof import('../src/lib/collaboration/shared/color.ts')
+>('../src/lib/collaboration/shared/color.ts')
+
+const warningHueUserId = 'warning-user-1486'
+const warningHueColor = getParticipantColor(warningHueUserId)
+assert.match(warningHueColor, /^#[0-9a-f]{6}$/u, '协作颜色：必须满足 y-tiptap 的 6 位 HEX 契约')
+assert.equal(
+  getParticipantColor(warningHueUserId),
+  warningHueColor,
+  '协作颜色：同一登录用户必须跨连接保持稳定',
+)
+assert.equal(warningHueColor, '#f0e142', '协作颜色：hue 55 必须保持原 HSL 的等价视觉颜色')
+
+// 覆盖 HSL 六个色相区段的两侧边界；避免“固定返回一个合法 HEX”或只实现单一区段也误绿。
+const participantColorBoundaryCases = [
+  ['boundary-user-286', '#f04242'], // hue 0
+  ['boundary-user-52', '#f0ed42'], // hue 59
+  ['boundary-user-347', '#f0f042'], // hue 60
+  ['boundary-user-261', '#45f042'], // hue 119
+  ['boundary-user-361', '#42f042'], // hue 120
+  ['boundary-user-287', '#42f0ed'], // hue 179
+  ['boundary-user-0', '#42f0f0'], // hue 180
+  ['boundary-user-346', '#4245f0'], // hue 239
+  ['boundary-user-53', '#4242f0'], // hue 240
+  ['boundary-user-360', '#ed42f0'], // hue 299
+  ['boundary-user-260', '#f042f0'], // hue 300
+  ['boundary-user-1', '#f04245'], // hue 359
+] as const
+const participantBoundaryColors = participantColorBoundaryCases.map(([userId, expectedColor]) => {
+  const color = getParticipantColor(userId)
+  assert.match(color, /^#[0-9a-f]{6}$/u, `协作颜色：${userId} 不是 6 位 HEX`)
+  assert.equal(color, expectedColor, `协作颜色：${userId} 的 HSL 等价色错误`)
+  return color
+})
+assert.equal(
+  new Set(participantBoundaryColors).size,
+  participantColorBoundaryCases.length,
+  '协作颜色：不同色相边界不得退化成恒定颜色',
+)
 
 // 同一份 Automerge 二进制快照无论来自原始字节、Base64 还是 PostgreSQL
 // bytea 文本，都必须按邀请 URL 的 documentId 导入，而不是创建随机空文档。
