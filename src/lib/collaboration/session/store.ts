@@ -56,6 +56,11 @@ interface GuestMembershipIdentity {
   memberLeaseId?: string
 }
 
+interface PendingGuestMembership extends GuestMembershipIdentity {
+  generation: number
+  memberLeaseId: string
+}
+
 interface PendingHostAttempt {
   sessionId: string
   resumeId: string
@@ -73,6 +78,16 @@ function isSamePendingHostAttempt(
   return attempt?.sessionId === identity.sessionId
     && attempt.resumeId === identity.resumeId
     && attempt.userId === identity.userId
+}
+
+function isSamePendingGuestMembership(
+  pending: PendingGuestMembership | null,
+  identity: Pick<PendingGuestMembership, 'generation' | 'sessionId' | 'resumeId' | 'memberLeaseId'>,
+) {
+  return pending?.generation === identity.generation
+    && pending.sessionId === identity.sessionId
+    && pending.resumeId === identity.resumeId
+    && pending.memberLeaseId === identity.memberLeaseId
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -122,6 +137,61 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
   let activeStopOperation: ActiveStopOperation | null = null
   let activeHostStartOperation: ActiveHostStartOperation | null = null
   let pendingHostAttempt: PendingHostAttempt | null = null
+  let pendingGuestMembership: PendingGuestMembership | null = null
+
+  const clearPendingGuestMembership = (
+    identity: Pick<PendingGuestMembership, 'generation' | 'sessionId' | 'resumeId' | 'memberLeaseId'>,
+  ) => {
+    if (isSamePendingGuestMembership(pendingGuestMembership, identity)) {
+      pendingGuestMembership = null
+      return true
+    }
+    return false
+  }
+
+  const getCurrentPendingGuestMembership = (
+    generation: number,
+    state: Pick<CollaborationSessionStore, 'sessionId' | 'resumeId' | 'role'>,
+  ) => {
+    const pending = pendingGuestMembership
+    if (
+      pending?.generation === generation
+      && pending.sessionId === state.sessionId
+      && pending.resumeId === state.resumeId
+      && state.role === 'guest'
+    ) {
+      return pending
+    }
+    return null
+  }
+
+  const releaseGuestMembership = async (
+    membership: GuestMembershipIdentity,
+    options: { bestEffort: boolean },
+  ) => {
+    try {
+      return await leaveCollaborationCommentSession({
+        sessionId: membership.sessionId,
+        resumeId: membership.resumeId,
+        protocolVersion: membership.protocolVersion,
+        memberLeaseId: membership.memberLeaseId,
+      })
+    }
+    catch (error) {
+      if (!options.bestEffort) {
+        throw error
+      }
+      console.warn('[collaboration] failed to release guest membership:', error)
+      return null
+    }
+  }
+
+  const retirePendingGuestMembership = (membership: PendingGuestMembership) => {
+    // 先发起 leave，再按完整 identity 清理私有 pending；旧请求迟到时会
+    // 使用闭包中的同 token 再次幂等 release，不能清掉新一代 identity。
+    releaseGuestMembership(membership, { bestEffort: true }).catch(() => undefined)
+    clearPendingGuestMembership(membership)
+  }
 
   const setPhase = (
     phase: Parameters<typeof createCollaborationPhaseState>[0],
@@ -136,6 +206,10 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
 
     const state = get()
+    const pendingMembership = getCurrentPendingGuestMembership(generation, state)
+    if (pendingMembership) {
+      retirePendingGuestMembership(pendingMembership)
+    }
     activeGeneration += 1
     stopLeaseMonitor?.()
     stopLeaseMonitor = null
@@ -172,27 +246,6 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     return true
   }
 
-  const releaseGuestMembership = async (
-    membership: GuestMembershipIdentity,
-    options: { bestEffort: boolean },
-  ) => {
-    try {
-      return await leaveCollaborationCommentSession({
-        sessionId: membership.sessionId,
-        resumeId: membership.resumeId,
-        protocolVersion: membership.protocolVersion,
-        memberLeaseId: membership.memberLeaseId,
-      })
-    }
-    catch (error) {
-      if (!options.bestEffort) {
-        throw error
-      }
-      console.warn('[collaboration] failed to release guest membership:', error)
-      return null
-    }
-  }
-
   const startRichTextSession = (
     result: Awaited<ReturnType<typeof connectDocumentSession>>,
     seed: boolean,
@@ -216,6 +269,9 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       pendingAttempt?: PendingHostAttemptIdentity
     },
   ) => {
+    if (pendingGuestMembership) {
+      retirePendingGuestMembership(pendingGuestMembership)
+    }
     const generation = ++activeGeneration
     let hostLeaseId: string | null = null
     let hostProtocolVersion: CollaborationProtocolVersion | null = null
@@ -488,9 +544,13 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     },
 
     prepareGuestSession: async (params) => {
+      if (pendingGuestMembership) {
+        retirePendingGuestMembership(pendingGuestMembership)
+      }
       const generation = ++activeGeneration
       const memberLeaseId = crypto.randomUUID()
-      const membership = {
+      const membership: PendingGuestMembership = {
+        generation,
         sessionId: params.sessionId,
         resumeId: params.resumeId,
         memberLeaseId,
@@ -498,6 +558,9 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       let joinAttempted = false
       stopLeaseMonitor?.()
       stopLeaseMonitor = null
+      // join 发出前先暴露 generation-bound token，使 authorizing 阶段卸载
+      // 也能发送 release-before-claim tombstone。
+      pendingGuestMembership = membership
       setPhase('authorizing', {
         role: 'guest',
         sessionId: params.sessionId,
@@ -525,8 +588,15 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       catch (error) {
         const ownerMustHost
           = error instanceof CollaborationOperationError && error.code === 'owner_must_host'
-        if (joinAttempted && !ownerMustHost) {
-          await releaseGuestMembership(membership, { bestEffort: true })
+        try {
+          if (joinAttempted && !ownerMustHost) {
+            // stop/unmount 可能已经用同 token 写入 tombstone；迟到 join
+            // 再次 release 是幂等的，确保 claim 永远不会复活。
+            await releaseGuestMembership(membership, { bestEffort: true })
+          }
+        }
+        finally {
+          clearPendingGuestMembership(membership)
         }
         if (generation === activeGeneration) {
           setPhase('error', { error: getErrorMessage(error, '协作邀请鉴权失败') })
@@ -541,6 +611,8 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         commentAccess: prepared.authorization.commentAccess,
         error: null,
       })
+      // commentAccess 已原子接管同一 token；pending 只在 authorizing 窗口存在。
+      clearPendingGuestMembership(prepared)
     },
 
     connectPreparedGuestSession: async (prepared) => {
@@ -586,6 +658,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         commentHostLeaseId: null,
         commentProtocolVersion: prepared.authorization.commentAccess.protocolVersion,
       }))
+      clearPendingGuestMembership(prepared)
       rememberSessionRole({
         sessionId: result.sessionId,
         resumeId: result.resumeId,
@@ -598,6 +671,8 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
 
     abortPreparedGuestSession: async (prepared) => {
       const isCurrent = prepared.generation === activeGeneration
+
+      clearPendingGuestMembership(prepared)
 
       if (isCurrent) {
         cleanupSession({
@@ -680,6 +755,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
 
         if (bestEffort) {
           if (state.role === 'guest') {
+            const pendingMembership = getCurrentPendingGuestMembership(generation, state)
             if (state.commentAccess) {
               releaseGuestMembership({
                 sessionId: state.sessionId!,
@@ -688,8 +764,10 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
                 memberLeaseId: state.commentAccess.memberLeaseId ?? undefined,
               }, { bestEffort: true }).catch(() => undefined)
             }
-            else {
-              console.warn('[collaboration] guest comment access is missing during best-effort stop')
+            else if (pendingMembership) {
+              // protocol 尚未确定时仍携带本次 member token，Edge 根据
+              // session capability 协商并在 claim 之前/之后都保留 tombstone。
+              retirePendingGuestMembership(pendingMembership)
             }
           }
           else {
@@ -711,17 +789,24 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
           if (state.role === 'guest') {
             const commentAccess = state.commentAccess
             if (!commentAccess) {
-              throw new Error('协作者评论权限缺失，请重新加载邀请')
+              const pendingMembership = getCurrentPendingGuestMembership(generation, state)
+              if (!pendingMembership) {
+                throw new Error('协作者评论权限缺失，请重新加载邀请')
+              }
+              result = await releaseGuestMembership(pendingMembership, { bestEffort: false })
+              clearPendingGuestMembership(pendingMembership)
             }
-            if (commentAccess.protocolVersion === 2 && !commentAccess.memberLeaseId) {
+            else if (commentAccess.protocolVersion === 2 && !commentAccess.memberLeaseId) {
               throw new Error('协作者成员租约缺失，请重新加载邀请')
             }
-            result = await releaseGuestMembership({
-              sessionId: state.sessionId!,
-              resumeId: state.resumeId!,
-              protocolVersion: commentAccess.protocolVersion,
-              memberLeaseId: commentAccess.memberLeaseId ?? undefined,
-            }, { bestEffort: false })
+            else {
+              result = await releaseGuestMembership({
+                sessionId: state.sessionId!,
+                resumeId: state.resumeId!,
+                protocolVersion: commentAccess.protocolVersion,
+                memberLeaseId: commentAccess.memberLeaseId ?? undefined,
+              }, { bestEffort: false })
+            }
           }
           else {
             if (!state.commentProtocolVersion) {

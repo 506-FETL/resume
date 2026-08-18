@@ -1,5 +1,4 @@
 import type { AutomergeUrl } from '@automerge/automerge-repo'
-import type { SupabaseUser } from '../types'
 import type { PreparedGuestSession } from '@/lib/collaboration'
 import type { ResumeLoadResult } from '@/store/resume/helpers/sync-service'
 import { parseAutomergeUrl } from '@automerge/automerge-repo'
@@ -17,7 +16,6 @@ import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { isResumeNotFoundError } from '@/lib/resume-id'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume'
-import { getCurrentUser } from '@/lib/supabase/user'
 import useResumeConfigStore from '@/store/resume/config'
 import useCurrentResumeStore from '@/store/resume/current'
 import useResumeStore from '@/store/resume/form'
@@ -35,6 +33,12 @@ type CollaborationRoute
     }
     | { kind: 'host-recovery', resumeId: string, sessionId: string }
     | { kind: 'invalid' }
+
+interface LoadedDocumentIdentity {
+  resumeId: string
+  source: 'owner' | 'collaboration'
+  loadKey: string
+}
 
 function parseCollaborationRoute(params: URLSearchParams): CollaborationRoute {
   const hasSessionId = params.has('collabSession')
@@ -110,12 +114,12 @@ export function useResumeLoader() {
   const navigate = useNavigate()
   const loadGenerationRef = useRef(0)
   const terminalActionKeyRef = useRef<string | null>(null)
+  const loadedDocumentIdentityRef = useRef<LoadedDocumentIdentity | null>(null)
 
   const { resumeId, setCurrentResume, clearCurrentResume } = useCurrentResumeStore()
   const loadResumeData = useResumeStore(state => state.loadResumeData)
   const currentUser = useUserStore(state => state.currentUser)
   const authStatus = useUserStore(state => state.authStatus)
-  const setCurrentUser = useUserStore(state => state.setCurrentUser)
 
   const collaborationRoute = parseCollaborationRoute(searchParams)
   const queryResumeId = searchParams.get('resumeId')
@@ -129,19 +133,6 @@ export function useResumeLoader() {
     || collaborationRoute.kind === 'host-recovery'
     ? `${authStatus}:${currentUser?.id ?? 'none'}`
     : 'owner'
-
-  // 获取当前用户
-  useEffect(() => {
-    let mounted = true
-    getCurrentUser().then((user: SupabaseUser) => {
-      if (mounted)
-        setCurrentUser(user)
-    })
-
-    return () => {
-      mounted = false
-    }
-  }, [setCurrentUser])
 
   // 先发起服务端 leave/revoke，再销毁本地文档，避免卸载时留下幽灵成员。
   useEffect(() => {
@@ -202,6 +193,34 @@ export function useResumeLoader() {
       }
     }
 
+    const expectedDocumentSource = route.kind === 'invite' ? 'collaboration' : 'owner'
+    const loadedIdentity = loadedDocumentIdentityRef.current
+    const resumeState = useResumeStore.getState()
+    const hasReusableDocument = loadedIdentity?.resumeId === activeResumeId
+      && loadedIdentity.source === expectedDocumentSource
+      && loadedIdentity.loadKey === loadKey
+      && resumeState.currentResumeId === activeResumeId
+      && resumeState.isInitialized
+      && resumeState.docManager !== null
+      && resumeState.docManager.canPersist() === (expectedDocumentSource === 'owner')
+    const collaborationState = useCollaborationStore.getState()
+    const isCurrentHostUrlTransition = route.kind === 'host-recovery'
+      && collaborationState.role === 'host'
+      && collaborationState.sessionId === route.sessionId
+      && collaborationState.resumeId === route.resumeId
+      && authState.authStatus === 'authenticated'
+      && authenticatedUserId === collaborationState.self?.userId
+      && collaborationState.isSharing
+
+    // 已加载的 owner 文档不因 host 开启/停止时的 URL source 变化重建。
+    // 门禁位于 discard/loading/loadResumeData/resumeHosting 之前，因此是真正的 no-op。
+    if (hasReusableDocument && (route.kind === 'none' || isCurrentHostUrlTransition)) {
+      setLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
     const isCollaborationRoute = route.kind === 'invite' || route.kind === 'host-recovery'
     if (isCollaborationRoute && authState.authStatus === 'unknown') {
       setLoading(true)
@@ -244,9 +263,26 @@ export function useResumeLoader() {
     }
 
     const loadOwnerResume = async (targetResumeId: string) => {
+      const currentIdentity = loadedDocumentIdentityRef.current
+      const currentResumeState = useResumeStore.getState()
+      if (
+        currentIdentity?.resumeId === targetResumeId
+        && currentIdentity.source === 'owner'
+        && currentResumeState.currentResumeId === targetResumeId
+        && currentResumeState.isInitialized
+        && currentResumeState.docManager?.canPersist() === true
+      ) {
+        return
+      }
+
       const result = await loadResumeData(targetResumeId, { source: { kind: 'owner' } })
       assertCurrentLoad()
       hydrateLoadedAppearance(result, { collaborationSource: false })
+      loadedDocumentIdentityRef.current = {
+        resumeId: targetResumeId,
+        source: 'owner',
+        loadKey: `resume:${targetResumeId}`,
+      }
     }
 
     const resumeHost = async (params: {
@@ -330,6 +366,11 @@ export function useResumeLoader() {
         hydrateLoadedAppearance(result, { collaborationSource: true })
         await useCollaborationStore.getState().connectPreparedGuestSession(preparedGuest)
         assertCurrentLoad()
+        loadedDocumentIdentityRef.current = {
+          resumeId: route.resumeId,
+          source: 'collaboration',
+          loadKey,
+        }
         preparedGuest = null
         toast.info('已加入实时协作', { description: '正在与发起者同步内容' })
       }
