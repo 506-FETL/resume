@@ -1291,6 +1291,31 @@ function readCollaborationProtocolVersion(body: Record<string, unknown>): 1 | 2 
   throw new CommentApiError('not_found', '协作协议版本无效', 400)
 }
 
+function readSupportedCollaborationProtocolVersions(
+  body: Record<string, unknown>,
+): ReadonlySet<1 | 2> {
+  if (body.supportedProtocolVersions === undefined)
+    return new Set()
+  if (
+    !Array.isArray(body.supportedProtocolVersions)
+    || body.supportedProtocolVersions.length === 0
+    || body.supportedProtocolVersions.some(value => value !== 1 && value !== 2)
+  ) {
+    throw new CommentApiError('not_found', '协作协议能力声明无效', 400)
+  }
+  return new Set(body.supportedProtocolVersions as Array<1 | 2>)
+}
+
+function negotiateCollaborationProtocolVersion(
+  requested: 1 | 2,
+  supported: ReadonlySet<1 | 2>,
+  existing: 1 | 2,
+) {
+  if (requested === existing || supported.has(existing))
+    return existing
+  throw new CommentApiError('unauthorized', '协作协议版本不匹配', 401)
+}
+
 function throwCollaborationRpcError(error: unknown): never {
   if (isRecord(error) && typeof error.code === 'string' && typeof error.message === 'string') {
     const mapping: Record<string, CommentApiError> = {
@@ -1354,11 +1379,20 @@ async function handleCollaborationSessionOperation({
   }
   const sessionId = readCollaborationSessionId(body)
   const resumeId = readUuid(body, 'resumeId')
-  const protocolVersion = readCollaborationProtocolVersion(body)
+  const requestedProtocolVersion = readCollaborationProtocolVersion(body)
+  const supportedProtocolVersions = readSupportedCollaborationProtocolVersions(body)
 
   if (op === 'register_collaboration_session') {
     const versionId = await resolveCurrentVersionId(admin, userId, resumeId)
     const scope = await ensureVersionScopeForOwner(admin, userId, versionId)
+    const existingSession = await getCollaborationSession(admin, sessionId, resumeId)
+    const protocolVersion = existingSession
+      ? negotiateCollaborationProtocolVersion(
+          requestedProtocolVersion,
+          supportedProtocolVersions,
+          existingSession.protocol_version,
+        )
+      : requestedProtocolVersion
     const requestedExpiresAt = new Date(Date.now() + 8 * 60 * 60 * 1_000).toISOString()
     const { data, error } = await admin.rpc('claim_resume_comment_collaboration_session_v2', {
       p_session_id: sessionId,
@@ -1392,8 +1426,14 @@ async function handleCollaborationSessionOperation({
 
   if (op === 'leave_collaboration_session') {
     const session = await getCollaborationSession(admin, sessionId, resumeId)
-    if (!session || session.protocol_version !== protocolVersion)
-      return { sessionId, revoked: false, protocolVersion }
+    if (!session) {
+      return { sessionId, revoked: false, protocolVersion: requestedProtocolVersion }
+    }
+    const protocolVersion = negotiateCollaborationProtocolVersion(
+      requestedProtocolVersion,
+      supportedProtocolVersions,
+      session.protocol_version,
+    )
 
     if (session.owner_user_id === userId) {
       const hostLeaseId = readUuid(body, 'hostLeaseId')
@@ -1430,9 +1470,11 @@ async function handleCollaborationSessionOperation({
       409,
     )
   }
-  if (session.protocol_version !== protocolVersion) {
-    throw new CommentApiError('unauthorized', '协作协议版本不匹配', 401)
-  }
+  const protocolVersion = negotiateCollaborationProtocolVersion(
+    requestedProtocolVersion,
+    supportedProtocolVersions,
+    session.protocol_version,
+  )
 
   let member: CollaborationMemberRow
   if (op === 'join_collaboration_session') {
@@ -1450,26 +1492,36 @@ async function handleCollaborationSessionOperation({
   }
   else {
     const memberLeaseId = protocolVersion === 2 ? readUuid(body, 'memberLeaseId') : null
-    let renewQuery = admin
-      .from('resume_comment_collaboration_members')
-      .update({ last_seen_at: new Date().toISOString() })
-      .eq('session_id', sessionId)
-      .eq('user_id', userId)
-      .eq('protocol_version', protocolVersion)
-      .is('revoked_at', null)
-      .gt('expires_at', new Date().toISOString())
     if (protocolVersion === 2) {
-      renewQuery = renewQuery.eq('member_lease_id', memberLeaseId)
+      const { data, error } = await admin.rpc('renew_resume_comment_collaboration_member_v2', {
+        p_session_id: sessionId,
+        p_resume_id: resumeId,
+        p_user_id: userId,
+        p_member_lease_id: memberLeaseId,
+        p_protocol_version: protocolVersion,
+      })
+      if (error)
+        return throwCollaborationRpcError(error)
+      member = readClaimedMember(data)
     }
-    const { data, error } = await renewQuery
-      .select('session_id,user_id,member_lease_id,protocol_version,role,expires_at,revoked_at')
-      .maybeSingle()
-    if (error)
-      throw error
-    if (!data) {
-      throw new CommentApiError('unauthorized', '协作者评论权限已失效', 401)
+    else {
+      const { data, error } = await admin
+        .from('resume_comment_collaboration_members')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('session_id', sessionId)
+        .eq('user_id', userId)
+        .eq('protocol_version', 1)
+        .is('revoked_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .select('session_id,user_id,member_lease_id,protocol_version,role,expires_at,revoked_at')
+        .maybeSingle()
+      if (error)
+        throw error
+      if (!data) {
+        throw new CommentApiError('unauthorized', '协作者评论权限已失效', 401)
+      }
+      member = data as CollaborationMemberRow
     }
-    member = data as CollaborationMemberRow
   }
 
   if (

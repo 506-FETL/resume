@@ -2,6 +2,7 @@ import type {
   CollaborationCommentAccess,
   CollaborationDocumentBootstrap,
   CollaborationGuestAuthorization,
+  CollaborationProtocolVersion,
   CreateSessionCallbacks,
   SessionActivationOptions,
 } from './types'
@@ -18,6 +19,9 @@ interface EnableSessionOptions extends SessionActivationOptions {
 export const COLLABORATION_CONNECTION_TIMEOUT_MS = 12_000
 export const COLLABORATION_EDGE_OPERATION_TIMEOUT_MS = 12_000
 export const COLLABORATION_PROTOCOL_VERSION = 2 as const
+export const COLLABORATION_SUPPORTED_PROTOCOL_VERSIONS = [1, 2] as const
+export const COLLABORATION_NEW_SESSION_PROTOCOL_VERSION: CollaborationProtocolVersion
+  = import.meta.env.VITE_COLLABORATION_PROTOCOL_V2_ENABLED === 'true' ? 2 : 1
 
 export async function connectDocumentSession(options: EnableSessionOptions) {
   const {
@@ -138,6 +142,7 @@ async function callCollaborationCommentOperation<T>(
   input: {
     sessionId: string
     resumeId: string
+    protocolVersion?: CollaborationProtocolVersion
     hostLeaseId?: string
     memberLeaseId?: string
   },
@@ -147,7 +152,13 @@ async function callCollaborationCommentOperation<T>(
     throw new Error('请先登录后再使用实时协作评论')
   }
   const { data, error } = await supabase.functions.invoke('resume-comments', {
-    body: { op, protocolVersion: COLLABORATION_PROTOCOL_VERSION, ...input },
+    body: {
+      op,
+      ...input,
+      protocolVersion:
+        input.protocolVersion ?? COLLABORATION_NEW_SESSION_PROTOCOL_VERSION,
+      supportedProtocolVersions: COLLABORATION_SUPPORTED_PROTOCOL_VERSIONS,
+    },
     timeout: COLLABORATION_EDGE_OPERATION_TIMEOUT_MS,
   })
   if (error) {
@@ -164,15 +175,16 @@ async function callCollaborationCommentOperation<T>(
 export async function registerCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
+  protocolVersion?: CollaborationProtocolVersion
 }) {
   const registration = await callCollaborationCommentOperation<{
     sessionId: string
     resumeId: string
     expiresAt: string
     hostLeaseId: string
-    protocolVersion: 2
+    protocolVersion: CollaborationProtocolVersion
   }>('register_collaboration_session', input)
-  if (registration.protocolVersion !== COLLABORATION_PROTOCOL_VERSION) {
+  if (!COLLABORATION_SUPPORTED_PROTOCOL_VERSIONS.includes(registration.protocolVersion)) {
     throw new CollaborationOperationError('协作服务协议版本不匹配', {
       code: 'collaboration_protocol_mismatch',
     })
@@ -192,58 +204,81 @@ export async function joinCollaborationCommentSession(input: {
     input,
   )
 
-  const { bootstrap, ...commentAccess } = result
+  const { bootstrap, ...rawCommentAccess } = result
   if (!bootstrap?.documentData) {
     throw new CollaborationOperationError('协作服务未返回共享简历快照', {
       code: 'collaboration_snapshot_unavailable',
     })
   }
   if (
-    commentAccess.protocolVersion !== COLLABORATION_PROTOCOL_VERSION
-    || commentAccess.memberLeaseId !== input.memberLeaseId
+    !COLLABORATION_SUPPORTED_PROTOCOL_VERSIONS.includes(rawCommentAccess.protocolVersion)
+    || (
+      rawCommentAccess.protocolVersion === 2
+      && rawCommentAccess.memberLeaseId !== input.memberLeaseId
+    )
   ) {
     throw new CollaborationOperationError('协作服务返回的成员租约不匹配', {
       code: 'collaboration_member_lease_mismatch',
     })
   }
+  const commentAccess: CollaborationCommentAccess = rawCommentAccess.protocolVersion === 2
+    ? { ...rawCommentAccess, protocolVersion: 2, memberLeaseId: input.memberLeaseId }
+    : { ...rawCommentAccess, protocolVersion: 1, memberLeaseId: null }
   return { commentAccess, bootstrap }
 }
 
 export async function renewCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
-  memberLeaseId: string
+  protocolVersion: CollaborationProtocolVersion
+  memberLeaseId?: string
 }) {
-  const commentAccess = await callCollaborationCommentOperation<CollaborationCommentAccess>(
+  const rawCommentAccess = await callCollaborationCommentOperation<
+    Omit<CollaborationCommentAccess, 'memberLeaseId'> & { memberLeaseId?: string }
+  >(
     'renew_collaboration_session',
     input,
   )
   if (
-    commentAccess.protocolVersion !== COLLABORATION_PROTOCOL_VERSION
-    || commentAccess.memberLeaseId !== input.memberLeaseId
+    rawCommentAccess.protocolVersion !== input.protocolVersion
+    || (
+      rawCommentAccess.protocolVersion === 2
+      && rawCommentAccess.memberLeaseId !== input.memberLeaseId
+    )
   ) {
     throw new CollaborationOperationError('协作服务返回的成员租约不匹配', {
       code: 'collaboration_member_lease_mismatch',
     })
   }
+  const commentAccess: CollaborationCommentAccess = rawCommentAccess.protocolVersion === 2
+    ? {
+        ...rawCommentAccess,
+        protocolVersion: 2,
+        memberLeaseId: rawCommentAccess.memberLeaseId!,
+      }
+    : { ...rawCommentAccess, protocolVersion: 1, memberLeaseId: null }
   return commentAccess
 }
 
 export async function leaveCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
+  protocolVersion?: CollaborationProtocolVersion
   hostLeaseId?: string
   memberLeaseId?: string
 }) {
   const result = await callCollaborationCommentOperation<{
     sessionId: string
     revoked: boolean
-    protocolVersion: 2
+    protocolVersion: CollaborationProtocolVersion
   }>(
     'leave_collaboration_session',
     input,
   )
-  if (result.protocolVersion !== COLLABORATION_PROTOCOL_VERSION) {
+  if (
+    input.protocolVersion !== undefined
+    && result.protocolVersion !== input.protocolVersion
+  ) {
     throw new CollaborationOperationError('协作服务协议版本不匹配', {
       code: 'collaboration_protocol_mismatch',
     })

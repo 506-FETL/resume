@@ -11,10 +11,10 @@ export interface CollaborationSelf extends CollaborationIdentity {
   peerId: string | null
 }
 
-export interface CollaborationCommentAccess {
+export type CollaborationProtocolVersion = 1 | 2
+
+interface CollaborationCommentAccessBase {
   accessToken: string
-  protocolVersion: 2
-  memberLeaseId: string
   expiresAt: string
   sessionId: string
   resumeId: string
@@ -22,6 +22,11 @@ export interface CollaborationCommentAccess {
   userId: string
   role: 'editor' | 'viewer'
 }
+
+export type CollaborationCommentAccess = CollaborationCommentAccessBase & (
+  | { protocolVersion: 1, memberLeaseId: null }
+  | { protocolVersion: 2, memberLeaseId: string }
+)
 
 export interface CollaborationDocumentBootstrap {
   documentData: string
@@ -86,6 +91,7 @@ export interface CollaborationSessionState {
   self: CollaborationSelf | null
   commentAccess: CollaborationCommentAccess | null
   commentHostLeaseId: string | null
+  commentProtocolVersion: CollaborationProtocolVersion | null
   shareEndedByRemote: boolean
 }
 

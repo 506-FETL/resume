@@ -43,6 +43,7 @@ export function createInitialCollaborationSessionState(): CollaborationSessionSt
     self: null,
     commentAccess: null,
     commentHostLeaseId: null,
+    commentProtocolVersion: null,
     shareEndedByRemote: false,
   }
 }
@@ -113,8 +114,12 @@ export function createConnectedSessionState(
   result: CollaborationActivationResult,
   commentAuthorization: Pick<
     CollaborationSessionState,
-    'commentAccess' | 'commentHostLeaseId'
-  > = { commentAccess: null, commentHostLeaseId: null },
+    'commentAccess' | 'commentHostLeaseId' | 'commentProtocolVersion'
+  > = {
+    commentAccess: null,
+    commentHostLeaseId: null,
+    commentProtocolVersion: null,
+  },
 ): Partial<CollaborationSessionState> {
   const selfParticipant = result.self.peerId
     ? createParticipant(result.self.peerId, {
@@ -155,6 +160,7 @@ export function createStoppedSessionState(
     self: null,
     commentAccess: null,
     commentHostLeaseId: null,
+    commentProtocolVersion: null,
     shareEndedByRemote: false,
     ...safeOverrides,
   })
