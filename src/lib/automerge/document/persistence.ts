@@ -39,14 +39,20 @@ export class AutomergeDocumentPersistence {
       return null
     }
 
-    if (!snapshot.document_data) {
+    if (snapshot.document_data === null || snapshot.document_data === undefined) {
       return null
     }
 
-    const bytes = decodeDocumentData(snapshot.document_data)
-
-    if (!bytes || bytes.length === 0) {
-      return null
+    let bytes: Uint8Array
+    try {
+      const decoded = decodeDocumentData(snapshot.document_data)
+      if (!decoded?.length) {
+        throw new Error('持久化简历文档内容为空或格式无效')
+      }
+      bytes = decoded
+    }
+    catch (error) {
+      throw new Error('持久化简历文档解码失败', { cause: error })
     }
 
     try {
@@ -55,8 +61,7 @@ export class AutomergeDocumentPersistence {
       return handle
     }
     catch (error) {
-      console.warn('[AutomergeDocumentPersistence] import document failed:', error)
-      return null
+      throw new Error('持久化简历文档导入失败', { cause: error })
     }
   }
 
@@ -85,7 +90,7 @@ export class AutomergeDocumentPersistence {
     }
   }
 
-  async loadResumeConfig(): Promise<Partial<PersistedResumeSnapshot> | null> {
+  async loadResumeConfig(): Promise<Partial<PersistedResumeSnapshot>> {
     const { data, error } = await supabase
       .from('resume_config')
       .select(RESUME_PERSISTED_SELECTOR)
@@ -94,11 +99,11 @@ export class AutomergeDocumentPersistence {
       .maybeSingle()
 
     if (error) {
-      return null
+      throw new Error('读取所有者简历配置失败', { cause: error })
     }
 
     if (!data) {
-      return null
+      throw new Error('所有者简历配置不存在，无法初始化文档')
     }
 
     return data as Partial<PersistedResumeSnapshot>
@@ -156,14 +161,17 @@ export class AutomergeDocumentPersistence {
       .maybeSingle()
 
     if (error) {
-      if (error.code !== 'PGRST116') {
-        console.warn('[AutomergeDocumentPersistence] fetch snapshot failed:', error)
-      }
-
-      return null
+      throw new Error('读取持久化简历文档失败', { cause: error })
     }
 
-    return data as AutomergeSnapshotRow | null
+    if (data === null) {
+      return null
+    }
+    if (data === undefined) {
+      throw new Error('读取持久化简历文档失败：服务端未返回明确结果')
+    }
+
+    return data as AutomergeSnapshotRow
   }
 }
 

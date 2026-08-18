@@ -64,18 +64,11 @@ export class DocumentManager {
       seedData,
     })
 
-    this.attachHandle(handle)
-
     if (this.persistence.canPersist()) {
-      try {
-        await this.saveToSupabase(handle)
-      }
-      catch (error) {
-        console.warn('[DocumentManager] initial save failed:', error)
-      }
+      await this.saveToSupabase(handle)
     }
 
-    return handle
+    return this.attachHandle(handle)
   }
 
   canPersist() {
