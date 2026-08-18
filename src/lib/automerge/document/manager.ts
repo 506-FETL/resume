@@ -108,8 +108,8 @@ export class DocumentManager {
     return this.collaboration.enable(sessionId, callbacks)
   }
 
-  disableCollaboration() {
-    this.collaboration?.disable()
+  disableCollaboration(expectedActivationId?: number) {
+    return this.collaboration?.disable(expectedActivationId) ?? true
   }
 
   getCollaborationChannelName(): string | null {

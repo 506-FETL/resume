@@ -140,6 +140,7 @@ export interface SessionActivationOptions extends CollaborationSessionStoreAcces
 }
 
 export interface CollaborationActivationResult {
+  activationId: number
   sessionId: string
   resumeId: string
   role: CollaborationRole

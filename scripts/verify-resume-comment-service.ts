@@ -110,6 +110,14 @@ const collaborationStoreSource = readFileSync(
   'src/lib/collaboration/session/store.ts',
   'utf8',
 )
+const automergeCollaborationManagerSource = readFileSync(
+  'src/lib/automerge/collaboration/session-manager.ts',
+  'utf8',
+)
+const automergeDocumentManagerSource = readFileSync(
+  'src/lib/automerge/document/manager.ts',
+  'utf8',
+)
 const normalizedBootstrapMigrationSource = bootstrapMigrationSource.replace(/\s+/gu, ' ')
 const collaborationOperationSource = readSourceSection(
   edgeSource,
@@ -145,6 +153,21 @@ const collaborationBootstrapRpcSource = readSourceSection(
   collaborationLeaseMigrationSource,
   'CREATE OR REPLACE FUNCTION public.bootstrap_resume_comments_with_collaboration_lease_v2',
   'REVOKE ALL ON FUNCTION public.claim_resume_comment_collaboration_session_v2',
+)
+const connectHostSessionSource = readSourceSection(
+  collaborationStoreSource,
+  '  const connectHostSession = async',
+  '\n  const startGuestLease =',
+)
+const executeHostStartSource = readSourceSection(
+  collaborationStoreSource,
+  '  const executeStartSharing = async',
+  '\n  const runSerializedHostStart =',
+)
+const serializedHostStartSource = readSourceSection(
+  collaborationStoreSource,
+  '  const runSerializedHostStart = async',
+  '\n  return {',
 )
 const eventProjectionSource = readSourceSection(
   edgeSource,
@@ -440,21 +463,64 @@ assert.match(
   /type CollaborationCommentAccess = CollaborationCommentAccessBase & \([\s\S]*?protocolVersion: 1, memberLeaseId: null[\s\S]*?protocolVersion: 2, memberLeaseId: string/u,
 )
 assert.match(collaborationTypesSource, /commentProtocolVersion: CollaborationProtocolVersion \| null/u)
+assert.match(collaborationTypesSource, /interface CollaborationActivationResult \{\s+activationId: number/u)
 assert.match(collaborationStoreSource, /let pendingHostAttempt: PendingHostAttempt \| null = null/u)
 assert.match(collaborationStoreSource, /ownerGeneration: number/u)
-assert.match(collaborationStoreSource, /pendingHostAttempt\?\.resumeId === resumeId[\s\S]*?sessionId: createCollaborationSessionId\(\)/u)
-assertSourceOrder(collaborationStoreSource, [
-  'const generation = ++activeGeneration',
-  'pendingHostAttempt = {\n        ...options.pendingAttempt,\n        ownerGeneration: generation,',
-  'const ownsPendingAttempt = () => generation === activeGeneration',
-  'if (hostLeaseId && hostProtocolVersion && ownsPendingAttempt())',
-  'const rollback = await leaveCollaborationCommentSession({',
-  'if (ownsPendingAttempt()) {\n            rollbackRevoked = rollback.revoked === true',
+assert.match(collaborationStoreSource, /status: 'active' \| 'rolling_back' \| 'retryable'/u)
+assert.match(collaborationStoreSource, /let activeHostStartOperation: Promise<void> \| null = null/u)
+assertSourceOrder(serializedHostStartSource, [
+  'while (activeHostStartOperation)',
+  'const previousOperation = activeHostStartOperation',
+  'await previousOperation',
+  'if (activeHostStartOperation === previousOperation)',
+  'activeHostStartOperation = null',
+  'const operation = executeStartSharing(params)',
+  'activeHostStartOperation = operation',
+  'await operation',
 ])
-assert.match(collaborationStoreSource, /rollbackRevoked = rollback\.revoked === true/u)
-assert.match(collaborationStoreSource, /\(rollbackRevoked \|\| sessionRetired\)[\s\S]*?ownsPendingAttempt\(\)[\s\S]*?pendingHostAttempt = null/u)
+assert.match(
+  serializedHostStartSource,
+  /finally \{\s+if \(activeHostStartOperation === operation\) \{\s+activeHostStartOperation = null/u,
+)
+assertSourceOrder(executeHostStartSource, [
+  'pendingHostAttempt.status === \'retryable\'',
+  '? { ...retryableAttempt, status: \'active\' }',
+  'pendingHostAttempt = attempt',
+  'await connectHostSession(',
+])
+assert.doesNotMatch(executeHostStartSource, /pendingHostAttempt\.status === '(?:active|rolling_back)'/u)
+assertSourceOrder(connectHostSessionSource, [
+  'const generation = ++activeGeneration',
+  'status: \'active\'',
+  'if (hostLeaseId && hostProtocolVersion && isCurrentHostOperation())',
+  'status: \'rolling_back\'',
+  'const rollback = await leaveCollaborationCommentSession({',
+  'rollbackRevoked = rollback.revoked === true',
+  'status: \'retryable\'',
+])
+assert.match(connectHostSessionSource, /if \(rollbackRevoked \|\| sessionRetired\) \{\s+pendingHostAttempt = null/u)
 assert.match(collaborationStoreSource, /hostProtocolVersion = registration\.protocolVersion/u)
 assert.match(collaborationStoreSource, /protocolVersion: state\.commentAccess\.protocolVersion/u)
+assert.equal(collaborationStoreSource.match(/docManager\.disableCollaboration\(result\.activationId\)/gu)?.length, 2)
+assert.doesNotMatch(collaborationStoreSource, /getCollaborationSessionId\(\) === (?:params|prepared)\.sessionId/u)
+assert.match(automergeCollaborationManagerSource, /private activationSequence = 0/u)
+assert.match(automergeCollaborationManagerSource, /private currentActivationId: number \| null = null/u)
+assert.match(automergeCollaborationManagerSource, /const activationId = \+\+this\.activationSequence/u)
+assert.equal(automergeCollaborationManagerSource.match(/this\.currentActivationId = activationId/gu)?.length, 2)
+assert.match(
+  automergeCollaborationManagerSource,
+  /this\.adapter && this\.currentSessionId === sessionId[\s\S]*?this\.currentActivationId = activationId[\s\S]*?return \{ adapter: this\.adapter, activationId \}/u,
+)
+assertSourceOrder(automergeCollaborationManagerSource, [
+  'disable(expectedActivationId?: number)',
+  'expectedActivationId !== this.currentActivationId',
+  'return false',
+  'this.adapter.disconnect()',
+])
+assert.match(automergeDocumentManagerSource, /disableCollaboration\(expectedActivationId\?: number\)[\s\S]*?\.disable\(expectedActivationId\)/u)
+assert.match(collaborationClientServiceSource, /const \{ adapter, activationId \} = await docManager\.enableCollaboration/u)
+assert.match(collaborationClientServiceSource, /catch \(error\) \{\s+docManager\.disableCollaboration\(activationId\)/u)
+assert.match(collaborationClientServiceSource, /return \{\s+activationId,/u)
 assert.match(collaborationCallbacksSource, /isCurrentSession/u)
 assert.ok(collaborationCallbacksSource.match(/!isCurrentSession\(\)/gu)?.length >= 3)
 assert.match(collaborationStateSource, /Omit<[\s\S]*?'phase' \| 'isSharing' \| 'isConnecting'/u)

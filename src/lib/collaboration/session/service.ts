@@ -56,7 +56,7 @@ export async function connectDocumentSession(options: EnableSessionOptions) {
     isCurrentSession,
   })
 
-  const adapter = await docManager.enableCollaboration(sessionId, callbacks)
+  const { adapter, activationId } = await docManager.enableCollaboration(sessionId, callbacks)
   adapterPeerIdRef.current = adapter.peerId || null
   let timeout: ReturnType<typeof setTimeout> | null = null
 
@@ -70,32 +70,37 @@ export async function connectDocumentSession(options: EnableSessionOptions) {
         )
       }),
     ])
+
+    if (!adapter.isReady()) {
+      throw new Error('协作实时频道在就绪前已断开')
+    }
+    adapterPeerIdRef.current = adapter.peerId || null
+
+    return {
+      activationId,
+      sessionId,
+      resumeId,
+      role,
+      self: {
+        peerId: adapterPeerIdRef.current,
+        ...identity,
+      },
+      shareUrl: buildCollaborationShareUrl(
+        resumeId,
+        sessionId,
+        docManager.getDocumentUrl() || undefined,
+      ),
+      roomName: buildCollaborationRoomName(resumeId, sessionId),
+    }
+  }
+  catch (error) {
+    docManager.disableCollaboration(activationId)
+    throw error
   }
   finally {
     if (timeout) {
       clearTimeout(timeout)
     }
-  }
-
-  if (!adapter.isReady()) {
-    throw new Error('协作实时频道在就绪前已断开')
-  }
-  adapterPeerIdRef.current = adapter.peerId || null
-
-  return {
-    sessionId,
-    resumeId,
-    role,
-    self: {
-      peerId: adapterPeerIdRef.current,
-      ...identity,
-    },
-    shareUrl: buildCollaborationShareUrl(
-      resumeId,
-      sessionId,
-      docManager.getDocumentUrl() || undefined,
-    ),
-    roomName: buildCollaborationRoomName(resumeId, sessionId),
   }
 }
 

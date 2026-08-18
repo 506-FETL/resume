@@ -9,24 +9,37 @@ interface CollaborationSessionManagerOptions {
   getHandle: () => DocHandle<AutomergeResumeDocument> | null
 }
 
+export interface CollaborationSessionActivation {
+  adapter: SupabaseNetworkAdapter
+  activationId: number
+}
+
 export class CollaborationSessionManager {
   private readonly options: CollaborationSessionManagerOptions
   private adapter: SupabaseNetworkAdapter | null = null
   private currentSessionId: string | null = null
+  private activationSequence = 0
+  private currentActivationId: number | null = null
 
   constructor(options: CollaborationSessionManagerOptions) {
     this.options = options
   }
 
-  async enable(sessionId: string, callbacks: CollaborationCallbacks = {}) {
+  async enable(
+    sessionId: string,
+    callbacks: CollaborationCallbacks = {},
+  ): Promise<CollaborationSessionActivation> {
     const handle = this.options.getHandle()
     if (!handle) {
       throw new Error('Automerge 文档尚未初始化')
     }
+    const activationId = ++this.activationSequence
+
     if (this.adapter && this.currentSessionId === sessionId) {
       this.adapter.setCallbacks(callbacks)
+      this.currentActivationId = activationId
       this.syncHandle(handle)
-      return this.adapter
+      return { adapter: this.adapter, activationId }
     }
 
     this.disable()
@@ -36,15 +49,24 @@ export class CollaborationSessionManager {
 
     this.adapter = adapter
     this.currentSessionId = sessionId
+    this.currentActivationId = activationId
     this.syncHandle(handle)
 
-    return adapter
+    return { adapter, activationId }
   }
 
-  disable() {
+  disable(expectedActivationId?: number) {
+    if (
+      expectedActivationId !== undefined
+      && expectedActivationId !== this.currentActivationId
+    ) {
+      return false
+    }
+
     if (!this.adapter) {
       this.currentSessionId = null
-      return
+      this.currentActivationId = null
+      return true
     }
 
     try {
@@ -57,6 +79,8 @@ export class CollaborationSessionManager {
     this.options.repo.networkSubsystem.removeNetworkAdapter(this.adapter)
     this.adapter = null
     this.currentSessionId = null
+    this.currentActivationId = null
+    return true
   }
 
   syncHandle(handle: DocHandle<AutomergeResumeDocument> | null = this.options.getHandle()) {

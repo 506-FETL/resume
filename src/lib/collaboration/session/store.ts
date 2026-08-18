@@ -55,9 +55,10 @@ interface PendingHostAttempt {
   resumeId: string
   userId: string
   ownerGeneration: number
+  status: 'active' | 'rolling_back' | 'retryable'
 }
 
-type PendingHostAttemptIdentity = Omit<PendingHostAttempt, 'ownerGeneration'>
+type PendingHostAttemptIdentity = Omit<PendingHostAttempt, 'ownerGeneration' | 'status'>
 
 function isSamePendingHostAttempt(
   attempt: PendingHostAttempt | null,
@@ -113,6 +114,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
   let activeGeneration = 0
   let stopLeaseMonitor: (() => void) | null = null
   let activeStopOperation: ActiveStopOperation | null = null
+  let activeHostStartOperation: Promise<void> | null = null
   let pendingHostAttempt: PendingHostAttempt | null = null
 
   const setPhase = (
@@ -220,16 +222,16 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       pendingHostAttempt = {
         ...options.pendingAttempt,
         ownerGeneration: generation,
+        status: 'active',
       }
     }
 
-    const ownsPendingAttempt = () => generation === activeGeneration && (
-      !options.pendingAttempt
-      || (
-        isSamePendingHostAttempt(pendingHostAttempt, options.pendingAttempt)
-        && pendingHostAttempt?.ownerGeneration === generation
-      )
+    const ownsPendingAttempt = () => !options.pendingAttempt || (
+      isSamePendingHostAttempt(pendingHostAttempt, options.pendingAttempt)
+      && pendingHostAttempt?.ownerGeneration === generation
     )
+    const isCurrentHostOperation = () => generation === activeGeneration
+      && ownsPendingAttempt()
 
     setPhase(options.saveSnapshot ? 'syncing' : 'authorizing', {
       role: 'host',
@@ -288,9 +290,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       })
 
       if (generation !== activeGeneration) {
-        if (docManager.getCollaborationSessionId() === params.sessionId) {
-          docManager.disableCollaboration()
-        }
+        docManager.disableCollaboration(result.activationId)
         throw new CollaborationOperationError('协作会话已切换', { code: 'session_changed' })
       }
 
@@ -315,7 +315,13 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
     catch (error) {
       let rollbackRevoked = false
-      if (hostLeaseId && hostProtocolVersion && ownsPendingAttempt()) {
+      if (hostLeaseId && hostProtocolVersion && isCurrentHostOperation()) {
+        if (options.pendingAttempt && ownsPendingAttempt()) {
+          pendingHostAttempt = {
+            ...pendingHostAttempt!,
+            status: 'rolling_back',
+          }
+        }
         try {
           const rollback = await leaveCollaborationCommentSession({
             sessionId: params.sessionId,
@@ -323,25 +329,25 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
             protocolVersion: hostProtocolVersion,
             hostLeaseId,
           })
-          if (ownsPendingAttempt()) {
-            rollbackRevoked = rollback.revoked === true
-          }
+          rollbackRevoked = rollback.revoked === true
         }
         catch (revokeError) {
-          if (ownsPendingAttempt()) {
-            console.warn('[collaboration] failed to revoke incomplete host session:', revokeError)
-          }
+          console.warn('[collaboration] failed to revoke incomplete host session:', revokeError)
         }
       }
 
       const sessionRetired
         = error instanceof CollaborationOperationError && error.code === 'session_id_retired'
-      if (
-        (rollbackRevoked || sessionRetired)
-        && options.pendingAttempt
-        && ownsPendingAttempt()
-      ) {
-        pendingHostAttempt = null
+      if (options.pendingAttempt && ownsPendingAttempt()) {
+        if (rollbackRevoked || sessionRetired) {
+          pendingHostAttempt = null
+        }
+        else {
+          pendingHostAttempt = {
+            ...pendingHostAttempt!,
+            status: 'retryable',
+          }
+        }
       }
 
       if (generation === activeGeneration) {
@@ -386,6 +392,83 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         console.warn('[collaboration] guest lease renewal failed temporarily:', error)
       },
     })
+  }
+
+  const executeStartSharing = async ({ resumeId, userId, userName }: StartShareParams) => {
+    if (get().isConnecting) {
+      return
+    }
+
+    if (get().sessionId || get().isSharing) {
+      await get().stopSharing({ silent: true })
+    }
+
+    const retryableAttempt = pendingHostAttempt?.resumeId === resumeId
+      && pendingHostAttempt.userId === userId
+      && pendingHostAttempt.status === 'retryable'
+      ? pendingHostAttempt
+      : null
+    const attempt: PendingHostAttempt = retryableAttempt
+      ? { ...retryableAttempt, status: 'active' }
+      : {
+          sessionId: createCollaborationSessionId(),
+          resumeId,
+          userId,
+          ownerGeneration: activeGeneration,
+          status: 'active',
+        }
+    pendingHostAttempt = attempt
+
+    try {
+      await connectHostSession(
+        {
+          sessionId: attempt.sessionId,
+          resumeId,
+          userId,
+          userName,
+        },
+        {
+          saveSnapshot: true,
+          seedRichText: true,
+          pendingAttempt: {
+            sessionId: attempt.sessionId,
+            resumeId: attempt.resumeId,
+            userId: attempt.userId,
+          },
+        },
+      )
+      toast.success('已开启实时协作', { description: '现在可以将链接分享给他人了' })
+    }
+    catch (error) {
+      toast.error(getErrorMessage(error, '开启协作失败'))
+      throw error
+    }
+  }
+
+  const runSerializedHostStart = async (params: StartShareParams) => {
+    while (activeHostStartOperation) {
+      const previousOperation = activeHostStartOperation
+      try {
+        await previousOperation
+      }
+      catch {
+        // 前一操作的调用方负责展示错误；后继只等待 rollback 完整收敛。
+      }
+      if (activeHostStartOperation === previousOperation) {
+        activeHostStartOperation = null
+      }
+    }
+
+    const operation = executeStartSharing(params)
+    activeHostStartOperation = operation
+    try {
+      await operation
+    }
+    finally {
+      if (activeHostStartOperation === operation) {
+        activeHostStartOperation = null
+      }
+    }
   }
 
   return {
@@ -485,9 +568,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         assertPreparedSession(prepared, activeGeneration, get)
       }
       catch (error) {
-        if (docManager.getCollaborationSessionId() === prepared.sessionId) {
-          docManager.disableCollaboration()
-        }
+        docManager.disableCollaboration(result.activationId)
         throw error
       }
 
@@ -543,51 +624,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       }
     },
 
-    startSharing: async ({ resumeId, userId, userName }: StartShareParams) => {
-      if (get().isConnecting) {
-        return
-      }
-
-      if (get().sessionId || get().isSharing) {
-        await get().stopSharing({ silent: true })
-      }
-
-      const attempt = pendingHostAttempt?.resumeId === resumeId
-        && pendingHostAttempt.userId === userId
-        ? pendingHostAttempt
-        : {
-            sessionId: createCollaborationSessionId(),
-            resumeId,
-            userId,
-            ownerGeneration: activeGeneration,
-          }
-      pendingHostAttempt = attempt
-
-      try {
-        await connectHostSession(
-          {
-            sessionId: attempt.sessionId,
-            resumeId,
-            userId,
-            userName,
-          },
-          {
-            saveSnapshot: true,
-            seedRichText: true,
-            pendingAttempt: {
-              sessionId: attempt.sessionId,
-              resumeId: attempt.resumeId,
-              userId: attempt.userId,
-            },
-          },
-        )
-        toast.success('已开启实时协作', { description: '现在可以将链接分享给他人了' })
-      }
-      catch (error) {
-        toast.error(getErrorMessage(error, '开启协作失败'))
-        throw error
-      }
-    },
+    startSharing: runSerializedHostStart,
 
     resumeHosting: async (params) => {
       if (get().isConnecting) {
