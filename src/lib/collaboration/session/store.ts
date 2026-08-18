@@ -43,6 +43,12 @@ interface ActiveStopOperation {
   promise: Promise<void>
 }
 
+interface ActiveHostStartOperation {
+  resumeId: string
+  userId: string
+  promise: Promise<void>
+}
+
 interface GuestMembershipIdentity {
   sessionId: string
   resumeId: string
@@ -114,7 +120,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
   let activeGeneration = 0
   let stopLeaseMonitor: (() => void) | null = null
   let activeStopOperation: ActiveStopOperation | null = null
-  let activeHostStartOperation: Promise<void> | null = null
+  let activeHostStartOperation: ActiveHostStartOperation | null = null
   let pendingHostAttempt: PendingHostAttempt | null = null
 
   const setPhase = (
@@ -445,30 +451,33 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     }
   }
 
-  const runSerializedHostStart = async (params: StartShareParams) => {
-    while (activeHostStartOperation) {
-      const previousOperation = activeHostStartOperation
-      try {
-        await previousOperation
+  const runSerializedHostStart = (params: StartShareParams): Promise<void> => {
+    const activeOperation = activeHostStartOperation
+    if (activeOperation) {
+      if (
+        activeOperation.resumeId === params.resumeId
+        && activeOperation.userId === params.userId
+      ) {
+        return activeOperation.promise
       }
-      catch {
-        // 前一操作的调用方负责展示错误；后继只等待 rollback 完整收敛。
-      }
-      if (activeHostStartOperation === previousOperation) {
-        activeHostStartOperation = null
-      }
+      return activeOperation.promise
+        .catch(() => undefined)
+        .then(() => runSerializedHostStart(params))
     }
 
-    const operation = executeStartSharing(params)
-    activeHostStartOperation = operation
-    try {
-      await operation
-    }
-    finally {
+    let operation: ActiveHostStartOperation
+    const promise = executeStartSharing(params).finally(() => {
       if (activeHostStartOperation === operation) {
         activeHostStartOperation = null
       }
+    })
+    operation = {
+      resumeId: params.resumeId,
+      userId: params.userId,
+      promise,
     }
+    activeHostStartOperation = operation
+    return promise
   }
 
   return {

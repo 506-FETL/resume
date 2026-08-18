@@ -166,7 +166,7 @@ const executeHostStartSource = readSourceSection(
 )
 const serializedHostStartSource = readSourceSection(
   collaborationStoreSource,
-  '  const runSerializedHostStart = async',
+  '  const runSerializedHostStart = (params:',
   '\n  return {',
 )
 const eventProjectionSource = readSourceSection(
@@ -467,21 +467,36 @@ assert.match(collaborationTypesSource, /interface CollaborationActivationResult 
 assert.match(collaborationStoreSource, /let pendingHostAttempt: PendingHostAttempt \| null = null/u)
 assert.match(collaborationStoreSource, /ownerGeneration: number/u)
 assert.match(collaborationStoreSource, /status: 'active' \| 'rolling_back' \| 'retryable'/u)
-assert.match(collaborationStoreSource, /let activeHostStartOperation: Promise<void> \| null = null/u)
+assert.match(
+  collaborationStoreSource,
+  /interface ActiveHostStartOperation \{\s+resumeId: string\s+userId: string\s+promise: Promise<void>/u,
+)
+assert.match(collaborationStoreSource, /let activeHostStartOperation: ActiveHostStartOperation \| null = null/u)
 assertSourceOrder(serializedHostStartSource, [
-  'while (activeHostStartOperation)',
-  'const previousOperation = activeHostStartOperation',
-  'await previousOperation',
-  'if (activeHostStartOperation === previousOperation)',
-  'activeHostStartOperation = null',
-  'const operation = executeStartSharing(params)',
+  'const activeOperation = activeHostStartOperation',
+  'if (activeOperation)',
+  'activeOperation.resumeId === params.resumeId',
+  'activeOperation.userId === params.userId',
+  'return activeOperation.promise',
+  '.catch(() => undefined)',
+  '.then(() => runSerializedHostStart(params))',
+  'const promise = executeStartSharing(params).finally(',
+  'operation = {',
+  'promise,',
   'activeHostStartOperation = operation',
-  'await operation',
+  'return promise',
 ])
 assert.match(
   serializedHostStartSource,
-  /finally \{\s+if \(activeHostStartOperation === operation\) \{\s+activeHostStartOperation = null/u,
+  /executeStartSharing\(params\)\.finally\(\(\) => \{\s+if \(activeHostStartOperation === operation\) \{\s+activeHostStartOperation = null/u,
 )
+const sameHostStartBranch = readSourceSection(
+  serializedHostStartSource,
+  '    if (activeOperation) {',
+  '      return activeOperation.promise\n        .catch',
+)
+assert.equal(sameHostStartBranch.match(/return activeOperation\.promise/gu)?.length, 1)
+assert.doesNotMatch(sameHostStartBranch, /await|executeStartSharing|runSerializedHostStart\(params\)/u)
 assertSourceOrder(executeHostStartSource, [
   'pendingHostAttempt.status === \'retryable\'',
   '? { ...retryableAttempt, status: \'active\' }',
