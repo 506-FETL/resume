@@ -8,7 +8,11 @@ import { Spinner } from '@/components/ui/spinner'
 import { SignInWithEmailAndPassword } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
 
-export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
+  redirect: string
+}
+
+export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -23,7 +27,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     try {
       await SignInWithEmailAndPassword(email, password)
 
-      navigate('/resume')
+      navigate(redirect, { replace: true })
     }
     catch (error: unknown) {
       setError(error instanceof Error ? error.message : '发生错误, 请稍后再试')

@@ -18,7 +18,7 @@ export default function useAlreadyLoggedRedirect(redirect: string = '/') {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession()
       if (data.session) {
-        navigate(redirect)
+        navigate(redirect, { replace: true })
       }
     }
     checkUser()
