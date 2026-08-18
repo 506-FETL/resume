@@ -28,6 +28,8 @@ export function useResumeLoader() {
   const queryResumeId = searchParams.get('resumeId')
   const documentUrlParam = searchParams.get('docUrl')
   const collabSessionParam = searchParams.get('collabSession')
+  const hasLegacyCollaborationParams
+    = searchParams.has('docUrl') || searchParams.has('collabSession')
   const activeResumeId = queryResumeId ?? resumeId ?? undefined
 
   // 获取当前用户
@@ -68,13 +70,7 @@ export function useResumeLoader() {
       return
     }
 
-    // 协作者场景（有 docUrl + collabSession）：等 currentUser 就绪再加载，
-    // 确保 presence 身份正确、且能触发「先连接后 find」的协作者初始化路径
     const isCollaboratorLoad = Boolean(documentUrlParam && collabSessionParam)
-    if (isCollaboratorLoad && !currentUser) {
-      setLoading(true)
-      return
-    }
 
     let cancelled = false
     setLoading(true)
@@ -88,8 +84,10 @@ export function useResumeLoader() {
       : undefined
 
     loadResumeData(activeResumeId, {
-      documentUrl: documentUrlParam ?? undefined,
-      collaborationSessionId: isCollaboratorLoad ? collabSessionParam ?? undefined : undefined,
+      documentUrl: hasLegacyCollaborationParams ? documentUrlParam ?? undefined : undefined,
+      collaborationSessionId: hasLegacyCollaborationParams
+        ? collabSessionParam ?? undefined
+        : undefined,
       presenceMetadata,
     })
       .then(async ({ snapshot, hasPersistedAppearance, cloudAppearanceStatus, mode }) => {
@@ -132,7 +130,7 @@ export function useResumeLoader() {
     return () => {
       cancelled = true
     }
-  }, [activeResumeId, clearCurrentResume, documentUrlParam, collabSessionParam, currentUser, loadResumeData, navigate])
+  }, [activeResumeId, clearCurrentResume, documentUrlParam, collabSessionParam, currentUser, hasLegacyCollaborationParams, loadResumeData, navigate])
 
   // 监听简历删除
   useEffect(() => {

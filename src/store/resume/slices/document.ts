@@ -59,12 +59,20 @@ export function createDocumentSlice(
     ...documentDefaults,
 
     loadResumeData: async (resumeId: string, options?: { documentUrl?: string, collaborationSessionId?: string, presenceMetadata?: Record<string, unknown> }) => {
+      if (
+        options?.documentUrl !== undefined
+        || options?.collaborationSessionId !== undefined
+      ) {
+        throw new CollaborationDocumentLoadError('共享简历缺少已鉴权快照')
+      }
+
       const requestId = ++latestLoadRequestId
       const isCurrentRequest = () => requestId === latestLoadRequestId
       const assertCurrentRequest = () => {
         if (!isCurrentRequest())
           throw new ResumeLoadSupersededError()
       }
+
       const { docManager, cleanupFns } = get()
 
       clearSyncTimers()
@@ -127,13 +135,6 @@ export function createDocumentSlice(
 
       let manager: DocumentManager | null = null
       try {
-        if (
-          options?.documentUrl !== undefined
-          || options?.collaborationSessionId !== undefined
-        ) {
-          throw new CollaborationDocumentLoadError('共享简历缺少已鉴权快照')
-        }
-
         // 自有云端简历先验证 resume_config 行存在，避免已删除的 UUID 被初始化成一份空白 Automerge 文档。
         const initialCloudAppearanceResult = await getCloudAppearanceSource(resumeId)
         assertCurrentRequest()
