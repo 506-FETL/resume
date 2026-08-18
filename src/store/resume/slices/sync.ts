@@ -67,6 +67,16 @@ export function createSyncSlice(
         return
       }
 
+      if (!state.docManager.canPersist()) {
+        set({
+          isSyncing: false,
+          pendingChanges: false,
+          syncError: null,
+          lastSyncTime: getTimestamp(),
+        })
+        return
+      }
+
       set({ isSyncing: true })
       try {
         await state.docManager.saveToSupabase(state.docHandle)

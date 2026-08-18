@@ -12,7 +12,7 @@ import { getCurrentUser } from '@/lib/supabase/user'
 import { getTimestamp } from '@/utils/date'
 import useResumeConfigStore from '../config'
 import { hasPersistedAppearance, mapSnapshotToState, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '../helpers'
-import { clearSyncTimers, getCloudAppearanceSource } from '../helpers/sync-service'
+import { clearSyncTimers, getCloudAppearanceSource, scheduleOnlinePersist } from '../helpers/sync-service'
 
 export interface DocumentSlice {
   mode: EditorMode
@@ -193,6 +193,10 @@ export function createDocumentSlice(
             isInitialized: true,
             entryIdMigrationReady: prev.entryIdMigrationReady && hasCompleteResumeEntryIds(doc),
           }))
+
+          if (manager?.canPersist()) {
+            scheduleOnlinePersist(() => get().syncToSupabase())
+          }
         }
 
         handle.on('change', changeHandler)
