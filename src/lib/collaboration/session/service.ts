@@ -14,6 +14,8 @@ interface EnableSessionOptions extends SessionActivationOptions {
   getDocumentManager: () => DocumentManager | null
 }
 
+export const COLLABORATION_CONNECTION_TIMEOUT_MS = 12_000
+
 export async function connectDocumentSession(options: EnableSessionOptions) {
   const {
     sessionId,
@@ -46,6 +48,29 @@ export async function connectDocumentSession(options: EnableSessionOptions) {
   })
 
   const adapter = await docManager.enableCollaboration(sessionId, callbacks)
+  adapterPeerIdRef.current = adapter.peerId || null
+  let timeout: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    await Promise.race([
+      adapter.whenReady(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('协作实时频道连接超时')),
+          COLLABORATION_CONNECTION_TIMEOUT_MS,
+        )
+      }),
+    ])
+  }
+  finally {
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+  }
+
+  if (!adapter.isReady()) {
+    throw new Error('协作实时频道在就绪前已断开')
+  }
   adapterPeerIdRef.current = adapter.peerId || null
 
   return {
