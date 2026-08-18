@@ -50,8 +50,8 @@ async function activateSession(
     ? await joinCollaborationCommentSession({
         sessionId: params.sessionId,
         resumeId: params.resumeId,
-      }).then(commentAccess => ({
-        commentAccess,
+      }).then(authorization => ({
+        commentAccess: authorization.commentAccess,
         commentHostLeaseId: null,
       }))
     : await registerCollaborationCommentSession({
