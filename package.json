@@ -12,6 +12,7 @@
     "verify:comments": "node --experimental-strip-types scripts/verify-resume-comment-anchors.ts",
     "verify:comment-client": "node --experimental-strip-types scripts/verify-resume-comment-client.ts",
     "verify:comment-service": "node --experimental-strip-types scripts/verify-resume-comment-service.ts",
+    "verify:collab": "node --experimental-strip-types scripts/verify-realtime-collaboration.ts && pnpm verify:comments && pnpm verify:comment-client && pnpm verify:comment-service",
     "verify:edge-auth": "node --experimental-strip-types scripts/verify-supabase-edge-auth.ts",
     "verify:edge-context": "node --experimental-strip-types scripts/verify-edge-request-context.ts",
     "verify:database": "supabase db reset --local && supabase test db --local && node --experimental-strip-types scripts/verify-database-concurrency.ts",
