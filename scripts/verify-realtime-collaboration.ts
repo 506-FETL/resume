@@ -136,16 +136,62 @@ try {
 
   const base64 = encodeBytesToBase64(binary)
   const bytea = `\\x${Buffer.from(binary).toString('hex')}`
+  // 生产 saveHandle() 先生成 Base64 字符串，再写入 PostgreSQL BYTEA。
+  // PostgREST 读回时因此是“Base64 ASCII 字节的 \\x hex”，不能把这层
+  // BYTEA 解包结果直接交给 Automerge。
+  const byteaWrappedBase64 = `\\x${Buffer.from(base64, 'ascii').toString('hex')}`
+  const wrappedBase64Bytes = new Uint8Array(Buffer.from(base64, 'ascii'))
   const decodedBase64 = decodeDocumentData(base64)
   const decodedBytea = decodeDocumentData(bytea)
+  const decodedByteaWrappedBase64 = decodeDocumentData(byteaWrappedBase64)
+  const decodedWrappedBase64Bytes = decodeDocumentData(wrappedBase64Bytes)
+  const nonAutomergeBase64 = encodeBytesToBase64(new Uint8Array([1, 2, 3]))
+  const nonAutomergeWrappedBytes = new Uint8Array(Buffer.from(nonAutomergeBase64, 'ascii'))
+  const decodedNonAutomergeWrappedBytes = decodeDocumentData(nonAutomergeWrappedBytes)
+  const malformedWrappedBytes = new Uint8Array(Buffer.from('not-base64!', 'ascii'))
+  const decodedMalformedWrappedBytes = decodeDocumentData(malformedWrappedBytes)
   assert.ok(decodedBase64, '动态快照：Base64 未解码为字节')
   assert.ok(decodedBytea, '动态快照：bytea 未解码为字节')
+  assert.ok(decodedByteaWrappedBase64, '动态快照：BYTEA 包裹的 Base64 未解码为字节')
+  assert.ok(decodedWrappedBase64Bytes, '动态快照：Base64 ASCII 字节未解码为字节')
+  assert.ok(decodedNonAutomergeWrappedBytes, '动态快照：非 Automerge Base64 ASCII 结果为空')
+  assert.ok(decodedMalformedWrappedBytes, '动态快照：畸形 Base64 ASCII 结果为空')
   assert.deepEqual(decodedBase64, binary, '动态快照：Base64 解码结果与原始二进制不一致')
   assert.deepEqual(decodedBytea, binary, '动态快照：bytea 解码结果与原始二进制不一致')
+  assert.deepEqual(
+    decodedByteaWrappedBase64,
+    binary,
+    '动态快照：生产 BYTEA 包裹 Base64 解码结果与原始二进制不一致',
+  )
+  assert.deepEqual(
+    decodedWrappedBase64Bytes,
+    binary,
+    '动态快照：Base64 ASCII 字节解码结果与原始二进制不一致',
+  )
+  assert.deepEqual(
+    decodedNonAutomergeWrappedBytes,
+    nonAutomergeWrappedBytes,
+    '动态快照：非 Automerge Base64 ASCII 不应被误判为有效快照',
+  )
+  assert.deepEqual(
+    decodedMalformedWrappedBytes,
+    malformedWrappedBytes,
+    '动态快照：畸形 Base64 ASCII 不应被误判为有效快照',
+  )
+  assert.throws(
+    () => Automerge.load(decodedNonAutomergeWrappedBytes),
+    '动态快照：非 Automerge Base64 ASCII 必须在导入时 fail-closed',
+  )
+  assert.throws(
+    () => Automerge.load(decodedMalformedWrappedBytes),
+    '动态快照：畸形 Base64 ASCII 必须在导入时 fail-closed',
+  )
   await assertImportedSnapshot('动态快照/原始二进制', binary)
   await assertImportedSnapshot('动态快照/Base64', decodedBase64)
   await assertImportedSnapshot('动态快照/bytea', decodedBytea)
-  assert.equal(repos.length, 4, '动态快照：必须追踪 source 与三个 target Repo')
+  await assertImportedSnapshot('动态快照/BYTEA 包裹 Base64', decodedByteaWrappedBase64)
+  await assertImportedSnapshot('动态快照/Base64 ASCII 字节', decodedWrappedBase64Bytes)
+  assert.equal(repos.length, 6, '动态快照：必须追踪 source 与五个 target Repo')
 }
 finally {
   await Promise.all(repos.map(repo => repo.shutdown()))
