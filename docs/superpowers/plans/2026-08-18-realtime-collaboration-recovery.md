@@ -1045,3 +1045,17 @@ git commit -m "docs(collab): 记录实时协作恢复验收"
 ```
 
 最终不执行 `git push`，除非用户另行明确要求。
+
+---
+
+## 正式审查增补：guest membership lease
+
+任务 4 的 generation 与 stop 隔离保留，并追加以下服务端条件化成员租约实现：
+
+1. 新增前向 migration，为 `resume_comment_collaboration_members` 增加 `member_lease_id uuid`，回填、设置默认值与 `NOT NULL`；现有 `(session_id, user_id)` 主键已把条件更新定位到单行，无需额外索引。
+2. `prepareGuestSession()` 在任何 await 前同步生成 `memberLeaseId`；join 请求携带它。Edge 在 `owner_must_host` 判断之后读取 token，upsert 成员时写入，并由 join/renew 响应返回。
+3. renew 请求携带当前 token，Edge 查询和 touch 都增加 `member_lease_id` 条件；旧 lease 收到 unauthorized 后只结束自己的本地会话。
+4. guest leave 请求携带 token，Edge 只撤销同 token 的未撤销成员，并根据 update 返回行生成 `revoked`；host leave 继续使用 host lease。
+5. prepare failure、abort、normal stop、best-effort stop 的 guest leave 统一调用 token 条件 release。删除客户端 claim/pending queue，不等待旧 token 才允许新 join。
+6. 所有 Edge invoke 使用合理的有界超时；正常 guest stop 要求 `revoked === true`，失败时恢复 connected，best-effort 仍可立即清理。
+7. 任务 9 部署时先应用新 migration，再部署 `resume-comments`，并补做旧 token leave 晚到不能撤销新 token、旧 token renew 被拒绝的线上 smoke。

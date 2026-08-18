@@ -15,6 +15,7 @@ interface EnableSessionOptions extends SessionActivationOptions {
 }
 
 export const COLLABORATION_CONNECTION_TIMEOUT_MS = 12_000
+export const COLLABORATION_EDGE_OPERATION_TIMEOUT_MS = 12_000
 
 export async function connectDocumentSession(options: EnableSessionOptions) {
   const {
@@ -130,7 +131,12 @@ async function extractOperationError(error: unknown): Promise<CollaborationOpera
 
 async function callCollaborationCommentOperation<T>(
   op: CollaborationCommentOperation,
-  input: { sessionId: string, resumeId: string, hostLeaseId?: string },
+  input: {
+    sessionId: string
+    resumeId: string
+    hostLeaseId?: string
+    memberLeaseId?: string
+  },
 ): Promise<T> {
   const { data: sessionResult } = await supabase.auth.getSession()
   if (!sessionResult.session) {
@@ -138,6 +144,7 @@ async function callCollaborationCommentOperation<T>(
   }
   const { data, error } = await supabase.functions.invoke('resume-comments', {
     body: { op, ...input },
+    timeout: COLLABORATION_EDGE_OPERATION_TIMEOUT_MS,
   })
   if (error) {
     throw await extractOperationError(error)
@@ -165,6 +172,7 @@ export async function registerCollaborationCommentSession(input: {
 export async function joinCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
+  memberLeaseId: string
 }): Promise<CollaborationGuestAuthorization> {
   const result = await callCollaborationCommentOperation<
     CollaborationCommentAccess & { bootstrap: CollaborationDocumentBootstrap }
@@ -179,12 +187,18 @@ export async function joinCollaborationCommentSession(input: {
       code: 'collaboration_snapshot_unavailable',
     })
   }
+  if (commentAccess.memberLeaseId !== input.memberLeaseId) {
+    throw new CollaborationOperationError('协作服务返回的成员租约不匹配', {
+      code: 'collaboration_member_lease_mismatch',
+    })
+  }
   return { commentAccess, bootstrap }
 }
 
 export function renewCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
+  memberLeaseId: string
 }) {
   return callCollaborationCommentOperation<CollaborationCommentAccess>(
     'renew_collaboration_session',
@@ -196,6 +210,7 @@ export async function leaveCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
   hostLeaseId?: string
+  memberLeaseId?: string
 }) {
   return callCollaborationCommentOperation<{ sessionId: string, revoked: boolean }>(
     'leave_collaboration_session',

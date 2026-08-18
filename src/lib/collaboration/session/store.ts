@@ -43,18 +43,13 @@ interface ActiveStopOperation {
 }
 
 interface GuestMembershipIdentity {
-  generation: number
   sessionId: string
   resumeId: string
-  userId: string
+  memberLeaseId: string
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
-}
-
-function getGuestMembershipKey({ userId, sessionId, resumeId }: GuestMembershipIdentity) {
-  return `${userId}:${resumeId}:${sessionId}`
 }
 
 function assertPreparedSession(
@@ -98,8 +93,6 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
   let activeGeneration = 0
   let stopLeaseMonitor: (() => void) | null = null
   let activeStopOperation: ActiveStopOperation | null = null
-  const pendingGuestMembershipReleases = new Map<string, Promise<void>>()
-  const latestGuestMembershipClaims = new Map<string, number>()
 
   const setPhase = (
     phase: Parameters<typeof createCollaborationPhaseState>[0],
@@ -135,17 +128,6 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
 
     if (state.sessionId && state.resumeId && state.self) {
       clearStoredSession(state.sessionId, state.resumeId, state.self.userId)
-      if (state.role === 'guest') {
-        const membershipKey = getGuestMembershipKey({
-          generation,
-          sessionId: state.sessionId,
-          resumeId: state.resumeId,
-          userId: state.self.userId,
-        })
-        if (latestGuestMembershipClaims.get(membershipKey) === generation) {
-          latestGuestMembershipClaims.delete(membershipKey)
-        }
-      }
     }
 
     set(createStoppedSessionState({
@@ -161,54 +143,23 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     return true
   }
 
-  const waitForPendingGuestMembershipRelease = async (params: GuestMembershipIdentity) => {
-    const pendingRelease = pendingGuestMembershipReleases.get(getGuestMembershipKey(params))
-    if (pendingRelease) {
-      await pendingRelease
-    }
-  }
-
-  const releaseGuestMembership = async (membership: GuestMembershipIdentity) => {
-    const key = getGuestMembershipKey(membership)
-    const claimedGeneration = latestGuestMembershipClaims.get(key)
-    const current = get()
-    const newerGenerationOwnsSameMembership
-      = claimedGeneration !== undefined
-        && claimedGeneration !== membership.generation
-        && current.role === 'guest'
-        && current.sessionId === membership.sessionId
-        && current.resumeId === membership.resumeId
-
-    if (newerGenerationOwnsSameMembership) {
-      return
-    }
-
-    const existingRelease = pendingGuestMembershipReleases.get(key)
-    if (existingRelease) {
-      await existingRelease
-      return
-    }
-
-    const release = leaveCollaborationCommentSession({
-      sessionId: membership.sessionId,
-      resumeId: membership.resumeId,
-    })
-      .then(() => undefined)
-      .catch((error) => {
-        console.warn('[collaboration] failed to release guest membership:', error)
-      })
-
-    pendingGuestMembershipReleases.set(key, release)
+  const releaseGuestMembership = async (
+    membership: GuestMembershipIdentity,
+    options: { bestEffort: boolean },
+  ) => {
     try {
-      await release
+      return await leaveCollaborationCommentSession({
+        sessionId: membership.sessionId,
+        resumeId: membership.resumeId,
+        memberLeaseId: membership.memberLeaseId,
+      })
     }
-    finally {
-      if (pendingGuestMembershipReleases.get(key) === release) {
-        pendingGuestMembershipReleases.delete(key)
+    catch (error) {
+      if (!options.bestEffort) {
+        throw error
       }
-      if (latestGuestMembershipClaims.get(key) === membership.generation) {
-        latestGuestMembershipClaims.delete(key)
-      }
+      console.warn('[collaboration] failed to release guest membership:', error)
+      return null
     }
   }
 
@@ -330,6 +281,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         const commentAccess = await renewCollaborationCommentSession({
           sessionId: prepared.sessionId,
           resumeId: prepared.resumeId,
+          memberLeaseId: prepared.memberLeaseId,
         })
 
         if (
@@ -362,11 +314,11 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
 
     prepareGuestSession: async (params) => {
       const generation = ++activeGeneration
+      const memberLeaseId = crypto.randomUUID()
       const membership = {
-        generation,
         sessionId: params.sessionId,
         resumeId: params.resumeId,
-        userId: params.userId,
+        memberLeaseId,
       }
       let joinAttempted = false
       stopLeaseMonitor?.()
@@ -382,26 +334,23 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       })
 
       try {
-        await waitForPendingGuestMembershipRelease(membership)
-        if (generation !== activeGeneration) {
-          throw new CollaborationOperationError('协作会话已切换', { code: 'session_changed' })
-        }
-
         joinAttempted = true
-        latestGuestMembershipClaims.set(getGuestMembershipKey(membership), generation)
         const authorization = await joinCollaborationCommentSession({
           sessionId: params.sessionId,
           resumeId: params.resumeId,
+          memberLeaseId,
         })
         if (generation !== activeGeneration) {
           throw new CollaborationOperationError('协作会话已切换', { code: 'session_changed' })
         }
 
-        return { ...params, generation, authorization }
+        return { ...params, generation, memberLeaseId, authorization }
       }
       catch (error) {
-        if (joinAttempted) {
-          await releaseGuestMembership(membership)
+        const ownerMustHost
+          = error instanceof CollaborationOperationError && error.code === 'owner_must_host'
+        if (joinAttempted && !ownerMustHost) {
+          await releaseGuestMembership(membership, { bestEffort: true })
         }
         if (generation === activeGeneration) {
           setPhase('error', { error: getErrorMessage(error, '协作邀请鉴权失败') })
@@ -475,7 +424,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
           error: '共享简历加载或连接失败',
         })
       }
-      await releaseGuestMembership(prepared)
+      await releaseGuestMembership(prepared, { bestEffort: true })
     },
 
     // 邀请加载器迁移前保留的兼容入口。它仍严格要求当前 DocumentManager 已是
@@ -562,29 +511,57 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         setPhase('stopping', { error: null })
 
         if (bestEffort) {
-          leaveCollaborationCommentSession({
-            sessionId: state.sessionId!,
-            resumeId: state.resumeId!,
-            hostLeaseId: state.commentHostLeaseId ?? undefined,
-          }).catch((error) => {
-            console.warn('[collaboration] best-effort leave failed:', error)
-          })
+          if (state.role === 'guest') {
+            if (state.commentAccess?.memberLeaseId) {
+              releaseGuestMembership({
+                sessionId: state.sessionId!,
+                resumeId: state.resumeId!,
+                memberLeaseId: state.commentAccess.memberLeaseId,
+              }, { bestEffort: true }).catch(() => undefined)
+            }
+            else {
+              console.warn('[collaboration] guest member lease is missing during best-effort stop')
+            }
+          }
+          else {
+            leaveCollaborationCommentSession({
+              sessionId: state.sessionId!,
+              resumeId: state.resumeId!,
+              hostLeaseId: state.commentHostLeaseId ?? undefined,
+            }).catch((error) => {
+              console.warn('[collaboration] best-effort leave failed:', error)
+            })
+          }
           cleanupSession({ generation, remote: false })
           return
         }
 
         try {
-          const result = await leaveCollaborationCommentSession({
-            sessionId: state.sessionId!,
-            resumeId: state.resumeId!,
-            hostLeaseId: state.commentHostLeaseId ?? undefined,
-          })
+          let result
+          if (state.role === 'guest') {
+            const memberLeaseId = state.commentAccess?.memberLeaseId
+            if (!memberLeaseId) {
+              throw new Error('协作者成员租约缺失，请重新加载邀请')
+            }
+            result = await releaseGuestMembership({
+              sessionId: state.sessionId!,
+              resumeId: state.resumeId!,
+              memberLeaseId,
+            }, { bestEffort: false })
+          }
+          else {
+            result = await leaveCollaborationCommentSession({
+              sessionId: state.sessionId!,
+              resumeId: state.resumeId!,
+              hostLeaseId: state.commentHostLeaseId ?? undefined,
+            })
+          }
 
           if (!isCurrentStop()) {
             return
           }
 
-          if (state.role === 'host' && result.revoked !== true) {
+          if (result?.revoked !== true) {
             throw new Error('服务端未确认关闭协作，请重试')
           }
         }
@@ -637,10 +614,14 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       if (state.role !== 'guest' || !state.sessionId || !state.resumeId) {
         throw new Error('当前不处于协作者评论会话')
       }
+      if (!state.commentAccess?.memberLeaseId) {
+        throw new Error('协作者成员租约缺失，请重新加载邀请')
+      }
 
       const commentAccess = await renewCollaborationCommentSession({
         sessionId: state.sessionId,
         resumeId: state.resumeId,
+        memberLeaseId: state.commentAccess.memberLeaseId,
       })
       if (
         generation !== activeGeneration

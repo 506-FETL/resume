@@ -112,6 +112,7 @@ interface CollaborationDocumentRow {
 interface CollaborationMemberRow {
   session_id: string
   user_id: string
+  member_lease_id: string
   role: 'editor' | 'viewer'
   expires_at: string
   revoked_at: string | null
@@ -1179,6 +1180,7 @@ async function issueCollaboratorToken({
     resumeId: session.resume_id,
     versionId,
     userId: member.user_id,
+    memberLeaseId: member.member_lease_id,
     role: member.role,
   }
 }
@@ -1287,14 +1289,20 @@ async function handleCollaborationSessionOperation({
       }
     }
     else {
-      const { error } = await admin
+      const memberLeaseId = readUuid(body, 'memberLeaseId')
+      const memberResult = await admin
         .from('resume_comment_collaboration_members')
         .update({ revoked_at: revokedAt })
         .eq('session_id', sessionId)
         .eq('user_id', userId)
-      if (error) {
-        throw error
+        .eq('member_lease_id', memberLeaseId)
+        .is('revoked_at', null)
+        .select('session_id')
+        .maybeSingle()
+      if (memberResult.error) {
+        throw memberResult.error
       }
+      return { sessionId, revoked: Boolean(memberResult.data) }
     }
     return { sessionId, revoked: true }
   }
@@ -1308,17 +1316,19 @@ async function handleCollaborationSessionOperation({
         409,
       )
     }
+    const memberLeaseId = readUuid(body, 'memberLeaseId')
     const { data, error } = await admin
       .from('resume_comment_collaboration_members')
       .upsert({
         session_id: sessionId,
         user_id: userId,
+        member_lease_id: memberLeaseId,
         role: session.default_role,
         expires_at: session.expires_at,
         revoked_at: null,
         last_seen_at: new Date().toISOString(),
       }, { onConflict: 'session_id,user_id' })
-      .select('session_id,user_id,role,expires_at,revoked_at')
+      .select('session_id,user_id,member_lease_id,role,expires_at,revoked_at')
       .single()
     if (error || !data) {
       throw error ?? new Error('Unable to join collaboration comment session')
@@ -1326,11 +1336,13 @@ async function handleCollaborationSessionOperation({
     member = data as CollaborationMemberRow
   }
   else {
+    const memberLeaseId = readUuid(body, 'memberLeaseId')
     const { data, error } = await admin
       .from('resume_comment_collaboration_members')
-      .select('session_id,user_id,role,expires_at,revoked_at')
+      .select('session_id,user_id,member_lease_id,role,expires_at,revoked_at')
       .eq('session_id', sessionId)
       .eq('user_id', userId)
+      .eq('member_lease_id', memberLeaseId)
       .maybeSingle()
     member = data as CollaborationMemberRow | null
     if (
@@ -1346,6 +1358,7 @@ async function handleCollaborationSessionOperation({
       .update({ last_seen_at: new Date().toISOString() })
       .eq('session_id', sessionId)
       .eq('user_id', userId)
+      .eq('member_lease_id', memberLeaseId)
     if (touchError) {
       throw touchError
     }
@@ -1517,7 +1530,7 @@ async function resolveAccess({
         .maybeSingle(),
       admin
         .from('resume_comment_collaboration_members')
-        .select('session_id,user_id,role,expires_at,revoked_at')
+        .select('session_id,user_id,member_lease_id,role,expires_at,revoked_at')
         .eq('session_id', token.sessionId)
         .eq('user_id', userId)
         .maybeSingle(),

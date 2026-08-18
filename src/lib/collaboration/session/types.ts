@@ -13,6 +13,7 @@ export interface CollaborationSelf extends CollaborationIdentity {
 
 export interface CollaborationCommentAccess {
   accessToken: string
+  memberLeaseId: string
   expiresAt: string
   sessionId: string
   resumeId: string
@@ -66,6 +67,7 @@ export type CollaborationPhase
 
 export interface PreparedGuestSession extends JoinShareParams {
   generation: number
+  memberLeaseId: string
   authorization: CollaborationGuestAuthorization
 }
 

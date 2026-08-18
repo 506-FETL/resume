@@ -333,3 +333,15 @@ guest 收到 `share-ended` 后：
 ## 15. 交付边界
 
 本次交付完成的定义不是“构建通过”，而是：四个用户报告路径全部按浏览器矩阵验证通过，Edge Function 已部署并完成线上 smoke，协作者空白文档降级路径被移除，停止共享具备广播即时退出与服务端续租兜底两层保证。
+
+## 16. 正式审查增补：guest membership lease
+
+客户端 generation 只能隔离本地异步回调，不能阻止已经发出的旧 guest leave 在新 join 之后抵达服务端。guest 成员资格因此增加服务端条件化 lease：
+
+- 每次 guest prepare 在首个 await 前生成新的 `memberLeaseId`；join 在确认当前用户不是 owner 后校验该 UUID，并把它写入成员行。
+- join、renew 返回的 `CollaborationCommentAccess` 必须包含当前 `memberLeaseId`；renew 同样携带并校验该 token，旧 lease 不能续租或取得新 lease。
+- guest leave 必须同时匹配 `session_id + user_id + member_lease_id` 才能撤销成员，并用条件更新返回行决定 `revoked`。旧 leave 即使延迟到新 join 之后，也只能得到 `revoked: false`，不得撤销新成员。
+- host 继续使用 `hostLeaseId` 条件撤销整个 session；guest lease 不改变 host stop 的权威顺序。
+- join 已 upsert 但快照读取失败时，客户端用本地已知 token best-effort leave；`owner_must_host` 发生在成员 upsert 和 token 校验之前，不执行 guest release。
+- Edge invoke 必须有界超时。客户端不再用 membership queue 阻塞新 join；超时只结束当前本地准备流程，迟到请求由服务端 lease 条件保证安全。
+- 正常 guest stop 也必须等待 `revoked: true`；`false` 或请求失败时，若仍是当前 generation/session，恢复 connected 并允许重试。路由卸载的 best-effort stop 可以发起 token 条件 leave 后立即本地清理。
