@@ -1,6 +1,5 @@
 import type {
   CollaborationCommentAccess,
-  CollaborationConnectionPhase,
   CollaborationDocumentBootstrap,
   CollaborationGuestAuthorization,
   CreateSessionCallbacks,
@@ -13,22 +12,19 @@ import { buildCollaborationRoomName, buildCollaborationShareUrl, getParticipantC
 interface EnableSessionOptions extends SessionActivationOptions {
   createCallbacks: CreateSessionCallbacks
   getDocumentManager: () => DocumentManager | null
-  onPhaseChange?: (phase: Exclude<CollaborationConnectionPhase, null>) => void
 }
 
-export async function enableCollaborationSession(options: EnableSessionOptions) {
+export async function connectDocumentSession(options: EnableSessionOptions) {
   const {
     sessionId,
     resumeId,
     userId,
     userName,
     role,
-    shouldSaveSnapshot = false,
     getState,
     setState,
     createCallbacks,
     getDocumentManager,
-    onPhaseChange,
   } = options
 
   const docManager = getDocumentManager()
@@ -51,11 +47,6 @@ export async function enableCollaborationSession(options: EnableSessionOptions) 
 
   const adapter = await docManager.enableCollaboration(sessionId, callbacks)
   adapterPeerIdRef.current = adapter.peerId || null
-
-  if (shouldSaveSnapshot && docManager.getHandle()) {
-    onPhaseChange?.('syncing')
-    await docManager.saveToSupabase(docManager.getHandle())
-  }
 
   return {
     sessionId,

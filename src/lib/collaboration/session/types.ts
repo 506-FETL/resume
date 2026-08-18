@@ -52,16 +52,27 @@ export interface JoinShareParams extends StartShareParams {
   sessionId: string
 }
 
-export type CollaborationConnectionPhase
-  = | 'registering'
+export type CollaborationPhase
+  = | 'idle'
+    | 'authenticating'
+    | 'authorizing'
+    | 'hydrating'
     | 'connecting'
     | 'syncing'
-    | null
+    | 'connected'
+    | 'stopping'
+    | 'ended'
+    | 'error'
+
+export interface PreparedGuestSession extends JoinShareParams {
+  generation: number
+  authorization: CollaborationGuestAuthorization
+}
 
 export interface CollaborationSessionState {
   isSharing: boolean
   isConnecting: boolean
-  connectionPhase: CollaborationConnectionPhase
+  phase: CollaborationPhase
   role: CollaborationRole | null
   sessionId: string | null
   shareUrl: string | null
@@ -77,9 +88,15 @@ export interface CollaborationSessionState {
 
 export interface CollaborationSessionActions {
   startSharing: (params: StartShareParams) => Promise<void>
+  /** @deprecated 邀请加载器迁移期间的兼容入口；新流程应分阶段调用 prepare/hydrate/connect。 */
   joinSession: (params: JoinShareParams) => Promise<void>
+  markInviteAuthenticating: () => void
+  prepareGuestSession: (params: JoinShareParams) => Promise<PreparedGuestSession>
+  markGuestSessionHydrating: (prepared: PreparedGuestSession) => void
+  connectPreparedGuestSession: (prepared: PreparedGuestSession) => Promise<void>
+  abortPreparedGuestSession: (prepared: PreparedGuestSession) => Promise<void>
   resumeHosting: (params: JoinShareParams) => Promise<void>
-  stopSharing: (options?: { silent?: boolean }) => void
+  stopSharing: (options?: { silent?: boolean, bestEffort?: boolean }) => Promise<void>
   refreshCommentAccess: () => Promise<CollaborationCommentAccess>
   handleRemoteShareEnd: () => void
   acknowledgeRemoteShareEnd: () => void
@@ -110,7 +127,6 @@ export interface SessionActivationOptions extends CollaborationSessionStoreAcces
   userId: string
   userName: string
   role: CollaborationRole
-  shouldSaveSnapshot?: boolean
 }
 
 export interface CollaborationActivationResult {

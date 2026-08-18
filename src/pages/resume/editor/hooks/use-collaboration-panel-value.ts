@@ -15,7 +15,9 @@ interface UseCollaborationPanelValueParams {
 }
 
 const CONNECTION_PHASE_LABELS = {
-  registering: '正在创建协作会话',
+  authenticating: '正在确认协作邀请',
+  authorizing: '正在验证协作权限',
+  hydrating: '正在加载共享简历',
   connecting: '正在连接协作服务',
   syncing: '正在同步当前简历',
 } as const
@@ -69,7 +71,7 @@ export function useCollaborationPanelValue({
     participants: state.participants,
     isSharing: state.isSharing,
     isCollabConnecting: state.isConnecting,
-    collaborationConnectionPhase: state.connectionPhase,
+    collaborationConnectionPhase: state.phase,
     shareUrl: state.shareUrl,
     collaborationRole: state.role,
     startSharing: state.startSharing,
@@ -94,9 +96,10 @@ export function useCollaborationPanelValue({
     return null
   }, [mode, currentUser, isDocumentInitialized])
 
-  const collaborationConnectionLabel = collaborationConnectionPhase
-    ? CONNECTION_PHASE_LABELS[collaborationConnectionPhase]
-    : null
+  const collaborationConnectionLabel
+    = CONNECTION_PHASE_LABELS[
+      collaborationConnectionPhase as keyof typeof CONNECTION_PHASE_LABELS
+    ] ?? null
   const shareButtonTooltip = collabDisabledReason
     ?? collaborationConnectionLabel
     ?? (isSharing ? '查看协作信息' : '开启实时协作')

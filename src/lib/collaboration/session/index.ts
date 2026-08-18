@@ -1,4 +1,5 @@
 export * from './callbacks'
+export * from './lease'
 export * from './service'
 export * from './state'
 export * from './storage'

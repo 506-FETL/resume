@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { CollaborationConnectionPhase } from '@/lib/collaboration/session/types'
+import type { CollaborationPhase } from '@/lib/collaboration/session/types'
 import type { getCurrentUser } from '@/lib/supabase/user'
 
 export type SupabaseUser = Awaited<ReturnType<typeof getCurrentUser>> | null
@@ -11,7 +11,7 @@ export interface CollaborationPanelContextValue {
   lastSyncTime: number | null
   isSharing: boolean
   isCollabConnecting: boolean
-  collaborationConnectionPhase: CollaborationConnectionPhase
+  collaborationConnectionPhase: CollaborationPhase
   collaborationConnectionLabel: string | null
   collabDisabledReason: string | null
   shareButtonTooltip: string

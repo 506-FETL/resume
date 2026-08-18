@@ -1,4 +1,4 @@
-import type { CollaborationActivationResult, CollaborationParticipant, CollaborationParticipantMetadata, CollaborationSessionState } from './types'
+import type { CollaborationActivationResult, CollaborationParticipant, CollaborationParticipantMetadata, CollaborationPhase, CollaborationSessionState } from './types'
 import { getParticipantColor } from '../shared'
 
 function readMetadataString(metadata: Record<string, unknown> | undefined, key: string) {
@@ -32,7 +32,7 @@ export function createInitialCollaborationSessionState(): CollaborationSessionSt
   return {
     isSharing: false,
     isConnecting: false,
-    connectionPhase: null,
+    phase: 'idle',
     role: null,
     sessionId: null,
     shareUrl: null,
@@ -44,6 +44,30 @@ export function createInitialCollaborationSessionState(): CollaborationSessionSt
     commentAccess: null,
     commentHostLeaseId: null,
     shareEndedByRemote: false,
+  }
+}
+
+function getCollaborationPhaseFlags(phase: CollaborationPhase) {
+  return {
+    isSharing: phase === 'connected' || phase === 'stopping',
+    isConnecting:
+      phase === 'authenticating'
+      || phase === 'authorizing'
+      || phase === 'hydrating'
+      || phase === 'connecting'
+      || phase === 'syncing'
+      || phase === 'stopping',
+  }
+}
+
+export function createCollaborationPhaseState(
+  phase: CollaborationPhase,
+  overrides: Partial<CollaborationSessionState> = {},
+): Partial<CollaborationSessionState> {
+  return {
+    phase,
+    ...getCollaborationPhaseFlags(phase),
+    ...overrides,
   }
 }
 
@@ -96,10 +120,7 @@ export function createConnectedSessionState(
       })
     : null
 
-  return {
-    isSharing: true,
-    isConnecting: false,
-    connectionPhase: null,
+  return createCollaborationPhaseState('connected', {
     role: result.role,
     sessionId: result.sessionId,
     shareUrl: result.shareUrl,
@@ -110,16 +131,15 @@ export function createConnectedSessionState(
     ...commentAuthorization,
     error: null,
     shareEndedByRemote: false,
-  }
+  })
 }
 
 export function createStoppedSessionState(
   overrides: Partial<CollaborationSessionState> = {},
 ): Partial<CollaborationSessionState> {
-  return {
-    isSharing: false,
-    isConnecting: false,
-    connectionPhase: null,
+  const phase = overrides.phase ?? 'idle'
+
+  return createCollaborationPhaseState(phase, {
     role: null,
     sessionId: null,
     shareUrl: null,
@@ -132,5 +152,5 @@ export function createStoppedSessionState(
     commentHostLeaseId: null,
     shareEndedByRemote: false,
     ...overrides,
-  }
+  })
 }
