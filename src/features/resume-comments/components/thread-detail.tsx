@@ -4,6 +4,7 @@ import type { CommentUiPermissions } from './types.ts'
 import { ArrowLeft, Link2, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useResumeCommentClient, useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
 import { CommentComposer } from './comment-composer.tsx'
@@ -69,12 +70,14 @@ export function ThreadDetail({
   permissions,
   onBack,
   onBeginRelink,
+  keyboardAwareReply = false,
   footer,
 }: {
   thread: ResumeCommentThread
   permissions: CommentUiPermissions
   onBack: () => void
   onBeginRelink: (threadId: string) => void
+  keyboardAwareReply?: boolean
   footer?: ReactNode
 }) {
   const actions = useCommentActions()
@@ -180,7 +183,12 @@ export function ThreadDetail({
         : null}
       {permissions.canCreate && accessState === 'active' && !thread.resolvedAt
         ? (
-            <div className="shrink-0 border-t p-3">
+            <div className={cn(
+              'shrink-0 border-t bg-popover p-3',
+              keyboardAwareReply
+              && 'will-change-[padding-bottom] transition-[padding-bottom] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] focus-within:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px))] motion-reduce:transition-none',
+            )}
+            >
               {replyTarget
                 ? (
                     <div className="mb-2 flex items-center justify-between rounded-md bg-muted px-2 py-1.5 text-xs text-muted-foreground">

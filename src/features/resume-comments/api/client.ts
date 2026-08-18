@@ -730,33 +730,33 @@ export class ResumeCommentClient {
     })
   }
 
-  private accessBody(): Record<string, unknown> {
-    if (this.access.kind === 'owner') {
+  private accessBody(access: CommentAccessContext): Record<string, unknown> {
+    if (access.kind === 'owner') {
       return {
         accessKind: 'owner',
-        ...('scopeId' in this.access
-          ? { scopeId: this.access.scopeId }
-          : 'versionId' in this.access
-            ? { versionId: this.access.versionId }
-            : { resumeId: this.access.resumeId }),
+        ...('scopeId' in access
+          ? { scopeId: access.scopeId }
+          : 'versionId' in access
+            ? { versionId: access.versionId }
+            : { resumeId: access.resumeId }),
       }
     }
-    if (this.access.kind === 'collaborator') {
+    if (access.kind === 'collaborator') {
       return {
         accessKind: 'collaborator',
-        accessToken: this.access.accessToken,
-        versionId: this.access.versionId,
+        accessToken: access.accessToken,
+        versionId: access.versionId,
       }
     }
     return {
       accessKind: 'share',
-      accessToken: this.access.accessToken,
-      versionId: this.access.versionId,
-      ...(this.access.anonymous
+      accessToken: access.accessToken,
+      versionId: access.versionId,
+      ...(access.anonymous
         ? {
             anonymous: {
-              id: this.access.anonymous.id,
-              secret: this.access.anonymous.secret,
+              id: access.anonymous.id,
+              secret: access.anonymous.secret,
             },
           }
         : {}),
@@ -767,6 +767,9 @@ export class ResumeCommentClient {
     op: string,
     input: Record<string, unknown> = {},
   ): Promise<CommentApiSuccess<T>> {
+    // 请求入口同步冻结作用域；鉴权等待期间切换版本时，旧请求不能借用新 access。
+    const access = this.access
+    const accessBody = this.accessBody(access)
     const clientDurations: Partial<Record<CommentBootstrapClientStage, number>> = {}
     const authStartedAt = performance.now()
     const authToken = await getCommentAuthToken()
@@ -786,9 +789,9 @@ export class ResumeCommentClient {
     }
     const requestBody = JSON.stringify({
       op,
-      ...this.accessBody(),
-      ...(this.access.kind === 'share'
-        ? { releaseId: this.access.releaseId, versionId: this.access.versionId }
+      ...accessBody,
+      ...(access.kind === 'share'
+        ? { releaseId: access.releaseId, versionId: access.versionId }
         : {}),
       ...input,
     })

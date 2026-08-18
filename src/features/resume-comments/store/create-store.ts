@@ -72,11 +72,15 @@ export function createResumeCommentStore(): ResumeCommentStore {
       const lastReadEventSeq = scopeChanged
         ? input.lastReadEventSeq
         : Math.max(state.lastReadEventSeq, input.lastReadEventSeq)
-      const incomingThreadReadStates = indexCommentThreadReadStates(input.threadReadStates)
+      const liveThreadIds = new Set(input.threads.map(thread => thread.id))
+      const incomingThreadReadStates = Object.fromEntries(Object.entries(
+        indexCommentThreadReadStates(input.threadReadStates),
+      ).filter(([threadId]) => liveThreadIds.has(threadId)))
       const threadReadStateById = scopeChanged
         ? incomingThreadReadStates
         : mergeCommentThreadReadStateMaps(
-            state.threadReadStateById,
+            Object.fromEntries(Object.entries(state.threadReadStateById)
+              .filter(([threadId]) => liveThreadIds.has(threadId))),
             incomingThreadReadStates,
           )
       const draftsByScopeId = state.scope
@@ -323,11 +327,6 @@ export function createResumeCommentStore(): ResumeCommentStore {
     }),
     markThreadReadLocally: (threadId, eventSeq) => {
       const state = get()
-      const snapshot = {
-        lastReadEventSeq: state.lastReadEventSeq,
-        threadReadStateById: state.threadReadStateById,
-        accessibleScopes: state.accessibleScopes,
-      }
       const current = state.threadReadStateById[threadId]
       set({
         threadReadStateById: {
@@ -345,15 +344,9 @@ export function createResumeCommentStore(): ResumeCommentStore {
           },
         },
       })
-      return snapshot
     },
     markAllReadLocally: (eventSeq) => {
       const state = get()
-      const snapshot = {
-        lastReadEventSeq: state.lastReadEventSeq,
-        threadReadStateById: state.threadReadStateById,
-        accessibleScopes: state.accessibleScopes,
-      }
       set({
         lastReadEventSeq: Math.max(state.lastReadEventSeq, eventSeq),
         threadReadStateById: Object.fromEntries(
@@ -374,12 +367,6 @@ export function createResumeCommentStore(): ResumeCommentStore {
               : scope)
           : state.accessibleScopes,
       })
-      return snapshot
     },
-    restoreReadSnapshot: snapshot => set({
-      lastReadEventSeq: snapshot.lastReadEventSeq,
-      threadReadStateById: snapshot.threadReadStateById,
-      accessibleScopes: snapshot.accessibleScopes,
-    }),
   }))
 }

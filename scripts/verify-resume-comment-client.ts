@@ -4,9 +4,16 @@ import { readFileSync } from 'node:fs'
 import { deriveAnonymousAvatarVisual } from '../src/features/resume-comments/api/anonymous-identity.ts'
 import {
   advanceCommentReadCursor,
+  captureCommentCacheWriteFence,
+  deleteCommentCache,
   deriveCommentCacheKey,
   isCommentCacheEntryCompatible,
+  isCommentCacheWriteFenceCurrent,
+  mergeCachedThreadReadStates,
+  pruneCommentThreadReadCursors,
+  readCommentThreadReadCursors,
   serializeCommentCacheKey,
+  updateCommentCacheThreadReadCursor,
 } from '../src/features/resume-comments/api/cache.ts'
 import {
   calculateCommentTransportOverhead,
@@ -16,6 +23,7 @@ import {
   resetCommentPerformanceSamples,
 } from '../src/features/resume-comments/api/performance.ts'
 import { decideCommentRealtimeRecovery } from '../src/features/resume-comments/api/realtime-recovery.ts'
+import { mergeHighlightVisualRects } from '../src/features/resume-comments/components/highlight-rects.ts'
 import { createResumeCommentStore } from '../src/features/resume-comments/store/create-store.ts'
 import {
   applyCommentEventsToThreadReadStates,
@@ -153,12 +161,37 @@ function unreadThreadIds() {
   ).sort()
 }
 assert.deepEqual(unreadThreadIds(), ['thread-a', 'thread-b'])
-const beforeThreadRead = threadReadStore.getState().markThreadReadLocally('thread-a', 9)
+threadReadStore.getState().markThreadReadLocally('thread-a', 9)
 assert.deepEqual(unreadThreadIds(), ['thread-b'])
-threadReadStore.getState().restoreReadSnapshot(beforeThreadRead)
-assert.deepEqual(unreadThreadIds(), ['thread-a', 'thread-b'])
 threadReadStore.getState().markAllReadLocally(10)
 assert.deepEqual(unreadThreadIds(), [])
+
+const lateReadFailureStore = createResumeCommentStore()
+lateReadFailureStore.getState().replaceScope({
+  scope: firstScope,
+  version,
+  counts,
+  accessibleScopes: [],
+  threads: [thread('thread-a', '2026-08-14T09:00:00.000Z')],
+  eventSeq: 10,
+  lastReadEventSeq: 4,
+  threadReadStates: [
+    { threadId: 'thread-a', latestCommentEventSeq: 9, lastReadEventSeq: 4 },
+  ],
+})
+lateReadFailureStore.getState().markThreadReadLocally('thread-a', 9)
+lateReadFailureStore.getState().applyRealtimePatch({
+  threads: [],
+  events: [{
+    eventSeq: 11,
+    type: 'thread_deleted',
+    threadId: 'thread-a',
+    createdAt: '2026-08-18T12:00:00.000Z',
+    isOwn: false,
+  }],
+  eventSeq: 11,
+})
+assert.deepEqual(lateReadFailureStore.getState().threadReadStateById, {})
 
 const ownEventReadStates = applyCommentEventsToThreadReadStates({}, [{
   eventSeq: 11,
@@ -184,6 +217,305 @@ assert.deepEqual(otherEventReadStates['thread-own'], {
   latestCommentEventSeq: 12,
   lastReadEventSeq: 11,
 })
+
+const visualHighlightRects = mergeHighlightVisualRects([
+  {
+    key: 'thread-a-0',
+    threadId: 'thread-a',
+    pageIndex: 0,
+    x: 10,
+    y: 20,
+    width: 80,
+    height: 18,
+  },
+  {
+    key: 'thread-b-0',
+    threadId: 'thread-b',
+    pageIndex: 0,
+    x: 50,
+    y: 20,
+    width: 70,
+    height: 18,
+  },
+  {
+    key: 'thread-c-0',
+    threadId: 'thread-c',
+    pageIndex: 0,
+    x: 10,
+    y: 42,
+    width: 80,
+    height: 18,
+  },
+])
+
+const stableHighlightKey = mergeHighlightVisualRects([{
+  key: 'thread-z-0',
+  threadId: 'thread-z',
+  pageIndex: 0,
+  x: 10,
+  y: 20,
+  width: 80,
+  height: 18,
+}])[0]?.key
+assert.equal(stableHighlightKey, mergeHighlightVisualRects([{
+  key: 'thread-y-0',
+  threadId: 'thread-y',
+  pageIndex: 0,
+  x: 10,
+  y: 20,
+  width: 80,
+  height: 18,
+}])[0]?.key)
+
+const slightTopVariance = mergeHighlightVisualRects([
+  {
+    key: 'right',
+    threadId: 'right',
+    pageIndex: 0,
+    x: 70,
+    y: 20,
+    width: 20,
+    height: 18,
+  },
+  {
+    key: 'left',
+    threadId: 'left',
+    pageIndex: 0,
+    x: 10,
+    y: 20.5,
+    width: 20,
+    height: 18,
+  },
+])
+assert.deepEqual(slightTopVariance.map(rect => rect.threadIds), [['left'], ['right']])
+
+const crossLineCornerOverlap = mergeHighlightVisualRects([
+  {
+    key: 'line-1',
+    threadId: 'line-1',
+    pageIndex: 0,
+    x: 10,
+    y: 20,
+    width: 100,
+    height: 18,
+  },
+  {
+    key: 'line-2',
+    threadId: 'line-2',
+    pageIndex: 0,
+    x: 105,
+    y: 36,
+    width: 100,
+    height: 18,
+  },
+])
+assert.equal(crossLineCornerOverlap.length, 2)
+
+const chainedTopVariance = mergeHighlightVisualRects([
+  {
+    key: 'top-0',
+    threadId: 'top-0',
+    pageIndex: 0,
+    x: 10,
+    y: 0,
+    width: 80,
+    height: 10,
+  },
+  {
+    key: 'top-3',
+    threadId: 'top-3',
+    pageIndex: 0,
+    x: 10,
+    y: 3,
+    width: 80,
+    height: 10,
+  },
+  {
+    key: 'top-6',
+    threadId: 'top-6',
+    pageIndex: 0,
+    x: 10,
+    y: 6,
+    width: 80,
+    height: 10,
+  },
+  {
+    key: 'top-9',
+    threadId: 'top-9',
+    pageIndex: 0,
+    x: 10,
+    y: 9,
+    width: 80,
+    height: 10,
+  },
+  {
+    key: 'top-12',
+    threadId: 'top-12',
+    pageIndex: 0,
+    x: 10,
+    y: 12,
+    width: 80,
+    height: 10,
+  },
+])
+assert.equal(chainedTopVariance.length, 1)
+assert.deepEqual(chainedTopVariance[0], {
+  key: 'visual:0:10:0:80:22',
+  threadIds: ['top-0', 'top-3', 'top-6', 'top-9', 'top-12'],
+  pageIndex: 0,
+  x: 10,
+  y: 0,
+  width: 80,
+  height: 22,
+})
+
+const lShapeDoesNotBridge = mergeHighlightVisualRects([
+  {
+    key: 'top',
+    threadId: 'top',
+    pageIndex: 0,
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 10,
+  },
+  {
+    key: 'vertical',
+    threadId: 'vertical',
+    pageIndex: 0,
+    x: 90,
+    y: 5,
+    width: 10,
+    height: 100,
+  },
+  {
+    key: 'bottom',
+    threadId: 'bottom',
+    pageIndex: 0,
+    x: 0,
+    y: 90,
+    width: 100,
+    height: 10,
+  },
+])
+assert.equal(lShapeDoesNotBridge.length, 3)
+
+const cacheWriteFence = captureCommentCacheWriteFence()
+assert.equal(isCommentCacheWriteFenceCurrent(cacheWriteFence), true)
+await deleteCommentCache({ versionId: 42, principalKey: 'fence-test' })
+assert.equal(isCommentCacheWriteFenceCurrent(cacheWriteFence), false)
+
+const originalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(
+  globalThis,
+  'localStorage',
+)
+const threadCursorStorage = new Map<string, string>()
+const localStorageStub = {
+  get length() {
+    return threadCursorStorage.size
+  },
+  clear() {
+    threadCursorStorage.clear()
+  },
+  getItem(key: string) {
+    return threadCursorStorage.get(key) ?? null
+  },
+  key(index: number) {
+    return [...threadCursorStorage.keys()][index] ?? null
+  },
+  removeItem(key: string) {
+    threadCursorStorage.delete(key)
+  },
+  setItem(key: string, value: string) {
+    threadCursorStorage.set(key, value)
+  },
+}
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: localStorageStub,
+})
+const independentCursorKey = { versionId: 42, principalKey: 'cursor-test' }
+await updateCommentCacheThreadReadCursor(
+  independentCursorKey,
+  'live-thread',
+  19,
+)
+assert.deepEqual(readCommentThreadReadCursors(independentCursorKey), [{
+  threadId: 'live-thread',
+  latestCommentEventSeq: 19,
+  lastReadEventSeq: 19,
+}])
+pruneCommentThreadReadCursors(independentCursorKey, new Set())
+assert.deepEqual(readCommentThreadReadCursors(independentCursorKey), [])
+if (originalLocalStorageDescriptor) {
+  Object.defineProperty(
+    globalThis,
+    'localStorage',
+    originalLocalStorageDescriptor,
+  )
+}
+else {
+  Reflect.deleteProperty(globalThis, 'localStorage')
+}
+assert.deepEqual(visualHighlightRects, [
+  {
+    key: 'visual:0:10:20:110:18',
+    threadIds: ['thread-a', 'thread-b'],
+    pageIndex: 0,
+    x: 10,
+    y: 20,
+    width: 110,
+    height: 18,
+  },
+  {
+    key: 'visual:0:10:42:80:18',
+    threadIds: ['thread-c'],
+    pageIndex: 0,
+    x: 10,
+    y: 42,
+    width: 80,
+    height: 18,
+  },
+])
+
+assert.deepEqual(
+  mergeCachedThreadReadStates(
+    [
+      { threadId: 'deleted-thread', latestCommentEventSeq: 8, lastReadEventSeq: 8 },
+      { threadId: 'live-thread', latestCommentEventSeq: 7, lastReadEventSeq: 7 },
+    ],
+    [{ threadId: 'live-thread', latestCommentEventSeq: 9, lastReadEventSeq: 5 }],
+    new Set(['live-thread']),
+  ),
+  [{ threadId: 'live-thread', latestCommentEventSeq: 9, lastReadEventSeq: 7 }],
+)
+
+const authoritativeBootstrapStore = createResumeCommentStore()
+authoritativeBootstrapStore.getState().replaceScope({
+  scope: firstScope,
+  version,
+  counts,
+  accessibleScopes: [],
+  threads: [thread('deleted-thread', '2026-08-14T09:00:00.000Z')],
+  eventSeq: 8,
+  lastReadEventSeq: 8,
+  threadReadStates: [
+    { threadId: 'deleted-thread', latestCommentEventSeq: 8, lastReadEventSeq: 8 },
+  ],
+})
+authoritativeBootstrapStore.getState().replaceScope({
+  scope: firstScope,
+  version,
+  counts: { unresolved: 0, resolved: 0, detached: 0 },
+  accessibleScopes: [],
+  threads: [],
+  eventSeq: 9,
+  lastReadEventSeq: 8,
+  threadReadStates: [
+    { threadId: 'deleted-thread', latestCommentEventSeq: 8, lastReadEventSeq: 8 },
+  ],
+})
+assert.deepEqual(authoritativeBootstrapStore.getState().threadReadStateById, {})
 
 store.getState().setDraft('new-thread', '不要丢失的草稿')
 store.getState().setConnection('offline')
@@ -415,6 +747,10 @@ const commentTreeSource = readFileSync(
   new URL('../src/features/resume-comments/components/comment-tree.tsx', import.meta.url),
   'utf8',
 )
+const highlightOverlaySource = readFileSync(
+  new URL('../src/features/resume-comments/components/highlight-overlay.tsx', import.meta.url),
+  'utf8',
+)
 const commentsPanelSource = readFileSync(
   new URL('../src/features/resume-comments/components/comments-panel.tsx', import.meta.url),
   'utf8',
@@ -576,7 +912,11 @@ assert.equal(
   2,
 )
 assert.doesNotMatch(trackerOverviewSource, /aria-pressed:bg-primary|bg-primary text-primary-foreground/u)
-assert.match(threadDetailSource, /shrink-0 border-t p-3/u)
+assert.match(threadDetailSource, /shrink-0 border-t bg-popover p-3/u)
+assert.match(threadDetailSource, /keyboardAwareReply/u)
+assert.match(threadDetailSource, /var\(--drawer-keyboard-inset,0px\)/u)
+assert.match(threadDetailSource, /focus-within:pb-/u)
+assert.match(threadDetailSource, /motion-reduce:transition-none/u)
 assert.match(commentMobileLayoutSource, /\(hover: none\) and \(pointer: coarse\) and \(max-width: 1024px\)/u)
 assert.doesNotMatch(commentBookmarkSource, /h-14 w-12/u)
 assert.match(drawerSource, /overlayClassName\?: string/u)
@@ -585,6 +925,20 @@ assert.match(editorSource, /<CommentReviewBanner/u)
 assert.doesNotMatch(editorSource, /presentation="docked"/u)
 assert.doesNotMatch(commentSurfaceSource, /presentation/u)
 assert.match(commentsPanelSource, /key="resume-comments-desktop"[\s\S]*?modal[\s\S]*?swipeDirection="right"/u)
+assert.match(commentsPanelSource, /keyboardAwareReply=\{isMobile\}/u)
+assert.match(highlightOverlaySource, /AnimatePresence, motion, useReducedMotion/u)
+assert.match(highlightOverlaySource, /HIGHLIGHT_STAGGER_SECONDS = 0\.06/u)
+assert.match(highlightOverlaySource, /enterDelay: orderIndex \* stagger/u)
+assert.match(highlightOverlaySource, /exitDelay: \(ordered\.length - orderIndex - 1\) \* stagger/u)
+assert.match(highlightOverlaySource, /initial=\{reduceMotion \? false : \{ clipPath: HIGHLIGHT_HIDDEN_CLIP_PATH \}\}/u)
+assert.match(highlightOverlaySource, /animate=\{\{[\s\S]*?clipPath: HIGHLIGHT_VISIBLE_CLIP_PATH/u)
+assert.match(highlightOverlaySource, /exit=\{\{[\s\S]*?clipPath: HIGHLIGHT_HIDDEN_CLIP_PATH/u)
+assert.match(highlightOverlaySource, /pointer-events-none absolute rounded-\[2px\]/u)
+assert.match(highlightOverlaySource, /mergeHighlightVisualRects\(flattenHighlightRects\(geometry\)\)/u)
+assert.match(highlightOverlaySource, /rect\.threadIds\.includes\(activeThreadId \?\? ''\)/u)
+assert.match(highlightOverlaySource, /visibleHitGeometry\.map\(rect =>/u)
+assert.match(highlightOverlaySource, /pageHitGeometry[\s\S]*?rectanglesOverlap\(rect, candidate\)/u)
+assert.match(highlightOverlaySource, /motion-reduce:transition-none/u)
 assert.match(mobileSortDrawerSource, /from '@\/components\/ui\/drawer'/u)
 assert.match(mobileSortDrawerSource, /swipeDirection="down"/u)
 assert.match(mobileSortDrawerSource, /showSwipeHandle/u)
@@ -643,6 +997,11 @@ const writeCommentCacheSource = readSourceSection(
   commentCacheSource,
   'export async function writeCommentCache(',
   '\nexport async function updateCommentCacheReadCursor(',
+)
+const updateThreadReadCursorSource = readSourceSection(
+  commentCacheSource,
+  'export async function updateCommentCacheThreadReadCursor(',
+  '\nexport async function deleteCommentCache(',
 )
 const cachedBootstrapTypeSource = readSourceSection(
   commentCacheSource,
@@ -761,11 +1120,42 @@ assertSourceOrder(commentClientSource, [
   'const normalizeDuration = performance.now() - normalizeStartedAt',
   'normalize: normalizeDuration',
 ])
+function verifyFrozenRequestAccess(candidate: string) {
+  assertSourceOrder(candidate, [
+    'const access = this.access',
+    'const accessBody = this.accessBody(access)',
+    'const authToken = await getCommentAuthToken()',
+    '...accessBody,',
+    '...(access.kind === \'share\'',
+  ])
+  assert.equal(candidate.match(/this\.access\b/gu)?.length, 1)
+}
+verifyFrozenRequestAccess(commentRequestSource)
+assertMutationRejected(
+  'comment request freezes access before auth await',
+  commentRequestSource,
+  commentRequestSource.replace(
+    '    const access = this.access\n    const accessBody = this.accessBody(access)\n',
+    '',
+  ),
+  verifyFrozenRequestAccess,
+)
 
 assert.match(commentCacheSource, /export interface CommentCacheEntry \{\s*protocolVersion: 1/u)
 assert.match(commentCacheSource, /if \(!isCommentCacheEntryCompatible\(entry\)\)\s*return null/u)
 assert.match(commentCacheSource, /protocolVersion: 1,\s*key: serializedKey/u)
 assert.match(cacheCursorUpdateSource, /if \(isCommentCacheEntryCompatible\(current\)\) \{[\s\S]*?transaction\.store\.put/u)
+assert.match(commentCacheSource, /export async function deleteCommentCache\(key: CommentCacheKey\)/u)
+assert.match(commentCacheSource, /new Set\(cacheValue\.threads\.map\(thread => thread\.id\)\)/u)
+assert.match(commentCacheSource, /const cacheOperationQueues = new Map<string, Promise<void>>\(\)/u)
+assert.match(commentCacheSource, /if \(fence && !isCommentCacheWriteFenceCurrent\(fence\)\)[\s\S]*?return false/u)
+assert.match(commentCacheSource, /advanceCommentCacheMutationGeneration\(\)[\s\S]*?enqueueCommentCacheOperation/u)
+assertSourceOrder(updateThreadReadCursorSource, [
+  'persistCommentThreadReadCursor(key, threadId, eventSeq)',
+  'const database = getDatabase()',
+  'const current = await transaction.store.get(serializedKey)',
+])
+assert.match(commentCacheSource, /export function pruneCommentThreadReadCursors\(/u)
 assert.doesNotMatch(commentCacheSource, /CommentResponseTelemetry|authMode|coldStart|repair|requestId|serverTiming|accessToken|jwt/iu)
 assert.equal(cachedBootstrapTypeSource, [
   'export type CachedCommentBootstrap = Omit<',
@@ -781,9 +1171,9 @@ function verifyCacheProjection(candidate: string) {
   assertSourceOrder(candidate, [
     '...cacheValue } = value',
     'const nextValue = advanceCommentReadCursor(',
-    '\n      ...cacheValue,',
-    'threadReadStates: mergeThreadReadStates(',
-    '\n    value: nextValue,',
+    '\n        ...cacheValue,',
+    'threadReadStates: mergeCachedThreadReadStates(',
+    '\n      value: nextValue,',
   ])
   assert.doesNotMatch(candidate, /const cacheValue = value/u)
 }
@@ -802,14 +1192,49 @@ assertSourceOrder(bootstrapSource, [
   'const responsePromise = client.bootstrapScope()',
   'const authenticatedUserIdPromise = client.getAuthenticatedUserId()',
   'const response = await responsePromise',
-  'hasFreshBootstrap = true',
   'marker.mergeClientDurations(response.telemetry.clientDurations)',
   'const authenticatedUserId = await authenticatedUserIdPromise',
+  'currentState.lastEventSeq > response.eventSeq',
+  'detail: { status: \'superseded\' }',
   'marker.measureSync(\'store_commit\'',
   'marker.measureSync(\n        \'realtime_connect\'',
-  'marker.end({',
+  'detail: { threadCount: response.data.threads.length }',
   'void writeCommentCache(cacheKey, {',
   'void client.markRead(persistedReadEventSeq).catch',
+])
+function verifySupersededBootstrapReconnect(candidate: string) {
+  assertSourceOrder(candidate, [
+    'const currentState = store.getState()',
+    'const sameScope = currentState.scope?.id === response.data.scope.id',
+    'if (sameScope) {',
+    '() => connectRealtime(response.data.scopeRealtime)',
+    'detail: { status: \'superseded\' }',
+    '\n        return\n      }\n      if (cacheKey)',
+  ])
+}
+verifySupersededBootstrapReconnect(bootstrapSource)
+assertMutationRejected(
+  'superseded bootstrap reconnects same scope realtime',
+  bootstrapSource,
+  bootstrapSource.replace(
+    '            () => connectRealtime(response.data.scopeRealtime),\n',
+    '',
+  ),
+  verifySupersededBootstrapReconnect,
+)
+assertSourceOrder(bootstrapSource, [
+  'const liveThreadIds = new Set(response.data.threads.map(thread => thread.id))',
+  'readCommentThreadReadCursors(cacheKey)',
+  'const serverThreadReadStateById = new Map(',
+  'detail: { status: \'superseded\' }',
+  'pruneCommentThreadReadCursors(cacheKey, liveThreadIds)',
+  'marker.measureSync(\'store_commit\'',
+])
+assertSourceOrder(bootstrapSource, [
+  'const serverState = serverThreadReadStateById.get(cachedState.threadId)',
+  'if (!serverState)',
+  'continue',
+  'client.markThreadRead(',
 ])
 function verifyBootstrapRequestStart(candidate: string) {
   assertSourceOrder(candidate, [
@@ -837,31 +1262,45 @@ assertMutationRejected(
 function verifyInitialOnlineBootstrapStart(candidate: string) {
   assertSourceOrder(candidate, [
     'if (navigator.onLine) {',
-    'const bootstrapPromise = bootstrap()',
-    'const cacheHydrationPromise = hydrateCache().catch(() => undefined)',
-    'await Promise.all([',
-    '\n          bootstrapPromise,',
-    '\n          cacheHydrationPromise,',
+    'try {',
+    'await bootstrap()',
+    'catch (error)',
+    'await hydrateCache().catch(() => undefined)',
+    'throw error',
   ])
+  assert.doesNotMatch(candidate, /Promise\.all|cacheHydrationPromise/u)
 }
 verifyInitialOnlineBootstrapStart(initialOnlineBootstrapSource)
 assertMutationRejected(
-  'initial online bootstrap starts before cache hydration',
+  'online bootstrap remains network-first',
   initialOnlineBootstrapSource,
   initialOnlineBootstrapSource.replace(
-    [
-      '        const bootstrapPromise = bootstrap()',
-      '        const cacheHydrationPromise = hydrateCache().catch(() => undefined)',
-    ].join('\n'),
-    [
-      '        const cacheHydrationPromise = hydrateCache().catch(() => undefined)',
-      '        const bootstrapPromise = bootstrap()',
-    ].join('\n'),
+    '          await bootstrap()',
+    '          await Promise.all([bootstrap(), hydrateCache()])',
   ),
   verifyInitialOnlineBootstrapStart,
 )
 assert.doesNotMatch(bootstrapSource, /await\s+(?:writeCommentCache|client\.markRead)/u)
-assert.match(commentRealtimeHookSource, /!cached \|\| cancelled \|\| hasFreshBootstrap/u)
+assert.match(commentRealtimeHookSource, /if \(!cached \|\| cancelled\)/u)
+assert.doesNotMatch(commentRealtimeHookSource, /hasFreshBootstrap/u)
+assert.match(commentRealtimeHookSource, /applyRealtimePatch\([\s\S]*?deleteCommentCache\(cacheKey\)/u)
+assert.equal(commentActionsSource.match(/await deleteCommentCache\(/gu)?.length, 3)
+assert.doesNotMatch(commentActionsSource, /restoreReadSnapshot/u)
+assertSourceOrder(commentActionsSource, [
+  'error.code === \'not_found\'',
+  'store.getState().finishPending(entityKey)',
+  'onIdempotentNotFound()',
+  'detail: { status: \'already_deleted\' }',
+  'return null',
+])
+assert.ok((commentActionsSource.match(/if \(!isReadContextCurrent\(\)\)/gu)?.length ?? 0) >= 4)
+assert.match(commentActionsSource, /const deleteComment = useCallback\([\s\S]*?alreadyDeleted \? true : null/u)
+assert.match(commentActionsSource, /const deleteThread = useCallback\([\s\S]*?alreadyDeleted \? true : null/u)
+assertSourceOrder(commentActionsSource, [
+  'store.getState().markThreadReadLocally(threadId, eventSeq)',
+  'await updateCommentCacheThreadReadCursor(',
+  'const response = await client.markThreadRead(threadId, eventSeq)',
+])
 
 assert.doesNotMatch(commentPerformanceSource, /performanceBudgets|clientOverhead|warningMs|targetMs/u)
 assert.doesNotMatch(commentPerformanceSource, /['"]db['"]/u)

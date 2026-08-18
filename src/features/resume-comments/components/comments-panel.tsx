@@ -28,6 +28,7 @@ function PanelBody({
   onCancelCreating,
   onFinishCreating,
   onBeginRelink,
+  keyboardAwareReply,
 }: {
   sourceLabel: string
   permissions: CommentUiPermissions
@@ -35,6 +36,7 @@ function PanelBody({
   onCancelCreating: () => void
   onFinishCreating: () => void
   onBeginRelink: (threadId: string) => void
+  keyboardAwareReply: boolean
 }) {
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
   const { panelHeaderContent } = useResumeCommentContext()
@@ -68,6 +70,7 @@ function PanelBody({
         permissions={permissions}
         onBack={() => setActiveThread(null)}
         onBeginRelink={onBeginRelink}
+        keyboardAwareReply={keyboardAwareReply}
       />
     )
   }
@@ -210,6 +213,7 @@ export function CommentsPanel({
       creationSnapshot={creationSnapshot}
       onCancelCreating={onCancelCreating}
       onFinishCreating={onFinishCreating}
+      keyboardAwareReply={isMobile}
       onBeginRelink={(threadId) => {
         beginRelink(threadId)
         handleOpenChange(false)

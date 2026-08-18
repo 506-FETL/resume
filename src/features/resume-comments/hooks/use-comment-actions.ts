@@ -1,9 +1,10 @@
 import type { CommentMutationResult } from '../api/client.ts'
 import type { PendingCommentCreationSnapshot } from '../store/types.ts'
-import type { ResumeCommentThread } from '../types.ts'
+import type { CommentThreadCounts, ResumeCommentThread } from '../types.ts'
 import { useCallback, useState } from 'react'
 import { ensureAnonymousCommentIdentity } from '../api/anonymous-identity.ts'
 import {
+  deleteCommentCache,
   deriveCommentCacheKey,
   updateCommentCacheReadCursor,
   updateCommentCacheThreadReadCursor,
@@ -19,6 +20,17 @@ class CommentScopeChangedError extends Error {
   }
 }
 
+function countsAfterThreadRemoval(
+  thread: ResumeCommentThread,
+  counts: CommentThreadCounts,
+) {
+  if (thread.anchorStatus === 'detached')
+    return { ...counts, detached: Math.max(0, counts.detached - 1) }
+  if (thread.resolvedAt)
+    return { ...counts, resolved: Math.max(0, counts.resolved - 1) }
+  return { ...counts, unresolved: Math.max(0, counts.unresolved - 1) }
+}
+
 export function useCommentActions() {
   const { beforeWrite, client, invalidateAccess, store } = useResumeCommentContext()
   const [pendingAction, setPendingAction] = useState<string | null>(null)
@@ -26,11 +38,16 @@ export function useCommentActions() {
 
   const resolveReadContext = useCallback(async () => {
     const access = client.getAccessContext()
+    const state = store.getState()
+    const versionId = state.version?.versionId
+    const scopeId = state.scope?.id ?? null
+    const scopeEpoch = state.scopeEpoch
     const authenticatedUserId = await client.getAuthenticatedUserId()
-    const versionId = store.getState().version?.versionId
     return {
       access,
       authenticatedUserId,
+      scopeId,
+      scopeEpoch,
       cacheKey: deriveCommentCacheKey(access, versionId, authenticatedUserId),
       hasServerPrincipal: access.kind !== 'share'
         || Boolean(authenticatedUserId)
@@ -53,7 +70,10 @@ export function useCommentActions() {
 
   const refreshThreads = useCallback(async (eventSeq?: number) => {
     const lastEventSeq = store.getState().lastEventSeq
-    const response = await client.listEvents(lastEventSeq)
+    const [response, readContext] = await Promise.all([
+      client.listEvents(lastEventSeq),
+      resolveReadContext().catch(() => null),
+    ])
 
     store.getState().applyRealtimePatch({
       threads: response.data.threads,
@@ -61,9 +81,12 @@ export function useCommentActions() {
       eventSeq: response.eventSeq,
     })
 
+    if (response.data.events.length > 0 && readContext?.cacheKey)
+      await deleteCommentCache(readContext.cacheKey).catch(() => undefined)
+
     if (eventSeq !== undefined)
       store.getState().markReadLocally(eventSeq)
-  }, [client, store])
+  }, [client, resolveReadContext, store])
 
   const execute = useCallback(async (
     entityKey: string,
@@ -79,6 +102,7 @@ export function useCommentActions() {
       removedThreadId?: string | null
       counts?: ReturnType<typeof store.getState>['counts']
     },
+    onIdempotentNotFound?: () => void,
   ) => {
     const initialState = store.getState()
     const mutationScopeId = initialState.scope?.id ?? null
@@ -142,6 +166,18 @@ export function useCommentActions() {
     catch (error) {
       if (
         error instanceof ResumeCommentClientError
+        && error.code === 'not_found'
+        && onIdempotentNotFound
+        && isMutationScopeCurrent()
+      ) {
+        // 删除已经在其他端完成时保留本地乐观结果，并按幂等成功收敛。
+        store.getState().finishPending(entityKey)
+        onIdempotentNotFound()
+        marker.end({ detail: { status: 'already_deleted' } })
+        return null
+      }
+      if (
+        error instanceof ResumeCommentClientError
         && (error.code === 'stale_release' || error.code === 'share_unavailable')
       ) {
         invalidateAccess?.(error.code)
@@ -170,22 +206,41 @@ export function useCommentActions() {
       return
     }
     const eventSeq = readState.latestCommentEventSeq
-    const snapshot = store.getState().markThreadReadLocally(threadId, eventSeq)
+    store.getState().markThreadReadLocally(threadId, eventSeq)
     const entityKey = `thread:${threadId}:read`
     setPendingAction(entityKey)
     setErrorMessage(null)
     try {
-      const { cacheKey, hasServerPrincipal } = await resolveReadContext()
+      const readContext = await resolveReadContext()
+      const isReadContextCurrent = () => {
+        const current = store.getState()
+        return current.scope?.id === readContext.scopeId
+          && current.scopeEpoch === readContext.scopeEpoch
+      }
+      if (!isReadContextCurrent())
+        throw new CommentScopeChangedError()
+      const { cacheKey, hasServerPrincipal } = readContext
+      if (cacheKey) {
+        await updateCommentCacheThreadReadCursor(
+          cacheKey,
+          threadId,
+          eventSeq,
+        )
+      }
+      if (!isReadContextCurrent())
+        throw new CommentScopeChangedError()
       let scopeLastReadEventSeq: number | undefined
       if (hasServerPrincipal) {
         const response = await client.markThreadRead(threadId, eventSeq)
+        if (!isReadContextCurrent())
+          return
         const value = Number(response.data.scopeLastReadEventSeq)
         if (Number.isSafeInteger(value) && value >= 0) {
           scopeLastReadEventSeq = value
           store.getState().markReadLocally(value)
         }
       }
-      if (cacheKey) {
+      if (cacheKey && scopeLastReadEventSeq !== undefined) {
         await updateCommentCacheThreadReadCursor(
           cacheKey,
           threadId,
@@ -195,7 +250,6 @@ export function useCommentActions() {
       }
     }
     catch (error) {
-      store.getState().restoreReadSnapshot(snapshot)
       setErrorMessage(error instanceof Error ? error.message : '标记评论已读失败')
     }
     finally {
@@ -205,18 +259,27 @@ export function useCommentActions() {
 
   const markAllRead = useCallback(async () => {
     const eventSeq = store.getState().lastEventSeq
-    const snapshot = store.getState().markAllReadLocally(eventSeq)
+    store.getState().markAllReadLocally(eventSeq)
     setPendingAction('comments:mark-all-read')
     setErrorMessage(null)
     try {
-      const { cacheKey, hasServerPrincipal } = await resolveReadContext()
-      if (hasServerPrincipal)
-        await client.markRead(eventSeq)
+      const readContext = await resolveReadContext()
+      const isReadContextCurrent = () => {
+        const current = store.getState()
+        return current.scope?.id === readContext.scopeId
+          && current.scopeEpoch === readContext.scopeEpoch
+      }
+      if (!isReadContextCurrent())
+        throw new CommentScopeChangedError()
+      const { cacheKey, hasServerPrincipal } = readContext
       if (cacheKey)
         await updateCommentCacheReadCursor(cacheKey, eventSeq)
+      if (!isReadContextCurrent())
+        throw new CommentScopeChangedError()
+      if (hasServerPrincipal)
+        await client.markRead(eventSeq)
     }
     catch (error) {
-      store.getState().restoreReadSnapshot(snapshot)
       setErrorMessage(error instanceof Error ? error.message : '全部标记已读失败')
     }
     finally {
@@ -304,17 +367,15 @@ export function useCommentActions() {
     return response
   }, [client, execute, store])
 
-  return {
-    pendingAction,
-    errorMessage,
-    clearError: () => setErrorMessage(null),
-    markThreadRead,
-    markAllRead,
-    refreshThreads,
-    createThread,
-    createReply,
-    editComment,
-    deleteComment: (thread: ResumeCommentThread, commentId: string) => execute(
+  const deleteComment = useCallback(async (
+    thread: ResumeCommentThread,
+    commentId: string,
+  ) => {
+    let alreadyDeleted = false
+    const cacheKeyPromise = resolveReadContext()
+      .then(context => context.cacheKey)
+      .catch(() => null)
+    const response = await execute(
       `comment:${commentId}:delete`,
       () => client.deleteComment(thread, commentId),
       false,
@@ -326,13 +387,51 @@ export function useCommentActions() {
             : comment),
         },
       },
-    ),
-    deleteThread: (thread: ResumeCommentThread) => execute(
+      () => {
+        alreadyDeleted = true
+      },
+    )
+    const cacheKey = await cacheKeyPromise
+    if (cacheKey)
+      await deleteCommentCache(cacheKey).catch(() => undefined)
+    return response ?? (alreadyDeleted ? true : null)
+  }, [client, execute, resolveReadContext])
+
+  const deleteThread = useCallback(async (thread: ResumeCommentThread) => {
+    let alreadyDeleted = false
+    const cacheKeyPromise = resolveReadContext()
+      .then(context => context.cacheKey)
+      .catch(() => null)
+    const response = await execute(
       `thread:${thread.id}:delete`,
       () => client.deleteThread(thread),
       false,
-      { removedThreadId: thread.id },
-    ),
+      {
+        removedThreadId: thread.id,
+        counts: countsAfterThreadRemoval(thread, store.getState().counts),
+      },
+      () => {
+        alreadyDeleted = true
+      },
+    )
+    const cacheKey = await cacheKeyPromise
+    if (cacheKey)
+      await deleteCommentCache(cacheKey).catch(() => undefined)
+    return response ?? (alreadyDeleted ? true : null)
+  }, [client, execute, resolveReadContext, store])
+
+  return {
+    pendingAction,
+    errorMessage,
+    clearError: () => setErrorMessage(null),
+    markThreadRead,
+    markAllRead,
+    refreshThreads,
+    createThread,
+    createReply,
+    editComment,
+    deleteComment,
+    deleteThread,
     resolveThread: (thread: ResumeCommentThread) => execute(
       `thread:${thread.id}:resolve`,
       () => client.resolveThread(thread),

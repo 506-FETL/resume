@@ -1,7 +1,18 @@
 import type { CommentAccessContext, ResumeCommentClient } from '../api/client.ts'
 import type { ResumeCommentStore } from '../store/types.ts'
 import { useEffect } from 'react'
-import { deriveCommentCacheKey, readCommentCache, readCommentReadCursor, rememberCommentVersionHint, writeCommentCache } from '../api/cache.ts'
+import {
+  captureCommentCacheWriteFence,
+  deleteCommentCache,
+  deriveCommentCacheKey,
+  mergeCachedThreadReadStates,
+  pruneCommentThreadReadCursors,
+  readCommentCache,
+  readCommentReadCursor,
+  readCommentThreadReadCursors,
+  rememberCommentVersionHint,
+  writeCommentCache,
+} from '../api/cache.ts'
 import {
   isResumeCommentClientError,
 } from '../api/client.ts'
@@ -51,7 +62,6 @@ export function useCommentRealtime({
       return
 
     let cancelled = false
-    let hasFreshBootstrap = false
     let queue = Promise.resolve()
     let bootstrap: () => Promise<void>
     const realtime = new ResumeCommentRealtimeSubscription(client)
@@ -97,11 +107,21 @@ export function useCommentRealtime({
       return true
     }
 
+    const resolveCurrentCacheKey = async () => {
+      const access = client.getAccessContext()
+      const versionId = store.getState().version?.versionId
+      const authenticatedUserId = await client.getAuthenticatedUserId()
+      return deriveCommentCacheKey(access, versionId, authenticatedUserId)
+    }
+
     const recoverIncrementally = async () => {
       const marker = beginCommentPerformance('realtime_recovery')
       marker.countRequest()
       const lastEventSeq = store.getState().lastEventSeq
-      const list = await client.listEvents(lastEventSeq)
+      const [list, cacheKey] = await Promise.all([
+        client.listEvents(lastEventSeq),
+        resolveCurrentCacheKey().catch(() => null),
+      ])
       if (cancelled)
         return
       store.getState().applyRealtimePatch({
@@ -109,6 +129,10 @@ export function useCommentRealtime({
         events: list.data.events,
         eventSeq: list.eventSeq,
       })
+      if (list.data.events.length > 0) {
+        if (!cancelled && cacheKey)
+          await deleteCommentCache(cacheKey)
+      }
       marker.end({
         requestId: list.requestId,
         serverTiming: list.serverTiming,
@@ -137,12 +161,12 @@ export function useCommentRealtime({
       store.getState().setConnection('connecting')
       const marker = beginCommentPerformance('bootstrap')
       marker.countRequest()
+      const cacheWriteFence = captureCommentCacheWriteFence()
       const responsePromise = client.bootstrapScope()
       const authenticatedUserIdPromise = client.getAuthenticatedUserId()
       const response = await responsePromise
       if (cancelled)
         return
-      hasFreshBootstrap = true
       marker.mergeClientDurations(response.telemetry.clientDurations)
       const authenticatedUserId = await authenticatedUserIdPromise
       if (cancelled)
@@ -156,7 +180,14 @@ export function useCommentRealtime({
       )
       const persistedReadEventSeq = cacheKey ? readCommentReadCursor(cacheKey) : 0
       const cached = cacheKey ? await readCommentCache(cacheKey) : null
-      const cachedThreadReadStates = cached?.value.threadReadStates ?? []
+      const liveThreadIds = new Set(response.data.threads.map(thread => thread.id))
+      const cachedThreadReadStates = cacheKey
+        ? mergeCachedThreadReadStates(
+            cached?.value.threadReadStates ?? [],
+            readCommentThreadReadCursors(cacheKey),
+            liveThreadIds,
+          )
+        : []
       const serverThreadReadStateById = new Map(
         response.data.threadReadStates.map(state => [state.threadId, state]),
       )
@@ -174,6 +205,33 @@ export function useCommentRealtime({
           ),
         }
       })
+      const currentState = store.getState()
+      const sameScope = currentState.scope?.id === response.data.scope.id
+      const hasPendingMutation = Object.keys(currentState.pendingEntities).length > 0
+      if (
+        currentState.scope
+        && (
+          !sameScope
+          || currentState.lastEventSeq > response.eventSeq
+          || hasPendingMutation
+        )
+      ) {
+        if (sameScope) {
+          marker.measureSync(
+            'realtime_connect',
+            () => connectRealtime(response.data.scopeRealtime),
+          )
+        }
+        marker.end({
+          requestId: response.requestId,
+          serverTiming: response.serverTiming,
+          telemetry: response.telemetry,
+          detail: { status: 'superseded' },
+        })
+        return
+      }
+      if (cacheKey)
+        pruneCommentThreadReadCursors(cacheKey, liveThreadIds)
       marker.measureSync('store_commit', () => {
         store.getState().replaceScope({
           scope: response.data.scope,
@@ -207,7 +265,7 @@ export function useCommentRealtime({
         void writeCommentCache(cacheKey, {
           ...response.data,
           threadReadStates: mergedThreadReadStates,
-        }).catch(() => undefined)
+        }, cacheWriteFence).catch(() => undefined)
       }
       if (
         persistedReadEventSeq > response.data.lastReadEventSeq
@@ -220,6 +278,8 @@ export function useCommentRealtime({
       if (hasServerReadPrincipal(access, authenticatedUserId)) {
         for (const cachedState of cachedThreadReadStates) {
           const serverState = serverThreadReadStateById.get(cachedState.threadId)
+          if (!serverState)
+            continue
           if (cachedState.lastReadEventSeq > (serverState?.lastReadEventSeq ?? 0)) {
             client.markThreadRead(
               cachedState.threadId,
@@ -240,8 +300,19 @@ export function useCommentRealtime({
         return
       const marker = beginCommentPerformance('cache')
       const cached = await readCommentCache(cacheKey)
-      if (!cached || cancelled || hasFreshBootstrap) {
+      if (!cached || cancelled) {
         marker.end({ detail: { status: cached ? 'superseded' : 'miss' } })
+        return
+      }
+      const currentState = store.getState()
+      if (
+        currentState.scope?.id === cached.value.scope.id
+        && (
+          currentState.lastEventSeq > cached.value.scope.nextEventSeq
+          || Object.keys(currentState.pendingEntities).length > 0
+        )
+      ) {
+        marker.end({ detail: { status: 'superseded' } })
         return
       }
       store.getState().replaceScope({
@@ -273,12 +344,13 @@ export function useCommentRealtime({
     window.addEventListener('online', handleOnline)
     enqueue(async () => {
       if (navigator.onLine) {
-        const bootstrapPromise = bootstrap()
-        const cacheHydrationPromise = hydrateCache().catch(() => undefined)
-        await Promise.all([
-          bootstrapPromise,
-          cacheHydrationPromise,
-        ])
+        try {
+          await bootstrap()
+        }
+        catch (error) {
+          await hydrateCache().catch(() => undefined)
+          throw error
+        }
       }
       else {
         await hydrateCache().catch(() => undefined).finally(handleOffline)

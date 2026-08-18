@@ -58,12 +58,6 @@ export interface CommentMutationSnapshot {
   hoveredThreadId: string | null
 }
 
-export interface CommentReadSnapshot {
-  lastReadEventSeq: number
-  threadReadStateById: Record<string, CommentThreadReadState>
-  accessibleScopes: AccessibleCommentScopeSummary[]
-}
-
 export interface ResumeCommentStoreState {
   scope: CommentScopeSummary | null
   scopeEpoch: number
@@ -164,9 +158,8 @@ export interface ResumeCommentStoreState {
   setConnection: (connection: CommentConnectionState) => void
   setAccessState: (state: CommentAccessState, error?: CommentErrorCode | null) => void
   markReadLocally: (eventSeq: number) => void
-  markThreadReadLocally: (threadId: string, eventSeq: number) => CommentReadSnapshot
-  markAllReadLocally: (eventSeq: number) => CommentReadSnapshot
-  restoreReadSnapshot: (snapshot: CommentReadSnapshot) => void
+  markThreadReadLocally: (threadId: string, eventSeq: number) => void
+  markAllReadLocally: (eventSeq: number) => void
 }
 
 export type ResumeCommentStore = StoreApi<ResumeCommentStoreState>
