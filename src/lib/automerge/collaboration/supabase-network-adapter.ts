@@ -32,6 +32,9 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   private ready = false
   private localDocumentId: string | null = null
   private pendingMessages: PendingSyncMessage[] = []
+  private connectionGeneration = 0
+  private readyWaiters = new Set<() => void>()
+  private closed = false
 
   constructor(resumeId: string, sessionId: string, callbacks: CollaborationCallbacks = {}) {
     super()
@@ -59,55 +62,57 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   }
 
   whenReady() {
-    if (this.ready) {
+    if (this.ready || this.closed) {
       return Promise.resolve()
     }
 
     return new Promise<void>((resolve) => {
-      let handlePeerCandidate = () => {}
-
-      const handleClose = () => {
-        this.off('peer-candidate', handlePeerCandidate)
-        resolve()
-      }
-
-      handlePeerCandidate = () => {
-        this.off('close', handleClose)
-        resolve()
-      }
-
-      this.once('peer-candidate', handlePeerCandidate)
-      this.once('close', handleClose)
+      this.readyWaiters.add(resolve)
     })
   }
 
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
+    const previousChannel = this.channel
+    const generation = ++this.connectionGeneration
+
+    this.closed = false
+    this.ready = false
+    this.pendingMessages = []
     this.peerId = peerId
     this.peerMetadata = peerMetadata
-    this.channel = supabase.channel(this.channelName, {
+    const channel = supabase.channel(this.channelName, {
       config: {
         broadcast: { ack: true, self: false },
       },
     })
+    this.channel = channel
 
-    this.registerSyncBroadcast()
-    this.registerControlBroadcast()
-    this.registerPresenceEvents()
-    this.subscribeToChannel(peerMetadata)
+    if (previousChannel) {
+      this.unsubscribe(previousChannel)
+    }
+
+    this.registerSyncBroadcast(channel, generation)
+    this.registerControlBroadcast(channel, generation)
+    this.registerPresenceEvents(channel, generation)
+    this.subscribeToChannel(channel, generation, peerMetadata)
   }
 
   disconnect() {
     const channel = this.channel
+    ++this.connectionGeneration
     this.channel = null
     this.ready = false
     this.localDocumentId = null
     this.pendingMessages = []
 
-    if (channel) {
-      channel.unsubscribe().catch(() => {
-        // 本地状态已清空，忽略 Supabase 解绑失败。
-      })
+    if (!channel) {
+      return
     }
+
+    this.closed = true
+    this.unsubscribe(channel)
+    this.settleReadyWaiters()
+    this.emit('close')
   }
 
   send(message: Message) {
@@ -154,8 +159,12 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     }
   }
 
-  private registerSyncBroadcast() {
-    this.channel?.on('broadcast', { event: 'automerge-sync' }, (payload: any) => {
+  private registerSyncBroadcast(channel: RealtimeChannel, generation: number) {
+    channel.on('broadcast', { event: 'automerge-sync' }, (payload: any) => {
+      if (!this.isCurrentConnection(channel, generation)) {
+        return
+      }
+
       const incoming = payload.payload || {}
 
       if (incoming.targetId && incoming.targetId !== this.peerId) {
@@ -178,8 +187,12 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     })
   }
 
-  private registerControlBroadcast() {
-    this.channel?.on('broadcast', { event: 'automerge-control' }, (payload: any) => {
+  private registerControlBroadcast(channel: RealtimeChannel, generation: number) {
+    channel.on('broadcast', { event: 'automerge-control' }, (payload: any) => {
+      if (!this.isCurrentConnection(channel, generation)) {
+        return
+      }
+
       const { type, data } = payload.payload || {}
 
       if (type) {
@@ -188,8 +201,12 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     })
   }
 
-  private registerPresenceEvents() {
-    this.channel?.on('presence', { event: 'join' }, ({ newPresences }) => {
+  private registerPresenceEvents(channel: RealtimeChannel, generation: number) {
+    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+      if (!this.isCurrentConnection(channel, generation)) {
+        return
+      }
+
       newPresences.forEach((presence: any) => {
         const remotePeerId = presence.key || presence.peerId || presence.metadata?.peerId
 
@@ -207,7 +224,11 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       })
     })
 
-    this.channel?.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+      if (!this.isCurrentConnection(channel, generation)) {
+        return
+      }
+
       leftPresences.forEach((presence: any) => {
         const remotePeerId = presence.key || presence.peerId || presence.metadata?.peerId
 
@@ -222,13 +243,17 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     })
   }
 
-  private subscribeToChannel(peerMetadata?: PeerMetadata) {
-    this.channel?.subscribe(async (status) => {
-      if (status !== 'SUBSCRIBED') {
+  private subscribeToChannel(
+    channel: RealtimeChannel,
+    generation: number,
+    peerMetadata?: PeerMetadata,
+  ) {
+    channel.subscribe(async (status) => {
+      if (status !== 'SUBSCRIBED' || !this.isCurrentConnection(channel, generation)) {
         return
       }
 
-      await this.channel?.track({
+      await channel.track({
         peerId: String(this.peerId),
         metadata: {
           ...(peerMetadata || {}),
@@ -239,8 +264,29 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
         sessionId: this.sessionId,
       })
 
+      if (!this.isCurrentConnection(channel, generation)) {
+        return
+      }
+
       this.ready = true
+      this.settleReadyWaiters()
       this.callbacks.onChannelReady?.(this.channelName)
+    })
+  }
+
+  private isCurrentConnection(channel: RealtimeChannel, generation: number) {
+    return this.channel === channel && this.connectionGeneration === generation
+  }
+
+  private settleReadyWaiters() {
+    const waiters = [...this.readyWaiters]
+    this.readyWaiters.clear()
+    waiters.forEach(resolve => resolve())
+  }
+
+  private unsubscribe(channel: RealtimeChannel) {
+    channel.unsubscribe().catch(() => {
+      // 本地状态已隔离，忽略 Supabase 解绑失败。
     })
   }
 
