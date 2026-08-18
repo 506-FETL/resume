@@ -26,6 +26,7 @@ export function CollaborationDialog() {
     onStartSharing,
     canStartSharing,
     isCollabConnecting,
+    collaborationConnectionPhase,
     collaborationConnectionLabel,
   } = useCollaborationPanel()
 
@@ -41,6 +42,7 @@ export function CollaborationDialog() {
                 collaborationRole={collaborationRole}
                 onStopSharing={onStopSharing}
                 onClose={closeCollaborationDialog}
+                isStopping={collaborationConnectionPhase === 'stopping'}
               />
             )
           : (
@@ -65,13 +67,15 @@ function SharingContent({
   collaborationRole,
   onStopSharing,
   onClose,
+  isStopping,
 }: {
   participantCount: number
   shareUrl: string | null
   onCopyShareLink: () => void
   collaborationRole: 'host' | 'guest' | null
-  onStopSharing: () => void
+  onStopSharing: () => Promise<void>
   onClose: () => void
+  isStopping: boolean
 }) {
   return (
     <>
@@ -105,11 +109,19 @@ function SharingContent({
         </div>
       </div>
       <DialogFooter className="flex justify-between sm:justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose} disabled={isStopping}>
           关闭
         </Button>
-        <Button type="button" variant="destructive" onClick={onStopSharing}>
-          {collaborationRole === 'host' ? '停止共享' : '离开协作'}
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={() => onStopSharing().catch(() => undefined)}
+          disabled={isStopping}
+        >
+          {isStopping && <Loader2 className="mr-2 size-4 animate-spin" />}
+          {isStopping
+            ? '正在停止共享'
+            : collaborationRole === 'host' ? '停止共享' : '离开协作'}
         </Button>
       </DialogFooter>
     </>

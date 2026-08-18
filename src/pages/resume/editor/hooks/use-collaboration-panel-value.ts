@@ -1,10 +1,11 @@
 import type { CollaborationPanelContextValue, SupabaseUser } from './../types'
+import type { CollaborationPhase } from '@/lib/collaboration'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { getStoredSessionRole, useCollaborationStore } from '@/lib/collaboration'
+import { useCollaborationStore } from '@/lib/collaboration'
 import useResumeStore from '@/store/resume/form'
 import { getErrorMessage } from '@/utils'
 
@@ -14,13 +15,31 @@ interface UseCollaborationPanelValueParams {
   userDisplayName: string
 }
 
-const CONNECTION_PHASE_LABELS = {
-  authenticating: '正在确认协作邀请',
-  authorizing: '正在验证协作权限',
-  hydrating: '正在加载共享简历',
-  connecting: '正在连接协作服务',
-  syncing: '正在同步当前简历',
-} as const
+function getConnectionPhaseLabel(phase: CollaborationPhase): string | null {
+  switch (phase) {
+    case 'authenticating':
+      return '正在确认登录状态'
+    case 'authorizing':
+      return '正在验证协作权限'
+    case 'hydrating':
+      return '正在加载共享简历'
+    case 'connecting':
+      return '正在连接协作服务'
+    case 'syncing':
+      return '正在同步当前简历'
+    case 'stopping':
+      return '正在停止共享'
+    case 'idle':
+    case 'connected':
+    case 'ended':
+    case 'error':
+      return null
+    default: {
+      const exhaustivePhase: never = phase
+      return exhaustivePhase
+    }
+  }
+}
 
 export function useCollaborationPanelValue({
   currentUser,
@@ -29,12 +48,8 @@ export function useCollaborationPanelValue({
 }: UseCollaborationPanelValueParams): CollaborationPanelContextValue {
   const isMobile = useIsMobile()
   const [collabDialogOpen, setCollabDialogOpen] = useState(false)
-  const [joinedSessionId, setJoinedSessionId] = useState<string | null>(null)
-  const [lastStoppedSessionId, setLastStoppedSessionId] = useState<string | null>(null)
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-
-  const collabSessionParam = searchParams.get('collabSession')
 
   const {
     manualSync,
@@ -61,10 +76,7 @@ export function useCollaborationPanelValue({
     collaborationRole,
     startSharing,
     stopSharing,
-    joinSession,
-    resumeHosting,
     collaborationError,
-    sessionId,
     shareEndedByRemote,
     acknowledgeRemoteShareEnd,
   } = useCollaborationStore(useShallow(state => ({
@@ -76,10 +88,7 @@ export function useCollaborationPanelValue({
     collaborationRole: state.role,
     startSharing: state.startSharing,
     stopSharing: state.stopSharing,
-    joinSession: state.joinSession,
-    resumeHosting: state.resumeHosting,
     collaborationError: state.error,
-    sessionId: state.sessionId,
     shareEndedByRemote: state.shareEndedByRemote,
     acknowledgeRemoteShareEnd: state.acknowledgeRemoteShareEnd,
   })))
@@ -96,10 +105,7 @@ export function useCollaborationPanelValue({
     return null
   }, [mode, currentUser, isDocumentInitialized])
 
-  const collaborationConnectionLabel
-    = CONNECTION_PHASE_LABELS[
-      collaborationConnectionPhase as keyof typeof CONNECTION_PHASE_LABELS
-    ] ?? null
+  const collaborationConnectionLabel = getConnectionPhaseLabel(collaborationConnectionPhase)
   const shareButtonTooltip = collabDisabledReason
     ?? collaborationConnectionLabel
     ?? (isSharing ? '查看协作信息' : '开启实时协作')
@@ -121,9 +127,8 @@ export function useCollaborationPanelValue({
         const params = new URLSearchParams(window.location.search)
         params.set('resumeId', activeResumeId)
         params.set('collabSession', newSessionId)
+        params.delete('docUrl')
         setSearchParams(params, { replace: true })
-        setJoinedSessionId(newSessionId)
-        setLastStoppedSessionId(null)
       }
     }
     catch (error: unknown) {
@@ -132,24 +137,28 @@ export function useCollaborationPanelValue({
     }
   }, [activeResumeId, currentUser, setSearchParams, startSharing, userDisplayName])
 
-  const handleStopSharing = useCallback(() => {
-    const activeSessionId = sessionId ?? useCollaborationStore.getState().sessionId
-    if (activeSessionId) {
-      setLastStoppedSessionId(activeSessionId)
-    }
-    stopSharing()
+  const handleStopSharing = useCallback(async () => {
+    try {
+      await stopSharing()
 
-    const params = new URLSearchParams(window.location.search)
-    params.delete('collabSession')
-    params.delete('resumeId')
-    params.delete('docUrl')
-    setSearchParams(params, { replace: true })
-    setCollabDialogOpen(false)
+      if (collaborationRole === 'guest') {
+        setCollabDialogOpen(false)
+        navigate('/resume', { replace: true })
+        return
+      }
 
-    if (collaborationRole === 'guest') {
-      navigate('/resume')
+      const params = new URLSearchParams(window.location.search)
+      params.delete('collabSession')
+      params.delete('docUrl')
+      if (activeResumeId)
+        params.set('resumeId', activeResumeId)
+      setSearchParams(params, { replace: true })
+      setCollabDialogOpen(false)
     }
-  }, [collaborationRole, navigate, sessionId, setSearchParams, stopSharing])
+    catch (error: unknown) {
+      toast.error(`停止实时协作失败，请重试: ${getErrorMessage(error, '未知错误')}`)
+    }
+  }, [activeResumeId, collaborationRole, navigate, setSearchParams, stopSharing])
 
   const handleCopyShareLink = useCallback(() => {
     if (!shareUrl)
@@ -166,61 +175,11 @@ export function useCollaborationPanelValue({
 
   const canStartSharing = Boolean(activeResumeId && currentUser && !collabDisabledReason && !isCollabConnecting)
 
-  const sessionRoleHint = useMemo(() => {
-    if (!collabSessionParam || !activeResumeId || !currentUser)
-      return null
-    return getStoredSessionRole(collabSessionParam, activeResumeId, currentUser.id)
-  }, [collabSessionParam, activeResumeId, currentUser])
-
-  useEffect(() => {
-    if (!collabSessionParam && joinedSessionId) {
-      setJoinedSessionId(null)
-    }
-  }, [collabSessionParam, joinedSessionId])
-
-  useEffect(() => {
-    if (!collabSessionParam || !activeResumeId)
-      return
-    if (isSharing)
-      return
-    if (lastStoppedSessionId && collabSessionParam === lastStoppedSessionId)
-      return
-    if (joinedSessionId === collabSessionParam)
-      return
-    if (!isDocumentInitialized || mode !== 'online' || !currentUser)
-      return
-
-    const payload = {
-      sessionId: collabSessionParam,
-      resumeId: activeResumeId,
-      userId: currentUser.id,
-      userName: userDisplayName || `用户-${currentUser.id.slice(0, 6)}`,
-    }
-
-    const action = sessionRoleHint === 'host' ? resumeHosting : joinSession
-    action(payload)
-      .then(() => setJoinedSessionId(collabSessionParam))
-      .catch(() => setJoinedSessionId(collabSessionParam))
-  }, [
-    collabSessionParam,
-    activeResumeId,
-    isSharing,
-    joinedSessionId,
-    lastStoppedSessionId,
-    isDocumentInitialized,
-    mode,
-    currentUser,
-    userDisplayName,
-    sessionRoleHint,
-    joinSession,
-    resumeHosting,
-  ])
-
   useEffect(() => {
     if (!shareEndedByRemote)
       return
     acknowledgeRemoteShareEnd()
-    navigate('/resume')
+    navigate('/resume', { replace: true })
   }, [acknowledgeRemoteShareEnd, navigate, shareEndedByRemote])
 
   const openCollaborationDialog = useCallback(() => setCollabDialogOpen(true), [])

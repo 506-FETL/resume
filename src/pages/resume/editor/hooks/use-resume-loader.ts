@@ -1,9 +1,18 @@
+import type { AutomergeUrl } from '@automerge/automerge-repo'
 import type { SupabaseUser } from '../types'
-import { useEffect, useState } from 'react'
+import type { PreparedGuestSession } from '@/lib/collaboration'
+import type { ResumeLoadResult } from '@/store/resume/helpers/sync-service'
+import { parseAutomergeUrl } from '@automerge/automerge-repo'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { getUserDisplayName } from '@/hooks/use-current-user'
-import { getParticipantColor, useCollaborationStore } from '@/lib/collaboration'
+import { sanitizeAppRedirect } from '@/lib/auth/redirect'
+import {
+  CollaborationOperationError,
+  getStoredSessionRole,
+  useCollaborationStore,
+} from '@/lib/collaboration'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { isResumeNotFoundError } from '@/lib/resume-id'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
@@ -15,22 +24,111 @@ import useResumeStore from '@/store/resume/form'
 import useUserStore from '@/store/user'
 import { getErrorMessage } from '@/utils'
 
+type CollaborationRoute
+  = | { kind: 'none' }
+    | {
+      kind: 'invite'
+      resumeId: string
+      sessionId: string
+      documentUrl: string
+      documentId: string
+    }
+    | { kind: 'host-recovery', resumeId: string, sessionId: string }
+    | { kind: 'invalid' }
+
+function parseCollaborationRoute(params: URLSearchParams): CollaborationRoute {
+  const hasSessionId = params.has('collabSession')
+  const hasDocumentUrl = params.has('docUrl')
+  const resumeId = params.get('resumeId')
+  const sessionId = params.get('collabSession')
+  const documentUrl = params.get('docUrl')
+
+  if (!hasSessionId && !hasDocumentUrl)
+    return { kind: 'none' }
+  if (resumeId && sessionId && hasSessionId && !hasDocumentUrl)
+    return { kind: 'host-recovery', resumeId, sessionId }
+  if (!resumeId || !sessionId || !documentUrl)
+    return { kind: 'invalid' }
+
+  try {
+    const { documentId } = parseAutomergeUrl(documentUrl as AutomergeUrl)
+    return {
+      kind: 'invite',
+      resumeId,
+      sessionId,
+      documentUrl,
+      documentId,
+    }
+  }
+  catch {
+    return { kind: 'invalid' }
+  }
+}
+
+function getCollaborationLoadKey(
+  route: CollaborationRoute,
+  activeResumeId?: string,
+) {
+  if (route.kind === 'invalid')
+    return 'collab:invalid'
+  if (route.kind === 'invite')
+    return `collab:${route.resumeId}:${route.sessionId}:${route.documentId}`
+  return activeResumeId ? `resume:${activeResumeId}` : 'empty'
+}
+
+function hydrateLoadedAppearance(
+  result: ResumeLoadResult,
+  options: { collaborationSource: boolean },
+) {
+  const { snapshot, hasPersistedAppearance, cloudAppearanceStatus, mode } = result
+  const configStore = useResumeConfigStore.getState()
+
+  if (
+    options.collaborationSource
+    || mode !== 'online'
+    || hasPersistedAppearance
+    || cloudAppearanceStatus === 'error'
+  ) {
+    configStore.hydrateFromSnapshot(snapshot)
+    return
+  }
+
+  const legacyConfig = configStore.readLegacyLocalConfig()
+  const fallbackAppearance = legacyConfig ?? DEFAULT_RESUME_APPEARANCE
+
+  configStore.replaceConfig(fallbackAppearance)
+  useResumeStore.getState().updateAppearanceConfig(fallbackAppearance)
+}
+
+function isOwnerMustHostError(error: unknown) {
+  return error instanceof CollaborationOperationError && error.code === 'owner_must_host'
+}
+
 export function useResumeLoader() {
   const [loading, setLoading] = useState(true)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const loadGenerationRef = useRef(0)
+  const terminalActionKeyRef = useRef<string | null>(null)
 
   const { resumeId, setCurrentResume, clearCurrentResume } = useCurrentResumeStore()
   const loadResumeData = useResumeStore(state => state.loadResumeData)
   const currentUser = useUserStore(state => state.currentUser)
+  const authStatus = useUserStore(state => state.authStatus)
   const setCurrentUser = useUserStore(state => state.setCurrentUser)
 
+  const collaborationRoute = parseCollaborationRoute(searchParams)
   const queryResumeId = searchParams.get('resumeId')
-  const documentUrlParam = searchParams.get('docUrl')
-  const collabSessionParam = searchParams.get('collabSession')
-  const hasLegacyCollaborationParams
-    = searchParams.has('docUrl') || searchParams.has('collabSession')
-  const activeResumeId = queryResumeId ?? resumeId ?? undefined
+  const routeResumeId = collaborationRoute.kind === 'invite'
+    || collaborationRoute.kind === 'host-recovery'
+    ? collaborationRoute.resumeId
+    : undefined
+  const activeResumeId = routeResumeId ?? queryResumeId ?? resumeId ?? undefined
+  const loadKey = getCollaborationLoadKey(collaborationRoute, activeResumeId)
+  const collaborationAuthKey = collaborationRoute.kind === 'invite'
+    || collaborationRoute.kind === 'host-recovery'
+    ? `${authStatus}:${currentUser?.id ?? 'none'}`
+    : 'owner'
 
   // 获取当前用户
   useEffect(() => {
@@ -45,12 +143,15 @@ export function useResumeLoader() {
     }
   }, [setCurrentUser])
 
-  // 清理函数
+  // 先发起服务端 leave/revoke，再销毁本地文档，避免卸载时留下幽灵成员。
   useEffect(() => {
     return () => {
       useResumeConfigStore.getState().discardSpacingPreview()
+      useCollaborationStore.getState().stopSharing({
+        silent: true,
+        bestEffort: true,
+      }).catch(() => undefined)
       useResumeStore.getState().cleanup()
-      useCollaborationStore.getState().stopSharing({ silent: true })
     }
   }, [])
 
@@ -61,76 +162,209 @@ export function useResumeLoader() {
     }
   }, [resumeId, queryResumeId, setCurrentResume])
 
-  // 加载简历数据
+  // effect 只以稳定文档身份为键；host 只追加 session 参数时 loadKey 不变，
+  // 因而不会销毁已连接的 DocumentManager。
   useEffect(() => {
-    useResumeConfigStore.getState().discardSpacingPreview()
+    let cancelled = false
+    const generation = ++loadGenerationRef.current
+    const isCurrentLoad = () => !cancelled && generation === loadGenerationRef.current
+    const route = parseCollaborationRoute(new URLSearchParams(window.location.search))
+    const authState = useUserStore.getState()
+    const authenticatedUser = authState.currentUser
+    const authenticatedUserId = authenticatedUser?.id ?? null
+    const authenticatedUserName = authenticatedUser
+      ? getUserDisplayName(authenticatedUser) || `用户-${authenticatedUser.id.slice(0, 6)}`
+      : ''
+
+    const runTerminalActionOnce = (key: string, action: () => void) => {
+      const terminalKey = `${loadKey}:${key}`
+      if (!isCurrentLoad() || terminalActionKeyRef.current === terminalKey)
+        return
+      terminalActionKeyRef.current = terminalKey
+      action()
+    }
+
+    if (route.kind === 'invalid') {
+      setLoading(false)
+      runTerminalActionOnce('invalid', () => {
+        toast.error('协作链接无效')
+        navigate('/resume', { replace: true })
+      })
+      return () => {
+        cancelled = true
+      }
+    }
 
     if (!activeResumeId) {
       setLoading(false)
-      return
+      return () => {
+        cancelled = true
+      }
     }
 
-    const isCollaboratorLoad = Boolean(documentUrlParam && collabSessionParam)
+    const isCollaborationRoute = route.kind === 'invite' || route.kind === 'host-recovery'
+    if (isCollaborationRoute && authState.authStatus === 'unknown') {
+      setLoading(true)
+      useCollaborationStore.getState().markInviteAuthenticating()
+      return () => {
+        cancelled = true
+      }
+    }
 
-    let cancelled = false
+    if (isCollaborationRoute && authState.authStatus === 'anonymous') {
+      setLoading(true)
+      runTerminalActionOnce('login', () => {
+        const redirect = sanitizeAppRedirect(
+          `${window.location.pathname}${window.location.search}${window.location.hash}`,
+        )
+        navigate(`/login?redirect=${encodeURIComponent(redirect)}`, { replace: true })
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (isCollaborationRoute && (!authenticatedUserId || authState.authStatus !== 'authenticated')) {
+      setLoading(true)
+      useCollaborationStore.getState().markInviteAuthenticating()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    useResumeConfigStore.getState().discardSpacingPreview()
     setLoading(true)
 
-    const presenceMetadata = isCollaboratorLoad && currentUser
-      ? {
-          userId: currentUser.id,
-          userName: getUserDisplayName(currentUser) || `用户-${currentUser.id.slice(0, 6)}`,
-          color: getParticipantColor(currentUser.id),
+    let preparedGuest: PreparedGuestSession | null = null
+    let sessionActionReportedError = false
+
+    const assertCurrentLoad = () => {
+      if (!isCurrentLoad())
+        throw new CollaborationOperationError('简历加载已被新的请求替代', { code: 'session_changed' })
+    }
+
+    const loadOwnerResume = async (targetResumeId: string) => {
+      const result = await loadResumeData(targetResumeId, { source: { kind: 'owner' } })
+      assertCurrentLoad()
+      hydrateLoadedAppearance(result, { collaborationSource: false })
+    }
+
+    const resumeHost = async (params: {
+      sessionId: string
+      resumeId: string
+      userId: string
+      userName: string
+    }) => {
+      try {
+        await useCollaborationStore.getState().resumeHosting(params)
+      }
+      catch (error) {
+        // session store 会展示恢复 host 失败的唯一一条 toast。
+        sessionActionReportedError = true
+        throw error
+      }
+      assertCurrentLoad()
+    }
+
+    const runLoad = async () => {
+      try {
+        if (route.kind === 'none') {
+          await loadOwnerResume(activeResumeId)
+          return
         }
-      : undefined
 
-    loadResumeData(activeResumeId, {
-      documentUrl: hasLegacyCollaborationParams ? documentUrlParam ?? undefined : undefined,
-      collaborationSessionId: hasLegacyCollaborationParams
-        ? collabSessionParam ?? undefined
-        : undefined,
-      presenceMetadata,
-    })
-      .then(async ({ snapshot, hasPersistedAppearance, cloudAppearanceStatus, mode }) => {
-        if (cancelled)
-          return
+        const userId = authenticatedUserId!
+        const params = {
+          sessionId: route.sessionId,
+          resumeId: route.resumeId,
+          userId,
+          userName: authenticatedUserName,
+        }
+        const storedRole = getStoredSessionRole(route.sessionId, route.resumeId, userId)
 
-        const configStore = useResumeConfigStore.getState()
-        const resumeStore = useResumeStore.getState()
-
-        if (mode !== 'online' || hasPersistedAppearance) {
-          configStore.hydrateFromSnapshot(snapshot)
+        if (storedRole === 'host') {
+          await loadOwnerResume(route.resumeId)
+          assertCurrentLoad()
+          await resumeHost(params)
           return
         }
 
-        if (cloudAppearanceStatus === 'error') {
-          configStore.hydrateFromSnapshot(snapshot)
+        try {
+          preparedGuest = await useCollaborationStore.getState().prepareGuestSession(params)
+        }
+        catch (error) {
+          if (!isOwnerMustHostError(error))
+            throw error
+
+          assertCurrentLoad()
+          await loadOwnerResume(route.resumeId)
+          assertCurrentLoad()
+          await resumeHost(params)
           return
         }
 
-        const legacyConfig = configStore.readLegacyLocalConfig()
-        const fallbackAppearance = legacyConfig ?? DEFAULT_RESUME_APPEARANCE
-
-        configStore.replaceConfig(fallbackAppearance)
-        resumeStore.updateAppearanceConfig(fallbackAppearance)
-      })
-      .catch((error: unknown) => {
-        if (cancelled)
+        if (!isCurrentLoad()) {
+          await useCollaborationStore.getState().abortPreparedGuestSession(preparedGuest)
+          preparedGuest = null
           return
+        }
+
+        if (route.kind === 'host-recovery') {
+          await useCollaborationStore.getState().abortPreparedGuestSession(preparedGuest)
+          preparedGuest = null
+          throw new CollaborationOperationError('协作链接缺少共享文档信息', {
+            code: 'collaboration_document_missing',
+          })
+        }
+
+        useCollaborationStore.getState().markGuestSessionHydrating(preparedGuest)
+        const result = await loadResumeData(route.resumeId, {
+          source: {
+            kind: 'collaboration',
+            documentUrl: route.documentUrl,
+            documentData: preparedGuest.authorization.bootstrap.documentData,
+            sessionId: route.sessionId,
+          },
+        })
+        assertCurrentLoad()
+        hydrateLoadedAppearance(result, { collaborationSource: true })
+        await useCollaborationStore.getState().connectPreparedGuestSession(preparedGuest)
+        assertCurrentLoad()
+        preparedGuest = null
+        toast.info('已加入实时协作', { description: '正在与发起者同步内容' })
+      }
+      catch (error) {
+        if (preparedGuest) {
+          await useCollaborationStore.getState().abortPreparedGuestSession(preparedGuest)
+          preparedGuest = null
+        }
+        if (!isCurrentLoad())
+          return
+
         if (isResumeNotFoundError(error) && useCurrentResumeStore.getState().resumeId === activeResumeId)
           clearCurrentResume()
-        toast.error(`加载简历失败, ${getErrorMessage(error, '未知错误')}`)
-        navigate('/resume')
-      })
-      .finally(() => {
-        if (!cancelled) {
+
+        runTerminalActionOnce('load-error', () => {
+          if (!sessionActionReportedError) {
+            toast.error(`加载简历失败, ${getErrorMessage(error, '未知错误')}`)
+          }
+          navigate('/resume', { replace: true })
+        })
+      }
+      finally {
+        if (isCurrentLoad())
           setLoading(false)
-        }
-      })
+      }
+    }
+
+    runLoad().catch((error) => {
+      console.warn('[resume-loader] unexpected load failure:', error)
+    })
 
     return () => {
       cancelled = true
     }
-  }, [activeResumeId, clearCurrentResume, documentUrlParam, collabSessionParam, currentUser, hasLegacyCollaborationParams, loadResumeData, navigate])
+  }, [activeResumeId, clearCurrentResume, collaborationAuthKey, loadKey, loadResumeData, navigate])
 
   // 监听简历删除
   useEffect(() => {

@@ -24,7 +24,7 @@ export interface CollaborationPanelContextValue {
   onManualSync: () => void
   onCopyShareLink: () => void
   onStartSharing: () => Promise<void>
-  onStopSharing: () => void
+  onStopSharing: () => Promise<void>
   openCollaborationDialog: () => void
   closeCollaborationDialog: () => void
   setCollaborationDialogOpen: (open: boolean) => void

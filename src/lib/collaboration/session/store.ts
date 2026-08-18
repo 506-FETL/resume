@@ -636,7 +636,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     startSharing: runSerializedHostStart,
 
     resumeHosting: async (params) => {
-      if (get().isConnecting) {
+      if (get().isConnecting && get().phase !== 'authenticating') {
         return
       }
 
@@ -653,6 +653,11 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
     stopSharing: async ({ silent, bestEffort } = {}) => {
       const state = get()
       if (!state.role || !state.sessionId || !state.resumeId) {
+        // 邀请在鉴权未完成时离开编辑器，不应把全局 store
+        // 永久留在 authenticating，否则后续普通简历会被误禁用协作入口。
+        if (state.phase === 'authenticating') {
+          set(createStoppedSessionState())
+        }
         return
       }
 

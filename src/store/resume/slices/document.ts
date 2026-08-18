@@ -2,7 +2,7 @@ import type { DocHandle } from '@automerge/automerge-repo'
 import type { StoreApi } from 'zustand'
 import type { ResumeState } from '../form'
 import type { EditorMode, ResumeLoadResult } from '../helpers/sync-service'
-import type { AutomergeResumeDocument } from '@/lib/automerge'
+import type { AutomergeResumeDocument, DocumentInitializationSource } from '@/lib/automerge'
 import dayjs from 'dayjs'
 import { CollaborationDocumentLoadError, DocumentManager } from '@/lib/automerge'
 import { getOfflineResumeById, isOfflineResumeId } from '@/lib/offline-resume-manager'
@@ -10,6 +10,7 @@ import { ResumeNotFoundError } from '@/lib/resume-id'
 import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches, hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { getTimestamp } from '@/utils/date'
+import useResumeConfigStore from '../config'
 import { hasPersistedAppearance, mapSnapshotToState, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '../helpers'
 import { clearSyncTimers, getCloudAppearanceSource } from '../helpers/sync-service'
 
@@ -25,8 +26,12 @@ export interface DocumentSlice {
   appearanceDirty: boolean
   entryIdMigrationReady: boolean
 
-  loadResumeData: (resumeId: string, options?: { documentUrl?: string, collaborationSessionId?: string, presenceMetadata?: Record<string, unknown> }) => Promise<ResumeLoadResult>
+  loadResumeData: (resumeId: string, options?: ResumeLoadOptions) => Promise<ResumeLoadResult>
   cleanup: () => void
+}
+
+export interface ResumeLoadOptions {
+  source?: DocumentInitializationSource
 }
 
 export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady'> = {
@@ -58,13 +63,11 @@ export function createDocumentSlice(
   return {
     ...documentDefaults,
 
-    loadResumeData: async (resumeId: string, options?: { documentUrl?: string, collaborationSessionId?: string, presenceMetadata?: Record<string, unknown> }) => {
-      if (
-        options?.documentUrl !== undefined
-        || options?.collaborationSessionId !== undefined
-      ) {
-        throw new CollaborationDocumentLoadError('共享简历缺少已鉴权快照')
-      }
+    loadResumeData: async (resumeId: string, options?: ResumeLoadOptions) => {
+      const source = options?.source ?? { kind: 'owner' }
+
+      if (source.kind === 'collaboration' && isOfflineResumeId(resumeId))
+        throw new CollaborationDocumentLoadError('离线简历不支持实时协作')
 
       const requestId = ++latestLoadRequestId
       const isCurrentRequest = () => requestId === latestLoadRequestId
@@ -93,6 +96,7 @@ export function createDocumentSlice(
         currentResumeId: resumeId,
         mode: isOfflineResumeId(resumeId) ? 'offline' : 'online',
         isInitialized: false,
+        cloudAppearanceStatus: source.kind === 'collaboration' ? 'not_applicable' : 'error',
         entryIdMigrationReady: false,
       })
 
@@ -136,13 +140,16 @@ export function createDocumentSlice(
       let manager: DocumentManager | null = null
       try {
         // 自有云端简历先验证 resume_config 行存在，避免已删除的 UUID 被初始化成一份空白 Automerge 文档。
-        const initialCloudAppearanceResult = await getCloudAppearanceSource(resumeId)
+        // 协作来源已经由 Edge 返回的 bootstrap 鉴权，不得再读 owner-only 外观数据或回退 owner 文档。
+        const initialCloudAppearanceResult = source.kind === 'owner'
+          ? await getCloudAppearanceSource(resumeId)
+          : null
         assertCurrentRequest()
         if (initialCloudAppearanceResult?.resumeExists === false)
           throw new ResumeNotFoundError()
 
         manager = new DocumentManager(resumeId, user.id, {
-          source: { kind: 'owner' },
+          source,
         })
         const handle = await manager.initialize()
         assertCurrentRequest()
@@ -158,21 +165,31 @@ export function createDocumentSlice(
         }
 
         const doc = handle.doc()
-        const cloudAppearanceResult = initialCloudAppearanceResult ?? await getCloudAppearanceSource(resumeId)
+        const cloudAppearanceResult = source.kind === 'owner'
+          ? initialCloudAppearanceResult ?? await getCloudAppearanceSource(resumeId)
+          : null
         assertCurrentRequest()
-        const cloudHasPersistedAppearance = cloudAppearanceResult.status === 'present'
+        const cloudHasPersistedAppearance = cloudAppearanceResult?.status === 'present'
         const docHasPersistedAppearance = hasPersistedAppearance(doc)
-        const snapshot = cloudHasPersistedAppearance
+        const snapshot = cloudHasPersistedAppearance && cloudAppearanceResult
           ? mergeSnapshotAppearance(docSnapshot, cloudAppearanceResult.appearance)
           : docSnapshot
+        const cloudAppearanceStatus = cloudAppearanceResult?.status ?? 'not_applicable'
 
         const changeHandler = ({ doc }: { doc: AutomergeResumeDocument | null }) => {
           if (!doc || !isCurrentRequest())
             return
 
+          const nextSnapshot = mapSourceToPersistedSnapshot(doc)
+          if (source.kind === 'collaboration') {
+            // 共享文档是 guest 外观的唯一真实来源；远端主题/字体/间距
+            // 更改不得被本地 legacy 配置覆盖。replaceConfig 不会触发反向写入。
+            useResumeConfigStore.getState().replaceConfig(nextSnapshot)
+          }
+
           set(prev => ({
             ...prev,
-            ...mapSnapshotToState(mapSourceToPersistedSnapshot(doc)),
+            ...mapSnapshotToState(nextSnapshot),
             isInitialized: true,
             entryIdMigrationReady: prev.entryIdMigrationReady && hasCompleteResumeEntryIds(doc),
           }))
@@ -217,13 +234,13 @@ export function createDocumentSlice(
           syncError: null,
           mode: 'online',
           isInitialized: true,
-          cloudAppearanceStatus: cloudAppearanceResult.status,
+          cloudAppearanceStatus,
           docHasPersistedAppearance,
           appearanceDirty: false,
           entryIdMigrationReady: entryIdPatches.length === 0 && hasCompleteResumeEntryIds(doc),
         })
 
-        if (entryIdPatches.length > 0) {
+        if (entryIdPatches.length > 0 && source.kind === 'owner') {
           await get().syncToSupabase()
           assertCurrentRequest()
         }
@@ -231,7 +248,7 @@ export function createDocumentSlice(
         return {
           snapshot,
           hasPersistedAppearance: cloudHasPersistedAppearance || docHasPersistedAppearance,
-          cloudAppearanceStatus: cloudAppearanceResult.status,
+          cloudAppearanceStatus,
           mode: 'online',
         }
       }
@@ -246,7 +263,7 @@ export function createDocumentSlice(
           isSyncing: false,
           syncError: error instanceof Error ? error.message : '初始化失败',
           mode: 'online',
-          cloudAppearanceStatus: 'error',
+          cloudAppearanceStatus: source.kind === 'collaboration' ? 'not_applicable' : 'error',
           entryIdMigrationReady: false,
         })
         throw error
