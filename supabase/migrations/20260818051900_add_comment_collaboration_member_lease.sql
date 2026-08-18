@@ -79,7 +79,8 @@ CREATE OR REPLACE FUNCTION public.claim_resume_comment_collaboration_session_v2(
   p_owner_user_id uuid,
   p_default_role text,
   p_expires_at timestamptz,
-  p_protocol_version smallint
+  p_protocol_version smallint,
+  p_allow_new_legacy_session boolean
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -96,6 +97,7 @@ BEGIN
      OR p_default_role IS NULL
      OR p_default_role NOT IN ('editor', 'viewer')
      OR p_expires_at IS NULL
+     OR p_allow_new_legacy_session IS NULL
      OR p_expires_at <= pg_catalog.now() THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid_collaboration_claim';
   END IF;
@@ -134,6 +136,10 @@ BEGIN
       'expiresAt', v_session.expires_at,
       'protocolVersion', v_session.protocol_version
     );
+  END IF;
+
+  IF p_protocol_version = 1 AND NOT p_allow_new_legacy_session THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0409', MESSAGE = 'upgrade_required';
   END IF;
 
   INSERT INTO public.resume_comment_collaboration_sessions (
@@ -190,6 +196,7 @@ DECLARE
   v_attempt public.resume_comment_collaboration_member_leases%ROWTYPE;
   v_member public.resume_comment_collaboration_members%ROWTYPE;
   v_member_expires_at timestamptz;
+  v_attempt_count integer;
 BEGIN
   PERFORM public.assert_resume_comment_service_role();
 
@@ -238,6 +245,16 @@ BEGIN
         RAISE EXCEPTION USING ERRCODE = 'P0409', MESSAGE = 'member_lease_retired';
       END IF;
     ELSE
+      SELECT pg_catalog.count(*)::integer
+      INTO v_attempt_count
+      FROM public.resume_comment_collaboration_member_leases AS attempts
+      WHERE attempts.session_id = p_session_id
+        AND attempts.user_id = p_user_id;
+
+      IF v_attempt_count >= 32 THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0409', MESSAGE = 'attempt_limit';
+      END IF;
+
       INSERT INTO public.resume_comment_collaboration_member_leases (
         session_id,
         user_id,
@@ -501,8 +518,10 @@ SET search_path = ''
 AS $$
 DECLARE
   v_session public.resume_comment_collaboration_sessions%ROWTYPE;
+  v_attempt public.resume_comment_collaboration_member_leases%ROWTYPE;
   v_member public.resume_comment_collaboration_members%ROWTYPE;
   v_revoked_at timestamptz := pg_catalog.now();
+  v_attempt_count integer;
 BEGIN
   PERFORM public.assert_resume_comment_service_role();
 
@@ -525,28 +544,52 @@ BEGIN
   END IF;
 
   IF p_protocol_version = 2 THEN
-    INSERT INTO public.resume_comment_collaboration_member_leases AS attempts (
-      session_id,
-      user_id,
-      member_lease_id,
-      protocol_version,
-      expires_at,
-      revoked_at,
-      updated_at
-    )
-    VALUES (
-      p_session_id,
-      p_user_id,
-      p_member_lease_id,
-      2,
-      v_revoked_at,
-      v_revoked_at,
-      v_revoked_at
-    )
-    ON CONFLICT (session_id, user_id, member_lease_id) DO UPDATE
-    SET expires_at = least(attempts.expires_at, EXCLUDED.expires_at),
-        revoked_at = coalesce(attempts.revoked_at, EXCLUDED.revoked_at),
-        updated_at = EXCLUDED.updated_at;
+    SELECT attempts.*
+    INTO v_attempt
+    FROM public.resume_comment_collaboration_member_leases AS attempts
+    WHERE attempts.session_id = p_session_id
+      AND attempts.user_id = p_user_id
+      AND attempts.member_lease_id = p_member_lease_id
+    FOR UPDATE;
+
+    IF FOUND THEN
+      UPDATE public.resume_comment_collaboration_member_leases AS attempts
+      SET expires_at = least(attempts.expires_at, v_revoked_at),
+          revoked_at = coalesce(attempts.revoked_at, v_revoked_at),
+          updated_at = v_revoked_at
+      WHERE attempts.session_id = p_session_id
+        AND attempts.user_id = p_user_id
+        AND attempts.member_lease_id = p_member_lease_id;
+    ELSE
+      SELECT pg_catalog.count(*)::integer
+      INTO v_attempt_count
+      FROM public.resume_comment_collaboration_member_leases AS attempts
+      WHERE attempts.session_id = p_session_id
+        AND attempts.user_id = p_user_id;
+
+      IF v_attempt_count >= 32 THEN
+        RAISE EXCEPTION USING ERRCODE = 'P0409', MESSAGE = 'attempt_limit';
+      END IF;
+
+      INSERT INTO public.resume_comment_collaboration_member_leases (
+        session_id,
+        user_id,
+        member_lease_id,
+        protocol_version,
+        expires_at,
+        revoked_at,
+        updated_at
+      )
+      VALUES (
+        p_session_id,
+        p_user_id,
+        p_member_lease_id,
+        2,
+        v_revoked_at,
+        v_revoked_at,
+        v_revoked_at
+      );
+    END IF;
   END IF;
 
   SELECT members.*
@@ -738,10 +781,10 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.claim_resume_comment_collaboration_session_v2(
-  text, uuid, uuid, uuid, text, timestamptz, smallint
+  text, uuid, uuid, uuid, text, timestamptz, smallint, boolean
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_resume_comment_collaboration_session_v2(
-  text, uuid, uuid, uuid, text, timestamptz, smallint
+  text, uuid, uuid, uuid, text, timestamptz, smallint, boolean
 ) TO service_role;
 
 REVOKE ALL ON FUNCTION public.claim_resume_comment_collaboration_member_v2(

@@ -54,6 +54,18 @@ interface PendingHostAttempt {
   sessionId: string
   resumeId: string
   userId: string
+  ownerGeneration: number
+}
+
+type PendingHostAttemptIdentity = Omit<PendingHostAttempt, 'ownerGeneration'>
+
+function isSamePendingHostAttempt(
+  attempt: PendingHostAttempt | null,
+  identity: PendingHostAttemptIdentity,
+) {
+  return attempt?.sessionId === identity.sessionId
+    && attempt.resumeId === identity.resumeId
+    && attempt.userId === identity.userId
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -190,12 +202,34 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
 
   const connectHostSession = async (
     params: JoinShareParams,
-    options: { saveSnapshot: boolean, seedRichText: boolean },
+    options: {
+      saveSnapshot: boolean
+      seedRichText: boolean
+      pendingAttempt?: PendingHostAttemptIdentity
+    },
   ) => {
     const generation = ++activeGeneration
     let hostLeaseId: string | null = null
     let hostProtocolVersion: CollaborationProtocolVersion | null = null
     const docManager = useResumeStore.getState().docManager
+
+    if (options.pendingAttempt) {
+      if (!isSamePendingHostAttempt(pendingHostAttempt, options.pendingAttempt)) {
+        throw new CollaborationOperationError('协作会话已切换', { code: 'session_changed' })
+      }
+      pendingHostAttempt = {
+        ...options.pendingAttempt,
+        ownerGeneration: generation,
+      }
+    }
+
+    const ownsPendingAttempt = () => generation === activeGeneration && (
+      !options.pendingAttempt
+      || (
+        isSamePendingHostAttempt(pendingHostAttempt, options.pendingAttempt)
+        && pendingHostAttempt?.ownerGeneration === generation
+      )
+    )
 
     setPhase(options.saveSnapshot ? 'syncing' : 'authorizing', {
       role: 'host',
@@ -273,16 +307,15 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
       })
       startRichTextSession(result, options.seedRichText)
       if (
-        pendingHostAttempt?.sessionId === params.sessionId
-        && pendingHostAttempt.resumeId === params.resumeId
-        && pendingHostAttempt.userId === params.userId
+        options.pendingAttempt
+        && ownsPendingAttempt()
       ) {
         pendingHostAttempt = null
       }
     }
     catch (error) {
       let rollbackRevoked = false
-      if (hostLeaseId && hostProtocolVersion) {
+      if (hostLeaseId && hostProtocolVersion && ownsPendingAttempt()) {
         try {
           const rollback = await leaveCollaborationCommentSession({
             sessionId: params.sessionId,
@@ -290,10 +323,14 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
             protocolVersion: hostProtocolVersion,
             hostLeaseId,
           })
-          rollbackRevoked = rollback.revoked === true
+          if (ownsPendingAttempt()) {
+            rollbackRevoked = rollback.revoked === true
+          }
         }
         catch (revokeError) {
-          console.warn('[collaboration] failed to revoke incomplete host session:', revokeError)
+          if (ownsPendingAttempt()) {
+            console.warn('[collaboration] failed to revoke incomplete host session:', revokeError)
+          }
         }
       }
 
@@ -301,9 +338,8 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         = error instanceof CollaborationOperationError && error.code === 'session_id_retired'
       if (
         (rollbackRevoked || sessionRetired)
-        && pendingHostAttempt?.sessionId === params.sessionId
-        && pendingHostAttempt.resumeId === params.resumeId
-        && pendingHostAttempt.userId === params.userId
+        && options.pendingAttempt
+        && ownsPendingAttempt()
       ) {
         pendingHostAttempt = null
       }
@@ -523,6 +559,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
             sessionId: createCollaborationSessionId(),
             resumeId,
             userId,
+            ownerGeneration: activeGeneration,
           }
       pendingHostAttempt = attempt
 
@@ -534,7 +571,15 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
             userId,
             userName,
           },
-          { saveSnapshot: true, seedRichText: true },
+          {
+            saveSnapshot: true,
+            seedRichText: true,
+            pendingAttempt: {
+              sessionId: attempt.sessionId,
+              resumeId: attempt.resumeId,
+              userId: attempt.userId,
+            },
+          },
         )
         toast.success('已开启实时协作', { description: '现在可以将链接分享给他人了' })
       }

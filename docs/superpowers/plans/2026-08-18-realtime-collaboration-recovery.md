@@ -989,7 +989,7 @@ supabase functions list --project-ref bitxrpdtlohlnywgusfw
 
 预期：dry-run 只包含目标前向 migration；远端账本出现 `20260818051900` 后才允许部署 Edge。`resume-comments` 版本递增且 ACTIVE。若 CLI 缺少凭据，使用已连接的 Supabase 工具按相同顺序完成 migration、函数部署与账本/版本核验；不得先部署依赖新列/RPC 的 Edge。
 
-随后先发布支持 `[1, 2]` 协商、但 `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` 保持关闭的兼容前端。观察至少旧 session 的 8 小时最长有效期，或用遥测证明旧客户端/旧 session 已清零，再打开开关发布 v2 新建。旧前端不能加入 v2；若选择不等待 drain，必须采用强制刷新并要求重新分享的产品策略，不能宣称完全跨版本兼容。
+随后发布支持 `[1, 2]` 协商、但 `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` 保持关闭的兼容前端。确认 capable 前端已稳定覆盖后，用 `supabase secrets set COLLABORATION_LEGACY_REGISTER_CUTOFF_AT=<UTC_ISO_TIMESTAMP> --project-ref bitxrpdtlohlnywgusfw` 配置明确 UTC cutoff：cutoff 后无 capability 的旧 host 只能重试既有 v1 session，创建新 v1 session必须返回 HTTP 426 + `upgrade_required` 并要求刷新；既有 v1 join/renew/leave 继续 drain。自 cutoff 起完整等待 8 小时且遥测确认没有 active v1 session 后，才打开前端开关发布 v2 新建。旧前端不能加入 v2，不能宣称完全跨版本兼容。
 
 - [ ] **步骤 3：执行服务端操作 smoke**
 
@@ -1005,8 +1005,11 @@ supabase functions list --project-ref bitxrpdtlohlnywgusfw
 8. guest leave 相同 token 首次与重试都返回 `revoked: true`；旧 token 的迟到 leave 只更新自己的 tombstone，不能撤销随后建立的新 token。
 9. owner leave 首次与同 host lease 重试都返回 `revoked: true`，session、members 与 v2 attempt ledger 在同次事务结果中全部 revoked；不匹配 host lease 返回 `false`。
 10. 模拟 host 首次 register 响应丢失：同 resume 的新客户端重试复用同 session ID并取回 winner host lease；只有 rollback 已确认 revoked 或 `session_id_retired` 后才生成新 ID。
-11. v1 请求仍能操作既有 protocol 1 session/member，但无 token 的 v1 leave、旧 JWT、迟到 v1 join 都不能读写 protocol 2 行或 attempt ledger。
-12. host leave 后 guest renew 返回 HTTP 401 + `unauthorized`，新 guest join 在下发快照前被拒绝。
+11. 模拟 generation A register 已返回、generation B 接管同 pending session 后 A 才进入 catch：B 原子取得 `ownerGeneration`，A 不调用 Edge revoke、不清 pending，B 可继续取回同 host lease。
+12. 设置 legacy cutoff 前后分别验证：无 capability host 在 cutoff 前可新建 v1；cutoff 后只能对既有同 session ID 重试，新 session 返回 HTTP 426 + `upgrade_required`；capable 前端仍能新建协商协议，既有 v1 join/renew/leave 不受影响。
+13. 连续创建 32 个不同 v2 token attempt 后，第 33 个新 token 的 claim 与 release 都返回 `attempt_limit` 且 ledger 行数不增长；已有 token 的重复 release/renew 仍按原语义工作，第 33 个 token 的迟到 claim 仍被上限拒绝。
+14. v1 请求仍能操作既有 protocol 1 session/member，但无 token 的 v1 leave、旧 JWT、迟到 v1 join 都不能读写 protocol 2 行或 attempt ledger。
+15. host leave 后 guest renew 返回 HTTP 401 + `unauthorized`，新 guest join 在下发快照前被拒绝。
 
 查询 Edge/Realtime 日志确认没有服务端 5xx、没有跨 resume 快照读取，结果写入验证报告。
 
@@ -1064,9 +1067,10 @@ git commit -m "docs(collab): 记录实时协作恢复验收"
 
 1. 在尚未部署的 `20260818051900` migration 中为 session/member 增加 `protocol_version`，为 member 增加 `member_lease_id`，创建仅 service role 可访问的 attempt ledger，并定义 host claim、member claim/renew/release、host revoke 原子 RPC。
 2. host register 调用 claim RPC：active 同身份重试返回 winner lease，不旋转；revoked/expired ID 永久退休。host leave 调用同事务 revoke RPC，原子撤销 session/members，且同 lease 重试幂等。
-3. v2 guest join 调用 member claim RPC，并以持久 attempt ledger 记录 token tombstone 与 120 秒 TTL；release 先 upsert tombstone，因而 release-before-claim 与 projection 轮换后的旧 token 都不能复活。active projection 过期后新 token 可接管。
+3. v2 guest join 调用 member claim RPC，并以持久 attempt ledger 记录 token tombstone 与 120 秒 TTL；release 在上限内先持久化 tombstone，因而 release-before-claim 与 projection 轮换后的旧 token 都不能复活。每个 session/user 最多保留 32 个唯一 attempt，claim/release 对超限新 token 都返回 `attempt_limit`，已有 token 不受影响。active projection 过期后新 token 可接管。
 4. v2 renew 改为 session 锁下的原子 RPC，同时延长 attempt 与 member projection TTL；v1 renew 保留旧 session 有效期语义。
 5. v2 JWT、普通 resolve 和 bootstrap 快路径都比较 protocol/member lease；旧 token 只能按 v1 访问。兼容客户端声明支持 `[1, 2]` 并保存服务端实际协议，后续 renew/leave 不再硬编码 v2。
 6. Automerge callbacks 捕获 expected generation/session/role，所有 participants、toast 和 remote cleanup 写入前门禁；phase overrides 不能覆盖 phase 或派生 flags。
-7. `verify:comment-service` 增加 ledger schema/权限、release-before-claim、A→B→late A、短 TTL、原子 renew、过期接管、协议协商、pending host attempt 及既有 fencing/JWT/callback 的静态契约断言。
-8. 发布严格执行 migration → dual-protocol Edge → 兼容前端（新建仍 v1）→ 8 小时 drain/遥测清零 → 开启 v2 新建。旧客户端不能加入 v2，客户端 timeout 只限制等待，不作为远端请求已取消的依据。
+7. pending host attempt 记录 `ownerGeneration`；后继 generation 复用 session ID时原子接管，旧 generation 在 revoke 与清理前均复核身份和 owner，不能撤销接管者会话。
+8. `verify:comment-service` 增加 ledger schema/权限、release-before-claim、A→B→late A、短 TTL、原子 renew、过期接管、attempt cap、协议协商、pending host generation 及既有 fencing/JWT/callback 的静态契约断言。
+9. 发布严格执行 migration → dual-protocol Edge（cutoff 未配置）→ capable 兼容前端（新建仍 v1）→ 配置 legacy cutoff → 完整 8 小时 drain 且遥测确认 active v1 清零 → 开启 v2 新建。cutoff 后旧 host 新建返回 `upgrade_required`，既有 v1 操作继续 drain；客户端 timeout 只限制等待，不作为远端请求已取消的依据。

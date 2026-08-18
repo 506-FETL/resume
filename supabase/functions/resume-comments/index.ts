@@ -1306,6 +1306,22 @@ function readSupportedCollaborationProtocolVersions(
   return new Set(body.supportedProtocolVersions as Array<1 | 2>)
 }
 
+function allowNewLegacyCollaborationSession() {
+  const rawCutoff = Deno.env.get('COLLABORATION_LEGACY_REGISTER_CUTOFF_AT')?.trim()
+  if (!rawCutoff)
+    return true
+
+  const cutoffAt = Date.parse(rawCutoff)
+  if (!Number.isFinite(cutoffAt)) {
+    throw new CommentApiError(
+      'unexpected',
+      '协作兼容截止时间配置无效',
+      500,
+    )
+  }
+  return Date.now() < cutoffAt
+}
+
 function negotiateCollaborationProtocolVersion(
   requested: 1 | 2,
   supported: ReadonlySet<1 | 2>,
@@ -1326,6 +1342,8 @@ function throwCollaborationRpcError(error: unknown): never {
       'P0409:member_protocol_conflict': new CommentApiError('member_protocol_conflict', '协作协议版本冲突', 409),
       'P0409:member_lease_conflict': new CommentApiError('member_lease_conflict', '该账号已在另一窗口加入此协作', 409),
       'P0409:member_lease_retired': new CommentApiError('member_lease_retired', '协作者成员租约已失效，请重新打开邀请', 409),
+      'P0409:attempt_limit': new CommentApiError('attempt_limit', '协作者加入尝试过多，请稍后重新分享', 409),
+      'P0409:upgrade_required': new CommentApiError('upgrade_required', '请刷新页面后重新开启实时协作', 426),
       '22023:invalid_collaboration_claim': new CommentApiError('not_found', '协作会话参数无效', 400),
       '22023:invalid_member_claim': new CommentApiError('not_found', '协作者成员租约无效', 400),
     }
@@ -1393,6 +1411,8 @@ async function handleCollaborationSessionOperation({
           existingSession.protocol_version,
         )
       : requestedProtocolVersion
+    const allowNewLegacySession = supportedProtocolVersions.size > 0
+      || allowNewLegacyCollaborationSession()
     const requestedExpiresAt = new Date(Date.now() + 8 * 60 * 60 * 1_000).toISOString()
     const { data, error } = await admin.rpc('claim_resume_comment_collaboration_session_v2', {
       p_session_id: sessionId,
@@ -1402,6 +1422,7 @@ async function handleCollaborationSessionOperation({
       p_default_role: 'editor',
       p_expires_at: requestedExpiresAt,
       p_protocol_version: protocolVersion,
+      p_allow_new_legacy_session: allowNewLegacySession,
     })
     if (error)
       return throwCollaborationRpcError(error)
