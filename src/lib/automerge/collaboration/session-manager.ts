@@ -72,6 +72,10 @@ export class CollaborationSessionManager {
   }
 
   broadcastControlMessage(type: string, data: Record<string, unknown> = {}) {
-    this.adapter?.broadcastControlMessage(type, data)
+    if (!this.adapter) {
+      throw new Error('协作连接尚未建立')
+    }
+
+    return this.adapter.broadcastControlMessage(type, data)
   }
 }

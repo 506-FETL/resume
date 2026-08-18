@@ -121,9 +121,10 @@ export class DocumentManager {
   }
 
   async broadcastCollaborationEvent(type: string, data: Record<string, unknown> = {}) {
-    if (!this.collaboration?.getSessionId()) {
+    if (!this.collaboration) {
       throw new Error('协作连接尚未建立')
     }
+
     return this.collaboration.broadcastControlMessage(type, data)
   }
 

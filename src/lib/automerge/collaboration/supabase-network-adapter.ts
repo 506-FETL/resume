@@ -26,9 +26,9 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   peerMetadata?: PeerMetadata = undefined
   private readonly resumeId: string
   private readonly sessionId: string
-  private callbacks: CollaborationCallbacks
+  private callbacks: CollaborationCallbacks = {}
   private readonly channelName: string
-  private readonly presenceMetadata: Record<string, unknown>
+  private presenceMetadata: Record<string, unknown> = {}
   private ready = false
   private localDocumentId: string | null = null
   private pendingMessages: PendingSyncMessage[] = []
@@ -37,13 +37,13 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     super()
     this.resumeId = resumeId
     this.sessionId = sessionId
-    this.callbacks = callbacks
     this.channelName = `automerge:resume:${resumeId}:${sessionId}`
-    this.presenceMetadata = callbacks.presenceMetadata || {}
+    this.setCallbacks(callbacks)
   }
 
   setCallbacks(callbacks: CollaborationCallbacks) {
     this.callbacks = callbacks
+    this.presenceMetadata = callbacks.presenceMetadata ?? {}
   }
 
   setLocalDocumentId(documentId: string | null) {
@@ -81,27 +81,14 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     })
   }
 
-  // 等待出现对端候选（host presence join → peer-candidate），带超时兜底。
-  // 协作者需在有对端后再 repo.find(docUrl)，否则 automerge 因零 peer 立即判定文档 unavailable。
-  whenPeerAvailable(timeoutMs: number): Promise<void> {
-    return new Promise<void>((resolve) => {
-      let settled = false
-      const done = () => {
-        if (settled)
-          return
-        settled = true
-        this.off('peer-candidate', done)
-        resolve()
-      }
-      this.once('peer-candidate', done)
-      setTimeout(done, timeoutMs)
-    })
-  }
-
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
     this.peerId = peerId
     this.peerMetadata = peerMetadata
-    this.channel = supabase.channel(this.channelName)
+    this.channel = supabase.channel(this.channelName, {
+      config: {
+        broadcast: { ack: true, self: false },
+      },
+    })
 
     this.registerSyncBroadcast()
     this.registerControlBroadcast()
@@ -110,12 +97,17 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   }
 
   disconnect() {
-    if (this.channel) {
-      this.channel.unsubscribe()
-      this.channel = null
-    }
-
+    const channel = this.channel
+    this.channel = null
     this.ready = false
+    this.localDocumentId = null
+    this.pendingMessages = []
+
+    if (channel) {
+      channel.unsubscribe().catch(() => {
+        // 本地状态已清空，忽略 Supabase 解绑失败。
+      })
+    }
   }
 
   send(message: Message) {
@@ -141,12 +133,12 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     return this.channelName
   }
 
-  broadcastControlMessage(type: string, data: Record<string, unknown> = {}) {
-    if (!this.channel) {
-      return
+  async broadcastControlMessage(type: string, data: Record<string, unknown> = {}) {
+    if (!this.channel || !this.ready) {
+      throw new Error('协作控制频道尚未就绪')
     }
 
-    this.channel.send({
+    const result = await this.channel.send({
       type: 'broadcast',
       event: 'automerge-control',
       payload: {
@@ -156,6 +148,10 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
         sessionId: this.sessionId,
       },
     })
+
+    if (result !== 'ok') {
+      throw new Error(`协作控制消息发送失败: ${result}`)
+    }
   }
 
   private registerSyncBroadcast() {
