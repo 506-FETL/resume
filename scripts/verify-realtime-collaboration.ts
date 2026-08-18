@@ -4,9 +4,36 @@ import { readFileSync } from 'node:fs'
 import { next as Automerge } from '@automerge/automerge'
 import { parseAutomergeUrl, Repo } from '@automerge/automerge-repo'
 import { createJiti } from 'jiti'
+import ts from 'typescript'
+import tseslint from 'typescript-eslint'
+
+function readRawSource(path: string) {
+  return readFileSync(path, 'utf8')
+}
+
+function stripTypeScriptComments(source: string) {
+  const parsed = tseslint.parser.parseForESLint(source, {
+    comment: true,
+    loc: false,
+    range: true,
+  })
+  const commentRanges = (parsed.ast.comments ?? [])
+    .map(comment => comment.range)
+    .sort((left, right) => left[0] - right[0])
+  let result = ''
+  let previousEnd = 0
+
+  for (const [start, end] of commentRanges) {
+    result += source.slice(previousEnd, start)
+    result += source.slice(start, end).replace(/[^\r\n]/gu, ' ')
+    previousEnd = end
+  }
+
+  return result + source.slice(previousEnd)
+}
 
 function readSource(path: string) {
-  return readFileSync(path, 'utf8')
+  return stripTypeScriptComments(readRawSource(path))
 }
 
 function readSourceSection(
@@ -42,6 +69,39 @@ function assertNotContains(label: string, source: string, marker: string) {
   assert.ok(!source.includes(marker), `${label}：禁止出现源码标记 ${marker}`)
 }
 
+function assertMutationRejected(
+  label: string,
+  source: string,
+  mutant: string,
+  verify: (candidate: string) => void,
+) {
+  assert.notEqual(mutant, source, `mutation 未命中：${label}`)
+  assert.throws(
+    () => verify(mutant),
+    { name: 'AssertionError' },
+    `verifier 未拒绝 mutation：${label}`,
+  )
+}
+
+const commentFixture = [
+  'const url = \'https://resume.local/path//kept/*kept*/\'',
+  '// removed-line-comment',
+  'const value = 1 /* removed-block-comment */ + 2',
+].join('\n')
+const strippedCommentFixture = stripTypeScriptComments(commentFixture)
+assert.equal(
+  strippedCommentFixture.length,
+  commentFixture.length,
+  '注释剥离：必须保留源码长度以维持 section 边界',
+)
+assertContains(
+  '注释剥离字符串安全',
+  strippedCommentFixture,
+  'https://resume.local/path//kept/*kept*/',
+)
+assertNotContains('注释剥离行注释', strippedCommentFixture, 'removed-line-comment')
+assertNotContains('注释剥离块注释', strippedCommentFixture, 'removed-block-comment')
+
 const jiti = createJiti(import.meta.url)
 const { sanitizeAppRedirect } = await jiti.import<
   typeof import('../src/lib/auth/redirect.ts')
@@ -52,100 +112,171 @@ const { decodeDocumentData, encodeBytesToBase64 } = await jiti.import<
 
 // 同一份 Automerge 二进制快照无论来自原始字节、Base64 还是 PostgreSQL
 // bytea 文本，都必须按邀请 URL 的 documentId 导入，而不是创建随机空文档。
-const sourceRepo = new Repo()
-const sourceHandle = sourceRepo.create<{ value: string }>()
-sourceHandle.change((doc) => {
-  doc.value = '协作快照'
-})
-const sourceDocument = sourceHandle.doc()
-assert.ok(sourceDocument, '动态快照：源 Automerge 文档未就绪')
-const binary = Automerge.save(sourceDocument)
-const { documentId } = parseAutomergeUrl(sourceHandle.url)
+const repos: Repo[] = []
+try {
+  const sourceRepo = new Repo()
+  repos.push(sourceRepo)
+  const sourceHandle = sourceRepo.create<{ value: string }>()
+  sourceHandle.change((doc) => {
+    doc.value = '协作快照'
+  })
+  const sourceDocument = sourceHandle.doc()
+  assert.ok(sourceDocument, '动态快照：源 Automerge 文档未就绪')
+  const binary = Automerge.save(sourceDocument)
+  const { documentId } = parseAutomergeUrl(sourceHandle.url)
 
-async function assertImportedSnapshot(label: string, bytes: Uint8Array) {
-  const targetRepo = new Repo()
-  const imported = targetRepo.import<{ value: string }>(bytes, { docId: documentId })
-  await imported.whenReady()
-  assert.equal(imported.documentId, documentId, `${label}：导入后 documentId 发生变化`)
-  assert.equal(imported.doc()?.value, '协作快照', `${label}：导入后快照内容丢失`)
+  const assertImportedSnapshot = async (label: string, bytes: Uint8Array) => {
+    const targetRepo = new Repo()
+    repos.push(targetRepo)
+    const imported = targetRepo.import<{ value: string }>(bytes, { docId: documentId })
+    await imported.whenReady()
+    assert.equal(imported.documentId, documentId, `${label}：导入后 documentId 发生变化`)
+    assert.equal(imported.doc()?.value, '协作快照', `${label}：导入后快照内容丢失`)
+  }
+
+  const base64 = encodeBytesToBase64(binary)
+  const bytea = `\\x${Buffer.from(binary).toString('hex')}`
+  const decodedBase64 = decodeDocumentData(base64)
+  const decodedBytea = decodeDocumentData(bytea)
+  assert.ok(decodedBase64, '动态快照：Base64 未解码为字节')
+  assert.ok(decodedBytea, '动态快照：bytea 未解码为字节')
+  assert.deepEqual(decodedBase64, binary, '动态快照：Base64 解码结果与原始二进制不一致')
+  assert.deepEqual(decodedBytea, binary, '动态快照：bytea 解码结果与原始二进制不一致')
+  await assertImportedSnapshot('动态快照/原始二进制', binary)
+  await assertImportedSnapshot('动态快照/Base64', decodedBase64)
+  await assertImportedSnapshot('动态快照/bytea', decodedBytea)
+  assert.equal(repos.length, 4, '动态快照：必须追踪 source 与三个 target Repo')
+}
+finally {
+  await Promise.all(repos.map(repo => repo.shutdown()))
 }
 
-const base64 = encodeBytesToBase64(binary)
-const bytea = `\\x${Buffer.from(binary).toString('hex')}`
-const decodedBase64 = decodeDocumentData(base64)
-const decodedBytea = decodeDocumentData(bytea)
-assert.ok(decodedBase64, '动态快照：Base64 未解码为字节')
-assert.ok(decodedBytea, '动态快照：bytea 未解码为字节')
-assert.deepEqual(decodedBase64, binary, '动态快照：Base64 解码结果与原始二进制不一致')
-assert.deepEqual(decodedBytea, binary, '动态快照：bytea 解码结果与原始二进制不一致')
-await assertImportedSnapshot('动态快照/原始二进制', binary)
-await assertImportedSnapshot('动态快照/Base64', decodedBase64)
-await assertImportedSnapshot('动态快照/bytea', decodedBytea)
+type RedirectSanitizer = typeof sanitizeAppRedirect
 
-// 登录返回地址只允许站内绝对路径；query/hash 可保留，但路径中的原始、单层或
-// 多层编码反斜杠与双斜杠都必须被拒绝。
-const legalRedirect = '/resume/editor?resumeId=resume-1&next=%2Fresume%2Feditor#collaboration'
-assert.equal(
-  sanitizeAppRedirect(legalRedirect),
-  legalRedirect,
-  'redirect：合法 query/hash 未被原样保留',
-)
-assert.equal(
-  sanitizeAppRedirect('/resume/editor?target=//evil.example#/%252f%252fevil.example'),
-  '/resume/editor?target=//evil.example#/%252f%252fevil.example',
-  'redirect：query/hash 不应被误判为跨站路径',
-)
-for (const unsafeRedirect of [
-  'https://evil.example/resume',
-  '//evil.example/resume',
-  '/\\evil.example/resume',
-  '/%2f%2fevil.example/resume',
-  '/%5cevil.example/resume',
-  '/%252f%252fevil.example/resume',
-  '/%255cevil.example/resume',
-  '/%25252f%25252fevil.example/resume',
-]) {
+function verifyRedirectSanitizer(sanitize: RedirectSanitizer) {
+  const legalRedirect = '/resume/editor?resumeId=resume-1&next=%2Fresume%2Feditor#collaboration'
   assert.equal(
-    sanitizeAppRedirect(unsafeRedirect),
-    '/resume',
-    `redirect：危险返回地址未被拒绝 ${unsafeRedirect}`,
+    sanitize(legalRedirect),
+    legalRedirect,
+    'redirect：合法 query/hash 未被原样保留',
   )
+  assert.equal(
+    sanitize('/resume/editor?target=//evil.example#/%252f%252fevil.example'),
+    '/resume/editor?target=//evil.example#/%252f%252fevil.example',
+    'redirect：query/hash 不应被误判为跨站路径',
+  )
+
+  for (const unsafeRedirect of [
+    'https://evil.example/resume',
+    '//evil.example/resume',
+    '/\\evil.example/resume',
+    '/resume\u0000/editor',
+    '/resume\u001F/editor',
+    '/resume\u007F/editor',
+    '/%0Aevil.example/resume',
+    '/%0devil.example/resume',
+    '/%250d%250aLocation:evil.example/resume',
+    '/%2f%2fevil.example/resume',
+    '/%5cevil.example/resume',
+    '/%252f%252fevil.example/resume',
+    '/%255cevil.example/resume',
+    '/%25252f%25252fevil.example/resume',
+  ]) {
+    assert.equal(
+      sanitize(unsafeRedirect),
+      '/resume',
+      `redirect：危险返回地址未被拒绝 ${JSON.stringify(unsafeRedirect)}`,
+    )
+  }
 }
 
-const edgeSource = readSource('supabase/functions/resume-comments/index.ts')
+verifyRedirectSanitizer(sanitizeAppRedirect)
+
+const redirectRawSource = readRawSource('src/lib/auth/redirect.ts')
+const hasControlCharacterSource = readSourceSection(
+  redirectRawSource,
+  'function hasControlCharacter(',
+  '\n\nfunction getRawPathname(',
+  'redirect control-character mutation',
+)
+const hasControlCharacterMutant = redirectRawSource.replace(
+  hasControlCharacterSource,
+  'function hasControlCharacter(_value: string) {\n  return false\n}',
+)
+assert.notEqual(
+  hasControlCharacterMutant,
+  redirectRawSource,
+  'mutation 未命中：hasControlCharacter 恒 false',
+)
+const transpiledRedirectMutant = ts.transpileModule(hasControlCharacterMutant, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText
+const redirectMutantModule = await import(
+  `data:text/javascript;base64,${Buffer.from(transpiledRedirectMutant).toString('base64')}`,
+) as { sanitizeAppRedirect: RedirectSanitizer }
+assert.throws(
+  () => verifyRedirectSanitizer(redirectMutantModule.sanitizeAppRedirect),
+  { name: 'AssertionError' },
+  'verifier 未拒绝 mutation：hasControlCharacter 恒 false',
+)
+
+const edgeRawSource = readRawSource('supabase/functions/resume-comments/index.ts')
+const edgeSource = stripTypeScriptComments(edgeRawSource)
 const documentManagerSource = readSource('src/lib/automerge/document/manager.ts')
 const documentPersistenceSource = readSource('src/lib/automerge/document/persistence.ts')
 const adapterSource = readSource('src/lib/automerge/collaboration/supabase-network-adapter.ts')
 const sessionStoreSource = readSource('src/lib/collaboration/session/store.ts')
 const sessionCallbacksSource = readSource('src/lib/collaboration/session/callbacks.ts')
 const leaseSource = readSource('src/lib/collaboration/session/lease.ts')
-const loaderSource = readSource('src/pages/resume/editor/hooks/use-resume-loader.ts')
-const collaborationPanelSource = readSource(
+const loaderRawSource = readRawSource('src/pages/resume/editor/hooks/use-resume-loader.ts')
+const loaderSource = stripTypeScriptComments(loaderRawSource)
+const collaborationPanelRawSource = readRawSource(
   'src/pages/resume/editor/hooks/use-collaboration-panel-value.ts',
 )
+const collaborationPanelSource = stripTypeScriptComments(collaborationPanelRawSource)
 const documentSliceSource = readSource('src/store/resume/slices/document.ts')
 const syncSliceSource = readSource('src/store/resume/slices/sync.ts')
 
-const edgeBootstrapSource = readSourceSection(
-  edgeSource,
-  'async function loadCollaborationDocumentBootstrap(',
-  '\nasync function issueCollaboratorToken',
-  'Edge 协作快照查询',
+function verifyEdgeBootstrap(candidateSource: string) {
+  const source = stripTypeScriptComments(candidateSource)
+  const bootstrapSource = readSourceSection(
+    source,
+    'async function loadCollaborationDocumentBootstrap(',
+    '\nasync function issueCollaboratorToken',
+    'Edge 协作快照查询',
+  )
+  assertSourceOrder('Edge 协作快照查询', bootstrapSource, [
+    '.from(\'automerge_documents\')',
+    '.select(\'document_data,heads,document_version,updated_at\')',
+    '.eq(\'resume_id\', session.resume_id)',
+    '.eq(\'user_id\', session.owner_user_id)',
+    '.maybeSingle()',
+  ])
+  assertSourceOrder('Edge 协作快照 fail-closed', bootstrapSource, [
+    'if (error)',
+    'typeof row.document_data !== \'string\'',
+    '\'collaboration_snapshot_unavailable\'',
+    'documentData: row.document_data',
+  ])
+  assertNotContains('Edge 协作快照查询', bootstrapSource, '.select(\'*\')')
+  return bootstrapSource
+}
+
+verifyEdgeBootstrap(edgeRawSource)
+const edgeOwnerFilter = '.eq(\'user_id\', session.owner_user_id)'
+const edgeOwnerFilterMutant = edgeRawSource.replace(
+  edgeOwnerFilter,
+  `.eq('user_id', 'review-mutant')\n    // ${edgeOwnerFilter}`,
 )
-assertSourceOrder('Edge 协作快照查询', edgeBootstrapSource, [
-  '.from(\'automerge_documents\')',
-  '.select(\'document_data,heads,document_version,updated_at\')',
-  '.eq(\'resume_id\', session.resume_id)',
-  '.eq(\'user_id\', session.owner_user_id)',
-  '.maybeSingle()',
-])
-assertSourceOrder('Edge 协作快照 fail-closed', edgeBootstrapSource, [
-  'if (error)',
-  'typeof row.document_data !== \'string\'',
-  '\'collaboration_snapshot_unavailable\'',
-  'documentData: row.document_data',
-])
-assertNotContains('Edge 协作快照查询', edgeBootstrapSource, '.select(\'*\')')
+assertMutationRejected(
+  'Edge owner 过滤仅在注释中保留',
+  edgeRawSource,
+  edgeOwnerFilterMutant,
+  verifyEdgeBootstrap,
+)
 
 const edgeOwnerJoinGateSource = readSourceSection(
   edgeSource,
@@ -307,46 +438,76 @@ assertSourceOrder('协作文档 loadKey', loadKeySource, [
   'return activeResumeId ? `resume:' + '$' + '{activeResumeId}` : \'empty\'',
 ])
 
-const loaderEffectSource = readSourceSection(
-  loaderSource,
-  '  // effect 只以稳定文档身份为键',
-  '\n  // 监听简历删除',
-  '简历加载编排 effect',
-)
-assertNotContains('简历加载编排 effect', loaderEffectSource, 'getCurrentUser')
-const ownerNoOpSource = readSourceSection(
-  loaderEffectSource,
-  '    const expectedDocumentSource = route.kind === \'invite\' ? \'collaboration\' : \'owner\'',
-  '    const isCollaborationRoute =',
-  '已加载 owner 文档 no-op 门禁',
-)
-assertSourceOrder('已加载 owner 文档 no-op 门禁', ownerNoOpSource, [
-  'loadedIdentity.source === expectedDocumentSource',
-  'loadedIdentity.loadKey === loadKey',
-  'resumeState.docManager.canPersist() === (expectedDocumentSource === \'owner\')',
-  'const isCurrentHostUrlTransition',
-  'if (hasReusableDocument && (route.kind === \'none\' || isCurrentHostUrlTransition))',
-  'setLoading(false)',
-  'return () =>',
-])
-const noOpGateIndex = loaderEffectSource.indexOf(
-  'if (hasReusableDocument && (route.kind === \'none\' || isCurrentHostUrlTransition))',
-)
-for (const destructiveMarker of [
-  'useResumeConfigStore.getState().discardSpacingPreview()',
-  'setLoading(true)',
-  'const loadOwnerResume = async',
-  'await loadResumeData(',
-  'await useCollaborationStore.getState().resumeHosting(params)',
-  'const runLoad = async',
-]) {
-  const destructiveIndex = loaderEffectSource.indexOf(destructiveMarker)
-  assert.notEqual(destructiveIndex, -1, `已加载 owner 文档 no-op 门禁：缺少后续标记 ${destructiveMarker}`)
-  assert.ok(
-    noOpGateIndex < destructiveIndex,
-    `已加载 owner 文档 no-op 门禁：${destructiveMarker} 不得早于 no-op`,
+function verifyOwnerDocumentNoOp(candidateSource: string) {
+  const source = stripTypeScriptComments(candidateSource)
+  const effectSource = readSourceSection(
+    source,
+    '  useEffect(() => {\n    let cancelled = false\n    const generation = ++loadGenerationRef.current',
+    '\n  useEffect(() => {\n    if (!activeResumeId || isOfflineResumeId(activeResumeId) || !currentUser)',
+    '简历加载编排 effect',
   )
+  assertNotContains('简历加载编排 effect', effectSource, 'getCurrentUser')
+  const noOpSource = readSourceSection(
+    effectSource,
+    '    const expectedDocumentSource = route.kind === \'invite\' ? \'collaboration\' : \'owner\'',
+    '    const isCollaborationRoute =',
+    '已加载 owner 文档 no-op 门禁',
+  )
+  assertSourceOrder('已加载 owner 文档 no-op 门禁', noOpSource, [
+    'loadedIdentity.source === expectedDocumentSource',
+    'loadedIdentity.loadKey === loadKey',
+    'resumeState.docManager.canPersist() === (expectedDocumentSource === \'owner\')',
+    'const isCurrentHostUrlTransition',
+    'route.kind === \'host-recovery\'',
+    'collaborationState.role === \'host\'',
+    'collaborationState.sessionId === route.sessionId',
+    'collaborationState.resumeId === route.resumeId',
+    'authState.authStatus === \'authenticated\'',
+    'authenticatedUserId === collaborationState.self?.userId',
+    'collaborationState.isSharing',
+    'if (hasReusableDocument && (route.kind === \'none\' || isCurrentHostUrlTransition))',
+    'setLoading(false)',
+    'return () =>',
+  ])
+  const noOpGateIndex = effectSource.indexOf(
+    'if (hasReusableDocument && (route.kind === \'none\' || isCurrentHostUrlTransition))',
+  )
+  assert.notEqual(noOpGateIndex, -1, '已加载 owner 文档 no-op 门禁：缺少 no-op 条件')
+  for (const destructiveMarker of [
+    'useResumeConfigStore.getState().discardSpacingPreview()',
+    'setLoading(true)',
+    'const loadOwnerResume = async',
+    'await loadResumeData(',
+    'await useCollaborationStore.getState().resumeHosting(params)',
+    'const runLoad = async',
+  ]) {
+    const destructiveIndex = effectSource.indexOf(destructiveMarker)
+    assert.notEqual(destructiveIndex, -1, `已加载 owner 文档 no-op 门禁：缺少后续标记 ${destructiveMarker}`)
+    assert.ok(
+      noOpGateIndex < destructiveIndex,
+      `已加载 owner 文档 no-op 门禁：${destructiveMarker} 不得早于 no-op`,
+    )
+  }
+  return effectSource
 }
+
+const loaderEffectSource = verifyOwnerDocumentNoOp(loaderRawSource)
+const hostUrlTransitionSource = readSourceSection(
+  loaderRawSource,
+  '    const isCurrentHostUrlTransition =',
+  '\n    if (hasReusableDocument',
+  'host URL transition mutation',
+)
+const hostUrlTransitionMutant = loaderRawSource.replace(
+  hostUrlTransitionSource,
+  '    const isCurrentHostUrlTransition = true\n',
+)
+assertMutationRejected(
+  'host URL transition 恒 true',
+  loaderRawSource,
+  hostUrlTransitionMutant,
+  verifyOwnerDocumentNoOp,
+)
 
 const authGateSource = readSourceSection(
   loaderEffectSource,
@@ -396,24 +557,47 @@ assertSourceOrder('协作面板开启共享', panelStartSource, [
   'params.delete(\'docUrl\')',
   'setSearchParams(params, { replace: true })',
 ])
-const panelStopSource = readSourceSection(
-  collaborationPanelSource,
-  '  const handleStopSharing = useCallback(async () => {',
-  '\n  const handleCopyShareLink = useCallback(',
-  '协作面板停止共享',
-)
-assertSourceOrder('协作面板停止共享', panelStopSource, [
-  'await stopSharing()',
-  'if (collaborationRole === \'guest\')',
-  'navigate(\'/resume\', { replace: true })',
-  'params.delete(\'collabSession\')',
-  'params.delete(\'docUrl\')',
-  'params.set(\'resumeId\', activeResumeId)',
-  'setSearchParams(params, { replace: true })',
-])
+function verifyPanelStop(candidateSource: string) {
+  const source = stripTypeScriptComments(candidateSource)
+  const stopSource = readSourceSection(
+    source,
+    '  const handleStopSharing = useCallback(async () => {',
+    '\n  const handleCopyShareLink = useCallback(',
+    '协作面板停止共享',
+  )
+  assertSourceOrder('协作面板停止共享', stopSource, [
+    'await stopSharing()',
+    'if (collaborationRole === \'guest\')',
+    'navigate(\'/resume\', { replace: true })',
+    'params.delete(\'collabSession\')',
+    'params.delete(\'docUrl\')',
+    'params.set(\'resumeId\', activeResumeId)',
+    'setSearchParams(params, { replace: true })',
+    '}, [activeResumeId, collaborationRole, navigate, setSearchParams, stopSharing])',
+  ])
+}
 
-const hostStopSource = readSourceSection(
+verifyPanelStop(collaborationPanelRawSource)
+const panelStopDependencies = '}, [activeResumeId, collaborationRole, navigate, setSearchParams, stopSharing])'
+const panelStopDependencyMutant = collaborationPanelRawSource.replace(
+  panelStopDependencies,
+  '}, [activeResumeId, navigate, setSearchParams, stopSharing])',
+)
+assertMutationRejected(
+  'handleStopSharing 删除 collaborationRole 依赖',
+  collaborationPanelRawSource,
+  panelStopDependencyMutant,
+  verifyPanelStop,
+)
+
+const stopSharingActionSource = readSourceSection(
   sessionStoreSource,
+  '    stopSharing: async ({ silent, bestEffort } = {}) => {',
+  '\n    refreshCommentAccess: async () => {',
+  'stopSharing action',
+)
+const hostStopSource = readSourceSection(
+  stopSharingActionSource,
   '        try {\n          let result',
   '\n        if (cleaned && !silent)',
   '宿主停止共享事务',
