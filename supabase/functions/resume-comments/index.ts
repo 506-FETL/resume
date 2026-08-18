@@ -102,6 +102,13 @@ interface CollaborationSessionRow {
   revoked_at: string | null
 }
 
+interface CollaborationDocumentRow {
+  document_data: string
+  heads: string[]
+  document_version: number
+  updated_at: string
+}
+
 interface CollaborationMemberRow {
   session_id: string
   user_id: string
@@ -1104,6 +1111,38 @@ async function getActiveCollaborationSession(
   return session
 }
 
+async function loadCollaborationDocumentBootstrap(
+  admin: AdminClient,
+  session: CollaborationSessionRow,
+) {
+  const { data, error } = await admin
+    .from('automerge_documents')
+    .select('document_data,heads,document_version,updated_at')
+    .eq('resume_id', session.resume_id)
+    .eq('user_id', session.owner_user_id)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  const row = data as CollaborationDocumentRow | null
+  if (!row || typeof row.document_data !== 'string' || row.document_data.length === 0) {
+    throw new CommentApiError(
+      'collaboration_snapshot_unavailable',
+      '共享简历快照暂时不可用',
+      409,
+    )
+  }
+
+  return {
+    documentData: row.document_data,
+    heads: Array.isArray(row.heads) ? row.heads : [],
+    documentVersion: Number.isFinite(row.document_version) ? row.document_version : 1,
+    updatedAt: row.updated_at,
+  }
+}
+
 async function issueCollaboratorToken({
   session,
   member,
@@ -1263,7 +1302,11 @@ async function handleCollaborationSessionOperation({
   let member: CollaborationMemberRow | null = null
   if (op === 'join_collaboration_session') {
     if (session.owner_user_id === userId) {
-      throw new CommentApiError('unauthorized', '简历所有者无需以协作者身份加入', 403)
+      throw new CommentApiError(
+        'owner_must_host',
+        '简历所有者应恢复为协作发起者',
+        409,
+      )
     }
     const { data, error } = await admin
       .from('resume_comment_collaboration_members')
@@ -1313,12 +1356,18 @@ async function handleCollaborationSessionOperation({
   const scope = await getScope(admin, session.scope_id)
   if (scope.kind !== 'version' || scope.version_id == null)
     throw new CommentApiError('unauthorized', '协作评论版本无效', 401)
-  return issueCollaboratorToken({
+  const commentAccess = await issueCollaboratorToken({
     session,
     member,
     versionId: scope.version_id,
     collaboratorSecret,
   })
+  if (op === 'renew_collaboration_session') {
+    return commentAccess
+  }
+  const bootstrap = await loadCollaborationDocumentBootstrap(admin, session)
+
+  return { ...commentAccess, bootstrap }
 }
 
 async function resolveAnonymousIdentity({

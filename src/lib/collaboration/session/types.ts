@@ -21,6 +21,18 @@ export interface CollaborationCommentAccess {
   role: 'editor' | 'viewer'
 }
 
+export interface CollaborationDocumentBootstrap {
+  documentData: string
+  updatedAt: string
+  documentVersion: number
+  heads: string[]
+}
+
+export interface CollaborationGuestAuthorization {
+  commentAccess: CollaborationCommentAccess
+  bootstrap: CollaborationDocumentBootstrap
+}
+
 export interface CollaborationParticipantMetadata extends CollaborationIdentity {
   role: CollaborationRole | null
 }

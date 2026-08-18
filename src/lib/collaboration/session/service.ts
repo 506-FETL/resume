@@ -1,6 +1,8 @@
 import type {
   CollaborationCommentAccess,
   CollaborationConnectionPhase,
+  CollaborationDocumentBootstrap,
+  CollaborationGuestAuthorization,
   CreateSessionCallbacks,
   SessionActivationOptions,
 } from './types'
@@ -144,14 +146,24 @@ export async function registerCollaborationCommentSession(input: {
   }>('register_collaboration_session', input)
 }
 
-export function joinCollaborationCommentSession(input: {
+export async function joinCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
-}) {
-  return callCollaborationCommentOperation<CollaborationCommentAccess>(
+}): Promise<CollaborationGuestAuthorization> {
+  const result = await callCollaborationCommentOperation<
+    CollaborationCommentAccess & { bootstrap: CollaborationDocumentBootstrap }
+  >(
     'join_collaboration_session',
     input,
   )
+
+  const { bootstrap, ...commentAccess } = result
+  if (!bootstrap?.documentData) {
+    throw new CollaborationOperationError('协作服务未返回共享简历快照', {
+      code: 'collaboration_snapshot_unavailable',
+    })
+  }
+  return { commentAccess, bootstrap }
 }
 
 export function renewCollaborationCommentSession(input: {
@@ -169,7 +181,7 @@ export async function leaveCollaborationCommentSession(input: {
   resumeId: string
   hostLeaseId?: string
 }) {
-  await callCollaborationCommentOperation<{ sessionId: string, revoked: boolean }>(
+  return callCollaborationCommentOperation<{ sessionId: string, revoked: boolean }>(
     'leave_collaboration_session',
     input,
   )
