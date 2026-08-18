@@ -82,7 +82,61 @@ const hardeningMigrationSource = readFileSync(
   'supabase/migrations/20260816080301_fix_comment_lock_order_and_function_paths.sql',
   'utf8',
 )
+const collaborationLeaseMigrationSource = readFileSync(
+  'supabase/migrations/20260818051900_add_comment_collaboration_member_lease.sql',
+  'utf8',
+)
+const commentAuthSource = readFileSync(
+  'supabase/functions/shared/resume-comment-auth.ts',
+  'utf8',
+)
+const collaborationClientServiceSource = readFileSync(
+  'src/lib/collaboration/session/service.ts',
+  'utf8',
+)
+const collaborationCallbacksSource = readFileSync(
+  'src/lib/collaboration/session/callbacks.ts',
+  'utf8',
+)
+const collaborationTypesSource = readFileSync(
+  'src/lib/collaboration/session/types.ts',
+  'utf8',
+)
+const collaborationStateSource = readFileSync(
+  'src/lib/collaboration/session/state.ts',
+  'utf8',
+)
 const normalizedBootstrapMigrationSource = bootstrapMigrationSource.replace(/\s+/gu, ' ')
+const collaborationOperationSource = readSourceSection(
+  edgeSource,
+  'function readCollaborationProtocolVersion',
+  '\nasync function resolveAnonymousIdentity',
+)
+const sessionClaimRpcSource = readSourceSection(
+  collaborationLeaseMigrationSource,
+  'CREATE OR REPLACE FUNCTION public.claim_resume_comment_collaboration_session_v2',
+  'CREATE OR REPLACE FUNCTION public.claim_resume_comment_collaboration_member_v2',
+)
+const memberClaimRpcSource = readSourceSection(
+  collaborationLeaseMigrationSource,
+  'CREATE OR REPLACE FUNCTION public.claim_resume_comment_collaboration_member_v2',
+  'CREATE OR REPLACE FUNCTION public.release_resume_comment_collaboration_member_v2',
+)
+const memberReleaseRpcSource = readSourceSection(
+  collaborationLeaseMigrationSource,
+  'CREATE OR REPLACE FUNCTION public.release_resume_comment_collaboration_member_v2',
+  'CREATE OR REPLACE FUNCTION public.revoke_resume_comment_collaboration_session_v2',
+)
+const hostRevokeRpcSource = readSourceSection(
+  collaborationLeaseMigrationSource,
+  'CREATE OR REPLACE FUNCTION public.revoke_resume_comment_collaboration_session_v2',
+  'CREATE OR REPLACE FUNCTION public.bootstrap_resume_comments_with_collaboration_lease_v2',
+)
+const collaborationBootstrapRpcSource = readSourceSection(
+  collaborationLeaseMigrationSource,
+  'CREATE OR REPLACE FUNCTION public.bootstrap_resume_comments_with_collaboration_lease_v2',
+  'REVOKE ALL ON FUNCTION public.claim_resume_comment_collaboration_session_v2',
+)
 const eventProjectionSource = readSourceSection(
   edgeSource,
   'function projectCommentEventsForAccess',
@@ -168,8 +222,146 @@ assert.match(edgeSource, /token\.resumeId !== session\.resume_id/u)
 assert.match(edgeSource, /token\.role !== member\.role/u)
 assert.match(edgeSource, /token\.versionId !== scope\.version_id/u)
 assert.match(edgeSource, /session\.revoked_at/u)
-assert.match(edgeSource, /\.eq\('host_lease_id', hostLeaseId\)/u)
-assert.match(edgeSource, /default_role: existing\?\.default_role === 'viewer' \? 'viewer' : 'editor'/u)
+
+// collaboration protocol v2：数据库事务 fencing、双协议兼容与 token 绑定。
+assert.match(
+  collaborationLeaseMigrationSource,
+  /ALTER TABLE public\.resume_comment_collaboration_sessions[\s\S]*?ADD COLUMN IF NOT EXISTS protocol_version smallint/u,
+)
+assert.match(
+  collaborationLeaseMigrationSource,
+  /ALTER TABLE public\.resume_comment_collaboration_members[\s\S]*?ADD COLUMN IF NOT EXISTS member_lease_id uuid,[\s\S]*?ADD COLUMN IF NOT EXISTS protocol_version smallint/u,
+)
+assert.equal(
+  collaborationLeaseMigrationSource.match(/PERFORM public\.assert_resume_comment_service_role\(\);/gu)?.length,
+  5,
+)
+assert.equal(
+  collaborationLeaseMigrationSource.match(/LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = ''/gu)?.length,
+  5,
+)
+for (const rpcName of [
+  'claim_resume_comment_collaboration_session_v2',
+  'claim_resume_comment_collaboration_member_v2',
+  'release_resume_comment_collaboration_member_v2',
+  'revoke_resume_comment_collaboration_session_v2',
+  'bootstrap_resume_comments_with_collaboration_lease_v2',
+]) {
+  assert.match(
+    collaborationLeaseMigrationSource,
+    new RegExp(`REVOKE ALL ON FUNCTION public\\.${rpcName}\\([\\s\\S]*?FROM PUBLIC, anon, authenticated;[\\s\\S]*?GRANT EXECUTE ON FUNCTION public\\.${rpcName}\\([\\s\\S]*?TO service_role;`, 'u'),
+  )
+}
+
+assert.match(sessionClaimRpcSource, /pg_catalog\.pg_advisory_xact_lock/u)
+assertSourceOrder(sessionClaimRpcSource, [
+  'pg_catalog.pg_advisory_xact_lock',
+  'FOR UPDATE;',
+  'MESSAGE = \'collaboration_session_conflict\'',
+  'MESSAGE = \'session_id_retired\'',
+  'INSERT INTO public.resume_comment_collaboration_sessions',
+])
+assert.doesNotMatch(sessionClaimRpcSource, /ON CONFLICT|SET host_lease_id/u)
+assert.match(sessionClaimRpcSource, /'hostLeaseId', v_session\.host_lease_id/u)
+
+assertSourceOrder(memberClaimRpcSource, [
+  'FROM public.resume_comment_collaboration_sessions AS sessions',
+  'IF v_session.owner_user_id = p_user_id',
+  'FROM public.resume_comment_collaboration_members AS members',
+  'IF NOT FOUND THEN',
+  'ELSIF v_member.member_lease_id = p_member_lease_id THEN',
+  'MESSAGE = \'member_lease_conflict\'',
+  'SET member_lease_id = p_member_lease_id',
+])
+assert.match(memberClaimRpcSource, /v_member\.revoked_at IS NULL[\s\S]*?v_member\.expires_at > pg_catalog\.now\(\)/u)
+assert.doesNotMatch(memberClaimRpcSource, /ON CONFLICT/u)
+
+assert.match(memberReleaseRpcSource, /v_member\.protocol_version <> p_protocol_version/u)
+assert.match(memberReleaseRpcSource, /v_member\.member_lease_id <> p_member_lease_id/u)
+assertSourceOrder(memberReleaseRpcSource, [
+  'IF v_member.revoked_at IS NULL THEN',
+  'SET revoked_at = pg_catalog.now()',
+  'RETURN true;',
+])
+
+assertSourceOrder(hostRevokeRpcSource, [
+  'FOR UPDATE;',
+  'v_session.host_lease_id <> p_host_lease_id',
+  'IF v_session.revoked_at IS NULL THEN',
+  'UPDATE public.resume_comment_collaboration_sessions',
+  'UPDATE public.resume_comment_collaboration_members',
+  'RETURN true;',
+])
+assert.match(hostRevokeRpcSource, /members\.protocol_version = p_protocol_version/u)
+assertSourceOrder(collaborationBootstrapRpcSource, [
+  'IF p_access_kind = \'collaborator\' THEN',
+  'FROM public.resume_comment_collaboration_sessions AS sessions',
+  'AND sessions.protocol_version = p_collaboration_protocol_version',
+  'FROM public.resume_comment_collaboration_members AS members',
+  'AND members.protocol_version = p_collaboration_protocol_version',
+  'v_member.member_lease_id <> p_member_lease_id',
+  'RETURN public.bootstrap_resume_comments_v1(',
+])
+
+assert.match(collaborationOperationSource, /if \(body\.protocolVersion === undefined\)\s+return 1/u)
+assert.match(collaborationOperationSource, /claim_resume_comment_collaboration_session_v2/u)
+assert.match(collaborationOperationSource, /claim_resume_comment_collaboration_member_v2/u)
+assert.match(collaborationOperationSource, /release_resume_comment_collaboration_member_v2/u)
+assert.match(collaborationOperationSource, /revoke_resume_comment_collaboration_session_v2/u)
+assert.doesNotMatch(collaborationOperationSource, /\.upsert\(/u)
+const leaveOperationSource = readSourceSection(
+  collaborationOperationSource,
+  '  if (op === \'leave_collaboration_session\')',
+  '\n  const session = await getActiveCollaborationSession',
+)
+assert.doesNotMatch(leaveOperationSource, /getActiveCollaborationSession/u)
+assert.match(leaveOperationSource, /session\.protocol_version !== protocolVersion/u)
+const renewOperationSource = readSourceSection(
+  collaborationOperationSource,
+  '  else {\n    const memberLeaseId',
+  '\n  if (\n    member.protocol_version',
+)
+assert.equal(renewOperationSource.match(/\.update\(/gu)?.length, 1)
+assert.equal(renewOperationSource.match(/\.select\(/gu)?.length, 1)
+assertSourceOrder(renewOperationSource, [
+  '.update({ last_seen_at:',
+  '.eq(\'protocol_version\', protocolVersion)',
+  '.eq(\'member_lease_id\', memberLeaseId)',
+  '.select(\'session_id,user_id,member_lease_id,protocol_version,role,expires_at,revoked_at\')',
+  '.maybeSingle()',
+])
+
+assert.match(commentAuthSource, /protocolVersion\?: 1 \| 2/u)
+assert.match(commentAuthSource, /memberLeaseId\?: string/u)
+assert.match(edgeSource, /protocolVersion: session\.protocol_version,[\s\S]*?memberLeaseId: member\.member_lease_id/u)
+assert.match(edgeSource, /token\.protocolVersion !== session\.protocol_version/u)
+assert.match(edgeSource, /token\.protocolVersion !== member\.protocol_version/u)
+assert.match(edgeSource, /token\.memberLeaseId !== member\.member_lease_id/u)
+assert.match(edgeSource, /async function assertCollaboratorBootstrapLease/u)
+assert.match(edgeSource, /member\.member_lease_id !== lease\.memberLeaseId/u)
+assertSourceOrder(edgeSource, [
+  'const bootstrapInput = await timeOperation',
+  'assertCollaboratorBootstrapLease(admin, bootstrapInput.collaboratorLease)',
+  'bootstrapResumeComments(admin, rpcInput, bootstrapInput.collaboratorLease)',
+])
+
+assert.match(collaborationClientServiceSource, /COLLABORATION_PROTOCOL_VERSION = 2 as const/u)
+assert.match(collaborationClientServiceSource, /body: \{ op, protocolVersion: COLLABORATION_PROTOCOL_VERSION, \.\.\.input \}/u)
+assert.match(collaborationClientServiceSource, /commentAccess\.memberLeaseId !== input\.memberLeaseId/u)
+assert.match(collaborationClientServiceSource, /result\.protocolVersion !== COLLABORATION_PROTOCOL_VERSION/u)
+assert.match(
+  collaborationTypesSource,
+  /interface CollaborationCommentAccess \{[\s\S]*?protocolVersion: 2[\s\S]*?memberLeaseId: string/u,
+)
+assert.match(collaborationCallbacksSource, /isCurrentSession/u)
+assert.ok(collaborationCallbacksSource.match(/!isCurrentSession\(\)/gu)?.length >= 3)
+assert.match(collaborationStateSource, /Omit<[\s\S]*?'phase' \| 'isSharing' \| 'isConnecting'/u)
+assertSourceOrder(collaborationStateSource, [
+  '...overrides,',
+  'phase,',
+  '...getCollaborationPhaseFlags(phase)',
+])
+
 assert.match(hardeningMigrationSource, /root -> version ->[\s\S]*?scope/u)
 assert.match(hardeningMigrationSource, /pg_catalog\.pg_advisory_xact_lock/u)
 assert.match(hardeningMigrationSource, /SET lock_timeout = '3s'/u)
@@ -239,7 +431,7 @@ assert.ok(legacyAccessStart > bootstrapBranchStart)
 const bootstrapBranchSource = handlerSource.slice(bootstrapBranchStart, legacyAccessStart)
 
 assert.equal(
-  edgeSource.match(/admin\.rpc\('bootstrap_resume_comments_v1'/gu)?.length,
+  edgeSource.match(/'bootstrap_resume_comments_with_collaboration_lease_v2'/gu)?.length,
   1,
 )
 assert.doesNotMatch(
@@ -878,6 +1070,8 @@ const collaboratorPayload = {
   versionId: 42,
   userId: '00000000-0000-4000-8000-000000000013',
   role: 'editor' as const,
+  protocolVersion: 2 as const,
+  memberLeaseId: '00000000-0000-4000-8000-000000000014',
 }
 const collaboratorToken = await signCommentToken(collaboratorPayload, secret)
 assert.deepEqual(
@@ -892,6 +1086,24 @@ const forgedRolePayload = Buffer.from(JSON.stringify({
 await assert.rejects(
   verifyCommentToken(`${forgedRolePayload}.${collaboratorSignature}`, 'collaborator', secret),
   (error: unknown) => error instanceof CommentApiError && error.code === 'unauthorized',
+)
+
+const legacyCollaboratorPayload = {
+  version: 1 as const,
+  kind: 'collaborator' as const,
+  issuedAt: now,
+  expiresAt: now + 15 * 60,
+  sessionId: 'session-comment-legacy-0001',
+  resumeId: '00000000-0000-4000-8000-000000000021',
+  scopeId: '00000000-0000-4000-8000-000000000022',
+  versionId: 43,
+  userId: '00000000-0000-4000-8000-000000000023',
+  role: 'viewer' as const,
+}
+const legacyCollaboratorToken = await signCommentToken(legacyCollaboratorPayload, secret)
+assert.deepEqual(
+  await verifyCommentToken(legacyCollaboratorToken, 'collaborator', secret),
+  legacyCollaboratorPayload,
 )
 
 const anonymousSecret = Buffer.alloc(32, 7).toString('base64url')

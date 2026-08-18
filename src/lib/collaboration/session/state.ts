@@ -60,14 +60,19 @@ function getCollaborationPhaseFlags(phase: CollaborationPhase) {
   }
 }
 
+type CollaborationPhaseOverrides = Partial<Omit<
+  CollaborationSessionState,
+  'phase' | 'isSharing' | 'isConnecting'
+>>
+
 export function createCollaborationPhaseState(
   phase: CollaborationPhase,
-  overrides: Partial<CollaborationSessionState> = {},
+  overrides: CollaborationPhaseOverrides = {},
 ): Partial<CollaborationSessionState> {
   return {
+    ...overrides,
     phase,
     ...getCollaborationPhaseFlags(phase),
-    ...overrides,
   }
 }
 
@@ -135,9 +140,9 @@ export function createConnectedSessionState(
 }
 
 export function createStoppedSessionState(
-  overrides: Partial<CollaborationSessionState> = {},
+  overrides: CollaborationPhaseOverrides & { phase?: CollaborationPhase } = {},
 ): Partial<CollaborationSessionState> {
-  const phase = overrides.phase ?? 'idle'
+  const { phase = 'idle', ...safeOverrides } = overrides
 
   return createCollaborationPhaseState(phase, {
     role: null,
@@ -151,6 +156,6 @@ export function createStoppedSessionState(
     commentAccess: null,
     commentHostLeaseId: null,
     shareEndedByRemote: false,
-    ...overrides,
+    ...safeOverrides,
   })
 }

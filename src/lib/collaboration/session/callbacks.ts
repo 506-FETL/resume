@@ -4,22 +4,27 @@ import { toast } from 'sonner'
 import { addParticipant, createParticipant, removeParticipant } from './state'
 
 export function createSessionCallbacks(options: SessionCallbacksOptions): CollaborationCallbacks {
-  const { role, identity, getState, setState, adapterPeerIdRef } = options
+  const { role, identity, getState, setState, adapterPeerIdRef, isCurrentSession } = options
 
   return {
     presenceMetadata: { ...identity, role },
 
     onPeerJoin: ({ peerId, metadata }) => {
-      if (peerId === adapterPeerIdRef.current) {
+      if (!isCurrentSession() || peerId === adapterPeerIdRef.current) {
         return
       }
 
       setState(state => ({
-        participants: addParticipant(
-          state.participants,
-          createParticipant(peerId, metadata),
-        ),
+        participants: isCurrentSession()
+          ? addParticipant(
+              state.participants,
+              createParticipant(peerId, metadata),
+            )
+          : state.participants,
       }))
+
+      if (!isCurrentSession())
+        return
 
       const participantMetadata = getState().participants[peerId]?.metadata
       const displayName = participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
@@ -27,20 +32,29 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
     },
 
     onPeerLeave: ({ peerId }) => {
+      if (!isCurrentSession())
+        return
+
       const participantMetadata = getState().participants[peerId]?.metadata
       const displayName = participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
 
       setState(state => ({
-        participants: removeParticipant(state.participants, peerId),
+        participants: isCurrentSession()
+          ? removeParticipant(state.participants, peerId)
+          : state.participants,
       }))
 
-      if (peerId !== adapterPeerIdRef.current) {
+      if (isCurrentSession() && peerId !== adapterPeerIdRef.current) {
         toast.info(`${displayName} 退出协作`)
       }
     },
 
     onControlMessage: ({ type }) => {
-      if (type === 'share-ended' && getState().role !== 'host') {
+      if (
+        isCurrentSession()
+        && type === 'share-ended'
+        && getState().role !== 'host'
+      ) {
         getState().handleRemoteShareEnd()
       }
     },

@@ -228,6 +228,13 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         setState: set as CollaborationSessionSetState,
         createCallbacks: createSessionCallbacks,
         getDocumentManager: () => useResumeStore.getState().docManager,
+        isCurrentSession: () => {
+          const state = get()
+          return activeGeneration === generation
+            && state.sessionId === params.sessionId
+            && state.resumeId === params.resumeId
+            && state.role === 'host'
+        },
       })
 
       if (generation !== activeGeneration) {
@@ -388,6 +395,13 @@ const useCollaborationStore = create<CollaborationSessionStore>()((set, get) => 
         setState: set as CollaborationSessionSetState,
         createCallbacks: createSessionCallbacks,
         getDocumentManager: () => useResumeStore.getState().docManager,
+        isCurrentSession: () => {
+          const state = get()
+          return activeGeneration === prepared.generation
+            && state.sessionId === prepared.sessionId
+            && state.resumeId === prepared.resumeId
+            && state.role === 'guest'
+        },
       })
 
       try {

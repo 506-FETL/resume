@@ -139,11 +139,11 @@ interface CollaborationJoinResult extends CollaborationCommentAccess {
 ```
 
 - `documentData` 使用可被现有 `decodeDocumentData()` 统一处理的 BYTEA/Base64 字符串。
-- Edge Function 只能在 `getActiveCollaborationSession()` 和成员 upsert 成功后，根据 `session.resume_id` 与 `session.owner_user_id` 读取 `automerge_documents`。
+- Edge Function 只能在 `getActiveCollaborationSession()` 和事务级成员 claim 成功后，根据 `session.resume_id` 与 `session.owner_user_id` 读取 `automerge_documents`。
 - 不接受客户端提交的 owner ID，也不允许客户端用请求参数选择其他快照。
 - 找不到快照、快照为空或查询失败时返回明确业务错误，例如 `collaboration_snapshot_unavailable`，不能返回成功但缺少 bootstrap。
 - `renew_collaboration_session` 只续租成员与评论访问令牌，不重复下发大快照。
-- 本设计复用现有数据表，不新增数据库迁移。
+- 新 migration 为 session/member 增加 `protocol_version`，为 member 增加 `member_lease_id`，并提供仅 `service_role` 可调用的 host/member claim 与 revoke RPC。
 
 ### 6.2 错误码
 
@@ -290,11 +290,12 @@ guest 收到 `share-ended` 后：
 
 ## 13. 兼容、发布与回滚
 
-- Edge Function 先部署扩展响应，前端随后发布；新增字段对旧前端是向后兼容的。
-- 新前端遇到尚未返回 bootstrap 的旧 Edge Function 时必须提示服务版本不匹配，不能回退空文档。
-- 不修改现有数据库 schema，因此迁移账本应保持不变。
-- 部署后记录 `resume-comments` 新版本，并核验 register/join/renew/leave 的 HTTP 状态和业务响应。
-- 若前端回滚，服务端多返回的 bootstrap 字段不会影响旧客户端；若服务端回滚，新客户端会 fail-closed 并给出明确提示。
+- 发布顺序固定为：先应用 `20260818051900_add_comment_collaboration_member_lease.sql`，再部署同时支持 v1/v2 的 `resume-comments`，最后发布明确发送 `protocolVersion: 2` 的新前端。不得 Edge-first 越过 migration。
+- migration 将既有 session/member 回填为 protocol v1。旧已加载前端不发送协议字段，Edge 按 v1 处理；v1 register/join/renew/leave 只能读写 protocol 1 行，不能修改 v2 session/member。
+- v2 session 的 host/member claim、leave 与 renew 强制 lease fencing；v2 collaborator JWT 同时绑定 `protocolVersion` 与 `memberLeaseId`。旧 JWT 缺少协议字段时只能按 v1 校验。
+- v1 自然过期前保留双协议分支；确认所有 v1 session 过期后，另开迁移和 Edge 版本移除兼容，不能在本次发布中提前删除。
+- 新前端遇到旧 Edge Function 或非 v2 响应时必须 fail-closed 并提示服务版本不匹配，不能回退空文档。
+- 回滚新前端时，dual-protocol Edge 继续服务 v1；migration 和 fencing RPC 不回滚。部署后记录 migration 账本、Edge 版本以及 v1/v2 隔离 smoke。
 
 ## 14. 验证与验收矩阵
 
@@ -326,7 +327,7 @@ guest 收到 `share-ended` 后：
 ### 14.3 线上核验
 
 - 部署当前已链接的 Supabase 项目，不要求用户手工执行。
-- 核验 Edge Function 版本、迁移账本未变化、线上 register/join/renew/leave smoke。
+- 核验 migration 已进入远端账本、Edge Function 版本已递增，并完成 v1/v2 register/join/renew/leave smoke。
 - 检查 Realtime 日志中 Automerge control/sync、Yjs、Presence 的会话流量。
 - 检查已撤销会话的 `revoked_at`、成员撤销和后续 renew 401。
 
@@ -334,14 +335,15 @@ guest 收到 `share-ended` 后：
 
 本次交付完成的定义不是“构建通过”，而是：四个用户报告路径全部按浏览器矩阵验证通过，Edge Function 已部署并完成线上 smoke，协作者空白文档降级路径被移除，停止共享具备广播即时退出与服务端续租兜底两层保证。
 
-## 16. 正式审查增补：guest membership lease
+## 16. 正式审查增补：分布式 lease 与 fencing
 
-客户端 generation 只能隔离本地异步回调，不能阻止已经发出的旧 guest leave 在新 join 之后抵达服务端。guest 成员资格因此增加服务端条件化 lease：
+客户端 generation 和请求 timeout 只能隔离本地回调，不能取消已经抵达远端的请求。最终一致性边界必须落在数据库事务内：
 
-- 每次 guest prepare 在首个 await 前生成新的 `memberLeaseId`；join 在确认当前用户不是 owner 后校验该 UUID，并把它写入成员行。
-- join、renew 返回的 `CollaborationCommentAccess` 必须包含当前 `memberLeaseId`；renew 同样携带并校验该 token，旧 lease 不能续租或取得新 lease。
-- guest leave 必须同时匹配 `session_id + user_id + member_lease_id` 才能撤销成员，并用条件更新返回行决定 `revoked`。旧 leave 即使延迟到新 join 之后，也只能得到 `revoked: false`，不得撤销新成员。
-- host 继续使用 `hostLeaseId` 条件撤销整个 session；guest lease 不改变 host stop 的权威顺序。
-- join 已 upsert 但快照读取失败时，客户端用本地已知 token best-effort leave；`owner_must_host` 发生在成员 upsert 和 token 校验之前，不执行 guest release。
-- Edge invoke 必须有界超时。客户端不再用 membership queue 阻塞新 join；超时只结束当前本地准备流程，迟到请求由服务端 lease 条件保证安全。
-- 正常 guest stop 也必须等待 `revoked: true`；`false` 或请求失败时，若仍是当前 generation/session，恢复 connected 并允许重试。路由卸载的 best-effort stop 可以发起 token 条件 leave 后立即本地清理。
+- host register 调用 service-role-only 原子 claim RPC。首次插入生成 host lease；同 owner/resume/protocol 的 active session 重试返回既有 winner，不旋转 lease；revoked/expired session ID 永久退休。
+- guest join 在确认 `owner_must_host` 后调用原子 member claim RPC。同 token 重试幂等；active 不同 token 返回 `member_lease_conflict`；只有不存在或已撤销的成员行才能由新 token 激活。迟到 join 无法覆盖已建立的新 lease。
+- guest renew 是一次带 `protocol_version + member_lease_id + revoked_at + expires_at` 条件的 update-return；0 行即 unauthorized，不使用 select→touch。
+- guest release RPC 按 protocol 和 member lease 加锁。相同 token 即使已经 revoked 也返回 `true`，不同 token 返回 `false`；prepare failure、abort、normal stop、best-effort stop 共用这一入口。
+- host revoke RPC 在同一事务内核对 host lease，并原子撤销 session 与全部同协议成员；相同 lease 重试在 session 已 revoked 时仍返回 `true`，不匹配返回 `false`。leave 不依赖 active-session 查询。
+- v2 collaborator JWT、普通评论 `resolveAccess` 与 bootstrap 快路径都绑定 `protocolVersion + memberLeaseId`。旧 JWT 只能访问 protocol 1 行，不能借新成员行恢复权限。
+- Automerge callback 捕获 expected generation/session/role；peer/control 回调写 participants、toast 或远端 cleanup 前都必须通过门禁。phase overrides 类型与运行时顺序都不能覆盖派生 flag。
+- Edge invoke timeout 只限制客户端等待时间，不视为远端取消。请求乱序安全性完全由 RPC fencing 和协议隔离保证。

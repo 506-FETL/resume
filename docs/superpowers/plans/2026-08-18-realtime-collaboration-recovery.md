@@ -972,31 +972,35 @@ git commit -m "test(collab): 增加协作生命周期确定性校验"
 - 当前 Git HEAD 与 worktree 状态。
 - 当前已链接 Supabase project ref。
 - `resume-comments` 部署前版本。
-- `supabase migration list --linked` 的最新本地/远端账本；本任务预期无新增迁移。
+- `supabase migration list --linked` 的最新本地/远端账本；确认 `20260818051900` 只存在本地、尚未进入远端账本。
 - 本地 verifier、ESLint、build 的完整命令和退出码。
 
-- [ ] **步骤 2：部署当前已链接项目的 Edge Function**
+- [ ] **步骤 2：按 migration → dual-protocol Edge 顺序部署后端**
 
 运行：
 
 ```bash
+supabase db push --linked --dry-run
+supabase db push --linked --yes
+supabase migration list --linked
 supabase functions deploy resume-comments --project-ref bitxrpdtlohlnywgusfw
 supabase functions list --project-ref bitxrpdtlohlnywgusfw
-supabase migration list --linked
 ```
 
-预期：部署成功，`resume-comments` 版本递增且 ACTIVE；迁移账本与步骤 1 一致。若 CLI 缺少凭据，使用已连接的 Supabase 工具完成同一部署与版本核验。
+预期：dry-run 只包含目标前向 migration；远端账本出现 `20260818051900` 后才允许部署 Edge。`resume-comments` 版本递增且 ACTIVE。若 CLI 缺少凭据，使用已连接的 Supabase 工具按相同顺序完成 migration、函数部署与账本/版本核验；不得先部署依赖新列/RPC 的 Edge。
 
 - [ ] **步骤 3：执行服务端操作 smoke**
 
 使用隔离测试会话验证：
 
-1. owner register 返回 host lease。
-2. guest join 返回 comment access 和非空 bootstrap，bootstrap 的 `updatedAt/documentVersion/heads` 类型正确。
-3. guest renew 返回 access 但不返回 bootstrap。
-4. owner leave 返回 `revoked: true`。
-5. leave 后 guest renew 返回 HTTP 401 + `unauthorized`。
-6. leave 后新 guest join 在下发快照前被拒绝。
+1. v2 owner register 返回 host lease；相同请求重试返回同 lease，并发 register 只能产生一个 winner。
+2. active session 的不同 register 请求不能旋转 lease；session revoked/expired 后相同 session ID 返回 `session_id_retired`。
+3. v2 guest join 返回同一个 `memberLeaseId`、带 lease 的 JWT 和非空 bootstrap；相同 token 重试幂等，不同 token 在 active 行上返回 `member_lease_conflict`。
+4. v2 guest renew 返回同 token access 但不返回 bootstrap；旧 token renew 返回 HTTP 401 + `unauthorized`。
+5. guest leave 相同 token 首次与重试都返回 `revoked: true`；旧 token 的迟到 leave 不能撤销随后建立的新 token。
+6. owner leave 首次与同 host lease 重试都返回 `revoked: true`，session 与 members 在同次事务结果中全部 revoked；不匹配 host lease 返回 `false`。
+7. v1 请求仍能操作既有 protocol 1 session/member，但无 token 的 v1 leave、旧 JWT、迟到 v1 join 都不能读写 protocol 2 行。
+8. host leave 后 guest renew 返回 HTTP 401 + `unauthorized`，新 guest join 在下发快照前被拒绝。
 
 查询 Edge/Realtime 日志确认没有服务端 5xx、没有跨 resume 快照读取，结果写入验证报告。
 
@@ -1048,14 +1052,14 @@ git commit -m "docs(collab): 记录实时协作恢复验收"
 
 ---
 
-## 正式审查增补：guest membership lease
+## 正式审查增补：分布式 lease、fencing 与双协议发布
 
-任务 4 的 generation 与 stop 隔离保留，并追加以下服务端条件化成员租约实现：
+任务 4 的 phase、lease monitor、generation stop 与 adapter ready 改动保留；服务端安全边界按以下步骤替代早期的无条件 upsert/客户端排队设计：
 
-1. 新增前向 migration，为 `resume_comment_collaboration_members` 增加 `member_lease_id uuid`，回填、设置默认值与 `NOT NULL`；现有 `(session_id, user_id)` 主键已把条件更新定位到单行，无需额外索引。
-2. `prepareGuestSession()` 在任何 await 前同步生成 `memberLeaseId`；join 请求携带它。Edge 在 `owner_must_host` 判断之后读取 token，upsert 成员时写入，并由 join/renew 响应返回。
-3. renew 请求携带当前 token，Edge 查询和 touch 都增加 `member_lease_id` 条件；旧 lease 收到 unauthorized 后只结束自己的本地会话。
-4. guest leave 请求携带 token，Edge 只撤销同 token 的未撤销成员，并根据 update 返回行生成 `revoked`；host leave 继续使用 host lease。
-5. prepare failure、abort、normal stop、best-effort stop 的 guest leave 统一调用 token 条件 release。删除客户端 claim/pending queue，不等待旧 token 才允许新 join。
-6. 所有 Edge invoke 使用合理的有界超时；正常 guest stop 要求 `revoked === true`，失败时恢复 connected，best-effort 仍可立即清理。
-7. 任务 9 部署时先应用新 migration，再部署 `resume-comments`，并补做旧 token leave 晚到不能撤销新 token、旧 token renew 被拒绝的线上 smoke。
+1. 在尚未部署的 `20260818051900` migration 中为 session/member 增加 `protocol_version`，为 member 增加 `member_lease_id`，并定义仅 `service_role` 可执行的 host claim、member claim、member release、host revoke 原子 RPC。
+2. host register 调用 claim RPC：active 同身份重试返回 winner lease，不旋转；revoked/expired ID 永久退休。host leave 调用同事务 revoke RPC，原子撤销 session/members，且同 lease 重试幂等。
+3. guest join 调用 member claim RPC：同 token 幂等，active 不同 token conflict，只有不存在/已撤销行能由新 token 激活。renew 改为单次条件 update-return；release RPC 同 token幂等、不同 token 返回 false。
+4. v2 JWT、普通 resolve 和 bootstrap 快路径都比较 protocol/member lease；旧 token 只能按 v1 访问。新客户端所有操作明确发送 `protocolVersion: 2`，join/renew 响应 token 必须与请求一致。
+5. Automerge callbacks 捕获 expected generation/session/role，所有 participants、toast 和 remote cleanup 写入前门禁；phase overrides 不能覆盖 phase 或派生 flags。
+6. `verify:comment-service` 增加 migration/RPC、claim conflict、幂等 revoke、renew 单更新、JWT/resolve/bootstrap lease、v1/v2 隔离及客户端 response 校验的静态契约断言。
+7. 发布严格执行 migration → dual-protocol Edge → v2 frontend。v1 自然过期前保留兼容；客户端 timeout 只限制等待，不作为远端请求已取消的依据。

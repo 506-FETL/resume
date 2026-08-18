@@ -26,6 +26,10 @@ export interface CollaboratorCommentAccessToken extends CommentTokenBase {
   versionId: number
   userId: string
   role: 'editor' | 'viewer'
+  /** 旧 token 不含该字段，按 protocol v1 处理。 */
+  protocolVersion?: 1 | 2
+  /** protocol v2 必须携带，protocol v1 必须省略。 */
+  memberLeaseId?: string
 }
 
 export interface RealtimeCommentAccessToken extends CommentTokenBase {

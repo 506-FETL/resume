@@ -12,10 +12,12 @@ import { buildCollaborationRoomName, buildCollaborationShareUrl, getParticipantC
 interface EnableSessionOptions extends SessionActivationOptions {
   createCallbacks: CreateSessionCallbacks
   getDocumentManager: () => DocumentManager | null
+  isCurrentSession: () => boolean
 }
 
 export const COLLABORATION_CONNECTION_TIMEOUT_MS = 12_000
 export const COLLABORATION_EDGE_OPERATION_TIMEOUT_MS = 12_000
+export const COLLABORATION_PROTOCOL_VERSION = 2 as const
 
 export async function connectDocumentSession(options: EnableSessionOptions) {
   const {
@@ -28,6 +30,7 @@ export async function connectDocumentSession(options: EnableSessionOptions) {
     setState,
     createCallbacks,
     getDocumentManager,
+    isCurrentSession,
   } = options
 
   const docManager = getDocumentManager()
@@ -46,6 +49,7 @@ export async function connectDocumentSession(options: EnableSessionOptions) {
     getState,
     setState,
     adapterPeerIdRef,
+    isCurrentSession,
   })
 
   const adapter = await docManager.enableCollaboration(sessionId, callbacks)
@@ -143,7 +147,7 @@ async function callCollaborationCommentOperation<T>(
     throw new Error('请先登录后再使用实时协作评论')
   }
   const { data, error } = await supabase.functions.invoke('resume-comments', {
-    body: { op, ...input },
+    body: { op, protocolVersion: COLLABORATION_PROTOCOL_VERSION, ...input },
     timeout: COLLABORATION_EDGE_OPERATION_TIMEOUT_MS,
   })
   if (error) {
@@ -161,12 +165,19 @@ export async function registerCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
 }) {
-  return callCollaborationCommentOperation<{
+  const registration = await callCollaborationCommentOperation<{
     sessionId: string
     resumeId: string
     expiresAt: string
     hostLeaseId: string
+    protocolVersion: 2
   }>('register_collaboration_session', input)
+  if (registration.protocolVersion !== COLLABORATION_PROTOCOL_VERSION) {
+    throw new CollaborationOperationError('协作服务协议版本不匹配', {
+      code: 'collaboration_protocol_mismatch',
+    })
+  }
+  return registration
 }
 
 export async function joinCollaborationCommentSession(input: {
@@ -187,7 +198,10 @@ export async function joinCollaborationCommentSession(input: {
       code: 'collaboration_snapshot_unavailable',
     })
   }
-  if (commentAccess.memberLeaseId !== input.memberLeaseId) {
+  if (
+    commentAccess.protocolVersion !== COLLABORATION_PROTOCOL_VERSION
+    || commentAccess.memberLeaseId !== input.memberLeaseId
+  ) {
     throw new CollaborationOperationError('协作服务返回的成员租约不匹配', {
       code: 'collaboration_member_lease_mismatch',
     })
@@ -195,15 +209,24 @@ export async function joinCollaborationCommentSession(input: {
   return { commentAccess, bootstrap }
 }
 
-export function renewCollaborationCommentSession(input: {
+export async function renewCollaborationCommentSession(input: {
   sessionId: string
   resumeId: string
   memberLeaseId: string
 }) {
-  return callCollaborationCommentOperation<CollaborationCommentAccess>(
+  const commentAccess = await callCollaborationCommentOperation<CollaborationCommentAccess>(
     'renew_collaboration_session',
     input,
   )
+  if (
+    commentAccess.protocolVersion !== COLLABORATION_PROTOCOL_VERSION
+    || commentAccess.memberLeaseId !== input.memberLeaseId
+  ) {
+    throw new CollaborationOperationError('协作服务返回的成员租约不匹配', {
+      code: 'collaboration_member_lease_mismatch',
+    })
+  }
+  return commentAccess
 }
 
 export async function leaveCollaborationCommentSession(input: {
@@ -212,8 +235,18 @@ export async function leaveCollaborationCommentSession(input: {
   hostLeaseId?: string
   memberLeaseId?: string
 }) {
-  return callCollaborationCommentOperation<{ sessionId: string, revoked: boolean }>(
+  const result = await callCollaborationCommentOperation<{
+    sessionId: string
+    revoked: boolean
+    protocolVersion: 2
+  }>(
     'leave_collaboration_session',
     input,
   )
+  if (result.protocolVersion !== COLLABORATION_PROTOCOL_VERSION) {
+    throw new CollaborationOperationError('协作服务协议版本不匹配', {
+      code: 'collaboration_protocol_mismatch',
+    })
+  }
+  return result
 }

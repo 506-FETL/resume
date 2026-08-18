@@ -13,6 +13,7 @@ export interface CollaborationSelf extends CollaborationIdentity {
 
 export interface CollaborationCommentAccess {
   accessToken: string
+  protocolVersion: 2
   memberLeaseId: string
   expiresAt: string
   sessionId: string
@@ -121,6 +122,7 @@ export interface SessionCallbacksOptions extends CollaborationSessionStoreAccess
   role: CollaborationRole
   identity: CollaborationIdentity
   adapterPeerIdRef: { current: string | null }
+  isCurrentSession: () => boolean
 }
 
 export interface SessionActivationOptions extends CollaborationSessionStoreAccess {
