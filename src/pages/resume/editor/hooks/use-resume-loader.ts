@@ -3,7 +3,7 @@ import type { PreparedGuestSession } from '@/lib/collaboration'
 import type { ResumeLoadResult } from '@/store/resume/helpers/sync-service'
 import { parseAutomergeUrl } from '@automerge/automerge-repo'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { matchPath, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { getUserDisplayName } from '@/hooks/use-current-user'
 import { sanitizeAppRedirect } from '@/lib/auth/redirect'
@@ -111,8 +111,11 @@ function isOwnerMustHostError(error: unknown) {
 export function useResumeLoader() {
   const [loading, setLoading] = useState(true)
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const loadGenerationRef = useRef(0)
+  const locationHashRef = useRef(location.hash)
+  locationHashRef.current = location.hash
   const terminalActionKeyRef = useRef<string | null>(null)
   const loadedDocumentIdentityRef = useRef<LoadedDocumentIdentity | null>(null)
 
@@ -159,7 +162,16 @@ export function useResumeLoader() {
     let cancelled = false
     const generation = ++loadGenerationRef.current
     const isCurrentLoad = () => !cancelled && generation === loadGenerationRef.current
-    const route = parseCollaborationRoute(new URLSearchParams(window.location.search))
+
+    // DashboardShell 会在路由切换时保留退出动画中的 Editor。此时组件仍会收到新 location，
+    // 必须在解析 query / 加载文档前停住，否则登录页的 redirect query 会被误判为 owner 路由。
+    if (!matchPath('/resume/editor', location.pathname)) {
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const route = parseCollaborationRoute(new URLSearchParams(location.search))
     const authState = useUserStore.getState()
     const authenticatedUser = authState.currentUser
     const authenticatedUserId = authenticatedUser?.id ?? null
@@ -234,7 +246,7 @@ export function useResumeLoader() {
       setLoading(true)
       runTerminalActionOnce('login', () => {
         const redirect = sanitizeAppRedirect(
-          `${window.location.pathname}${window.location.search}${window.location.hash}`,
+          `${location.pathname}${location.search}${locationHashRef.current}`,
         )
         navigate(`/login?redirect=${encodeURIComponent(redirect)}`, { replace: true })
       })
@@ -405,7 +417,16 @@ export function useResumeLoader() {
     return () => {
       cancelled = true
     }
-  }, [activeResumeId, clearCurrentResume, collaborationAuthKey, loadKey, loadResumeData, navigate])
+  }, [
+    activeResumeId,
+    clearCurrentResume,
+    collaborationAuthKey,
+    loadKey,
+    loadResumeData,
+    location.pathname,
+    location.search,
+    navigate,
+  ])
 
   // 监听简历删除
   useEffect(() => {

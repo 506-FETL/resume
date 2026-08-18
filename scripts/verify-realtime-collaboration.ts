@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { next as Automerge } from '@automerge/automerge'
 import { parseAutomergeUrl, Repo } from '@automerge/automerge-repo'
 import { createJiti } from 'jiti'
+import { matchPath } from 'react-router-dom'
 import ts from 'typescript'
 import tseslint from 'typescript-eslint'
 
@@ -101,6 +102,14 @@ assertContains(
 )
 assertNotContains('注释剥离行注释', strippedCommentFixture, 'removed-line-comment')
 assertNotContains('注释剥离块注释', strippedCommentFixture, 'removed-block-comment')
+
+assert.ok(matchPath('/resume/editor', '/resume/editor'), '编辑器路由：标准路径必须匹配')
+assert.ok(matchPath('/resume/editor', '/resume/editor/'), '编辑器路由：尾斜杠路径必须匹配')
+assert.equal(
+  matchPath('/resume/editor', '/resume/editor/extra'),
+  null,
+  '编辑器路由：相邻子路径不得误匹配',
+)
 
 const jiti = createJiti(import.meta.url)
 const { sanitizeAppRedirect } = await jiti.import<
@@ -533,6 +542,18 @@ function verifyOwnerDocumentNoOp(candidateSource: string) {
     '简历加载编排 effect',
   )
   assertNotContains('简历加载编排 effect', effectSource, 'getCurrentUser')
+  assertSourceOrder('退出中 Editor 路由生命周期门禁', effectSource, [
+    'if (!matchPath(\'/resume/editor\', location.pathname))',
+    'cancelled = true',
+    'const route = parseCollaborationRoute(new URLSearchParams(location.search))',
+  ])
+  assertSourceOrder('退出中 Editor location 依赖', effectSource, [
+    'runLoad().catch(',
+    'location.pathname,',
+    'location.search,',
+    'navigate,',
+  ])
+  assertNotContains('退出中 Editor location 依赖', effectSource, 'location.hash,')
   const noOpSource = readSourceSection(
     effectSource,
     '    const expectedDocumentSource = route.kind === \'invite\' ? \'collaboration\' : \'owner\'',
