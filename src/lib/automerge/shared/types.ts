@@ -10,3 +10,21 @@ export interface DocumentSaveResult {
   success: boolean
   error?: unknown
 }
+
+export type DocumentInitializationSource
+  = | { kind: 'owner' }
+    | {
+      kind: 'collaboration'
+      documentUrl: string
+      documentData: string
+      sessionId: string
+    }
+
+export class CollaborationDocumentLoadError extends Error {
+  readonly code = 'collaboration_document_invalid'
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'CollaborationDocumentLoadError'
+  }
+}

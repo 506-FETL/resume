@@ -1,28 +1,24 @@
 import type { DocHandle, Repo } from '@automerge/automerge-repo'
-import type { CollaborationCallbacks, DocumentSaveResult } from '../shared'
+import type {
+  CollaborationCallbacks,
+  DocumentInitializationSource,
+  DocumentSaveResult,
+} from '../shared'
 import type { AutomergeResumeDocument, ChangeFn } from './schema'
 import { CollaborationSessionManager } from '../collaboration/session-manager'
 import { getAutomergeRepo } from '../repo'
-import { SHARED_DOCUMENT_PEER_WAIT_TIMEOUT_MS } from '../shared'
 import { createResumeDocument, touchDocumentMetadata } from './factory'
 import { AutomergeDocumentPersistence } from './persistence'
 
-interface SharedCollaborationInit {
-  sessionId: string
-  presenceMetadata?: Record<string, unknown>
-}
-
 interface DocumentManagerOptions {
-  sharedDocumentUrl?: string
-  // 协作者通过共享 docUrl 加载时，用该会话信息「先连接、等对端、再 find」，与 host 共用同一 documentId
-  sharedCollaboration?: SharedCollaborationInit
+  source?: DocumentInitializationSource
 }
 
 export class DocumentManager {
   private readonly resumeId: string
   private readonly userId: string
   private readonly persistence: AutomergeDocumentPersistence
-  private readonly sharedCollaboration?: SharedCollaborationInit
+  private readonly source: DocumentInitializationSource
   private handle: DocHandle<AutomergeResumeDocument> | null = null
   private repo: Repo | null = null
   private collaboration: CollaborationSessionManager | null = null
@@ -32,8 +28,8 @@ export class DocumentManager {
   constructor(resumeId: string, userId: string, options: DocumentManagerOptions = {}) {
     this.resumeId = resumeId
     this.userId = userId
-    this.sharedCollaboration = options.sharedCollaboration
-    this.persistence = new AutomergeDocumentPersistence(resumeId, userId, options.sharedDocumentUrl)
+    this.source = options.source ?? { kind: 'owner' }
+    this.persistence = new AutomergeDocumentPersistence(resumeId, userId, this.source)
   }
 
   async initialize() {
@@ -45,23 +41,16 @@ export class DocumentManager {
     this.repo = repo
     this.collaboration ??= this.createCollaborationSession(repo)
 
-    // 协作者首次加载共享文档：先挂适配器、等 host 上线后 find(docUrl)，与 host 共用同一 documentId 原生同步。
-    // 成功即用该 handle；失败（host 不在线/超时）再走下方回退逻辑。
-    const sharedDocumentUrl = this.persistence.getSharedDocumentUrl()
-    if (sharedDocumentUrl && this.sharedCollaboration) {
-      const sharedHandle = await this.collaboration.prepareSharedDocument(
-        this.sharedCollaboration.sessionId,
-        sharedDocumentUrl,
-        SHARED_DOCUMENT_PEER_WAIT_TIMEOUT_MS,
-        { presenceMetadata: this.sharedCollaboration.presenceMetadata },
+    if (this.source.kind === 'collaboration') {
+      const handle = await this.persistence.importCollaborationHandle(
+        repo,
+        this.source.documentUrl,
+        this.source.documentData,
       )
-      if (sharedHandle) {
-        // prepareSharedDocument 内部已通过 attachHandle 绑定并 syncHandle，这里直接返回
-        return sharedHandle
-      }
+      return this.attachHandle(handle)
     }
 
-    const existingHandle = await this.persistence.loadHandle(repo)
+    const existingHandle = await this.persistence.loadPersistedHandle(repo)
 
     if (existingHandle) {
       return this.attachHandle(existingHandle)
@@ -87,6 +76,10 @@ export class DocumentManager {
     }
 
     return handle
+  }
+
+  canPersist() {
+    return this.persistence.canPersist()
   }
 
   async saveToSupabase(handle: DocHandle<AutomergeResumeDocument> | null = this.handle) {
@@ -127,8 +120,11 @@ export class DocumentManager {
     return this.collaboration?.getSessionId() ?? null
   }
 
-  broadcastCollaborationEvent(type: string, data: Record<string, unknown> = {}) {
-    this.collaboration?.broadcastControlMessage(type, data)
+  async broadcastCollaborationEvent(type: string, data: Record<string, unknown> = {}) {
+    if (!this.collaboration?.getSessionId()) {
+      throw new Error('协作连接尚未建立')
+    }
+    return this.collaboration.broadcastControlMessage(type, data)
   }
 
   onSaveResult(listener: (result: DocumentSaveResult) => void): () => void {
@@ -152,7 +148,7 @@ export class DocumentManager {
   }
 
   getDocumentUrl(): string | null {
-    return this.handle?.url ?? this.persistence.getSharedDocumentUrl() ?? null
+    return this.handle?.url ?? null
   }
 
   getDocumentId(): string | null {
@@ -191,8 +187,6 @@ export class DocumentManager {
       resumeId: this.resumeId,
       repo,
       getHandle: () => this.handle,
-      attachHandle: handle => this.attachHandle(handle),
-      loadPersistedHandle: () => this.persistence.loadPersistedHandle(repo),
     })
   }
 

@@ -40,12 +40,18 @@ export function decodeDocumentData(raw: unknown): Uint8Array | null {
     }
 
     if (typeof raw === 'string') {
-      const normalized = raw.startsWith('\\x')
-        ? Array.from({ length: (raw.length - 2) / 2 }, (_, i) =>
-            String.fromCharCode(Number.parseInt(raw.slice(2 + i * 2, 4 + i * 2), 16))).join('')
-        : raw
-
-      return decodeBase64ToBytes(normalized)
+      if (raw.startsWith('\\x')) {
+        const hex = raw.slice(2)
+        if (hex.length === 0 || hex.length % 2 !== 0 || !/^[0-9a-f]+$/iu.test(hex)) {
+          return null
+        }
+        const bytes = new Uint8Array(hex.length / 2)
+        for (let index = 0; index < bytes.length; index += 1) {
+          bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16)
+        }
+        return bytes
+      }
+      return decodeBase64ToBytes(raw)
     }
   }
   catch (error) {

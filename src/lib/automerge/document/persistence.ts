@@ -1,11 +1,16 @@
-import type { DocHandle, Repo } from '@automerge/automerge-repo'
-import type { DocumentSaveResult } from '../shared'
+import type { AutomergeUrl, DocHandle, Repo } from '@automerge/automerge-repo'
+import type { DocumentInitializationSource, DocumentSaveResult } from '../shared'
 import type { AutomergeResumeDocument } from './schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { next as Automerge } from '@automerge/automerge'
+import { parseAutomergeUrl } from '@automerge/automerge-repo'
 import supabase from '@/lib/supabase/client'
 import { RESUME_PERSISTED_SELECTOR } from '@/lib/supabase/resume/form'
-import { decodeDocumentData, encodeBytesToBase64 } from '../shared'
+import {
+  CollaborationDocumentLoadError,
+  decodeDocumentData,
+  encodeBytesToBase64,
+} from '../shared'
 
 interface AutomergeSnapshotRow {
   document_data: unknown
@@ -15,36 +20,16 @@ interface AutomergeSnapshotRow {
 export class AutomergeDocumentPersistence {
   private readonly resumeId: string
   private readonly userId: string
-  private readonly sharedDocumentUrl?: string
   private canPersistToSupabase: boolean
 
-  constructor(resumeId: string, userId: string, sharedDocumentUrl?: string) {
+  constructor(resumeId: string, userId: string, source: DocumentInitializationSource) {
     this.resumeId = resumeId
     this.userId = userId
-    this.sharedDocumentUrl = sharedDocumentUrl
-    this.canPersistToSupabase = !sharedDocumentUrl
+    this.canPersistToSupabase = source.kind === 'owner'
   }
 
   canPersist() {
     return this.canPersistToSupabase
-  }
-
-  getSharedDocumentUrl() {
-    return this.sharedDocumentUrl
-  }
-
-  async loadHandle(repo: Repo): Promise<DocHandle<AutomergeResumeDocument> | null> {
-    if (this.sharedDocumentUrl) {
-      const sharedHandle = await this.loadHandleByUrl(repo, this.sharedDocumentUrl, {
-        source: 'shared documentUrl',
-      })
-
-      if (sharedHandle) {
-        return sharedHandle
-      }
-    }
-
-    return this.loadPersistedHandle(repo)
   }
 
   async loadPersistedHandle(repo: Repo): Promise<DocHandle<AutomergeResumeDocument> | null> {
@@ -72,6 +57,31 @@ export class AutomergeDocumentPersistence {
     catch (error) {
       console.warn('[AutomergeDocumentPersistence] import document failed:', error)
       return null
+    }
+  }
+
+  async importCollaborationHandle(
+    repo: Repo,
+    documentUrl: string,
+    documentData: string,
+  ): Promise<DocHandle<AutomergeResumeDocument>> {
+    try {
+      const { documentId } = parseAutomergeUrl(documentUrl as AutomergeUrl)
+      const bytes = decodeDocumentData(documentData)
+      if (!bytes?.length) {
+        throw new Error('共享快照为空')
+      }
+
+      const handle = repo.import<AutomergeResumeDocument>(bytes, { docId: documentId })
+      await handle.whenReady()
+      const doc = handle.doc()
+      if (!doc || doc._metadata?.resumeId !== this.resumeId) {
+        throw new Error('共享快照与简历身份不匹配')
+      }
+      return handle
+    }
+    catch (error) {
+      throw new CollaborationDocumentLoadError('共享简历文档无效', { cause: error })
     }
   }
 
@@ -167,22 +177,6 @@ export class AutomergeDocumentPersistence {
     }
 
     return data as AutomergeSnapshotRow | null
-  }
-
-  private async loadHandleByUrl(
-    repo: Repo,
-    documentUrl: string,
-    options: { source: string },
-  ): Promise<DocHandle<AutomergeResumeDocument> | null> {
-    try {
-      const handle = await repo.find<AutomergeResumeDocument>(documentUrl as any)
-      await handle.whenReady()
-      return handle
-    }
-    catch (error) {
-      console.warn(`[AutomergeDocumentPersistence] load handle from ${options.source} failed:`, error)
-      return null
-    }
   }
 }
 

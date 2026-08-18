@@ -26,7 +26,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   peerMetadata?: PeerMetadata = undefined
   private readonly resumeId: string
   private readonly sessionId: string
-  private readonly callbacks: CollaborationCallbacks
+  private callbacks: CollaborationCallbacks
   private readonly channelName: string
   private readonly presenceMetadata: Record<string, unknown>
   private ready = false
@@ -40,6 +40,10 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     this.callbacks = callbacks
     this.channelName = `automerge:resume:${resumeId}:${sessionId}`
     this.presenceMetadata = callbacks.presenceMetadata || {}
+  }
+
+  setCallbacks(callbacks: CollaborationCallbacks) {
+    this.callbacks = callbacks
   }
 
   setLocalDocumentId(documentId: string | null) {
