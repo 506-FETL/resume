@@ -46,12 +46,21 @@ import {
 } from '../shared/supabase-auth.ts'
 
 function createAdminClient(url: string, serviceRoleKey: string) {
-  return createClient(url, serviceRoleKey, {
+  // 复用同一 isolate 内的 admin client：GoTrueClient 的 JWKS 校验缓存挂在实例上（TTL 10 分钟）。
+  // 若每个请求都新建 client，该缓存永不命中，每个已登录请求都会额外拉一次 JWKS（多花数百毫秒）。
+  const cacheKey = `${url}\u0000${serviceRoleKey}`
+  if (cachedAdminClient && cachedAdminClientKey === cacheKey)
+    return cachedAdminClient
+  cachedAdminClient = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
+  cachedAdminClientKey = cacheKey
+  return cachedAdminClient
 }
 
-type AdminClient = ReturnType<typeof createAdminClient>
+type AdminClient = ReturnType<typeof createClient>
+let cachedAdminClient: AdminClient | null = null
+let cachedAdminClientKey: string | null = null
 type ActorKind = 'user' | 'anonymous'
 type AccessKind = 'owner' | 'collaborator' | 'share'
 type SyncRelocation = ResumeCommentRelocationResult & { threadId: string }
@@ -2090,6 +2099,14 @@ function mapDatabaseError(error: unknown): CommentApiError {
   const message = isRecord(error) && typeof error.message === 'string'
     ? error.message
     : ''
+  // 真正的瞬时序列化失败（含 request_in_progress）保留 40001，交由客户端幂等重试。
+  if (isRecord(error) && error.code === '40001') {
+    return new CommentApiError(
+      'database_deadlock',
+      '请求发生并发冲突，请重试',
+      409,
+    )
+  }
   const mappings: Array<[string, CommentApiError]> = [
     ['stale_release', new CommentApiError('stale_release', '分享已发布新版本，请刷新后重试', 409)],
     ['stale_document', new CommentApiError('stale_document', '简历内容已变化，请重新选择文字', 409)],

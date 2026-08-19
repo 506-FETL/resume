@@ -79,10 +79,20 @@ const HEAVY_RESUME_WRITE_TOOLS = new Set<string>([
 const ATS_SYSTEM_MARKER = 'ATS 简历评估引擎'
 
 function createAdminClient(url: string, serviceRoleKey: string) {
-  return createClient(url, serviceRoleKey, {
+  // 复用同一 isolate 内的 admin client，使 GoTrueClient 的 JWKS 校验缓存跨请求命中，
+  // 避免每个已登录请求都重复拉取 JWKS 端点。
+  const cacheKey = `${url}\u0000${serviceRoleKey}`
+  if (cachedAdminClient && cachedAdminClientKey === cacheKey)
+    return cachedAdminClient
+  cachedAdminClient = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
+  cachedAdminClientKey = cacheKey
+  return cachedAdminClient
 }
+
+let cachedAdminClient: ReturnType<typeof createClient> | null = null
+let cachedAdminClientKey: string | null = null
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
