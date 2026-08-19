@@ -1,10 +1,10 @@
-import { Link2 } from 'lucide-react'
+import { Link2, LoaderCircle } from 'lucide-react'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { COMMENT_MOTION } from '../const.ts'
 
-export function RelinkStatusAlert({ onCancel }: { onCancel: () => void }) {
+export function RelinkStatusAlert({ pending = false, onCancel }: { pending?: boolean, onCancel: () => void }) {
   const isPresent = useIsPresent()
   const reduceMotion = useReducedMotion()
 
@@ -25,14 +25,14 @@ export function RelinkStatusAlert({ onCancel }: { onCancel: () => void }) {
         className="pointer-events-auto w-full max-w-md"
       >
         <Alert role="status" aria-live="polite" className="bg-background/95 shadow-lg supports-backdrop-filter:backdrop-blur-md">
-          <Link2 />
-          <AlertTitle>正在重新关联评论</AlertTitle>
+          {pending ? <LoaderCircle className="animate-spin" /> : <Link2 />}
+          <AlertTitle>{pending ? '正在关联评论…' : '正在重新关联评论'}</AlertTitle>
           <AlertDescription className="grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-            <span>请在简历中选择新的文字</span>
+            <span>{pending ? '正在保存新的关联位置，请稍候' : '请在简历中选择新的文字'}</span>
             <Button
               size="xs"
               variant="ghost"
-              disabled={!isPresent}
+              disabled={!isPresent || pending}
               onClick={onCancel}
             >
               取消

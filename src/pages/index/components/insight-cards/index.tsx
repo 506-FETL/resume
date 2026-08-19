@@ -196,8 +196,9 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
                       dataKey="index"
                       type="number"
                       domain={['dataMin', 'dataMax']}
-                      interval="preserveStartEnd"
-                      minTickGap={24}
+                      // 显式给每个检测点一个刻度并 interval=0，避免 recharts 数值轴自动抽稀只剩首尾两个
+                      ticks={trend.map(point => point.index)}
+                      interval={0}
                       tickMargin={8}
                       height={24}
                       tickFormatter={(value: number) => trend[value]?.label ?? ''}
@@ -210,7 +211,16 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
                       cursor={false}
                       content={<ChartTooltipContent labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel ?? ''} />}
                     />
-                    <Area dataKey="score" type="monotone" stroke="var(--chart-2)" strokeWidth={2} fill="url(#ats-trend-fill)" />
+                    <Area
+                      dataKey="score"
+                      type="monotone"
+                      stroke="var(--chart-2)"
+                      strokeWidth={2}
+                      fill="url(#ats-trend-fill)"
+                      // 常驻数据点：每次检测都有一个圆点，hover 时放大，避免只有折线看不出「几次检测」
+                      dot={{ r: 3, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 1.5 }}
+                      activeDot={{ r: 5, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 2 }}
+                    />
                   </AreaChart>
                 </ChartContainer>
               )

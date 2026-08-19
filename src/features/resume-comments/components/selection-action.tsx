@@ -1,5 +1,5 @@
 import type { PendingCommentSelection } from '../store/types.ts'
-import { Link2, MessageSquarePlus } from 'lucide-react'
+import { Link2, LoaderCircle, MessageSquarePlus } from 'lucide-react'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { countCommentGraphemes } from '../anchors/graphemes.ts'
@@ -12,11 +12,13 @@ export function SelectionAction({
   selection,
   disabled,
   mode = 'comment',
+  pending = false,
   onComment,
 }: {
   selection: PendingCommentSelection
   disabled?: boolean
   mode?: 'comment' | 'relink'
+  pending?: boolean
   onComment: () => void
 }) {
   const isPresent = useIsPresent()
@@ -28,7 +30,8 @@ export function SelectionAction({
   const top = Math.min(lastRect.bottom + 8, window.innerHeight - 48)
   const selectedCount = countCommentGraphemes(selection.exactQuote)
   const Icon = mode === 'relink' ? Link2 : MessageSquarePlus
-  const label = mode === 'relink' ? '关联到此处' : '评论'
+  const baseLabel = mode === 'relink' ? '关联到此处' : '评论'
+  const label = pending ? (mode === 'relink' ? '关联中…' : '发送中…') : baseLabel
   const motionProps = {
     initial: reduceMotion ? false : SELECTION_ACTION_HIDDEN,
     animate: {
@@ -63,10 +66,10 @@ export function SelectionAction({
         <Button
           variant="secondary"
           size="sm"
-          disabled={disabled || !isPresent}
+          disabled={disabled || pending || !isPresent}
           onClick={onComment}
         >
-          <Icon />
+          {pending ? <LoaderCircle className="animate-spin" /> : <Icon />}
           {label}
         </Button>
       </motion.div>
@@ -80,12 +83,12 @@ export function SelectionAction({
         <Button
           variant="outline"
           size="lg"
-          disabled={disabled || !isPresent}
+          disabled={disabled || pending || !isPresent}
           className="w-full"
           aria-label={`已选择 ${selectedCount} 个字，${label}`}
           onClick={onComment}
         >
-          <Icon />
+          {pending ? <LoaderCircle className="animate-spin" /> : <Icon />}
           <span>{`已选择 ${selectedCount} 个字 · ${label}`}</span>
         </Button>
       </motion.div>

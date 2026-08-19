@@ -332,30 +332,38 @@ body {
   scroll-margin-top: 4rem;
 }
 
-/* 变更记录「定位」高亮：与简历评论一致的黄色高亮（amber），带内边距（box-shadow 向外扩 6px 形成留白），
-   高亮后淡出，醒目且协调 */
+/* 变更记录「定位」高亮：黄色圆角描边 + 柔和黄色内发光。
+   预览页简历内容处于 overflow:hidden 的分页裁剪容器里，且高亮章节占满内容区整宽、
+   左右紧贴裁剪边缘，因此「向外扩散」的 box-shadow 会被裁掉左右两侧（只剩上下）。
+   改用 inset 在元素内部描边，四边都不会被父级 overflow:hidden 裁剪。 */
 @keyframes resume-locate-highlight-fade {
   0%,
   60% {
-    background-color: rgb(251 191 36 / 0.5);
-    box-shadow: 0 0 0 6px rgb(251 191 36 / 0.5), 0 0 0 7px rgb(245 158 11 / 0.7);
+    box-shadow:
+      inset 0 0 0 2px rgb(245 158 11 / 0.95),
+      inset 0 0 0 5px rgb(251 191 36 / 0.22),
+      inset 0 0 16px 0 rgb(245 158 11 / 0.28);
   }
   100% {
-    background-color: rgb(251 191 36 / 0);
-    box-shadow: 0 0 0 6px rgb(251 191 36 / 0), 0 0 0 7px rgb(245 158 11 / 0);
+    box-shadow:
+      inset 0 0 0 2px rgb(245 158 11 / 0),
+      inset 0 0 0 5px rgb(251 191 36 / 0),
+      inset 0 0 16px 0 rgb(245 158 11 / 0);
   }
 }
 
 .resume-locate-highlight {
-  border-radius: 4px;
-  /* box-shadow 向外扩散形成「内边距」观感，不占布局、不挤压相邻内容 */
+  border-radius: 8px;
+  /* inset box-shadow 在元素内部描边，不占布局、不挤压相邻内容，也不会被父级 overflow:hidden 裁剪 */
   animation: resume-locate-highlight-fade 2.2s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .resume-locate-highlight {
     animation: none;
-    background-color: rgb(251 191 36 / 0.4);
-    box-shadow: 0 0 0 6px rgb(251 191 36 / 0.4);
+    border-radius: 8px;
+    box-shadow:
+      inset 0 0 0 2px rgb(245 158 11 / 0.9),
+      inset 0 0 0 5px rgb(251 191 36 / 0.2);
   }
 }

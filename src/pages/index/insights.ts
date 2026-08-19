@@ -470,6 +470,19 @@ export function useDashboardExtras(
         label: toShortRelative(summary.created_at),
         fullLabel: formatDateTime(summary.created_at),
       }))
+    // 同一相对时间桶（如多次「2天前」）追加 HH:mm 以区分，避免 x 轴出现多个完全相同的刻度文案
+    const toHourMinute = (createdAt: string): string => {
+      const d = new Date(createdAt)
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    }
+    const labelCounts = atsTrend.reduce<Record<string, number>>((acc, point) => {
+      acc[point.label] = (acc[point.label] ?? 0) + 1
+      return acc
+    }, {})
+    for (const point of atsTrend) {
+      if (labelCounts[point.label] > 1)
+        point.label = `${point.label} ${toHourMinute(orderedAtsSummaries[point.index].created_at)}`
+    }
 
     // —— 本周活跃度：本周一→周日，编辑（version）+ 投递（job.updated_at）按日计数 ——
     // 用本地日期键（避免 toISOString 的 UTC 偏移在东八区把事件算到前一天）

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { ResumeCommentThread } from '../types.ts'
 import type { CommentUiPermissions } from './types.ts'
-import { ArrowLeft, Link2, RotateCcw, Trash2 } from 'lucide-react'
+import { ArrowLeft, Link2, LoaderCircle, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -100,6 +100,8 @@ export function ThreadDetail({
   }
   const canResolve = permissions.canModerateAll
     || Boolean(root && isCurrentCommentAuthor(root.author, effectivePermissions))
+  const resolving = actions.pendingAction === `thread:${thread.id}:resolve`
+  const reopening = actions.pendingAction === `thread:${thread.id}:reopen`
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -113,13 +115,18 @@ export function ThreadDetail({
           </p>
         </div>
         {canResolve && !thread.resolvedAt
-          ? <Button size="sm" variant="ghost" onClick={() => actions.resolveThread(thread)}>解决</Button>
+          ? (
+              <Button size="sm" variant="ghost" disabled={resolving} onClick={() => actions.resolveThread(thread)}>
+                {resolving ? <LoaderCircle className="animate-spin" /> : null}
+                {resolving ? '解决中…' : '解决'}
+              </Button>
+            )
           : null}
         {canResolve && thread.resolvedAt
           ? (
-              <Button size="sm" variant="ghost" onClick={() => actions.reopenThread(thread)}>
-                <RotateCcw />
-                重开
+              <Button size="sm" variant="ghost" disabled={reopening} onClick={() => actions.reopenThread(thread)}>
+                {reopening ? <LoaderCircle className="animate-spin" /> : <RotateCcw />}
+                {reopening ? '重开中…' : '重开'}
               </Button>
             )
           : null}

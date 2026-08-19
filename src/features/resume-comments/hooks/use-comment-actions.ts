@@ -432,37 +432,24 @@ export function useCommentActions() {
     editComment,
     deleteComment,
     deleteThread,
+    // 解决 / 重开：不做乐观更新。点击后仅进入 pending（按钮置灰 + loading），
+    // 待服务端确认成功后由 commitMutation 应用（移除 / 恢复简历高亮与计数），
+    // 避免「后端还没响应就先把渲染中的评论去掉」。
     resolveThread: (thread: ResumeCommentThread) => execute(
       `thread:${thread.id}:resolve`,
       () => client.resolveThread(thread),
-      false,
-      {
-        thread: { ...thread, resolvedAt: new Date().toISOString() },
-        counts: {
-          ...store.getState().counts,
-          unresolved: Math.max(0, store.getState().counts.unresolved - 1),
-          resolved: store.getState().counts.resolved + 1,
-        },
-      },
     ),
     reopenThread: (thread: ResumeCommentThread) => execute(
       `thread:${thread.id}:reopen`,
       () => client.reopenThread(thread),
-      false,
-      {
-        thread: { ...thread, resolvedAt: null, resolvedBy: null },
-        counts: {
-          ...store.getState().counts,
-          unresolved: store.getState().counts.unresolved + 1,
-          resolved: Math.max(0, store.getState().counts.resolved - 1),
-        },
-      },
     ),
     relinkThread: (thread: ResumeCommentThread) => {
       const state = store.getState()
       if (!state.selection || !state.scope)
         return Promise.resolve(null)
       const selection = state.selection
+      // 不做乐观更新：重新关联期间保持 pending（提示栏 + 按钮 loading），
+      // 待服务端确认后由 commitMutation 应用新锚点，避免界面无反馈或提前改状态。
       return execute(`thread:${thread.id}:relink`, () => client.relinkAnchor(
         thread,
         {
@@ -470,16 +457,7 @@ export function useCommentActions() {
           createdAtContentHash: store.getState().scope!.documentHash,
         },
         store.getState().scope!.documentHash,
-      ), true, {
-        thread: {
-          ...thread,
-          anchor: {
-            ...selection.anchor,
-            createdAtContentHash: store.getState().scope!.documentHash,
-          },
-          anchorStatus: 'anchored',
-        },
-      }).then((response) => {
+      ), true).then((response) => {
         if (response)
           store.getState().setSelection(null)
         return response

@@ -190,6 +190,11 @@ export function CommentSurface({
       })
     : [], [picker, threads])
 
+  // 重新关联进行中：pendingAction 命中当前待关联线程的 relink key，
+  // 用于让顶部提示栏与「关联到此处」按钮显示 loading 反馈。
+  const relinking = relinkThreadId !== null
+    && actions.pendingAction === `thread:${relinkThreadId}:relink`
+
   return (
     <>
       <HighlightOverlay
@@ -210,6 +215,7 @@ export function CommentSurface({
         {relinkThreadId && !open
           ? (
               <RelinkStatusAlert
+                pending={relinking}
                 onCancel={() => {
                   clearSelection()
                   cancelRelink()
@@ -225,6 +231,7 @@ export function CommentSurface({
                 selection={selection}
                 disabled={!resolvedPermissions.canCreate || accessState !== 'active'}
                 mode={relinkThreadId ? 'relink' : 'comment'}
+                pending={relinking}
                 onComment={() => handleSelectionComment().catch(() => undefined)}
               />
             )
