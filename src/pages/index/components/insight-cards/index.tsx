@@ -196,7 +196,6 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
                       dataKey="index"
                       type="number"
                       domain={['dataMin', 'dataMax']}
-                      // 显式给每个检测点一个刻度并 interval=0，避免 recharts 数值轴自动抽稀只剩首尾两个
                       ticks={trend.map(point => point.index)}
                       interval={0}
                       tickMargin={8}

@@ -450,11 +450,12 @@ export function useDashboardExtras(
       .filter(summary => typeof summary.summary?.overall_score === 'number')
       .sort(compareAtsSummaryChronologically)
       .slice(-8)
-    // x 轴刻度用简洁相对时间（始终相对，不出现「YYYY年M月D日」这类会撑长、被裁切的绝对日期）
+
     const toShortRelative = (createdAt: string): string => {
       const diffMs = Date.now() - new Date(createdAt).getTime()
       const hours = Math.floor(diffMs / 3_600_000)
       const days = Math.floor(diffMs / 86_400_000)
+
       if (days < 1)
         return hours < 1 ? '刚刚' : `${hours}小时前`
       if (days < 7)
@@ -463,6 +464,7 @@ export function useDashboardExtras(
         return `${Math.floor(days / 7)}周前`
       return `${Math.floor(days / 30)}月前`
     }
+
     const atsTrend: AtsTrendPoint[] = orderedAtsSummaries
       .map((summary, index) => ({
         index,
@@ -470,19 +472,6 @@ export function useDashboardExtras(
         label: toShortRelative(summary.created_at),
         fullLabel: formatDateTime(summary.created_at),
       }))
-    // 同一相对时间桶（如多次「2天前」）追加 HH:mm 以区分，避免 x 轴出现多个完全相同的刻度文案
-    const toHourMinute = (createdAt: string): string => {
-      const d = new Date(createdAt)
-      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-    }
-    const labelCounts = atsTrend.reduce<Record<string, number>>((acc, point) => {
-      acc[point.label] = (acc[point.label] ?? 0) + 1
-      return acc
-    }, {})
-    for (const point of atsTrend) {
-      if (labelCounts[point.label] > 1)
-        point.label = `${point.label} ${toHourMinute(orderedAtsSummaries[point.index].created_at)}`
-    }
 
     // —— 本周活跃度：本周一→周日，编辑（version）+ 投递（job.updated_at）按日计数 ——
     // 用本地日期键（避免 toISOString 的 UTC 偏移在东八区把事件算到前一天）
