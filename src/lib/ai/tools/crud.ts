@@ -1,4 +1,5 @@
 import type { ResumeType } from '@/lib/schema'
+import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { deleteAccessibleResume, getAccessibleResumeById, updateAccessibleResumeMeta } from '@/lib/resume-access'
 import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResumeHistoryVersion, getCompanies, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
@@ -257,9 +258,9 @@ registerTool({
   },
   mode: 'write',
   execute: async (args) => {
-    const resumeId = useCurrentResumeStore.getState().resumeId
+    const resumeId = resolveActiveResumeId()
     if (!resumeId)
-      return { error: '当前没有打开任何简历。请先在编辑器打开要保存版本的简历。' }
+      return { error: '当前对话还没有绑定简历。请先在本对话里用 open_resume 打开要保存版本的简历。' }
     if (isOfflineResumeId(resumeId))
       return { error: '本地简历暂不支持历史版本，请先同步到云端。' }
 
@@ -283,7 +284,7 @@ registerTool({
           content_hash: await createResumeSnapshotHash(snapshot),
           base_updated_at: record.updated_at,
         })
-        return { ok: true, versionNo: created.version_no }
+        return { ok: true, resumeId, versionNo: created.version_no }
       },
     })
   },
@@ -291,7 +292,7 @@ registerTool({
 
 registerTool({
   name: 'restore_current_resume_version',
-  description: '把「当前正在编辑」的简历恢复到某个历史版本（默认会先备份当前内容）。versionId 从 list_resume_versions 获得（即版本记录的 id）。仅当已在编辑器打开该简历时可用。此操作需用户确认。',
+  description: '把「本对话正在操作」的简历恢复到某个历史版本（默认会先备份当前内容）。versionId 从 list_resume_versions 获得（即版本记录的 id）。仅当本对话已绑定该简历时可用。此操作需用户确认。',
   parameters: {
     type: 'object',
     properties: {
@@ -303,9 +304,9 @@ registerTool({
   },
   mode: 'write',
   execute: async (args) => {
-    const resumeId = useCurrentResumeStore.getState().resumeId
+    const resumeId = resolveActiveResumeId()
     if (!resumeId)
-      return { error: '当前没有打开任何简历。请先在编辑器打开要恢复的简历。' }
+      return { error: '当前对话还没有绑定简历。请先在本对话里用 open_resume 打开要恢复的简历。' }
     if (isOfflineResumeId(resumeId))
       return { error: '本地简历暂不支持历史版本，请先同步到云端。' }
 
@@ -341,7 +342,7 @@ registerTool({
           currentUpdatedAt: record.updated_at,
           strategy,
         })
-        return { ok: true, restoredFrom: target.version_no }
+        return { ok: true, resumeId, restoredFrom: target.version_no }
       },
     })
   },
@@ -362,6 +363,9 @@ registerTool({
     if (!Number.isFinite(versionId))
       return { error: 'versionId 必须是数字' }
 
+    // 尽力把这次删除归属到本对话绑定的简历，供画布按简历隔离变更记录
+    const resumeId = resolveActiveResumeId()
+
     return requestConfirm({
       id: crypto.randomUUID(),
       toolName: 'delete_resume_version',
@@ -372,7 +376,7 @@ registerTool({
       },
       apply: async () => {
         await deleteResumeHistoryVersion(versionId)
-        return { ok: true, versionId }
+        return { ok: true, resumeId: resumeId ?? undefined, versionId }
       },
     })
   },

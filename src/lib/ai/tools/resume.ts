@@ -1,7 +1,8 @@
 import type { z } from 'zod'
+import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { getAccessibleResumeById, listAccessibleResumes } from '@/lib/resume-access'
 import { normalizeResumeSection, resumeSchema } from '@/lib/schema'
-import { applyResumeFieldToDocument, FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
+import { applyResumeFieldToDocument, FORM_DATA_KEYS } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
 import { registerTool } from '../agent/tool-registry'
 
@@ -78,7 +79,7 @@ function formatSectionIssues(error: z.ZodError): string {
 
 registerTool({
   name: 'update_current_resume_field',
-  description: `修改「当前正在编辑」的简历的某个模块内容。仅当用户已在编辑器打开某份简历时可用。sectionKey 可选值：${FORM_DATA_KEYS.join(', ')}。value 为该模块的新内容对象，其字段结构必须严格匹配 system 中「简历模块字段结构」的说明（特别注意：列表字段是对象数组而非字符串数组；时间字段是长度为 2 的字符串数组；enum 只能取给定值）。此操作需用户确认。`,
+  description: `修改「本对话正在操作」的简历的某个模块内容。仅当本对话已用 open_resume/create_resume 绑定某份简历时可用。sectionKey 可选值：${FORM_DATA_KEYS.join(', ')}。value 为该模块的新内容对象，其字段结构必须严格匹配 system 中「简历模块字段结构」的说明（特别注意：列表字段是对象数组而非字符串数组；时间字段是长度为 2 的字符串数组；enum 只能取给定值）。此操作需用户确认。`,
   parameters: {
     type: 'object',
     properties: {
@@ -90,9 +91,9 @@ registerTool({
   },
   mode: 'write',
   execute: async (args) => {
-    const currentId = useCurrentResumeStore.getState().resumeId
+    const currentId = resolveActiveResumeId()
     if (!currentId)
-      return { error: '当前没有打开任何简历。请先在编辑器打开要修改的简历，再让我修改。' }
+      return { error: '当前对话还没有绑定简历。请先在本对话里用 open_resume 打开要修改的简历，再让我修改。' }
 
     const sectionKey = String(args.sectionKey) as (typeof FORM_DATA_KEYS)[number]
     if (!FORM_DATA_KEYS.includes(sectionKey))
@@ -138,7 +139,7 @@ registerTool({
       apply: async () => {
         // 经编辑器 store 写入 Automerge 文档并落库，保证编辑器与画布一致
         await applyResumeFieldToDocument(currentId, sectionKey, after as Record<string, unknown>)
-        return { ok: true, sectionKey, before, after }
+        return { ok: true, resumeId: currentId, sectionKey, before, after }
       },
     })
   },

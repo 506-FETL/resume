@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { updateMessage } from '@/lib/supabase/ai'
+import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { DURATION, EASE, staggerDelay } from '@/lib/motion'
-import { applyResumeFieldToDocument, useCurrentResumeStore } from '@/store/resume'
+import { updateMessage } from '@/lib/supabase/ai'
+import { applyResumeFieldToDocument } from '@/store/resume'
 import useAssistantStore from '../../../store'
 import { retryToolCall } from '../../../tool-retry'
 import { DiffStat } from '../../diff/diff-view'
@@ -123,9 +124,9 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
   const handleUndo = async (change: CanvasChange) => {
     if (!change.undo)
       return
-    const currentId = useCurrentResumeStore.getState().resumeId
+    const currentId = resolveActiveResumeId()
     if (!currentId) {
-      toast.error('请先在编辑器打开该简历再撤销')
+      toast.error('当前对话未绑定简历，无法撤销')
       return
     }
     setPendingId(change.id)
@@ -148,9 +149,9 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
     const detail = change.detail
     if (!change.undo || detail?.kind !== 'diff')
       return
-    const currentId = useCurrentResumeStore.getState().resumeId
+    const currentId = resolveActiveResumeId()
     if (!currentId) {
-      toast.error('请先在编辑器打开该简历再重做')
+      toast.error('当前对话未绑定简历，无法重做')
       return
     }
     setPendingId(change.id)
@@ -170,9 +171,9 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
   }
 
   const handleUndoAll = async () => {
-    const currentId = useCurrentResumeStore.getState().resumeId
+    const currentId = resolveActiveResumeId()
     if (!currentId) {
-      toast.error('请先在编辑器打开该简历再撤销')
+      toast.error('当前对话未绑定简历，无法撤销')
       return
     }
     setUndoAllPending(true)
@@ -201,9 +202,9 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
   }
 
   const handleReapplyAll = async () => {
-    const currentId = useCurrentResumeStore.getState().resumeId
+    const currentId = resolveActiveResumeId()
     if (!currentId) {
-      toast.error('请先在编辑器打开该简历再重做')
+      toast.error('当前对话未绑定简历，无法重做')
       return
     }
     setReapplyPending(true)
