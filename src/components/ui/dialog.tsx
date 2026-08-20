@@ -2,6 +2,7 @@ import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { PortalContainerProvider } from "@/components/ui/portal-container"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
@@ -53,6 +54,9 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const [contentElement, setContentElement] =
+    React.useState<HTMLDivElement | null>(null)
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -63,8 +67,11 @@ function DialogContent({
           className
         )}
         {...props}
+        ref={setContentElement}
       >
-        {children}
+        <PortalContainerProvider container={contentElement}>
+          {children}
+        </PortalContainerProvider>
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
