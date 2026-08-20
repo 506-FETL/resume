@@ -12,6 +12,8 @@ import { NEXT_ACTION_TONE_CLASSES } from '@/pages/tracker/const'
 // 图表统一高度与内边距：left=0 避免 Y 轴刻度被推出容器左缘裁切
 const CHART_HEIGHT = 'h-[180px]'
 const CHART_MARGIN = { top: 4, right: 8, left: 0, bottom: 0 } as const
+// 数值型 X 轴（首尾刻度贴着绘图区边缘）需要更大的右侧留白，否则最后一个刻度文案会被卡片裁掉
+const NUMERIC_AXIS_CHART_MARGIN = { top: 4, right: 28, left: 0, bottom: 0 } as const
 
 // 卡片头：图标 chip + 标题 + 描述（复用首页既有视觉语言）
 function CardHead({ icon, title, description }: { icon: ReactNode, title: string, description: string }) {
@@ -184,7 +186,7 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
           : hasData
             ? (
                 <ChartContainer config={trendConfig} className={cn(CHART_HEIGHT, 'w-full')}>
-                  <AreaChart accessibilityLayer data={trend} margin={CHART_MARGIN}>
+                  <AreaChart accessibilityLayer data={trend} margin={NUMERIC_AXIS_CHART_MARGIN}>
                     <defs>
                       <linearGradient id="ats-trend-fill" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
