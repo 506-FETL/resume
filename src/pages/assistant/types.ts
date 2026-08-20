@@ -38,6 +38,8 @@ export interface CanvasChange {
   stat?: { additions: number, deletions: number }
   state: AiToolCallState
   targetTab?: Exclude<CanvasTabKey, 'changes'>
+  // 该变更所属简历（用于画布按「当前预览简历」隔离变更记录）。看板 / 读操作可无。
+  resumeId?: string
   // 可撤销的写操作载荷（当前支持「修改当前简历字段」）：把 sectionKey 写回 before
   undo?: { sectionKey: string, before: unknown }
   // 是否已被一键撤销（源自 tool-call part 的持久化标记，刷新后仍保留）

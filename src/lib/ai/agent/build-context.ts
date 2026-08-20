@@ -1,8 +1,8 @@
+import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { getResumeSchemaDoc } from '@/lib/ai/schema-doc'
 import { listAccessibleResumes } from '@/lib/resume-access'
 import { getCompanies } from '@/lib/supabase/resume'
 import { getUserProfile } from '@/lib/supabase/user'
-import { useCurrentResumeStore } from '@/store/resume'
 
 // 轻量用户概况（不含正文，注入 system 头，给 agent 基本盘感知）
 export async function buildUserContext(): Promise<string> {
@@ -37,15 +37,15 @@ export async function buildUserContext(): Promise<string> {
     // 忽略概况拉取失败
   }
 
-  const currentId = useCurrentResumeStore.getState().resumeId
+  const currentId = resolveActiveResumeId()
   const currentResume = currentId
     ? accessibleResumes.find(resume => resume.resume_id === currentId)
     : null
   if (currentId && currentResume) {
-    lines.push(`当前正在编辑：resumeId=${currentId}（${currentResume.display_name ?? '未命名'}，${currentResume.storage === 'local' ? '本地' : '云端'}）`)
+    lines.push(`本对话正在操作：resumeId=${currentId}（${currentResume.display_name ?? '未命名'}，${currentResume.storage === 'local' ? '本地' : '云端'}）。修改简历字段/保存版本/恢复版本都会作用到这份简历。`)
   }
   else if (!currentId || resumeListLoaded) {
-    lines.push('当前未在编辑器打开任何简历（修改简历字段前需用户先打开）。')
+    lines.push('本对话还没有绑定简历（修改简历字段前需先用 open_resume 在本对话打开一份简历）。')
   }
 
   try {

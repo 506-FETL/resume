@@ -120,7 +120,25 @@ function buildTitle(meta: ToolCanvasMeta, args: Record<string, unknown>): string
   return meta.label
 }
 
-export function deriveCanvasModel(messages: AiMessage[], streamingParts: AiMessagePart[] = []): CanvasModel {
+// 解析一条工具调用所属的简历 id：优先取执行结果里的 resumeId（执行期真实目标，
+// 最可靠），回退取入参 resumeId（如 update_resume_meta / delete_resume）。
+// 看板 / 读操作 / 无 resumeId 的历史遗留结果返回 undefined，由过滤规则兜底保留。
+function resolveChangeResumeId(args: Record<string, unknown>, result: unknown): string | undefined {
+  if (result && typeof result === 'object') {
+    const r = result as Record<string, unknown>
+    if (typeof r.resumeId === 'string' && r.resumeId)
+      return r.resumeId
+  }
+  if (typeof args.resumeId === 'string' && args.resumeId)
+    return args.resumeId
+  return undefined
+}
+
+export function deriveCanvasModel(
+  messages: AiMessage[],
+  streamingParts: AiMessagePart[] = [],
+  scopeResumeId: string | null = null,
+): CanvasModel {
   const allParts: AiMessagePart[] = [
     ...messages.flatMap(m => m.parts),
     ...streamingParts,
@@ -161,17 +179,29 @@ export function deriveCanvasModel(messages: AiMessage[], streamingParts: AiMessa
       stat: stat && (stat.additions > 0 || stat.deletions > 0) ? stat : undefined,
       state: part.state,
       targetTab: meta.targetTab,
+      resumeId: resolveChangeResumeId(args, part.result),
       undo,
       undone: part.undone,
     })
   }
 
-  const writes = changes.filter(c => c.category !== 'read')
+  // 按「当前画布正在预览的简历」隔离：看板（全局进度）与读操作恒保留；
+  // 简历 / 历史版本类仅保留属于该简历的改动。scopeResumeId 或 change.resumeId
+  // 缺失时保留，避免未解析出目标时误伤（含历史遗留结果）。
+  const scopedChanges = scopeResumeId
+    ? changes.filter((c) => {
+        if (c.category === 'board' || c.category === 'read')
+          return true
+        return !c.resumeId || c.resumeId === scopeResumeId
+      })
+    : changes
+
+  const writes = scopedChanges.filter(c => c.category !== 'read')
   return {
-    changes,
+    changes: scopedChanges,
     writes,
-    touchedBoard: changes.some(c => c.targetTab === 'board'),
-    touchedVersion: changes.some(c => c.targetTab === 'version'),
+    touchedBoard: scopedChanges.some(c => c.targetTab === 'board'),
+    touchedVersion: scopedChanges.some(c => c.targetTab === 'version'),
     hasWrites: writes.length > 0,
   }
 }
