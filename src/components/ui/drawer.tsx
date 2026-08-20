@@ -4,6 +4,7 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
 
 import { cn } from "@/lib/utils"
+import { PortalContainerProvider } from "@/components/ui/portal-container"
 
 type DrawerContextProps = {
   hasSnapPoints: boolean
@@ -106,6 +107,8 @@ function DrawerContent({
   overlayClassName?: string
 }) {
   const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
+  const [contentElement, setContentElement] =
+    React.useState<HTMLDivElement | null>(null)
   const swipeAxis =
     swipeDirection === "down" || swipeDirection === "up" ? "y" : "x"
 
@@ -162,8 +165,11 @@ function DrawerContent({
             className={cn(
               "flex min-h-0 flex-1 touch-auto flex-col overflow-hidden overscroll-contain rounded-[inherit] transition-opacity duration-300 ease-[cubic-bezier(0.45,1.005,0,1.005)] select-text group-data-nested-drawer-open/drawer-popup:opacity-0 group-data-nested-drawer-swiping/drawer-popup:opacity-100 group-data-swiping/drawer-popup:select-none"
             )}
+            ref={setContentElement}
           >
-            {children}
+            <PortalContainerProvider container={contentElement}>
+              {children}
+            </PortalContainerProvider>
           </DrawerPrimitive.Content>
         </DrawerPrimitive.Popup>
       </DrawerPrimitive.Viewport>
