@@ -739,6 +739,171 @@ assert.deepEqual(
   deriveAnonymousAvatarVisual('anonymous-id'),
 )
 
+const optimisticStore = createResumeCommentStore()
+optimisticStore.getState().replaceScope({
+  scope: firstScope,
+  version,
+  counts,
+  accessibleScopes: [],
+  threads: [],
+  eventSeq: 8,
+  lastReadEventSeq: 0,
+})
+const pendingThread = optimisticStore.getState().enqueuePendingThread({
+  requestId: '11111111-1111-4111-8111-111111111111',
+  scopeId: firstScope.id,
+  scopeEpoch: optimisticStore.getState().scopeEpoch,
+  anchor,
+  originalPageIndex: 0,
+  documentHash: firstScope.documentHash,
+  body: '立即显示的新评论',
+  createdAt: '2026-08-22T08:00:00.000Z',
+})
+assert.equal(pendingThread.threadId, `local-thread:${pendingThread.requestId}`)
+assert.equal(optimisticStore.getState().activeThreadId, pendingThread.threadId)
+assert.equal(optimisticStore.getState().threadsById[pendingThread.threadId]?.localOnly, true)
+assert.equal(
+  optimisticStore.getState().threadsById[pendingThread.threadId]?.comments[0]?.delivery?.state,
+  'sending',
+)
+assert.deepEqual(optimisticStore.getState().counts, counts)
+optimisticStore.getState().failPendingCreation(pendingThread.requestId, '网络中断')
+assert.equal(
+  optimisticStore.getState().threadsById[pendingThread.threadId]?.comments[0]?.delivery?.state,
+  'failed',
+)
+assert.equal(
+  optimisticStore.getState().markPendingCreationSending(pendingThread.requestId)?.requestId,
+  pendingThread.requestId,
+)
+assert.equal(
+  optimisticStore.getState().threadsById[pendingThread.threadId]?.comments[0]?.delivery?.state,
+  'sending',
+)
+
+const confirmedRootThread: ResumeCommentThread = {
+  ...thread('server-thread-1', '2026-08-22T08:00:01.000Z'),
+  comments: [{
+    id: 'server-comment-1',
+    threadId: 'server-thread-1',
+    parentId: null,
+    author: { kind: 'user', userId: 'user-1', displayName: 'seams', avatarUrl: null },
+    body: pendingThread.body,
+    editedAt: null,
+    deletedAt: null,
+    createdAt: '2026-08-22T08:00:01.000Z',
+    updatedAt: '2026-08-22T08:00:01.000Z',
+  }],
+}
+optimisticStore.getState().settlePendingCreation(pendingThread.requestId, {
+  thread: confirmedRootThread,
+  counts: { ...counts, unresolved: counts.unresolved + 1 },
+  event: {
+    eventSeq: 9,
+    type: 'thread_created',
+    threadId: confirmedRootThread.id,
+    createdAt: '2026-08-22T08:00:01.000Z',
+    clientRequestId: pendingThread.requestId,
+  },
+  eventSeq: 9,
+})
+assert.equal(optimisticStore.getState().threadsById[pendingThread.threadId], undefined)
+assert.equal(optimisticStore.getState().activeThreadId, confirmedRootThread.id)
+assert.equal(optimisticStore.getState().counts.unresolved, counts.unresolved + 1)
+
+const pendingReply = optimisticStore.getState().enqueuePendingReply({
+  requestId: '22222222-2222-4222-8222-222222222222',
+  scopeId: firstScope.id,
+  scopeEpoch: optimisticStore.getState().scopeEpoch,
+  threadId: confirmedRootThread.id,
+  parentCommentId: confirmedRootThread.comments[0]!.id,
+  threadRevision: confirmedRootThread.revision,
+  documentHash: firstScope.documentHash,
+  body: '立即显示的新回复',
+  createdAt: '2026-08-22T08:01:00.000Z',
+})
+assert.ok(pendingReply)
+assert.equal(
+  optimisticStore.getState().threadsById[confirmedRootThread.id]?.comments.at(-1)?.delivery?.state,
+  'sending',
+)
+const confirmedReplyThread: ResumeCommentThread = {
+  ...confirmedRootThread,
+  revision: confirmedRootThread.revision + 1,
+  comments: [...confirmedRootThread.comments, {
+    id: 'server-comment-2',
+    threadId: confirmedRootThread.id,
+    parentId: confirmedRootThread.comments[0]!.id,
+    author: { kind: 'user', userId: 'user-1', displayName: 'seams', avatarUrl: null },
+    body: pendingReply!.body,
+    editedAt: null,
+    deletedAt: null,
+    createdAt: '2026-08-22T08:01:01.000Z',
+    updatedAt: '2026-08-22T08:01:01.000Z',
+  }],
+}
+optimisticStore.getState().applyRealtimePatch({
+  threads: [confirmedReplyThread],
+  events: [{
+    eventSeq: 10,
+    type: 'comment_replied',
+    threadId: confirmedRootThread.id,
+    createdAt: '2026-08-22T08:01:01.000Z',
+    clientRequestId: pendingReply!.requestId,
+  }],
+  eventSeq: 10,
+})
+assert.equal(
+  optimisticStore.getState().pendingCreationsByRequestId[pendingReply!.requestId],
+  undefined,
+)
+assert.equal(
+  optimisticStore.getState().threadsById[confirmedRootThread.id]?.comments.filter(
+    comment => comment.body === pendingReply!.body,
+  ).length,
+  1,
+)
+optimisticStore.getState().settlePendingCreation(pendingReply!.requestId, {
+  thread: confirmedReplyThread,
+  counts: optimisticStore.getState().counts,
+  event: {
+    eventSeq: 10,
+    type: 'comment_replied',
+    threadId: confirmedRootThread.id,
+    createdAt: '2026-08-22T08:01:01.000Z',
+    clientRequestId: pendingReply!.requestId,
+  },
+  eventSeq: 10,
+})
+assert.equal(
+  optimisticStore.getState().threadsById[confirmedRootThread.id]?.comments.filter(
+    comment => comment.body === pendingReply!.body,
+  ).length,
+  1,
+)
+
+const removablePending = optimisticStore.getState().enqueuePendingReply({
+  requestId: '33333333-3333-4333-8333-333333333333',
+  scopeId: firstScope.id,
+  scopeEpoch: optimisticStore.getState().scopeEpoch,
+  threadId: confirmedRootThread.id,
+  parentCommentId: confirmedRootThread.comments[0]!.id,
+  threadRevision: confirmedReplyThread.revision,
+  documentHash: firstScope.documentHash,
+  body: '需要移除',
+  createdAt: '2026-08-22T08:02:00.000Z',
+})
+assert.ok(removablePending)
+optimisticStore.getState().discardPendingCreation(removablePending!.requestId)
+assert.equal(
+  optimisticStore.getState().threadsById[confirmedRootThread.id]?.comments.some(
+    comment => comment.id === removablePending!.commentId,
+  ),
+  false,
+)
+optimisticStore.getState().beginScopeSwitch()
+assert.deepEqual(optimisticStore.getState().pendingCreationsByRequestId, {})
+
 const commentSurfaceSource = readFileSync(
   new URL('../src/features/resume-comments/components/comment-surface.tsx', import.meta.url),
   'utf8',

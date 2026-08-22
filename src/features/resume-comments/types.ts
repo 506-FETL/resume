@@ -75,6 +75,14 @@ export interface CommentThreadCounts {
   detached: number
 }
 
+export type CommentDeliveryState = 'sending' | 'failed'
+
+export interface CommentDelivery {
+  requestId: string
+  state: CommentDeliveryState
+  errorMessage: string | null
+}
+
 export interface ResumeComment {
   id: string
   threadId: string
@@ -85,6 +93,7 @@ export interface ResumeComment {
   deletedAt: string | null
   createdAt: string
   updatedAt: string
+  delivery?: CommentDelivery
 }
 
 export interface ResumeCommentThread {
@@ -99,6 +108,7 @@ export interface ResumeCommentThread {
   lastActivityAt: string
   deletedAt: string | null
   comments: ResumeComment[]
+  localOnly?: boolean
 }
 
 export type ResumeCommentEventType
@@ -121,6 +131,7 @@ export interface ResumeCommentEvent {
   threadId: string | null
   createdAt: string
   isOwn?: boolean
+  clientRequestId?: string
 }
 
 export interface CommentThreadReadState {

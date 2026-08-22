@@ -2,6 +2,15 @@ import type { ResumeCommentThread } from '../types.ts'
 import type { ResumeCommentStore, ResumeCommentStoreState } from './types.ts'
 import { createStore } from 'zustand/vanilla'
 import {
+  appendPendingReply,
+  createPendingReplyRecord,
+  createPendingThread,
+  createPendingThreadRecord,
+  mergePendingCreationsIntoThreads,
+  removePendingCreationFromThreads,
+  updatePendingCreationDelivery,
+} from './pending-creations.ts'
+import {
   applyCommentEventsToThreadReadStates,
   indexCommentThreadReadStates,
   mergeCommentThreadReadStateMaps,
@@ -15,6 +24,9 @@ function orderThreads(
 
   return [...threads]
     .sort((left, right) => {
+      if (left.localOnly !== right.localOnly)
+        return left.localOnly ? -1 : 1
+
       const resolvedDifference = Number(Boolean(left.resolvedAt)) - Number(Boolean(right.resolvedAt))
 
       if (resolvedDifference !== 0)
@@ -32,10 +44,6 @@ function orderThreads(
       return Date.parse(right.lastActivityAt) - Date.parse(left.lastActivityAt)
     })
     .map(thread => thread.id)
-}
-
-function indexThreads(threads: ResumeCommentThread[]) {
-  return Object.fromEntries(threads.map(thread => [thread.id, thread]))
 }
 
 export function createResumeCommentStore(): ResumeCommentStore {
@@ -64,6 +72,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
     accessState: 'active',
     lastError: null,
     pendingEntities: {},
+    pendingCreationsByRequestId: {},
     mutationErrors: {},
     contentNotice: null,
 
@@ -72,7 +81,15 @@ export function createResumeCommentStore(): ResumeCommentStore {
       const lastReadEventSeq = scopeChanged
         ? input.lastReadEventSeq
         : Math.max(state.lastReadEventSeq, input.lastReadEventSeq)
-      const liveThreadIds = new Set(input.threads.map(thread => thread.id))
+      const pendingCreationsByRequestId = scopeChanged
+        ? {}
+        : state.pendingCreationsByRequestId
+      const threadsById = mergePendingCreationsIntoThreads(
+        input.threads,
+        state.threadsById,
+        pendingCreationsByRequestId,
+      )
+      const liveThreadIds = new Set(Object.keys(threadsById))
       const incomingThreadReadStates = Object.fromEntries(Object.entries(
         indexCommentThreadReadStates(input.threadReadStates),
       ).filter(([threadId]) => liveThreadIds.has(threadId)))
@@ -97,8 +114,8 @@ export function createResumeCommentStore(): ResumeCommentStore {
               lastReadEventSeq: Math.max(scope.lastReadEventSeq, lastReadEventSeq),
             }
           : scope),
-        threadsById: indexThreads(input.threads),
-        orderedThreadIds: orderThreads(input.threads, input.scope),
+        threadsById,
+        orderedThreadIds: orderThreads(Object.values(threadsById), input.scope),
         events: input.events ?? [],
         activeThreadId: scopeChanged ? null : state.activeThreadId,
         hoveredThreadId: scopeChanged ? null : state.hoveredThreadId,
@@ -120,26 +137,34 @@ export function createResumeCommentStore(): ResumeCommentStore {
         threadReadStateById,
         lastError: null,
         pendingEntities: {},
+        pendingCreationsByRequestId,
         mutationErrors: {},
         contentNotice: null,
       }
     }),
-    replaceThreads: input => set(state => ({
-      threadsById: indexThreads(input.threads),
-      orderedThreadIds: orderThreads(input.threads, state.scope),
-      events: input.events,
-      accessibleScopes: state.scope
-        ? state.accessibleScopes.map(scope => scope.id === state.scope!.id
-            ? { ...scope, nextEventSeq: input.eventSeq }
-            : scope)
-        : state.accessibleScopes,
-      lastEventSeq: input.eventSeq,
-      threadReadStateById: applyCommentEventsToThreadReadStates(
-        state.threadReadStateById,
-        input.events,
-      ),
-      lastError: null,
-    })),
+    replaceThreads: input => set((state) => {
+      const threadsById = mergePendingCreationsIntoThreads(
+        input.threads,
+        state.threadsById,
+        state.pendingCreationsByRequestId,
+      )
+      return {
+        threadsById,
+        orderedThreadIds: orderThreads(Object.values(threadsById), state.scope),
+        events: input.events,
+        accessibleScopes: state.scope
+          ? state.accessibleScopes.map(scope => scope.id === state.scope!.id
+              ? { ...scope, nextEventSeq: input.eventSeq }
+              : scope)
+          : state.accessibleScopes,
+        lastEventSeq: input.eventSeq,
+        threadReadStateById: applyCommentEventsToThreadReadStates(
+          state.threadReadStateById,
+          input.events,
+        ),
+        lastError: null,
+      }
+    }),
     applyMutation: input => set((state) => {
       const threadsById = { ...state.threadsById }
       if (input.removedThreadId)
@@ -199,7 +224,20 @@ export function createResumeCommentStore(): ResumeCommentStore {
       mutationErrors: { ...state.mutationErrors, [entityKey]: message },
     })),
     applyRealtimePatch: input => set((state) => {
-      const threadsById = { ...state.threadsById }
+      let threadsById = { ...state.threadsById }
+      const pendingCreationsByRequestId = { ...state.pendingCreationsByRequestId }
+      let activeThreadId = state.activeThreadId
+      for (const event of input.events) {
+        if (!event.clientRequestId)
+          continue
+        const pending = pendingCreationsByRequestId[event.clientRequestId]
+        if (!pending)
+          continue
+        threadsById = removePendingCreationFromThreads(threadsById, pending)
+        if (pending.kind === 'thread' && activeThreadId === pending.threadId)
+          activeThreadId = event.threadId
+        delete pendingCreationsByRequestId[event.clientRequestId]
+      }
       for (const event of input.events) {
         if (event.type === 'thread_deleted' && event.threadId)
           delete threadsById[event.threadId]
@@ -220,6 +258,8 @@ export function createResumeCommentStore(): ResumeCommentStore {
           state.threadReadStateById,
           input.events,
         ),
+        activeThreadId,
+        pendingCreationsByRequestId,
       }
     }),
     applyDocumentSync: input => set((state) => {
@@ -247,6 +287,114 @@ export function createResumeCommentStore(): ResumeCommentStore {
         counts: input.counts,
         events: [...state.events, input.event].slice(-500),
         lastEventSeq: Math.max(state.lastEventSeq, input.eventSeq),
+      }
+    }),
+    enqueuePendingThread: (input) => {
+      const pending = createPendingThreadRecord(input)
+      set((state) => {
+        const thread = createPendingThread(pending)
+        const threadsById = { ...state.threadsById, [thread.id]: thread }
+        return {
+          threadsById,
+          orderedThreadIds: orderThreads(Object.values(threadsById), state.scope),
+          activeThreadId: thread.id,
+          pendingCreationsByRequestId: {
+            ...state.pendingCreationsByRequestId,
+            [pending.requestId]: pending,
+          },
+        }
+      })
+      return pending
+    },
+    enqueuePendingReply: (input) => {
+      const state = get()
+      const thread = state.threadsById[input.threadId]
+      if (!thread || thread.localOnly)
+        return null
+      const pending = createPendingReplyRecord(input)
+      set({
+        threadsById: {
+          ...state.threadsById,
+          [thread.id]: appendPendingReply(thread, pending),
+        },
+        pendingCreationsByRequestId: {
+          ...state.pendingCreationsByRequestId,
+          [pending.requestId]: pending,
+        },
+      })
+      return pending
+    },
+    markPendingCreationSending: (requestId) => {
+      const state = get()
+      const pending = state.pendingCreationsByRequestId[requestId]
+      if (!pending)
+        return null
+      set({
+        threadsById: updatePendingCreationDelivery(
+          state.threadsById,
+          pending,
+          'sending',
+          null,
+        ),
+      })
+      return pending
+    },
+    failPendingCreation: (requestId, message) => set((state) => {
+      const pending = state.pendingCreationsByRequestId[requestId]
+      return pending
+        ? {
+            threadsById: updatePendingCreationDelivery(
+              state.threadsById,
+              pending,
+              'failed',
+              message,
+            ),
+          }
+        : {}
+    }),
+    discardPendingCreation: requestId => set((state) => {
+      const pending = state.pendingCreationsByRequestId[requestId]
+      if (!pending)
+        return {}
+      const pendingCreationsByRequestId = { ...state.pendingCreationsByRequestId }
+      delete pendingCreationsByRequestId[requestId]
+      const threadsById = removePendingCreationFromThreads(state.threadsById, pending)
+      return {
+        threadsById,
+        orderedThreadIds: orderThreads(Object.values(threadsById), state.scope),
+        activeThreadId: pending.kind === 'thread' && state.activeThreadId === pending.threadId
+          ? null
+          : state.activeThreadId,
+        pendingCreationsByRequestId,
+      }
+    }),
+    settlePendingCreation: (requestId, input) => set((state) => {
+      const pending = state.pendingCreationsByRequestId[requestId]
+      const threadsById = pending
+        ? removePendingCreationFromThreads(state.threadsById, pending)
+        : { ...state.threadsById }
+      if (input.thread)
+        threadsById[input.thread.id] = input.thread
+      const pendingCreationsByRequestId = { ...state.pendingCreationsByRequestId }
+      delete pendingCreationsByRequestId[requestId]
+      const uniqueEvents = new Map(state.events.map(event => [event.eventSeq, event]))
+      uniqueEvents.set(input.event.eventSeq, input.event)
+      return {
+        threadsById,
+        orderedThreadIds: orderThreads(Object.values(threadsById), state.scope),
+        counts: input.counts,
+        events: [...uniqueEvents.values()]
+          .sort((left, right) => left.eventSeq - right.eventSeq)
+          .slice(-500),
+        lastEventSeq: Math.max(state.lastEventSeq, input.eventSeq),
+        threadReadStateById: applyCommentEventsToThreadReadStates(
+          state.threadReadStateById,
+          [input.event],
+        ),
+        activeThreadId: pending?.kind === 'thread' && state.activeThreadId === pending.threadId
+          ? input.thread?.id ?? input.event.threadId
+          : state.activeThreadId,
+        pendingCreationsByRequestId,
       }
     }),
     beginPending: entityKey => set(state => ({
@@ -305,6 +453,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
       threadReadStateById: {},
       connection: 'connecting',
       pendingEntities: {},
+      pendingCreationsByRequestId: {},
       mutationErrors: {},
       contentNotice: null,
     })),

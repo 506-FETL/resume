@@ -47,6 +47,33 @@ export interface PendingCommentCreationSnapshot {
   scopeEpoch: number
 }
 
+interface PendingCommentCreationBase {
+  requestId: string
+  scopeId: string
+  scopeEpoch: number
+  commentId: string
+  body: string
+  createdAt: string
+}
+
+export interface PendingThreadCreation extends PendingCommentCreationBase {
+  kind: 'thread'
+  threadId: string
+  anchor: CommentAnchor
+  originalPageIndex: number | null
+  documentHash: string
+}
+
+export interface PendingReplyCreation extends PendingCommentCreationBase {
+  kind: 'reply'
+  threadId: string
+  parentCommentId: string
+  threadRevision: number
+  documentHash: string
+}
+
+export type PendingCommentCreation = PendingThreadCreation | PendingReplyCreation
+
 export type CommentConnectionState = 'idle' | 'connecting' | 'live' | 'offline'
 export type CommentAccessState = 'active' | 'read_only' | 'unavailable'
 
@@ -83,6 +110,7 @@ export interface ResumeCommentStoreState {
   accessState: CommentAccessState
   lastError: CommentErrorCode | null
   pendingEntities: Record<string, true>
+  pendingCreationsByRequestId: Record<string, PendingCommentCreation>
   mutationErrors: Record<string, string>
   contentNotice: string | null
 
@@ -136,6 +164,17 @@ export interface ResumeCommentStoreState {
     documentHash: string
     documentRevision: number
     threads: ResumeCommentThread[]
+    counts: CommentThreadCounts
+    event: ResumeCommentEvent
+    eventSeq: number
+  }) => void
+  enqueuePendingThread: (input: Omit<PendingThreadCreation, 'kind' | 'threadId' | 'commentId'>) => PendingThreadCreation
+  enqueuePendingReply: (input: Omit<PendingReplyCreation, 'kind' | 'commentId'>) => PendingReplyCreation | null
+  markPendingCreationSending: (requestId: string) => PendingCommentCreation | null
+  failPendingCreation: (requestId: string, message: string) => void
+  discardPendingCreation: (requestId: string) => void
+  settlePendingCreation: (requestId: string, input: {
+    thread: ResumeCommentThread | null
     counts: CommentThreadCounts
     event: ResumeCommentEvent
     eventSeq: number
