@@ -2,6 +2,7 @@ import { COMMENT_HIDDEN_PAGE_SELECTOR, COMMENT_MEASUREMENT_SOURCE_SELECTOR } fro
 
 const COMMENT_PAGE_SELECTOR = '[data-resume-page-index]'
 const COMMENT_PAGE_VIEWPORT_SELECTOR = '[data-resume-page-viewport]'
+const TEXT_NODE = 3
 const LINE_TOLERANCE = 1.5
 const ADJACENT_GAP_TOLERANCE = 2
 const MIN_RECT_SIZE = 0.5
@@ -25,6 +26,49 @@ function toElement(node: Node): Element | null {
   return node.nodeType === Node.ELEMENT_NODE
     ? node as Element
     : node.parentElement
+}
+
+function collectTextNodes(root: Node, document: Document): Text[] {
+  if (root.nodeType === TEXT_NODE)
+    return [root as Text]
+
+  const walker = document.createTreeWalker(
+    root,
+    document.defaultView?.NodeFilter.SHOW_TEXT ?? 4,
+  )
+  const nodes: Text[] = []
+  let current = walker.nextNode()
+  while (current) {
+    nodes.push(current as Text)
+    current = walker.nextNode()
+  }
+  return nodes
+}
+
+/**
+ * Chromium may include both inline text rects and block container rects when a
+ * selection crosses paragraphs or list items. Restricting every measured range
+ * to a single text node prevents those block-level rects at the source.
+ */
+export function collectTextRangeClientRects(range: Range): DOMRect[] {
+  const document = range.startContainer.ownerDocument
+  if (!document)
+    return []
+
+  return collectTextNodes(range.commonAncestorContainer, document).flatMap((textNode) => {
+    if (textNode.data.length === 0 || !range.intersectsNode(textNode))
+      return []
+
+    const startOffset = textNode === range.startContainer ? range.startOffset : 0
+    const endOffset = textNode === range.endContainer ? range.endOffset : textNode.data.length
+    if (endOffset <= startOffset)
+      return []
+
+    const textRange = document.createRange()
+    textRange.setStart(textNode, startOffset)
+    textRange.setEnd(textNode, endOffset)
+    return Array.from(textRange.getClientRects())
+  })
 }
 
 function intersectRects(left: RectLike, right: RectLike): RectLike | null {
@@ -118,7 +162,7 @@ export function rangeToVisiblePageRects(range: Range): CommentPageRect[] {
   const pageRect = startPage.getBoundingClientRect()
   const viewportRect = viewport.getBoundingClientRect()
   const scale = readPageScale(startPage, pageRect)
-  const rects = Array.from(range.getClientRects()).flatMap<CommentPageRect>((rect) => {
+  const rects = collectTextRangeClientRects(range).flatMap<CommentPageRect>((rect) => {
     const clipped = intersectRects(rect, viewportRect)
     if (!clipped) {
       return []

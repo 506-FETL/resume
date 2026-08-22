@@ -1,6 +1,7 @@
 import type { CommentAnchor, CommentAnchorDocumentNode } from '../src/features/resume-comments/anchors/types.ts'
 import assert from 'node:assert/strict'
-import { mergeCommentPageRects } from '../src/features/resume-comments/anchors/geometry.ts'
+import { readFileSync } from 'node:fs'
+import { collectTextRangeClientRects, mergeCommentPageRects } from '../src/features/resume-comments/anchors/geometry.ts'
 import {
   graphemeOffsetToTextPoint,
   graphemeOffsetToUtf16Offset,
@@ -118,6 +119,63 @@ assert.deepEqual(
   graphemeOffsetToTextPoint(crossDomText, 1),
   { textNode: crossDomText[1], utf16Offset: 1 },
 )
+
+const textRangeRects = [
+  { left: 10, top: 10, right: 40, bottom: 26 },
+  { left: 10, top: 30, right: 52, bottom: 46 },
+] as DOMRect[]
+const createdRanges: Array<{ start: number, end: number }> = []
+const firstTextNode = { data: '第一段', nodeType: 3, ownerDocument: null } as unknown as Text
+const secondTextNode = { data: '第二段', nodeType: 3, ownerDocument: null } as unknown as Text
+const commonAncestor = { nodeType: 1 } as Node
+const fakeDocument = {
+  defaultView: { NodeFilter: { SHOW_TEXT: 4 } },
+  createTreeWalker: () => {
+    const nodes = [firstTextNode, secondTextNode]
+    let index = 0
+    return { nextNode: () => nodes[index++] ?? null }
+  },
+  createRange: () => {
+    let start = 0
+    let end = 0
+    let node: Text | null = null
+    return {
+      setStart: (nextNode: Text, offset: number) => {
+        node = nextNode
+        start = offset
+      },
+      setEnd: (_nextNode: Text, offset: number) => {
+        end = offset
+      },
+      getClientRects: () => {
+        createdRanges.push({ start, end })
+        return [textRangeRects[node === firstTextNode ? 0 : 1]]
+      },
+    }
+  },
+} as unknown as Document
+Object.assign(firstTextNode, { ownerDocument: fakeDocument })
+Object.assign(secondTextNode, { ownerDocument: fakeDocument })
+
+assert.deepEqual(
+  collectTextRangeClientRects({
+    startContainer: firstTextNode,
+    startOffset: 1,
+    endContainer: secondTextNode,
+    endOffset: 2,
+    commonAncestorContainer: commonAncestor,
+    intersectsNode: () => true,
+  } as unknown as Range),
+  textRangeRects,
+)
+assert.deepEqual(createdRanges, [{ start: 1, end: 3 }, { start: 0, end: 2 }])
+
+const geometrySource = readFileSync(
+  new URL('../src/features/resume-comments/anchors/geometry.ts', import.meta.url),
+  'utf8',
+)
+assert.doesNotMatch(geometrySource, /Array\.from\(range\.getClientRects\(\)\)/u)
+assert.match(geometrySource, /collectTextRangeClientRects\(range\)/u)
 
 assert.deepEqual(
   projectCommentRichTextBlocks('<p>  Hello   &amp;<br> 世界  </p><li>第二<strong>段</strong></li><style>bad</style>'),
