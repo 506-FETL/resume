@@ -369,6 +369,11 @@ function normalizeEvents(value: unknown): ResumeCommentEvent[] {
       threadId: asNullableString(event.thread_id),
       createdAt: String(event.created_at ?? ''),
       isOwn: event.is_own === true,
+      clientRequestId: isUuid(event.clientRequestId)
+        ? event.clientRequestId
+        : isUuid(event.client_request_id)
+          ? event.client_request_id
+          : undefined,
     }]
   })
 }
@@ -513,6 +518,7 @@ export async function getCommentAuthToken() {
 
 export class ResumeCommentClient {
   private access: CommentAccessContext
+  private resolvedOwnerScopeId: string | null = null
 
   constructor(access: CommentAccessContext) {
     this.access = access
@@ -523,12 +529,20 @@ export class ResumeCommentClient {
   }
 
   setAccessContext(access: CommentAccessContext) {
+    const previousAccess = this.access
     this.access = this.access.kind === 'share'
       && access.kind === 'share'
       && this.access.shareId === access.shareId
       && access.anonymous === undefined
       ? { ...access, anonymous: this.access.anonymous }
       : access
+    if (
+      previousAccess.kind !== 'owner'
+      || this.access.kind !== 'owner'
+      || JSON.stringify(previousAccess) !== JSON.stringify(this.access)
+    ) {
+      this.resolvedOwnerScopeId = null
+    }
   }
 
   setAnonymousCredential(credential: AnonymousCommentCredential | null) {
@@ -558,6 +572,8 @@ export class ResumeCommentClient {
     }
     const normalizeStartedAt = performance.now()
     const data = normalizeBootstrap(response.data)
+    if (this.access.kind === 'owner')
+      this.resolvedOwnerScopeId = data.scope.id
     const normalizeDuration = performance.now() - normalizeStartedAt
     return {
       ...response,
@@ -632,27 +648,28 @@ export class ResumeCommentClient {
   }
 
   createThread(input: {
+    requestId: string
     anchor: CommentAnchor
     body: string
     documentHash: string
     originalPageIndex: number | null
   }) {
-    return this.mutate('create_thread', input)
+    const { requestId, ...payload } = input
+    return this.mutate('create_thread', payload, requestId)
   }
 
   createReply(
-    thread: Pick<ResumeCommentThread, 'id' | 'revision' | 'comments'>,
+    thread: Pick<ResumeCommentThread, 'id' | 'revision'>,
     body: string,
-    parentCommentId = thread.comments.find(comment => comment.parentId === null)?.id,
+    parentCommentId: string,
+    requestId: string,
   ) {
-    if (!parentCommentId)
-      throw new ResumeCommentClientError('not_found', '回复目标不存在')
     return this.mutate('create_reply', {
       threadId: thread.id,
       parentCommentId,
       expectedRevision: thread.revision,
       body,
-    })
+    }, requestId)
   }
 
   editComment(
@@ -718,15 +735,23 @@ export class ResumeCommentClient {
     return this.writeRaw('mark_thread_read', { threadId, eventSeq })
   }
 
-  private async mutate<TInput extends Record<string, unknown>>(op: string, input: TInput) {
-    const response = await this.writeRaw(op, input)
+  private async mutate<TInput extends Record<string, unknown>>(
+    op: string,
+    input: TInput,
+    requestId = crypto.randomUUID(),
+  ) {
+    const response = await this.writeRaw(op, input, requestId)
     return { ...response, data: normalizeMutation(response.data) }
   }
 
-  private writeRaw<TInput extends Record<string, unknown>>(op: string, input: TInput) {
+  private writeRaw<TInput extends Record<string, unknown>>(
+    op: string,
+    input: TInput,
+    requestId = crypto.randomUUID(),
+  ) {
     return this.request<Record<string, unknown>>(op, {
       ...input,
-      requestId: crypto.randomUUID(),
+      requestId,
     })
   }
 
@@ -734,11 +759,13 @@ export class ResumeCommentClient {
     if (access.kind === 'owner') {
       return {
         accessKind: 'owner',
-        ...('scopeId' in access
-          ? { scopeId: access.scopeId }
-          : 'versionId' in access
-            ? { versionId: access.versionId }
-            : { resumeId: access.resumeId }),
+        ...(this.resolvedOwnerScopeId
+          ? { scopeId: this.resolvedOwnerScopeId }
+          : 'scopeId' in access
+            ? { scopeId: access.scopeId }
+            : 'versionId' in access
+              ? { versionId: access.versionId }
+              : { resumeId: access.resumeId }),
       }
     }
     if (access.kind === 'collaborator') {
@@ -839,7 +866,9 @@ export class ResumeCommentClient {
         error.details,
       )
     }
-    const telemetry = op === 'bootstrap_scope'
+    const hasTelemetryEnvelope = result.protocolVersion === 1
+      && Object.keys(asRecord(result.meta)).length > 0
+    const telemetry = op === 'bootstrap_scope' || hasTelemetryEnvelope
       ? readBootstrapTelemetry({
           result,
           edgeRegion: response.headers.get('x-sb-edge-region')?.trim() || null,

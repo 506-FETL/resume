@@ -920,6 +920,10 @@ const commentsPanelSource = readFileSync(
   new URL('../src/features/resume-comments/components/comments-panel.tsx', import.meta.url),
   'utf8',
 )
+const commentComposerSource = readFileSync(
+  new URL('../src/features/resume-comments/components/comment-composer.tsx', import.meta.url),
+  'utf8',
+)
 const commentMobileLayoutSource = readFileSync(
   new URL('../src/features/resume-comments/hooks/use-comment-mobile-layout.ts', import.meta.url),
   'utf8',
@@ -984,6 +988,10 @@ const commentRealtimeHookSource = readFileSync(
   new URL('../src/features/resume-comments/hooks/use-comment-realtime.ts', import.meta.url),
   'utf8',
 )
+const highlightGeometrySource = readFileSync(
+  new URL('../src/features/resume-comments/hooks/use-highlight-geometry.ts', import.meta.url),
+  'utf8',
+)
 const commentBenchmarkSource = readFileSync(
   new URL('./benchmark-resume-comments-bootstrap.ts', import.meta.url),
   'utf8',
@@ -1004,13 +1012,26 @@ assert.match(commentSurfaceSource, /setCreationSnapshot\(\{[\s\S]*?selection,[\s
 assert.match(commentSurfaceSource, /creationSnapshot\.scopeId === scope\?\.id[\s\S]*?creationSnapshot\.scopeEpoch === scopeEpoch[\s\S]*?setCreationSnapshot\(null\)/u)
 assert.match(commentsPanelSource, /creationSnapshot: PendingCommentCreationSnapshot \| null/u)
 assert.match(commentsPanelSource, /\{creationSnapshot[\s\S]*?actions\.createThread\(value, creationSnapshot\)[\s\S]*?onFinishCreating\(\)/u)
+assert.match(commentsPanelSource, /submitDisabled=\{actions\.pendingAction !== null\}/u)
+assert.doesNotMatch(commentsPanelSource, /pending=\{actions\.pendingAction === 'thread:new:create'\}/u)
 assert.doesNotMatch(commentsPanelSource, /creating && selection/u)
 assert.match(commentActionsSource, /creationSnapshot\?: PendingCommentCreationSnapshot/u)
 assert.match(commentActionsSource, /const selection = creationSnapshot\?\.selection \?\? state\.selection/u)
+assert.match(commentActionsSource, /enqueuePendingThread\(\{[\s\S]*?requestId,[\s\S]*?sendPendingCreation\(requestId\)\.catch/u)
+assert.match(commentActionsSource, /enqueuePendingReply\(\{[\s\S]*?threadRevision: thread\.revision/u)
+assert.match(commentActionsSource, /retryPendingCreation: sendPendingCreation/u)
+assert.match(commentActionsSource, /discardPendingCreation: \(requestId: string\)/u)
+assert.doesNotMatch(commentActionsSource, /execute\('thread:new:create'/u)
+assert.doesNotMatch(commentActionsSource, /`thread:\$\{thread\.id\}:reply`,[\s\S]*?client\.createReply/u)
 assert.match(commentActionsSource, /const mutationScopeEpoch = initialState\.scopeEpoch/u)
 assert.match(commentActionsSource, /assertMutationScopeCurrent\(\)[\s\S]*?await prepareActor\(\)[\s\S]*?assertMutationScopeCurrent\(\)[\s\S]*?const response = await operation\(\)[\s\S]*?assertMutationScopeCurrent\(\)/u)
 assert.match(commentActionsSource, /if \(isMutationScopeCurrent\(\)\)[\s\S]*?rollbackMutation/u)
 assert.match(commentTreeSource, /depth < 2/u)
+assert.match(commentTreeSource, /delivery\.state === 'sending'[\s\S]*?<span>发送中<\/span>/u)
+assert.match(commentTreeSource, /delivery\.errorMessage \|\| '发送失败'/u)
+assert.match(commentTreeSource, /actions\.retryPendingCreation\(delivery\.requestId\)/u)
+assert.match(commentTreeSource, /actions\.discardPendingCreation\(delivery\.requestId\)/u)
+assert.match(commentTreeSource, /!reduceMotion && 'animate-spin'/u)
 assert.match(commentTreeSource, /depth >= 2/u)
 assert.match(commentTreeSource, /pl-7/u)
 assert.match(commentTreeSource, /-top-px left-0 h-\[calc\(1\.75rem\+1px\)\] w-7 rounded-bl-xl/u)
@@ -1018,6 +1039,15 @@ assert.match(commentTreeSource, /-bottom-px left-0 top-\[calc\(1\.75rem-1px\)\]/
 assert.match(commentTreeSource, /<div className="ml-4 min-w-0">/u)
 assert.equal(commentTreeSource.match(/<AnimatePresence>/gu)?.length, 2)
 assert.match(commentTreeSource, /\{depth < 2[\s\S]*?<AnimatePresence>[\s\S]*?visibleChildren\.map/u)
+assert.match(commentComposerSource, /submitDisabled = false/u)
+assert.match(commentComposerSource, /!valid \|\| disabled \|\| submitDisabled \|\| pending/u)
+assert.match(threadDetailSource, /pendingCreationsByRequestId/u)
+assert.match(threadDetailSource, /submitDisabled=\{actions\.pendingAction !== null \|\| hasPendingCreation\}/u)
+assert.doesNotMatch(threadDetailSource, /pending=\{actions\.pendingAction === `thread:\$\{thread\.id\}:reply`\}/u)
+assert.match(highlightGeometrySource, /thread\.localOnly \|\| thread\.resolvedAt/u)
+assert.match(commentClientSource, /clientRequestId: isUuid\(event\.clientRequestId\)/u)
+assert.match(commentClientSource, /requestId: string[\s\S]*?return this\.mutate\('create_thread', payload, requestId\)/u)
+assert.match(commentRealtimeHookSource, /pendingCreationsByRequestId/u)
 assert.doesNotMatch(commentTreeSource, /\{visibleChildren\.length > 0\s*\?|mode="popLayout"/u)
 assert.match(commentTreeSource, /<motion\.div\s+layout="position"/u)
 assert.doesNotMatch(commentTreeSource, /<motion\.div\s+layout\s/u)

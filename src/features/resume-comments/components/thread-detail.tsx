@@ -91,6 +91,9 @@ export function ThreadDetail({
   const relinkError = useResumeCommentStore(state => state.relinkError)
   const cancelRelink = useResumeCommentStore(state => state.cancelRelink)
   const accessState = useResumeCommentStore(state => state.accessState)
+  const hasPendingCreation = useResumeCommentStore(state => Object.values(
+    state.pendingCreationsByRequestId,
+  ).some(pending => pending.threadId === thread.id))
   const root = thread.comments.find(comment => comment.parentId === null)
   const access = client.getAccessContext()
   const effectivePermissions = {
@@ -98,8 +101,10 @@ export function ThreadDetail({
     currentAnonymousId: permissions.currentAnonymousId
       ?? (access.kind === 'share' ? access.anonymous?.id : null),
   }
-  const canResolve = permissions.canModerateAll
+  const canResolve = !thread.localOnly && (
+    permissions.canModerateAll
     || Boolean(root && isCurrentCommentAuthor(root.author, effectivePermissions))
+  )
   const resolving = actions.pendingAction === `thread:${thread.id}:resolve`
   const reopening = actions.pendingAction === `thread:${thread.id}:reopen`
 
@@ -130,7 +135,7 @@ export function ThreadDetail({
               </Button>
             )
           : null}
-        {permissions.canModerateAll
+        {permissions.canModerateAll && !thread.localOnly
           ? confirmingThreadDelete
             ? (
                 <div className="flex items-center gap-1">
@@ -188,7 +193,7 @@ export function ThreadDetail({
       {actions.errorMessage
         ? <p role="alert" className="shrink-0 px-4 py-2 text-xs text-destructive">{actions.errorMessage}</p>
         : null}
-      {permissions.canCreate && accessState === 'active' && !thread.resolvedAt
+      {permissions.canCreate && accessState === 'active' && !thread.resolvedAt && !thread.localOnly
         ? (
             <div className={cn(
               'shrink-0 border-t bg-popover p-3',
@@ -211,8 +216,7 @@ export function ThreadDetail({
               <CommentComposer
                 draftKey={`reply:${thread.id}:${replyTarget?.commentId ?? 'root'}`}
                 placeholder={replyTarget ? `回复 ${replyTarget.displayName}…` : '回复…'}
-                disabled={actions.pendingAction !== null}
-                pending={actions.pendingAction === `thread:${thread.id}:reply`}
+                submitDisabled={actions.pendingAction !== null || hasPendingCreation}
                 onSubmit={async (value) => {
                   const response = await actions.createReply(thread, value, replyTarget?.commentId)
                   if (response)

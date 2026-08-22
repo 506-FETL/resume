@@ -12,6 +12,7 @@ export function CommentComposer({
   placeholder = '输入评论',
   submitLabel = '发送',
   disabled = false,
+  submitDisabled = false,
   pending = false,
   pendingLabel = '正在发送…',
   autoFocus = false,
@@ -23,6 +24,7 @@ export function CommentComposer({
   placeholder?: string
   submitLabel?: string
   disabled?: boolean
+  submitDisabled?: boolean
   pending?: boolean
   pendingLabel?: string
   autoFocus?: boolean
@@ -40,7 +42,7 @@ export function CommentComposer({
       className="space-y-2"
       onSubmit={(event) => {
         event.preventDefault()
-        if (!valid || disabled)
+        if (!valid || disabled || submitDisabled || pending)
           return
         onSubmit(value.trim()).catch(() => undefined)
       }}
@@ -73,7 +75,7 @@ export function CommentComposer({
           {onCancel
             ? <Button type="button" size="sm" variant="ghost" onClick={onCancel}>取消</Button>
             : null}
-          <Button type="submit" size="sm" disabled={!valid || disabled || pending} aria-live="polite">
+          <Button type="submit" size="sm" disabled={!valid || disabled || submitDisabled || pending} aria-live="polite">
             {pending ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : null}
             {pending ? pendingLabel : submitLabel}
           </Button>

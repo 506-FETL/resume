@@ -91,7 +91,7 @@ export function ThreadList({
           const resolving = pendingEntities[resolveKey] === true
           const resolveError = mutationErrors[resolveKey]
           const unread = unreadThreadIds.includes(thread.id)
-          const canResolve = !thread.resolvedAt && (
+          const canResolve = !thread.localOnly && !thread.resolvedAt && (
             permissions.canModerateAll
             || Boolean(root && isCurrentCommentAuthor(root.author, permissions))
           )
@@ -106,7 +106,8 @@ export function ThreadList({
               transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
             >
               <div className={cn(
-                'group w-full min-w-0 rounded-xl border transition-colors hover:border-border hover:bg-muted/60 focus-within:border-border focus-within:ring-2 focus-within:ring-ring/40',
+                'group w-full min-w-0 rounded-xl border transition-[background-color,border-color,opacity,filter] hover:border-border hover:bg-muted/60 focus-within:border-border focus-within:ring-2 focus-within:ring-ring/40 motion-reduce:transition-none',
+                root?.delivery && 'opacity-55 grayscale-[0.35]',
                 unread
                   ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/25'
                   : 'border-transparent',
@@ -123,6 +124,8 @@ export function ThreadList({
                     </span>
                     <span className="flex shrink-0 items-center gap-1">
                       {unread ? <Badge variant="secondary">新评论</Badge> : null}
+                      {root?.delivery?.state === 'sending' ? <Badge variant="secondary">发送中</Badge> : null}
+                      {root?.delivery?.state === 'failed' ? <Badge variant="destructive">发送失败</Badge> : null}
                       {thread.anchorStatus === 'detached' ? <Badge variant="outline">已失联</Badge> : null}
                     </span>
                   </span>
@@ -131,7 +134,7 @@ export function ThreadList({
                   </span>
                   <ThreadAuthor thread={thread} />
                 </button>
-                {(canResolve || replies > 0 || resolveError)
+                {!root?.delivery && (canResolve || replies > 0 || resolveError)
                   ? (
                       <div className="px-3 pb-3">
                         <CommentStatusBar

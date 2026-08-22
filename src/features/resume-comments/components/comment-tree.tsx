@@ -1,6 +1,6 @@
 import type { ResumeComment, ResumeCommentThread } from '../types.ts'
 import type { CommentUiPermissions } from './types.ts'
-import { ArrowLeft, LoaderCircle, MessageCircle, Trash2 } from 'lucide-react'
+import { ArrowLeft, LoaderCircle, MessageCircle, RefreshCw, Trash2, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -118,7 +118,10 @@ function CommentNode({
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const comment = node.comment
-  const canManage = !comment.deletedAt && isCurrentCommentAuthor(comment.author, permissions)
+  const delivery = comment.delivery
+  const canManage = !delivery
+    && !comment.deletedAt
+    && isCurrentCommentAuthor(comment.author, permissions)
   const editKey = `comment:${comment.id}:edit`
   const deleteKey = `comment:${comment.id}:delete`
   const pending = useResumeCommentStore(state => Boolean(state.pendingEntities[editKey] || state.pendingEntities[deleteKey]))
@@ -147,7 +150,11 @@ function CommentNode({
             </>
           )
         : null}
-      <article className="group/comment relative flex min-w-0 gap-2.5 py-3">
+      <article className={cn(
+        'group/comment relative flex min-w-0 gap-2.5 py-3 transition-[opacity,filter] duration-200 motion-reduce:transition-none',
+        delivery && 'opacity-55 grayscale-[0.35]',
+      )}
+      >
         {hasVisibleContinuation
           ? <span aria-hidden className="pointer-events-none absolute -bottom-px left-4 top-11 border-l border-border/80" />
           : null}
@@ -185,7 +192,55 @@ function CommentNode({
             : comment.deletedAt
               ? <p className="mt-1 text-sm italic text-muted-foreground">这条评论已删除</p>
               : <div className="mt-1"><CommentBody body={comment.body} /></div>}
-          {!editing
+          <AnimatePresence initial={false}>
+            {delivery
+              ? (
+                  <motion.div
+                    key={delivery.state}
+                    role="status"
+                    initial={reduceMotion ? false : { opacity: 0, y: 3 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -2 }}
+                    transition={{ duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration, ease: COMMENT_MOTION.ease }}
+                    className={cn(
+                      'mt-1 flex min-h-7 flex-wrap items-center gap-1.5 text-xs',
+                      delivery.state === 'failed' ? 'text-destructive' : 'text-muted-foreground',
+                    )}
+                  >
+                    {delivery.state === 'sending'
+                      ? (
+                          <>
+                            <LoaderCircle className={cn('size-3.5', !reduceMotion && 'animate-spin')} />
+                            <span>发送中</span>
+                          </>
+                        )
+                      : (
+                          <>
+                            <span>{delivery.errorMessage || '发送失败'}</span>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => actions.retryPendingCreation(delivery.requestId)}
+                            >
+                              <RefreshCw />
+                              重试
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => actions.discardPendingCreation(delivery.requestId)}
+                            >
+                              <X />
+                              移除
+                            </Button>
+                          </>
+                        )}
+                  </motion.div>
+                )
+              : null}
+          </AnimatePresence>
+          {!editing && !delivery
             ? (
                 <div className="mt-1 flex min-h-7 items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover/comment:opacity-100 md:group-focus-within/comment:opacity-100">
                   <Tooltip>

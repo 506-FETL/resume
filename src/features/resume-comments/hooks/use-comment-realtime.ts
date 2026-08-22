@@ -208,6 +208,7 @@ export function useCommentRealtime({
       const currentState = store.getState()
       const sameScope = currentState.scope?.id === response.data.scope.id
       const hasPendingMutation = Object.keys(currentState.pendingEntities).length > 0
+        || Object.keys(currentState.pendingCreationsByRequestId).length > 0
       if (
         currentState.scope
         && (
@@ -310,6 +311,7 @@ export function useCommentRealtime({
         && (
           currentState.lastEventSeq > cached.value.scope.nextEventSeq
           || Object.keys(currentState.pendingEntities).length > 0
+          || Object.keys(currentState.pendingCreationsByRequestId).length > 0
         )
       ) {
         marker.end({ detail: { status: 'superseded' } })

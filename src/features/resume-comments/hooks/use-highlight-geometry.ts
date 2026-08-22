@@ -81,7 +81,7 @@ export function useHighlightGeometry({
       return
     }
     setGeometry(threads.flatMap((thread) => {
-      if (thread.resolvedAt || thread.anchorStatus === 'detached')
+      if (thread.localOnly || thread.resolvedAt || thread.anchorStatus === 'detached')
         return []
       const rects = findVisibleNodes(root, thread.anchor.nodeKey).flatMap((node) => {
         const range = anchorToRange(node, thread)

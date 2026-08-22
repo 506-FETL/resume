@@ -44,6 +44,12 @@ type CommentServerTimingName
     | 'auth_local'
     | 'auth_legacy'
     | 'access_token'
+    | 'access_rpc'
+    | 'mutation_rpc'
+    | 'replay'
+    | 'rate_limit'
+    | 'write_rpc'
+    | 'hydrate'
     | 'rpc'
     | 'repair'
     | 'realtime_token'
@@ -78,6 +84,12 @@ const COMMENT_SERVER_TIMING_NAMES = new Set<CommentServerTimingName>([
   'auth_local',
   'auth_legacy',
   'access_token',
+  'access_rpc',
+  'mutation_rpc',
+  'replay',
+  'rate_limit',
+  'write_rpc',
+  'hydrate',
   'rpc',
   'repair',
   'realtime_token',

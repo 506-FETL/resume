@@ -135,13 +135,12 @@ function PanelBody({
                 draftKey="new-thread"
                 placeholder="写下你的评论…"
                 autoFocus
-                disabled={!permissions.canCreate || accessState !== 'active' || actions.pendingAction !== null}
-                pending={actions.pendingAction === 'thread:new:create'}
-                pendingLabel="正在发送…"
+                disabled={!permissions.canCreate || accessState !== 'active'}
+                submitDisabled={actions.pendingAction !== null}
                 onCancel={onCancelCreating}
                 onSubmit={async (value) => {
-                  const response = await actions.createThread(value, creationSnapshot)
-                  if (!response)
+                  const pending = await actions.createThread(value, creationSnapshot)
+                  if (!pending)
                     return false
                   onFinishCreating()
                   return true
