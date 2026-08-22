@@ -86,6 +86,10 @@ const collaborationLeaseMigrationSource = readFileSync(
   'supabase/migrations/20260818051900_add_comment_collaboration_member_lease.sql',
   'utf8',
 )
+const optimizedMutationMigrationSource = readFileSync(
+  'supabase/migrations/20260822075237_optimize_resume_comment_mutations.sql',
+  'utf8',
+)
 const commentAuthSource = readFileSync(
   'supabase/functions/shared/resume-comment-auth.ts',
   'utf8',
@@ -174,18 +178,20 @@ const eventProjectionSource = readSourceSection(
   'function projectCommentEventsForAccess',
   '\ninterface BootstrapRpcInput',
 )
-const genericWriteResponseSource = readSourceSection(
+const genericMutationSource = readSourceSection(
   edgeSource,
-  '    let data: Record<string, unknown>',
-  '\n    const eventSeq = Number(data.eventSeq)',
-)
-const genericWriteCompletionSource = readSourceSection(
-  edgeSource,
-  '    let data: Record<string, unknown>',
+  '    const replay = [\'mark_thread_read\', \'mark_read\'].includes(op)',
   '\n  }\n  catch (error)',
 )
-const finalMutationResponseSource = genericWriteCompletionSource.slice(
-  genericWriteCompletionSource.indexOf('    const eventSeq = Number(data.eventSeq)'),
+const accessResolutionSource = readSourceSection(
+  edgeSource,
+  '    const accessInput = await timeOperation(\'access_token\'',
+  '\n    if (op === \'create_anonymous_identity\')',
+)
+const optimizedMutationRpcSource = readSourceSection(
+  optimizedMutationMigrationSource,
+  'CREATE OR REPLACE FUNCTION public.execute_resume_comment_mutation_v1',
+  '\nREVOKE ALL ON FUNCTION private.assert_resume_comment_collaboration_lease_v1',
 )
 const documentSyncSource = readSourceSection(
   edgeSource,
@@ -209,17 +215,31 @@ assert.doesNotMatch(eventProjectionSource, /actor_kind:|actor_id:/u)
 assert.match(edgeSource, /events: projectCommentEventsForAccess\(eventResult\.data \?\? \[\], access\)/u)
 assert.match(edgeSource, /events: projectCommentEventsForAccess\(events, access\)/u)
 assert.match(edgeSource, /type: resolveCommentEventType\(op\),[\s\S]*?is_own: true/u)
-assert.match(genericWriteResponseSource, /if \(replay\)[\s\S]*?data = replay[\s\S]*?else \{[\s\S]*?execute_resume_version_comment_write/u)
-assert.match(genericWriteResponseSource, /scheduleBackground\(notifyWrite/u)
+assert.match(edgeSource, /resolve_resume_comment_access_v1/u)
+assert.match(genericMutationSource, /execute_resume_comment_mutation_v1/u)
+assert.match(genericMutationSource, /scheduleBackground\(notifyWrite/u)
+assert.doesNotMatch(genericMutationSource, /loadThreads\(|loadThreadCounts\(/u)
+assert.doesNotMatch(genericMutationSource, /enforceRateLimit\(/u)
+assert.match(genericMutationSource, /for \(const timingName of \['replay', 'rate_limit', 'write_rpc', 'hydrate'\]/u)
+assertSourceOrder(accessResolutionSource, [
+  'const accessInput = await timeOperation(\'access_token\'',
+  'resolveCommentAccessRpc(',
+  'assertResolvedSharePasswordGeneration({',
+  'const access = resolvedAccess.access',
+])
 assert.match(documentSyncSource, /if \(replay\)[\s\S]*?loadThreads\(admin, access\.scope\.id\)[\s\S]*?loadThreadCounts\(admin, access\.scope\.id\)/u)
 assert.match(documentSyncSource, /\.\.\.replay,[\s\S]*?threads,[\s\S]*?profiles,[\s\S]*?counts,[\s\S]*?type: 'document_synced'/u)
 assert.doesNotMatch(documentSyncSource, /return finalize\(success\(replay,/u)
-assertSourceOrder(finalMutationResponseSource, [
-  '    const eventSeq = Number(data.eventSeq)',
-  '    const threadId = typeof data.threadId',
-  'event: {',
-  'type: resolveCommentEventType(op),',
+assertSourceOrder(optimizedMutationRpcSource, [
+  'SELECT requests.response',
+  'public.check_resume_comment_rate_limit(',
+  'public.execute_resume_version_comment_write(',
+  'private.build_resume_comment_mutation_result_v1(',
 ])
+assert.match(optimizedMutationMigrationSource, /SET lock_timeout = '3s'/u)
+assert.match(optimizedMutationMigrationSource, /'clientRequestId', p_request_id/u)
+assert.match(optimizedMutationMigrationSource, /'thread',[\s\S]*?'comment',[\s\S]*?'profiles',[\s\S]*?'counts',[\s\S]*?'event'/u)
+assert.match(optimizedMutationMigrationSource, /REVOKE ALL ON FUNCTION public\.execute_resume_comment_mutation_v1[\s\S]*?TO service_role/u)
 assert.match(edgeSource, /scheduleBackground\(notifyWrite/u)
 assert.match(edgeSource, /Server-Timing/u)
 assert.match(edgeSource, /X-Request-Id/u)
@@ -248,7 +268,7 @@ assert.match(
 assert.match(edgeSource, /stale_document/u)
 assert.match(edgeSource, /expectedDocumentRevision/u)
 assert.match(edgeSource, /nodeMap\.get\(anchor\.nodeKey\),\s+documentHash/u)
-assert.match(edgeSource, /loadThreads\(admin, access\.scope\.id, \[threadId\]\)/u)
+assert.match(optimizedMutationMigrationSource, /private\.build_resume_comment_mutation_result_v1/u)
 assert.doesNotMatch(edgeSource, /await notifyWrite/u)
 assert.match(edgeSource, /token\.resumeId !== session\.resume_id/u)
 assert.match(edgeSource, /token\.role !== member\.role/u)
@@ -608,10 +628,10 @@ const normalizedPublicFiveArgumentEnsureSource = publicFiveArgumentEnsureSource.
 const normalizedPublicSixArgumentEnsureSource = publicSixArgumentEnsureSource.replace(/\s+/gu, ' ')
 const handlerSource = edgeSource.slice(edgeSource.indexOf('Deno.serve'))
 const bootstrapBranchStart = handlerSource.indexOf('if (op === \'bootstrap_scope\')')
-const legacyAccessStart = handlerSource.indexOf('const access = await resolveAccess')
+const optimizedAccessStart = handlerSource.indexOf('const accessInput = await timeOperation')
 assert.ok(bootstrapBranchStart >= 0)
-assert.ok(legacyAccessStart > bootstrapBranchStart)
-const bootstrapBranchSource = handlerSource.slice(bootstrapBranchStart, legacyAccessStart)
+assert.ok(optimizedAccessStart > bootstrapBranchStart)
+const bootstrapBranchSource = handlerSource.slice(bootstrapBranchStart, optimizedAccessStart)
 
 assert.equal(
   edgeSource.match(/'bootstrap_resume_comments_with_collaboration_lease_v2'/gu)?.length,

@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT extensions.plan(11);
+SELECT extensions.plan(12);
 
 SELECT extensions.ok(
   NOT EXISTS (
@@ -148,6 +148,30 @@ SELECT extensions.ok(
     'EXECUTE'
   ),
   'browser clients cannot mutate AI or observability ledgers'
+);
+
+SELECT extensions.ok(
+  has_function_privilege(
+    'service_role',
+    'public.resolve_resume_comment_access_v1(integer,text,uuid,uuid,uuid,bigint,uuid,uuid,text,text,text,uuid,text,smallint,uuid)',
+    'EXECUTE'
+  )
+  AND has_function_privilege(
+    'service_role',
+    'public.execute_resume_comment_mutation_v1(text,uuid,text,uuid,text,uuid,jsonb,text,uuid)',
+    'EXECUTE'
+  )
+  AND NOT has_function_privilege(
+    'anon',
+    'public.resolve_resume_comment_access_v1(integer,text,uuid,uuid,uuid,bigint,uuid,uuid,text,text,text,uuid,text,smallint,uuid)',
+    'EXECUTE'
+  )
+  AND NOT has_function_privilege(
+    'authenticated',
+    'public.execute_resume_comment_mutation_v1(text,uuid,text,uuid,text,uuid,jsonb,text,uuid)',
+    'EXECUTE'
+  ),
+  'aggregated comment RPCs remain service-role-only'
 );
 
 SELECT extensions.ok(

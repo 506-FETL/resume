@@ -45,6 +45,10 @@ import {
   SupabaseAuthenticationError,
 } from '../shared/supabase-auth.ts'
 
+type AdminClient = ReturnType<typeof createClient>
+let cachedAdminClient: AdminClient | null = null
+let cachedAdminClientKey: string | null = null
+
 function createAdminClient(url: string, serviceRoleKey: string) {
   // 复用同一 isolate 内的 admin client：GoTrueClient 的 JWKS 校验缓存挂在实例上（TTL 10 分钟）。
   // 若每个请求都新建 client，该缓存永不命中，每个已登录请求都会额外拉一次 JWKS（多花数百毫秒）。
@@ -58,9 +62,6 @@ function createAdminClient(url: string, serviceRoleKey: string) {
   return cachedAdminClient
 }
 
-type AdminClient = ReturnType<typeof createClient>
-let cachedAdminClient: AdminClient | null = null
-let cachedAdminClientKey: string | null = null
 type ActorKind = 'user' | 'anonymous'
 type AccessKind = 'owner' | 'collaborator' | 'share'
 type SyncRelocation = ResumeCommentRelocationResult & { threadId: string }
@@ -164,6 +165,9 @@ function projectCommentEventsForAccess(events: unknown[], access: ResolvedAccess
   return events.flatMap((value) => {
     if (!isRecord(value))
       return []
+    const sanitizedPayload = isRecord(value.sanitized_payload)
+      ? value.sanitized_payload
+      : {}
     return [{
       event_seq: value.event_seq,
       thread_id: value.thread_id,
@@ -176,6 +180,9 @@ function projectCommentEventsForAccess(events: unknown[], access: ResolvedAccess
         && value.actor_kind === access.actorKind
         && value.actor_id === access.actorId,
       ),
+      ...(isUuidValue(sanitizedPayload.clientRequestId)
+        ? { clientRequestId: sanitizedPayload.clientRequestId }
+        : {}),
     }]
   })
 }
@@ -304,6 +311,12 @@ type BootstrapTimingName
     | 'auth_local'
     | 'auth_legacy'
     | 'access_token'
+    | 'access_rpc'
+    | 'mutation_rpc'
+    | 'replay'
+    | 'rate_limit'
+    | 'write_rpc'
+    | 'hydrate'
     | 'rpc'
     | 'repair'
     | 'realtime_token'
@@ -1076,6 +1089,109 @@ async function assertCurrentSharePasswordGeneration({
   }
 }
 
+async function resolveCommentAccessRpc(
+  admin: AdminClient,
+  input: BootstrapRpcInput,
+  collaboratorLease: BootstrapInputContext['collaboratorLease'],
+): Promise<{
+  access: ResolvedAccess
+  sharePasswordHash: string | null
+}> {
+  const { data, error } = await admin.rpc('resolve_resume_comment_access_v1', {
+    ...input,
+    p_collaboration_protocol_version: collaboratorLease?.protocolVersion ?? null,
+    p_member_lease_id: collaboratorLease?.memberLeaseId ?? null,
+  })
+  if (error)
+    throw mapBootstrapRpcError(error)
+  if (
+    !isRecord(data)
+    || data.protocolVersion !== 1
+    || data.status !== 'ok'
+    || !isRecord(data.scope)
+  ) {
+    return bootstrapProtocolError('invalid_access_rpc_protocol')
+  }
+
+  const envelope = validateBootstrapAccess(data.access, input)
+  const scopeValue = data.scope
+  if (
+    !isUuidValue(scopeValue.id)
+    || scopeValue.id !== envelope.scopeId
+    || scopeValue.kind !== 'version'
+    || scopeValue.owner_user_id !== envelope.ownerUserId
+    || !isUuidValue(scopeValue.resume_id)
+    || scopeValue.version_id !== envelope.versionId
+    || !isRecord(scopeValue.anchor_document)
+    || typeof scopeValue.document_hash !== 'string'
+    || !isPositiveSafeInteger(scopeValue.document_revision)
+    || !isDateOnly(scopeValue.projection_reference_date)
+    || !isNonNegativeSafeInteger(scopeValue.next_event_seq)
+    || scopeValue.archived_at !== null
+  ) {
+    return bootstrapProtocolError('invalid_access_rpc_protocol')
+  }
+
+  const scope = scopeValue as unknown as ScopeRow
+  const share = envelope.kind === 'share'
+    ? {
+      id: envelope.shareId!,
+      user_id: envelope.ownerUserId,
+      current_release_id: envelope.releaseId,
+      allow_comments: envelope.canWrite,
+      is_active: true,
+      archived_at: null,
+      expires_at: null,
+      password_hash: envelope.sharePasswordHash,
+      version_id: envelope.versionId,
+    } satisfies ShareRow
+    : null
+
+  return {
+    access: {
+      kind: envelope.kind,
+      scope,
+      userId: envelope.userId,
+      actorKind: envelope.actorKind,
+      actorId: envelope.actorId,
+      actorKey: envelope.actorKey,
+      legacyAnonymousId: envelope.legacyAnonymousId,
+      share,
+      releaseId: envelope.releaseId,
+      versionId: envelope.versionId,
+      canWrite: envelope.canWrite,
+      canManageAll: envelope.canManageAll,
+    },
+    sharePasswordHash: envelope.sharePasswordHash,
+  }
+}
+
+async function assertResolvedSharePasswordGeneration({
+  input,
+  sharePasswordHash,
+  tokenSecret,
+}: {
+  input: BootstrapRpcInput
+  sharePasswordHash: string | null
+  tokenSecret: string | null
+}) {
+  if (input.p_access_kind !== 'share')
+    return
+  if (!tokenSecret || input.p_password_generation === null)
+    return bootstrapProtocolError('invalid_share_password_context')
+  const currentGeneration = await derivePasswordGeneration(
+    sharePasswordHash,
+    tokenSecret,
+  )
+  if (!timingSafeStringEqual(currentGeneration, input.p_password_generation)) {
+    throw new CommentApiError(
+      'share_unavailable',
+      '分享访问状态已变化，请重新验证',
+      401,
+    )
+  }
+}
+
 async function repairBootstrapScope(
   admin: AdminClient,
   repair: BootstrapRepairEnvelope,
@@ -1625,6 +1741,8 @@ async function resolveAnonymousIdentity({
   return anonymousId
 }
 
+// 旧访问解析器保留为 RPC 快速回滚路径。
+// eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
 async function resolveAccess({
   userId,
   body,
@@ -2384,14 +2502,30 @@ Deno.serve(async (req) => {
       return finalize(bootstrapResponse)
     }
 
-    const access = await resolveAccess({
-      userId,
-      body,
-      admin,
-      tokenSecret,
-      collaboratorSecret,
-      anonymousPepper,
-    })
+    const accessInput = await timeOperation('access_token', () => (
+      buildBootstrapInput({
+        userId,
+        body,
+        tokenSecret,
+        collaboratorSecret,
+        anonymousPepper,
+      })
+    ))
+    const resolvedAccess = await timeOperation('access_rpc', () => (
+      resolveCommentAccessRpc(
+        admin,
+        accessInput.rpcInput,
+        accessInput.collaboratorLease,
+      )
+    ))
+    await timeOperation('access_token', () => (
+      assertResolvedSharePasswordGeneration({
+        input: accessInput.rpcInput,
+        sharePasswordHash: resolvedAccess.sharePasswordHash,
+        tokenSecret: accessInput.shareTokenSecret,
+      })
+    ))
+    const access = resolvedAccess.access
 
     if (op === 'create_anonymous_identity') {
       if (access.kind !== 'share' || access.userId) {
@@ -2636,7 +2770,9 @@ Deno.serve(async (req) => {
         throw new CommentApiError('stale_release', '分享已发布新版本，请刷新后重试', 409)
       }
     }
-    const replay = await readReplay(admin, access.actorKey!, requestId)
+    const replay = ['mark_thread_read', 'mark_read'].includes(op)
+      ? await readReplay(admin, access.actorKey!, requestId)
+      : null
 
     if (op === 'mark_thread_read') {
       if (replay) {
@@ -2660,52 +2796,14 @@ Deno.serve(async (req) => {
       return finalize(success(data, Number(data.eventSeq)))
     }
 
-    let data: Record<string, unknown>
-    if (replay) {
-      if (!isRecord(replay))
-        throw new CommentApiError('unexpected', '评论重试响应无效', 500)
-      data = replay
-    }
-    else {
-      const payload = writePayload(body, access)
-      if (['create_thread', 'relink_anchor'].includes(op)) {
-        payload.anchor = readCommentAnchor(body.anchor)
-        payload.documentHash = readRequiredString(body, 'documentHash', 64)
+    const payload = writePayload(body, access)
+    if (op === 'mark_read') {
+      if (replay) {
+        if (!isRecord(replay))
+          throw new CommentApiError('unexpected', '评论重试响应无效', 500)
+        return finalize(success(replay, Number(replay.eventSeq)))
       }
-      if (['create_thread', 'create_reply', 'edit_comment'].includes(op)) {
-        payload.body = normalizeCommentBody(body.body)
-      }
-      if (op === 'create_reply') {
-        payload.parentCommentId = readUuid(body, 'parentCommentId')
-      }
-      if (op !== 'mark_read') {
-        requireWrite(access)
-      }
-      if (op === 'delete_thread' && !access.canManageAll) {
-        throw new CommentApiError('unauthorized', '只有简历所有者可以删除整条线程', 403)
-      }
-      if (
-        ['create_reply', 'edit_comment', 'delete_comment', 'delete_thread', 'resolve_thread', 'reopen_thread', 'relink_anchor'].includes(op)
-      ) {
-        payload.threadId = readUuid(body, 'threadId')
-        payload.expectedRevision = readNonNegativeInteger(body, 'expectedRevision')
-      }
-      if (['edit_comment', 'delete_comment'].includes(op)) {
-        payload.commentId = readUuid(body, 'commentId')
-      }
-      if (op === 'mark_read') {
-        payload.eventSeq = readNonNegativeInteger(body, 'eventSeq')
-      }
-
-      if (op !== 'mark_read') {
-        await enforceRateLimit({
-          req,
-          admin,
-          access,
-          threadId: typeof payload.threadId === 'string' ? payload.threadId : null,
-          pepper: anonymousPepper,
-        })
-      }
+      payload.eventSeq = readNonNegativeInteger(body, 'eventSeq')
       const result = await admin.rpc('execute_resume_version_comment_write', {
         p_op: op,
         p_scope_id: access.scope.id,
@@ -2718,48 +2816,82 @@ Deno.serve(async (req) => {
       if (result.error)
         throw result.error
       if (!isRecord(result.data))
-        throw new CommentApiError('unexpected', '评论响应无效', 500)
-      data = result.data
-      if (op !== 'mark_read') {
-        scheduleBackground(notifyWrite({
-          admin,
-          access,
-          realtimeSecret,
-          eventSeq: Number(data.eventSeq),
-          type: resolveCommentEventType(op),
-        }))
-      }
+        throw new CommentApiError('unexpected', '评论已读响应无效', 500)
+      return finalize(success(result.data, Number(result.data.eventSeq)))
     }
+
+    if (['create_thread', 'relink_anchor'].includes(op)) {
+      payload.anchor = readCommentAnchor(body.anchor)
+      payload.documentHash = readRequiredString(body, 'documentHash', 64)
+    }
+    if (['create_thread', 'create_reply', 'edit_comment'].includes(op))
+      payload.body = normalizeCommentBody(body.body)
+    if (op === 'create_reply')
+      payload.parentCommentId = readUuid(body, 'parentCommentId')
+
+    requireWrite(access)
+    if (op === 'delete_thread' && !access.canManageAll) {
+      throw new CommentApiError('unauthorized', '只有简历所有者可以删除整条线程', 403)
+    }
+    if (
+      ['create_reply', 'edit_comment', 'delete_comment', 'delete_thread', 'resolve_thread', 'reopen_thread', 'relink_anchor'].includes(op)
+    ) {
+      payload.threadId = readUuid(body, 'threadId')
+      payload.expectedRevision = readNonNegativeInteger(body, 'expectedRevision')
+    }
+    if (['edit_comment', 'delete_comment'].includes(op))
+      payload.commentId = readUuid(body, 'commentId')
+
+    const networkKey = await hashNetworkKey(getClientAddress(req), anonymousPepper)
+    const mutationResult = await timeOperation('mutation_rpc', () => (
+      admin.rpc('execute_resume_comment_mutation_v1', {
+        p_op: op,
+        p_scope_id: access.scope.id,
+        p_actor_kind: access.actorKind,
+        p_actor_id: access.actorId,
+        p_actor_key: access.actorKey,
+        p_request_id: requestId,
+        p_payload: payload,
+        p_network_key: networkKey,
+        p_share_id: access.share?.id ?? null,
+      })
+    ))
+    if (mutationResult.error)
+      throw mutationResult.error
+    if (!isRecord(mutationResult.data))
+      throw new CommentApiError('unexpected', '评论响应无效', 500)
+
+    const databaseTimings = isRecord(mutationResult.data.timings)
+      ? mutationResult.data.timings
+      : {}
+    for (const timingName of ['replay', 'rate_limit', 'write_rpc', 'hydrate'] as const) {
+      const duration = Number(databaseTimings[timingName])
+      if (Number.isFinite(duration) && duration >= 0)
+        recordTiming(timingName, duration)
+    }
+    if (mutationResult.data.status === 'rate_limited') {
+      throw new CommentApiError(
+        'rate_limited',
+        '操作过于频繁，请稍后重试',
+        429,
+        Number(mutationResult.data.retryAfterSeconds) || 1,
+      )
+    }
+    if (mutationResult.data.status !== 'ok' || !isRecord(mutationResult.data.data))
+      throw new CommentApiError('unexpected', '评论响应无效', 500)
+
+    const data = mutationResult.data.data
     const eventSeq = Number(data.eventSeq)
-    if (op === 'mark_read')
-      return finalize(success(data, eventSeq))
-    const threadId = typeof data.threadId === 'string' ? data.threadId : null
-    const [{ threads, profiles }, counts] = await Promise.all([
-      threadId
-        ? loadThreads(admin, access.scope.id, [threadId])
-        : Promise.resolve({ threads: [], profiles: [] }),
-      loadThreadCounts(admin, access.scope.id),
-    ])
-    const thread = threads[0] ?? null
-    const comments = thread && Array.isArray(thread.comments) ? thread.comments : []
-    const commentId = typeof data.commentId === 'string' ? data.commentId : null
-    return finalize(success({
-      ...data,
-      thread,
-      comment: commentId
-        ? comments.find(comment => comment.id === commentId) ?? null
-        : null,
-      removedCommentId: op === 'delete_comment' ? commentId : null,
-      profiles,
-      counts,
-      event: {
-        event_seq: eventSeq,
-        thread_id: threadId,
+    if (mutationResult.data.replayed !== true) {
+      scheduleBackground(notifyWrite({
+        admin,
+        access,
+        realtimeSecret,
+        eventSeq,
         type: resolveCommentEventType(op),
-        created_at: new Date().toISOString(),
-        is_own: true,
-      },
-    }, eventSeq))
+      }))
+    }
+    return finalize(success(data, eventSeq))
   }
   catch (error) {
     if (error instanceof SupabaseAuthenticationError) {

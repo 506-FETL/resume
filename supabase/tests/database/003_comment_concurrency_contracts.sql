@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT extensions.plan(10);
+SELECT extensions.plan(13);
 
 SELECT extensions.ok(
   position(
@@ -82,6 +82,37 @@ SELECT extensions.ok(
     'public.execute_resume_version_comment_write(text,uuid,text,uuid,text,uuid,jsonb)'::regprocedure
   ) LIKE '%pg_advisory_xact_lock%',
   'comment mutation locks its idempotency identity first'
+);
+
+SELECT extensions.ok(
+  position(
+    'check_resume_comment_rate_limit' IN pg_catalog.pg_get_functiondef(
+      'public.execute_resume_comment_mutation_v1(text,uuid,text,uuid,text,uuid,jsonb,text,uuid)'::regprocedure
+    )
+  ) < position(
+    'execute_resume_version_comment_write' IN pg_catalog.pg_get_functiondef(
+      'public.execute_resume_comment_mutation_v1(text,uuid,text,uuid,text,uuid,jsonb,text,uuid)'::regprocedure
+    )
+  ),
+  'aggregated mutation checks the rate limit before entering the canonical writer'
+);
+
+SELECT extensions.ok(
+  pg_catalog.pg_get_functiondef(
+    'public.execute_resume_comment_mutation_v1(text,uuid,text,uuid,text,uuid,jsonb,text,uuid)'::regprocedure
+  ) NOT LIKE '%pg_advisory_xact_lock%',
+  'aggregated mutation leaves request locking to the canonical writer'
+);
+
+SELECT extensions.ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_proc AS functions
+    WHERE functions.oid =
+      'public.execute_resume_comment_mutation_v1(text,uuid,text,uuid,text,uuid,jsonb,text,uuid)'::regprocedure
+      AND functions.proconfig @> ARRAY['lock_timeout=3s']::text[]
+  ),
+  'aggregated mutation keeps the bounded comment lock timeout'
 );
 
 SELECT extensions.ok(
