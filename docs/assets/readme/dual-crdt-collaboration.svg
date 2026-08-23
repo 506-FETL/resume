@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Dual CRDT collaboration design</title>
+  <desc id="desc">A hand-drawn technical diagram explaining how Automerge and Yjs use separate Supabase Realtime channels, prevent broadcast loops and govern concurrent edits.</desc>
+
+  <defs>
+    <pattern id="paperDots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#D9D2C3" opacity="0.34" />
+    </pattern>
+    <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#1F2328" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#2F6BFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <style>
+      .title { fill: #1F2328; font: 800 20px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1.1px; }
+      .section { fill: #1F2328; font: 900 16px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .label { fill: #1F2328; font: 800 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .body { fill: #575D66; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .small { fill: #575D66; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .chip { fill: #2F6BFF; font: 800 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="784" rx="28" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
+  <rect x="17" y="17" width="1166" height="766" rx="21" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1" stroke-dasharray="7 11" opacity="0.8" />
+
+  <text x="48" y="52" class="title">DESIGN / DUAL CRDT COLLABORATION</text>
+  <path d="M48 68C198 58 355 59 506 69" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" />
+  <path d="M862 31Q862 24 870 24L1140 27Q1148 27 1148 35L1146 67Q1146 75 1138 75L870 73Q862 73 862 65Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" />
+  <text x="887" y="53" class="label">ONE REALTIME TRANSPORT</text>
+
+  <!-- Two clean lanes -->
+  <path d="M48 97Q48 87 59 87L1140 91Q1151 91 1151 102L1148 399Q1148 410 1137 410L59 406Q48 406 48 395Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="70" y="121" class="section">WHY TWO ENGINES?</text>
+  <text x="241" y="121" class="body">different edit shapes need different conflict granularity</text>
+
+  <path d="M68 143Q68 135 77 135L230 137Q239 137 239 146L237 230Q237 239 228 239L77 237Q68 237 68 228Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.5" />
+  <text x="88" y="168" class="label">STRUCTURED FORM</text>
+  <text x="88" y="191" class="body">leaf fields</text>
+  <text x="88" y="211" class="body">arrays + metadata</text>
+
+  <path d="M276 143Q276 135 285 135L457 137Q466 137 466 146L464 230Q464 239 455 239L285 237Q276 237 276 228Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.5" />
+  <text x="303" y="174" class="section">AUTOMERGE</text>
+  <text x="300" y="199" class="body">NetworkAdapter</text>
+  <text x="300" y="219" class="small">field / character merge</text>
+
+  <path d="M519 137Q519 129 528 129L788 132Q797 132 797 141L795 244Q795 253 786 253L528 250Q519 250 519 241Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.7" />
+  <text x="547" y="159" class="section">SUPABASE REALTIME</text>
+  <path d="M544 174H771" stroke="#397A4C" stroke-width="2" stroke-linecap="round" opacity="0.45" />
+  <text x="547" y="194" class="label">automerge-sync</text>
+  <text x="690" y="194" class="small">binary delta</text>
+  <text x="547" y="217" class="label">control</text>
+  <text x="690" y="217" class="small">session events</text>
+  <text x="547" y="240" class="label">presence</text>
+  <text x="690" y="240" class="small">peer lifecycle</text>
+
+  <path d="M850 143Q850 135 859 135L1116 137Q1125 137 1125 146L1123 230Q1123 239 1114 239L859 237Q850 237 850 228Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.5" />
+  <text x="878" y="170" class="label">REMOTE FORM STORE</text>
+  <text x="878" y="194" class="body">minimal leaf updates</text>
+  <text x="878" y="215" class="body">arrays + caret preserved</text>
+
+  <path d="M239 187H276" stroke="#1F2328" stroke-width="2.7" marker-end="url(#arrowInk)" />
+  <path d="M466 187H519" stroke="#2F6BFF" stroke-width="2.7" stroke-dasharray="7 6" marker-start="url(#arrowBlue)" marker-end="url(#arrowBlue)" />
+  <path d="M797 187H850" stroke="#2F6BFF" stroke-width="2.7" stroke-dasharray="7 6" marker-start="url(#arrowBlue)" marker-end="url(#arrowBlue)" />
+
+  <path d="M68 275Q68 267 77 267L230 269Q239 269 239 278L237 362Q237 371 228 371L77 369Q68 369 68 360Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.5" />
+  <text x="88" y="300" class="label">RICH TEXT</text>
+  <text x="88" y="323" class="body">Tiptap fragments</text>
+  <text x="88" y="343" class="body">cursor awareness</text>
+
+  <path d="M276 275Q276 267 285 267L457 269Q466 269 466 278L464 362Q464 371 455 371L285 369Q276 369 276 360Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.5" />
+  <text x="337" y="306" class="section">YJS</text>
+  <text x="306" y="331" class="body">custom Provider</text>
+  <text x="299" y="351" class="small">fragment-level updates</text>
+
+  <path d="M519 269Q519 261 528 261L788 264Q797 264 797 273L795 376Q795 385 786 385L528 382Q519 382 519 373Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.7" />
+  <text x="547" y="291" class="section">SUPABASE REALTIME</text>
+  <path d="M544 306H771" stroke="#397A4C" stroke-width="2" stroke-linecap="round" opacity="0.45" />
+  <text x="547" y="326" class="label">yjs-update</text>
+  <text x="690" y="326" class="small">binary delta</text>
+  <text x="547" y="349" class="label">sync-request</text>
+  <text x="690" y="349" class="small">full repair</text>
+  <text x="547" y="372" class="label">awareness</text>
+  <text x="690" y="372" class="small">remote cursors</text>
+
+  <path d="M850 275Q850 267 859 267L1116 269Q1125 269 1125 278L1123 362Q1123 371 1114 371L859 369Q850 369 850 360Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.5" />
+  <text x="878" y="302" class="label">REMOTE Y.DOC</text>
+  <text x="878" y="326" class="body">incremental applyUpdate</text>
+  <text x="878" y="347" class="body">live collaborator cursors</text>
+
+  <path d="M239 319H276" stroke="#1F2328" stroke-width="2.7" marker-end="url(#arrowInk)" />
+  <path d="M466 319H519" stroke="#2F6BFF" stroke-width="2.7" stroke-dasharray="7 6" marker-start="url(#arrowBlue)" marker-end="url(#arrowBlue)" />
+  <path d="M797 319H850" stroke="#2F6BFF" stroke-width="2.7" stroke-dasharray="7 6" marker-start="url(#arrowBlue)" marker-end="url(#arrowBlue)" />
+
+  <!-- Governance cards -->
+  <path d="M48 444Q48 434 59 434L385 437Q396 437 396 448L393 715Q393 726 382 726L59 723Q48 723 48 712Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <circle cx="77" cy="474" r="16" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" />
+  <text x="71" y="480" class="label">1</text>
+  <text x="105" y="480" class="section">MINIMAL DIFF</text>
+  <text x="72" y="515" class="label">fresh Store read</text>
+  <text x="72" y="536" class="body">getState() avoids stale closures</text>
+  <path d="M72 554H369" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="72" y="581" class="label">leaf-level write plan</text>
+  <text x="72" y="602" class="body">updateText / setLeaf / array ops</text>
+  <path d="M72 620H369" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="72" y="647" class="label">remote form fill</text>
+  <text x="72" y="668" class="body">no reset; arrays keep focus</text>
+  <text x="72" y="689" class="body">caret maps by prefix / suffix</text>
+
+  <path d="M424 444Q424 434 435 434L759 437Q770 437 770 448L767 715Q767 726 756 726L435 723Q424 723 424 712Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <circle cx="453" cy="474" r="16" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
+  <text x="447" y="480" class="label">2</text>
+  <text x="481" y="480" class="section">LOOP BREAKERS</text>
+  <text x="448" y="515" class="label">Yjs document</text>
+  <rect x="447" y="530" width="285" height="43" rx="10" fill="#F8FAFF" stroke="#2F6BFF" stroke-width="2" />
+  <text x="464" y="556" class="chip">origin === provider → DROP</text>
+  <text x="448" y="602" class="label">Yjs awareness</text>
+  <rect x="447" y="617" width="285" height="43" rx="10" fill="#F8FAFF" stroke="#2F6BFF" stroke-width="2" />
+  <text x="464" y="643" class="chip">origin === remote → DROP</text>
+  <text x="448" y="688" class="label">Form mirror</text>
+  <text x="560" y="688" class="body">isResettingRef skips echo</text>
+
+  <path d="M798 444Q798 434 809 434L1140 437Q1151 437 1151 448L1148 715Q1148 726 1137 726L809 723Q798 723 798 712Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <circle cx="827" cy="474" r="16" fill="#E2F1E5" stroke="#1F2328" stroke-width="2" />
+  <text x="821" y="480" class="label">3</text>
+  <text x="855" y="480" class="section">REPAIR + PRESENCE</text>
+  <text x="822" y="515" class="label">document not bound yet?</text>
+  <path d="M822 530H1108" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+  <text x="822" y="553" class="body">queue with TTL 30s / cap 1000</text>
+  <text x="822" y="574" class="body">flush at most 200 messages</text>
+  <path d="M822 592H1123" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="822" y="619" class="label">new Yjs peer?</text>
+  <text x="822" y="640" class="body">sync-request → encode full state</text>
+  <path d="M822 658H1123" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="822" y="685" class="label">peer leaves?</text>
+  <text x="822" y="706" class="body">remove Awareness immediately</text>
+
+  <path d="M61 757C303 747 524 751 744 756C900 759 1018 752 1137 758" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
+  <text x="334" y="775" class="body">separate semantics • separate channels • shared realtime transport</text>
+</svg>

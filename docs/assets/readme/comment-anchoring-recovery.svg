@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Cross-version review anchoring and recovery</title>
+  <desc id="desc">A hand-drawn technical diagram explaining version-scoped comments, Unicode grapheme anchors, quote-context relocation and monotonic event sequence recovery.</desc>
+
+  <defs>
+    <pattern id="paperDots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#D9D2C3" opacity="0.34" />
+    </pattern>
+    <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#1F2328" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#2F6BFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <style>
+      .title { fill: #1F2328; font: 800 20px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1.1px; }
+      .section { fill: #1F2328; font: 900 16px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .label { fill: #1F2328; font: 800 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .body { fill: #575D66; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .small { fill: #575D66; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .blue { fill: #2F6BFF; font: 800 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="784" rx="28" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
+  <rect x="17" y="17" width="1166" height="766" rx="21" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1" stroke-dasharray="7 11" opacity="0.8" />
+
+  <text x="48" y="52" class="title">REVIEW SYSTEM / ANCHOR → RELOCATE → RECOVER</text>
+  <path d="M48 68C220 58 395 59 566 69" stroke="#397A4C" stroke-width="3" stroke-linecap="round" />
+  <path d="M925 30Q925 23 933 23L1140 26Q1148 26 1148 34L1146 68Q1146 76 1138 76L933 73Q925 73 925 65Z" fill="#E2F1E5" stroke="#1F2328" stroke-width="2" />
+  <text x="950" y="52" class="label">UNICODE SAFE</text>
+
+  <!-- Scope resolution -->
+  <path d="M48 96Q48 86 59 86L1140 90Q1151 90 1151 101L1148 234Q1148 245 1137 245L59 241Q48 241 48 230Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="123" class="section">1 / VERSION-SCOPED REVIEW</text>
+  <text x="313" y="123" class="body">different versions never leak comment state into each other</text>
+
+  <rect x="73" y="151" width="188" height="61" rx="12" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.3" />
+  <text x="97" y="177" class="label">WORKING COPY</text>
+  <text x="106" y="198" class="small">active version</text>
+
+  <rect x="293" y="151" width="188" height="61" rx="12" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.3" />
+  <text x="314" y="177" class="label">HISTORY SNAPSHOT</text>
+  <text x="335" y="198" class="small">frozen version</text>
+
+  <rect x="513" y="151" width="188" height="61" rx="12" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.3" />
+  <text x="536" y="177" class="label">PUBLIC RELEASE</text>
+  <text x="547" y="198" class="small">bound version</text>
+
+  <path d="M167 212V225M387 212V225M607 212V225M167 225H726V181H747" stroke="#2F6BFF" stroke-width="2.3" stroke-dasharray="7 6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowBlue)" />
+
+  <rect x="750" y="145" width="172" height="73" rx="12" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.3" />
+  <text x="774" y="173" class="label">STABLE VERSION ID</text>
+  <text x="782" y="197" class="small">content identity</text>
+  <path d="M922 181H956" stroke="#2F6BFF" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+
+  <rect x="959" y="145" width="165" height="73" rx="12" fill="#E2F1E5" stroke="#1F2328" stroke-width="2.3" />
+  <text x="979" y="173" class="label">CANONICAL SCOPE</text>
+  <text x="980" y="197" class="small">one scope / version</text>
+
+  <!-- Anchor payload -->
+  <path d="M48 278Q48 268 59 268L477 271Q488 271 488 282L485 567Q485 578 474 578L59 575Q48 575 48 564Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="306" class="section">2 / SEMANTIC ANCHOR</text>
+  <text x="72" y="329" class="body">offsets count grapheme clusters, not UTF-16 code units</text>
+
+  <path d="M75 351Q75 343 84 343L452 346Q461 346 461 355L459 527Q459 536 450 536L84 533Q75 533 75 524Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.4" />
+  <text x="99" y="377" class="label">nodeKey</text>
+  <text x="222" y="377" class="body">section / entry / field</text>
+  <path d="M98 391H438" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="99" y="417" class="label">grapheme offsets</text>
+  <text x="267" y="417" class="body">start ... end</text>
+  <path d="M98 431H438" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="99" y="457" class="label">exactQuote</text>
+  <text x="222" y="457" class="body">selected text</text>
+  <path d="M98 471H438" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="99" y="497" class="label">prefix / suffix</text>
+  <text x="267" y="497" class="body">32 graphemes each</text>
+  <text x="99" y="520" class="label">content hashes</text>
+  <text x="267" y="520" class="body">node + document</text>
+  <path d="M98 552C166 542 237 544 307 551" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
+  <text x="323" y="556" class="small">emoji stays intact</text>
+
+  <!-- Relocation decision -->
+  <path d="M519 278Q519 268 530 268L1140 271Q1151 271 1151 282L1148 567Q1148 578 1137 578L530 575Q519 575 519 564Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="543" y="306" class="section">3 / RELOCATE AFTER EDITS</text>
+  <text x="543" y="329" class="body">prefer deterministic checks; detach instead of guessing</text>
+
+  <rect x="546" y="353" width="175" height="53" rx="11" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.2" />
+  <text x="572" y="375" class="label">ORIGINAL OFFSET</text>
+  <text x="579" y="395" class="small">quote still matches?</text>
+  <path d="M721 380H763" stroke="#1F2328" stroke-width="2.4" marker-end="url(#arrowInk)" />
+
+  <rect x="766" y="353" width="161" height="53" rx="11" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.2" />
+  <text x="800" y="375" class="label">KEEP ANCHOR</text>
+  <text x="804" y="395" class="small">refresh context</text>
+  <text x="735" y="367" class="small">yes</text>
+
+  <path d="M634 406V441" stroke="#1F2328" stroke-width="2.4" marker-end="url(#arrowInk)" />
+  <text x="645" y="428" class="small">no</text>
+  <rect x="546" y="444" width="175" height="53" rx="11" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.2" />
+  <text x="572" y="466" class="label">SEARCH QUOTE</text>
+  <text x="566" y="486" class="small">all exact candidates</text>
+  <path d="M721 471H763" stroke="#1F2328" stroke-width="2.4" marker-end="url(#arrowInk)" />
+
+  <rect x="766" y="444" width="194" height="53" rx="11" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.2" />
+  <text x="786" y="466" class="label">PREFIX + SUFFIX</text>
+  <text x="798" y="486" class="small">narrow candidates</text>
+  <path d="M960 471H1001" stroke="#1F2328" stroke-width="2.4" marker-end="url(#arrowInk)" />
+
+  <rect x="1004" y="444" width="119" height="53" rx="11" fill="#E2F1E5" stroke="#1F2328" stroke-width="2.2" />
+  <text x="1024" y="466" class="label">UNIQUE?</text>
+  <text x="1021" y="486" class="small">move anchor</text>
+
+  <path d="M1064 497V530" stroke="#1F2328" stroke-width="2.4" marker-end="url(#arrowInk)" />
+  <rect x="885" y="533" width="238" height="31" rx="10" fill="#FFFFFF" stroke="#1F2328" stroke-width="2" />
+  <text x="912" y="554" class="body">DETACH + MANUAL RELINK</text>
+  <text x="905" y="519" class="small">0 or many matches</text>
+  <text x="546" y="551" class="body">node missing also detaches immediately</text>
+
+  <!-- Event recovery -->
+  <path d="M48 615Q48 605 59 605L1140 609Q1151 609 1151 620L1148 728Q1148 739 1137 739L59 735Q48 735 48 724Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="642" class="section">4 / MONOTONIC EVENT RECOVERY</text>
+  <text x="359" y="642" class="body">Realtime is an invalidation signal; the ordered event log is authoritative</text>
+
+  <rect x="75" y="669" width="175" height="44" rx="11" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.2" />
+  <text x="98" y="697" class="label">lastEventSeq = 42</text>
+  <path d="M250 691H323" stroke="#2F6BFF" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <text x="264" y="681" class="small">invalidate 47</text>
+
+  <rect x="326" y="669" width="214" height="44" rx="11" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.2" />
+  <text x="349" y="697" class="label">GET events after 42</text>
+  <path d="M540 691H613" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+
+  <rect x="616" y="669" width="214" height="44" rx="11" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.2" />
+  <text x="637" y="697" class="label">APPLY 43 ... 47</text>
+  <path d="M830 691H903" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+
+  <rect x="906" y="669" width="217" height="44" rx="11" fill="#E2F1E5" stroke="#1F2328" stroke-width="2.2" />
+  <text x="928" y="697" class="label">STATE RECOVERED</text>
+  <text x="77" y="725" class="small">protocol mismatch → full bootstrap; stale or duplicate sequence → ignore</text>
+
+  <path d="M63 751C302 745 524 748 746 752C907 756 1021 747 1137 751" stroke="#397A4C" stroke-width="3" stroke-linecap="round" />
+  <text x="347" y="773" class="body">stable identity • Unicode-safe offsets • ordered recovery</text>
+</svg>

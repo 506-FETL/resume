@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Deterministic A4 pagination algorithm</title>
+  <desc id="desc">A hand-drawn technical diagram showing TreeWalker text enumeration, Range ClientRects line boundaries, atomic elements, stable layout signatures and print verification.</desc>
+
+  <defs>
+    <pattern id="paperDots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#D9D2C3" opacity="0.34" />
+    </pattern>
+    <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#1F2328" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#2F6BFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <style>
+      .title { fill: #1F2328; font: 800 20px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1.1px; }
+      .section { fill: #1F2328; font: 900 16px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .label { fill: #1F2328; font: 800 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .body { fill: #575D66; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .small { fill: #575D66; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .blue { fill: #2F6BFF; font: 800 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="784" rx="28" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
+  <rect x="17" y="17" width="1166" height="766" rx="21" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1" stroke-dasharray="7 11" opacity="0.8" />
+
+  <text x="48" y="52" class="title">ALGORITHM / DETERMINISTIC A4 PAGINATION</text>
+  <path d="M48 68C211 58 376 59 540 69" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" />
+  <path d="M875 30Q875 23 883 23L1140 26Q1148 26 1148 34L1146 68Q1146 76 1138 76L883 73Q875 73 875 65Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" />
+  <text x="902" y="52" class="label">210 × 297 MM</text>
+
+  <!-- Measurement pipeline -->
+  <path d="M48 96Q48 86 59 86L1140 90Q1151 90 1151 101L1148 292Q1148 303 1137 303L59 299Q48 299 48 288Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="123" class="section">1 / MEASURE REAL DOM GEOMETRY</text>
+  <text x="363" y="123" class="body">do not estimate line height or split source data heuristically</text>
+
+  <path d="M72 153Q72 145 81 145L226 147Q235 147 235 156L233 245Q233 254 224 254L81 252Q72 252 72 243Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.4" />
+  <text x="97" y="181" class="label">SOURCE DOM</text>
+  <path d="M98 198H206M98 214H193M98 230H211" stroke="#858B94" stroke-width="3" stroke-linecap="round" opacity="0.62" />
+
+  <path d="M287 153Q287 145 296 145L441 147Q450 147 450 156L448 245Q448 254 439 254L296 252Q287 252 287 243Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.4" />
+  <text x="312" y="181" class="label">TREEWALKER</text>
+  <text x="312" y="205" class="body">SHOW_TEXT</text>
+  <text x="312" y="226" class="body">visible nodes only</text>
+
+  <path d="M502 153Q502 145 511 145L674 147Q683 147 683 156L681 245Q681 254 672 254L511 252Q502 252 502 243Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.4" />
+  <text x="524" y="181" class="label">RANGE RECTS</text>
+  <text x="524" y="205" class="body">ClientRects per line</text>
+  <text x="524" y="226" class="body">real top + bottom</text>
+
+  <path d="M735 153Q735 145 744 145L907 147Q916 147 916 156L914 245Q914 254 905 254L744 252Q735 252 735 243Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.4" />
+  <text x="758" y="181" class="label">ATOMIC NODES</text>
+  <text x="758" y="205" class="body">img / svg / hr</text>
+  <text x="758" y="226" class="body">add top + bottom</text>
+
+  <path d="M968 153Q968 145 977 145L1118 147Q1127 147 1127 156L1125 245Q1125 254 1116 254L977 252Q968 252 968 243Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.4" />
+  <text x="988" y="181" class="label">BOUNDARIES</text>
+  <text x="988" y="205" class="body">sorted offsets</text>
+  <text x="988" y="226" class="body">stable hash keys</text>
+
+  <path d="M235 199H287" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+  <path d="M450 199H502" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+  <path d="M683 199H735" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+  <path d="M916 199H968" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+
+  <!-- Break selection -->
+  <path d="M48 335Q48 325 59 325L713 328Q724 328 724 339L721 600Q721 611 710 611L59 608Q48 608 48 597Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="363" class="section">2 / CHOOSE THE LAST COMPLETE BREAK</text>
+  <text x="72" y="386" class="body">capacity limit → final boundary at or before the page bottom</text>
+
+  <!-- Source ruler -->
+  <path d="M92 419Q92 411 101 411L252 413Q261 413 261 422L259 568Q259 577 250 577L101 575Q92 575 92 566Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.4" />
+  <text x="116" y="439" class="label">CONTENT FLOW</text>
+  <path d="M121 458H228M121 478H219M121 498H232M121 518H210M121 538H226" stroke="#858B94" stroke-width="3" stroke-linecap="round" />
+  <circle cx="238" cy="458" r="4" fill="#2F6BFF" />
+  <circle cx="238" cy="478" r="4" fill="#2F6BFF" />
+  <circle cx="238" cy="498" r="4" fill="#2F6BFF" />
+  <circle cx="238" cy="518" r="4" fill="#2F6BFF" />
+  <circle cx="238" cy="538" r="4" fill="#2F6BFF" />
+
+  <path d="M261 506H322" stroke="#2F6BFF" stroke-width="2.7" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+
+  <!-- A4 page fragments -->
+  <path d="M328 407Q328 399 337 399L484 401Q493 401 493 410L491 565Q491 574 482 574L337 572Q328 572 328 563Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.7" />
+  <text x="374" y="426" class="label">PAGE 1</text>
+  <path d="M350 447H469M350 465H456M350 483H472M350 501H439" stroke="#858B94" stroke-width="3" stroke-linecap="round" />
+  <path d="M344 520H477" stroke="#D4A72C" stroke-width="9" opacity="0.25" />
+  <path d="M344 520C382 515 435 524 477 519" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
+  <text x="357" y="548" class="small">endKey = line-4</text>
+
+  <path d="M525 407Q525 399 534 399L681 401Q690 401 690 410L688 565Q688 574 679 574L534 572Q525 572 525 563Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.7" />
+  <text x="571" y="426" class="label">PAGE 2</text>
+  <path d="M547 447H672M547 465H658M547 483H675M547 501H645M547 519H667" stroke="#858B94" stroke-width="3" stroke-linecap="round" />
+  <text x="553" y="548" class="small">startKey = line-4</text>
+  <path d="M493 520H525" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+  <text x="173" y="594" class="body">segment[i].end === segment[i + 1].start  →  no gap, no overlap</text>
+
+  <!-- Convergence -->
+  <path d="M755 335Q755 325 766 325L1140 328Q1151 328 1151 339L1148 600Q1148 611 1137 611L766 608Q755 608 755 597Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="779" y="363" class="section">3 / CONVERGE</text>
+
+  <rect x="782" y="390" width="338" height="45" rx="11" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.1" />
+  <text x="806" y="418" class="label">FONTS load → ready → check</text>
+  <path d="M951 435V452" stroke="#1F2328" stroke-width="2.2" marker-end="url(#arrowInk)" />
+
+  <rect x="782" y="455" width="338" height="45" rx="11" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.1" />
+  <text x="806" y="483" class="label">RESIZE OBSERVER schedules only</text>
+  <path d="M951 500V517" stroke="#1F2328" stroke-width="2.2" marker-end="url(#arrowInk)" />
+
+  <rect x="782" y="520" width="338" height="45" rx="11" fill="#E8EEFF" stroke="#2F6BFF" stroke-width="2.1" />
+  <text x="806" y="548" class="label">RAF measure + compare signature</text>
+  <path d="M1119 543C1140 543 1140 477 1119 477" stroke="#2F6BFF" stroke-width="2.2" stroke-dasharray="6 6" marker-end="url(#arrowBlue)" />
+  <text x="803" y="584" class="body">commit after two consecutive signatures match</text>
+
+  <!-- Canonical render -->
+  <path d="M48 646Q48 636 59 636L1140 640Q1151 640 1151 651L1148 726Q1148 737 1137 737L59 733Q48 733 48 722Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="674" class="section">4 / ONE CANONICAL DOM</text>
+  <rect x="285" y="658" width="205" height="49" rx="12" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.2" />
+  <text x="335" y="688" class="label">PREVIEW</text>
+  <path d="M490 683H593" stroke="#2F6BFF" stroke-width="2.7" marker-end="url(#arrowBlue)" />
+  <rect x="596" y="658" width="205" height="49" rx="12" fill="#E8EEFF" stroke="#2F6BFF" stroke-width="2.2" />
+  <text x="625" y="688" class="label">LAYOUT SIGNATURE</text>
+  <path d="M801 683H904" stroke="#2F6BFF" stroke-width="2.7" marker-end="url(#arrowBlue)" />
+  <rect x="907" y="658" width="205" height="49" rx="12" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.2" />
+  <text x="961" y="688" class="label">PDF PRINT</text>
+  <text x="275" y="721" class="body">print remeasures the cloned DOM and rejects a mismatched signature</text>
+
+  <path d="M63 751C302 745 524 748 746 752C907 756 1021 747 1137 751" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
+  <text x="363" y="773" class="body">measure reality • select complete breaks • commit only when stable</text>
+</svg>

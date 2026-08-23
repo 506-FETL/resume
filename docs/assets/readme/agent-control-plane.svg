@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Streaming agent and controlled write design</title>
+  <desc id="desc">A clean hand-drawn technical diagram showing the DeepSeek streaming agent loop, safe write gates and request-id quota settlement in three separated horizontal sections.</desc>
+
+  <defs>
+    <pattern id="paperDots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#D9D2C3" opacity="0.34" />
+    </pattern>
+    <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#1F2328" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#2F6BFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <style>
+      .title { fill: #1F2328; font: 800 20px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1.1px; }
+      .section { fill: #1F2328; font: 900 16px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .label { fill: #1F2328; font: 800 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .body { fill: #575D66; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .small { fill: #575D66; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .blue { fill: #2F6BFF; font: 800 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="884" rx="28" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
+  <rect x="17" y="17" width="1166" height="866" rx="21" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1" stroke-dasharray="7 11" opacity="0.8" />
+
+  <text x="48" y="52" class="title">CONTROL PLANE / STREAM → DECIDE → COMMIT</text>
+  <path d="M48 68C210 58 377 59 540 69" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
+  <path d="M914 30Q914 23 922 23L1140 26Q1148 26 1148 34L1146 68Q1146 76 1138 76L922 73Q914 73 914 65Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
+  <text x="946" y="52" class="label">MAX 8 STEPS</text>
+
+  <!-- 1. Streaming loop -->
+  <path d="M48 96Q48 86 59 86L1140 90Q1151 90 1151 101L1148 394Q1148 405 1137 405L59 401Q48 401 48 390Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="123" class="section">1 / STREAMING AGENT LOOP</text>
+  <text x="72" y="146" class="body">Each stage has one job; tool results start the next model step.</text>
+
+  <path d="M72 171Q72 163 81 163L229 165Q238 165 238 174L236 240Q236 249 227 249L81 247Q72 247 72 238Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.4" />
+  <text x="98" y="198" class="label">USER PROMPT</text>
+  <text x="96" y="222" class="body">history + context</text>
+
+  <path d="M300 171Q300 163 309 163L457 165Q466 165 466 174L464 240Q464 249 455 249L309 247Q300 247 300 238Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.4" />
+  <text x="322" y="198" class="label">EDGE FUNCTION</text>
+  <text x="323" y="222" class="body">auth + quota + proxy</text>
+
+  <path d="M528 171Q528 163 537 163L685 165Q694 165 694 174L692 240Q692 249 683 249L537 247Q528 247 528 238Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.4" />
+  <text x="565" y="198" class="label">DEEPSEEK</text>
+  <text x="550" y="222" class="body">SSE + tool calling</text>
+
+  <path d="M756 158Q756 150 765 150L1116 153Q1125 153 1125 162L1123 253Q1123 262 1114 262L765 259Q756 259 756 250Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.6" />
+  <text x="780" y="181" class="label">STREAM PARSER</text>
+  <text x="780" y="204" class="body">reasoning / text / tool calls</text>
+  <rect x="780" y="218" width="93" height="27" rx="8" fill="#FFFFFF" stroke="#1F2328" stroke-width="1.8" />
+  <text x="797" y="236" class="small">reasoning</text>
+  <rect x="886" y="218" width="76" height="27" rx="8" fill="#FFFFFF" stroke="#1F2328" stroke-width="1.8" />
+  <text x="910" y="236" class="small">text</text>
+  <rect x="975" y="218" width="124" height="27" rx="8" fill="#E8EEFF" stroke="#2F6BFF" stroke-width="1.8" />
+  <text x="998" y="236" class="blue">TOOL CALLS</text>
+
+  <path d="M238 205H300" stroke="#1F2328" stroke-width="2.5" marker-end="url(#arrowInk)" />
+  <path d="M466 190H528" stroke="#2F6BFF" stroke-width="2.3" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <text x="478" y="181" class="small">request</text>
+  <path d="M528 222H466" stroke="#2F6BFF" stroke-width="2.3" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <text x="487" y="239" class="small">SSE</text>
+  <path d="M382 249V264H738Q756 264 756 246" stroke="#2F6BFF" stroke-width="2.3" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <text x="548" y="260" class="small">proxied stream</text>
+
+  <text x="72" y="293" class="label">TOOL PATH</text>
+  <rect x="171" y="273" width="163" height="42" rx="10" fill="#F8FAFF" stroke="#1F2328" stroke-width="2" />
+  <text x="194" y="299" class="label">STABLE TOOL ID</text>
+  <path d="M334 294H386" stroke="#1F2328" stroke-width="2.3" marker-end="url(#arrowInk)" />
+  <rect x="389" y="273" width="190" height="42" rx="10" fill="#FFF9E8" stroke="#1F2328" stroke-width="2" />
+  <text x="405" y="299" class="label">READ / WRITE MODE</text>
+  <path d="M579 294H609" stroke="#1F2328" stroke-width="2.3" marker-end="url(#arrowInk)" />
+  <rect x="612" y="273" width="180" height="42" rx="10" fill="#F2F8F3" stroke="#1F2328" stroke-width="2" />
+  <text x="640" y="299" class="label">TOOL EXECUTION</text>
+  <path d="M792 294H842" stroke="#1F2328" stroke-width="2.3" marker-end="url(#arrowInk)" />
+  <rect x="845" y="273" width="191" height="42" rx="10" fill="#E8EEFF" stroke="#2F6BFF" stroke-width="2" />
+  <text x="883" y="299" class="label">TOOL RESULT</text>
+  <path d="M1036 294H1049" stroke="#1F2328" stroke-width="2.3" marker-end="url(#arrowInk)" />
+  <rect x="1049" y="273" width="76" height="42" rx="10" fill="#FFFFFF" stroke="#1F2328" stroke-width="2" />
+  <text x="1065" y="292" class="label">LOOP</text>
+  <text x="1074" y="307" class="small">≤ 8</text>
+  <path d="M1087 315V329H350V249" stroke="#1F2328" stroke-width="2.1" stroke-dasharray="6 6" marker-end="url(#arrowInk)" />
+  <text x="667" y="326" class="small">next model step</text>
+
+  <path d="M72 342H1124" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="72" y="370" class="body">Stable ID before rendering • reasoning_content preserved • AbortSignal cancels the active request</text>
+
+  <!-- 2. Controlled write -->
+  <path d="M48 438Q48 428 59 428L779 431Q790 431 790 442L787 644Q787 655 776 655L59 652Q48 652 48 641Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="466" class="section">2 / RESUME FIELD WRITE</text>
+  <text x="72" y="489" class="body">Only update_current_resume_field uses all four gates.</text>
+
+  <rect x="72" y="520" width="150" height="78" rx="12" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.2" />
+  <circle cx="97" cy="545" r="14" fill="#E8EEFF" stroke="#1F2328" stroke-width="1.8" />
+  <text x="92" y="550" class="label">1</text>
+  <text x="120" y="549" class="label">ZOD</text>
+  <text x="91" y="576" class="small">schema validation</text>
+
+  <path d="M222 559H253" stroke="#1F2328" stroke-width="2.3" marker-end="url(#arrowInk)" />
+  <rect x="256" y="520" width="150" height="78" rx="12" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.2" />
+  <circle cx="281" cy="545" r="14" fill="#F6E8A9" stroke="#1F2328" stroke-width="1.8" />
+  <text x="276" y="550" class="label">2</text>
+  <text x="305" y="549" class="label">FIELD DIFF</text>
+  <text x="278" y="576" class="small">before / after</text>
+
+  <path d="M406 559H437" stroke="#1F2328" stroke-width="2.3" marker-end="url(#arrowInk)" />
+  <rect x="440" y="520" width="150" height="78" rx="12" fill="#F6E8A9" stroke="#1F2328" stroke-width="2.2" />
+  <circle cx="465" cy="545" r="14" fill="#FFFFFF" stroke="#1F2328" stroke-width="1.8" />
+  <text x="460" y="550" class="label">3</text>
+  <text x="489" y="549" class="label">CONFIRM</text>
+  <text x="478" y="576" class="small">user choice</text>
+
+  <path d="M590 559H621" stroke="#1F2328" stroke-width="2.3" marker-end="url(#arrowInk)" />
+  <rect x="624" y="520" width="139" height="78" rx="12" fill="#E8EEFF" stroke="#2F6BFF" stroke-width="2.2" />
+  <circle cx="649" cy="545" r="14" fill="#FFFFFF" stroke="#2F6BFF" stroke-width="1.8" />
+  <text x="644" y="550" class="label">4</text>
+  <text x="672" y="549" class="label">COMMIT</text>
+  <text x="646" y="576" class="small">CRDT document</text>
+  <text x="72" y="626" class="body">Other writes use their own preview, confirmation and persistence path.</text>
+
+  <!-- Reliability notes -->
+  <path d="M821 438Q821 428 832 428L1140 431Q1151 431 1151 442L1148 644Q1148 655 1137 655L832 652Q821 652 821 641Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="845" y="466" class="section">FAILURE RULES</text>
+  <path d="M845 490H1124" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="845" y="518" class="label">TOOL ERROR</text>
+  <text x="845" y="540" class="body">return an explicit result</text>
+  <path d="M845 558H1124" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+  <text x="845" y="586" class="label">CONFIRM REJECTED</text>
+  <text x="845" y="608" class="body">return a cancelled result</text>
+  <path d="M845 626H1124" stroke="#D9D2C3" stroke-width="2" stroke-dasharray="5 7" />
+
+  <!-- 3. Quota ledger -->
+  <path d="M48 689Q48 679 59 679L1140 683Q1151 683 1151 694L1148 837Q1148 848 1137 848L59 844Q48 844 48 833Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="72" y="717" class="section">3 / REQUEST-ID QUOTA LEDGER</text>
+  <text x="355" y="717" class="body">reserve once, then close exactly one outcome</text>
+
+  <rect x="72" y="750" width="126" height="57" rx="11" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.1" />
+  <text x="91" y="773" class="label">REQUEST ID</text>
+  <text x="94" y="794" class="small">idempotency</text>
+  <path d="M198 779H230" stroke="#1F2328" stroke-width="2.2" marker-end="url(#arrowInk)" />
+
+  <rect x="233" y="750" width="126" height="57" rx="11" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.1" />
+  <text x="264" y="773" class="label">RESERVE</text>
+  <text x="266" y="794" class="small">debit once</text>
+  <path d="M359 779H391" stroke="#1F2328" stroke-width="2.2" marker-end="url(#arrowInk)" />
+
+  <rect x="394" y="750" width="126" height="57" rx="11" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.1" />
+  <text x="421" y="773" class="label">UPSTREAM</text>
+  <text x="420" y="794" class="small">inspect SSE</text>
+
+  <path d="M520 779H571" stroke="#1F2328" stroke-width="2.2" marker-end="url(#arrowInk)" />
+  <text x="584" y="733" class="small">CLOSE ONE OUTCOME</text>
+
+  <rect x="584" y="744" width="166" height="65" rx="11" fill="#FFFFFF" stroke="#1F2328" stroke-width="2" />
+  <text x="626" y="770" class="small">NO CONTENT</text>
+  <text x="611" y="794" class="label">RELEASE CREDIT</text>
+
+  <rect x="770" y="744" width="166" height="65" rx="11" fill="#E2F1E5" stroke="#397A4C" stroke-width="2" />
+  <text x="830" y="770" class="small">[DONE]</text>
+  <text x="792" y="794" class="label">SETTLE COMPLETE</text>
+
+  <rect x="956" y="744" width="168" height="65" rx="11" fill="#FFF9E8" stroke="#D4A72C" stroke-width="2" />
+  <text x="1004" y="770" class="small">INTERRUPTED</text>
+  <text x="981" y="794" class="label">SETTLE PARTIAL</text>
+
+  <path d="M63 855C302 849 524 852 746 856C907 859 1021 851 1137 855" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" />
+  <text x="392" y="876" class="body">stream freely • write deliberately • settle exactly once</text>
+</svg>
