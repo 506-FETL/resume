@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">GResume workflow overview</title>
+  <desc id="desc">A hand-drawn engineering notebook illustration showing a base resume entering GResume, then branching into versioned sharing and job tracking.</desc>
+
+  <defs>
+    <pattern id="paperDots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#D9D2C3" opacity="0.42" />
+    </pattern>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="544" rx="30" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
+  <rect x="17" y="17" width="1166" height="526" rx="23" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1.2" stroke-dasharray="7 11" opacity="0.8" />
+
+  <path d="M49 63C163 37 267 39 374 57" stroke="#2F6BFF" stroke-width="8" stroke-linecap="round" opacity="0.16" />
+  <path d="M49 60C159 48 270 41 375 59" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" />
+  <text x="52" y="49" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="700" letter-spacing="1.5">RESUME → OFFER / ONE WORKSPACE</text>
+
+  <!-- Base resume -->
+  <g transform="rotate(-2 180 280)">
+    <path d="M74 111Q73 98 88 97L271 93L316 137L320 427Q320 440 306 441L91 446Q76 446 76 432Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="4" stroke-linejoin="round" />
+    <path d="M80 116Q79 104 92 103L269 100L310 141L313 422" stroke="#1F2328" stroke-width="1.8" stroke-linecap="round" opacity="0.28" />
+    <path d="M271 94L270 126Q270 140 285 140L316 137" fill="#F3E7BC" stroke="#1F2328" stroke-width="3.2" stroke-linejoin="round" />
+    <circle cx="130" cy="160" r="27" fill="#E8EEFF" stroke="#1F2328" stroke-width="3" />
+    <circle cx="130" cy="151" r="8" stroke="#1F2328" stroke-width="3" />
+    <path d="M115 176Q130 162 145 176" stroke="#1F2328" stroke-width="3" stroke-linecap="round" />
+    <path d="M175 148H267M175 167H244" stroke="#2F6BFF" stroke-width="6" stroke-linecap="round" />
+    <text x="103" y="224" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">BASE RESUME</text>
+    <path d="M105 247H284M105 272H263M105 297H286M105 344H279M105 369H251M105 394H288" stroke="#858B94" stroke-width="5" stroke-linecap="round" opacity="0.58" />
+    <path d="M104 319C147 312 201 313 245 319" stroke="#D4A72C" stroke-width="8" stroke-linecap="round" opacity="0.3" />
+    <path d="M104 318C146 317 201 312 246 320" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
+  </g>
+
+  <g transform="rotate(3 170 447)">
+    <path d="M91 416L250 412L258 479L97 485Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="3" stroke-linejoin="round" />
+    <text x="113" y="447" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700">LOCAL-FIRST</text>
+    <text x="113" y="468" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">start before sign-in</text>
+  </g>
+
+  <!-- Arrow into workspace -->
+  <path d="M333 279C365 268 385 267 414 278" stroke="#1F2328" stroke-width="4" stroke-linecap="round" />
+  <path d="M399 265L417 278L398 289" stroke="#1F2328" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="337" y="250" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">write once</text>
+
+  <!-- GResume workspace -->
+  <g>
+    <path d="M423 87Q422 72 440 71L774 78Q792 78 791 95L785 450Q784 466 768 465L438 459Q420 459 421 442Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="4" stroke-linejoin="round" />
+    <path d="M430 94Q432 79 447 80L768 85Q783 84 782 101L778 441Q778 454 763 455" stroke="#2F6BFF" stroke-width="2" stroke-linecap="round" stroke-dasharray="10 8" opacity="0.6" />
+
+    <path d="M453 118C479 105 509 109 528 127C548 146 546 175 527 193C507 211 476 208 457 190C437 171 436 136 453 118Z" fill="#2F6BFF" />
+    <path d="M490 126C494 146 505 157 525 161C505 165 494 176 490 196C486 176 475 165 455 161C475 157 486 146 490 126Z" fill="#FFFFFF" />
+    <text x="550" y="147" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28" font-weight="800">GResume</text>
+    <text x="550" y="173" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">resume × job × progress</text>
+
+    <g>
+      <path d="M454 226Q454 216 464 216L584 217Q594 217 594 228L593 299Q593 309 582 309L463 307Q453 307 453 297Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.8" />
+      <path d="M621 226Q621 216 631 216L751 217Q761 217 761 228L760 299Q760 309 749 309L630 307Q620 307 620 297Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.8" />
+      <path d="M454 333Q454 323 464 323L584 324Q594 324 594 335L593 406Q593 416 582 416L463 414Q453 414 453 404Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.8" />
+      <path d="M621 333Q621 323 631 323L751 324Q761 324 761 335L760 406Q760 416 749 416L630 414Q620 414 620 404Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.8" />
+
+      <path d="M475 247H511M475 258H527M475 269H503" stroke="#2F6BFF" stroke-width="4" stroke-linecap="round" />
+      <path d="M648 245L663 260L686 236" stroke="#D4A72C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M480 352C484 370 494 380 512 384C494 388 484 398 480 416C476 398 466 388 448 384C466 380 476 370 480 352Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.5" />
+      <path d="M652 353H725M652 367H711M652 381H731" stroke="#858B94" stroke-width="4" stroke-linecap="round" />
+
+      <text x="474" y="291" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700">EDIT</text>
+      <text x="647" y="291" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700">ATS</text>
+      <text x="509" y="391" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700">AI</text>
+      <text x="648" y="401" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="700">VERSIONS</text>
+    </g>
+  </g>
+
+  <!-- Optional cloud note -->
+  <g transform="rotate(-2 608 54)">
+    <path d="M492 41Q491 28 505 28H714Q728 28 727 43L724 76H494Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.5" stroke-dasharray="7 5" />
+    <text x="521" y="59" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">OPTIONAL CLOUD — SYNC / REALTIME</text>
+  </g>
+
+  <!-- Branch to share -->
+  <path d="M794 203C826 182 843 163 870 143" stroke="#2F6BFF" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 7" />
+  <path d="M854 142L873 141L867 159" stroke="#2F6BFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <g transform="rotate(2 1018 143)">
+    <path d="M879 84Q880 73 892 74L1137 80Q1148 81 1147 93L1143 211Q1143 223 1130 222L890 217Q877 216 878 204Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3.5" />
+    <circle cx="918" cy="126" r="20" fill="#F6E8A9" stroke="#1F2328" stroke-width="2.5" />
+    <path d="M909 127L918 118M918 136L927 127M914 132L922 124" stroke="#1F2328" stroke-width="2.5" stroke-linecap="round" />
+    <text x="954" y="120" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">SHARE v3</text>
+    <text x="954" y="144" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">fixed snapshot</text>
+    <path d="M905 172H1109" stroke="#858B94" stroke-width="3" stroke-linecap="round" opacity="0.55" />
+    <text x="905" y="196" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">password • expiry • comments</text>
+  </g>
+
+  <!-- Branch to tracker -->
+  <path d="M793 342C822 354 835 369 857 389" stroke="#1F2328" stroke-width="4" stroke-linecap="round" />
+  <path d="M851 373L860 392L840 389" stroke="#1F2328" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <g transform="rotate(-1 1002 398)">
+    <path d="M858 274Q859 262 872 263L1141 260Q1153 260 1154 273L1156 485Q1156 497 1143 498L872 501Q859 501 859 488Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3.5" />
+    <text x="884" y="302" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="800">JOB TRACKER</text>
+    <path d="M883 316H1131" stroke="#1F2328" stroke-width="2" stroke-linecap="round" />
+
+    <path d="M883 335H954V470H883Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2" />
+    <path d="M963 335H1034V470H963Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2" />
+    <path d="M1043 335H1132V470H1043Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2" />
+    <text x="892" y="355" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" font-weight="700">APPLIED</text>
+    <text x="970" y="355" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" font-weight="700">INTERVIEW</text>
+    <text x="1054" y="355" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" font-weight="700">OFFER</text>
+    <rect x="891" y="372" width="54" height="29" rx="5" fill="#E8EEFF" stroke="#2F6BFF" stroke-width="1.5" />
+    <rect x="971" y="394" width="54" height="29" rx="5" fill="#F6E8A9" stroke="#D4A72C" stroke-width="1.5" />
+    <rect x="1052" y="419" width="70" height="29" rx="5" fill="#E2F1E5" stroke="#397A4C" stroke-width="1.5" />
+    <path d="M918 405C935 418 956 422 975 414" stroke="#1F2328" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="5 5" />
+    <path d="M1000 426C1018 439 1038 440 1055 435" stroke="#1F2328" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="5 5" />
+  </g>
+
+  <!-- Decorative engineering marks -->
+  <path d="M355 109L367 96M366 111L379 104M350 98L355 84" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
+  <path d="M815 487C831 477 840 477 855 487M814 496C831 487 844 488 859 499" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" />
+  <text x="468" y="517" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">one resume model / every application stays traceable</text>
+</svg>

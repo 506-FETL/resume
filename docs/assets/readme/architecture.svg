@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">GResume system architecture</title>
+  <desc id="desc">A clean hand-drawn architecture diagram with a local-first browser workspace, optional Supabase services and the DeepSeek API reached through an Edge Function.</desc>
+
+  <defs>
+    <pattern id="paperDots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#D9D2C3" opacity="0.36" />
+    </pattern>
+    <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#1F2328" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#2F6BFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </marker>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="604" rx="28" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
+  <rect x="17" y="17" width="1166" height="586" rx="21" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1" stroke-dasharray="7 11" opacity="0.8" />
+
+  <text x="48" y="52" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="800" letter-spacing="1.2">SYSTEM MAP / LOCAL FIRST, CLOUD WHEN NEEDED</text>
+  <path d="M48 68C196 58 357 58 510 70" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" />
+
+  <!-- User -->
+  <circle cx="106" cy="272" r="26" fill="#E8EEFF" stroke="#1F2328" stroke-width="3" />
+  <circle cx="106" cy="264" r="8" stroke="#1F2328" stroke-width="2.7" />
+  <path d="M91 288Q106 273 121 288" stroke="#1F2328" stroke-width="2.7" stroke-linecap="round" />
+  <path d="M51 316Q51 306 62 306L151 308Q162 308 162 319L160 372Q160 383 149 383L62 381Q51 381 51 370Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3" />
+  <text x="78" y="342" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="800">USER</text>
+  <text x="68" y="363" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">candidate</text>
+  <path d="M162 345H213" stroke="#1F2328" stroke-width="3" stroke-linecap="round" marker-end="url(#arrowInk)" />
+
+  <!-- Browser workspace -->
+  <path d="M220 105Q220 92 234 92L706 97Q720 97 720 111L716 552Q716 566 702 566L234 561Q220 561 220 547Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="3.5" />
+  <text x="250" y="137" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="21" font-weight="900">BROWSER WORKSPACE</text>
+  <text x="250" y="158" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">fast local editing path</text>
+
+  <!-- Browser row 1 -->
+  <path d="M252 181Q252 172 262 172L447 174Q457 174 457 184L455 249Q455 259 445 259L262 257Q252 257 252 247Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.7" />
+  <path d="M270 195H292V215H270Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
+  <text x="308" y="211" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">PAGES + UI</text>
+  <text x="270" y="239" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">routes • actions • preview</text>
+
+  <path d="M481 181Q481 172 491 172L676 174Q686 174 686 184L684 249Q684 259 674 259L491 257Q481 257 481 247Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.7" />
+  <path d="M501 197H660M501 211H638" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" opacity="0.72" />
+  <text x="501" y="235" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">ZUSTAND STORES</text>
+  <path d="M457 216H481" stroke="#1F2328" stroke-width="2.7" stroke-linecap="round" marker-end="url(#arrowInk)" />
+
+  <!-- Browser row 2 -->
+  <path d="M252 287Q252 278 262 278L447 280Q457 280 457 290L455 355Q455 365 445 365L262 363Q252 363 252 353Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.7" />
+  <text x="270" y="310" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="800">TIPTAP + TEMPLATES</text>
+  <path d="M270 327H431M270 342H408" stroke="#858B94" stroke-width="3" stroke-linecap="round" opacity="0.62" />
+
+  <path d="M481 287Q481 278 491 278L676 280Q686 280 686 290L684 355Q684 365 674 365L491 363Q481 363 481 353Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.7" />
+  <ellipse cx="583" cy="306" rx="54" ry="11" fill="#E2F1E5" stroke="#1F2328" stroke-width="2" />
+  <path d="M529 306V329C529 336 553 341 583 341C613 341 637 336 637 329V306" stroke="#1F2328" stroke-width="2" />
+  <text x="514" y="356" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">INDEXEDDB + AUTOMERGE</text>
+  <path d="M457 323H481" stroke="#1F2328" stroke-width="2.7" stroke-linecap="round" marker-end="url(#arrowInk)" />
+  <path d="M582 259V278" stroke="#1F2328" stroke-width="2.7" stroke-linecap="round" marker-end="url(#arrowInk)" />
+
+  <!-- Browser row 3 -->
+  <path d="M252 405Q252 396 262 396L447 398Q457 398 457 408L455 487Q455 497 445 497L262 495Q252 495 252 485Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.7" />
+  <path d="M274 425L286 437L304 416" stroke="#2F6BFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="321" y="434" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">PDF / WORD</text>
+  <text x="274" y="467" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">device-side delivery</text>
+  <path d="M353 365V396" stroke="#1F2328" stroke-width="2.7" stroke-linecap="round" marker-end="url(#arrowInk)" />
+
+  <path d="M481 405Q481 396 491 396L676 398Q686 398 686 408L684 487Q684 497 674 497L491 495Q481 495 481 485Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.7" />
+  <path d="M503 422H658M503 439H639M503 456H664" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" opacity="0.72" />
+  <text x="503" y="481" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">SHARE • COMMENTS • AI</text>
+
+  <!-- Cloud boundary -->
+  <path d="M818 105Q818 92 832 92L1136 97Q1150 97 1150 111L1146 462Q1146 476 1132 476L832 471Q818 471 818 457Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="3.5" stroke-dasharray="9 7" />
+  <text x="850" y="137" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="21" font-weight="900">SUPABASE CLOUD</text>
+  <text x="850" y="158" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">enabled after sign-in</text>
+
+  <path d="M850 181Q850 172 860 172L1110 174Q1120 174 1120 184L1118 235Q1118 245 1108 245L860 243Q850 243 850 233Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2.7" />
+  <circle cx="882" cy="207" r="11" fill="#FFFFFF" stroke="#1F2328" stroke-width="2" />
+  <path d="M873 225Q882 216 891 225" stroke="#1F2328" stroke-width="2" stroke-linecap="round" />
+  <text x="912" y="211" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">AUTH + SESSION</text>
+
+  <path d="M850 287Q850 278 860 278L1110 280Q1120 280 1120 290L1118 341Q1118 351 1108 351L860 349Q850 349 850 339Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.7" />
+  <ellipse cx="883" cy="304" rx="18" ry="7" fill="#E2F1E5" stroke="#1F2328" stroke-width="1.8" />
+  <path d="M865 304V324C865 329 873 332 883 332C893 332 901 329 901 324V304" stroke="#1F2328" stroke-width="1.8" />
+  <text x="921" y="311" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="800">POSTGRES + RLS</text>
+  <text x="921" y="332" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">sync • versions • realtime</text>
+
+  <path d="M850 405Q850 396 860 396L1110 398Q1120 398 1120 408L1118 447Q1118 457 1108 457L860 455Q850 455 850 445Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.7" />
+  <path d="M874 416H906M874 427H914M874 438H900" stroke="#D4A72C" stroke-width="2.8" stroke-linecap="round" />
+  <text x="934" y="433" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">EDGE FUNCTIONS</text>
+
+  <!-- Straight cloud lanes -->
+  <path d="M686 213H850" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <rect x="731" y="193" width="72" height="22" rx="8" fill="#FFFDF7" />
+  <text x="745" y="209" fill="#2F6BFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="800">SESSION</text>
+
+  <path d="M684 323H850" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <rect x="735" y="303" width="66" height="22" rx="8" fill="#FFFDF7" />
+  <text x="750" y="319" fill="#2F6BFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="800">SYNC</text>
+
+  <path d="M684 432H850" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <rect x="732" y="412" width="72" height="22" rx="8" fill="#FFFDF7" />
+  <text x="744" y="428" fill="#2F6BFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="800">SERVER</text>
+
+  <!-- DeepSeek -->
+  <path d="M888 503Q888 493 899 493L1070 495Q1081 495 1081 506L1079 558Q1079 569 1068 569L899 567Q888 567 888 556Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.8" />
+  <path d="M917 510C922 501 933 501 938 510C948 507 955 517 950 526C956 535 948 544 938 540C932 548 921 544 919 535C908 536 904 525 911 518C908 511 911 507 917 510Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="1.8" />
+  <text x="969" y="525" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="800">DEEPSEEK API</text>
+  <text x="969" y="546" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">via proxy only</text>
+  <path d="M984 457V493" stroke="#2F6BFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+
+  <!-- Legend -->
+  <path d="M51 585H101" stroke="#1F2328" stroke-width="2.6" stroke-linecap="round" marker-end="url(#arrowInk)" />
+  <text x="117" y="590" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">local path</text>
+  <path d="M242 585H292" stroke="#2F6BFF" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
+  <text x="308" y="590" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">optional cloud path</text>
+  <text x="494" y="590" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">server credentials never enter the browser bundle</text>
+</svg>

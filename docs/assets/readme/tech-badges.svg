@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="214" viewBox="0 0 1200 214" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">GResume technology badges</title>
+  <desc id="desc">A clean hand-drawn panel with badges for React, TypeScript, Vite, Tailwind CSS, Tiptap, Zustand, Supabase and the MIT license.</desc>
+
+  <defs>
+    <pattern id="paperDots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#D9D2C3" opacity="0.34" />
+    </pattern>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="198" rx="24" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
+  <rect x="16" y="16" width="1168" height="182" rx="18" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1" stroke-dasharray="7 10" opacity="0.7" />
+
+  <!-- Row 1 -->
+  <path d="M48 35Q48 27 57 27L307 29Q316 29 316 38L314 86Q314 95 305 95L57 93Q48 93 48 84Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.6" />
+  <circle cx="80" cy="61" r="13" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
+  <path d="M67 61H93M80 48V74M71 52L89 70M89 52L71 70" stroke="#2F6BFF" stroke-width="1.8" stroke-linecap="round" />
+  <text x="108" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">REACT 19</text>
+
+  <path d="M327 35Q327 27 336 27L586 29Q595 29 595 38L593 86Q593 95 584 95L336 93Q327 93 327 84Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.6" />
+  <path d="M355 47L383 48L382 75L354 74Z" fill="#2F6BFF" stroke="#1F2328" stroke-width="2" />
+  <text x="360" y="68" fill="#FFFFFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="900">TS</text>
+  <text x="404" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="800">TYPESCRIPT 5.9</text>
+
+  <path d="M606 35Q606 27 615 27L865 29Q874 29 874 38L872 86Q872 95 863 95L615 93Q606 93 606 84Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.6" />
+  <path d="M637 45L666 50L648 77Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" stroke-linejoin="round" />
+  <path d="M648 55L657 58L650 68" stroke="#D4A72C" stroke-width="2.2" stroke-linecap="round" />
+  <text x="687" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">VITE 7</text>
+
+  <path d="M885 35Q885 27 894 27L1144 29Q1153 29 1153 38L1151 86Q1151 95 1142 95L894 93Q885 93 885 84Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.6" />
+  <path d="M914 55C922 46 932 46 940 55C932 52 926 55 921 61C929 58 938 60 945 67C936 75 925 74 917 67" stroke="#2F6BFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="964" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="800">TAILWIND CSS 4</text>
+
+  <!-- Row 2 -->
+  <path d="M48 113Q48 104 57 104L307 106Q316 106 316 115L314 163Q314 172 305 172L57 170Q48 170 48 161Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.6" />
+  <circle cx="80" cy="138" r="13" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
+  <path d="M70 131H90M70 138H90M80 131V150" stroke="#2F6BFF" stroke-width="2.2" stroke-linecap="round" />
+  <text x="108" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">TIPTAP 3</text>
+
+  <path d="M327 113Q327 104 336 104L586 106Q595 106 595 115L593 163Q593 172 584 172L336 170Q327 170 327 161Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.6" />
+  <path d="M357 125C362 117 377 117 382 125C387 132 380 145 370 151C360 145 352 132 357 125Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" />
+  <path d="M362 131L369 138L378 127" stroke="#D4A72C" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="404" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">ZUSTAND 5</text>
+
+  <path d="M606 113Q606 104 615 104L865 106Q874 106 874 115L872 163Q872 172 863 172L615 170Q606 170 606 161Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.6" />
+  <path d="M646 121L633 143H647L641 158L667 132H652L660 121Z" fill="#62C88A" stroke="#1F2328" stroke-width="2" stroke-linejoin="round" />
+  <text x="687" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="800">SUPABASE</text>
+
+  <path d="M885 113Q885 104 894 104L1144 106Q1153 106 1153 115L1151 163Q1151 172 1142 172L894 170Q885 170 885 161Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.6" />
+  <path d="M916 123L946 123L946 153L916 153Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" />
+  <path d="M921 130H941M921 137H938M921 144H935" stroke="#1F2328" stroke-width="1.8" stroke-linecap="round" />
+  <text x="964" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">MIT LICENSE</text>
+
+  <path d="M425 188C536 181 656 182 772 189" stroke="#2F6BFF" stroke-width="2.5" stroke-linecap="round" />
+</svg>
