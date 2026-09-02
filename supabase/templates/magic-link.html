@@ -1,30 +1,343 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <title>登录 GResume</title>
-  <style>@media only screen and (max-width:620px){.mail-shell{width:100%!important;max-width:100%!important;table-layout:fixed!important;word-break:break-word!important}.mail-pad{box-sizing:border-box!important;width:100%!important;padding-left:22px!important;padding-right:22px!important}.hero-copy,.hero-art{display:block!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important}.hero-copy{padding:24px 22px 8px!important}.hero-art{padding:0 14px 14px!important;text-align:center!important}.hero-image{width:250px!important;max-width:100%!important;margin:0 auto!important}.method-cell{display:block!important;box-sizing:border-box!important;width:100%!important;padding:0 0 10px!important}}</style>
-</head>
-<body style="margin:0;padding:0;background:#f7f8fa;color:#171a21;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">门只开这一次。登录链接和验证码都在邮件里，挑一个用。</div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f7f8fa;"><tr><td align="center" style="padding:30px 12px;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="mail-shell" style="width:100%!important;max-width:600px;table-layout:fixed;word-break:break-word;background:#fff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(23,26,33,.07);">
-      <tr><td class="mail-pad" style="padding:16px 28px;border-bottom:1px solid #eceef1;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="width:30px;height:30px;text-align:center;border-radius:8px;background:#eef3ff;color:#2f6bff;font-size:15px;font-weight:900;">G</td><td style="padding-left:10px;font-size:16px;font-weight:800;">GResume</td></tr></table></td><td align="right"><span style="display:inline-block;padding:5px 9px;border:1px solid #e4e7ec;border-radius:999px;color:#667085;font-size:11px;font-weight:700;">一次性登录</span></td></tr></table></td></tr>
-      <tr><td style="background:#f7f9ff;border-bottom:1px solid #e7ecf7;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="hero-copy" width="55%" valign="middle" style="padding:27px 10px 27px 30px;"><div style="margin-bottom:9px;color:#2f6bff;font-size:11px;font-weight:800;letter-spacing:.08em;">登录通行证</div><div style="font-size:24px;line-height:1.35;font-weight:850;">门开一次，别磨蹭。</div><p style="margin:9px 0 0;color:#5f6673;font-size:13px;line-height:1.75;">链接和验证码都准备好了。选一个就行，反复试只会显得你很忙乱。</p></td><td class="hero-art" width="45%" align="right" valign="bottom" style="padding:8px 12px 0 0;"><img class="hero-image" src="{{ .SiteURL }}/email/magic-link-assistant-v2.png" width="250" alt="GResume 助手为你递出一次性登录凭证" style="display:block;width:250px;max-width:100%;height:auto;border:0;margin-left:auto;"></td></tr></table></td></tr>
-      <tr><td class="mail-pad" style="padding:30px 34px 18px;">
-        <h1 style="margin:0 0 12px;font-size:25px;line-height:1.4;letter-spacing:-.02em;">这是 {{ .Email }} 的登录请求</h1>
-        <p style="margin:0 0 18px;color:#5f6673;font-size:15px;line-height:1.8;">想直接进去，就点按钮；还停留在登录页，就输入下面的验证码。两条路通向同一个工作台，挑顺手的那条。</p>
-        <div style="margin-bottom:8px;text-align:center;color:#667085;font-size:11px;font-weight:700;letter-spacing:.08em;">一次性验证码</div>
-        <div style="margin-bottom:22px;padding:18px 14px;text-align:center;background:#f5f7fb;border:1px solid #dce3ef;border-radius:10px;color:#171a21;font-family:Consolas,'Courier New',monospace;font-size:34px;font-weight:850;letter-spacing:9px;">{{ .Token }}</div>
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto 24px;"><tr><td bgcolor="#171a21" style="border-radius:9px;"><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 34px;color:#fff;text-decoration:none;font-size:15px;font-weight:800;">直接登录 GResume</a></td></tr></table>
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:18px;"><tr><td class="method-cell" width="50%" valign="top" style="padding-right:6px;"><div style="min-height:72px;padding:14px;border:1px solid #e4e7ec;border-radius:9px;color:#667085;font-size:12px;line-height:1.65;"><strong style="display:block;margin-bottom:4px;color:#171a21;">用链接</strong>在当前设备上直接验证。</div></td><td class="method-cell" width="50%" valign="top" style="padding-left:6px;"><div style="min-height:72px;padding:14px;border:1px solid #e4e7ec;border-radius:9px;color:#667085;font-size:12px;line-height:1.65;"><strong style="display:block;margin-bottom:4px;color:#171a21;">用验证码</strong>回到刚才的页面输入。</div></td></tr></table>
-        <div style="padding:14px 16px;border:1px solid #f1d7d4;border-radius:9px;background:#fff8f7;color:#7a443f;font-size:13px;line-height:1.75;"><strong style="display:block;margin-bottom:3px;color:#b42318;">这次登录与你无关？</strong>别帮陌生人开门。忽略邮件即可，也不要向任何人透露验证码。</div>
-      </td></tr>
-      <tr><td class="mail-pad" style="padding:8px 34px 28px;"><p style="margin:0 0 8px;color:#98a2b3;font-size:11px;">按钮打不开时，复制下面的完整地址：</p><p style="margin:0;padding:11px 12px;background:#f5f6f8;border-radius:8px;color:#475467;font-size:10px;line-height:1.55;word-break:break-all;">{{ .ConfirmationURL }}</p></td></tr>
-      <tr><td align="center" class="mail-pad" style="padding:18px 28px;border-top:1px solid #eceef1;background:#fafbfc;color:#98a2b3;font-size:11px;line-height:1.7;">登录凭证发送至 {{ .Email }}，用过或到期后就会失效。<br>GResume · 只开这一次门，记住了。</td></tr>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>登录 GResume</title>
+    <style>
+      @media only screen and (max-width: 620px) {
+        .mail-shell {
+          width: 100% !important;
+          max-width: 100% !important;
+          table-layout: fixed !important;
+          word-break: break-word !important;
+        }
+        .mail-pad {
+          box-sizing: border-box !important;
+          width: 100% !important;
+          padding-left: 22px !important;
+          padding-right: 22px !important;
+        }
+        .hero-copy,
+        .hero-art {
+          display: block !important;
+          box-sizing: border-box !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        .hero-copy {
+          padding: 24px 22px 8px !important;
+        }
+        .hero-art {
+          padding: 0 14px 14px !important;
+          text-align: center !important;
+        }
+        .hero-image {
+          width: 250px !important;
+          max-width: 100% !important;
+          margin: 0 auto !important;
+        }
+        .method-cell {
+          display: block !important;
+          box-sizing: border-box !important;
+          width: 100% !important;
+          padding: 0 0 10px !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #f7f8fa;
+      color: #171a21;
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        'Microsoft YaHei',
+        Arial,
+        sans-serif;
+    "
+  >
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent; mso-hide: all">
+      使用一次性链接或验证码登录 GResume。
+    </div>
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      style="width: 100%; background: #f7f8fa"
+    >
+      <tr>
+        <td align="center" style="padding: 30px 12px">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            class="mail-shell"
+            style="
+              width: 100% !important;
+              max-width: 600px;
+              table-layout: fixed;
+              word-break: break-word;
+              background: #fff;
+              border: 1px solid #e4e7ec;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 10px 30px rgba(23, 26, 33, 0.07);
+            "
+          >
+            <tr>
+              <td class="mail-pad" style="padding: 16px 28px; border-bottom: 1px solid #eceef1">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td>
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td
+                            style="
+                              width: 30px;
+                              height: 30px;
+                              text-align: center;
+                              border-radius: 8px;
+                              background: #eef3ff;
+                              color: #2f6bff;
+                              font-size: 15px;
+                              font-weight: 900;
+                            "
+                          >
+                            G
+                          </td>
+                          <td style="padding-left: 10px; font-size: 16px; font-weight: 800">GResume</td>
+                        </tr>
+                      </table>
+                    </td>
+                    <td align="right">
+                      <span
+                        style="
+                          display: inline-block;
+                          padding: 5px 9px;
+                          border: 1px solid #e4e7ec;
+                          border-radius: 999px;
+                          color: #667085;
+                          font-size: 11px;
+                          font-weight: 700;
+                        "
+                        >一次性登录</span
+                      >
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="background: #f7f9ff; border-bottom: 1px solid #e7ecf7">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td class="hero-copy" width="55%" valign="middle" style="padding: 27px 10px 27px 30px">
+                      <div
+                        style="
+                          margin-bottom: 9px;
+                          color: #2f6bff;
+                          font-size: 11px;
+                          font-weight: 800;
+                          letter-spacing: 0.08em;
+                        "
+                      >
+                        一次性登录
+                      </div>
+                      <div style="font-size: 24px; line-height: 1.35; font-weight: 850">登录凭证已生成</div>
+                      <p style="margin: 9px 0 0; color: #5f6673; font-size: 13px; line-height: 1.75">
+                        请使用下方链接或验证码完成登录。
+                      </p>
+                    </td>
+                    <td class="hero-art" width="45%" align="right" valign="bottom" style="padding: 8px 12px 0 0">
+                      <img
+                        class="hero-image"
+                        src="{{ .SiteURL }}/email/magic-link-assistant-v2.png"
+                        width="250"
+                        alt="GResume 一次性登录插图"
+                        style="
+                          display: block;
+                          width: 250px;
+                          max-width: 100%;
+                          height: auto;
+                          border: 0;
+                          margin-left: auto;
+                        "
+                      />
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="mail-pad" style="padding: 30px 34px 18px">
+                <h1 style="margin: 0 0 12px; font-size: 25px; line-height: 1.4; letter-spacing: -0.02em">
+                  {{ .Email }} 的登录请求
+                </h1>
+                <p style="margin: 0 0 18px; color: #5f6673; font-size: 15px; line-height: 1.8">
+                  点击按钮登录，或在原登录页面输入验证码。
+                </p>
+                <div
+                  style="
+                    margin-bottom: 8px;
+                    text-align: center;
+                    color: #667085;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.08em;
+                  "
+                >
+                  一次性验证码
+                </div>
+                <div
+                  style="
+                    margin-bottom: 22px;
+                    padding: 18px 14px;
+                    text-align: center;
+                    background: #f5f7fb;
+                    border: 1px solid #dce3ef;
+                    border-radius: 10px;
+                    color: #171a21;
+                    font-family: Consolas, 'Courier New', monospace;
+                    font-size: 34px;
+                    font-weight: 850;
+                    letter-spacing: 9px;
+                  "
+                >
+                  {{ .Token }}
+                </div>
+                <table
+                  role="presentation"
+                  cellspacing="0"
+                  cellpadding="0"
+                  border="0"
+                  align="center"
+                  style="margin: 0 auto 24px"
+                >
+                  <tr>
+                    <td bgcolor="#171a21" style="border-radius: 9px">
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        style="
+                          display: inline-block;
+                          padding: 14px 34px;
+                          color: #fff;
+                          text-decoration: none;
+                          font-size: 15px;
+                          font-weight: 800;
+                        "
+                        >登录 GResume</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellspacing="0"
+                  cellpadding="0"
+                  border="0"
+                  style="margin-bottom: 18px"
+                >
+                  <tr>
+                    <td class="method-cell" width="50%" valign="top" style="padding-right: 6px">
+                      <div
+                        style="
+                          min-height: 72px;
+                          padding: 14px;
+                          border: 1px solid #e4e7ec;
+                          border-radius: 9px;
+                          color: #667085;
+                          font-size: 12px;
+                          line-height: 1.65;
+                        "
+                      >
+                        <strong style="display: block; margin-bottom: 4px; color: #171a21">登录链接</strong
+                        >在当前设备完成验证。
+                      </div>
+                    </td>
+                    <td class="method-cell" width="50%" valign="top" style="padding-left: 6px">
+                      <div
+                        style="
+                          min-height: 72px;
+                          padding: 14px;
+                          border: 1px solid #e4e7ec;
+                          border-radius: 9px;
+                          color: #667085;
+                          font-size: 12px;
+                          line-height: 1.65;
+                        "
+                      >
+                        <strong style="display: block; margin-bottom: 4px; color: #171a21">验证码</strong
+                        >在原登录页面输入。
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+                <div
+                  style="
+                    padding: 14px 16px;
+                    border: 1px solid #f1d7d4;
+                    border-radius: 9px;
+                    background: #fff8f7;
+                    color: #7a443f;
+                    font-size: 13px;
+                    line-height: 1.75;
+                  "
+                >
+                  <strong style="display: block; margin-bottom: 3px; color: #b42318">非本人操作</strong
+                  >请忽略此邮件，不要点击链接或泄露验证码。
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="mail-pad" style="padding: 8px 34px 28px">
+                <p style="margin: 0 0 8px; color: #98a2b3; font-size: 11px">按钮无法打开时，请复制以下链接：</p>
+                <p
+                  style="
+                    margin: 0;
+                    padding: 11px 12px;
+                    background: #f5f6f8;
+                    border-radius: 8px;
+                    color: #475467;
+                    font-size: 10px;
+                    line-height: 1.55;
+                    word-break: break-all;
+                  "
+                >
+                  {{ .ConfirmationURL }}
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td
+                align="center"
+                class="mail-pad"
+                style="
+                  padding: 18px 28px;
+                  border-top: 1px solid #eceef1;
+                  background: #fafbfc;
+                  color: #98a2b3;
+                  font-size: 11px;
+                  line-height: 1.7;
+                "
+              >
+                登录凭证发送至 {{ .Email }}，使用后或到期失效。<br />GResume
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
     </table>
-  </td></tr></table>
-</body>
+  </body>
 </html>

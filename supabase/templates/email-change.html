@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
-    <title>确认新的 GResume 邮箱</title>
+    <title>确认 GResume 新邮箱</title>
     <style>
       @media only screen and (max-width: 620px) {
         .mail-shell {
@@ -61,7 +61,7 @@
     "
   >
     <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent; mso-hide: all">
-      新邮箱得由你亲自确认。联系方式可不是写错了再擦掉那么简单。
+      请确认新邮箱以完成账号邮箱变更。
     </div>
     <table
       role="presentation"
@@ -151,9 +151,9 @@
                       >
                         确认新邮箱
                       </div>
-                      <div style="font-size: 24px; line-height: 1.35; font-weight: 850">想换？先让我核对。</div>
+                      <div style="font-size: 24px; line-height: 1.35; font-weight: 850">请确认新邮箱</div>
                       <p style="margin: 9px 0 0; color: #5f6673; font-size: 13px; line-height: 1.75">
-                        联系方式牵着登录和找回密码。不是我管得宽，是这一步真不能含糊。
+                        确认后，登录验证和安全通知将发送至新地址。
                       </p>
                     </td>
                     <td class="hero-art" width="45%" align="right" valign="bottom" style="padding: 8px 12px 0 0">
@@ -161,7 +161,7 @@
                         class="hero-image"
                         src="{{ .SiteURL }}/email/email-change-assistant-v2.png"
                         width="250"
-                        alt="GResume 助手正在核对新的邮箱地址"
+                        alt="GResume 新邮箱确认插图"
                         style="
                           display: block;
                           width: 250px;
@@ -179,12 +179,12 @@
             <tr>
               <td class="mail-pad" style="padding: 30px 34px 18px">
                 <h1 style="margin: 0 0 12px; font-size: 25px; line-height: 1.4; letter-spacing: -0.02em">
-                  请确认这就是你的新邮箱
+                  确认新的账号邮箱
                 </h1>
                 <p style="margin: 0 0 20px; color: #5f6673; font-size: 15px; line-height: 1.8">
                   账号
                   <strong style="color: #344054">{{ .Email }}</strong>
-                  提交了邮箱变更请求。确认完成后，登录验证、密码恢复和之后的安全通知都会改送到新地址。
+                  已申请更换邮箱。确认后，新地址将用于登录验证、密码恢复和安全通知。
                 </p>
                 <table
                   role="presentation"
@@ -195,7 +195,7 @@
                   style="margin-bottom: 22px; background: #f9fafb; border: 1px solid #e4e7ec; border-radius: 10px"
                 >
                   <tr>
-                    <td style="padding: 15px 17px 5px; color: #667085; font-size: 12px">准备绑定的新邮箱</td>
+                    <td style="padding: 15px 17px 5px; color: #667085; font-size: 12px">新邮箱</td>
                   </tr>
                   <tr>
                     <td style="padding: 0 17px 16px; font-size: 17px; font-weight: 850; word-break: break-all">
@@ -223,7 +223,7 @@
                           font-size: 15px;
                           font-weight: 800;
                         "
-                        >确认并绑定新邮箱</a
+                        >确认新邮箱</a
                       >
                     </td>
                   </tr>
@@ -239,8 +239,8 @@
                     line-height: 1.75;
                   "
                 >
-                  <strong style="display: block; margin-bottom: 3px; color: #344054">简历数据不会搬家</strong
-                  >你的简历、历史版本、分享记录和求职进度都会留在原账号里；变化的只是主要邮箱。
+                  <strong style="display: block; margin-bottom: 3px; color: #344054">账号数据保持不变</strong
+                  >简历、历史版本、分享记录和求职进度仍保留在原账号中。
                 </div>
                 <div
                   style="
@@ -254,14 +254,14 @@
                     line-height: 1.75;
                   "
                 >
-                  <strong style="display: block; margin-bottom: 3px; color: #b42318">没有申请换邮箱？</strong
-                  >别确认。回到 GResume 检查账号资料，并尽快修改密码。这个时候逞强没有用。
+                  <strong style="display: block; margin-bottom: 3px; color: #b42318">非本人申请</strong
+                  >请勿确认，并立即检查账号安全及修改密码。
                 </div>
               </td>
             </tr>
             <tr>
               <td class="mail-pad" style="padding: 8px 34px 28px">
-                <p style="margin: 0 0 8px; color: #98a2b3; font-size: 11px">按钮打不开时，复制下面的完整地址：</p>
+                <p style="margin: 0 0 8px; color: #98a2b3; font-size: 11px">按钮无法打开时，请复制以下链接：</p>
                 <p
                   style="
                     margin: 0;
@@ -291,7 +291,7 @@
                   line-height: 1.7;
                 "
               >
-                这封邮件与 {{ .Email }} 的邮箱变更有关。<br />GResume · 新地址我记得，前提是你先确认。
+                此邮箱变更邮件发送至 {{ .Email }}，请勿转发。<br />GResume
               </td>
             </tr>
           </table>
