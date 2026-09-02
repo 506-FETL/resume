@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>重置 GResume 密码</title>
+  <style>@media only screen and (max-width:620px){.mail-shell{width:100%!important;max-width:100%!important;table-layout:fixed!important;word-break:break-word!important}.mail-pad{box-sizing:border-box!important;width:100%!important;padding-left:22px!important;padding-right:22px!important}.hero-copy,.hero-art{display:block!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important}.hero-copy{padding:24px 22px 8px!important}.hero-art{padding:0 14px 14px!important;text-align:center!important}.hero-image{width:250px!important;max-width:100%!important;margin:0 auto!important}}</style>
+</head>
+<body style="margin:0;padding:0;background:#f7f8fa;color:#171a21;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">密码忘了就重设，没必要和记忆力较劲。安全入口在这里。</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f7f8fa;"><tr><td align="center" style="padding:30px 12px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="mail-shell" style="width:100%!important;max-width:600px;table-layout:fixed;word-break:break-word;background:#fff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(23,26,33,.07);">
+      <tr><td class="mail-pad" style="padding:16px 28px;border-bottom:1px solid #eceef1;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="width:30px;height:30px;text-align:center;border-radius:8px;background:#eef3ff;color:#2f6bff;font-size:15px;font-weight:900;">G</td><td style="padding-left:10px;font-size:16px;font-weight:800;">GResume</td></tr></table></td><td align="right"><span style="display:inline-block;padding:5px 9px;border:1px solid #e4e7ec;border-radius:999px;color:#667085;font-size:11px;font-weight:700;">密码恢复</span></td></tr></table></td></tr>
+      <tr><td style="background:#f7f9ff;border-bottom:1px solid #e7ecf7;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="hero-copy" width="55%" valign="middle" style="padding:27px 10px 27px 30px;"><div style="margin-bottom:9px;color:#2f6bff;font-size:11px;font-weight:800;letter-spacing:.08em;">找回账号</div><div style="font-size:24px;line-height:1.35;font-weight:850;">忘了就重设，别硬猜。</div><p style="margin:9px 0 0;color:#5f6673;font-size:13px;line-height:1.75;">记不起来又不丢人。一直试错把账号锁住，才是真的麻烦。</p></td><td class="hero-art" width="45%" align="right" valign="bottom" style="padding:8px 12px 0 0;"><img class="hero-image" src="{{ .SiteURL }}/email/recovery-assistant-v2.png" width="250" alt="GResume 助手为你递出密码恢复入口" style="display:block;width:250px;max-width:100%;height:auto;border:0;margin-left:auto;"></td></tr></table></td></tr>
+      <tr><td class="mail-pad" style="padding:30px 34px 18px;">
+        <h1 style="margin:0 0 12px;font-size:25px;line-height:1.4;letter-spacing:-.02em;">给 {{ .Email }} 的重置入口</h1>
+        <p style="margin:0 0 20px;color:#5f6673;font-size:15px;line-height:1.8;">点击按钮后，按照页面提示换一个新密码。只打开这封邮件不会改变任何设置，真正的修改要在重置页面完成。</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto 24px;"><tr><td bgcolor="#171a21" style="border-radius:9px;"><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 34px;color:#fff;text-decoration:none;font-size:15px;font-weight:800;">去重设密码</a></td></tr></table>
+        <div style="padding:15px 16px;border:1px solid #e4e7ec;border-radius:9px;background:#fafbfc;color:#667085;font-size:13px;line-height:1.75;"><strong style="display:block;margin-bottom:7px;color:#171a21;">新密码别再随手凑了</strong>用一条足够长、只给 GResume 使用的密码。公开简历里的姓名、手机号和公司名，都不适合拿来当密码。</div>
+        <div style="margin-top:16px;padding:14px 16px;border:1px solid #f1d7d4;border-radius:9px;background:#fff8f7;color:#7a443f;font-size:13px;line-height:1.75;"><strong style="display:block;margin-bottom:3px;color:#b42318;">没有申请重置？</strong>关掉邮件就行，原密码不会变化。短时间内反复收到提醒的话，顺便检查一下邮箱安全。</div>
+      </td></tr>
+      <tr><td class="mail-pad" style="padding:8px 34px 28px;"><p style="margin:0 0 8px;color:#98a2b3;font-size:11px;">按钮打不开时，复制下面的完整地址：</p><p style="margin:0;padding:11px 12px;background:#f5f6f8;border-radius:8px;color:#475467;font-size:10px;line-height:1.55;word-break:break-all;">{{ .ConfirmationURL }}</p></td></tr>
+      <tr><td align="center" class="mail-pad" style="padding:18px 28px;border-top:1px solid #eceef1;background:#fafbfc;color:#98a2b3;font-size:11px;line-height:1.7;">密码恢复邮件发送至 {{ .Email }}，请勿转发。<br>GResume · 这次帮你把门找回来，下次记牢一点。</td></tr>
+    </table>
+  </td></tr></table>
+</body>
+</html>

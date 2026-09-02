@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>GResume 新登录方式已关联</title>
+  <style>@media only screen and (max-width:620px){.mail-shell{width:100%!important;max-width:100%!important;table-layout:fixed!important;word-break:break-word!important}.mail-pad{box-sizing:border-box!important;width:100%!important;padding-left:22px!important;padding-right:22px!important}.hero-copy,.hero-art{display:block!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important}.hero-copy{padding:24px 22px 8px!important}.hero-art{padding:0 14px 14px!important;text-align:center!important}.hero-image{width:250px!important;max-width:100%!important;margin:0 auto!important}.check-cell{display:block!important;box-sizing:border-box!important;width:100%!important;padding:0 0 10px!important}}</style>
+</head>
+<body style="margin:0;padding:0;background:#f7f8fa;color:#171a21;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">新的第三方登录方式已接入账号。多一把钥匙，就多检查一次。</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f7f8fa;"><tr><td align="center" style="padding:30px 12px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="mail-shell" style="width:100%!important;max-width:600px;table-layout:fixed;word-break:break-word;background:#fff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(23,26,33,.07);">
+      <tr><td class="mail-pad" style="padding:16px 28px;border-bottom:1px solid #eceef1;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="width:30px;height:30px;text-align:center;border-radius:8px;background:#eef3ff;color:#2f6bff;font-size:15px;font-weight:900;">G</td><td style="padding-left:10px;font-size:16px;font-weight:800;">GResume</td></tr></table></td><td align="right"><span style="display:inline-block;padding:5px 9px;border:1px solid #f0d5d3;border-radius:999px;background:#fff8f7;color:#b42318;font-size:11px;font-weight:800;">安全通知</span></td></tr></table></td></tr>
+      <tr><td style="background:#f8fafc;border-bottom:1px solid #e7e9ee;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="hero-copy" width="55%" valign="middle" style="padding:27px 10px 27px 30px;"><div style="margin-bottom:9px;color:#b42318;font-size:11px;font-weight:800;letter-spacing:.08em;">登录方式已添加</div><div style="font-size:24px;line-height:1.35;font-weight:850;">账号多了一把钥匙。</div><p style="margin:9px 0 0;color:#5f6673;font-size:13px;line-height:1.75;">钥匙多了不代表更省心。至少先确认，它确实是你亲手配的。</p></td><td class="hero-art" width="45%" align="right" valign="bottom" style="padding:8px 12px 0 0;"><img class="hero-image" src="{{ .SiteURL }}/email/identity-linked-assistant-v2.png" width="250" alt="GResume 助手正在核对新增的第三方登录方式" style="display:block;width:250px;max-width:100%;height:auto;border:0;margin-left:auto;"></td></tr></table></td></tr>
+      <tr><td class="mail-pad" style="padding:30px 34px 24px;">
+        <h1 style="margin:0 0 12px;font-size:25px;line-height:1.4;letter-spacing:-.02em;">新的登录方式已经关联</h1>
+        <p style="margin:0 0 20px;color:#5f6673;font-size:15px;line-height:1.8;">以后可能可以通过下面的第三方服务进入 GResume。请确认这次关联由你本人发起。</p>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:18px;background:#f9fafb;border:1px solid #e4e7ec;border-radius:10px;"><tr><td style="padding:15px 17px 5px;color:#667085;font-size:12px;">新关联的登录服务</td></tr><tr><td style="padding:0 17px 16px;font-size:18px;font-weight:850;word-break:break-all;">{{ .Provider }}</td></tr></table>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="check-cell" width="50%" valign="top" style="padding-right:6px;"><div style="min-height:113px;padding:15px;border:1px solid #d9eadf;border-radius:9px;background:#f7fbf8;color:#4f6757;font-size:13px;line-height:1.7;"><strong style="display:block;margin-bottom:5px;color:#28623d;">是你关联的</strong>好。也给第三方账号设置可靠密码和多重验证，别让这把钥匙自己漏在外面。</div></td><td class="check-cell" width="50%" valign="top" style="padding-left:6px;"><div style="min-height:113px;padding:15px;border:1px solid #f0d5d3;border-radius:9px;background:#fff8f7;color:#7a443f;font-size:13px;line-height:1.7;"><strong style="display:block;margin-bottom:5px;color:#b42318;">完全不认识</strong>立刻改掉 GResume 密码，并检查邮箱和第三方账号。有人可能已经进来了。</div></td></tr></table>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:23px auto 11px;"><tr><td bgcolor="#d92d20" style="border-radius:9px;"><a href="{{ .SiteURL }}/forgot-password" style="display:inline-block;padding:14px 30px;color:#fff;text-decoration:none;font-size:15px;font-weight:800;">重新保护账号</a></td></tr></table>
+        <p style="margin:0;text-align:center;font-size:12px;"><a href="{{ .SiteURL }}/profile" style="color:#2f6bff;text-decoration:none;font-weight:750;">查看登录设置</a></p>
+      </td></tr>
+      <tr><td align="center" class="mail-pad" style="padding:18px 28px;border-top:1px solid #eceef1;background:#fafbfc;color:#98a2b3;font-size:11px;line-height:1.7;">这是登录方式变更产生的必要通知。<br>多一条进门的路，我就多看一眼，仅此而已。</td></tr>
+    </table>
+  </td></tr></table>
+</body>
+</html>

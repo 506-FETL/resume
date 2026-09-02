@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>验证你的 GResume 身份</title>
+  <style>@media only screen and (max-width:620px){.mail-shell{width:100%!important;max-width:100%!important;table-layout:fixed!important;word-break:break-word!important}.mail-pad{box-sizing:border-box!important;width:100%!important;padding-left:22px!important;padding-right:22px!important}.hero-copy,.hero-art{display:block!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important}.hero-copy{padding:24px 22px 8px!important}.hero-art{padding:0 14px 14px!important;text-align:center!important}.hero-image{width:250px!important;max-width:100%!important;margin:0 auto!important}}</style>
+</head>
+<body style="margin:0;padding:0;background:#f7f8fa;color:#171a21;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">敏感操作先停一下。验证码在这里，确认是你再继续。</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f7f8fa;"><tr><td align="center" style="padding:30px 12px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="mail-shell" style="width:100%!important;max-width:600px;table-layout:fixed;word-break:break-word;background:#fff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(23,26,33,.07);">
+      <tr><td class="mail-pad" style="padding:16px 28px;border-bottom:1px solid #eceef1;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td style="width:30px;height:30px;text-align:center;border-radius:8px;background:#eef3ff;color:#2f6bff;font-size:15px;font-weight:900;">G</td><td style="padding-left:10px;font-size:16px;font-weight:800;">GResume</td></tr></table></td><td align="right"><span style="display:inline-block;padding:5px 9px;border:1px solid #e4e7ec;border-radius:999px;color:#667085;font-size:11px;font-weight:700;">再次验证</span></td></tr></table></td></tr>
+      <tr><td style="background:#f7f9ff;border-bottom:1px solid #e7ecf7;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td class="hero-copy" width="55%" valign="middle" style="padding:27px 10px 27px 30px;"><div style="margin-bottom:9px;color:#2f6bff;font-size:11px;font-weight:800;letter-spacing:.08em;">敏感操作</div><div style="font-size:24px;line-height:1.35;font-weight:850;">先停一下。我要验人。</div><p style="margin:9px 0 0;color:#5f6673;font-size:13px;line-height:1.75;">改密码、换邮箱这类事，光凭你点得快可不算数。把验证码填回原页面。</p></td><td class="hero-art" width="45%" align="right" valign="bottom" style="padding:8px 12px 0 0;"><img class="hero-image" src="{{ .SiteURL }}/email/reauthentication-assistant-v2.png" width="250" alt="GResume 助手正在核对敏感操作的身份验证码" style="display:block;width:250px;max-width:100%;height:auto;border:0;margin-left:auto;"></td></tr></table></td></tr>
+      <tr><td class="mail-pad" style="padding:30px 34px 18px;">
+        <h1 style="margin:0 0 12px;font-size:25px;line-height:1.4;letter-spacing:-.02em;">{{ .Email }}，请再证明一次是你</h1>
+        <p style="margin:0 0 18px;color:#5f6673;font-size:15px;line-height:1.8;">返回刚才的 GResume 页面，把下面的数字填进验证码输入框。它只服务于本次确认，过期后需要重新获取。</p>
+        <div style="margin-bottom:8px;text-align:center;color:#667085;font-size:11px;font-weight:700;letter-spacing:.08em;">身份验证码</div>
+        <div style="margin-bottom:20px;padding:19px 14px;text-align:center;background:#f5f7fb;border:1px solid #dce3ef;border-radius:10px;color:#171a21;font-family:Consolas,'Courier New',monospace;font-size:35px;font-weight:850;letter-spacing:10px;">{{ .Token }}</div>
+        <div style="padding:14px 16px;border:1px solid #dfe6f4;border-radius:9px;background:#f7f9ff;color:#536075;font-size:13px;line-height:1.75;"><strong style="display:block;margin-bottom:3px;color:#344054;">只填回原来的页面</strong>GResume 不会通过电话、聊天或另一封邮件向你索要这串数字。</div>
+        <div style="margin-top:16px;padding:14px 16px;border:1px solid #f1d7d4;border-radius:9px;background:#fff8f7;color:#7a443f;font-size:13px;line-height:1.75;"><strong style="display:block;margin-bottom:3px;color:#b42318;">根本没在操作账号？</strong>不要输入，也别转发。关掉相关页面，再去账号资料里看看密码和登录方式有没有异常。</div>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:22px auto 2px;"><tr><td style="border:1px solid #cfd4dc;border-radius:9px;"><a href="{{ .SiteURL }}/profile" style="display:inline-block;padding:12px 25px;color:#344054;text-decoration:none;font-size:14px;font-weight:800;">查看账号资料</a></td></tr></table>
+      </td></tr>
+      <tr><td align="center" class="mail-pad" style="padding:18px 28px;border-top:1px solid #eceef1;background:#fafbfc;color:#98a2b3;font-size:11px;line-height:1.7;">验证码发送至 {{ .Email }}，任何人来问都别给。<br>GResume · 我拦这一下，是免得你之后更麻烦。</td></tr>
+    </table>
+  </td></tr></table>
+</body>
+</html>
