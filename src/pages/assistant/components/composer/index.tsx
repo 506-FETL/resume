@@ -4,15 +4,17 @@ import { useMemo } from 'react'
 import { QuotaMeter } from '@/components/quota/quota-meter'
 import { Composer as GaiaComposer } from '@/components/ui/composer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 import { cn } from '@/lib/utils'
 import { ASSISTANT_TOOLS, TEMPLATE_PROMPTS } from '../../composer-tools'
 import { COMPOSER_PLACEHOLDER } from '../../const'
 import { useChatStream } from '../../hooks/use-chat-stream'
 import { useComposerContext } from '../../hooks/use-composer-context'
 import useAssistantStore from '../../store'
+import { SkillPicker } from '../skill-picker'
 
 export default function Composer() {
-  const { streaming, composerDraft: draft, initializing, loadingMessages, deepThinking, setDeepThinking } = useAssistantStore()
+  const { streaming, composerDraft: draft, composerSkillIds, initializing, loadingMessages, deepThinking, setDeepThinking } = useAssistantStore()
   const { sendMessage, stopStreaming } = useChatStream()
   const { resumes, jobs } = useComposerContext()
   const disabled = streaming || initializing || loadingMessages
@@ -42,6 +44,13 @@ export default function Composer() {
   }, [resumes, jobs])
 
   const handleToolSelect = (tool: Tool) => {
+    if (tool.skillId) {
+      const state = useAssistantStore.getState()
+      state.setComposerSkillIds([...state.composerSkillIds, tool.skillId])
+      if (/^[$/]\S*$/.test(state.composerDraft.trim()))
+        state.setComposerDraft('')
+      return
+    }
     const template = TEMPLATE_PROMPTS[tool.name] ?? ''
     if (!template)
       return
@@ -55,11 +64,17 @@ export default function Composer() {
 
   const submit = (message: string) => {
     const text = message.trim()
-    if (!text || disabled)
+    if (disabled || (!text && composerSkillIds.length === 0))
       return
-    useAssistantStore.getState().setComposerDraft('')
-    sendMessage(text)
+    if (sendMessage(text, composerSkillIds)) {
+      useAssistantStore.setState({ composerDraft: '', composerSkillIds: [] })
+    }
   }
+
+  const selectedSkills = useMemo(() => composerSkillIds.flatMap((id) => {
+    const skill = BUILTIN_SKILLS.find(item => item.id === id)
+    return skill ? [{ id: skill.id, displayName: skill.displayName }] : []
+  }), [composerSkillIds])
 
   return (
     <div className="mx-auto w-full max-w-4xl px-3 sm:px-6 lg:px-8">
@@ -70,6 +85,14 @@ export default function Composer() {
         showToolsButton
         tools={ASSISTANT_TOOLS}
         onToolSelect={handleToolSelect}
+        composerHeader={(
+          <SkillPicker
+            skills={selectedSkills}
+            disabled={disabled}
+            onRemove={id => useAssistantStore.getState().setComposerSkillIds(composerSkillIds.filter(skillId => skillId !== id))}
+          />
+        )}
+        canSubmit={composerSkillIds.length > 0}
         contextOptions={contextOptions}
         trailingActions={(
           <>

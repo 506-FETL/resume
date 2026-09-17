@@ -5,12 +5,32 @@ export type AiMessageRole = 'user' | 'assistant' | 'system'
 
 export type AiToolCallState = 'call' | 'awaiting-confirm' | 'result' | 'error' | 'cancelled'
 
+export interface AiSkillReference {
+  type: 'skill-reference'
+  skillId: string
+  version: string
+  displayName: string
+}
+
+export interface AiSkillActivity {
+  type: 'skill-activity'
+  id: string
+  skillId: string
+  version: string
+  displayName: string
+  state: 'loading' | 'ready' | 'error'
+  error?: string
+}
+
 export type AiMessagePart
   = | { type: 'text', text: string }
+    | AiSkillReference
+    | AiSkillActivity
     | {
       type: 'tool-call'
       toolCallId: string
       toolName: string
+      step?: number // 同一模型回复中的工具共享轮次，恢复历史时保留依赖顺序
       args: unknown
       result?: unknown
       state: AiToolCallState

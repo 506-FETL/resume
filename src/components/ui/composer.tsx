@@ -1,7 +1,8 @@
 "use client";
 
 import type { FC, ReactNode } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ArrowUp02Icon,
 	HugeiconsIcon,
@@ -9,6 +10,7 @@ import {
 	ToolsIcon,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { DURATION, EASE } from "@/lib/motion";
 import {
 	FilePreview,
 	type UploadedFile,
@@ -69,6 +71,10 @@ export interface ComposerProps {
 	leadingActions?: ReactNode;
 	/** Extra action nodes rendered at the right of the toolbar (before the send button) */
 	trailingActions?: ReactNode;
+	/** Content rendered above the textarea, such as selected skill tags. */
+	composerHeader?: ReactNode;
+	/** Allows a controller to submit without text, for example with selected skills. */
+	canSubmit?: boolean;
 }
 
 // Primary color matching GAIA: #00bbff
@@ -94,14 +100,18 @@ export const Composer: FC<ComposerProps> = ({
 	isLoading = false,
 	leadingActions,
 	trailingActions,
+	composerHeader,
+	canSubmit: canSubmitOverride,
 }) => {
 	const [inputValue, setInputValue] = useState(defaultValue);
 	const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
+	const [isCommandDropdownDismissed, setIsCommandDropdownDismissed] = useState(false);
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
 	const [selectedCategory, setSelectedCategory] = useState("all");
-	const selectedToolIndex = 0; // Currently no keyboard navigation, always start at 0
+	const [selectedToolIndex, setSelectedToolIndex] = useState(0);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const composerRef = useRef<HTMLDivElement>(null);
+	const shouldReduceMotion = useReducedMotion();
 
 	// Use controlled or uncontrolled value
 	const currentValue = value !== undefined ? value : inputValue;
@@ -110,6 +120,11 @@ export const Composer: FC<ComposerProps> = ({
 	const handleInputChange = useCallback(
 		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
 			const newValue = e.target.value;
+			// Escape 仅关闭当前这次命令菜单；继续编辑时重新显示匹配结果。
+			setIsCommandDropdownDismissed(false);
+			// 查询变化后不能沿用旧分类或索引，否则 Enter 可能跳过新候选而直接提交。
+			setSelectedCategory("all");
+			setSelectedToolIndex(0);
 			if (value === undefined) {
 				setInputValue(newValue);
 			}
@@ -136,36 +151,25 @@ export const Composer: FC<ComposerProps> = ({
 		(e?: React.FormEvent) => {
 			e?.preventDefault();
 			if (isLoading) return;
-			if (currentValue.trim() || attachedFiles.length > 0) {
+			if (currentValue.trim() || attachedFiles.length > 0 || canSubmitOverride) {
 				onSubmit?.(currentValue, attachedFiles);
 				if (value === undefined) {
 					setInputValue("");
 				}
 			}
 		},
-		[currentValue, attachedFiles, onSubmit, value, isLoading],
-	);
-
-	// Handle key down
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-			if (e.key === "Enter" && !e.shiftKey && !disabled && !isLoading) {
-				e.preventDefault();
-				handleSubmit();
-			}
-			if (e.key === "Escape") {
-				setIsToolsDropdownOpen(false);
-				setIsContextMenuOpen(false);
-			}
-		},
-		[handleSubmit, disabled, isLoading],
+		[currentValue, attachedFiles, onSubmit, value, isLoading, canSubmitOverride],
 	);
 
 	// Handle tools button click
 	const handleToolsClick = useCallback(() => {
 		if (isLoading) return;
 		setIsToolsDropdownOpen(!isToolsDropdownOpen);
+		setIsCommandDropdownDismissed(false);
+		setSelectedToolIndex(0);
 		setIsContextMenuOpen(false);
+		// 工具按钮会取得焦点；立即归还给 textarea，保证上下键和 Enter 走同一套处理。
+		textareaRef.current?.focus();
 	}, [isToolsDropdownOpen, isLoading]);
 
 	// Handle context menu click
@@ -174,6 +178,7 @@ export const Composer: FC<ComposerProps> = ({
 		if (contextOptions && contextOptions.length > 0) {
 			setIsContextMenuOpen(!isContextMenuOpen);
 			setIsToolsDropdownOpen(false);
+			setIsCommandDropdownDismissed(false);
 		} else {
 			onAttachClick?.();
 		}
@@ -184,6 +189,7 @@ export const Composer: FC<ComposerProps> = ({
 		(match: SlashCommandMatch) => {
 			onToolSelect?.(match.tool);
 			setIsToolsDropdownOpen(false);
+			setSelectedToolIndex(0);
 			// 必须在用户手势（tap/click）内同步聚焦，移动端（iOS Safari）才会唤起键盘、触发输入；
 			// 放进 requestAnimationFrame 会脱离手势链，导致移动端点击工具后无法激活输入框。
 			textareaRef.current?.focus();
@@ -208,6 +214,7 @@ export const Composer: FC<ComposerProps> = ({
 				!target.closest(".slash-command-dropdown")
 			) {
 				setIsToolsDropdownOpen(false);
+				setIsCommandDropdownDismissed(true);
 				setIsContextMenuOpen(false);
 			}
 		};
@@ -233,21 +240,64 @@ export const Composer: FC<ComposerProps> = ({
 	const categories = ["all", ...new Set(tools.map((t) => t.category))];
 
 	// Slash trigger: typing "/" at the start opens the tools dropdown and filters by query
-	const slashActive = tools.length > 0 && currentValue.startsWith("/");
+	const commandTrigger = currentValue.startsWith("/") || currentValue.startsWith("$");
+	const isSkillSearch = currentValue.startsWith("$");
+	const slashActive = tools.length > 0 && commandTrigger;
 	const slashQuery = slashActive ? currentValue.slice(1).toLowerCase() : "";
 	const slashMatches: SlashCommandMatch[] = slashActive
-		? toolMatches.filter(
-				(m) =>
-					!slashQuery ||
-					m.tool.name.toLowerCase().includes(slashQuery) ||
-					(m.tool.description ?? "").toLowerCase().includes(slashQuery),
-			)
+			? toolMatches.filter((m) => (
+				(!isSkillSearch || Boolean(m.tool.skillId))
+				&& (!slashQuery
+					|| m.tool.name.toLowerCase().includes(slashQuery)
+					|| (m.tool.displayName ?? "").toLowerCase().includes(slashQuery)
+					|| m.tool.aliases?.some(alias => alias.toLowerCase().includes(slashQuery))
+					|| (m.tool.description ?? "").toLowerCase().includes(slashQuery))
+			))
 		: [];
 	// Dropdown is visible either via the tools button or via slash typing
-	const dropdownOpen = (showToolsButton && isToolsDropdownOpen) || slashActive;
+	const dropdownOpen = (showToolsButton && isToolsDropdownOpen) || (slashActive && !isCommandDropdownDismissed);
 	const dropdownMatches = slashActive ? slashMatches : toolMatches;
+	const keyboardMatches = useMemo(() => {
+		const items = selectedCategory === "all"
+			? dropdownMatches
+			: dropdownMatches.filter((match) => match.tool.category === selectedCategory);
+		return items;
+	}, [dropdownMatches, selectedCategory]);
+	const canSubmit = Boolean(currentValue.trim() || attachedFiles.length > 0 || canSubmitOverride);
 
-	const canSubmit = currentValue.trim() || attachedFiles.length > 0;
+	// 处理下拉菜单键盘操作。组合输入期间不劫持 Enter，避免打断中文 IME。
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+			if (e.nativeEvent.isComposing) return;
+
+			if (dropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+				e.preventDefault();
+				if (keyboardMatches.length > 0) {
+					setSelectedToolIndex((current) => {
+						const direction = e.key === "ArrowDown" ? 1 : -1;
+						return (current + direction + keyboardMatches.length) % keyboardMatches.length;
+					});
+				}
+				return;
+			}
+			if (dropdownOpen && e.key === "Enter" && !e.shiftKey && keyboardMatches[selectedToolIndex]) {
+				e.preventDefault();
+				handleToolSelect(keyboardMatches[selectedToolIndex]);
+				return;
+			}
+			if (e.key === "Enter" && !e.shiftKey && !disabled && !isLoading) {
+				e.preventDefault();
+				handleSubmit();
+			}
+			if (e.key === "Escape") {
+				setIsToolsDropdownOpen(false);
+				if (slashActive)
+					setIsCommandDropdownDismissed(true);
+				setIsContextMenuOpen(false);
+			}
+		},
+		[disabled, dropdownOpen, handleSubmit, handleToolSelect, isLoading, keyboardMatches, selectedToolIndex, slashActive],
+	);
 
 	return (
 		<div className={cn("relative w-full", className)}>
@@ -262,8 +312,15 @@ export const Composer: FC<ComposerProps> = ({
 			>
 				{/* Slash Command Dropdown - positioned above composer.
 				    Opens via the tools button or by typing "/" at the start of the input. */}
+				<AnimatePresence>
 				{tools.length > 0 && dropdownOpen && dropdownMatches.length > 0 && (
-					<div className="absolute bottom-full left-0 right-0 mb-2 z-50">
+					<motion.div
+						className="absolute bottom-full left-0 right-0 mb-2 z-50"
+						initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={shouldReduceMotion ? undefined : { opacity: 0, y: 8 }}
+						transition={{ duration: shouldReduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+					>
 						<SlashCommandDropdown
 							matches={dropdownMatches}
 							selectedIndex={selectedToolIndex}
@@ -274,18 +331,23 @@ export const Composer: FC<ComposerProps> = ({
 							openedViaButton={!slashActive}
 							selectedCategory={selectedCategory}
 							categories={categories}
-							onCategoryChange={setSelectedCategory}
+								onCategoryChange={(category) => {
+									setSelectedCategory(category);
+									setSelectedToolIndex(0);
+								}}
 							className="relative w-full"
 							style={{ position: "relative" }}
 						/>
-					</div>
+					</motion.div>
 				)}
+				</AnimatePresence>
 				{/* Attached Files Preview - using FilePreview component */}
 				<FilePreview
 					files={attachedFiles}
 					onRemove={onRemoveFile}
 					className="rounded-xl"
 				/>
+				{composerHeader}
 
 				{/* Textarea Input */}
 				<form onSubmit={handleSubmit}>

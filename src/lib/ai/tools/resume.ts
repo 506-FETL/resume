@@ -90,7 +90,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const currentId = resolveActiveResumeId()
     if (!currentId)
       return { error: '当前对话还没有绑定简历。请先在本对话里用 open_resume 打开要修改的简历，再让我修改。' }
@@ -141,6 +141,6 @@ registerTool({
         await applyResumeFieldToDocument(currentId, sectionKey, after as Record<string, unknown>)
         return { ok: true, resumeId: currentId, sectionKey, before, after }
       },
-    })
+    }, context?.signal)
   },
 })

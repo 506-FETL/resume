@@ -1,6 +1,9 @@
 import type { AiMessagePart } from '@/lib/ai/types'
 import { Loader2, PanelRight, RotateCw } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
+import { getSkillToolLabel } from '@/lib/ai/skills/presentation'
+import { isSkillTool } from '@/lib/ai/skills/runtime'
 import { getToolCategoryIcon } from '@/lib/utils/tool-icons'
 import useAssistantStore from '../../store'
 import { retryToolCall } from '../../tool-retry'
@@ -24,6 +27,7 @@ function statOf(part: ToolCallPart): { additions: number, deletions: number } | 
 }
 
 export function ToolCallPartGroup({ calls }: ToolCallPartProps) {
+  const reduced = useReducedMotion()
   const targetTab = calls
     .map(c => TOOL_CANVAS_META[c.toolName]?.targetTab)
     .find(Boolean)
@@ -34,14 +38,17 @@ export function ToolCallPartGroup({ calls }: ToolCallPartProps) {
       <div className="flex flex-col gap-0.5 border-l-2 border-border/70 pl-3">
         {calls.map((c) => {
           const meta = TOOL_CANVAS_META[c.toolName]
-          const label = meta?.label ?? c.toolName
+          const label = getSkillToolLabel(c.toolName, c.args) ?? meta?.label ?? c.toolName
+          const skillError = isSkillTool(c.toolName) && c.state === 'error' && c.result && typeof c.result === 'object' && 'error' in c.result
+            ? String(c.result.error)
+            : null
           const pending = c.state === 'call' || c.state === 'awaiting-confirm'
           const stat = statOf(c)
           return (
             <div key={c.toolCallId} className="flex items-center gap-2 py-0.5 text-sm">
               <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
                 {pending
-                  ? <Loader2 className="size-3.5 animate-spin" />
+                  ? <Loader2 className={`size-3.5 ${reduced ? '' : 'animate-spin'}`} />
                   : getToolCategoryIcon(meta?.iconCategory ?? 'general', { showBackground: false, size: 16 })}
               </span>
               <span className="min-w-0 flex-1 truncate text-foreground/80">{label}</span>
@@ -49,18 +56,21 @@ export function ToolCallPartGroup({ calls }: ToolCallPartProps) {
               {c.state === 'cancelled' && <span className="text-xs text-muted-foreground">已取消</span>}
               {c.state === 'error' && (
                 <>
-                  <span className="text-xs text-rose-500">失败</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 gap-1 px-1.5 text-xs text-rose-500 hover:text-rose-600"
-                    onClick={() => retryToolCall(c.toolCallId)}
-                  >
-                    <RotateCw className="size-3.5" />
-                    重试
-                  </Button>
+                  <span className="text-xs text-rose-500" title={skillError ?? undefined}>失败</span>
+                  {!isSkillTool(c.toolName) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 gap-1 px-1.5 text-xs text-rose-500 hover:text-rose-600"
+                      onClick={() => retryToolCall(c.toolCallId)}
+                    >
+                      <RotateCw className="size-3.5" />
+                      重试
+                    </Button>
+                  )}
                 </>
               )}
+              {skillError && <span className="text-xs text-destructive">{skillError}</span>}
             </div>
           )
         })}

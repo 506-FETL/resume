@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
 import type { TokenUsage } from '../../store'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
-import { Sparkles } from 'lucide-react'
+import { BookOpen, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { getEditableMessageText, getSkillReferences } from '@/lib/ai/skills/references'
+import SkillActivity from '../skill-activity'
 import { MessageActions } from './message-actions'
 import { ReasoningPart } from './reasoning-part'
 import { TextPart } from './text-part'
@@ -49,6 +51,9 @@ function renderAssistantParts(parts: AiMessagePart[], isStreamingMessage: boolea
       // eslint-disable-next-line react/no-array-index-key -- 流式中部件位置稳定，用索引 key 才能避免重挂载
       nodes.push(<TextPart key={`text-${index}`} text={p.text} animate={streaming} />)
     }
+    else if (p.type === 'skill-activity') {
+      nodes.push(<SkillActivity key={p.id} activity={p} />)
+    }
   })
   flush('tc-end')
   return nodes
@@ -92,7 +97,7 @@ export function MessageBubble({ message, onEditSave, onRegenerate, usage }: Mess
       return (
         <div className="flex flex-col items-end gap-1">
           <UserMessageEditor
-            initial={plainText(message)}
+            initial={getEditableMessageText(message.parts)}
             onCancel={() => setEditing(false)}
             onSave={(text) => {
               setEditing(false)
@@ -104,6 +109,12 @@ export function MessageBubble({ message, onEditSave, onRegenerate, usage }: Mess
     }
     return (
       <div className="group flex flex-col items-end gap-1.5">
+        {getSkillReferences(message.parts).map(reference => (
+          <span key={reference.skillId} className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs text-primary">
+            <BookOpen className="size-3.5" />
+            {reference.displayName}
+          </span>
+        ))}
         {plainText(message).trim() && (
           <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground whitespace-pre-wrap break-words">
             {plainText(message)}

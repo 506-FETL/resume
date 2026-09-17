@@ -1,5 +1,6 @@
 import type { Tool } from '@/components/ui/composer'
-import { BarChart3, Compass, ListChecks, Sparkles, Star, Target, UserRound } from 'lucide-react'
+import { BarChart3, Compass, ListChecks, Sparkles, Star, Target, UserRound, WandSparkles } from 'lucide-react'
+import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 
 // AI 求职助手的快捷指令（Slash / 工具按钮共用）。选中后把中文提示词模板填入输入框。
 // 每个工具配置独立图标，避免下拉里所有条目都是同一个「工具」图标。
@@ -11,6 +12,16 @@ export const ASSISTANT_TOOLS: Tool[] = [
   { name: '提炼核心技能', category: '匹配', description: '根据目标岗位提炼并排序关键技能', icon: <ListChecks className="size-5 text-sky-500" /> },
   { name: '生成自我评价', category: '简历', description: '基于当前简历生成一段简洁有力的自我评价', icon: <UserRound className="size-5 text-violet-500" /> },
   { name: '润色求职意向', category: '简历', description: '优化求职意向的表达，使其更聚焦', icon: <Compass className="size-5 text-cyan-500" /> },
+  ...BUILTIN_SKILLS.map(skill => ({
+    name: skill.id,
+    displayName: `${skill.displayName} · $${skill.id}`,
+    category: '技能',
+    description: skill.description,
+    sourceLabel: skill.sourceLabel,
+    skillId: skill.id,
+    aliases: [skill.displayName, 'asu', 'asu-resume', skill.id],
+    icon: <WandSparkles className="size-5 text-violet-500" />,
+  })),
 ]
 
 // 快捷指令 → 中文提示词模板（填入输入框，待用户补全或直接发送）

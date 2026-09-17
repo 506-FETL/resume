@@ -2,6 +2,8 @@
 
 import type React from "react";
 import { useEffect, useMemo, useRef } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { DURATION, EASE } from "@/lib/motion";
 import {
 	Cancel01Icon,
 	HugeiconsIcon,
@@ -15,12 +17,20 @@ import { formatToolName, getToolCategoryIcon } from "@/lib/utils/tool-icons";
 export interface Tool {
 	/** Unique tool identifier */
 	name: string;
+	/** Optional human-friendly label while keeping a stable identifier in name. */
+	displayName?: string;
 	/** Category for grouping tools */
 	category: string;
 	/** Description shown below tool name */
 	description?: string;
 	/** Custom icon (defaults to category icon) */
 	icon?: React.ReactNode;
+	/** Optional structured metadata for entries that select a skill instead of inserting text. */
+	skillId?: string;
+	/** Skill source shown alongside its purpose. */
+	sourceLabel?: string;
+	/** Extra terms used by command search, such as product aliases. */
+	aliases?: string[];
 }
 
 export interface SlashCommandMatch {
@@ -131,17 +141,8 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
 	className,
 	style,
 }) => {
-	const dropdownRef = useRef<HTMLDivElement>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-	// Focus the dropdown when it becomes visible (only when opened via button)
-	useEffect(() => {
-		if (isVisible && openedViaButton && dropdownRef.current) {
-			requestAnimationFrame(() => {
-				dropdownRef.current?.focus();
-			});
-		}
-	}, [isVisible, openedViaButton]);
+	const shouldReduceMotion = useReducedMotion();
 
 	// Get unique categories from matches if not provided
 	const computedCategories = useMemo(() => {
@@ -170,28 +171,29 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
 			);
 			if (selectedElement) {
 				selectedElement.scrollIntoView({
-					behavior: "smooth",
+					behavior: shouldReduceMotion ? "auto" : "smooth",
 					block: "nearest",
 				});
 			}
 		}
-	}, [selectedIndex, filteredMatches.length]);
+	}, [selectedIndex, filteredMatches.length, shouldReduceMotion]);
 
 	if (!isVisible || matches.length === 0) return null;
 
 	return (
-		<div
-			ref={dropdownRef}
+		<motion.div
 			className={cn(
 				// Base styles
 				"fixed z-[200] overflow-hidden rounded-2xl",
 				// Light mode support
 				"border border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-900/95",
 				"backdrop-blur-xl shadow-2xl",
-				// Animation
-				"animate-in fade-in-0 slide-in-from-bottom-2 duration-200",
 				className,
 			)}
+			initial={shouldReduceMotion ? false : { opacity: 0, y: 8, scale: 0.96 }}
+			animate={{ opacity: 1, y: 0, scale: 1 }}
+			exit={shouldReduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.96 }}
+			transition={{ duration: shouldReduceMotion ? 0 : DURATION.base, ease: EASE.out }}
 			style={{
 				...(position.top !== undefined && { top: 0, height: position.top }),
 				...(position.bottom !== undefined && {
@@ -238,6 +240,7 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
 										? "bg-zinc-100 text-zinc-900 dark:bg-zinc-700/50 dark:text-white"
 										: "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-300",
 								)}
+								style={{ transitionDuration: shouldReduceMotion ? '0ms' : `${DURATION.fast}s` }}
 							>
 								{getCategoryTabIcon(category)}
 								<span>
@@ -254,12 +257,20 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
 				ref={scrollContainerRef}
 				className="max-h-[200px] overflow-y-auto py-1.5"
 			>
-				{filteredMatches.length === 0 ? (
-					<div className="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-						No tools found
-					</div>
-				) : (
-					filteredMatches.map((match, index) => {
+				<AnimatePresence mode="wait" initial={false}>
+					<motion.div
+						key={selectedCategory}
+						initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={shouldReduceMotion ? undefined : { opacity: 0, y: 8 }}
+						transition={{ duration: shouldReduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
+					>
+					{filteredMatches.length === 0 ? (
+						<div className="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+							No tools found
+						</div>
+					) : (
+						filteredMatches.map((match, index) => {
 						const isSelected = index === selectedIndex;
 						return (
 							<button
@@ -286,7 +297,7 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center justify-between gap-3">
 											<span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-												{formatToolName(match.tool.name)}
+												{match.tool.displayName ?? formatToolName(match.tool.name)}
 											</span>
 											{selectedCategory === "all" && (
 												<span className="flex-shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500 dark:text-zinc-400">
@@ -299,13 +310,20 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
 												{match.tool.description}
 											</p>
 										)}
+										{match.tool.sourceLabel && (
+											<p className="mt-0.5 truncate text-xs text-zinc-400 dark:text-zinc-500">
+												来源：{match.tool.sourceLabel}
+											</p>
+										)}
 									</div>
 								</div>
 							</button>
 						);
-					})
-				)}
+						})
+					)}
+					</motion.div>
+				</AnimatePresence>
 			</div>
-		</div>
+		</motion.div>
 	);
 };

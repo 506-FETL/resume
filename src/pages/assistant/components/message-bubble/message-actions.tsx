@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { Check, Copy, Pencil, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { getEditableMessageText } from '@/lib/ai/skills/references'
 import { cn } from '@/lib/utils'
 
 interface MessageActionsProps {
@@ -12,6 +13,8 @@ interface MessageActionsProps {
 }
 
 function getPlainText(message: AiMessage): string {
+  if (message.role === 'user')
+    return getEditableMessageText(message.parts)
   return message.parts
     .filter(p => p.type === 'text')
     .map(p => (p as { text: string }).text)

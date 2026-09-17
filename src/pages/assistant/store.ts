@@ -41,6 +41,7 @@ interface AssistantStore {
   streamingText: string
   streamingParts: AiMessagePart[]
   composerDraft: string
+  composerSkillIds: string[]
   pendingConfirm: { id: string, toolName: string, preview: ConfirmPreview, resolve: (confirmed: boolean) => void } | null
   hasMoreMessages: boolean
   loadingOlder: boolean
@@ -65,6 +66,7 @@ interface AssistantStore {
   conversationViewVersion: number
   targetMessageId: string | null
   abortController: AbortController | null
+  inFlightConversationIds: Record<string, true>
 
   setConversations: (list: AiConversation[]) => void
   upsertConversation: (conv: AiConversation) => void
@@ -81,6 +83,7 @@ interface AssistantStore {
   setStreamingText: (text: string) => void
   setStreamingParts: (parts: AiMessagePart[]) => void
   setComposerDraft: (text: string) => void
+  setComposerSkillIds: (ids: string[]) => void
   setPendingConfirm: (p: AssistantStore['pendingConfirm']) => void
   setInitializing: (value: boolean) => void
   setLoadingConversations: (value: boolean) => void
@@ -101,6 +104,8 @@ interface AssistantStore {
   setPreviewResumeId: (id: string | null) => void
   setTargetMessageId: (id: string | null) => void
   setAbortController: (controller: AbortController | null) => void
+  beginConversationRun: (conversationId: string) => void
+  finishConversationRun: (conversationId: string) => void
   reset: () => void
 }
 
@@ -113,6 +118,7 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   streamingText: '',
   streamingParts: [],
   composerDraft: '',
+  composerSkillIds: [],
   pendingConfirm: null,
   hasMoreMessages: false,
   loadingOlder: false,
@@ -137,6 +143,7 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   conversationViewVersion: 0,
   targetMessageId: null,
   abortController: null,
+  inFlightConversationIds: {},
 
   setConversations: list => set({ conversations: list }),
   upsertConversation: conv => set((state) => {
@@ -152,8 +159,12 @@ const useAssistantStore = create<AssistantStore>()(set => ({
     conversations: state.conversations.filter(c => c.id !== id),
     activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
     messages: state.activeConversationId === id ? [] : state.messages,
+    composerSkillIds: state.activeConversationId === id ? [] : state.composerSkillIds,
   })),
-  setActiveConversationId: id => set({ activeConversationId: id }),
+  setActiveConversationId: id => set(state => ({
+    activeConversationId: id,
+    composerSkillIds: state.activeConversationId === id ? state.composerSkillIds : [],
+  })),
   setConversationView: (conversationId, messages, options) => set(state => ({
     activeConversationId: conversationId,
     messages,
@@ -164,6 +175,7 @@ const useAssistantStore = create<AssistantStore>()(set => ({
     pendingConversationId: null,
     conversationLoadRequestId: null,
     loadingMessages: false,
+    composerSkillIds: [],
     conversationViewVersion: state.conversationViewVersion + 1,
   })),
   prependOlderMessages: (older, hasMore) => set(state => ({
@@ -181,6 +193,7 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   setStreamingText: text => set({ streamingText: text }),
   setStreamingParts: parts => set({ streamingParts: parts }),
   setComposerDraft: text => set({ composerDraft: text }),
+  setComposerSkillIds: ids => set({ composerSkillIds: [...new Set(ids)] }),
   setPendingConfirm: p => set({ pendingConfirm: p }),
   setInitializing: value => set({ initializing: value }),
   setLoadingConversations: value => set({ loadingConversations: value }),
@@ -235,12 +248,22 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   setPreviewResumeId: id => set({ previewResumeId: id }),
   setTargetMessageId: id => set({ targetMessageId: id }),
   setAbortController: controller => set({ abortController: controller }),
+  beginConversationRun: conversationId => set(state => ({
+    inFlightConversationIds: { ...state.inFlightConversationIds, [conversationId]: true },
+  })),
+  finishConversationRun: conversationId => set((state) => {
+    if (!state.inFlightConversationIds[conversationId])
+      return {}
+    const { [conversationId]: _, ...inFlightConversationIds } = state.inFlightConversationIds
+    return { inFlightConversationIds }
+  }),
   reset: () => set(state => ({
     activeConversationId: null,
     messages: [],
     streaming: false,
     streamingText: '',
     streamingParts: [],
+    composerSkillIds: [],
     streamingUsage: null,
     pendingConversationId: null,
     conversationLoadRequestId: null,

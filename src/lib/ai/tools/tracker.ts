@@ -89,7 +89,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const jobId = String(args.jobId)
     const patch = (args.patch ?? {}) as Record<string, unknown>
     const jobs = await getCompanies().catch(() => [])
@@ -123,7 +123,7 @@ registerTool({
         const after = keys.map(k => jobFieldLine(k, patch[k])).join('\n')
         return { ok: true, jobId, before, after }
       },
-    })
+    }, context?.signal)
   },
 })
 
@@ -137,7 +137,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const data = (args.data ?? {}) as Record<string, unknown>
     if (!data.company || !data.position)
       return { error: '新增职位至少需要 company（公司）和 position（岗位）' }
@@ -160,6 +160,6 @@ registerTool({
           .join('\n')
         return { ok: true, id: created.id, before: '', after }
       },
-    })
+    }, context?.signal)
   },
 })

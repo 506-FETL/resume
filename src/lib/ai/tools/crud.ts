@@ -2,12 +2,12 @@ import type { ResumeType } from '@/lib/schema'
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { deleteAccessibleResume, getAccessibleResumeById, updateAccessibleResumeMeta } from '@/lib/resume-access'
+import { updateConversationResumeBinding } from '@/lib/supabase/ai'
 import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResumeHistoryVersion, getCompanies, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
+import useAssistantStore from '@/pages/assistant/store'
 import { buildResumeSnapshot, normalizeHistoryVersionListItem } from '@/pages/history/utils'
 import useTrackerStore from '@/pages/tracker/store'
 import { FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
-import { updateConversationResumeBinding } from '@/lib/supabase/ai'
-import useAssistantStore from '@/pages/assistant/store'
 import { requestConfirm } from '../agent/confirm-bridge'
 import { registerTool } from '../agent/tool-registry'
 
@@ -23,7 +23,7 @@ function bindResumeToActiveConversation(resumeId: string): void {
   const conversation = conversations.find(c => c.id === activeConversationId)
   if (conversation && conversation.resumeId !== resumeId)
     upsertConversation({ ...conversation, resumeId })
-  void updateConversationResumeBinding(activeConversationId, resumeId).catch(() => {
+  updateConversationResumeBinding(activeConversationId, resumeId).catch(() => {
     // 持久化失败静默：内存态已更新，切设备时回退到全局当前简历
   })
 }
@@ -61,7 +61,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const displayName = String(args.display_name ?? '').trim()
     if (!displayName)
       return { error: '新建简历需要 display_name（简历名称）' }
@@ -101,7 +101,7 @@ registerTool({
           afterLines.push(`预填模块：${filledKeys.join('、')}`)
         return { ok: true, resumeId, opened: true, before: '', after: afterLines.join('\n') }
       },
-    })
+    }, context?.signal)
   },
 })
 
@@ -119,7 +119,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const resumeId = String(args.resumeId ?? '')
     if (!resumeId)
       return { error: '缺少 resumeId' }
@@ -166,7 +166,7 @@ registerTool({
         await updateAccessibleResumeMeta(resumeId, patch)
         return { ok: true, resumeId, before, after }
       },
-    })
+    }, context?.signal)
   },
 })
 
@@ -180,7 +180,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const resumeId = String(args.resumeId ?? '')
     if (!resumeId)
       return { error: '缺少 resumeId' }
@@ -210,7 +210,7 @@ registerTool({
           useCurrentResumeStore.getState().clearCurrentResume()
         return { ok: true, resumeId, before: `名称：${displayName}`, after: '' }
       },
-    })
+    }, context?.signal)
   },
 })
 
@@ -257,7 +257,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const resumeId = resolveActiveResumeId()
     if (!resumeId)
       return { error: '当前对话还没有绑定简历。请先在本对话里用 open_resume 打开要保存版本的简历。' }
@@ -286,7 +286,7 @@ registerTool({
         })
         return { ok: true, resumeId, versionNo: created.version_no }
       },
-    })
+    }, context?.signal)
   },
 })
 
@@ -303,7 +303,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const resumeId = resolveActiveResumeId()
     if (!resumeId)
       return { error: '当前对话还没有绑定简历。请先在本对话里用 open_resume 打开要恢复的简历。' }
@@ -344,7 +344,7 @@ registerTool({
         })
         return { ok: true, resumeId, restoredFrom: target.version_no }
       },
-    })
+    }, context?.signal)
   },
 })
 
@@ -358,7 +358,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const versionId = Number(args.versionId)
     if (!Number.isFinite(versionId))
       return { error: 'versionId 必须是数字' }
@@ -378,7 +378,7 @@ registerTool({
         await deleteResumeHistoryVersion(versionId)
         return { ok: true, resumeId: resumeId ?? undefined, versionId }
       },
-    })
+    }, context?.signal)
   },
 })
 
@@ -392,7 +392,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
-  execute: async (args) => {
+  execute: async (args, context) => {
     const jobId = String(args.jobId ?? '')
     if (!jobId)
       return { error: '缺少 jobId' }
@@ -419,6 +419,6 @@ registerTool({
           beforeLines.push(`城市：${job.location}`)
         return { ok: true, jobId, before: beforeLines.join('\n'), after: '' }
       },
-    })
+    }, context?.signal)
   },
 })

@@ -13,8 +13,9 @@ export default defineConfig({
   plugins: [
     wasm(),
     topLevelAwait(),
-    { enforce: 'pre', ...mdx({ remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter] }) },
-    react({ include: /\.(jsx|js|mdx|md|tsx|ts)$/ }),
+    // MDX 会去掉 query 再匹配；Skill 文档必须保留 ?raw 的原始文本。
+    { enforce: 'pre', ...mdx({ exclude: '**/src/lib/ai/skills/**/*.md', remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter] }) },
+    react({ include: /\.(jsx|js|mdx|md|tsx|ts)$/, exclude: [/node_modules/, /src\/lib\/ai\/skills\/.*\.md(?:\?|$)/] }),
     tailwindcss(),
     Pages({
       exclude: [

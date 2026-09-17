@@ -29,8 +29,9 @@ export interface ConfirmRequest {
   apply: () => Promise<unknown>
 }
 
-// UI 层（store）注入的处理器：弹卡 → 等用户 → 返回是否确认
-type ConfirmHandler = (req: ConfirmRequest) => Promise<{ confirmed: boolean, result?: unknown }>
+// UI 层（store）注入的处理器：弹卡 → 等用户 → 返回是否确认。
+// 真正 apply 由本桥在确认后执行，确保取消信号可在写入前统一守卫。
+type ConfirmHandler = (req: ConfirmRequest, signal?: AbortSignal) => Promise<{ confirmed: boolean }>
 
 let handler: ConfirmHandler | null = null
 
@@ -38,13 +39,18 @@ export function setConfirmHandler(h: ConfirmHandler | null): void {
   handler = h
 }
 
-// 写工具调用此函数：无 handler（理论不会）则直接执行
-export async function requestConfirm(req: ConfirmRequest): Promise<unknown> {
-  if (!handler) {
-    return req.apply()
-  }
-  const { confirmed, result } = await handler(req)
+// 写工具调用此函数：无 handler（理论不会）仍遵守取消信号。
+export async function requestConfirm(req: ConfirmRequest, signal?: AbortSignal): Promise<unknown> {
+  if (signal?.aborted)
+    return { cancelled: true }
+
+  if (!handler)
+    return signal?.aborted ? { cancelled: true } : req.apply()
+
+  const { confirmed } = await handler(req, signal)
   if (!confirmed)
     return { cancelled: true }
-  return result
+  if (signal?.aborted)
+    return { cancelled: true }
+  return req.apply()
 }

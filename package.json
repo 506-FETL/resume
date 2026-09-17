@@ -18,6 +18,7 @@
     "verify:database": "supabase db reset --local && supabase test db --local && node --experimental-strip-types scripts/verify-database-concurrency.ts",
     "verify:github-stars": "node --experimental-strip-types scripts/verify-github-stars-cache.ts",
     "verify:llm-proxy": "node --experimental-strip-types scripts/verify-llm-proxy-failures.ts",
+    "verify:assistant-skills": "node --experimental-strip-types scripts/verify-assistant-skills.ts && node --experimental-strip-types scripts/verify-assistant-stop-order.ts && node --experimental-strip-types scripts/verify-assistant-confirm-cancellation.ts",
     "verify:ai-resume-tools": "node --experimental-strip-types scripts/verify-ai-resume-tools.ts",
     "verify:maintenance": "node --experimental-strip-types scripts/verify-backend-maintenance.ts",
     "benchmark:comments": "node --experimental-strip-types scripts/benchmark-resume-comments-bootstrap.ts",

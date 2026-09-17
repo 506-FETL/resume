@@ -1,5 +1,6 @@
 import type { CanvasChange, CanvasChangeAction, CanvasChangeCategory, CanvasModel } from './types'
 import type { AiConversation, AiMessage, AiMessagePart } from '@/lib/ai/types'
+import { getSkillToolLabel } from '@/lib/ai/skills/presentation'
 import { fieldDiffStat } from './components/diff/compute-field-diff'
 import { ASSISTANT_LAST_CONVERSATION_STORAGE_KEY } from './const'
 
@@ -72,6 +73,8 @@ interface ToolCanvasMeta {
 
 // 单一来源：工具 → 画布分类/动作/图标/标题（替代 tool-call-part 内旧 TOOL_META）
 export const TOOL_CANVAS_META: Record<string, ToolCanvasMeta> = {
+  activate_skill: { category: 'read', action: 'read', iconCategory: 'documents', label: '加载技能' },
+  read_skill_resource: { category: 'read', action: 'read', iconCategory: 'documents', label: '读取技能参考资料' },
   list_resumes: { category: 'read', action: 'read', iconCategory: 'documents', label: '读取简历列表' },
   get_resume_detail: { category: 'read', action: 'read', iconCategory: 'documents', label: '读取简历内容' },
   update_current_resume_field: { category: 'resume', action: 'update', iconCategory: 'todos', label: '修改简历', targetTab: 'resume' },
@@ -174,7 +177,7 @@ export function deriveCanvasModel(
       toolName: part.toolName,
       category: meta.category,
       action: meta.action,
-      title: buildTitle(meta, args),
+      title: getSkillToolLabel(part.toolName, args) ?? buildTitle(meta, args),
       detail,
       stat: stat && (stat.additions > 0 || stat.deletions > 0) ? stat : undefined,
       state: part.state,
