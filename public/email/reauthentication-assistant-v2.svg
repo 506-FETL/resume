@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="240" viewBox="0 0 420 240" fill="none" shape-rendering="geometricPrecision">
+  <title>reauthentication email illustration</title>
+  <metadata>prompt-source: infographic-06.md; Use case: illustration-story</metadata>
+
+  <path d="M14 16C62 11 111 15 157 12C210 9 257 15 306 12C350 10 386 12 407 17C411 57 407 91 410 128C413 165 407 198 404 224C359 228 317 224 273 227C224 230 177 225 128 228C84 230 44 226 15 222C10 185 14 151 11 116C8 78 12 45 14 16Z" fill="#FFFCF5"/>
+  <g stroke-linecap="round" stroke-linejoin="round">
+      <path d="M53 106H132V132H53Z" fill="#FFFCF5" stroke="#171A21" stroke-width="5"/>
+      <path d="M69 106L75 80H111L117 106" fill="#E2B458" stroke="#171A21" stroke-width="5"/>
+      <path d="M81 91H105" stroke="#171A21" stroke-width="4"/>
+      <path d="M142 119L169 119M161.7 124.3L169 119L161.7 113.7" fill="none" stroke="#171A21" stroke-width="4"/>
+      <path d="M180 44H252V196H180M180 44V196" fill="none" stroke="#171A21" stroke-width="6"/>
+      <path d="M201 72H231M201 104H231M201 136H231M201 168H231" stroke="#2F6BFF" stroke-width="5"/></g>
+
+  <g aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 220C303 174 308 148 322 136C328 130 335 127 345 127C355 127 363 130 369 136C383 148 388 174 391 220Z" fill="#FFFCF5" stroke="#171A21" stroke-width="5"/>
+    <path d="M327 130L345 147L363 130M334 141L345 151L356 141" fill="none" stroke="#171A21" stroke-width="3.5"/>
+    <path d="M340 149L345 154L350 149L353 220H337Z" fill="#2F6BFF" stroke="#171A21" stroke-width="2.5"/>
+    
+    
+    <path d="M314 158C298 153 289 144 283 134" fill="none" stroke="#171A21" stroke-width="8"/>
+    <path d="M314 158C298 153 289 144 283 134" fill="none" stroke="#FFFCF5" stroke-width="4"/>
+    <path d="M276 120C284 119 290 125 290 133V139C286 145 279 145 275 139V125C275 123 275 121 276 120Z" fill="#FFFCF5" stroke="#171A21" stroke-width="3"/>
+    <path d="M311 78C310 51 324 34 346 34C371 34 384 54 381 84L375 125C366 132 356 136 345 136C334 136 324 132 315 125Z" fill="#171A21"/>
+    <ellipse cx="346" cy="92" rx="31" ry="40" fill="#FFFCF5" stroke="#171A21" stroke-width="4"/>
+    <path d="M316 79C322 57 334 47 350 49C365 51 375 61 380 78C364 76 353 69 346 58C340 68 329 75 316 79Z" fill="#171A21" stroke="#171A21" stroke-width="2"/>
+    <path d="M316 77C308 91 310 113 318 126C306 120 301 108 303 94C304 85 308 80 316 77ZM378 75C386 87 387 108 375 126C379 108 380 91 378 75Z" fill="#171A21" stroke="none"/>
+    <g fill="none" stroke="#171A21" stroke-width="2.5">
+      <path d="M327 87l14 3M352 90l14-3"/>
+      <circle cx="337" cy="94" r="2.2" fill="#171A21" stroke="none"/>
+      <circle cx="358" cy="94" r="2.2" fill="#171A21" stroke="none"/>
+      <path d="M339 110c5-3 11-3 16 0"/></g>
+    
+  </g>
+</svg>

@@ -1,11 +1,9 @@
 import { LightRays } from '@/components/ui/light-rays'
 import { useIsMobile } from '@/hooks/use-mobile'
-import useAlreadyLoggedRedirect from '@/hooks/use-redirect'
 import { ForgotPasswordForm } from './components/forgot-password-form'
 
 function ForgotPassword() {
   const isMobile = useIsMobile()
-  useAlreadyLoggedRedirect('/')
 
   return (
     <>
