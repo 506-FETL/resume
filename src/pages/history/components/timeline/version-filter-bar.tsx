@@ -1,6 +1,7 @@
 import type { VersionFilterCriteria, VersionSortOrder } from '../../filter'
 import type { ResumeVersionSourceType } from '@/lib/supabase/resume/history'
 import { ListFilter, Search } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { SOURCE_META } from '../../const'
 import { isFilterActive } from '../../filter'
+import { useHistoryMotion } from '../../hooks/use-history-motion'
 
 const SOURCE_OPTIONS: Array<{ value: ResumeVersionSourceType | 'all', label: string }> = [
   { value: 'all', label: '全部来源' },
@@ -37,6 +39,7 @@ interface VersionFilterBarProps {
 
 export default function VersionFilterBar({ criteria, onChange }: VersionFilterBarProps) {
   const active = isFilterActive(criteria)
+  const { reduceMotion, enter, exit, surfaceProps } = useHistoryMotion()
 
   return (
     <div className="flex items-center gap-2">
@@ -44,6 +47,7 @@ export default function VersionFilterBar({ criteria, onChange }: VersionFilterBa
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={criteria.keyword}
+          aria-label="搜索版本名、说明或标签"
           placeholder="搜索版本名、说明或标签"
           className="h-8 pl-8 text-xs"
           onChange={event => onChange({ ...criteria, keyword: event.target.value })}
@@ -60,10 +64,12 @@ export default function VersionFilterBar({ criteria, onChange }: VersionFilterBa
           >
             <ListFilter className="size-3.5" />
             筛选
-            {active && <span className="absolute -right-1 -top-1 size-2 rounded-full bg-primary" />}
+            <AnimatePresence initial={false}>
+              {active && <motion.span key="active-filter" initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, transition: exit }} transition={enter} className="absolute -right-1 -top-1 size-2 rounded-full bg-primary" />}
+            </AnimatePresence>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuContent {...surfaceProps} align="end" className={`${surfaceProps.className} history-popup-motion w-44`}>
           <DropdownMenuLabel>来源</DropdownMenuLabel>
           <DropdownMenuRadioGroup
             value={criteria.source}

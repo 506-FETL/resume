@@ -46,7 +46,7 @@ export default function HistoryWorkspace({ activeResumeId, onReloadResumeOptions
   }
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(320px,400px)_minmax(0,1fr)]">
+    <div className="grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
       <HistoryTimeline
         selectedEntry={detailPanelState.selectedEntry}
         onSelectEntry={detailPanelState.requestSelectEntry}

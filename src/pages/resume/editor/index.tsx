@@ -15,6 +15,7 @@ import { CommentSurface } from '@/features/resume-comments/components/comment-su
 import { ResumeCommentProvider, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useCollaborationStore } from '@/lib/collaboration'
+import { DURATION, EASE } from '@/lib/motion'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
@@ -255,8 +256,8 @@ function Editor() {
                     <motion.div
                       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+                      exit={{ opacity: 0, y: reduceMotion ? 0 : 8, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
                       className="fixed bottom-6 right-6 z-1"
                     >
                       <Button

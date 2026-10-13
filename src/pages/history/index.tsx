@@ -1,40 +1,64 @@
-import { History as HistoryIcon } from 'lucide-react'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { History as HistoryIcon, RefreshCcw } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { Button } from '@/components/ui/button'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Skeleton } from '@/components/ui/skeleton'
+import { DURATION, EASE } from '@/lib/motion'
 import HistoryHeader from './components/header'
 import HistoryWorkspace from './components/workspace'
 import { useActiveHistoryResumeId } from './hooks/use-active-resume-id'
-import { useHistoryResumeOptions } from './hooks/use-history-options'
+import { useHistoryMotion } from './hooks/use-history-motion'
+import './motion.css'
 
 function History() {
-  const { activeResumeId, resumeOptions } = useActiveHistoryResumeId()
-  const { reload: reloadResumeOptions } = useHistoryResumeOptions()
+  const { activeResumeId, resumeOptions, loading, error, reload, selectResume } = useActiveHistoryResumeId()
+  const reduceMotion = useReducedMotion()
+  const { surfaceProps } = useHistoryMotion()
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-8">
-      <HistoryHeader />
+    <div {...surfaceProps} className={`${surfaceProps.className} mx-auto flex w-full max-w-7xl flex-col gap-5 py-2 sm:px-2 lg:px-4`}>
+      <HistoryHeader activeResumeId={activeResumeId} resumeOptions={resumeOptions} loading={loading} error={error} onResumeChange={selectResume} />
 
-      {!activeResumeId
-        ? (
-            <Empty className="min-h-[420px] border border-dashed bg-muted/20">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <HistoryIcon />
-                </EmptyMedia>
-                <EmptyTitle>{resumeOptions.length > 0 ? '请选择一份简历' : '暂无云端简历'}</EmptyTitle>
-                <EmptyDescription>
-                  {resumeOptions.length > 0
-                    ? '选择简历后，这里会显示当前内容、历史版本以及恢复记录。'
-                    : '当前仅支持查看云端简历的版本记录。请先创建云端简历，或将本地简历同步到云端后再查看。'}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )
-        : (
-            <HistoryWorkspace
-              activeResumeId={activeResumeId}
-              onReloadResumeOptions={reloadResumeOptions}
-            />
-          )}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={activeResumeId ?? (loading ? 'loading' : 'empty')}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast } }}
+          transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+        >
+          {!activeResumeId && loading
+            ? (
+                <div role="status" aria-label="正在加载历史版本" className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+                  <Skeleton className={reduceMotion ? 'h-80 animate-none rounded-xl' : 'h-80 rounded-xl'} />
+                  <Skeleton className={reduceMotion ? 'h-80 animate-none rounded-xl' : 'h-80 rounded-xl'} />
+                </div>
+              )
+            : !activeResumeId
+                ? (
+                    <Empty className="min-h-80 rounded-xl border bg-muted/10">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon"><HistoryIcon /></EmptyMedia>
+                        <EmptyTitle>{error ? '简历列表暂时不可用' : resumeOptions.length > 0 ? '请选择一份简历' : '暂无云端简历'}</EmptyTitle>
+                        <EmptyDescription>
+                          {error || (resumeOptions.length > 0
+                            ? '选择简历后，这里会显示当前内容、历史版本以及恢复记录。'
+                            : '创建云端简历或同步本地简历后，即可在这里保存和查看版本记录。')}
+                        </EmptyDescription>
+                      </EmptyHeader>
+                      {error && (
+                        <EmptyContent>
+                          <Button variant="outline" onClick={reload}>
+                            <RefreshCcw data-icon="inline-start" />
+                            重新加载
+                          </Button>
+                        </EmptyContent>
+                      )}
+                    </Empty>
+                  )
+                : <HistoryWorkspace activeResumeId={activeResumeId} onReloadResumeOptions={reload} />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

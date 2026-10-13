@@ -8,15 +8,15 @@ interface TimelineEmptyStateProps {
 
 export default function TimelineEmptyState({ currentResume }: TimelineEmptyStateProps) {
   return (
-    <Empty className="min-h-72 border border-dashed bg-muted/15">
+    <Empty className="min-h-44 px-3 py-6">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Sparkles />
         </EmptyMedia>
-        <EmptyTitle>暂无历史版本</EmptyTitle>
+        <EmptyTitle className="text-sm">还没有保存版本</EmptyTitle>
         <EmptyDescription>
           {currentResume
-            ? '保存版本后，会按时间顺序显示在这里。'
+            ? '点击「保存当前版本」，留存这一刻的简历。'
             : '先选一份云端简历。'}
         </EmptyDescription>
       </EmptyHeader>

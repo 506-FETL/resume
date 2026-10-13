@@ -3,6 +3,7 @@ import type { CreateShareOptions, ShareVersionSelection } from '@/lib/supabase/r
 import { AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -99,17 +100,19 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       />
 
       <div className="min-w-0 flex flex-col gap-3">
-        {dialogLoading && (
-          <div className="flex shrink-0 items-center justify-center py-2 text-muted-foreground">
-            <Spinner />
-          </div>
-        )}
+        <AnimatedContent animationKey={dialogLoading ? 'loading' : dialogError ? 'error' : shares.length === 0 ? 'empty' : 'ready'} className="space-y-3 empty:hidden">
+          {dialogLoading && (
+            <div className="flex shrink-0 items-center justify-center py-2 text-muted-foreground">
+              <Spinner />
+            </div>
+          )}
 
-        {dialogError && <p className="text-sm text-destructive">{dialogError}</p>}
+          {dialogError && <p className="text-sm text-destructive">{dialogError}</p>}
 
-        {!dialogLoading && shares.length === 0 && (
-          <p className="py-4 text-center text-sm text-muted-foreground">还没有分享链接，生成一个吧。</p>
-        )}
+          {!dialogLoading && shares.length === 0 && (
+            <p className="py-4 text-center text-sm text-muted-foreground">还没有分享链接，生成一个吧。</p>
+          )}
+        </AnimatedContent>
 
         <div className="scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-40 flex-col gap-2 rounded-lg pr-1 sm:max-h-[min(38dvh,22rem)] sm:overflow-y-auto sm:overscroll-contain">
           <AnimatePresence initial={false} mode="popLayout">

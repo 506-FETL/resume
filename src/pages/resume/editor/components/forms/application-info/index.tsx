@@ -1,14 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { SPRING } from '@/lib/motion'
 import { resumeSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
 
 function ApplicationInfoForm({ className }: { className?: string }) {
+  const reduceMotion = useReducedMotion()
   const applicationInfo = useResumeStore(state => state.application_info)
 
   const form = useForm({
@@ -24,7 +26,7 @@ function ApplicationInfoForm({ className }: { className?: string }) {
   return (
     <Form {...form}>
       <form id="application-info-form" className={cn(className)}>
-        <motion.div layout className="grid gap-4 justify-items-start @sm/panel:grid-cols-2 @2xl/panel:grid-cols-4">
+        <motion.div layout={!reduceMotion} transition={reduceMotion ? { duration: 0 } : SPRING.layout} className="grid gap-4 justify-items-start @sm/panel:grid-cols-2 @2xl/panel:grid-cols-4">
           <FormField
             control={form.control}
             name="applicationSchool"

@@ -75,6 +75,7 @@ export interface ShareUiSlice {
   setSearchKeyword: (value: string) => void
   setResumeFilters: (value: string[]) => void
   setStatusFilter: (value: ShareStatusFilter) => void
+  resetFilters: () => void
   openSettingsDialog: (shareId: string) => void
   closeSettingsDialog: () => void
   openArchiveDialog: (shareId: string) => void

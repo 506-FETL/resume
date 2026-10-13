@@ -1,9 +1,11 @@
 import type { JobApplication, TrackerActivity, TrackerActivityType } from '../../../types'
 import dayjs from 'dayjs'
 import { Check, CircleDot, GitCommitHorizontal, ListChecks, MessageSquarePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import AnimatedContent from '@/components/motion/animated-content'
+import { PresenceListItem } from '@/components/motion/presence-item'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import useTrackerStore from '../../../store'
@@ -216,124 +219,130 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
         </Button>
       </div>
 
-      {sorted.length === 0
-        ? (
-            <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
-              还没有跟进记录。推进状态会自动记录，也可以手动补充。
-            </p>
-          )
-        : (
-            <ol className="flex flex-col gap-0.5">
-              {sorted.map((activity, index) => {
-                const Icon = TYPE_ICON[activity.type] ?? CircleDot
-                const isAuto = activity.type === 'status_change'
-                const isChecked = selectedIds.has(activity.id)
-                return (
-                  <motion.li
-                    key={activity.id}
-                    initial={reduce ? false : { opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.18, delay: Math.min(index, 8) * 0.03 }}
-                    className={cn(
-                      'group flex gap-3',
-                      selectMode && 'cursor-pointer rounded-md -mx-1 px-1 hover:bg-muted/40',
-                    )}
-                    onClick={selectMode ? () => toggleSelected(activity.id) : undefined}
-                  >
-                    {selectMode && (
-                      <div className="flex items-center pt-1.5">
-                        <Checkbox
-                          checked={isChecked}
-                          disabled={saving}
-                          aria-label={`选择记录：${activity.label}`}
-                          onCheckedChange={() => toggleSelected(activity.id)}
-                        />
-                      </div>
-                    )}
-                    <div className="flex flex-col items-center">
-                      <span className={cn(
-                        'mt-1 flex size-6 shrink-0 items-center justify-center rounded-full border',
-                        isAuto ? 'border-primary/30 bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground',
-                      )}
+      <AnimatedContent animationKey={sorted.length === 0 ? 'empty' : 'activities'}>
+        {sorted.length === 0
+          ? (
+              <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
+                还没有跟进记录。推进状态会自动记录，也可以手动补充。
+              </p>
+            )
+          : (
+              <ol className="flex flex-col gap-0.5">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {sorted.map((activity, index) => {
+                    const Icon = TYPE_ICON[activity.type] ?? CircleDot
+                    const isAuto = activity.type === 'status_change'
+                    const isChecked = selectedIds.has(activity.id)
+                    return (
+                      <PresenceListItem
+                        key={activity.id}
+                        layout={reduce ? false : 'position'}
+                        initial={reduce ? false : { opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, transition: { duration: reduce ? 0 : DURATION.fast, delay: 0, ease: EASE.in } }}
+                        transition={reduce ? { duration: 0 } : { duration: DURATION.base, delay: Math.min(index, 8) * 0.03, ease: EASE.out, layout: SPRING.layout }}
+                        className={cn(
+                          'group flex gap-3',
+                          selectMode && 'cursor-pointer rounded-md -mx-1 px-1 hover:bg-muted/40',
+                        )}
+                        onClick={selectMode ? () => toggleSelected(activity.id) : undefined}
                       >
-                        <Icon className="size-3" />
-                      </span>
-                      <span className="w-px flex-1 bg-border group-last:hidden" />
-                    </div>
-                    <div className="flex flex-1 items-start justify-between gap-2 pb-4">
-                      {editingId === activity.id && !selectMode
-                        ? (
-                            <div className="flex flex-1 items-center gap-2">
-                              <Input
-                                autoFocus
-                                value={editDraft}
-                                className="h-8"
-                                disabled={saving}
-                                onChange={e => setEditDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing)
-                                    handleEditSave()
-                                  else if (e.key === 'Escape')
-                                    cancelEdit()
-                                }}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="保存修改"
-                                disabled={saving || !editDraft.trim()}
-                                onClick={handleEditSave}
-                              >
-                                <Check className="size-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="取消编辑"
-                                disabled={saving}
-                                onClick={cancelEdit}
-                              >
-                                <X className="size-3.5" />
-                              </Button>
-                            </div>
-                          )
-                        : (
-                            <>
-                              <div className="min-w-0">
-                                <p className="text-sm leading-snug">{activity.label}</p>
-                                {activity.note && <p className="mt-0.5 text-xs text-muted-foreground">{activity.note}</p>}
-                                <p className="mt-0.5 text-[11px] text-muted-foreground">{dayjs(activity.at).format('YYYY-MM-DD HH:mm')}</p>
-                              </div>
-                              {!selectMode && (
-                                <div className="hidden shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:flex">
+                        {selectMode && (
+                          <div className="flex items-center pt-1.5">
+                            <Checkbox
+                              checked={isChecked}
+                              disabled={saving}
+                              aria-label={`选择记录：${activity.label}`}
+                              onCheckedChange={() => toggleSelected(activity.id)}
+                            />
+                          </div>
+                        )}
+                        <div className="flex flex-col items-center">
+                          <span className={cn(
+                            'mt-1 flex size-6 shrink-0 items-center justify-center rounded-full border',
+                            isAuto ? 'border-primary/30 bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground',
+                          )}
+                          >
+                            <Icon className="size-3" />
+                          </span>
+                          <span className="w-px flex-1 bg-border group-last:hidden" />
+                        </div>
+                        <div className="flex flex-1 items-start justify-between gap-2 pb-4">
+                          {editingId === activity.id && !selectMode
+                            ? (
+                                <div className="flex flex-1 items-center gap-2">
+                                  <Input
+                                    autoFocus
+                                    value={editDraft}
+                                    className="h-8"
+                                    disabled={saving}
+                                    onChange={e => setEditDraft(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.nativeEvent.isComposing)
+                                        handleEditSave()
+                                      else if (e.key === 'Escape')
+                                        cancelEdit()
+                                    }}
+                                  />
                                   <Button
                                     variant="ghost"
                                     size="icon-sm"
-                                    aria-label="编辑记录"
-                                    disabled={saving}
-                                    onClick={() => startEdit(activity)}
+                                    aria-label="保存修改"
+                                    disabled={saving || !editDraft.trim()}
+                                    onClick={handleEditSave}
                                   >
-                                    <Pencil className="size-3.5" />
+                                    <Check className="size-3.5" />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon-sm"
-                                    aria-label="删除记录"
+                                    aria-label="取消编辑"
                                     disabled={saving}
-                                    onClick={() => setPendingDeleteId(activity.id)}
+                                    onClick={cancelEdit}
                                   >
-                                    <Trash2 className="size-3.5" />
+                                    <X className="size-3.5" />
                                   </Button>
                                 </div>
+                              )
+                            : (
+                                <>
+                                  <div className="min-w-0">
+                                    <p className="text-sm leading-snug">{activity.label}</p>
+                                    {activity.note && <p className="mt-0.5 text-xs text-muted-foreground">{activity.note}</p>}
+                                    <p className="mt-0.5 text-[11px] text-muted-foreground">{dayjs(activity.at).format('YYYY-MM-DD HH:mm')}</p>
+                                  </div>
+                                  {!selectMode && (
+                                    <div className="hidden shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:flex">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label="编辑记录"
+                                        disabled={saving}
+                                        onClick={() => startEdit(activity)}
+                                      >
+                                        <Pencil className="size-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label="删除记录"
+                                        disabled={saving}
+                                        onClick={() => setPendingDeleteId(activity.id)}
+                                      >
+                                        <Trash2 className="size-3.5" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </>
                               )}
-                            </>
-                          )}
-                    </div>
-                  </motion.li>
-                )
-              })}
-            </ol>
-          )}
+                        </div>
+                      </PresenceListItem>
+                    )
+                  })}
+                </AnimatePresence>
+              </ol>
+            )}
+      </AnimatedContent>
 
       {selectMode && (
         <div className="sticky bottom-0 flex items-center justify-between gap-2 rounded-lg border bg-background/95 px-3 py-2 shadow-sm backdrop-blur">

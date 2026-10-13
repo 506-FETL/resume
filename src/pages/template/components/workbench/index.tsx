@@ -1,4 +1,5 @@
 import type { TemplateWorkbenchTab } from '../../store'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -43,13 +44,11 @@ function TemplateWorkbench() {
             })}
           </TabsList>
 
-          <TabsContent value="official">
-            <OfficialTemplateSection />
-          </TabsContent>
-
-          <TabsContent value="mine">
-            <UserTemplateSection />
-          </TabsContent>
+          <AnimatedContent animationKey={activeTab}>
+            <TabsContent value={activeTab} forceMount>
+              {activeTab === 'official' ? <OfficialTemplateSection /> : <UserTemplateSection />}
+            </TabsContent>
+          </AnimatedContent>
         </Tabs>
       </CardContent>
     </Card>

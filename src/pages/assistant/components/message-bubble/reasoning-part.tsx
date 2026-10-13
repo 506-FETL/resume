@@ -23,7 +23,7 @@ function getThinkingMessage(isStreaming: boolean, duration?: number) {
 
 export function ReasoningPart({ text, streaming = false }: ReasoningPartProps) {
   return (
-    <Reasoning isStreaming={streaming} defaultOpen={streaming} className="mb-1">
+    <Reasoning isStreaming={streaming} defaultOpen={false} className="mb-1">
       <ReasoningTrigger getThinkingMessage={getThinkingMessage} />
       <ReasoningContent>{text}</ReasoningContent>
     </Reasoning>

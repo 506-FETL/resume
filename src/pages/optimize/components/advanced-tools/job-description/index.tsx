@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
 import { MIN_JD_CHARS } from '@/components/jd-variant/const'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
@@ -182,27 +183,31 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
         </ToolPanelBody>
       </ToolPanelCard>
 
-      {hasAnalysisFlow && (
-        <AnalysisTrace
-          analysisError={analysisError}
-          analysisOpen={analysisOpen}
-          analysisState={analysisState}
-          onAnalysisOpenChange={open => setAnalysisOpen(sessionKey, open)}
-        />
-      )}
+      <AnimatedContent animationKey={hasAnalysisFlow ? 'analysis' : 'idle'} className="empty:hidden">
+        {hasAnalysisFlow && (
+          <AnalysisTrace
+            analysisError={analysisError}
+            analysisOpen={analysisOpen}
+            analysisState={analysisState}
+            onAnalysisOpenChange={open => setAnalysisOpen(sessionKey, open)}
+          />
+        )}
+      </AnimatedContent>
 
-      {result
-        ? (
-            <ComparisonResultView result={result} />
-          )
-        : !hasAnalysisFlow
-            ? (
-                <ToolEmptyState
-                  title="还没有生成比对结果"
-                  description="把岗位描述贴进上面的输入框，然后点击“开始比对”。系统会把当前简历和 JD 一起交给大模型分析。"
-                />
-              )
-            : null}
+      <AnimatedContent animationKey={result ? 'result' : !hasAnalysisFlow ? 'empty' : 'pending'} className="empty:hidden">
+        {result
+          ? (
+              <ComparisonResultView result={result} />
+            )
+          : !hasAnalysisFlow
+              ? (
+                  <ToolEmptyState
+                    title="还没有生成比对结果"
+                    description="把岗位描述贴进上面的输入框，然后点击“开始比对”。系统会把当前简历和 JD 一起交给大模型分析。"
+                  />
+                )
+              : null}
+      </AnimatedContent>
 
       <JdVariantDialog
         open={deriveOpen}

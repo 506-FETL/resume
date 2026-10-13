@@ -6,7 +6,7 @@ import type { WithAsChild } from '@/components/animate-ui/primitives/animate/slo
 import type { ParticlesEffectProps } from '@/components/animate-ui/primitives/effects/particles'
 import type { SlidingNumberProps } from '@/components/animate-ui/primitives/texts/sliding-number'
 import type { UseIsInViewOptions } from '@/hooks/use-is-in-view'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import * as React from 'react'
 import { Slot } from '@/components/animate-ui/primitives/animate/slot'
 import {
@@ -145,6 +145,15 @@ function GithubStarsNumber({
   ...props
 }: GithubStarsNumberProps) {
   const { stars, setCurrentStars } = useGithubStars()
+  const reduceMotion = useReducedMotion()
+
+  React.useEffect(() => {
+    if (reduceMotion)
+      setCurrentStars(stars)
+  }, [reduceMotion, stars, setCurrentStars])
+
+  if (reduceMotion)
+    return <span className={props.className}>{stars}</span>
 
   return (
     <SlidingNumber

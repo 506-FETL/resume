@@ -1,6 +1,5 @@
 import type { Severity, Suggestion } from '@/pages/optimize/types'
 import { AlertTriangle, BadgeQuestionMark, Code2, Edit3, FileDiff, Lightbulb, ListOrdered } from 'lucide-react'
-import { motion } from 'motion/react'
 import { Badge } from '@/components/ui/badge'
 import { CodeBlock } from '@/components/ui/code-block'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -143,11 +142,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
             </Badge>
           </div>
           <TabsContent value="summary">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+            <div
               className="p-2 sm:p-4 lg:p-6 space-y-4 lg:space-y-6 h-full"
             >
               {suggestions.map((suggestion: Suggestion) => (
@@ -166,15 +161,11 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
                   暂无具体的改动对比数据
                 </div>
               )}
-            </motion.div>
+            </div>
           </TabsContent>
 
           <TabsContent value="code">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+            <div
               className="p-2 sm:p-4 lg:p-6"
             >
               <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2 lg:gap-6">
@@ -185,7 +176,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
                   {afterCode}
                 </CodeBlock>
               </div>
-            </motion.div>
+            </div>
           </TabsContent>
 
           <TabsContent value="edit" className="p-2 sm:p-4 lg:p-6">

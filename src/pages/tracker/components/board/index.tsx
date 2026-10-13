@@ -21,6 +21,7 @@ import {
   useCrossListContainer,
   useCrossListItem,
 } from '@/components/ui/cross-list-drag'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, BOARD_COLUMNS } from '../../const'
@@ -48,15 +49,14 @@ function BoardJobItem({
   return (
     <motion.div
       {...getDragProps()}
-      layout="position"
-      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-      animate={{ opacity: dragging ? 0.3 : 1, y: 0 }}
+      layout={reduceMotion ? false : 'position'}
+      initial={false}
+      animate={{ opacity: dragging ? 0.3 : 1 }}
       transition={reduceMotion
         ? { duration: 0 }
         : {
-            layout: { type: 'spring', stiffness: 500, damping: 40 },
-            opacity: { duration: 0.12 },
-            delay: dragging ? 0 : Math.min(index, 8) * 0.03,
+            layout: SPRING.layout,
+            opacity: { duration: DURATION.fast, ease: EASE.out },
           }}
       className="cursor-grab rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing"
     >
@@ -244,8 +244,10 @@ export default function BoardView() {
               const isRejectedColumn = column.status === 'rejected'
               const collapsed = isRejectedColumn && rejectedCollapsed
               return (
-                <div
+                <motion.div
                   key={column.status}
+                  layout={!reduceMotion}
+                  transition={reduceMotion ? { duration: 0 } : SPRING.layout}
                   ref={(element) => {
                     if (element)
                       columnRefs.current.set(column.status, element)
@@ -259,61 +261,69 @@ export default function BoardView() {
                       : 'min-w-[240px] flex-1 basis-0 xl:min-w-[280px] 2xl:min-w-[320px]',
                   )}
                 >
-                  {collapsed
-                    ? (
-                        <button
-                          type="button"
-                          aria-expanded={false}
-                          onClick={toggleRejectedCollapsed}
-                          title={`${column.label}（${columnJobs.length}）· 点击展开`}
-                          className="flex h-full min-h-0 w-full flex-col items-center gap-2 rounded-lg border bg-muted/30 py-3 text-muted-foreground transition-colors hover:bg-muted/50"
-                        >
-                          <ChevronRight className="size-4 shrink-0" />
-                          <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
-                          <span className="[writing-mode:vertical-rl] text-sm font-semibold tracking-wide">{column.label}</span>
-                          <Badge variant="secondary" className="mt-1">{columnJobs.length}</Badge>
-                        </button>
-                      )
-                    : (
-                        <>
-                          <div className={cn(
-                            'flex items-center justify-between gap-2 rounded-t-lg border border-b-0 bg-muted/30 px-3 py-2.5',
-                            highlighted && 'border-primary/40 bg-primary/5',
-                          )}
+                  <motion.div
+                    key={collapsed ? 'collapsed' : 'expanded'}
+                    initial={reduceMotion ? false : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+                    className="flex min-h-0 flex-1 flex-col"
+                  >
+                    {collapsed
+                      ? (
+                          <button
+                            type="button"
+                            aria-expanded={false}
+                            onClick={toggleRejectedCollapsed}
+                            title={`${column.label}（${columnJobs.length}）· 点击展开`}
+                            className="flex h-full min-h-0 w-full flex-col items-center gap-2 rounded-lg border bg-muted/30 py-3 text-muted-foreground transition-colors hover:bg-muted/50"
                           >
-                            {isRejectedColumn
-                              ? (
-                                  <button
-                                    type="button"
-                                    aria-expanded={true}
-                                    onClick={toggleRejectedCollapsed}
-                                    className="flex min-w-0 cursor-pointer items-center gap-2"
-                                  >
-                                    <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                                    <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
-                                    <h3 className="truncate text-sm font-semibold">{column.label}</h3>
-                                  </button>
-                                )
-                              : (
-                                  <div className="flex min-w-0 items-center gap-2">
-                                    <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
-                                    <h3 className="truncate text-sm font-semibold">{column.label}</h3>
-                                  </div>
-                                )}
-                            <Badge variant={highlighted ? 'default' : 'secondary'}>
-                              {columnJobs.length}
-                            </Badge>
-                          </div>
+                            <ChevronRight className="size-4 shrink-0" />
+                            <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
+                            <span className="[writing-mode:vertical-rl] text-sm font-semibold tracking-wide">{column.label}</span>
+                            <Badge variant="secondary" className="mt-1">{columnJobs.length}</Badge>
+                          </button>
+                        )
+                      : (
+                          <>
+                            <div className={cn(
+                              'flex items-center justify-between gap-2 rounded-t-lg border border-b-0 bg-muted/30 px-3 py-2.5',
+                              highlighted && 'border-primary/40 bg-primary/5',
+                            )}
+                            >
+                              {isRejectedColumn
+                                ? (
+                                    <button
+                                      type="button"
+                                      aria-expanded={true}
+                                      onClick={toggleRejectedCollapsed}
+                                      className="flex min-w-0 cursor-pointer items-center gap-2"
+                                    >
+                                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                                      <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
+                                      <h3 className="truncate text-sm font-semibold">{column.label}</h3>
+                                    </button>
+                                  )
+                                : (
+                                    <div className="flex min-w-0 items-center gap-2">
+                                      <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
+                                      <h3 className="truncate text-sm font-semibold">{column.label}</h3>
+                                    </div>
+                                  )}
+                              <Badge variant={highlighted ? 'default' : 'secondary'}>
+                                {columnJobs.length}
+                              </Badge>
+                            </div>
 
-                          <BoardColumnDropArea
-                            status={column.status}
-                            jobs={columnJobs}
-                            highlighted={highlighted}
-                            reduceMotion={reduceMotion}
-                          />
-                        </>
-                      )}
-                </div>
+                            <BoardColumnDropArea
+                              status={column.status}
+                              jobs={columnJobs}
+                              highlighted={highlighted}
+                              reduceMotion={reduceMotion}
+                            />
+                          </>
+                        )}
+                  </motion.div>
+                </motion.div>
               )
             })}
           </div>

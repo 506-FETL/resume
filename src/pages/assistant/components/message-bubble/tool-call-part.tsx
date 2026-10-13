@@ -1,9 +1,10 @@
 import type { AiMessagePart } from '@/lib/ai/types'
 import { Loader2, PanelRight, RotateCw } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { getSkillToolLabel } from '@/lib/ai/skills/presentation'
 import { isSkillTool } from '@/lib/ai/skills/runtime'
+import { DURATION, EASE } from '@/lib/motion'
 import { getToolCategoryIcon } from '@/lib/utils/tool-icons'
 import useAssistantStore from '../../store'
 import { retryToolCall } from '../../tool-retry'
@@ -15,6 +16,7 @@ type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
 
 interface ToolCallPartProps {
   calls: ToolCallPart[]
+  streaming?: boolean
 }
 
 function statOf(part: ToolCallPart): { additions: number, deletions: number } | null {
@@ -26,7 +28,7 @@ function statOf(part: ToolCallPart): { additions: number, deletions: number } | 
   return fieldDiffStat(sectionKey, r.before, r.after)
 }
 
-export function ToolCallPartGroup({ calls }: ToolCallPartProps) {
+export function ToolCallPartGroup({ calls, streaming = false }: ToolCallPartProps) {
   const reduced = useReducedMotion()
   const targetTab = calls
     .map(c => TOOL_CANVAS_META[c.toolName]?.targetTab)
@@ -45,7 +47,13 @@ export function ToolCallPartGroup({ calls }: ToolCallPartProps) {
           const pending = c.state === 'call' || c.state === 'awaiting-confirm'
           const stat = statOf(c)
           return (
-            <div key={c.toolCallId} className="flex items-center gap-2 py-0.5 text-sm">
+            <motion.div
+              key={c.toolCallId}
+              initial={reduced || !streaming ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduced ? 0 : DURATION.base, ease: EASE.out }}
+              className="flex items-center gap-2 py-0.5 text-sm"
+            >
               <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
                 {pending
                   ? <Loader2 className={`size-3.5 ${reduced ? '' : 'animate-spin'}`} />
@@ -71,7 +79,7 @@ export function ToolCallPartGroup({ calls }: ToolCallPartProps) {
                 </>
               )}
               {skillError && <span className="text-xs text-destructive">{skillError}</span>}
-            </div>
+            </motion.div>
           )
         })}
       </div>

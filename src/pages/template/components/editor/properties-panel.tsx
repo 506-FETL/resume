@@ -1,3 +1,4 @@
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTemplateEditorStore } from '../../store'
@@ -33,17 +34,19 @@ export function TemplatePropertiesPanel() {
         </div>
       </CardHeader>
       <CardContent>
-        {selectedSection
-          ? (
-              <TemplateSectionSettings
-                manifest={manifest}
-                section={selectedSection}
-                onChange={applyManifest}
-              />
-            )
-          : (
-              <TemplateAppearanceSettings manifest={manifest} onChange={applyManifest} />
-            )}
+        <AnimatedContent animationKey={selectedSection?.sectionId ?? 'appearance'}>
+          {selectedSection
+            ? (
+                <TemplateSectionSettings
+                  manifest={manifest}
+                  section={selectedSection}
+                  onChange={applyManifest}
+                />
+              )
+            : (
+                <TemplateAppearanceSettings manifest={manifest} onChange={applyManifest} />
+              )}
+        </AnimatedContent>
       </CardContent>
     </Card>
   )

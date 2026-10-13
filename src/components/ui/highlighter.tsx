@@ -1,8 +1,9 @@
 import type React from 'react'
 import type { RoughAnnotation } from 'rough-notation/lib/model'
-import { useInView } from 'motion/react'
+import { useInView, useReducedMotion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { annotate } from 'rough-notation'
+import { DURATION } from '@/lib/motion'
 
 type AnnotationAction
   = | 'highlight'
@@ -30,12 +31,13 @@ export function Highlighter({
   action = 'highlight',
   color = '#ffd1dc',
   strokeWidth = 1.5,
-  animationDuration = 600,
+  animationDuration = DURATION.slow * 1000,
   iterations = 2,
   padding = 2,
   multiline = true,
   isView = false,
 }: HighlighterProps) {
+  const reduceMotion = useReducedMotion()
   const elementRef = useRef<HTMLSpanElement>(null)
   const annotationRef = useRef<RoughAnnotation | null>(null)
 
@@ -59,7 +61,8 @@ export function Highlighter({
       type: action,
       color,
       strokeWidth,
-      animationDuration,
+      animationDuration: reduceMotion ? 0 : animationDuration,
+      animate: !reduceMotion,
       iterations,
       padding,
       multiline,
@@ -70,7 +73,14 @@ export function Highlighter({
     annotationRef.current = annotation
     annotationRef.current.show()
 
+    let hasObservedInitialSize = false
     const resizeObserver = new ResizeObserver(() => {
+      if (!hasObservedInitialSize) {
+        hasObservedInitialSize = true
+        return
+      }
+
+      annotation.animate = false
       annotation.hide()
       annotation.show()
     })
@@ -80,7 +90,7 @@ export function Highlighter({
 
     return () => {
       if (element) {
-        annotate(element, { type: action }).remove()
+        annotation.remove()
         resizeObserver.disconnect()
       }
     }
@@ -93,6 +103,7 @@ export function Highlighter({
     iterations,
     padding,
     multiline,
+    reduceMotion,
   ])
 
   return (

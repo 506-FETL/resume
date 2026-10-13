@@ -2,16 +2,17 @@ import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { FileDown, LoaderCircle } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import CanonicalPagedDocument from '@/components/resume/pagination/canonical-paged-document'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { Button } from '@/components/ui/button'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
 import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
+import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
 
 interface VersionPdfExportButtonProps {
@@ -28,7 +29,7 @@ interface VersionPdfExportButtonProps {
  */
 export default function VersionPdfExportButton({ versionId, documentTitle, className }: VersionPdfExportButtonProps) {
   const { loadVersionSnapshot, snapshotCache } = useHistoryStore()
-  const isMobile = useIsMobile()
+  const reduceMotion = useReducedMotion()
   const printRef = useRef<HTMLDivElement>(null)
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(() => snapshotCache[versionId] ?? null)
   const [loading, setLoading] = useState(false)
@@ -125,13 +126,13 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
     <>
       <Button
         variant="outline"
-        size={isMobile ? 'icon' : 'default'}
+        size="sm"
         className={className}
         disabled={loading}
         onClick={handleExport}
       >
-        {loading ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : <FileDown data-icon="inline-start" />}
-        {!isMobile && (documentState.status === 'measuring' && snapshot ? '准备中…' : '导出 PDF')}
+        {loading ? <LoaderCircle className={cn(!reduceMotion && 'animate-spin')} data-icon="inline-start" /> : <FileDown data-icon="inline-start" />}
+        {loading ? '加载中…' : documentState.status === 'measuring' && snapshot ? '准备中…' : '导出 PDF'}
       </Button>
 
       {snapshot && previewData && manifest && (

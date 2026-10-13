@@ -1,9 +1,11 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { LoaderCircle, MoreHorizontal } from 'lucide-react'
+import { useIsPresent, useReducedMotion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 interface TemplateCardAction {
@@ -138,14 +140,19 @@ export function TemplateCard({
   contentClassName,
 }: TemplateCardProps) {
   const canHover = useHoverCapability()
+  const reduceMotion = useReducedMotion()
+  const isPresent = useIsPresent()
 
   return (
-    <div className="group flex flex-col">
+    <div className="group flex flex-col" inert={!isPresent} aria-hidden={!isPresent || undefined}>
       <div className="relative max-h-80 md:max-h-90 lg:max-h-100 overflow-hidden border rounded-2xl">
         {preview}
         {canHover && hoverActions?.length
           ? (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/20 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100">
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/20 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`, transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})` }}
+              >
                 <div className="pointer-events-auto flex flex-col items-stretch gap-3">
                   {hoverActions.map(action => (
                     <ActionButton key={action.label} action={action} large />

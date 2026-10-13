@@ -1,6 +1,7 @@
 import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -60,7 +61,9 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
 
         <Separator />
 
-        {sessionInfo ? <SessionInfo {...sessionInfo} formatDate={d => formatRelativeTime(d, true)} /> : <LoadingSkeleton />}
+        <AnimatedContent animationKey={sessionInfo ? 'ready' : 'loading'}>
+          {sessionInfo ? <SessionInfo {...sessionInfo} formatDate={d => formatRelativeTime(d, true)} /> : <LoadingSkeleton />}
+        </AnimatedContent>
       </CardContent>
     </Card>
   )

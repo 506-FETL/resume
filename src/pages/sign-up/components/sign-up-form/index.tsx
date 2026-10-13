@@ -1,14 +1,18 @@
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { DURATION, EASE } from '@/lib/motion'
 import { SignUpWithEmail } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
 
 export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+  const reduceMotion = useReducedMotion()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
@@ -40,76 +44,93 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
-      {success
-        ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">感谢您的注册！</CardTitle>
-                <CardDescription>请检查您的电子邮件以确认</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  您已成功注册。请检查您的电子邮件以确认您的帐户，然后再登录。
-                </p>
-              </CardContent>
-            </Card>
-          )
-        : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">注册</CardTitle>
-                <CardDescription>创建一个新帐户</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSignUp}>
-                  <FieldGroup className="gap-6">
-                    <Field>
-                      <FieldLabel htmlFor="email">邮箱</FieldLabel>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="m@example.com"
-                        required
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="password">密码</FieldLabel>
-                      <Input
-                        id="password"
-                        type="password"
-                        required
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="repeat-password">确认您的密码</FieldLabel>
-                      <Input
-                        id="repeat-password"
-                        type="password"
-                        required
-                        value={repeatPassword}
-                        onChange={e => setRepeatPassword(e.target.value)}
-                      />
-                    </Field>
-                    {error && <FieldError>{error}</FieldError>}
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading && <Spinner data-icon="inline-start" />}
-                      {isLoading ? '创建账户中...' : '注册'}
-                    </Button>
-                  </FieldGroup>
-                  <div className="mt-4 text-center text-sm">
-                    已有账号？
-                    <Link to="/login" className="underline underline-offset-4">
-                      登录
-                    </Link>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+      <AnimatedContent animationKey={success ? 'success' : 'form'}>
+        {success
+          ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl">感谢您的注册！</CardTitle>
+                  <CardDescription>请检查您的电子邮件以确认</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    您已成功注册。请检查您的电子邮件以确认您的帐户，然后再登录。
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl">注册</CardTitle>
+                  <CardDescription>创建一个新帐户</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSignUp}>
+                    <FieldGroup className="gap-6">
+                      <Field>
+                        <FieldLabel htmlFor="email">邮箱</FieldLabel>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="m@example.com"
+                          required
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="password">密码</FieldLabel>
+                        <Input
+                          id="password"
+                          type="password"
+                          required
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="repeat-password">确认您的密码</FieldLabel>
+                        <Input
+                          id="repeat-password"
+                          type="password"
+                          required
+                          value={repeatPassword}
+                          onChange={e => setRepeatPassword(e.target.value)}
+                        />
+                      </Field>
+                      <AnimatePresence initial={false}>
+                        {error && (
+                          <motion.div
+                            key="error"
+                            initial={{ opacity: reduceMotion ? 1 : 0, height: reduceMotion ? 'auto' : 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                            transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+                            className="overflow-hidden"
+                          >
+                            <FieldError>{error}</FieldError>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <Button type="submit" className="w-full" disabled={isLoading} aria-busy={isLoading}>
+                        <AnimatedContent as="span" animationKey={isLoading ? 'loading' : 'idle'} className="inline-flex items-center gap-2">
+                          {isLoading && <Spinner data-icon="inline-start" />}
+                          {isLoading ? '创建账户中...' : '注册'}
+                        </AnimatedContent>
+                      </Button>
+                    </FieldGroup>
+                    <div className="mt-4 text-center text-sm">
+                      已有账号？
+                      <Link to="/login" className="underline underline-offset-4">
+                        登录
+                      </Link>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+      </AnimatedContent>
     </div>
   )
 }

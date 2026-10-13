@@ -1,66 +1,45 @@
-import { motion } from 'motion/react'
-import { useSearchParams } from 'react-router-dom'
-import { Separator } from '@/components/ui/separator'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { isOfflineResumeId } from '@/lib/offline-resume-manager'
-import useCurrentResumeStore from '@/store/resume/current'
-import { useHistoryResumeOptions } from '../../hooks/use-history-options'
+import type { HistoryResumeOption } from '../../types'
+import { motion, useReducedMotion } from 'motion/react'
+import { DURATION, EASE } from '@/lib/motion'
 import HistoryHeaderActions from './actions'
 import HistoryResumeSelector from './resume-selector'
 import HistoryHeaderSummary from './summary'
 
-export default function HistoryHeader() {
-  const isMobile = useIsMobile()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const currentResumeId = useCurrentResumeStore(state => state.resumeId)
+interface HistoryHeaderProps {
+  activeResumeId: string | null
+  resumeOptions: HistoryResumeOption[]
+  loading: boolean
+  error: string | null
+  onResumeChange: (resumeId: string) => void
+}
 
-  const queryResumeId = searchParams.get('resumeId')
-  const defaultResumeId = currentResumeId && !isOfflineResumeId(currentResumeId) ? currentResumeId : null
-
-  const {
-    resumeOptions,
-    loading: resumeOptionsLoading,
-    error: resumeOptionsError,
-  } = useHistoryResumeOptions()
-
-  const validResumeIds = new Set(resumeOptions.map(option => option.resumeId))
-  const activeResumeId = queryResumeId && (resumeOptionsLoading || validResumeIds.has(queryResumeId))
-    ? queryResumeId
-    : !queryResumeId && defaultResumeId && (resumeOptionsLoading || validResumeIds.has(defaultResumeId))
-        ? defaultResumeId
-        : null
-
-  const handleResumeChange = (resumeId: string) => {
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous)
-      next.set('resumeId', resumeId)
-      return next
-    })
-  }
+export default function HistoryHeader({ activeResumeId, resumeOptions, loading, error, onResumeChange }: HistoryHeaderProps) {
+  const reduceMotion = useReducedMotion()
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 10 }}
+    <motion.header
+      initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="overflow-hidden rounded-4xl border border-border/70 bg-linear-to-br from-primary/[0.035] via-background to-background shadow-xs"
+      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+      className="flex shrink-0 flex-col gap-5"
     >
-      <div className="flex flex-col gap-5 p-4 sm:p-6 lg:gap-6 lg:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <HistoryHeaderSummary />
-        <Separator />
-
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_1px_minmax(280px,320px)] lg:items-start">
-          <HistoryResumeSelector
-            value={activeResumeId}
-            options={resumeOptions}
-            loading={resumeOptionsLoading}
-            error={resumeOptionsError}
-            onChange={handleResumeChange}
-          />
-          {!isMobile && <Separator orientation="vertical" className="hidden lg:block" />}
-          {!isMobile && <HistoryHeaderActions />}
-        </div>
+        <HistoryHeaderActions activeResumeId={activeResumeId} />
       </div>
-    </motion.section>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 px-3 py-3 sm:px-4">
+        <HistoryResumeSelector
+          value={activeResumeId}
+          options={resumeOptions}
+          loading={loading}
+          error={error}
+          onChange={onResumeChange}
+        />
+        <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+          {loading ? '正在加载简历…' : `${resumeOptions.length} 份云端简历`}
+        </span>
+      </div>
+    </motion.header>
   )
 }

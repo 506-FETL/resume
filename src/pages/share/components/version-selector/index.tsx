@@ -2,11 +2,14 @@ import type { VersionDialogSelection } from '../../types'
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { Check, ChevronsUpDown, Clock3, History, RefreshCw } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { formatDateTime } from '@/utils/date'
 
@@ -50,30 +53,78 @@ export default function VersionSelector({
   onChange,
   onRetry,
 }: VersionSelectorProps) {
+  const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
+  const popoverOpen = open && !disabled
   const selectedLabel = useMemo(
     () => getSelectedLabel(value, versions),
     [value, versions],
   )
 
+  useEffect(() => {
+    if (disabled)
+      setOpen(false)
+  }, [disabled])
+
   return (
-    <Popover modal open={open} onOpenChange={setOpen}>
+    <Popover modal open={popoverOpen} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           role="combobox"
-          aria-expanded={open}
+          aria-expanded={popoverOpen}
+          aria-label={`分享版本：${selectedLabel}`}
           disabled={disabled}
           className="w-full min-w-0 justify-between font-normal"
         >
-          <span className="min-w-0 truncate">{selectedLabel}</span>
-          {loading
-            ? <Spinner data-icon="inline-end" />
-            : <ChevronsUpDown data-icon="inline-end" className="opacity-50" />}
+          <span aria-hidden="true" className="grid min-w-0 flex-1 text-left">
+            <AnimatePresence initial={false}>
+              <motion.span
+                key={selectedLabel}
+                className="col-start-1 row-start-1 truncate"
+                initial={{ opacity: 0, y: reduceMotion ? 0 : 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{
+                  opacity: 0,
+                  y: reduceMotion ? 0 : -4,
+                  transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in },
+                }}
+                transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+              >
+                {selectedLabel}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+          <span aria-hidden="true" className="grid size-4 shrink-0">
+            <AnimatePresence initial={false}>
+              <motion.span
+                key={loading ? 'loading' : 'ready'}
+                className="col-start-1 row-start-1 inline-flex"
+                initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{
+                  opacity: 0,
+                  scale: reduceMotion ? 1 : 0.9,
+                  transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in },
+                }}
+                transition={{ duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
+              >
+                {loading ? <Spinner /> : <ChevronsUpDown className="opacity-50" />}
+              </motion.span>
+            </AnimatePresence>
+          </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+      <PopoverContent
+        inert={!popoverOpen}
+        className="w-(--radix-popover-trigger-width) p-0 data-[state=closed]:pointer-events-none"
+        align="start"
+        style={{
+          animationDuration: `${(reduceMotion ? 0 : popoverOpen ? DURATION.base : DURATION.fast) * 1000}ms`,
+          animationTimingFunction: `cubic-bezier(${(popoverOpen ? EASE.out : EASE.in).join(',')})`,
+        }}
+      >
         <Command>
           <CommandInput placeholder="搜索版本" />
           <CommandList className="max-h-72">
@@ -143,15 +194,24 @@ export default function VersionSelector({
               })}
             </CommandGroup>
           </CommandList>
-          {error && (
-            <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-xs text-destructive">
-              <span className="min-w-0 truncate">历史版本加载失败</span>
-              <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
-                <RefreshCw data-icon="inline-start" />
-                重试
-              </Button>
-            </div>
-          )}
+          <Collapsible open={Boolean(error)}>
+            <CollapsibleContent
+              inert={!error || !popoverOpen}
+              aria-hidden={!error}
+              style={{
+                animationDuration: `${(reduceMotion ? 0 : error ? DURATION.base : DURATION.fast) * 1000}ms`,
+                animationTimingFunction: `cubic-bezier(${(error ? EASE.out : EASE.in).join(',')})`,
+              }}
+            >
+              <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-xs text-destructive">
+                <span className="min-w-0 truncate">历史版本加载失败</span>
+                <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
+                  <RefreshCw data-icon="inline-start" />
+                  重试
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </Command>
       </PopoverContent>
     </Popover>

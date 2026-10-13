@@ -1,6 +1,8 @@
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 import type { TooltipValueType } from "recharts"
+import { useReducedMotion } from "motion/react"
+import { DURATION } from "@/lib/motion"
 
 import { cn } from "@/lib/utils"
 
@@ -112,7 +114,16 @@ ${colorConfig
   )
 }
 
-const ChartTooltip = RechartsPrimitive.Tooltip
+function ChartTooltip(props: React.ComponentProps<typeof RechartsPrimitive.Tooltip>) {
+  const reduceMotion = useReducedMotion()
+  return (
+    <RechartsPrimitive.Tooltip
+      {...props}
+      isAnimationActive={!reduceMotion && props.isAnimationActive !== false}
+      animationDuration={reduceMotion ? 0 : (props.animationDuration ?? DURATION.base * 1000)}
+    />
+  )
+}
 
 function ChartTooltipContent({
   active,

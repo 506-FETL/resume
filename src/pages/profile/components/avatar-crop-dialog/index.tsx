@@ -3,6 +3,7 @@ import type { PercentCrop } from 'react-image-crop'
 import type { AvatarCropShape, AvatarPercentCrop } from '../../types'
 import { useEffect, useState } from 'react'
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
@@ -44,12 +45,10 @@ export function AvatarCropDialog({
   const [completedCrop, setCompletedCrop] = useState<AvatarPercentCrop | null>(null)
 
   useEffect(() => {
-    if (!open || !image) {
-      setCropShape('circle')
-      setCrop(undefined)
-      setCompletedCrop(null)
-    }
-  }, [image, open])
+    setCropShape('circle')
+    setCrop(undefined)
+    setCompletedCrop(null)
+  }, [image])
 
   const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget
@@ -146,9 +145,11 @@ export function AvatarCropDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             取消
           </Button>
-          <Button type="button" onClick={handleConfirm} disabled={!image || !completedCrop || submitting}>
-            {submitting && <Spinner className="mr-2 size-4" />}
-            保存头像
+          <Button type="button" onClick={handleConfirm} disabled={!image || !completedCrop || submitting} aria-busy={submitting}>
+            <AnimatedContent as="span" animationKey={submitting ? 'saving' : 'idle'} className="inline-flex items-center gap-2">
+              {submitting && <Spinner className="size-4" />}
+              保存头像
+            </AnimatedContent>
           </Button>
         </DialogFooter>
       </DialogContent>

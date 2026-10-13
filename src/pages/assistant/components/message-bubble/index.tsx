@@ -28,9 +28,10 @@ function plainText(message: AiMessage): string {
 function renderAssistantParts(parts: AiMessagePart[], isStreamingMessage: boolean) {
   const nodes: ReactNode[] = []
   let buffer: ToolCallPart[] = []
-  const flush = (key: string) => {
+  const flush = () => {
     if (buffer.length) {
-      nodes.push(<ToolCallPartGroup key={key} calls={buffer} />)
+      // 工具组从流式尾部变为中间部件时仍复用同一节点，避免状态与动效重播。
+      nodes.push(<ToolCallPartGroup key={`tools-${buffer[0].toolCallId}`} calls={buffer} streaming={isStreamingMessage} />)
       buffer = []
     }
   }
@@ -41,7 +42,7 @@ function renderAssistantParts(parts: AiMessagePart[], isStreamingMessage: boolea
       return
     }
     // 用「部件在数组中的位置」作为稳定 key，避免内容增量导致整块卸载重挂、重解析 markdown（长文本卡顿主因）
-    flush(`tool-group-${index}`)
+    flush()
     const streaming = isStreamingMessage && index === lastIndex
     if (p.type === 'reasoning') {
       // eslint-disable-next-line react/no-array-index-key -- 流式中部件位置稳定，用索引 key 才能避免重挂载
@@ -55,7 +56,7 @@ function renderAssistantParts(parts: AiMessagePart[], isStreamingMessage: boolea
       nodes.push(<SkillActivity key={p.id} activity={p} />)
     }
   })
-  flush('tc-end')
+  flush()
   return nodes
 }
 

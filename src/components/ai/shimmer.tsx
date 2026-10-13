@@ -1,5 +1,5 @@
 import type { CSSProperties, ElementType } from 'react'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { memo, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -17,7 +17,11 @@ function ShimmerComponent({
   duration = 2,
   spread = 2,
 }: TextShimmerProps) {
+  const reduceMotion = useReducedMotion()
   const dynamicSpread = useMemo(() => (children?.length ?? 0) * spread, [children, spread])
+
+  if (reduceMotion)
+    return <div className={cn('relative inline-block text-muted-foreground', className)}>{children}</div>
 
   return (
     <motion.div

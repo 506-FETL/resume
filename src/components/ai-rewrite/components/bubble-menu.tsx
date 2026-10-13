@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { REWRITE_ACTION_LIST, REWRITE_ACTION_META } from '../const'
 
@@ -85,13 +86,13 @@ export function RewriteBubbleMenu({
       opacity: 0,
       y: reduceMotion ? 0 : 6,
       scale: reduceMotion ? 1 : 0.96,
-      transition: { duration: reduceMotion ? 0 : 0.1, ease: 'easeOut' },
+      transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in },
     },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { duration: reduceMotion ? 0 : 0.16, ease: 'easeOut' },
+      transition: { duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out },
     },
   }
   const animationState = visible ? 'visible' : 'hidden'

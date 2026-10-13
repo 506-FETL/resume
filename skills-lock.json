@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "code-review-skill": {
+      "source": "awesome-skills/code-review-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "91713a173ac425799dd9799b93030b8c0e6b314ef01fcf0855b356d844ea2f75"
+    },
     "lark-approval": {
       "source": "open.feishu.cn",
       "sourceUrl": "https://open.feishu.cn",

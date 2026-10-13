@@ -7,6 +7,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, Dr
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { DURATION, EASE } from '@/lib/motion'
 import { useCanvasModel } from '../../hooks/use-canvas-model'
 import useAssistantStore from '../../store'
 import BoardSnapshot from './board-snapshot'
@@ -104,10 +105,10 @@ export default function AssistantCanvas() {
     <AnimatePresence initial={false}>
       {canvasOpen && (
         <motion.aside
-          initial={{ width: 0, opacity: 0 }}
+          initial={shouldReduceMotion ? false : { width: 0, opacity: 0 }}
           animate={{ width: canvasWidth, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={shouldReduceMotion || dragging ? { duration: 0 } : { duration: 0.22, ease: 'easeOut' }}
+          exit={{ width: 0, opacity: 0, transition: { duration: shouldReduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+          transition={shouldReduceMotion || dragging ? { duration: 0 } : { duration: DURATION.slow, ease: EASE.out }}
           style={{ width: canvasWidth }}
           className="relative hidden h-dvh shrink-0 flex-col overflow-hidden border-l bg-muted/25 md:flex"
         >

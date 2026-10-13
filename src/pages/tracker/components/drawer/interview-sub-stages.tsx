@@ -1,7 +1,10 @@
 import type { InterviewSubStage, StageStatus } from '../../types'
 import dayjs from 'dayjs'
 import { CalendarIcon, Plus, Trash2 } from 'lucide-react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
+import AnimatedContent from '@/components/motion/animated-content'
+import { PresenceListItem } from '@/components/motion/presence-item'
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { STAGE_STATUS_COLORS, STAGE_STATUS_OPTIONS } from '../../const'
 
@@ -29,6 +33,7 @@ export function InterviewSubStages({
   onDeleteSubStage,
   onUpdateSubStage,
 }: InterviewSubStagesProps) {
+  const reduceMotion = useReducedMotion()
   const [selectedId, setSelectedId] = useState<string | null>(subStages[0]?.id ?? null)
 
   // Keep selection valid: pick last when current selection is gone, default to first available
@@ -58,7 +63,15 @@ export function InterviewSubStages({
     const isActive = subStage.id === selectedId
     const dateLabel = subStage.start_date ? dayjs(subStage.start_date).format('M月D日') : '未排期'
     return (
-      <li key={subStage.id}>
+      <PresenceListItem
+        key={subStage.id}
+        layout={reduceMotion ? false : 'position'}
+        layoutDependency={subStages.length}
+        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+        transition={reduceMotion ? { duration: 0 } : { duration: DURATION.base, ease: EASE.out, layout: SPRING.layout }}
+      >
         <button
           type="button"
           onClick={() => setSelectedId(subStage.id)}
@@ -89,7 +102,7 @@ export function InterviewSubStages({
             <span>{dateLabel}</span>
           </div>
         </button>
-      </li>
+      </PresenceListItem>
     )
   }
 
@@ -218,11 +231,11 @@ export function InterviewSubStages({
       <div className="grid min-w-0 gap-3 sm:grid-cols-[12rem_minmax(0,1fr)]">
         {/* Master list */}
         <div className="flex flex-col gap-2">
-          {subStages.length > 0 && (
-            <ul className="flex max-h-72 flex-col gap-1.5 overflow-y-auto pr-1 sm:max-h-[420px]">
+          <ul className="flex max-h-72 flex-col gap-1.5 overflow-y-auto pr-1 empty:hidden sm:max-h-[420px]">
+            <AnimatePresence initial={false}>
               {subStages.map(renderListItem)}
-            </ul>
-          )}
+            </AnimatePresence>
+          </ul>
           <Button
             type="button"
             variant="outline"
@@ -242,7 +255,9 @@ export function InterviewSubStages({
         </div>
 
         {/* Detail */}
-        {renderDetail()}
+        <AnimatedContent animationKey={selected?.id ?? 'empty'} className="min-w-0">
+          {renderDetail()}
+        </AnimatedContent>
       </div>
     </div>
   )

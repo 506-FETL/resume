@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '../../hooks/use-count-up'
 
@@ -22,7 +23,7 @@ export function MetricCard({ label, value, active, accent, onClick, index }: Met
       aria-pressed={active}
       initial={reduce ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, delay: index * 0.04 }}
+      transition={{ duration: reduce ? 0 : DURATION.base, delay: reduce ? 0 : Math.min(index, 8) * 0.04, ease: EASE.out }}
       whileTap={reduce ? undefined : { scale: 0.97 }}
       className={cn(
         'relative flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors',

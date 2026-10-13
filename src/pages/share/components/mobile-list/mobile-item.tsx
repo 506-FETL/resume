@@ -1,10 +1,12 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Copy, Eye, LockKeyhole, MessageSquareText } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { SHARE_CARD_ICONS, SHARE_ICON_STYLES, SHARE_MOTION, SHARE_STATUS_META } from '../../const'
 import { buildShareUrl, deriveShareStatus, formatShareUrlForDisplay } from '../../utils'
@@ -45,17 +47,20 @@ export default function MobileItem({
   }
 
   return (
-    <motion.div
+    <PresenceDiv
       ref={ref}
-      layout
+      layout={reduceMotion ? false : 'position'}
       initial={reduceMotion ? false : SHARE_MOTION.item.initial}
       animate={SHARE_MOTION.item.animate}
-      exit={reduceMotion ? { opacity: 0 } : SHARE_MOTION.item.exit}
+      exit={{
+        ...(reduceMotion ? { opacity: 0 } : SHARE_MOTION.item.exit),
+        transition: { duration: reduceMotion ? 0 : DURATION.fast, delay: 0, ease: EASE.in },
+      }}
       transition={{
         ...SHARE_MOTION.item.transition,
         duration: reduceMotion ? 0 : SHARE_MOTION.item.transition.duration,
         delay: reduceMotion ? 0 : Math.min(index, 12) * 0.02,
-        layout: { duration: reduceMotion ? 0 : 0.2 },
+        layout: reduceMotion ? { duration: 0 } : SPRING.layout,
       }}
     >
       <Card
@@ -136,6 +141,6 @@ export default function MobileItem({
           </span>
         </div>
       </Card>
-    </motion.div>
+    </PresenceDiv>
   )
 }

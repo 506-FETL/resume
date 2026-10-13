@@ -1,7 +1,10 @@
 import type { JobApplication, TrackerContact } from '../../../types'
 import { Plus, Trash2, UserRound } from 'lucide-react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import AnimatedContent from '@/components/motion/animated-content'
+import { PresenceListItem } from '@/components/motion/presence-item'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { updateCompany } from '@/lib/supabase/resume'
 import useTrackerStore from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
@@ -34,6 +38,7 @@ function contactEqual(a: TrackerContact | undefined, b: TrackerContact | undefin
 }
 
 export default function Contacts({ job }: ContactsProps) {
+  const reduceMotion = useReducedMotion()
   const { syncJob } = useTrackerStore()
   const [contacts, setContacts] = useState<TrackerContact[]>(job.contacts)
   const [baseline, setBaseline] = useState<TrackerContact[]>(job.contacts)
@@ -151,94 +156,107 @@ export default function Contacts({ job }: ContactsProps) {
         </Button>
       </div>
 
-      {contacts.length === 0
-        ? (
-            <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
-              还没有联系人。记录 HR、面试官或内推人，方便后续跟进沟通。
-            </p>
-          )
-        : (
-            <ul className="flex flex-col gap-3">
-              {contacts.map((contact) => {
-                const baselineRow = baseline.find(c => c.id === contact.id)
-                const isPersisted = Boolean(baselineRow)
-                const rowDirty = !contactEqual(contact, baselineRow)
-                return (
-                  <li key={contact.id} className="flex items-start gap-2 rounded-lg border bg-card p-3">
-                    <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]">
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium text-muted-foreground">姓名</span>
-                        <Input
-                          value={contact.name}
-                          placeholder="如 佘明聪"
-                          className="h-8 font-medium"
-                          disabled={saving}
-                          onChange={e => handleFieldChange(contact.id, { name: e.target.value })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium text-muted-foreground">角色</span>
-                        <Input
-                          value={contact.role}
-                          placeholder="HR / 面试官 / 内推人"
-                          className="h-8"
-                          disabled={saving}
-                          onChange={e => handleFieldChange(contact.id, { role: e.target.value })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium text-muted-foreground">联系方式</span>
-                        <Input
-                          value={contact.channel}
-                          placeholder="微信 / 邮箱 / 电话"
-                          className="h-8"
-                          disabled={saving}
-                          onChange={e => handleFieldChange(contact.id, { channel: e.target.value })}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium text-muted-foreground">备注</span>
-                        <Input
-                          value={contact.note}
-                          placeholder="如账号、补充说明"
-                          className="h-8"
-                          disabled={saving}
-                          onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
-                        />
-                      </label>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1 pt-[22px]">
-                      {rowDirty && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8"
-                          disabled={saving}
-                          onClick={() => handleSaveRow(contact.id)}
-                        >
-                          保存
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        aria-label="删除联系人"
-                        disabled={saving}
-                        onClick={() => {
-                          if (isPersisted)
-                            setPendingDeleteId(contact.id)
-                          else setContacts(prev => prev.filter(c => c.id !== contact.id))
-                        }}
+      <AnimatedContent animationKey={contacts.length === 0 ? 'empty' : 'contacts'}>
+        {contacts.length === 0
+          ? (
+              <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
+                还没有联系人。记录 HR、面试官或内推人，方便后续跟进沟通。
+              </p>
+            )
+          : (
+              <ul className="flex flex-col gap-3">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {contacts.map((contact) => {
+                    const baselineRow = baseline.find(c => c.id === contact.id)
+                    const isPersisted = Boolean(baselineRow)
+                    const rowDirty = !contactEqual(contact, baselineRow)
+                    return (
+                      <PresenceListItem
+                        key={contact.id}
+                        layout={reduceMotion ? false : 'position'}
+                        layoutDependency={contacts.length}
+                        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                        transition={reduceMotion ? { duration: 0 } : { duration: DURATION.base, ease: EASE.out, layout: SPRING.layout }}
+                        className="flex items-start gap-2 rounded-lg border bg-card p-3"
                       >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
+                        <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]">
+                          <label className="flex flex-col gap-1">
+                            <span className="text-[11px] font-medium text-muted-foreground">姓名</span>
+                            <Input
+                              value={contact.name}
+                              placeholder="如 佘明聪"
+                              className="h-8 font-medium"
+                              disabled={saving}
+                              onChange={e => handleFieldChange(contact.id, { name: e.target.value })}
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1">
+                            <span className="text-[11px] font-medium text-muted-foreground">角色</span>
+                            <Input
+                              value={contact.role}
+                              placeholder="HR / 面试官 / 内推人"
+                              className="h-8"
+                              disabled={saving}
+                              onChange={e => handleFieldChange(contact.id, { role: e.target.value })}
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1">
+                            <span className="text-[11px] font-medium text-muted-foreground">联系方式</span>
+                            <Input
+                              value={contact.channel}
+                              placeholder="微信 / 邮箱 / 电话"
+                              className="h-8"
+                              disabled={saving}
+                              onChange={e => handleFieldChange(contact.id, { channel: e.target.value })}
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1">
+                            <span className="text-[11px] font-medium text-muted-foreground">备注</span>
+                            <Input
+                              value={contact.note}
+                              placeholder="如账号、补充说明"
+                              className="h-8"
+                              disabled={saving}
+                              onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
+                            />
+                          </label>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1 pt-[22px]">
+                          {rowDirty && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              disabled={saving}
+                              onClick={() => handleSaveRow(contact.id)}
+                            >
+                              保存
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            aria-label="删除联系人"
+                            disabled={saving}
+                            onClick={() => {
+                              if (isPersisted)
+                                setPendingDeleteId(contact.id)
+                              else setContacts(prev => prev.filter(c => c.id !== contact.id))
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </PresenceListItem>
+                    )
+                  })}
+                </AnimatePresence>
+              </ul>
+            )}
+      </AnimatedContent>
 
       <AlertDialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
         <AlertDialogContent size="sm">

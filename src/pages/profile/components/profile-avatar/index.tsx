@@ -4,6 +4,7 @@ import { Camera } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { CurrentUserAvatar } from '@/components/current-user-avatar'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { createCroppedImageFile } from '@/lib/crop-image'
@@ -76,8 +77,7 @@ export function ProfileAvatar() {
       return
 
     setCropOpen(open)
-    if (!open)
-      clearPendingAvatar()
+    // 退出动画期间保留裁剪内容；下一次选图或卸载时释放对象 URL。
   }
 
   const handleCropConfirm = async (crop: AvatarPercentCrop, shape: AvatarCropShape) => {
@@ -97,7 +97,6 @@ export function ProfileAvatar() {
       await changeAvatar(croppedFile)
       toast.success('头像更新成功')
       setCropOpen(false)
-      clearPendingAvatar()
     }
     catch (error) {
       const message = error instanceof Error ? error.message : '未知错误'
@@ -110,7 +109,7 @@ export function ProfileAvatar() {
 
   return (
     <>
-      <div className="relative transition-all duration-300">
+      <div className="relative">
         <CurrentUserAvatar className="size-24" />
         <Button
           onClick={handleAvatarClick}
@@ -119,7 +118,9 @@ export function ProfileAvatar() {
           className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full hover:cursor-pointer hover:shadow-md"
           title="更换头像"
         >
-          {uploading ? <Spinner className="size-4" /> : <Camera className="size-4" />}
+          <AnimatedContent as="span" animationKey={uploading ? 'uploading' : 'idle'} className="flex items-center">
+            {uploading ? <Spinner className="size-4" /> : <Camera className="size-4" />}
+          </AnimatedContent>
         </Button>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
       </div>

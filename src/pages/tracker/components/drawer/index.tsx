@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { ApplicationStatus, DrawerTab } from '../../types'
 import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, XCircle } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -33,7 +32,6 @@ const DRAWER_TAB_TRIGGER_CLASS = 'h-10 flex-1 rounded-none border-x-0 border-t-0
 export default function JobDrawer() {
   const { selectedJob, drawerOpen, closeJobDrawer, syncJob, restoreJobsSnapshot, removeJobs } = useTrackerStore()
   const isMobile = useIsMobile()
-  const reduce = useReducedMotion()
   const [activeTab, setActiveTab] = useState<DrawerTab>('follow-up')
   const [isEditing, setIsEditing] = useState(false)
   const [viewingStage, setViewingStage] = useState<ApplicationStatus | null>(null)
@@ -294,10 +292,7 @@ export default function JobDrawer() {
                 </TabsList>
 
                 <TabsContent value="follow-up" className="mt-5">
-                  <motion.div
-                    initial={reduce ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+                  <div
                     className="space-y-6"
                   >
                     {selectedJob.status !== 'rejected' && <NextActionSection key={selectedJob.id} job={selectedJob} />}
@@ -308,14 +303,11 @@ export default function JobDrawer() {
                     />
                     <Separator />
                     <ActivityTimeline job={selectedJob} />
-                  </motion.div>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="interview" className="mt-5">
-                  <motion.div
-                    initial={reduce ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+                  <div
                     className="space-y-6"
                   >
                     {selectedJob.status === 'rejected'
@@ -331,20 +323,17 @@ export default function JobDrawer() {
                             onSaved={() => setViewingStage(null)}
                           />
                         )}
-                  </motion.div>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="documents" className="mt-5">
-                  <motion.div
-                    initial={reduce ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+                  <div
                     className="space-y-6"
                   >
                     <DrawerDocument />
                     <Separator />
                     <Contacts job={selectedJob} />
-                  </motion.div>
+                  </div>
                 </TabsContent>
               </Tabs>
             )}

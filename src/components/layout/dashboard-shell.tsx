@@ -1,16 +1,20 @@
 import type React from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
 import { SiteHeader } from '@/components/dashboard/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { DURATION, EASE } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 
 interface DashboardShellProps {
   children: React.ReactNode
   routeKey: string
+  fullBleed?: boolean
 }
 
-export function DashboardShell({ children, routeKey }: DashboardShellProps) {
+export function DashboardShell({ children, routeKey, fullBleed = false }: DashboardShellProps) {
+  const reduceMotion = useReducedMotion()
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
       return localStorage.getItem('sidebarOpen') !== 'false'
@@ -37,17 +41,19 @@ export function DashboardShell({ children, routeKey }: DashboardShellProps) {
     >
       <AppSidebar variant="floating" />
       <SidebarInset className="min-h-0 overflow-hidden">
-        <header className="sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-          <SiteHeader />
-        </header>
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip p-4">
+        {!fullBleed && (
+          <header className="sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+            <SiteHeader />
+          </header>
+        )}
+        <div className={cn('min-h-0 min-w-0 flex-1', fullBleed ? 'overflow-hidden' : 'overflow-y-auto overflow-x-clip p-4')}>
           <AnimatePresence mode="wait">
             <motion.div
               key={routeKey}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: reduceMotion ? 0 : -8, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+              transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
               className="h-full min-h-0 w-full"
             >
               {children}

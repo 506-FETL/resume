@@ -1,10 +1,13 @@
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { DURATION, EASE } from '@/lib/motion'
 import { SignInWithEmailAndPassword } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
 import useUserStore from '@/store/user'
@@ -14,6 +17,7 @@ interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
 }
 
 export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
+  const reduceMotion = useReducedMotion()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -78,10 +82,25 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
                   onChange={e => setPassword(e.target.value)}
                 />
               </Field>
-              {error && <FieldError>{error}</FieldError>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Spinner data-icon="inline-start" />}
-                {isLoading ? '登录中...' : '登录'}
+              <AnimatePresence initial={false}>
+                {error && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: reduceMotion ? 1 : 0, height: reduceMotion ? 'auto' : 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                    transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+                    className="overflow-hidden"
+                  >
+                    <FieldError>{error}</FieldError>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <Button type="submit" className="w-full" disabled={isLoading} aria-busy={isLoading}>
+                <AnimatedContent as="span" animationKey={isLoading ? 'loading' : 'idle'} className="inline-flex items-center gap-2">
+                  {isLoading && <Spinner data-icon="inline-start" />}
+                  {isLoading ? '登录中...' : '登录'}
+                </AnimatedContent>
               </Button>
             </FieldGroup>
             <div className="mt-4 text-center text-sm">

@@ -1,5 +1,5 @@
 import { StarIcon } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Link, useLocation } from 'react-router-dom'
 import { Fragment } from 'react/jsx-runtime'
 import { GithubStars, GithubStarsIcon, GithubStarsNumber, GithubStarsParticles } from '@/components/animate-ui/primitives/animate/github-stars'
@@ -7,10 +7,12 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useBreadcrumbs } from '@/hooks/use-breadcrumbs'
+import { DURATION, EASE } from '@/lib/motion'
 import ResumeConfigToolbar from '@/pages/resume/editor/components/toolbar'
 import { AnimatedThemeToggler } from '../ui/animated-theme-toggler'
 
 export function SiteHeader() {
+  const reduceMotion = useReducedMotion()
   const crumbs = useBreadcrumbs()
   const location = useLocation()
 
@@ -37,10 +39,10 @@ export function SiteHeader() {
         {location.pathname.includes('/editor') && (
           <motion.div
             key="toolbar"
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : -4, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+            transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
             className="flex flex-1 justify-center"
           >
             <ResumeConfigToolbar />

@@ -1,18 +1,28 @@
 import { Check, ShieldQuestion, X } from 'lucide-react'
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
+import { DURATION, EASE } from '@/lib/motion'
 import useAssistantStore from '../../store'
 import { JobChangeSummary } from './job-change-summary'
 import { ResumeFieldDiff } from './resume-field-diff'
 
-export default function ConfirmCard() {
-  const pending = useAssistantStore(s => s.pendingConfirm)
-  if (!pending)
-    return null
+type PendingConfirm = NonNullable<ReturnType<typeof useAssistantStore.getState>['pendingConfirm']>
 
+function Confirmation({ pending }: { pending: PendingConfirm }) {
+  const reduceMotion = useReducedMotion()
+  const isPresent = useIsPresent()
   const { preview, resolve } = pending
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <motion.div
+      inert={!isPresent}
+      aria-hidden={!isPresent || undefined}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+      className="overflow-hidden rounded-xl border bg-card shadow-sm"
+    >
       <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-2.5">
         <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
           <ShieldQuestion className="size-3.5" />
@@ -37,6 +47,16 @@ export default function ConfirmCard() {
           确认应用
         </Button>
       </div>
-    </div>
+    </motion.div>
+  )
+}
+
+export default function ConfirmCard() {
+  const pending = useAssistantStore(s => s.pendingConfirm)
+
+  return (
+    <AnimatePresence initial={false} mode="wait">
+      {pending && <Confirmation key={pending.id} pending={pending} />}
+    </AnimatePresence>
   )
 }

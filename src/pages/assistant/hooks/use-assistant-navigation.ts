@@ -2,6 +2,7 @@ import type { AssistantRouteState, OpenConversationOptions } from '../types'
 import { useCallback, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { useSidebar } from '@/components/ui/sidebar'
 import { forgetAssistantReturnPath, resolveAssistantReturnPath } from '@/lib/ai/navigation'
 import { deleteConversation, listMessages } from '@/lib/supabase/ai'
 import { getErrorMessage } from '@/utils'
@@ -22,6 +23,7 @@ function isPageReload(): boolean {
 export function useAssistantNavigation(bindShortcuts = false) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { setOpenMobile } = useSidebar()
 
   useEffect(() => {
     if (!bindShortcuts)
@@ -33,11 +35,16 @@ export function useAssistantNavigation(bindShortcuts = false) {
   }, [bindShortcuts, location.state])
 
   const closeOverlays = useCallback(() => {
+    setOpenMobile(false)
     useAssistantStore.setState({
-      mobileSidebarOpen: false,
       searchOpen: false,
     })
-  }, [])
+  }, [setOpenMobile])
+
+  const openSearch = useCallback(() => {
+    setOpenMobile(false)
+    useAssistantStore.getState().setSearchOpen(true)
+  }, [setOpenMobile])
 
   const openConversation = useCallback(async (
     id: string,
@@ -93,6 +100,9 @@ export function useAssistantNavigation(bindShortcuts = false) {
   }, [closeOverlays])
 
   const startNewConversation = useCallback(() => {
+    if (useAssistantStore.getState().initializing)
+      return
+
     cancelActiveAssistantRun()
     clearLastConversationId()
     useAssistantStore.setState({
@@ -107,10 +117,10 @@ export function useAssistantNavigation(bindShortcuts = false) {
       pendingConversationId: null,
       conversationLoadRequestId: null,
       targetMessageId: null,
-      mobileSidebarOpen: false,
       searchOpen: false,
     })
-  }, [])
+    closeOverlays()
+  }, [closeOverlays])
 
   const deleteAndSelectConversation = useCallback(async (id: string) => {
     const { conversations, activeConversationId } = useAssistantStore.getState()
@@ -147,11 +157,6 @@ export function useAssistantNavigation(bindShortcuts = false) {
     navigate(resolveAssistantReturnPath(routeState?.from, isPageReload()))
   }, [closeOverlays, location.state, navigate])
 
-  const toggleSidebar = useCallback(() => {
-    const state = useAssistantStore.getState()
-    state.setSidebarExpanded(!state.sidebarExpanded)
-  }, [])
-
   const loadOlderMessages = useCallback(async () => {
     const s = useAssistantStore.getState()
     if (s.loadingOlder || !s.hasMoreMessages || !s.activeConversationId || !s.oldestMessageCursor)
@@ -180,7 +185,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
       const modifier = event.metaKey || event.ctrlKey
       if (modifier && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        useAssistantStore.getState().setSearchOpen(true)
+        openSearch()
         return
       }
 
@@ -197,14 +202,14 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [bindShortcuts, startNewConversation])
+  }, [bindShortcuts, openSearch, startNewConversation])
 
   return {
     openConversation,
+    openSearch,
     startNewConversation,
     deleteAndSelectConversation,
     returnToWorkspace,
-    toggleSidebar,
     loadOlderMessages,
   }
 }

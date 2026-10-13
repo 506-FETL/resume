@@ -1,5 +1,6 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { AnimatePresence } from 'motion/react'
+import { SHARE_GRID_CLASS } from '../../const'
 import LinkCard from '../card'
 
 interface GridProps {
@@ -8,7 +9,7 @@ interface GridProps {
 
 export default function Grid({ shares }: GridProps) {
   return (
-    <div className="hidden min-w-0 grid-cols-3 gap-3 lg:grid 2xl:grid-cols-4">
+    <div role="list" aria-label="分享链接列表" className={SHARE_GRID_CLASS}>
       <AnimatePresence initial={false} mode="popLayout">
         {shares.map((share, index) => (
           <LinkCard

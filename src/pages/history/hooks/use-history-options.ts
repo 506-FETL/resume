@@ -52,7 +52,7 @@ export function useHistoryResumeOptions() {
 
   return {
     resumeOptions,
-    loading,
+    loading: loading || !hydrated,
     error,
     reload,
   }

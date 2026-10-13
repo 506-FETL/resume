@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react'
 import type { FieldArrayWithId, FieldValues, UseFormReturn } from 'react-hook-form'
 import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 interface ResumeFieldFormSectionProps<TFieldValues extends FieldValues> {
@@ -36,6 +37,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
   renderItem,
 }: ResumeFieldFormSectionProps<TFieldValues>) {
   const isMobile = useIsMobile()
+  const reduceMotion = useReducedMotion()
   const multiple = fields.length > 1
 
   return (
@@ -44,7 +46,13 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
         {fields.map((item, index) => {
           const hidden = form.watch(`items.${index}.hidden` as any)
           return (
-            <motion.div key={item.id} layout>
+            <motion.div
+              key={item.id}
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, layout: reduceMotion ? { duration: 0 } : SPRING.layout }}
+              layout={!reduceMotion}
+            >
               {index > 0 && <Separator className="my-6" />}
 
               <div className="flex flex-col gap-4">

@@ -11,6 +11,7 @@ import {
   useCrossListItem,
 } from '@/components/ui/cross-list-drag'
 import { Switch } from '@/components/ui/switch'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { moveArrayItem } from '@/lib/motion-drag'
 import { cn } from '@/lib/utils'
 import { TEMPLATE_SECTION_LABELS } from '../../const'
@@ -43,8 +44,8 @@ function SectionCard({
   return (
     <motion.div
       {...getDragProps()}
-      layout="position"
-      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
+      layout={reduceMotion ? false : 'position'}
+      transition={reduceMotion ? { duration: 0 } : SPRING.layout}
       className={cn(
         'cursor-grab rounded-xl border bg-card p-3 shadow-sm transition-[border-color,box-shadow,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing',
         selected && 'border-primary ring-2 ring-primary/10',
@@ -77,7 +78,7 @@ function DropIndicator() {
       aria-hidden="true"
       initial={reduceMotion ? false : { opacity: 0, scaleX: 0.8 }}
       animate={{ opacity: 1, scaleX: 1 }}
-      transition={{ duration: reduceMotion ? 0 : 0.12 }}
+      transition={{ duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
       className="pointer-events-none h-0.5 rounded-full bg-primary"
     />
   )

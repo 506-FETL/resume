@@ -1,8 +1,10 @@
 import { Plus, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useHistoryDialogMotion } from '../../../hooks/use-history-dialog-motion'
 
 interface VersionTagInputProps {
   value: string[]
@@ -11,6 +13,7 @@ interface VersionTagInputProps {
 
 export default function VersionTagInput({ value, onChange }: VersionTagInputProps) {
   const [inputValue, setInputValue] = useState('')
+  const dialogMotion = useHistoryDialogMotion()
 
   const appendTag = () => {
     const nextValue = inputValue.trim()
@@ -29,26 +32,47 @@ export default function VersionTagInput({ value, onChange }: VersionTagInputProp
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
-        {value.length > 0
-          ? value.map(tag => (
-              <Badge key={tag} variant="secondary" className="gap-1.5 px-2 py-1">
-                {tag}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  className="-mr-1 size-4 rounded-full"
-                  onClick={() => onChange(value.filter(item => item !== tag))}
+    <motion.div layout={!dialogMotion.reduceMotion} transition={{ layout: dialogMotion.layoutTransition }} className="flex flex-col gap-3">
+      <div className="relative flex min-h-7 flex-wrap gap-2">
+        <AnimatePresence initial={false} mode="popLayout">
+          {value.length > 0
+            ? value.map(tag => (
+                <motion.div
+                  key={`tag:${tag}`}
+                  layout={!dialogMotion.reduceMotion}
+                  initial={{ opacity: 0, scale: dialogMotion.reduceMotion ? 1 : 0.9, y: dialogMotion.reduceMotion ? 0 : 4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: dialogMotion.reduceMotion ? 1 : 0.9, transition: dialogMotion.exitTransition }}
+                  transition={{ ...dialogMotion.enterTransition, layout: dialogMotion.layoutTransition }}
                 >
-                  <X />
-                </Button>
-              </Badge>
-            ))
-          : (
-              <span className="text-sm text-muted-foreground">暂未添加标签</span>
-            )}
+                  <Badge variant="secondary" className="gap-1.5 px-2 py-1">
+                    {tag}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="-mr-1 size-4 rounded-full"
+                      aria-label={`移除标签 ${tag}`}
+                      onClick={() => onChange(value.filter(item => item !== tag))}
+                    >
+                      <X />
+                    </Button>
+                  </Badge>
+                </motion.div>
+              ))
+            : (
+                <motion.span
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, transition: dialogMotion.exitTransition }}
+                  transition={dialogMotion.enterTransition}
+                  className="self-center text-sm text-muted-foreground"
+                >
+                  暂未添加标签
+                </motion.span>
+              )}
+        </AnimatePresence>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -68,6 +92,6 @@ export default function VersionTagInput({ value, onChange }: VersionTagInputProp
           添加标签
         </Button>
       </div>
-    </div>
+    </motion.div>
   )
 }

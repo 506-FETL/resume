@@ -1,11 +1,14 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
 import { DerivedJobsDialog } from '@/components/jd-variant/components/tasks-dialog'
+import AnimatedContent from '@/components/motion/animated-content'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
 import QuickDialog from '@/pages/share/components/quick-dialog'
@@ -52,105 +55,104 @@ export default function ResumePage() {
     [derivePendingFor, resumes],
   )
 
-  if (loading)
-    return <ResumePageSkeleton />
-
   return (
-    <div className="container mx-auto flex flex-col gap-3 px-4 py-6 sm:px-6 lg:px-8">
-      <HeadBars />
+    <AnimatedContent animationKey={loading ? 'loading' : 'resumes'}>
+      {loading
+        ? <ResumePageSkeleton />
+        : (
+            <div className="container mx-auto flex flex-col gap-3 px-4 py-6 sm:px-6 lg:px-8">
+              <HeadBars />
 
-      <Tabs
-        value={filterMode}
-        onValueChange={v => setFilterMode(v as 'all' | 'roots' | 'variants')}
-        className="my-3"
-      >
-        <TabsList>
-          <TabsTrigger value="all">全部</TabsTrigger>
-          <TabsTrigger value="roots">原版</TabsTrigger>
-          <TabsTrigger value="variants">派生版本</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <motion.div
-        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: shouldReduceMotion ? 0 : 0.18 }}
-      >
-        <AnimatePresence mode="popLayout">
-          {visibleItems.map((resume) => {
-            const isSyncingThis = syncingIds.has(resume.resume_id)
-            return (
-              <motion.div
-                key={resume.resume_id}
-                layout
-                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-                animate={{
-                  opacity: isSyncingThis ? 0.55 : 1,
-                  y: 0,
-                }}
-                exit={{
-                  opacity: 0,
-                  y: shouldReduceMotion ? 0 : -4,
-                }}
-                transition={{
-                  duration: shouldReduceMotion ? 0 : 0.18,
-                  ease: 'easeOut',
-                  layout: { duration: shouldReduceMotion ? 0 : 0.2 },
-                }}
+              <Tabs
+                value={filterMode}
+                onValueChange={v => setFilterMode(v as 'all' | 'roots' | 'variants')}
+                className="my-3"
               >
-                <ResumeCard resume={resume} />
-              </motion.div>
-            )
-          })}
+                <TabsList>
+                  <TabsTrigger value="all">全部</TabsTrigger>
+                  <TabsTrigger value="roots">原版</TabsTrigger>
+                  <TabsTrigger value="variants">派生版本</TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-          <motion.div
-            key="create-card"
-            layout
-            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: shouldReduceMotion ? 0 : 0.18,
-              ease: 'easeOut',
-              layout: { duration: shouldReduceMotion ? 0 : 0.2 },
-            }}
-          >
-            <CreateResumeCard />
-          </motion.div>
-        </AnimatePresence>
-      </motion.div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {visibleItems.map((resume) => {
+                    const isSyncingThis = syncingIds.has(resume.resume_id)
+                    return (
+                      <PresenceDiv
+                        key={resume.resume_id}
+                        layout={shouldReduceMotion ? false : 'position'}
+                        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                        animate={{
+                          opacity: isSyncingThis ? 0.55 : 1,
+                          y: 0,
+                        }}
+                        exit={{
+                          opacity: 0,
+                          y: shouldReduceMotion ? 0 : -4,
+                          transition: { duration: shouldReduceMotion ? 0 : DURATION.fast, ease: EASE.in },
+                        }}
+                        transition={{
+                          duration: shouldReduceMotion ? 0 : DURATION.base,
+                          ease: EASE.out,
+                          layout: shouldReduceMotion ? { duration: 0 } : SPRING.layout,
+                        }}
+                      >
+                        <ResumeCard resume={resume} />
+                      </PresenceDiv>
+                    )
+                  })}
 
-      <SyncResumesDialog />
+                  <PresenceDiv
+                    key="create-card"
+                    layout={shouldReduceMotion ? false : 'position'}
+                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: shouldReduceMotion ? 0 : DURATION.base,
+                      ease: EASE.out,
+                      layout: shouldReduceMotion ? { duration: 0 } : SPRING.layout,
+                    }}
+                  >
+                    <CreateResumeCard />
+                  </PresenceDiv>
+                </AnimatePresence>
+              </div>
 
-      <QuickDialog
-        getSnapshot={async () => {
-          if (!shareOpenForResumeId)
-            throw new Error('未选择简历')
-          return getResumeSnapshotById(shareOpenForResumeId)
-        }}
-      />
+              <SyncResumesDialog />
 
-      <DerivedJobsDialog open={derivedJobsOpen} onOpenChange={setDerivedJobsOpen} />
+              <QuickDialog
+                getSnapshot={async () => {
+                  if (!shareOpenForResumeId)
+                    throw new Error('未选择简历')
+                  return getResumeSnapshotById(shareOpenForResumeId)
+                }}
+              />
 
-      {deriveDialogParentId && (
-        <JdVariantDialog
-          key={deriveDialogParentId}
-          open={Boolean(derivePendingFor)}
-          onOpenChange={(o) => {
-            if (!o)
-              openDeriveFor(null)
-          }}
-          parentResumeId={deriveDialogParentId}
-          recentJds={[]}
-          initialJd={pendingResume?.linked_jd_text ?? ''}
-          onOpenResume={(draftId) => {
-            const target = resumes.find(r => r.resume_id === draftId)
-            setCurrentResume(draftId, target?.type ?? 'default')
-            navigate('/resume/editor')
-          }}
-        />
-      )}
-    </div>
+              <DerivedJobsDialog open={derivedJobsOpen} onOpenChange={setDerivedJobsOpen} />
+
+              {deriveDialogParentId && (
+                <JdVariantDialog
+                  key={deriveDialogParentId}
+                  open={Boolean(derivePendingFor)}
+                  onOpenChange={(o) => {
+                    if (!o)
+                      openDeriveFor(null)
+                  }}
+                  parentResumeId={deriveDialogParentId}
+                  recentJds={[]}
+                  initialJd={pendingResume?.linked_jd_text ?? ''}
+                  onOpenResume={(draftId) => {
+                    const target = resumes.find(r => r.resume_id === draftId)
+                    setCurrentResume(draftId, target?.type ?? 'default')
+                    navigate('/resume/editor')
+                  }}
+                />
+              )}
+            </div>
+          )}
+    </AnimatedContent>
   )
 }
 

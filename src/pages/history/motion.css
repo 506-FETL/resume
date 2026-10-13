@@ -1,0 +1,63 @@
+.history-motion-surface :is(button, a, input, textarea, [data-slot='select-trigger']) {
+  transition-duration: var(--history-fast);
+  transition-timing-function: var(--history-ease);
+}
+
+.history-motion-surface[data-reduced-motion='true'] *,
+.history-motion-surface[data-reduced-motion='true'] *::before,
+.history-motion-surface[data-reduced-motion='true'] *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+.history-popup-motion[data-state='open'] {
+  animation-name: history-popup-enter;
+  animation-duration: var(--history-base);
+  animation-timing-function: var(--history-ease);
+  animation-fill-mode: both;
+}
+
+.history-popup-motion[data-state='closed'] {
+  animation-name: history-popup-exit;
+  animation-duration: var(--history-fast);
+  animation-timing-function: var(--history-exit-ease);
+  animation-fill-mode: both;
+  pointer-events: none;
+}
+
+.history-popup-motion {
+  transform-origin: var(--radix-popper-transform-origin, center);
+  --history-popup-y: -4px;
+}
+
+.history-popup-motion[data-side='top'] {
+  --history-popup-y: 4px;
+}
+
+@keyframes history-popup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--history-popup-y)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes history-popup-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(var(--history-popup-y)) scale(0.98);
+  }
+}
+
+.history-popup-motion[data-reduced-motion='true'] {
+  animation: none !important;
+  transition: none !important;
+}

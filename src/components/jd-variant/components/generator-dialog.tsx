@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { DURATION, EASE } from '@/lib/motion'
 import { MIN_JD_CHARS } from '../const'
 import { useJdVariantGenerator } from '../hooks/use-generator'
 import { GeneratorStepIndicator } from './generator-step-indicator'
@@ -143,7 +144,7 @@ export function JdVariantDialog({
                 initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -4 }}
-                transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+                transition={{ duration: shouldReduceMotion ? 0 : DURATION.base, ease: EASE.out }}
               >
                 {state.phase === 'idle' && (
                   <StepInput value={jd} onChange={setJd} recentJds={recentJds} />

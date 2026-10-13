@@ -2,7 +2,9 @@ import { Archive, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DURATION, EASE } from '@/lib/motion'
 import { getCompanies } from '@/lib/supabase/resume'
 import BoardView from './components/board/index'
 import JobDrawer from './components/drawer'
@@ -71,7 +73,8 @@ function Tracker() {
             <motion.div
               initial={reduce ? false : { opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              exit={reduce ? undefined : { opacity: 0, height: 0 }}
+              exit={{ opacity: 0, height: 0, transition: { duration: reduce ? 0 : DURATION.fast, ease: EASE.in } }}
+              transition={{ duration: reduce ? 0 : DURATION.base, ease: EASE.out }}
               className="overflow-hidden"
             >
               <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -92,7 +95,9 @@ function Tracker() {
           )}
         </AnimatePresence>
         <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-          {renderMainContent()}
+          <AnimatedContent animationKey={loading ? 'loading' : viewMode} className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {renderMainContent()}
+          </AnimatedContent>
         </main>
       </div>
 

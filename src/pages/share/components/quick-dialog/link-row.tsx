@@ -1,9 +1,10 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Archive, Check, Copy, KeyRound, MessageSquareText, Pencil, RefreshCw, Trash2 } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -68,7 +69,7 @@ export function LinkRow({
   const expired = share.expires_at ? new Date(share.expires_at).getTime() < Date.now() : false
 
   return (
-    <motion.div
+    <PresenceDiv
       ref={ref}
       layout
       initial={reduceMotion ? false : { opacity: 0, scale: 0.98, y: 4 }}
@@ -160,6 +161,6 @@ export function LinkRow({
           永久删除
         </Button>
       </div>
-    </motion.div>
+    </PresenceDiv>
   )
 }

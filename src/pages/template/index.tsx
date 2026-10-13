@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,30 +37,30 @@ function Template() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [dirty])
 
-  if (loading) {
-    return <TemplateLibraryLoadingState />
-  }
-
-  if (mode === 'editor') {
-    return <TemplateEditor />
-  }
-
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:gap-8">
-      <WorkbenchHero />
+    <AnimatedContent animationKey={loading ? 'loading' : mode}>
+      {loading
+        ? <TemplateLibraryLoadingState />
+        : mode === 'editor'
+          ? <TemplateEditor />
+          : (
+              <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:gap-8">
+                <WorkbenchHero />
 
-      {error && (
-        <Card className="border-destructive/35 bg-destructive/5">
-          <CardHeader className="gap-2">
-            <Badge variant="destructive">模板加载失败</Badge>
-            <CardTitle className="text-base">社区模板或我的模板暂时不可用</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+                {error && (
+                  <Card className="border-destructive/35 bg-destructive/5">
+                    <CardHeader className="gap-2">
+                      <Badge variant="destructive">模板加载失败</Badge>
+                      <CardTitle className="text-base">社区模板或我的模板暂时不可用</CardTitle>
+                      <CardDescription>{error}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                )}
 
-      <TemplateWorkbench />
-    </div>
+                <TemplateWorkbench />
+              </div>
+            )}
+    </AnimatedContent>
   )
 }
 

@@ -1,18 +1,22 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { useEffect, useState } from 'react'
+import { useReducedMotion } from 'motion/react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
+import { DURATION, EASE } from '@/lib/motion'
 import useShareStore from '../../store'
 import { dateToExpiryIso, expiryIsoToDate, findShareById } from '../../utils'
 import DateField from '../quick-dialog/date-field'
 import VisibilityIcon from '../visibility-icon'
 
 export default function SettingsDialog() {
+  const reduceMotion = useReducedMotion()
   const {
     allShares,
     shares,
@@ -24,8 +28,8 @@ export default function SettingsDialog() {
   } = useShareStore()
   const share = findShareById(allShares, shares, settingsShareId)
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
-  const renderedShare = share
-    ?? (retainedShare?.id === settingsShareId ? retainedShare : null)
+  const renderedShare = retainedShare?.id === settingsShareId ? retainedShare : share
+  const initializedShareIdRef = useRef<string | null>(null)
   const busy = Boolean(settingsShareId && pendingShareIds.includes(settingsShareId))
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
@@ -36,15 +40,16 @@ export default function SettingsDialog() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (share)
-      setRetainedShare(share)
-  }, [share])
-
-  useEffect(() => {
-    if (!settingsDialogOpen)
+  useLayoutEffect(() => {
+    if (!settingsDialogOpen) {
+      initializedShareIdRef.current = null
+      return
+    }
+    if (!share || initializedShareIdRef.current === share.id)
       return
 
+    initializedShareIdRef.current = share.id
+    setRetainedShare(share)
     setLabel(share?.label ?? '')
     setExpiresAt(expiryIsoToDate(share?.expires_at ?? null))
     setPasswordEnabled(Boolean(share?.has_password))
@@ -87,11 +92,19 @@ export default function SettingsDialog() {
     <Dialog
       open={settingsDialogOpen}
       onOpenChange={(open) => {
-        if (!open)
+        if (!open && !busy)
           closeSettingsDialog()
       }}
     >
-      <DialogContent>
+      <DialogContent
+        inert={!settingsDialogOpen}
+        className="data-[state=closed]:pointer-events-none"
+        overlayClassName={reduceMotion ? 'data-[state=open]:animate-none data-[state=closed]:animate-none' : undefined}
+        style={{
+          animationDuration: `${(reduceMotion ? 0 : settingsDialogOpen ? DURATION.base : DURATION.fast) * 1000}ms`,
+          animationTimingFunction: `cubic-bezier(${(settingsDialogOpen ? EASE.out : EASE.in).join(',')})`,
+        }}
+      >
         <DialogHeader>
           <DialogTitle>编辑分享设置</DialogTitle>
           <DialogDescription>
@@ -129,75 +142,86 @@ export default function SettingsDialog() {
             />
           </Field>
 
-          <Field orientation="horizontal" className="rounded-lg border p-3">
-            <FieldContent>
-              <FieldLabel htmlFor="edit-share-password-enabled">需要访问密码</FieldLabel>
-              <FieldDescription>切换后会立即影响已发出的链接。</FieldDescription>
-            </FieldContent>
-            <Switch
-              id="edit-share-password-enabled"
-              checked={passwordEnabled}
-              disabled={busy}
-              onCheckedChange={setPasswordEnabled}
-            />
-          </Field>
+          <Collapsible open={passwordEnabled}>
+            <Field orientation="horizontal" className="rounded-lg border p-3">
+              <FieldContent>
+                <FieldLabel htmlFor="edit-share-password-enabled">需要访问密码</FieldLabel>
+                <FieldDescription>保存设置后生效，已发出的链接也会同步更新。</FieldDescription>
+              </FieldContent>
+              <Switch
+                id="edit-share-password-enabled"
+                checked={passwordEnabled}
+                disabled={busy}
+                aria-controls="edit-share-password-fields"
+                onCheckedChange={setPasswordEnabled}
+              />
+            </Field>
 
-          {passwordEnabled && (
-            <>
-              {renderedShare?.has_password && (
-                <Field>
-                  <FieldLabel>当前密码</FieldLabel>
+            <CollapsibleContent
+              id="edit-share-password-fields"
+              inert={!passwordEnabled || !settingsDialogOpen}
+              aria-hidden={!passwordEnabled}
+              style={{
+                animationDuration: `${(reduceMotion ? 0 : passwordEnabled ? DURATION.base : DURATION.fast) * 1000}ms`,
+                animationTimingFunction: `cubic-bezier(${(passwordEnabled ? EASE.out : EASE.in).join(',')})`,
+              }}
+            >
+              <div className="space-y-4 pt-4">
+                {renderedShare?.has_password && (
+                  <Field>
+                    <FieldLabel>当前密码</FieldLabel>
+                    <div className="flex min-w-0 gap-2">
+                      <Input
+                        readOnly
+                        value={showCurrentPasswordState ? '已设置（出于安全原因不可恢复明文）' : '••••••••'}
+                        className="min-w-0"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label={showCurrentPasswordState ? '隐藏当前密码状态' : '显示当前密码状态'}
+                        onClick={() => setShowCurrentPasswordState(value => !value)}
+                      >
+                        <VisibilityIcon visible={showCurrentPasswordState} />
+                      </Button>
+                    </div>
+                  </Field>
+                )}
+                <Field data-invalid={Boolean(validationError)}>
+                  <FieldLabel htmlFor="edit-share-password">
+                    {renderedShare?.has_password ? '新密码（可选）' : '访问密码'}
+                  </FieldLabel>
                   <div className="flex min-w-0 gap-2">
                     <Input
-                      readOnly
-                      value={showCurrentPasswordState ? '已设置（出于安全原因不可恢复明文）' : '••••••••'}
+                      id="edit-share-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(event) => {
+                        setPassword(event.target.value)
+                        setValidationError(null)
+                      }}
+                      placeholder={renderedShare?.has_password ? '留空则保持当前密码' : '请输入访问密码'}
                       className="min-w-0"
+                      maxLength={128}
+                      autoComplete="new-password"
+                      aria-invalid={Boolean(validationError)}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={showCurrentPasswordState ? '隐藏当前密码状态' : '显示当前密码状态'}
-                      onClick={() => setShowCurrentPasswordState(value => !value)}
+                      aria-label={showNewPassword ? '隐藏新密码' : '显示新密码'}
+                      onClick={() => setShowNewPassword(value => !value)}
                     >
-                      <VisibilityIcon visible={showCurrentPasswordState} />
+                      <VisibilityIcon visible={showNewPassword} />
                     </Button>
                   </div>
+                  {validationError && <FieldError>{validationError}</FieldError>}
                 </Field>
-              )}
-              <Field data-invalid={Boolean(validationError)}>
-                <FieldLabel htmlFor="edit-share-password">
-                  {renderedShare?.has_password ? '新密码（可选）' : '访问密码'}
-                </FieldLabel>
-                <div className="flex min-w-0 gap-2">
-                  <Input
-                    id="edit-share-password"
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(event) => {
-                      setPassword(event.target.value)
-                      setValidationError(null)
-                    }}
-                    placeholder={renderedShare?.has_password ? '留空则保持当前密码' : '请输入访问密码'}
-                    className="min-w-0"
-                    maxLength={128}
-                    autoComplete="new-password"
-                    aria-invalid={Boolean(validationError)}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label={showNewPassword ? '隐藏新密码' : '显示新密码'}
-                    onClick={() => setShowNewPassword(value => !value)}
-                  >
-                    <VisibilityIcon visible={showNewPassword} />
-                  </Button>
-                </div>
-                {validationError && <FieldError>{validationError}</FieldError>}
-              </Field>
-            </>
-          )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </FieldGroup>
 
         <DialogFooter>

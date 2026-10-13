@@ -1,4 +1,5 @@
 import { ChevronDown, CloudUpload, FileText, FolderOpen, Upload } from 'lucide-react'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -70,60 +71,62 @@ export function ResumeManager() {
 
           <TabsContent value="select" className="mt-0 px-4 pb-4 sm:px-6 sm:pb-6">
             <ScrollArea className="h-[300px] sm:h-[350px] -mx-4 px-4 sm:-mx-6 sm:px-6">
-              {loading
-                ? (
-                    <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
-                      <Spinner className="size-8 mb-3" />
-                      <p className="text-sm">正在加载简历列表...</p>
-                    </div>
-                  )
-                : (
-                    <>
-                      {/* 在线简历 */}
-                      {onlineResumes.length > 0 && (
-                        <div className="space-y-2 pt-3">
-                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                            <span className="size-1.5 rounded-full bg-green-500" />
-                            在线简历
-                          </p>
-                          {onlineResumes.map(resume => (
-                            <ResumeItem
-                              key={resume.id}
-                              resume={resume}
-                              isSelected={selectedResumeId === resume.resume_id}
-                              onSelect={() => handleSelect(resume)}
-                            />
-                          ))}
-                        </div>
-                      )}
+              <AnimatedContent animationKey={loading ? 'loading' : resumes.length === 0 ? 'empty' : 'resumes'}>
+                {loading
+                  ? (
+                      <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                        <Spinner className="size-8 mb-3" />
+                        <p className="text-sm">正在加载简历列表...</p>
+                      </div>
+                    )
+                  : (
+                      <>
+                        {/* 在线简历 */}
+                        {onlineResumes.length > 0 && (
+                          <div className="space-y-2 pt-3">
+                            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-green-500" />
+                              在线简历
+                            </p>
+                            {onlineResumes.map(resume => (
+                              <ResumeItem
+                                key={resume.id}
+                                resume={resume}
+                                isSelected={selectedResumeId === resume.resume_id}
+                                onSelect={() => handleSelect(resume)}
+                              />
+                            ))}
+                          </div>
+                        )}
 
-                      {/* 离线简历 */}
-                      {offlineResumes.length > 0 && (
-                        <div className="space-y-2 pt-4">
-                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                            <span className="size-1.5 rounded-full bg-amber-500" />
-                            本地简历
-                          </p>
-                          {offlineResumes.map(resume => (
-                            <ResumeItem
-                              key={resume.id}
-                              resume={resume}
-                              isSelected={selectedResumeId === resume.resume_id}
-                              onSelect={() => handleSelect(resume)}
-                            />
-                          ))}
-                        </div>
-                      )}
+                        {/* 离线简历 */}
+                        {offlineResumes.length > 0 && (
+                          <div className="space-y-2 pt-4">
+                            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-amber-500" />
+                              本地简历
+                            </p>
+                            {offlineResumes.map(resume => (
+                              <ResumeItem
+                                key={resume.id}
+                                resume={resume}
+                                isSelected={selectedResumeId === resume.resume_id}
+                                onSelect={() => handleSelect(resume)}
+                              />
+                            ))}
+                          </div>
+                        )}
 
-                      {resumes.length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
-                          <FileText className="size-10 mb-3 opacity-40" />
-                          <p className="text-sm">暂无简历</p>
-                          <p className="text-xs mt-1">请先上传简历文件</p>
-                        </div>
-                      )}
-                    </>
-                  )}
+                        {resumes.length === 0 && (
+                          <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                            <FileText className="size-10 mb-3 opacity-40" />
+                            <p className="text-sm">暂无简历</p>
+                            <p className="text-xs mt-1">请先上传简历文件</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+              </AnimatedContent>
             </ScrollArea>
           </TabsContent>
 

@@ -3,6 +3,8 @@ import { LoaderCircle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { useHistoryDialogMotion } from '../../hooks/use-history-dialog-motion'
 import useHistoryStore from '../../store'
 import RestoreVersionDialog from './restore-version-dialog'
 
@@ -24,9 +26,17 @@ export default function HistoryDialogs({
   onConfirmDelete,
 }: HistoryDialogsProps) {
   const { versions, restoring, deletingVersionId } = useHistoryStore()
+  const dialogMotion = useHistoryDialogMotion()
   const [restoreStrategy, setRestoreStrategy] = useState<RestoreStrategy | null>(null)
   const restoreTarget = versions.find(version => version.id === restoreTargetId)
   const deleteTarget = versions.find(version => version.id === deleteTargetId)
+  const [retainedDeleteTarget, setRetainedDeleteTarget] = useState(deleteTarget)
+  const displayedDeleteTarget = deleteTarget ?? retainedDeleteTarget
+
+  useEffect(() => {
+    if (deleteTarget)
+      setRetainedDeleteTarget(deleteTarget)
+  }, [deleteTarget])
 
   useEffect(() => {
     if (!restoring) {
@@ -57,7 +67,8 @@ export default function HistoryDialogs({
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className={dialogMotion.contentClassName} overlayClassName={dialogMotion.overlayClassName}>
+          <style>{dialogMotion.styles}</style>
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-destructive/10 text-destructive">
               <Trash2 />
@@ -65,7 +76,7 @@ export default function HistoryDialogs({
             <AlertDialogTitle>删除此版本？</AlertDialogTitle>
             <AlertDialogDescription>
               删除后，V
-              {deleteTarget?.version_no}
+              {displayedDeleteTarget?.version_no}
               的说明、标签、内容和内部评论将永久删除；当前正在编辑的内容和已发布分享不受影响。
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -76,7 +87,7 @@ export default function HistoryDialogs({
               disabled={Boolean(deletingVersionId)}
               onClick={onConfirmDelete}
             >
-              {deletingVersionId && <LoaderCircle data-icon="inline-start" className="animate-spin" />}
+              {deletingVersionId && <LoaderCircle data-icon="inline-start" className={cn(!dialogMotion.reduceMotion && 'animate-spin')} />}
               {deletingVersionId ? '删除中...' : '确认删除'}
             </Button>
           </AlertDialogFooter>

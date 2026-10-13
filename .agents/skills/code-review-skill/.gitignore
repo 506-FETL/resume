@@ -1,0 +1,30 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Logs
+*.log
+
+# Local config
+.env
+.env.local
+
+# Skill install artifacts (created by `npx skills add`)
+.agents/
+skills-lock.json
+.skills.json

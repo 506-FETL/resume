@@ -1,7 +1,8 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
+import { SPRING } from '@/lib/motion'
 import type { Dispatch, PropsWithChildren, RefObject, SetStateAction } from 'react'
 import { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 
@@ -108,6 +109,7 @@ export function SideTabsProvider({
   children,
   ...props
 }: PropsWithChildren<Props>) {
+  const reduceMotion = useReducedMotion()
   const [state, dispatch] = useReducer(reducer, undefined, () => ({
     active: defaultId,
     box: { x: 0, y: 0, w: 0, h: minHeight, totalHeight: minHeight },
@@ -338,13 +340,7 @@ export function SideTabsProvider({
           className,
         )}
         animate={fillAvailableHeight ? undefined : { height: Math.max(minHeight, box.totalHeight) }}
-        transition={{
-          type: 'spring',
-          stiffness: 200,
-          damping: 30,
-          mass: 0.8,
-          restDelta: 0.001,
-        }}
+        transition={reduceMotion ? { duration: 0 } : SPRING.layout}
         {...props}
       >
         {children}

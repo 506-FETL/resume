@@ -1,15 +1,9 @@
 import type { PropsWithChildren, ReactNode } from 'react'
 import { X } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
-
-const MODAL_HIDDEN = { opacity: 0, scale: 0.97, y: 12 }
-const MODAL_VISIBLE = { opacity: 1, scale: 1, y: 0 }
-const MODAL_ENTER_TRANSITION = { duration: 0.2, ease: [0.16, 1, 0.3, 1] as const }
-const MODAL_EXIT_TRANSITION = { duration: 0.14, ease: [0.4, 0, 1, 1] as const }
 
 interface AdvancedToolsModalProps extends PropsWithChildren {
   description: string
@@ -38,7 +32,6 @@ export function AdvancedToolsModal({
   title,
 }: AdvancedToolsModalProps) {
   const isMobile = useIsMobile()
-  const shouldReduceMotion = useReducedMotion()
 
   if (isMobile) {
     return (
@@ -66,15 +59,10 @@ export function AdvancedToolsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="h-[80vh] w-[60vw] gap-0 rounded-none bg-transparent p-0 ring-0 sm:max-w-[min(90rem,calc(100vw-4rem))] data-[state=open]:!animate-none data-[state=closed]:!animate-[advanced-tools-modal-presence_150ms_linear] motion-reduce:data-[state=closed]:!animate-none"
+        className="h-[80vh] w-[60vw] gap-0 rounded-none bg-transparent p-0 ring-0 sm:max-w-[min(90rem,calc(100vw-4rem))]"
         showCloseButton={false}
       >
-        <motion.div
-          initial={shouldReduceMotion ? false : MODAL_HIDDEN}
-          animate={open || shouldReduceMotion ? MODAL_VISIBLE : MODAL_HIDDEN}
-          transition={shouldReduceMotion
-            ? { duration: 0 }
-            : open ? MODAL_ENTER_TRANSITION : MODAL_EXIT_TRANSITION}
+        <div
           className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10"
         >
           <DialogHeader className="shrink-0 border-b border-border/60 p-5 text-left md:px-6">
@@ -94,7 +82,7 @@ export function AdvancedToolsModal({
 
           <ModalBody>{children}</ModalBody>
           {footer}
-        </motion.div>
+        </div>
       </DialogContent>
     </Dialog>
   )

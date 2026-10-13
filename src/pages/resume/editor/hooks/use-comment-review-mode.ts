@@ -7,9 +7,10 @@ import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/d
 import { isResumeCommentClientError } from '@/features/resume-comments/api/client.ts'
 import {
   assertWorkingDocumentCommentsReady,
+  notifyWorkingDocumentPersisted,
   registerWorkingDocumentSync,
 } from '@/features/resume-comments/api/working-document-sync.ts'
-import { useResumeCommentContext } from '@/features/resume-comments/context.tsx'
+import { useResumeCommentContext, useResumeCommentStore } from '@/features/resume-comments/context.tsx'
 import { getResumeVersionForShare, listResumeVersions } from '@/lib/supabase/resume/history'
 import useResumeStore from '@/store/resume/form'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
@@ -209,7 +210,7 @@ export function usePrepareWorkingCommentWrite(resumeId: string | null) {
     if (!resumeId)
       throw new Error('离线简历不能评论')
     const before = useResumeStore.getState()
-    if (before.mode !== 'online')
+    if (before.mode !== 'online' || before.currentResumeId !== resumeId)
       throw new Error('离线简历不能评论')
     if (before.pendingChanges) {
       await before.manualSync()
@@ -217,17 +218,25 @@ export function usePrepareWorkingCommentWrite(resumeId: string | null) {
       if (after.pendingChanges || after.syncError)
         throw new Error(after.syncError ?? '简历尚未保存，暂时无法创建评论')
     }
+    const current = useResumeStore.getState()
+    if (current.currentResumeId !== resumeId || current.mode !== 'online')
+      throw new Error('简历已切换，请重新打开评论')
+    // 编辑器未挂载期间的保存没有监听者；进入页面和提交前都补齐当前正文。
+    await notifyWorkingDocumentPersisted(resumeId, mapSourceToPersistedSnapshot(current))
     await assertWorkingDocumentCommentsReady(resumeId)
   }, [resumeId])
 }
 
 export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) {
   const { client, store } = useResumeCommentContext()
+  const scopeId = useResumeCommentStore(state => state.scope?.id)
+  const prepareWrite = usePrepareWorkingCommentWrite(resumeId)
 
   const syncSnapshot = useCallback(async (
     snapshot: PersistedResumeSnapshot,
     currentHash: string,
     currentRevision: number,
+    isCurrent: () => boolean,
   ) => {
     const projectionReferenceDate = store.getState().scope?.projectionReferenceDate
       ?? new Date().toISOString().slice(0, 10)
@@ -241,15 +250,21 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
         projectionReferenceDate,
         expectedDocumentRevision: currentRevision,
       })
+      if (!isCurrent())
+        return
       store.getState().applyDocumentSync({
         ...response.data,
         eventSeq: response.eventSeq,
       })
     }
     catch (error) {
+      if (!isCurrent())
+        return
       if (!isResumeCommentClientError(error) || error.code !== 'stale_document')
         throw error
       const latest = await client.bootstrapScope()
+      if (!isCurrent())
+        return
       store.getState().replaceScope({
         scope: latest.data.scope,
         version: latest.data.version,
@@ -258,6 +273,7 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
         threads: latest.data.threads,
         eventSeq: latest.eventSeq,
         lastReadEventSeq: latest.data.lastReadEventSeq,
+        threadReadStates: latest.data.threadReadStates,
       })
       if (latest.data.scope.documentHash !== projected.documentHash) {
         const retry = await client.syncWorkingDocument({
@@ -266,6 +282,8 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
           projectionReferenceDate,
           expectedDocumentRevision: latest.data.scope.documentRevision,
         })
+        if (!isCurrent())
+          return
         store.getState().applyDocumentSync({
           ...retry.data,
           eventSeq: retry.eventSeq,
@@ -277,10 +295,20 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
   useEffect(() => {
     if (!enabled)
       return
-    return registerWorkingDocumentSync(resumeId, async (snapshot) => {
+    let cancelled = false
+    const isCurrent = () => {
+      const access = client.getAccessContext()
+      return !cancelled && access.kind === 'owner'
+        && 'resumeId' in access && access.resumeId === resumeId
+    }
+    const unregister = registerWorkingDocumentSync(resumeId, async (snapshot) => {
+      if (!isCurrent())
+        return
       let scope = store.getState().scope
       if (!scope) {
         const bootstrap = await client.bootstrapScope()
+        if (!isCurrent())
+          return
         store.getState().replaceScope({
           scope: bootstrap.data.scope,
           version: bootstrap.data.version,
@@ -289,10 +317,28 @@ export function useWorkingDocumentCommentSync(resumeId: string, enabled = true) 
           threads: bootstrap.data.threads,
           eventSeq: bootstrap.eventSeq,
           lastReadEventSeq: bootstrap.data.lastReadEventSeq,
+          threadReadStates: bootstrap.data.threadReadStates,
         })
         scope = bootstrap.data.scope
       }
-      await syncSnapshot(snapshot, scope.documentHash, scope.documentRevision)
+      await syncSnapshot(snapshot, scope.documentHash, scope.documentRevision, isCurrent)
     })
+    return () => {
+      cancelled = true
+      unregister()
+    }
   }, [client, enabled, resumeId, store, syncSnapshot])
+
+  useEffect(() => {
+    if (!enabled || !scopeId)
+      return
+    let cancelled = false
+    prepareWrite().catch((error: unknown) => {
+      if (!cancelled)
+        store.getState().setContentNotice(error instanceof Error ? error.message : '评论文档同步失败，请重试')
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, prepareWrite, scopeId, store])
 }

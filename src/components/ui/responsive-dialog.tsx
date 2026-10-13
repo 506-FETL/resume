@@ -51,6 +51,8 @@ interface ResponsiveDialogProps extends RootProps {
   trigger?: React.ReactElement
   variant?: 'default' | 'sidebar'
   errors?: Record<string, boolean>
+  contentClassName?: string
+  overlayClassName?: string
 }
 
 export function ResponsiveDialog({
@@ -60,6 +62,8 @@ export function ResponsiveDialog({
   onOpenChange,
   variant = 'default',
   errors,
+  contentClassName,
+  overlayClassName,
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile()
   const [activeSection, setActiveSection] = React.useState('')
@@ -77,7 +81,7 @@ export function ResponsiveDialog({
       <ResponsiveDialogContext.Provider value={contextValue}>
         <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
           {trigger && <DrawerTrigger render={trigger} />}
-          <DrawerContent>
+          <DrawerContent className={contentClassName} overlayClassName={overlayClassName}>
             {children}
           </DrawerContent>
         </Drawer>
@@ -95,7 +99,9 @@ export function ResponsiveDialog({
             variant === 'sidebar'
               ? 'h-[min(90vh,880px)] w-[calc(85vw)] sm:max-w-[min(1000px,calc(100vw-2rem))] lg:max-w-[min(1120px,85vw)]'
               : 'max-h-[85vh] sm:max-w-lg',
+            contentClassName,
           )}
+          overlayClassName={overlayClassName}
         >
           {children}
         </DialogContent>

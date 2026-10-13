@@ -1,5 +1,5 @@
 import { Eye, EyeOff, Plus, Trash2, X } from 'lucide-react'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { honorsCertificatesFormSchema, PRESET_CERTIFICATES } from '@/lib/schema'
 import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { cn } from '@/lib/utils'
@@ -16,6 +17,7 @@ import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 
 function HonorsCertificatesForm({ className }: { className?: string }) {
+  const reduceMotion = useReducedMotion()
   const honorsCertificates = useResumeStore(state => state.honors_certificates)
   const jobIntentText = useResumeStore(state => state.job_intent.jobIntent)
   const isMobile = useIsMobile()
@@ -149,14 +151,14 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
                   return (
                     <motion.div
                       key={item.id}
-                      initial={{ opacity: 0, scale: 0.96, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.96, y: -20 }}
+                      initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: 8 }}
+                      animate={{ opacity: hidden ? 0.5 : 1, scale: 1, y: 0 }}
                       transition={{
-                        duration: 0.5,
-                        ease: [0.34, 1.56, 0.64, 1],
+                        duration: reduceMotion ? 0 : DURATION.base,
+                        ease: EASE.out,
+                        layout: reduceMotion ? { duration: 0 } : SPRING.layout,
                       }}
-                      layout
+                      layout={!reduceMotion}
                       className={cn('flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
                     >
                       <span className="font-medium text-base truncate flex-1">{certificateValue}</span>

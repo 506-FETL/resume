@@ -1,7 +1,8 @@
 import type { LucideIcon } from 'lucide-react'
 import type { DashboardAction, DashboardActionTone } from '../../insights'
-import { AlertCircle, ArrowRight, CircleCheckBig, FileSearch, ListChecks, Send, Sparkles } from 'lucide-react'
+import { AlertCircle, ArrowRight, CircleCheckBig, FilePlus2, FileSearch, ListChecks, LogIn, Send } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { TodoSkeleton } from '../skeleton'
@@ -10,6 +11,7 @@ import { TodoHeader } from './todo-header'
 interface TodoCardProps {
   actions: DashboardAction[]
   loading: boolean
+  isAuthenticated: boolean
   hasCloudResume: boolean
 }
 
@@ -36,49 +38,53 @@ const TONE_STYLES: Record<DashboardActionTone, { icon: LucideIcon, box: string, 
   },
 }
 
-export function TodoCard({ actions, loading, hasCloudResume }: TodoCardProps) {
+export function TodoCard({ actions, loading, isAuthenticated, hasCloudResume }: TodoCardProps) {
   const navigate = useNavigate()
 
   return (
     <Card className="overflow-hidden">
       <TodoHeader />
       <CardContent className="pt-0">
-        {loading
-          ? <TodoSkeleton />
-          : !hasCloudResume
-              ? <EmptyState icon={Sparkles} title="登录并同步简历后开启求职看板" hint="投递、面试与优化待办都会在这里聚合提醒" />
-              : actions.length === 0
-                ? <EmptyState icon={CircleCheckBig} title="待办都处理完啦" hint="保持简历活跃，随时准备好下一次投递" tone="positive" />
-                : (
-                    <div className="flex flex-col gap-2.5">
-                      {actions.map((action) => {
-                        const tone = TONE_STYLES[action.tone]
-                        const Icon = tone.icon
-                        return (
-                          <button
-                            type="button"
-                            key={action.id}
-                            onClick={() => navigate(action.to)}
-                            className="group flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent/40"
-                          >
-                            <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', tone.box)}>
-                              <Icon className="size-[18px]" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium">
-                                <span className={cn('mr-1 text-base font-semibold tabular-nums', tone.count)}>
-                                  {action.count}
-                                </span>
-                                {action.label}
-                              </p>
-                              <p className="truncate text-xs text-muted-foreground">{action.hint}</p>
-                            </div>
-                            <ArrowRight className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
+        <AnimatedContent animationKey={loading ? 'loading' : !isAuthenticated ? 'guest' : !hasCloudResume ? 'no-resume' : actions.length === 0 ? 'empty' : 'ready'}>
+          {loading
+            ? <TodoSkeleton />
+            : !isAuthenticated
+                ? <EmptyState icon={LogIn} title="登录后查看今日待办" hint="登录后，投递跟进、面试安排和简历优化待办会在这里汇总" />
+                : !hasCloudResume
+                    ? <EmptyState icon={FilePlus2} title="还没有云端简历" hint="创建一份简历，或将本地简历同步到云端，开启求职待办提醒" />
+                    : actions.length === 0
+                      ? <EmptyState icon={CircleCheckBig} title="待办都处理完啦" hint="保持简历活跃，随时准备好下一次投递" tone="positive" />
+                      : (
+                          <div className="flex flex-col gap-2.5">
+                            {actions.map((action) => {
+                              const tone = TONE_STYLES[action.tone]
+                              const Icon = tone.icon
+                              return (
+                                <button
+                                  type="button"
+                                  key={action.id}
+                                  onClick={() => navigate(action.to)}
+                                  className="group flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent/40"
+                                >
+                                  <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', tone.box)}>
+                                    <Icon className="size-[18px]" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium">
+                                      <span className={cn('mr-1 text-base font-semibold tabular-nums', tone.count)}>
+                                        {action.count}
+                                      </span>
+                                      {action.label}
+                                    </p>
+                                    <p className="truncate text-xs text-muted-foreground">{action.hint}</p>
+                                  </div>
+                                  <ArrowRight className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+        </AnimatedContent>
       </CardContent>
     </Card>
   )

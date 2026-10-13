@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { CollaborationControls } from '../collaboration/collaboration-controls'
 import { AccordionEditor } from './accordion-editor'
@@ -125,7 +126,7 @@ export default function EditPanel({
 
   const widthTransition = reduceMotion || isResizing
     ? { duration: 0 }
-    : { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const }
+    : { duration: DURATION.slow, ease: EASE.out }
 
   return (
     <AnimatePresence initial={false}>
@@ -134,8 +135,8 @@ export default function EditPanel({
           key="edit-panel"
           initial={reduceMotion ? false : { width: 0, opacity: 0 }}
           animate={{ width, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={{ width: widthTransition, opacity: { duration: reduceMotion ? 0 : 0.18 } }}
+          exit={{ width: 0, opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+          transition={{ width: widthTransition, opacity: { duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out } }}
           className="relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-l bg-background"
         >
           {/* 内层固定宽度：动画期间内容一次性按目标宽度布局，由外层裁剪呈现，避免 @container 列数跳变 */}

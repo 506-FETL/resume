@@ -6,177 +6,115 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import { formatDateTime, formatRelativeTime } from '@/utils/date'
 import { SOURCE_META } from '../../const'
+import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
-import { getVersionSubtitle, getVersionTitle } from '../../utils'
+import { getVersionTitle } from '../../utils'
 import HistoryDialogs from '../dialogs'
+import SelectionHighlight from './selection-highlight'
 
 interface VersionCardProps {
   version: ResumeHistoryVersionListItem
-  index: number
   selected: boolean
   onSelectEntry: (target: HistorySelection) => void
 }
 
-export default function VersionCard({
-  version,
-  index,
-  selected,
-  onSelectEntry,
-}: VersionCardProps) {
-  const isMobile = useIsMobile()
+export default function VersionCard({ version, selected, onSelectEntry }: VersionCardProps) {
+  const { reduceMotion, enter, surfaceProps } = useHistoryMotion()
   const { restoreVersion, deleteVersion } = useHistoryStore()
   const [restoreTargetId, setRestoreTargetId] = useState<number | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
-
   const sourceMeta = SOURCE_META[version.source_type]
   const SourceIcon = sourceMeta.icon
-  const showSelectedState = selected && !isMobile
 
   const handleConfirmRestore = async (strategy: RestoreStrategy) => {
     const restoredVersion = await restoreVersion(version.id, strategy)
-
-    if (!restoredVersion) {
+    if (!restoredVersion)
       return
-    }
-
     setRestoreTargetId(null)
     onSelectEntry(restoredVersion.id)
   }
 
   const handleConfirmDelete = async () => {
-    const deleted = await deleteVersion(version.id)
-
-    if (!deleted) {
-      return
-    }
-
-    setDeleteTargetId(null)
+    if (await deleteVersion(version.id))
+      setDeleteTargetId(null)
   }
 
   return (
     <>
       <motion.article
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: index * 0.04 }}
-        className="relative"
+        whileHover={reduceMotion ? undefined : { y: -1 }}
+        transition={enter}
+        className={cn(
+          'relative isolate flex items-start gap-1 rounded-lg border p-3 transition-colors',
+          selected ? 'border-transparent' : 'border-border/60 bg-background hover:bg-muted/35',
+        )}
       >
-        <span
-          className={cn(
-            'absolute -left-[27px] top-4 flex size-3 items-center justify-center rounded-full border-2 bg-background',
-            sourceMeta.nodeClassName,
-          )}
-        />
-
-        <article
-          className={cn(
-            'relative overflow-hidden rounded-xl border border-border/70 bg-background transition-[color,background-color,border-color,box-shadow]',
-            'hover:border-border/90 hover:shadow-xs',
-            sourceMeta.surfaceClassName,
-            showSelectedState && sourceMeta.selectedSurfaceClassName,
-          )}
+        {selected && <SelectionHighlight />}
+        <motion.button
+          type="button"
+          aria-pressed={selected}
+          className="flex min-w-0 flex-1 flex-col gap-2.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => onSelectEntry(version.id)}
+          whileTap={reduceMotion ? undefined : { scale: 0.99 }}
+          transition={enter}
         >
-          <div className="flex items-start gap-2.5 p-3">
-            <button
-              type="button"
-              className="flex min-w-0 flex-1 flex-col gap-3 text-left"
-              onClick={() => onSelectEntry(version.id)}
-            >
-              <div className="flex min-w-0 flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="outline" className="rounded-full px-2 text-[11px]">
-                    V
-                    {version.version_no}
-                  </Badge>
-                  <Badge className={cn('rounded-full px-2 text-[11px]', sourceMeta.badgeClassName)}>
-                    <SourceIcon data-icon="inline-start" />
-                    {sourceMeta.label}
-                  </Badge>
-                  {version.milestone_name && (
-                    <Badge variant="outline" className="rounded-full border-primary/20 bg-primary/[0.035] px-2 text-[11px] text-primary dark:text-chart-1">
-                      <Flag data-icon="inline-start" />
-                      {version.milestone_name}
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="truncate text-sm font-semibold">{getVersionTitle(version)}</div>
-                  <div className="text-xs leading-5 text-muted-foreground">
-                    {getVersionSubtitle(version)}
-                    {' '}
-                    ·
-                    {' '}
-                    {formatRelativeTime(version.created_at)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-[11px] leading-4 text-muted-foreground">
-                <span>{formatDateTime(version.created_at)}</span>
-              </div>
-
-              {(version.description || (version.tags?.length ?? 0) > 0) && (
-                <div className="flex flex-col gap-2">
-                  {version.description && (
-                    <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                      {version.description}
-                    </p>
-                  )}
-
-                  {(version.tags?.length ?? 0) > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {version.tags?.slice(0, 3).map(tag => (
-                        <Badge key={tag} variant="secondary" className="rounded-full px-2 text-[11px]">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {(version.tags?.length ?? 0) > 3 && (
-                        <Badge variant="outline" className="rounded-full px-2 text-[11px]">
-                          +
-                          {(version.tags?.length ?? 0) - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="shrink-0">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => onSelectEntry(version.id)}>
-                    <Eye />
-                    查看简历
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => setRestoreTargetId(version.id)}>
-                    <RotateCcw />
-                    恢复此版本
-                  </DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onClick={() => setDeleteTargetId(version.id)}>
-                    <Trash2 />
-                    删除版本
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className={cn('font-semibold tabular-nums', selected ? 'text-primary' : 'text-foreground')}>
+              V
+              {version.version_no}
+            </span>
+            <span className="text-border">/</span>
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <SourceIcon className="size-3" />
+              {sourceMeta.label}
+            </span>
+            {version.milestone_name && <Flag aria-label={`重点版本：${version.milestone_name}`} className="size-3 text-primary" />}
           </div>
-        </article>
+          <div className="min-w-0 w-full">
+            <p className="truncate text-sm font-medium">{getVersionTitle(version)}</p>
+            {version.description && <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{version.description}</p>}
+          </div>
+          {(version.tags?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {version.tags?.slice(0, 2).map(tag => <Badge key={tag} variant="secondary" className="max-w-28 truncate text-[10px] font-normal">{tag}</Badge>)}
+              {(version.tags?.length ?? 0) > 2 && (
+                <span className="text-[10px] text-muted-foreground">
+                  +
+                  {(version.tags?.length ?? 0) - 2}
+                </span>
+              )}
+            </div>
+          )}
+          <time dateTime={version.created_at} title={formatDateTime(version.created_at)} className="text-[11px] text-muted-foreground">{formatRelativeTime(version.created_at)}</time>
+        </motion.button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" className="-mr-1 -mt-1 shrink-0 text-muted-foreground" aria-label={`版本 V${version.version_no} 的更多操作`}><MoreHorizontal /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent {...surfaceProps} className={`${surfaceProps.className} history-popup-motion`} align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => onSelectEntry(version.id)}>
+                <Eye />
+                查看简历
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setRestoreTargetId(version.id)}>
+                <RotateCcw />
+                恢复此版本
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={() => setDeleteTargetId(version.id)}>
+                <Trash2 />
+                删除版本
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </motion.article>
-
       <HistoryDialogs
         restoreTargetId={restoreTargetId}
         deleteTargetId={deleteTargetId}

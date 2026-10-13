@@ -35,43 +35,38 @@ export default function HistoryVersionOverview({ state }: HistoryVersionOverview
 
   return (
     <>
-      <Card className="gap-4 border-border/70 bg-muted/20 py-5 shadow-none">
+      <Card className="gap-0 rounded-lg border-border/70 py-3 shadow-none">
         <CardContent className="grid gap-3 px-5 sm:grid-cols-2">
-          <MetricCard label="版本号" value={`V${version.version_no}`} icon={Bookmark} toneClassName="border-primary/10 bg-primary/5" />
+          <MetricCard label="版本号" value={`V${version.version_no}`} icon={Bookmark} />
           <MetricCard
             label="版本来源"
             value={SOURCE_META[version.source_type].label}
             icon={SOURCE_META[version.source_type].icon}
-            toneClassName="border-accent bg-accent/40"
           />
           <MetricCard
             label="创建时间"
             value={formatDateTime(version.created_at)}
             icon={CalendarClock}
-            toneClassName="border-secondary bg-secondary/40"
           />
           <MetricCard
             label="重点标记"
             value={version.milestone_name || '未设置'}
             icon={Flag}
-            toneClassName="border-border bg-muted/40"
           />
           <MetricCard
             label="关联岗位"
             value={jobValue}
             icon={Briefcase}
-            toneClassName="border-border bg-muted/40"
           />
           <MetricCard
             label="投递日期"
             value={version.submitted_at || '未记录'}
             icon={Send}
-            toneClassName="border-border bg-muted/40"
           />
         </CardContent>
       </Card>
 
-      <Card className="gap-4 border-border/70 py-5 shadow-none">
+      <Card className="gap-4 rounded-lg border-border/70 py-4 shadow-none">
         <CardContent className="flex flex-col gap-3 px-5">
           <div>
             <div className="flex items-center gap-2 text-sm font-medium">

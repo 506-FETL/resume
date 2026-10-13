@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { motion, AnimatePresence, type HTMLMotionProps } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion, type HTMLMotionProps } from 'motion/react';
 
 import { Slot, type WithAsChild } from '@/components/animate-ui/primitives/animate/slot';
 import {
@@ -87,6 +87,7 @@ function ParticlesEffect({
   style,
   ...props
 }: ParticlesEffectProps) {
+  const reduceMotion = useReducedMotion();
   const { animate, isInView } = useParticles();
 
   const isVertical = side === 'top' || side === 'bottom';
@@ -115,7 +116,7 @@ function ParticlesEffect({
 
   return (
     <AnimatePresence>
-      {animate &&
+      {!reduceMotion && animate &&
         isInView &&
         [...Array(count)].map((_, i) => {
           const angle = i * angleStep;

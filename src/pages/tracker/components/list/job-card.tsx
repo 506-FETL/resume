@@ -1,5 +1,6 @@
 import type { JobApplication } from '../../types'
 import { Archive, Building2, MapPin, MoreVertical, Trash2 } from 'lucide-react'
+import { useIsPresent } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -20,18 +21,23 @@ interface JobCardProps {
 }
 
 export function JobCard({ job }: JobCardProps) {
+  const isPresent = useIsPresent()
   const { isSelectMode, selectedIds, toggleSelect, openJobDrawer, syncJob, restoreJobsSnapshot, removeJobs } = useTrackerStore()
   const [pendingDelete, setPendingDelete] = useState(false)
   const isSelected = selectedIds.has(job.id)
   const statusConfig = APPLICATION_STATUS_CONFIG[job.status]
 
   const handleClick = () => {
+    if (!isPresent)
+      return
     if (isSelectMode)
       toggleSelect(job.id)
     else openJobDrawer(job)
   }
 
   const handleDelete = async () => {
+    if (!isPresent)
+      return
     try {
       await deleteCompany(job.id)
       removeJobs([job.id])
@@ -44,6 +50,8 @@ export function JobCard({ job }: JobCardProps) {
   }
 
   const handleArchive = async () => {
+    if (!isPresent)
+      return
     const next = !job.archived
     try {
       const savedJob = await archiveCompany(job.id, next)
@@ -55,7 +63,7 @@ export function JobCard({ job }: JobCardProps) {
   }
 
   const handleStatusChange = async (newStatus: JobApplication['status']) => {
-    if (newStatus === job.status)
+    if (!isPresent || newStatus === job.status)
       return
     const previousState = useTrackerStore.getState()
     const updatedStageDetails = autoCompleteStages(job.status, newStatus, job.stage_details, true)
@@ -122,7 +130,7 @@ export function JobCard({ job }: JobCardProps) {
                       checked={isSelected}
                       className="size-4"
                       onClick={e => e.stopPropagation()}
-                      onCheckedChange={() => toggleSelect(job.id)}
+                      onCheckedChange={() => isPresent && toggleSelect(job.id)}
                     />
                   )
                 : (
@@ -137,9 +145,9 @@ export function JobCard({ job }: JobCardProps) {
                           <MoreVertical />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+                      <DropdownMenuContent inert={!isPresent} aria-hidden={!isPresent || undefined} align="end" onClick={e => e.stopPropagation()}>
                         <DropdownMenuGroup>
-                          <DropdownMenuItem onClick={() => openJobDrawer(job)}>
+                          <DropdownMenuItem onClick={() => isPresent && openJobDrawer(job)}>
                             查看详情
                           </DropdownMenuItem>
                           {APPLICATION_STATUS_ORDER.filter(status => status !== job.status).map(status => (
@@ -159,7 +167,7 @@ export function JobCard({ job }: JobCardProps) {
                           <Archive data-icon="inline-start" />
                           {job.archived ? '取消归档' : '归档'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" onClick={() => setPendingDelete(true)}>
+                        <DropdownMenuItem variant="destructive" onClick={() => isPresent && setPendingDelete(true)}>
                           <Trash2 data-icon="inline-start" />
                           删除
                         </DropdownMenuItem>
@@ -170,7 +178,7 @@ export function JobCard({ job }: JobCardProps) {
           </div>
         </div>
       </Card>
-      <AlertDialog open={pendingDelete} onOpenChange={open => !open && setPendingDelete(false)}>
+      <AlertDialog open={isPresent && pendingDelete} onOpenChange={open => !open && setPendingDelete(false)}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除职位？</AlertDialogTitle>

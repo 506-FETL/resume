@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useHistoryMotion } from '../../../hooks/use-history-motion'
 import { useJobSummaries } from '../../../hooks/use-job-summaries'
 import VersionTagInput from '../tag-input'
 
@@ -21,9 +22,10 @@ const NONE_COMPANY = '__none__'
 
 export default function VersionMetadataFields({ draft, onChange }: VersionMetadataFieldsProps) {
   const { options: jobOptions } = useJobSummaries()
+  const { surfaceProps } = useHistoryMotion()
 
   return (
-    <FieldGroup className="gap-5">
+    <FieldGroup {...surfaceProps} className={`${surfaceProps.className} gap-5`}>
       <Field>
         <FieldLabel htmlFor="version-name">版本名称</FieldLabel>
         <Input
@@ -79,7 +81,7 @@ export default function VersionMetadataFields({ draft, onChange }: VersionMetada
           <SelectTrigger>
             <SelectValue placeholder="选择投递的岗位" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent {...surfaceProps} position="popper" className={`${surfaceProps.className} history-popup-motion`}>
             <SelectItem value={NONE_COMPANY}>不关联</SelectItem>
             {jobOptions.map(option => (
               <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
@@ -99,7 +101,7 @@ export default function VersionMetadataFields({ draft, onChange }: VersionMetada
                 {draft.submittedAt ? draft.submittedAt : '选择日期'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-auto p-0">
+            <PopoverContent {...surfaceProps} align="start" className={`${surfaceProps.className} history-popup-motion w-auto p-0`}>
               <Calendar
                 mode="single"
                 captionLayout="dropdown"

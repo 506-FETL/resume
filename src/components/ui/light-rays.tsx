@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -95,12 +95,13 @@ export function LightRays({
   ref,
   ...props
 }: LightRaysProps) {
+  const reduceMotion = useReducedMotion()
   const [rays, setRays] = useState<LightRay[]>([])
   const cycleDuration = Math.max(speed, 0.1)
 
   useEffect(() => {
-    setRays(createRays(count, cycleDuration))
-  }, [count, cycleDuration])
+    setRays(reduceMotion ? [] : createRays(count, cycleDuration))
+  }, [count, cycleDuration, reduceMotion])
 
   return (
     <div
@@ -140,7 +141,7 @@ export function LightRays({
             } as CSSProperties
           }
         />
-        {rays.map(ray => (
+        {!reduceMotion && rays.map(ray => (
           <Ray key={ray.id} {...ray} />
         ))}
       </div>

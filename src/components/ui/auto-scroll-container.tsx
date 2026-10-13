@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
+export interface AutoScrollContainerHandle {
+  pauseAutoScroll: () => void
+}
+
 interface AutoScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> {
+  ref?: React.Ref<AutoScrollContainerHandle>
   children: React.ReactNode
   enabled?: boolean
   dependency?: any // 触发滚动的依赖项
@@ -13,6 +18,7 @@ interface AutoScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> 
 const BOTTOM_THRESHOLD = 30
 
 export function AutoScrollContainer({
+  ref,
   children,
   className,
   enabled = true,
@@ -21,7 +27,7 @@ export function AutoScrollContainer({
   ...props
 }: AutoScrollContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  // followRef：是否处于"自动跟随底部"状态。只有用户主动向上滚动才会解除跟随。
+  // 用户上滚或主动定位到消息时解除跟随，回到底部后恢复。
   const followRef = useRef(true)
   // programmaticRef：标记正在进行程序化滚动，避免其触发的 scroll 事件被误判为用户操作
   const programmaticRef = useRef(false)
@@ -34,6 +40,14 @@ export function AutoScrollContainer({
     const { scrollTop, scrollHeight, clientHeight } = el
     return scrollHeight - scrollTop - clientHeight <= BOTTOM_THRESHOLD
   }, [])
+
+  useImperativeHandle(ref, () => ({
+    pauseAutoScroll() {
+      followRef.current = false
+      programmaticRef.current = false
+      setAtBottom(measureAtBottom())
+    },
+  }), [measureAtBottom])
 
   const scrollToBottomNow = useCallback((behavior: ScrollBehavior) => {
     const el = containerRef.current

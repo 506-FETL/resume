@@ -1,9 +1,10 @@
 import type { COBEOptions } from 'cobe'
 import createGlobe from 'cobe'
-import { useMotionValue, useSpring } from 'motion/react'
+import { useMotionValue, useReducedMotion, useSpring } from 'motion/react'
 import { useEffect, useRef } from 'react'
 
 import { cn } from '@/lib/utils'
+import { DURATION, EASE } from '@/lib/motion'
 
 const MOVEMENT_DAMPING = 1400
 
@@ -42,6 +43,7 @@ export function Globe({
   className?: string
   config?: COBEOptions
 }) {
+  const reduceMotion = useReducedMotion()
   let phi = 0
   let width = 0
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -85,20 +87,24 @@ export function Globe({
       width: width * 2,
       height: width * 2,
       onRender: (state) => {
-        if (!pointerInteracting.current)
+        if (!reduceMotion && pointerInteracting.current === null)
           phi += 0.005
-        state.phi = phi + rs.get()
+        state.phi = phi + (reduceMotion ? r.get() : rs.get())
         state.width = width * 2
         state.height = width * 2
       },
     })
 
-    setTimeout(() => (canvasRef.current!.style.opacity = '1'), 0)
+    const frame = requestAnimationFrame(() => {
+      if (canvasRef.current)
+        canvasRef.current.style.opacity = '1'
+    })
     return () => {
       globe.destroy()
+      cancelAnimationFrame(frame)
       window.removeEventListener('resize', onResize)
     }
-  }, [rs, config])
+  }, [r, rs, config, reduceMotion])
 
   return (
     <div
@@ -109,9 +115,10 @@ export function Globe({
     >
       <canvas
         className={cn(
-          'size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]',
+          'size-full opacity-0 transition-opacity [contain:layout_paint_size]',
         )}
         ref={canvasRef}
+        style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.slow}s`, transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})` }}
         onPointerDown={(e) => {
           pointerInteracting.current = e.clientX
           updatePointerInteraction(e.clientX)

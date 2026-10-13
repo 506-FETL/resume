@@ -41,6 +41,7 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
   setSearchKeyword: searchKeyword => set({ searchKeyword }),
   setResumeFilters: resumeFilters => set({ resumeFilters }),
   setStatusFilter: statusFilter => set({ statusFilter }),
+  resetFilters: () => set({ searchKeyword: '', resumeFilters: [], statusFilter: 'all' }),
   openSettingsDialog: settingsShareId => set({
     settingsShareId,
     settingsDialogOpen: true,

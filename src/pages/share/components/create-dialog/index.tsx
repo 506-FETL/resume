@@ -1,6 +1,7 @@
 import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useReducedMotion } from 'motion/react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -10,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
+import { DURATION, EASE } from '@/lib/motion'
 import { getResumeSnapshotById, resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import { cn } from '@/lib/utils'
 import useShareStore from '../../store'
@@ -27,6 +29,7 @@ export default function CreateDialog({
   open,
   onOpenChange,
 }: CreateDialogProps) {
+  const reduceMotion = useReducedMotion()
   const {
     resumeMap,
     createRelease,
@@ -54,15 +57,19 @@ export default function CreateDialog({
   )
   const versionEntry = resumeId ? versionOptionsByResumeId[resumeId] : undefined
 
-  const reset = () => {
+  useLayoutEffect(() => {
+    if (!open)
+      return
+
     setResumeId('')
+    setResumeOpen(false)
     setLabel('')
     setPassword('')
     setShowPassword(false)
     setExpiresAt(undefined)
     setAllowComments(true)
     setSelection({ kind: 'current' })
-  }
+  }, [open])
 
   const handleCreate = async () => {
     if (!resumeId)
@@ -82,7 +89,6 @@ export default function CreateDialog({
         allowComments,
       })
       toast.success('分享链接已生成')
-      reset()
       onOpenChange(false)
     }
     catch {
@@ -99,12 +105,18 @@ export default function CreateDialog({
       onOpenChange={(nextOpen) => {
         if (!nextOpen && submitting)
           return
-        if (!nextOpen)
-          reset()
         onOpenChange(nextOpen)
       }}
     >
-      <DialogContent className="min-w-0 max-w-xl overflow-x-hidden">
+      <DialogContent
+        inert={!open}
+        className="min-w-0 max-w-xl overflow-x-hidden data-[state=closed]:pointer-events-none"
+        overlayClassName={reduceMotion ? 'data-[state=open]:animate-none data-[state=closed]:animate-none' : undefined}
+        style={{
+          animationDuration: `${(reduceMotion ? 0 : open ? DURATION.base : DURATION.fast) * 1000}ms`,
+          animationTimingFunction: `cubic-bezier(${(open ? EASE.out : EASE.in).join(',')})`,
+        }}
+      >
         <DialogHeader>
           <DialogTitle>新建分享</DialogTitle>
           <DialogDescription>选择简历并设置链接。</DialogDescription>
@@ -113,7 +125,7 @@ export default function CreateDialog({
         <FieldGroup className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
           <Field className="min-w-0 sm:col-span-2">
             <FieldLabel>选择简历</FieldLabel>
-            <Popover open={resumeOpen} onOpenChange={setResumeOpen}>
+            <Popover open={open && resumeOpen} onOpenChange={setResumeOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -126,7 +138,15 @@ export default function CreateDialog({
                   <ChevronsUpDown data-icon="inline-end" className="opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+              <PopoverContent
+                inert={!open || !resumeOpen}
+                className="w-(--radix-popover-trigger-width) p-0 data-[state=closed]:pointer-events-none"
+                align="start"
+                style={{
+                  animationDuration: `${(reduceMotion ? 0 : resumeOpen ? DURATION.base : DURATION.fast) * 1000}ms`,
+                  animationTimingFunction: `cubic-bezier(${(resumeOpen ? EASE.out : EASE.in).join(',')})`,
+                }}
+              >
                 <Command>
                   <CommandInput placeholder="搜索简历" />
                   <CommandList>
@@ -161,7 +181,7 @@ export default function CreateDialog({
               versions={versionEntry?.items ?? []}
               loading={versionEntry?.loading ?? false}
               error={versionEntry?.error ?? null}
-              disabled={!resumeId || submitting}
+              disabled={!open || !resumeId || submitting}
               onChange={setSelection}
               onRetry={() => {
                 if (resumeId)

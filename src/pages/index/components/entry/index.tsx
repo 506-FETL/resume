@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { TimelineEvent, TimelineEventType } from '../../insights'
 import { ArrowRight, Clock, FileUser, FolderKanban, LayoutTemplate, PencilRuler, Plus, Send, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -78,62 +79,64 @@ function Entry({
           <CardDescription className="text-xs">简历编辑与投递的近期事件</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 pt-0">
-          {events.length > 0
-            ? (
-                <div className="flex flex-col gap-3">
-                  <ol className="flex flex-col">
-                    {events.map((event, index) => (
-                      <TimelineItem
-                        key={event.id}
-                        event={event}
-                        isLast={index === events.length - 1}
-                        onClick={() => navigate(event.to)}
-                      />
-                    ))}
-                  </ol>
-                  <div className="pt-3 border-t flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      共
-                      <span className="font-medium text-foreground mx-1">{resumeCount}</span>
-                      份简历
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => navigate('/resume')}
-                    >
-                      查看全部
-                      <ArrowRight className="size-3" />
-                    </Button>
+          <AnimatedContent animationKey={events.length > 0 ? 'ready' : timelineLoading ? 'loading' : 'empty'}>
+            {events.length > 0
+              ? (
+                  <div className="flex flex-col gap-3">
+                    <ol className="flex flex-col">
+                      {events.map((event, index) => (
+                        <TimelineItem
+                          key={event.id}
+                          event={event}
+                          isLast={index === events.length - 1}
+                          onClick={() => navigate(event.to)}
+                        />
+                      ))}
+                    </ol>
+                    <div className="pt-3 border-t flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        共
+                        <span className="font-medium text-foreground mx-1">{resumeCount}</span>
+                        份简历
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => navigate('/resume')}
+                      >
+                        查看全部
+                        <ArrowRight className="size-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )
-            : (
-                <Empty className="h-45 border-0 p-0">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <FileUser className="text-muted-foreground/50" />
-                    </EmptyMedia>
-                    <EmptyTitle className="text-sm">
-                      {timelineLoading ? '正在整理最近动态' : '还没有任何动态'}
-                    </EmptyTitle>
-                    <EmptyDescription className="text-xs">
-                      创建或编辑简历、投递岗位后，动态会显示在这里
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  <EmptyContent>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => navigate('/resume')}
-                    >
-                      创建第一份简历
-                    </Button>
-                  </EmptyContent>
-                </Empty>
-              )}
+                )
+              : (
+                  <Empty className="h-45 border-0 p-0">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <FileUser className="text-muted-foreground/50" />
+                      </EmptyMedia>
+                      <EmptyTitle className="text-sm">
+                        {timelineLoading ? '正在整理最近动态' : '还没有任何动态'}
+                      </EmptyTitle>
+                      <EmptyDescription className="text-xs">
+                        创建或编辑简历、投递岗位后，动态会显示在这里
+                      </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => navigate('/resume')}
+                      >
+                        创建第一份简历
+                      </Button>
+                    </EmptyContent>
+                  </Empty>
+                )}
+          </AnimatedContent>
         </CardContent>
       </Card>
     </div>
@@ -166,14 +169,14 @@ function QuickAction({
       disabled={disabled}
       className={cn(
         'group flex flex-col items-start gap-2.5 rounded-lg border p-3 text-left transition-all duration-200',
-        'hover:-translate-y-0.5 hover:shadow-sm hover:bg-accent/50 hover:border-border/80',
+        'motion-safe:hover:-translate-y-0.5 hover:shadow-sm hover:bg-accent/50 hover:border-border/80 motion-safe:active:scale-[0.98] motion-reduce:transition-none',
         highlight && 'bg-primary/3 border-primary/20 hover:border-primary/40 hover:bg-primary/6 hover:shadow-primary/10',
         disabled && 'cursor-default opacity-50 hover:translate-y-0 hover:shadow-none hover:bg-transparent hover:border-border',
       )}
     >
       <div className={cn(
         'flex size-8 items-center justify-center rounded-md transition-transform duration-200',
-        'group-hover:scale-110 group-hover:-rotate-3',
+        'motion-safe:group-hover:scale-110 motion-safe:group-hover:-rotate-3 motion-reduce:transition-none',
         disabled && 'group-hover:scale-100 group-hover:rotate-0',
         iconBg,
       )}

@@ -33,8 +33,12 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       listResumeHistoryVersions(resumeId),
     ])
 
+    const currentResume = await buildCurrentResume(resume)
+    if (get().resumeId !== resumeId)
+      return
+
     set({
-      currentResume: await buildCurrentResume(resume),
+      currentResume,
       versions: versions.map(normalizeHistoryVersionListItem),
       snapshotCache: {},
       error: null,
@@ -103,6 +107,8 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         await hydrate(resumeId)
       }
       catch (error) {
+        if (get().resumeId !== resumeId)
+          return
         const message = error instanceof Error ? error.message : '版本记录加载失败'
         set({
           loading: false,

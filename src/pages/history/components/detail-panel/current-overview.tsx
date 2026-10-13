@@ -16,20 +16,19 @@ export default function CurrentOverview() {
 
   return (
     <>
-      <Card className="gap-4 border-border/70 bg-muted/20 py-5 shadow-none">
+      <Card className="gap-0 rounded-lg border-border/70 py-3 shadow-none">
         <CardContent className="grid gap-3 px-5 sm:grid-cols-3">
-          <MetricCard label="当前模板" value={getResumeTypeLabel(currentResume.type)} icon={FileText} toneClassName="border-primary/10 bg-primary/5" />
-          <MetricCard label="版本数量" value={`${versions.length}`} icon={History} toneClassName="border-secondary bg-secondary/40" />
+          <MetricCard label="当前模板" value={getResumeTypeLabel(currentResume.type)} icon={FileText} />
+          <MetricCard label="版本数量" value={`${versions.length}`} icon={History} />
           <MetricCard
             label="最近更新"
             value={currentResume.updatedAt ? formatRelativeTime(currentResume.updatedAt) : '未知'}
             icon={Clock3}
-            toneClassName="border-accent bg-accent/40"
           />
         </CardContent>
       </Card>
 
-      <Card className="gap-3 border-border/70 py-5 shadow-none">
+      <Card className="gap-3 rounded-lg border-border/70 bg-muted/20 py-4 shadow-none">
         <CardContent className="px-5">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Info className="size-4 text-primary" />

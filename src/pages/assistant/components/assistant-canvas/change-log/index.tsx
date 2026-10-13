@@ -270,11 +270,11 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
       }
       // 用 nearest：仅当目标不在可视区时才滚动最小距离（配合 scroll-margin 让其落在 sticky 标题栏下方），
       // 已在可视区则完全不滚动，避免"移动窗口把内容顶出/遮挡"
-      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      el.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' })
       // 与简历评论一致的黄色高亮，动画结束后自动移除
       el.classList.remove('resume-locate-highlight')
       // 强制 reflow 以便重复点击同一目标时能重新触发动画
-      void el.offsetWidth
+      el.getBoundingClientRect()
       el.classList.add('resume-locate-highlight')
       const clear = () => el.classList.remove('resume-locate-highlight')
       el.addEventListener('animationend', clear, { once: true })
@@ -461,7 +461,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
               key={change.id}
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, delay: reduceMotion ? 0 : staggerDelay(itemIndex) }}
+              transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, delay: reduceMotion ? 0 : staggerDelay(Math.min(itemIndex, 5)) }}
             >
               {itemNode}
             </motion.div>

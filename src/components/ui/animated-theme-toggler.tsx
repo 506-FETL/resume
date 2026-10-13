@@ -2,6 +2,8 @@ import { cn } from "@/lib/utils"
 import { Moon, Sun } from "lucide-react"
 import { useCallback, useRef } from "react"
 import { flushSync } from "react-dom"
+import { useReducedMotion } from "motion/react"
+import { DURATION, EASE } from "@/lib/motion"
 import { useTheme } from "../theme-provider"
 import { Button } from "./button"
 
@@ -11,11 +13,13 @@ interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<"butt
 
 export const AnimatedThemeToggler = ({
   className,
-  duration = 400,
+  duration = DURATION.slow * 1000,
   ...props
 }: AnimatedThemeTogglerProps) => {
   const { theme, setTheme } = useTheme()
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const reduceMotion = useReducedMotion()
+  const activeTransition = useRef<ViewTransition | null>(null)
 
   const toggleTheme = useCallback(() => {
     const button = buttonRef.current
@@ -35,18 +39,21 @@ export const AnimatedThemeToggler = ({
       setTheme(theme === "dark" ? "light" : "dark")
     }
 
-    if (typeof document.startViewTransition !== "function") {
+    if (reduceMotion || typeof document.startViewTransition !== "function") {
       applyTheme()
       return
     }
 
+    activeTransition.current?.skipTransition()
     const transition = document.startViewTransition(() => {
       flushSync(applyTheme)
     })
+    activeTransition.current = transition
 
     const ready = transition?.ready
     if (ready && typeof ready.then === "function") {
       ready.then(() => {
+        if (activeTransition.current !== transition) return
         document.documentElement.animate(
           {
             clipPath: [
@@ -56,13 +63,13 @@ export const AnimatedThemeToggler = ({
           },
           {
             duration,
-            easing: "ease-in-out",
+            easing: `cubic-bezier(${EASE.out.join(',')})`,
             pseudoElement: "::view-transition-new(root)",
           }
         )
-      })
+      }).catch(() => undefined)
     }
-  }, [theme, duration])
+  }, [theme, duration, reduceMotion, setTheme])
 
   return (
     <Button

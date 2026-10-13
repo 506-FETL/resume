@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { QuotaCard } from '@/components/quota/quota-card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -39,38 +40,40 @@ export default function ProfilePage() {
     fetchUser()
   }, [navigate])
 
-  if (!user || loading) {
-    return <ProfilePageSkeleton />
-  }
-
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      {/* 页面标题 */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">个人信息</h1>
-        <p className="text-muted-foreground mt-2">管理你的账户信息和偏好设置</p>
-      </div>
+    <AnimatedContent animationKey={!user || loading ? 'loading' : 'ready'}>
+      {!user || loading
+        ? <ProfilePageSkeleton />
+        : (
+            <div className="mx-auto max-w-4xl space-y-6">
+              {/* 页面标题 */}
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">个人信息</h1>
+                <p className="text-muted-foreground mt-2">管理你的账户信息和偏好设置</p>
+              </div>
 
-      <Separator />
+              <Separator />
 
-      {/* 个人资料卡片 */}
-      <ProfileInfoCard user={user} />
+              {/* 个人资料卡片 */}
+              <ProfileInfoCard user={user} />
 
-      {/* 账户设置卡片 */}
-      <AccountSettingsCard user={user} />
+              {/* 账户设置卡片 */}
+              <AccountSettingsCard user={user} />
 
-      {/* AI 额度卡片 */}
-      <QuotaCard />
+              {/* AI 额度卡片 */}
+              <QuotaCard />
 
-      {/* 偏好设置卡片 */}
-      <PreferencesCard />
-    </div>
+              {/* 偏好设置卡片 */}
+              <PreferencesCard />
+            </div>
+          )}
+    </AnimatedContent>
   )
 }
 
 function ProfilePageSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in-50 duration-500">
+    <div className="mx-auto max-w-4xl space-y-6">
       {/* 页面标题骨架 */}
       <div className="flex flex-col gap-3">
         <Skeleton className="h-9 w-48 rounded-lg" />

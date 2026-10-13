@@ -1,17 +1,19 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { Archive, Copy, Eye, History, LockKeyhole, MessageSquareText, MoreHorizontal, Power, Settings2, Trash2 } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { Archive, ArrowUpRight, Clock3, Eye, FileUser, History, Link2, LockKeyhole, MessageSquareText, MoreHorizontal, Power, Settings2, Trash2 } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Spinner } from '@/components/ui/spinner'
+import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/utils/date'
-import { SHARE_CARD_ICONS, SHARE_ICON_STYLES, SHARE_MOTION, SHARE_STATUS_META } from '../../const'
+import { SHARE_MOTION, SHARE_STATUS_META } from '../../const'
 import useShareStore from '../../store'
 import { buildShareUrl, deriveShareStatus, formatShareUrlForDisplay } from '../../utils'
+import CopyLinkButton from '../copy-link-button'
 import VersionBadge from '../version-badge'
 
 interface LinkCardProps {
@@ -21,34 +23,17 @@ interface LinkCardProps {
 }
 
 export default function LinkCard({ ref, share, index }: LinkCardProps) {
-  const {
-    pendingShareIds,
-    openSettingsDialog,
-    openArchiveDialog,
-    openDeleteDialog,
-    openVersionDialog,
-    setActive,
-  } = useShareStore()
+  const { pendingShareIds, openSettingsDialog, openArchiveDialog, openDeleteDialog, openVersionDialog, setActive } = useShareStore()
   const reduceMotion = useReducedMotion()
   const status = deriveShareStatus(share)
   const statusMeta = SHARE_STATUS_META[status]
-  const Icon = SHARE_CARD_ICONS[index % SHARE_CARD_ICONS.length]
   const url = buildShareUrl(share.token)
   const busy = pendingShareIds.includes(share.id)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success('链接已复制')
-    }
-    catch {
-      toast.error('复制失败，请手动复制')
-    }
-  }
-
-  const handlePreview = () => {
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
+  const archived = Boolean(share.archivedAt)
+  const title = share.label || `${share.display_name || '简历'}的分享`
+  const expiry = share.expires_at
+    ? new Date(share.expires_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+    : null
 
   const handleToggleActive = async () => {
     try {
@@ -61,139 +46,139 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
   }
 
   return (
-    <motion.div
+    <PresenceDiv
       ref={ref}
-      layout
+      role="listitem"
+      className="min-w-0"
+      layout={reduceMotion ? false : 'position'}
       initial={reduceMotion ? false : SHARE_MOTION.item.initial}
       animate={SHARE_MOTION.item.animate}
-      exit={reduceMotion ? { opacity: 0 } : SHARE_MOTION.item.exit}
+      exit={{
+        ...(reduceMotion ? { opacity: 0 } : SHARE_MOTION.item.exit),
+        transition: { duration: reduceMotion ? 0 : DURATION.fast, delay: 0, ease: EASE.in },
+      }}
       transition={{
         ...SHARE_MOTION.item.transition,
-        duration: reduceMotion ? 0 : SHARE_MOTION.item.transition.duration,
-        delay: reduceMotion ? 0 : Math.min(index, 12) * 0.025,
-        layout: { duration: reduceMotion ? 0 : 0.2 },
+        duration: reduceMotion ? 0 : DURATION.base,
+        delay: reduceMotion ? 0 : staggerDelay(Math.min(index, 6)),
+        layout: reduceMotion ? { duration: 0 } : SPRING.layout,
       }}
     >
-      <Card className={cn(
-        'min-w-0 gap-0 overflow-hidden rounded-xl py-0 shadow-sm transition-colors hover:border-primary/25',
-        status === 'inactive' && 'bg-muted/30 opacity-75',
-        status === 'expired' && 'border-red-200 dark:border-red-900',
-        status === 'archived' && 'bg-muted/40 opacity-75',
-      )}
+      <article
+        aria-label={title}
+        aria-busy={busy}
+        className={cn(
+          'group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-xs transition-[border-color,box-shadow] hover:border-foreground/20 hover:shadow-sm focus-within:border-foreground/25',
+          status === 'expired' && 'border-amber-200 dark:border-amber-900/60',
+        )}
+        style={{ transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s` }}
       >
-        <div className="min-w-0 p-3">
-          <div className="flex min-w-0 items-start justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div className={cn(
-                'flex size-8 shrink-0 items-center justify-center rounded-lg',
-                SHARE_ICON_STYLES[index % SHARE_ICON_STYLES.length],
-              )}
-              >
-                <Icon className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="truncate text-sm font-semibold">{share.label || '未命名链接'}</h3>
-                <p className="truncate text-[11px] text-muted-foreground">{share.display_name || '未命名简历'}</p>
-              </div>
+        <div className="flex-1 p-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300">
+              <FileUser className="size-4" strokeWidth={1.6} />
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className={cn('mt-1 size-2 shrink-0 rounded-full', statusMeta.dotClassName)} />
-              </TooltipTrigger>
-              <TooltipContent>{statusMeta.label}</TooltipContent>
-            </Tooltip>
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-sm font-semibold" title={title}>{title}</h3>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground" title={share.display_name || '未命名简历'}>{share.display_name || '未命名简历'}</p>
+            </div>
+            <div className="shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label={`更多操作：${title}`} disabled={busy} className="text-muted-foreground">
+                    {busy ? <Spinner /> : <MoreHorizontal className="size-4" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem disabled={busy || archived} onClick={() => openVersionDialog(share.id)}>
+                      <History />
+                      更换分享版本
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled={busy || archived} onClick={handleToggleActive}>
+                      <Power />
+                      {share.is_active ? '关闭链接' : '启用链接'}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    {!archived && (
+                      <DropdownMenuItem disabled={busy} onClick={() => openArchiveDialog(share.id)}>
+                        <Archive />
+                        归档分享
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem variant="destructive" disabled={busy} onClick={() => openDeleteDialog(share.id)}>
+                      <Trash2 />
+                      永久删除
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
-          <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-md bg-muted/60 px-2 py-1.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <code className="block min-w-0 truncate text-[10px] text-muted-foreground">
-                  {formatShareUrlForDisplay(url)}
-                </code>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-sm break-all">{url}</TooltipContent>
-            </Tooltip>
-            <Button variant="ghost" size="icon-xs" aria-label="复制链接" onClick={handleCopy}>
-              <Copy data-icon="inline-start" />
-            </Button>
-          </div>
-
-          <div className="mt-2">
-            <VersionBadge source={share.source} />
-          </div>
-
-          <div className="mt-3 flex min-w-0 items-center gap-3 text-[11px] text-muted-foreground">
+          <div className="mt-3 flex min-w-0 items-center gap-2">
+            <span className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium', statusMeta.badgeClassName)}>
+              <span className={cn('size-1.5 rounded-full', statusMeta.dotClassName)} />
+              {statusMeta.label}
+            </span>
+            <div className="min-w-0"><VersionBadge source={share.source} /></div>
             {share.has_password && (
-              <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-300">
+              <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-muted-foreground" title="密码保护">
                 <LockKeyhole className="size-3" />
-                密码
+                <span className="sr-only">密码保护</span>
               </span>
             )}
-            <span className="inline-flex items-center gap-1">
-              <MessageSquareText className="size-3" />
-              {share.allowComments ? '允许评论' : '仅查看'}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Eye className="size-3" />
-              {share.view_count}
-            </span>
-            <span className="min-w-0 truncate">
-              {share.last_viewed_at ? formatRelativeTime(share.last_viewed_at) : '暂无访问'}
-            </span>
           </div>
 
-          <div className="mt-3 flex justify-end gap-1 border-t pt-2.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="预览" disabled={Boolean(share.archivedAt)} onClick={handlePreview}>
-                  <Eye data-icon="inline-start" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>预览</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="编辑设置" disabled={busy || Boolean(share.archivedAt)} onClick={() => openSettingsDialog(share.id)}>
-                  <Settings2 data-icon="inline-start" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>编辑设置</TooltipContent>
-            </Tooltip>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="更多操作">
-                  <MoreHorizontal data-icon="inline-start" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="w-full">
-                <DropdownMenuGroup>
-                  <DropdownMenuItem disabled={busy || Boolean(share.archivedAt)} onClick={() => openVersionDialog(share.id)}>
-                    <History data-icon="inline-start" />
-                    更换分享版本
-                  </DropdownMenuItem>
-                  <DropdownMenuItem disabled={busy || Boolean(share.archivedAt)} onClick={handleToggleActive}>
-                    <Power data-icon="inline-start" />
-                    {share.is_active ? '关闭链接' : '启用链接'}
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  {!share.archivedAt && (
-                    <DropdownMenuItem disabled={busy} onClick={() => openArchiveDialog(share.id)}>
-                      <Archive data-icon="inline-start" />
-                      归档分享
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem variant="destructive" disabled={busy} onClick={() => openDeleteDialog(share.id)}>
-                    <Trash2 data-icon="inline-start" />
-                    永久删除
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="mt-3 flex min-w-0 items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 pl-2.5 pr-0.5">
+            <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
+            <code className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={url}>{formatShareUrlForDisplay(url)}</code>
+            <CopyLinkButton url={url} />
           </div>
+
+          <dl className="mt-3 grid grid-cols-2 divide-x">
+            <div className="min-w-0 pr-3">
+              <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Eye className="size-3.5" />
+                访问次数
+              </dt>
+              <dd className="mt-1 text-sm font-semibold leading-5 tabular-nums">{share.view_count.toLocaleString()}</dd>
+            </div>
+            <div className="min-w-0 pl-3">
+              <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock3 className="size-3.5" />
+                最近访问
+              </dt>
+              <dd className="mt-1 truncate text-xs leading-5" title={share.last_viewed_at ? new Date(share.last_viewed_at).toLocaleString('zh-CN') : undefined}>
+                {share.last_viewed_at ? formatRelativeTime(share.last_viewed_at) : '暂无访问'}
+              </dd>
+            </div>
+          </dl>
         </div>
-      </Card>
-    </motion.div>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pb-3 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <MessageSquareText className="size-3.5" />
+            {share.allowComments ? '允许评论' : '仅查看'}
+          </span>
+          <span title={share.expires_at ? new Date(share.expires_at).toLocaleString('zh-CN') : undefined}>
+            {expiry ? `${expiry}${status === 'expired' ? '已到期' : '到期'}` : '无到期限制'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 border-t bg-muted/20 px-3 py-2">
+          <Button variant="ghost" className="h-8 rounded-md text-xs text-muted-foreground" disabled={busy || archived} onClick={() => openSettingsDialog(share.id)}>
+            <Settings2 className="size-4" />
+            编辑设置
+          </Button>
+          <Button variant="outline" className="h-8 rounded-md bg-card text-xs" disabled={archived} onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
+            预览简历
+            <ArrowUpRight className="size-4" />
+          </Button>
+        </div>
+      </article>
+    </PresenceDiv>
   )
 }

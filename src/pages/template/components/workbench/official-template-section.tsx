@@ -1,13 +1,15 @@
 import { ArrowRight, Pencil } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { TEMPLATE_CENTER_TAB_META } from '../../const'
 import { useOfficialTemplatesStore, useTemplateWorkbenchStore } from '../../store'
 import { TemplateCard } from './template-card'
 import { TemplateThumbnail } from './template-thumbnail'
 
 export function OfficialTemplateSection() {
+  const reduceMotion = useReducedMotion()
   const { officialTemplates: templates } = useOfficialTemplatesStore()
   const { createResumeWithTemplate, customizeOfficialTemplate } = useTemplateWorkbenchStore()
   const sectionMeta = TEMPLATE_CENTER_TAB_META.official
@@ -30,19 +32,20 @@ export function OfficialTemplateSection() {
           {templates.map((template, index) => (
             <motion.div
               key={template.id}
-              layout
-              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              layout={reduceMotion ? false : 'position'}
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.98, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{
                 opacity: 0,
-                scale: 0.82,
-                y: -20,
-                transition: { duration: 0.2 },
+                scale: reduceMotion ? 1 : 0.98,
+                y: 0,
+                transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in, delay: 0 },
               }}
               transition={{
-                duration: 0.28,
-                delay: index * 0.04,
-                layout: { duration: 0.28 },
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+                delay: reduceMotion ? 0 : Math.min(index, 8) * 0.03,
+                layout: reduceMotion ? { duration: 0 } : SPRING.layout,
               }}
             >
               <TemplateCard

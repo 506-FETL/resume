@@ -1,16 +1,16 @@
 import type { HistorySelection } from '../../types'
-import { LoaderCircle } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { History, SearchX } from 'lucide-react'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
-import { formatRelativeTime } from '@/utils/date'
+import { Card } from '@/components/ui/card'
+import { staggerDelay } from '@/lib/motion'
 import { DEFAULT_VERSION_FILTER, filterVersions, isFilterActive } from '../../filter'
-import { useOverflowState } from '../../hooks/use-overflow-state'
+import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
 import { groupVersionsByDay } from '../../utils'
+import HistoryMotionContent from '../motion-content'
 import CurrentVersionCard from './current-version-card'
 import TimelineEmptyState from './empty-state'
 import TimelineLoadingState from './loading-state'
@@ -22,130 +22,122 @@ interface HistoryTimelineProps {
   onSelectEntry: (target: HistorySelection) => void
 }
 
-export default function HistoryTimeline({
-  selectedEntry,
-  onSelectEntry,
-}: HistoryTimelineProps) {
+export default function HistoryTimeline({ selectedEntry, onSelectEntry }: HistoryTimelineProps) {
   const { resumeId, currentResume, versions, loading } = useHistoryStore()
-  const { ref: scrollRef, overflowing } = useOverflowState<HTMLDivElement>()
   const [filter, setFilter] = useState(DEFAULT_VERSION_FILTER)
+  const { reduceMotion, enter, exit, layout } = useHistoryMotion()
+  const layoutId = useId()
 
-  // 切换简历时重置筛选，避免上一份简历的条件带过来
   useEffect(() => {
     setFilter(DEFAULT_VERSION_FILTER)
   }, [resumeId])
 
   const filteredVersions = useMemo(() => filterVersions(versions, filter), [versions, filter])
   const groups = groupVersionsByDay(filteredVersions)
-  const hasKeywordOrFilter = filter.keyword.trim().length > 0 || isFilterActive(filter)
-  const timelineCountLabel = versions.length === 0
-    ? '暂无版本记录'
-    : hasKeywordOrFilter
-      ? `筛选出 ${filteredVersions.length} / 共 ${versions.length} 条`
-      : `${versions.length} 条版本记录`
+  const hasFilter = filter.keyword.trim().length > 0 || isFilterActive(filter)
+  const itemMotion = {
+    initial: { opacity: 0, y: reduceMotion ? 0 : 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: reduceMotion ? 0 : -4, transition: exit },
+    transition: { ...enter, layout },
+  }
 
   return (
-    <Card className="flex min-h-0 flex-col gap-0 overflow-hidden border-border/70 bg-background/95 py-0 shadow-none max-h-[72dvh] md:max-h-[min(78vh,920px)] lg:sticky lg:top-20 lg:h-[calc(100vh-7rem)] lg:max-h-230">
-      <CardHeader className="gap-4 py-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">{timelineCountLabel}</Badge>
-          {loading && (
-            <Badge variant="secondary">
-              <LoaderCircle data-icon="inline-start" className="animate-spin" />
-              正在加载
-            </Badge>
-          )}
-          {currentResume?.updatedAt && (
-            <Badge variant="outline">
-              当前内容更新于
-              {' '}
-              {formatRelativeTime(currentResume.updatedAt)}
-            </Badge>
-          )}
+    <LayoutGroup id={layoutId}>
+      <Card className="flex min-h-0 min-w-0 flex-col gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-none lg:sticky lg:top-2">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3.5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <History className="size-4 text-muted-foreground" />
+            版本记录
+          </h2>
+          <Badge variant="secondary" className="text-xs font-normal">{loading ? '加载中…' : `${versions.length} 个版本`}</Badge>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <CardTitle>版本时间线</CardTitle>
-          <CardDescription>
-            {loading ? '正在加载这份简历的版本记录。' : '左侧选择版本，右侧查看内容、编辑说明或恢复版本。'}
-          </CardDescription>
+
+        <div className="shrink-0 border-b p-3">
+          <HistoryMotionContent transitionKey={loading && !currentResume ? 'loading' : 'current'}>
+            {loading && !currentResume
+              ? <TimelineLoadingState count={1} />
+              : <CurrentVersionCard selected={selectedEntry === 'current'} onSelectEntry={onSelectEntry} />}
+          </HistoryMotionContent>
         </div>
-      </CardHeader>
-      <Separator />
 
-      <CardContent
-        ref={scrollRef}
-        className={cn(
-          'min-h-0 flex-1 px-0 py-0',
-          overflowing
-            ? 'scrollbar-gutter-stable scrollbar-thin-subtle overflow-y-auto overscroll-contain'
-            : 'overflow-hidden',
-        )}
-      >
-        <div className="flex flex-col gap-4 p-4 sm:p-5">
-          <section className="flex flex-col gap-2.5">
-            <div className="px-1 text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              当前版本
-            </div>
-            <CurrentVersionCard
-              selected={selectedEntry === 'current'}
-              onSelectEntry={onSelectEntry}
-            />
-          </section>
+        <AnimatePresence initial={false}>
+          {!loading && versions.length > 0 && (
+            <motion.div
+              key="filter"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0, transition: exit }}
+              transition={enter}
+              className="shrink-0 overflow-hidden border-b"
+            >
+              <div className="px-3 py-3">
+                <VersionFilterBar criteria={filter} onChange={setFilter} />
+                <AnimatePresence initial={false}>
+                  {hasFilter && (
+                    <motion.div
+                      key="result-count"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0, transition: exit }}
+                      transition={enter}
+                      className="overflow-hidden"
+                    >
+                      <p aria-live="polite" className="px-1 pt-2 text-xs text-muted-foreground">
+                        找到
+                        {' '}
+                        {filteredVersions.length}
+                        {' '}
+                        个版本，共
+                        {' '}
+                        {versions.length}
+                        {' '}
+                        个
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <Separator />
-
-          <section className="flex flex-col gap-3.5">
-            {!loading && versions.length > 0 && (
-              <VersionFilterBar criteria={filter} onChange={setFilter} />
-            )}
-
-            {loading
-              ? (
-                  <TimelineLoadingState />
-                )
-              : groups.length > 0
-                ? (
-                    <div className="flex flex-col gap-5">
-                      {groups.map(group => (
-                        <section key={group.label} className="flex flex-col gap-3">
-                          <div className="flex items-center gap-2.5">
-                            <Separator className="flex-1" />
-                            <span className="text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                              {group.label}
-                            </span>
-                            <Separator className="flex-1" />
-                          </div>
-
-                          <div className="flex flex-col gap-2 border-l border-dashed border-border/70 pl-5">
-                            {group.items.map((version, index) => (
-                              <VersionCard
-                                key={version.id}
-                                version={version}
-                                index={index}
-                                selected={selectedEntry === version.id}
-                                onSelectEntry={onSelectEntry}
-                              />
-                            ))}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  )
-                : versions.length > 0
-                  ? (
-                      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-muted/20 px-3 py-10 text-center">
-                        <p className="text-sm text-muted-foreground">没有符合条件的版本</p>
-                        <Button variant="outline" size="sm" className="h-8" onClick={() => setFilter(DEFAULT_VERSION_FILTER)}>
-                          清除筛选
-                        </Button>
-                      </div>
-                    )
+        <motion.div layoutScroll className="scrollbar-thin-subtle min-h-0 max-h-80 overflow-y-auto overscroll-contain p-3 lg:max-h-[calc(100dvh-32rem)] lg:min-h-32">
+          <motion.div layout={reduceMotion ? false : 'size'} transition={layout} className="relative flex flex-col gap-2">
+            <AnimatePresence initial={false} mode="popLayout">
+              {loading
+                ? <motion.div key="loading" {...itemMotion}><TimelineLoadingState /></motion.div>
+                : groups.length > 0
+                  ? groups.flatMap(group => [
+                      <motion.h3 key={`day-${group.label}`} layout={reduceMotion ? false : 'position'} {...itemMotion} className="px-1 pb-1 pt-2 text-xs font-medium text-muted-foreground">{group.label}</motion.h3>,
+                      ...group.items.map((version, index) => (
+                        <motion.div
+                          key={version.id}
+                          layout={reduceMotion ? false : 'position'}
+                          {...itemMotion}
+                          transition={{ ...enter, delay: reduceMotion ? 0 : staggerDelay(Math.min(index, 5)), layout }}
+                        >
+                          <VersionCard version={version} selected={selectedEntry === version.id} onSelectEntry={onSelectEntry} />
+                        </motion.div>
+                      )),
+                    ])
                   : (
-                      <TimelineEmptyState currentResume={currentResume} />
+                      <motion.div key={versions.length > 0 ? 'no-results' : 'empty'} {...itemMotion}>
+                        {versions.length > 0
+                          ? (
+                              <div className="flex flex-col items-center gap-3 px-3 py-8 text-center">
+                                <SearchX className="size-6 text-muted-foreground/60" />
+                                <p className="text-sm text-muted-foreground">没有符合条件的版本</p>
+                                <Button variant="outline" size="sm" onClick={() => setFilter(DEFAULT_VERSION_FILTER)}>清除筛选</Button>
+                              </div>
+                            )
+                          : <TimelineEmptyState currentResume={currentResume} />}
+                      </motion.div>
                     )}
-          </section>
-        </div>
-      </CardContent>
-    </Card>
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      </Card>
+    </LayoutGroup>
   )
 }

@@ -1,5 +1,6 @@
 import { FileText } from 'lucide-react'
 import { useMemo } from 'react'
+import AnimatedContent from '@/components/motion/animated-content'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -18,7 +19,7 @@ export default function ResumePreview() {
       </div>
       {/* 用原生溢出容器而非 Radix ScrollArea：后者视口用 display:table，会让内容按自然宽度撑开导致预览无法按容器宽度自适应缩放 */}
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="p-3">
+        <AnimatedContent animationKey={status === 'idle' && !previewData ? 'empty' : status} className="p-3">
           {status === 'loading' && <Skeleton className="h-[560px] w-full rounded-lg" />}
           {status === 'error' && <p className="py-10 text-center text-sm text-muted-foreground">该简历加载失败，请重试或切换其它简历。</p>}
           {(status === 'empty' || (!previewData && status === 'idle')) && (
@@ -31,7 +32,7 @@ export default function ResumePreview() {
             </Empty>
           )}
           {previewData && status === 'idle' && <ScaledReadonlyPreview data={previewData} appearance={snapshot} />}
-        </div>
+        </AnimatedContent>
       </div>
     </div>
   )

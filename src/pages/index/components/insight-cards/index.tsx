@@ -2,10 +2,13 @@ import type { ReactNode } from 'react'
 import type { ActivityDay, AtsTrendPoint, FollowUpJob, FunnelStage } from '../../insights'
 import type { ChartConfig } from '@/components/ui/chart'
 import { Activity, ArrowRight, BellRing, LineChart as LineChartIcon, LoaderCircle, TrendingUp } from 'lucide-react'
+import { useIsPresent, useReducedMotion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { DURATION } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { NEXT_ACTION_TONE_CLASSES } from '@/pages/tracker/const'
 
@@ -32,7 +35,7 @@ function CardHead({ icon, title, description }: { icon: ReactNode, title: string
 function ChartLoading() {
   return (
     <div className={cn('flex w-full items-center justify-center', CHART_HEIGHT)}>
-      <LoaderCircle className="size-6 animate-spin text-muted-foreground/60" aria-label="加载中" role="status" />
+      <LoaderCircle className="size-6 animate-spin motion-reduce:animate-none text-muted-foreground/60" aria-label="加载中" role="status" />
     </div>
   )
 }
@@ -66,12 +69,13 @@ function followUpTone(daysUntil: number | null): { text: string, tone: 'overdue'
 
 export function FollowUpCard({ followUps, total }: { followUps: FollowUpJob[], total: number }) {
   const navigate = useNavigate()
+  const isPresent = useIsPresent()
 
   if (followUps.length === 0)
     return null
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col" inert={!isPresent} aria-hidden={!isPresent || undefined}>
       <CardHead
         icon={<BellRing className="size-4" />}
         title="待跟进岗位"
@@ -126,6 +130,7 @@ const funnelConfig = {
 } satisfies ChartConfig
 
 export function FunnelCard({ funnel, loading }: { funnel: FunnelStage[], loading: boolean }) {
+  const reduceMotion = useReducedMotion()
   const navigate = useNavigate()
   const hasData = funnel.some(stage => stage.count > 0)
 
@@ -137,27 +142,29 @@ export function FunnelCard({ funnel, loading }: { funnel: FunnelStage[], loading
         description="各阶段在办岗位分布"
       />
       <CardContent className="flex-1 pt-0">
-        {loading
-          ? <ChartLoading />
-          : hasData
-            ? (
-                <ChartContainer config={funnelConfig} className={cn(CHART_HEIGHT, 'w-full')}>
-                  <BarChart accessibilityLayer data={funnel} margin={CHART_MARGIN}>
-                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={44} />
-                  </BarChart>
-                </ChartContainer>
-              )
-            : (
-                <ChartEmpty
-                  icon={<Activity className="size-8 text-muted-foreground/40" />}
-                  text="去求职看板添加第一个岗位"
-                  onClick={() => navigate('/tracker')}
-                />
-              )}
+        <AnimatedContent animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}>
+          {loading
+            ? <ChartLoading />
+            : hasData
+              ? (
+                  <ChartContainer config={funnelConfig} className={cn(CHART_HEIGHT, 'w-full')}>
+                    <BarChart accessibilityLayer data={funnel} margin={CHART_MARGIN}>
+                      <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                      <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                      <Bar isAnimationActive={!reduceMotion} animationDuration={DURATION.slow * 1000} animationEasing="ease-out" dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={44} />
+                    </BarChart>
+                  </ChartContainer>
+                )
+              : (
+                  <ChartEmpty
+                    icon={<Activity className="size-8 text-muted-foreground/40" />}
+                    text="去求职看板添加第一个岗位"
+                    onClick={() => navigate('/tracker')}
+                  />
+                )}
+        </AnimatedContent>
       </CardContent>
     </Card>
   )
@@ -169,6 +176,7 @@ const trendConfig = {
 } satisfies ChartConfig
 
 export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loading: boolean }) {
+  const reduceMotion = useReducedMotion()
   const navigate = useNavigate()
   // 单点也画，但至少 1 个才有意义
   const hasData = trend.length > 0
@@ -181,57 +189,62 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
         description="最近 8 次检测得分"
       />
       <CardContent className="flex-1 pt-0">
-        {loading
-          ? <ChartLoading />
-          : hasData
-            ? (
-                <ChartContainer config={trendConfig} className={cn(CHART_HEIGHT, 'w-full')}>
-                  <AreaChart accessibilityLayer data={trend} margin={NUMERIC_AXIS_CHART_MARGIN}>
-                    <defs>
-                      <linearGradient id="ats-trend-fill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="index"
-                      type="number"
-                      domain={['dataMin', 'dataMax']}
-                      ticks={trend.map(point => point.index)}
-                      interval={0}
-                      tickMargin={8}
-                      height={24}
-                      tickFormatter={(value: number) => trend[value]?.label ?? ''}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
-                    />
-                    <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel ?? ''} />}
-                    />
-                    <Area
-                      dataKey="score"
-                      type="monotone"
-                      stroke="var(--chart-2)"
-                      strokeWidth={2}
-                      fill="url(#ats-trend-fill)"
-                      // 常驻数据点：每次检测都有一个圆点，hover 时放大，避免只有折线看不出「几次检测」
-                      dot={{ r: 3, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 1.5 }}
-                      activeDot={{ r: 5, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 2 }}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              )
-            : (
-                <ChartEmpty
-                  icon={<LineChartIcon className="size-8 text-muted-foreground/40" />}
-                  text="去做一次 ATS 检测吧"
-                  onClick={() => navigate('/optimize')}
-                />
-              )}
+        <AnimatedContent animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}>
+          {loading
+            ? <ChartLoading />
+            : hasData
+              ? (
+                  <ChartContainer config={trendConfig} className={cn(CHART_HEIGHT, 'w-full')}>
+                    <AreaChart accessibilityLayer data={trend} margin={NUMERIC_AXIS_CHART_MARGIN}>
+                      <defs>
+                        <linearGradient id="ats-trend-fill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="index"
+                        type="number"
+                        domain={['dataMin', 'dataMax']}
+                        ticks={trend.map(point => point.index)}
+                        interval={0}
+                        tickMargin={8}
+                        height={24}
+                        tickFormatter={(value: number) => trend[value]?.label ?? ''}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                      />
+                      <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                      <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel ?? ''} />}
+                      />
+                      <Area
+                        isAnimationActive={!reduceMotion}
+                        animationDuration={DURATION.slow * 1000}
+                        animationEasing="ease-out"
+                        dataKey="score"
+                        type="monotone"
+                        stroke="var(--chart-2)"
+                        strokeWidth={2}
+                        fill="url(#ats-trend-fill)"
+                        // 常驻数据点：每次检测都有一个圆点，hover 时放大，避免只有折线看不出「几次检测」
+                        dot={{ r: 3, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 1.5 }}
+                        activeDot={{ r: 5, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
+                )
+              : (
+                  <ChartEmpty
+                    icon={<LineChartIcon className="size-8 text-muted-foreground/40" />}
+                    text="去做一次 ATS 检测吧"
+                    onClick={() => navigate('/optimize')}
+                  />
+                )}
+        </AnimatedContent>
       </CardContent>
     </Card>
   )
@@ -244,7 +257,9 @@ const activityConfig = {
 } satisfies ChartConfig
 
 export function ActivityCard({ activity, loading }: { activity: ActivityDay[], loading: boolean }) {
+  const reduceMotion = useReducedMotion()
   const total = activity.reduce((sum, day) => sum + day.total, 0)
+  const hasData = total > 0
 
   return (
     <Card className="flex flex-col">
@@ -254,27 +269,29 @@ export function ActivityCard({ activity, loading }: { activity: ActivityDay[], l
         description="本周的编辑与投递"
       />
       <CardContent className="flex-1 pt-0">
-        {loading
-          ? <ChartLoading />
-          : total > 0
-            ? (
-                <ChartContainer config={activityConfig} className={cn(CHART_HEIGHT, 'w-full')}>
-                  <BarChart accessibilityLayer data={activity} margin={CHART_MARGIN}>
-                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <Bar dataKey="edits" stackId="a" fill="var(--chart-1)" radius={[0, 0, 0, 0]} maxBarSize={28} />
-                    <Bar dataKey="applies" stackId="a" fill="var(--chart-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                  </BarChart>
-                </ChartContainer>
-              )
-            : (
-                <div className={cn('flex w-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground', CHART_HEIGHT)}>
-                  <Activity className="size-8 text-muted-foreground/40" />
-                  本周还没有编辑或投递记录
-                </div>
-              )}
+        <AnimatedContent animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}>
+          {loading
+            ? <ChartLoading />
+            : total > 0
+              ? (
+                  <ChartContainer config={activityConfig} className={cn(CHART_HEIGHT, 'w-full')}>
+                    <BarChart accessibilityLayer data={activity} margin={CHART_MARGIN}>
+                      <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                      <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                      <Bar isAnimationActive={!reduceMotion} animationDuration={DURATION.slow * 1000} animationEasing="ease-out" dataKey="edits" stackId="a" fill="var(--chart-1)" radius={[0, 0, 0, 0]} maxBarSize={28} />
+                      <Bar isAnimationActive={!reduceMotion} animationDuration={DURATION.slow * 1000} animationEasing="ease-out" dataKey="applies" stackId="a" fill="var(--chart-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    </BarChart>
+                  </ChartContainer>
+                )
+              : (
+                  <div className={cn('flex w-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground', CHART_HEIGHT)}>
+                    <Activity className="size-8 text-muted-foreground/40" />
+                    本周还没有编辑或投递记录
+                  </div>
+                )}
+        </AnimatedContent>
       </CardContent>
     </Card>
   )

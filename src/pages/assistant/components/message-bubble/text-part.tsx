@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react'
+import { useReducedMotion } from 'motion/react'
 import { isValidElement } from 'react'
 import { Streamdown } from 'streamdown'
 import { CodeBlock } from '@/components/ui/code-block'
@@ -45,10 +46,11 @@ const MARKDOWN_COMPONENTS = { pre: CodeBlockPre } as ComponentProps<typeof Strea
 // 助手文本按 markdown 渲染（复用仓库既有 Streamdown，支持流式增量）。
 // 代码块改用仓库 CodeBlock：带语言图标、语法高亮与复制/下载。
 export function TextPart({ text, animate = false }: TextPartProps) {
+  const reduceMotion = useReducedMotion()
   return (
     <div className={cn(
       'prose prose-sm prose-stone max-w-none dark:prose-invert prose-pre:my-2 prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5',
-      animate && 'stream-in',
+      animate && !reduceMotion && 'stream-in',
     )}
     >
       <Streamdown components={MARKDOWN_COMPONENTS}>

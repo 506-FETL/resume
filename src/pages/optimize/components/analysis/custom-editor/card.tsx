@@ -3,14 +3,16 @@ import type { CertificateItem } from '@/lib/schema/resume/form/honorsCertificate
 import type { SkillItem } from '@/lib/schema/resume/form/skillSpecialty'
 import type { AfterValue, Suggestion, ValueType } from '@/pages/optimize/types'
 import { Check, Edit3, RotateCcw } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useState } from 'react'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { isSuggestionReadyToApply } from '@/lib/ats'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { KIND_CONFIG } from '@/pages/optimize/const'
 import { detectValueType, isEmptyValue, renderPreview } from '@/pages/optimize/utils'
@@ -69,6 +71,7 @@ interface SuggestionEditCardProps {
 }
 
 function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }: SuggestionEditCardProps) {
+  const reduceMotion = useReducedMotion()
   const kindConfig = KIND_CONFIG[suggestion.kind]
   const [isEditing, setIsEditing] = useState(false)
   const [internalValue, setInternalValue] = useState(suggestion.after)
@@ -95,10 +98,12 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
   }, [onReset, onOk])
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
+    <PresenceDiv
+      layout={reduceMotion ? false : 'position'}
+      layoutDependency={isEditing}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
       className={cn(
         'min-w-0 max-w-full overflow-hidden rounded-xl border bg-card transition-shadow',
         isEditing && 'ring-2 ring-primary/20 shadow-md',
@@ -169,15 +174,15 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
       </div>
 
       {/* 内容 */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {isEditing
           ? (
-              <motion.div
+              <PresenceDiv
                 key="editing"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
                 className="min-w-0 p-4"
               >
                 <ValueEditor
@@ -185,14 +190,15 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
                   valueType={suggestion.valueType}
                   onChange={handleValueChange}
                 />
-              </motion.div>
+              </PresenceDiv>
             )
           : (
-              <motion.div
+              <PresenceDiv
                 key="preview"
-                initial={{ opacity: 0 }}
+                initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
                 className="min-w-0 space-y-3 p-4"
               >
                 {/* 修改前 */}
@@ -217,10 +223,10 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
                     {renderPreview(suggestion.after, suggestion.valueType)}
                   </div>
                 </div>
-              </motion.div>
+              </PresenceDiv>
             )}
       </AnimatePresence>
-    </motion.div>
+    </PresenceDiv>
   )
 }
 

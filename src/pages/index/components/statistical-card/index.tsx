@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { DashboardFunnel } from '../../insights'
 import { ArrowRight, CircleCheckBig, Send, Sparkles, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Card, CardContent } from '@/components/ui/card'
 import { NumberTicker } from '@/components/ui/number-ticker'
 import { cn } from '@/lib/utils'
@@ -19,16 +20,10 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-      {jobsLoading
-        ? (
-            <>
-              <StatSkeleton />
-              <StatSkeleton />
-              <StatSkeleton />
-            </>
-          )
-        : (
-            <>
+      <AnimatedContent animationKey={jobsLoading ? 'loading' : 'ready'}>
+        {jobsLoading
+          ? <StatSkeleton />
+          : (
               <StatCard
                 title="已投递"
                 value={funnel.applied}
@@ -38,6 +33,12 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
                 icon={<Send className="size-4 text-blue-500" />}
                 iconBg="bg-blue-500/8"
               />
+            )}
+      </AnimatedContent>
+      <AnimatedContent animationKey={jobsLoading ? 'loading' : 'ready'}>
+        {jobsLoading
+          ? <StatSkeleton />
+          : (
               <StatCard
                 title="面试进行中"
                 value={funnel.interview}
@@ -46,6 +47,12 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
                 icon={<Users className="size-4 text-violet-500" />}
                 iconBg="bg-violet-500/8"
               />
+            )}
+      </AnimatedContent>
+      <AnimatedContent animationKey={jobsLoading ? 'loading' : 'ready'}>
+        {jobsLoading
+          ? <StatSkeleton />
+          : (
               <StatCard
                 title="收到 Offer"
                 value={funnel.offer}
@@ -54,27 +61,29 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
                 icon={<CircleCheckBig className="size-4 text-emerald-500" />}
                 iconBg="bg-emerald-500/8"
               />
-            </>
-          )}
-      {atsLoading
-        ? <StatSkeleton />
-        : (
-            <StatCard
-              title="平均 ATS 分"
-              value={funnel.avgAtsScore ?? 0}
-              suffix={hasAts ? '分' : undefined}
-              placeholder={hasAts ? undefined : '—'}
-              description={
-                funnel.atsResumeCount > 0
-                  ? `${funnel.atsResumeCount} 份简历检测均分`
-                  : '去做一次 ATS 检测吧'
-              }
-              guide={funnel.atsResumeCount === 0}
-              onGuideClick={funnel.atsResumeCount === 0 ? () => navigate('/optimize') : undefined}
-              icon={<Sparkles className="size-4 text-primary" />}
-              iconBg="bg-primary/8"
-            />
-          )}
+            )}
+      </AnimatedContent>
+      <AnimatedContent animationKey={atsLoading ? 'loading' : 'ready'}>
+        {atsLoading
+          ? <StatSkeleton />
+          : (
+              <StatCard
+                title="平均 ATS 分"
+                value={funnel.avgAtsScore ?? 0}
+                suffix={hasAts ? '分' : undefined}
+                placeholder={hasAts ? undefined : '—'}
+                description={
+                  funnel.atsResumeCount > 0
+                    ? `${funnel.atsResumeCount} 份简历检测均分`
+                    : '去做一次 ATS 检测吧'
+                }
+                guide={funnel.atsResumeCount === 0}
+                onGuideClick={funnel.atsResumeCount === 0 ? () => navigate('/optimize') : undefined}
+                icon={<Sparkles className="size-4 text-primary" />}
+                iconBg="bg-primary/8"
+              />
+            )}
+      </AnimatedContent>
     </div>
   )
 }

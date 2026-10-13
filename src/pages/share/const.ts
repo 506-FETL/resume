@@ -1,6 +1,19 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ShareStatusFilter } from './utils'
 import { Archive, Ban, BriefcaseBusiness, CircleCheck, CircleX, FileUser, Send, Target } from 'lucide-react'
+import { DURATION, EASE } from '@/lib/motion'
+
+export const SHARE_SEARCH_INPUT_ID = 'share-management-search'
+
+export const SHARE_STATUS_FILTERS = [
+  { value: 'all', label: '全部链接' },
+  { value: 'active', label: '有效' },
+  { value: 'inactive', label: '已关闭' },
+  { value: 'expired', label: '已过期' },
+  { value: 'archived', label: '已归档' },
+] as const
+
+export const SHARE_GRID_CLASS = 'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4'
 
 export const SHARE_STATUS_META: Record<
   Exclude<ShareStatusFilter, 'all'>,
@@ -55,17 +68,17 @@ export const SHARE_MOTION = {
   page: {
     initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { duration: DURATION.base, ease: EASE.out },
   },
   item: {
-    initial: { opacity: 0, scale: 0.97, y: 6 },
+    initial: { opacity: 0, scale: 1, y: 8 },
     animate: { opacity: 1, scale: 1, y: 0 },
     exit: { opacity: 0, scale: 0.96, y: -4 },
-    transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { duration: DURATION.base, ease: EASE.out },
   },
   drawerItem: {
     initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.16, ease: 'easeOut' as const },
+    transition: { duration: DURATION.fast, ease: EASE.out },
   },
 } as const

@@ -1,9 +1,11 @@
 import type { MDXComponents } from 'mdx/types'
 import type { ReactNode } from 'react'
 import type { ChangelogEntry as ChangelogEntryType } from '../../types'
+import { motion, useReducedMotion } from 'motion/react'
 import { isValidElement } from 'react'
 
 import { CodeBlock } from '@/components/ui/code-block'
+import { DURATION, EASE } from '@/lib/motion'
 import { formatDate } from '../../utils'
 
 function MdxPre({ children }: { children?: ReactNode }) {
@@ -26,9 +28,16 @@ interface ChangelogEntryProps {
 
 export function ChangelogEntry({ entry }: ChangelogEntryProps) {
   const { frontmatter, Content } = entry
+  const reduceMotion = useReducedMotion()
 
   return (
-    <div className="relative">
+    <motion.div
+      className="relative"
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.05 }}
+      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+    >
       <div className="flex flex-col md:flex-row gap-y-6">
         {/* 左侧：日期 + 版本 */}
         <div className="md:w-48 shrink-0">
@@ -77,6 +86,6 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

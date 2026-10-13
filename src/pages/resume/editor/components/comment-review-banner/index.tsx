@@ -1,6 +1,7 @@
 import { Clock3, LoaderCircle } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
+import { DURATION, EASE } from '@/lib/motion'
 
 export function CommentReviewBanner({
   sourceLabel,
@@ -20,8 +21,8 @@ export function CommentReviewBanner({
         role="status"
         initial={reduceMotion ? false : { opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-        transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+        exit={{ opacity: 0, y: reduceMotion ? 0 : -6, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+        transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
         className="pointer-events-auto inline-flex w-max max-w-full items-center gap-2 rounded-xl border bg-background px-2.5 py-2 shadow-md"
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
@@ -47,7 +48,7 @@ export function CommentReviewBanner({
           disabled={switching}
           onClick={onReturn}
         >
-          {switching ? <LoaderCircle className="animate-spin" /> : null}
+          {switching ? <LoaderCircle className={reduceMotion ? undefined : 'animate-spin'} /> : null}
           <span className="hidden sm:inline">返回当前版本</span>
           <span className="sm:hidden">返回</span>
         </Button>

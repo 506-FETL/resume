@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { ORDERType } from '@/lib/schema'
+import { useReducedMotion } from 'motion/react'
 import { useCallback } from 'react'
 
 /**
@@ -8,6 +9,7 @@ import { useCallback } from 'react'
  * 不能用 scrollIntoView（会被缩放干扰）。多页克隆下只定位首页内容容器内的第一个匹配 section。
  */
 export function useScrollToSection(scrollContainerRef: RefObject<HTMLElement | null>) {
+  const reduceMotion = useReducedMotion()
   return useCallback((sectionKey: ORDERType) => {
     const container = scrollContainerRef.current
     if (!container)
@@ -19,13 +21,13 @@ export function useScrollToSection(scrollContainerRef: RefObject<HTMLElement | n
 
     // basics 或找不到锚点 → 滚到顶部
     if (!target || sectionKey === 'basics') {
-      container.scrollTo({ top: 0, behavior: 'smooth' })
+      container.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
       return
     }
 
     const containerRect = container.getBoundingClientRect()
     const targetRect = target.getBoundingClientRect()
     const nextTop = container.scrollTop + (targetRect.top - containerRect.top) - 16 // 顶部留 16px 余量
-    container.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' })
-  }, [scrollContainerRef])
+    container.scrollTo({ top: Math.max(0, nextTop), behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [reduceMotion, scrollContainerRef])
 }

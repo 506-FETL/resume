@@ -1,5 +1,4 @@
 import AssistantCanvas from './components/assistant-canvas'
-import AssistantSidebar from './components/assistant-sidebar'
 import ChatHeader from './components/chat-header'
 import Composer from './components/composer'
 import ConversationSearch from './components/conversation-search'
@@ -14,8 +13,7 @@ export default function Assistant() {
   useAssistantNavigation(true)
 
   return (
-    <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-background">
-      <AssistantSidebar />
+    <div className="flex h-full min-h-0 w-full overflow-hidden bg-background">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ChatHeader />
         <div className="min-h-0 flex-1 overflow-hidden">

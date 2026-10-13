@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '../../hooks/use-count-up'
 import useTrackerStore from '../../store'
@@ -133,7 +134,7 @@ export default function OverviewBar() {
               className="h-full rounded-full bg-primary"
               initial={reduce ? false : { width: 0 }}
               animate={{ width: `${hasAppliedData ? stats.responseRate : 0}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
+              transition={{ duration: reduce ? 0 : DURATION.slow, ease: EASE.out }}
             />
           </div>
         </div>

@@ -2,6 +2,7 @@ import type { AdvancedToolKey } from './shared/types'
 import { DialogClose } from '@radix-ui/react-dialog'
 import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -278,7 +279,9 @@ function AdvancedTools() {
           : undefined}
         title={activeToolDefinition?.title || '高级工具箱'}
       >
-        {renderToolContent()}
+        <AnimatedContent animationKey={loadingContext ? 'loading' : resumeContext && activeTool ? activeTool : 'empty'}>
+          {renderToolContent()}
+        </AnimatedContent>
       </AdvancedToolsModal>
     </>
   )

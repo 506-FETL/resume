@@ -1,3 +1,4 @@
+import { AnimatedContent } from '@/components/motion/animated-content'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { normalizeResumeAppearance } from '@/lib/schema'
@@ -30,19 +31,21 @@ export function TemplateCanvas() {
         />
       </CardHeader>
       <CardContent className="overflow-auto">
-        {loading
-          ? (
-              <div className="flex items-center justify-center rounded-lg bg-background text-sm text-muted-foreground">
-                预览加载中...
-              </div>
-            )
-          : (
-              <ScaledReadonlyPreview
-                data={previewData}
-                appearance={appearance}
-                manifest={manifest}
-              />
-            )}
+        <AnimatedContent animationKey={loading ? 'loading' : selectedResumeId ?? 'sample'}>
+          {loading
+            ? (
+                <div className="flex items-center justify-center rounded-lg bg-background text-sm text-muted-foreground">
+                  预览加载中...
+                </div>
+              )
+            : (
+                <ScaledReadonlyPreview
+                  data={previewData}
+                  appearance={appearance}
+                  manifest={manifest}
+                />
+              )}
+        </AnimatedContent>
       </CardContent>
     </Card>
   )

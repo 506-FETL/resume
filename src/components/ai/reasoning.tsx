@@ -46,7 +46,7 @@ export const Reasoning = memo(
     className,
     isStreaming = false,
     open,
-    defaultOpen = true,
+    defaultOpen = false,
     onOpenChange,
     duration: durationProp,
     children,
@@ -82,9 +82,9 @@ export const Reasoning = memo(
       }
     }, [isStreaming, startTime, setDuration])
 
-    // 思考流一结束（isStreaming 由 true→false）就自动收起，仅收起一次。
+    // 仅对默认展开的思考块自动收起；手动展开的内容保留用户选择。
     useEffect(() => {
-      if (hasStreamedRef.current && !isStreaming && isOpen && !hasAutoClosed) {
+      if (defaultOpen && hasStreamedRef.current && !isStreaming && isOpen && !hasAutoClosed) {
         // Add a small delay before closing to allow user to see the content
         const timer = setTimeout(() => {
           setIsOpen(false)
@@ -93,7 +93,7 @@ export const Reasoning = memo(
 
         return () => clearTimeout(timer)
       }
-    }, [isStreaming, isOpen, setIsOpen, hasAutoClosed])
+    }, [defaultOpen, isStreaming, isOpen, setIsOpen, hasAutoClosed])
 
     const handleOpenChange = (newOpen: boolean) => {
       setIsOpen(newOpen)

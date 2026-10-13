@@ -1,31 +1,21 @@
-import { LoaderCircle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { useReducedMotion } from 'motion/react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export default function DetailPanelLoadingState() {
+  const reduceMotion = useReducedMotion()
+  const skeletonClass = reduceMotion ? 'animate-none' : undefined
+
   return (
-    <div className="flex h-full flex-col gap-6 p-6">
-      <div className="flex flex-col gap-3">
-        <Badge variant="secondary" className="w-fit">
-          <LoaderCircle data-icon="inline-start" className="animate-spin" />
-          正在加载版本详情
-        </Badge>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-4 w-64 max-w-full" />
-        </div>
+    <div role="status" aria-label="正在加载版本详情" className="flex h-full min-h-0 flex-col gap-4 p-5">
+      <Skeleton className={cn('h-5 w-20', skeletonClass)} />
+      <Skeleton className={cn('h-6 w-48 max-w-full', skeletonClass)} />
+      <Skeleton className={cn('h-3 w-36', skeletonClass)} />
+      <div className="mt-2 flex gap-2">
+        <Skeleton className={cn('h-8 w-20', skeletonClass)} />
+        <Skeleton className={cn('h-8 w-20', skeletonClass)} />
       </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Skeleton className="h-10 w-full rounded-xl" />
-        <Skeleton className="h-10 w-full rounded-xl" />
-      </div>
-
-      <div className="grid gap-4">
-        <Skeleton className="h-32 w-full rounded-2xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
-        <Skeleton className="h-56 w-full rounded-2xl" />
-      </div>
+      <Skeleton className={cn('min-h-40 w-full flex-1 rounded-lg', skeletonClass)} />
     </div>
   )
 }

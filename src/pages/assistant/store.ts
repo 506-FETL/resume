@@ -2,7 +2,7 @@ import type { CanvasTabKey } from './types'
 import type { ConfirmPreview } from '@/lib/ai/agent/confirm-bridge'
 import type { AiConversation, AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { create } from 'zustand'
-import { ASSISTANT_CANVAS_STORAGE_KEY, ASSISTANT_CANVAS_TAB_PINNED_STORAGE_KEY, ASSISTANT_CANVAS_TAB_STORAGE_KEY, ASSISTANT_CANVAS_WIDTH_STORAGE_KEY, ASSISTANT_DEEP_THINKING_STORAGE_KEY, ASSISTANT_SIDEBAR_STORAGE_KEY, CANVAS_DEFAULT_WIDTH, CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CANVAS_TABS } from './const'
+import { ASSISTANT_CANVAS_STORAGE_KEY, ASSISTANT_CANVAS_TAB_PINNED_STORAGE_KEY, ASSISTANT_CANVAS_TAB_STORAGE_KEY, ASSISTANT_CANVAS_WIDTH_STORAGE_KEY, ASSISTANT_DEEP_THINKING_STORAGE_KEY, CANVAS_DEFAULT_WIDTH, CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CANVAS_TABS } from './const'
 import { readStoredBoolean, writeStoredBoolean } from './utils'
 
 // 本轮 token 用量（输入/输出/合计），用于会话层轻量展示成本
@@ -48,8 +48,6 @@ interface AssistantStore {
   oldestMessageCursor: string | null
   loadingConversations: boolean
   loadingMessages: boolean
-  sidebarExpanded: boolean
-  mobileSidebarOpen: boolean
   searchOpen: boolean
   deepThinking: boolean
   canvasOpen: boolean
@@ -88,8 +86,6 @@ interface AssistantStore {
   setInitializing: (value: boolean) => void
   setLoadingConversations: (value: boolean) => void
   setLoadingMessages: (value: boolean) => void
-  setSidebarExpanded: (expanded: boolean) => void
-  setMobileSidebarOpen: (open: boolean) => void
   setSearchOpen: (open: boolean) => void
   setDeepThinking: (v: boolean) => void
   setCanvasOpen: (v: boolean) => void
@@ -125,8 +121,6 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   oldestMessageCursor: null,
   loadingConversations: false,
   loadingMessages: false,
-  sidebarExpanded: readStoredBoolean(ASSISTANT_SIDEBAR_STORAGE_KEY, true),
-  mobileSidebarOpen: false,
   searchOpen: false,
   deepThinking: readStoredBoolean(ASSISTANT_DEEP_THINKING_STORAGE_KEY, false),
   canvasOpen: readStoredBoolean(ASSISTANT_CANVAS_STORAGE_KEY, true),
@@ -198,11 +192,6 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   setInitializing: value => set({ initializing: value }),
   setLoadingConversations: value => set({ loadingConversations: value }),
   setLoadingMessages: value => set({ loadingMessages: value }),
-  setSidebarExpanded: (expanded) => {
-    writeStoredBoolean(ASSISTANT_SIDEBAR_STORAGE_KEY, expanded)
-    set({ sidebarExpanded: expanded })
-  },
-  setMobileSidebarOpen: open => set({ mobileSidebarOpen: open }),
   setSearchOpen: open => set({ searchOpen: open }),
   setDeepThinking: (v) => {
     writeStoredBoolean(ASSISTANT_DEEP_THINKING_STORAGE_KEY, v)

@@ -1,0 +1,71 @@
+/* Keep the standard shadcn animations; share timing across Radix and Base UI. */
+:where(
+  [data-slot='dialog-overlay'],
+  [data-slot='dialog-content'],
+  [data-slot='alert-dialog-overlay'],
+  [data-slot='alert-dialog-content'],
+  [data-slot='popover-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='select-content'],
+  [data-slot='tooltip-content'],
+  [data-slot='combobox-content'],
+  [data-slot='accordion-content'],
+  [data-slot='collapsible-content'],
+  [data-slot='tabs-content']
+) {
+  animation-duration: var(--ui-motion-base);
+  animation-timing-function: var(--ui-motion-enter-ease);
+}
+
+:where(
+  [data-slot='dialog-overlay'],
+  [data-slot='dialog-content'],
+  [data-slot='alert-dialog-overlay'],
+  [data-slot='alert-dialog-content'],
+  [data-slot='popover-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='dropdown-menu-sub-content'],
+  [data-slot='select-content'],
+  [data-slot='tooltip-content'],
+  [data-slot='combobox-content'],
+  [data-slot='accordion-content'],
+  [data-slot='collapsible-content']
+):is([data-state='closed'], [data-closed]) {
+  animation-duration: var(--ui-motion-fast);
+  animation-timing-function: var(--ui-motion-exit-ease);
+  pointer-events: none;
+}
+
+:where([data-slot='drawer-popup'], [data-slot='drawer-overlay']) {
+  transition-duration: var(--ui-motion-slow);
+  transition-timing-function: var(--ui-motion-enter-ease);
+}
+
+:where([data-slot='drawer-popup'], [data-slot='drawer-overlay'])[data-ending-style] {
+  transition-duration: var(--ui-motion-fast);
+  transition-timing-function: var(--ui-motion-exit-ease);
+}
+
+:where([data-slot='drawer-popup'], [data-slot='drawer-overlay']):is([data-swiping], [data-nested-drawer-swiping]) {
+  transition-duration: 0s;
+}
+
+:where([data-slot='button'], [data-slot='tabs-trigger'], [data-slot='sidebar-menu-button']) {
+  transition-duration: var(--ui-motion-fast);
+  transition-timing-function: var(--ui-motion-enter-ease);
+}
+
+/* Also covers CSS-only loaders, pseudo-elements and portaled controls. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

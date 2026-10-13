@@ -1,13 +1,14 @@
 import type { DateEntry } from '@/lib/schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { SPRING } from '@/lib/motion'
 import { jobIntentFormSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useResumeStore from '@/store/resume/form'
@@ -15,6 +16,7 @@ import useResumeStore from '@/store/resume/form'
 const dateEntryOptions: DateEntry[] = ['不填', '随时到岗', '15天内', '1个月内', '2个月内', '3个月内', '到岗时间另行商议']
 
 function JobIntentForm({ className }: { className?: string }) {
+  const reduceMotion = useReducedMotion()
   const jobIntent = useResumeStore(state => state.job_intent)
 
   const form = useForm({
@@ -30,7 +32,7 @@ function JobIntentForm({ className }: { className?: string }) {
   return (
     <Form {...form}>
       <form id="job-intent-form" className={cn(className)}>
-        <motion.div layout className="grid gap-4 justify-items-start @sm/panel:grid-cols-2 @2xl/panel:grid-cols-4">
+        <motion.div layout={!reduceMotion} transition={reduceMotion ? { duration: 0 } : SPRING.layout} className="grid gap-4 justify-items-start @sm/panel:grid-cols-2 @2xl/panel:grid-cols-4">
           <FormField
             control={form.control}
             name="jobIntent"

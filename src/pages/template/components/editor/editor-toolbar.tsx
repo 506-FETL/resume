@@ -1,10 +1,14 @@
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DURATION, EASE } from '@/lib/motion'
 import { useTemplateEditorStore, useTemplateWorkbenchStore } from '../../store'
 
 export function TemplateEditorToolbar() {
+  const reduceMotion = useReducedMotion()
   const { manifestDraft, dirty, saving, templateId } = useTemplateEditorStore()
   const { openLibrary, resetActiveTemplateDraft, saveActiveTemplate, saveActiveTemplateAsCopy } = useTemplateWorkbenchStore()
   const [backDialogOpen, setBackDialogOpen] = useState(false)
@@ -31,11 +35,24 @@ export function TemplateEditorToolbar() {
             <p className="text-sm text-muted-foreground">模板编辑器</p>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold">{manifestDraft.meta.name}</h1>
-              {dirty ? <Badge variant="secondary">未保存</Badge> : null}
+              <AnimatePresence initial={false}>
+                {dirty && (
+                  <motion.span
+                    key="dirty"
+                    initial={{ opacity: reduceMotion ? 1 : 0, width: reduceMotion ? 'auto' : 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                    transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+                    className="overflow-hidden whitespace-nowrap"
+                  >
+                    <Badge variant="secondary">未保存</Badge>
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <AnimatedContent animationKey={canSaveAs ? 'existing' : 'new'} className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={handleBack}>
               返回列表
             </Button>
@@ -49,17 +66,19 @@ export function TemplateEditorToolbar() {
                   </Button>
                 )
               : null}
-            <Button onClick={saveActiveTemplate} disabled={saving}>
-              {saving ? '保存中...' : canSaveAs ? '保存当前' : '保存到我的模板'}
+            <Button onClick={saveActiveTemplate} disabled={saving} aria-busy={saving}>
+              <AnimatedContent as="span" animationKey={saving ? 'saving' : 'idle'} className="inline-flex items-center">
+                {saving ? '保存中...' : canSaveAs ? '保存当前' : '保存到我的模板'}
+              </AnimatedContent>
             </Button>
-          </div>
+          </AnimatedContent>
         </div>
 
-        <p className="text-sm text-muted-foreground">
+        <AnimatedContent animationKey={canSaveAs ? 'existing' : 'new'} className="text-sm text-muted-foreground">
           {canSaveAs
             ? '保存会覆盖当前模板；另存为会保留当前模板，并创建一份新的个人模板副本。'
             : '当前模板还未保存。点击保存后会把它创建到“我的模板”里。'}
-        </p>
+        </AnimatedContent>
       </div>
 
       <AlertDialog open={backDialogOpen} onOpenChange={setBackDialogOpen}>

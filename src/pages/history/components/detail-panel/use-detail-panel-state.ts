@@ -31,7 +31,7 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
   const versions = useHistoryStore(state => state.versions)
   const updateVersionMetadata = useHistoryStore(state => state.updateVersionMetadata)
 
-  const [selectedEntry, setSelectedEntry] = useState<HistorySelection>(null)
+  const [selectedEntry, setSelectedEntry] = useState<HistorySelection>('current')
   const [editing, setEditing] = useState(false)
   const [editDraft, setEditDraft] = useState<VersionMetadataDraft>(EMPTY_DRAFT)
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
@@ -62,12 +62,12 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
   }, [clearPendingDiscard, resetEditingState])
 
   useEffect(() => {
-    selectEntry(null)
+    selectEntry('current')
   }, [activeResumeId, selectEntry])
 
   useEffect(() => {
     if (typeof selectedEntry === 'number' && !versions.some(version => version.id === selectedEntry)) {
-      selectEntry(null)
+      selectEntry('current')
     }
   }, [selectedEntry, selectEntry, versions])
 

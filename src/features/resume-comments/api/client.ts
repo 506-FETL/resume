@@ -738,7 +738,7 @@ export class ResumeCommentClient {
   private async mutate<TInput extends Record<string, unknown>>(
     op: string,
     input: TInput,
-    requestId = crypto.randomUUID(),
+    requestId: string = crypto.randomUUID(),
   ) {
     const response = await this.writeRaw(op, input, requestId)
     return { ...response, data: normalizeMutation(response.data) }
@@ -747,7 +747,7 @@ export class ResumeCommentClient {
   private writeRaw<TInput extends Record<string, unknown>>(
     op: string,
     input: TInput,
-    requestId = crypto.randomUUID(),
+    requestId: string = crypto.randomUUID(),
   ) {
     return this.request<Record<string, unknown>>(op, {
       ...input,

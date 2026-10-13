@@ -3,6 +3,7 @@ import type { AnalysisState, AnalysisStatus, StepConfig } from '@/pages/optimize
 import { Brain } from 'lucide-react'
 import Markdown from 'react-markdown'
 import { ChainOfThought, ChainOfThoughtContent, ChainOfThoughtHeader, ChainOfThoughtStep } from '@/components/ai/chain-of-thought'
+import AnimatedContent from '@/components/motion/animated-content'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { getStepContent, getStepStatus } from '@/pages/optimize/utils'
 import { ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader } from '../shared/primitives'
@@ -156,11 +157,13 @@ export default function AnalysisTrace({
           </ChainOfThoughtContent>
         </ChainOfThought>
 
-        {analysisError && (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm leading-6 text-destructive">
-            {analysisError}
-          </div>
-        )}
+        <AnimatedContent animationKey={analysisError ? 'error' : 'ready'} className="empty:hidden">
+          {analysisError && (
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm leading-6 text-destructive">
+              {analysisError}
+            </div>
+          )}
+        </AnimatedContent>
       </ToolPanelBody>
     </ToolPanelCard>
   )

@@ -2,7 +2,8 @@
 
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useSideTabsContext } from './side-tabs-provider'
 
@@ -21,6 +22,7 @@ export function ViewPort({
   className?: string
   scrollable?: boolean
 }) {
+  const reduceMotion = useReducedMotion()
   const { box, outlineD, contentRef, active, padding } = useSideTabsContext()
   const activeItem = useMemo(() => items.find(item => item.id === active), [items, active])
 
@@ -43,7 +45,7 @@ export function ViewPort({
             d={outlineD}
             initial={false}
             animate={{ d: outlineD }}
-            transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+            transition={reduceMotion ? { duration: 0 } : SPRING.layout}
             fill={fill}
             stroke={stroke}
             strokeWidth={strokeWidth}
@@ -87,12 +89,12 @@ export function ViewPort({
                 {activeItem && (
                   <motion.div
                     key={activeItem.id}
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    exit={{ opacity: 0, y: reduceMotion ? 0 : -4, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
                     transition={{
-                      duration: 0.2,
-                      ease: [0.25, 0.1, 0.25, 1.0],
+                      duration: reduceMotion ? 0 : DURATION.base,
+                      ease: EASE.out,
                     }}
                     className={cn('p-6', scrollable && 'min-h-full', className)}
                   >

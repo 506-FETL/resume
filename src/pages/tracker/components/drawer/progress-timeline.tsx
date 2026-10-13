@@ -1,6 +1,7 @@
 import type { ApplicationStatus } from '../../types'
 import { Check, X as XIcon } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
 import useTrackerStore from '../../store'
@@ -89,7 +90,7 @@ export default function ProgressTimeline({ viewingStage, onStageClick, onStageJu
                   className={dotClass}
                   whileHover={reduce || !isClickable ? undefined : { scale: 1.1 }}
                   animate={reduce ? undefined : { scale: isCompleted || isCurrent ? [1, 1.15, 1] : 1 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: reduce ? 0 : DURATION.slow, ease: EASE.out }}
                 >
                   {isRejected ? <XIcon className="size-3.5" /> : isCompleted ? <Check className="size-3.5" /> : index + 1}
                 </motion.button>

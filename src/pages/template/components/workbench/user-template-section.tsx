@@ -1,12 +1,14 @@
 import type { TemplateRecord } from '@/lib/resume-template/schema'
 import { ArrowRight, Eye, FolderCode, LoaderCircle, SquarePen, Trash2 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Separator } from '@/components/ui/separator'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { formatRelativeTime } from '@/utils/date'
 import { TEMPLATE_CENTER_TAB_META } from '../../const'
 import { useTemplateWorkbenchStore, useUserTemplatesStore } from '../../store'
@@ -98,6 +100,7 @@ function DeleteTemplateButton({
 }
 
 export function UserTemplateSection() {
+  const reduceMotion = useReducedMotion()
   const { userTemplates: templates } = useUserTemplatesStore()
   const { createResumeWithTemplate, openUserTemplateEditor, setTab } = useTemplateWorkbenchStore()
   const sectionMeta = TEMPLATE_CENTER_TAB_META.mine
@@ -112,96 +115,91 @@ export function UserTemplateSection() {
     </div>
   )
 
-  if (templates.length === 0) {
-    return (
-      <div className="flex flex-col gap-5">
-        {sectionHeader}
-
-        <Separator />
-
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <FolderCode />
-            </EmptyMedia>
-            <EmptyTitle>还没有我的模板</EmptyTitle>
-            <EmptyContent className="flex-row justify-center">
-              <Button onClick={() => setTab('official')}>
-                <Eye />
-                查看官方模板
-              </Button>
-            </EmptyContent>
-          </EmptyHeader>
-        </Empty>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-5">
       {sectionHeader}
-
       <Separator />
-
-      <div className="grid gap-5 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
-        <AnimatePresence mode="popLayout">
-          {templates.map((template, index) => (
-            <motion.div
-              key={template.id}
-              layout
-              initial={{ opacity: 0, scale: 0.96, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{
-                opacity: 0,
-                scale: 0.82,
-                y: -20,
-                transition: { duration: 0.2 },
-              }}
-              transition={{
-                duration: 0.28,
-                delay: index * 0.04,
-                layout: { duration: 0.28 },
-              }}
-            >
-              <TemplateCard
-                preview={<TemplateThumbnail manifest={template.manifest} />}
-                title={template.meta.name}
-                description={template.meta.description ?? '未填写模板说明'}
-                trailing={<DeleteTemplateButton template={template} />}
-                meta={(
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] text-muted-foreground">
-                        最近更新：
-                        {formatRelativeTime(template.meta.updatedAt)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                hoverActions={[
-                  {
-                    label: '直接使用',
-                    icon: ArrowRight,
-                    onClick: async () => createResumeWithTemplate('user', template.id),
-                  },
-                  {
-                    label: '继续编辑',
-                    icon: SquarePen,
-                    onClick: () => openUserTemplateEditor(template.id),
-                    variant: 'secondary',
-                  },
-                ]}
-                tags={(
-                  <>
-                    <Badge variant="secondary">私有</Badge>
-                    <Badge variant="outline">{formatSkeletonLabel(template.manifest.layout.skeleton)}</Badge>
-                  </>
-                )}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      <AnimatedContent animationKey={templates.length === 0 ? 'empty' : 'ready'}>
+        {templates.length === 0
+          ? (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <FolderCode />
+                  </EmptyMedia>
+                  <EmptyTitle>还没有我的模板</EmptyTitle>
+                  <EmptyContent className="flex-row justify-center">
+                    <Button onClick={() => setTab('official')}>
+                      <Eye />
+                      查看官方模板
+                    </Button>
+                  </EmptyContent>
+                </EmptyHeader>
+              </Empty>
+            )
+          : (
+              <div className="grid gap-5 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+                <AnimatePresence mode="popLayout">
+                  {templates.map((template, index) => (
+                    <motion.div
+                      key={template.id}
+                      layout={reduceMotion ? false : 'position'}
+                      initial={reduceMotion ? false : { opacity: 0, scale: 0.98, y: 8 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{
+                        opacity: 0,
+                        scale: reduceMotion ? 1 : 0.98,
+                        y: 0,
+                        transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in, delay: 0 },
+                      }}
+                      transition={{
+                        duration: reduceMotion ? 0 : DURATION.base,
+                        ease: EASE.out,
+                        delay: reduceMotion ? 0 : Math.min(index, 8) * 0.03,
+                        layout: reduceMotion ? { duration: 0 } : SPRING.layout,
+                      }}
+                    >
+                      <TemplateCard
+                        preview={<TemplateThumbnail manifest={template.manifest} />}
+                        title={template.meta.name}
+                        description={template.meta.description ?? '未填写模板说明'}
+                        trailing={<DeleteTemplateButton template={template} />}
+                        meta={(
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] text-muted-foreground">
+                                最近更新：
+                                {formatRelativeTime(template.meta.updatedAt)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        hoverActions={[
+                          {
+                            label: '直接使用',
+                            icon: ArrowRight,
+                            onClick: async () => createResumeWithTemplate('user', template.id),
+                          },
+                          {
+                            label: '继续编辑',
+                            icon: SquarePen,
+                            onClick: () => openUserTemplateEditor(template.id),
+                            variant: 'secondary',
+                          },
+                        ]}
+                        tags={(
+                          <>
+                            <Badge variant="secondary">私有</Badge>
+                            <Badge variant="outline">{formatSkeletonLabel(template.manifest.layout.skeleton)}</Badge>
+                          </>
+                        )}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+      </AnimatedContent>
     </div>
   )
 }
