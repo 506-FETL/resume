@@ -48,7 +48,7 @@ try {
 
   const loaded = await loadSkill('great-resume', '1.0.0')
   assert.equal(typeof loaded.instructions, 'string')
-  assert.match(loaded.instructions, /^---\nname: great-resume/)
+  assert.match(loaded.instructions, /^---\r?\nname: great-resume\r?\n/)
   assert.match(loaded.instructions, /update_current_resume_field/)
   for (const resource of loaded.resources) {
     const data = await readSkillResource('great-resume', resource.path, '1.0.0')

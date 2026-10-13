@@ -10,11 +10,13 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import { useRecoveryNavigation } from '@/pages/reset-password/hooks/use-recovery-navigation'
 
 function App() {
   const element = useRoutes(routes)
   const location = useLocation()
   const reduceMotion = useReducedMotion()
+  const recoveryPending = useRecoveryNavigation()
   const isAssistantRoute
     = location.pathname === '/assistant'
       || location.pathname.startsWith('/assistant/')
@@ -33,10 +35,10 @@ function App() {
             className="h-dvh w-full"
           >
             {isShareViewRoute
-              ? <Suspense fallback={<Loading />}>{element}</Suspense>
+              ? <Suspense fallback={<Loading />}>{recoveryPending ? <Loading /> : element}</Suspense>
               : (
                   <DashboardShell routeKey={location.pathname} fullBleed={isAssistantRoute}>
-                    <Suspense fallback={<Loading />}>{element}</Suspense>
+                    <Suspense fallback={<Loading />}>{recoveryPending ? <Loading /> : element}</Suspense>
                   </DashboardShell>
                 )}
           </motion.div>

@@ -1,11 +1,12 @@
 import type { StoreApi } from 'zustand'
 import type { ResumeState } from '../form'
+import { next as Automerge } from '@automerge/automerge'
+import { cloneDeep } from 'lodash'
 import { notifyWorkingDocumentPersisted } from '@/features/resume-comments/api/working-document-sync.ts'
 import { isOfflineResumeId, updateOfflineResume } from '@/lib/offline-resume-manager'
 import { hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { updateResumeConfig } from '@/lib/supabase/resume'
 import { getTimestamp } from '@/utils/date'
-import useCurrentResumeStore from '../current'
 import { mapSourceToPersistedSnapshot } from '../helpers'
 import { buildResumeConfigPayload, clearSyncTimers, getPersistedSnapshot } from '../helpers/sync-service'
 
@@ -15,6 +16,9 @@ export interface SyncSlice {
   syncError: string | null
   pendingChanges: boolean
 
+  capturePersistRequest: () => (() => Promise<void>) | null
+  flushPendingChanges: () => Promise<void>
+  waitForResumePersist: (resumeId: string) => Promise<void>
   syncToSupabase: () => Promise<void>
   manualSync: () => Promise<void>
 }
@@ -26,228 +30,144 @@ export const syncDefaults: Pick<SyncSlice, 'isSyncing' | 'lastSyncTime' | 'syncE
   pendingChanges: false,
 }
 
-type OnlineSyncManager = NonNullable<ResumeState['docManager']>
-type OnlineSyncHandle = NonNullable<ResumeState['docHandle']>
-
-interface OnlineSyncTarget {
-  manager: OnlineSyncManager
-  handle: OnlineSyncHandle
-  resumeId: string
-  revision: number
-}
-
-interface OnlineSyncOutcome extends OnlineSyncTarget {
-  status: 'stable' | 'failed'
-}
-
 export function createSyncSlice(
   set: StoreApi<ResumeState>['setState'],
   get: StoreApi<ResumeState>['getState'],
 ): SyncSlice {
-  let onlineSyncOperation: Promise<OnlineSyncOutcome> | null = null
+  // 同一简历的旧、新快照串行落盘；不同简历不互相阻塞。
+  const operations = new Map<string, Promise<void>>()
+  const failedRequests = new Map<string, () => Promise<void>>()
 
-  const resolveResumeId = (state: ResumeState) =>
-    state.currentResumeId ?? useCurrentResumeStore.getState().resumeId
-
-  const getOnlineTarget = (state: ResumeState): OnlineSyncTarget | null => {
-    const resumeId = resolveResumeId(state)
-    if (
-      !resumeId
-      || state.mode !== 'online'
-      || !state.docManager
-      || !state.docHandle
-      || !state.docManager.canPersist()
-    ) {
+  const capturePersistRequest = (): (() => Promise<void>) | null => {
+    const state = get()
+    const resumeId = state.currentResumeId
+    if (!resumeId || !state.isInitialized)
       return null
-    }
 
-    return {
-      manager: state.docManager,
-      handle: state.docHandle,
-      resumeId,
-      revision: state.documentChangeRevision,
-    }
-  }
+    const offline = state.mode === 'offline' || isOfflineResumeId(resumeId)
+    const manager = state.docManager
+    const handle = state.docHandle
+    if (!offline && (!manager || !handle || !manager.canPersist()))
+      return null
 
-  const isCurrentTarget = (state: ResumeState, target: OnlineSyncTarget) =>
-    state.mode === 'online'
-    && state.docManager === target.manager
-    && state.docHandle === target.handle
-    && resolveResumeId(state) === target.resumeId
+    const session = state.documentSessionId
+    const revision = state.documentChangeRevision
+    const sourceDoc = offline ? undefined : handle?.doc()
+    if (!offline && !sourceDoc)
+      throw new Error('简历文档尚未就绪，无法保存')
+    // doc 的字段视图不可变，但 save() 会读取共享后端的新变化；排队前必须 clone。
+    const doc = sourceDoc ? Automerge.clone(sourceDoc) : undefined
+    // 普通表单与外观也必须在切换前深拷贝。
+    const snapshot = cloneDeep(getPersistedSnapshot(state))
+    const payload = offline ? null : cloneDeep(buildResumeConfigPayload(state, doc))
+    const isCurrent = (current: ResumeState) => current.currentResumeId === resumeId
+      && current.documentSessionId === session
+    let operation: Promise<void> | null = null
 
-  const drainOnlineSync = async (initialTarget: OnlineSyncTarget): Promise<OnlineSyncOutcome> => {
-    let lastTarget = initialTarget
+    const persist = () => {
+      if (operation)
+        return operation
 
-    while (true) {
-      const state = get()
-      const target = getOnlineTarget(state)
-      if (!target) {
-        return { ...lastTarget, status: 'stable' }
-      }
-      lastTarget = target
+      const previous = operations.get(resumeId) ?? Promise.resolve()
+      operation = previous.catch(() => undefined).then(async () => {
+        set(current => isCurrent(current) ? { isSyncing: true } : {})
+        try {
+          if (offline) {
+            await updateOfflineResume(resumeId, snapshot)
+          }
+          else {
+            await manager!.saveToSupabase(handle, doc)
+            // 即使当前编辑器已经切换，也必须完成旧文档配置与评论通道的写入。
+            await updateResumeConfig(resumeId, payload!)
+            await notifyWorkingDocumentPersisted(resumeId, mapSourceToPersistedSnapshot(payload!))
+          }
 
-      try {
-        const resolvedDoc = target.handle.doc()
-        const persistedPayload = resolvedDoc
-          ? buildResumeConfigPayload(state, resolvedDoc)
-          : buildResumeConfigPayload(state)
-        set(prev => isCurrentTarget(prev, target)
-          ? { isSyncing: true }
-          : {})
-
-        await target.manager.saveToSupabase(target.handle)
-        if (!isCurrentTarget(get(), target)) {
-          continue
-        }
-        if (get().documentChangeRevision !== target.revision) {
-          continue
-        }
-
-        // 每一轮都使用该 revision 对应的 Automerge 不可变快照，确保三段写入有序。
-        await updateResumeConfig(target.resumeId, persistedPayload)
-        if (!isCurrentTarget(get(), target)) {
-          continue
-        }
-        if (get().documentChangeRevision !== target.revision) {
-          continue
-        }
-
-        await notifyWorkingDocumentPersisted(
-          target.resumeId,
-          mapSourceToPersistedSnapshot(persistedPayload),
-        )
-        if (!isCurrentTarget(get(), target)) {
-          continue
-        }
-        if (get().documentChangeRevision !== target.revision) {
-          continue
-        }
-
-        const latestState = get()
-        const isStable = latestState.documentChangeRevision === target.revision
-        set(prev => isCurrentTarget(prev, target)
-          ? {
-              isSyncing: !isStable,
-              pendingChanges: !isStable,
+          set((current) => {
+            if (!isCurrent(current))
+              return {}
+            const stable = current.documentChangeRevision === revision
+            return {
+              isSyncing: false,
+              pendingChanges: !stable,
               syncError: null,
               lastSyncTime: getTimestamp(),
-              ...(isStable
+              ...(stable
                 ? {
                     appearanceDirty: false,
-                    entryIdMigrationReady: hasCompleteResumeEntryIds(resolvedDoc ?? state),
+                    entryIdMigrationReady: !offline && hasCompleteResumeEntryIds(doc!),
                   }
                 : {}),
             }
-          : {})
-
-        if (isStable) {
-          return { ...target, status: 'stable' }
+          })
         }
-      }
-      catch (error) {
-        if (!isCurrentTarget(get(), target)) {
-          continue
-        }
-
-        set(prev => isCurrentTarget(prev, target)
-          ? {
-              isSyncing: false,
-              pendingChanges: true,
-              syncError: error instanceof Error ? error.message : '同步失败',
-            }
-          : {})
-        return { ...target, status: 'failed' }
-      }
-    }
-  }
-
-  const syncOnlineTarget = async (request: OnlineSyncTarget): Promise<void> => {
-    let operation = onlineSyncOperation
-    if (!operation) {
-      const drainPromise = drainOnlineSync(request)
-      operation = drainPromise.finally(() => {
-        if (onlineSyncOperation === operation) {
-          onlineSyncOperation = null
+        catch (error) {
+          set(current => isCurrent(current)
+            ? {
+                isSyncing: false,
+                pendingChanges: true,
+                syncError: error instanceof Error ? error.message : '同步失败',
+              }
+            : {})
+          throw error
         }
       })
-      onlineSyncOperation = operation
+      operations.set(resumeId, operation)
+      const request = operation
+      request.then(() => {
+        if (operations.get(resumeId) === request) {
+          operations.delete(resumeId)
+          failedRequests.delete(resumeId)
+        }
+      }, () => {
+        // 仅保留当前会话中最后失败的捕获快照，重开简历时先重试。
+        operation = null
+        if (operations.get(resumeId) === request)
+          failedRequests.set(resumeId, persist)
+      })
+      return operation
     }
-
-    const outcome = await operation
-    const latestTarget = getOnlineTarget(get())
-    if (!latestTarget || !isCurrentTarget(get(), request)) {
-      return
-    }
-
-    // 同一请求等待旧 operation 后重新评估；当前 target 未被该 operation
-    // 稳定保存时开启下一轮。当前 target 自身失败则保留 pending/error 等待显式重试。
-    const outcomeMatchesCurrent = isCurrentTarget(get(), outcome)
-    if (outcome.status === 'failed' && outcomeMatchesCurrent) {
-      return
-    }
-    if (
-      !outcomeMatchesCurrent
-      || latestTarget.revision !== outcome.revision
-      || get().pendingChanges
-    ) {
-      await syncOnlineTarget(latestTarget)
-    }
+    return persist
   }
 
   return {
     ...syncDefaults,
+    capturePersistRequest,
+
+    flushPendingChanges: async () => {
+      clearSyncTimers()
+      const state = get()
+      const persist = state.pendingChanges ? capturePersistRequest() : null
+      await (persist?.() ?? (state.currentResumeId ? operations.get(state.currentResumeId) : null))
+      // 切换等待期间仍可能输入；卸载已改变 session 时只保存捕获的旧快照。
+      if (persist && get().documentSessionId === state.documentSessionId && get().pendingChanges)
+        await get().flushPendingChanges()
+    },
+
+    waitForResumePersist: async (resumeId) => {
+      try {
+        await operations.get(resumeId)
+      }
+      catch (error) {
+        const retry = failedRequests.get(resumeId)
+        if (!retry)
+          throw error
+        await retry()
+      }
+    },
 
     syncToSupabase: async () => {
-      const state = get()
-      const resumeId = state.currentResumeId ?? useCurrentResumeStore.getState().resumeId
-
-      if (!resumeId) {
-        return
+      const session = get().documentSessionId
+      try {
+        do {
+          const persist = capturePersistRequest()
+          if (!persist)
+            return
+          await persist()
+        } while (get().documentSessionId === session && get().pendingChanges)
       }
-
-      set({ isSyncing: true })
-
-      if (state.mode === 'offline' || isOfflineResumeId(resumeId)) {
-        try {
-          await updateOfflineResume(resumeId, getPersistedSnapshot(state))
-          set({
-            pendingChanges: false,
-            isSyncing: false,
-            syncError: null,
-            lastSyncTime: getTimestamp(),
-          })
-        }
-        catch (error) {
-          set({
-            isSyncing: false,
-            syncError: error instanceof Error ? error.message : '同步失败',
-          })
-        }
-        return
+      catch {
+        // capture request 已保留 pending/error；手动保存沿用状态检查接口。
       }
-
-      if (!state.docManager || !state.docHandle) {
-        set({ isSyncing: false })
-        return
-      }
-
-      if (!state.docManager.canPersist()) {
-        set({
-          isSyncing: false,
-          pendingChanges: false,
-          syncError: null,
-          lastSyncTime: getTimestamp(),
-        })
-        return
-      }
-
-      const target = getOnlineTarget(state)
-      if (!target) {
-        set({ isSyncing: false })
-        return
-      }
-
-      await syncOnlineTarget(target)
     },
 
     manualSync: async () => {

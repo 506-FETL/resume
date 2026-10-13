@@ -39,7 +39,8 @@ export function scheduleOfflinePersist(flushFn: () => Promise<void>) {
     clearTimeout(syncTimer)
   }
   syncTimer = setTimeout(() => {
-    flushFn()
+    syncTimer = null
+    flushFn().catch(error => console.warn('Offline resume persistence failed:', error))
   }, SYNC_DELAY)
 }
 
@@ -48,7 +49,8 @@ export function scheduleOnlinePersist(flushFn: () => Promise<void>) {
     clearTimeout(onlineSyncTimer)
   }
   onlineSyncTimer = setTimeout(() => {
-    flushFn()
+    onlineSyncTimer = null
+    flushFn().catch(error => console.warn('Online resume persistence failed:', error))
   }, ONLINE_SYNC_DELAY)
 }
 
@@ -70,7 +72,7 @@ export function applyResumeChange(
       const updates = typeof stateUpdate === 'function'
         ? stateUpdate(prev)
         : stateUpdate
-      return { ...updates, pendingChanges: true, syncError: null }
+      return { ...updates, pendingChanges: true, syncError: null, documentChangeRevision: prev.documentChangeRevision + 1 }
     }
     catch (error) {
       console.error('State update failed:', error)
@@ -84,7 +86,9 @@ export function applyResumeChange(
 
   // 2. 离线模式：触发延时保存
   if (!resumeId || freshState.mode === 'offline' || isOfflineResumeId(resumeId)) {
-    scheduleOfflinePersist(() => get().syncToSupabase())
+    const persist = get().capturePersistRequest()
+    if (persist)
+      scheduleOfflinePersist(persist)
     return
   }
 
@@ -102,7 +106,9 @@ export function applyResumeChange(
   }
 
   // 4. 在线模式：调度延时自动保存
-  scheduleOnlinePersist(() => get().syncToSupabase())
+  const persist = get().capturePersistRequest()
+  if (persist)
+    scheduleOnlinePersist(persist)
 }
 
 export async function getCloudAppearanceSource(resumeId: string): Promise<{

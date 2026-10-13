@@ -4,9 +4,10 @@ import { toast } from 'sonner'
 import { buildUserContext, runAgent } from '@/lib/ai/agent'
 import { createSkillReferences, createUserParts, getSkillReferences } from '@/lib/ai/skills/references'
 import { QuotaExceededError } from '@/lib/llm/call'
-import { createConversation, deleteConversation, insertMessage, touchConversation, updateConversation } from '@/lib/supabase/ai'
+import { createConversation, deleteConversation, insertMessage, listMessages, touchConversation, truncateMessages, updateConversation } from '@/lib/supabase/ai'
 import { refetchAiQuota } from '@/store/ai-quota'
 import { openUpgradeDialog } from '@/store/upgrade-dialog'
+import useUserStore from '@/store/user'
 import { getErrorMessage } from '@/utils'
 import { CONVERSATION_TITLE_MAX_LEN, DEFAULT_CONVERSATION_TITLE } from '../const'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
@@ -25,18 +26,25 @@ function makeLocalMessage(role: AiMessage['role'], parts: AiMessagePart[]): AiMe
   }
 }
 
+function messageText(message: AiMessage): string {
+  return message.parts.filter(part => part.type === 'text').map(part => part.text).join('\n')
+}
+
 export function useChatStream() {
-  // 核心发送：先乐观上屏，再后台落库 + 起流
-  const runSend = useCallback(async (trimmed: string, references: AiSkillReference[] = []) => {
-    if (!trimmed)
+  // 核心发送：普通发送乐观上屏；历史重跑先持久截断，再落库 + 起流。
+  const runSend = useCallback(async (trimmed: string, references: AiSkillReference[] = [], truncateFrom?: AiMessage) => {
+    if (!trimmed && truncateFrom?.role !== 'assistant')
       return
     const initialState = useAssistantStore.getState()
     const initialConversationId = initialState.activeConversationId
-    if (initialState.streaming || (initialConversationId && initialState.inFlightConversationIds[initialConversationId]))
+    const initialUserId = useUserStore.getState().currentUser?.id
+    if (initialState.streaming || initialState.loadingMessages || initialState.loadingOlder || (initialConversationId && initialState.inFlightConversationIds[initialConversationId]))
+      return
+    if (truncateFrom && (!initialConversationId || !initialUserId || truncateFrom.conversationId !== initialConversationId || truncateFrom.userId !== initialUserId))
       return
 
-    // 1. 立即乐观上屏用户气泡 + 进入 streaming（同步，无 await，杜绝延迟）
-    const userParts = createUserParts(trimmed, references)
+    // 1. 同步占用运行锁；重跑保留原消息，普通发送立即上屏。
+    let userParts = createUserParts(trimmed, references)
     const localUser = makeLocalMessage('user', userParts)
     const controller = new AbortController()
     let lockedConversationId = initialConversationId
@@ -53,10 +61,12 @@ export function useChatStream() {
     const ownsCurrentRun = (expectedConversationId?: string) => {
       const state = useAssistantStore.getState()
       return state.abortController === controller
+        && !controller.signal.aborted
+        && useUserStore.getState().currentUser?.id === initialUserId
         && (!expectedConversationId || state.activeConversationId === expectedConversationId)
     }
     useAssistantStore.setState(state => ({
-      messages: [...state.messages, localUser],
+      messages: truncateFrom ? state.messages : [...state.messages, localUser],
       streaming: true,
       streamingText: '',
       streamingParts: [],
@@ -65,6 +75,78 @@ export function useChatStream() {
     }))
     if (initialConversationId)
       lockConversation(initialConversationId)
+
+    // 重跑先持久截断；等待期间复用运行锁和取消令牌，失败不改历史。
+    if (truncateFrom && initialConversationId && initialUserId) {
+      let identityChanged = false
+      const unsubscribe = useUserStore.subscribe((state) => {
+        if (state.currentUser?.id !== initialUserId) {
+          identityChanged = true
+          if (useAssistantStore.getState().abortController === controller)
+            cancelActiveAssistantRun()
+        }
+      })
+      try {
+        let boundaryMessage = truncateFrom
+        let history = initialState.messages
+        let hasMore = initialState.hasMoreMessages
+        // 当前页可能恰好从助手消息开始：在锁内补齐它对应的用户消息。
+        while (boundaryMessage.role === 'assistant') {
+          const page = await listMessages(initialConversationId, { before: history[0], limit: 30 })
+          if (!ownsCurrentRun(initialConversationId)) {
+            finishConversationRun()
+            return
+          }
+          history = [...page.messages, ...history]
+          hasMore = page.hasMore
+          const user = [...page.messages].reverse().find(message => message.role === 'user')
+          if (user) {
+            boundaryMessage = user
+            trimmed = messageText(user).trim()
+            references = getSkillReferences(user.parts)
+            userParts = createUserParts(trimmed, references)
+            localUser.parts = userParts
+          }
+          else if (!page.hasMore) {
+            throw new Error('未找到对应的用户消息')
+          }
+        }
+        if (!trimmed)
+          throw new Error('用户消息为空，无法重新生成')
+        await truncateMessages(initialConversationId, boundaryMessage.id, initialUserId)
+        const state = useAssistantStore.getState()
+        const sameView = state.activeConversationId === initialConversationId
+          && state.conversationViewVersion === initialState.conversationViewVersion
+          && !identityChanged
+          && useUserStore.getState().currentUser?.id === initialUserId
+        const canSend = ownsCurrentRun(initialConversationId) && sameView
+        if (sameView) {
+          const kept = history.slice(0, history.findIndex(message => message.id === boundaryMessage.id))
+          useAssistantStore.setState({
+            messages: canSend ? [...kept, localUser] : kept,
+            hasMoreMessages: hasMore,
+            // 已删除边界仍可作为严格小于的游标，继续加载更早的历史。
+            oldestMessageCursor: { createdAt: (kept[0] ?? boundaryMessage).createdAt, id: (kept[0] ?? boundaryMessage).id },
+            targetMessageId: null,
+          })
+        }
+        if (!canSend) {
+          finishConversationRun()
+          return
+        }
+      }
+      catch (error) {
+        if (ownsCurrentRun(initialConversationId)) {
+          useAssistantStore.setState({ streaming: false, abortController: null })
+          toast.error('更新历史失败', { description: getErrorMessage(error) })
+        }
+        finishConversationRun()
+        return
+      }
+      finally {
+        unsubscribe()
+      }
+    }
 
     // 2. 后台确保会话存在
     let conversationId = initialConversationId
@@ -321,7 +403,7 @@ export function useChatStream() {
 
   const sendMessage = useCallback((text: string, skillIds: string[] = []): boolean => {
     const state = useAssistantStore.getState()
-    if (state.streaming)
+    if (state.streaming || state.loadingMessages || state.loadingOlder)
       return false
     if (state.activeConversationId && state.inFlightConversationIds[state.activeConversationId]) {
       toast.info('正在保存上一轮进展，请稍后发送')
@@ -341,32 +423,26 @@ export function useChatStream() {
     }
   }, [runSend])
 
-  // 提取消息中的纯文本
-  const messageText = (m: AiMessage): string =>
-    m.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('\n')
-
   // 重试：移除最后一条助手消息（若有），以最后一条用户消息重新发送
   const retryLast = useCallback(() => {
     const { messages, streaming, activeConversationId, inFlightConversationIds } = useAssistantStore.getState()
     if (streaming || (activeConversationId && inFlightConversationIds[activeConversationId]) || messages.length === 0)
       return
     let lastUser: AiMessage | null = null
-    const kept: AiMessage[] = []
-    // 从后往前：丢弃末尾的助手消息，定位最后一条用户消息
+    // 从后往前定位用户消息，持久截断和重新追加统一由 runSend 执行。
     for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i]
-      if (lastUser === null && m.role === 'assistant')
-        continue
-      if (lastUser === null && m.role === 'user') {
-        lastUser = m
-        continue // 该用户消息也移除，由 runSend 重新追加
+      if (messages[i].role === 'user') {
+        lastUser = messages[i]
+        break
       }
-      kept.unshift(m)
     }
-    if (!lastUser)
+    if (!lastUser) {
+      const lastAssistant = [...messages].reverse().find(message => message.role === 'assistant')
+      if (lastAssistant)
+        runSend('', [], lastAssistant)
       return
-    useAssistantStore.getState().setMessages(kept)
-    runSend(messageText(lastUser).trim(), getSkillReferences(lastUser.parts))
+    }
+    runSend(messageText(lastUser).trim(), getSkillReferences(lastUser.parts), lastUser)
   }, [runSend])
 
   // 针对指定助手消息重新生成：截断其对应的上一条用户消息及之后所有消息，用该用户消息重跑
@@ -385,13 +461,14 @@ export function useChatStream() {
         break
       }
     }
-    if (ui < 0)
+    if (ui < 0) {
+      runSend('', [], messages[ai])
       return
+    }
     const userText = messageText(messages[ui]).trim()
     if (!userText)
       return
-    useAssistantStore.getState().setMessages(messages.slice(0, ui))
-    runSend(userText, getSkillReferences(messages[ui].parts))
+    runSend(userText, getSkillReferences(messages[ui].parts), messages[ui])
   }, [runSend])
 
   // 编辑历史用户消息后重新生成：截断该用户消息及之后的所有消息，用新文本重跑
@@ -405,8 +482,7 @@ export function useChatStream() {
       return
     try {
       const references = createSkillReferences(trimmed)
-      useAssistantStore.getState().setMessages(messages.slice(0, ui))
-      runSend(trimmed, references)
+      runSend(trimmed, references, messages[ui])
     }
     catch (error) {
       toast.error('无法调用技能', { description: getErrorMessage(error) })

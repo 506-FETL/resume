@@ -1,7 +1,8 @@
-import type { VariantChange } from '@/lib/schema'
+import type { PersistedResumeSnapshot, VariantChange } from '@/lib/schema'
 import { parseLlmJsonObject } from '@/lib/llm'
 import { variantChangeSchema } from '@/lib/schema'
 import { MAX_CHANGES, MIN_CHANGES, REWRITE_AFTER_LENGTH_RATIO } from '../const'
+import { applyVariantChange } from './apply-changes'
 
 interface RawShape {
   changes?: unknown
@@ -11,7 +12,10 @@ export interface ParseVariantResult {
   changes: VariantChange[]
 }
 
-export function parseVariantResponse(raw: string, options: { strict: boolean }): ParseVariantResult {
+export function parseVariantResponse(
+  raw: string,
+  options: { strict: boolean, snapshot?: PersistedResumeSnapshot },
+): ParseVariantResult {
   let obj: RawShape | null = null
   try {
     obj = parseLlmJsonObject<RawShape>(raw)
@@ -27,9 +31,16 @@ export function parseVariantResponse(raw: string, options: { strict: boolean }):
   for (const item of list) {
     const parsed = variantChangeSchema.safeParse(item)
     if (!parsed.success) {
+      if (options.strict) {
+        throw new Error(`AI 改写格式或路径无效：${parsed.error.issues[0]?.message ?? '未知错误'}`)
+      }
       continue
     }
     const c = parsed.data
+    if (options.strict && options.snapshot) {
+      // 过滤无变化/长度超限之前验证目标和原文，避免把失配输出当作成功过滤掉。
+      applyVariantChange(options.snapshot, { ...c, after: c.before })
+    }
     if (c.before === c.after) {
       continue
     }
@@ -39,9 +50,8 @@ export function parseVariantResponse(raw: string, options: { strict: boolean }):
     if (c.matchedKeywords.length === 0) {
       continue
     }
-    valid.push(c)
-    if (valid.length >= MAX_CHANGES) {
-      break
+    if (valid.length < MAX_CHANGES) {
+      valid.push(c)
     }
   }
   if (options.strict && valid.length < MIN_CHANGES) {

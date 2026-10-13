@@ -18,11 +18,13 @@ export interface ListMessagesResult {
   hasMore: boolean
 }
 
+export type MessageCursor = Pick<AiMessage, 'createdAt' | 'id'>
+
 // 默认取最新 limit 条（按 created_at 倒序取后在内存 reverse 为升序）；
-// before 为已加载最早消息的 created_at，用于向上加载更早的历史。
+// before 同时携带时间与 ID，避免同一时间的消息跨页时被跳过。
 export async function listMessages(
   conversationId: string,
-  options: { limit?: number, before?: string } = {},
+  options: { limit?: number, before?: MessageCursor } = {},
 ): Promise<ListMessagesResult> {
   const user = await getCurrentUser()
   if (!user)
@@ -38,8 +40,10 @@ export async function listMessages(
     .order('id', { ascending: false }) // 同一 created_at 时以 id 做二级排序保证稳定性
     .limit(limit + 1) // 多取一条判断是否还有更早的
 
-  if (options.before)
-    query = query.lt('created_at', options.before)
+  if (options.before) {
+    const { createdAt, id } = options.before
+    query = query.or(`created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`)
+  }
 
   const { data, error } = await query
   if (error)
@@ -51,6 +55,17 @@ export async function listMessages(
   // 倒序取回后 reverse 成升序（旧 → 新）
   const messages = page.map(mapMessage).reverse()
   return { messages, hasMore }
+}
+
+// 删除指定用户消息及其后的整个分支，边界由数据库解析，不受已加载页数影响。
+export async function truncateMessages(conversationId: string, messageId: string, expectedUserId: string): Promise<void> {
+  const { error } = await supabase.rpc('truncate_ai_messages', {
+    p_conversation_id: conversationId,
+    p_message_id: messageId,
+    p_user_id: expectedUserId,
+  })
+  if (error)
+    throw error
 }
 
 export async function insertMessage(

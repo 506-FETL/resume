@@ -33,6 +33,9 @@ export class ResumeCommentRealtimeSubscription {
   private readonly client: ResumeCommentClient
   private readonly accessKind: 'owner' | 'scope'
   private channel: RealtimeChannel | null = null
+  private topic: string | null = null
+  private channelStatus: 'connecting' | 'live' | 'offline' = 'offline'
+  private retryAttempts = 0
   private refreshTimer: ReturnType<typeof setTimeout> | null = null
   private callbacks: CommentRealtimeCallbacks | null = null
   private generation = 0
@@ -43,6 +46,8 @@ export class ResumeCommentRealtimeSubscription {
   }
 
   connect(access: CommentRealtimeAccess, callbacks: CommentRealtimeCallbacks) {
+    this.generation += 1
+    this.retryAttempts = 0
     this.callbacks = callbacks
     this.subscribe(access)
   }
@@ -54,26 +59,35 @@ export class ResumeCommentRealtimeSubscription {
       this.refreshTimer = null
     }
     if (this.channel) {
-      supabase.removeChannel(this.channel).catch(() => undefined)
+      const channel = this.channel
       this.channel = null
+      supabase.removeChannel(channel).catch(() => undefined)
     }
+    this.topic = null
+    this.retryAttempts = 0
     this.callbacks = null
   }
 
   private subscribe(access: CommentRealtimeAccess) {
-    this.generation += 1
-    const generation = this.generation
-    if (this.refreshTimer)
-      clearTimeout(this.refreshTimer)
-    if (this.channel)
-      supabase.removeChannel(this.channel).catch(() => undefined)
+    if (this.channel && this.topic === access.topic) {
+      this.callbacks?.onStatusChange(this.channelStatus)
+      this.scheduleRefresh(access)
+      return
+    }
+    if (this.channel) {
+      const channel = this.channel
+      this.channel = null
+      supabase.removeChannel(channel).catch(() => undefined)
+    }
 
+    this.channelStatus = 'connecting'
     this.callbacks?.onStatusChange('connecting')
     const channel = supabase.channel(access.topic)
     this.channel = channel
+    this.topic = access.topic
     channel
       .on('broadcast', { event: 'invalidate' }, (message) => {
-        if (generation !== this.generation)
+        if (channel !== this.channel)
           return
         const invalidation = readInvalidation(message.payload)
         if (!invalidation) {
@@ -83,25 +97,37 @@ export class ResumeCommentRealtimeSubscription {
         this.callbacks?.onInvalidation(invalidation)
       })
       .subscribe((status) => {
-        if (generation !== this.generation)
+        if (channel !== this.channel)
           return
         if (status === 'SUBSCRIBED') {
+          this.channelStatus = 'live'
           this.callbacks?.onStatusChange('live')
           return
         }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          this.channelStatus = 'offline'
           this.callbacks?.onStatusChange('offline')
+        }
       })
 
-    const refreshInMs = Math.max(
-      1_000,
-      Date.parse(access.expiresAt) - Date.now() - 60_000,
-    )
+    this.scheduleRefresh(access)
+  }
+
+  private scheduleRefresh(access?: CommentRealtimeAccess) {
+    if (this.refreshTimer)
+      clearTimeout(this.refreshTimer)
+    const remainingMs = access ? Date.parse(access.expiresAt) - Date.now() : 0
+    // Topic 只在桶边界变化；过期的同 topic 响应也走退避，避免时钟偏差造成轮询风暴。
+    const refreshInMs = remainingMs > 0
+      ? remainingMs
+      : Math.min(1_000 * 2 ** Math.min(this.retryAttempts++, 5), 30_000)
+    if (remainingMs > 0)
+      this.retryAttempts = 0
+    const generation = this.generation
     this.refreshTimer = setTimeout(() => {
-      this.refresh(generation).catch(() => {
-        if (generation === this.generation)
-          this.callbacks?.onStatusChange('offline')
-      })
+      this.refreshTimer = null
+      // refresh 自行处理失败，并为当前连接安排下一次有界退避。
+      this.refresh(generation).catch(() => undefined)
     }, refreshInMs)
   }
 
@@ -120,8 +146,10 @@ export class ResumeCommentRealtimeSubscription {
       this.subscribe(access)
     }
     catch {
-      if (generation === this.generation)
+      if (generation === this.generation && this.callbacks) {
         this.callbacks?.onStatusChange('offline')
+        this.scheduleRefresh()
+      }
     }
   }
 }

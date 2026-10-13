@@ -1,5 +1,6 @@
 import type { EditableResumeView } from '../types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
+import { VARIANT_FIELD_MAPPINGS } from '@/lib/schema'
 
 interface SnapshotLike {
   basics?: { name?: unknown }
@@ -25,57 +26,30 @@ function getItems<T>(value: unknown): T[] {
 }
 
 export function buildEditableView(snapshot: PersistedResumeSnapshot): EditableResumeView {
-  const s = snapshot as unknown as SnapshotLike
-  const view: EditableResumeView = {}
-
-  // basics: schema has no `summary`; surface name/role hint via `summary` slot is intentional skip.
-  // We expose nothing for basics if no summary-like field exists.
-
-  const jobIntent = asString(s.job_intent?.jobIntent)
-  if (jobIntent) {
-    view.job_intent = { id: 'whole', content: jobIntent }
-  }
-
-  const skillContent = asString(s.skill_specialty?.description)
-  if (skillContent) {
-    view.skill_specialty = { id: 'whole', content: skillContent }
-  }
-
-  const selfEval = asString(s.self_evaluation?.content)
-  if (selfEval) {
-    view.self_evaluation = { id: 'whole', content: selfEval }
-  }
-
-  const workItems = getItems<{ workInfo?: unknown }>(s.work_experience)
-  if (workItems.length > 0) {
-    view.work_experience = workItems.map((w, idx) => ({
-      id: String(idx),
-      description: asString(w.workInfo),
-    }))
-  }
-
-  const internItems = getItems<{ internshipInfo?: unknown }>(s.internship_experience)
-  if (internItems.length > 0) {
-    view.internship_experience = internItems.map((w, idx) => ({
-      id: String(idx),
-      description: asString(w.internshipInfo),
-    }))
-  }
-
-  const projectItems = getItems<{ projectInfo?: unknown }>(s.project_experience)
-  if (projectItems.length > 0) {
-    view.project_experience = projectItems.map((p, idx) => ({
-      id: String(idx),
-      description: asString(p.projectInfo),
-    }))
-  }
-
-  const campusItems = getItems<{ campusInfo?: unknown }>(s.campus_experience)
-  if (campusItems.length > 0) {
-    view.campus_experience = campusItems.map((c, idx) => ({
-      id: String(idx),
-      description: asString(c.campusInfo),
-    }))
+  const view: Record<string, unknown> = {}
+  for (const [section, mapping] of Object.entries(VARIANT_FIELD_MAPPINGS)) {
+    const current = snapshot[section as keyof typeof VARIANT_FIELD_MAPPINGS]
+    if (mapping.collection) {
+      const items = getItems<Record<string, unknown>>(current)
+      if (items.length === 0) {
+        continue
+      }
+      const ids = new Set<string>()
+      view[section] = items.map((item) => {
+        const id = asString(item.entryId)
+        if (!id || ids.has(id)) {
+          throw new Error(`JD 改写条目缺少稳定 entryId 或 entryId 重复：${section}`)
+        }
+        ids.add(id)
+        return { id, [mapping.fieldPath]: asString(item[mapping.snapshotField]) }
+      })
+    }
+    else {
+      const content = asString((current as Record<string, unknown> | undefined)?.[mapping.snapshotField])
+      if (content) {
+        view[section] = { id: 'whole', [mapping.fieldPath]: content }
+      }
+    }
   }
 
   return view

@@ -8,6 +8,16 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
 
   return {
     presenceMetadata: { ...identity, role },
+    onDisconnect: () => {
+      if (isCurrentSession()) {
+        if (role === 'guest') {
+          getState().handleRemoteShareEnd()
+        }
+        else {
+          setState({ isSharing: false, isConnecting: false, phase: 'error', error: '协作连接已断开，请重新开启协作' })
+        }
+      }
+    },
 
     onPeerJoin: ({ peerId, metadata }) => {
       if (!isCurrentSession() || peerId === adapterPeerIdRef.current) {

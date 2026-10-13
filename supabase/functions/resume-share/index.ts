@@ -14,6 +14,7 @@ import {
   deriveOwnerRealtimeTopic,
   deriveScopeRealtimeTopic,
 } from '../shared/resume-comment-events.ts'
+import { redactHiddenResumeSections } from '../shared/resume-share-redaction.ts'
 import {
   authenticateSupabaseUser,
   SupabaseAuthenticationError,
@@ -61,6 +62,10 @@ interface SharedVersionRow {
   projection_reference_date: string
 }
 
+type AdminClient = ReturnType<typeof createClient>
+let cachedAdminClient: AdminClient | null = null
+let cachedAdminClientKey: string | null = null
+
 function createAdminClient(url: string, serviceRoleKey: string) {
   // 复用同一 isolate 内的 admin client，使 GoTrueClient 的 JWKS 校验缓存跨请求命中，
   // 避免每个已登录请求都重复拉取 JWKS 端点。
@@ -73,10 +78,6 @@ function createAdminClient(url: string, serviceRoleKey: string) {
   cachedAdminClientKey = cacheKey
   return cachedAdminClient
 }
-
-type AdminClient = ReturnType<typeof createClient>
-let cachedAdminClient: AdminClient | null = null
-let cachedAdminClientKey: string | null = null
 
 function readCurrentRelease(value: unknown): CurrentReleaseRow | null {
   const release = (Array.isArray(value) ? value[0] : value) as CurrentReleaseRow | null
@@ -700,7 +701,7 @@ Deno.serve(async (req) => {
 
     // 匿名读取只返回固化快照、模板与标题，绝不返回 password_hash / user_id 等敏感字段。
     return json({
-      snapshot: currentRelease.snapshot,
+      snapshot: redactHiddenResumeSections(currentRelease.snapshot),
       template_manifest: currentRelease.template_manifest,
       display_name: currentRelease.display_name,
       share_id: data.id,

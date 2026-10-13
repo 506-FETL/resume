@@ -15,7 +15,7 @@ interface AiQuotaStore {
   // 拉取额度；并发去重，多个展示位同时挂载只会打一次请求
   fetchQuota: () => Promise<void>
   // 用 llm-proxy 预留响应中的权威额度更新展示，不猜测 light/heavy cost。
-  applyReservation: (reservation: AiQuotaReservation) => void
+  applyReservation: (reservation: AiQuotaReservation, identity: AiQuotaRequestIdentity) => void
 }
 
 export interface AiQuotaReservation {
@@ -25,8 +25,24 @@ export interface AiQuotaReservation {
   unlimited: boolean
 }
 
+export interface AiQuotaRequestIdentity {
+  userId: string
+  generation: number
+}
+
 // 模块级 in-flight，保证并发调用共享同一次请求
 let inflight: Promise<void> | null = null
+// 每次身份切换递增，防止 A -> B -> A 时第一次 A 的响应被接受。
+let identityGeneration = 0
+
+export function captureAiQuotaIdentity(userId: string): AiQuotaRequestIdentity {
+  return { userId, generation: identityGeneration }
+}
+
+function isCurrentIdentity(identity: AiQuotaRequestIdentity, currentUserId: AiQuotaStore['currentUserId']) {
+  return identity.generation === identityGeneration
+    && identity.userId === currentUserId
+}
 
 const useAiQuotaStore = create<AiQuotaStore>((set, get) => ({
   quota: null,
@@ -34,29 +50,38 @@ const useAiQuotaStore = create<AiQuotaStore>((set, get) => ({
   error: null,
   hasFetched: false,
   currentUserId: undefined,
-  fetchQuota: async () => {
+  fetchQuota: () => {
+    const userId = get().currentUserId
+    if (!userId)
+      return Promise.resolve()
     if (inflight)
       return inflight
+    const identity = captureAiQuotaIdentity(userId)
     set({ loading: true, error: null })
-    inflight = (async () => {
+    const request: Promise<void> = (async () => {
       try {
         // 直接查额度：supabase-js 会自动带上 storage 中「当前」的 access_token，
         // 而 onAuthStateChange 触发时 storage 已是最新 token，故这里拿到的是当前身份的额度。
         // 刻意不调用 auth.getUser()：它会发网络请求且存在已知的 hang/死锁问题，
         // 一旦卡住会让 inflight 永不 resolve，导致必须刷新页面才恢复。
         const quota = await getAiQuota()
-        set({ quota, loading: false, error: null, hasFetched: true })
+        if (isCurrentIdentity(identity, get().currentUserId))
+          set({ quota, loading: false, error: null, hasFetched: true })
       }
       catch (e) {
-        set({ loading: false, error: getErrorMessage(e), hasFetched: true })
+        if (isCurrentIdentity(identity, get().currentUserId))
+          set({ loading: false, error: getErrorMessage(e), hasFetched: true })
       }
-      finally {
+    })().finally(() => {
+      if (inflight === request)
         inflight = null
-      }
-    })()
-    return inflight
+    })
+    inflight = request
+    return request
   },
-  applyReservation: (reservation) => {
+  applyReservation: (reservation, identity) => {
+    if (!isCurrentIdentity(identity, get().currentUserId))
+      return
     const { quota } = get()
     if (!quota)
       return
@@ -82,8 +107,8 @@ export function refetchAiQuota() {
   return useAiQuotaStore.getState().fetchQuota()
 }
 
-export function applyAiQuotaReservation(reservation: AiQuotaReservation) {
-  useAiQuotaStore.getState().applyReservation(reservation)
+export function applyAiQuotaReservation(reservation: AiQuotaReservation, identity: AiQuotaRequestIdentity) {
+  useAiQuotaStore.getState().applyReservation(reservation, identity)
 }
 
 // ============ 登录态权威来源：onAuthStateChange ============
@@ -102,16 +127,22 @@ supabase.auth.onAuthStateChange((_event, session) => {
     return
 
   // 身份变化（首屏 / 登录 / 登出 / 切换账号）：丢弃旧身份可能残留的 in-flight，清空旧额度
+  const generation = ++identityGeneration
   inflight = null
   useAiQuotaStore.setState({
     currentUserId: uid,
     quota: null,
+    loading: false,
     error: null,
     hasFetched: false,
   })
 
   // 有登录用户则按新身份重新拉取；登出（uid=null）保持清空。
   // setTimeout(0) 让本次 auth 回调先返回、锁释放、新 token 落地，再发 rpc。
-  if (uid)
-    setTimeout(() => useAiQuotaStore.getState().fetchQuota(), 0)
+  if (uid) {
+    setTimeout(() => {
+      if (isCurrentIdentity({ userId: uid, generation }, useAiQuotaStore.getState().currentUserId))
+        useAiQuotaStore.getState().fetchQuota()
+    }, 0)
+  }
 })

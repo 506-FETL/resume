@@ -188,12 +188,12 @@ export function createStartGenerate(set: SetState, get: GetState) {
         return
       }
 
-      const { changes } = parseVariantResponse(rewriteRaw, { strict: true })
+      const { changes } = parseVariantResponse(rewriteRaw, { strict: true, snapshot: parentSnapshot })
 
       // 应用 + 标记 ready
       let finalSnapshot: PersistedResumeSnapshot = parentSnapshot
       if (isOffline) {
-        await applyOfflineVariantChanges(draftId, changes)
+        finalSnapshot = await applyOfflineVariantChanges(draftId, changes) as PersistedResumeSnapshot
       }
       else {
         finalSnapshot = await applyVariantChanges(draftId, parentSnapshot, changes)

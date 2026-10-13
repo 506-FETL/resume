@@ -69,11 +69,20 @@ export function useCommentActions() {
   }, [client])
 
   const refreshThreads = useCallback(async (eventSeq?: number) => {
-    const lastEventSeq = store.getState().lastEventSeq
+    const initialState = store.getState()
+    const scopeId = initialState.scope?.id ?? null
+    const scopeEpoch = initialState.scopeEpoch
+    const isScopeCurrent = () => {
+      const current = store.getState()
+      return (current.scope?.id ?? null) === scopeId && current.scopeEpoch === scopeEpoch
+    }
+    const lastEventSeq = initialState.lastEventSeq
     const [response, readContext] = await Promise.all([
       client.listEvents(lastEventSeq),
       resolveReadContext().catch(() => null),
     ])
+    if (!isScopeCurrent())
+      return
 
     store.getState().applyRealtimePatch({
       threads: response.data.threads,
@@ -84,7 +93,7 @@ export function useCommentActions() {
     if (response.data.events.length > 0 && readContext?.cacheKey)
       await deleteCommentCache(readContext.cacheKey).catch(() => undefined)
 
-    if (eventSeq !== undefined)
+    if (eventSeq !== undefined && isScopeCurrent())
       store.getState().markReadLocally(eventSeq)
   }, [client, resolveReadContext, store])
 

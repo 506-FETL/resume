@@ -4,8 +4,8 @@ import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
 import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
 import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
-import { FORM_DATA_KEYS, FORM_FIELD_DEFAULTS } from '@/store/resume/const'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
+import { redactHiddenResumeSections } from '../../../../supabase/functions/shared/resume-share-redaction.ts'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { getResumeById, RESUME_PERSISTED_SELECTOR } from './form'
@@ -127,22 +127,6 @@ function toPublicTemplateManifest(manifest: TemplateManifest): TemplateManifest 
   const meta = { ...manifest.meta }
   delete meta.ownerId
   return { ...manifest, meta }
-}
-
-function redactHiddenResumeSections(snapshot: PersistedResumeSnapshot): PersistedResumeSnapshot {
-  const publicSnapshot = structuredClone(snapshot)
-  const publicRecord = publicSnapshot as unknown as Record<string, unknown>
-
-  for (const key of FORM_DATA_KEYS) {
-    if (key === 'basics')
-      continue
-
-    if (publicSnapshot.visibility[key]) {
-      publicRecord[key] = structuredClone(FORM_FIELD_DEFAULTS[key].default)
-    }
-  }
-
-  return publicSnapshot
 }
 
 /** 从云端简历配置构造完整快照（列表卡片场景：页面未加载文档） */

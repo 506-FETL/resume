@@ -37,11 +37,17 @@ const mocks: Record<string, string> = {
     export const createConversation = () => globalThis.__assistantStopTest.createConversation()
     export const deleteConversation = () => Promise.resolve()
     export const insertMessage = (...args) => globalThis.__assistantStopTest.insertMessage(...args)
+    export const listMessages = () => { throw new Error('停止顺序场景不应读取历史分页') }
     export const touchConversation = () => Promise.resolve()
+    export const truncateMessages = () => { throw new Error('停止顺序场景不应截断历史') }
     export const updateConversation = () => Promise.resolve({})
   `,
   '@/store/ai-quota': 'export const refetchAiQuota = () => {}',
   '@/store/upgrade-dialog': 'export const openUpgradeDialog = () => {}',
+  '@/store/user': `
+    import { create } from 'zustand'
+    export default create(() => ({ currentUser: { id: 'test' } }))
+  `,
   '@/utils': 'export const getErrorMessage = error => error instanceof Error ? error.message : String(error)',
   '../const': 'export const CONVERSATION_TITLE_MAX_LEN = 50; export const DEFAULT_CONVERSATION_TITLE = \'新对话\'',
   '../store': `
@@ -69,7 +75,7 @@ const mocks: Record<string, string> = {
     }
     export default store
   `,
-  '../utils': 'export const writeLastConversationId = () => {}',
+  '../utils': 'export const TOOL_CANVAS_META = {}; export const writeLastConversationId = () => {}',
   './use-canvas-preview': 'export const invalidateCanvasSnapshot = () => {}',
 }
 
@@ -80,6 +86,7 @@ const resolvedMockIds: Record<string, string> = {
   '/src/lib/supabase/ai.ts': '@/lib/supabase/ai',
   '/src/store/ai-quota.ts': '@/store/ai-quota',
   '/src/store/upgrade-dialog.ts': '@/store/upgrade-dialog',
+  '/src/store/user.ts': '@/store/user',
   '/src/utils/index.ts': '@/utils',
   '/src/pages/assistant/const.ts': '../const',
   '/src/pages/assistant/store.ts': '../store',

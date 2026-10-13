@@ -57,6 +57,10 @@ export function useAssistantNavigation(bindShortcuts = false) {
         closeOverlays()
       return true
     }
+    if (state.inFlightConversationIds[id]) {
+      toast.info('正在保存该会话的进展，请稍后打开')
+      return false
+    }
 
     cancelActiveAssistantRun()
     const requestId = crypto.randomUUID()
@@ -105,18 +109,13 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
     cancelActiveAssistantRun()
     clearLastConversationId()
+    // 新会话也是一次视图切换，统一重置分页状态并使旧分页请求失效。
+    useAssistantStore.getState().setConversationView(null, [], {})
     useAssistantStore.setState({
-      activeConversationId: null,
-      messages: [],
       streaming: false,
       streamingText: '',
       streamingParts: [],
-      composerSkillIds: [],
       abortController: null,
-      loadingMessages: false,
-      pendingConversationId: null,
-      conversationLoadRequestId: null,
-      targetMessageId: null,
       searchOpen: false,
     })
     closeOverlays()
@@ -159,18 +158,24 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
   const loadOlderMessages = useCallback(async () => {
     const s = useAssistantStore.getState()
-    if (s.loadingOlder || !s.hasMoreMessages || !s.activeConversationId || !s.oldestMessageCursor)
+    if (s.loadingOlder || !s.hasMoreMessages || !s.activeConversationId || !s.oldestMessageCursor || s.inFlightConversationIds[s.activeConversationId])
       return
     useAssistantStore.getState().setLoadingOlder(true)
     const convId = s.activeConversationId
+    const ownsView = () => {
+      const current = useAssistantStore.getState()
+      return current.activeConversationId === convId && current.conversationViewVersion === s.conversationViewVersion
+    }
     try {
       const { messages, hasMore } = await listMessages(convId, { limit: 30, before: s.oldestMessageCursor })
-      if (useAssistantStore.getState().activeConversationId !== convId)
+      if (!ownsView())
         return
       useAssistantStore.getState().prependOlderMessages(messages, hasMore)
     }
-    catch {
-      useAssistantStore.getState().setLoadingOlder(false)
+    catch {}
+    finally {
+      if (ownsView())
+        useAssistantStore.getState().setLoadingOlder(false)
     }
   }, [])
 

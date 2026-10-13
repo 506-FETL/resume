@@ -4,6 +4,7 @@ import type { ResumeState } from '../form'
 import type { EditorMode, ResumeLoadResult } from '../helpers/sync-service'
 import type { AutomergeResumeDocument, DocumentInitializationSource } from '@/lib/automerge'
 import dayjs from 'dayjs'
+import { toast } from 'sonner'
 import { CollaborationDocumentLoadError, DocumentManager } from '@/lib/automerge'
 import { getOfflineResumeById, isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { ResumeNotFoundError } from '@/lib/resume-id'
@@ -11,7 +12,7 @@ import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches, hasCompl
 import { getCurrentUser } from '@/lib/supabase/user'
 import useResumeConfigStore from '../config'
 import { hasPersistedAppearance, mapSnapshotToState, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '../helpers'
-import { clearSyncTimers, getCloudAppearanceSource, scheduleOnlinePersist } from '../helpers/sync-service'
+import { getCloudAppearanceSource, scheduleOnlinePersist } from '../helpers/sync-service'
 
 export interface DocumentSlice {
   mode: EditorMode
@@ -25,6 +26,7 @@ export interface DocumentSlice {
   appearanceDirty: boolean
   entryIdMigrationReady: boolean
   documentChangeRevision: number
+  documentSessionId: number
 
   loadResumeData: (resumeId: string, options?: ResumeLoadOptions) => Promise<ResumeLoadResult>
   cleanup: () => void
@@ -34,7 +36,7 @@ export interface ResumeLoadOptions {
   source?: DocumentInitializationSource
 }
 
-export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady' | 'documentChangeRevision'> = {
+export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady' | 'documentChangeRevision' | 'documentSessionId'> = {
   mode: null,
   currentResumeId: null,
   docManager: null,
@@ -46,6 +48,7 @@ export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 
   appearanceDirty: false,
   entryIdMigrationReady: false,
   documentChangeRevision: 0,
+  documentSessionId: 0,
 }
 
 class ResumeLoadSupersededError extends Error {
@@ -77,9 +80,22 @@ export function createDocumentSlice(
           throw new ResumeLoadSupersededError()
       }
 
+      // 切文档前先落盘；失败时保留旧文档和 pending/error，允许显式重试。
+      await get().flushPendingChanges()
+      assertCurrentRequest()
+      await get().waitForResumePersist(resumeId)
+      assertCurrentRequest()
+      // 等待目标旧保存期间，源文档仍会接收协作变更。最后一次稳定 flush
+      // 必须紧邻销毁；await 返回的微任务间隙若又产生变更，则继续落盘。
+      let hasPendingPersistableChanges: boolean
+      do {
+        await get().flushPendingChanges()
+        assertCurrentRequest()
+        const current = get()
+        hasPendingPersistableChanges = current.isInitialized && current.pendingChanges
+          && (current.mode === 'offline' || current.docManager?.canPersist() === true)
+      } while (hasPendingPersistableChanges)
       const { docManager, cleanupFns } = get()
-
-      clearSyncTimers()
       if (cleanupFns.length > 0) {
         cleanupFns.forEach(fn => fn())
       }
@@ -100,6 +116,7 @@ export function createDocumentSlice(
         cloudAppearanceStatus: source.kind === 'collaboration' ? 'not_applicable' : 'error',
         entryIdMigrationReady: false,
         documentChangeRevision: 0,
+        documentSessionId: get().documentSessionId + 1,
       })
 
       if (isOfflineResumeId(resumeId)) {
@@ -180,7 +197,9 @@ export function createDocumentSlice(
         const cloudAppearanceStatus = cloudAppearanceResult?.status ?? 'not_applicable'
 
         const changeHandler = ({ doc }: { doc: AutomergeResumeDocument | null }) => {
-          if (!doc || !isCurrentRequest())
+          // 新 load 等待旧文档落盘期间，旧文档仍是当前编辑目标。
+          // 用实际 manager/handle 身份隔离回调，切换失败后旧文档也能继续编辑。
+          if (!doc || get().docManager !== manager || get().docHandle !== handle)
             return
 
           const nextSnapshot = mapSourceToPersistedSnapshot(doc)
@@ -201,7 +220,9 @@ export function createDocumentSlice(
           }))
 
           if (canPersist) {
-            scheduleOnlinePersist(() => get().syncToSupabase())
+            const persist = get().capturePersistRequest()
+            if (persist)
+              scheduleOnlinePersist(persist)
           }
         }
 
@@ -258,10 +279,10 @@ export function createDocumentSlice(
 
     cleanup: () => {
       latestLoadRequestId += 1
+      get().flushPendingChanges().catch(error => toast.error(`离开前保存失败：${error instanceof Error ? error.message : '同步失败'}`))
       const { cleanupFns, docManager } = get()
       cleanupFns.forEach(fn => fn())
       docManager?.destroy()
-      clearSyncTimers()
       set({
         cleanupFns: [],
         docManager: null,
@@ -274,6 +295,8 @@ export function createDocumentSlice(
         appearanceDirty: false,
         entryIdMigrationReady: false,
         documentChangeRevision: 0,
+        documentSessionId: get().documentSessionId + 1,
+        isSyncing: false,
       })
     },
   }

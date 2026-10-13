@@ -35,15 +35,6 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
   const currentStageDetail = localDetails.find(s => s.stage === displayStage)
   const currentStatus = currentStageDetail?.status || '待处理'
 
-  // Check if there are changes
-  const checkDirty = () => {
-    const detailsChanged = JSON.stringify(job?.stage_details) !== JSON.stringify(localDetails)
-    const subStagesChanged = JSON.stringify(job?.interview_sub_stages || []) !== JSON.stringify(localSubStages)
-    return detailsChanged || subStagesChanged
-  }
-
-  const markDirty = () => setIsDirty(checkDirty())
-
   // Update current stage detail
   const updateStageDetail = (updates: Partial<typeof currentStageDetail>) => {
     setLocalDetails((prev) => {
@@ -112,7 +103,7 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
     }
     setLocalSubStages([...localSubStages, newSubStage])
     setOpenSubStages(prev => new Set(prev).add(newSubStage.id))
-    markDirty()
+    setIsDirty(true)
   }
 
   const deleteSubStage = (id: string) => {
@@ -122,7 +113,7 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
       next.delete(id)
       return next
     })
-    markDirty()
+    setIsDirty(true)
   }
 
   const updateSubStage = (id: string, updates: Partial<InterviewSubStage>) => {

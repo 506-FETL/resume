@@ -75,7 +75,7 @@ export class DocumentManager {
     return this.persistence.canPersist()
   }
 
-  async saveToSupabase(handle: DocHandle<AutomergeResumeDocument> | null = this.handle) {
+  async saveToSupabase(handle: DocHandle<AutomergeResumeDocument> | null = this.handle, snapshot?: AutomergeResumeDocument) {
     if (!handle) {
       return
     }
@@ -84,7 +84,7 @@ export class DocumentManager {
       this.notifySaveStart()
     }
 
-    const result = await this.persistence.saveHandle(handle)
+    const result = await this.persistence.saveHandle(handle, snapshot)
     this.notifySaveListeners(result)
 
     if (!result.success) {

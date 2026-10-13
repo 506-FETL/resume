@@ -55,6 +55,19 @@ export async function connectDocumentSession(options: EnableSessionOptions) {
     adapterPeerIdRef,
     isCurrentSession,
   })
+  const state = getState()
+  const protocolVersion = role === 'host'
+    ? state.commentProtocolVersion
+    : state.commentAccess?.protocolVersion
+  if (!protocolVersion) {
+    throw new Error('协作租约尚未就绪')
+  }
+  callbacks.authorization = {
+    protocolVersion,
+    leaseId: role === 'host'
+      ? state.commentHostLeaseId
+      : state.commentAccess?.memberLeaseId ?? null,
+  }
 
   const { adapter, activationId } = await docManager.enableCollaboration(sessionId, callbacks)
   adapterPeerIdRef.current = adapter.peerId || null

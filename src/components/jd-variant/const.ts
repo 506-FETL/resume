@@ -1,6 +1,7 @@
 import type { VariantStepConfig } from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import { Brain, CheckCircle2, Copy, ScanText, ShieldCheck, Wand2 } from 'lucide-react'
+import { VARIANT_FIELD_MAPPINGS } from '@/lib/schema'
 
 export const MIN_JD_CHARS = 30
 export const MIN_KEYWORDS = 3
@@ -10,20 +11,11 @@ export const MAX_CHANGES = 15
 export const MAX_VARIANT_DEPTH = 5
 export const REWRITE_AFTER_LENGTH_RATIO = 1.5
 
-/** 可改写字段白名单（与 spec §1.5 完全一致） */
-export const FIELD_WHITELIST: Array<{ section: keyof ResumeSchema, fieldPath: string }> = [
-  { section: 'basics', fieldPath: 'summary' },
-  { section: 'job_intent', fieldPath: 'content' },
-  { section: 'skill_specialty', fieldPath: 'content' },
-  { section: 'self_evaluation', fieldPath: 'content' },
-  { section: 'work_experience', fieldPath: 'description' },
-  { section: 'work_experience', fieldPath: 'bullets' },
-  { section: 'internship_experience', fieldPath: 'description' },
-  { section: 'internship_experience', fieldPath: 'bullets' },
-  { section: 'project_experience', fieldPath: 'description' },
-  { section: 'project_experience', fieldPath: 'techStack' },
-  { section: 'campus_experience', fieldPath: 'description' },
-]
+/** 可改写字段白名单，与视图、解析和持久化映射共用同一契约。 */
+export const FIELD_WHITELIST = Object.entries(VARIANT_FIELD_MAPPINGS).map(([section, mapping]) => ({
+  section: section as keyof ResumeSchema,
+  fieldPath: mapping.fieldPath,
+}))
 
 export const JD_VARIANT_STEPS: VariantStepConfig[] = [
   { id: 'parsing', label: '解析 JD 关键词', icon: ScanText },

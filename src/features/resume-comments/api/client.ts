@@ -589,24 +589,66 @@ export class ResumeCommentClient {
   }
 
   async listThreads(afterEventSeq: number): Promise<CommentApiSuccess<CommentThreadListResult>> {
-    const response = await this.request<Record<string, unknown>>('list_threads', { afterEventSeq })
-    return {
-      ...response,
-      data: {
-        threads: normalizeThreads(response.data.threads, response.data.profiles),
-        events: normalizeEvents(response.data.events),
-      },
-    }
+    return this.listCommentPages('list_threads', afterEventSeq)
   }
 
   async listEvents(afterEventSeq: number): Promise<CommentApiSuccess<CommentThreadListResult>> {
-    const response = await this.request<Record<string, unknown>>('list_events', { afterEventSeq })
-    return {
-      ...response,
-      data: {
-        threads: normalizeThreads(response.data.threads, response.data.profiles),
-        events: normalizeEvents(response.data.events),
-      },
+    return this.listCommentPages('list_events', afterEventSeq)
+  }
+
+  private async listCommentPages(
+    op: 'list_threads' | 'list_events',
+    afterEventSeq: number,
+  ): Promise<CommentApiSuccess<CommentThreadListResult>> {
+    // 整轮分页固定访问上下文，避免切换版本时把两个作用域拼在一起。
+    const reader = new ResumeCommentClient(this.access)
+    reader.resolvedOwnerScopeId = this.resolvedOwnerScopeId
+    const threads = new Map<string, ResumeCommentThread>()
+    const events: ResumeCommentEvent[] = []
+    let cursor = afterEventSeq
+    let throughEventSeq: number | undefined
+    let pageOp = op
+    while (true) {
+      const response = await reader.request<Record<string, unknown>>(pageOp, {
+        afterEventSeq: cursor,
+        ...(throughEventSeq === undefined ? {} : { throughEventSeq }),
+      })
+      const rawEvents = asArray(response.data.events)
+      const paginated = typeof response.data.hasMore === 'boolean'
+      // 兼容旧服务时，只信实际交付事件，不信其可能越过未读事件的顶层序号。
+      const nextCursor = paginated
+        ? response.eventSeq
+        : Math.max(cursor, ...rawEvents.map(event => asNumber(asRecord(event).event_seq)))
+      const upperBound = paginated ? response.data.throughEventSeq : response.eventSeq
+      if (
+        !Number.isSafeInteger(nextCursor) || nextCursor < cursor
+        || typeof upperBound !== 'number' || !Number.isSafeInteger(upperBound) || upperBound < 0
+        || (paginated && (nextCursor > Math.max(cursor, upperBound)
+          || (throughEventSeq !== undefined && upperBound !== throughEventSeq)))
+      ) {
+        throw new ResumeCommentClientError('unexpected', '评论分页游标无效')
+      }
+      throughEventSeq ??= upperBound
+      const hasMore = paginated
+        ? response.data.hasMore === true
+        : rawEvents.length >= 500 && nextCursor < throughEventSeq
+      if (hasMore && nextCursor <= cursor)
+        throw new ResumeCommentClientError('unexpected', '评论分页游标未推进')
+
+      for (const thread of normalizeThreads(response.data.threads, response.data.profiles))
+        threads.set(thread.id, thread)
+      const pageEvents = normalizeEvents(rawEvents)
+      for (const event of pageEvents) {
+        if (event.type === 'thread_deleted' && event.threadId)
+          threads.delete(event.threadId)
+      }
+      events.push(...pageEvents)
+      cursor = nextCursor
+      // 调用方仅在全部成功后提交游标；任一页失败都能从原位置安全重试。
+      if (!hasMore) {
+        return { ...response, eventSeq: cursor, data: { threads: [...threads.values()], events } }
+      }
+      pageOp = 'list_events'
     }
   }
 

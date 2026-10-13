@@ -277,7 +277,7 @@ export async function clearAllOfflineResumes() {
 export async function migrateOfflineResumesToCloud(
   uploadFn: (resume: { display_name: string, description?: string, type: ResumeType, data: Partial<PersistedResumeSnapshot> }) => Promise<string>,
   selectedIds?: string[],
-): Promise<{ success: number, failed: number, errors: string[] }> {
+): Promise<{ success: number, failed: number, errors: string[], successIds: string[] }> {
   let offlineResumes = await getAllOfflineResumes()
 
   // 如果指定了选择的ID，只迁移这些简历
@@ -286,12 +286,13 @@ export async function migrateOfflineResumesToCloud(
   }
 
   if (offlineResumes.length === 0) {
-    return { success: 0, failed: 0, errors: [] }
+    return { success: 0, failed: 0, errors: [], successIds: [] }
   }
 
   let success = 0
   let failed = 0
   const errors: string[] = []
+  const successIds: string[] = []
 
   for (const resume of offlineResumes) {
     try {
@@ -306,6 +307,7 @@ export async function migrateOfflineResumesToCloud(
       // 上传成功后删除本地简历
       await deleteOfflineResume(resume.resume_id)
       success++
+      successIds.push(resume.resume_id)
     }
     catch (error) {
       failed++
@@ -315,7 +317,7 @@ export async function migrateOfflineResumesToCloud(
     }
   }
 
-  return { success, failed, errors }
+  return { success, failed, errors, successIds }
 }
 
 /**
@@ -413,12 +415,12 @@ export async function cloneOfflineResumeAsDraft(args: {
 }
 
 /**
- * 将一组 changes 应用到离线 draft 上（依赖 Task 11 的 applyVariantChange）
+ * 使用与云端相同的字段映射和原文校验，将 changes 应用到离线 draft。
  */
 export async function applyOfflineVariantChanges(
   draftResumeId: string,
   changes: VariantChange[],
-): Promise<void> {
+): Promise<Partial<PersistedResumeSnapshot>> {
   const db = await getDB()
   const draft = await db.get('resumes', draftResumeId)
   if (!draft) {
@@ -428,9 +430,13 @@ export async function applyOfflineVariantChanges(
   for (const change of changes) {
     snapshot = applyVariantChange(snapshot, change)
   }
+  if (snapshot === draft.data) {
+    return snapshot
+  }
   draft.data = snapshot
   draft.updated_at = dayjs().toISOString()
   await db.put('resumes', draft)
+  return snapshot
 }
 
 /**

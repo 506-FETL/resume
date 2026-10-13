@@ -81,7 +81,8 @@ const RESUME_SELECTOR = `
   visibility,
   spacing,
   font,
-  theme
+  theme,
+  template_binding
 `
 
 const RESUME_OPTION_SELECTOR = `

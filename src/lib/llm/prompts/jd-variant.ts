@@ -1,4 +1,5 @@
 import type { EditableResumeView } from '@/components/jd-variant/types'
+import { VARIANT_FIELD_MAPPINGS } from '@/lib/schema'
 
 export interface JdPromptPair {
   system: string
@@ -34,17 +35,13 @@ interface BuildJdRewritePromptArgs {
 }
 
 export function buildJdRewritePrompt(args: BuildJdRewritePromptArgs): JdPromptPair {
+  const whitelist = Object.entries(VARIANT_FIELD_MAPPINGS)
+    .map(([section, mapping]) => `- ${section}${mapping.collection ? '.*' : ''}.${mapping.fieldPath}`)
+    .join('\n')
   const system = `你是资深简历优化顾问，擅长把现有简历针对特定岗位做"局部精修"。
 
 【可改写字段白名单（严格遵守）】
-- basics.summary
-- job_intent
-- skill_specialty
-- self_evaluation
-- work_experience.*.bullets / description
-- internship_experience.*.bullets / description
-- project_experience.*.description / techStack
-- campus_experience.*.description
+${whitelist}
 
 【绝对禁止改动的字段】
 - basics.name / basics.phone / basics.email / basics.gender / basics.birthday / basics.location / basics.avatar
@@ -57,8 +54,8 @@ export function buildJdRewritePrompt(args: BuildJdRewritePromptArgs): JdPromptPa
 2. 必须命中至少一个 JD 关键词；命中关键词写入 matchedKeywords。
 3. after 长度 ≤ before 长度 × 1.5。
 4. 总 change 数：3 ≤ N ≤ 15。
-5. itemId 必须严格使用输入 resumeJson 中的 id；section 必须在白名单内。
-6. before 必须与输入完全一致（字符级），用于服务端二次校验。
+5. itemId 必须严格使用输入 resumeJson 中的 id（经历 id 是稳定 entryId，不是数组下标）；整段字段使用 whole。section 和 fieldPath 必须与白名单完全一致。
+6. before 必须与输入对应字段完全一致（字符级），用于应用改写前二次校验。
 7. reason 用中文，≤ 60 字。
 
 【输出协议】（不要任何解释、不要 markdown 代码块）

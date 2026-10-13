@@ -55,13 +55,12 @@ export type ResumeFilterMode = 'all' | 'originals' | 'variants'
 
 /** 给 LLM 喂的简历视图，仅含白名单字段 */
 export type EditableResumeView = Partial<{
-  basics: { id: 'whole', summary?: string }
   job_intent: { id: 'whole', content?: string }
   skill_specialty: { id: 'whole', content?: string }
   self_evaluation: { id: 'whole', content?: string }
-  work_experience: Array<{ id: string, description?: string, bullets?: string[] }>
-  internship_experience: Array<{ id: string, description?: string, bullets?: string[] }>
-  project_experience: Array<{ id: string, description?: string, techStack?: string }>
+  work_experience: Array<{ id: string, description?: string }>
+  internship_experience: Array<{ id: string, description?: string }>
+  project_experience: Array<{ id: string, description?: string }>
   campus_experience: Array<{ id: string, description?: string }>
 }>
 

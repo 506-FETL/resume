@@ -2569,50 +2569,44 @@ Deno.serve(async (req) => {
       return finalize(success(data, Number(data.eventSeq)))
     }
 
-    if (op === 'list_threads') {
+    if (op === 'list_threads' || op === 'list_events') {
       const afterEventSeq = readNonNegativeInteger(body, 'afterEventSeq', 0)
-      const [{ threads, profiles }, eventResult] = await Promise.all([
-        loadThreads(admin, access.scope.id),
-        admin
-          .from('resume_comment_events')
-          .select('event_seq,thread_id,type,actor_kind,actor_id,sanitized_payload,created_at')
-          .eq('scope_id', access.scope.id)
-          .gt('event_seq', afterEventSeq)
-          .order('event_seq', { ascending: true })
-          .limit(500),
-      ])
-      if (eventResult.error)
-        throw eventResult.error
-      const latestScope = await getScope(admin, access.scope.id)
-      return finalize(success({
-        threads,
-        profiles,
-        events: projectCommentEventsForAccess(eventResult.data ?? [], access),
-      }, latestScope.next_event_seq))
-    }
-
-    if (op === 'list_events') {
-      const afterEventSeq = readNonNegativeInteger(body, 'afterEventSeq', 0)
+      const requestedThroughEventSeq = readNonNegativeInteger(body, 'throughEventSeq', access.scope.next_event_seq)
+      if (!Number.isSafeInteger(afterEventSeq) || !Number.isSafeInteger(requestedThroughEventSeq))
+        throw new CommentApiError('not_found', '评论分页游标无效', 400)
+      // 固定本轮扫描上界；后续新增留待下轮，避免持续写入时无法结束补齐。
+      const throughEventSeq = Math.min(
+        requestedThroughEventSeq,
+        access.scope.next_event_seq,
+      )
       const eventResult = await admin
         .from('resume_comment_events')
         .select('id,event_seq,thread_id,type,actor_kind,actor_id,sanitized_payload,created_at')
         .eq('scope_id', access.scope.id)
         .gt('event_seq', afterEventSeq)
+        .lte('event_seq', throughEventSeq)
         .order('event_seq', { ascending: true })
-        .limit(500)
+        .limit(501)
       if (eventResult.error)
         throw eventResult.error
-      const events = eventResult.data ?? []
+      const rows = eventResult.data ?? []
+      const events = rows.slice(0, 500)
+      // 过滤/投影前推进扫描游标，额外查询的第 501 条仅用于判断下一页。
+      const scannedEventSeq = Number(events.at(-1)?.event_seq ?? afterEventSeq)
       const threadIds = Array.from(new Set(events.flatMap(event => event.thread_id ? [event.thread_id] : [])))
-      const [{ threads, profiles }, latestScope] = await Promise.all([
-        loadThreads(admin, access.scope.id, threadIds),
-        getScope(admin, access.scope.id),
-      ])
+      // 全量线程是当前快照，并不代表快照查询之后的事件已经消费。
+      const { threads, profiles } = await loadThreads(
+        admin,
+        access.scope.id,
+        op === 'list_threads' ? undefined : threadIds,
+      )
       return finalize(success({
         threads,
         profiles,
         events: projectCommentEventsForAccess(events, access),
-      }, latestScope.next_event_seq))
+        hasMore: rows.length > events.length,
+        throughEventSeq,
+      }, scannedEventSeq))
     }
 
     if (op === 'issue_realtime_token') {

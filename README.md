@@ -636,7 +636,7 @@ resume/
 
 5. 在 Supabase Dashboard 的 **Authentication → URL Configuration** 中，把生产站点设为 Site URL，并将实际使用的认证回调加入 Redirect URLs；当前编辑器路由是 `http://localhost:5173/resume/editor` 与生产环境的 `<VITE_BASE_URL>/resume/editor`。最后使用普通用户完成登录、分享和 AI 请求的 smoke 检查。
 
-> **密码重置限制：** 当前忘记密码表单仍把回调构造为 `<VITE_BASE_URL>/editor`，但仓库没有 `/editor` 页面，也没有独立的 recovery 页面。自行部署前需要先统一回调路由并补齐恢复密码界面，再把同一个 URL 加入 Supabase Redirect URLs；在此之前不能把密码重置视为可交付能力。
+> **密码找回：** 忘记密码表单将邮件回调指向当前站点的 `/reset-password`。该页面验证 Supabase 恢复会话及已验证 JWT 的 `amr=recovery` 后才能设置新密码；失效链接可重新申请邮件，成功后保留当前会话并返回首页；如需使用新密码登录，可从账户菜单主动退出后重新登录。普通登录状态不能通过此页面跳过旧密码校验。部署时在 Supabase **Authentication → URL Configuration → Redirect URLs** 中加入受信任站点的完整回调，例如 `https://506resume.cc/reset-password`、`https://506resume.vercel.app/reset-password`；本地调试可按实际端口另行添加 `http://localhost:5173/reset-password` 等路径，本文不表示该本地 URL 已在云端配置。默认使用 implicit，含 `code` 的 PKCE 回调由 SDK 交换（须在发起流程的同一浏览器和 origin 保有 verifier）。若 Supabase 回落到 Site URL，应用仍会识别有效恢复会话并进入恢复页。禁止将任意来源通配符加入允许列表。
 
 ### 开发与验证
 

@@ -25,7 +25,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${import.meta.env.VITE_BASE_URL}/editor`,
+        redirectTo: new URL('/reset-password', window.location.origin).href,
       })
       if (error)
         throw error

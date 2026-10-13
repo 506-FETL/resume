@@ -1,4 +1,6 @@
 export interface CollaborationCallbacks {
+  authorization?: { protocolVersion: 1 | 2, leaseId: string | null }
+  onDisconnect?: () => void
   onPeerJoin?: (payload: { peerId: string, metadata?: Record<string, unknown> }) => void
   onPeerLeave?: (payload: { peerId: string }) => void
   onChannelReady?: (channelName: string) => void

@@ -35,7 +35,7 @@ export class CollaborationSessionManager {
     }
     const activationId = ++this.activationSequence
 
-    if (this.adapter && this.currentSessionId === sessionId) {
+    if (this.adapter?.isReady() && this.currentSessionId === sessionId) {
       this.adapter.setCallbacks(callbacks)
       this.currentActivationId = activationId
       this.syncHandle(handle)

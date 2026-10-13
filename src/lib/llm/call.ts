@@ -1,6 +1,6 @@
 import type { ChatCompletionChunk, ChatCompletionCreateParams } from 'openai/resources/chat/completions'
 import { Stream } from 'openai/streaming'
-import { applyAiQuotaReservation } from '@/store/ai-quota'
+import { applyAiQuotaReservation, captureAiQuotaIdentity } from '@/store/ai-quota'
 import supabase from '../supabase/client'
 
 // 额度超限错误：供上层（P3 UI）识别并展示「明日 0 点恢复」等提示。
@@ -48,6 +48,7 @@ export async function callLLM(
     throw new Error('用户未登录，无法调用 LLM 服务')
   }
 
+  const quotaIdentity = captureAiQuotaIdentity(session.user.id)
   const controller = abortController ?? new AbortController()
   const requestId = providedRequestId ?? crypto.randomUUID()
 
@@ -85,7 +86,7 @@ export async function callLLM(
       dailyLimit: quotaDailyLimit,
       resetAt: quotaResetAt,
       unlimited: quotaUnlimited,
-    })
+    }, quotaIdentity)
   }
 
   if (!response.ok) {

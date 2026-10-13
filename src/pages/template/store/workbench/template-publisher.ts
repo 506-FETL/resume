@@ -88,7 +88,9 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
         return
       }
 
-      editorState.markSaving(true)
+      const request = editorState.beginSave()
+      if (!request)
+        return
 
       try {
         const state = get()
@@ -123,21 +125,24 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
           status: 'active',
         })
 
-        editorState.markSaved({
+        const isActiveDraft = editorState.markSaved({
+          request,
           templateId: syncedTemplate.id,
           manifest: syncedTemplate.manifest,
         })
         useUserTemplatesStore.getState().upsertAndSync(syncedTemplate)
-        set({
-          mode: 'editor',
-          source: 'user',
-          selectedTemplateId: syncedTemplate.id,
-        })
-        useUserTemplatesStore.getState().setLastOpenedUserTemplateId(syncedTemplate.id)
+        if (isActiveDraft) {
+          set({
+            mode: 'editor',
+            source: 'user',
+            selectedTemplateId: syncedTemplate.id,
+          })
+          useUserTemplatesStore.getState().setLastOpenedUserTemplateId(syncedTemplate.id)
+        }
         toast.success('模板已保存')
       }
       catch (saveError) {
-        editorState.markSaving(false)
+        editorState.markSaveFailed(request)
         toast.error('模板保存失败', {
           description: saveError instanceof Error ? saveError.message : '请稍后重试',
         })
@@ -166,7 +171,9 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
         return
       }
 
-      editorState.markSaving(true)
+      const request = editorState.beginSave()
+      if (!request)
+        return
 
       try {
         const state = get()
@@ -183,21 +190,24 @@ export function createTemplatePublisherSlice(set: Set, get: Get): TemplatePublis
           status: 'active',
         })
 
-        editorState.markSaved({
+        const isActiveDraft = editorState.markSaved({
+          request,
           templateId: savedTemplate.id,
           manifest: savedTemplate.manifest,
         })
         useUserTemplatesStore.getState().upsertAndSync(savedTemplate)
-        set({
-          mode: 'editor',
-          source: 'user',
-          selectedTemplateId: savedTemplate.id,
-        })
-        useUserTemplatesStore.getState().setLastOpenedUserTemplateId(savedTemplate.id)
+        if (isActiveDraft) {
+          set({
+            mode: 'editor',
+            source: 'user',
+            selectedTemplateId: savedTemplate.id,
+          })
+          useUserTemplatesStore.getState().setLastOpenedUserTemplateId(savedTemplate.id)
+        }
         toast.success('已另存为新的个人模板')
       }
       catch (saveError) {
-        editorState.markSaving(false)
+        editorState.markSaveFailed(request)
         toast.error('另存为失败', {
           description: saveError instanceof Error ? saveError.message : '请稍后重试',
         })

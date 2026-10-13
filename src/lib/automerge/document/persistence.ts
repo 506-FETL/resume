@@ -109,8 +109,8 @@ export class AutomergeDocumentPersistence {
     return data as Partial<PersistedResumeSnapshot>
   }
 
-  async saveHandle(handle: DocHandle<AutomergeResumeDocument>): Promise<DocumentSaveResult> {
-    const doc = handle.doc()
+  async saveHandle(handle: DocHandle<AutomergeResumeDocument>, snapshot?: AutomergeResumeDocument): Promise<DocumentSaveResult> {
+    const doc = snapshot ?? handle.doc()
 
     if (!doc) {
       return { success: true }

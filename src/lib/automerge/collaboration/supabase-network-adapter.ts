@@ -27,7 +27,11 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   private readonly resumeId: string
   private readonly sessionId: string
   private callbacks: CollaborationCallbacks = {}
-  private readonly channelName: string
+  private channelName = ''
+  private inboxId: string | null = null
+  private heartbeat: ReturnType<typeof setTimeout> | null = null
+  private peers = new Set<string>()
+  private sendQueue: Promise<void> = Promise.resolve()
   private presenceMetadata: Record<string, unknown> = {}
   private ready = false
   private localDocumentId: string | null = null
@@ -40,7 +44,6 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     super()
     this.resumeId = resumeId
     this.sessionId = sessionId
-    this.channelName = `automerge:resume:${resumeId}:${sessionId}`
     this.setCallbacks(callbacks)
   }
 
@@ -72,66 +75,122 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   }
 
   connect(peerId: PeerId, peerMetadata?: PeerMetadata) {
-    const previousChannel = this.channel
+    if (this.connectionGeneration > 0) {
+      this.disconnect()
+    }
     const generation = ++this.connectionGeneration
-
     this.closed = false
-    this.ready = false
-    this.pendingMessages = []
     this.peerId = peerId
     this.peerMetadata = peerMetadata
+    this.sendQueue = Promise.resolve()
+    this.openConnection(generation).catch(() => this.failConnection(generation))
+  }
+
+  private async openConnection(generation: number) {
+    const authorization = this.callbacks.authorization
+    if (!authorization) {
+      throw new Error('协作租约缺失')
+    }
+    const { data, error } = await supabase.rpc('open_automerge_peer', {
+      p_session_id: this.sessionId,
+      p_resume_id: this.resumeId,
+      p_peer_id: String(this.peerId),
+      p_protocol_version: authorization.protocolVersion,
+      p_lease_id: authorization.leaseId,
+      p_metadata: { ...this.peerMetadata, ...this.presenceMetadata },
+    })
+    if (error || !data?.inboxId || data.topic !== `automerge:inbox:${data.inboxId}`) {
+      throw error || new Error('协作频道授权失败')
+    }
+    if (generation !== this.connectionGeneration || this.closed) {
+      this.closeInbox(data.inboxId)
+      return
+    }
+    this.inboxId = data.inboxId
+    this.channelName = data.topic
     const channel = supabase.channel(this.channelName, {
-      config: {
-        broadcast: { ack: true, self: false },
-      },
+      config: { private: true, broadcast: { self: false } },
     })
     this.channel = channel
-
-    if (previousChannel) {
-      this.unsubscribe(previousChannel)
-    }
-
     this.registerSyncBroadcast(channel, generation)
     this.registerControlBroadcast(channel, generation)
-    this.registerPresenceEvents(channel, generation)
-    this.subscribeToChannel(channel, generation, peerMetadata)
+    this.subscribeToChannel(channel, generation)
   }
 
   disconnect() {
     const channel = this.channel
+    const inboxId = this.inboxId
+    const wasOpen = !this.closed
     ++this.connectionGeneration
     this.channel = null
+    this.inboxId = null
     this.ready = false
-    this.localDocumentId = null
+    this.closed = true
     this.pendingMessages = []
+    if (this.heartbeat) {
+      clearTimeout(this.heartbeat)
+      this.heartbeat = null
+    }
+    for (const peerId of this.peers) {
+      this.emit('peer-disconnected', { peerId: peerId as PeerId })
+    }
+    this.peers.clear()
+    if (channel) {
+      this.unsubscribe(channel)
+    }
+    if (inboxId) {
+      this.closeInbox(inboxId)
+    }
+    this.settleReadyWaiters()
+    if (wasOpen) {
+      this.emit('close')
+    }
+  }
 
-    if (!channel) {
+  private failConnection(generation: number) {
+    if (generation !== this.connectionGeneration || this.closed) {
       return
     }
+    this.disconnect()
+    this.callbacks.onDisconnect?.()
+  }
 
-    this.closed = true
-    this.unsubscribe(channel)
-    this.settleReadyWaiters()
-    this.emit('close')
+  private closeInbox(inboxId: string) {
+    Promise.resolve(supabase.rpc('close_automerge_peer', { p_inbox_id: inboxId })).catch(() => {
+      // A disconnected inbox expires server-side even if cleanup cannot reach it.
+    })
   }
 
   send(message: Message) {
-    if (!this.channel || !this.ready || !message.data) {
+    if (!this.ready || !message.data) {
       return
     }
+    this.sendAuthorized('automerge-sync', {
+      targetId: message.targetId,
+      messageType: message.type,
+      documentId: (message as any).documentId || this.localDocumentId,
+      message: encodeBytesToBase64(message.data),
+    }).catch(() => { /* sendAuthorized already closes this connection. */ })
+  }
 
-    this.channel.send({
-      type: 'broadcast',
-      event: 'automerge-sync',
-      payload: {
-        senderId: this.peerId,
-        targetId: message.targetId,
-        messageType: message.type,
-        documentId: (message as any).documentId || this.localDocumentId || this.resumeId,
-        message: encodeBytesToBase64(message.data),
-        sessionId: this.sessionId,
-      },
+  private sendAuthorized(event: string, payload: Record<string, unknown>) {
+    const generation = this.connectionGeneration
+    const inboxId = this.inboxId
+    const operation = this.sendQueue.then(async () => {
+      if (generation !== this.connectionGeneration || !this.ready || !inboxId) {
+        throw new Error('协作实时频道已断开')
+      }
+      const { error } = await supabase.rpc('send_automerge_message', {
+        p_inbox_id: inboxId,
+        p_event: event,
+        p_payload: payload,
+      })
+      if (error) {
+        throw error
+      }
     })
+    this.sendQueue = operation.catch(() => this.failConnection(generation))
+    return operation
   }
 
   getChannelName() {
@@ -143,20 +202,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       throw new Error('协作控制频道尚未就绪')
     }
 
-    const result = await this.channel.send({
-      type: 'broadcast',
-      event: 'automerge-control',
-      payload: {
-        type,
-        data,
-        senderId: this.peerId,
-        sessionId: this.sessionId,
-      },
-    })
-
-    if (result !== 'ok') {
-      throw new Error(`协作控制消息发送失败: ${result}`)
-    }
+    await this.sendAuthorized('automerge-control', { type, data })
   }
 
   private registerSyncBroadcast(channel: RealtimeChannel, generation: number) {
@@ -166,6 +212,12 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       }
 
       const incoming = payload.payload || {}
+      if (incoming.sessionId !== this.sessionId || typeof incoming.senderId !== 'string'
+        || typeof incoming.userId !== 'string' || typeof incoming.message !== 'string'
+        || incoming.senderId === String(this.peerId)) {
+        return
+      }
+      this.rememberPeer(incoming.senderId, incoming.metadata || {})
 
       if (incoming.targetId && incoming.targetId !== this.peerId) {
         return
@@ -193,7 +245,10 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
         return
       }
 
-      const { type, data } = payload.payload || {}
+      const { type, data, sessionId } = payload.payload || {}
+      if (sessionId !== this.sessionId) {
+        return
+      }
 
       if (type) {
         this.callbacks.onControlMessage?.({ type, data })
@@ -201,76 +256,61 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     })
   }
 
-  private registerPresenceEvents(channel: RealtimeChannel, generation: number) {
-    channel.on('presence', { event: 'join' }, ({ newPresences }) => {
-      if (!this.isCurrentConnection(channel, generation)) {
-        return
-      }
-
-      newPresences.forEach((presence: any) => {
-        const remotePeerId = presence.key || presence.peerId || presence.metadata?.peerId
-
-        if (remotePeerId && String(remotePeerId) !== String(this.peerId)) {
-          this.emit('peer-candidate', {
-            peerId: String(remotePeerId) as unknown as PeerId,
-            peerMetadata: presence.metadata || {},
-          })
-
-          this.callbacks.onPeerJoin?.({
-            peerId: String(remotePeerId),
-            metadata: presence.metadata || {},
-          })
-        }
-      })
-    })
-
-    channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-      if (!this.isCurrentConnection(channel, generation)) {
-        return
-      }
-
-      leftPresences.forEach((presence: any) => {
-        const remotePeerId = presence.key || presence.peerId || presence.metadata?.peerId
-
-        if (remotePeerId && String(remotePeerId) !== String(this.peerId)) {
-          this.emit('peer-disconnected', {
-            peerId: String(remotePeerId) as unknown as PeerId,
-          })
-
-          this.callbacks.onPeerLeave?.({ peerId: String(remotePeerId) })
-        }
-      })
-    })
+  // Presence metadata is client-controlled. Discover peers only through the RPC.
+  private rememberPeer(peerId: string, metadata: Record<string, unknown>) {
+    if (peerId === String(this.peerId) || this.peers.has(peerId)) {
+      return
+    }
+    this.peers.add(peerId)
+    this.emit('peer-candidate', { peerId: peerId as PeerId, peerMetadata: metadata })
+    this.callbacks.onPeerJoin?.({ peerId, metadata })
   }
 
-  private subscribeToChannel(
-    channel: RealtimeChannel,
-    generation: number,
-    peerMetadata?: PeerMetadata,
-  ) {
-    channel.subscribe(async (status) => {
-      if (status !== 'SUBSCRIBED' || !this.isCurrentConnection(channel, generation)) {
-        return
+  private async refreshPeers(channel: RealtimeChannel, generation: number) {
+    const { data, error } = await supabase.rpc('refresh_automerge_peer', { p_inbox_id: this.inboxId })
+    if (!this.isCurrentConnection(channel, generation)) {
+      return
+    }
+    if (error || !Array.isArray(data)) {
+      throw error || new Error('协作租约验证失败')
+    }
+    const activePeers = new Set<string>()
+    for (const peer of data) {
+      if (typeof peer.peerId !== 'string' || !peer.metadata || typeof peer.metadata.userId !== 'string') {
+        throw new Error('协作成员数据无效')
       }
+      activePeers.add(peer.peerId)
+      this.rememberPeer(peer.peerId, peer.metadata)
+    }
+    for (const peerId of this.peers) {
+      if (!activePeers.has(peerId)) {
+        this.peers.delete(peerId)
+        this.emit('peer-disconnected', { peerId: peerId as PeerId })
+        this.callbacks.onPeerLeave?.({ peerId })
+      }
+    }
+    this.heartbeat = setTimeout(() => {
+      this.refreshPeers(channel, generation).catch(() => this.failConnection(generation))
+    }, 10_000)
+  }
 
-      await channel.track({
-        peerId: String(this.peerId),
-        metadata: {
-          ...(peerMetadata || {}),
-          ...this.presenceMetadata,
-          peerId: String(this.peerId),
-        },
-        online_at: new Date().toISOString(),
-        sessionId: this.sessionId,
-      })
-
+  private subscribeToChannel(channel: RealtimeChannel, generation: number) {
+    channel.subscribe((status) => {
       if (!this.isCurrentConnection(channel, generation)) {
         return
       }
-
+      if (status !== 'SUBSCRIBED') {
+        this.failConnection(generation)
+        return
+      }
       this.ready = true
-      this.settleReadyWaiters()
-      this.callbacks.onChannelReady?.(this.channelName)
+      this.refreshPeers(channel, generation).then(() => {
+        if (!this.isCurrentConnection(channel, generation)) {
+          return
+        }
+        this.settleReadyWaiters()
+        this.callbacks.onChannelReady?.(this.channelName)
+      }).catch(() => this.failConnection(generation))
     })
   }
 
@@ -329,6 +369,9 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
         data: decodeBase64ToBytes(message.message),
       }
 
+      // An owner restore imports the same resume with a new Automerge ID while
+      // guests retain the invite's ID. Server authorization binds this transport
+      // to one resume/session; map its messages onto this repo's local handle.
       const resolvedDocumentId = this.localDocumentId || message.documentId || this.resumeId
 
       ;(payload as any).documentId = resolvedDocumentId

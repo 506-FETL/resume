@@ -3,7 +3,7 @@ import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { Suggestion } from '@/lib/schema/ats'
 import { set, toPath } from 'lodash'
 import { toast } from 'sonner'
-import { normalizeResumeFormData } from '@/lib/schema'
+import { normalizeResumeFormData, resolveResumeTemplateBinding } from '@/lib/schema'
 import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches } from '@/lib/schema/resume/entry-id'
 import { getResumeById, updateResumeConfig } from '@/lib/supabase/resume'
 import { getCurrentUser } from '@/lib/supabase/user'
@@ -93,7 +93,11 @@ export async function replaceAutomergeDocumentSnapshot(
 
     const resolvedDoc = handle.doc()
     const payload = pickResumePayload(resolvedDoc ?? snapshot, snapshot)
-    await updateResumeConfig(resumeId, payload)
+    const { templateBinding, ...resumeConfig } = payload
+    await updateResumeConfig(resumeId, {
+      ...resumeConfig,
+      template_binding: templateBinding,
+    })
 
     return payload
   }
@@ -123,6 +127,7 @@ function applySnapshotToDocument(
   doc.order = [...payload.order] as AutomergeResumeDocument['order']
   doc.visibility = { ...payload.visibility } as AutomergeResumeDocument['visibility']
   doc.type = payload.type as AutomergeResumeDocument['type']
+  doc.templateBinding = payload.templateBinding as AutomergeResumeDocument['templateBinding']
   doc.spacing = { ...payload.spacing } as AutomergeResumeDocument['spacing']
   doc.font = { ...payload.font } as AutomergeResumeDocument['font']
   doc.theme = { ...payload.theme } as AutomergeResumeDocument['theme']
@@ -148,6 +153,10 @@ function pickResumePayload(
     order: cloneResumeValue(source.order ?? fallback.order),
     visibility: cloneResumeValue(source.visibility ?? fallback.visibility),
     type: cloneResumeValue(source.type ?? fallback.type),
+    templateBinding: cloneResumeValue(resolveResumeTemplateBinding(
+      source.templateBinding ?? fallback.templateBinding,
+      source.type ?? fallback.type,
+    )),
     spacing: cloneResumeValue(source.spacing ?? fallback.spacing),
     font: cloneResumeValue(source.font ?? fallback.font),
     theme: cloneResumeValue(source.theme ?? fallback.theme),

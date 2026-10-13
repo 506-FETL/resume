@@ -99,6 +99,9 @@ export async function applyVariantChanges(
   for (const change of changes) {
     next = applyVariantChange(next, change)
   }
+  if (next === snapshot) {
+    return snapshot
+  }
 
   const updates: Record<string, unknown> = {}
   for (const sec of new Set(changes.map(c => c.section))) {

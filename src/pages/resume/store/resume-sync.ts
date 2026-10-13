@@ -35,18 +35,11 @@ export function createResumeSyncSlice(set: SetState, get: GetState): ResumeSyncS
         const result = await syncOfflineResumesToCloud(selectedIds)
 
         if (result.success > 0) {
-          set(state => ({
-            resumes: state.resumes.filter(r => !selectedIds.includes(r.resume_id)),
-          }))
-
-          const onlineResumes = await getAllResumesFromUser()
-          const newOnlineResumes = onlineResumes.map(r => ({ ...r, isOffline: false }))
-
+          const successIds = new Set(result.successIds)
           set((state) => {
-            const offline = state.resumes.filter(r => r.isOffline)
-            const remaining = state.offlineResumes.filter(r => !selectedIds.includes(r.resume_id))
+            const remaining = state.offlineResumes.filter(r => !successIds.has(r.resume_id))
             return {
-              resumes: [...newOnlineResumes, ...offline],
+              resumes: state.resumes.filter(r => !r.isOffline || !successIds.has(r.resume_id)),
               offlineResumes: remaining,
               showSyncDialog: remaining.length === 0 ? false : state.showSyncDialog,
             }
@@ -57,6 +50,19 @@ export function createResumeSyncSlice(set: SetState, get: GetState): ResumeSyncS
 
         if (result.failed > 0)
           toast.error(`${result.failed} 个简历同步失败`)
+
+        if (result.success > 0) {
+          try {
+            const onlineResumes = await getAllResumesFromUser()
+            const newOnlineResumes = onlineResumes.map(r => ({ ...r, isOffline: false }))
+            set(state => ({
+              resumes: [...newOnlineResumes, ...state.resumes.filter(r => r.isOffline)],
+            }))
+          }
+          catch {
+            toast.error('云端列表刷新失败，请刷新页面查看已同步简历')
+          }
+        }
       }
       catch {
         toast.error('同步失败，请稍后重试')

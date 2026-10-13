@@ -9,8 +9,14 @@ interface HydrateDraftPayload {
 }
 
 interface MarkSavedPayload {
+  request: TemplateSaveRequest
   templateId?: string | null
   manifest?: TemplateManifest | null
+}
+
+interface TemplateSaveRequest {
+  sessionId: number
+  revision: number
 }
 
 interface TemplateEditorState {
@@ -20,13 +26,17 @@ interface TemplateEditorState {
   previewResumeId: string | null
   dirty: boolean
   saving: boolean
+  draftSessionId: number
+  draftRevision: number
+  activeSaveRequest: TemplateSaveRequest | null
 
   hydrateDraft: (payload: HydrateDraftPayload) => void
   setSelectedSection: (sectionId: string | null) => void
   applyManifest: (nextManifest: TemplateManifest | ((current: TemplateManifest) => TemplateManifest)) => void
   setPreviewResumeId: (resumeId: string | null) => void
-  markSaving: (saving: boolean) => void
-  markSaved: (payload?: MarkSavedPayload) => void
+  beginSave: () => TemplateSaveRequest | null
+  markSaveFailed: (request: TemplateSaveRequest) => void
+  markSaved: (payload: MarkSavedPayload) => boolean
   resetEditor: () => void
 }
 
@@ -37,20 +47,26 @@ const INITIAL_STATE = {
   previewResumeId: null,
   dirty: false,
   saving: false,
+  draftSessionId: 0,
+  draftRevision: 0,
+  activeSaveRequest: null,
 }
 
-const useTemplateEditorStore = create<TemplateEditorState>()(set => ({
+const useTemplateEditorStore = create<TemplateEditorState>()((set, get) => ({
   ...INITIAL_STATE,
 
   hydrateDraft: payload =>
-    set({
+    set(state => ({
       templateId: payload.templateId ?? null,
       manifestDraft: cloneTemplateManifest(payload.manifest),
       selectedSectionId: null,
       previewResumeId: payload.previewResumeId ?? null,
       dirty: false,
       saving: false,
-    }),
+      draftSessionId: state.draftSessionId + 1,
+      draftRevision: 0,
+      activeSaveRequest: null,
+    })),
 
   setSelectedSection: sectionId => set({ selectedSectionId: sectionId }),
 
@@ -67,21 +83,43 @@ const useTemplateEditorStore = create<TemplateEditorState>()(set => ({
       return {
         manifestDraft: cloneTemplateManifest(resolvedManifest),
         dirty: true,
+        draftRevision: state.draftRevision + 1,
       }
     }),
 
   setPreviewResumeId: previewResumeId => set({ previewResumeId }),
 
-  markSaving: saving => set({ saving }),
+  beginSave: () => {
+    const state = get()
+    if (!state.manifestDraft || state.saving)
+      return null
 
-  markSaved: payload => set(state => ({
-    templateId: payload?.templateId ?? state.templateId,
-    manifestDraft: payload?.manifest ? cloneTemplateManifest(payload.manifest) : state.manifestDraft,
-    dirty: false,
-    saving: false,
-  })),
+    const request = { sessionId: state.draftSessionId, revision: state.draftRevision }
+    set({ saving: true, activeSaveRequest: request })
+    return request
+  },
 
-  resetEditor: () => set({ ...INITIAL_STATE }),
+  markSaveFailed: request => set(state => state.activeSaveRequest === request
+    ? { saving: false, activeSaveRequest: null }
+    : {}),
+
+  markSaved: (payload) => {
+    const state = get()
+    if (state.activeSaveRequest !== payload.request || state.draftSessionId !== payload.request.sessionId)
+      return false
+
+    const hasLaterEdits = state.draftRevision !== payload.request.revision
+    set({
+      templateId: payload.templateId ?? state.templateId,
+      manifestDraft: !hasLaterEdits && payload.manifest ? cloneTemplateManifest(payload.manifest) : state.manifestDraft,
+      dirty: hasLaterEdits,
+      saving: false,
+      activeSaveRequest: null,
+    })
+    return true
+  },
+
+  resetEditor: () => set(state => ({ ...INITIAL_STATE, draftSessionId: state.draftSessionId + 1 })),
 }))
 
 export default useTemplateEditorStore

@@ -1,6 +1,7 @@
 import type { CanvasTabKey } from './types'
 import type { ConfirmPreview } from '@/lib/ai/agent/confirm-bridge'
 import type { AiConversation, AiMessage, AiMessagePart } from '@/lib/ai/types'
+import type { MessageCursor } from '@/lib/supabase/ai'
 import { create } from 'zustand'
 import { ASSISTANT_CANVAS_STORAGE_KEY, ASSISTANT_CANVAS_TAB_PINNED_STORAGE_KEY, ASSISTANT_CANVAS_TAB_STORAGE_KEY, ASSISTANT_CANVAS_WIDTH_STORAGE_KEY, ASSISTANT_DEEP_THINKING_STORAGE_KEY, CANVAS_DEFAULT_WIDTH, CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CANVAS_TABS } from './const'
 import { readStoredBoolean, writeStoredBoolean } from './utils'
@@ -45,7 +46,7 @@ interface AssistantStore {
   pendingConfirm: { id: string, toolName: string, preview: ConfirmPreview, resolve: (confirmed: boolean) => void } | null
   hasMoreMessages: boolean
   loadingOlder: boolean
-  oldestMessageCursor: string | null
+  oldestMessageCursor: MessageCursor | null
   loadingConversations: boolean
   loadingMessages: boolean
   searchOpen: boolean
@@ -164,7 +165,7 @@ const useAssistantStore = create<AssistantStore>()(set => ({
     messages,
     targetMessageId: options?.targetMessageId ?? null,
     hasMoreMessages: options?.hasMore ?? false,
-    oldestMessageCursor: messages[0]?.createdAt ?? null,
+    oldestMessageCursor: messages[0] ? { createdAt: messages[0].createdAt, id: messages[0].id } : null,
     loadingOlder: false,
     pendingConversationId: null,
     conversationLoadRequestId: null,
@@ -175,7 +176,7 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   prependOlderMessages: (older, hasMore) => set(state => ({
     messages: [...older, ...state.messages],
     hasMoreMessages: hasMore,
-    oldestMessageCursor: older[0]?.createdAt ?? state.oldestMessageCursor,
+    oldestMessageCursor: older[0] ? { createdAt: older[0].createdAt, id: older[0].id } : state.oldestMessageCursor,
     loadingOlder: false,
   })),
   setLoadingOlder: v => set({ loadingOlder: v }),

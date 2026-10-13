@@ -33,48 +33,86 @@ export async function changeAvatar(file: File) {
   if (!user)
     throw new Error('未登陆用户')
 
-  // 尝试删除旧头像文件（忽略错误，可能不存在）
-  const oldAvatarUrl = user.user_metadata?.avatar_url
-  if (oldAvatarUrl) {
+  // 两处引用可能已不一致，先记录各自旧文件；读失败时不启动替换。
+  const { data: oldProfile, error: readErr } = await supabase
+    .from('profiles')
+    .select('avatar_url')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (readErr)
+    throw readErr
+
+  const storage = supabase.storage.from('avatar')
+  const baseUrl = new URL(storage.getPublicUrl('').data.publicUrl)
+  const oldPaths = new Set<string>()
+  for (const oldAvatarUrl of [user.user_metadata?.avatar_url, oldProfile?.avatar_url]) {
+    if (typeof oldAvatarUrl !== 'string')
+      continue
+
     try {
       const url = new URL(oldAvatarUrl)
-      // 提取 storage 路径：/storage/v1/object/public/avatar/{path}
-      const match = url.pathname.match(/\/storage\/v1\/object\/public\/avatar\/(.+)/)
-      if (match?.[1]) {
-        await supabase.storage.from('avatar').remove([decodeURIComponent(match[1])])
-      }
+      if (url.origin !== baseUrl.origin || !url.pathname.startsWith(baseUrl.pathname))
+        continue
+
+      const oldPath = decodeURIComponent(url.pathname.slice(baseUrl.pathname.length))
+      if (!oldPath.startsWith(`${user.id}/`) || oldPath.includes('\\'))
+        continue
+      if (oldPath.split('/').some(part => !part || part === '.' || part === '..'))
+        continue
+
+      oldPaths.add(oldPath)
     }
     catch {
-      // 旧头像清理失败不影响新头像上传
+      // 外部、无效或无法安全解析的 URL 不属于可清理对象。
     }
   }
 
-  const path = `${user.id}/${Date.now()}-${file.name}`
+  // 每次上传使用独立路径，禁止覆盖仍被任一引用使用的旧对象。
+  let path: string
+  do {
+    path = `${user.id}/${crypto.randomUUID()}`
+  } while (oldPaths.has(path))
 
-  const { error: upErr } = await supabase.storage.from('avatar').upload(path, file, {
-    upsert: true,
+  const { error: upErr } = await storage.upload(path, file, {
+    upsert: false,
   })
   if (upErr)
     throw upErr
 
-  const { data } = supabase.storage.from('avatar').getPublicUrl(path)
+  const { data } = storage.getPublicUrl(path)
   const avatarUrl = data.publicUrl
 
-  const { error } = await supabase.auth.updateUser({
+  // 后续失败或响应丢失时保留新旧对象，避免删除可能已经被引用的文件。
+  const { data: authData, error } = await supabase.auth.updateUser({
     data: { avatar_url: avatarUrl },
   })
   if (error)
     throw error
+  if (authData.user?.id !== user.id || authData.user.user_metadata?.avatar_url !== avatarUrl)
+    throw new Error('头像认证资料更新未确认，请重试')
 
-  // 同步写回 profiles 表，避免与 auth metadata 不同源
-  const { error: profileErr } = await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from('profiles')
     .upsert(
       { id: user.id, avatar_url: avatarUrl, updated_at: new Date().toISOString() },
       { onConflict: 'id' },
     )
+    .select('avatar_url')
+    .single()
   if (profileErr)
     throw profileErr
+  if (profile.avatar_url !== avatarUrl)
+    throw new Error('头像用户资料更新未确认，请重试')
+
+  // 两处引用均确认更新后才清理；清理失败不改变更换成功的结果。
+  if (oldPaths.size) {
+    try {
+      await storage.remove([...oldPaths])
+    }
+    catch {
+      // 旧文件保留可稍后清理，不影响新头像可用性。
+    }
+  }
 
   return avatarUrl
 }

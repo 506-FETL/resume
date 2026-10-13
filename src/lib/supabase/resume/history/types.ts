@@ -82,6 +82,7 @@ export interface ResumeHistoryResumeRecord {
   spacing: Record<string, unknown> | null
   font: Record<string, unknown> | null
   theme: Record<string, unknown> | null
+  template_binding: Record<string, unknown> | null
 }
 
 export interface ResumeHistoryOptionRecord {

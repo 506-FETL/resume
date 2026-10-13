@@ -1,59 +1,49 @@
 import type { PersistedResumeSnapshot, VariantChange } from '@/lib/schema'
+import { getVariantFieldMapping } from '@/lib/schema'
 
-function setNested(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
-  const keys = path.split('.')
-
-  if (keys.length === 1) {
-    return { ...obj, [keys[0]]: value }
-  }
-
-  const [head, ...rest] = keys
-  const next = (obj[head] as Record<string, unknown>) ?? {}
-
-  return { ...obj, [head]: setNested(next, rest.join('.'), value) }
-}
-
-function applyToValue(fieldPath: string, after: string): string | string[] {
-  if (fieldPath === 'bullets') {
-    return after.split('\n').filter(Boolean)
-  }
-
-  return after
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export function applyVariantChange<T extends PersistedResumeSnapshot | Partial<PersistedResumeSnapshot>>(
   snapshot: T,
   change: VariantChange,
 ): T {
-  const sectionKey = change.section
-  const current = (snapshot as Record<string, unknown>)[sectionKey]
-
-  if (change.itemId === 'whole') {
-    const valueToSet = applyToValue(change.fieldPath, change.after)
-    const nextValue = current && typeof current === 'object' && !Array.isArray(current)
-      ? setNested(current as Record<string, unknown>, change.fieldPath, valueToSet)
-      : { [change.fieldPath]: valueToSet }
-
-    return { ...(snapshot as Record<string, unknown>), [sectionKey]: nextValue } as T
+  const mapping = getVariantFieldMapping(change.section, change.fieldPath)
+  if (!mapping || (!mapping.collection && change.itemId !== 'whole')) {
+    throw new Error(`JD 改写路径无效：${change.section}.${change.fieldPath}`)
   }
 
-  if (Array.isArray(current)) {
-    const arr = current as Array<Record<string, unknown> & { id?: string }>
-    const found = arr.some(i => i?.id === change.itemId)
+  const current: unknown = snapshot[change.section]
+  if (!isRecord(current)) {
+    throw new TypeError(`JD 改写板块不存在：${change.section}`)
+  }
 
-    if (!found) {
-      return snapshot
+  let target = current
+  let targetIndex = -1
+  const items = current.items
+  if (mapping.collection) {
+    if (!Array.isArray(items)) {
+      throw new TypeError(`JD 改写经历列表不存在：${change.section}`)
     }
-
-    const nextArr = arr.map((item) => {
-      if (item?.id !== change.itemId) {
-        return item
-      }
-      return setNested(item, change.fieldPath, applyToValue(change.fieldPath, change.after))
-    })
-
-    return { ...(snapshot as Record<string, unknown>), [sectionKey]: nextArr } as T
+    const matches = items.flatMap((item, index) => isRecord(item) && item.entryId === change.itemId ? [index] : [])
+    if (matches.length !== 1) {
+      throw new Error(`JD 改写条目不存在或 entryId 重复：${change.section}/${change.itemId}`)
+    }
+    targetIndex = matches[0]
+    target = items[targetIndex]
   }
 
-  return snapshot
+  if (typeof target[mapping.snapshotField] !== 'string' || target[mapping.snapshotField] !== change.before) {
+    throw new Error(`JD 改写原文不匹配：${change.section}/${change.itemId}/${change.fieldPath}`)
+  }
+  if (change.before === change.after) {
+    return snapshot
+  }
+
+  const updated = { ...target, [mapping.snapshotField]: change.after }
+  const nextSection = mapping.collection
+    ? { ...current, items: (items as unknown[]).map((item, index) => index === targetIndex ? updated : item) }
+    : updated
+  return { ...snapshot, [change.section]: nextSection }
 }

@@ -1,6 +1,7 @@
 import type { CommentAccessContext, ResumeCommentClient } from '../api/client.ts'
 import type { ResumeCommentStore } from '../store/types.ts'
 import { useEffect } from 'react'
+import supabase from '@/lib/supabase/client'
 import {
   captureCommentCacheWriteFence,
   deleteCommentCache,
@@ -64,22 +65,48 @@ export function useCommentRealtime({
     let cancelled = false
     let queue = Promise.resolve()
     let bootstrap: () => Promise<void>
+    let requestLiveRecovery: () => void
     const realtime = new ResumeCommentRealtimeSubscription(client)
+    let realtimeLive = false
+    let recoveryStopReason: 'unauthorized' | 'comments_disabled' | 'terminal' | null = null
+    let recoveryQueued = false
+    let recoveryAgain = false
+    let recoveryAttempts = 0
+    let recoveryTimer: ReturnType<typeof setTimeout> | null = null
+
+    const clearRecoveryTimer = () => {
+      if (recoveryTimer !== null) {
+        clearTimeout(recoveryTimer)
+        recoveryTimer = null
+      }
+    }
+
+    const stopRecovery = (reason: 'unauthorized' | 'comments_disabled' | 'terminal' = 'terminal') => {
+      if (recoveryStopReason !== 'terminal')
+        recoveryStopReason = reason
+      recoveryAgain = false
+      clearRecoveryTimer()
+    }
+    const isRecoveryTerminal = () => recoveryStopReason === 'terminal'
 
     const handleError = (error: unknown) => {
       if (cancelled)
         return
       if (isResumeCommentClientError(error)) {
         if (error.code === 'stale_release' || error.code === 'share_unavailable') {
+          stopRecovery()
           store.getState().setAccessState('unavailable', error.code)
           onAccessInvalidated?.(error.code)
           realtime.disconnect()
           return
         }
         if (error.code === 'comments_disabled') {
+          stopRecovery('comments_disabled')
           store.getState().setAccessState('read_only', error.code)
           return
         }
+        if (error.code === 'unauthorized')
+          stopRecovery('unauthorized')
         store.getState().setAccessState(store.getState().accessState, error.code)
       }
       store.getState().setConnection('offline')
@@ -90,11 +117,16 @@ export function useCommentRealtime({
     }
 
     const refreshCurrentAccess = async () => {
+      if (cancelled || isRecoveryTerminal())
+        return false
       if (!refreshAccess)
         return true
       const previous = client.getAccessContext()
       const next = await refreshAccess()
+      if (cancelled || isRecoveryTerminal())
+        return false
       if (accessChangedVersion(previous, next)) {
+        stopRecovery()
         store.getState().setAccessState('unavailable', 'stale_release')
         onAccessInvalidated?.('stale_release')
         realtime.disconnect()
@@ -104,6 +136,14 @@ export function useCommentRealtime({
       store.getState().setAccessState(
         isReadOnlyAccess(next) ? 'read_only' : 'active',
       )
+      if (
+        recoveryStopReason === 'unauthorized'
+        || (recoveryStopReason === 'comments_disabled' && next.kind === 'share' && next.commentsEnabled)
+      ) {
+        recoveryStopReason = null
+        recoveryAttempts = 0
+        requestLiveRecovery()
+      }
       return true
     }
 
@@ -115,6 +155,8 @@ export function useCommentRealtime({
     }
 
     const recoverIncrementally = async () => {
+      if (cancelled || recoveryStopReason)
+        return
       const marker = beginCommentPerformance('realtime_recovery')
       marker.countRequest()
       const lastEventSeq = store.getState().lastEventSeq
@@ -122,7 +164,7 @@ export function useCommentRealtime({
         client.listEvents(lastEventSeq),
         resolveCurrentCacheKey().catch(() => null),
       ])
-      if (cancelled)
+      if (cancelled || recoveryStopReason)
         return
       store.getState().applyRealtimePatch({
         threads: list.data.threads,
@@ -139,7 +181,49 @@ export function useCommentRealtime({
       })
     }
 
+    requestLiveRecovery = () => {
+      if (cancelled || recoveryStopReason || !realtimeLive)
+        return
+      if (recoveryQueued) {
+        recoveryAgain = true
+        return
+      }
+      if (recoveryTimer !== null)
+        return
+      recoveryQueued = true
+      enqueue(async () => {
+        recoveryAgain = false
+        try {
+          if (cancelled || recoveryStopReason || !realtimeLive)
+            return
+          await recoverIncrementally()
+          if (cancelled || recoveryStopReason)
+            return
+          recoveryAttempts = 0
+          if (realtimeLive)
+            store.getState().setConnection('live')
+        }
+        catch (error) {
+          handleError(error)
+          if (cancelled || recoveryStopReason || !realtimeLive)
+            return
+          const delay = Math.min(1_000 * 2 ** Math.min(recoveryAttempts++, 5), 30_000)
+          recoveryTimer = setTimeout(() => {
+            recoveryTimer = null
+            requestLiveRecovery()
+          }, delay)
+        }
+        finally {
+          recoveryQueued = false
+          if (recoveryAgain && recoveryTimer === null)
+            requestLiveRecovery()
+        }
+      })
+    }
+
     const connectRealtime = (scopeRealtime: Parameters<typeof realtime.connect>[0]) => {
+      if (cancelled || isRecoveryTerminal())
+        return
       realtime.connect(scopeRealtime, {
         onInvalidation: (event) => {
           enqueue(async () => {
@@ -153,11 +237,25 @@ export function useCommentRealtime({
           })
         },
         onProtocolMismatch: () => enqueue(bootstrap),
-        onStatusChange: status => store.getState().setConnection(status),
+        onStatusChange: (status) => {
+          if (cancelled)
+            return
+          realtimeLive = status === 'live'
+          if (!realtimeLive)
+            clearRecoveryTimer()
+          if (recoveryStopReason)
+            return
+          store.getState().setConnection(status)
+          // 首次订阅、重连和切桶均补齐快照/旧频道与新订阅之间的事件。
+          if (status === 'live')
+            requestLiveRecovery()
+        },
       })
     }
 
     bootstrap = async () => {
+      if (cancelled || isRecoveryTerminal())
+        return
       store.getState().setConnection('connecting')
       const marker = beginCommentPerformance('bootstrap')
       marker.countRequest()
@@ -165,11 +263,11 @@ export function useCommentRealtime({
       const responsePromise = client.bootstrapScope()
       const authenticatedUserIdPromise = client.getAuthenticatedUserId()
       const response = await responsePromise
-      if (cancelled)
+      if (cancelled || isRecoveryTerminal())
         return
       marker.mergeClientDurations(response.telemetry.clientDurations)
       const authenticatedUserId = await authenticatedUserIdPromise
-      if (cancelled)
+      if (cancelled || isRecoveryTerminal())
         return
       const access = client.getAccessContext()
       rememberCommentVersionHint(access, response.data.version.versionId)
@@ -180,6 +278,8 @@ export function useCommentRealtime({
       )
       const persistedReadEventSeq = cacheKey ? readCommentReadCursor(cacheKey) : 0
       const cached = cacheKey ? await readCommentCache(cacheKey) : null
+      if (cancelled || isRecoveryTerminal())
+        return
       const liveThreadIds = new Set(response.data.threads.map(thread => thread.id))
       const cachedThreadReadStates = cacheKey
         ? mergeCachedThreadReadStates(
@@ -292,16 +392,18 @@ export function useCommentRealtime({
     }
 
     const hydrateCache = async () => {
+      if (cancelled || isRecoveryTerminal())
+        return
       const cacheKey = deriveCommentCacheKey(
         client.getAccessContext(),
         undefined,
         await client.getAuthenticatedUserId(),
       )
-      if (!cacheKey)
+      if (!cacheKey || cancelled || isRecoveryTerminal())
         return
       const marker = beginCommentPerformance('cache')
       const cached = await readCommentCache(cacheKey)
-      if (!cached || cancelled) {
+      if (!cached || cancelled || isRecoveryTerminal()) {
         marker.end({ detail: { status: cached ? 'superseded' : 'miss' } })
         return
       }
@@ -337,6 +439,10 @@ export function useCommentRealtime({
     }
 
     const handleOffline = () => {
+      if (cancelled || isRecoveryTerminal())
+        return
+      realtimeLive = false
+      clearRecoveryTimer()
       realtime.disconnect()
       store.getState().setConnection('offline')
     }
@@ -367,8 +473,27 @@ export function useCommentRealtime({
         }, 60_000)
       : null
 
+    // Owner 使用 SDK 会话，不经过分享/协作者的 refreshAccess。
+    const authSubscription = client.getAccessContext().kind === 'owner'
+      ? supabase.auth.onAuthStateChange((event, session) => {
+        if (!session?.access_token || (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN'))
+          return
+        // 只入队，避免在 Auth 回调内调用 SDK；也覆盖旧请求在凭据刷新后才拒绝。
+        enqueue(async () => {
+          if (cancelled || recoveryStopReason !== 'unauthorized')
+            return
+          recoveryStopReason = null
+          recoveryAttempts = 0
+          store.getState().setAccessState('active')
+          requestLiveRecovery()
+        })
+      }).data.subscription
+      : null
+
     return () => {
       cancelled = true
+      stopRecovery()
+      authSubscription?.unsubscribe()
       realtime.disconnect()
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('online', handleOnline)

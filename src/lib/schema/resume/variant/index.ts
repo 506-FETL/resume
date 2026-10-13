@@ -1,7 +1,9 @@
 import type { ResumeSchema } from '../form'
 
 import { z } from 'zod'
+import { getVariantFieldMapping } from './fields'
 
+export * from './fields'
 export * from './types'
 
 const RESUME_SECTION_KEYS = [
@@ -38,7 +40,10 @@ export const variantChangeSchema = z.object({
   after: z.string(),
   matchedKeywords: z.array(z.string()).min(1),
   reason: z.string().max(120),
-})
+}).refine((change) => {
+  const mapping = getVariantFieldMapping(change.section, change.fieldPath)
+  return mapping !== undefined && (mapping.collection || change.itemId === 'whole')
+}, { message: 'JD 改写路径不在白名单内，或整段字段的 itemId 不是 whole' })
 
 // changes 长度边界（3~15）随 LLM 输出协议在此 schema 闸门校验；
 // 跨字段约束（after.length ≤ before.length × 1.5、after !== before）由 Task 10 parse-variant-response 在运行时校验。
