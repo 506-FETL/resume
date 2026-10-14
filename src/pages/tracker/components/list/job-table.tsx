@@ -5,14 +5,13 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { PresenceTableRow } from '@/components/motion/presence-item'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { DURATION, EASE, SPRING } from '@/lib/motion'
+import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
-import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER, NEXT_ACTION_TONE_CLASSES } from '../../const'
+import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_DOT_CLASSES, APPLICATION_STATUS_ORDER, NEXT_ACTION_TONE_CLASSES } from '../../const'
 import useTrackerStore from '../../store'
 import { appendStatusChangeActivity, autoCompleteStages, getDaysInStage, getNextActionBadge, getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
 import { CompanyLogo } from '../company-logo'
@@ -38,21 +37,38 @@ interface SortableHeadProps {
 
 function SortableHead({ field, label, sortBy, sortDir, onSort }: SortableHeadProps) {
   const isActive = sortBy === field
+  const isDaysActive = field === 'status' && sortBy === 'days'
+  const reduceMotion = useReducedMotion()
   return (
-    <th className="px-3 py-2.5 text-left font-medium">
+    <th
+      aria-sort={isActive || isDaysActive ? sortDir === 'asc' ? 'ascending' : 'descending' : 'none'}
+      className={cn('px-4 py-3.5 text-left font-medium', field === 'company' && 'w-[26%]', field === 'status' && 'w-[14%]', field === 'updated' && 'w-[13%]')}
+    >
       <button
         type="button"
         onClick={() => onSort(field)}
         className={cn(
-          'inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-foreground',
+          'inline-flex items-center gap-1 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           isActive && 'text-foreground',
         )}
+        style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s` }}
       >
         {label}
         {isActive && (
           sortDir === 'asc' ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
         )}
       </button>
+      {field === 'status' && (
+        <button
+          type="button"
+          onClick={() => onSort('days')}
+          className={cn('mt-1 flex items-center gap-1 rounded-sm text-[10px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', isDaysActive && 'text-foreground')}
+          aria-label="按未更新时间排序"
+        >
+          未更新时间
+          {isDaysActive && (sortDir === 'asc' ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
+        </button>
+      )}
     </th>
   )
 }
@@ -88,53 +104,71 @@ function JobTableRow({ job, index, onStatusChange, onArchive, onDelete }: JobTab
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: reduce ? 0 : DURATION.fast, delay: 0, ease: EASE.in } }}
-      transition={reduce ? { duration: 0 } : { duration: DURATION.base, delay: Math.min(index, 8) * 0.02, ease: EASE.out, layout: SPRING.layout }}
+      transition={reduce ? { duration: 0 } : { duration: DURATION.base, delay: staggerDelay(Math.min(index, 8)), ease: EASE.out, layout: SPRING.layout }}
       onClick={handleRowClick}
       className={cn(
-        'group cursor-pointer border-t transition-colors hover:bg-muted/40',
+        'group cursor-pointer border-t border-border/60 transition-colors hover:bg-muted/35',
         isSelected && 'bg-primary/5',
       )}
+      style={{ transitionDuration: `${reduce ? 0 : DURATION.fast}s` }}
     >
       {isSelectMode && (
-        <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+        <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
           <Checkbox
             checked={isSelected}
+            aria-label={`选择 ${job.company} ${job.position}`}
             onCheckedChange={() => isPresent && toggleSelect(job.id)}
           />
         </td>
       )}
-      <td className="px-3 py-2.5">
+      <td className="px-4 py-4">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <CompanyLogo logo={job.company_logo} company={job.company} icon={Building2} />
           </div>
-          <div className="min-w-0">
-            <div className="truncate font-medium text-foreground">{job.position}</div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="truncate text-xs text-muted-foreground">{job.company}</span>
+              <span className="truncate text-xs font-medium text-muted-foreground">{job.company}</span>
               {job.archived && (
                 <span className="shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-medium text-muted-foreground">已归档</span>
               )}
-              {nextActionBadge && (
-                <span className={cn('inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
-                  <Bell className="size-2.5" />
-                  {nextActionBadge.label}
-                </span>
-              )}
             </div>
+            <button
+              type="button"
+              className="mt-1 block w-full rounded-sm text-left font-semibold leading-5 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={isSelectMode ? `选择 ${job.position}` : `查看 ${job.company} ${job.position}`}
+              onClick={(event) => {
+                event.stopPropagation()
+                handleRowClick()
+              }}
+            >
+              <span className="line-clamp-2 break-words">{job.position}</span>
+            </button>
           </div>
         </div>
       </td>
-      <td className="px-3 py-2.5 text-muted-foreground">{job.location || '—'}</td>
-      <td className="px-3 py-2.5 text-muted-foreground">{job.salary || '—'}</td>
-      <td className="px-3 py-2.5">
-        <Badge className={cn('rounded-full border-0 px-2 py-0.5 text-xs font-medium', statusConfig.bgColor, statusConfig.color)}>
-          {statusConfig.label}
-        </Badge>
+      <td className="px-4 py-4 text-xs">
+        <p className="truncate">{job.location || '地点未填写'}</p>
+        <p className="mt-1 truncate text-muted-foreground">{job.salary || '薪资未填写'}</p>
       </td>
-      <td className="px-3 py-2.5 text-xs text-muted-foreground">{daysInStage === 0 ? '今天' : `${daysInStage}天`}</td>
-      <td className="px-3 py-2.5 text-xs text-muted-foreground">{formatDate(job.updated_at)}</td>
-      <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+      <td className="px-4 py-4 text-xs">
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <span className={cn('size-1.5 shrink-0 rounded-full', APPLICATION_STATUS_DOT_CLASSES[job.status])} />
+          {statusConfig.label}
+        </span>
+        <p className="mt-1 text-muted-foreground">{daysInStage === 0 ? '今天更新' : `${daysInStage} 天未更新`}</p>
+      </td>
+      <td className="px-4 py-4 text-xs">
+        <p className={cn('line-clamp-2 break-words leading-5', !job.next_action && 'text-muted-foreground')}>{job.next_action || '未设置下一步'}</p>
+        {nextActionBadge && (
+          <span className={cn('mt-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
+            <Bell className="size-2.5" />
+            {nextActionBadge.label}
+          </span>
+        )}
+      </td>
+      <td className="whitespace-nowrap px-4 py-4 text-xs text-muted-foreground">{formatDate(job.updated_at)}</td>
+      <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1">
           {nextAction.targetStatus && (
             <Button
@@ -265,13 +299,13 @@ export function JobTable({ jobs }: JobTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/70 bg-card">
+      <div className="scrollbar-thin-subtle min-h-0 flex-1 overflow-auto">
+        <table className="w-full min-w-[1000px] table-fixed text-sm">
+          <thead className="sticky top-0 z-10 bg-muted text-xs text-muted-foreground">
             <tr>
               {isSelectMode && (
-                <th className="w-10 px-3 py-2.5 text-left">
+                <th className="w-12 px-4 py-3.5 text-left">
                   <Checkbox
                     checked={allSelected}
                     aria-label="选择全部"
@@ -280,12 +314,11 @@ export function JobTable({ jobs }: JobTableProps) {
                 </th>
               )}
               <SortableHead field="company" label="公司 / 职位" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
-              <th className="px-3 py-2.5 text-left font-medium">地点</th>
-              <th className="px-3 py-2.5 text-left font-medium">薪资</th>
-              <SortableHead field="status" label="状态" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
-              <SortableHead field="days" label="停留" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
-              <SortableHead field="updated" label="更新时间" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
-              <th className="px-3 py-2.5 text-right font-medium">操作</th>
+              <th className="w-[14%] px-4 py-3.5 text-left font-medium">地点 / 薪资</th>
+              <SortableHead field="status" label="当前阶段" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
+              <th className="w-[18%] px-4 py-3.5 text-left font-medium">下一步跟进</th>
+              <SortableHead field="updated" label="最近更新" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
+              <th className="w-[15%] px-4 py-3.5 text-right font-medium">操作</th>
             </tr>
           </thead>
           <tbody>

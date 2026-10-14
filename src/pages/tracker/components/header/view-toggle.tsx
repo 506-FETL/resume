@@ -9,13 +9,13 @@ export function ViewToggle() {
   return (
     <Tabs
       value={viewMode}
-      className="w-full sm:w-auto"
+      className="shrink-0"
       onValueChange={(value) => {
         if (value)
           setViewMode(value as ViewMode)
       }}
     >
-      <TabsList className="w-full sm:w-auto">
+      <TabsList className="h-9 rounded-lg bg-muted/70 p-1">
         <TabsTrigger value="list" aria-label="切换到列表视图" className="gap-1.5">
           <List data-icon="inline-start" />
           列表

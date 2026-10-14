@@ -1,9 +1,11 @@
 import type { ApplicationStatus, StageStatus } from './types'
 
+export const TRACKER_SEARCH_INPUT_ID = 'tracker-search'
+
 // 下一步日期徽标配色（按 tone）
 export const NEXT_ACTION_TONE_CLASSES: Record<'overdue' | 'today' | 'upcoming', string> = {
-  overdue: 'bg-red-100 text-red-700',
-  today: 'bg-orange-100 text-orange-700',
+  overdue: 'bg-red-500/10 text-red-700 dark:text-red-400',
+  today: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
   upcoming: 'bg-muted text-muted-foreground',
 }
 
@@ -28,13 +30,29 @@ export const STAGE_STATUS_COLORS: Record<StageStatus, { bg: string, text: string
 
 // 申请状态配置
 export const APPLICATION_STATUS_CONFIG: Record<ApplicationStatus, { label: string, color: string, bgColor: string }> = {
-  saved: { label: '已保存', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-  applied: { label: '已投递', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  screen: { label: '筛选中', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-  interview: { label: '面试中', color: 'text-purple-600', bgColor: 'bg-purple-100' },
-  offer: { label: '已录用', color: 'text-green-600', bgColor: 'bg-green-100' },
-  rejected: { label: '已终止', color: 'text-red-600', bgColor: 'bg-red-100' },
+  saved: { label: '已保存', color: 'text-slate-600 dark:text-slate-400', bgColor: 'bg-slate-500/10' },
+  applied: { label: '已投递', color: 'text-blue-700 dark:text-blue-400', bgColor: 'bg-blue-500/10' },
+  screen: { label: '筛选中', color: 'text-amber-700 dark:text-amber-400', bgColor: 'bg-amber-500/10' },
+  interview: { label: '面试中', color: 'text-violet-700 dark:text-violet-400', bgColor: 'bg-violet-500/10' },
+  offer: { label: '已录用', color: 'text-emerald-700 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
+  rejected: { label: '已终止', color: 'text-rose-700 dark:text-rose-400', bgColor: 'bg-rose-500/10' },
 }
+
+export const APPLICATION_STATUS_DOT_CLASSES: Record<ApplicationStatus, string> = {
+  saved: 'bg-slate-400',
+  applied: 'bg-blue-500',
+  screen: 'bg-amber-500',
+  interview: 'bg-violet-500',
+  offer: 'bg-emerald-500',
+  rejected: 'bg-rose-400',
+}
+
+export const TRACKER_METRIC_LABELS = {
+  applied: '已投递',
+  interview: '面试中',
+  offer: '已录用',
+  pending: '待跟进',
+} as const
 
 // 申请状态顺序（用于进度条）
 export const APPLICATION_STATUS_ORDER: ApplicationStatus[] = [

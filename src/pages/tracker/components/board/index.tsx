@@ -21,10 +21,10 @@ import {
   useCrossListContainer,
   useCrossListItem,
 } from '@/components/ui/cross-list-drag'
-import { DURATION, EASE, SPRING } from '@/lib/motion'
+import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
-import { APPLICATION_STATUS_CONFIG, BOARD_COLUMNS } from '../../const'
+import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_DOT_CLASSES, BOARD_COLUMNS, TRACKER_BOARD_COLUMN_HINTS } from '../../const'
 import useTrackerStore from '../../store'
 import { appendStatusChangeActivity, autoCompleteStages, filterJobs, getTrackerErrorMessage, resolveTrackerMetricStatus } from '../../utils'
 import { ColumnCard } from './column-card'
@@ -50,13 +50,14 @@ function BoardJobItem({
     <motion.div
       {...getDragProps()}
       layout={reduceMotion ? false : 'position'}
-      initial={false}
-      animate={{ opacity: dragging ? 0.3 : 1 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: dragging ? 0.3 : 1, y: 0 }}
       transition={reduceMotion
         ? { duration: 0 }
         : {
             layout: SPRING.layout,
             opacity: { duration: DURATION.fast, ease: EASE.out },
+            y: { duration: DURATION.base, ease: EASE.out, delay: staggerDelay(Math.min(index, 8)) },
           }}
       className="cursor-grab rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing"
     >
@@ -97,10 +98,11 @@ function BoardColumnDropArea({
       aria-label={`${APPLICATION_STATUS_CONFIG[status].label}职位`}
       data-motion-drop-container={status}
       className={cn(
-        'scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg border bg-muted/20 p-2.5 transition-colors',
+        'scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-0 flex-1 flex-col gap-2.5 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-xl p-2.5 pt-0 transition-colors',
         active && 'bg-primary/5 ring-1 ring-primary/30',
-        highlighted && !active && 'border-primary/40 bg-primary/5',
+        highlighted && !active && 'bg-primary/5',
       )}
+      style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
     >
       {jobs.length > 0
         ? jobs.map((job, index) => (
@@ -113,7 +115,7 @@ function BoardColumnDropArea({
             />
           ))
         : (
-            <div className="flex min-h-[96px] flex-1 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground/70">
+            <div className={cn('flex min-h-[72px] shrink-0 items-center justify-center rounded-lg border border-dashed border-border/70 px-3 text-xs text-muted-foreground', active && 'border-primary/50 bg-primary/5 text-primary')}>
               拖拽职位至此
             </div>
           )}
@@ -161,15 +163,17 @@ export default function BoardView() {
     if (!container || !columnEl)
       return
 
-    const containerRect = container.getBoundingClientRect()
-    const columnRect = columnEl.getBoundingClientRect()
-    if (columnRect.left < containerRect.left || columnRect.right > containerRect.right) {
-      const scrollLeft = columnEl.offsetLeft - container.offsetLeft - 16
-      container.scrollTo({ left: scrollLeft, behavior: reduceMotion ? 'auto' : 'smooth' })
+    // 使用布局尺寸，避免折叠展开的 Motion transform 影响定位范围。
+    const columnLeft = columnEl.offsetLeft - container.offsetLeft
+    const columnRight = columnLeft + columnEl.offsetWidth
+    if (columnLeft < container.scrollLeft || columnRight > container.scrollLeft + container.clientWidth) {
+      container.scrollTo({ left: Math.max(0, columnLeft - 12), behavior: reduceMotion ? 'auto' : 'smooth' })
     }
   }, [reduceMotion])
 
   useEffect(() => {
+    if (highlightedStatus === 'rejected' && useTrackerStore.getState().rejectedCollapsed)
+      useTrackerStore.getState().toggleRejectedCollapsed()
     if (highlightedStatus && BOARD_COLUMNS.some(column => column.status === highlightedStatus))
       requestAnimationFrame(() => scrollToColumn(highlightedStatus))
   }, [highlightedStatus, scrollToColumn])
@@ -234,13 +238,12 @@ export default function BoardView() {
       >
         <div
           ref={scrollContainerRef}
-          className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-x-auto overflow-y-hidden overscroll-x-contain"
+          className="scrollbar-thin-subtle flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-auto overflow-y-hidden overscroll-x-contain"
         >
-          <div className="flex min-h-0 flex-1 items-stretch gap-3 pb-2 xl:gap-4">
+          <div className="flex min-h-0 flex-1 items-stretch gap-3 pb-2">
             {BOARD_COLUMNS.map((column) => {
               const columnJobs = getJobsByStatus(column.status)
               const highlighted = isColumnHighlighted(column.status)
-              const config = APPLICATION_STATUS_CONFIG[column.status]
               const isRejectedColumn = column.status === 'rejected'
               const collapsed = isRejectedColumn && rejectedCollapsed
               return (
@@ -255,11 +258,13 @@ export default function BoardView() {
                       columnRefs.current.delete(column.status)
                   }}
                   className={cn(
-                    'flex h-full min-h-0 flex-col',
+                    'flex min-h-0 flex-col rounded-xl border border-border/60 bg-muted/35 transition-colors',
+                    highlighted && 'border-primary/40 bg-primary/5',
                     collapsed
-                      ? 'w-[48px] shrink-0'
-                      : 'min-w-[240px] flex-1 basis-0 xl:min-w-[280px] 2xl:min-w-[320px]',
+                      ? 'w-[44px] shrink-0'
+                      : 'min-w-[232px] flex-1 basis-0',
                   )}
+                  style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
                 >
                   <motion.div
                     key={collapsed ? 'collapsed' : 'expanded'}
@@ -275,43 +280,43 @@ export default function BoardView() {
                             aria-expanded={false}
                             onClick={toggleRejectedCollapsed}
                             title={`${column.label}（${columnJobs.length}）· 点击展开`}
-                            className="flex h-full min-h-0 w-full flex-col items-center gap-2 rounded-lg border bg-muted/30 py-3 text-muted-foreground transition-colors hover:bg-muted/50"
+                            className="flex min-h-0 w-full flex-1 flex-col items-center gap-2.5 rounded-xl py-4 text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
                           >
                             <ChevronRight className="size-4 shrink-0" />
-                            <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
+                            <span className={cn('size-2 shrink-0 rounded-full', APPLICATION_STATUS_DOT_CLASSES[column.status])} />
                             <span className="[writing-mode:vertical-rl] text-sm font-semibold tracking-wide">{column.label}</span>
                             <Badge variant="secondary" className="mt-1">{columnJobs.length}</Badge>
                           </button>
                         )
                       : (
                           <>
-                            <div className={cn(
-                              'flex items-center justify-between gap-2 rounded-t-lg border border-b-0 bg-muted/30 px-3 py-2.5',
-                              highlighted && 'border-primary/40 bg-primary/5',
-                            )}
-                            >
-                              {isRejectedColumn
-                                ? (
-                                    <button
-                                      type="button"
-                                      aria-expanded={true}
-                                      onClick={toggleRejectedCollapsed}
-                                      className="flex min-w-0 cursor-pointer items-center gap-2"
-                                    >
-                                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                                      <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
-                                      <h3 className="truncate text-sm font-semibold">{column.label}</h3>
-                                    </button>
-                                  )
-                                : (
-                                    <div className="flex min-w-0 items-center gap-2">
-                                      <span className={cn('size-2 shrink-0 rounded-full', config.bgColor)} />
-                                      <h3 className="truncate text-sm font-semibold">{column.label}</h3>
-                                    </div>
-                                  )}
-                              <Badge variant={highlighted ? 'default' : 'secondary'}>
-                                {columnJobs.length}
-                              </Badge>
+                            <div className="px-3 pb-3 pt-3.5">
+                              <div className="flex items-center justify-between gap-2">
+                                {isRejectedColumn
+                                  ? (
+                                      <button
+                                        type="button"
+                                        aria-expanded={true}
+                                        onClick={toggleRejectedCollapsed}
+                                        className="flex min-w-0 cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                      >
+                                        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                                        <span className={cn('size-2 shrink-0 rounded-full', APPLICATION_STATUS_DOT_CLASSES[column.status])} />
+                                        <h3 className="truncate text-sm font-semibold">{column.label}</h3>
+                                      </button>
+                                    )
+                                  : (
+                                      <div className="flex min-w-0 items-center gap-2">
+                                        <span className={cn('size-2 shrink-0 rounded-full', APPLICATION_STATUS_DOT_CLASSES[column.status])} />
+                                        <h3 className="truncate text-sm font-semibold">{column.label}</h3>
+                                      </div>
+                                    )}
+                                <Badge variant={highlighted ? 'default' : 'secondary'}>
+                                  {columnJobs.length}
+                                </Badge>
+                              </div>
+                              <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">{TRACKER_BOARD_COLUMN_HINTS[column.status]}</p>
                             </div>
 
                             <BoardColumnDropArea

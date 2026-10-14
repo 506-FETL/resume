@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
 import useTrackerStore from '../../store'
+import { filterJobs } from '../../utils'
 
 const ALL_VALUE = '__all__'
 
@@ -20,25 +21,26 @@ const ALL_VALUE = '__all__'
 const ALL_FILTER_STATUSES: (ApplicationStatus | null)[] = [null, ...APPLICATION_STATUS_ORDER, 'rejected']
 
 export default function FilterMenu() {
-  const { jobs, filterStatus, setFilterStatus } = useTrackerStore()
+  const { jobs, filterStatus, setFilterStatus, showArchived, searchKeyword, viewMode } = useTrackerStore()
 
   const current = filterStatus ?? ALL_VALUE
-  const activeLabel = filterStatus ? APPLICATION_STATUS_CONFIG[filterStatus].label : '全部'
+  const activeLabel = filterStatus ? APPLICATION_STATUS_CONFIG[filterStatus].label : '全部阶段'
+  const scopedJobs = filterJobs(jobs, null, searchKeyword, showArchived)
 
   const getCount = (status: (typeof ALL_FILTER_STATUSES)[number]) =>
-    status === null ? jobs.length : jobs.filter(j => j.status === status).length
+    status === null ? scopedJobs.length : scopedJobs.filter(j => j.status === status).length
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
+        <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg shadow-none">
           <ListFilter className="size-4" />
           {activeLabel}
           {filterStatus && <Badge variant="secondary" className="ml-0.5 rounded-full px-1.5">{getCount(filterStatus)}</Badge>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel>按状态筛选</DropdownMenuLabel>
+        <DropdownMenuLabel>{viewMode === 'board' ? '定位到阶段' : '按阶段筛选'}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup
           value={current}

@@ -133,7 +133,7 @@ const useTrackerStore = create<TrackerStore>()(set => ({
     set((state) => {
       const selectableJobs = filterJobs(
         state.jobs,
-        state.filterStatus,
+        state.viewMode === 'list' ? state.filterStatus : null,
         state.searchKeyword,
         state.showArchived,
         state.viewMode === 'list' ? state.metricFilter : null,

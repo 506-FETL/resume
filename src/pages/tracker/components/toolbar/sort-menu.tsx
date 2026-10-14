@@ -28,12 +28,12 @@ export default function SortMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
+        <Button variant="outline" size="sm" aria-label={`排序：${activeLabel}，${sortDir === 'asc' ? '升序' : '降序'}`} className="size-9 gap-1.5 rounded-lg p-0 shadow-none sm:w-auto sm:px-3">
           <ArrowDownUp className="size-4" />
-          {activeLabel}
+          <span className="hidden sm:inline">{activeLabel}</span>
           {sortDir === 'asc'
-            ? <ArrowUp className="size-3.5 text-muted-foreground" />
-            : <ArrowDown className="size-3.5 text-muted-foreground" />}
+            ? <ArrowUp className="hidden size-3.5 text-muted-foreground sm:block" />
+            : <ArrowDown className="hidden size-3.5 text-muted-foreground sm:block" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">

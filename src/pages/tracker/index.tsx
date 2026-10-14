@@ -1,106 +1,42 @@
-import { Archive, X } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useEffect } from 'react'
-import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
-import { Skeleton } from '@/components/ui/skeleton'
-import { DURATION, EASE } from '@/lib/motion'
-import { getCompanies } from '@/lib/supabase/resume'
-import BoardView from './components/board/index'
+import BoardView from './components/board'
 import JobDrawer from './components/drawer'
 import AddJobDrawer from './components/drawer/add-job'
 import TrackerHeader from './components/header'
 import ListView from './components/list'
 import OverviewBar from './components/overview-bar'
+import { TrackerPageState, TrackerSkeleton } from './components/page-state'
+import TrackerToolbar from './components/toolbar'
+import { useTrackerJobs } from './hooks/use-tracker-jobs'
 import useTrackerStore from './store'
-import { getTrackerLoadErrorMeta } from './utils'
-
-const TRACKER_SKELETON_KEYS = ['tracker-skeleton-1', 'tracker-skeleton-2', 'tracker-skeleton-3'] as const
+import { filterJobs } from './utils'
 
 function Tracker() {
-  const { viewMode, loading, showArchived, setShowArchived } = useTrackerStore()
-  const reduce = useReducedMotion()
-
-  useEffect(() => {
-    const currentState = useTrackerStore.getState()
-    if (currentState.isInitialized || currentState.loading)
-      return
-
-    const loadJobs = async () => {
-      useTrackerStore.setState({ loading: true, error: null })
-
-      try {
-        const jobs = await getCompanies()
-        useTrackerStore.setState({ jobs, loading: false, error: null, isInitialized: true })
-      }
-      catch (error) {
-        const { message, description } = getTrackerLoadErrorMeta(error)
-        useTrackerStore.setState({ loading: false, error: message })
-        toast.error(message, { description })
-      }
-    }
-
-    loadJobs()
-  }, [])
-
-  const renderMainContent = () => {
-    if (loading) {
-      return (
-        <div className="flex flex-col gap-3">
-          {TRACKER_SKELETON_KEYS.map(key => (
-            <Skeleton key={key} className="h-16 w-full rounded-lg" />
-          ))}
-        </div>
-      )
-    }
-
-    return viewMode === 'list'
-      ? (
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <ListView />
-          </div>
-        )
-      : <BoardView />
-  }
+  const { jobs, viewMode, loading, error, isInitialized, showArchived, filterStatus, metricFilter, searchKeyword } = useTrackerStore()
+  const { reload } = useTrackerJobs()
+  const busy = loading || (!isInitialized && !error)
+  const visibleJobs = filterJobs(jobs, viewMode === 'list' ? filterStatus : null, searchKeyword, showArchived, viewMode === 'list' ? metricFilter : null)
+  const scopedJobs = filterJobs(jobs, null, '', showArchived)
+  const state = busy ? 'loading' : error ? 'error' : scopedJobs.length === 0 ? (showArchived ? 'archived' : 'empty') : visibleJobs.length === 0 ? 'filtered' : viewMode
 
   return (
     <>
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-360 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-10 lg:py-6 2xl:max-w-[1720px]">
+      <div className="mx-auto flex min-h-full w-full min-w-0 max-w-[1600px] flex-col gap-6 px-1 py-3 sm:px-3 sm:py-5 lg:h-full lg:min-h-[760px] lg:px-6">
         <TrackerHeader />
         <OverviewBar />
-        <AnimatePresence initial={false}>
-          {showArchived && (
-            <motion.div
-              initial={reduce ? false : { opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0, transition: { duration: reduce ? 0 : DURATION.fast, ease: EASE.in } }}
-              transition={{ duration: reduce ? 0 : DURATION.base, ease: EASE.out }}
-              className="overflow-hidden"
-            >
-              <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                <span className="inline-flex items-center gap-1.5">
-                  <Archive className="size-4" />
-                  正在查看已归档职位
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowArchived(false)}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium hover:bg-amber-100"
-                >
-                  <X className="size-3.5" />
-                  退出
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-          <AnimatedContent animationKey={loading ? 'loading' : viewMode} className="flex min-h-0 min-w-0 flex-1 flex-col">
-            {renderMainContent()}
+        <main aria-label="职位工作区" className="flex min-h-[360px] min-w-0 flex-1 flex-col rounded-2xl border bg-card shadow-xs">
+          <TrackerToolbar />
+          <AnimatedContent animationKey={state} className="flex min-h-0 min-w-0 flex-1 flex-col p-3 sm:p-4">
+            {state === 'loading'
+              ? <TrackerSkeleton />
+              : state === 'board'
+                ? <BoardView />
+                : state === 'list'
+                  ? <div className="flex min-h-0 flex-1 flex-col overflow-y-auto"><ListView /></div>
+                  : <TrackerPageState mode={state} onRetry={reload} />}
           </AnimatedContent>
         </main>
       </div>
-
       <JobDrawer />
       <AddJobDrawer />
     </>
