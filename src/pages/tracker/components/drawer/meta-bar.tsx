@@ -1,8 +1,12 @@
 import { Coins, ExternalLink, FileText, MapPin } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import useTrackerStore from '../../store'
+import { selectTrackerDrawerJob } from '../../store/selectors'
 
 export default function DrawerMetaBar() {
-  const { selectedJob } = useTrackerStore()
+  const { selectedJob } = useTrackerStore(useShallow(state => ({
+    selectedJob: selectTrackerDrawerJob(state),
+  })))
 
   if (!selectedJob)
     return null

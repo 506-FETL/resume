@@ -1,18 +1,31 @@
 import { BellRing, CheckCheck, Send, TrendingUp, Users } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
+import { memo, useMemo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '../../hooks/use-count-up'
 import useTrackerStore from '../../store'
+import { selectTrackerListJobs } from '../../store/selectors'
 import { getTrackerOverviewStats } from '../../utils'
 import { MetricCard } from './metric-card'
 
-export default function OverviewBar() {
-  const { jobs, loading, error, isInitialized, viewMode, metricFilter, setMetricFilter } = useTrackerStore()
+function OverviewBar() {
+  const jobs = useTrackerStore(selectTrackerListJobs)
+  const { loading, error, isInitialized, viewMode, metricFilter, setMetricFilter } = useTrackerStore(useShallow(state => ({
+    loading: state.loading,
+    error: Boolean(state.error),
+    isInitialized: state.isInitialized,
+    viewMode: state.viewMode,
+    metricFilter: state.metricFilter,
+    setMetricFilter: state.setMetricFilter,
+  })))
+  const isMobile = useIsMobile()
   const reduce = useReducedMotion()
-  const stats = getTrackerOverviewStats(jobs)
-  const rate = useCountUp(stats.responseRate)
+  const stats = useMemo(() => getTrackerOverviewStats(jobs), [jobs])
+  const rate = useCountUp(isMobile ? 0 : stats.responseRate, DURATION.slow * 1000)
   const busy = loading || (!isInitialized && !error)
   const hasAppliedData = stats.applied > 0 && !error
   const metrics = [
@@ -23,40 +36,49 @@ export default function OverviewBar() {
   ] as const
 
   return (
-    <section aria-label="求职概览" className="shrink-0 space-y-3">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+    <section aria-label="求职概览" aria-busy={busy} className={cn('shrink-0', !isMobile && 'space-y-3')}>
+      <div
+        role="group"
+        aria-label={viewMode === 'list' ? '按求职指标筛选' : '按求职指标定位阶段'}
+        className={cn('grid grid-cols-4', isMobile ? 'gap-0.5 rounded-xl border border-border/70 bg-muted/35 p-1' : 'gap-3 lg:gap-4')}
+      >
         {metrics.map(({ key, ...metric }, index) => (
           <MetricCard
             key={key}
+            metricKey={key}
             {...metric}
+            compact={isMobile}
             index={index}
             loading={busy}
-            error={Boolean(error)}
+            error={error}
             active={metricFilter === key}
             actionLabel={viewMode === 'list' ? '筛选相关职位' : '定位相关阶段'}
-            onClick={() => setMetricFilter(key)}
+            onClick={setMetricFilter}
           />
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <TrendingUp className="size-3.5" />
-          <span>响应率</span>
-          {busy
-            ? <Skeleton className={cn('h-4 w-9', reduce && 'animate-none')} />
-            : <span className="font-semibold tabular-nums text-foreground">{hasAppliedData ? `${rate}%` : '—'}</span>}
+      {!isMobile && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <TrendingUp className="size-3.5" />
+            <span>响应率</span>
+            {busy
+              ? <Skeleton className={cn('h-4 w-9', reduce && 'animate-none')} />
+              : <span className="font-semibold tabular-nums text-foreground">{hasAppliedData ? `${rate}%` : '—'}</span>}
+          </div>
+          <div aria-hidden="true" className="h-1 w-20 overflow-hidden rounded-full bg-muted sm:w-28">
+            <motion.div
+              className="h-full rounded-full bg-foreground/60"
+              initial={false}
+              animate={{ width: `${hasAppliedData && !busy ? stats.responseRate : 0}%` }}
+              transition={{ duration: reduce ? 0 : DURATION.slow, ease: EASE.out }}
+            />
+          </div>
+          <span className="hidden sm:inline">历史投递中，进入测评及后续阶段的占比</span>
         </div>
-        <div aria-hidden="true" className="h-1 w-20 overflow-hidden rounded-full bg-muted sm:w-28">
-          <motion.div
-            className="h-full rounded-full bg-foreground/60"
-            initial={false}
-            animate={{ width: `${hasAppliedData && !busy ? stats.responseRate : 0}%` }}
-            transition={{ duration: reduce ? 0 : DURATION.slow, ease: EASE.out }}
-          />
-        </div>
-        <span className="hidden sm:inline">历史投递中，进入筛选及后续阶段的占比</span>
-        <span className="ml-auto hidden text-[11px] lg:inline">{viewMode === 'list' ? '点击指标筛选职位' : '点击指标定位阶段'}</span>
-      </div>
+      )}
     </section>
   )
 }
+
+export default memo(OverviewBar)

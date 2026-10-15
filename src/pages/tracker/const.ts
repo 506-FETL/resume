@@ -1,6 +1,14 @@
-import type { ApplicationStatus, StageStatus } from './types'
+import type { ApplicationStatus, StageStatus, TrackerSortBy } from './types'
 
 export const TRACKER_SEARCH_INPUT_ID = 'tracker-search'
+
+export const TRACKER_SORT_OPTIONS: { value: TrackerSortBy, label: string }[] = [
+  { value: 'updated', label: '最近更新' },
+  { value: 'created', label: '创建时间' },
+  { value: 'days', label: '停留天数' },
+  { value: 'company', label: '公司名称' },
+  { value: 'status', label: '当前状态' },
+]
 
 // 下一步日期徽标配色（按 tone）
 export const NEXT_ACTION_TONE_CLASSES: Record<'overdue' | 'today' | 'upcoming', string> = {
@@ -13,10 +21,12 @@ export const NEXT_ACTION_TONE_CLASSES: Record<'overdue' | 'today' | 'upcoming', 
 export const BOARD_COLUMNS = [
   { status: 'saved' as ApplicationStatus, label: '已保存' },
   { status: 'applied' as ApplicationStatus, label: '已投递' },
+  { status: 'assessment' as ApplicationStatus, label: '测评中' },
   { status: 'screen' as ApplicationStatus, label: '筛选中' },
+  { status: 'written' as ApplicationStatus, label: '笔试中' },
   { status: 'interview' as ApplicationStatus, label: '面试中' },
   { status: 'offer' as ApplicationStatus, label: '已录用' },
-  { status: 'rejected' as ApplicationStatus, label: '已终止' },
+  { status: 'rejected' as ApplicationStatus, label: '已结束' },
 ]
 
 // 阶段状态颜色配置（用于 drawer-stage-detail）
@@ -32,19 +42,23 @@ export const STAGE_STATUS_COLORS: Record<StageStatus, { bg: string, text: string
 export const APPLICATION_STATUS_CONFIG: Record<ApplicationStatus, { label: string, color: string, bgColor: string }> = {
   saved: { label: '已保存', color: 'text-slate-600 dark:text-slate-400', bgColor: 'bg-slate-500/10' },
   applied: { label: '已投递', color: 'text-blue-700 dark:text-blue-400', bgColor: 'bg-blue-500/10' },
+  assessment: { label: '测评中', color: 'text-cyan-700 dark:text-cyan-400', bgColor: 'bg-cyan-500/10' },
   screen: { label: '筛选中', color: 'text-amber-700 dark:text-amber-400', bgColor: 'bg-amber-500/10' },
+  written: { label: '笔试中', color: 'text-orange-700 dark:text-orange-400', bgColor: 'bg-orange-500/10' },
   interview: { label: '面试中', color: 'text-violet-700 dark:text-violet-400', bgColor: 'bg-violet-500/10' },
   offer: { label: '已录用', color: 'text-emerald-700 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
-  rejected: { label: '已终止', color: 'text-rose-700 dark:text-rose-400', bgColor: 'bg-rose-500/10' },
+  rejected: { label: '已结束', color: 'text-red-700 dark:text-red-400', bgColor: 'bg-red-500/10' },
 }
 
 export const APPLICATION_STATUS_DOT_CLASSES: Record<ApplicationStatus, string> = {
   saved: 'bg-slate-400',
   applied: 'bg-blue-500',
+  assessment: 'bg-cyan-500',
   screen: 'bg-amber-500',
+  written: 'bg-orange-500',
   interview: 'bg-violet-500',
   offer: 'bg-emerald-500',
-  rejected: 'bg-rose-400',
+  rejected: 'bg-red-500',
 }
 
 export const TRACKER_METRIC_LABELS = {
@@ -54,14 +68,19 @@ export const TRACKER_METRIC_LABELS = {
   pending: '待跟进',
 } as const
 
-// 申请状态顺序（用于进度条）
-export const APPLICATION_STATUS_ORDER: ApplicationStatus[] = [
+export const ACTIVE_APPLICATION_STAGES = [
   'saved',
   'applied',
+  'assessment',
   'screen',
+  'written',
   'interview',
-  'offer',
-]
+] as const
+
+export const TERMINAL_APPLICATION_STATUSES = ['offer', 'rejected'] as const
+
+// 保留历史漏斗与排序的正向顺序；流程图使用在办阶段与同级终态集合。
+export const APPLICATION_STATUS_ORDER: ApplicationStatus[] = [...ACTIVE_APPLICATION_STAGES, 'offer']
 
 export const TRACKER_PRIMARY_ACTION_TEXT = '新增职位'
 
@@ -69,28 +88,21 @@ export const TRACKER_BATCH_TOOLBAR_LABEL = '批量工具'
 
 export const TRACKER_NEXT_ACTION_LABELS: Record<ApplicationStatus, string> = {
   saved: '标记为已投递',
-  applied: '推进到筛选中',
-  screen: '推进到面试中',
+  applied: '推进到测评中',
+  assessment: '推进到筛选中',
+  screen: '推进到笔试中',
+  written: '推进到面试中',
   interview: '更新面试进展',
   offer: '查看完整记录',
   rejected: '查看复盘记录',
-}
-
-export const TRACKER_BOARD_COLUMN_HINTS: Record<ApplicationStatus, string> = {
-  saved: '已保存但还未正式投递的岗位',
-  applied: '已经完成投递，等待初筛反馈',
-  screen: '正在进行简历筛选或沟通确认',
-  interview: '进入面试流程，重点记录每轮反馈',
-  offer: '拿到积极结果，关注决策与入职安排',
-  rejected: '流程已结束，可回看原因与复盘',
 }
 
 // 阶段状态配置
 export const STAGE_STATUS_CONFIG: Record<StageStatus, { label: string, color: string }> = {
   待处理: { label: '待处理', color: 'text-gray-500' },
   进行中: { label: '进行中', color: 'text-blue-500' },
-  已完成: { label: '已完成', color: 'text-green-500' },
-  已拒绝: { label: '已拒绝', color: 'text-red-500' },
+  已完成: { label: '已通过', color: 'text-green-500' },
+  已拒绝: { label: '已结束', color: 'text-red-500' },
 }
 
 // 阶段状态选项

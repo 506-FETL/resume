@@ -1,6 +1,7 @@
 import type { JobApplication } from '../../../types'
 import type { AddJobFormData } from './types'
 import { toast } from 'sonner'
+import { normalizeJobWorkflow } from '../../../workflow'
 
 /**
  * Validate the required fields. Shows a toast for the first missing field.
@@ -23,7 +24,7 @@ export function validateAddJobForm(formData: AddJobFormData): boolean {
 }
 
 export function buildJobPayload(formData: AddJobFormData): Omit<JobApplication, 'id' | 'created_at' | 'updated_at' | 'user_id'> {
-  return {
+  return normalizeJobWorkflow({
     resume_id: formData.resume_id,
     company: formData.company,
     company_logo: formData.company_logo.trim() || null,
@@ -34,12 +35,12 @@ export function buildJobPayload(formData: AddJobFormData): Omit<JobApplication, 
       : formData.salaryMin ? `${formData.salaryMin}K` : null,
     job_url: formData.job_url || null,
     status: formData.status,
-    stage_details: [{ stage: formData.status, status: '待处理', start_date: null, notes: '' }],
+    stage_details: [{ stage: formData.status, status: '待处理', start_date: null, notes: '', ...((formData.status === 'offer' || formData.status === 'rejected') ? { source_stage: null } : {}) }],
     interview_sub_stages: [],
     archived: false,
     next_action: null,
     next_action_date: null,
     activities: [],
     contacts: [],
-  }
+  })
 }

@@ -1,47 +1,77 @@
-import type { CSSProperties } from 'react'
+import type { ComponentProps, CSSProperties } from 'react'
 import type { ApplicationStatus, DrawerTab } from '../../types'
-import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, XCircle } from 'lucide-react'
-import { useState } from 'react'
+import { Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, MoreHorizontal, Pencil, Trash2, X, XCircle } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
+import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
+import { DURATION } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
+import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
-import { appendStatusChangeActivity, autoCompleteStages, getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
+import { selectTrackerDrawerJob } from '../../store/selectors'
+import { getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
 import { CompanyLogo } from '../company-logo'
+import ViewTransition from '../view-transition'
 import ActivityTimeline from './activity-timeline'
 import Contacts from './contacts'
-import DrawerDocument from './document'
+import DrawerDocument from './document/index'
 import DrawerEditForm from './edit-form'
 import DrawerMetaBar from './meta-bar'
 import NextActionSection from './next-action'
-import ProgressTimeline from './progress-timeline'
-import DrawerStageDetail from './stage-detail'
+import ProgressTimeline from './progress-timeline/index'
+import DrawerStageDetail from './stage-detail/index'
 
 type ConfirmKind = 'reject' | 'delete' | 'jump-offer' | null
 const DRAWER_TAB_TRIGGER_CLASS = 'h-10 flex-1 rounded-none border-x-0 border-t-0 border-b-2 border-transparent after:hidden data-[state=active]:border-foreground'
 
-export default function JobDrawer() {
-  const { selectedJob, drawerOpen, closeJobDrawer, syncJob, restoreJobsSnapshot, removeJobs } = useTrackerStore()
+function JobDrawer() {
+  const { selectedJob, drawerOpen, closeJobDrawer, changeJobStatus, saveJobFields, deleteJob, flushWorkflow } = useTrackerStore(useShallow(state => ({
+    selectedJob: selectTrackerDrawerJob(state),
+    drawerOpen: state.drawerOpen,
+    closeJobDrawer: state.closeJobDrawer,
+    changeJobStatus: state.changeJobStatus,
+    saveJobFields: state.saveJobFields,
+    deleteJob: state.deleteJob,
+    flushWorkflow: state.flushWorkflow,
+  })))
   const isMobile = useIsMobile()
+  const reduce = useReducedMotion()
   const [activeTab, setActiveTab] = useState<DrawerTab>('follow-up')
   const [isEditing, setIsEditing] = useState(false)
   const [viewingStage, setViewingStage] = useState<ApplicationStatus | null>(null)
   const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null)
+  const [resumeOpen, setResumeOpen] = useState(false)
+  const confirmTriggerRef = useRef<HTMLElement | null>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
 
-  const handleOpenChange = (newOpen: boolean) => {
+  useLayoutEffect(() => {
+    if (!drawerOpen)
+      return
+    setActiveTab('follow-up')
+    setIsEditing(false)
+    setViewingStage(null)
+    setResumeOpen(false)
+    setConfirmKind(null)
+  }, [selectedJob?.id, drawerOpen])
+
+  const handleOpenChange = (newOpen: boolean, details?: Parameters<NonNullable<ComponentProps<typeof Drawer>['onOpenChange']>>[1]) => {
+    // Radix 浮层独立于 Base UI 的浮层树，Esc 只关闭当前确认框、选择器或日历。
+    if (!newOpen && details?.reason === 'escape-key' && details.event.target instanceof Element && details.event.target.closest('[role="alertdialog"], [role="listbox"], [role="menu"], [data-slot="popover-content"]')) {
+      details.cancel()
+      return
+    }
     if (!newOpen) {
-      setActiveTab('follow-up')
-      setIsEditing(false)
-      setViewingStage(null)
       closeJobDrawer()
     }
   }
@@ -52,36 +82,25 @@ export default function JobDrawer() {
     if (!selectedJob)
       return
 
-    const previousState = useTrackerStore.getState()
-    const updatedStageDetails = autoCompleteStages(selectedJob.status, newStatus, selectedJob.stage_details, true)
-    const optimisticJob = {
-      ...selectedJob,
-      status: newStatus,
-      stage_details: updatedStageDetails,
-      activities: appendStatusChangeActivity(selectedJob, newStatus),
-    }
-
-    syncJob(optimisticJob)
-
-    updateCompany(selectedJob.id, optimisticJob)
-      .then(syncJob)
+    changeJobStatus(selectedJob.id, newStatus)
       .catch((error) => {
-        restoreJobsSnapshot({
-          jobs: previousState.jobs,
-          selectedJob: previousState.selectedJob,
-        })
-        toast.error('更新失败', { description: getTrackerErrorMessage(error) })
+        if (!isTrackerAccountScopeError(error))
+          toast.error('更新失败', { description: getTrackerErrorMessage(error) })
       })
 
     setViewingStage(null)
   }
 
-  // 进度时间线点击跳转：终态(offer)二次确认，其余直接推进/回退
+  // 节点沿用推进/回退入口；两个互斥终态都需明确确认。
   const handleStageJump = (target: ApplicationStatus) => {
     if (!selectedJob || target === selectedJob.status)
       return
     if (target === 'offer') {
       setConfirmKind('jump-offer')
+      return
+    }
+    if (target === 'rejected') {
+      setConfirmKind('reject')
       return
     }
     handleProgressChange(target)
@@ -107,11 +126,12 @@ export default function JobDrawer() {
       return
     setConfirmKind(null)
     try {
-      await deleteCompany(selectedJob.id)
-      removeJobs([selectedJob.id])
+      await deleteJob(selectedJob.id)
       toast.success('已删除该职位')
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
   }
@@ -121,10 +141,11 @@ export default function JobDrawer() {
       return
     const next = !selectedJob.archived
     try {
-      const savedJob = await archiveCompany(selectedJob.id, next)
-      syncJob(savedJob)
+      await saveJobFields(selectedJob.id, { archived: next })
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
   }
@@ -144,7 +165,6 @@ export default function JobDrawer() {
 
   const statusConfig = APPLICATION_STATUS_CONFIG[selectedJob.status]
   const displayStage = viewingStage || selectedJob.status
-  const isViewingHistory = viewingStage !== null && viewingStage !== selectedJob.status
   const canStepBack = APPLICATION_STATUS_ORDER.indexOf(selectedJob.status) > 0 && selectedJob.status !== 'rejected'
 
   const titleBlock = (
@@ -201,7 +221,7 @@ export default function JobDrawer() {
           className="text-destructive focus:text-destructive"
         >
           <XCircle className="size-4" />
-          终止该流程
+          结束该流程
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleArchive}>
@@ -253,20 +273,22 @@ export default function JobDrawer() {
   }
 
   const headerContent = (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2 md:gap-3">
       <div className="flex items-start justify-between gap-3">
         {titleBlock}
         <div className="flex shrink-0 items-center gap-1">
           {!isMobile && desktopToolbar}
+          <Button ref={closeButtonRef} variant="ghost" size="icon-sm" aria-label="关闭详情" onClick={() => handleOpenChange(false)}><X className="size-4" /></Button>
         </div>
       </div>
       <DrawerMetaBar />
     </div>
   )
 
+  const isFollowUp = !isEditing && activeTab === 'follow-up'
   const body = (
-    <div className="scrollbar-gutter-stable scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      <div className={cn(isMobile ? 'px-4 py-4' : 'px-5 py-5 lg:px-6')}>
+    <div className={cn('scrollbar-thin-subtle min-h-0 flex-1 overscroll-contain', isFollowUp ? 'flex flex-col overflow-hidden [@media(max-height:640px)]:block [@media(max-height:640px)]:overflow-y-auto' : 'scrollbar-gutter-stable overflow-y-auto')}>
+      <div className={cn(isMobile ? 'px-4 py-2' : 'px-5 py-5 lg:px-6', isFollowUp && 'flex min-h-0 flex-1 flex-col')}>
         {isEditing
           ? (
               <div className="flex flex-col gap-4">
@@ -277,65 +299,88 @@ export default function JobDrawer() {
                     返回
                   </Button>
                 </div>
-                <DrawerEditForm onSaved={handleSaved} onCancel={() => setIsEditing(false)} />
+                <DrawerEditForm key={selectedJob.id} onSaved={handleSaved} onCancel={() => setIsEditing(false)} />
               </div>
             )
           : (
-              <Tabs value={activeTab} onValueChange={v => setActiveTab(v as DrawerTab)}>
-                <TabsList
-                  variant="line"
-                  className="sticky top-0 z-20 w-full rounded-none border-b bg-popover p-0 shadow-[0_6px_10px_-10px_rgba(0,0,0,0.45)]"
+              <div className={cn('flex flex-col gap-2 md:gap-4', isFollowUp && 'min-h-0 flex-1')}>
+                <div className="shrink-0">
+                  <ProgressTimeline
+                    viewingStage={viewingStage}
+                    onStageClick={(stage) => {
+                      setViewingStage(stage === selectedJob.status ? null : stage)
+                      setActiveTab('interview')
+                    }}
+                    onStageJump={handleStageJump}
+                  />
+                </div>
+                <Tabs
+                  className={cn(isFollowUp && 'min-h-0 flex-1')}
+                  value={activeTab}
+                  onValueChange={(v) => {
+                    flushWorkflow(selectedJob.id).catch(() => {})
+                    setActiveTab(v as DrawerTab)
+                  }}
                 >
-                  <TabsTrigger value="follow-up" className={DRAWER_TAB_TRIGGER_CLASS}>跟进</TabsTrigger>
-                  <TabsTrigger value="interview" className={DRAWER_TAB_TRIGGER_CLASS}>阶段详情</TabsTrigger>
-                  <TabsTrigger value="documents" className={DRAWER_TAB_TRIGGER_CLASS}>简历 & 联系人</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="follow-up" className="mt-5">
-                  <div
-                    className="space-y-6"
+                  <TabsList
+                    variant="line"
+                    className="sticky top-0 z-20 w-full shrink-0 rounded-none border-b bg-popover p-0 shadow-[0_6px_10px_-10px_rgba(0,0,0,0.45)]"
                   >
-                    {selectedJob.status !== 'rejected' && <NextActionSection key={selectedJob.id} job={selectedJob} />}
-                    <ProgressTimeline
-                      viewingStage={viewingStage}
-                      onStageClick={stage => setViewingStage(stage === selectedJob.status ? null : stage)}
-                      onStageJump={handleStageJump}
-                    />
-                    <Separator />
-                    <ActivityTimeline job={selectedJob} />
-                  </div>
-                </TabsContent>
+                    <TabsTrigger value="follow-up" className={DRAWER_TAB_TRIGGER_CLASS}>跟进</TabsTrigger>
+                    <TabsTrigger value="interview" className={DRAWER_TAB_TRIGGER_CLASS}>阶段详情</TabsTrigger>
+                    <TabsTrigger value="documents" className={DRAWER_TAB_TRIGGER_CLASS}>联系人与简历</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="interview" className="mt-5">
-                  <div
-                    className="space-y-6"
-                  >
-                    {selectedJob.status === 'rejected'
-                      ? (
-                          <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-8 text-center text-sm text-muted-foreground">
-                            该流程已终止，阶段详情不可再编辑。
-                          </p>
-                        )
-                      : (
-                          <DrawerStageDetail
-                            displayStage={displayStage}
-                            isViewingHistory={isViewingHistory}
-                            onSaved={() => setViewingStage(null)}
-                          />
-                        )}
-                  </div>
-                </TabsContent>
+                  <TabsContent value="follow-up" className="flex min-h-0 flex-col overflow-hidden data-[state=inactive]:hidden md:mt-4 [@media(max-height:640px)]:overflow-visible" style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}>
+                    <div
+                      className="flex min-h-0 flex-1 flex-col gap-2 md:gap-4"
+                    >
+                      {selectedJob.status !== 'rejected' && <NextActionSection key={`next-action-${selectedJob.id}`} job={selectedJob} />}
+                      <Separator className="shrink-0" />
+                      <ActivityTimeline key={`activity-${selectedJob.id}`} job={selectedJob} />
+                    </div>
+                  </TabsContent>
 
-                <TabsContent value="documents" className="mt-5">
-                  <div
-                    className="space-y-6"
-                  >
-                    <DrawerDocument />
-                    <Separator />
-                    <Contacts job={selectedJob} />
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  <TabsContent value="interview" className="mt-4" style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}>
+                    <div
+                      className="space-y-6"
+                    >
+                      <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/35 px-3 py-2">
+                        <span className="text-xs text-muted-foreground">查看阶段记录</span>
+                        <Select
+                          value={displayStage}
+                          onValueChange={(value) => {
+                            flushWorkflow(selectedJob.id).catch(() => {})
+                            setViewingStage(value === selectedJob.status ? null : value as ApplicationStatus)
+                          }}
+                        >
+                          <SelectTrigger aria-label="查看阶段记录" className="h-8 w-40 bg-background text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(APPLICATION_STATUS_CONFIG).map(([value, config]) => (
+                              <SelectItem key={value} value={value}>
+                                {config.label}
+                                {value === selectedJob.status && '（当前）'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <ViewTransition animationKey={`${selectedJob.id}-${displayStage}`}>
+                        <DrawerStageDetail displayStage={displayStage} />
+                      </ViewTransition>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="documents" className="mt-4" style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}>
+                    <div
+                      className="space-y-6"
+                    >
+                      <Contacts job={selectedJob} />
+                      <DrawerDocument key={selectedJob.id} open={resumeOpen} onOpenChange={setResumeOpen} />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
             )}
       </div>
     </div>
@@ -343,21 +388,31 @@ export default function JobDrawer() {
 
   const confirmDialog = (
     <AlertDialog open={confirmKind !== null} onOpenChange={open => !open && setConfirmKind(null)}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        onOpenAutoFocus={() => {
+          confirmTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          const trigger = confirmTriggerRef.current
+          const target = trigger?.isConnected ? trigger : closeButtonRef.current
+          target?.focus({ preventScroll: true })
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>
             {confirmKind === 'delete'
               ? '确认删除该记录？'
               : confirmKind === 'jump-offer'
                 ? '确认移动到「已录用」？'
-                : '确认终止该流程？'}
+                : '确认结束该流程？'}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {confirmKind === 'delete'
               ? `「${selectedJob.company} - ${selectedJob.position}」将被永久删除，无法恢复。`
               : confirmKind === 'jump-offer'
                 ? '将把该职位标记为已录用。'
-                : '该操作会把状态标记为「终止流程」，可在「已终止」筛选下查看。'}
+                : '该职位将标记为「已结束」，已有阶段与面试记录会保留。'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -373,7 +428,7 @@ export default function JobDrawer() {
                 handleProgressChange('offer')
             }}
           >
-            {confirmKind === 'delete' ? '删除' : confirmKind === 'jump-offer' ? '确认' : '终止'}
+            {confirmKind === 'delete' ? '删除' : confirmKind === 'jump-offer' ? '确认' : '结束流程'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -399,19 +454,22 @@ export default function JobDrawer() {
         showSwipeHandle={isMobile}
       >
         <DrawerContent
-          className="flex min-h-0 flex-col gap-0 overflow-hidden p-0"
+          className="flex min-h-0 flex-col gap-0 overflow-clip p-0"
           style={isMobile
-            ? undefined
+            ? {
+                '--drawer-content-height': 'calc(100dvh - 1rem)',
+                '--drawer-content-max-height': 'calc(100dvh - 1rem)',
+              } as CSSProperties
             : {
                 '--drawer-content-height': 'calc(100dvh - 1rem)',
                 '--drawer-content-max-height': 'none',
-                '--drawer-content-width': 'min(40vw, 56rem)',
+                '--drawer-content-width': 'min(calc(100vw - 2rem), clamp(48rem, 62vw, 56rem))',
               } as CSSProperties}
         >
           <DrawerHeader
             className={cn(
               'shrink-0 text-left',
-              isMobile ? 'px-4 py-3' : 'px-5 py-4 lg:px-6',
+              isMobile ? 'px-4 py-2' : 'px-5 py-4 lg:px-6',
             )}
           >
             {headerContent}
@@ -426,3 +484,5 @@ export default function JobDrawer() {
     </>
   )
 }
+
+export default memo(JobDrawer)

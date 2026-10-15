@@ -4,11 +4,11 @@ import type { ORDERType } from '@/lib/schema'
 import { Edit } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PageLoading } from '@/components/page-loading'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
-import { Spinner } from '@/components/ui/spinner'
 import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark.tsx'
 import { CommentSourceSelector } from '@/features/resume-comments/components/comment-source-selector.tsx'
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
@@ -193,14 +193,7 @@ function Editor() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <Spinner className="mx-auto" />
-          <p className="mt-4 text-muted-foreground">加载简历中...</p>
-        </div>
-      </div>
-    )
+    return <PageLoading label="正在加载简历" />
   }
 
   return (

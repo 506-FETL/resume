@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { updateCompany } from '@/lib/supabase/resume'
 import { COMMON_CITIES, COMMON_COMPANIES, COMMON_POSITIONS } from '../../const'
+import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
 import { getTrackerErrorMessage } from '../../utils'
 import { TrackerCombobox } from './tracker-combobox'
@@ -24,7 +25,7 @@ interface DrawerEditFormProps {
 }
 
 export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProps) {
-  const { selectedJob, syncJob } = useTrackerStore()
+  const { selectedJob, saveJobFields } = useTrackerStore(useShallow(state => ({ selectedJob: state.selectedJob, saveJobFields: state.saveJobFields })))
   const [saving, setSaving] = useState(false)
 
   const parsedSalary = parseSalaryRange(selectedJob?.salary || '')
@@ -50,7 +51,7 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
     setSaving(true)
 
     try {
-      const savedJob = await updateCompany(selectedJob.id, {
+      await saveJobFields(selectedJob.id, {
         company: formData.company,
         position: formData.position,
         location: formData.location,
@@ -61,10 +62,11 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
         company_logo: formData.company_logo.trim() || null,
       })
 
-      syncJob(savedJob)
       onSaved()
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       console.error('Failed to update job:', error)
       toast.error('更新失败', { description: getTrackerErrorMessage(error) })
     }

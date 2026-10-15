@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
-import { updateCompany } from '@/lib/supabase/resume'
+import { isTrackerAccountScopeError } from '../../../lib/account-scope'
 import useTrackerStore from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
 
@@ -39,7 +39,7 @@ function contactEqual(a: TrackerContact | undefined, b: TrackerContact | undefin
 
 export default function Contacts({ job }: ContactsProps) {
   const reduceMotion = useReducedMotion()
-  const { syncJob } = useTrackerStore()
+  const saveJobFields = useTrackerStore(state => state.saveJobFields)
   const [contacts, setContacts] = useState<TrackerContact[]>(job.contacts)
   const [baseline, setBaseline] = useState<TrackerContact[]>(job.contacts)
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -82,10 +82,15 @@ export default function Contacts({ job }: ContactsProps) {
 
     setSavingId(rowId)
     try {
-      const savedJob = await updateCompany(job.id, { contacts: dbNext })
-      const isStillShowingRequestJob = jobIdRef.current === requestJobId
+      const edited = dbNext.find(contact => contact.id === rowId)
+      const savedJob = await saveJobFields(job.id, current => ({
+        contacts: options.isDelete
+          ? current.contacts.filter(contact => contact.id !== rowId)
+          : current.contacts.some(contact => contact.id === rowId)
+            ? current.contacts.map(contact => contact.id === rowId && edited ? edited : contact)
+            : edited ? [...current.contacts, edited] : current.contacts,
+      }))
       if (isCurrentRequest()) {
-        syncJob(savedJob)
         setBaseline(savedJob.contacts)
         setContacts((prev) => {
           if (options.isDelete)
@@ -95,11 +100,10 @@ export default function Contacts({ job }: ContactsProps) {
         })
         toast.success(options.successText)
       }
-      else if (!isStillShowingRequestJob) {
-        syncJob(savedJob)
-      }
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
     finally {
@@ -160,7 +164,7 @@ export default function Contacts({ job }: ContactsProps) {
         {contacts.length === 0
           ? (
               <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
-                还没有联系人。记录 HR、面试官或内推人，方便后续跟进沟通。
+                暂无联系人
               </p>
             )
           : (

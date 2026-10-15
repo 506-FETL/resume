@@ -3,6 +3,7 @@ import type { ApplicationStatus, JobApplication, StageDetail, TrackerActivity, T
 import type { TemplateResumeDataInput } from '@/components/resume/runtime/context/resume-data-context'
 import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_ORDER, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_VISIBILITY, DEFAULT_WORK_EXPERIENCE, migrateOrder, migrateVisibility, normalizeResumeType, resolveResumeTemplateBinding } from '@/lib/schema'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER, TRACKER_NEXT_ACTION_LABELS } from './const'
+import { getEndedApplicationStage, transitionJobWorkflow } from './workflow'
 
 export interface TrackerNextAction {
   label: string
@@ -41,50 +42,18 @@ export function mapSnakeToCamel(data: any): any {
   }
 }
 
-// 状态自动完成工具函数
-// 规则：之前的阶段=已完成，当前阶段=待处理，之后的阶段保持或待处理
+// 兼容旧调用点；完整职位转换应直接使用 transitionJobWorkflow。
 export function autoCompleteStages(
-  _currentStatus: ApplicationStatus,
+  currentStatus: ApplicationStatus,
   newStatus: ApplicationStatus,
   stageDetails: StageDetail[],
   autoSetCurrentDate = false,
 ): StageDetail[] {
-  const newIndex = APPLICATION_STATUS_ORDER.indexOf(newStatus)
-
-  // rejected 不在 ORDER 中，返回原样
-  if (newIndex === -1)
-    return stageDetails
-
-  const today = new Date().toISOString().slice(0, 10)
-
-  return APPLICATION_STATUS_ORDER.map((status, idx) => {
-    const existing = stageDetails.find(s => s.stage === status)
-
-    if (idx < newIndex) {
-      return {
-        stage: status,
-        status: '已完成' as const,
-        start_date: existing?.start_date || (autoSetCurrentDate ? today : null),
-        notes: existing?.notes || '',
-      }
-    }
-
-    if (idx === newIndex) {
-      return {
-        stage: status,
-        status: '待处理' as const,
-        start_date: autoSetCurrentDate ? today : (existing?.start_date || null),
-        notes: existing?.notes || '',
-      }
-    }
-
-    return existing || {
-      stage: status,
-      status: '待处理' as const,
-      start_date: null,
-      notes: '',
-    }
-  })
+  return transitionJobWorkflow(
+    { status: currentStatus, stage_details: stageDetails, interview_sub_stages: [] },
+    newStatus,
+    autoSetCurrentDate ? undefined : '',
+  ).stage_details
 }
 
 export function normalizeResumePreviewData(data: ResumePreviewData): TemplateResumeDataInput {
@@ -115,9 +84,13 @@ export function getTrackerNextAction(job: JobApplication): TrackerNextAction {
     case 'saved':
       return { label: TRACKER_NEXT_ACTION_LABELS.saved, targetStatus: 'applied', emphasize: 'primary' }
     case 'applied':
-      return { label: TRACKER_NEXT_ACTION_LABELS.applied, targetStatus: 'screen', emphasize: 'primary' }
+      return { label: TRACKER_NEXT_ACTION_LABELS.applied, targetStatus: 'assessment', emphasize: 'primary' }
+    case 'assessment':
+      return { label: TRACKER_NEXT_ACTION_LABELS.assessment, targetStatus: 'screen', emphasize: 'primary' }
     case 'screen':
-      return { label: TRACKER_NEXT_ACTION_LABELS.screen, targetStatus: 'interview', emphasize: 'primary' }
+      return { label: TRACKER_NEXT_ACTION_LABELS.screen, targetStatus: 'written', emphasize: 'primary' }
+    case 'written':
+      return { label: TRACKER_NEXT_ACTION_LABELS.written, targetStatus: 'interview', emphasize: 'primary' }
     case 'interview':
       return { label: TRACKER_NEXT_ACTION_LABELS.interview, targetStatus: null, emphasize: 'primary' }
     case 'offer':
@@ -147,8 +120,10 @@ export function getTrackerProgressHint(job: JobApplication) {
   if (job.status === 'offer')
     return '已进入积极结果阶段，建议尽快记录决策与后续安排'
 
-  if (job.status === 'rejected')
-    return '流程已终止，建议补充原因或记录复盘信息'
+  if (job.status === 'rejected') {
+    const endedAt = getEndedApplicationStage(job)
+    return endedAt ? `结束于：${APPLICATION_STATUS_CONFIG[endedAt].label}` : '流程已结束，建议补充原因或记录复盘信息'
+  }
 
   const currentStage = job.stage_details.find(stage => stage.stage === job.status)
   const stageDate = currentStage?.start_date
@@ -162,6 +137,10 @@ export function getTrackerProgressHint(job: JobApplication) {
         : '已投递，建议补充投递时间与反馈记录'
     case 'screen':
       return '简历筛选中，等待进入下一轮流程'
+    case 'assessment':
+      return '测评中，建议记录测评安排与反馈'
+    case 'written':
+      return '笔试中，建议记录笔试安排与反馈'
     default:
       return '查看详情以补充更多跟进记录'
   }
@@ -255,11 +234,11 @@ export const TRACKER_FOLLOW_UP_STALE_DAYS = 7
 
 export interface TrackerOverviewStats {
   total: number
-  applied: number // 历史投递总数：曾到达 applied 及以后的岗位（含已终止/已归档，历史漏斗口径）
+  applied: number // 历史投递总数：曾到达 applied 及以后的岗位（含已结束/已归档，历史漏斗口径）
   interview: number // 在办：面试中且未归档
   offer: number // 在办：已录用且未归档
   pending: number // 待跟进：未归档、非终态、超过陈旧阈值（P3 接入 next_action_date）
-  responseRate: number // 曾进入 screen 及以后 / 历史投递总数
+  responseRate: number // 曾进入 assessment 及以后 / 历史投递总数
 }
 
 // 停留天数：距上次更新的自然天数
@@ -345,7 +324,7 @@ export interface NextActionBadge {
 
 // 下一步日期徽标：逾期/今天/未来。无日期返回 null。
 export function getNextActionBadge(job: JobApplication): NextActionBadge | null {
-  // 终态(已录用/已终止)与已归档不再提示下一步，避免「已终止却逾期跟进」的矛盾
+  // 终态与已归档不再提示下一步。
   if (job.archived || job.status === 'offer' || job.status === 'rejected')
     return null
 
@@ -363,21 +342,27 @@ export function getNextActionBadge(job: JobApplication): NextActionBadge | null 
 }
 
 // 历史到达过的最深阶段索引（基于 APPLICATION_STATUS_ORDER）。
-// 对已终止(rejected)的岗位，status 只剩 rejected，无法从 status 得知它当初走到哪；
-// 但 stage_details 会保留每阶段轨迹（推进时前序阶段被标记为「已完成」），
-// 据此还原历史漏斗深度。返回 -1 表示从未进入过 applied 及以后（例如仅 saved 就被拒）。
+// 结束位置与保存的历史阶段共同还原漏斗；回退保留的真实日期仍属于历史经历。
 export function getFurthestStageIndex(job: JobApplication): number {
-  // 非终态：当前 status 本身就是已到达的最深阶段
-  if (job.status !== 'rejected')
-    return APPLICATION_STATUS_ORDER.indexOf(job.status)
-
-  // 终态：取 stage_details 中标记为「已完成」或「进行中」的最深阶段
-  let furthest = -1
+  const endedAt = getEndedApplicationStage(job)
+  let furthest = APPLICATION_STATUS_ORDER.indexOf(endedAt ?? job.status)
   for (const detail of job.stage_details) {
-    if (detail.status === '已完成' || detail.status === '进行中') {
+    if (detail.status === '已完成' || detail.status === '进行中' || detail.start_date) {
       const idx = APPLICATION_STATUS_ORDER.indexOf(detail.stage)
       if (idx > furthest)
         furthest = idx
+    }
+  }
+  // 活动记录与当前可见阶段状态分离：回退会重算状态，但不抹去真实到达经历。
+  for (const activity of job.activities) {
+    if (activity.type !== 'status_change')
+      continue
+    for (const [index, stage] of APPLICATION_STATUS_ORDER.entries()) {
+      const label = APPLICATION_STATUS_CONFIG[stage].label
+      if ((activity.label === `推进到「${label}」` || activity.label === `回退到「${label}」`
+        || activity.note === `结束于：${label}` || activity.note === `录用于：${label}`) && index > furthest) {
+        furthest = index
+      }
     }
   }
   return furthest
@@ -386,16 +371,16 @@ export function getFurthestStageIndex(job: JobApplication): number {
 export function getTrackerOverviewStats(jobs: JobApplication[]): TrackerOverviewStats {
   const total = jobs.length
   const appliedIdx = APPLICATION_STATUS_ORDER.indexOf('applied')
-  const screenIdx = APPLICATION_STATUS_ORDER.indexOf('screen')
-  // 历史漏斗口径：投过就算（含已终止/已归档的），据 stage_details 还原漏斗深度
+  const responseIdx = APPLICATION_STATUS_ORDER.indexOf('assessment')
+  // 历史漏斗口径：投过就算（含已结束/已归档的），据 stage_details 还原漏斗深度
   const appliedPlus = jobs.filter(j => getFurthestStageIndex(j) >= appliedIdx).length
-  const screenPlus = jobs.filter(j => getFurthestStageIndex(j) >= screenIdx).length
+  const responsePlus = jobs.filter(j => getFurthestStageIndex(j) >= responseIdx).length
   // 在办口径：已归档 = 停止跟进，从活跃计数中排除
   const active = jobs.filter(j => !j.archived)
   const interview = active.filter(j => j.status === 'interview').length
   const offer = active.filter(j => j.status === 'offer').length
   const pending = jobs.filter(isJobPendingFollowUp).length
-  const responseRate = appliedPlus === 0 ? 0 : Math.round((screenPlus / appliedPlus) * 100)
+  const responseRate = appliedPlus === 0 ? 0 : Math.round((responsePlus / appliedPlus) * 100)
   return { total, applied: appliedPlus, interview, offer, pending, responseRate }
 }
 
@@ -442,16 +427,19 @@ export function buildStatusChangeActivity(
   const toLabel = APPLICATION_STATUS_CONFIG[toStatus].label
   const fromIdx = APPLICATION_STATUS_ORDER.indexOf(fromStatus)
   const toIdx = APPLICATION_STATUS_ORDER.indexOf(toStatus)
-  // rejected 不在 ORDER 中(idx=-1)，视为终止；否则按序数判断推进/回退
+  // rejected 不在历史漏斗顺序中；终态返回在办阶段也属于纠正进度。
   const verb = toStatus === 'rejected'
-    ? '终止流程于'
-    : (toIdx < fromIdx && fromIdx !== -1 ? '回退到' : '推进到')
+    ? '结束流程于'
+    : ((fromStatus === 'rejected' || toIdx < fromIdx) ? '回退到' : '推进到')
 
   return {
     id: crypto.randomUUID(),
     type: 'status_change',
     label: `${verb}「${toLabel}」`,
     at: new Date().toISOString(),
+    ...((toStatus === 'rejected' || toStatus === 'offer') && fromStatus !== 'offer' && fromStatus !== 'rejected'
+      ? { note: `${toStatus === 'rejected' ? '结束于' : '录用于'}：${APPLICATION_STATUS_CONFIG[fromStatus].label}` }
+      : {}),
   }
 }
 

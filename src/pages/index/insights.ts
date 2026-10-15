@@ -277,7 +277,9 @@ export interface DashboardTimeline {
 const APPLY_STATUS_VERB: Partial<Record<ApplicationStatus, string>> = {
   saved: '收藏了',
   applied: '投递了',
+  assessment: '进入测评',
   screen: '进入初筛',
+  written: '进入笔试',
   interview: '面试推进',
   offer: '收到 Offer',
   rejected: '结束了',

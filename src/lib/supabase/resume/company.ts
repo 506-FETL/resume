@@ -1,4 +1,5 @@
 import type { ApplicationStatus, InterviewSubStage, JobApplication, StageDetail, TrackerActivity, TrackerContact } from '@/pages/tracker/types'
+import { normalizeJobWorkflow } from '@/pages/tracker/workflow'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
@@ -14,8 +15,11 @@ export interface JobApplicationSummary {
 }
 
 // 获取用户所有公司/职位
-export async function getCompanies(): Promise<JobApplication[]> {
+type CompanyRequestGuard = (userId: string | null) => void
+
+export async function getCompanies(assertUser?: CompanyRequestGuard): Promise<JobApplication[]> {
   const user = await getCurrentUser()
+  assertUser?.(user?.id ?? null)
 
   if (!user)
     throw new Error('用户未登陆')
@@ -31,7 +35,7 @@ export async function getCompanies(): Promise<JobApplication[]> {
   }
 
   // 转换 JSON 字段为数组
-  return (data || []).map(item => ({
+  return (data || []).map(item => normalizeJobWorkflow({
     ...item,
     stage_details: (item.stage_details || []) as StageDetail[],
     interview_sub_stages: (item.interview_sub_stages || []) as InterviewSubStage[],
@@ -70,8 +74,10 @@ export async function listJobApplicationSummaries(): Promise<JobApplicationSumma
 // 创建新公司/职位
 export async function createCompany(
   jobData: Omit<JobApplication, 'id' | 'created_at' | 'updated_at' | 'user_id'>,
+  assertUser?: CompanyRequestGuard,
 ): Promise<JobApplication> {
   const user = await getCurrentUser()
+  assertUser?.(user?.id ?? null)
 
   if (!user)
     throw new Error('用户未登陆')
@@ -80,7 +86,7 @@ export async function createCompany(
     .from('company')
     .insert({
       user_id: user.id,
-      ...jobData,
+      ...normalizeJobWorkflow(jobData),
     })
     .select()
     .single()
@@ -89,7 +95,7 @@ export async function createCompany(
     throw error
   }
 
-  return {
+  return normalizeJobWorkflow({
     ...data,
     stage_details: (data.stage_details || []) as StageDetail[],
     interview_sub_stages: (data.interview_sub_stages || []) as InterviewSubStage[],
@@ -98,15 +104,17 @@ export async function createCompany(
     next_action_date: data.next_action_date ?? null,
     activities: (data.activities || []) as TrackerActivity[],
     contacts: (data.contacts || []) as TrackerContact[],
-  }
+  })
 }
 
 // 更新公司/职位
 export async function updateCompany(
   id: string,
   updates: Partial<Omit<JobApplication, 'id' | 'created_at' | 'user_id'>>,
+  assertUser?: CompanyRequestGuard,
 ): Promise<JobApplication> {
   const user = await getCurrentUser()
+  assertUser?.(user?.id ?? null)
 
   if (!user)
     throw new Error('用户未登陆')
@@ -126,7 +134,7 @@ export async function updateCompany(
     throw error
   }
 
-  return {
+  return normalizeJobWorkflow({
     ...data,
     stage_details: (data.stage_details || []) as StageDetail[],
     interview_sub_stages: (data.interview_sub_stages || []) as InterviewSubStage[],
@@ -135,7 +143,7 @@ export async function updateCompany(
     next_action_date: data.next_action_date ?? null,
     activities: (data.activities || []) as TrackerActivity[],
     contacts: (data.contacts || []) as TrackerContact[],
-  }
+  })
 }
 
 // 更新状态
@@ -180,8 +188,9 @@ export async function addActivity(
 }
 
 // 删除公司/职位
-export async function deleteCompany(id: string) {
+export async function deleteCompany(id: string, assertUser?: CompanyRequestGuard) {
   const user = await getCurrentUser()
+  assertUser?.(user?.id ?? null)
 
   if (!user)
     throw new Error('用户未登陆')

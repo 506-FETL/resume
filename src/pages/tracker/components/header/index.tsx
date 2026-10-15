@@ -13,8 +13,7 @@ export default function TrackerHeader() {
           <BriefcaseBusiness className="size-5" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">求职跟进</h1>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">管理投递进度，安排每一步跟进。</p>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">求职跟进</h1>
         </div>
       </div>
       <Button className="h-10 shrink-0 rounded-lg px-3 sm:px-4" onClick={openAddDrawer}>

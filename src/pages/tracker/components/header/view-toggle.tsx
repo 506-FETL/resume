@@ -1,10 +1,14 @@
 import type { ViewMode } from '../../types'
 import { Kanban, List } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useTrackerStore from '../../store'
 
 export function ViewToggle() {
-  const { viewMode, setViewMode } = useTrackerStore()
+  const { viewMode, setViewMode } = useTrackerStore(useShallow(state => ({
+    viewMode: state.viewMode,
+    setViewMode: state.setViewMode,
+  })))
 
   return (
     <Tabs

@@ -7,6 +7,7 @@ import type { ShareViewResult } from '@/lib/supabase/resume/share.types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
+import { PageLoading } from '@/components/page-loading'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
@@ -170,7 +171,7 @@ export default function ResumeSharePage() {
 
   const renderContent = () => {
     if (state.phase === 'loading') {
-      return <CenteredMessage text="正在加载简历…" />
+      return <PageLoading className="min-h-dvh bg-muted/30" label="正在加载简历" />
     }
 
     if (state.phase === 'unavailable') {

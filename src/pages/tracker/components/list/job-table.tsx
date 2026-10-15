@@ -1,19 +1,20 @@
 import type { JobApplication, TrackerSortBy } from '../../types'
 import { Archive, ArrowDown, ArrowRight, ArrowUp, Bell, Building2, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react'
 import { AnimatePresence, useIsPresent, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { PresenceTableRow } from '@/components/motion/presence-item'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
-import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_DOT_CLASSES, APPLICATION_STATUS_ORDER, NEXT_ACTION_TONE_CLASSES } from '../../const'
+import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
-import { appendStatusChangeActivity, autoCompleteStages, getDaysInStage, getNextActionBadge, getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
+import { getDaysInStage, getNextActionBadge, getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
 import { CompanyLogo } from '../company-logo'
 
 interface JobTableProps {
@@ -76,16 +77,21 @@ function SortableHead({ field, label, sortBy, sortDir, onSort }: SortableHeadPro
 interface JobTableRowProps {
   job: JobApplication
   index: number
+  layoutKey: { jobs: JobApplication[], isSelectMode: boolean }
   onStatusChange: (job: JobApplication, status: JobApplication['status']) => void
   onArchive: (job: JobApplication) => void
   onDelete: (job: JobApplication) => void
 }
 
-function JobTableRow({ job, index, onStatusChange, onArchive, onDelete }: JobTableRowProps) {
-  const { isSelectMode, selectedIds, toggleSelect, openJobDrawer } = useTrackerStore()
+const JobTableRow = memo(({ job, index, layoutKey, onStatusChange, onArchive, onDelete }: JobTableRowProps) => {
+  const { isSelectMode, isSelected, toggleSelect, openJobDrawer } = useTrackerStore(useShallow(state => ({
+    isSelectMode: state.isSelectMode,
+    isSelected: state.selectedIds.has(job.id),
+    toggleSelect: state.toggleSelect,
+    openJobDrawer: state.openJobDrawer,
+  })))
   const reduce = useReducedMotion()
   const isPresent = useIsPresent()
-  const isSelected = selectedIds.has(job.id)
   const statusConfig = APPLICATION_STATUS_CONFIG[job.status]
   const nextAction = getTrackerNextAction(job)
   const nextActionBadge = getNextActionBadge(job)
@@ -101,6 +107,7 @@ function JobTableRow({ job, index, onStatusChange, onArchive, onDelete }: JobTab
     <PresenceTableRow
       key={job.id}
       layout={reduce ? false : 'position'}
+      layoutDependency={layoutKey}
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: reduce ? 0 : DURATION.fast, delay: 0, ease: EASE.in } }}
@@ -230,73 +237,81 @@ function JobTableRow({ job, index, onStatusChange, onArchive, onDelete }: JobTab
       </td>
     </PresenceTableRow>
   )
-}
+})
 
 export function JobTable({ jobs }: JobTableProps) {
   const {
     isSelectMode,
     selectedIds,
     selectAll,
-    syncJob,
-    restoreJobsSnapshot,
-    removeJobs,
+    changeJobStatus,
+    saveJobFields,
+    deleteJob,
     sortBy,
     sortDir,
     setSort,
-  } = useTrackerStore()
+  } = useTrackerStore(useShallow(state => ({
+    isSelectMode: state.isSelectMode,
+    selectedIds: state.selectedIds,
+    selectAll: state.selectAll,
+    changeJobStatus: state.changeJobStatus,
+    saveJobFields: state.saveJobFields,
+    deleteJob: state.deleteJob,
+    sortBy: state.sortBy,
+    sortDir: state.sortDir,
+    setSort: state.setSort,
+  })))
   const [pendingDeleteJob, setPendingDeleteJob] = useState<JobApplication | null>(null)
+  const [pendingStatus, setPendingStatus] = useState<{ job: JobApplication, status: JobApplication['status'] } | null>(null)
 
   const allSelected = jobs.length > 0 && jobs.every(job => selectedIds.has(job.id))
+  const layoutKey = useMemo(() => ({ jobs, isSelectMode }), [jobs, isSelectMode])
 
-  const handleStatusChange = async (job: JobApplication, newStatus: JobApplication['status']) => {
-    if (job.status === newStatus)
-      return
-    const previousState = useTrackerStore.getState()
-    const updatedStageDetails = autoCompleteStages(job.status, newStatus, job.stage_details, true)
-    const optimisticJob = {
-      ...job,
-      status: newStatus,
-      stage_details: updatedStageDetails,
-      activities: appendStatusChangeActivity(job, newStatus),
-    }
-
-    syncJob(optimisticJob)
-
+  const commitStatus = useCallback(async (id: string, newStatus: JobApplication['status']) => {
     try {
-      const savedJob = await updateCompany(job.id, optimisticJob)
-      syncJob(savedJob)
+      await changeJobStatus(id, newStatus)
     }
     catch (error) {
-      restoreJobsSnapshot({
-        jobs: previousState.jobs,
-        selectedJob: previousState.selectedJob,
-      })
+      if (isTrackerAccountScopeError(error))
+        return
       toast.error('更新状态失败', { description: getTrackerErrorMessage(error) })
     }
-  }
+  }, [changeJobStatus])
+
+  const handleStatusChange = useCallback(async (job: JobApplication, newStatus: JobApplication['status']) => {
+    if (job.status === newStatus)
+      return
+    if (newStatus === 'offer' || newStatus === 'rejected') {
+      setPendingStatus({ job, status: newStatus })
+      return
+    }
+    await commitStatus(job.id, newStatus)
+  }, [commitStatus])
 
   const handleDelete = async (job: JobApplication) => {
     try {
-      await deleteCompany(job.id)
-      removeJobs([job.id])
+      await deleteJob(job.id)
       toast.success('已删除')
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       console.error('Failed to delete job:', error)
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
   }
 
-  const handleArchive = async (job: JobApplication) => {
+  const handleArchive = useCallback(async (job: JobApplication) => {
     const next = !job.archived
     try {
-      const savedJob = await archiveCompany(job.id, next)
-      syncJob(savedJob)
+      await saveJobFields(job.id, { archived: next })
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
-  }
+  }, [saveJobFields])
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/70 bg-card">
@@ -328,6 +343,7 @@ export function JobTable({ jobs }: JobTableProps) {
                   key={job.id}
                   job={job}
                   index={index}
+                  layoutKey={layoutKey}
                   onStatusChange={handleStatusChange}
                   onArchive={handleArchive}
                   onDelete={setPendingDeleteJob}
@@ -337,6 +353,30 @@ export function JobTable({ jobs }: JobTableProps) {
           </tbody>
         </table>
       </div>
+      <AlertDialog open={pendingStatus !== null} onOpenChange={open => !open && setPendingStatus(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认变更流程？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将把该职位标记为「
+              {pendingStatus ? APPLICATION_STATUS_CONFIG[pendingStatus.status].label : ''}
+              」。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (!pendingStatus)
+                return
+              commitStatus(pendingStatus.job.id, pendingStatus.status)
+              setPendingStatus(null)
+            }}
+            >
+              确认
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={pendingDeleteJob !== null} onOpenChange={open => !open && setPendingDeleteJob(null)}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>

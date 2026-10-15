@@ -3,9 +3,10 @@ import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { deleteAccessibleResume, getAccessibleResumeById, updateAccessibleResumeMeta } from '@/lib/resume-access'
 import { updateConversationResumeBinding } from '@/lib/supabase/ai'
-import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteCompany, deleteResumeHistoryVersion, getCompanies, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
+import { createNewResume, createResumeHistoryVersion, createResumeSnapshotHash, deleteResumeHistoryVersion, getCompanies, getResumeHistoryResume, getResumeHistoryVersionSnapshot, listResumeHistoryVersions, restoreResumeHistoryVersion, updateResumeConfig } from '@/lib/supabase/resume'
 import useAssistantStore from '@/pages/assistant/store'
 import { buildResumeSnapshot, normalizeHistoryVersionListItem } from '@/pages/history/utils'
+import { assertTrackerAccountScope, createTrackerAccountGuard, getTrackerAccountScope } from '@/pages/tracker/lib/account-scope'
 import useTrackerStore from '@/pages/tracker/store'
 import { FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
@@ -394,10 +395,12 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const jobId = String(args.jobId ?? '')
+    const scope = getTrackerAccountScope()
     if (!jobId)
       return { error: '缺少 jobId' }
 
-    const jobs = await getCompanies().catch(() => [])
+    const jobs = await getCompanies(createTrackerAccountGuard(scope)).catch(() => [])
+    assertTrackerAccountScope(scope)
     const job = jobs.find(j => j.id === jobId)
     if (!job)
       return { error: '未找到该职位' }
@@ -411,8 +414,11 @@ registerTool({
         summary: `将永久删除职位「${job.company} · ${job.position}」，无法恢复。`,
       },
       apply: async () => {
-        await deleteCompany(jobId)
-        useTrackerStore.getState().removeJobs([jobId])
+        assertTrackerAccountScope(scope)
+        if (!useTrackerStore.getState().jobs.some(item => item.id === jobId))
+          await useTrackerStore.getState().reloadJobs()
+        assertTrackerAccountScope(scope)
+        await useTrackerStore.getState().deleteJob(jobId)
         // 统一红绿 diff：删除 → before 为职位信息，after 为空（整体删除为红色）
         const beforeLines = [`公司：${job.company}`, `岗位：${job.position}`]
         if (job.location)

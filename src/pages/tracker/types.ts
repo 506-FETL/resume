@@ -1,5 +1,5 @@
 // types.ts
-export type ApplicationStatus = 'saved' | 'applied' | 'screen' | 'interview' | 'offer' | 'rejected'
+export type ApplicationStatus = 'saved' | 'applied' | 'assessment' | 'screen' | 'written' | 'interview' | 'offer' | 'rejected'
 export type StageStatus = '待处理' | '进行中' | '已完成' | '已拒绝'
 export type ViewMode = 'list' | 'board'
 export type TrackerSortBy = 'updated' | 'created' | 'days' | 'company' | 'status'
@@ -19,6 +19,8 @@ export interface StageDetail {
   status: StageStatus
   start_date: string | null
   notes: string
+  // 终态的真实来源；null 明确表示来源未知，不用历史深度替代。
+  source_stage?: Exclude<ApplicationStatus, 'offer' | 'rejected'> | null
 }
 
 export type TrackerActivityType = 'status_change' | 'note' | 'interview' | 'follow_up'

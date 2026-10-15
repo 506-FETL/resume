@@ -1,15 +1,14 @@
-import { LoaderCircle } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Suspense } from 'react'
 import { useLocation, useRoutes } from 'react-router-dom'
 import routes from '~react-pages'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { MotionProvider } from '@/components/motion/motion-provider'
+import { PageLoading } from '@/components/page-loading'
 import { UpgradeDialog } from '@/components/quota/upgrade-dialog'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { DURATION, EASE } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 import { useRecoveryNavigation } from '@/pages/reset-password/hooks/use-recovery-navigation'
 
 function App() {
@@ -35,10 +34,10 @@ function App() {
             className="h-dvh w-full"
           >
             {isShareViewRoute
-              ? <Suspense fallback={<Loading />}>{recoveryPending ? <Loading /> : element}</Suspense>
+              ? <Suspense fallback={<PageLoading />}>{recoveryPending ? <PageLoading /> : element}</Suspense>
               : (
                   <DashboardShell routeKey={location.pathname} fullBleed={isAssistantRoute}>
-                    <Suspense fallback={<Loading />}>{recoveryPending ? <Loading /> : element}</Suspense>
+                    <Suspense fallback={<PageLoading />}>{recoveryPending ? <PageLoading /> : element}</Suspense>
                   </DashboardShell>
                 )}
           </motion.div>
@@ -47,17 +46,6 @@ function App() {
         <UpgradeDialog />
       </MotionProvider>
     </ThemeProvider>
-  )
-}
-
-function Loading() {
-  const reduceMotion = useReducedMotion()
-
-  return (
-    <div role="status" className="flex h-full min-h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
-      <LoaderCircle aria-hidden className={cn('size-4', !reduceMotion && 'animate-spin')} />
-      正在加载…
-    </div>
   )
 }
 

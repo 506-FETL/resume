@@ -1,35 +1,43 @@
 import type { JobApplication } from '../../types'
-import { Archive, Bell, Building2, Link2, MapPin, MoreVertical, Trash2 } from 'lucide-react'
-import { useIsPresent, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { Archive, Bell, Building2, MoreVertical, Trash2 } from 'lucide-react'
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react'
+import { memo, useState } from 'react'
 import { toast } from 'sonner'
+import { useShallow } from 'zustand/react/shallow'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { DURATION } from '@/lib/motion'
-import { archiveCompany, deleteCompany, updateCompany } from '@/lib/supabase/resume'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_DOT_CLASSES, APPLICATION_STATUS_ORDER, NEXT_ACTION_TONE_CLASSES } from '../../const'
+import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
-import { appendStatusChangeActivity, autoCompleteStages, getDaysInStage, getNextActionBadge, getTrackerErrorMessage, getTrackerMetaSummary } from '../../utils'
+import { getNextActionBadge, getTrackerErrorMessage } from '../../utils'
 import { CompanyLogo } from '../company-logo'
 
 interface JobCardProps {
   job: JobApplication
 }
 
-export function JobCard({ job }: JobCardProps) {
+function JobCardComponent({ job }: JobCardProps) {
   const isPresent = useIsPresent()
   const reduceMotion = useReducedMotion()
-  const { isSelectMode, selectedIds, toggleSelect, openJobDrawer, syncJob, restoreJobsSnapshot, removeJobs } = useTrackerStore()
+  const { isSelectMode, isSelected, toggleSelect, openJobDrawer, changeJobStatus, saveJobFields, deleteJob } = useTrackerStore(useShallow(state => ({
+    isSelectMode: state.isSelectMode,
+    isSelected: state.selectedIds.has(job.id),
+    toggleSelect: state.toggleSelect,
+    openJobDrawer: state.openJobDrawer,
+    changeJobStatus: state.changeJobStatus,
+    saveJobFields: state.saveJobFields,
+    deleteJob: state.deleteJob,
+  })))
   const [pendingDelete, setPendingDelete] = useState(false)
-  const isSelected = selectedIds.has(job.id)
+  const [pendingStatus, setPendingStatus] = useState<JobApplication['status'] | null>(null)
   const statusConfig = APPLICATION_STATUS_CONFIG[job.status]
   const nextActionBadge = getNextActionBadge(job)
-  const meta = getTrackerMetaSummary(job)
-  const daysInStage = getDaysInStage(job)
+  const dueBadge = nextActionBadge?.tone === 'upcoming' ? null : nextActionBadge
 
   const handleClick = () => {
     if (!isPresent)
@@ -43,11 +51,12 @@ export function JobCard({ job }: JobCardProps) {
     if (!isPresent)
       return
     try {
-      await deleteCompany(job.id)
-      removeJobs([job.id])
+      await deleteJob(job.id)
       toast.success('已删除')
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       console.error('Failed to delete job:', error)
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
@@ -56,99 +65,84 @@ export function JobCard({ job }: JobCardProps) {
   const handleArchive = async () => {
     if (!isPresent)
       return
-    const next = !job.archived
     try {
-      const savedJob = await archiveCompany(job.id, next)
-      syncJob(savedJob)
+      await saveJobFields(job.id, current => ({ archived: !current.archived }))
     }
     catch (error) {
+      if (isTrackerAccountScopeError(error))
+        return
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
   }
 
-  const handleStatusChange = async (newStatus: JobApplication['status']) => {
-    if (!isPresent || newStatus === job.status)
-      return
-    const previousState = useTrackerStore.getState()
-    const updatedStageDetails = autoCompleteStages(job.status, newStatus, job.stage_details, true)
-    const optimisticJob = {
-      ...job,
-      status: newStatus,
-      stage_details: updatedStageDetails,
-      activities: appendStatusChangeActivity(job, newStatus),
-    }
-
-    syncJob(optimisticJob)
-
+  const commitStatus = async (newStatus: JobApplication['status']) => {
     try {
-      const savedJob = await updateCompany(job.id, optimisticJob)
-      syncJob(savedJob)
+      await changeJobStatus(job.id, newStatus)
     }
     catch (error) {
-      restoreJobsSnapshot({
-        jobs: previousState.jobs,
-        selectedJob: previousState.selectedJob,
-      })
+      if (isTrackerAccountScopeError(error))
+        return
       toast.error('更新状态失败', { description: getTrackerErrorMessage(error) })
     }
+  }
+
+  const handleStatusChange = async (newStatus: JobApplication['status']) => {
+    if (job.status === newStatus || !isPresent)
+      return
+    if (newStatus === 'offer' || newStatus === 'rejected') {
+      setPendingStatus(newStatus)
+      return
+    }
+    await commitStatus(newStatus)
   }
 
   return (
     <>
       <Card
         className={cn(
-          'gap-0 cursor-pointer rounded-xl border-border/70 bg-card p-0 shadow-xs transition-colors hover:bg-muted/20',
+          'gap-0 cursor-pointer rounded-xl border border-border/70 bg-card p-0 shadow-xs ring-0 transition-colors hover:bg-muted/20',
           isSelected && 'border-primary bg-primary/5',
           job.archived && 'opacity-60',
         )}
-        style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s` }}
+        style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s`, transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})` }}
         onClick={handleClick}
       >
-        <div className="flex items-start gap-3 p-3.5">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <div className="flex items-start gap-2.5 p-3">
+          <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <CompanyLogo logo={job.company_logo} company={job.company} icon={Building2} />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium text-muted-foreground">{job.company}</p>
-              </div>
-              <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium">
-                <span className={cn('size-1.5 rounded-full', APPLICATION_STATUS_DOT_CLASSES[job.status])} />
+          <button
+            type="button"
+            className="min-h-11 min-w-0 flex-1 self-stretch rounded-sm py-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={isSelectMode ? `选择 ${job.company} ${job.position}` : `查看 ${job.company} ${job.position}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              handleClick()
+            }}
+          >
+            <span className="line-clamp-2 break-words text-sm font-semibold leading-5 text-foreground">{job.position}</span>
+            <span className="mt-1 flex min-w-0 items-center text-xs leading-4 text-muted-foreground" title={`${job.company} · ${job.location || '地点未填写'}`}>
+              <span className="truncate">{job.company}</span>
+              <span aria-hidden="true" className="shrink-0 px-1">·</span>
+              <span className="max-w-16 shrink-0 truncate">{job.location || '地点未填写'}</span>
+            </span>
+          </button>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <div className="-mt-1 -mr-1 flex items-center gap-0.5">
+              <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                <span aria-hidden="true" className={cn('size-1.5 rounded-full', APPLICATION_STATUS_DOT_CLASSES[job.status])} />
                 {statusConfig.label}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="mt-1.5 block w-full rounded-sm text-left text-sm font-semibold leading-5 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={isSelectMode ? `选择 ${job.position}` : `查看 ${job.company} ${job.position}`}
-              onClick={(event) => {
-                event.stopPropagation()
-                handleClick()
-              }}
-            >
-              <span className="line-clamp-2 break-words">{job.position}</span>
-            </button>
-            <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex min-w-0 items-center gap-1 truncate">
-                <MapPin className="size-3.5 shrink-0" />
-                <span className="truncate">{job.location || '地点未填写'}</span>
-                {job.salary && (
-                  <span className="ml-1 truncate">
-                    ·
-                    {job.salary}
-                  </span>
-                )}
               </span>
               {isSelectMode
                 ? (
-                    <Checkbox
-                      checked={isSelected}
-                      aria-label={`选择 ${job.company} ${job.position}`}
-                      className="size-4"
-                      onClick={e => e.stopPropagation()}
-                      onCheckedChange={() => isPresent && toggleSelect(job.id)}
-                    />
+                    <label className="flex size-9 cursor-pointer items-center justify-center" onClick={event => event.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        aria-label={`选择 ${job.company} ${job.position}`}
+                        className="size-4"
+                        onCheckedChange={() => isPresent && toggleSelect(job.id)}
+                      />
+                    </label>
                   )
                 : (
                     <DropdownMenu>
@@ -156,7 +150,7 @@ export function JobCard({ job }: JobCardProps) {
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          className="text-muted-foreground"
+                          className="size-9 text-muted-foreground"
                           aria-label={`更多操作：${job.company} ${job.position}`}
                           onClick={e => e.stopPropagation()}
                         >
@@ -193,34 +187,49 @@ export function JobCard({ job }: JobCardProps) {
                     </DropdownMenu>
                   )}
             </div>
-          </div>
-        </div>
-        <div className="border-t border-border/60 px-3.5 py-3">
-          <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-            <span>下一步跟进</span>
-            <span>{daysInStage === 0 ? '今天更新' : `${daysInStage} 天未更新`}</span>
-          </div>
-          <p className={cn('mt-1 line-clamp-2 break-words text-xs leading-5', !job.next_action && 'text-muted-foreground')}>{job.next_action || '未设置下一步'}</p>
-          {(nextActionBadge || meta.activeSubStageLabel || meta.hasJobUrl || job.archived) && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-medium">
-              {nextActionBadge && (
-                <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
-                  <Bell className="size-2.5" />
-                  {nextActionBadge.label}
-                </span>
+            <AnimatePresence initial={false}>
+              {dueBadge && (
+                <motion.span
+                  key={dueBadge.tone}
+                  className={cn('inline-flex max-w-24 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] leading-4', NEXT_ACTION_TONE_CLASSES[dueBadge.tone])}
+                  aria-label={`待跟进：${dueBadge.label}`}
+                  initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
+                >
+                  <Bell aria-hidden="true" className="size-3 shrink-0" />
+                  <span className="truncate">{dueBadge.tone === 'today' ? '今天跟进' : dueBadge.label}</span>
+                </motion.span>
               )}
-              {meta.activeSubStageLabel && <span className="rounded-full bg-purple-50 px-1.5 py-0.5 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">{meta.activeSubStageLabel}</span>}
-              {meta.hasJobUrl && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground">
-                  <Link2 className="size-2.5" />
-                  JD
-                </span>
-              )}
-              {job.archived && <span className="rounded-full border px-1.5 py-0.5 text-muted-foreground">已归档</span>}
-            </div>
-          )}
+            </AnimatePresence>
+          </div>
         </div>
       </Card>
+      <AlertDialog open={pendingStatus !== null} onOpenChange={open => !open && setPendingStatus(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认变更流程？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将把该职位标记为「
+              {pendingStatus ? APPLICATION_STATUS_CONFIG[pendingStatus].label : ''}
+              」。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (!pendingStatus)
+                return
+              commitStatus(pendingStatus)
+              setPendingStatus(null)
+            }}
+            >
+              确认
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={isPresent && pendingDelete} onOpenChange={open => !open && setPendingDelete(false)}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
@@ -246,3 +255,5 @@ export function JobCard({ job }: JobCardProps) {
     </>
   )
 }
+
+export const JobCard = memo(JobCardComponent)

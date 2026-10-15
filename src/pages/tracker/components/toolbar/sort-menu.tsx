@@ -1,5 +1,5 @@
-import type { TrackerSortBy } from '../../types'
 import { ArrowDown, ArrowDownUp, ArrowUp } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -10,20 +10,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { TRACKER_SORT_OPTIONS } from '../../const'
 import useTrackerStore from '../../store'
 
-const SORT_OPTIONS: { value: TrackerSortBy, label: string }[] = [
-  { value: 'updated', label: '最近更新' },
-  { value: 'created', label: '创建时间' },
-  { value: 'days', label: '停留天数' },
-  { value: 'company', label: '公司名称' },
-  { value: 'status', label: '当前状态' },
-]
-
 export default function SortMenu() {
-  const { sortBy, sortDir, setSort } = useTrackerStore()
+  const { sortBy, sortDir, setSort } = useTrackerStore(useShallow(state => ({
+    sortBy: state.sortBy,
+    sortDir: state.sortDir,
+    setSort: state.setSort,
+  })))
 
-  const activeLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? '排序'
+  const activeLabel = TRACKER_SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? '排序'
 
   return (
     <DropdownMenu>
@@ -39,7 +36,7 @@ export default function SortMenu() {
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuLabel>排序方式</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {SORT_OPTIONS.map((option) => {
+        {TRACKER_SORT_OPTIONS.map((option) => {
           const isActive = option.value === sortBy
           return (
             <DropdownMenuItem
