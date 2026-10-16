@@ -13,7 +13,7 @@ export const SHARE_STATUS_FILTERS = [
   { value: 'archived', label: '已归档' },
 ] as const
 
-export const SHARE_GRID_CLASS = 'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-4'
+export const SHARE_GRID_CLASS = 'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3 sm:gap-4'
 
 export const SHARE_STATUS_META: Record<
   Exclude<ShareStatusFilter, 'all'>,

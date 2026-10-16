@@ -44,16 +44,26 @@ export default function Content() {
         ? (
             <div role="status" aria-label="正在加载分享链接" className={SHARE_GRID_CLASS}>
               {[0, 1, 2].map(index => (
-                <div key={index} aria-hidden="true" className="min-w-0 space-y-3 rounded-xl border bg-card p-4">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="size-9 rounded-lg" />
-                    <Skeleton className="h-6 w-16 rounded-full" />
+                <div key={index} aria-hidden="true" className="min-w-0 overflow-hidden rounded-xl border bg-card">
+                  <div className="space-y-2.5 p-3 sm:p-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <Skeleton className="size-8 shrink-0 rounded-lg" />
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                      <Skeleton className="h-5 w-10 rounded-full" />
+                    </div>
+                    <Skeleton className="h-5 w-32 rounded-full" />
+                    <div className="flex justify-between">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
                   </div>
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-9 w-full rounded-lg" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-8 w-full" />
+                  <div className="flex justify-between border-t border-border/60 px-2 py-1.5">
+                    <Skeleton className="h-8 w-17 rounded-md" />
+                    <Skeleton className="h-8 w-22 rounded-md" />
+                  </div>
                 </div>
               ))}
             </div>

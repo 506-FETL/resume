@@ -30,6 +30,7 @@ export default function SettingsDialog() {
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
   const renderedShare = retainedShare?.id === settingsShareId ? retainedShare : share
   const initializedShareIdRef = useRef<string | null>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const busy = Boolean(settingsShareId && pendingShareIds.includes(settingsShareId))
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
@@ -97,6 +98,15 @@ export default function SettingsDialog() {
       }}
     >
       <DialogContent
+        onOpenAutoFocus={() => {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        }}
+        onCloseAutoFocus={(event) => {
+          if (returnFocusRef.current?.isConnected) {
+            event.preventDefault()
+            returnFocusRef.current.focus({ preventScroll: true })
+          }
+        }}
         inert={!settingsDialogOpen}
         className="data-[state=closed]:pointer-events-none"
         overlayClassName={reduceMotion ? 'data-[state=open]:animate-none data-[state=closed]:animate-none' : undefined}
