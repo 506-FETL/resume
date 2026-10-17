@@ -1,4 +1,5 @@
 import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
+import { toast } from 'sonner'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
 import { archiveResumeShare, createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
@@ -30,7 +31,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
   shares: [],
   allShares: [],
   resumeMap: {},
-  pageLoading: false,
+  pageLoading: true,
   pageError: null,
   dialogLoading: false,
   dialogError: null,
@@ -42,10 +43,8 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     const requestId = get().pageRequestId + 1
     set({
       pageRequestId: requestId,
-      pageLoading: true,
+      pageLoading: get().ownerUserId === null,
       pageError: null,
-      allShares: [],
-      resumeMap: {},
     })
     try {
       const user = await getCurrentUser()
@@ -57,6 +56,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       if (get().ownerUserId && get().ownerUserId !== user.id) {
         set({
           shares: [],
+          allShares: [],
+          resumeMap: {},
+          ownerUserId: null,
+          pageLoading: true,
           openForResumeId: null,
           openForResumeName: null,
           searchKeyword: '',
@@ -73,8 +76,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       if (get().pageRequestId !== requestId)
         return
       const currentUser = await getCurrentUser()
-      if (!currentUser || currentUser.id !== user.id)
+      if (get().pageRequestId !== requestId)
         return
+      if (!currentUser || currentUser.id !== user.id)
+        throw new Error('登录状态已变更，请重新加载')
       const resumeMap = Object.fromEntries(
         resumes.map(resume => [
           resume.resume_id,
@@ -95,13 +100,22 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     catch (error) {
       if (get().pageRequestId !== requestId)
         return
+      const currentUser = await getCurrentUser()
+      if (get().pageRequestId !== requestId)
+        return
+      const keepData = currentUser && currentUser.id === get().ownerUserId
+      const message = error instanceof Error ? error.message : '加载分享链接失败'
+      if (keepData && get().allShares.length > 0)
+        toast.error(message)
       set({
-        ownerUserId: null,
-        allShares: [],
-        resumeMap: {},
-        versionOptionsByResumeId: {},
+        ...(!keepData && {
+          ownerUserId: null,
+          allShares: [],
+          resumeMap: {},
+          versionOptionsByResumeId: {},
+        }),
         pageLoading: false,
-        pageError: error instanceof Error ? error.message : '加载分享链接失败',
+        pageError: message,
       })
     }
   },

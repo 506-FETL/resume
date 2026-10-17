@@ -8,6 +8,7 @@ import { getOfflineResumeById } from '@/lib/offline-resume-manager'
 import { createAtsConfig, getAtsFromUserId, updateFixChecklist } from '@/lib/supabase/resume'
 import { uploadOfflineResumeToCloud } from '@/lib/supabase/resume/form'
 import { buildAtsCreatePayload } from '@/lib/supabase/resume/utils'
+import { getCurrentUser } from '@/lib/supabase/user'
 import { getErrorMessage } from '@/utils'
 import { ANALYSIS_INITIAL_STATE } from './const'
 import { fetchResumeDataForAnalysis } from './utils'
@@ -45,11 +46,17 @@ interface AtsStore {
 
 const useAtsStore = create<AtsStore>()(
   (set, get) => {
+    let initRequestId = 0
     const init = async () => {
+      const requestId = ++initRequestId
       try {
-        set({ loading: true })
+        // 已有报告（包括已加载的空列表）时静默刷新，避免重新挂载整页内容。
+        if (get().atsConfigs === null && !get().loading)
+          set({ loading: true })
 
         const rawData = await getAtsFromUserId()
+        if (requestId !== initRequestId)
+          return
         const latestByResume = new Map<string, AtsEvaluationResult>()
         for (const config of rawData ?? []) {
           if (!latestByResume.has(config.resume_id))
@@ -60,25 +67,28 @@ const useAtsStore = create<AtsStore>()(
           findings: ensureAtsFindingsHaveSuggestions(config.findings),
         }))
 
-        set({ atsConfigs: data })
-        if (data && data.length > 0) {
-          const { selectedResumeId } = get()
-          if (selectedResumeId) {
-            const matched = data.find(item => item.resume_id === selectedResumeId)
-            set({ currentAtsConfig: matched || data[0] })
-          }
-          else {
-            set({ currentAtsConfig: data[0] })
-          }
-        }
+        const { selectedResumeId } = get()
+        set({
+          atsConfigs: data,
+          currentAtsConfig: selectedResumeId
+            ? data.find(item => item.resume_id === selectedResumeId) ?? null
+            : data[0] ?? null,
+          loading: false,
+        })
       }
       catch (error: unknown) {
+        const user = await getCurrentUser()
+        if (requestId !== initRequestId)
+          return
+        const current = get().currentAtsConfig
+        if (!user || (current && current.user_id !== user.id))
+          set({ atsConfigs: null, currentAtsConfig: null })
         toast.error(getErrorMessage(error, '加载失败'))
-        set({ atsConfigs: null })
-        set({ currentAtsConfig: null })
+        // 刷新失败保留当前报告；首次加载仍可重试。
       }
       finally {
-        set({ loading: false })
+        if (requestId === initRequestId && get().loading)
+          set({ loading: false })
       }
     }
 
@@ -268,7 +278,7 @@ const useAtsStore = create<AtsStore>()(
     }
 
     return {
-      loading: false,
+      loading: true,
       currentAtsConfig: null,
       atsConfigs: null,
       selectedResumeId: null,

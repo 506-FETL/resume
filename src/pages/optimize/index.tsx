@@ -9,7 +9,7 @@ import RepairChecklist from './components/repair-checklist'
 import useAtsStore from './store'
 
 function Optimize() {
-  const { init } = useAtsStore()
+  const init = useAtsStore(state => state.init)
 
   useEffect(() => {
     init()

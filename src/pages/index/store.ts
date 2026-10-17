@@ -9,18 +9,26 @@ import { diffDates } from '@/utils/date'
 interface IndexStore {
   resumes: Resume[]
   loading: boolean
+  initialized: boolean
   isOnline: boolean
   loadData: () => Promise<void>
 }
 
-const useIndexStore = create<IndexStore>()(set => ({
+let loadRequestId = 0
+
+const useIndexStore = create<IndexStore>()((set, get) => ({
   resumes: [],
   loading: true,
+  initialized: false,
   isOnline: false,
   async loadData() {
-    set({ loading: true, isOnline: false })
+    const requestId = ++loadRequestId
+    if (!get().initialized && !get().loading)
+      set({ loading: true })
     try {
       const user = await getCurrentUser()
+      if (requestId !== loadRequestId)
+        return
       let onlineResumes: Resume[] = []
       const isOnline = Boolean(user)
 
@@ -37,6 +45,8 @@ const useIndexStore = create<IndexStore>()(set => ({
       }
 
       const localResumes = await getAllOfflineResumes()
+      if (requestId !== loadRequestId)
+        return
       const offlineResumes: Resume[] = localResumes.map(r => ({
         resume_id: r.resume_id,
         created_at: r.created_at,
@@ -50,13 +60,17 @@ const useIndexStore = create<IndexStore>()(set => ({
       set({
         isOnline,
         resumes: [...onlineResumes, ...offlineResumes],
+        initialized: true,
+        loading: false,
       })
     }
     catch (error) {
-      console.error('加载简历列表失败:', error)
+      if (requestId === loadRequestId)
+        console.error('加载简历列表失败:', error)
     }
     finally {
-      set({ loading: false })
+      if (requestId === loadRequestId && get().loading)
+        set({ loading: false })
     }
   },
 }))

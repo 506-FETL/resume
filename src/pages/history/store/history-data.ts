@@ -27,14 +27,18 @@ type Set = StoreApi<HistoryStoreState>['setState']
 type Get = StoreApi<HistoryStoreState>['getState']
 
 export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
-  const hydrate = async (resumeId: string) => {
+  let requestId = 0
+  const hydrate = async (resumeId: string, activeRequestId?: number) => {
+    if (get().resumeId !== resumeId)
+      return
+    const hydrationId = activeRequestId ?? ++requestId
     const [resume, versions] = await Promise.all([
       getResumeHistoryResume(resumeId),
       listResumeHistoryVersions(resumeId),
     ])
 
     const currentResume = await buildCurrentResume(resume)
-    if (get().resumeId !== resumeId)
+    if (get().resumeId !== resumeId || hydrationId !== requestId)
       return
 
     set({
@@ -70,6 +74,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
     },
 
     async init(resumeId) {
+      const activeRequestId = ++requestId
       if (!resumeId) {
         set({
           resumeId: null,
@@ -94,28 +99,24 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         return
       }
 
+      const keepData = get().resumeId === resumeId && get().currentResume !== null
       set({
         resumeId,
-        currentResume: null,
-        versions: [],
-        snapshotCache: {},
-        loading: true,
+        ...(!keepData && { currentResume: null, versions: [], snapshotCache: {} }),
+        loading: !keepData,
         error: null,
       })
 
       try {
-        await hydrate(resumeId)
+        await hydrate(resumeId, activeRequestId)
       }
       catch (error) {
-        if (get().resumeId !== resumeId)
+        if (get().resumeId !== resumeId || activeRequestId !== requestId)
           return
         const message = error instanceof Error ? error.message : '版本记录加载失败'
         set({
           loading: false,
           error: message,
-          currentResume: null,
-          versions: [],
-          snapshotCache: {},
         })
         toast.error(message)
       }
@@ -126,12 +127,15 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       if (!resumeId)
         return
 
-      set({ loading: true })
+      const activeRequestId = ++requestId
+      set({ loading: get().currentResume === null, error: null })
 
       try {
-        await hydrate(resumeId)
+        await hydrate(resumeId, activeRequestId)
       }
       catch (error) {
+        if (get().resumeId !== resumeId || activeRequestId !== requestId)
+          return
         const message = error instanceof Error ? error.message : '版本记录刷新失败'
         set({ loading: false, error: message })
         toast.error(message)
