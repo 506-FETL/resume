@@ -130,7 +130,7 @@ export default function Composer() {
                   深度思考
                 </button>
               </TooltipTrigger>
-              <TooltipContent>{deepThinking ? '已开启深度思考' : '开启深度思考（更慢更细）'}</TooltipContent>
+              <TooltipContent>{deepThinking ? '已开启深度思考' : '开启深度思考，耗时更长'}</TooltipContent>
             </Tooltip>
           </>
         )}

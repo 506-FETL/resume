@@ -11,7 +11,7 @@ export default function NotFound() {
   const isMobile = useIsMobile()
 
   return (
-    <Empty className="relative h-full">
+    <Empty className="relative h-full overflow-hidden">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <CircleSlashIcon />

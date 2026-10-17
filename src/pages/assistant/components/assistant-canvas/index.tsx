@@ -78,7 +78,7 @@ export default function AssistantCanvas() {
         >
           <DrawerHeader className="relative border-b pr-14 text-left">
             <DrawerTitle>画布</DrawerTitle>
-            <DrawerDescription>实时预览简历与本轮变更</DrawerDescription>
+            <DrawerDescription className="sr-only">简历预览与本轮变更。</DrawerDescription>
             <DrawerClose
               render={(
                 <Button

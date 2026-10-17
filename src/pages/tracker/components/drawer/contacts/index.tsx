@@ -267,7 +267,7 @@ export default function Contacts({ job }: ContactsProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除联系人？</AlertDialogTitle>
             <AlertDialogDescription>
-              {`删除后将无法恢复。确定要删除${pendingDeleteContact?.name.trim() || '该联系人'}吗？`}
+              {`「${pendingDeleteContact?.name.trim() || '该联系人'}」将永久删除，无法恢复。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

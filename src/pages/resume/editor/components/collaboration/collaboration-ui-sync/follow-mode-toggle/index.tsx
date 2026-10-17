@@ -23,8 +23,8 @@ export function FollowModeToggle({ enabled, onToggle }: FollowModeToggleProps) {
       </TooltipTrigger>
       <TooltipContent>
         {enabled
-          ? '跟随模式：协作者的 UI 操作将自动同步到你的界面'
-          : '独立浏览模式：既不跟随协作者，也不向协作者同步本地 UI 操作'}
+          ? '跟随协作者的界面操作'
+          : '各自浏览，界面操作互不同步'}
       </TooltipContent>
     </Tooltip>
   )

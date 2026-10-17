@@ -37,13 +37,9 @@ export default function ConversationSearchEmpty({ status, onRetry }: SearchEmpty
               ? '历史搜索尚未启用'
               : '搜索历史失败'}
         </p>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          {unavailable
-            ? '请先应用 S5 数据库迁移。最近对话和聊天仍可正常使用。'
-            : status === 'empty'
-              ? '换一个关键词，或直接从最近对话中继续。'
-              : '检查网络后重试，当前对话不会受到影响。'}
-        </p>
+        {unavailable && (
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">仍可从最近对话中继续聊天。</p>
+        )}
       </div>
       {status === 'error' && (
         <Button size="sm" variant="outline" onClick={onRetry}>重新搜索</Button>

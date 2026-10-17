@@ -147,7 +147,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
         <CardContent className="flex flex-1 flex-col gap-3 px-5">
           <div className="flex flex-col gap-1">
             <CardTitle className="line-clamp-1">{resume.display_name || '未命名简历'}</CardTitle>
-            <CardDescription className="line-clamp-2">{resume.description || '点击编辑简历内容'}</CardDescription>
+            {resume.description && <CardDescription className="line-clamp-2">{resume.description}</CardDescription>}
           </div>
           {parent && (
             <Button

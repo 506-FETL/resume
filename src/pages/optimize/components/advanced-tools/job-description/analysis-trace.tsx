@@ -123,7 +123,6 @@ export default function AnalysisTrace({
     <ToolPanelCard className="border-primary/15 bg-primary/5">
       <ToolPanelHeader
         title="推导过程"
-        description="实时展示模型推导过程与结构化结果返回。"
         icon={Brain}
         badge={<ToolMetaBadge tone={processTone}>{processLabel}</ToolMetaBadge>}
       />
@@ -134,7 +133,7 @@ export default function AnalysisTrace({
           className="max-w-none"
         >
           <ChainOfThoughtHeader className="rounded-lg border border-border/60 bg-background px-3 py-2">
-            查看分析链路
+            查看分析过程
           </ChainOfThoughtHeader>
           <ChainOfThoughtContent className="pt-2">
             {JOB_DESCRIPTION_ANALYSIS_STEPS.map((stepConfig) => {

@@ -110,7 +110,7 @@ function PanelBody({
         {accessState !== 'active'
           ? (
               <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                {accessState === 'read_only' ? '当前评论仅可查看，不能新增或回复。' : '当前评论版本已不可用，请刷新页面。'}
+                {accessState === 'read_only' ? '评论只读，无法新增或回复。' : '此版本评论已不可用，请刷新页面。'}
               </p>
             )
           : null}

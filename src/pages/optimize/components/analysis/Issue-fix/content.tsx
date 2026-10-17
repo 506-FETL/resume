@@ -30,7 +30,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
     .filter(Boolean)
     .join(' / ') || '未定位到具体位置'
 
-  const steps = finding.fix.steps.length > 0 ? finding.fix.steps : ['暂无具体步骤说明']
+  const steps = finding.fix.steps.length > 0 ? finding.fix.steps : ['暂无步骤说明']
   const suggestions = finding.fix.suggestions || []
   const needsUserInput = hasUnresolvedSuggestionInput(suggestions)
 
@@ -129,7 +129,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
         <div className="border rounded-lg bg-card p-2">
           {needsUserInput && (
             <div className="mx-1 mb-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-800 dark:text-amber-200">
-              这条建议需要你补充或确认真实信息。请在“自定义”中完成编辑，系统确认后即可应用。
+              请先在“自定义”中核实并补充真实信息，再应用修改。
             </div>
           )}
           <div className="flex items-center gap-2 mb-2 px-1">
@@ -158,7 +158,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
               ))}
               {suggestions.length === 0 && (
                 <div className="text-center text-muted-foreground py-8 lg:py-12 text-xs lg:text-sm">
-                  暂无具体的改动对比数据
+                  暂无改动对比
                 </div>
               )}
             </div>

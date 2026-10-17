@@ -32,7 +32,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
         <DialogHeader>
           <DialogTitle>导出简历</DialogTitle>
           <DialogDescription>
-            PDF 保持页面排版；Word 可能根据打开设备的字体可用性替换字体。
+            Word 可能替换设备中缺失的字体。
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">

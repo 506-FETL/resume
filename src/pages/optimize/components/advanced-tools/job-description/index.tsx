@@ -124,7 +124,6 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
       <ToolPanelCard>
         <ToolPanelHeader
           title="岗位描述输入"
-          description="粘贴职位描述、职责和任职要求，系统会把当前简历和 JD 一起发给大模型做结构化分析。"
           icon={Search}
           badge={jobDescriptionLength > 0 ? <ToolMetaBadge tone="info">{`已输入 ${jobDescriptionLength} 字`}</ToolMetaBadge> : null}
         />
@@ -140,11 +139,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
                 placeholder="粘贴职位描述、岗位职责、任职要求或加分项。"
               />
               <FieldDescription>
-                已输入
-                {' '}
-                {jobDescriptionLength}
-                {' '}
-                字；派生针对性简历至少需要
+                派生针对性简历至少需要
                 {' '}
                 {MIN_JD_CHARS}
                 {' '}
@@ -174,11 +169,6 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               <GitBranch data-icon="inline-start" />
               派生针对性简历
             </Button>
-            {jobDescriptionLength > 0 && (
-              <span className="self-start sm:self-auto">
-                <ToolMetaBadge tone="info">建议包含职责、要求、加分项三部分</ToolMetaBadge>
-              </span>
-            )}
           </div>
         </ToolPanelBody>
       </ToolPanelCard>
@@ -203,7 +193,6 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               ? (
                   <ToolEmptyState
                     title="还没有生成比对结果"
-                    description="把岗位描述贴进上面的输入框，然后点击“开始比对”。系统会把当前简历和 JD 一起交给大模型分析。"
                   />
                 )
               : null}

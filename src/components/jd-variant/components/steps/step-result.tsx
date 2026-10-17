@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { parseSanitizedHtml } from '@/lib/safe-html'
 import { SECTION_LABEL } from '../../const'
 
@@ -56,7 +56,6 @@ export function StepResult({ matchRate, changes }: StepResultProps) {
                       <Card className="gap-3 py-3 shadow-none">
                         <CardHeader className="px-3">
                           <CardTitle>改写前</CardTitle>
-                          <CardDescription>原简历中的内容</CardDescription>
                         </CardHeader>
                         <CardContent className="prose prose-sm max-w-none wrap-break-word px-3 leading-relaxed text-foreground">
                           {parseSanitizedHtml(String(change.before ?? ''))}
@@ -65,7 +64,6 @@ export function StepResult({ matchRate, changes }: StepResultProps) {
                       <Card className="gap-3 border-primary/30 bg-primary/5 py-3 shadow-none">
                         <CardHeader className="px-3">
                           <CardTitle>改写后</CardTitle>
-                          <CardDescription>针对当前 JD 优化后的内容</CardDescription>
                         </CardHeader>
                         <CardContent className="prose prose-sm max-w-none wrap-break-word px-3 leading-relaxed text-foreground">
                           {parseSanitizedHtml(String(change.after ?? ''))}

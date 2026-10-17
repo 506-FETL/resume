@@ -36,10 +36,7 @@ export default function MessageList() {
                 <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <Sparkles className="size-6" />
                 </div>
-                <div>
-                  <p className="text-base font-medium">AI 简历助手</p>
-                  <p className="mt-1 text-sm text-muted-foreground">问我任何关于简历、求职的问题</p>
-                </div>
+                <p className="text-base font-medium">AI 简历助手</p>
               </div>
             )
           : <LoadedMessages key={conversationViewVersion} snapshot={snapshot} />}

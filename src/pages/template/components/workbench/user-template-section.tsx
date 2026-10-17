@@ -10,7 +10,6 @@ import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from '@/comp
 import { Separator } from '@/components/ui/separator'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { formatRelativeTime } from '@/utils/date'
-import { TEMPLATE_CENTER_TAB_META } from '../../const'
 import { useTemplateWorkbenchStore, useUserTemplatesStore } from '../../store'
 import { TemplateCard } from './template-card'
 import { TemplateThumbnail } from './template-thumbnail'
@@ -103,15 +102,11 @@ export function UserTemplateSection() {
   const reduceMotion = useReducedMotion()
   const { userTemplates: templates } = useUserTemplatesStore()
   const { createResumeWithTemplate, openUserTemplateEditor, setTab } = useTemplateWorkbenchStore()
-  const sectionMeta = TEMPLATE_CENTER_TAB_META.mine
 
   const sectionHeader = (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="secondary">{templates.length > 0 ? `${templates.length} 个模板` : '等待创建'}</Badge>
-        {templates.length > 0 ? <Badge variant="outline">仅自己可见</Badge> : null}
-      </div>
-      <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{sectionMeta.description}</p>
+    <div className="flex flex-wrap items-center gap-2">
+      <Badge variant="secondary">{templates.length > 0 ? `${templates.length} 个模板` : '等待创建'}</Badge>
+      {templates.length > 0 ? <Badge variant="outline">仅自己可见</Badge> : null}
     </div>
   )
 
@@ -162,7 +157,7 @@ export function UserTemplateSection() {
                       <TemplateCard
                         preview={<TemplateThumbnail manifest={template.manifest} />}
                         title={template.meta.name}
-                        description={template.meta.description ?? '未填写模板说明'}
+                        description={template.meta.description}
                         trailing={<DeleteTemplateButton template={template} />}
                         meta={(
                           <div className="flex flex-col gap-2">

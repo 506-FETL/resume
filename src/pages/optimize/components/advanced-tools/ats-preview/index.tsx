@@ -31,7 +31,6 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
       <ToolPanelCard>
         <ToolPanelHeader
           title="ATS 纯文本预览"
-          description="越接近这里的呈现，ATS 读到的信息通常越稳定。"
           icon={FileText}
           badge={(
             <ToolMetaBadge tone={hasWarnings ? 'warning' : 'success'}>
@@ -44,7 +43,7 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
             <ToolStatCard
               label="有效能力证据"
               value={preview.stats.evidenceCount}
-              hint="跨经历类型汇总的真实内容证据"
+              hint="工作、项目等经历中的有效内容"
               icon={FileText}
               tone="info"
               badge={<ToolMetaBadge tone="info">结构信息</ToolMetaBadge>}
@@ -52,7 +51,6 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
             <ToolStatCard
               label="文本行数"
               value={preview.stats.lineCount}
-              hint="解析后的总行数"
               icon={List}
               tone="primary"
               badge={<ToolMetaBadge tone="primary">阅读长度</ToolMetaBadge>}
@@ -68,7 +66,6 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
             <ToolStatCard
               label="关键词数"
               value={preview.stats.keywordCount}
-              hint="预览里可识别的词项数量"
               icon={Search}
               tone="success"
               badge={<ToolMetaBadge tone="success">检索线索</ToolMetaBadge>}
@@ -81,7 +78,6 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
         <ToolPanelCard>
           <ToolPanelHeader
             title="ATS 风险提醒"
-            description="这些问题通常会直接影响 ATS 的抓取稳定性和招聘方的快速浏览。"
             icon={RiskIcon}
             badge={(
               <ToolMetaBadge tone={hasWarnings ? 'warning' : 'success'}>
@@ -111,7 +107,6 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
         <ToolPanelCard>
           <ToolPanelHeader
             title="纯文本预览"
-            description="ATS 更接近会读取到的文本结果。"
             icon={FileText}
             badge={<ToolMetaBadge tone="primary">ATS 解析视角</ToolMetaBadge>}
           />

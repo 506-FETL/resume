@@ -69,9 +69,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
   const addCustomSkill = () => {
     const trimmedLabel = customSkillInput.trim()
     if (!trimmedLabel) {
-      toast.warning('技能名称不能为空', {
-        description: '请输入有效的技能名称',
-      })
+      toast.warning('技能名称不能为空')
       return
     }
 

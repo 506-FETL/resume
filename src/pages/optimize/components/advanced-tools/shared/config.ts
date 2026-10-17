@@ -13,7 +13,6 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
   {
     key: 'job-description',
     title: '职位描述比对',
-    description: '把当前简历和 JD 一起交给大模型分析，输出匹配亮点、风险和补强建议。',
     badge: 'JD Match',
     badgeClassName: 'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300',
     icon: LayoutTemplate,
@@ -22,7 +21,7 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
   {
     key: 'formatter',
     title: '一键格式化',
-    description: '复用简历问题分析中的自动修复建议，一次应用当前可直接落地的优化。',
+    description: '批量应用检测建议，直接修改当前简历。',
     badge: 'Clean Pass',
     badgeClassName: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     icon: RefreshCcw,
@@ -31,7 +30,7 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
   {
     key: 'ats-preview',
     title: 'ATS 预览',
-    description: '转换成纯文本解析视图，提前暴露 ATS 抓取风险。',
+    description: '查看简历纯文本和 ATS 解析风险。',
     badge: 'Plain Text',
     badgeClassName: 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300',
     icon: Maximize2,
@@ -40,7 +39,7 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
   {
     key: 'benchmark',
     title: '行业基准对比',
-    description: '按岗位画像对比当前简历和常见候选人的指标差距。',
+    description: '按岗位方向对比简历内容指标。',
     badge: 'Role Signal',
     badgeClassName: 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300',
     icon: Settings2,

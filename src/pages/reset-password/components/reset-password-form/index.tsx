@@ -22,7 +22,9 @@ export function ResetPasswordForm() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">{status === 'success' ? '密码已重置' : '设置新密码'}</CardTitle>
-            <CardDescription>{status === 'success' ? '密码已保存。您可以继续使用当前会话，或从账户菜单退出后使用新密码登录。' : '请输入并确认您的新密码。'}</CardDescription>
+            {status === 'success' && (
+              <CardDescription>当前会话仍可使用。下次登录请使用新密码。</CardDescription>
+            )}
           </CardHeader>
           <CardContent>
             {status === 'ready'

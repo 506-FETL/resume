@@ -1,6 +1,6 @@
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTemplateEditorStore } from '../../store'
 import { TemplateAppearanceSettings } from './appearance-settings'
 import { TemplateSectionSettings } from './section-settings'
@@ -18,12 +18,7 @@ export function TemplatePropertiesPanel() {
     <Card className="max-h-[69vh] overflow-auto">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <CardTitle>{selectedSection ? '模块属性' : '模板属性'}</CardTitle>
-            <CardDescription>
-              {selectedSection ? '调整当前模块的结构与展示方式。' : '调整模板整体的布局与视觉配置。'}
-            </CardDescription>
-          </div>
+          <CardTitle>{selectedSection ? '模块属性' : '模板属性'}</CardTitle>
           {selectedSection
             ? (
                 <Button variant="outline" size="sm" onClick={() => setSelectedSection(null)}>

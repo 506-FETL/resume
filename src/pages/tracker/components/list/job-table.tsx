@@ -382,7 +382,7 @@ export function JobTable({ jobs }: JobTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除职位？</AlertDialogTitle>
             <AlertDialogDescription>
-              {`删除后将无法恢复。确定要永久删除「${pendingDeleteJob?.company ?? ''} - ${pendingDeleteJob?.position ?? ''}」吗？`}
+              {`「${pendingDeleteJob?.company ?? ''} - ${pendingDeleteJob?.position ?? ''}」将永久删除，无法恢复。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

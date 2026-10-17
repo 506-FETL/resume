@@ -24,10 +24,7 @@ export default function AssessmentBasisCard() {
             <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <BrainCircuit className="size-4" />
             </div>
-            <div>
-              <CardTitle className="text-base md:text-lg">各维度判断理由</CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">每一项都基于当前简历里的真实内容判断</p>
-            </div>
+            <CardTitle className="text-base md:text-lg">各维度判断理由</CardTitle>
           </div>
           <Badge variant="secondary" className="rounded-full text-xs">内容自适应评分 2.0</Badge>
         </div>

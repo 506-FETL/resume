@@ -38,7 +38,6 @@ export default function ComparisonResultView({
         <ToolStatCard
           label="岗位匹配度"
           value={`${result.matchScore}%`}
-          hint="当前简历与 JD 关键词的整体承接程度"
           icon={Target}
           tone={scoreTone}
           badge={<ToolMetaBadge tone={scoreTone}>整体评分</ToolMetaBadge>}
@@ -46,7 +45,6 @@ export default function ComparisonResultView({
         <ToolStatCard
           label="JD 关键词"
           value={result.extractedKeywords.length}
-          hint="从职位描述中识别出的关键词总数"
           icon={Search}
           tone="info"
           badge={<ToolMetaBadge tone="info">已解析需求</ToolMetaBadge>}
@@ -54,7 +52,6 @@ export default function ComparisonResultView({
         <ToolStatCard
           label="已覆盖"
           value={result.matchedKeywords.length}
-          hint="已在简历中承接到的关键词数量"
           icon={BadgeCheck}
           tone="success"
           badge={<ToolMetaBadge tone="success">匹配项</ToolMetaBadge>}
@@ -62,7 +59,6 @@ export default function ComparisonResultView({
         <ToolStatCard
           label="待补关键词"
           value={result.missingKeywords.length}
-          hint="建议优先补到技能或经历描述里的缺口"
           icon={CircleAlert}
           tone={result.missingKeywords.length > 0 ? 'warning' : 'success'}
           badge={(
@@ -77,7 +73,7 @@ export default function ComparisonResultView({
         <ToolPanelCard>
           <ToolPanelHeader
             title="匹配概览"
-            description="这个分数只衡量关键词承接情况，不代表内容质量已经足够。"
+            description="分数仅反映关键词匹配情况，不代表简历整体质量。"
             icon={Target}
             badge={<ToolMetaBadge tone={scoreTone}>{`匹配率 ${result.matchScore}%`}</ToolMetaBadge>}
           />

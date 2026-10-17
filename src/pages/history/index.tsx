@@ -40,11 +40,9 @@ function History() {
                       <EmptyHeader>
                         <EmptyMedia variant="icon"><HistoryIcon /></EmptyMedia>
                         <EmptyTitle>{error ? '简历列表暂时不可用' : resumeOptions.length > 0 ? '请选择一份简历' : '暂无云端简历'}</EmptyTitle>
-                        <EmptyDescription>
-                          {error || (resumeOptions.length > 0
-                            ? '选择简历后，这里会显示当前内容、历史版本以及恢复记录。'
-                            : '创建云端简历或同步本地简历后，即可在这里保存和查看版本记录。')}
-                        </EmptyDescription>
+                        {(error || resumeOptions.length === 0) && (
+                          <EmptyDescription>{error || '版本记录仅支持云端简历，请先创建或同步简历。'}</EmptyDescription>
+                        )}
                       </EmptyHeader>
                       {error && (
                         <EmptyContent>

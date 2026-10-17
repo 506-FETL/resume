@@ -100,8 +100,8 @@ export function CollaborationUISync({
     setFollowMode(!followMode)
     toast.info(followMode ? '已关闭跟随模式' : '已开启跟随模式', {
       description: followMode
-        ? '将不再跟随协作者，也不会同步你的 UI 操作'
-        : '将自动跟随协作者的 UI 操作',
+        ? '各自浏览，界面操作互不同步'
+        : '界面将跟随协作者的操作',
       duration: 2000,
     })
   }, [followMode])

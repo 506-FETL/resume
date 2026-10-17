@@ -79,7 +79,7 @@ export function FollowUpCard({ followUps, total }: { followUps: FollowUpJob[], t
       <CardHead
         icon={<BellRing className="size-4" />}
         title="待跟进岗位"
-        description="到期或长时间未推进，建议优先处理"
+        description="已到期或长时间未推进的岗位"
       />
       <CardContent className="flex-1 pt-0">
         <div className="flex flex-col gap-2">
@@ -160,7 +160,7 @@ export function FunnelCard({ funnel, loading }: { funnel: FunnelStage[], loading
               : (
                   <ChartEmpty
                     icon={<Activity className="size-8 text-muted-foreground/40" />}
-                    text="去求职看板添加第一个岗位"
+                    text="添加岗位"
                     onClick={() => navigate('/tracker')}
                   />
                 )}
@@ -240,7 +240,7 @@ export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loadi
               : (
                   <ChartEmpty
                     icon={<LineChartIcon className="size-8 text-muted-foreground/40" />}
-                    text="去做一次 ATS 检测吧"
+                    text="开始 ATS 检测"
                     onClick={() => navigate('/optimize')}
                   />
                 )}

@@ -29,7 +29,7 @@ export function StepRewriting({ completedSections, changes, estimatedTotal, reas
               <Spinner className="mt-0.5" />
               <div className="flex min-w-0 flex-col gap-1">
                 <CardTitle>正在针对 JD 改写</CardTitle>
-                <CardDescription>只调整可改写文案，事实字段保持不变。</CardDescription>
+                <CardDescription>仅调整表述，不更改事实信息。</CardDescription>
               </div>
             </div>
             <span className="shrink-0 text-sm tabular-nums text-muted-foreground">

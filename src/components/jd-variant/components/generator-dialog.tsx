@@ -58,7 +58,7 @@ export function JdVariantDialog({
 
   const handleOpenChange = (next: boolean) => {
     if (!next && (state.phase === 'parsing' || state.phase === 'rewriting')) {
-      toast.info('正在后台继续派生，可在右上角“派生任务”查看进度')
+      toast.info('正在后台生成，可在“派生任务”查看进度')
     }
     if (!next && state.phase === 'idle') {
       reset()
@@ -174,7 +174,7 @@ export function JdVariantDialog({
                   <Alert>
                     <AlertCircle aria-hidden />
                     <AlertTitle>已取消派生</AlertTitle>
-                    <AlertDescription>生成已取消，草稿仍保留。</AlertDescription>
+                    <AlertDescription>草稿已保留。</AlertDescription>
                   </Alert>
                 )}
               </motion.div>

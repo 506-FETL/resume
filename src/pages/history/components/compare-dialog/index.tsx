@@ -106,7 +106,7 @@ export default function CompareDialog({ open, onOpenChange, baseId, targetId }: 
       <ResponsiveDialogContent className="min-h-0 sm:max-h-[82vh]">
         <ResponsiveDialogHeader className="shrink-0 gap-3 border-b px-5 pb-4 pt-5 text-left">
           <ResponsiveDialogTitle>版本对比</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>看看两个版本之间改了什么</ResponsiveDialogDescription>
+          <ResponsiveDialogDescription className="sr-only">对比两个简历版本的内容。</ResponsiveDialogDescription>
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pt-1">
             <Select value={base} onValueChange={setBase}>
               <SelectTrigger aria-label="对比基准版本" className="h-8 min-w-0 w-full text-xs"><SelectValue /></SelectTrigger>

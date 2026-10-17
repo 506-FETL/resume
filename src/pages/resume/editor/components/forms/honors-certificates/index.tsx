@@ -55,9 +55,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
   const addCustomCertificate = () => {
     const trimmedValue = customCertificateInput.trim()
     if (!trimmedValue) {
-      toast.warning('证书名称不能为空', {
-        description: '请输入有效的证书名称',
-      })
+      toast.warning('证书名称不能为空')
       return
     }
 

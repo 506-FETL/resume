@@ -97,21 +97,17 @@ function FormatterFindingCard({ item, onSuggestionsChange }: FormatterFindingCar
 
           {item.conflictedSuggestionCount > 0 && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
-              当前有
-              {' '}
               {item.conflictedSuggestionCount}
               {' '}
-              条建议与更高优先级问题修改同一字段。你可以先调整下面的“修改后”内容，再重新一键应用。
+              条建议与高优先级的修改冲突，请在“自定义调整”中检查。
             </div>
           )}
 
           {item.requiresInputSuggestionCount > 0 && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
-              当前有
-              {' '}
               {item.requiresInputSuggestionCount}
               {' '}
-              条建议需要补充或确认真实信息。请在下方“自定义调整”中完成编辑，确认后即可一键应用。
+              条建议需要核实或补充信息，请在“自定义调整”中填写真实内容。
             </div>
           )}
 

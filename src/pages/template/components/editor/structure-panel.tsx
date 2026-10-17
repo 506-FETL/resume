@@ -54,12 +54,9 @@ function SectionCard({
       onClick={onSelect}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-medium">
-            {TEMPLATE_SECTION_LABELS[section.renderer] ?? section.renderer}
-          </p>
-          <p className="text-xs text-muted-foreground">{section.sectionId}</p>
-        </div>
+        <p className="min-w-0 truncate font-medium">
+          {TEMPLATE_SECTION_LABELS[section.renderer] ?? section.renderer}
+        </p>
         <Switch
           checked={section.visible}
           onCheckedChange={onToggleVisible}
@@ -173,7 +170,6 @@ function SectionOverlay({ section }: { section: TemplateSection }) {
       <p className="truncate font-medium">
         {TEMPLATE_SECTION_LABELS[section.renderer] ?? section.renderer}
       </p>
-      <p className="text-xs text-muted-foreground">{section.sectionId}</p>
     </div>
   )
 }
@@ -235,7 +231,7 @@ export function TemplateStructurePanel() {
           <Layers3 className="size-4 shrink-0" />
           结构面板
         </CardTitle>
-        <CardDescription>拖拽排序、切换区域，决定模板的整体结构。</CardDescription>
+        <CardDescription>拖动模块调整顺序或移到另一栏。</CardDescription>
       </CardHeader>
       <CardContent className="min-w-0">
         <CrossListDragProvider

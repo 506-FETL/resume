@@ -2,8 +2,8 @@ import { CircleAlert, GitBranch } from 'lucide-react'
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -103,7 +103,7 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
       <ResponsiveDialogContent className="min-h-0 overflow-hidden sm:max-w-lg">
         <ResponsiveDialogHeader className="border-b px-6 pb-4 pt-6 text-left">
           <ResponsiveDialogTitle>派生任务</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>查看正在生成或失败的派生草稿</ResponsiveDialogDescription>
+          <ResponsiveDialogDescription className="sr-only">派生任务进度与草稿</ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <Tabs defaultValue="running" className="min-h-0 flex-1 gap-4 px-6 py-5">
@@ -127,7 +127,6 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
                         <GitBranch />
                       </EmptyMedia>
                       <EmptyTitle>暂无进行中的派生任务</EmptyTitle>
-                      <EmptyDescription>开始派生后，可以在这里重新打开并查看实时进度。</EmptyDescription>
                     </EmptyHeader>
                   </Empty>
                 )
@@ -141,9 +140,6 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <CardTitle className="truncate">{item.parentName}</CardTitle>
-                                  <CardDescription>
-                                    {item.source === 'store' ? '任务正在后台生成' : '检测到未完成的派生草稿'}
-                                  </CardDescription>
                                 </div>
                                 <Badge variant="secondary">生成中</Badge>
                               </div>
@@ -151,8 +147,8 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
                             <CardContent className="px-4">
                               <p className="text-sm text-muted-foreground">
                                 {item.source === 'store'
-                                  ? '可以关闭当前窗口，生成过程会继续在后台运行。'
-                                  : '页面刷新后实时过程不可恢复，但仍可丢弃该草稿。'}
+                                  ? '关闭弹窗后仍会继续生成。'
+                                  : '页面刷新后无法恢复生成进度，可丢弃草稿。'}
                               </p>
                             </CardContent>
                             <CardFooter className="flex flex-wrap justify-end gap-2 px-4">
@@ -193,7 +189,6 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
                         <CircleAlert />
                       </EmptyMedia>
                       <EmptyTitle>暂无失败任务</EmptyTitle>
-                      <EmptyDescription>失败的派生草稿会保留在这里，便于重试或清理。</EmptyDescription>
                     </EmptyHeader>
                   </Empty>
                 )
@@ -207,21 +202,18 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <CardTitle className="truncate">{item.display_name || '未命名草稿'}</CardTitle>
-                                  <CardDescription>本次派生未能完成</CardDescription>
                                 </div>
                                 <Badge variant="destructive">失败</Badge>
                               </div>
                             </CardHeader>
-                            <CardContent className="px-4">
-                              {item.linked_jd_text
-                                ? (
-                                    <p className="line-clamp-3 text-sm text-muted-foreground">
-                                      JD：
-                                      {item.linked_jd_text.slice(0, 120)}
-                                    </p>
-                                  )
-                                : <p className="text-sm text-muted-foreground">没有可显示的职位描述摘要。</p>}
-                            </CardContent>
+                            {item.linked_jd_text && (
+                              <CardContent className="px-4">
+                                <p className="line-clamp-3 text-sm text-muted-foreground">
+                                  JD：
+                                  {item.linked_jd_text.slice(0, 120)}
+                                </p>
+                              </CardContent>
+                            )}
                             <CardFooter className="flex flex-wrap justify-end gap-2 px-4">
                               <Button
                                 size="sm"

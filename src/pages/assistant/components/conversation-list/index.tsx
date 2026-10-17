@@ -91,7 +91,7 @@ export default function ConversationList({ onNavigate }: ConversationListProps =
   if (conversations.length === 0) {
     return (
       <div className="flex h-full min-h-0 items-start justify-center px-3 pt-8">
-        <p className="text-center text-xs text-muted-foreground">还没有对话，点上方开始</p>
+        <p className="text-center text-xs text-muted-foreground">暂无对话</p>
       </div>
     )
   }

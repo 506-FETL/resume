@@ -118,7 +118,7 @@ export function ToolEmptyState({
   description,
   title,
 }: {
-  description: string
+  description?: string
   title: string
 }) {
   return (
@@ -127,7 +127,7 @@ export function ToolEmptyState({
         <Sparkles className="size-5" />
       </div>
       <p className="mt-3 text-sm font-medium">{title}</p>
-      <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
+      {description && <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>}
     </div>
   )
 }

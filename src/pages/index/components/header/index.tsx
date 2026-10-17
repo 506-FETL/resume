@@ -13,15 +13,15 @@ function Header({ focus }: HeaderProps) {
     const hour = new Date().getHours()
 
     if (hour < 5)
-      setGreeting('夜深了，注意休息')
+      setGreeting('晚上好')
     else if (hour < 11)
-      setGreeting('早上好，开启美好的一天')
+      setGreeting('早上好')
     else if (hour < 13)
-      setGreeting('中午好，记得按时吃饭')
+      setGreeting('中午好')
     else if (hour < 18)
-      setGreeting('下午好，继续加油')
+      setGreeting('下午好')
     else
-      setGreeting('晚上好，享受闲暇时光')
+      setGreeting('晚上好')
   }, [])
 
   return (

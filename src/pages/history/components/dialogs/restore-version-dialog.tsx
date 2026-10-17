@@ -86,7 +86,7 @@ export default function RestoreVersionDialog({
                       <p className="leading-6">
                         直接恢复
                         <span className="font-medium text-destructive">不会保存当前内容</span>
-                        ，当前未保存的编辑将被永久覆盖、无法找回。确定继续吗？
+                        ，未保存的修改将被覆盖，无法恢复。
                       </p>
                     </div>
                   </div>
@@ -96,13 +96,13 @@ export default function RestoreVersionDialog({
                     <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
                       <div className="font-medium text-foreground">恢复并保留当前内容</div>
                       <p className="mt-1 leading-6">
-                        先额外保存一条“恢复前备份”，再恢复到所选版本。适合希望保留当前内容的情况。
+                        先将当前内容保存为“恢复前备份”，再恢复所选版本。
                       </p>
                     </div>
                     <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
                       <div className="font-medium text-foreground">直接恢复</div>
                       <p className="mt-1 leading-6">
-                        不额外保存当前内容，直接恢复到所选版本，并生成一条新的恢复记录。
+                        不备份当前内容，直接恢复所选版本。
                       </p>
                     </div>
                   </div>

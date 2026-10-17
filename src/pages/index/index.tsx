@@ -32,14 +32,6 @@ export default function DashboardPage() {
     loadData()
   }, [loadData])
 
-  // 今日焦点：优先展示最紧急的一条待办
-  const focus = useMemo(() => {
-    if (insights.loading || !insights.hasCloudResume)
-      return undefined
-    const top = insights.actions[0]
-    return top ? `今日焦点：${top.count} ${top.label}` : '今日焦点：待办已清空，保持简历活跃'
-  }, [insights.loading, insights.hasCloudResume, insights.actions])
-
   return (
     <motion.div
       variants={container}
@@ -48,7 +40,7 @@ export default function DashboardPage() {
       className="flex flex-col gap-5 md:gap-6 p-4 pb-8 md:p-6 lg:p-8 max-w-7xl mx-auto"
     >
       <motion.div variants={item}>
-        <Header focus={focus} />
+        <Header />
       </motion.div>
 
       <motion.div variants={item}>

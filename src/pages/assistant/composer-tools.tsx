@@ -5,13 +5,13 @@ import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 // AI 求职助手的快捷指令（Slash / 工具按钮共用）。选中后把中文提示词模板填入输入框。
 // 每个工具配置独立图标，避免下拉里所有条目都是同一个「工具」图标。
 export const ASSISTANT_TOOLS: Tool[] = [
-  { name: '优化这段经历', category: '经历', description: '润色并强化一段工作/项目经历的表达', icon: <Sparkles className="size-5 text-amber-500" /> },
-  { name: '生成 STAR 描述', category: '经历', description: '用 STAR 结构重写经历，突出成果与量化', icon: <Star className="size-5 text-yellow-500" /> },
+  { name: '优化这段经历', category: '经历', description: '润色工作或项目经历', icon: <Sparkles className="size-5 text-amber-500" /> },
+  { name: '生成 STAR 描述', category: '经历', description: '按情境、任务、行动、结果组织经历', icon: <Star className="size-5 text-yellow-500" /> },
   { name: '量化成果', category: '经历', description: '为经历补充可量化的数据与指标', icon: <BarChart3 className="size-5 text-emerald-500" /> },
-  { name: '按 JD 匹配简历', category: '匹配', description: '对照岗位 JD 分析匹配度并给出优化建议', icon: <Target className="size-5 text-rose-500" /> },
+  { name: '按 JD 匹配简历', category: '匹配', description: '对照岗位要求分析差距', icon: <Target className="size-5 text-rose-500" /> },
   { name: '提炼核心技能', category: '匹配', description: '根据目标岗位提炼并排序关键技能', icon: <ListChecks className="size-5 text-sky-500" /> },
-  { name: '生成自我评价', category: '简历', description: '基于当前简历生成一段简洁有力的自我评价', icon: <UserRound className="size-5 text-violet-500" /> },
-  { name: '润色求职意向', category: '简历', description: '优化求职意向的表达，使其更聚焦', icon: <Compass className="size-5 text-cyan-500" /> },
+  { name: '生成自我评价', category: '简历', description: '基于当前简历生成', icon: <UserRound className="size-5 text-violet-500" /> },
+  { name: '润色求职意向', category: '简历', description: '润色当前简历中的求职意向', icon: <Compass className="size-5 text-cyan-500" /> },
   ...BUILTIN_SKILLS.map(skill => ({
     name: skill.id,
     displayName: `${skill.displayName} · $${skill.id}`,

@@ -119,7 +119,7 @@ export default function CreateDialog({
       >
         <DialogHeader>
           <DialogTitle>新建分享</DialogTitle>
-          <DialogDescription>选择简历并设置链接。</DialogDescription>
+          <DialogDescription className="sr-only">选择简历并设置分享权限。</DialogDescription>
         </DialogHeader>
 
         <FieldGroup className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">

@@ -48,8 +48,8 @@ export function ResumeManager() {
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[500px] p-0 gap-0">
         <DialogHeader className="px-4 pt-4 pb-2 sm:px-6 sm:pt-6">
           <DialogTitle className="text-base sm:text-lg">简历管理</DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            选择现有简历或上传新文件进行分析
+          <DialogDescription className="sr-only">
+            选择或上传待分析的简历。
           </DialogDescription>
         </DialogHeader>
 

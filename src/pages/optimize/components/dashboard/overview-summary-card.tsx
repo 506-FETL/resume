@@ -44,7 +44,7 @@ export default function OverviewSummaryCard({ completedTasks, loading, progress,
         <CardContent className="flex min-h-52 flex-col justify-center gap-2 p-5 md:p-6">
           <p className="text-sm font-semibold">综合评分</p>
           <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-            选择简历并开始检测后，这里会展示综合结论、可读性和优化完成度。
+            选择简历后，点击“开始检测”。
           </p>
         </CardContent>
       </Card>

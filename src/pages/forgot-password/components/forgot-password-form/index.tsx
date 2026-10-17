@@ -46,21 +46,16 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
           ? (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">检查您的电子邮件</CardTitle>
-                  <CardDescription>密码重置说明已发送</CardDescription>
+                  <CardTitle className="text-2xl">请查收邮件</CardTitle>
+                  <CardDescription>如果你使用邮箱和密码注册，将收到密码重置邮件。</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    如果您使用电子邮件和密码注册，您将收到一封密码重置电子邮件。
-                  </p>
-                </CardContent>
               </Card>
             )
           : (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl">重置密码</CardTitle>
-                  <CardDescription>请输入您的电子邮件，我们将向您发送重置密码的链接</CardDescription>
+                  <CardDescription>重置链接将发送至注册邮箱。</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleForgotPassword}>
@@ -98,9 +93,8 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
                       </Button>
                     </FieldGroup>
                     <div className="mt-4 text-center text-sm">
-                      已经有账户？
                       <Link to="/login" className="underline underline-offset-4">
-                        登录
+                        返回登录
                       </Link>
                     </div>
                   </form>

@@ -72,7 +72,6 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             <ToolStatCard
               label="画像置信度"
               value={`${benchmarkResult.profileConfidence}%`}
-              hint="基于关键词命中推断出来的岗位方向"
               icon={Gauge}
               tone={benchmarkResult.profileConfidence >= 60 ? 'primary' : 'warning'}
               badge={<ToolMetaBadge tone={benchmarkResult.profileConfidence >= 60 ? 'primary' : 'warning'}>当前画像</ToolMetaBadge>}
@@ -80,7 +79,6 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             <ToolStatCard
               label="达标指标"
               value={goodMetricCount}
-              hint="达到当前内容参考水平的项"
               icon={Trophy}
               tone="success"
               badge={<ToolMetaBadge tone="success">优势项</ToolMetaBadge>}
@@ -88,7 +86,6 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             <ToolStatCard
               label="待补指标"
               value={pendingMetricCount}
-              hint="建议优先加强的内容指标数量"
               icon={TriangleAlert}
               tone={pendingMetricCount > 0 ? 'warning' : 'success'}
               badge={<ToolMetaBadge tone={pendingMetricCount > 0 ? 'warning' : 'success'}>{pendingMetricCount > 0 ? '优先补强' : '已达标'}</ToolMetaBadge>}
@@ -96,7 +93,6 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             <ToolStatCard
               label="ATS 总分"
               value={atsMetric?.displayCurrent ?? '0'}
-              hint="独立生成的内容自适应 ATS 分数"
               icon={Target}
               tone={atsMetric ? getMetricTone(atsMetric) : 'default'}
               badge={<ToolMetaBadge tone={atsMetric ? getMetricTone(atsMetric) : 'default'}>关键指标</ToolMetaBadge>}
@@ -113,7 +109,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             </div>
             <Progress value={benchmarkResult.profileConfidence} className="h-2 bg-muted" />
             <p className="text-xs leading-5 text-muted-foreground">
-              这个画像来自求职意向、技能和经历里的关键词命中，不是强制分类，你可以把它当作当前简历最像的岗位方向。
+              岗位方向根据求职意向、技能和经历中的关键词推断，仅供参考。
             </p>
           </div>
         </ToolPanelBody>

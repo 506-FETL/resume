@@ -146,7 +146,6 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
             </Button>
           )}
           title="一键优化"
-          description="直接复用“简历问题分析”里的修复建议，一次性把当前可自动执行的改动写回简历。"
           icon={Wand2}
           badge={(
             <ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>
@@ -159,7 +158,6 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
             <ToolStatCard
               label="待处理问题"
               value={batchResult.pendingIssueCount}
-              hint="分析结果里仍未完成的问题数量"
               icon={CircleAlert}
               tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}
               badge={<ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>问题总览</ToolMetaBadge>}
@@ -167,7 +165,6 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
             <ToolStatCard
               label="待执行建议"
               value={batchResult.pendingSuggestionCount}
-              hint="所有未执行的结构化修复建议"
               icon={ListChecks}
               tone="info"
               badge={<ToolMetaBadge tone="info">建议池</ToolMetaBadge>}
@@ -175,7 +172,6 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
             <ToolStatCard
               label="可一键完成"
               value={batchResult.autoApplicableIssueCount}
-              hint="本次预计直接完成的问题数量"
               icon={Sparkles}
               tone="success"
               badge={<ToolMetaBadge tone="success">自动应用</ToolMetaBadge>}
@@ -195,7 +191,6 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
       <ToolPanelCard>
         <ToolPanelHeader
           title="执行摘要"
-          description="先处理高优先级且无字段冲突的问题，剩余冲突项保留给你逐条确认。"
           icon={FileText}
           badge={<ToolMetaBadge tone="primary">{`${batchResult.summary.length} 条说明`}</ToolMetaBadge>}
         />
@@ -217,21 +212,20 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
         ? (
             <ToolEmptyState
               title="当前简历还没有问题分析结果"
-              description="先在页面顶部运行一次检测；一键优化会直接复用“简历问题分析”里的结构化修复建议。"
+              description="请先在页面顶部运行检测。"
             />
           )
         : batchResult.pendingIssueCount === 0
           ? (
               <ToolEmptyState
                 title="当前自动修复建议已全部完成"
-                description="这份简历在分析结果中的可自动修复项已经处理完毕，无需再次一键应用。"
               />
             )
           : (
               <ToolPanelCard>
                 <ToolPanelHeader
                   title="待执行问题"
-                  description="下面这些问题来自当前页面的简历问题分析。一键应用会优先执行更高严重度的建议；如果多个问题修改同一字段，会保留更高优先级版本。"
+                  description="同一字段有多条建议时，优先应用严重程度较高的一条，其余需逐项确认。"
                   icon={ListChecks}
                   badge={<ToolMetaBadge tone="warning">{`${batchResult.pendingIssueCount} 个问题待处理`}</ToolMetaBadge>}
                 />

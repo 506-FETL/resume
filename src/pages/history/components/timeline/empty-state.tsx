@@ -14,11 +14,7 @@ export default function TimelineEmptyState({ currentResume }: TimelineEmptyState
           <Sparkles />
         </EmptyMedia>
         <EmptyTitle className="text-sm">还没有保存版本</EmptyTitle>
-        <EmptyDescription>
-          {currentResume
-            ? '点击「保存当前版本」，留存这一刻的简历。'
-            : '先选一份云端简历。'}
-        </EmptyDescription>
+        {!currentResume && <EmptyDescription>先选择一份云端简历。</EmptyDescription>}
       </EmptyHeader>
     </Empty>
   )

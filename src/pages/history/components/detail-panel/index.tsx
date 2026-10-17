@@ -1,7 +1,7 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import { History } from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import useHistoryStore from '../../store'
 import HistoryMotionContent from '../motion-content'
 import HistoryDetailContent from './detail-content'
@@ -29,7 +29,6 @@ export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
                     <EmptyHeader>
                       <EmptyMedia variant="icon"><History /></EmptyMedia>
                       <EmptyTitle>选择一个版本查看详情</EmptyTitle>
-                      <EmptyDescription>查看版本内容、编辑说明，或恢复到先前的版本。</EmptyDescription>
                     </EmptyHeader>
                   </Empty>
                 )}

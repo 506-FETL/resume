@@ -53,7 +53,7 @@ export default function SaveVersionDialog({ open, onOpenChange, onSaved }: SaveV
       >
         <DialogHeader>
           <DialogTitle>保存当前版本</DialogTitle>
-          <DialogDescription>保存当前简历的内容，方便后续查看、对比和恢复。</DialogDescription>
+          <DialogDescription className="sr-only">填写版本信息并保存当前简历。</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid gap-6">
@@ -67,11 +67,11 @@ export default function SaveVersionDialog({ open, onOpenChange, onSaved }: SaveV
                 maxLength={60}
                 onChange={event => onChange({ versionName: event.target.value })}
               />
-              <FieldDescription>为空时将自动显示为“版本 Vx”。</FieldDescription>
+              <FieldDescription>留空时显示版本号。</FieldDescription>
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="milestone-name">重点标记</FieldLabel>
+              <FieldLabel htmlFor="milestone-name">重点标记（可选）</FieldLabel>
               <Input
                 id="milestone-name"
                 value={draft.milestoneName}
@@ -79,7 +79,6 @@ export default function SaveVersionDialog({ open, onOpenChange, onSaved }: SaveV
                 maxLength={40}
                 onChange={event => onChange({ milestoneName: event.target.value })}
               />
-              <FieldDescription>给特别重要的一版做个标记，不填也没关系。</FieldDescription>
             </Field>
 
             <Field>
@@ -101,7 +100,6 @@ export default function SaveVersionDialog({ open, onOpenChange, onSaved }: SaveV
             <Field>
               <FieldLabel>标签</FieldLabel>
               <VersionTagInput value={draft.tags} onChange={tags => onChange({ tags })} />
-              <FieldDescription>可添加多个标签，方便后续查找。</FieldDescription>
             </Field>
           </FieldGroup>
 

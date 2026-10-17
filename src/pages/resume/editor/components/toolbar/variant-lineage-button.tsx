@@ -54,15 +54,15 @@ export function VariantLineageButton({ reviewActive = false }: { reviewActive?: 
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
             disabled={disabled}
-            aria-label="查看血缘"
+            aria-label="查看派生关系"
             title={reviewActive ? '请先切回当前工作版本' : undefined}
           >
             <GitBranch data-icon="inline-start" />
-            {!isMobile && <span>血缘</span>}
+            {!isMobile && <span>派生关系</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="flex w-80 flex-col gap-3 p-4">
-          <h3 className="text-sm font-semibold">血缘链</h3>
+          <h3 className="text-sm font-semibold">派生关系</h3>
           <VariantLineagePath tree={tree} currentResumeId={resumeId ?? ''} />
           <Separator />
           <Button
@@ -75,7 +75,7 @@ export function VariantLineageButton({ reviewActive = false }: { reviewActive?: 
             }}
           >
             <GitBranch data-icon="inline-start" />
-            查看完整血缘树
+            查看完整派生关系
           </Button>
         </PopoverContent>
       </Popover>

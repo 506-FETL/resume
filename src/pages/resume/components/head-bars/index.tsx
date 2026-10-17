@@ -28,10 +28,7 @@ function HeadBars() {
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">我的简历</h1>
-        <p className="text-muted-foreground">管理和编辑你的简历</p>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">我的简历</h1>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:justify-end">
         <Badge variant={isOnline ? 'secondary' : 'outline'} className="self-start sm:self-auto">

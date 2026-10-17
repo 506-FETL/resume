@@ -35,7 +35,7 @@ export function ToolCard({ disabled, onClick, tool }: ToolCardProps) {
               {tool.badge}
             </Badge>
           </div>
-          <p className="line-clamp-2 wrap-break-word text-xs leading-5 text-muted-foreground">{tool.description}</p>
+          {tool.description && <p className="line-clamp-2 wrap-break-word text-xs leading-5 text-muted-foreground">{tool.description}</p>}
         </div>
 
         <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />

@@ -4,8 +4,8 @@ import { ArrowRight, Clock, FileUser, FolderKanban, LayoutTemplate, PencilRuler,
 import { useNavigate } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 
 function Entry({
@@ -30,13 +30,11 @@ function Entry({
             </div>
             <CardTitle className="text-sm font-medium">快捷操作</CardTitle>
           </div>
-          <CardDescription className="text-xs">常用功能入口</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 pt-0">
           <div className="grid gap-2.5 grid-cols-2 h-full">
             <QuickAction
               title="创建简历"
-              description="使用模板快速创建"
               icon={<Plus className="size-4" />}
               onClick={() => navigate('/resume')}
               iconBg="bg-primary/10 text-primary"
@@ -44,21 +42,18 @@ function Entry({
             />
             <QuickAction
               title="求职看板"
-              description="跟进投递与面试进度"
               icon={<FolderKanban className="size-4" />}
               onClick={() => navigate('/tracker')}
               iconBg="bg-blue-500/10 text-blue-500"
             />
             <QuickAction
               title="简历模板"
-              description="浏览可用模板"
               icon={<LayoutTemplate className="size-4" />}
               onClick={() => navigate('/template')}
               iconBg="bg-violet-500/10 text-violet-500"
             />
             <QuickAction
               title="简历优化"
-              description="ATS 检测与改进建议"
               icon={<PencilRuler className="size-4" />}
               onClick={() => navigate('/optimize')}
               iconBg="bg-emerald-500/10 text-emerald-500"
@@ -76,7 +71,6 @@ function Entry({
             </div>
             <CardTitle className="text-sm font-medium">最近动态</CardTitle>
           </div>
-          <CardDescription className="text-xs">简历编辑与投递的近期事件</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 pt-0">
           <AnimatedContent animationKey={events.length > 0 ? 'ready' : timelineLoading ? 'loading' : 'empty'}>
@@ -118,11 +112,8 @@ function Entry({
                         <FileUser className="text-muted-foreground/50" />
                       </EmptyMedia>
                       <EmptyTitle className="text-sm">
-                        {timelineLoading ? '正在整理最近动态' : '还没有任何动态'}
+                        {timelineLoading ? '正在加载动态' : '暂无动态'}
                       </EmptyTitle>
-                      <EmptyDescription className="text-xs">
-                        创建或编辑简历、投递岗位后，动态会显示在这里
-                      </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                       <Button
@@ -147,7 +138,6 @@ export default Entry
 
 function QuickAction({
   title,
-  description,
   icon,
   onClick,
   disabled,
@@ -155,7 +145,6 @@ function QuickAction({
   iconBg = 'bg-primary/10 text-primary',
 }: {
   title: string
-  description: string
   icon: ReactNode
   onClick: () => void
   disabled?: boolean
@@ -183,10 +172,7 @@ function QuickAction({
       >
         {icon}
       </div>
-      <div>
-        <p className="text-sm font-medium leading-none">{title}</p>
-        <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">{description}</p>
-      </div>
+      <p className="text-sm font-medium leading-none">{title}</p>
     </button>
   )
 }

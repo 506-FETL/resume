@@ -78,7 +78,6 @@ export default function IssueAnalysis() {
                         <Search className="size-6 opacity-40" />
                       </div>
                       <p className="text-sm font-medium">暂无检测到的问题</p>
-                      <p className="mt-1 text-xs text-muted-foreground/80">您的简历表现良好！</p>
                     </div>
                   )
                 : severityOrder.map((severity) => {

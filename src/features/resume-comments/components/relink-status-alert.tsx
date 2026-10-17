@@ -28,7 +28,7 @@ export function RelinkStatusAlert({ pending = false, onCancel }: { pending?: boo
           {pending ? <LoaderCircle className="animate-spin" /> : <Link2 />}
           <AlertTitle>{pending ? '正在关联评论…' : '正在重新关联评论'}</AlertTitle>
           <AlertDescription className="grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-            <span>{pending ? '正在保存新的关联位置，请稍候' : '请在简历中选择新的文字'}</span>
+            <span>{pending ? '正在保存位置…' : '在简历中选择新的文字'}</span>
             <Button
               size="xs"
               variant="ghost"

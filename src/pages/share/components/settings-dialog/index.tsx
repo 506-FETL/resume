@@ -117,9 +117,7 @@ export default function SettingsDialog() {
       >
         <DialogHeader>
           <DialogTitle>编辑分享设置</DialogTitle>
-          <DialogDescription>
-            修改链接名称、有效期、访问密码与评论权限。关闭评论后，正在访问的用户也会自动转为只读。
-          </DialogDescription>
+          <DialogDescription className="sr-only">修改分享链接和访问权限。</DialogDescription>
         </DialogHeader>
 
         <FieldGroup className="gap-4">
@@ -142,7 +140,7 @@ export default function SettingsDialog() {
           <Field orientation="horizontal" className="rounded-lg border p-3">
             <FieldContent>
               <FieldLabel htmlFor="edit-share-comments-enabled">允许评论</FieldLabel>
-              <FieldDescription>关闭后访问者只能查看，已有评论和草稿不会被删除。</FieldDescription>
+              <FieldDescription>关闭并保存后，所有访问者转为只读，已有评论和草稿保留。</FieldDescription>
             </FieldContent>
             <Switch
               id="edit-share-comments-enabled"

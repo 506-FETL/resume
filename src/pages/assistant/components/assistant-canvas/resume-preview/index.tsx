@@ -27,7 +27,7 @@ export default function ResumePreview() {
               <EmptyHeader>
                 <EmptyMedia variant="icon"><FileText /></EmptyMedia>
                 <EmptyTitle>还没有可预览的简历</EmptyTitle>
-                <EmptyDescription>在编辑器打开一份简历，或让 AI 新建，这里会实时预览。</EmptyDescription>
+                <EmptyDescription>先在编辑器打开简历，或让 AI 新建。</EmptyDescription>
               </EmptyHeader>
             </Empty>
           )}

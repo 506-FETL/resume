@@ -29,18 +29,12 @@ export function TemplateSectionSettings({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base font-medium">
-            {TEMPLATE_SECTION_LABELS[section.renderer] ?? section.renderer}
-          </h3>
-          {required ? <Badge variant="secondary">必选</Badge> : null}
-          {locked ? <Badge variant="outline">锁定</Badge> : null}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          renderer：
-          {section.renderer}
-        </p>
+      <div className="flex items-center gap-2">
+        <h3 className="text-base font-medium">
+          {TEMPLATE_SECTION_LABELS[section.renderer] ?? section.renderer}
+        </h3>
+        {required ? <Badge variant="secondary">必选</Badge> : null}
+        {locked ? <Badge variant="outline">锁定</Badge> : null}
       </div>
 
       <div className="flex flex-col gap-2">

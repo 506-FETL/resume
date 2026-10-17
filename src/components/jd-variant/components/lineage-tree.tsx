@@ -47,7 +47,7 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
       >
         <CardHeader className="px-4">
           <CardTitle className="truncate">{node.displayName || '未命名简历'}</CardTitle>
-          <CardDescription>{isCurrent ? '当前简历' : '派生关系中的简历'}</CardDescription>
+          {isCurrent && <CardDescription>当前简历</CardDescription>}
           <CardAction>
             <div className="flex items-center gap-2">
               {status && (
@@ -69,16 +69,14 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
             </div>
           </CardAction>
         </CardHeader>
-        <CardContent className="px-4">
-          {node.jdSnippet
-            ? (
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                  JD：
-                  {node.jdSnippet}
-                </p>
-              )
-            : <p className="text-sm text-muted-foreground">没有关联的职位描述摘要。</p>}
-        </CardContent>
+        {node.jdSnippet && (
+          <CardContent className="px-4">
+            <p className="line-clamp-2 text-sm text-muted-foreground">
+              JD：
+              {node.jdSnippet}
+            </p>
+          </CardContent>
+        )}
       </Card>
 
       {node.children.length > 0 && (
@@ -121,7 +119,7 @@ export function VariantLineagePath({ tree, currentResumeId }: VariantLineagePath
     [tree, currentResumeId],
   )
   if (path.length === 0) {
-    return <p className="text-xs text-muted-foreground">无血缘信息</p>
+    return <p className="text-xs text-muted-foreground">暂无派生关系</p>
   }
 
   return (

@@ -71,7 +71,6 @@ export default function ConversationSearch() {
                   <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
                     <Search className="size-5 text-muted-foreground" />
                     <p className="text-sm font-medium">还没有历史对话</p>
-                    <p className="text-xs text-muted-foreground">输入消息开始第一段对话。</p>
                   </div>
                 )}
               </CommandGroup>

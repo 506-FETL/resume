@@ -16,10 +16,7 @@ export default function Header() {
           <div className="hidden size-11 shrink-0 items-center justify-center rounded-2xl border bg-card shadow-xs sm:flex">
             <Share2 className="size-5 text-muted-foreground" />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight">分享管理</h1>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">管理简历链接，掌握每一次访问。</p>
-          </div>
+          <h1 className="min-w-0 text-2xl font-semibold tracking-tight">分享管理</h1>
         </div>
         <Button
           className="h-10 shrink-0 rounded-lg px-4"

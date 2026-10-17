@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DialogFooter } from '@/components/ui/dialog'
 import { DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -201,14 +201,9 @@ function AdvancedTools() {
       <Card className="border-primary/10 shadow-sm">
         <CardHeader className="border-b border-border/50 p-4 md:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-base font-semibold md:text-lg">高级工具箱</CardTitle>
-                <Badge variant="outline" className="rounded-full">4 个工具</Badge>
-              </div>
-              <CardDescription className="max-w-2xl text-xs leading-5 md:text-sm md:leading-6">
-                基于当前简历进行 JD 比对、格式修复、ATS 预览和岗位基准分析。
-              </CardDescription>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <CardTitle className="text-base font-semibold md:text-lg">高级工具箱</CardTitle>
+              <Badge variant="outline" className="rounded-full">4 个工具</Badge>
             </div>
 
             <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -217,7 +212,7 @@ function AdvancedTools() {
                   ? 'rounded-full border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                   : 'rounded-full border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'}
               >
-                {hasSelectedResume ? '已连接到当前选中简历' : '请先选择简历'}
+                {hasSelectedResume ? '已选择简历' : '请先选择简历'}
               </Badge>
             </div>
           </div>
@@ -238,7 +233,7 @@ function AdvancedTools() {
       </Card>
 
       <AdvancedToolsModal
-        description={activeToolDefinition?.description || '基于当前简历提供专项分析与优化。'}
+        description={activeToolDefinition?.description}
         footer={
           isMobile
             ? (

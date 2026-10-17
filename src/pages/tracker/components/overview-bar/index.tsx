@@ -29,9 +29,9 @@ function OverviewBar() {
   const busy = loading || (!isInitialized && !error)
   const hasAppliedData = stats.applied > 0 && !error
   const metrics = [
-    { key: 'applied', label: '已投递', value: stats.applied, description: '累计投递的职位', icon: Send, iconClassName: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-    { key: 'interview', label: '面试中', value: stats.interview, description: '正在进行的面试流程', icon: Users, iconClassName: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
-    { key: 'offer', label: '已录用', value: stats.offer, description: '收到的在办 Offer', icon: CheckCheck, iconClassName: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+    { key: 'applied', label: '已投递', value: stats.applied, description: '含已结束和已归档职位', icon: Send, iconClassName: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+    { key: 'interview', label: '面试中', value: stats.interview, description: '不含已归档职位', icon: Users, iconClassName: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
+    { key: 'offer', label: '已录用', value: stats.offer, description: '不含已归档职位', icon: CheckCheck, iconClassName: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
     { key: 'pending', label: '待跟进', value: stats.pending, description: '已到期或多日未更新', icon: BellRing, iconClassName: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', accent: true },
   ] as const
 

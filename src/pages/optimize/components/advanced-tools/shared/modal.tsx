@@ -6,7 +6,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { useIsMobile } from '@/hooks/use-mobile'
 
 interface AdvancedToolsModalProps extends PropsWithChildren {
-  description: string
+  description?: string
   footer?: ReactNode
   meta?: ReactNode
   onOpenChange: (open: boolean) => void
@@ -41,8 +41,8 @@ export function AdvancedToolsModal({
             <div className="min-w-0">
               <div className="min-w-0 space-y-1">
                 <DrawerTitle>{title}</DrawerTitle>
-                <DrawerDescription className="wrap-break-word text-left leading-5">
-                  {description}
+                <DrawerDescription className={description ? 'wrap-break-word text-left leading-5' : 'sr-only'}>
+                  {description || '查看当前简历的分析结果。'}
                 </DrawerDescription>
               </div>
             </div>
@@ -69,8 +69,8 @@ export function AdvancedToolsModal({
             <div className="flex min-w-0 items-start justify-between gap-4">
               <div className="min-w-0 space-y-1.5">
                 <DialogTitle>{title}</DialogTitle>
-                <DialogDescription className="wrap-break-word text-left leading-6">
-                  {description}
+                <DialogDescription className={description ? 'wrap-break-word text-left leading-6' : 'sr-only'}>
+                  {description || '查看当前简历的分析结果。'}
                 </DialogDescription>
               </div>
               <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)} aria-label="关闭">

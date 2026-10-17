@@ -31,10 +31,7 @@ export default function WorkbenchHero() {
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                     <Icon className="size-4" />
                   </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <p className="text-sm font-medium">{item.label}</p>
-                    <p className="text-xs leading-5 text-muted-foreground">{item.description}</p>
-                  </div>
+                  <p className="min-w-0 text-sm font-medium">{item.label}</p>
                 </div>
 
                 <p className="mt-4 text-3xl font-semibold tracking-tight">{summaryCounts[item.key]}</p>

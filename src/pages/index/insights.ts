@@ -23,7 +23,7 @@ export interface DashboardAction {
   id: string
   count: number
   label: string
-  hint: string
+  hint?: string
   tone: DashboardActionTone
   to: string
 }
@@ -229,7 +229,6 @@ export function useDashboardInsights(
         id: 'to-apply',
         count: savedToApply,
         label: '个收藏岗位待投递',
-        hint: '已保存但还没有正式投递',
         tone: 'info',
         to: '/tracker',
       })
@@ -239,7 +238,6 @@ export function useDashboardInsights(
         id: 'no-ats',
         count: resumesWithoutAts,
         label: '份简历还没做 ATS 检测',
-        hint: '检测通过率，降低被机器筛掉的风险',
         tone: 'muted',
         to: '/optimize',
       })

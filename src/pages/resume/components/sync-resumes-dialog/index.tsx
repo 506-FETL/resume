@@ -59,13 +59,7 @@ export default function SyncResumesDialog() {
       <DialogContent className="sm:max-w-150">
         <DialogHeader>
           <DialogTitle className="text-2xl">同步本地简历到云端</DialogTitle>
-          <DialogDescription>
-            检测到
-            {' '}
-            <Badge variant="secondary">{offlineResumes.length}</Badge>
-            {' '}
-            个本地简历，选择需要同步到云端的简历
-          </DialogDescription>
+          <DialogDescription className="sr-only">选择要同步到云端的本地简历。</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">

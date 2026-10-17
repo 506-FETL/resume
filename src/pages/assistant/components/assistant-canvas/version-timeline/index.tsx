@@ -20,11 +20,9 @@ export default function VersionTimeline({ model: _model }: { model: CanvasModel 
       <Empty>
         <EmptyHeader>
           <EmptyTitle>{isOfflineResume ? '本地简历暂无历史版本' : '版本已更新'}</EmptyTitle>
-          <EmptyDescription>
-            {isOfflineResume
-              ? '请先将这份简历同步到云端，再保存、对比或恢复历史版本。'
-              : '在「历史版本」页查看、对比与恢复所有版本。'}
-          </EmptyDescription>
+          {isOfflineResume && (
+            <EmptyDescription>同步到云端后，才能保存、对比或恢复历史版本。</EmptyDescription>
+          )}
         </EmptyHeader>
         <EmptyContent>
           <Button onClick={openHistory} disabled={isOfflineResume}>

@@ -16,7 +16,7 @@ export default function DetailDiscardDialog({ open, onCancel, onConfirm }: Detai
         <AlertDialogHeader>
           <AlertDialogTitle>放弃未保存的修改？</AlertDialogTitle>
           <AlertDialogDescription>
-            当前修改尚未保存。切换版本或关闭右侧面板后，这些修改将不会保留。
+            切换版本或关闭面板后，未保存的修改将丢失。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

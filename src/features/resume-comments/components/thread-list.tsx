@@ -77,7 +77,7 @@ export function ThreadList({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center text-sm text-muted-foreground">
         <MessageSquareText className="size-8 opacity-45" />
-        <p>{filter === 'open' ? '还没有未解决的评论' : filter === 'resolved' ? '还没有已解决的评论' : '没有失去锚点的评论'}</p>
+        <p>{filter === 'open' ? '暂无未解决评论' : filter === 'resolved' ? '暂无已解决评论' : '暂无无法定位的评论'}</p>
       </div>
     )
   }

@@ -103,7 +103,7 @@ function MobileActionDrawer({
       <DrawerContent className="border-border/70 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
         <DrawerHeader className="text-left">
           <DrawerTitle>{title ? `${title} · 操作` : '模板操作'}</DrawerTitle>
-          <DrawerDescription>{description ?? '选择要执行的操作。'}</DrawerDescription>
+          <DrawerDescription className={description ? undefined : 'sr-only'}>{description || '使用或编辑模板。'}</DrawerDescription>
         </DrawerHeader>
 
         <div className="grid gap-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-1">

@@ -88,7 +88,7 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
       <DialogContent className="sm:max-w-md" showCloseButton={!saving}>
         <DialogHeader>
           <DialogTitle>快速保存版本</DialogTitle>
-          <DialogDescription>为当前版本添加一个便于识别的名称，也可以留空。</DialogDescription>
+          <DialogDescription className="sr-only">保存当前简历版本。</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-2 py-4">

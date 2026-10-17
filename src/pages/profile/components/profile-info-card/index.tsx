@@ -2,7 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { Calendar as CalendarIcon, Mail, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useCurrentUserName } from '@/hooks/use-current-user'
 import supabase from '@/lib/supabase/client'
@@ -50,7 +50,6 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
     <Card>
       <CardHeader>
         <CardTitle>个人资料</CardTitle>
-        <CardDescription>你的基本账户信息</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex items-center gap-6">

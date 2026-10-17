@@ -56,7 +56,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const meta = action ? REWRITE_ACTION_META[action] : null
   const HeaderIcon = meta?.icon
   const title = meta ? `${meta.label}候选` : 'AI 改写候选'
-  const description = meta ? `${meta.description}；选择满意的版本点击「应用」即可替换原文。` : undefined
+  const description = meta?.description
   const canRetry = getRewriteCanRetry(state, JD_MIN_CHARS)
 
   // TipTap 要求直接传入宿主元素；独立测量宿主避免首次定位时测量空节点。

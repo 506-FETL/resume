@@ -117,7 +117,7 @@ export function UpdatePasswordDialog() {
             <Lock className="size-5" />
             修改密码
           </DialogTitle>
-          <DialogDescription>为了保护您的账户安全，请输入旧密码并设置新密码</DialogDescription>
+          <DialogDescription className="sr-only">修改账户密码</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <FieldGroup className="gap-4 py-4">
@@ -138,7 +138,7 @@ export function UpdatePasswordDialog() {
               <Input
                 id="new-password"
                 type="password"
-                placeholder="请输入新密码（至少 6 个字符）"
+                placeholder="至少 6 个字符"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 disabled={loading}

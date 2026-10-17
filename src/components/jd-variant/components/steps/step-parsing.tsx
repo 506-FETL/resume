@@ -1,7 +1,7 @@
 import Markdown from 'react-markdown'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 
@@ -19,7 +19,6 @@ export function StepParsing({ reasoning, keywords }: StepParsingProps) {
             <Spinner />
             正在解析职位描述
           </CardTitle>
-          <CardDescription>提取岗位职责、技能要求和核心关键词。</CardDescription>
         </CardHeader>
         <CardContent className="px-4">
           {reasoning
@@ -47,7 +46,7 @@ export function StepParsing({ reasoning, keywords }: StepParsingProps) {
         <p className="text-sm font-medium">已提取关键词</p>
         <div className="flex min-h-7 flex-wrap gap-2" aria-live="polite" aria-label="提取的关键词">
           {keywords.map(kw => <Badge key={kw} variant="outline">{kw}</Badge>)}
-          {keywords.length === 0 && <span className="text-sm text-muted-foreground">关键词将在解析过程中显示。</span>}
+          {keywords.length === 0 && <span className="text-sm text-muted-foreground">正在提取…</span>}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { Check, ClipboardCheck, Wand2 } from 'lucide-react'
 import AnimatedContent from '@/components/motion/animated-content'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
@@ -13,15 +13,12 @@ export default function RepairChecklist() {
   return (
     <Card className="flex min-w-0 flex-col border-primary/10 shadow-sm">
       <CardHeader className="border-b border-border/50 p-4 md:p-5">
-        <div className="mb-1 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div className="rounded-md bg-primary/10 p-1.5 text-primary">
             <Wand2 className="size-4" />
           </div>
           <CardTitle className="text-base font-semibold md:text-lg">优化修复清单</CardTitle>
         </div>
-        <CardDescription className="text-xs leading-5 md:text-sm">
-          仅展示基于当前真实内容发现的可执行问题
-        </CardDescription>
       </CardHeader>
 
       <CardContent className="min-h-0 p-0">
@@ -39,12 +36,7 @@ export default function RepairChecklist() {
                     <div className="rounded-full bg-green-100/50 p-3 dark:bg-green-900/20">
                       <ClipboardCheck className="size-6 text-green-600 dark:text-green-400" />
                     </div>
-                    <div className="max-w-xs space-y-1">
-                      <h3 className="text-sm font-semibold">当前未发现必须修改项</h3>
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        本次评分已综合现有内容，不会因为未使用某个模板模块而生成任务。
-                      </p>
-                    </div>
+                    <h3 className="text-sm font-semibold">当前未发现必须修改项</h3>
                   </div>
                 )
               : (

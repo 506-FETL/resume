@@ -49,21 +49,15 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
           ? (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">感谢您的注册！</CardTitle>
-                  <CardDescription>请检查您的电子邮件以确认</CardDescription>
+                  <CardTitle className="text-2xl">验证邮箱</CardTitle>
+                  <CardDescription>请查收验证邮件，确认邮箱后再登录。</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    您已成功注册。请检查您的电子邮件以确认您的帐户，然后再登录。
-                  </p>
-                </CardContent>
               </Card>
             )
           : (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-2xl">注册</CardTitle>
-                  <CardDescription>创建一个新帐户</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignUp}>
@@ -90,7 +84,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                         />
                       </Field>
                       <Field>
-                        <FieldLabel htmlFor="repeat-password">确认您的密码</FieldLabel>
+                        <FieldLabel htmlFor="repeat-password">确认密码</FieldLabel>
                         <Input
                           id="repeat-password"
                           type="password"

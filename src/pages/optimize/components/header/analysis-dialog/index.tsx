@@ -32,9 +32,7 @@ export function AnalysisDialog({ open, onOpenChange }: AnalysisDialogProps) {
         <ResponsiveDialogHeader className="px-6 pt-6 pb-2 shrink-0 border-b">
           <ResponsiveDialogTitle>ATS 分析过程</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            大模型分析可能需要一些时间，请耐心等待。
-            <br />
-            <span className="text-amber-500 font-medium">LLM也不完全正确，请根据实际情况调整。</span>
+            分析结果仅供参考，请核对后再应用修改。
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <ChainOfThought open className="w-full p-6 overflow-y-auto">

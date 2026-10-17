@@ -76,8 +76,8 @@ export function TemplateEditorToolbar() {
 
         <AnimatedContent animationKey={canSaveAs ? 'existing' : 'new'} className="text-sm text-muted-foreground">
           {canSaveAs
-            ? '保存会覆盖当前模板；另存为会保留当前模板，并创建一份新的个人模板副本。'
-            : '当前模板还未保存。点击保存后会把它创建到“我的模板”里。'}
+            ? '保存会覆盖当前模板；另存为副本会保留原模板。'
+            : '保存后将添加到“我的模板”。'}
         </AnimatedContent>
       </div>
 
@@ -86,7 +86,7 @@ export function TemplateEditorToolbar() {
           <AlertDialogHeader>
             <AlertDialogTitle>离开编辑器？</AlertDialogTitle>
             <AlertDialogDescription>
-              当前模板还有未保存的修改，确定要离开吗？
+              离开后，未保存的修改将丢失。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

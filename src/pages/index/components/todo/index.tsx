@@ -49,11 +49,11 @@ export function TodoCard({ actions, loading, isAuthenticated, hasCloudResume }: 
           {loading
             ? <TodoSkeleton />
             : !isAuthenticated
-                ? <EmptyState icon={LogIn} title="登录后查看今日待办" hint="登录后，投递跟进、面试安排和简历优化待办会在这里汇总" />
+                ? <EmptyState icon={LogIn} title="登录后查看今日待办" />
                 : !hasCloudResume
-                    ? <EmptyState icon={FilePlus2} title="还没有云端简历" hint="创建一份简历，或将本地简历同步到云端，开启求职待办提醒" />
+                    ? <EmptyState icon={FilePlus2} title="还没有云端简历" hint="创建简历或将本地简历同步到云端后，可查看待办。" />
                     : actions.length === 0
-                      ? <EmptyState icon={CircleCheckBig} title="待办都处理完啦" hint="保持简历活跃，随时准备好下一次投递" tone="positive" />
+                      ? <EmptyState icon={CircleCheckBig} title="待办已完成" tone="positive" />
                       : (
                           <div className="flex flex-col gap-2.5">
                             {actions.map((action) => {
@@ -76,7 +76,7 @@ export function TodoCard({ actions, loading, isAuthenticated, hasCloudResume }: 
                                       </span>
                                       {action.label}
                                     </p>
-                                    <p className="truncate text-xs text-muted-foreground">{action.hint}</p>
+                                    {action.hint && <p className="truncate text-xs text-muted-foreground">{action.hint}</p>}
                                   </div>
                                   <ArrowRight className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
                                 </button>
@@ -98,7 +98,7 @@ function EmptyState({
 }: {
   icon: LucideIcon
   title: string
-  hint: string
+  hint?: string
   tone?: 'muted' | 'positive'
 }) {
   return (
@@ -112,7 +112,7 @@ function EmptyState({
         <Icon className="size-5" />
       </div>
       <p className="text-sm font-medium">{title}</p>
-      <p className="max-w-xs text-xs text-muted-foreground">{hint}</p>
+      {hint && <p className="max-w-xs text-xs text-muted-foreground">{hint}</p>}
     </div>
   )
 }

@@ -382,7 +382,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除记录？</AlertDialogTitle>
             <AlertDialogDescription>
-              {`删除后将无法恢复。确定要删除「${pendingDeleteActivity?.label ?? '该记录'}」吗？`}
+              {`「${pendingDeleteActivity?.label ?? '该记录'}」将永久删除，无法恢复。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -397,7 +397,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>确认批量删除？</AlertDialogTitle>
             <AlertDialogDescription>
-              {`删除后将无法恢复。确定要删除选中的 ${selectedIds.size} 条记录吗？`}
+              {`选中的 ${selectedIds.size} 条记录将永久删除，无法恢复。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

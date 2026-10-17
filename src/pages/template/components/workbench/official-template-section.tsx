@@ -3,7 +3,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
-import { TEMPLATE_CENTER_TAB_META } from '../../const'
 import { useOfficialTemplatesStore, useTemplateWorkbenchStore } from '../../store'
 import { TemplateCard } from './template-card'
 import { TemplateThumbnail } from './template-thumbnail'
@@ -12,18 +11,10 @@ export function OfficialTemplateSection() {
   const reduceMotion = useReducedMotion()
   const { officialTemplates: templates } = useOfficialTemplatesStore()
   const { createResumeWithTemplate, customizeOfficialTemplate } = useTemplateWorkbenchStore()
-  const sectionMeta = TEMPLATE_CENTER_TAB_META.official
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{`${templates.length} 个模板`}</Badge>
-          <Badge variant="outline">可直接使用</Badge>
-          <Badge variant="outline">支持自定义</Badge>
-        </div>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{sectionMeta.description}</p>
-      </div>
+      <Badge variant="secondary" className="self-start">{`${templates.length} 个模板`}</Badge>
 
       <Separator />
 

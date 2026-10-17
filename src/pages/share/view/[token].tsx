@@ -184,10 +184,7 @@ export default function ResumeSharePage() {
           <div
             className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border bg-background p-6 shadow-lg"
           >
-            <div className="flex flex-col gap-1">
-              <h1 className="text-lg font-semibold">需要访问密码</h1>
-              <p className="text-sm text-muted-foreground">这份简历受密码保护，请输入密码继续查看。</p>
-            </div>
+            <h1 className="text-lg font-semibold">需要访问密码</h1>
             <Input
               type="password"
               value={password}

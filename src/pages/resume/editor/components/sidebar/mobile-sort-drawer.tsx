@@ -135,8 +135,8 @@ export function MobileSortDrawer({ open, order, onOpenChange, onConfirm }: Mobil
       >
         <DrawerHeader className="px-6 pt-4 pb-4 text-left">
           <DrawerTitle className="text-lg font-semibold">调整模块顺序</DrawerTitle>
-          <DrawerDescription className="text-sm">
-            按住左侧拖动图标调整顺序，确认后应用。
+          <DrawerDescription className="sr-only">
+            使用拖动手柄或上下方向键排序，确认后生效。
           </DrawerDescription>
         </DrawerHeader>
 

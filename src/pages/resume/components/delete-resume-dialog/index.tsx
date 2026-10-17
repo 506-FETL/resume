@@ -16,10 +16,8 @@ export default function DeleteResumeDialog({ resumeName, open, onOpenChange, onC
         <DialogHeader>
           <DialogTitle>确认删除简历?</DialogTitle>
           <DialogDescription>
-            你确定要删除
             <Badge variant="secondary">{resumeName}</Badge>
-            吗？
-            <span className="">此操作无法撤销，简历的所有数据将被永久删除。</span>
+            的所有数据将永久删除，无法恢复。
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

@@ -25,7 +25,7 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
   const content = {
     empty: { icon: BriefcaseBusiness, title: '暂无职位', description: null },
     archived: { icon: Archive, title: '暂无归档职位', description: null },
-    filtered: { icon: SearchX, title: '没有找到匹配的职位', description: '试试其他关键词，或清除筛选条件查看全部职位。' },
+    filtered: { icon: SearchX, title: '没有找到匹配的职位', description: null },
     error: { icon: TriangleAlert, title: '职位暂时无法加载', description: error || '请稍后重试。' },
   }[mode]
   const Icon = content.icon

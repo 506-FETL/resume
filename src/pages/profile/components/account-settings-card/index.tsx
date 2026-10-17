@@ -2,7 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AnimatedContent } from '@/components/motion/animated-content'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -48,14 +48,10 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
     <Card>
       <CardHeader>
         <CardTitle>账户设置</CardTitle>
-        <CardDescription>管理你的账户安全和偏好</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-0.5">
-            <Label>修改密码</Label>
-            <p className="text-muted-foreground text-sm">更新你的账户密码以保护安全</p>
-          </div>
+          <Label>修改密码</Label>
           <UpdatePasswordDialog />
         </div>
 
@@ -72,17 +68,11 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
 function LoadingSkeleton() {
   return (
     <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-6 w-32 rounded-lg" />
-        <Skeleton className="h-4 w-64" />
-      </div>
+      <Skeleton className="h-6 w-32 rounded-lg" />
       <Separator />
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between py-3">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-3 w-48" />
-          </div>
+          <Skeleton className="h-4 w-24" />
           <Skeleton className="h-9 w-24 rounded-md" />
         </div>
         <Separator />

@@ -78,7 +78,7 @@ export function AvatarCropDialog({
       >
         <DialogHeader className="px-6 pt-6">
           <DialogTitle>裁剪头像</DialogTitle>
-          <DialogDescription>在图片上直接拖拽四角调整裁剪范围，并切换方形或圆形头像。</DialogDescription>
+          <DialogDescription className="sr-only">调整裁剪范围并保存头像。</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 px-6 py-5">

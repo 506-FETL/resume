@@ -114,23 +114,23 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
   })
 
   const summary = !findings
-    ? ['当前简历还没有问题分析结果，一键优化需要先复用“简历问题分析”中的结构化修复建议。']
+    ? ['请先运行简历检测。']
     : totalIssueCount === 0
-      ? ['当前分析结果没有检测到需要处理的问题。']
+      ? ['未发现待处理问题。']
       : pendingIssueCount === 0
-        ? ['当前问题分析中的自动修复建议都已处理完成，无需再次一键应用。']
+        ? ['自动修复建议已全部处理。']
         : [
-            `当前共有 ${pendingIssueCount} 个待处理问题，包含 ${pendingSuggestionCount} 条未执行建议。`,
-            `本次可直接一键应用 ${autoApplicableSuggestionCount} 条建议，预计完成 ${autoApplicableIssueCount} 个问题。`,
+            `${pendingIssueCount} 个问题待处理，共 ${pendingSuggestionCount} 条建议。`,
+            `本次可应用 ${autoApplicableSuggestionCount} 条建议，预计解决 ${autoApplicableIssueCount} 个问题。`,
             requiresInputSuggestionCount > 0
-              ? `另有 ${requiresInputSuggestionCount} 条建议需要先补充真实信息，填写完成后即可自动应用。`
+              ? `${requiresInputSuggestionCount} 条建议需补充真实信息。`
               : '',
             conflictedSuggestionCount > 0
-              ? `另有 ${conflictedSuggestionCount} 条建议与更高优先级问题修改同一字段，已保留为待处理。`
+              ? `${conflictedSuggestionCount} 条建议与高优先级建议修改了同一字段，暂不应用。`
               : requiresInputSuggestionCount > 0
-                ? '完成真实信息补充后，剩余建议即可继续批量应用。'
-                : '所有待处理建议都可以直接批量应用。',
-            fixedIssueCount > 0 ? `另外已有 ${fixedIssueCount} 个问题在此前完成修复。` : '',
+                ? '补充信息后可继续批量应用。'
+                : '待处理建议均可批量应用。',
+            fixedIssueCount > 0 ? `此前已修复 ${fixedIssueCount} 个问题。` : '',
           ].filter(Boolean)
 
   return {

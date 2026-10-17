@@ -235,7 +235,7 @@ function JobCardComponent({ job }: JobCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除职位？</AlertDialogTitle>
             <AlertDialogDescription>
-              {`删除后将无法恢复。确定要永久删除「${job.company} - ${job.position}」吗？`}
+              {`「${job.company} - ${job.position}」将永久删除，无法恢复。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

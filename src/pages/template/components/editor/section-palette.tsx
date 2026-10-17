@@ -1,5 +1,4 @@
 import type { TemplateManifest } from '@/lib/resume-template/schema'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TEMPLATE_SECTION_LABELS } from '../../const'
 import { addSection, canTemplateSectionMoveToRegion, getTemplateEditorCapabilities } from '../../utils'
@@ -20,7 +19,7 @@ export function TemplateSectionPalette({
   if (paletteSections.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-        当前 family 的可选模块已经全部加入。
+        已添加全部可用模块
       </div>
     )
   }
@@ -39,10 +38,7 @@ export function TemplateSectionPalette({
 
         return (
           <div key={sectionId} className="flex items-center justify-between rounded-xl border p-3">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{TEMPLATE_SECTION_LABELS[sectionId] ?? sectionId}</span>
-              <Badge variant="secondary">可添加</Badge>
-            </div>
+            <span className="font-medium">{TEMPLATE_SECTION_LABELS[sectionId] ?? sectionId}</span>
             <Button
               variant="outline"
               size="sm"

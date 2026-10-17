@@ -36,10 +36,10 @@ export default function CurrentOverview() {
           </div>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {versions.length === 0
-              ? '当前简历尚未保存过版本。建议在完成一轮修改、进行 AI 优化前，或准备投递前先保存一个版本。'
+              ? '当前简历尚未保存版本。'
               : syncState.synced
                 ? `当前内容与最近保存的 V${syncState.latestVersionNo} 一致。`
-                : '当前内容与最近保存的版本存在差异，建议先保存再继续后续操作。'}
+                : '当前内容与最近保存的版本不同。'}
           </p>
         </CardContent>
       </Card>

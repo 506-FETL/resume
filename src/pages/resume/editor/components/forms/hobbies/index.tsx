@@ -55,9 +55,7 @@ function HobbiesForm({ className }: { className?: string }) {
   const addCustomHobby = () => {
     const trimmedValue = customHobbyInput.trim()
     if (!trimmedValue) {
-      toast.warning('爱好名称不能为空', {
-        description: '请输入有效的爱好名称',
-      })
+      toast.warning('爱好名称不能为空')
       return
     }
 

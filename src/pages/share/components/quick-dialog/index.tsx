@@ -85,7 +85,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       」
     </>
   )
-  const description = '生成一个分享链接，让他人查看你的简历'
+  const description = '创建和管理这份简历的分享链接。'
   const body = (
     <>
       <CreateForm
@@ -110,7 +110,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
           {dialogError && <p className="text-sm text-destructive">{dialogError}</p>}
 
           {!dialogLoading && shares.length === 0 && (
-            <p className="py-4 text-center text-sm text-muted-foreground">还没有分享链接，生成一个吧。</p>
+            <p className="py-4 text-center text-sm text-muted-foreground">还没有分享链接</p>
           )}
         </AnimatedContent>
 
@@ -153,7 +153,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
               <DrawerContent>
                 <DrawerHeader className="shrink-0 px-6 pt-4 pb-4 text-left">
                   <DrawerTitle className="text-lg font-semibold">{title}</DrawerTitle>
-                  <DrawerDescription>{description}</DrawerDescription>
+                  <DrawerDescription className="sr-only">{description}</DrawerDescription>
                 </DrawerHeader>
                 <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
                   {body}
@@ -166,7 +166,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
               <DialogContent className="max-h-[calc(100dvh-2rem)] min-w-0 max-w-2xl overflow-hidden">
                 <DialogHeader>
                   <DialogTitle>{title}</DialogTitle>
-                  <DialogDescription>{description}</DialogDescription>
+                  <DialogDescription className="sr-only">{description}</DialogDescription>
                 </DialogHeader>
                 {body}
               </DialogContent>

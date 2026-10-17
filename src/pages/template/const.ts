@@ -5,26 +5,22 @@ type TemplateCenterTabKey = 'official' | 'mine'
 
 interface TemplateCenterTabMeta {
   label: string
-  description: string
   icon: LucideIcon
 }
 
 interface TemplateCenterSummaryItem {
   key: TemplateCenterTabKey
   label: string
-  description: string
   icon: LucideIcon
 }
 
 export const TEMPLATE_CENTER_TAB_META: Record<TemplateCenterTabKey, TemplateCenterTabMeta> = {
   official: {
     label: '官方',
-    description: '从稳定、可直接使用的官方模板快速开始。',
     icon: Sparkles,
   },
   mine: {
     label: '我的',
-    description: '沉淀你的常用模板配置，随时继续编辑与复用。',
     icon: FolderOpen,
   },
 }
@@ -33,13 +29,11 @@ export const TEMPLATE_CENTER_SUMMARY_ITEMS: TemplateCenterSummaryItem[] = [
   {
     key: 'official',
     label: '官方模板',
-    description: '可直接使用或进入自定义',
     icon: Sparkles,
   },
   {
     key: 'mine',
     label: '我的模板',
-    description: '你保存并可持续维护的模板资产',
     icon: FolderOpen,
   },
 ]

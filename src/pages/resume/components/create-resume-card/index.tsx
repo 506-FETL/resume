@@ -4,9 +4,9 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -111,9 +111,6 @@ export default function CreateResumeCard() {
         <CardContent className="flex justify-center">
           <p className="font-semibold text-lg">创建新简历</p>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">开始制作你的专属简历</p>
-        </CardFooter>
       </Card>
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
         <DialogContent className="sm:max-w-135">
@@ -125,39 +122,37 @@ export default function CreateResumeCard() {
             <FieldGroup className="gap-6 py-6">
               {/* 简历名称 */}
               <Field>
-                <FieldLabel htmlFor="display_name">简历名称</FieldLabel>
+                <FieldLabel htmlFor="display_name">
+                  简历名称（
+                  {displayName.length}
+                  /50）
+                </FieldLabel>
                 <Input
                   id="display_name"
-                  placeholder="例如: 前端开发工程师简历"
+                  placeholder="例如：前端开发简历"
                   value={displayName}
                   onChange={e => setDisplayName(e.target.value)}
                   maxLength={50}
                   className="h-11"
                 />
-                <FieldDescription>
-                  为你的简历起一个容易识别的名称 (
-                  {displayName.length}
-                  /50)
-                </FieldDescription>
               </Field>
 
               {/* 简历描述 */}
               <Field>
-                <FieldLabel htmlFor="description">简历描述</FieldLabel>
+                <FieldLabel htmlFor="description">
+                  简历描述（
+                  {description.length}
+                  /200）
+                </FieldLabel>
                 <Textarea
                   id="description"
-                  placeholder="例如: 用于投递互联网公司的前端技术岗位"
+                  placeholder="例如：前端岗位投递"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   rows={3}
                   maxLength={200}
                   className="resize-none"
                 />
-                <FieldDescription>
-                  简要描述这份简历的用途 (
-                  {description.length}
-                  /200)
-                </FieldDescription>
               </Field>
 
               <Field>

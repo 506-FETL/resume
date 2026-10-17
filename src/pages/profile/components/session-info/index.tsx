@@ -36,13 +36,10 @@ export function SessionInfo({ lastSignInAt, provider, formatDate }: SessionInfoP
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between">
-        <div className="flex flex-col gap-0.5">
-          <Label className="flex items-center gap-2">
-            <Key className="size-4 shrink-0" />
-            会话信息
-          </Label>
-          <p className="text-muted-foreground text-sm">当前登录会话的详细信息</p>
-        </div>
+        <Label className="flex items-center gap-2">
+          <Key className="size-4 shrink-0" />
+          会话信息
+        </Label>
         <Badge variant="outline" className="gap-1">
           <Monitor className="size-3 shrink-0" />
           当前设备

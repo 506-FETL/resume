@@ -19,7 +19,7 @@ export interface ResumeToolSummary {
 export interface AdvancedToolDefinition {
   key: AdvancedToolKey
   title: string
-  description: string
+  description?: string
 }
 
 export type ToolTone = 'default' | 'danger' | 'info' | 'primary' | 'success' | 'warning'
