@@ -19,9 +19,9 @@ interface StreamUpdate {
 async function streamStructuredJson(
   req: ChatCompletionCreateParamsBase,
   onUpdate?: (data: StreamUpdate) => void,
-  options?: { throttleMs?: number, abortController?: AbortController },
+  options?: { throttleMs?: number, abortController?: AbortController, requireComplete?: boolean },
 ) {
-  const { throttleMs = 100, abortController } = options || {}
+  const { throttleMs = 100, abortController, requireComplete = false } = options || {}
   const stream = await callLLM(req, abortController)
 
   let fullContent = ''
@@ -30,41 +30,59 @@ async function streamStructuredJson(
 
   const throttledUpdate = onUpdate
     ? throttle((data: StreamUpdate) => {
-        onUpdate(data)
+        if (!abortController?.signal.aborted)
+          onUpdate(data)
       }, throttleMs)
     : null
 
-  for await (const chunk of stream) {
-    const choice = chunk.choices[0]
-    const delta = choice?.delta as { content?: string, reasoning_content?: string } | undefined
-    // finish_reason 权威区分：'length'=被截断（超出 token 预算）、'stop'=正常结束、null=流被中断
-    const chunkFinish = (choice as { finish_reason?: string | null } | undefined)?.finish_reason
-    if (chunkFinish)
-      finishReason = chunkFinish
-    const content = typeof delta?.content === 'string' ? delta.content : ''
-    const reasoning = typeof delta?.reasoning_content === 'string' ? delta.reasoning_content : ''
+  try {
+    for await (const chunk of stream) {
+      const choice = chunk.choices[0]
+      const delta = choice?.delta as { content?: string, reasoning_content?: string } | undefined
+      // finish_reason 权威区分：'length'=被截断（超出 token 预算）、'stop'=正常结束、null=流被中断
+      const chunkFinish = (choice as { finish_reason?: string | null } | undefined)?.finish_reason
+      if (chunkFinish)
+        finishReason = chunkFinish
+      const content = typeof delta?.content === 'string' ? delta.content : ''
+      const reasoning = typeof delta?.reasoning_content === 'string' ? delta.reasoning_content : ''
 
-    if (!content && !reasoning) {
-      continue
+      if (!content && !reasoning) {
+        continue
+      }
+
+      if (content) {
+        fullContent += content
+      }
+
+      if (reasoning) {
+        fullReasoning += reasoning
+      }
+
+      throttledUpdate?.({
+        content: fullContent,
+        reasoning: fullReasoning,
+      })
     }
 
-    if (content) {
-      fullContent += content
+    throttledUpdate?.flush()
+
+    if (requireComplete) {
+      if (finishReason === 'length')
+        throw new Error('AI 输出达到长度限制，结果不完整，请重试')
+      if (finishReason === 'content_filter')
+        throw new Error('AI 输出被内容过滤，无法生成完整结果，请调整输入后重试')
+      if (finishReason !== 'stop')
+        throw new Error('AI 输出中断，结果不完整，请重试')
+      if (!fullContent.trim())
+        throw new Error('AI 未返回有效结果，请重试')
     }
 
-    if (reasoning) {
-      fullReasoning += reasoning
-    }
-
-    throttledUpdate?.({
-      content: fullContent,
-      reasoning: fullReasoning,
-    })
+    return { content: fullContent, reasoning: fullReasoning, finishReason }
   }
-
-  throttledUpdate?.flush()
-
-  return { content: fullContent, reasoning: fullReasoning, finishReason }
+  finally {
+    // 正常完成已 flush；异常或取消时丢弃排队更新，避免覆盖任务终态。
+    throttledUpdate?.cancel()
+  }
 }
 
 // JSON 修复：大模型输出 HTML/文本字段时常见两类破坏——字符串内未转义的双引号、字符串内的裸控制字符
@@ -281,7 +299,7 @@ export async function runJdVariantParse(
     response_format: { type: 'json_object' },
     temperature: JD_VARIANT_PARSE_TEMPERATURE,
   } as ChatCompletionCreateParamsBase
-  return await streamStructuredJson(req, onUpdate, options)
+  return await streamStructuredJson(req, onUpdate, { ...options, requireComplete: true })
 }
 
 export async function runJdVariantRewrite(
@@ -298,5 +316,5 @@ export async function runJdVariantRewrite(
     response_format: { type: 'json_object' },
     temperature: JD_VARIANT_REWRITE_TEMPERATURE,
   } as ChatCompletionCreateParamsBase
-  return await streamStructuredJson(req, onUpdate, options)
+  return await streamStructuredJson(req, onUpdate, { ...options, requireComplete: true })
 }
