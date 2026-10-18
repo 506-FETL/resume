@@ -18,7 +18,7 @@ export default function ResumePreview() {
         <span className="min-w-0 flex-1 truncate font-medium">{currentName ?? '当前简历'}</span>
       </div>
       {/* 用原生溢出容器而非 Radix ScrollArea：后者视口用 display:table，会让内容按自然宽度撑开导致预览无法按容器宽度自适应缩放 */}
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
         <AnimatedContent animationKey={status === 'idle' && !previewData ? 'empty' : status} className="p-3">
           {status === 'loading' && <Skeleton className="h-[560px] w-full rounded-lg" />}
           {status === 'error' && <p className="py-10 text-center text-sm text-muted-foreground">该简历加载失败，请重试或切换其它简历。</p>}

@@ -1,5 +1,6 @@
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { getAccessibleResumeById, listAccessibleResumes } from '@/lib/resume-access'
 import { isResumeNotFoundError } from '@/lib/resume-id'
 import { buildResumeSnapshot } from '@/pages/history/utils'
@@ -23,6 +24,8 @@ export function invalidateCanvasSnapshot(resumeId?: string): void {
 }
 
 export function useCanvasPreview() {
+  const isMobile = useIsMobile()
+  const canvasVisible = useAssistantStore(s => isMobile ? s.canvasMobileOpen : s.canvasOpen)
   const { previewResumeId, setPreviewResumeId, canvasRefreshTick, canvasActiveTab } = useAssistantStore()
   const activeConversationId = useAssistantStore(s => s.activeConversationId)
   const conversations = useAssistantStore(s => s.conversations)
@@ -31,11 +34,12 @@ export function useCanvasPreview() {
   const { writes } = useCanvasModel()
   const [options, setOptions] = useState<ResumeOption[]>([])
   const [optionsStatus, setOptionsStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const optionsLoadingRef = useRef(false)
   const [optionsLoadedForCurrentId, setOptionsLoadedForCurrentId] = useState<string | null | undefined>(undefined)
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(
     () => (previewResumeId ? snapshotCache.get(previewResumeId) ?? null : null),
   )
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'empty'>('idle')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'empty'>(snapshot ? 'idle' : 'loading')
 
   // 当前会话绑定的简历（画布预览按会话切换的核心）：优先于全局当前简历。
   const boundResumeId = useMemo(
@@ -52,7 +56,10 @@ export function useCanvasPreview() {
 
   // 下拉选项
   useEffect(() => {
+    if (!canvasVisible)
+      return
     let cancelled = false
+    optionsLoadingRef.current = true
     setOptionsStatus('loading')
     setOptionsLoadedForCurrentId(undefined)
     const currentIdAtLoad = currentResumeId
@@ -60,6 +67,7 @@ export function useCanvasPreview() {
       .then((rows) => {
         if (cancelled)
           return
+        optionsLoadingRef.current = false
         const list = rows.map(r => ({
           resumeId: String(r.resume_id),
           name: String(r.display_name ?? '未命名'),
@@ -70,6 +78,7 @@ export function useCanvasPreview() {
       })
       .catch(() => {
         if (!cancelled) {
+          optionsLoadingRef.current = false
           setOptionsStatus('error')
           setSnapshot(null)
           setStatus('error')
@@ -79,7 +88,7 @@ export function useCanvasPreview() {
     return () => {
       cancelled = true
     }
-  }, [currentResumeId, resumeWriteCount])
+  }, [canvasVisible, currentResumeId, resumeWriteCount])
 
   // 列表成功后再解析目标，避免把本地 ID 或已失效 ID 直接送入错误的数据源。
   useEffect(() => {
@@ -113,7 +122,8 @@ export function useCanvasPreview() {
 
   // 拉取被预览简历
   useEffect(() => {
-    if (optionsStatus !== 'ready')
+    // 列表 effect 先运行；避免重开同一帧先用旧列表发起一次重复请求。
+    if (optionsLoadingRef.current || optionsStatus !== 'ready')
       return
     if (!previewResumeId) {
       setSnapshot(null)
@@ -122,9 +132,8 @@ export function useCanvasPreview() {
     }
     if (!options.some(option => option.resumeId === previewResumeId))
       return
-    // 只在简历 tab 激活时拉取；切到简历 tab 时（canvasActiveTab 依赖变化）每次都重新加载最新 DB 数据，
-    // 一劳永逸地避免画布停留在旧内容（预览面板 forceMount 常驻，故用 tab 激活作为刷新时机）
-    if (canvasActiveTab !== 'resume')
+    // 预览保留挂载；重新打开画布或切回简历标签时静默刷新。
+    if (!canvasVisible || canvasActiveTab !== 'resume')
       return
     let cancelled = false
     // 命中缓存则直接展示（无骨架），后台静默 revalidate
@@ -163,7 +172,7 @@ export function useCanvasPreview() {
     return () => {
       cancelled = true
     }
-  }, [canvasActiveTab, canvasRefreshTick, clearCurrentResume, currentResumeId, options, optionsStatus, previewResumeId, resumeWriteCount, setPreviewResumeId])
+  }, [canvasActiveTab, canvasRefreshTick, canvasVisible, clearCurrentResume, currentResumeId, options, optionsStatus, previewResumeId, resumeWriteCount, setPreviewResumeId])
 
   const currentName = options.find(o => o.resumeId === previewResumeId)?.name ?? null
 

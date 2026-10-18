@@ -1,46 +1,254 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" fill="none" role="img" aria-labelledby="title desc">
-  <title id="title">GResume tailor and share sequence</title>
-  <desc id="desc">A clean hand-drawn sequence diagram showing how a candidate tailors a resume, reviews AI suggestions and publishes a fixed share snapshot.</desc>
+<svg class="diagram-product-sequence" xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">简历定制与分享时序</title>
+  <desc id="desc">选择岗位、请求建议、确认修改，再发布固定分享快照。</desc>
 
   <defs>
     <pattern id="paperDots" width="24" height="24" patternUnits="userSpaceOnUse">
       <circle cx="2" cy="2" r="1.1" fill="#D9D2C3" opacity="0.36" />
     </pattern>
-    <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#1F2328" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-    </marker>
-    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M1 1L7 4.5L1 8" fill="none" stroke="#2F6BFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-    </marker>
+    <marker id="arrowInk" markerWidth="11" markerHeight="11" viewBox="0 0 12 12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M2 2.3Q6.4 4.5 10 6Q6 8.4 2.1 10" fill="none" stroke="#1F2328" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></marker>
+    <marker id="arrowBlue" markerWidth="11" markerHeight="11" viewBox="0 0 12 12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M2 2.3Q6.4 4.5 10 6Q6 8.4 2.1 10" fill="none" stroke="#2F6BFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></marker>
+    <style>
+      text { font-family: 'Excalifont-product-sequence', 'Xiaolai-product-sequence'; font-weight: 400; } :where(text:not([fill])) { fill: #1F2328; }
+      .title { font-size: 25px; }
+      .section { font-size: 19px; }
+      .label { font-size: 17px; }
+      .body { font-size: 15px; fill: #575D66; }
+      .small { font-size: 14px; fill: #575D66; }
+      .blue { font-size: 14px; fill: #2F6BFF; }
+      .chip { font-size: 14px; }
+    </style>
+      <symbol id="product-sequence-icon-browser" viewBox="0 0 24 24"><g fill="none" stroke="#1F2328" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3.5L20 3.8Q22 3.8 21.8 6L21.5 19Q21.5 21 19.5 20.8L4 20.5Q2 20.5 2.2 18.5L2.4 5.5Q2.4 3.5 4 3.5Z" fill="#F8FAFF"/><path d="M2.7 8.4L21.4 8.7M5.4 6H9.5M13 6.1H13.5M17 6.2H17.5"/><path d="M6 12L18 12.3M6 16H13" stroke="#2F6BFF"/></g></symbol>
+    <symbol id="product-sequence-icon-cloud" viewBox="0 0 24 24"><g fill="none" stroke="#1F2328" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19Q1 19 2 13Q2 9 6 9Q6 2 13 3Q18 3 19 9Q23 10 22 15Q22 20 17 19Z" fill="#F2F8F3"/></g></symbol>
+    <symbol id="product-sequence-icon-cpu" viewBox="0 0 24 24"><g fill="none" stroke="#1F2328" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5.3L17 5.6Q19 5.6 18.8 7.5L18.5 17Q18.5 19 16.5 18.8L7 18.5Q5 18.5 5.2 16.5L5.4 7Q5.4 5.3 7 5.3Z" fill="#E8EEFF"/><path d="M9 9H15V15H9ZM8 2V5M16 2V5M8 19V22M16 19V22M2 8H5M2 16H5M19 8H22M19 16H22"/></g></symbol>
+      <!-- readme-font:start -->
+    <metadata id="readme-font-license">Subset of Excalifont; internal name GResume Sketch Latin.
+Copyright (c) 2024 by Excalidraw. All rights reserved.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+&quot;Font Software&quot; refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+&quot;Reserved Font Name&quot; refers to any names specified as such after the
+copyright statement(s).
+
+&quot;Original Version&quot; refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+&quot;Modified Version&quot; refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+&quot;Author&quot; refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION &amp; CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+
+
+Subset of Xiaolai; internal name GResume Sketch CJK.
+Copyright 2020-2024 LXGW (https://github.com/lxgw/kose-font)
+Copyright 2014 Nozomi Seto (https://ja.osdn.net/projects/setofont/)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+&quot;Font Software&quot; refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+&quot;Reserved Font Name&quot; refers to any names specified as such after the
+copyright statement(s).
+
+&quot;Original Version&quot; refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+&quot;Modified Version&quot; refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+&quot;Author&quot; refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION &amp; CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+</metadata>
+    <style>
+      @font-face { font-family: 'Excalifont-product-sequence'; font-style: normal; font-weight: 400; src: url(data:font/woff2;base64,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) format('woff2'); }
+      @font-face { font-family: 'Xiaolai-product-sequence'; font-style: normal; font-weight: 400; src: url(data:font/woff2;base64,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) format('woff2'); }
+      .diagram-product-sequence text { font-family: 'Excalifont-product-sequence', 'Xiaolai-product-sequence'; font-weight: 400; }
+    </style>
+    <!-- readme-font:end -->
   </defs>
 
   <rect x="8" y="8" width="1184" height="604" rx="28" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
   <rect x="17" y="17" width="1166" height="586" rx="21" fill="url(#paperDots)" stroke="#1F2328" stroke-width="1" stroke-dasharray="7 11" opacity="0.8" />
 
-  <text x="48" y="52" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="800" letter-spacing="1.2">SEQUENCE / TAILOR → REVIEW → SHARE</text>
+  <text x="48" y="52" fill="#1F2328" font-size="22">发布流程 / 岗位定制 → 审阅 → 分享</text>
   <path d="M48 68C186 58 332 58 470 69" stroke="#D4A72C" stroke-width="3" stroke-linecap="round" />
   <path d="M832 35Q832 27 841 27L1136 29Q1145 29 1145 38L1143 72Q1143 81 1134 81L841 79Q832 79 832 70Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2.2" />
-  <text x="858" y="57" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="800">CLOUD STEPS RUN AFTER SIGN-IN</text>
+  <text x="989" y="57" fill="#1F2328" font-size="15" text-anchor="middle">云端步骤需先登录</text>
 
   <!-- Actors -->
   <path d="M65 104Q65 94 76 94L244 96Q255 96 255 107L253 161Q253 172 242 172L76 170Q65 170 65 159Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.8" />
   <circle cx="96" cy="132" r="12" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
   <circle cx="96" cy="128" r="4" fill="#FFFFFF" stroke="#1F2328" stroke-width="1.5" />
   <path d="M89 140Q96 133 103 140" stroke="#1F2328" stroke-width="1.5" stroke-linecap="round" />
-  <text x="124" y="139" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">CANDIDATE</text>
+  <text x="124" y="139" fill="#1F2328" font-size="17">求职者</text>
 
   <path d="M330 104Q330 94 341 94L519 96Q530 96 530 107L528 161Q528 172 517 172L341 170Q330 170 330 159Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.8" />
-  <path d="M358 116H384V145H358Z" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
-  <text x="405" y="139" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">BROWSER APP</text>
+  <use href="#product-sequence-icon-browser" data-icon="browser" x="354" y="115" width="34" height="34" aria-hidden="true"/>
+  <text x="399" y="139" fill="#1F2328" font-size="17">浏览器</text>
 
   <path d="M650 104Q650 94 661 94L839 96Q850 96 850 107L848 161Q848 172 837 172L661 170Q650 170 650 159Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.8" />
-  <ellipse cx="681" cy="124" rx="17" ry="7" fill="#E2F1E5" stroke="#1F2328" stroke-width="1.8" />
-  <path d="M664 124V143C664 148 672 151 681 151C690 151 698 148 698 143V124" stroke="#1F2328" stroke-width="1.8" />
-  <text x="721" y="139" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800">SUPABASE</text>
+  <use href="#product-sequence-icon-cloud" data-icon="cloud" x="664" y="115" width="34" height="34" aria-hidden="true"/>
+
+  <text x="721" y="139" fill="#1F2328" font-size="17">云端服务</text>
 
   <path d="M945 104Q945 94 956 94L1124 96Q1135 96 1135 107L1133 161Q1133 172 1122 172L956 170Q945 170 945 159Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.8" />
-  <path d="M973 118H1003M973 129H1010M973 140H997" stroke="#D4A72C" stroke-width="2.8" stroke-linecap="round" />
-  <text x="1028" y="139" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="800">MODEL PROXY</text>
+  <use href="#product-sequence-icon-cpu" data-icon="cpu" x="969" y="115" width="34" height="34" aria-hidden="true"/>
+  <text x="1017" y="139" fill="#1F2328" font-size="16">模型代理</text>
 
   <!-- Lifelines -->
   <path d="M160 171V550" stroke="#858B94" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="6 8" />
@@ -49,34 +257,41 @@
   <path d="M1040 171V550" stroke="#858B94" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="6 8" />
 
   <!-- Step 1 -->
-  <text x="196" y="207" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="700">1. choose resume + target JD</text>
+  <rect x="167.39999999999998" y="191" width="255.20000000000002" height="24" rx="4" fill="#FFFDF7"/>
+  <text x="295" y="207" fill="#1F2328" font-size="16" text-anchor="middle">1. 选择简历与目标岗位</text>
   <path d="M160 220H430" stroke="#1F2328" stroke-width="2.8" stroke-linecap="round" marker-end="url(#arrowInk)" />
 
   <!-- Step 2 -->
-  <text x="488" y="260" fill="#2F6BFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="800">2. load signed-in context</text>
+  <rect x="475" y="244" width="230" height="24" rx="4" fill="#FFFDF7"/>
+  <text x="590" y="260" fill="#2F6BFF" font-size="16" text-anchor="middle">2. 读取登录后的上下文</text>
   <path d="M430 273H750" stroke="#2F6BFF" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
 
   <!-- Step 3 -->
-  <text x="594" y="313" fill="#2F6BFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="800">3. request ATS-aware suggestions</text>
+  <rect x="590.6" y="297" width="288.8" height="24" rx="4" fill="#FFFDF7"/>
+  <text x="735" y="313" fill="#2F6BFF" font-size="16" text-anchor="middle">3. 请求简历优化建议</text>
   <path d="M430 326H1040" stroke="#2F6BFF" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
 
   <!-- Step 4 -->
-  <text x="661" y="366" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">4. stream suggestions for review</text>
+  <rect x="590.6" y="350" width="288.8" height="24" rx="4" fill="#FFFDF7"/>
+  <text x="735" y="366" fill="#575D66" font-size="16" text-anchor="middle">4. 流式返回，等待审阅</text>
   <path d="M1040 379H430" stroke="#2F6BFF" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
 
   <!-- Step 5 -->
-  <text x="205" y="419" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="700">5. confirm selected edits</text>
+  <rect x="180" y="403" width="230" height="24" rx="4" fill="#FFFDF7"/>
+  <text x="295" y="419" fill="#1F2328" font-size="16" text-anchor="middle">5. 确认选中的修改</text>
   <path d="M160 432H430" stroke="#1F2328" stroke-width="2.8" stroke-linecap="round" marker-end="url(#arrowInk)" />
 
   <!-- Step 6 -->
-  <text x="476" y="472" fill="#2F6BFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="800">6. save version + fixed snapshot</text>
+  <rect x="445.6" y="456" width="288.8" height="24" rx="4" fill="#FFFDF7"/>
+  <text x="590" y="472" fill="#2F6BFF" font-size="16" text-anchor="middle">6. 保存版本与分享快照</text>
   <path d="M430 485H750" stroke="#2F6BFF" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowBlue)" />
 
   <!-- Step 7 -->
-  <text x="311" y="525" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">7. return controlled share URL</text>
+  <rect x="319" y="509" width="272" height="24" rx="4" fill="#FFFDF7"/>
+  <text x="455" y="525" fill="#575D66" font-size="16" text-anchor="middle">7. 返回可控制访问的链接</text>
   <path d="M750 538H160" stroke="#1F2328" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrowInk)" />
 
   <!-- Footer note -->
   <path d="M356 558Q356 552 363 552L837 554Q844 554 844 561L842 588Q842 595 835 595L363 593Q356 593 356 586Z" fill="#FFF9E8" stroke="#D4A72C" stroke-width="1.8" />
-  <text x="425" y="579" fill="#575D66" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">AI suggestions never bypass user confirmation</text>
+  <text x="600" y="579" fill="#575D66" font-size="15" text-anchor="middle">AI 修改需经用户确认</text>
 </svg>

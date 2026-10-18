@@ -1,11 +1,220 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="214" viewBox="0 0 1200 214" fill="none" role="img" aria-labelledby="title desc">
-  <title id="title">GResume technology badges</title>
-  <desc id="desc">A clean hand-drawn panel with badges for React, TypeScript, Vite, Tailwind CSS, Tiptap, Zustand, Supabase and the MIT license.</desc>
+<svg class="diagram-tech-badges" xmlns="http://www.w3.org/2000/svg" width="1200" height="214" viewBox="0 0 1200 214" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">项目技术选型</title>
+  <desc id="desc">React、TypeScript、Vite、Tailwind CSS、Tiptap、Zustand、Supabase 与 MIT 许可。</desc>
 
   <defs>
     <pattern id="paperDots" width="22" height="22" patternUnits="userSpaceOnUse">
       <circle cx="2" cy="2" r="1" fill="#D9D2C3" opacity="0.34" />
     </pattern>
+    <style>
+      text { font-family: 'Excalifont-tech-badges', 'Xiaolai-tech-badges'; font-weight: 400; } :where(text:not([fill])) { fill: #1F2328; }
+      .title { font-size: 25px; }
+      .section { font-size: 19px; }
+      .label { font-size: 17px; }
+      .body { font-size: 15px; fill: #575D66; }
+      .small { font-size: 14px; fill: #575D66; }
+      .blue { font-size: 14px; fill: #2F6BFF; }
+      .chip { font-size: 14px; }
+    </style>
+      <!-- readme-font:start -->
+    <metadata id="readme-font-license">Subset of Excalifont; internal name GResume Sketch Latin.
+Copyright (c) 2024 by Excalidraw. All rights reserved.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+&quot;Font Software&quot; refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+&quot;Reserved Font Name&quot; refers to any names specified as such after the
+copyright statement(s).
+
+&quot;Original Version&quot; refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+&quot;Modified Version&quot; refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+&quot;Author&quot; refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION &amp; CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+
+
+Subset of Xiaolai; internal name GResume Sketch CJK.
+Copyright 2020-2024 LXGW (https://github.com/lxgw/kose-font)
+Copyright 2014 Nozomi Seto (https://ja.osdn.net/projects/setofont/)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+&quot;Font Software&quot; refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+&quot;Reserved Font Name&quot; refers to any names specified as such after the
+copyright statement(s).
+
+&quot;Original Version&quot; refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+&quot;Modified Version&quot; refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+&quot;Author&quot; refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION &amp; CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+</metadata>
+    <style>
+      @font-face { font-family: 'Excalifont-tech-badges'; font-style: normal; font-weight: 400; src: url(data:font/woff2;base64,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) format('woff2'); }
+      @font-face { font-family: 'Xiaolai-tech-badges'; font-style: normal; font-weight: 400; src: url(data:font/woff2;base64,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) format('woff2'); }
+      .diagram-tech-badges text { font-family: 'Excalifont-tech-badges', 'Xiaolai-tech-badges'; font-weight: 400; }
+    </style>
+    <!-- readme-font:end -->
   </defs>
 
   <rect x="8" y="8" width="1184" height="198" rx="24" fill="#FFFDF7" stroke="#1F2328" stroke-width="3" />
@@ -15,41 +224,41 @@
   <path d="M48 35Q48 27 57 27L307 29Q316 29 316 38L314 86Q314 95 305 95L57 93Q48 93 48 84Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.6" />
   <circle cx="80" cy="61" r="13" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
   <path d="M67 61H93M80 48V74M71 52L89 70M89 52L71 70" stroke="#2F6BFF" stroke-width="1.8" stroke-linecap="round" />
-  <text x="108" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">REACT 19</text>
+  <text x="108" y="68" fill="#1F2328" font-size="20">React 19</text>
 
   <path d="M327 35Q327 27 336 27L586 29Q595 29 595 38L593 86Q593 95 584 95L336 93Q327 93 327 84Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.6" />
   <path d="M355 47L383 48L382 75L354 74Z" fill="#2F6BFF" stroke="#1F2328" stroke-width="2" />
-  <text x="360" y="68" fill="#FFFFFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="900">TS</text>
-  <text x="404" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="800">TYPESCRIPT 5.9</text>
+  <text x="360" y="68" fill="#FFFFFF" font-size="14">TS</text>
+  <text x="400" y="68" fill="#1F2328" font-size="19">TypeScript 5.9</text>
 
   <path d="M606 35Q606 27 615 27L865 29Q874 29 874 38L872 86Q872 95 863 95L615 93Q606 93 606 84Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.6" />
   <path d="M637 45L666 50L648 77Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" stroke-linejoin="round" />
   <path d="M648 55L657 58L650 68" stroke="#D4A72C" stroke-width="2.2" stroke-linecap="round" />
-  <text x="687" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">VITE 7</text>
+  <text x="687" y="68" fill="#1F2328" font-size="20">Vite 7</text>
 
   <path d="M885 35Q885 27 894 27L1144 29Q1153 29 1153 38L1151 86Q1151 95 1142 95L894 93Q885 93 885 84Z" fill="#F8FAFF" stroke="#1F2328" stroke-width="2.6" />
   <path d="M914 55C922 46 932 46 940 55C932 52 926 55 921 61C929 58 938 60 945 67C936 75 925 74 917 67" stroke="#2F6BFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
-  <text x="964" y="68" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="800">TAILWIND CSS 4</text>
+  <text x="959" y="68" fill="#1F2328" font-size="18">Tailwind CSS 4</text>
 
   <!-- Row 2 -->
   <path d="M48 113Q48 104 57 104L307 106Q316 106 316 115L314 163Q314 172 305 172L57 170Q48 170 48 161Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.6" />
   <circle cx="80" cy="138" r="13" fill="#E8EEFF" stroke="#1F2328" stroke-width="2" />
   <path d="M70 131H90M70 138H90M80 131V150" stroke="#2F6BFF" stroke-width="2.2" stroke-linecap="round" />
-  <text x="108" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">TIPTAP 3</text>
+  <text x="108" y="145" fill="#1F2328" font-size="20">Tiptap 3</text>
 
   <path d="M327 113Q327 104 336 104L586 106Q595 106 595 115L593 163Q593 172 584 172L336 170Q327 170 327 161Z" fill="#FFF9E8" stroke="#1F2328" stroke-width="2.6" />
   <path d="M357 125C362 117 377 117 382 125C387 132 380 145 370 151C360 145 352 132 357 125Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" />
   <path d="M362 131L369 138L378 127" stroke="#D4A72C" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
-  <text x="404" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">ZUSTAND 5</text>
+  <text x="404" y="145" fill="#1F2328" font-size="20">Zustand 5</text>
 
   <path d="M606 113Q606 104 615 104L865 106Q874 106 874 115L872 163Q872 172 863 172L615 170Q606 170 606 161Z" fill="#F2F8F3" stroke="#1F2328" stroke-width="2.6" />
   <path d="M646 121L633 143H647L641 158L667 132H652L660 121Z" fill="#62C88A" stroke="#1F2328" stroke-width="2" stroke-linejoin="round" />
-  <text x="687" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="800">SUPABASE</text>
+  <text x="687" y="145" fill="#1F2328" font-size="20">Supabase</text>
 
   <path d="M885 113Q885 104 894 104L1144 106Q1153 106 1153 115L1151 163Q1151 172 1142 172L894 170Q885 170 885 161Z" fill="#FFFFFF" stroke="#1F2328" stroke-width="2.6" />
   <path d="M916 123L946 123L946 153L916 153Z" fill="#F6E8A9" stroke="#1F2328" stroke-width="2" />
   <path d="M921 130H941M921 137H938M921 144H935" stroke="#1F2328" stroke-width="1.8" stroke-linecap="round" />
-  <text x="964" y="145" fill="#1F2328" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="800">MIT LICENSE</text>
+  <text x="964" y="145" fill="#1F2328" font-size="20">MIT 许可</text>
 
   <path d="M425 188C536 181 656 182 772 189" stroke="#2F6BFF" stroke-width="2.5" stroke-linecap="round" />
 </svg>

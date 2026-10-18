@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { getCompanies } from '@/lib/supabase/resume'
+import useAssistantStore from '../../../store'
 
 const STATUS_LABELS: Record<string, string> = {
   saved: '已保存',
@@ -17,14 +19,30 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export default function BoardSnapshot({ model }: { model: CanvasModel }) {
+  const isMobile = useIsMobile()
+  const canvasVisible = useAssistantStore(s => isMobile ? s.canvasMobileOpen : s.canvasOpen)
   const [jobs, setJobs] = useState<JobApplication[] | null>(null)
 
   // 仅统计「已应用」的看板写操作：awaiting-confirm 阶段刷新会读到旧数据，
   // 且确认后计数不变导致不再刷新（stale）。只在 result 时触发重新拉取。
   const boardWriteCount = model.writes.filter(w => w.category === 'board' && w.state === 'result').length
   useEffect(() => {
-    getCompanies().then(setJobs).catch(() => setJobs([]))
-  }, [boardWriteCount])
+    if (!canvasVisible)
+      return
+    let cancelled = false
+    getCompanies()
+      .then((rows) => {
+        if (!cancelled)
+          setJobs(rows)
+      })
+      .catch(() => {
+        if (!cancelled)
+          setJobs(current => current ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [boardWriteCount, canvasVisible])
 
   const deleted = model.writes.filter(w => w.action === 'delete' && w.targetTab === 'board')
 
