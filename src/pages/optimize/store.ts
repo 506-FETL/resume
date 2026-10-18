@@ -17,6 +17,8 @@ interface AtsStore {
   atsConfigs: AtsEvaluationResult[] | null
   currentAtsConfig: AtsEvaluationResult | null
   loading: boolean
+  loadError: string | null
+  analysisError: string | null
 
   selectedResumeId: string | null
   selectedResumeType: 'online' | 'offline' | null
@@ -49,6 +51,7 @@ const useAtsStore = create<AtsStore>()(
     let initRequestId = 0
     const init = async () => {
       const requestId = ++initRequestId
+      set({ loadError: null })
       try {
         // 已有报告（包括已加载的空列表）时静默刷新，避免重新挂载整页内容。
         if (get().atsConfigs === null && !get().loading)
@@ -84,6 +87,7 @@ const useAtsStore = create<AtsStore>()(
         if (!user || (current && current.user_id !== user.id))
           set({ atsConfigs: null, currentAtsConfig: null })
         toast.error(getErrorMessage(error, '加载失败'))
+        set({ loadError: getErrorMessage(error, '加载失败') })
         // 刷新失败保留当前报告；首次加载仍可重试。
       }
       finally {
@@ -93,7 +97,7 @@ const useAtsStore = create<AtsStore>()(
     }
 
     const setSelectedResume = (id: string, type: 'online' | 'offline') => {
-      set({ selectedResumeId: id, selectedResumeType: type })
+      set({ selectedResumeId: id, selectedResumeType: type, analysisError: null })
 
       // 尝试切换到对应的 ATS Config
       const { atsConfigs } = get()
@@ -110,7 +114,7 @@ const useAtsStore = create<AtsStore>()(
     }
 
     const resetAnalysisState = () => {
-      set({ analysisState: ANALYSIS_INITIAL_STATE })
+      set({ analysisState: ANALYSIS_INITIAL_STATE, analysisError: null })
     }
 
     const updateLog = (key: string, value: string, append = false) => {
@@ -273,12 +277,15 @@ const useAtsStore = create<AtsStore>()(
       catch (error: unknown) {
         console.error(error)
         toast.error(getErrorMessage(error, '分析过程中发生错误'))
+        set({ analysisError: getErrorMessage(error, '分析过程中发生错误') })
         setAnalysisState({ status: 'idle' })
       }
     }
 
     return {
       loading: true,
+      loadError: null,
+      analysisError: null,
       currentAtsConfig: null,
       atsConfigs: null,
       selectedResumeId: null,

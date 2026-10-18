@@ -11,7 +11,7 @@ export default function RepairChecklist() {
   const fixList = currentAtsConfig?.fixChecklist || []
 
   return (
-    <Card className="flex min-w-0 flex-col border-primary/10 shadow-sm">
+    <Card className="flex min-w-0 flex-col border-primary/10 shadow-none">
       <CardHeader className="border-b border-border/50 p-4 md:p-5">
         <div className="flex items-center gap-2">
           <div className="rounded-md bg-primary/10 p-1.5 text-primary">
@@ -22,7 +22,7 @@ export default function RepairChecklist() {
       </CardHeader>
 
       <CardContent className="min-h-0 p-0">
-        <AnimatedContent animationKey={loading ? 'loading' : fixList.length === 0 ? 'empty' : 'checklist'}>
+        <AnimatedContent animationKey={loading ? 'loading' : !currentAtsConfig ? 'unassessed' : fixList.length === 0 ? 'empty' : 'checklist'}>
           {loading
             ? (
                 <div className="flex items-center justify-center gap-3 px-5 py-8 text-muted-foreground">
@@ -33,10 +33,10 @@ export default function RepairChecklist() {
             : fixList.length === 0
               ? (
                   <div className="flex flex-col items-center justify-center gap-3 px-5 py-8 text-center">
-                    <div className="rounded-full bg-green-100/50 p-3 dark:bg-green-900/20">
-                      <ClipboardCheck className="size-6 text-green-600 dark:text-green-400" />
+                    <div className={cn('rounded-full p-3', currentAtsConfig ? 'bg-green-100/50 text-green-600 dark:bg-green-900/20 dark:text-green-400' : 'bg-muted text-muted-foreground')}>
+                      {currentAtsConfig ? <ClipboardCheck className="size-6" /> : <Wand2 className="size-6" />}
                     </div>
-                    <h3 className="text-sm font-semibold">当前未发现必须修改项</h3>
+                    <h3 className="text-sm font-semibold">{currentAtsConfig ? '本次检测没有待修复项' : '检测后生成修复清单'}</h3>
                   </div>
                 )
               : (
@@ -73,12 +73,12 @@ export default function RepairChecklist() {
                           </span>
                           {item.option === 'required'
                             ? (
-                                <span className="inline-flex items-center rounded-md bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive ring-1 ring-inset ring-destructive/20">
+                                <span className="inline-flex items-center rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/20">
                                   必修
                                 </span>
                               )
                             : (
-                                <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground ring-1 ring-inset ring-secondary-foreground/10">
+                                <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground ring-1 ring-inset ring-secondary-foreground/10">
                                   可选
                                 </span>
                               )}

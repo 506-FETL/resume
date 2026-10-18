@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -49,7 +49,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
           ? (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">验证邮箱</CardTitle>
+                  <h1 className="text-2xl leading-8 font-semibold tracking-tight">验证邮箱</h1>
                   <CardDescription>请查收验证邮件，确认邮箱后再登录。</CardDescription>
                 </CardHeader>
               </Card>
@@ -57,7 +57,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
           : (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">注册</CardTitle>
+                  <h1 className="text-2xl leading-8 font-semibold tracking-tight">注册</h1>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignUp}>

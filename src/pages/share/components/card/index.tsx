@@ -85,7 +85,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
               <h3 className="truncate text-sm font-semibold" title={title}>{title}</h3>
               <p className="mt-0.5 truncate text-xs text-muted-foreground" title={share.display_name || '未命名简历'}>{share.display_name || '未命名简历'}</p>
             </div>
-            <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium', statusMeta.badgeClassName)}>
+            <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium', statusMeta.badgeClassName)}>
               <span className={cn('size-1.5 rounded-full', statusMeta.dotClassName)} />
               {statusMeta.label}
             </span>
@@ -140,7 +140,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
             </div>
           </div>
 
-          <div className="mt-2.5 flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <div className="min-w-0 flex-1" title={share.source.kind === 'current' ? '当前版本' : `V${share.source.versionNo} · ${share.source.versionLabel}`}><VersionBadge source={share.source} /></div>
             {share.has_password && (
               <span className="inline-flex shrink-0" title="密码保护">
@@ -160,7 +160,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
             )}
           </div>
 
-          <dl className="mt-2.5 flex min-w-0 items-center justify-between gap-3 text-[11px] text-muted-foreground">
+          <dl className="mt-3 flex min-w-0 items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex shrink-0 items-center gap-1.5">
               <dt className="inline-flex items-center">
                 <Eye className="size-3.5" />

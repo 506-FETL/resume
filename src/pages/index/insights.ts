@@ -1,6 +1,6 @@
 import type { Resume } from './types'
 import type { ApplicationStatus } from '@/pages/tracker/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { countPendingAtsFindings } from '@/lib/ats'
 import { listAtsSummaries, listJobApplicationSummaries, listResumeHistoryVersionSummaries } from '@/lib/supabase/resume'
 import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '@/pages/tracker/const'
@@ -44,6 +44,9 @@ type VersionSummaries = Awaited<ReturnType<typeof listResumeHistoryVersionSummar
 interface DashboardResource<T> {
   data: T
   loading: boolean
+  error: string | null
+  hasLoaded: boolean
+  retry: () => void
 }
 
 export interface DashboardResources {
@@ -61,95 +64,43 @@ function compareAtsSummaryChronologically<
   return String(left.id).localeCompare(String(right.id), undefined, { numeric: true })
 }
 
-// 三个首页数据源独立完成并更新，避免最慢请求阻塞所有模块。
-export function useDashboardResources(ready: boolean, enabled: boolean): DashboardResources {
-  const [jobSummaries, setJobSummaries] = useState<JobSummaries>([])
-  const [atsSummaries, setAtsSummaries] = useState<AtsSummaries>([])
-  const [versionSummaries, setVersionSummaries] = useState<VersionSummaries>([])
-  const [jobsLoading, setJobsLoading] = useState(true)
-  const [atsLoading, setAtsLoading] = useState(true)
-  const [versionsLoading, setVersionsLoading] = useState(true)
-
+function useDashboardResource<T>(fetcher: () => Promise<T>, empty: T, ready: boolean, enabled: boolean, accountId: string | undefined): DashboardResource<T> {
+  const [attempt, setAttempt] = useState(0)
+  const [state, setState] = useState({ data: empty, loading: true, error: null as string | null, hasLoaded: false, accountId })
+  const retry = useCallback(() => setAttempt(value => value + 1), [])
   useEffect(() => {
     let cancelled = false
-
-    if (!ready) {
-      setJobsLoading(true)
-      setAtsLoading(true)
-      setVersionsLoading(true)
-      return () => {
-        cancelled = true
-      }
-    }
-
+    if (!ready)
+      return
+    setState(previous => ({ ...previous, ...(previous.accountId !== accountId ? { data: empty, hasLoaded: false } : {}), accountId, loading: enabled, error: null }))
     if (!enabled) {
-      setJobSummaries([])
-      setAtsSummaries([])
-      setVersionSummaries([])
-      setJobsLoading(false)
-      setAtsLoading(false)
-      setVersionsLoading(false)
-      return () => {
-        cancelled = true
-      }
+      setState({ data: empty, loading: false, error: null, hasLoaded: true, accountId })
+      return
     }
-
-    setJobSummaries([])
-    setAtsSummaries([])
-    setVersionSummaries([])
-    setJobsLoading(true)
-    setAtsLoading(true)
-    setVersionsLoading(true)
-
-    listJobApplicationSummaries()
-      .then((data) => {
-        if (!cancelled)
-          setJobSummaries(data)
-      })
-      .catch((error) => {
-        console.error('加载首页岗位概览失败:', error)
-      })
-      .finally(() => {
-        if (!cancelled)
-          setJobsLoading(false)
-      })
-
-    listAtsSummaries()
-      .then((data) => {
-        if (!cancelled)
-          setAtsSummaries(data)
-      })
-      .catch((error) => {
-        console.error('加载首页 ATS 概览失败:', error)
-      })
-      .finally(() => {
-        if (!cancelled)
-          setAtsLoading(false)
-      })
-
-    listResumeHistoryVersionSummaries()
-      .then((data) => {
-        if (!cancelled)
-          setVersionSummaries(data)
-      })
-      .catch((error) => {
-        console.error('加载首页版本概览失败:', error)
-      })
-      .finally(() => {
-        if (!cancelled)
-          setVersionsLoading(false)
-      })
-
+    fetcher().then((data) => {
+      if (!cancelled)
+        setState({ data, loading: false, error: null, hasLoaded: true, accountId })
+    }).catch(() => {
+      if (!cancelled)
+        setState(previous => ({ ...previous, loading: false, error: '加载失败', accountId }))
+    })
     return () => {
       cancelled = true
     }
-  }, [enabled, ready])
+  }, [fetcher, ready, enabled, accountId, attempt, empty])
+  return state.accountId === accountId ? { ...state, retry } : { data: empty, loading: true, error: null, hasLoaded: false, retry }
+}
 
-  return {
-    jobs: { data: jobSummaries, loading: jobsLoading },
-    ats: { data: atsSummaries, loading: atsLoading },
-    versions: { data: versionSummaries, loading: versionsLoading },
-  }
+const EMPTY_JOBS: JobSummaries = []
+const EMPTY_ATS: AtsSummaries = []
+const EMPTY_VERSIONS: VersionSummaries = []
+
+// 各资源独立请求、重试；账户切换时立即遮蔽旧数据并取消旧请求的写入。
+export function useDashboardResources(ready: boolean, enabled: boolean, accountId?: string): DashboardResources {
+  const jobs = useDashboardResource(listJobApplicationSummaries, EMPTY_JOBS, ready, enabled, accountId)
+  const ats = useDashboardResource(listAtsSummaries, EMPTY_ATS, ready, enabled, accountId)
+  const versions = useDashboardResource(listResumeHistoryVersionSummaries, EMPTY_VERSIONS, ready, enabled, accountId)
+  return { jobs, ats, versions }
 }
 
 // 聚合 job / ats 概览，供统计卡与今日待办共用。

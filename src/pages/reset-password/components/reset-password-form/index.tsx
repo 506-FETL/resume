@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -21,7 +21,7 @@ export function ResetPasswordForm() {
       <AnimatedContent animationKey={status}>
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">{status === 'success' ? '密码已重置' : '设置新密码'}</CardTitle>
+            <h1 className="text-2xl leading-8 font-semibold tracking-tight">{status === 'success' ? '密码已重置' : '设置新密码'}</h1>
             {status === 'success' && (
               <CardDescription>当前会话仍可使用。下次登录请使用新密码。</CardDescription>
             )}

@@ -1,7 +1,7 @@
 import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
-import { useLayoutEffect, useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -30,6 +30,7 @@ export default function CreateDialog({
   onOpenChange,
 }: CreateDialogProps) {
   const reduceMotion = useReducedMotion()
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const {
     resumeMap,
     createRelease,
@@ -110,6 +111,17 @@ export default function CreateDialog({
     >
       <DialogContent
         inert={!open}
+        onOpenAutoFocus={() => {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null
+        }}
+        onCloseAutoFocus={(event) => {
+          if (!returnFocusRef.current?.isConnected)
+            return
+          event.preventDefault()
+          returnFocusRef.current.focus({ preventScroll: true })
+        }}
         className="min-w-0 max-w-xl overflow-x-hidden data-[state=closed]:pointer-events-none"
         overlayClassName={reduceMotion ? 'data-[state=open]:animate-none data-[state=closed]:animate-none' : undefined}
         style={{

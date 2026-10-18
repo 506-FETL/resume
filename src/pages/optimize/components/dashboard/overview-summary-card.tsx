@@ -21,7 +21,7 @@ export default function OverviewSummaryCard({ completedTasks, loading, progress,
 
   if (loading) {
     return (
-      <Card className="min-w-0 border-primary/15 shadow-sm">
+      <Card className="min-w-0 shadow-none">
         <CardContent className="grid gap-5 p-5 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center md:p-6">
           <div className="space-y-3">
             <Skeleton className="h-3 w-16" />
@@ -40,9 +40,9 @@ export default function OverviewSummaryCard({ completedTasks, loading, progress,
 
   if (!currentAtsConfig) {
     return (
-      <Card className="min-w-0 border-primary/15 shadow-sm">
-        <CardContent className="flex min-h-52 flex-col justify-center gap-2 p-5 md:p-6">
-          <p className="text-sm font-semibold">综合评分</p>
+      <Card className="min-w-0 shadow-none">
+        <CardContent className="flex min-h-28 flex-col justify-center gap-2 p-5 md:p-6">
+          <p className="text-sm font-semibold">检测结果</p>
           <p className="max-w-xl text-sm leading-6 text-muted-foreground">
             选择简历后，点击“开始检测”。
           </p>
@@ -60,38 +60,29 @@ export default function OverviewSummaryCard({ completedTasks, loading, progress,
       : `${completedTasks}/${totalTasks} 项已完成`
 
   return (
-    <Card className="relative min-w-0 overflow-hidden border-primary/15 shadow-sm">
+    <Card className="relative min-w-0 overflow-hidden shadow-none">
       <CardContent className="relative isolate min-w-0 p-5 md:p-6">
-        <div
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute top-2 -left-3 z-0 select-none pr-8 tabular-nums text-[11rem] leading-[0.82] font-black tracking-[-0.06em] text-primary/[0.07] sm:top-1 sm:left-0 sm:pr-10 sm:text-[13rem] dark:text-primary/[0.11]',
-          )}
-        >
-          {overallScore}
-        </div>
-
         <div className="relative z-10 min-w-0 pb-2">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground">综合评分</p>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground">检测结果</p>
             {meta?.rubricVersion === '2.0' && (
               <Badge variant="secondary" className="rounded-full">内容自适应评分 2.0</Badge>
             )}
           </div>
 
-          <div className="mt-20 min-w-0 max-w-5xl space-y-2.5 sm:mt-16 sm:ml-24 md:ml-28">
+          <div className="mt-3 min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-medium text-muted-foreground">本次评分结论</p>
               <Badge variant="secondary" className="rounded-full px-3">
                 {summary?.grade || '待评估'}
               </Badge>
-              <span className={cn('text-sm font-bold tabular-nums', calculateRating(overallScore))}>
+              <span className={cn('text-3xl font-semibold tracking-tight tabular-nums', calculateRating(overallScore))}>
                 {overallScore}
                 {' '}
                 / 100
               </span>
             </div>
-            <h2 className="wrap-break-word text-lg font-semibold leading-7 tracking-tight md:text-xl md:leading-8">
+            <h2 className="wrap-break-word text-base font-medium leading-7">
               {assessment?.basisSummary || readabilityIndex?.summary || '已完成当前简历的综合评估'}
             </h2>
             {assessment?.candidateProfile && (

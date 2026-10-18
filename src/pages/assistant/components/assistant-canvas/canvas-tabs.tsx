@@ -1,5 +1,6 @@
 import type { CanvasModel } from '../../types'
 import { FileText, GitBranch, ListChecks, Pin, PinOff, Table2 } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -7,29 +8,37 @@ import useAssistantStore from '../../store'
 
 export function CanvasTabs({ model }: { model: CanvasModel }) {
   const { canvasTabPinned, setCanvasTabPinned } = useAssistantStore()
+  const reduceMotion = useReducedMotion()
 
   return (
     <div className="flex shrink-0 items-center justify-between gap-2 border-b p-2">
       {/* 内容自适应宽度、左对齐，保持 shadcn 胶囊样式 */}
-      <TabsList className="w-fit">
-        <TabsTrigger value="resume" className="gap-1.5">
+      <TabsList
+        className="min-w-0 max-w-full justify-start overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        onFocusCapture={(event) => {
+          if (event.target.getAttribute('role') === 'tab' && event.currentTarget.scrollWidth > event.currentTarget.clientWidth) {
+            event.target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduceMotion ? 'instant' : 'smooth' })
+          }
+        }}
+      >
+        <TabsTrigger value="resume" className="shrink-0 gap-1.5">
           <FileText className="size-4" />
           简历预览
         </TabsTrigger>
         {model.touchedBoard && (
-          <TabsTrigger value="board" className="gap-1.5">
+          <TabsTrigger value="board" className="shrink-0 gap-1.5">
             <Table2 className="size-4" />
             求职看板
           </TabsTrigger>
         )}
         {model.touchedVersion && (
-          <TabsTrigger value="version" className="gap-1.5">
+          <TabsTrigger value="version" className="shrink-0 gap-1.5">
             <GitBranch className="size-4" />
             历史版本
           </TabsTrigger>
         )}
         {model.hasWrites && (
-          <TabsTrigger value="changes" className="gap-1.5">
+          <TabsTrigger value="changes" className="shrink-0 gap-1.5">
             <ListChecks className="size-4" />
             变更记录
           </TabsTrigger>

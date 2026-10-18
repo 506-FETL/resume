@@ -55,13 +55,14 @@ export default function VersionCard({ version, selected, onSelectEntry }: Versio
         {selected && <SelectionHighlight />}
         <motion.button
           type="button"
+          data-history-entry={version.id}
           aria-pressed={selected}
           className="flex min-w-0 flex-1 flex-col gap-2.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => onSelectEntry(version.id)}
           whileTap={reduceMotion ? undefined : { scale: 0.99 }}
           transition={enter}
         >
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className={cn('font-semibold tabular-nums', selected ? 'text-primary' : 'text-foreground')}>
               V
               {version.version_no}
@@ -79,16 +80,16 @@ export default function VersionCard({ version, selected, onSelectEntry }: Versio
           </div>
           {(version.tags?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-1">
-              {version.tags?.slice(0, 2).map(tag => <Badge key={tag} variant="secondary" className="max-w-28 truncate text-[10px] font-normal">{tag}</Badge>)}
+              {version.tags?.slice(0, 2).map(tag => <Badge key={tag} variant="secondary" className="max-w-28 truncate text-xs font-normal">{tag}</Badge>)}
               {(version.tags?.length ?? 0) > 2 && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   +
                   {(version.tags?.length ?? 0) - 2}
                 </span>
               )}
             </div>
           )}
-          <time dateTime={version.created_at} title={formatDateTime(version.created_at)} className="text-[11px] text-muted-foreground">{formatRelativeTime(version.created_at)}</time>
+          <time dateTime={version.created_at} title={formatDateTime(version.created_at)} className="text-xs text-muted-foreground">{formatRelativeTime(version.created_at)}</time>
         </motion.button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

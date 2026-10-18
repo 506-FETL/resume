@@ -77,11 +77,9 @@ export interface ComposerProps {
 	canSubmit?: boolean;
 }
 
-// Primary color matching GAIA: #00bbff
-const PRIMARY_COLOR = "#00bbff";
 
 export const Composer: FC<ComposerProps> = ({
-	placeholder = "What can I do for you today?",
+	placeholder = "有什么可以帮你？",
 	onSubmit,
 	onChange,
 	disabled = false,
@@ -307,7 +305,7 @@ export const Composer: FC<ComposerProps> = ({
 				className={cn(
 					"relative rounded-3xl px-1 pt-1 pb-2",
 					// Light mode: light gray background, Dark mode: zinc-800
-					"bg-zinc-100 dark:bg-zinc-800",
+					"bg-muted/60 border border-border",
 				)}
 			>
 				{/* Slash Command Dropdown - positioned above composer.
@@ -354,6 +352,7 @@ export const Composer: FC<ComposerProps> = ({
 					<div className="relative px-3">
 						<textarea
 							ref={textareaRef}
+							aria-label="消息内容"
 							value={currentValue}
 							onChange={handleInputChange}
 							onKeyDown={handleKeyDown}
@@ -361,13 +360,13 @@ export const Composer: FC<ComposerProps> = ({
 							disabled={disabled || isLoading}
 							rows={1}
 							className={cn(
-								"w-full resize-none bg-transparent py-3 pr-24 transition-all text-base font-light",
+								"w-full resize-none bg-transparent py-3 pr-16 transition-all motion-reduce:transition-none text-base font-normal",
 								// Light mode text colors
-								"text-zinc-900 dark:text-white",
-								"placeholder:text-zinc-400 dark:placeholder:text-zinc-500",
+								"text-foreground",
+								"placeholder:text-muted-foreground",
 								"focus:outline-none",
 								"disabled:cursor-not-allowed disabled:opacity-50",
-								"scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-transparent",
+								"scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
 							)}
 							style={{
 								minHeight: "24px",
@@ -375,17 +374,17 @@ export const Composer: FC<ComposerProps> = ({
 							}}
 						/>
 						{/* Hint for slash commands */}
-						<div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500 pointer-events-none">
-							<kbd className="rounded bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+						<div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground pointer-events-none">
+							<kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
 								/
 							</kbd>
-							<span>for tools</span>
+							<span>工具</span>
 						</div>
 					</div>
 				</form>
 
 				{/* Toolbar */}
-				<div className="flex items-center justify-between gap-2 px-2 pt-1">
+				<div className="flex flex-wrap items-center justify-between gap-2 px-2 pt-1">
 					<div className="flex items-center gap-1.5">
 						{/* Add Context / Attach Button */}
 						<div className="relative">
@@ -396,23 +395,24 @@ export const Composer: FC<ComposerProps> = ({
 								className={cn(
 									"group relative flex h-9 w-9 items-center justify-center rounded-full cursor-pointer",
 									// Light mode colors
-									"bg-zinc-200 dark:bg-zinc-700 transition-colors",
-									"hover:bg-zinc-300 dark:hover:bg-zinc-600/90",
+									"bg-muted transition-colors motion-reduce:transition-none",
+									"hover:bg-accent",
 									"disabled:cursor-wait disabled:opacity-70",
-									isContextMenuOpen && "bg-zinc-300 dark:bg-zinc-600",
+									isContextMenuOpen && "bg-accent",
 								)}
-								aria-label="Add context or attach files"
+								aria-label="添加上下文或附件"
 							>
 								<HugeiconsIcon
 									icon={PlusSignIcon}
 									size={23}
-									className="text-zinc-500 dark:text-zinc-400"
+									className="text-muted-foreground"
 								/>
 							</button>
 
 							{/* Context Menu Dropdown */}
+							<AnimatePresence>
 							{isContextMenuOpen && contextOptions && (
-								<div className="absolute bottom-full left-0 mb-2 min-w-[220px] max-w-[300px] max-h-[320px] overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-1 shadow-xl animate-in fade-in-0 slide-in-from-bottom-2 duration-150">
+								<motion.div initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }} transition={{ duration: shouldReduceMotion ? 0 : DURATION.base, ease: EASE.out }} className="absolute bottom-full left-0 mb-2 min-w-[220px] max-w-[300px] max-h-[320px] overflow-y-auto rounded-xl border border-border bg-popover text-popover-foreground p-1 shadow-xl motion-reduce:animate-none">
 									{contextOptions.map((option) => (
 										<button
 											key={option.id}
@@ -423,12 +423,12 @@ export const Composer: FC<ComposerProps> = ({
 												// 选完后把焦点交还输入框，避免「鼠标失焦」需要再次点击才能输入
 												textareaRef.current?.focus();
 											}}
-											className="flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left text-sm text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+											className="flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground hover:bg-accent transition-colors motion-reduce:transition-none"
 										>
 											{option.icon && (
 												<span
-													className="mt-0.5 flex-shrink-0"
-													style={{ color: PRIMARY_COLOR }}
+													className="mt-0.5 flex-shrink-0 text-primary"
+
 												>
 													{option.icon}
 												</span>
@@ -436,15 +436,16 @@ export const Composer: FC<ComposerProps> = ({
 											<div className="flex min-w-0 flex-col">
 												<span className="break-words leading-snug">{option.label}</span>
 												{option.description && (
-													<span className="text-xs text-zinc-500 dark:text-zinc-400 break-words leading-snug">
+													<span className="text-xs text-muted-foreground break-words leading-snug">
 														{option.description}
 													</span>
 												)}
 											</div>
 										</button>
 									))}
-								</div>
+								</motion.div>
 							)}
+							</AnimatePresence>
 						</div>
 
 						{/* Tools Button */}
@@ -456,20 +457,20 @@ export const Composer: FC<ComposerProps> = ({
 								className={cn(
 									"group relative flex h-9 w-9 items-center justify-center rounded-full cursor-pointer",
 									// Light mode colors
-									"bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 transition-colors",
-									"hover:bg-zinc-300 dark:hover:bg-zinc-600/90",
+									"bg-muted text-muted-foreground transition-colors motion-reduce:transition-none",
+									"hover:bg-accent",
 									"disabled:cursor-wait disabled:opacity-70",
 									// Active state
 									isToolsDropdownOpen &&
-										"bg-[#00bbff]/20 text-[#00bbff] hover:bg-[#00bbff]/30 dark:hover:bg-[#00bbff]/40",
+										"bg-primary/15 text-primary hover:bg-primary/20",
 								)}
-								aria-label="Browse all tools"
+								aria-label="浏览全部工具"
 							>
 								<HugeiconsIcon icon={ToolsIcon} size={23} />
 								{isToolsDropdownOpen && (
 									<span
-										className="absolute top-0 right-0 h-2 w-2 rounded-full transition"
-										style={{ backgroundColor: PRIMARY_COLOR }}
+										className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary transition"
+
 										aria-hidden="true"
 									/>
 								)}
@@ -480,7 +481,7 @@ export const Composer: FC<ComposerProps> = ({
 					</div>
 
 					{/* Right actions: extra trailing actions + send button */}
-					<div className="flex items-center gap-2">
+					<div className="ml-auto flex flex-wrap items-center gap-2">
 						{trailingActions}
 						{/* Send Button */}
 						<button
@@ -488,15 +489,15 @@ export const Composer: FC<ComposerProps> = ({
 							onClick={() => handleSubmit()}
 							disabled={disabled || isLoading || !canSubmit}
 							className={cn(
-								"flex h-9 w-9 min-w-9 max-w-9 items-center justify-center rounded-full transition-colors cursor-pointer",
+								"flex h-9 w-9 min-w-9 max-w-9 items-center justify-center rounded-full transition-colors motion-reduce:transition-none cursor-pointer",
 								"disabled:cursor-not-allowed",
 								// Enabled state - primary color background
-								canSubmit && "bg-[#00bbff] text-white hover:bg-[#00a3e0]",
+								canSubmit && "bg-primary text-primary-foreground hover:bg-primary/90",
 								// Disabled state - visible gray background that contrasts with composer
 								!canSubmit &&
-									"bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500",
+									"bg-muted text-muted-foreground",
 							)}
-							aria-label="Send message"
+							aria-label="发送消息"
 						>
 							<HugeiconsIcon icon={ArrowUp02Icon} size={20} />
 						</button>

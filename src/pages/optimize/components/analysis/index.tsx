@@ -32,7 +32,7 @@ export default function IssueAnalysis() {
   const totalFindings = countAllFindings(findings)
 
   return (
-    <Card className="overflow-hidden border-primary/10 shadow-sm">
+    <Card className="overflow-hidden border-primary/10 shadow-none">
       <CardHeader className="border-b p-4 md:p-5">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
@@ -64,7 +64,7 @@ export default function IssueAnalysis() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4 p-4 md:p-5">
-        <AnimatedContent animationKey={loading ? 'loading' : totalFindings === 0 ? 'empty' : 'findings'} className="space-y-4">
+        <AnimatedContent animationKey={loading ? 'loading' : !currentAtsConfig ? 'unassessed' : totalFindings === 0 ? 'empty' : 'findings'} className="space-y-4">
           {loading
             ? (
                 <div className="flex items-center justify-center gap-3 py-8 text-muted-foreground">
@@ -77,7 +77,8 @@ export default function IssueAnalysis() {
                       <div className="mb-3 rounded-full bg-muted/50 p-3">
                         <Search className="size-6 opacity-40" />
                       </div>
-                      <p className="text-sm font-medium">暂无检测到的问题</p>
+                      <p className="text-sm font-medium">{currentAtsConfig ? '本次检测未发现问题' : '尚未生成检测结果'}</p>
+                      {!currentAtsConfig && <p className="mt-2 text-sm">选择简历并开始检测后，这里会按优先级展示问题。</p>}
                     </div>
                   )
                 : severityOrder.map((severity) => {
@@ -105,7 +106,7 @@ export default function IssueAnalysis() {
                                 </Badge>
                               )
                             : (
-                                <Badge variant="outline" className="h-5 rounded-full border-green-500/30 bg-green-500/5 px-2 text-[10px] font-medium text-green-700 dark:text-green-300">
+                                <Badge variant="outline" className="h-5 rounded-full border-green-500/30 bg-green-500/5 px-2 text-xs font-medium text-green-700 dark:text-green-300">
                                   已完成
                                 </Badge>
                               )}

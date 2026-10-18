@@ -1,5 +1,6 @@
 import type { PersistedResumeSnapshot, VariantChange } from '@/lib/schema'
 import { parseLlmJsonObject } from '@/lib/llm'
+import { parseCompletedJsonArrayItems } from '@/lib/llm/partial-json'
 import { variantChangeSchema } from '@/lib/schema'
 import { MAX_CHANGES, MIN_CHANGES, REWRITE_AFTER_LENGTH_RATIO } from '../const'
 import { applyVariantChange } from './apply-changes'
@@ -16,17 +17,10 @@ export function parseVariantResponse(
   raw: string,
   options: { strict: boolean, snapshot?: PersistedResumeSnapshot },
 ): ParseVariantResult {
-  let obj: RawShape | null = null
-  try {
-    obj = parseLlmJsonObject<RawShape>(raw)
-  }
-  catch (err) {
-    if (options.strict) {
-      throw err
-    }
-    return { changes: [] }
-  }
-  const list = Array.isArray(obj?.changes) ? obj.changes : []
+  const changes = options.strict
+    ? parseLlmJsonObject<RawShape>(raw).changes
+    : parseCompletedJsonArrayItems(raw, 'changes')
+  const list = Array.isArray(changes) ? changes : []
   const valid: VariantChange[] = []
   for (const item of list) {
     const parsed = variantChangeSchema.safeParse(item)

@@ -36,11 +36,11 @@ function OverviewBar() {
   ] as const
 
   return (
-    <section aria-label="求职概览" aria-busy={busy} className={cn('shrink-0', !isMobile && 'space-y-3')}>
+    <section aria-label="求职概览" aria-busy={busy} className={cn('shrink-0', !isMobile && 'space-y-2')}>
       <div
         role="group"
         aria-label={viewMode === 'list' ? '按求职指标筛选' : '按求职指标定位阶段'}
-        className={cn('grid grid-cols-4', isMobile ? 'gap-0.5 rounded-xl border border-border/70 bg-muted/35 p-1' : 'gap-3 lg:gap-4')}
+        className={cn('grid grid-cols-4', isMobile ? 'gap-0.5 rounded-xl border border-border/70 bg-muted/35 p-1' : 'gap-3')}
       >
         {metrics.map(({ key, ...metric }, index) => (
           <MetricCard

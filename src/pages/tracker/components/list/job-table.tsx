@@ -43,7 +43,7 @@ function SortableHead({ field, label, sortBy, sortDir, onSort }: SortableHeadPro
   return (
     <th
       aria-sort={isActive || isDaysActive ? sortDir === 'asc' ? 'ascending' : 'descending' : 'none'}
-      className={cn('px-4 py-3.5 text-left font-medium', field === 'company' && 'w-[26%]', field === 'status' && 'w-[14%]', field === 'updated' && 'w-[13%]')}
+      className={cn('px-3 py-3 text-left font-medium', field === 'company' && 'w-[32%] @min-[880px]/jobs:w-[26%]', field === 'status' && 'w-[24%] @min-[680px]/jobs:w-[20%] @min-[880px]/jobs:w-[16%]', field === 'updated' && 'hidden w-[13%] @min-[1100px]/jobs:table-cell')}
     >
       <button
         type="button"
@@ -63,7 +63,7 @@ function SortableHead({ field, label, sortBy, sortDir, onSort }: SortableHeadPro
         <button
           type="button"
           onClick={() => onSort('days')}
-          className={cn('mt-1 flex items-center gap-1 rounded-sm text-[10px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', isDaysActive && 'text-foreground')}
+          className={cn('mt-1 flex items-center gap-1 rounded-sm text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', isDaysActive && 'text-foreground')}
           aria-label="按未更新时间排序"
         >
           未更新时间
@@ -137,7 +137,7 @@ const JobTableRow = memo(({ job, index, layoutKey, onStatusChange, onArchive, on
             <div className="flex items-center gap-1.5">
               <span className="truncate text-xs font-medium text-muted-foreground">{job.company}</span>
               {job.archived && (
-                <span className="shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-medium text-muted-foreground">已归档</span>
+                <span className="shrink-0 rounded-full border px-1.5 py-0 text-xs font-medium text-muted-foreground">已归档</span>
               )}
             </div>
             <button
@@ -154,34 +154,34 @@ const JobTableRow = memo(({ job, index, layoutKey, onStatusChange, onArchive, on
           </div>
         </div>
       </td>
-      <td className="px-4 py-4 text-xs">
+      <td className="hidden px-3 py-3 text-xs @min-[880px]/jobs:table-cell">
         <p className="truncate">{job.location || '地点未填写'}</p>
         <p className="mt-1 truncate text-muted-foreground">{job.salary || '薪资未填写'}</p>
       </td>
-      <td className="px-4 py-4 text-xs">
+      <td className="px-3 py-3 text-xs">
         <span className="inline-flex items-center gap-1.5 font-medium">
           <span className={cn('size-1.5 shrink-0 rounded-full', APPLICATION_STATUS_DOT_CLASSES[job.status])} />
           {statusConfig.label}
         </span>
         <p className="mt-1 text-muted-foreground">{daysInStage === 0 ? '今天更新' : `${daysInStage} 天未更新`}</p>
       </td>
-      <td className="px-4 py-4 text-xs">
+      <td className="hidden px-3 py-3 text-xs @min-[680px]/jobs:table-cell">
         <p className={cn('line-clamp-2 break-words leading-5', !job.next_action && 'text-muted-foreground')}>{job.next_action || '未设置下一步'}</p>
         {nextActionBadge && (
-          <span className={cn('mt-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
+          <span className={cn('mt-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium', NEXT_ACTION_TONE_CLASSES[nextActionBadge.tone])}>
             <Bell className="size-2.5" />
             {nextActionBadge.label}
           </span>
         )}
       </td>
-      <td className="whitespace-nowrap px-4 py-4 text-xs text-muted-foreground">{formatDate(job.updated_at)}</td>
+      <td className="hidden whitespace-nowrap px-3 py-3 text-xs text-muted-foreground @min-[1100px]/jobs:table-cell">{formatDate(job.updated_at)}</td>
       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1">
           {nextAction.targetStatus && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="hidden h-8 gap-1 px-2 text-xs @min-[680px]/jobs:inline-flex"
               onClick={() => isPresent && onStatusChange(job, nextAction.targetStatus!)}
             >
               {nextAction.label}
@@ -314,9 +314,9 @@ export function JobTable({ jobs }: JobTableProps) {
   }, [saveJobFields])
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/70 bg-card">
+    <div className="@container/jobs flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/70 bg-card">
       <div className="scrollbar-thin-subtle min-h-0 flex-1 overflow-auto">
-        <table className="w-full min-w-[1000px] table-fixed text-sm">
+        <table className="w-full min-w-[420px] table-fixed text-sm">
           <thead className="sticky top-0 z-10 bg-muted text-xs text-muted-foreground">
             <tr>
               {isSelectMode && (
@@ -329,11 +329,11 @@ export function JobTable({ jobs }: JobTableProps) {
                 </th>
               )}
               <SortableHead field="company" label="公司 / 职位" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
-              <th className="w-[14%] px-4 py-3.5 text-left font-medium">地点 / 薪资</th>
+              <th className="hidden w-[14%] px-3 py-3 text-left font-medium @min-[880px]/jobs:table-cell">地点 / 薪资</th>
               <SortableHead field="status" label="当前阶段" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
-              <th className="w-[18%] px-4 py-3.5 text-left font-medium">下一步跟进</th>
+              <th className="hidden w-[24%] px-3 py-3 text-left font-medium @min-[680px]/jobs:table-cell @min-[880px]/jobs:w-[20%]">下一步跟进</th>
               <SortableHead field="updated" label="最近更新" sortBy={sortBy} sortDir={sortDir} onSort={setSort} />
-              <th className="w-[15%] px-4 py-3.5 text-right font-medium">操作</th>
+              <th className="w-16 px-3 py-3 text-right font-medium @min-[680px]/jobs:w-[18%]">操作</th>
             </tr>
           </thead>
           <tbody>

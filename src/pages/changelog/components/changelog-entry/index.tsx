@@ -38,15 +38,15 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
       viewport={{ once: true, amount: 0.05 }}
       transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
     >
-      <div className="flex flex-col md:flex-row gap-y-6">
+      <div className="flex flex-col gap-y-3 md:flex-row">
         {/* 左侧：日期 + 版本 */}
         <div className="md:w-48 shrink-0">
-          <div className="md:sticky md:top-16 pb-10">
-            <time className="text-sm font-medium text-muted-foreground block mb-3">
+          <div className="flex items-center gap-3 md:sticky md:top-16 md:block md:pb-10">
+            <time dateTime={frontmatter.date} className="block text-sm font-medium text-muted-foreground md:mb-3">
               {formatDate(frontmatter.date)}
             </time>
             {frontmatter.version && (
-              <div className="relative inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-border px-3 py-2 text-sm font-bold leading-none text-foreground">
+              <div className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
                 {frontmatter.version}
               </div>
             )}
@@ -62,7 +62,7 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
 
           <div className="flex flex-col gap-6">
             <div className="relative  flex flex-col gap-2">
-              <h2 className="text-2xl font-semibold tracking-tight text-balance">
+              <h2 className="text-xl font-semibold tracking-tight text-balance">
                 {frontmatter.title}
               </h2>
 

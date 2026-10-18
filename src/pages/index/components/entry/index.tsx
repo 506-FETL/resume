@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { MouseEventHandler, ReactNode } from 'react'
 import type { TimelineEvent, TimelineEventType } from '../../insights'
 import { ArrowRight, Clock, FileUser, FolderKanban, LayoutTemplate, PencilRuler, Plus, Send, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -12,10 +12,14 @@ function Entry({
   events,
   timelineLoading,
   resumeCount,
+  onCreate,
+  unavailable,
 }: {
   events: TimelineEvent[]
   timelineLoading: boolean
-  resumeCount: number
+  resumeCount?: number
+  onCreate: MouseEventHandler<HTMLButtonElement>
+  unavailable?: boolean
 }) {
   const navigate = useNavigate()
 
@@ -36,7 +40,7 @@ function Entry({
             <QuickAction
               title="创建简历"
               icon={<Plus className="size-4" />}
-              onClick={() => navigate('/resume')}
+              onClick={onCreate}
               iconBg="bg-primary/10 text-primary"
               highlight
             />
@@ -77,6 +81,7 @@ function Entry({
             {events.length > 0
               ? (
                   <div className="flex flex-col gap-3">
+                    {unavailable && <p role="status" className="text-xs text-muted-foreground">部分动态暂不可用，请重试失败的数据源。</p>}
                     <ol className="flex flex-col">
                       {events.map((event, index) => (
                         <TimelineItem
@@ -89,9 +94,7 @@ function Entry({
                     </ol>
                     <div className="pt-3 border-t flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
-                        共
-                        <span className="font-medium text-foreground mx-1">{resumeCount}</span>
-                        份简历
+                        {resumeCount === undefined ? '简历数量暂不可用' : `共 ${resumeCount} 份简历`}
                       </p>
                       <Button
                         variant="ghost"
@@ -112,19 +115,21 @@ function Entry({
                         <FileUser className="text-muted-foreground/50" />
                       </EmptyMedia>
                       <EmptyTitle className="text-sm">
-                        {timelineLoading ? '正在加载动态' : '暂无动态'}
+                        {unavailable ? '— 动态暂不可用' : timelineLoading ? '正在加载动态' : '暂无动态'}
                       </EmptyTitle>
                     </EmptyHeader>
-                    <EmptyContent>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={() => navigate('/resume')}
-                      >
-                        创建第一份简历
-                      </Button>
-                    </EmptyContent>
+                    {!unavailable && !timelineLoading && resumeCount === 0 && (
+                      <EmptyContent>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={onCreate}
+                        >
+                          创建第一份简历
+                        </Button>
+                      </EmptyContent>
+                    )}
                   </Empty>
                 )}
           </AnimatedContent>
@@ -146,7 +151,7 @@ function QuickAction({
 }: {
   title: string
   icon: ReactNode
-  onClick: () => void
+  onClick: MouseEventHandler<HTMLButtonElement>
   disabled?: boolean
   highlight?: boolean
   iconBg?: string
@@ -233,7 +238,7 @@ function TimelineItem({
         <p className="text-sm truncate group-hover:text-foreground transition-colors duration-150">
           {event.title}
         </p>
-        <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap pt-0.5">{event.time}</span>
+        <span className="text-xs text-muted-foreground/70 whitespace-nowrap pt-0.5">{event.time}</span>
       </button>
     </li>
   )

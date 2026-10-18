@@ -35,6 +35,7 @@ export interface VersionMetadataDraft {
 export type PendingDiscardAction
   = | { type: 'select', target: HistorySelection }
     | { type: 'close' }
+    | { type: 'back' }
     | null
 
 export interface HistoryVersionGroup {

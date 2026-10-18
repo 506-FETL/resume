@@ -1,11 +1,8 @@
 import { PanelRight } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { DURATION } from '@/lib/motion'
 import useAssistantStore from '../../store'
 
 export default function ChatHeader() {
@@ -15,9 +12,10 @@ export default function ChatHeader() {
     canvasOpen,
     setCanvasOpen,
     setCanvasMobileOpen,
+    layoutMode,
+    canvasMobileOpen,
   } = useAssistantStore()
-  const isMobile = useIsMobile()
-  const reduceMotion = useReducedMotion()
+  const isMobile = layoutMode === 'drawer'
   const title = conversations.find(conversation => conversation.id === activeConversationId)?.title ?? '新对话'
 
   return (
@@ -25,25 +23,25 @@ export default function ChatHeader() {
       <SidebarTrigger aria-label="切换侧边栏" />
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-sm font-semibold tracking-tight">{title}</h1>
-        <p className="text-[11px] text-muted-foreground">AI 求职助手</p>
+        <p className="text-xs text-muted-foreground">AI 求职助手</p>
       </div>
-      <AnimatedThemeToggler aria-label="切换主题" duration={reduceMotion ? 0 : DURATION.slow * 1000} />
-      {(isMobile || !canvasOpen) && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="ml-auto"
-              aria-label="切换画布"
-              onClick={() => (isMobile ? setCanvasMobileOpen(true) : setCanvasOpen(!canvasOpen))}
-            >
-              <PanelRight />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>画布</TooltipContent>
-        </Tooltip>
-      )}
+      <AnimatedThemeToggler aria-label="切换主题" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="ml-auto"
+            id="assistant-canvas-trigger"
+            aria-label={!isMobile && canvasOpen ? '收起画布' : '打开画布'}
+            aria-expanded={isMobile ? canvasMobileOpen : canvasOpen}
+            onClick={() => (isMobile ? setCanvasMobileOpen(true) : setCanvasOpen(!canvasOpen))}
+          >
+            <PanelRight />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>画布</TooltipContent>
+      </Tooltip>
     </header>
   )
 }

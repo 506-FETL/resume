@@ -1,5 +1,7 @@
 import { History as HistoryIcon, RefreshCcw } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { Link } from 'react-router-dom'
+import { PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,7 +18,7 @@ function History() {
   const { surfaceProps } = useHistoryMotion()
 
   return (
-    <div {...surfaceProps} className={`${surfaceProps.className} mx-auto flex w-full max-w-7xl flex-col gap-5 py-2 sm:px-2 lg:px-4`}>
+    <PageLayout {...surfaceProps}>
       <HistoryHeader activeResumeId={activeResumeId} resumeOptions={resumeOptions} loading={loading} error={error} onResumeChange={selectResume} />
 
       <AnimatePresence mode="wait" initial={false}>
@@ -44,12 +46,16 @@ function History() {
                           <EmptyDescription>{error || '版本记录仅支持云端简历，请先创建或同步简历。'}</EmptyDescription>
                         )}
                       </EmptyHeader>
-                      {error && (
+                      {(error || resumeOptions.length === 0) && (
                         <EmptyContent>
-                          <Button variant="outline" onClick={reload}>
-                            <RefreshCcw data-icon="inline-start" />
-                            重新加载
-                          </Button>
+                          {error
+                            ? (
+                                <Button variant="outline" onClick={reload}>
+                                  <RefreshCcw data-icon="inline-start" />
+                                  重新加载
+                                </Button>
+                              )
+                            : <Button asChild><Link to="/resume">前往我的简历</Link></Button>}
                         </EmptyContent>
                       )}
                     </Empty>
@@ -57,7 +63,7 @@ function History() {
                 : <HistoryWorkspace activeResumeId={activeResumeId} onReloadResumeOptions={reload} />}
         </motion.div>
       </AnimatePresence>
-    </div>
+    </PageLayout>
   )
 }
 

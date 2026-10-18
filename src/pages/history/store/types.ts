@@ -1,4 +1,4 @@
-import type { HistoryCurrentResume, RestoreStrategy, VersionMetadataDraft } from '../types'
+import type { HistoryCurrentResume, HistorySelection, RestoreStrategy, VersionMetadataDraft } from '../types'
 import type { ResumeHistoryVersionListItem, ResumeHistoryVersionRecord, ResumeSnapshot } from '@/lib/supabase/resume/history'
 
 export interface HistoryStoreState {
@@ -18,6 +18,11 @@ export interface HistoryStoreState {
   deleteVersion: (versionId: number) => Promise<boolean>
 
   // UI slice
+  mobilePanel: 'timeline' | 'detail'
+  timelineFocusTarget: HistorySelection
+  showDetail: () => void
+  showTimeline: (target: HistorySelection) => void
+  clearTimelineFocus: () => void
   loading: boolean
   savingCurrent: boolean
   savingMetadata: boolean

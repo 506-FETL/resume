@@ -22,12 +22,32 @@ export function useBreadcrumbs(): Breadcrumb[] {
 
   return useMemo(() => {
     const segments = pathname.split('/').filter(Boolean)
-    const result: Breadcrumb[] = [{ href: '/', label: 'home' }]
+    const labels: Record<string, string> = {
+      'resume': '我的简历',
+      'editor': '编辑简历',
+      'assistant': 'AI 助手',
+      'share': '分享管理',
+      'tracker': '求职跟进',
+      'history': '历史版本',
+      'optimize': '简历优化',
+      'profile': '个人信息',
+      'changelog': '更新日志',
+      'login': '登录',
+      'sign-up': '注册',
+      'forgot-password': '找回密码',
+      'reset-password': '重置密码',
+    }
+    // The template module is intentionally excluded from this redesign.
+    const templateRoute = segments[0] === 'template'
+    const result: Breadcrumb[] = [{ href: '/', label: templateRoute ? 'home' : '首页' }]
 
     result.push(...segments.map((seg, i) => {
       const href = `/${segments.slice(0, i + 1).join('/')}`
-      return { href, label: decodeURIComponent(seg) }
-    }))
+      return { href, label: templateRoute ? decodeURIComponent(seg) : labels[seg] }
+    }).filter((crumb): crumb is Breadcrumb => !!crumb.label))
+
+    if (segments.length > 0 && result.length === 1)
+      result.push({ href: pathname, label: '页面未找到' })
 
     return result
   }, [pathname])

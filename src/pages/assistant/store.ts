@@ -1,4 +1,4 @@
-import type { CanvasTabKey } from './types'
+import type { AssistantLayoutMode, CanvasTabKey } from './types'
 import type { ConfirmPreview } from '@/lib/ai/agent/confirm-bridge'
 import type { AiConversation, AiMessage, AiMessagePart } from '@/lib/ai/types'
 import type { MessageCursor } from '@/lib/supabase/ai'
@@ -52,6 +52,9 @@ interface AssistantStore {
   searchOpen: boolean
   deepThinking: boolean
   canvasOpen: boolean
+  layoutMode: AssistantLayoutMode
+  availableWidth: number
+  setAssistantLayout: (mode: AssistantLayoutMode, width: number) => void
   canvasWidth: number
   canvasMobileOpen: boolean
   canvasActiveTab: CanvasTabKey
@@ -125,6 +128,9 @@ const useAssistantStore = create<AssistantStore>()(set => ({
   searchOpen: false,
   deepThinking: readStoredBoolean(ASSISTANT_DEEP_THINKING_STORAGE_KEY, false),
   canvasOpen: readStoredBoolean(ASSISTANT_CANVAS_STORAGE_KEY, true),
+  layoutMode: 'drawer',
+  availableWidth: 0,
+  setAssistantLayout: (layoutMode, availableWidth) => set(state => ({ layoutMode, availableWidth, canvasMobileOpen: layoutMode === 'split' ? false : state.canvasMobileOpen })),
   canvasWidth: readStoredCanvasWidth(),
   canvasMobileOpen: false,
   canvasActiveTab: readStoredCanvasTab(),

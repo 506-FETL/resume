@@ -116,6 +116,17 @@ select private.set_backend_maintenance_flags_v1(true, true);
 
 `cleanup_enabled` 与 `edge_jobs_enabled` 默认均为 `false`。不启用运维时保持默认；轮换凭据或重复配置时更新已有同名 Vault secret，不要重复创建。
 
+仅需要显示并定时更新 GitHub Stars 时，在部署 `github-stars-refresh` 并配置上述维护令牌和 Vault 后，单独启用刷新即可，无需开启监控或清理任务：
+
+```sql
+update private.backend_maintenance_config
+set github_stars_refresh_enabled = true, updated_at = now()
+where singleton;
+select private.invoke_backend_edge_job_v1('github-stars-refresh');
+```
+
+`github_stars_refresh_enabled` 默认也是 `false`。启用后沿用每 6 小时一次的刷新计划；首次刷新成功前，前端不会显示 Star 数量。原有 `edge_jobs_enabled` 开关仍可同时启用全部 Edge 运维任务。
+
 ## 开发验证
 
 前端使用 `pnpm lint` 与 `pnpm build`。协作、AI、评论等专项脚本列在 [`package.json`](../package.json) 中，应按变更范围选择。

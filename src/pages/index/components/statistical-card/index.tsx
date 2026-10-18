@@ -12,9 +12,11 @@ interface StatisticalCardProps {
   funnel: DashboardFunnel
   jobsLoading: boolean
   atsLoading: boolean
+  jobsUnavailable?: boolean
+  atsUnavailable?: boolean
 }
 
-function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardProps) {
+function StatisticalCard({ funnel, jobsLoading, atsLoading, jobsUnavailable, atsUnavailable }: StatisticalCardProps) {
   const navigate = useNavigate()
   const hasAts = funnel.avgAtsScore !== null
 
@@ -26,6 +28,7 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
           : (
               <StatCard
                 title="已投递"
+                placeholder={jobsUnavailable ? '—' : undefined}
                 value={funnel.applied}
                 description={funnel.applied > 0 ? '累计投递的岗位数' : '添加岗位'}
                 onGuideClick={funnel.applied === 0 ? () => navigate('/tracker') : undefined}
@@ -40,6 +43,7 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
           : (
               <StatCard
                 title="面试进行中"
+                placeholder={jobsUnavailable ? '—' : undefined}
                 value={funnel.interview}
                 icon={<Users className="size-4 text-violet-500" />}
                 iconBg="bg-violet-500/8"
@@ -52,6 +56,7 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
           : (
               <StatCard
                 title="收到 Offer"
+                placeholder={jobsUnavailable ? '—' : undefined}
                 value={funnel.offer}
                 icon={<CircleCheckBig className="size-4 text-emerald-500" />}
                 iconBg="bg-emerald-500/8"
@@ -66,13 +71,15 @@ function StatisticalCard({ funnel, jobsLoading, atsLoading }: StatisticalCardPro
                 title="平均 ATS 分"
                 value={funnel.avgAtsScore ?? 0}
                 suffix={hasAts ? '分' : undefined}
-                placeholder={hasAts ? undefined : '—'}
+                placeholder={hasAts && !atsUnavailable ? undefined : '—'}
                 description={
-                  funnel.atsResumeCount > 0
-                    ? `${funnel.atsResumeCount} 份简历检测均分`
-                    : '开始 ATS 检测'
+                  atsUnavailable
+                    ? '检测数据暂不可用'
+                    : funnel.atsResumeCount > 0
+                      ? `${funnel.atsResumeCount} 份简历检测均分`
+                      : '开始 ATS 检测'
                 }
-                onGuideClick={funnel.atsResumeCount === 0 ? () => navigate('/optimize') : undefined}
+                onGuideClick={!atsUnavailable && funnel.atsResumeCount === 0 ? () => navigate('/optimize') : undefined}
                 icon={<Sparkles className="size-4 text-primary" />}
                 iconBg="bg-primary/8"
               />
@@ -109,8 +116,8 @@ function StatCard({
   onGuideClick,
 }: StatCardProps) {
   return (
-    <Card className={cn('h-full transition-all duration-200 hover:shadow-md', className)}>
-      <CardContent className="p-4 md:p-5">
+    <Card className={cn('h-full py-3 transition-all duration-200 hover:shadow-md', className)}>
+      <CardContent className="px-4 py-0">
         <div className="flex items-start gap-3">
           <div className={cn('p-2 rounded-lg shrink-0', iconBg)}>
             {icon}
@@ -142,14 +149,14 @@ function StatCard({
               <button
                 type="button"
                 onClick={onGuideClick}
-                className="group mt-3 flex items-center gap-0.5 text-[11px] text-muted-foreground/80 transition-colors hover:text-foreground"
+                className="group mt-3 flex items-center gap-0.5 text-xs text-muted-foreground/80 transition-colors hover:text-foreground"
               >
                 <span className="truncate">{description}</span>
                 <ArrowRight className="size-3 shrink-0 transition-transform group-hover:translate-x-0.5" />
               </button>
             )
           : description && (
-            <p className="mt-3 truncate text-[11px] text-muted-foreground/80">
+            <p className="mt-3 truncate text-xs text-muted-foreground/80">
               {description}
             </p>
           )}

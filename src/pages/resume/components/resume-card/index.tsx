@@ -1,11 +1,12 @@
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from '../../types'
-import { Cloud, Edit2, FileText, GitBranch, HardDrive, Share2, Sparkles, X } from 'lucide-react'
+import { Cloud, Edit2, FileText, GitBranch, HardDrive, MoreHorizontal, Share2, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import useResumeListStore from '@/pages/resume/store'
 import useShareStore from '@/pages/share/store'
 import useJdVariantStore from '@/store/jd-variant'
@@ -47,16 +48,6 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
     navigate('/resume/editor')
   }
 
-  const handleEditClick = (e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    setShowEditDialog(true)
-  }
-
-  const handleDeleteClick = (e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    setShowDeleteDialog(true)
-  }
-
   const handleDeleteConfirm = () => {
     deleteResume(resume.resume_id)
     setShowDeleteDialog(false)
@@ -88,8 +79,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
   return (
     <>
       <Card
-        className="group h-full cursor-pointer gap-5 py-5 transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-md focus-within:border-primary/30"
-        onClick={handleCardClick}
+        className="group h-full gap-5 py-5 transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-md focus-within:border-primary/30"
       >
         <CardHeader className="gap-4 px-5">
           <div className="flex items-center gap-3">
@@ -99,15 +89,13 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
             <span className="text-xs text-muted-foreground">{new Date(resume.created_at).toLocaleDateString()}</span>
           </div>
           <CardAction>
-            <Button
-              type="button"
-              onClick={handleDeleteClick}
-              size="icon-sm"
-              variant="ghost"
-              aria-label="删除简历"
-            >
-              <X />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button type="button" size="icon-sm" variant="ghost" aria-label="简历更多操作"><MoreHorizontal /></Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>编辑信息</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowDeleteDialog(true)} className="text-destructive">删除简历</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </CardAction>
           <div className="flex flex-wrap items-center gap-1.5">
             {isVariant && (
@@ -167,10 +155,10 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
           )}
         </CardContent>
         <CardFooter className="mt-auto flex flex-col gap-2 px-5">
-          <div className="grid w-full grid-cols-3 gap-2">
-            <Button variant="outline" onClick={handleEditClick} className="flex-1">
+          <div className="grid w-full grid-cols-2 gap-2">
+            <Button onClick={handleCardClick} className="col-span-2">
               <Edit2 data-icon="inline-start" />
-              编辑
+              编辑简历
             </Button>
             <Button
               variant="outline"

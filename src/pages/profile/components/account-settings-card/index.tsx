@@ -45,7 +45,7 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
   }, [user])
 
   return (
-    <Card>
+    <Card className="shadow-none">
       <CardHeader>
         <CardTitle>账户设置</CardTitle>
       </CardHeader>
@@ -67,26 +67,13 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
 
 function LoadingSkeleton() {
   return (
-    <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
-      <Skeleton className="h-6 w-32 rounded-lg" />
-      <Separator />
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between py-3">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-9 w-24 rounded-md" />
+    <div className="grid gap-4 sm:grid-cols-2" aria-label="正在加载会话信息" aria-busy="true">
+      {[0, 1].map(item => (
+        <div key={item} className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-5 w-full" />
         </div>
-        <Separator />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-5 w-full" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-5 w-full" />
-          </div>
-        </div>
-      </div>
+      ))}
     </div>
   )
 }

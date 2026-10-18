@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -46,7 +46,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
           ? (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">请查收邮件</CardTitle>
+                  <h1 className="text-2xl leading-8 font-semibold tracking-tight">请查收邮件</h1>
                   <CardDescription>如果你使用邮箱和密码注册，将收到密码重置邮件。</CardDescription>
                 </CardHeader>
               </Card>
@@ -54,7 +54,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
           : (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">重置密码</CardTitle>
+                  <h1 className="text-2xl leading-8 font-semibold tracking-tight">重置密码</h1>
                   <CardDescription>重置链接将发送至注册邮箱。</CardDescription>
                 </CardHeader>
                 <CardContent>

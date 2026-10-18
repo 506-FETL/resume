@@ -1,11 +1,15 @@
+import type { MouseEventHandler } from 'react'
 import { useEffect, useState } from 'react'
+import { PageHeader } from '@/components/layout/page-layout'
+import { Button } from '@/components/ui/button'
 import useCurrentUser from '@/hooks/use-current-user'
 
 interface HeaderProps {
   focus?: string
+  onCreate: MouseEventHandler<HTMLButtonElement>
 }
 
-function Header({ focus }: HeaderProps) {
+function Header({ focus, onCreate }: HeaderProps) {
   const [greeting, setGreeting] = useState('')
   const auth = useCurrentUser()
 
@@ -25,17 +29,7 @@ function Header({ focus }: HeaderProps) {
   }, [])
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary to-primary/70">
-          欢迎回来
-          {auth?.user_metadata.full_name ? `, ${auth.user_metadata.full_name}` : ''}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {focus || greeting}
-        </p>
-      </div>
-    </div>
+    <PageHeader title={`欢迎回来${auth?.user_metadata.full_name ? `，${auth.user_metadata.full_name}` : ''}`} description={focus || greeting} actions={<Button aria-label="打开创建简历表单" onClick={onCreate}>创建简历</Button>} />
   )
 }
 

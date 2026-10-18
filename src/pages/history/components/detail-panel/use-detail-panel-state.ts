@@ -19,6 +19,7 @@ export interface HistoryDetailPanelState {
   selectEntry: (target: HistorySelection) => void
   requestSelectEntry: (target: HistorySelection) => void
   requestCloseDetail: () => void
+  requestBackToTimeline: () => void
   startEditing: () => void
   cancelEditing: () => void
   updateEditDraft: (patch: Partial<VersionMetadataDraft>) => void
@@ -30,6 +31,8 @@ export interface HistoryDetailPanelState {
 export function useHistoryDetailPanelState(activeResumeId: string | null): HistoryDetailPanelState {
   const versions = useHistoryStore(state => state.versions)
   const updateVersionMetadata = useHistoryStore(state => state.updateVersionMetadata)
+  const showDetail = useHistoryStore(state => state.showDetail)
+  const showTimeline = useHistoryStore(state => state.showTimeline)
 
   const [selectedEntry, setSelectedEntry] = useState<HistorySelection>('current')
   const [editing, setEditing] = useState(false)
@@ -59,17 +62,24 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
     setSelectedEntry(target)
     resetEditingState()
     clearPendingDiscard()
-  }, [clearPendingDiscard, resetEditingState])
+    if (target !== null)
+      showDetail()
+  }, [clearPendingDiscard, resetEditingState, showDetail])
 
   useEffect(() => {
-    selectEntry('current')
-  }, [activeResumeId, selectEntry])
+    setSelectedEntry('current')
+    resetEditingState()
+    clearPendingDiscard()
+    showTimeline(null)
+  }, [activeResumeId, clearPendingDiscard, resetEditingState, showTimeline])
 
   useEffect(() => {
     if (typeof selectedEntry === 'number' && !versions.some(version => version.id === selectedEntry)) {
-      selectEntry('current')
+      setSelectedEntry('current')
+      resetEditingState()
+      clearPendingDiscard()
     }
-  }, [selectedEntry, selectEntry, versions])
+  }, [clearPendingDiscard, resetEditingState, selectedEntry, versions])
 
   const hasDirtyEditDraft = editing && isMetadataDraftDirty(editDraft, selectedVersion)
 
@@ -85,6 +95,8 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
 
   const requestSelectEntry = useCallback((target: HistorySelection) => {
     if (selectedEntry === target) {
+      if (target !== null)
+        showDetail()
       return
     }
 
@@ -93,7 +105,18 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
     }
 
     selectEntry(target)
-  }, [requestDiscard, selectEntry, selectedEntry])
+  }, [requestDiscard, selectEntry, selectedEntry, showDetail])
+
+  const backToTimeline = useCallback(() => {
+    resetEditingState()
+    clearPendingDiscard()
+    showTimeline(selectedEntry)
+  }, [clearPendingDiscard, resetEditingState, selectedEntry, showTimeline])
+
+  const requestBackToTimeline = useCallback(() => {
+    if (!requestDiscard({ type: 'back' }))
+      backToTimeline()
+  }, [backToTimeline, requestDiscard])
 
   const requestCloseDetail = useCallback(() => {
     if (requestDiscard({ type: 'close' })) {
@@ -135,13 +158,17 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
   }, [editDraft, resetEditingState, selectedVersion, updateVersionMetadata])
 
   const confirmDiscardChanges = useCallback(() => {
+    if (pendingDiscardAction?.type === 'back') {
+      backToTimeline()
+      return
+    }
     if (pendingDiscardAction?.type === 'select') {
       selectEntry(pendingDiscardAction.target)
       return
     }
 
     selectEntry(null)
-  }, [pendingDiscardAction, selectEntry])
+  }, [backToTimeline, pendingDiscardAction, selectEntry])
 
   const cancelDiscardChanges = useCallback(() => {
     clearPendingDiscard()
@@ -158,6 +185,7 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
     selectEntry,
     requestSelectEntry,
     requestCloseDetail,
+    requestBackToTimeline,
     startEditing,
     cancelEditing,
     updateEditDraft,

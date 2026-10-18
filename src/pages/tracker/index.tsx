@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { PageLayout } from '@/components/layout/page-layout'
 import BoardView from './components/board'
 import JobDrawer from './components/drawer'
 import AddJobDrawer from './components/drawer/add-job'
@@ -34,10 +35,10 @@ function TrackerContent() {
 
   return (
     <>
-      <div className="mx-auto flex h-full min-h-[420px] w-full min-w-0 max-w-[1600px] flex-col gap-3 px-1 py-1 sm:min-h-[700px] sm:gap-5 sm:px-3 sm:py-5 lg:min-h-[760px] lg:px-6">
+      <PageLayout width="wide" className="h-full min-h-[560px] gap-4">
         <TrackerHeader />
         <OverviewBar />
-        <main aria-label="职位工作区" className="flex min-h-0 min-w-0 flex-1 flex-col rounded-2xl border bg-card shadow-xs">
+        <main aria-label="职位工作区" className="flex min-h-64 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
           <TrackerToolbar />
           <ViewTransition animationKey={state} className="flex min-h-0 min-w-0 flex-1 flex-col p-2 sm:p-4">
             {state === 'loading'
@@ -49,7 +50,7 @@ function TrackerContent() {
                   : <TrackerPageState mode={state} onRetry={reload} />}
           </ViewTransition>
         </main>
-      </div>
+      </PageLayout>
       <JobDrawer />
       <AddJobDrawer />
     </>

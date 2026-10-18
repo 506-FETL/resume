@@ -1,18 +1,15 @@
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
+import { Card, CardContent } from '@/components/ui/card'
 
 export function PreferencesCard() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>偏好设置</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <Label>主题设置</Label>
-          <AnimatedThemeToggler />
+    <Card className="shadow-none">
+      <CardContent className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold">外观偏好</h2>
+          <p className="text-sm text-muted-foreground">切换浅色与深色主题。</p>
         </div>
+        <AnimatedThemeToggler />
       </CardContent>
     </Card>
   )
