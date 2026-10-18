@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import type { ReadingZoom } from './components/reading-toolbar'
 import type { ShareCommentAccess } from './hooks/use-share-comment-access'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
@@ -8,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PageLoading } from '@/components/page-loading'
+import { A4_PAGE_WIDTH } from '@/components/resume/pagination/const'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
@@ -19,6 +21,7 @@ import useCurrentUser from '@/hooks/use-current-user'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { fetchSharedResume } from '@/lib/supabase/resume/share'
 import PdfExport from '../components/pdf-export'
+import { ReadingToolbar } from './components/reading-toolbar'
 import { readShareCommentAccess, useShareCommentAccess } from './hooks/use-share-comment-access'
 
 type ViewState
@@ -47,6 +50,7 @@ export default function ResumeSharePage() {
   const [verifiedPassword, setVerifiedPassword] = useState<string>()
   const [submitting, setSubmitting] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
+  const [readingZoom, setReadingZoom] = useState<ReadingZoom>('fit')
   const requestIdRef = useRef(0)
   const documentRef = useRef<HTMLDivElement>(null)
   const currentUser = useCurrentUser()
@@ -171,7 +175,7 @@ export default function ResumeSharePage() {
 
   const renderContent = () => {
     if (state.phase === 'loading') {
-      return <PageLoading className="min-h-dvh bg-muted/30" label="正在加载简历" />
+      return <div role="status" aria-label="正在加载简历"><PageLoading className="min-h-dvh bg-muted/30" /></div>
     }
 
     if (state.phase === 'unavailable') {
@@ -194,6 +198,7 @@ export default function ResumeSharePage() {
                   handleSubmitPassword().catch(() => undefined)
               }}
               placeholder="访问密码"
+              aria-label="访问密码"
               autoComplete="current-password"
               autoFocus
             />
@@ -215,16 +220,19 @@ export default function ResumeSharePage() {
 
     return (
       <div className="min-h-dvh bg-muted/30">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b bg-background/85 px-4 py-3 backdrop-blur">
-          <h1 className="truncate text-base font-semibold">{state.displayName || '简历'}</h1>
+        <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur print:hidden">
+          <h1 className="min-w-0 flex-1 truncate text-base font-semibold">{state.displayName || '简历'}</h1>
           <PdfExport
             contentRef={documentRef}
             documentState={documentState}
             documentTitle={state.displayName || '简历'}
           />
+          <div className="flex basis-full justify-center sm:order-none sm:basis-auto">
+            <ReadingToolbar zoom={readingZoom} onZoomChange={setReadingZoom} />
+          </div>
         </header>
-        <main className="mx-auto max-w-4xl p-4 sm:p-8">
-          <div className="rounded-xl bg-background p-2 shadow-sm sm:p-4">
+        <main className="w-full overflow-x-auto px-2 py-4 sm:px-6 sm:py-6" aria-label="简历阅读区" tabIndex={0}>
+          <div className="mx-auto max-w-none bg-background shadow-sm" style={{ width: readingZoom === 'fit' ? `min(100%, ${A4_PAGE_WIDTH})` : `calc(${A4_PAGE_WIDTH} * ${readingZoom / 100})` }}>
             {previewData && (
               <ScaledReadonlyPreview
                 data={previewData}
@@ -251,7 +259,7 @@ export default function ResumeSharePage() {
                   currentUserId={currentUser?.id ?? null}
                   open={commentsOpen}
                   onOpenChange={setCommentsOpen}
-                  layoutRevision={JSON.stringify(documentState.signature)}
+                  layoutRevision={`${JSON.stringify(documentState.signature)}:${readingZoom}`}
                   documentRevision={state.documentRevision}
                 />
               </ResumeCommentProvider>

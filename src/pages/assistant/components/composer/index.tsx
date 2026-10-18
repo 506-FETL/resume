@@ -103,7 +103,7 @@ export default function Composer() {
                     type="button"
                     aria-label="停止生成"
                     onClick={stopStreaming}
-                    className="flex h-9 items-center gap-1.5 rounded-full bg-rose-100 px-3 text-sm text-rose-600 transition-colors hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-300"
+                    className="flex h-9 items-center gap-1.5 rounded-full bg-destructive/10 px-3 text-sm text-destructive transition-colors hover:bg-destructive/20 motion-reduce:transition-none"
                   >
                     <Square className="size-3.5 fill-current" />
                     停止
@@ -123,7 +123,7 @@ export default function Composer() {
                     'flex h-9 items-center gap-1.5 rounded-full px-3 text-sm transition-colors',
                     deepThinking
                       ? 'bg-primary/15 text-primary'
-                      : 'bg-zinc-200 text-zinc-500 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-400',
+                      : 'bg-muted text-muted-foreground hover:bg-accent',
                   )}
                 >
                   <Brain className="size-4" />

@@ -25,6 +25,7 @@ export function AssistantEntry() {
     >
       <Link
         to="/assistant"
+        aria-label="AI 助手"
         state={{ from }}
         aria-current={isActive ? 'page' : undefined}
         onClick={() => rememberAssistantReturnPath(from)}

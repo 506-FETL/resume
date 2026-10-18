@@ -1,4 +1,5 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
+import { motion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -17,8 +18,9 @@ interface HistoryDetailContentProps {
 
 export default function HistoryDetailContent({ state,
 }: HistoryDetailContentProps) {
-  const { reduceMotion } = useHistoryMotion()
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const { reduceMotion, enter } = useHistoryMotion()
+  const resumeScrollRef = useRef<HTMLDivElement>(null)
+  const overviewScrollRef = useRef<HTMLDivElement>(null)
   const currentResume = useHistoryStore(state => state.currentResume)
   const loadVersionSnapshot = useHistoryStore(state => state.loadVersionSnapshot)
   const { activeTab, setActiveTab } = state
@@ -35,8 +37,9 @@ export default function HistoryDetailContent({ state,
   }, [selectedVersionId, versionSnapshot, loadVersionSnapshot])
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
-  }, [state.selectedEntry, activeTab])
+    resumeScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
+    overviewScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
+  }, [state.selectedEntry])
 
   useEffect(() => {
     if (state.editing) {
@@ -77,20 +80,17 @@ export default function HistoryDetailContent({ state,
         </div>
         <Separator />
 
-        <TabsContent ref={scrollRef} forceMount value={activeTab} className="scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {activeTab === 'overview'
-            ? (
-                <div className="flex flex-col gap-4 p-4 sm:p-5">
-                  {isCurrent ? <CurrentOverview /> : <HistoryVersionOverview state={state} />}
-                </div>
-              )
-            : (
-                <div className="min-h-full bg-muted/35 p-3 sm:p-5">
-                  {resumeSnapshot
-                    ? <HistoryResumePreview snapshot={resumeSnapshot} />
-                    : <Skeleton className={cn('h-96 w-full', reduceMotion && 'animate-none')} />}
-                </div>
-              )}
+        <TabsContent ref={overviewScrollRef} forceMount value="overview" hidden={activeTab !== 'overview'} inert={activeTab !== 'overview'} className={cn('scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain', activeTab !== 'overview' && 'hidden')}>
+          <motion.div animate={{ opacity: activeTab === 'overview' ? 1 : 0 }} transition={enter} className="flex flex-col gap-4 p-4 sm:p-5">
+            {isCurrent ? <CurrentOverview /> : <HistoryVersionOverview state={state} />}
+          </motion.div>
+        </TabsContent>
+        <TabsContent ref={resumeScrollRef} forceMount value="resume" hidden={activeTab !== 'resume'} inert={activeTab !== 'resume'} className={cn('scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain', activeTab !== 'resume' && 'hidden')}>
+          <motion.div animate={{ opacity: activeTab === 'resume' ? 1 : 0 }} transition={enter} className="min-h-full bg-muted/35 p-3 sm:p-5">
+            {resumeSnapshot
+              ? <HistoryResumePreview snapshot={resumeSnapshot} />
+              : <Skeleton className={cn('h-96 w-full', reduceMotion && 'animate-none')} />}
+          </motion.div>
         </TabsContent>
       </Tabs>
     </div>

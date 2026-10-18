@@ -26,7 +26,7 @@ export function AnalysisActions({ hasAnalysis, isProcessing, onViewAnalysis, onS
       )}
 
       <Button
-        variant="outline"
+        variant="default"
         size="sm"
         onClick={onStartAnalysis}
         disabled={isProcessing || !selectedResumeId}

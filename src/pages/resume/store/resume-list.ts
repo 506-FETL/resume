@@ -11,6 +11,9 @@ import { getErrorMessage } from '@/utils'
 export interface ResumeListSlice {
   resumes: ResumeItem[]
   loading: boolean
+  loadError: string | null
+  accountId: string | null
+  cancelLoad: () => void
   _localDeletingIds: Set<string>
   loadResumes: () => Promise<void>
   deleteResume: (id: string) => void
@@ -27,49 +30,55 @@ function clearDeletedCurrentResume(resumeId: string) {
 }
 
 export function createResumeListSlice(set: SetState): ResumeListSlice {
+  let requestId = 0
+  let accountId: string | null | undefined
   return {
     resumes: [],
     loading: true,
+    loadError: null,
+    accountId: null,
+    cancelLoad: () => { requestId += 1 },
     _localDeletingIds: new Set<string>(),
 
     loadResumes: async () => {
+      const request = ++requestId
+      set({ loadError: null })
       try {
         const user = await getCurrentUser()
-        set({ isOnline: !!user })
-
-        let allResumes: ResumeItem[] = []
-
-        if (user) {
-          try {
-            const onlineResumes = await getAllResumesFromUser()
-            allResumes = onlineResumes.map(r => ({ ...r, isOffline: false }))
-          }
-          catch (error: unknown) {
-            if (getErrorMessage(error) !== '用户未登陆')
-              toast.error('加载在线简历失败')
-          }
+        if (request !== requestId)
+          return
+        const nextAccountId = user?.id ?? null
+        if (accountId !== nextAccountId) {
+          accountId = nextAccountId
+          set({ resumes: [], offlineResumes: [], loading: true, accountId: nextAccountId })
         }
-
-        const localResumes = await getAllOfflineResumes()
-        const formattedOfflineResumes: ResumeItem[] = localResumes.map(r => ({
-          ...r,
-          isOffline: true,
-        }))
-
-        allResumes = [...allResumes, ...formattedOfflineResumes]
-        set({ resumes: allResumes })
-
-        if (user && formattedOfflineResumes.length > 0) {
-          set({ offlineResumes: formattedOfflineResumes })
-          toast.info(`检测到 ${formattedOfflineResumes.length} 个本地简历，点击右上角按钮可同步到云端`)
-        }
+        set({ isOnline: Boolean(user) })
+        const outcomes = await Promise.allSettled([
+          (async () => {
+            const onlineResumes = user ? await getAllResumesFromUser() : []
+            if (request === requestId)
+              set(state => ({ resumes: [...onlineResumes.map(r => ({ ...r, isOffline: false })), ...state.resumes.filter(r => r.isOffline)] }))
+          })(),
+          (async () => {
+            const localResumes = await getAllOfflineResumes()
+            const offlineResumes = localResumes.map(r => ({ ...r, isOffline: true }))
+            if (request === requestId)
+              set(state => ({ resumes: [...state.resumes.filter(r => !r.isOffline), ...offlineResumes], offlineResumes }))
+          })(),
+        ])
+        if (request !== requestId)
+          return
+        const failed = outcomes.find(outcome => outcome.status === 'rejected')
+        if (failed?.status === 'rejected')
+          set({ loadError: getErrorMessage(failed.reason) })
       }
       catch (error) {
-        toast.error('加载简历失败')
-        console.warn(error)
+        if (request === requestId)
+          set({ loadError: getErrorMessage(error) })
       }
       finally {
-        set({ loading: false })
+        if (request === requestId)
+          set({ loading: false })
       }
     },
 

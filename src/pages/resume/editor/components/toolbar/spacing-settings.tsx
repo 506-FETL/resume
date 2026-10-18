@@ -254,6 +254,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
           <Button
+            aria-label="间距设置"
             variant="outline"
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}

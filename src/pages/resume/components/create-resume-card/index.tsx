@@ -1,11 +1,10 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode, RefObject } from 'react'
 import type { ResumeType } from '@/lib/schema'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -16,11 +15,13 @@ import useResumeListStore from '@/pages/resume/store'
 import useCurrentResumeStore from '@/store/resume/current'
 import { getErrorMessage } from '@/utils'
 
-export default function CreateResumeCard() {
+export default function CreateResumeCard({ trigger, online, onCreated, open, onOpenChange, hideTrigger, returnFocusRef }: { trigger?: ReactNode, online?: boolean, onCreated?: () => void, open?: boolean, onOpenChange?: (open: boolean) => void, hideTrigger?: boolean, returnFocusRef?: RefObject<HTMLElement | null> }) {
   const { isOnline, addResume } = useResumeListStore()
   const { setCurrentResume } = useCurrentResumeStore()
 
-  const [isCreating, setIsCreating] = useState(false)
+  const [localOpen, setLocalOpen] = useState(false)
+  const isCreating = open ?? localOpen
+  const setIsCreating = onOpenChange ?? setLocalOpen
   const [displayName, setDisplayName] = useState('')
   const [description, setDescription] = useState('')
   const [selectedType, setSelectedType] = useState<ResumeType>('default')
@@ -31,7 +32,7 @@ export default function CreateResumeCard() {
     setLoading(true)
 
     try {
-      if (isOnline) {
+      if (online ?? isOnline) {
         // 在线模式：创建云端简历
         const createPromise = createNewResume(
           { display_name: displayName.trim(), description: description.trim() },
@@ -47,6 +48,7 @@ export default function CreateResumeCard() {
               description: data.description,
               isOffline: false,
             })
+            onCreated?.()
             setCurrentResume(data.resume_id, data.type)
             return data
           })
@@ -79,6 +81,7 @@ export default function CreateResumeCard() {
           isOffline: true,
         })
 
+        onCreated?.()
         toast.success('本地简历创建成功')
         setLoading(false)
         handleCancel()
@@ -98,91 +101,93 @@ export default function CreateResumeCard() {
   }
 
   return (
-    <section className="h-full">
-      <Card
-        className="hover:shadow-lg transition-all duration-300 cursor-pointer border-dashed border-2 hover:border-primary/50 h-full flex flex-col items-center justify-center"
-        onClick={() => setIsCreating(true)}
+    <Dialog open={isCreating} onOpenChange={setIsCreating}>
+      {!hideTrigger && (trigger
+        ? <DialogTrigger asChild>{trigger}</DialogTrigger>
+        : (
+            <button type="button" onClick={() => setIsCreating(true)} className="flex min-h-48 h-full w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed bg-card p-6 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-accent/40 motion-reduce:transition-none">
+              <Plus className="size-6" aria-hidden />
+              创建新简历
+            </button>
+          ))}
+
+      <DialogContent
+        className="sm:max-w-135"
+        onCloseAutoFocus={(event) => {
+          if (returnFocusRef?.current?.isConnected) {
+            event.preventDefault()
+            returnFocusRef.current.focus()
+          }
+        }}
       >
-        <CardHeader className="flex justify-center">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <Plus className="size-8" />
-          </div>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          <p className="font-semibold text-lg">创建新简历</p>
-        </CardContent>
-      </Card>
-      <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent className="sm:max-w-135">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">创建新简历</DialogTitle>
-            <DialogDescription className="sr-only">填写简历名称、描述并选择基础模板类型。</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateResume}>
-            <FieldGroup className="gap-6 py-6">
-              {/* 简历名称 */}
-              <Field>
-                <FieldLabel htmlFor="display_name">
-                  简历名称（
-                  {displayName.length}
-                  /50）
-                </FieldLabel>
-                <Input
-                  id="display_name"
-                  placeholder="例如：前端开发简历"
-                  value={displayName}
-                  onChange={e => setDisplayName(e.target.value)}
-                  maxLength={50}
-                  className="h-11"
-                />
-              </Field>
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">创建新简历</DialogTitle>
+          <DialogDescription className="sr-only">填写简历名称、描述并选择基础模板类型。</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleCreateResume}>
+          <FieldGroup className="gap-6 py-6">
+            {/* 简历名称 */}
+            <Field>
+              <FieldLabel htmlFor="display_name">
+                简历名称（
+                {displayName.length}
+                /50）
+              </FieldLabel>
+              <Input
+                id="display_name"
+                placeholder="例如：前端开发简历"
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                maxLength={50}
+                className="h-11"
+              />
+            </Field>
 
-              {/* 简历描述 */}
-              <Field>
-                <FieldLabel htmlFor="description">
-                  简历描述（
-                  {description.length}
-                  /200）
-                </FieldLabel>
-                <Textarea
-                  id="description"
-                  placeholder="例如：前端岗位投递"
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  rows={3}
-                  maxLength={200}
-                  className="resize-none"
-                />
-              </Field>
+            {/* 简历描述 */}
+            <Field>
+              <FieldLabel htmlFor="description">
+                简历描述（
+                {description.length}
+                /200）
+              </FieldLabel>
+              <Textarea
+                id="description"
+                placeholder="例如：前端岗位投递"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={3}
+                maxLength={200}
+                className="resize-none"
+              />
+            </Field>
 
-              <Field>
-                <FieldLabel htmlFor="template_type">基础模板类型</FieldLabel>
-                <Select value={selectedType} onValueChange={value => setSelectedType(value as ResumeType)}>
-                  <SelectTrigger className="h-11" id="template_type">
-                    <SelectValue placeholder="选择基础模板类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="default">默认</SelectItem>
-                      <SelectItem value="modern">现代</SelectItem>
-                      <SelectItem value="simple">简约</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="template_type">基础模板类型</FieldLabel>
+              <Select value={selectedType} onValueChange={value => setSelectedType(value as ResumeType)}>
+                <SelectTrigger className="h-11" id="template_type">
+                  <SelectValue placeholder="选择基础模板类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="default">默认</SelectItem>
+                    <SelectItem value="modern">现代</SelectItem>
+                    <SelectItem value="simple">简约</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGroup>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
-                取消
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? '创建中...' : '创建简历'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </section>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
+              取消
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? '创建中...' : '创建简历'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

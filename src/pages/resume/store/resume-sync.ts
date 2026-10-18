@@ -129,6 +129,8 @@ export function createResumeSyncSlice(set: SetState, get: GetState): ResumeSyncS
 
             const syncPromise = async () => {
               const onlineResumes = await getAllResumesFromUser()
+              if (cancelled)
+                return
               const formattedOnlineResumes = onlineResumes.map(r => ({ ...r, isOffline: false }))
 
               set((state) => {

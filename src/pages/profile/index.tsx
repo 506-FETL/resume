@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { PageHeader, PageLayout } from '@/components/layout/page-layout'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { QuotaCard } from '@/components/quota/quota-card'
 import { Separator } from '@/components/ui/separator'
@@ -45,11 +46,9 @@ export default function ProfilePage() {
       {!user || loading
         ? <ProfilePageSkeleton />
         : (
-            <div className="mx-auto max-w-4xl space-y-6">
+            <PageLayout width="narrow">
               {/* 页面标题 */}
-              <h1 className="text-3xl font-bold tracking-tight">个人信息</h1>
-
-              <Separator />
+              <PageHeader title="个人信息" description="管理个人资料、账户安全与使用偏好。" />
 
               {/* 个人资料卡片 */}
               <ProfileInfoCard user={user} />
@@ -62,7 +61,7 @@ export default function ProfilePage() {
 
               {/* 偏好设置卡片 */}
               <PreferencesCard />
-            </div>
+            </PageLayout>
           )}
     </AnimatedContent>
   )
@@ -70,81 +69,42 @@ export default function ProfilePage() {
 
 function ProfilePageSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      {/* 页面标题骨架 */}
-      <Skeleton className="h-9 w-48 rounded-lg" />
-
-      <Separator />
-
-      {/* 个人资料卡片骨架 */}
-      <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
-        <div className="flex items-start gap-6">
-          {/* 头像骨架 */}
-          <div className="flex flex-col items-center gap-3">
-            <Skeleton className="size-32 rounded-full" />
-            <Skeleton className="h-9 w-28 rounded-md" />
-          </div>
-
-          {/* 用户信息骨架 */}
-          <div className="flex-1 flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-10 w-full max-w-md rounded-md" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-10 w-full max-w-md rounded-md" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-5 w-48" />
-            </div>
+    <PageLayout width="narrow" aria-label="正在加载个人信息" aria-busy="true">
+      <PageHeader title="个人信息" description="管理个人资料、账户安全与使用偏好。" />
+      <div className="flex flex-col gap-6 rounded-xl border bg-card p-6">
+        <Skeleton className="h-6 w-24" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <Skeleton className="size-24 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-3">
+            <Skeleton className="h-7 w-36" />
+            <Skeleton className="h-5 w-full max-w-56" />
+            <Skeleton className="h-5 w-24" />
           </div>
         </div>
-      </div>
-
-      {/* 账户设置卡片骨架 */}
-      <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
-        <Skeleton className="h-6 w-32 rounded-lg" />
         <Separator />
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between py-3">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-24 rounded-md" />
-          </div>
-          <Separator />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-5 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1, 2, 3].map(item => (
+            <div key={item} className="space-y-2">
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-9 w-full" />
             </div>
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-5 w-full" />
-            </div>
-          </div>
+          ))}
         </div>
       </div>
-
-      {/* 偏好设置卡片骨架 */}
-      <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col gap-6">
-        <Skeleton className="h-6 w-28 rounded-lg" />
+      <div className="space-y-5 rounded-xl border p-6">
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-9 w-full" />
         <Separator />
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between py-3">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-10 w-32 rounded-md" />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between py-3">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-3 w-52" />
-            </div>
-            <Skeleton className="h-6 w-11 rounded-full" />
-          </div>
-        </div>
+        <Skeleton className="h-14 w-full" />
       </div>
-    </div>
+      <div className="space-y-4 rounded-xl border p-6">
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-14 w-full" />
+      </div>
+      <div className="flex items-center justify-between rounded-xl border p-6">
+        <Skeleton className="h-10 w-40" />
+        <Skeleton className="size-9" />
+      </div>
+    </PageLayout>
   )
 }

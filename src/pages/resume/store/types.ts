@@ -5,6 +5,9 @@ export interface ResumeListState {
   // List slice
   resumes: ResumeItem[]
   loading: boolean
+  loadError: string | null
+  accountId: string | null
+  cancelLoad: () => void
   _localDeletingIds: Set<string>
 
   loadResumes: () => Promise<void>

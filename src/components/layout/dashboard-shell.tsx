@@ -15,6 +15,8 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, routeKey, fullBleed = false }: DashboardShellProps) {
   const reduceMotion = useReducedMotion()
+  // Opt-in avoids changing the template workbench and resume document containers.
+  const usesPageLayout = ['/', '/resume', '/share', '/tracker', '/history', '/optimize', '/profile', '/changelog', '/login', '/sign-up', '/forgot-password', '/reset-password'].includes(routeKey.replace(/\/$/, '') || '/')
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
       return localStorage.getItem('sidebarOpen') !== 'false'
@@ -46,7 +48,10 @@ export function DashboardShell({ children, routeKey, fullBleed = false }: Dashbo
             <SiteHeader />
           </header>
         )}
-        <div className={cn('min-h-0 min-w-0 flex-1', fullBleed ? 'overflow-hidden' : 'overflow-y-auto overflow-x-clip p-4')}>
+        <div
+          className={cn('min-h-0 min-w-0 flex-1', fullBleed ? 'overflow-hidden' : 'overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]', !fullBleed && !usesPageLayout && 'p-4')}
+          style={usesPageLayout || fullBleed ? { fontFamily: '"Inter Variable", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif' } : undefined}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={routeKey}

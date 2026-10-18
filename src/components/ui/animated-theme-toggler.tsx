@@ -3,7 +3,6 @@ import { Moon, Sun } from "lucide-react"
 import { useCallback, useRef } from "react"
 import { flushSync } from "react-dom"
 import { useReducedMotion } from "motion/react"
-import { DURATION, EASE } from "@/lib/motion"
 import { useTheme } from "../theme-provider"
 import { Button } from "./button"
 
@@ -13,7 +12,7 @@ interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<"butt
 
 export const AnimatedThemeToggler = ({
   className,
-  duration = DURATION.slow * 1000,
+  duration = 400,
   ...props
 }: AnimatedThemeTogglerProps) => {
   const { theme, setTheme } = useTheme()
@@ -63,7 +62,7 @@ export const AnimatedThemeToggler = ({
           },
           {
             duration,
-            easing: `cubic-bezier(${EASE.out.join(',')})`,
+            easing: "ease-in-out",
             pseudoElement: "::view-transition-new(root)",
           }
         )

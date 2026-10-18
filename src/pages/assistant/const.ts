@@ -18,6 +18,7 @@ export const CANVAS_TABS = ['resume', 'board', 'version', 'changes'] as const
 export const ASSISTANT_DEEP_THINKING_STORAGE_KEY = 'gresume:assistant:deep-thinking'
 
 export const ASSISTANT_CANVAS_WIDTH_STORAGE_KEY = 'gresume:assistant:canvas-width'
+export const CHAT_MIN_WIDTH = 360
 export const CANVAS_MIN_WIDTH = 380
 export const CANVAS_DEFAULT_WIDTH = 480
 export const CANVAS_MAX_WIDTH = 760

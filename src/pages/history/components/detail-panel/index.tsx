@@ -17,7 +17,7 @@ export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
 
   return (
     <>
-      <Card className="flex h-[min(80dvh,760px)] min-h-[520px] min-w-0 flex-col gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-none lg:sticky lg:top-2 lg:h-[calc(100dvh-17rem)] lg:min-h-[460px]">
+      <Card className="flex h-[calc(100dvh-19rem)] min-h-[380px] min-w-0 flex-col gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-none">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {loading || !currentResume
             ? <DetailPanelLoadingState />

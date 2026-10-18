@@ -1,16 +1,16 @@
-import { CloudUpload, GitBranch, Plane, Wifi } from 'lucide-react'
+import type { MouseEventHandler } from 'react'
+import type { ResumeItem } from '../../types'
+import { CloudUpload, GitBranch, Plane, Plus, Wifi } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import useResumeListStore from '@/pages/resume/store'
 import useJdVariantStore from '@/store/jd-variant'
 
-function HeadBars() {
-  const isOnline = useResumeListStore(s => s.isOnline)
-  const offlineResumes = useResumeListStore(s => s.offlineResumes)
-  const resumes = useResumeListStore(s => s.resumes)
+function HeadBars({ onCreate, resumes, isOnline, offlineCount }: { onCreate: MouseEventHandler<HTMLButtonElement>, resumes: ResumeItem[], isOnline: boolean, offlineCount: number }) {
   const setShowSyncDialog = useResumeListStore(s => s.setShowSyncDialog)
   const setDerivedJobsOpen = useResumeListStore(s => s.setDerivedJobsOpen)
-  const hasOfflineResumesToSync = isOnline && offlineResumes.length > 0
+  const hasOfflineResumesToSync = isOnline && offlineCount > 0
   const tasks = useJdVariantStore(s => s.tasks)
   // 与“派生任务”弹窗口径一致：store 仅计进行中（parsing/rewriting），失败/取消由 DB failed 行体现
   const activeParentIds = new Set(
@@ -27,41 +27,53 @@ function HeadBars() {
   const pendingCount = activeParentIds.size + dbPendingParentIds.size
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">我的简历</h1>
+    <PageHeader
+      title="我的简历"
+      description={`${resumes.length} 份简历`}
+      actions={(
+        <Button aria-label="打开创建简历表单" onClick={onCreate}>
+          <Plus />
+          创建简历
+        </Button>
+      )}
+    >
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:justify-end">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge variant={isOnline ? 'secondary' : 'outline'} className="self-start sm:self-auto">
           {isOnline ? <Wifi /> : <Plane />}
           {isOnline ? '在线' : '离线'}
         </Badge>
-        <Button
-          onClick={() => setDerivedJobsOpen(true)}
-          variant="ghost"
-          size="sm"
-          className="w-full sm:w-auto"
-          disabled={pendingCount === 0}
-        >
-          <GitBranch data-icon="inline-start" />
-          派生任务
-          {pendingCount > 0 && (
-            <Badge variant="secondary">{pendingCount}</Badge>
-          )}
-        </Button>
-        <Button
-          onClick={() => setShowSyncDialog(true)}
-          variant="outline"
-          size="sm"
-          className="w-full sm:w-auto"
-          disabled={!hasOfflineResumesToSync}
-        >
-          <CloudUpload data-icon="inline-start" />
-          同步本地简历 (
-          {offlineResumes.length}
-          )
-        </Button>
+        {pendingCount > 0 && (
+          <Button
+            onClick={() => setDerivedJobsOpen(true)}
+            variant="ghost"
+            size="sm"
+            className="w-auto"
+            disabled={pendingCount === 0}
+          >
+            <GitBranch data-icon="inline-start" />
+            派生任务
+            {pendingCount > 0 && (
+              <Badge variant="secondary">{pendingCount}</Badge>
+            )}
+          </Button>
+        )}
+        {hasOfflineResumesToSync && (
+          <Button
+            onClick={() => setShowSyncDialog(true)}
+            variant="outline"
+            size="sm"
+            className="w-auto"
+            disabled={!hasOfflineResumesToSync}
+          >
+            <CloudUpload data-icon="inline-start" />
+            同步本地简历 (
+            {offlineCount}
+            )
+          </Button>
+        )}
       </div>
-    </div>
+    </PageHeader>
   )
 }
 

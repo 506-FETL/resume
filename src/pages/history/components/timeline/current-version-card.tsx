@@ -25,6 +25,7 @@ export default function CurrentVersionCard({ selected, onSelectEntry }: CurrentV
   return (
     <motion.button
       type="button"
+      data-history-entry="current"
       aria-pressed={selected}
       onClick={() => onSelectEntry('current')}
       className={cn(
@@ -46,11 +47,11 @@ export default function CurrentVersionCard({ selected, onSelectEntry }: CurrentV
         </div>
         <span className="truncate text-xs text-muted-foreground">{currentResume.displayName}</span>
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <Badge variant="outline" className="bg-background text-[10px] font-normal">
+          <Badge variant="outline" className="bg-background text-xs font-normal">
             {versions.length === 0 ? '尚未保存版本' : synced ? `已同步至 V${latestVersionNo}` : '有未保存更新'}
           </Badge>
           {currentResume.updatedAt && (
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {formatRelativeTime(currentResume.updatedAt)}
               更新
             </span>

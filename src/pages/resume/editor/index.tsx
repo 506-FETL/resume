@@ -28,6 +28,7 @@ import { CollaborationControls } from './components/collaboration/collaboration-
 import { CollaborationDialog } from './components/collaboration/collaboration-dialog'
 import { CollaborationRuntime } from './components/collaboration/collaboration-runtime'
 import { CommentReviewBanner } from './components/comment-review-banner'
+import { DocumentContext } from './components/document-context'
 import EditPanel from './components/edit-panel'
 import ResumePreview from './components/preview'
 import SidebarEditor from './components/sidebar'
@@ -193,7 +194,7 @@ function Editor() {
   }, [])
 
   if (loading) {
-    return <PageLoading label="正在加载简历" />
+    return <div role="status" aria-label="正在加载简历" className="h-full"><PageLoading /></div>
   }
 
   return (
@@ -214,6 +215,7 @@ function Editor() {
             <div className="relative h-full min-h-0 w-full">
               <div className="absolute inset-0 flex min-h-0 overflow-hidden">
                 <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  <DocumentContext />
                   <AnimatePresence>
                     {!commentReview.isWorking
                       ? (
@@ -279,6 +281,7 @@ function Editor() {
                     render={(
                       <Button
                         variant="outline"
+                        aria-label="编辑简历"
                         className="fixed bottom-6 left-1/2 z-1 -transform -translate-x-1/2"
                         size="icon"
                       />
@@ -306,7 +309,8 @@ function Editor() {
                   </DrawerContent>
                 </Drawer>
               )}
-              <div className="relative flex min-h-screen flex-col overflow-auto md:flex-row">
+              <div className="relative flex min-h-full flex-col overflow-auto md:flex-row">
+                <DocumentContext />
                 <AnimatePresence>
                   {!commentReview.isWorking
                     ? (

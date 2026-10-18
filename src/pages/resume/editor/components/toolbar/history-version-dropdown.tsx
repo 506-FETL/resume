@@ -74,6 +74,7 @@ export function ResumeHistoryVersionDropdown({ reviewActive = false }: { reviewA
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
+            aria-label="历史版本"
             variant="outline"
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}

@@ -1,13 +1,19 @@
+import type { MouseEvent } from 'react'
+import type { ResumeItem } from './types'
+import { Plus } from 'lucide-react'
 import { AnimatePresence, useReducedMotion } from 'motion/react'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
 import { DerivedJobsDialog } from '@/components/jd-variant/components/tasks-dialog'
+import { PageLayout } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PresenceDiv } from '@/components/motion/presence-item'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import useCurrentUser from '@/hooks/use-current-user'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
@@ -19,8 +25,22 @@ import HeadBars from './components/head-bars'
 import ResumeCard from './components/resume-card'
 import SyncResumesDialog from './components/sync-resumes-dialog'
 
+const EMPTY_RESUMES: ResumeItem[] = []
+
 export default function ResumePage() {
-  const { resumes, loading, isOnline, syncingIds, loadResumes, setupRealtimeSubscription, filterMode, setFilterMode, derivePendingFor, openDeriveFor, derivedJobsOpen, setDerivedJobsOpen } = useResumeListStore()
+  const user = useCurrentUser()
+  const [createOpen, setCreateOpen] = useState(false)
+  const createTriggerRef = useRef<HTMLElement | null>(null)
+  function openCreate(event: MouseEvent<HTMLButtonElement>) {
+    createTriggerRef.current = event.currentTarget
+    setCreateOpen(true)
+  }
+  const { accountId, loadError: storeError, resumes: rawResumes, loading: storeLoading, offlineResumes, syncingIds, loadResumes, setupRealtimeSubscription, filterMode, setFilterMode, derivePendingFor, openDeriveFor, derivedJobsOpen, setDerivedJobsOpen } = useResumeListStore()
+  const accountMatches = accountId === (user?.id ?? null)
+  const resumes = accountMatches ? rawResumes : EMPTY_RESUMES
+  const loading = !accountMatches || storeLoading
+  const loadError = accountMatches ? storeError : null
+  const isOnline = Boolean(user)
   const { setCurrentResume } = useCurrentResumeStore()
   const { openForResumeId: shareOpenForResumeId } = useShareStore()
   const navigate = useNavigate()
@@ -33,14 +53,15 @@ export default function ResumePage() {
 
   useEffect(() => {
     loadResumes()
-  }, [loadResumes])
+    return () => useResumeListStore.getState().cancelLoad()
+  }, [loadResumes, user?.id])
 
   useEffect(() => {
     if (!isOnline)
       return
 
     return setupRealtimeSubscription()
-  }, [isOnline, setupRealtimeSubscription])
+  }, [isOnline, setupRealtimeSubscription, user?.id])
 
   const visibleItems = useMemo(() => {
     if (filterMode === 'roots')
@@ -56,12 +77,19 @@ export default function ResumePage() {
   )
 
   return (
-    <AnimatedContent animationKey={loading ? 'loading' : 'resumes'}>
+    <AnimatedContent key={user?.id ?? 'offline'} animationKey={loading ? 'loading' : 'resumes'}>
       {loading
         ? <ResumePageSkeleton />
         : (
-            <div className="container mx-auto flex flex-col gap-3 px-4 py-6 sm:px-6 lg:px-8">
-              <HeadBars />
+            <PageLayout>
+              <HeadBars resumes={resumes} isOnline={isOnline} offlineCount={accountMatches ? offlineResumes.length : 0} onCreate={openCreate} />
+              {loadError && (
+                <div role="status" className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+                  <span>{resumes.length ? '刷新失败，保留上次数据' : '— 简历加载失败'}</span>
+                  <Button size="sm" variant="outline" onClick={loadResumes}>重试</Button>
+                </div>
+              )}
+              {!loadError && visibleItems.length === 0 && <p className="text-sm text-muted-foreground">{resumes.length ? '此分类暂无简历' : '创建第一份简历，开始记录你的经历。'}</p>}
 
               <Tabs
                 value={filterMode}
@@ -75,7 +103,7 @@ export default function ResumePage() {
                 </TabsList>
               </Tabs>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                 <AnimatePresence mode="popLayout" initial={false}>
                   {visibleItems.map((resume) => {
                     const isSyncingThis = syncingIds.has(resume.resume_id)
@@ -115,11 +143,25 @@ export default function ResumePage() {
                       layout: shouldReduceMotion ? { duration: 0 } : SPRING.layout,
                     }}
                   >
-                    <CreateResumeCard />
+                    <button
+                      type="button"
+                      aria-label="打开创建简历表单"
+                      onClick={openCreate}
+                      className="flex h-full min-h-64 w-full cursor-pointer flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border-2 border-dashed bg-card py-6 text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-all hover:border-primary/50 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      style={{ transitionDuration: shouldReduceMotion ? '0s' : '0.3s' }}
+                    >
+                      <span aria-hidden="true" className="flex justify-center px-6">
+                        <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                          <Plus className="size-8" />
+                        </span>
+                      </span>
+                      <span className="flex justify-center px-6 text-lg font-semibold">创建新简历</span>
+                    </button>
                   </PresenceDiv>
                 </AnimatePresence>
               </div>
 
+              <CreateResumeCard online={isOnline} returnFocusRef={createTriggerRef} hideTrigger open={createOpen} onOpenChange={setCreateOpen} />
               <SyncResumesDialog />
 
               <QuickDialog
@@ -150,7 +192,7 @@ export default function ResumePage() {
                   }}
                 />
               )}
-            </div>
+            </PageLayout>
           )}
     </AnimatedContent>
   )
@@ -158,13 +200,13 @@ export default function ResumePage() {
 
 function ResumePageSkeleton() {
   return (
-    <div className="container mx-auto flex flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <PageLayout>
       <div className="flex flex-col gap-2">
         <Skeleton className="h-9 w-48" />
         <Skeleton className="h-5 w-64" />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
         {Array.from({ length: 8 }, (_, idx) => idx).map(i => (
           <Card key={i} className="gap-5 py-5">
             <CardHeader className="flex flex-col gap-4 px-5">
@@ -187,6 +229,6 @@ function ResumePageSkeleton() {
           </Card>
         ))}
       </div>
-    </div>
+    </PageLayout>
   )
 }

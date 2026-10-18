@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { themeOptions } from '@/lib/schema'
 import { cn } from '@/lib/utils'
@@ -23,67 +24,70 @@ export default function ResumeConfigToolbar() {
   const editingDisabled = isToolbarLoading || reviewActive
 
   return (
-    <div className={cn('flex flex-row gap-2')}>
+    <div role="group" aria-label="简历工具栏" className="flex min-w-0 flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+      <div role="group" aria-label="排版设置" className="flex items-center gap-1 sm:gap-2">
+        <SpacingSettings isMobile={isMobile} disabled={editingDisabled} />
 
-      <SpacingSettings isMobile={isMobile} disabled={editingDisabled} />
+        <FontSettings isMobile={isMobile} disabled={editingDisabled} />
 
-      <FontSettings isMobile={isMobile} disabled={editingDisabled} />
-
-      {/* 皮肤设置 */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size={isMobile ? 'icon' : 'sm'}
-            className={cn(isMobile && 'size-9')}
-            disabled={editingDisabled}
-            title={reviewActive ? '审阅历史或分享版本时不可编辑' : undefined}
-          >
-            <Palette data-icon="inline-start" />
-            {!isMobile && <span>皮肤</span>}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className={cn('w-80 max-w-[calc(100vw-2rem)]', isMobile && 'w-[calc(100vw-10rem)]')}
-          side={isMobile ? 'bottom' : 'right'}
-          align={isMobile ? 'end' : 'start'}
-        >
-          <DropdownMenuLabel className="text-base md:text-sm">皮肤设置</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <div className="flex flex-col gap-2 p-3 md:p-4">
-            <Label className="text-sm font-medium">选择主题</Label>
-            <Select
-              value={theme.theme}
+        {/* 皮肤设置 */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label="皮肤设置"
+              variant="outline"
+              size={isMobile ? 'icon' : 'sm'}
+              className={cn(isMobile && 'size-9')}
               disabled={editingDisabled}
-              onValueChange={value =>
-                updateTheme({
-                  theme: value as typeof theme.theme,
-                })}
+              title={reviewActive ? '审阅历史或分享版本时不可编辑' : undefined}
             >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="选择主题" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {themeOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+              <Palette data-icon="inline-start" />
+              {!isMobile && <span>皮肤</span>}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className={cn('w-80 max-w-[calc(100vw-2rem)]', isMobile && 'w-[calc(100vw-10rem)]')}
+            side={isMobile ? 'bottom' : 'right'}
+            align={isMobile ? 'end' : 'start'}
+          >
+            <DropdownMenuLabel className="text-base md:text-sm">皮肤设置</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <div className="flex flex-col gap-2 p-3 md:p-4">
+              <Label className="text-sm font-medium">选择主题</Label>
+              <Select
+                value={theme.theme}
+                disabled={editingDisabled}
+                onValueChange={value =>
+                  updateTheme({
+                    theme: value as typeof theme.theme,
+                  })}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="选择主题" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {themeOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <Separator orientation="vertical" className="mx-0.5 hidden h-5 sm:block" />
+      <div role="group" aria-label="版本管理" className="flex items-center gap-1 sm:gap-2">
+        <ResumeHistoryVersionDropdown reviewActive={reviewActive} />
 
-      <ResumeHistoryVersionDropdown reviewActive={reviewActive} />
-
-      <VariantLineageButton reviewActive={reviewActive} />
-
+        <VariantLineageButton reviewActive={reviewActive} />
+      </div>
       <ExportDialog
         trigger={(
-          <Button variant="outline" size={isMobile ? 'icon' : 'sm'} disabled={isToolbarLoading}>
+          <Button aria-label="导出简历" size={isMobile ? 'icon' : 'sm'} disabled={isToolbarLoading}>
             <FileDown data-icon="inline-start" />
             {!isMobile && <span>导出</span>}
           </Button>

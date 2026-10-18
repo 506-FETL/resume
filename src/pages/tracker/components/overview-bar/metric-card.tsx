@@ -48,7 +48,7 @@ function MetricCardComponent({ metricKey, label, description, value, icon: Icon,
           active ? 'border-border/70 bg-background text-foreground shadow-xs' : 'hover:bg-background/60 hover:text-foreground',
         )}
       >
-        <span className="shrink-0 whitespace-nowrap text-[11px] font-medium">{label}</span>
+        <span className="shrink-0 whitespace-nowrap text-xs font-medium">{label}</span>
         {loading
           ? <Skeleton className={cn('h-3.5 w-4 shrink-0', reduce && 'animate-none')} />
           : <span className={cn('min-w-0 truncate text-[13px] font-semibold tabular-nums', error && 'text-muted-foreground', accent && value > 0 && 'text-amber-700 dark:text-amber-400')}>{error ? '—' : display}</span>}
@@ -69,22 +69,22 @@ function MetricCardComponent({ metricKey, label, description, value, icon: Icon,
       transition={{ duration: reduce ? 0 : DURATION.base, delay: reduce ? 0 : index * 0.03, ease: EASE.out }}
       style={{ transitionDuration: `${reduce ? 0 : DURATION.base}s` }}
       className={cn(
-        'group relative min-w-0 rounded-xl border bg-card px-2 py-2.5 text-left shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none sm:rounded-2xl sm:p-4 lg:p-5',
+        'group relative min-w-0 rounded-xl border bg-card px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none sm:px-4',
         active ? 'border-foreground/30 bg-muted/50' : 'border-border/80 hover:border-foreground/20 hover:bg-muted/20',
         accent && value > 0 && !active && 'border-amber-500/25',
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="whitespace-nowrap text-[11px] font-medium text-muted-foreground sm:text-sm">{label}</span>
-        <span className={cn('hidden size-7 shrink-0 items-center justify-center rounded-lg lg:flex lg:size-8', iconClassName)}><Icon className="size-3.5 lg:size-4" /></span>
+        <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">{label}</span>
+        <span className={cn('hidden size-6 shrink-0 items-center justify-center rounded-md lg:flex', iconClassName)}><Icon className="size-3.5" /></span>
       </div>
-      <div className="mt-1 flex h-6 items-center gap-2 sm:mt-2.5 sm:h-9">
+      <div className="mt-1 flex h-8 items-center gap-2">
         {loading
-          ? <Skeleton className={cn('h-5 w-8 sm:h-8 sm:w-12', reduce && 'animate-none')} />
-          : <span className={cn('text-xl font-semibold tracking-tight tabular-nums sm:text-3xl', error && 'text-muted-foreground', accent && value > 0 && 'text-amber-700 dark:text-amber-400')}>{error ? '—' : display}</span>}
+          ? <Skeleton className={cn('h-7 w-10', reduce && 'animate-none')} />
+          : <span className={cn('text-2xl leading-8 font-semibold tracking-tight tabular-nums', error && 'text-muted-foreground', accent && value > 0 && 'text-amber-700 dark:text-amber-400')}>{error ? '—' : display}</span>}
       </div>
-      <div className="mt-2 hidden items-center justify-between gap-1 sm:flex">
-        <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{description}</p>
+      <div className="mt-1 hidden items-center justify-between gap-1 sm:flex">
+        <p className="truncate text-xs text-muted-foreground">{description}</p>
         {active ? <Check className="size-3.5 shrink-0 text-foreground" /> : <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground/50" />}
       </div>
     </motion.button>

@@ -4,16 +4,18 @@ import Composer from './components/composer'
 import ConversationSearch from './components/conversation-search'
 import MessageList from './components/message-list'
 import { useAssistantBootstrap } from './hooks/use-assistant-bootstrap'
+import { useAssistantLayout } from './hooks/use-assistant-layout'
 import { useAssistantNavigation } from './hooks/use-assistant-navigation'
 import { useWriteConfirmBridge } from './hooks/use-write-confirm-bridge'
 
 export default function Assistant() {
+  const rootRef = useAssistantLayout()
   useWriteConfirmBridge()
   useAssistantBootstrap()
   useAssistantNavigation(true)
 
   return (
-    <div className="flex h-full min-h-0 w-full overflow-hidden bg-background">
+    <div ref={rootRef} className="flex h-full min-h-0 w-full overflow-hidden bg-background">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ChatHeader />
         <div className="min-h-0 flex-1 overflow-hidden">
