@@ -3,6 +3,7 @@ import type { StoreApi } from 'zustand'
 import type { LoadTemplateOptions } from '../shared'
 import type { WorkbenchState } from './types'
 import { listUserTemplates } from '@/lib/supabase/template'
+import useUserStore from '@/store/user'
 import { mergeUserTemplates, reconcileLastOpenedUserTemplateId } from '../shared'
 import useUserTemplatesStore from '../user-templates'
 
@@ -19,6 +20,7 @@ type Set = StoreApi<WorkbenchState>['setState']
 export function createTemplatesLoaderSlice(set: Set): TemplatesLoaderSlice {
   let initialized = false
   let requestId = 0
+  let ownerUserId: string | null = null
   return {
     loading: true,
     error: null,
@@ -28,13 +30,25 @@ export function createTemplatesLoaderSlice(set: Set): TemplatesLoaderSlice {
 
     loadTemplates: async (options) => {
       const activeRequestId = ++requestId
+      const userId = useUserStore.getState().currentUser?.id ?? null
+      if (ownerUserId !== userId || !userId) {
+        const userStore = useUserTemplatesStore.getState()
+        userStore.setUserTemplates([])
+        userStore.setLastOpenedUserTemplateId(null)
+        ownerUserId = userId
+      }
+      if (!userId) {
+        initialized = true
+        set({ loading: false, error: null })
+        return
+      }
       if (!options?.silent && !initialized)
         set({ loading: true })
       set({ error: null })
 
       try {
         const userTemplates = await listUserTemplates()
-        if (activeRequestId !== requestId)
+        if (activeRequestId !== requestId || useUserStore.getState().currentUser?.id !== userId)
           return
 
         const userStore = useUserTemplatesStore.getState()
@@ -47,7 +61,7 @@ export function createTemplatesLoaderSlice(set: Set): TemplatesLoaderSlice {
         initialized = true
       }
       catch (loadError) {
-        if (activeRequestId !== requestId)
+        if (activeRequestId !== requestId || useUserStore.getState().currentUser?.id !== userId)
           return
         set({
           error: loadError instanceof Error ? loadError.message : '加载模板失败',

@@ -4,6 +4,7 @@ import { AnimatedContent } from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import useUserStore from '@/store/user'
 import TemplateEditor from './components/editor'
 import TemplateWorkbench from './components/workbench'
 import WorkbenchHero from './components/workbench/workbench-hero'
@@ -14,6 +15,8 @@ function Template() {
   const navigate = useNavigate()
   const { mode, loading, error, setNavigate, loadTemplates } = useTemplateWorkbenchStore()
   const { dirty } = useTemplateEditorStore()
+  const authStatus = useUserStore(state => state.authStatus)
+  const userId = useUserStore(state => state.currentUser?.id)
 
   useEffect(() => {
     setNavigate(navigate)
@@ -21,8 +24,9 @@ function Template() {
   }, [navigate, setNavigate])
 
   useEffect(() => {
-    loadTemplates()
-  }, [loadTemplates])
+    if (authStatus !== 'unknown')
+      loadTemplates()
+  }, [authStatus, userId, loadTemplates])
 
   useEffect(() => {
     if (!dirty) {

@@ -28,10 +28,11 @@ interface VersionPdfExportButtonProps {
  * 保证导出的是该版本当时的样子，而非当前编辑内容。
  */
 export default function VersionPdfExportButton({ versionId, documentTitle, className }: VersionPdfExportButtonProps) {
-  const { loadVersionSnapshot, snapshotCache } = useHistoryStore()
+  const loadVersionSnapshot = useHistoryStore(state => state.loadVersionSnapshot)
   const reduceMotion = useReducedMotion()
   const printRef = useRef<HTMLDivElement>(null)
-  const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(() => snapshotCache[versionId] ?? null)
+  // 仅点击导出后挂载打印文档；命中快照缓存不代表需要提前渲染、测量 PDF。
+  const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(null)
   const [loading, setLoading] = useState(false)
   const shouldPrintRef = useRef(false)
   const [documentState, setDocumentState] = useState<ResumeDocumentState>({

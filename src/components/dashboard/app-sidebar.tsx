@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { DURATION, EASE } from '@/lib/motion'
+import useUserStore from '@/store/user'
 import { AssistantEntry } from './assistant-entry'
 import { Data } from './const'
 import { NavOptions } from './nav-options'
@@ -16,6 +17,7 @@ export function AppSidebar({ onClick, ...props }: React.ComponentProps<typeof Si
   const { isMobile, setOpenMobile } = useSidebar()
   const { pathname } = useLocation()
   const reduceMotion = useReducedMotion()
+  const authStatus = useUserStore(state => state.authStatus)
   const isAssistantRoute = pathname === '/assistant' || pathname.startsWith('/assistant/')
 
   return (
@@ -45,7 +47,7 @@ export function AppSidebar({ onClick, ...props }: React.ComponentProps<typeof Si
         <AssistantEntry />
         <NavOptions options={Data.modules} description="模块" />
         <AnimatePresence initial={false}>
-          {isAssistantRoute && (
+          {isAssistantRoute && authStatus === 'authenticated' && (
             <motion.div
               key="assistant-conversations"
               initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}

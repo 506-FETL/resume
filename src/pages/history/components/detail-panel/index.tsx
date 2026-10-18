@@ -3,7 +3,6 @@ import { History } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import useHistoryStore from '../../store'
-import HistoryMotionContent from '../motion-content'
 import HistoryDetailContent from './detail-content'
 import DetailDiscardDialog from './discard-dialog'
 import DetailPanelLoadingState from './loading-state'
@@ -19,7 +18,7 @@ export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
   return (
     <>
       <Card className="flex h-[min(80dvh,760px)] min-h-[520px] min-w-0 flex-col gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-none lg:sticky lg:top-2 lg:h-[calc(100dvh-17rem)] lg:min-h-[460px]">
-        <HistoryMotionContent transitionKey={loading || !currentResume ? 'loading' : state.selectedEntry ?? 'empty'}>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {loading || !currentResume
             ? <DetailPanelLoadingState />
             : state.selectedEntry
@@ -32,7 +31,7 @@ export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
                     </EmptyHeader>
                   </Empty>
                 )}
-        </HistoryMotionContent>
+        </div>
       </Card>
       <DetailDiscardDialog open={state.discardDialogOpen} onCancel={state.cancelDiscardChanges} onConfirm={state.confirmDiscardChanges} />
     </>

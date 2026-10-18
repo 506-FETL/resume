@@ -61,7 +61,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
           <h2 className="truncate text-lg font-semibold tracking-tight">{currentResume.displayName}</h2>
           {currentResume.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{currentResume.description}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex min-h-8 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5" title={currentResume.updatedAt ? formatDateTime(currentResume.updatedAt) : undefined}>
             <Clock3 className="size-3.5" />
             {currentResume.updatedAt ? `${formatRelativeTime(currentResume.updatedAt)}更新` : '暂无更新时间'}
@@ -96,7 +96,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
         <h2 className="min-w-0 break-words text-lg font-semibold tracking-tight">{getVersionTitle(selectedVersion)}</h2>
         <time dateTime={selectedVersion.created_at} className="text-xs text-muted-foreground">{formatDateTime(selectedVersion.created_at)}</time>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-h-8 flex-wrap items-center gap-2">
         {editing
           ? (
               <>
@@ -117,12 +117,12 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
                   <GitCompare data-icon="inline-start" />
                   对比
                 </Button>
-                <VersionPdfExportButton versionId={selectedVersion.id} documentTitle={getVersionTitle(selectedVersion)} />
+                <VersionPdfExportButton key={`pdf-${selectedVersion.id}`} versionId={selectedVersion.id} documentTitle={getVersionTitle(selectedVersion)} />
                 <Button variant="outline" size="sm" onClick={state.startEditing}>
                   <Edit3 data-icon="inline-start" />
                   编辑信息
                 </Button>
-                <DropdownMenu>
+                <DropdownMenu key={`menu-${selectedVersion.id}`}>
                   <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label="更多版本操作"><MoreHorizontal /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent {...surfaceProps} className={`${surfaceProps.className} history-popup-motion`} align="end">
                     <DropdownMenuItem variant="destructive" onClick={() => setDeleteTargetId(selectedVersion.id)}>

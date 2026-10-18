@@ -1,14 +1,11 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
-import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
-import { LayoutGroup, motion } from 'motion/react'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
-import HistoryMotionContent from '../motion-content'
 import HistoryResumePreview from '../shared/history-resume-preview'
 import CurrentOverview from './current-overview'
 import DetailHeader from './detail-header'
@@ -20,37 +17,26 @@ interface HistoryDetailContentProps {
 
 export default function HistoryDetailContent({ state,
 }: HistoryDetailContentProps) {
-  const { reduceMotion, enter, layout } = useHistoryMotion()
-  const tabsId = useId()
-  const { currentResume, loadVersionSnapshot, snapshotCache } = useHistoryStore()
+  const { reduceMotion } = useHistoryMotion()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const currentResume = useHistoryStore(state => state.currentResume)
+  const loadVersionSnapshot = useHistoryStore(state => state.loadVersionSnapshot)
   const { activeTab, setActiveTab } = state
 
   const isCurrent = state.selectedEntry === 'current'
   const selectedVersionId = isCurrent ? null : state.selectedVersion?.id ?? null
 
-  // 历史版本的 snapshot 按需加载（列表已不含 snapshot）
-  const [versionSnapshot, setVersionSnapshot] = useState<ResumeSnapshot | null>(null)
+  // 缓存命中时同步读取，避免先渲染空状态再通过 effect 重建预览。
+  const versionSnapshot = useHistoryStore(state => selectedVersionId === null ? null : state.snapshotCache[selectedVersionId] ?? null)
 
   useEffect(() => {
-    if (selectedVersionId == null) {
-      setVersionSnapshot(null)
-      return
-    }
-    const cached = snapshotCache[selectedVersionId]
-    if (cached) {
-      setVersionSnapshot(cached)
-      return
-    }
-    let cancelled = false
-    setVersionSnapshot(null)
-    loadVersionSnapshot(selectedVersionId).then((snap) => {
-      if (!cancelled)
-        setVersionSnapshot(snap)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [selectedVersionId, snapshotCache, loadVersionSnapshot])
+    if (selectedVersionId !== null && !versionSnapshot)
+      loadVersionSnapshot(selectedVersionId)
+  }, [selectedVersionId, versionSnapshot, loadVersionSnapshot])
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
+  }, [state.selectedEntry, activeTab])
 
   useEffect(() => {
     if (state.editing) {
@@ -74,48 +60,38 @@ export default function HistoryDetailContent({ state,
       <Separator />
 
       <Tabs value={activeTab} onValueChange={value => setActiveTab(value as typeof activeTab)} className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
-        <LayoutGroup id={tabsId}>
-          <div className="shrink-0 px-4 py-2.5 sm:px-5">
-            <TabsList className="h-8 justify-start">
-              {([{ value: 'resume', label: '简历预览' }, { value: 'overview', label: '版本信息' }] as const).map(tab => (
-                <TabsTrigger key={tab.value} value={tab.value} className="isolate px-3 text-xs data-[state=active]:text-foreground">
-                  {activeTab === tab.value && (
-                    <motion.span
-                      aria-hidden
-                      layoutId={reduceMotion ? undefined : 'history-tab-indicator'}
-                      transition={layout}
-                      className="pointer-events-none absolute inset-0 -z-10 rounded-md bg-background shadow-xs"
-                    />
-                  )}
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-        </LayoutGroup>
+        <div className="shrink-0 px-4 py-2.5 sm:px-5">
+          <TabsList className="h-8 justify-start">
+            {([{ value: 'resume', label: '简历预览' }, { value: 'overview', label: '版本信息' }] as const).map(tab => (
+              <TabsTrigger key={tab.value} value={tab.value} className="isolate px-3 text-xs transition-none data-[state=active]:text-foreground after:transition-none">
+                {activeTab === tab.value && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 -z-10 rounded-md bg-background shadow-xs"
+                  />
+                )}
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
         <Separator />
 
-        <HistoryMotionContent transitionKey={`${activeTab}-${activeTab === 'overview' && state.editing ? 'editing' : 'view'}`}>
-          <TabsContent forceMount value={activeTab} className="scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            {activeTab === 'overview'
-              ? (
-                  <div className="flex flex-col gap-4 p-4 sm:p-5">
-                    {isCurrent ? <CurrentOverview /> : <HistoryVersionOverview state={state} />}
-                  </div>
-                )
-              : (
-                  <div className="min-h-full bg-muted/35 p-3 sm:p-5">
-                    {resumeSnapshot
-                      ? (
-                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={enter}>
-                            <HistoryResumePreview snapshot={resumeSnapshot} />
-                          </motion.div>
-                        )
-                      : <Skeleton className={cn('h-96 w-full', reduceMotion && 'animate-none')} />}
-                  </div>
-                )}
-          </TabsContent>
-        </HistoryMotionContent>
+        <TabsContent ref={scrollRef} forceMount value={activeTab} className="scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {activeTab === 'overview'
+            ? (
+                <div className="flex flex-col gap-4 p-4 sm:p-5">
+                  {isCurrent ? <CurrentOverview /> : <HistoryVersionOverview state={state} />}
+                </div>
+              )
+            : (
+                <div className="min-h-full bg-muted/35 p-3 sm:p-5">
+                  {resumeSnapshot
+                    ? <HistoryResumePreview snapshot={resumeSnapshot} />
+                    : <Skeleton className={cn('h-96 w-full', reduceMotion && 'animate-none')} />}
+                </div>
+              )}
+        </TabsContent>
       </Tabs>
     </div>
   )

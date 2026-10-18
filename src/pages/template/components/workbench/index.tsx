@@ -1,4 +1,5 @@
 import type { TemplateWorkbenchTab } from '../../store'
+import { AuthRequired } from '@/components/auth-required'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -46,7 +47,13 @@ function TemplateWorkbench() {
 
           <AnimatedContent animationKey={activeTab}>
             <TabsContent value={activeTab} forceMount>
-              {activeTab === 'official' ? <OfficialTemplateSection /> : <UserTemplateSection />}
+              {activeTab === 'official'
+                ? <OfficialTemplateSection />
+                : (
+                    <AuthRequired title="登录后管理我的模板" description="保存和编辑你的专属模板，并在不同设备间同步。">
+                      <UserTemplateSection />
+                    </AuthRequired>
+                  )}
             </TabsContent>
           </AnimatedContent>
         </Tabs>
