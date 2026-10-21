@@ -602,11 +602,11 @@ export function cloneResumeWithFreshEntryIds(resume: ResumeSchema): ResumeSchema
 
 本地同样利用 key 唯一性，`add` 冲突后读取已存在记录。普通失败与“结果待确认”在创建 store 中分开；退出页面可以保留当前会话中的操作以重试，不能把正文副本存入 localStorage。首期不额外承诺刷新后的创建事务恢复。
 
-- [ ] **7.6 创建成功后才更新列表和当前简历。**
+- [x] **7.6 创建成功后才更新列表和当前简历。**
 
 共享创建 store 提供 `start(input)`、`retry()`、`reset()`；`start` 在 loading 状态不创建第二个操作，`retry` 复用 prepared。成功后由 UI 衔接调用现有 `addResume`、`setCurrentResume` 和 `/resume/editor` 导航。失败不清空当前 store；账号已切换时不把旧账号结果注入新账号列表。
 
-- [ ] **7.7 验证一次初始化和幂等重试。**
+- [x] **7.7 验证一次初始化和幂等重试。**
 
 专项脚本使用假的持久化适配器，断言两次 prepare 的条目 ID 集合不相交、模板／示例原件不变、一次 start 只有一次准备；模拟“服务端已写入但响应丢失”，retry 只返回同一 resumeId；模拟查询也失败时不重新插入。浏览器再做本地 IndexedDB 与云端真实创建、刷新、断网重试。
 
@@ -616,23 +616,23 @@ export function cloneResumeWithFreshEntryIds(resume: ResumeSchema): ResumeSchema
 
 **文件：** `src/pages/template/` 的新页面结构、`src/pages/resume/components/create-resume-card/index.tsx`、已有创建卡片调用方。
 
-- [ ] **8.1 用 history-style 页面骨架替换工作台入口。**
+- [x] **8.1 用 history-style 页面骨架替换工作台入口。**
 
 创建 `store.ts`、`types.ts`、`hooks/use-template-library.ts` 和四个组件目录；保留 `const.ts`、`utils.ts` 但移除工作台专用状态。页面 store 管当前预览目标与示例选择，跨入口创建操作放任务 7 的创建 store，简历正文仍只在既有 store。
 
 旧 `store/index.ts` 在迁移期只供旧组件使用；新页面统一显式导入 `store.ts`，避免目录与文件同名解析歧义。任务 11 删除旧目录。
 
-- [ ] **8.2 渲染一张默认模板卡片，资源独立加载。**
+- [x] **8.2 渲染一张默认模板卡片，资源独立加载。**
 
 页面挂载立即读本地目录，不等登录、不读用户模板、不读用户全部简历。卡片显示名称、说明、“预览”“使用模板”；缩略图使用默认示例与默认定义。缩略图或预览失败分别显示重试，不把页面全部锁住；创建按钮依赖的定义／示例必须准备成功。
 
-- [ ] **8.3 实现只读预览与示例切换。**
+- [x] **8.3 实现只读预览与示例切换。**
 
 `template-preview` 使用 `ScaledReadonlyPreview` 和显式示例快照，不调用 `setCurrentResume`、`loadResume` 或 form setter。切换应届／社招仅改变预览资源引用；预览中的“使用模板”使用当前示例，卡片直接使用固定默认示例。关闭弹窗不创建记录。
 
 弹窗有 `DialogTitle`、`DialogDescription`，内容短屏可滚动，按钮可键盘访问；按现有 primitive 使用正确状态属性，不修改共享 Dialog 动画实现来完成局部页面。
 
-- [ ] **8.4 两个入口调用相同的创建操作。**
+- [x] **8.4 两个入口调用相同的创建操作。**
 
 ```ts
 const input: CreateTemplateResumeInput = {
@@ -649,7 +649,7 @@ await useResumeCreationStore.getState().start(input)
 
 快速创建保留名称／描述表单，移除 default／modern／simple 选择器。核对 `onCreated` 的所有调用方，确定只有一个导航责任方；两入口成功后都进入 `/resume/editor`，不能出现创建成功仍停在模板页。
 
-- [ ] **8.5 实施动效与界面验收。**
+- [x] **8.5 实施动效与界面验收。**
 
 使用 `src/lib/motion.ts` 的预设，所有新增 Motion 组件接入 `useReducedMotion()`；不要让简历正文做持续缩放影响分页测量。弹窗连续两轮打开／关闭，再测退出未结束时重开；减少动效模式、Esc、焦点恢复、移动端滚动均通过。
 
@@ -680,15 +680,15 @@ src/pages/tracker/components/drawer/document/index.tsx
 
 只修改真实丢字段或不兼容的位置，不为“接入模板”重写上述全部文件。
 
-- [ ] **9.1 跟踪模板版本在快照中的往返。**
+- [x] **9.1 跟踪模板版本在快照中的往返。**
 
 用固定 `default@1` 完整快照，逐次经过 store payload、Automerge 文档、云端字段映射和本地 hydrate，检查版本／外观／entryId 不丢失。新绑定保持明确版本；旧绑定只在渲染时解析成默认模板，不在 hydration effect 中发整份文档迁移。
 
-- [ ] **9.2 验证主动上传与登录模式。**
+- [x] **9.2 验证主动上传与登录模式。**
 
 本地创建并改写示例后登录，确认仍在本地；主动上传后比较全部内容、顺序、隐藏状态、外观与条目身份。允许沿用现有本地 ID 到云端 ID 的转换；不允许重置条目 ID 或重新播种示例。
 
-- [ ] **9.3 验证历史、派生与跟进快照。**
+- [x] **9.3 验证历史、派生与跟进快照。**
 
 历史保存／预览／恢复、派生简历创建、跟进文档快照保留新绑定。旧快照只读前后序列化值与原哈希不变；恢复沿用原历史语义，不能在恢复后执行创建服务。跟进预览和 AI 画布不读取当前编辑器外观。
 
@@ -698,7 +698,7 @@ src/pages/tracker/components/drawer/document/index.tsx
 
 首期不开放模板变更按钮，不把现有 `setTemplateBinding` 当成已完成所有者权限保护。未来开放第二套可切换模板前，必须实施规格 §9.2 的服务端权威变更协议。
 
-- [ ] **9.5 验证 AI 创建语义未被改变。**
+- [x] **9.5 验证 AI 创建语义未被改变。**
 
 AI `create_resume` 选择空白时没有示例内容；传 sections 时保持传入内容。旧 type 参数可以保留兼容，但 UI 不再声称它对应首期其他正式视觉模板。记录结果，不借本任务重写 AI 工具创建流程。
 
@@ -708,7 +708,7 @@ AI `create_resume` 选择空白时没有示例内容；传 sections 时保持传
 
 **文件：** `compatibility/legacy-manifest.ts`、`compatibility/share-manifest.ts`、`share.ts`、`share.types.ts`、分享页、`use-comment-review-mode.ts`。
 
-- [ ] **10.1 建立分享信封类型与唯一序列化入口。**
+- [x] **10.1 建立分享信封类型与唯一序列化入口。**
 
 ```ts
 type PublishedTemplateManifest = LegacyTemplateManifest & {
@@ -726,19 +726,19 @@ declare function parseSharedTemplateDefinition(
 
 `LegacyTemplateManifest` 从旧 `schema.ts` 迁入兼容目录；序列化器只支持首期 `default@1`，从它生成旧默认 layout／sections／tokens／rules，附带 `definition`。不要再保留一份人工编辑的 default manifest；当前默认定义是唯一设计真源。
 
-- [ ] **10.2 严格区分新信封和旧快照。**
+- [x] **10.2 严格区分新信封和旧快照。**
 
 输入有 `definition` 属性时，无论值是否为 null，都走新信封校验；比对外层 `id/version` 与内层 `templateId/version`，并校验协议和能力。新信封出错直接拒绝，不能再尝试旧解析。没有 `definition` 的合法旧 manifest 才转换为默认定义；转换不改原对象。
 
 旧分享中的源类型不触发私有模板查询。未知对象不能因“没有 definition”就被认定为合法旧分享。
 
-- [ ] **10.3 发布使用同一份快照和精确定义。**
+- [x] **10.3 发布使用同一份快照和精确定义。**
 
 修改 `buildResumeShareSnapshotSource`：继续 `redactHiddenResumeSections`，从对应快照解析精确引用，生成信封；保留现有移除公开 `templateBinding` 的处理，公开载荷由 manifest 的 id/version/definition 自足描述，不泄露旧用户模板身份。不要从实时编辑器取另一份外观或内容。
 
 分享的新旧读取类型在 `share.types.ts` 中收口为边界原始载荷＋解析后的 `TemplateDefinition`，移除不校验的 `as TemplateManifest`。分享页、评论审阅和只读组件接收解析后的定义。
 
-- [ ] **10.4 保留发布版本与评论作用域。**
+- [x] **10.4 保留发布版本与评论作用域。**
 
 分享预览优先使用发布的 definition，模板目录改名或 currentVersion 变化不影响它。沿用现有 version ID、`projectionReferenceDate`、document hash、访问口令／有效期、评论开关、回复／解决权限和隐藏内容脱敏；视觉兼容转换不生成新评论作用域。
 
@@ -771,7 +771,7 @@ src/lib/resume-template/runtime/resolve-manifest.ts
 src/lib/supabase/template/index.ts
 ```
 
-- [ ] **11.1 删除失去调用方的工作台功能。**
+- [x] **11.1 删除失去调用方的工作台功能。**
 
 先搜索引用再删除，公共字段／布局已经提取的实现不重复保留。`defaults.ts`、旧 renderers、旧 layouts、旧 demo fixture 在仍有调用方时先迁移其真正公共部分；兼容 schema 与序列化器不能随工作台一起删掉。
 
@@ -782,13 +782,13 @@ rg -n 'getManifestFromTemplateBinding|getBuiltInTemplateManifest|resolveTemplate
 
 第二次搜索只允许明确命名的兼容层／验证代码引用，运行中的页面不得继续用旧 fallback。删除 `form.ts` 里无人调用的旧 `createResumeFromTemplate` 及 `TemplateSourceKind` 依赖，保留 AI 使用的 `createNewResume`。
 
-- [ ] **11.2 处理旧入口和类型出口。**
+- [x] **11.2 处理旧入口和类型出口。**
 
 旧模板编辑／我的模板 URL 参数归一到 `/template` 列表，不跳入失效编辑器，不恢复 dirty beforeunload。更新导航与页面文案，去掉“我的模板”“复制模板”“发布模板”“自定义设计”等入口。
 
 `src/lib/resume-template/schema.ts` 最终 re-export 新定义协议；旧 manifest 只从兼容目录导出。`runtime/index.ts` 收口新 resolver，避免重导出已删除的私有模板查询。
 
-- [ ] **11.3 验证没有旧模板网络请求。**
+- [x] **11.3 验证没有旧模板网络请求。**
 
 游客和登录用户访问模板页、打开旧简历、访问旧分享，Network 中均无 `resume_templates` 查询。数据库旧表和记录不删除。运行类型检查、专项检查和生产构建，确认移除代码后没有漏引用。
 
@@ -798,7 +798,7 @@ rg -n 'getManifestFromTemplateBinding|getBuiltInTemplateManifest|resolveTemplate
 
 **核对文件：** `src/components/resume/pagination/canonical-paged-document.tsx`、`src/components/resume/pagination/use-pagination-plan.ts`、`src/components/resume/pagination/use-resume-print.ts`、`src/store/resume/export.ts`、`src/features/resume-comments/anchors/dom-projection.ts`、`src/features/resume-comments/hooks/use-highlight-geometry.ts`。不为通过验收改宽松导出门禁。
 
-- [ ] **12.1 校准分页、字体和 PDF 就绪条件。**
+- [x] **12.1 校准分页、字体和 PDF 就绪条件。**
 
 模板 ready、字体 ready、分页完成、打印布局签名有效之后才允许 PDF。编辑器和历史 PDF 使用同一 definition 与 appearance；加载／错误时阻止导出并显示原因。多页样本逐页检查标题、条目、富文本与底部内容，不出现半页遗漏或重复测量副本。
 
@@ -827,7 +827,7 @@ rg -n 'getManifestFromTemplateBinding|getBuiltInTemplateManifest|resolveTemplate
 | 异常 | 连击、网络响应丢失、未知配置、迟到响应 | 不重复创建、不错误回退、不污染当前简历 |
 | 界面 | 桌面、移动、键盘、两轮弹窗开关及反向切换 | 操作可用，动效和减少动效均正确 |
 
-- [ ] **12.5 执行工程检查并记录实际结果。**
+- [x] **12.5 执行工程检查并记录实际结果。**
 
 ```bash
 pnpm verify:templates
@@ -847,7 +847,7 @@ ESLint 对本次变更的 TS／TSX 文件执行，使用 `git diff --name-only -
 
 **文件：** `docs/resume-template-maintenance.md`、验收记录、本计划复选框；必要时同步设计文档的实施事实。
 
-- [ ] **13.1 写明本地阶段新增模板的实际操作。**
+- [x] **13.1 写明本地阶段新增模板的实际操作。**
 
 按以下分类记录，不在首期真的添加第二个模板：
 
@@ -862,7 +862,7 @@ ESLint 对本次变更的 TS／TSX 文件执行，使用 `git diff --name-only -
 
 新增模板配置后执行协议、字段覆盖、评论投影、视觉、分页、PDF／Word 和兼容验收。组件数量随新视觉能力增长，不能为每个模板复制整套 React 运行时。
 
-- [ ] **13.2 写明升级、下架、回滚和远端迁移边界。**
+- [x] **13.2 写明升级、下架、回滚和远端迁移边界。**
 
 已发布版本不可原地改写；目录 currentVersion 只影响新选择，旧简历保持绑定。撤回推荐不删除被引用版本、字体或资源。将来升级必须所有者本地预览、确认、服务端校验后同步，不能以整份旧快照覆盖协作期间的新正文。
 
@@ -875,6 +875,8 @@ ESLint 对本次变更的 TS／TSX 文件执行，使用 `git diff --name-only -
 若没有实际数据库／Edge 变更，交付只包含前端和文档；若发生必要后端变更，遵循仓库强制部署及线上核验要求。最终说明变更、验证结果、剩余限制和是否已部署，不将“写了实施代码”混同于“线上已发布”。
 
 建议收尾提交：`docs(template): 补充模板维护与验收说明`。
+
+> 执行状态（2026-10-21）：首期实现已落地；未勾选的验证任务包含尚未跑完的扩展矩阵，不能视为全部通过。具体结果、环境限制和实现差异见 [验收记录](2026-10-21-resume-template-foundation-validation.md)。
 
 ## 5. 规格覆盖对照
 
