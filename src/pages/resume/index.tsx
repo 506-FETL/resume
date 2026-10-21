@@ -10,11 +10,11 @@ import { PageLayout } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useCurrentUser from '@/hooks/use-current-user'
-import { DURATION, EASE, SPRING } from '@/lib/motion'
+import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
 import QuickDialog from '@/pages/share/components/quick-dialog'
@@ -89,32 +89,32 @@ export default function ResumePage() {
                   <Button size="sm" variant="outline" onClick={loadResumes}>重试</Button>
                 </div>
               )}
-              {!loadError && visibleItems.length === 0 && <p className="text-sm text-muted-foreground">{resumes.length ? '此分类暂无简历' : '创建第一份简历，开始记录你的经历。'}</p>}
-
               <Tabs
                 value={filterMode}
                 onValueChange={v => setFilterMode(v as 'all' | 'roots' | 'variants')}
-                className="my-3"
+                className="min-w-0"
               >
-                <TabsList>
+                <TabsList className="max-w-full">
                   <TabsTrigger value="all">全部</TabsTrigger>
                   <TabsTrigger value="roots">原版</TabsTrigger>
                   <TabsTrigger value="variants">派生版本</TabsTrigger>
                 </TabsList>
               </Tabs>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4">
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {visibleItems.map((resume) => {
+                  {visibleItems.map((resume, index) => {
                     const isSyncingThis = syncingIds.has(resume.resume_id)
                     return (
                       <PresenceDiv
                         key={resume.resume_id}
+                        className="min-w-0"
                         layout={shouldReduceMotion ? false : 'position'}
                         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
                         animate={{
                           opacity: isSyncingThis ? 0.55 : 1,
                           y: 0,
+                          transition: { duration: shouldReduceMotion ? 0 : DURATION.base, ease: EASE.out, delay: shouldReduceMotion ? 0 : staggerDelay(Math.min(index, 8)) },
                         }}
                         exit={{
                           opacity: 0,
@@ -147,8 +147,8 @@ export default function ResumePage() {
                       type="button"
                       aria-label="打开创建简历表单"
                       onClick={openCreate}
-                      className="flex h-full min-h-64 w-full cursor-pointer flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border-2 border-dashed bg-card py-6 text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-all hover:border-primary/50 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      style={{ transitionDuration: shouldReduceMotion ? '0s' : '0.3s' }}
+                      className="flex h-full min-h-56 w-full cursor-pointer flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border-2 border-dashed bg-card py-6 text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-all hover:border-primary/50 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      style={{ transitionDuration: shouldReduceMotion ? '0s' : `${DURATION.base}s` }}
                     >
                       <span aria-hidden="true" className="flex justify-center px-6">
                         <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -206,26 +206,25 @@ function ResumePageSkeleton() {
         <Skeleton className="h-5 w-64" />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4">
         {Array.from({ length: 8 }, (_, idx) => idx).map(i => (
-          <Card key={i} className="gap-5 py-5">
-            <CardHeader className="flex flex-col gap-4 px-5">
-              <div className="flex items-center justify-between gap-4">
-                <Skeleton className="size-10 rounded-lg" />
-                <Skeleton className="h-4 w-20" />
+          <Card key={i} className="min-h-56 gap-3 p-4">
+            <div className="flex items-center gap-2.5">
+              <Skeleton className="size-8 rounded-lg" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-24" />
               </div>
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-5">
-              <Skeleton className="h-16 w-full" />
-            </CardContent>
-            <CardFooter className="grid grid-cols-2 gap-2 px-5">
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
-            </CardFooter>
+            </div>
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+            <div className="flex gap-2 border-t pt-3">
+              <Skeleton className="h-8 flex-1" />
+              <Skeleton className="h-8 w-14" />
+              <Skeleton className="h-8 w-14" />
+            </div>
           </Card>
         ))}
       </div>

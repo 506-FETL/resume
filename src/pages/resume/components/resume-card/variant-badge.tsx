@@ -17,11 +17,10 @@ export function VariantBadge({ parentName, jdSnippet, matchRate }: VariantBadgeP
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className={cn('gap-1', RESUME_BADGE_COLORS.variant)} aria-label={`派生自 ${displayParent}`}>
+          <Badge tabIndex={0} variant="outline" className={cn('shrink-0 gap-1', RESUME_BADGE_COLORS.variant)} aria-label={`派生自 ${displayParent}${pct ? `，关键词匹配度 ${pct}` : ''}`}>
             <GitBranch aria-hidden />
             {' '}
-            派生
-            {pct ? ` · ${pct}` : ''}
+            {pct ? `匹配 ${pct}` : '岗位定制'}
           </Badge>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">

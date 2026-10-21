@@ -1,19 +1,22 @@
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from '../../types'
-import { Cloud, Edit2, FileText, GitBranch, HardDrive, MoreHorizontal, Share2, Sparkles } from 'lucide-react'
+import { Cloud, Edit2, GitBranch, HardDrive, MoreHorizontal, Share2, Sparkles } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { MagicCard } from '@/components/ui/magic-card'
+import { DURATION } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useShareStore from '@/pages/share/store'
 import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
 import DeleteResumeDialog from '../delete-resume-dialog'
 import EditResumeDialog from '../edit-resume-dialog'
-import { RESUME_BADGE_COLORS } from './const'
+import { RESUME_BADGE_COLORS, RESUME_CARD_APPEARANCE } from './const'
 import { VariantBadge } from './variant-badge'
 
 interface ResumeCardProps {
@@ -35,7 +38,13 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
     return resumes.find(r => r.resume_id === resume.parent_resume_id) ?? null
   }, [resume.parent_resume_id, resumes])
 
+  const shouldReduceMotion = useReducedMotion()
   const isVariant = Boolean(resume.parent_resume_id)
+  const tone = isVariant ? 'variant' : resume.isOffline ? 'local' : 'cloud'
+  const appearance = RESUME_CARD_APPEARANCE[tone]
+  const TypeIcon = isVariant ? GitBranch : resume.isOffline ? HardDrive : Cloud
+  const updatedAt = resume.updated_at || resume.created_at
+  const updatedLabel = new Date(updatedAt).toLocaleDateString('zh-CN')
   const isGenerating = resume.derived_status === 'generating'
   const isFailed = resume.derived_status === 'failed'
 
@@ -78,111 +87,119 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
 
   return (
     <>
-      <Card
-        className="group h-full gap-5 py-5 transition-[border-color,box-shadow] hover:border-primary/30 hover:shadow-md focus-within:border-primary/30"
+      <MagicCard
+        mode="orb"
+        glowFrom={appearance.glowFrom}
+        glowTo={appearance.glowTo}
+        gradientFrom={appearance.glowFrom}
+        gradientTo={appearance.glowTo}
+        borderColor="var(--resume-card-border)"
+        glowSize={240}
+        glowBlur={48}
+        glowOpacity={0.16}
+        className={cn('group h-full shadow-xs', appearance.border)}
+        contentClassName="flex h-full min-h-56 flex-col p-4"
       >
-        <CardHeader className="gap-4 px-5">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10">
-              <FileText className="size-5 text-primary" />
-            </div>
-            <span className="text-xs text-muted-foreground">{new Date(resume.created_at).toLocaleDateString()}</span>
+        <div className="flex items-center gap-2.5">
+          <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', appearance.icon)}>
+            <TypeIcon className="size-4" aria-hidden />
           </div>
-          <CardAction>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button type="button" size="icon-sm" variant="ghost" aria-label="简历更多操作"><MoreHorizontal /></Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>编辑信息</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setShowDeleteDialog(true)} className="text-destructive">删除简历</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </CardAction>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {isVariant && (
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={cn('text-xs font-medium', appearance.text)}>{appearance.label}</span>
+              {isVariant && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  {resume.isOffline ? <HardDrive className="size-3" aria-hidden /> : <Cloud className="size-3" aria-hidden />}
+                  {resume.isOffline ? '本地' : '云端'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-[11px] leading-4 text-muted-foreground">
+              <span>{resume.updated_at ? '更新于' : '创建于'}</span>
+              <time dateTime={updatedAt}>{updatedLabel}</time>
+            </div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" size="icon-sm" variant="ghost" className="-mr-1 text-muted-foreground" aria-label="简历更多操作"><MoreHorizontal /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>编辑信息</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowDeleteDialog(true)} className="text-destructive">删除简历</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="mt-3 flex min-w-0 flex-1 flex-col gap-1.5">
+          <h2 className="line-clamp-2 text-sm leading-5 font-semibold" title={resume.display_name || '未命名简历'}>
+            {resume.display_name || '未命名简历'}
+          </h2>
+          {resume.description && <p className="line-clamp-1 text-xs leading-5 text-muted-foreground" title={resume.description}>{resume.description}</p>}
+          <div className="flex min-w-0 items-center gap-1.5">
+            {isGenerating && (
+              <Badge variant="outline" className={RESUME_BADGE_COLORS.generating}>
+                <GitBranch aria-hidden />
+                生成中
+              </Badge>
+            )}
+            {isFailed && (
+              <Badge variant="outline" className={RESUME_BADGE_COLORS.failed}>
+                <GitBranch aria-hidden />
+                生成失败
+              </Badge>
+            )}
+            {isVariant && !isGenerating && !isFailed && (
               <VariantBadge
                 parentName={parent?.display_name ?? null}
                 jdSnippet={resume.linked_jd_text ? resume.linked_jd_text.slice(0, 80) : null}
                 matchRate={resume.derived_metadata?.matchRate ?? null}
               />
             )}
-            {isGenerating && (
-              <Badge variant="outline" className={RESUME_BADGE_COLORS.generating}>
-                <GitBranch />
-                生成中
-              </Badge>
-            )}
-            {isFailed && (
-              <Badge variant="outline" className={RESUME_BADGE_COLORS.failed}>
-                <GitBranch />
-                生成失败
-              </Badge>
-            )}
-            {resume.isOffline
-              ? (
-                  <Badge variant="outline" className={RESUME_BADGE_COLORS.local}>
-                    <HardDrive />
-                    本地
-                  </Badge>
-                )
-              : (
-                  <Badge variant="outline" className={RESUME_BADGE_COLORS.cloud}>
-                    <Cloud />
-                    云端
-                  </Badge>
-                )}
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-3 px-5">
-          <div className="flex flex-col gap-1">
-            <CardTitle className="line-clamp-1">{resume.display_name || '未命名简历'}</CardTitle>
-            {resume.description && <CardDescription className="line-clamp-2">{resume.description}</CardDescription>}
-          </div>
-          {parent && (
-            <Button
-              type="button"
-              size="xs"
-              variant="link"
-              onClick={handleParentClick}
-              className="max-w-full justify-start"
-            >
-              <GitBranch data-icon="inline-start" aria-hidden />
-              <span className="truncate">
-                派生自
+            {parent && (
+              <button
+                type="button"
+                onClick={handleParentClick}
+                className="min-w-0 truncate rounded-sm text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                style={{ transitionDuration: shouldReduceMotion ? '0s' : `${DURATION.fast}s` }}
+                title={`派生自 ${parent.display_name || '未命名简历'}`}
+              >
+                来自
                 {' '}
                 {parent.display_name || '未命名简历'}
-              </span>
-            </Button>
-          )}
-        </CardContent>
-        <CardFooter className="mt-auto flex flex-col gap-2 px-5">
-          <div className="grid w-full grid-cols-2 gap-2">
-            <Button onClick={handleCardClick} className="col-span-2">
-              <Edit2 data-icon="inline-start" />
-              编辑简历
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleDeriveClick}
-              className="flex-1"
-              disabled={isGenerating}
-              aria-label="派生针对性版本"
-            >
-              <Sparkles data-icon="inline-start" />
-              派生
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleShareClick}
-              className="w-full"
-              disabled={resume.isOffline}
-              title={resume.isOffline ? '离线简历需先同步到云端才能分享' : undefined}
-            >
-              <Share2 data-icon="inline-start" />
-              分享
-            </Button>
+              </button>
+            )}
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+
+        <div className="mt-3 flex items-center gap-1.5 border-t border-border/60 pt-3">
+          <Button size="sm" onClick={handleCardClick} className="min-w-0 flex-1 text-xs">
+            <Edit2 data-icon="inline-start" className="size-3.5" />
+            编辑简历
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleDeriveClick}
+            className="gap-1 px-2 text-xs text-muted-foreground"
+            disabled={isGenerating}
+            aria-label="派生针对性版本"
+          >
+            <Sparkles className="size-3.5" />
+            派生
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleShareClick}
+            className="gap-1 px-2 text-xs text-muted-foreground"
+            disabled={resume.isOffline}
+            title={resume.isOffline ? '离线简历需先同步到云端才能分享' : undefined}
+          >
+            <Share2 className="size-3.5" />
+            分享
+          </Button>
+        </div>
+      </MagicCard>
 
       {/* 编辑对话框 */}
       <EditResumeDialog

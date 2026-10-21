@@ -1,11 +1,13 @@
 import type { MouseEventHandler } from 'react'
 import type { ResumeItem } from '../../types'
-import { CloudUpload, GitBranch, Plane, Plus, Wifi } from 'lucide-react'
+import { Cloud, CloudUpload, GitBranch, HardDrive, Plane, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-layout'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import useResumeListStore from '@/pages/resume/store'
 import useJdVariantStore from '@/store/jd-variant'
+import { RESUME_BADGE_COLORS } from '../resume-card/const'
 
 function HeadBars({ onCreate, resumes, isOnline, offlineCount }: { onCreate: MouseEventHandler<HTMLButtonElement>, resumes: ResumeItem[], isOnline: boolean, offlineCount: number }) {
   const setShowSyncDialog = useResumeListStore(s => s.setShowSyncDialog)
@@ -25,6 +27,17 @@ function HeadBars({ onCreate, resumes, isOnline, offlineCount }: { onCreate: Mou
       .filter(pid => pid !== '' && !activeParentIds.has(pid)),
   )
   const pendingCount = activeParentIds.size + dbPendingParentIds.size
+  // 与卡片视觉类型保持一致：派生优先，每份简历只计入一个类型。
+  const counts = { cloud: 0, local: 0, variant: 0 }
+  for (const resume of resumes) {
+    const tone = resume.parent_resume_id ? 'variant' : resume.isOffline ? 'local' : 'cloud'
+    counts[tone] += 1
+  }
+  const resumeTags = [
+    { tone: 'cloud', label: '在线', icon: Cloud },
+    { tone: 'local', label: '离线', icon: HardDrive },
+    { tone: 'variant', label: '派生', icon: GitBranch },
+  ] as const
 
   return (
     <PageHeader
@@ -39,10 +52,24 @@ function HeadBars({ onCreate, resumes, isOnline, offlineCount }: { onCreate: Mou
     >
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={isOnline ? 'secondary' : 'outline'} className="self-start sm:self-auto">
-          {isOnline ? <Wifi /> : <Plane />}
-          {isOnline ? '在线' : '离线'}
-        </Badge>
+        <AnimatedContent animationKey={isOnline ? 'online' : 'offline'}>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isOnline
+              ? resumeTags.map(({ tone, label, icon: Icon }) => (
+                  <Badge key={tone} variant="outline" className={RESUME_BADGE_COLORS[tone]} aria-label={`${label}简历 ${counts[tone]} 份`}>
+                    <Icon aria-hidden />
+                    {label}
+                    <span className="tabular-nums">{counts[tone]}</span>
+                  </Badge>
+                ))
+              : (
+                  <Badge variant="outline">
+                    <Plane aria-hidden />
+                    离线
+                  </Badge>
+                )}
+          </div>
+        </AnimatedContent>
         {pendingCount > 0 && (
           <Button
             onClick={() => setDerivedJobsOpen(true)}
