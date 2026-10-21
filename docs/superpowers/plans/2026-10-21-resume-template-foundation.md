@@ -168,7 +168,7 @@ pnpm build
 
 **文件：** `definition-schema.ts`、`compatibility/binding.ts`、`src/lib/schema/resume/persisted.ts`、`scripts/verify-resume-templates.ts`。
 
-- [ ] **2.1 定义协议与错误结果，保持与数据库无关。**
+- [x] **2.1 定义协议与错误结果，保持与数据库无关。**
 
 使用 Zod strict object 校验所有嵌套对象；复用现有字体、主题、间距 schema 的取值范围。公开类型由 schema 推导，不维护第二套容易漂移的接口。核心形状如下，组件 ID 首期只接受列出的能力：
 
@@ -217,7 +217,7 @@ type TemplateErrorCode =
 
 `ResumeAppearanceConfig` 使用 `src/lib/schema/resume/persisted.ts` 的现有类型。新增 `TemplateResolutionError extends Error`，携带上述 `code`，不携带用户正文。`fieldList.presentation` 是保持当前申请信息标签外观的明确参数，不增加新的产品选择项。
 
-- [ ] **2.2 扩展现有绑定，保持旧调用可读。**
+- [x] **2.2 扩展现有绑定，保持旧调用可读。**
 
 ```ts
 export interface ResumeTemplateBinding {
@@ -230,7 +230,7 @@ export interface ResumeTemplateBinding {
 
 `ResumeType` 的历史枚举暂不删除。`resolveResumeTemplateBinding` 遇到存在 `templateVersion` 属性的绑定时原样保留其字段，不补 `basedOnResumeType`，不把不合法版本抹掉。旧分支保持已有快照归一化行为；新协议的校验在模板读取边界完成，配置错误不能阻止正文被加载和保存。
 
-- [ ] **2.3 实现只读引用解析，不在转换器中写回文档。**
+- [x] **2.3 实现只读引用解析，不在转换器中写回文档。**
 
 新增 `resolveTemplateReference(binding: unknown): TemplateRef`。用 `Object.prototype.hasOwnProperty.call(binding, 'templateVersion')` 区分新旧协议，不能用真值判断：版本为 `0`、`null`、字符串或缺失 ID 的新绑定都应报错。无绑定或合法旧对象没有版本时返回默认引用；数组、非对象等坏数据报 `INVALID_BINDING`。明确版本的引用要求 `source === 'official'`、非空 ID、正整数版本。
 
@@ -248,7 +248,7 @@ function toTemplateBinding(ref: TemplateRef): ResumeTemplateBinding {
 
 两个函数放 `compatibility/binding.ts`；低层 `persisted.ts` 不 import 模板运行时。不要把旧 `simple`／`modern` 注册成正式新模板。
 
-- [ ] **2.4 加入协议断言并执行。**
+- [x] **2.4 加入协议断言并执行。**
 
 ```ts
 assert.deepEqual(resolveTemplateReference(undefined), DEFAULT_TEMPLATE_REF)

@@ -11,6 +11,20 @@ try {
   const { buildCommentAnchorDocument } = await server.ssrLoadModule('/src/features/resume-comments/anchors/document.ts')
   assert.deepEqual(buildCommentAnchorDocument(snapshot, '2026-10-21'), baseline)
   console.log('PASS 默认简历评论投影与固定基线一致')
+  const { resolveTemplateReference, DEFAULT_TEMPLATE_REF } = await server.ssrLoadModule('/src/lib/resume-template/compatibility/binding.ts')
+  const legacy = await fixture('legacy-cases')
+  for (const binding of legacy.bindings) {
+    const before = JSON.stringify(binding)
+    assert.deepEqual(resolveTemplateReference(binding), DEFAULT_TEMPLATE_REF)
+    assert.equal(JSON.stringify(binding), before)
+  }
+  assert.deepEqual(resolveTemplateReference({ source: 'official', templateId: 'default', templateVersion: 2 }), { templateId: 'default', templateVersion: 2 })
+  for (const version of [0, null, '1', -1, 1.5]) {
+    assert.throws(() => resolveTemplateReference({ source: 'official', templateId: 'default', templateVersion: version }))
+  }
+  assert.throws(() => resolveTemplateReference([]))
+  assert.throws(() => resolveTemplateReference({ source: 'user', templateId: 'x', templateVersion: 1 }))
+  console.log('PASS 新旧绑定区分、精确版本及输入隔离')
 }
 finally {
   await server.close()

@@ -22,6 +22,7 @@ export interface ResumeAppearancePatch {
 export interface ResumeTemplateBinding {
   source: 'official' | 'community' | 'user'
   templateId: string
+  templateVersion?: number
   basedOnResumeType?: ResumeType
 }
 
@@ -37,6 +38,10 @@ export function resolveResumeTemplateBinding(
   binding: ResumeTemplateBinding | null | undefined,
   type: ResumeType,
 ): ResumeTemplateBinding {
+  // 明确的新协议引用保留原值；渲染边界负责校验，不能把错误版本变成旧默认值。
+  if (binding && Object.prototype.hasOwnProperty.call(binding, 'templateVersion')) {
+    return { ...binding }
+  }
   if (!binding?.templateId) {
     return createLegacyResumeTemplateBinding(type)
   }
