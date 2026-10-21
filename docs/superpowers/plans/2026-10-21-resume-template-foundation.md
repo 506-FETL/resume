@@ -124,7 +124,7 @@ flowchart TD
 - 创建：`scripts/verify-resume-templates.ts`、验收记录文档。
 - 修改：`package.json`，只增加本任务专项命令。
 
-- [ ] **1.1 检查工作区、工具与脚本，不修复无关基线问题。**
+- [x] **1.1 检查工作区、工具与脚本，不修复无关基线问题。**
 
 ```bash
 git status --short
@@ -138,17 +138,17 @@ pnpm build
 
 记录真实退出码。若已有失败，记录文件和原因；本次影响的文件必须修复，不能把新增问题解释为基线，也不能用改配置关闭检查。
 
-- [ ] **1.2 建立虚构基线数据，不使用用户真实简历。**
+- [x] **1.2 建立虚构基线数据，不使用用户真实简历。**
 
 以 `demoResumeData` 的字段结构为起点，固定所有条目 ID、日期和 `projectionReferenceDate = '2026-10-21'`。`all-sections.json` 包含全部 12 个模块、5 种经历、技能、荣誉、兴趣、申请信息及富文本；同一经历含正常条目、隐藏条目和空条目。富文本覆盖列表、换行、链接、中文、英文、emoji。由此派生长段落、多页、全隐藏、不同排序和第二套外观。
 
 `legacy-cases.json` 明确包含：无绑定、无版本的 official/simple、official/modern、user、community 绑定以及旧分享 manifest。旧类型标签一律不作为独立视觉基线。
 
-- [ ] **1.3 保存原始投影与浏览器外观基线。**
+- [x] **1.3 保存原始投影与浏览器外观基线。**
 
 用当前 `buildCommentAnchorDocument` 生成并保存文档节点、文本、块顺序及文档哈希到 `projection-baseline.json`，固定参考日期。用当前默认 manifest 渲染基线样本，记录页面数、标题／条目位置、字体加载状态、PDF 页数及 Word 内容。浏览器截图与 PDF 放到已忽略的 `.superpowers/template-baseline/`，验收文档记录路径和视口；不提交真实用户数据或二进制大文件。
 
-- [ ] **1.4 建立不依赖缺失脚本的专项检查入口。**
+- [x] **1.4 建立不依赖缺失脚本的专项检查入口。**
 
 复用 `scripts/verify-assistant-stop-order.ts` 中 Vite `ssrLoadModule` 的加载方式，使用 `node:assert/strict`；别把源码字符串匹配当成行为验证。纯协议和适配器直接调用；浏览器状态、IndexedDB、分页、真实协作由后面的交互验收覆盖。
 
@@ -160,7 +160,7 @@ pnpm build
 
 脚本在异常时非零退出，在 `finally` 关闭 Vite server；每个用例输出名称和结果。最初只核对基线文件可读、投影稳定，后续任务向同一入口追加具体断言。
 
-- [ ] **1.5 记录基线并提交本任务文件。**
+- [x] **1.5 记录基线并提交本任务文件。**
 
 建议提交标题：`test(template): 固定默认简历与评论投影基线`。只暂存本任务文件，不推送。
 
