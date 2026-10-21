@@ -273,7 +273,7 @@ assert.throws(() => resolveTemplateReference({
 
 **文件：** `source/types.ts`、`source/local.ts`、`catalog/default.ts`、`definitions/default/v1.ts`、`examples/graduate-v1.ts`、`examples/frontend-v1.ts`。
 
-- [ ] **3.1 固定异步 Source 契约。**
+- [x] **3.1 固定异步 Source 契约。**
 
 ```ts
 interface ExampleRef { exampleId: string, version: number }
@@ -301,19 +301,19 @@ interface TemplateSource {
 
 上述类型放 `source/types.ts`，引用既有 `ResumeSchema`、`PersistedResumeSnapshot` 和任务 2 的类型。首期不增加筛选参数、分页 UI 或空壳 Remote Provider。
 
-- [ ] **3.2 建立唯一的 `default@1` 真源。**
+- [x] **3.2 建立唯一的 `default@1` 真源。**
 
 `definitions/default/v1.ts` 导出 `defaultTemplateV1`，采用规格 §6.2 的完整配置，申请信息补 `presentation: 'outlined-tags'`。用 `templateDefinitionSchema.parse` 在资源边界校验；定义中不放示例正文、保存回调、React 组件或数据库查询。
 
 目录项为：`templateId: 'default'`、名称“默认模板”、`currentVersion: 1`、默认示例 `{ exampleId: 'graduate', version: 1 }`，另一个示例为 `{ exampleId: 'frontend', version: 1 }`。卡片首期采用公共只读预览生成真实缩略效果，不引入截图生成服务。
 
-- [ ] **3.3 编写两份内容完整、互相独立的示例。**
+- [x] **3.3 编写两份内容完整、互相独立的示例。**
 
 两份示例都采用现有 schema。应届示例重点展示教育、实习、项目、校园、技能和荣誉；社招示例重点展示教育、两段工作、项目、技能和自我评价。未展示模块仍有合法结构，按适用性设置隐藏状态；不为凑模块编造头像等新字段。联系方式使用虚构信息与 `example.com` 邮箱。
 
 示例 ID 固定用于预览；示例没有用户 ID、真实 resume ID、历史或评论数据。示例自身不保存模板绑定和视觉外观，预览／创建时由选择的定义补齐。
 
-- [ ] **3.4 实现本地精确版本索引。**
+- [x] **3.4 实现本地精确版本索引。**
 
 ```ts
 const definitions = new Map<string, TemplateDefinition>([
@@ -327,7 +327,7 @@ function templateKey(ref: TemplateRef): string {
 
 `templateKey` 放 `source/types.ts` 作为共用纯函数。`localTemplateSource` 在成功读取后返回副本；内部版本常量不暴露给调用方修改。不存在的精确版本抛 `VERSION_NOT_FOUND`；不读取登录状态，不 import `src/lib/supabase/template`。
 
-- [ ] **3.5 验证目录和隔离性。**
+- [x] **3.5 验证目录和隔离性。**
 
 断言目录只有一项，两个示例符合正文 schema；修改一次返回的示例不影响下一次读取；查 `default@2` 拒绝；修改目录介绍不改变 `default@1`。运行专项校验和类型检查。建议提交：`feat(template): 提供本地默认模板与独立示例`。
 
