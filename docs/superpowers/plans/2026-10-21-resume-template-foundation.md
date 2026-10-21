@@ -335,13 +335,13 @@ function templateKey(ref: TemplateRef): string {
 
 **文件：** `content/`、`fields/`、`renderers/shared.tsx`、`runtime/context/`。现有各 Renderer 作为提取依据，先不删除。
 
-- [ ] **4.1 原样提取评论字段实现。**
+- [x] **4.1 原样提取评论字段实现。**
 
 将 `CommentableText` 移至 `fields/commentable-text/index.tsx`，`CommentableRichText` 及其 DOM 块处理移至 `fields/commentable-rich-text/index.tsx`，`buildCommentNodeKey`、`useCommentProjectionNode` 移至 `fields/projection.ts`。旧 `shared.tsx` 暂时 re-export，保证迁移期调用方可编译。
 
 保持 `data-comment-node-key`、`data-comment-block-ordinal`、字段标签、净化流程、投影回退和富文本 class/style 数值；不得只复制属性名称而重新实现文本算法。
 
-- [ ] **4.2 定义有来源身份的只读内容类型。**
+- [x] **4.2 定义有来源身份的只读内容类型。**
 
 ```ts
 interface ContentField {
@@ -389,7 +389,7 @@ interface AdaptedResumeContent {
 
 这里的 `text` 取自现有评论投影节点，非另一次格式化；`html` 取自原业务字段，经公共字段组件净化。`SkillItem` 使用现有 `src/lib/schema/resume/form/skillSpecialty.ts` 导出的类型，保留等级和显示类型，默认标签仍只渲染原评论文本，未来进度条可读取真实等级。内容模型只用于渲染，不进入 Automerge 或数据库。
 
-- [ ] **4.3 建立页头与模块映射。**
+- [x] **4.3 建立页头与模块映射。**
 
 `adaptResumeContent(data, commentNodesByKey)` 返回 `AdaptedResumeContent`；`adapt-profile.ts` 提取默认 `BasicsRenderer` 的单栏字段顺序，`adapt-sections.ts` 提取以下映射。适配前沿用 `buildTemplateResumeData` 的既有正文归一化。
 
@@ -405,11 +405,11 @@ interface AdaptedResumeContent {
 
 页头吸收求职信息后不再生成同一份求职信息正文。不能将年龄、学历、时间范围、技能等级交给每个模板重新格式化。
 
-- [ ] **4.4 保留排序、隐藏和空内容规则。**
+- [x] **4.4 保留排序、隐藏和空内容规则。**
 
 以 `data.order` 决定模块顺序，以 `getVisibility` 决定隐藏，保留原条目数组顺序与 `entryId`，不 sort 原数组。保留当前“模块可显示但内容为空时是否保留标题”的真实行为，不统一删掉所有空模块。只读适配器不能触发 store setter。
 
-- [ ] **4.5 比较节点投影，确认提取没有改变身份。**
+- [x] **4.5 比较节点投影，确认提取没有改变身份。**
 
 ```ts
 const before = JSON.stringify(snapshot)
