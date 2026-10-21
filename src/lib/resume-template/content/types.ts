@@ -22,12 +22,12 @@ export interface SkillContent {
   proficiencyLevel: SkillItem['proficiencyLevel']
   displayType: SkillItem['displayType']
 }
-export type ContentBlock =
-  | { kind: 'experience', items: ExperienceContent[] }
-  | { kind: 'richText', field: ContentField, html: string }
-  | { kind: 'skills', items: SkillContent[] }
-  | { kind: 'fieldList', items: ContentField[] }
-  | { kind: 'tagList', items: ContentField[] }
+export type ContentBlock
+  = | { kind: 'experience', items: ExperienceContent[] }
+    | { kind: 'richText', field: ContentField, html: string }
+    | { kind: 'skills', items: SkillContent[] }
+    | { kind: 'fieldList', items: ContentField[] }
+    | { kind: 'tagList', items: ContentField[] }
 export interface ContentSection {
   key: keyof ResumeSchema
   title: string

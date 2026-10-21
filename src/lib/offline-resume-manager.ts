@@ -8,9 +8,9 @@
  */
 
 import type { DBSchema, IDBPDatabase } from 'idb'
+import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
 import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeType, VariantChange, VariantMetadata } from '@/lib/schema'
 import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/variant'
-import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'

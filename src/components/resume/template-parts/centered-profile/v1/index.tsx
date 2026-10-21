@@ -66,31 +66,31 @@ export default function CenteredProfile({ profile }: { profile: ProfileContent }
     )
   }
 
-    return (
-      <header
-        id="resume-section-basics"
-        className="flex flex-col items-center text-center"
+  return (
+    <header
+      id="resume-section-basics"
+      className="flex flex-col items-center text-center"
+      style={{
+        marginBottom: spacing.sectionMargin,
+        gap: spacing.paragraphSpacing,
+      }}
+    >
+      <h1
+        className="m-0"
         style={{
-          marginBottom: spacing.sectionMargin,
-          gap: spacing.paragraphSpacing,
+          fontSize: font.nameSize,
+          fontWeight: font.boldWeight,
+          color: theme.primaryColor,
         }}
       >
-        <h1
-          className="m-0"
-          style={{
-            fontSize: font.nameSize,
-            fontWeight: font.boldWeight,
-            color: theme.primaryColor,
-          }}
-        >
-          <CommentableText
-            nodeKey={profile.name?.nodeKey ?? ''}
-            fieldLabel="姓名"
-          />
-        </h1>
-        {renderInlineRow(profile.jobIntent, '求职意向：')}
-        {renderInlineRow(profile.meta)}
-        {renderInlineRow(profile.contact)}
-      </header>
-    )
+        <CommentableText
+          nodeKey={profile.name?.nodeKey ?? ''}
+          fieldLabel="姓名"
+        />
+      </h1>
+      {renderInlineRow(profile.jobIntent, '求职意向：')}
+      {renderInlineRow(profile.meta)}
+      {renderInlineRow(profile.contact)}
+    </header>
+  )
 }

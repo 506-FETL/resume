@@ -1,10 +1,10 @@
 import type { RefObject } from 'react'
 import type { ResumeDocumentStateChange } from '@/components/resume/pagination/types'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { useMemo } from 'react'
-import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
+import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import useResumeConfigStore from '@/store/resume/config'
 import useResumeStore from '@/store/resume/form'
 
@@ -14,7 +14,7 @@ interface ResumePreviewProps {
   onDocumentStateChange?: ResumeDocumentStateChange
   scrollContainerRef?: RefObject<HTMLDivElement | null>
   snapshotOverride?: PersistedResumeSnapshot | null
-  manifestOverride?: TemplateManifest | null
+  definitionOverride?: TemplateDefinition | null
   projectionReferenceDate?: string
 }
 
@@ -24,7 +24,7 @@ export default function ResumePreview({
   onDocumentStateChange,
   scrollContainerRef,
   snapshotOverride,
-  manifestOverride,
+  definitionOverride,
   projectionReferenceDate,
 }: ResumePreviewProps) {
   const { type, templateBinding, basics, job_intent: jobIntent, application_info: applicationInfo, edu_background: eduBackground, work_experience: workExperience, internship_experience: internshipExperience, campus_experience: campusExperience, project_experience: projectExperience, skill_specialty: skillSpecialty, honors_certificates: honorsCertificates, self_evaluation: selfEvaluation, hobbies, order, visibility } = useResumeStore()
@@ -68,7 +68,7 @@ export default function ResumePreview({
       <ScaledReadonlyPreview
         data={previewData}
         appearance={editorAppearance}
-        manifest={manifestOverride}
+        definition={definitionOverride}
         documentRef={resumeRef}
         sourceRef={sourceRef}
         onDocumentStateChange={onDocumentStateChange}

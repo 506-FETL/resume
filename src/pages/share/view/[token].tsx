@@ -2,7 +2,7 @@ import type { RefObject } from 'react'
 import type { ReadingZoom } from './components/reading-toolbar'
 import type { ShareCommentAccess } from './hooks/use-share-comment-access'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { ShareViewResult } from '@/lib/supabase/resume/share.types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -30,7 +30,7 @@ type ViewState
     | {
       phase: 'ready'
       snapshot: PersistedResumeSnapshot
-      templateManifest: TemplateManifest
+      templateDefinition: TemplateDefinition
       displayName: string | null
       shareId: string
       releaseId: string
@@ -76,7 +76,7 @@ export default function ResumeSharePage() {
       })
       return
     }
-    if (!result.snapshot || !result.templateManifest) {
+    if (!result.snapshot || !result.templateDefinition) {
       setState({ phase: 'unavailable' })
       return
     }
@@ -89,7 +89,7 @@ export default function ResumeSharePage() {
       ? {
           ...previous,
           snapshot: result.snapshot!,
-          templateManifest: result.templateManifest!,
+          templateDefinition: result.templateDefinition!,
           versionId: result.versionId ?? previous.versionId,
           documentRevision: result.documentRevision ?? previous.documentRevision,
           displayName: result.displayName ?? null,
@@ -100,7 +100,7 @@ export default function ResumeSharePage() {
       : {
           phase: 'ready',
           snapshot: result.snapshot!,
-          templateManifest: result.templateManifest!,
+          templateDefinition: result.templateDefinition!,
           displayName: result.displayName ?? null,
           shareId: result.shareId ?? '',
           releaseId,
@@ -237,7 +237,7 @@ export default function ResumeSharePage() {
               <ScaledReadonlyPreview
                 data={previewData}
                 appearance={state.snapshot}
-                manifest={state.templateManifest}
+                definition={state.templateDefinition}
                 documentRef={documentRef}
                 onDocumentStateChange={setDocumentState}
                 projectionReferenceDate={state.projectionReferenceDate}

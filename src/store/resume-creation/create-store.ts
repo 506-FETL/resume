@@ -1,5 +1,5 @@
-import type { TemplateSource } from '@/lib/resume-template/source/types'
 import type { CreatedTemplateResume, CreateTemplateResumeInput, CreationIdentity, PreparedResumeCreation, ResumeCreationPersistence } from '@/lib/resume-template/create/types'
+import type { TemplateSource } from '@/lib/resume-template/source/types'
 import { create } from 'zustand'
 import { persistPreparedResume } from '@/lib/resume-template/create/persist'
 import { prepareTemplateResume } from '@/lib/resume-template/create/prepare'
@@ -43,7 +43,10 @@ export function createResumeCreationStore(dependencies: { source: TemplateSource
       return pending
     }
     return {
-      status: 'idle', error: null, prepared: null, result: null,
+      status: 'idle',
+      error: null,
+      prepared: null,
+      result: null,
       start: (input) => {
         if (pending)
           return pending
@@ -56,7 +59,7 @@ export function createResumeCreationStore(dependencies: { source: TemplateSource
       retry: execute,
       reset: () => {
         // 保存结果不确定时保留操作身份；关闭弹窗不能制造下一次重复插入。
-        if (pending || get().prepared && get().status !== 'success')
+        if (pending || (get().prepared && get().status !== 'success'))
           return
         request = null
         set({ status: 'idle', error: null, prepared: null, result: null })

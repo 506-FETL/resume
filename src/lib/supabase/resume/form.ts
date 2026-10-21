@@ -1,8 +1,6 @@
-import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
 import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
-import type { TemplateSourceKind } from '@/lib/supabase/template'
+import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
 import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
-import { getResumeTypeFromTemplateSource } from '@/lib/resume-template/runtime'
 import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
@@ -48,7 +46,9 @@ export async function findPreparedCloudResume(prepared: PreparedResumeCreation) 
   const user = await assertCreationOwner(prepared)
   const { data, error } = await supabase.from('resume_config')
     .select('resume_id,display_name,description,created_at,updated_at')
-    .eq('user_id', user.id).eq('resume_id', prepared.resumeId).maybeSingle()
+    .eq('user_id', user.id)
+    .eq('resume_id', prepared.resumeId)
+    .maybeSingle()
   if (error)
     throw error
   return data
@@ -187,29 +187,6 @@ export async function createNewResume(
   }
 
   return data
-}
-
-export async function createResumeFromTemplate(input: {
-  source: TemplateSourceKind
-  templateId: string
-  display_name?: string
-  description?: string
-}) {
-  const fallbackType = await getResumeTypeFromTemplateSource(input.source, input.templateId)
-  const templateBinding: ResumeTemplateBinding = {
-    source: input.source,
-    templateId: input.templateId,
-    basedOnResumeType: fallbackType,
-  }
-
-  return createNewResume(
-    {
-      display_name: input.display_name,
-      description: input.description,
-    },
-    fallbackType,
-    { templateBinding },
-  )
 }
 
 /**

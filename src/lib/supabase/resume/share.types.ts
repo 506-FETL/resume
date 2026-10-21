@@ -1,10 +1,11 @@
 import type { CommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
+import type { PublishedTemplateManifest } from '@/lib/resume-template/compatibility/share-manifest'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 
 export interface ResumeShareSnapshotSource {
   snapshot: PersistedResumeSnapshot
-  templateManifest: TemplateManifest
+  templateManifest: PublishedTemplateManifest
   displayName: string | null
 }
 
@@ -62,7 +63,7 @@ export interface ResumeShareReviewRelease {
 
 export interface ResumeShareReviewPayload {
   snapshot: PersistedResumeSnapshot
-  templateManifest: TemplateManifest
+  templateDefinition: TemplateDefinition
   displayName: string | null
 }
 
@@ -116,7 +117,7 @@ export interface ShareViewResult {
   wrongPassword?: boolean
   rateLimited?: boolean
   snapshot?: PersistedResumeSnapshot
-  templateManifest?: TemplateManifest
+  templateDefinition?: TemplateDefinition
   displayName?: string | null
   shareId?: string
   releaseId?: string

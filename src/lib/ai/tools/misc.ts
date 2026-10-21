@@ -1,6 +1,6 @@
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { fetchVariantTree, getAtsFromUserId, listResumeHistoryVersionSummaries } from '@/lib/supabase/resume'
-import { listUserTemplates } from '@/lib/supabase/template'
 import { getUserProfile } from '@/lib/supabase/user'
 import { registerTool } from '../agent/tool-registry'
 
@@ -80,13 +80,13 @@ registerTool({
 
 registerTool({
   name: 'list_templates',
-  description: '列出当前用户的简历模板。',
+  description: '列出可选的正式简历模板。',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   mode: 'read',
   execute: async () => {
     try {
-      const list = (await listUserTemplates()) as unknown as Array<Record<string, unknown>>
-      return { count: list.length, templates: list.map(t => ({ id: t.template_id, name: t.name, description: t.description })) }
+      const list = await resumeTemplateSource.listTemplates()
+      return { count: list.length, templates: list.map(t => ({ id: t.templateId, version: t.currentVersion, name: t.name, description: t.description })) }
     }
     catch (error) {
       return { error: error instanceof Error ? error.message : '读取模板失败' }

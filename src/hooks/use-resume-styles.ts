@@ -1,7 +1,7 @@
 import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { useMemo } from 'react'
-import { normalizeResumeAppearance } from '@/lib/schema'
 import { resolveResumeAppearanceStyles } from '@/lib/resume-template/runtime/resolve-appearance'
+import { normalizeResumeAppearance } from '@/lib/schema'
 import useResumeConfigStore from '@/store/resume/config'
 
 /**

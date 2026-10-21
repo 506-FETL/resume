@@ -1,9 +1,9 @@
 import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareReleaseSummary, ResumeShareReviewPayload, ResumeShareReviewRelease, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
-import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
-import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
+import { parseSharedTemplateDefinition, serializeTemplateForShare } from '@/lib/resume-template/compatibility/share-manifest'
+import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
+import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import { redactHiddenResumeSections } from '../../../../supabase/functions/shared/resume-share-redaction.ts'
 import supabase from '../client'
@@ -123,35 +123,18 @@ function generateToken() {
   return (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '')
 }
 
-function toPublicTemplateManifest(manifest: TemplateManifest): TemplateManifest {
-  const meta = { ...manifest.meta }
-  delete meta.ownerId
-  return { ...manifest, meta }
-}
-
 /** 从云端简历配置构造完整快照（列表卡片场景：页面未加载文档） */
 export async function buildResumeShareSnapshotSource(
   snapshot: PersistedResumeSnapshot,
   displayName: string | null,
 ): Promise<ResumeShareSnapshotSource> {
   const publicSnapshot = redactHiddenResumeSections(snapshot)
-  const fallback = getBuiltInTemplateManifest(
-    publicSnapshot.templateBinding?.basedOnResumeType ?? publicSnapshot.type,
-  )
-  let templateManifest: TemplateManifest = fallback
-
-  if (publicSnapshot.templateBinding) {
-    const resolvedManifest = await getManifestFromTemplateBinding(publicSnapshot.templateBinding)
-    if (!resolvedManifest && publicSnapshot.templateBinding.source !== 'official') {
-      throw new Error('当前自定义模板无法加载，请稍后重试后再分享')
-    }
-    templateManifest = resolvedManifest ?? fallback
-  }
+  const definition = await resolveTemplate(resumeTemplateSource, snapshot.templateBinding)
   publicSnapshot.templateBinding = undefined
 
   return {
     snapshot: publicSnapshot,
-    templateManifest: toPublicTemplateManifest(templateManifest),
+    templateManifest: serializeTemplateForShare(definition),
     displayName,
   }
 }
@@ -413,7 +396,7 @@ export async function getResumeShareReleaseForReview(
     throw error
   return {
     snapshot: data.snapshot as PersistedResumeSnapshot,
-    templateManifest: data.template_manifest as TemplateManifest,
+    templateDefinition: parseSharedTemplateDefinition(data.template_manifest),
     displayName: data.display_name ?? null,
   }
 }
@@ -530,7 +513,7 @@ export async function fetchSharedResume(
     needPassword?: boolean
     error?: string
     snapshot?: PersistedResumeSnapshot
-    template_manifest?: TemplateManifest
+    template_manifest?: unknown
     display_name?: string | null
     share_id?: string
     release_id?: string
@@ -563,7 +546,7 @@ export async function fetchSharedResume(
 
   return {
     snapshot: body.snapshot,
-    templateManifest: body.template_manifest,
+    templateDefinition: parseSharedTemplateDefinition(body.template_manifest),
     displayName: body.display_name ?? null,
     shareId: body.share_id,
     releaseId: body.release_id,

@@ -1,5 +1,5 @@
-import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import type { CommentNodes, ProfileContent } from './types'
+import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import { contentField } from './types'
 
 export function adaptProfile(data: TemplateResumeData, nodes: CommentNodes): ProfileContent | null {

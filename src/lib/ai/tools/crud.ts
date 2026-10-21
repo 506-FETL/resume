@@ -12,7 +12,7 @@ import { FORM_DATA_KEYS, useCurrentResumeStore } from '@/store/resume'
 import { requestConfirm } from '../agent/confirm-bridge'
 import { registerTool } from '../agent/tool-registry'
 
-// 简历「基础模板类型」的合法取值（与创建简历卡片一致）
+// 兼容历史 AI 调用的类型值；正式模板入口当前统一使用默认模板。
 const RESUME_TYPES: ResumeType[] = ['default', 'modern', 'simple']
 
 // 把简历绑定到当前会话：更新内存态（画布预览即时切换）并持久化，
@@ -55,7 +55,7 @@ registerTool({
     properties: {
       display_name: { type: 'string', description: '简历名称' },
       description: { type: 'string', description: '简历描述（可选）' },
-      type: { type: 'string', enum: RESUME_TYPES, description: '基础模板类型（可选，默认 default）' },
+      type: { type: 'string', enum: RESUME_TYPES, description: '兼容类型值（可选，默认 default；均使用默认模板呈现）' },
       sections: { type: 'object', description: `各模块初始内容（可选）。键可含：${FORM_DATA_KEYS.join(', ')}` },
     },
     required: ['display_name'],

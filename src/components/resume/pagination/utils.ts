@@ -44,6 +44,7 @@ export function collectPageBoundaries(root: HTMLElement) {
   const rootRect = root.getBoundingClientRect()
   const layoutHeight = Math.max(root.scrollHeight, rootRect.height)
   const candidates: PageBoundary[] = [{ offset: 0, key: 'start' }]
+  const atomicRanges: Array<{ top: number, bottom: number }> = []
   let visibleContentBottom = 0
   const walker = targetDocument.createTreeWalker(
     root,
@@ -88,6 +89,7 @@ export function collectPageBoundaries(root: HTMLElement) {
     const top = rect.top - rootRect.top
     const bottom = rect.bottom - rootRect.top
     if (rect.width > 0 && rect.height > 0) {
+      atomicRanges.push({ top, bottom })
       visibleContentBottom = Math.max(visibleContentBottom, bottom)
 
       if (top > BOUNDARY_EPSILON) {
@@ -110,9 +112,11 @@ export function collectPageBoundaries(root: HTMLElement) {
   candidates.push({ offset: contentHeight, key: 'end' })
   candidates.sort((left, right) => left.offset - right.offset)
 
+  // 原子元素中的文本行仍会贡献候选点，但不能从其边框或图片中间分页。
   const boundaries = candidates.filter((candidate, index) => (
-    index === 0
-    || Math.abs(candidate.offset - candidates[index - 1].offset) > BOUNDARY_EPSILON
+    (index === 0 || Math.abs(candidate.offset - candidates[index - 1].offset) > BOUNDARY_EPSILON)
+    && !atomicRanges.some(range => candidate.offset > range.top + BOUNDARY_EPSILON
+      && candidate.offset < range.bottom - BOUNDARY_EPSILON)
   ))
 
   return { boundaries, contentHeight }

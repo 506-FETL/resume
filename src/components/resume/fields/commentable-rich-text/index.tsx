@@ -1,7 +1,7 @@
 import { Element } from 'html-react-parser'
+import { useResumeContext } from '@/components/resume/runtime/context/resume-context'
 import { normalizeCommentRichTextBlock, projectCommentRichTextBlocks } from '@/features/resume-comments/anchors/projection'
 import { parseSanitizedHtml } from '@/lib/safe-html'
-import { useResumeContext } from '@/components/resume/runtime/context/resume-context'
 import { useCommentProjectionNode } from '../projection'
 
 const COMMENT_RICH_TEXT_BLOCK_TAGS = new Set([

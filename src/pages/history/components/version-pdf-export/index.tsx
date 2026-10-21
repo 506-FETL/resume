@@ -3,13 +3,13 @@ import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { FileDown, LoaderCircle } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import CanonicalPagedDocument from '@/components/resume/pagination/canonical-paged-document'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { Button } from '@/components/ui/button'
 import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
-import { toast } from 'sonner'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
@@ -28,6 +28,8 @@ interface VersionPdfExportButtonProps {
  */
 export default function VersionPdfExportButton({ versionId, documentTitle, className }: VersionPdfExportButtonProps) {
   const loadVersionSnapshot = useHistoryStore(state => state.loadVersionSnapshot)
+  const projectionReferenceDate = useHistoryStore(state => state.versions.find(version => version.id === versionId)?.projection_reference_date)
+    ?? new Date().toISOString().slice(0, 10)
   const reduceMotion = useReducedMotion()
   const printRef = useRef<HTMLDivElement>(null)
   // 仅点击导出后挂载打印文档；命中快照缓存不代表需要提前渲染、测量 PDF。
@@ -122,7 +124,7 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
         >
           <CanonicalPagedDocument
             appearance={snapshot}
-            contentVersion={JSON.stringify([snapshot, definition])}
+            contentVersion={JSON.stringify([snapshot, definition, projectionReferenceDate])}
             documentRef={printRef}
             onStateChange={setDocumentState}
           >
@@ -130,6 +132,7 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
               data={previewData}
               definition={definition}
               appearance={snapshot}
+              projectionReferenceDate={projectionReferenceDate}
             />
           </CanonicalPagedDocument>
         </div>

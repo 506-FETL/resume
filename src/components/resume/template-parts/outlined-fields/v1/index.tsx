@@ -9,7 +9,7 @@ export default function OutlinedFields({ items, keepEmpty = false }: { items: Co
   return (
     <div className="flex flex-wrap gap-2">
       {items.map(field => (
-        <span key={field.nodeKey} className="rounded-full border px-2 py-1" style={{ fontSize: font.smallSize, color: theme.textPrimary, borderColor: theme.primaryColor }}>
+        <span key={field.nodeKey} data-pagination-atomic className="rounded-full border px-2 py-1" style={{ fontSize: font.smallSize, color: theme.textPrimary, borderColor: theme.primaryColor }}>
           <CommentableText nodeKey={field.nodeKey} fieldLabel={field.label} />
         </span>
       ))}

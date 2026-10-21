@@ -1,10 +1,8 @@
+import type { TemplateResumeData } from './context/resume-data-context'
 import type { ContentBlock } from '@/lib/resume-template/content/types'
 import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
-import type { TemplateResumeData } from './context/resume-data-context'
 import { useMemo } from 'react'
-import { parseSharedTemplateDefinition } from '@/lib/resume-template/compatibility/share-manifest'
 import { adaptResumeContent } from '@/lib/resume-template/content/adapt-resume'
 import { parseTemplateDefinition } from '@/lib/resume-template/definition-schema'
 import { visualComponents } from '@/lib/resume-template/registry/visual-components'
@@ -53,37 +51,34 @@ function ResumeContent({ data, definition }: { data: TemplateResumeData, definit
       main={sectionSlots.map((key) => {
         const section = sectionsByKey.get(key)
         return (
-        <div key={key} data-section={key}>
-          {section && (
-          <section id={`resume-section-${section.key}`}>
-            <Heading title={section.title} />
-            <div className="flex flex-col" style={{ gap: spacing.entrySpacing }}>
-              {section.blocks.map((block, index) => <ContentBlockView key={`${block.kind}-${index}`} block={block} definition={definition} />)}
-            </div>
-          </section>
-          )}
-        </div>
+          <div key={key} data-section={key}>
+            {section && (
+              <section id={`resume-section-${section.key}`}>
+                <Heading title={section.title} />
+                <div className="flex flex-col" style={{ gap: spacing.entrySpacing }}>
+                  {section.blocks.map((block, index) => <ContentBlockView key={`${block.kind}-${index}`} block={block} definition={definition} />)}
+                </div>
+              </section>
+            )}
+          </div>
         )
       })}
     />
   )
 }
 
-/** manifest 仅为迁移旧调用方的短期桥接；定义已解析的入口不再回退旧类型。 */
-export function ResumeTemplateRuntime({ data, definition: definitionInput, manifest, appearance, projectionReferenceDate = new Date().toISOString().slice(0, 10) }: {
+export function ResumeTemplateRuntime({ data, definition: definitionInput, appearance, projectionReferenceDate }: {
   data: TemplateResumeData
-  definition?: TemplateDefinition
-  manifest?: TemplateManifest
-  appearance?: Partial<ResumeAppearanceConfig> | null
-  projectionReferenceDate?: string
+  definition: TemplateDefinition
+  appearance: Partial<ResumeAppearanceConfig>
+  projectionReferenceDate: string
 }) {
-  const definition = useMemo(() => definitionInput ? parseTemplateDefinition(definitionInput) : parseSharedTemplateDefinition(manifest), [definitionInput, manifest])
+  const definition = useMemo(() => parseTemplateDefinition(definitionInput), [definitionInput])
   const effectiveAppearance = useMemo(() => normalizeResumeAppearance(appearance), [appearance])
   return (
     <TemplateRuntimeProviders
       data={data}
       appearance={effectiveAppearance}
-      layout={{ skeleton: 'single-column', headerVariant: 'default', density: 'normal', page: { size: 'A4', pagePaddingToken: 'md' } }}
       projectionReferenceDate={projectionReferenceDate}
     >
       <ResumeContent data={data} definition={definition} />

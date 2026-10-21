@@ -1,6 +1,6 @@
-import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { TemplateRef } from '../definition-schema'
 import type { ExampleRef } from '../source/types'
+import type { PersistedResumeSnapshot } from '@/lib/schema'
 
 export interface CreateTemplateResumeInput {
   template: TemplateRef

@@ -1,5 +1,5 @@
-import type { PersistedResumeSnapshot, ResumeSchema } from '@/lib/schema'
 import type { TemplateDefinition, TemplateRef } from '../definition-schema'
+import type { PersistedResumeSnapshot, ResumeSchema } from '@/lib/schema'
 
 export interface ExampleRef { exampleId: string, version: number }
 export interface ResumeExample {

@@ -2,7 +2,6 @@ import type { Ref } from 'react'
 import type { ResumeDocumentStateChange } from './pagination/types'
 import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { useLayoutEffect, useMemo } from 'react'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
@@ -15,7 +14,6 @@ interface ScaledReadonlyPreviewProps {
   data: TemplateResumeData
   appearance: Partial<ResumeAppearanceConfig>
   definition?: TemplateDefinition | null
-  manifest?: TemplateManifest | null
   className?: string
   documentRef?: Ref<HTMLDivElement>
   sourceRef?: Ref<HTMLDivElement>
@@ -23,8 +21,8 @@ interface ScaledReadonlyPreviewProps {
   projectionReferenceDate?: string
 }
 
-export default function ScaledReadonlyPreview({ data, appearance, definition, manifest, className, documentRef, sourceRef, onDocumentStateChange, projectionReferenceDate = new Date().toISOString().slice(0, 10) }: ScaledReadonlyPreviewProps) {
-  const { resource, retry } = useResolvedResumeTemplate({ binding: data.templateBinding, definition, manifest })
+export default function ScaledReadonlyPreview({ data, appearance, definition, className, documentRef, sourceRef, onDocumentStateChange, projectionReferenceDate = new Date().toISOString().slice(0, 10) }: ScaledReadonlyPreviewProps) {
+  const { resource, retry } = useResolvedResumeTemplate({ binding: data.templateBinding, definition })
   const effectiveAppearance = useMemo(() => normalizeResumeAppearance(appearance), [appearance])
   const error = resource.status === 'error' ? resource.error.message : null
   useLayoutEffect(() => {

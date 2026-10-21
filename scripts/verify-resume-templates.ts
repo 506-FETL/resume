@@ -98,15 +98,23 @@ try {
   let inserts = 0
   const persistence = {
     find: async () => stored,
-    insert: async () => { inserts++; stored = result; throw new Error('response lost') },
+    insert: async () => {
+      inserts++
+      stored = result
+      throw new Error('response lost')
+    },
   }
   assert.deepEqual(await persistPreparedResume(prepared, persistence), result)
   assert.deepEqual(await persistPreparedResume(prepared, persistence), result)
   assert.equal(inserts, 1)
-  await assert.rejects(() => persistPreparedResume(prepared, { ...persistence, find: async () => { throw new Error('query failed') } }))
+  await assert.rejects(() => persistPreparedResume(prepared, { ...persistence, find: async () => {
+    throw new Error('query failed')
+  } }))
   assert.equal(inserts, 1)
   let finishSave: (value: unknown) => void = () => {}
-  const creation = createResumeCreationStore({ source: localTemplateSource, getOwnerId: () => null, persistence: { find: async () => null, insert: () => new Promise(resolve => { finishSave = resolve }) } })
+  const creation = createResumeCreationStore({ source: localTemplateSource, getOwnerId: () => null, persistence: { find: async () => null, insert: () => new Promise((resolve) => {
+    finishSave = resolve
+  }) } })
   const pendingCreation = creation.getState().start(input)
   assert.equal(creation.getState().start(input), pendingCreation)
   while (creation.getState().status !== 'saving')
@@ -119,6 +127,23 @@ try {
   assert.equal(creation.getState().status, 'success')
   console.log('PASS 完整创建、条目身份隔离、重复点击与结果不确定重试')
 
+  const { serializeTemplateForShare, parseSharedTemplateDefinition } = await server.ssrLoadModule('/src/lib/resume-template/compatibility/share-manifest.ts')
+  const envelope = serializeTemplateForShare(definition)
+  assert.deepEqual(parseSharedTemplateDefinition(envelope), definition)
+  assert.throws(() => parseSharedTemplateDefinition({ ...envelope, version: 2 }))
+  assert.throws(() => parseSharedTemplateDefinition({ ...envelope, definition: null }))
+  assert.throws(() => parseSharedTemplateDefinition({}))
+  const { definition: _frozen, ...legacyEnvelope } = envelope
+  const frozenLegacy = JSON.stringify(legacyEnvelope)
+  assert.deepEqual(parseSharedTemplateDefinition(legacyEnvelope), definition)
+  assert.equal(JSON.stringify(legacyEnvelope), frozenLegacy)
+  const { redactHiddenResumeSections } = await server.ssrLoadModule('/supabase/functions/shared/resume-share-redaction.ts')
+  const hiddenSnapshot = structuredClone(snapshot)
+  hiddenSnapshot.visibility.work_experience = true
+  const publicSnapshot = redactHiddenResumeSections(hiddenSnapshot)
+  assert.ok(hiddenSnapshot.work_experience.items[0].companyName)
+  assert.equal(JSON.stringify(publicSnapshot).includes(hiddenSnapshot.work_experience.items[0].companyName), false)
+  console.log('PASS 分享新旧信封、冻结输入、脱敏')
 }
 finally {
   await server.close()

@@ -1,102 +1,39 @@
 import type { FormEvent, ReactNode, RefObject } from 'react'
-import type { ResumeType } from '@/lib/schema'
 import { Plus } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { createOfflineResume } from '@/lib/offline-resume-manager'
-import { createNewResume } from '@/lib/supabase/resume/form'
+import { useCreateTemplateResume } from '@/hooks/use-create-template-resume'
+import { defaultTemplateCatalogItem } from '@/lib/resume-template/catalog/default'
+import { DEFAULT_TEMPLATE_REF } from '@/lib/resume-template/compatibility/binding'
 import useResumeListStore from '@/pages/resume/store'
-import useCurrentResumeStore from '@/store/resume/current'
-import { getErrorMessage } from '@/utils'
+import { useResumeCreationStore } from '@/store/resume-creation'
 
 export default function CreateResumeCard({ trigger, online, onCreated, open, onOpenChange, hideTrigger, returnFocusRef }: { trigger?: ReactNode, online?: boolean, onCreated?: () => void, open?: boolean, onOpenChange?: (open: boolean) => void, hideTrigger?: boolean, returnFocusRef?: RefObject<HTMLElement | null> }) {
-  const { isOnline, addResume } = useResumeListStore()
-  const { setCurrentResume } = useCurrentResumeStore()
-
+  const reduceMotion = useReducedMotion()
+  const isOnline = useResumeListStore(state => state.isOnline)
   const [localOpen, setLocalOpen] = useState(false)
   const isCreating = open ?? localOpen
   const setIsCreating = onOpenChange ?? setLocalOpen
   const [displayName, setDisplayName] = useState('')
   const [description, setDescription] = useState('')
-  const [selectedType, setSelectedType] = useState<ResumeType>('default')
-  const [loading, setLoading] = useState(false)
+  const { createResume, loading, error, retrying } = useCreateTemplateResume()
 
   async function handleCreateResume(e: FormEvent) {
     e.preventDefault()
-    setLoading(true)
-
-    try {
-      if (online ?? isOnline) {
-        // 在线模式：创建云端简历
-        const createPromise = createNewResume(
-          { display_name: displayName.trim(), description: description.trim() },
-          selectedType,
-        )
-          .then((data) => {
-            addResume({
-              resume_id: data.resume_id,
-              created_at: data.created_at,
-              updated_at: data.updated_at,
-              type: data.type,
-              display_name: data.display_name,
-              description: data.description,
-              isOffline: false,
-            })
-            onCreated?.()
-            setCurrentResume(data.resume_id, data.type)
-            return data
-          })
-          .finally(() => {
-            setLoading(false)
-            handleCancel()
-          })
-
-        toast.promise(createPromise, {
-          loading: '正在创建简历...',
-          success: '简历创建成功',
-          error: error => `创建简历失败: ${error.message}，请重试`,
-        })
-      }
-      else {
-        // 离线模式：创建本地简历
-        const resumeId = await createOfflineResume({
-          display_name: displayName.trim(),
-          description: description.trim(),
-          type: selectedType,
-        })
-
-        setCurrentResume(resumeId, selectedType)
-        addResume({
-          resume_id: resumeId,
-          created_at: new Date().toISOString(),
-          type: selectedType,
-          display_name: displayName.trim(),
-          description: description.trim(),
-          isOffline: true,
-        })
-
-        onCreated?.()
-        toast.success('本地简历创建成功')
-        setLoading(false)
-        handleCancel()
-      }
-    }
-    catch (error: unknown) {
-      setLoading(false)
-      toast.error(`创建失败: ${getErrorMessage(error)}`)
-    }
+    const ok = await createResume({ template: DEFAULT_TEMPLATE_REF, example: defaultTemplateCatalogItem.defaultExample, mode: (online ?? isOnline) ? 'cloud' : 'local', displayName, description }, onCreated)
+    if (ok)
+      handleCancel()
   }
 
   function handleCancel() {
     setDisplayName('')
     setDescription('')
-    setSelectedType('default')
+    useResumeCreationStore.getState().reset()
     setIsCreating(false)
   }
 
@@ -113,6 +50,8 @@ export default function CreateResumeCard({ trigger, online, onCreated, open, onO
 
       <DialogContent
         className="sm:max-w-135"
+        style={reduceMotion ? { animationDuration: '0s' } : undefined}
+        overlayClassName={reduceMotion ? 'animate-none!' : undefined}
         onCloseAutoFocus={(event) => {
           if (returnFocusRef?.current?.isConnected) {
             event.preventDefault()
@@ -122,7 +61,7 @@ export default function CreateResumeCard({ trigger, online, onCreated, open, onO
       >
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">创建新简历</DialogTitle>
-          <DialogDescription className="sr-only">填写简历名称、描述并选择基础模板类型。</DialogDescription>
+          <DialogDescription className="sr-only">填写简历名称和描述，将使用默认模板与完整应届生示例。</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleCreateResume}>
           <FieldGroup className="gap-6 py-6">
@@ -161,21 +100,9 @@ export default function CreateResumeCard({ trigger, online, onCreated, open, onO
               />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="template_type">基础模板类型</FieldLabel>
-              <Select value={selectedType} onValueChange={value => setSelectedType(value as ResumeType)}>
-                <SelectTrigger className="h-11" id="template_type">
-                  <SelectValue placeholder="选择基础模板类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="default">默认</SelectItem>
-                    <SelectItem value="modern">现代</SelectItem>
-                    <SelectItem value="simple">简约</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
+            <p className="text-sm text-muted-foreground">默认模板 · 应届生示例。创建后可逐项替换。</p>
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
           </FieldGroup>
 
           <DialogFooter>
@@ -183,7 +110,7 @@ export default function CreateResumeCard({ trigger, online, onCreated, open, onO
               取消
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? '创建中...' : '创建简历'}
+              {loading ? '创建中...' : retrying ? '重试创建' : '创建简历'}
             </Button>
           </DialogFooter>
         </form>

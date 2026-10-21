@@ -4,14 +4,14 @@ import { create } from 'zustand'
 import { toTemplateBinding } from '@/lib/resume-template/compatibility/binding'
 import { asTemplateError } from '@/lib/resume-template/definition-schema'
 import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
-import { localTemplateSource } from '@/lib/resume-template/source/local'
+import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { exampleKey, templateKey } from '@/lib/resume-template/source/types'
 
-export type ResourceState<T> =
-  | { status: 'idle' }
-  | { status: 'loading', requestId: number }
-  | { status: 'ready', data: T }
-  | { status: 'error', error: TemplateResolutionError }
+export type ResourceState<T>
+  = | { status: 'idle' }
+    | { status: 'loading', requestId: number }
+    | { status: 'ready', data: T }
+    | { status: 'error', error: TemplateResolutionError }
 
 export const IDLE_RESOURCE = { status: 'idle' } as const
 interface TemplateResources {
@@ -36,9 +36,18 @@ export function createTemplateResourceStore(source: TemplateSource) {
       const id = ++sequence
       write({ status: 'loading', requestId: id })
       const promise = Promise.resolve().then(read).then(
-        (data) => { if (pending.get(key)?.id === id) write({ status: 'ready', data }) },
-        (error: unknown) => { if (pending.get(key)?.id === id) write({ status: 'error', error: asTemplateError(error) }) },
-      ).finally(() => { if (pending.get(key)?.id === id) pending.delete(key) })
+        (data) => {
+          if (pending.get(key)?.id === id)
+            write({ status: 'ready', data })
+        },
+        (error: unknown) => {
+          if (pending.get(key)?.id === id)
+            write({ status: 'error', error: asTemplateError(error) })
+        },
+      ).finally(() => {
+        if (pending.get(key)?.id === id)
+          pending.delete(key)
+      })
       pending.set(key, { id, promise })
       return promise
     }
@@ -59,4 +68,4 @@ export function createTemplateResourceStore(source: TemplateSource) {
   })
 }
 
-export const useResumeTemplateStore = createTemplateResourceStore(localTemplateSource)
+export const useResumeTemplateStore = createTemplateResourceStore(resumeTemplateSource)

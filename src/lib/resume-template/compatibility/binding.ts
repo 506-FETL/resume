@@ -1,5 +1,5 @@
-import type { ResumeTemplateBinding } from '@/lib/schema/resume/persisted'
 import type { TemplateRef } from '../definition-schema'
+import type { ResumeTemplateBinding } from '@/lib/schema/resume/persisted'
 import { templateRefSchema, TemplateResolutionError } from '../definition-schema'
 
 export const DEFAULT_TEMPLATE_REF: Readonly<TemplateRef> = Object.freeze({ templateId: 'default', templateVersion: 1 })
