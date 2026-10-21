@@ -425,7 +425,7 @@ assert.equal(JSON.stringify(snapshot), before)
 
 **文件：** `template-layouts/`、`template-parts/`、`registry/visual-components.tsx`、`runtime/resolve-appearance.ts`、`ResumeTemplateRuntime.tsx`、`TemplateRuntimeProviders.tsx`、`use-resume-styles.ts`。
 
-- [ ] **5.1 按现有 DOM 和样式提取首期视觉部件。**
+- [x] **5.1 按现有 DOM 和样式提取首期视觉部件。**
 
 | 注册 ID | 文件（均位于 `src/components/resume/`） | 提取来源 |
 | --- | --- | --- |
@@ -440,7 +440,7 @@ assert.equal(JSON.stringify(snapshot), before)
 
 同类标签可共享不带业务语义的内部容器；不为教育、工作、实习各复制一份视觉实现。每个模板只选择一次标题与经历组件。
 
-- [ ] **5.2 提取纯外观计算，禁止只读预览串用全局设置。**
+- [x] **5.2 提取纯外观计算，禁止只读预览串用全局设置。**
 
 新增 `resolveResumeAppearanceStyles(appearance: ResumeAppearanceConfig)`，逐字保留 `useResumeStyles` 的字号比例、字体权重、主题映射和间距数值。旧 hook 只负责获取 store 或显式 override，然后调用此纯函数；运行时直接接收规范化后的完整外观。
 
@@ -455,17 +455,17 @@ interface ResumeTemplateRuntimeProps {
 
 运行时 props 中外观和参考日期必填。当前编辑器传自己的外观；历史、分享和示例传自己的快照值，不默认读取当前编辑器 store。参考日期由调用方沿用当前业务规则，不能在每个部件内调用 `new Date()`。
 
-- [ ] **5.3 用注册表组合内容，不再在模块函数中决定模板风格。**
+- [x] **5.3 用注册表组合内容，不再在模块函数中决定模板风格。**
 
 `visual-components.tsx` 按 layout、header、heading、experience、richText、skills、fieldList、tagList 分别建立类型化注册表。运行时先校验定义与能力，再由 `contentByKind[block.kind]` 选择对应部件；用判别联合的 `switch` 保证 props 类型收窄，不通过 `any` 或动态代码执行绕过类型。
 
 所有模块继续使用 `data-section` 外层与 `resume-section-*` 定位 ID；同一文档中的字段只输出一次。章节号、图标和分隔符必须位于评论字段节点外；不把 `aria-hidden` 当成投影过滤器。
 
-- [ ] **5.4 在改调用方前保留临时兼容入口。**
+- [x] **5.4 在改调用方前保留临时兼容入口。**
 
 旧调用尚未迁移时，可在原运行时入口把旧 manifest 转为默认定义，再调用新内部实现；这一桥接仅接受旧协议。带新 `definition` 的信封必须验证后再用，不能统一忽略 manifest。任务 6 和 10 完成后移除临时 props 双轨。
 
-- [ ] **5.5 通过检查点一。**
+- [x] **5.5 通过检查点一。**
 
 运行专项投影与默认渲染校验，浏览器对比任务 1 的短／长／全模块样本。姓名、求职信息、申请标签、模块标题、条目副标题、时间列、富文本与分页应与基线一致；正文身份及文本完全相同。抗锯齿像素差异可记录，节点顺序、字号、间距或页数差异必须解释并修复，不能更新基线掩盖回归。
 
