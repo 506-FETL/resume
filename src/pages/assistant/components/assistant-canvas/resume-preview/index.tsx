@@ -22,7 +22,7 @@ export default function ResumePreview() {
         <AnimatedContent animationKey={status === 'idle' && !previewData ? 'empty' : status} className="p-3">
           {status === 'loading' && <Skeleton className="h-[560px] w-full rounded-lg" />}
           {status === 'error' && <p className="py-10 text-center text-sm text-muted-foreground">该简历加载失败，请重试或切换其它简历。</p>}
-          {(status === 'empty' || (!previewData && status === 'idle')) && (
+          {(status === 'empty' || (!snapshot && previewData && status === 'idle')) && (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon"><FileText /></EmptyMedia>
@@ -31,7 +31,7 @@ export default function ResumePreview() {
               </EmptyHeader>
             </Empty>
           )}
-          {previewData && status === 'idle' && <ScaledReadonlyPreview data={previewData} appearance={snapshot} />}
+          {snapshot && previewData && status === 'idle' && <ScaledReadonlyPreview data={previewData} appearance={snapshot} />}
         </AnimatedContent>
       </div>
     </div>

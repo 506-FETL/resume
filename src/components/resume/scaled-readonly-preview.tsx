@@ -1,17 +1,20 @@
 import type { Ref } from 'react'
 import type { ResumeDocumentStateChange } from './pagination/types'
 import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useMemo } from 'react'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
-import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
-import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
+import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
+import { DEFAULT_RESUME_FONT_FAMILY_NAME, normalizeResumeAppearance } from '@/lib/schema'
 import ScaledResumeDocument from './pagination/scaled-resume-document'
+import TemplateResourceStatus from './template-resource-status'
 
 interface ScaledReadonlyPreviewProps {
   data: TemplateResumeData
-  appearance?: Partial<ResumeAppearanceConfig> | null
+  appearance: Partial<ResumeAppearanceConfig>
+  definition?: TemplateDefinition | null
   manifest?: TemplateManifest | null
   className?: string
   documentRef?: Ref<HTMLDivElement>
@@ -20,76 +23,27 @@ interface ScaledReadonlyPreviewProps {
   projectionReferenceDate?: string
 }
 
-export default function ScaledReadonlyPreview({
-  data,
-  appearance,
-  manifest: manifestOverride,
-  className,
-  documentRef,
-  sourceRef,
-  onDocumentStateChange,
-  projectionReferenceDate,
-}: ScaledReadonlyPreviewProps) {
-  const [manifest, setManifest] = useState(() => getBuiltInTemplateManifest(data.type))
-  const documentVersion = JSON.stringify([
-    data,
-    manifest.id,
-    manifest.version,
-    appearance,
-    projectionReferenceDate,
-  ])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadManifest() {
-      if (manifestOverride) {
-        setManifest(manifestOverride)
-        return
-      }
-
-      const fallbackManifest = getBuiltInTemplateManifest(data.templateBinding?.basedOnResumeType ?? data.type)
-
-      if (!data.templateBinding) {
-        setManifest(fallbackManifest)
-        return
-      }
-
-      try {
-        const resolvedManifest = await getManifestFromTemplateBinding(data.templateBinding)
-        if (!cancelled) {
-          setManifest(resolvedManifest ?? fallbackManifest)
-        }
-      }
-      catch {
-        if (!cancelled) {
-          setManifest(fallbackManifest)
-        }
-      }
+export default function ScaledReadonlyPreview({ data, appearance, definition, manifest, className, documentRef, sourceRef, onDocumentStateChange, projectionReferenceDate = new Date().toISOString().slice(0, 10) }: ScaledReadonlyPreviewProps) {
+  const { resource, retry } = useResolvedResumeTemplate({ binding: data.templateBinding, definition, manifest })
+  const effectiveAppearance = useMemo(() => normalizeResumeAppearance(appearance), [appearance])
+  const error = resource.status === 'error' ? resource.error.message : null
+  useLayoutEffect(() => {
+    if (resource.status !== 'ready') {
+      onDocumentStateChange?.({ status: error ? 'error' : 'measuring', error, signature: null, fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME, fontWeights: [400, 600, 700] })
     }
-
-    loadManifest()
-
-    return () => {
-      cancelled = true
-    }
-  }, [data.templateBinding, data.type, manifestOverride])
-
+  }, [resource.status, error, onDocumentStateChange])
+  if (resource.status !== 'ready')
+    return <TemplateResourceStatus error={error ?? undefined} onRetry={retry} />
   return (
     <ScaledResumeDocument
-      appearance={appearance}
-      contentVersion={documentVersion}
+      appearance={effectiveAppearance}
+      contentVersion={JSON.stringify([data, resource.data, effectiveAppearance, projectionReferenceDate])}
       documentRef={documentRef}
       sourceRef={sourceRef}
       onStateChange={onDocumentStateChange}
       className={className}
     >
-      <ResumeTemplateRuntime
-        data={data}
-        manifest={manifest}
-        appearance={appearance}
-        projectionReferenceDate={projectionReferenceDate}
-      />
+      <ResumeTemplateRuntime data={data} definition={resource.data} appearance={effectiveAppearance} projectionReferenceDate={projectionReferenceDate} />
     </ScaledResumeDocument>
   )
 }

@@ -475,7 +475,7 @@ interface ResumeTemplateRuntimeProps {
 
 **文件：** `runtime/resolve-template.ts`、`src/store/resume-template/index.ts`、`src/hooks/use-resolved-resume-template.ts`，编辑预览、只读预览、历史 PDF。
 
-- [ ] **6.1 实现精确版本解析与可区分的结果。**
+- [x] **6.1 实现精确版本解析与可区分的结果。**
 
 ```ts
 async function resolveTemplate(
@@ -493,7 +493,7 @@ async function resolveTemplate(
 
 把 schema 异常映射为 `INVALID_DEFINITION`，受支持协议内未知组件映射为 `UNSUPPORTED_CAPABILITY`。不 catch 后返回默认定义。分享冻结定义的解析在任务 10 的兼容适配器中完成，不调用目录最新版本。
 
-- [ ] **6.2 建立独立的资源缓存与加载状态。**
+- [x] **6.2 建立独立的资源缓存与加载状态。**
 
 ```ts
 type ResourceState<T> =
@@ -505,11 +505,11 @@ type ResourceState<T> =
 
 模板 store 分开保存目录、`templateKey(ref)` 对应的定义、`exampleId@version` 对应的示例。相同 key 的进行中请求去重；失败可重试；不同 key 完成后各自展示。Source 通过模块组合入口固定为 `localTemplateSource`，页面和组件不直接 import 定义文件。
 
-- [ ] **6.3 处理异步切换和预览关闭。**
+- [x] **6.3 处理异步切换和预览关闭。**
 
 hook 接受绑定或经校验的冻结定义；引用变化立即进入该引用的真实状态，不让上一份定义继续冒充成功。用请求序号／effect cleanup 忽略旧结果。关闭预览只结束当前订阅，不清空其他页面共用的缓存，不把远端预留能力实现为无用轮询。
 
-- [ ] **6.4 迁移全部预览消费者。**
+- [x] **6.4 迁移全部预览消费者。**
 
 改造下列文件，去掉各自的 `getBuiltInTemplateManifest` 和静默回退：
 

@@ -2,12 +2,9 @@ import type { RefObject } from 'react'
 import type { ResumeDocumentStateChange } from '@/components/resume/pagination/types'
 import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
-import { useEffect, useMemo, useState } from 'react'
-import ScaledResumeDocument from '@/components/resume/pagination/scaled-resume-document'
+import { useMemo } from 'react'
+import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
-import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
-import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
 import useResumeConfigStore from '@/store/resume/config'
 import useResumeStore from '@/store/resume/form'
 
@@ -66,67 +63,17 @@ export default function ResumePreview({
     visibility,
   })
 
-  const [manifest, setManifest] = useState(() => getBuiltInTemplateManifest(type))
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadManifest() {
-      if (manifestOverride) {
-        setManifest(manifestOverride)
-        return
-      }
-      const effectiveType = snapshotOverride?.type ?? type
-      const effectiveBinding = snapshotOverride?.templateBinding ?? templateBinding
-      const fallbackManifest = getBuiltInTemplateManifest(effectiveBinding?.basedOnResumeType ?? effectiveType)
-
-      if (!effectiveBinding) {
-        setManifest(fallbackManifest)
-        return
-      }
-
-      try {
-        const resolvedManifest = await getManifestFromTemplateBinding(effectiveBinding)
-        if (!cancelled) {
-          setManifest(resolvedManifest ?? fallbackManifest)
-        }
-      }
-      catch {
-        if (!cancelled) {
-          setManifest(fallbackManifest)
-        }
-      }
-    }
-
-    loadManifest()
-
-    return () => {
-      cancelled = true
-    }
-  }, [manifestOverride, snapshotOverride, templateBinding, type])
-
   return (
     <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto p-3 md:p-8">
-      <ScaledResumeDocument
+      <ScaledReadonlyPreview
+        data={previewData}
         appearance={editorAppearance}
-        contentVersion={JSON.stringify([
-          previewData,
-          manifest.id,
-          manifest.version,
-          editorAppearance,
-          projectionReferenceDate,
-        ])}
+        manifest={manifestOverride}
         documentRef={resumeRef}
         sourceRef={sourceRef}
-        onStateChange={onDocumentStateChange}
-      >
-        <ResumeTemplateRuntime
-          data={previewData}
-          manifest={manifest}
-          appearance={editorAppearance}
-          projectionReferenceDate={projectionReferenceDate}
-        />
-      </ScaledResumeDocument>
+        onDocumentStateChange={onDocumentStateChange}
+        projectionReferenceDate={projectionReferenceDate}
+      />
     </div>
   )
 }

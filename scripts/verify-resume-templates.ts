@@ -60,6 +60,28 @@ try {
   assert.deepEqual(adaptResumeContent({ ...data, order: [...data.order].reverse() }, nodes).sections.map((section: { key: string }) => section.key), [...adapted.sections].reverse().map((section: { key: string }) => section.key))
   assert.equal(adaptResumeContent({ ...data, getVisibility: () => false }, nodes).sections.length, 0)
   console.log('PASS 内容适配身份、顺序、隐藏和多内容块语义')
+  const { createTemplateResourceStore } = await server.ssrLoadModule('/src/store/resume-template/index.ts')
+  const { resolveTemplate } = await server.ssrLoadModule('/src/lib/resume-template/runtime/resolve-template.ts')
+  const requests: Array<(value: unknown) => void> = []
+  const testSource = {
+    ...localTemplateSource,
+    getTemplateVersion: () => new Promise(resolve => requests.push(resolve)),
+  }
+  const resources = createTemplateResourceStore(testSource)
+  const firstLoad = resources.getState().loadDefinition(DEFAULT_TEMPLATE_REF)
+  const duplicatedLoad = resources.getState().loadDefinition(DEFAULT_TEMPLATE_REF)
+  assert.equal(firstLoad, duplicatedLoad)
+  await Promise.resolve()
+  const forcedLoad = resources.getState().loadDefinition(DEFAULT_TEMPLATE_REF, true)
+  await Promise.resolve()
+  requests[1](definition)
+  await forcedLoad
+  requests[0]({ ...definition, version: 99 })
+  await firstLoad
+  assert.equal(resources.getState().definitions['default@1'].status, 'ready')
+  assert.equal(resources.getState().definitions['default@1'].data.version, 1)
+  await assert.rejects(() => resolveTemplate({ ...localTemplateSource, getTemplateVersion: async () => ({ ...definition, version: 99 }) }, { source: 'official', ...DEFAULT_TEMPLATE_REF }))
+  console.log('PASS 资源请求去重、过期结果隔离及引用匹配')
 }
 finally {
   await server.close()

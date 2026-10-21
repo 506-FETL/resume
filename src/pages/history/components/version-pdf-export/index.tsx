@@ -1,5 +1,4 @@
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { FileDown, LoaderCircle } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
@@ -9,8 +8,8 @@ import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { Button } from '@/components/ui/button'
-import { getBuiltInTemplateManifest } from '@/lib/resume-template/runtime/get-built-in-manifest'
-import { getManifestFromTemplateBinding } from '@/lib/resume-template/runtime/get-manifest-from-binding'
+import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
+import { toast } from 'sonner'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
@@ -44,36 +43,14 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   })
 
   const previewData = useMemo(() => (snapshot ? buildTemplateResumeData(snapshot) : null), [snapshot])
-  const [manifest, setManifest] = useState<TemplateManifest | null>(null)
-
-  // 解析模板 manifest（与 ScaledReadonlyPreview 一致：优先 templateBinding，失败回退内置模板）
+  const { resource, retry } = useResolvedResumeTemplate({ binding: previewData?.templateBinding, enabled: Boolean(snapshot) })
+  const definition = resource.status === 'ready' ? resource.data : null
   useEffect(() => {
-    if (!previewData) {
-      setManifest(null)
-      return
+    if (resource.status === 'error') {
+      shouldPrintRef.current = false
+      toast.error(resource.error.message)
     }
-    let cancelled = false
-    const fallback = getBuiltInTemplateManifest(previewData.templateBinding?.basedOnResumeType ?? previewData.type)
-
-    if (!previewData.templateBinding) {
-      setManifest(fallback)
-      return
-    }
-
-    getManifestFromTemplateBinding(previewData.templateBinding)
-      .then((resolved) => {
-        if (!cancelled)
-          setManifest(resolved ?? fallback)
-      })
-      .catch(() => {
-        if (!cancelled)
-          setManifest(fallback)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [previewData])
+  }, [resource])
 
   const handlePrint = useResumePrint({
     contentRef: printRef,
@@ -81,13 +58,13 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
     documentTitle: documentTitle ? `${documentTitle}-简历` : '简历',
   })
 
-  // 快照与 manifest 就绪、且用户点击过导出后，触发打印
+  // 快照与 definition 就绪、且用户点击过导出后，触发打印
   useEffect(() => {
     if (
       shouldPrintRef.current
       && snapshot
       && previewData
-      && manifest
+      && definition
       && documentState.status === 'ready'
     ) {
       shouldPrintRef.current = false
@@ -96,13 +73,13 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   }, [
     documentState.status,
     handlePrint,
-    manifest,
+    definition,
     previewData,
     snapshot,
   ])
 
   const handleExport = async () => {
-    if (snapshot && previewData && manifest) {
+    if (snapshot && previewData && definition) {
       if (documentState.status !== 'measuring')
         await handlePrint()
       else
@@ -111,12 +88,13 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
     }
 
     shouldPrintRef.current = true
-    if (snapshot)
+    if (snapshot) {
+      await retry?.()
       return
+    }
 
     setLoading(true)
-    const snap = await loadVersionSnapshot(versionId)
-    setLoading(false)
+    const snap = await loadVersionSnapshot(versionId).finally(() => setLoading(false))
     if (!snap)
       return
     shouldPrintRef.current = true
@@ -136,7 +114,7 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
         {loading ? '加载中…' : documentState.status === 'measuring' && snapshot ? '准备中…' : '导出 PDF'}
       </Button>
 
-      {snapshot && previewData && manifest && (
+      {snapshot && previewData && definition && (
         <div
           aria-hidden
           className="pointer-events-none fixed top-0 opacity-0"
@@ -144,13 +122,13 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
         >
           <CanonicalPagedDocument
             appearance={snapshot}
-            contentVersion={JSON.stringify([snapshot, manifest])}
+            contentVersion={JSON.stringify([snapshot, definition])}
             documentRef={printRef}
             onStateChange={setDocumentState}
           >
             <ResumeTemplateRuntime
               data={previewData}
-              manifest={manifest}
+              definition={definition}
               appearance={snapshot}
             />
           </CanonicalPagedDocument>
