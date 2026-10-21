@@ -10,6 +10,7 @@
 import type { DBSchema, IDBPDatabase } from 'idb'
 import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeType, VariantChange, VariantMetadata } from '@/lib/schema'
 import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/variant'
+import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
@@ -197,6 +198,28 @@ export async function getAllOfflineResumes() {
 
   // 按创建时间倒序排列
   return hydratedResumes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+}
+
+export async function createOfflineResumeFromSnapshot(prepared: PreparedResumeCreation) {
+  if (prepared.mode !== 'local' || prepared.resumeId !== `local-${prepared.operationId}`)
+    throw new Error('本地创建操作无效')
+  const db = await getDB()
+  const now = dayjs().toISOString()
+  const record: OfflineResumeRecord = {
+    resume_id: prepared.resumeId,
+    display_name: prepared.displayName,
+    description: prepared.description,
+    type: 'default',
+    created_at: now,
+    updated_at: now,
+    data: structuredClone(prepared.snapshot),
+    parent_resume_id: null,
+    linked_jd_text: null,
+    derived_metadata: null,
+    derived_status: null,
+  }
+  await db.add('resumes', record)
+  return record
 }
 
 /**

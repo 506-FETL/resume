@@ -94,6 +94,18 @@ export function createResumeEntryId(): string {
   return crypto.randomUUID()
 }
 
+/** 仅供示例新建：重新打开、上传、恢复历史不能调用此函数。 */
+export function cloneResumeWithFreshEntryIds(resume: ResumeSchema): ResumeSchema {
+  const clone = structuredClone(resume)
+  for (const collection of RESUME_ENTRY_COLLECTIONS) {
+    for (const entry of readCollection(clone, collection)) {
+      if (isRecord(entry))
+        entry.entryId = createResumeEntryId()
+    }
+  }
+  return clone
+}
+
 function ensureCollectionEntryIds(
   resume: unknown,
   collection: ResumeEntryCollection,

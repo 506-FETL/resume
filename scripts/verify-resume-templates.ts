@@ -82,6 +82,43 @@ try {
   assert.equal(resources.getState().definitions['default@1'].data.version, 1)
   await assert.rejects(() => resolveTemplate({ ...localTemplateSource, getTemplateVersion: async () => ({ ...definition, version: 99 }) }, { source: 'official', ...DEFAULT_TEMPLATE_REF }))
   console.log('PASS 资源请求去重、过期结果隔离及引用匹配')
+  const { prepareTemplateResume, createdResumeResult } = await server.ssrLoadModule('/src/lib/resume-template/create/prepare.ts')
+  const { persistPreparedResume } = await server.ssrLoadModule('/src/lib/resume-template/create/persist.ts')
+  const { createResumeCreationStore } = await server.ssrLoadModule('/src/store/resume-creation/create-store.ts')
+  const input = { template: DEFAULT_TEMPLATE_REF, example: catalog[0].defaultExample, mode: 'local', displayName: '测试简历', description: '' }
+  const prepared = await prepareTemplateResume(input, localTemplateSource, { operationId: crypto.randomUUID(), ownerId: null })
+  const another = await prepareTemplateResume(input, localTemplateSource, { operationId: crypto.randomUUID(), ownerId: null })
+  const ids = (value: unknown): string[] => JSON.stringify(value).match(/"entryId":"([^"]+)"/g) ?? []
+  assert.ok(ids(prepared.snapshot).length > 0)
+  assert.equal(ids(prepared.snapshot).some(id => ids(another.snapshot).includes(id)), false)
+  assert.equal(prepared.snapshot.templateBinding.templateVersion, 1)
+  assert.ok(prepared.snapshot.edu_background.items.length)
+  const result = createdResumeResult(prepared, { resume_id: prepared.resumeId, created_at: new Date().toISOString() })
+  let stored: unknown = null
+  let inserts = 0
+  const persistence = {
+    find: async () => stored,
+    insert: async () => { inserts++; stored = result; throw new Error('response lost') },
+  }
+  assert.deepEqual(await persistPreparedResume(prepared, persistence), result)
+  assert.deepEqual(await persistPreparedResume(prepared, persistence), result)
+  assert.equal(inserts, 1)
+  await assert.rejects(() => persistPreparedResume(prepared, { ...persistence, find: async () => { throw new Error('query failed') } }))
+  assert.equal(inserts, 1)
+  let finishSave: (value: unknown) => void = () => {}
+  const creation = createResumeCreationStore({ source: localTemplateSource, getOwnerId: () => null, persistence: { find: async () => null, insert: () => new Promise(resolve => { finishSave = resolve }) } })
+  const pendingCreation = creation.getState().start(input)
+  assert.equal(creation.getState().start(input), pendingCreation)
+  while (creation.getState().status !== 'saving')
+    await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise(resolve => setTimeout(resolve, 0))
+  creation.getState().reset()
+  assert.equal(creation.getState().status, 'saving')
+  finishSave(result)
+  await pendingCreation
+  assert.equal(creation.getState().status, 'success')
+  console.log('PASS 完整创建、条目身份隔离、重复点击与结果不确定重试')
+
 }
 finally {
   await server.close()

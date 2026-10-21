@@ -534,7 +534,7 @@ src/pages/assistant/components/assistant-canvas/resume-preview/index.tsx
 
 **文件：** `create/types.ts`、`create/prepare.ts`、`create/persist.ts`、`src/store/resume-creation/index.ts`、`entry-id.ts`、`form.ts`、`offline-resume-manager.ts`。
 
-- [ ] **7.1 固定创建操作契约。**
+- [x] **7.1 固定创建操作契约。**
 
 ```ts
 interface CreateTemplateResumeInput {
@@ -566,7 +566,7 @@ interface CreatedTemplateResume {
 
 调用开始时固定模式和云端用户身份；创建中模式／账号变化不得把原操作改投到另一处。`operationId` 使用 UUID，云端 `resumeId` 使用同一个 UUID，本地使用 `local-${operationId}`。
 
-- [ ] **7.2 为新建示例重分配全部条目 ID。**
+- [x] **7.2 为新建示例重分配全部条目 ID。**
 
 在现有 `entry-id.ts` 中增加 `cloneResumeWithFreshEntryIds`，复用其私有集合清单和 `createResumeEntryId`，不导出另一份重复列表。
 
@@ -584,19 +584,19 @@ export function cloneResumeWithFreshEntryIds(resume: ResumeSchema): ResumeSchema
 
 只在第一次准备新建操作时调用；重试复用同一准备结果。既有记录的打开、恢复、分享、协作、手动上传禁止调用此函数。
 
-- [ ] **7.3 构造完整快照，不调用现有编辑 store。**
+- [x] **7.3 构造完整快照，不调用现有编辑 store。**
 
 `prepareTemplateResume(input, source, identity)` 并发读取定义与示例，全部校验成功后复制内容，写入 `order`、`visibility`、`type: 'default'`、`templateBinding`、模板默认外观。正文仅包含 schema 中的内容字段，不写入 `exampleId` 等目录信息；示例版本只影响初始化来源。
 
 生成后的 `PreparedResumeCreation` 在一个操作中固定下来，失败重试不得重新抓取“当前版本”或重新随机生成条目身份。
 
-- [ ] **7.4 增加完整快照的两种持久化适配器。**
+- [x] **7.4 增加完整快照的两种持久化适配器。**
 
 `form.ts` 新增 `createResumeFromSnapshot(prepared)`，使用既有 `RESUME_PERSISTED_FIELDS` 白名单，把 `templateBinding` 转为 `template_binding`，一次 insert 全部内容、外观及名称。写入用户 ID 来自当下认证，并与准备阶段 ownerId 相等；不要让输入覆盖 `user_id`。不经过“创建空记录→update 内容→打开编辑器”。
 
 `offline-resume-manager.ts` 新增 `createOfflineResumeFromSnapshot(prepared)`，在现有 IndexedDB `resumes` store 单事务中 `add` 完整记录。旧的 `createOfflineResume` 和 `createNewResume` 保留原语义，避免 AI 或其他调用被强制预填示例；可共享低层插入函数，但不能共享是否播种的决策。
 
-- [ ] **7.5 处理重复提交与不确定结果。**
+- [x] **7.5 处理重复提交与不确定结果。**
 
 `persistPreparedResume(prepared)` 在重试前按预分配 `resumeId` 查询当前所有者记录。存在则确认成功并返回，不重新覆盖其内容；不存在才 insert。查询失败表示结果仍未知，保持操作身份并提示重试；不得自动换 UUID。插入唯一键冲突再次按当前所有者读取确认；云端禁止 upsert 覆盖用户随后已编辑的数据。
 
