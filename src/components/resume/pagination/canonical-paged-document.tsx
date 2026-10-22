@@ -114,7 +114,7 @@ export default function CanonicalPagedDocument({
             position: 'absolute',
             top: `${pageMargin}px`,
             right: `${pageMargin}px`,
-            bottom: 0,
+            bottom: `${pageMargin}px`,
             left: `${pageMargin}px`,
           }}
         >
@@ -166,7 +166,7 @@ export default function CanonicalPagedDocument({
                 position: 'absolute',
                 top: `${pageMargin}px`,
                 right: `${pageMargin}px`,
-                bottom: 0,
+                bottom: `${pageMargin}px`,
                 left: `${pageMargin}px`,
                 overflow: 'hidden',
               }}

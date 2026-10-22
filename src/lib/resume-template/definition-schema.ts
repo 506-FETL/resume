@@ -1,78 +1,51 @@
-import { z } from 'zod'
-import { fontConfigSchema } from '@/lib/schema/resume/config/font'
-import { spacingConfigSchema } from '@/lib/schema/resume/config/spacing'
-import { themeConfigSchema } from '@/lib/schema/resume/config/theme'
+import type { z } from 'zod'
+import type { templateRefSchema } from './declarative/schema'
+import type { TemplateDefinition } from './declarative/types'
+import { templateDefinitionSchema } from './declarative/schema'
+import { TEMPLATE_LIMITS, TemplateValidationError, validateTemplateDefinition } from './declarative/validate'
 
-export const templateIdSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80)
-export const templateRefSchema = z.object({
-  templateId: templateIdSchema,
-  templateVersion: z.number().int().positive(),
-}).strict()
-
-export const templateDefinitionSchema = z.object({
-  schemaVersion: z.literal(1),
-  templateId: templateIdSchema,
-  version: z.number().int().positive(),
-  renderContract: z.literal('resume-v1'),
-  layout: z.object({
-    component: z.enum(['single-column@1', 'ruled-column@1']),
-    sectionOrder: z.literal('resume'),
-    sectionVisibility: z.literal('resume'),
-  }).strict(),
-  header: z.object({
-    component: z.enum(['centered-profile@1', 'banner-profile@1']),
-    fieldBinding: z.literal('profile-with-job-intent@1'),
-  }).strict(),
-  sectionHeading: z.object({ component: z.enum(['underline-heading@1', 'ribbon-heading@1']) }).strict(),
-  contentByKind: z.object({
-    experience: z.discriminatedUnion('component', [
-      z.object({ component: z.literal('plain-entry-list@1'), metaLayout: z.literal('title-subtitle-inline-date-right') }).strict(),
-      z.object({ component: z.literal('aligned-entry-list@1'), metaLayout: z.literal('date-title-subtitle-columns') }).strict(),
-    ]),
-    richText: z.object({ component: z.literal('plain-rich-text@1') }).strict(),
-    skills: z.object({ component: z.enum(['skill-badges@1', 'skill-meters@1']) }).strict(),
-    fieldList: z.object({ component: z.literal('inline-fields@1'), presentation: z.literal('outlined-tags') }).strict(),
-    tagList: z.object({ component: z.literal('tag-list@1') }).strict(),
-  }).strict(),
-  palette: z.object({
-    primary: z.string().regex(/^#[\da-f]{6}$/i),
-    accent: z.string().regex(/^#[\da-f]{6}$/i),
-  }).strict().optional(),
-  appearanceDefaults: z.object({
-    theme: themeConfigSchema.strict(),
-    font: fontConfigSchema.strict(),
-    spacing: spacingConfigSchema.strict(),
-  }).strict(),
-}).strict()
-
+export { templateDefinitionSchema, templateIdSchema, templateRefSchema } from './declarative/schema'
+export type * from './declarative/types'
 export type TemplateRef = z.infer<typeof templateRefSchema>
-export type TemplateDefinition = z.infer<typeof templateDefinitionSchema>
-export type TemplateErrorCode = 'INVALID_BINDING' | 'INVALID_DEFINITION' | 'VERSION_NOT_FOUND' | 'UNSUPPORTED_CAPABILITY' | 'REFERENCE_MISMATCH' | 'LOAD_FAILED'
-
+export type TemplateErrorCode = 'INVALID_BINDING' | 'INVALID_DEFINITION' | 'VERSION_NOT_FOUND' | 'UNSUPPORTED_CAPABILITY' | 'REFERENCE_MISMATCH' | 'LOAD_FAILED' | 'RESOURCE_LIMIT'
 export class TemplateResolutionError extends Error {
   readonly code: TemplateErrorCode
-
   constructor(code: TemplateErrorCode, message: string) {
     super(message)
     this.name = 'TemplateResolutionError'
     this.code = code
   }
 }
-
 export function parseTemplateDefinition(input: unknown): TemplateDefinition {
-  const parsed = templateDefinitionSchema.safeParse(input)
-  if (parsed.success)
+  try {
+    if (new TextEncoder().encode(JSON.stringify(input)).byteLength > TEMPLATE_LIMITS.definitionBytes)
+      throw new TemplateResolutionError('RESOURCE_LIMIT', '模板定义超过大小预算')
+    // 在 Zod 的递归之前检查深度，避免恶意 JSON 导致递归溢出。
+    const queue: { value: unknown, depth: number }[] = [{ value: input, depth: 0 }]
+    let visited = 0
+    while (queue.length) {
+      const { value, depth } = queue.pop()!
+      if (++visited > 30000 || depth > 48)
+        throw new TemplateResolutionError('RESOURCE_LIMIT', '模板结构超过安全预算')
+      if (value && typeof value === 'object')
+        Object.values(value).forEach(child => queue.push({ value: child, depth: depth + 1 }))
+    }
+    const parsed = templateDefinitionSchema.safeParse(input)
+    if (!parsed.success) {
+      const unsupported = parsed.error.issues.some(issue => ['type', 'renderContract', 'schemaVersion'].includes(String(issue.path.at(-1))))
+      throw new TemplateResolutionError(unsupported ? 'UNSUPPORTED_CAPABILITY' : 'INVALID_DEFINITION', `模板配置无效：${parsed.error.issues[0]?.message ?? '未知错误'}`)
+    }
+    validateTemplateDefinition(parsed.data)
     return parsed.data
-  const unsupported = parsed.error.issues.some(issue =>
-    ['component', 'renderContract', 'schemaVersion', 'fieldBinding'].includes(String(issue.path.at(-1))))
-  throw new TemplateResolutionError(
-    unsupported ? 'UNSUPPORTED_CAPABILITY' : 'INVALID_DEFINITION',
-    unsupported ? '当前应用不支持此模板的呈现方式，请更新应用后重试' : '模板配置无效，请重试或联系维护者',
-  )
+  }
+  catch (error) {
+    if (error instanceof TemplateResolutionError)
+      throw error
+    if (error instanceof TemplateValidationError)
+      throw new TemplateResolutionError(error.reason === 'limit' ? 'RESOURCE_LIMIT' : error.reason === 'capability' ? 'UNSUPPORTED_CAPABILITY' : 'INVALID_DEFINITION', error.message)
+    throw new TemplateResolutionError('INVALID_DEFINITION', '模板定义无法解析')
+  }
 }
-
 export function asTemplateError(error: unknown): TemplateResolutionError {
-  return error instanceof TemplateResolutionError
-    ? error
-    : new TemplateResolutionError('LOAD_FAILED', '模板资源加载失败，请重试')
+  return error instanceof TemplateResolutionError ? error : new TemplateResolutionError('LOAD_FAILED', '模板资源加载失败，请重试')
 }

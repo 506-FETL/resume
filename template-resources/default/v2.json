@@ -1,0 +1,465 @@
+{
+  "schemaVersion": 2,
+  "version": 2,
+  "renderContract": "declarative-flow@1",
+  "assets": [],
+  "templateId": "default",
+  "capabilities": [
+    "flow"
+  ],
+  "tokens": {
+    "primary": "#111827",
+    "accent": "#111827"
+  },
+  "appearanceDefaults": {
+    "theme": {
+      "theme": "default"
+    },
+    "font": {
+      "fontFamily": "noto-sans-sc",
+      "fontSize": 14
+    },
+    "spacing": {
+      "pageMargin": 16,
+      "sectionSpacing": 20,
+      "lineHeight": 1.6
+    }
+  },
+  "styles": {
+    "document": {
+      "color": {
+        "token": "text"
+      },
+      "lineHeight": {
+        "token": "lineHeight"
+      },
+      "gap": {
+        "token": "sectionSpacing"
+      }
+    },
+    "sectionList": {
+      "gap": {
+        "token": "sectionSpacing"
+      }
+    },
+    "blocks": {
+      "gap": {
+        "token": "entrySpacing"
+      }
+    },
+    "entries": {
+      "gap": {
+        "token": "entrySpacing"
+      }
+    },
+    "entry": {
+      "gap": {
+        "token": "paragraphSpacing"
+      }
+    },
+    "body": {
+      "fontSize": {
+        "token": "contentSize"
+      },
+      "fontWeight": {
+        "token": "normalWeight"
+      },
+      "color": {
+        "token": "text"
+      },
+      "lineHeight": {
+        "token": "lineHeight"
+      }
+    },
+    "tagList": {
+      "gap": 8
+    },
+    "tag": {
+      "fontSize": {
+        "token": "smallSize"
+      },
+      "color": {
+        "token": "text"
+      },
+      "borderColor": {
+        "token": "primary"
+      },
+      "borderWidth": 1,
+      "borderRadius": 999,
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "paddingTop": 4,
+      "paddingBottom": 4
+    },
+    "profile": {
+      "alignItems": "center",
+      "textAlign": "center",
+      "gap": {
+        "token": "paragraphSpacing"
+      }
+    },
+    "name": {
+      "fontSize": {
+        "token": "nameSize"
+      },
+      "fontWeight": {
+        "token": "boldWeight"
+      },
+      "color": {
+        "token": "primary"
+      }
+    },
+    "profileLine": {
+      "justifyContent": "center",
+      "alignItems": "center",
+      "columnGap": 5,
+      "rowGap": {
+        "token": "paragraphSpacing"
+      },
+      "fontSize": {
+        "token": "contentSize"
+      },
+      "fontWeight": {
+        "token": "mediumWeight"
+      },
+      "color": {
+        "token": "secondary"
+      }
+    },
+    "heading": {
+      "fontSize": {
+        "token": "fontSize"
+      },
+      "fontWeight": {
+        "token": "boldWeight"
+      },
+      "color": {
+        "token": "primary"
+      },
+      "borderBottomWidth": 2,
+      "borderColor": {
+        "token": "primary"
+      },
+      "paddingBottom": 4.4,
+      "marginBottom": 12
+    },
+    "entryHead": {
+      "justifyContent": "space-between",
+      "alignItems": "start",
+      "gap": 16
+    },
+    "entryTitles": {
+      "alignItems": "baseline",
+      "gap": 8,
+      "flexGrow": 1
+    },
+    "entryTitle": {
+      "fontSize": {
+        "token": "contentSize"
+      },
+      "fontWeight": {
+        "token": "boldWeight"
+      },
+      "color": {
+        "token": "text"
+      }
+    },
+    "entrySubtitle": {
+      "fontSize": {
+        "token": "contentSize"
+      },
+      "fontWeight": {
+        "token": "mediumWeight"
+      },
+      "color": {
+        "token": "secondary"
+      }
+    },
+    "entryDate": {
+      "fontSize": {
+        "token": "smallSize"
+      },
+      "color": {
+        "token": "muted"
+      },
+      "flexShrink": 0
+    }
+  },
+  "document": [
+    {
+      "id": "document",
+      "type": "box",
+      "layout": "stack",
+      "children": [
+        {
+          "id": "profile",
+          "type": "box",
+          "layout": "stack",
+          "children": [
+            {
+              "id": "profile-name",
+              "type": "field",
+              "binding": "profile.name",
+              "style": "name",
+              "when": {
+                "binding": "profile.name",
+                "operator": "present"
+              }
+            },
+            {
+              "id": "profile-intent-row",
+              "type": "box",
+              "layout": "wrap",
+              "children": [
+                {
+                  "id": "intent-prefix",
+                  "type": "text",
+                  "text": "求职意向："
+                },
+                {
+                  "id": "profile-intent",
+                  "type": "repeat",
+                  "source": "profile.jobIntent",
+                  "layout": "wrap",
+                  "children": [
+                    {
+                      "id": "intent-value",
+                      "type": "field",
+                      "binding": "item"
+                    }
+                  ],
+                  "style": "profileLine",
+                  "separator": "|"
+                }
+              ],
+              "style": "profileLine",
+              "when": {
+                "binding": "profile.jobIntent",
+                "operator": "present"
+              }
+            },
+            {
+              "id": "profile-meta-row",
+              "type": "box",
+              "layout": "wrap",
+              "style": "profileLine",
+              "children": [
+                {
+                  "id": "profile-work-years",
+                  "type": "field",
+                  "binding": "profile.workYears"
+                },
+                {
+                  "id": "profile-meta",
+                  "type": "repeat",
+                  "source": "profile.meta",
+                  "layout": "wrap",
+                  "children": [
+                    {
+                      "id": "meta-value",
+                      "type": "field",
+                      "binding": "item"
+                    }
+                  ],
+                  "style": "profileLine",
+                  "separator": "|"
+                }
+              ]
+            },
+            {
+              "id": "profile-contact",
+              "type": "repeat",
+              "source": "profile.contact",
+              "layout": "wrap",
+              "children": [
+                {
+                  "id": "contact-value",
+                  "type": "field",
+                  "binding": "item"
+                }
+              ],
+              "style": "profileLine",
+              "separator": "|"
+            }
+          ],
+          "style": "profile",
+          "when": {
+            "binding": "profile",
+            "operator": "present"
+          },
+          "sectionTarget": "basics"
+        },
+        {
+          "id": "sections",
+          "type": "sections",
+          "style": "sectionList"
+        }
+      ],
+      "style": "document"
+    }
+  ],
+  "section": [
+    {
+      "id": "section",
+      "type": "box",
+      "layout": "stack",
+      "children": [
+        {
+          "id": "section-heading",
+          "type": "text",
+          "binding": "section.title",
+          "style": "heading"
+        },
+        {
+          "id": "section-blocks",
+          "type": "blocks",
+          "style": "blocks"
+        }
+      ]
+    }
+  ],
+  "contentByKind": {
+    "experience": [
+      {
+        "id": "experience-items",
+        "type": "repeat",
+        "source": "block.items",
+        "layout": "stack",
+        "children": [
+          {
+            "id": "experience-entry",
+            "type": "box",
+            "layout": "stack",
+            "children": [
+              {
+                "id": "experience-head",
+                "type": "box",
+                "layout": "row",
+                "children": [
+                  {
+                    "id": "experience-titles",
+                    "type": "box",
+                    "layout": "wrap",
+                    "children": [
+                      {
+                        "id": "experience-title",
+                        "type": "field",
+                        "binding": "item.title",
+                        "style": "entryTitle"
+                      },
+                      {
+                        "id": "experience-subtitle",
+                        "type": "field",
+                        "binding": "item.subtitle",
+                        "style": "entrySubtitle"
+                      }
+                    ],
+                    "style": "entryTitles"
+                  },
+                  {
+                    "id": "experience-duration",
+                    "type": "field",
+                    "binding": "item.duration",
+                    "style": "entryDate"
+                  }
+                ],
+                "style": "entryHead"
+              },
+              {
+                "id": "experience-description",
+                "type": "richText",
+                "binding": "item.description",
+                "style": "body"
+              }
+            ],
+            "style": "entry"
+          }
+        ],
+        "style": "entries"
+      }
+    ],
+    "richText": [
+      {
+        "id": "rich-text-content",
+        "type": "richText",
+        "binding": "block.richText",
+        "style": "body"
+      }
+    ],
+    "skills": [
+      {
+        "id": "skills-items",
+        "type": "repeat",
+        "source": "block.items",
+        "layout": "wrap",
+        "children": [
+          {
+            "id": "skills-tag",
+            "type": "box",
+            "layout": "row",
+            "children": [
+              {
+                "id": "skills-field",
+                "type": "field",
+                "binding": "item.field"
+              }
+            ],
+            "style": "tag",
+            "atomic": true
+          }
+        ],
+        "style": "tagList"
+      }
+    ],
+    "fieldList": [
+      {
+        "id": "field-list-items",
+        "type": "repeat",
+        "source": "block.items",
+        "layout": "wrap",
+        "children": [
+          {
+            "id": "field-list-tag",
+            "type": "box",
+            "layout": "row",
+            "children": [
+              {
+                "id": "field-list-field",
+                "type": "field",
+                "binding": "item"
+              }
+            ],
+            "style": "tag",
+            "atomic": true
+          }
+        ],
+        "style": "tagList"
+      }
+    ],
+    "tagList": [
+      {
+        "id": "tag-list-items",
+        "type": "repeat",
+        "source": "block.items",
+        "layout": "wrap",
+        "children": [
+          {
+            "id": "tag-list-tag",
+            "type": "box",
+            "layout": "row",
+            "children": [
+              {
+                "id": "tag-list-field",
+                "type": "field",
+                "binding": "item"
+              }
+            ],
+            "style": "tag",
+            "atomic": true
+          }
+        ],
+        "style": "tagList"
+      }
+    ]
+  }
+}

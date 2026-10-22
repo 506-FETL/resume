@@ -16,6 +16,9 @@ export interface ResumeLayoutSignature {
   pageWidth: number
   pageHeight: number
   contentHeight: number
+  viewportWidth: number
+  viewportHeight: number
+  geometry: string
   fontFamily: string
   pages: Array<{
     startKey: string

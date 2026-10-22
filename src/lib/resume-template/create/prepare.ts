@@ -3,7 +3,7 @@ import type { CreatedTemplateResume, CreateTemplateResumeInput, CreationIdentity
 import { isCloudResumeId } from '@/lib/resume-id'
 import { resumeSchema } from '@/lib/schema'
 import { cloneResumeWithFreshEntryIds } from '@/lib/schema/resume/entry-id'
-import { toTemplateBinding } from '../compatibility/binding'
+import { toTemplateBinding } from '../binding'
 import { TemplateResolutionError } from '../definition-schema'
 import { resolveTemplate } from '../runtime/resolve-template'
 

@@ -8,6 +8,7 @@ import {
   layoutSignaturesEqual,
   measurePaginationSnapshot,
   waitForResumeFont,
+  waitForResumeImages,
 } from './utils'
 
 function getPrintElements(printDocument: Document) {
@@ -49,6 +50,7 @@ export function useResumePrint({
         documentState.fontWeights,
       )
 
+      await waitForResumeImages(printDocument)
       const { firstPage, viewport, source } = getPrintElements(printDocument)
       const clone = measurePaginationSnapshot({
         page: firstPage,

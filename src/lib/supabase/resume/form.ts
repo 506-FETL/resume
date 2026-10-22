@@ -1,7 +1,11 @@
 import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
 import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
 import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
-import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
+import { toTemplateBinding } from '@/lib/resume-template/binding'
+import { getDefaultTemplateSelection } from '@/lib/resume-template/runtime/default-selection'
+import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
+import { resumeTemplateSource } from '@/lib/resume-template/source'
+import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
@@ -170,13 +174,15 @@ export async function createNewResume(
   if (!user)
     throw new Error('用户未登陆')
 
+  const binding = options?.templateBinding ?? toTemplateBinding((await getDefaultTemplateSelection()).template)
+  const definition = await resolveTemplate(resumeTemplateSource, binding)
   const { data, error } = await supabase
     .from('resume_config')
     .insert({
       user_id: user.id,
       type,
-      template_binding: options?.templateBinding ?? createLegacyResumeTemplateBinding(type),
-      ...DEFAULT_RESUME_APPEARANCE,
+      template_binding: binding,
+      ...definition.appearanceDefaults,
       ...info,
     })
     .select()

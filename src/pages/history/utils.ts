@@ -80,8 +80,7 @@ export function buildResumeSnapshot(source: unknown): ResumeSnapshot {
     : DEFAULT_VISIBILITY
   const type = normalizeResumeType(sourceRecord?.type)
   const templateBinding = resolveResumeTemplateBinding(
-    (sourceRecord?.templateBinding ?? sourceRecord?.template_binding) as ResumeSnapshot['templateBinding'],
-    type,
+    sourceRecord?.templateBinding ?? sourceRecord?.template_binding,
   )
 
   return {

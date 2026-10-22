@@ -109,5 +109,3 @@ alter table public.company add constraint company_status_check
 
 - [x] 将计划复选框与 `.superpowers/sdd/tracker-workflow/progress.md` 同步到真实完成状态。
 - [x] 报告界面/逻辑变化、验证结果、数据库部署与任何实质限制；不把隔离 smoke 说成用户真实业务端到端验证。
-
-

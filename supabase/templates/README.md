@@ -6,46 +6,46 @@
 
 ## 认证邮件
 
-| Dashboard 模板 | 建议主题 | HTML 文件 | 主要变量 |
-| --- | --- | --- | --- |
-| Confirm sign up | `【GResume】邮箱还没确认——就差这一步` | `confirmation.html` | `ConfirmationURL`、`Email`、`SiteURL` |
-| Invite user | `【GResume】有人点名邀请你加入` | `invite.html` | `ConfirmationURL`、`Email`、`SiteURL` |
-| Magic link or OTP | `【GResume】登录入口到了——门只开这一次` | `magic-link.html` | `ConfirmationURL`、`Token`、`Email`、`SiteURL` |
-| Change email address | `【GResume】请确认你的新邮箱` | `email-change.html` | `ConfirmationURL`、`NewEmail`、`Email`、`SiteURL` |
-| Reset password | `【GResume】密码忘了就重设，别硬猜` | `recovery.html` | `ConfirmationURL`、`Email`、`SiteURL` |
-| Reauthentication | `【GResume】{{ .Token }} 是你的身份验证码` | `reauthentication.html` | `Token`、`Email`、`SiteURL` |
+| Dashboard 模板       | 建议主题                                   | HTML 文件               | 主要变量                                          |
+| -------------------- | ------------------------------------------ | ----------------------- | ------------------------------------------------- |
+| Confirm sign up      | `【GResume】邮箱还没确认——就差这一步`      | `confirmation.html`     | `ConfirmationURL`、`Email`、`SiteURL`             |
+| Invite user          | `【GResume】有人点名邀请你加入`            | `invite.html`           | `ConfirmationURL`、`Email`、`SiteURL`             |
+| Magic link or OTP    | `【GResume】登录入口到了——门只开这一次`    | `magic-link.html`       | `ConfirmationURL`、`Token`、`Email`、`SiteURL`    |
+| Change email address | `【GResume】请确认你的新邮箱`              | `email-change.html`     | `ConfirmationURL`、`NewEmail`、`Email`、`SiteURL` |
+| Reset password       | `【GResume】密码忘了就重设，别硬猜`        | `recovery.html`         | `ConfirmationURL`、`Email`、`SiteURL`             |
+| Reauthentication     | `【GResume】{{ .Token }} 是你的身份验证码` | `reauthentication.html` | `Token`、`Email`、`SiteURL`                       |
 
 ## 安全通知
 
-| Dashboard 模板 | 建议主题 | HTML 文件 | 专用变量 |
-| --- | --- | --- | --- |
-| Password changed | `【GResume】安全提醒：你的密码已更改` | `password-changed.html` | `Email` |
-| Email address changed | `【GResume】安全提醒：账号邮箱已更改` | `email-changed.html` | `OldEmail`、`Email` |
-| Phone number changed | `【GResume】安全提醒：账号手机号已更改` | `phone-changed.html` | `OldPhone`、`Phone` |
-| Sign-in method linked | `【GResume】安全提醒：新的登录方式已关联` | `identity-linked.html` | `Provider` |
-| Sign-in method removed | `【GResume】安全提醒：一个登录方式已移除` | `identity-unlinked.html` | `Provider` |
-| MFA method added | `【GResume】安全提醒：新的多重验证方式已添加` | `mfa-factor-enrolled.html` | `FactorType` |
-| MFA method removed | `【GResume】安全提醒：一个多重验证方式已移除` | `mfa-factor-unenrolled.html` | `FactorType` |
+| Dashboard 模板         | 建议主题                                      | HTML 文件                    | 专用变量            |
+| ---------------------- | --------------------------------------------- | ---------------------------- | ------------------- |
+| Password changed       | `【GResume】安全提醒：你的密码已更改`         | `password-changed.html`      | `Email`             |
+| Email address changed  | `【GResume】安全提醒：账号邮箱已更改`         | `email-changed.html`         | `OldEmail`、`Email` |
+| Phone number changed   | `【GResume】安全提醒：账号手机号已更改`       | `phone-changed.html`         | `OldPhone`、`Phone` |
+| Sign-in method linked  | `【GResume】安全提醒：新的登录方式已关联`     | `identity-linked.html`       | `Provider`          |
+| Sign-in method removed | `【GResume】安全提醒：一个登录方式已移除`     | `identity-unlinked.html`     | `Provider`          |
+| MFA method added       | `【GResume】安全提醒：新的多重验证方式已添加` | `mfa-factor-enrolled.html`   | `FactorType`        |
+| MFA method removed     | `【GResume】安全提醒：一个多重验证方式已移除` | `mfa-factor-unenrolled.html` | `FactorType`        |
 
 ## 图片资源
 
 13 个模板各自加载一张对应场景的紧凑角色图：
 
-| 模板 | 图片资源 |
-| --- | --- |
-| Confirm sign up | `confirmation-assistant-v2.png` |
-| Invite user | `invite-assistant-v2.png` |
-| Magic link or OTP | `magic-link-assistant-v2.png` |
-| Change email address | `email-change-assistant-v2.png` |
-| Reset password | `recovery-assistant-v2.png` |
-| Reauthentication | `reauthentication-assistant-v2.png` |
-| Password changed | `password-changed-assistant-v2.png` |
-| Email address changed | `email-changed-assistant-v2.png` |
-| Phone number changed | `phone-changed-assistant-v2.png` |
-| Sign-in method linked | `identity-linked-assistant-v2.png` |
-| Sign-in method removed | `identity-unlinked-assistant-v2.png` |
-| MFA method added | `mfa-factor-enrolled-assistant-v2.png` |
-| MFA method removed | `mfa-factor-unenrolled-assistant-v2.png` |
+| 模板                   | 图片资源                                 |
+| ---------------------- | ---------------------------------------- |
+| Confirm sign up        | `confirmation-assistant-v2.png`          |
+| Invite user            | `invite-assistant-v2.png`                |
+| Magic link or OTP      | `magic-link-assistant-v2.png`            |
+| Change email address   | `email-change-assistant-v2.png`          |
+| Reset password         | `recovery-assistant-v2.png`              |
+| Reauthentication       | `reauthentication-assistant-v2.png`      |
+| Password changed       | `password-changed-assistant-v2.png`      |
+| Email address changed  | `email-changed-assistant-v2.png`         |
+| Phone number changed   | `phone-changed-assistant-v2.png`         |
+| Sign-in method linked  | `identity-linked-assistant-v2.png`       |
+| Sign-in method removed | `identity-unlinked-assistant-v2.png`     |
+| MFA method added       | `mfa-factor-enrolled-assistant-v2.png`   |
+| MFA method removed     | `mfa-factor-unenrolled-assistant-v2.png` |
 
 资源在邮件中通过 `{{ .SiteURL }}/email/<文件名>` 加载。对应的 PNG 与可编辑 SVG 源文件位于 `public/email/`。角色图不承载按钮、验证码或安全说明，即使邮件客户端拦截远程图片，主要内容和操作入口仍然完整可读。
 

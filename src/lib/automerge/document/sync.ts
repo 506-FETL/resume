@@ -155,7 +155,6 @@ function pickResumePayload(
     type: cloneResumeValue(source.type ?? fallback.type),
     templateBinding: cloneResumeValue(resolveResumeTemplateBinding(
       source.templateBinding ?? fallback.templateBinding,
-      source.type ?? fallback.type,
     )),
     spacing: cloneResumeValue(source.spacing ?? fallback.spacing),
     font: cloneResumeValue(source.font ?? fallback.font),

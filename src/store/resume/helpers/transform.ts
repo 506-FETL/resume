@@ -26,7 +26,7 @@ export function mapSnapshotToState(snapshot: PersistedResumeSnapshot): Persistab
     order: snapshot.order,
     visibility: snapshot.visibility,
     type: snapshot.type,
-    templateBinding: resolveResumeTemplateBinding(snapshot.templateBinding, snapshot.type),
+    templateBinding: resolveResumeTemplateBinding(snapshot.templateBinding),
   }
 }
 
@@ -75,7 +75,7 @@ export function mapSourceToPersistedSnapshot(
     order: migrateOrder(sanitizeDeep(get(source, 'order', DEFAULT_ORDER))),
     visibility: migrateVisibility(sanitizeDeep(get(source, 'visibility', DEFAULT_VISIBILITY))),
     type,
-    templateBinding: resolveResumeTemplateBinding(templateBinding, type),
+    templateBinding: resolveResumeTemplateBinding(templateBinding),
     ...normalizeResumeAppearance(source),
   }
 }
@@ -92,6 +92,6 @@ export function getFormPayload(state: PersistableResumeState): ResumeFormPayload
     order: state.order,
     visibility: state.visibility,
     type: state.type,
-    templateBinding: resolveResumeTemplateBinding(state.templateBinding, state.type),
+    templateBinding: resolveResumeTemplateBinding(state.templateBinding),
   }
 }

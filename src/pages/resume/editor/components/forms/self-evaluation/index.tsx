@@ -3,9 +3,9 @@ import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
-import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import { selfEvaluationFormSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
+import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 
 function SelfEvaluationForm({ className }: { className?: string }) {

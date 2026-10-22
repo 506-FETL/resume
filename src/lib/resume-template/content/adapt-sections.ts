@@ -18,7 +18,7 @@ function experienceBlock(nodes: CommentNodes, section: keyof ResumeSchema, entri
     .map((item) => {
       const read = (key: string, label: string) => {
         const field = contentField(nodes, section, item.entryId, key, label)
-        return nodes.has(field.nodeKey) ? field : undefined
+        return nodes.has(field.nodeKey) && field.text.trim() ? field : undefined
       }
       const description = read('content', descriptionLabel)
       return {
@@ -29,11 +29,11 @@ function experienceBlock(nodes: CommentNodes, section: keyof ResumeSchema, entri
         description: description && item.html ? { field: description, html: item.html } : undefined,
       }
     })
-  return { kind: 'experience', items }
+  return { kind: 'experience', items: items.filter(item => item.title || item.subtitle || item.duration || item.description) }
 }
 
 export function adaptSections(data: TemplateResumeData, nodes: CommentNodes): ContentSection[] {
-  const richText = (section: keyof ResumeSchema, key: string, label: string, html: string): ContentBlock[] => html
+  const richText = (section: keyof ResumeSchema, key: string, label: string, html: string): ContentBlock[] => html && contentField(nodes, section, 'singleton', key, label).text.trim()
     ? [{ kind: 'richText', field: contentField(nodes, section, 'singleton', key, label), html }]
     : []
   const sections: ContentSection[] = [
@@ -99,6 +99,20 @@ export function adaptSections(data: TemplateResumeData, nodes: CommentNodes): Co
   const byKey = new Map(sections.map(section => [section.key, section]))
   return data.order.flatMap((key) => {
     const section = byKey.get(key)
-    return section && key !== 'basics' && data.getVisibility(key) ? [section] : []
+    if (!section || key === 'basics' || !data.getVisibility(key))
+      return []
+    const blocks = section.blocks.flatMap((block): ContentBlock[] => {
+      if (block.kind === 'richText')
+        return block.field.text.trim() ? [block] : []
+      if (block.kind === 'experience')
+        return block.items.length ? [block] : []
+      if (block.kind === 'skills') {
+        const items = block.items.filter(item => item.field.text.trim())
+        return items.length ? [{ ...block, items }] : []
+      }
+      const items = block.items.filter(item => item.text.trim())
+      return items.length ? [{ ...block, items }] : []
+    })
+    return blocks.length ? [{ ...section, blocks }] : []
   })
 }

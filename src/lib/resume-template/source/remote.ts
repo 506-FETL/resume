@@ -3,7 +3,9 @@ import type { TemplateTransport } from './transport'
 import type { CatalogQuery, ResourceOptions, TemplateSource } from './types'
 import { z } from 'zod'
 import { parseTemplateDefinition, templateRefSchema, TemplateResolutionError } from '../definition-schema'
-import { catalogFacetsSchema, catalogItemSchema, catalogPageSchema, catalogQuerySchema, decodeResource, exampleRefSchema, exampleSchema, resourceEnvelopeSchema } from './resource-schema'
+import { assetEnvelopeSchema, decodeAsset } from './assets'
+import { MAX_CACHE_BYTES, resourceBytes } from './cache'
+import { assetRefSchema, catalogFacetsSchema, catalogItemSchema, catalogPageSchema, catalogQuerySchema, decodeResource, exampleRefSchema, exampleSchema, resourceEnvelopeSchema } from './resource-schema'
 import { CATALOG_PAGE_SIZE, catalogQueryKey, exampleKey, templateKey } from './types'
 
 export const CATALOG_TTL_MS = 5 * 60 * 1000
@@ -16,52 +18,107 @@ export function createRemoteTemplateSource({ transport, cache, now = Date.now }:
   now?: () => number
 }): TemplateSource {
   const memory = new Map<string, CachedResource>()
-  const pending = new Map<string, Promise<unknown>>()
+  const pending = new Map<string, { id: number, promise: Promise<unknown> }>()
+  const retained = new Map<string, number>()
+  const writes = new Map<string, Promise<void>>()
+  let sequence = 0
+
   function remember(record: CachedResource) {
     memory.delete(record.key)
     memory.set(record.key, record)
-    if (memory.size > MEMORY_LIMIT)
-      memory.delete(memory.keys().next().value!)
+
+    let bytes = [...memory.values()].reduce((total, entry) => total + resourceBytes(entry.value), 0)
+    for (const [key, entry] of memory) {
+      if (memory.size <= MEMORY_LIMIT && bytes <= MAX_CACHE_BYTES)
+        break
+      if (retained.has(key))
+        continue
+      memory.delete(key)
+      bytes -= resourceBytes(entry.value)
+    }
+    // 消费者持有正在使用的数据；拒绝缓存无法容纳的新资源。
+    if (memory.size > MEMORY_LIMIT || bytes > MAX_CACHE_BYTES)
+      memory.delete(record.key)
   }
+
   async function read<T>(key: string, fetchValue: () => Promise<unknown>, validate: (input: unknown) => T | Promise<T>, ttl = Infinity, force = false): Promise<T> {
-    let job = pending.get(key) as Promise<T> | undefined
-    if (!job) {
-      job = (async () => {
+    let request = pending.get(key)
+
+    if (!request || force) {
+      const id = ++sequence
+      const job = (async () => {
         const saved = memory.get(key) ?? await cache.get(key)
         let fallback: T | undefined
+
         if (saved) {
           try {
             fallback = await validate(saved.value)
+
             if (!force && saved.expiresAt > now()) {
-              remember(saved)
+              if (pending.get(key)?.id === id)
+                remember(saved)
               return fallback
             }
           }
           catch {
-            memory.delete(key)
-            await cache.delete(key)
+            if (pending.get(key)?.id === id) {
+              memory.delete(key)
+              await cache.delete(key)
+            }
           }
         }
+
         let value: unknown
+
         try {
           value = await fetchValue()
         }
         catch (error) {
           // 仅网络失败可以复用有限期旧目录；非法资源／缺版本绝不回退。
-          if (!force && fallback !== undefined && saved && now() - saved.savedAt < OFFLINE_CATALOG_MAX_AGE && error instanceof TemplateResolutionError && error.code === 'LOAD_FAILED')
+          if (
+            !force && fallback !== undefined
+            && saved && now() - saved.savedAt < OFFLINE_CATALOG_MAX_AGE
+            && error instanceof TemplateResolutionError
+            && error.code === 'LOAD_FAILED'
+          ) {
             return fallback
+          }
+
           throw error
         }
         const result = await validate(value)
         const record = { key, value, savedAt: now(), expiresAt: now() + ttl }
-        remember(record)
-        await cache.set(record)
+
+        if (pending.get(key)?.id === id) {
+          remember(record)
+          const previous = writes.get(key) ?? Promise.resolve()
+          const write = previous.catch(() => {}).then(async () => {
+            if (pending.get(key)?.id === id)
+              await cache.set(record)
+          })
+          writes.set(key, write)
+          try {
+            await write
+          }
+          finally {
+            if (writes.get(key) === write)
+              writes.delete(key)
+          }
+        }
+
         return result
-      })().finally(() => pending.delete(key))
-      pending.set(key, job)
+      })().finally(() => {
+        if (pending.get(key)?.id === id)
+          pending.delete(key)
+      })
+
+      request = { id, promise: job }
+      pending.set(key, request)
     }
-    return structuredClone(await job)
+
+    return structuredClone(await request.promise) as T
   }
+
   const envelope = async (path: string, params: Record<string, string>) => {
     const rows = z.array(resourceEnvelopeSchema).max(1).parse(await transport(path, { select: 'content,content_hash', ...params, limit: '1' }))
     if (!rows.length)
@@ -81,14 +138,46 @@ export function createRemoteTemplateSource({ transport, cache, now = Date.now }:
     }, input => catalogPageSchema.parse(input), CATALOG_TTL_MS, options.force)
   }
   return {
+    retainResource(key) {
+      if (!retained.has(key) && retained.size >= 64)
+        throw new TemplateResolutionError('LOAD_FAILED', '同时使用的模板资源过多，请关闭部分预览后重试')
+      retained.set(key, (retained.get(key) ?? 0) + 1)
+      const releaseCache = cache.retain?.(key)
+      let released = false
+      return () => {
+        if (released)
+          return
+        released = true
+        const count = (retained.get(key) ?? 1) - 1
+        if (count > 0)
+          retained.set(key, count)
+        else retained.delete(key)
+        releaseCache?.()
+      }
+    },
+    getAsset(ref, options) {
+      const parsed = assetRefSchema.parse(ref)
+      return read(`asset:${parsed.hash}`, async () => {
+        const rows = z.array(assetEnvelopeSchema).max(1).parse(await transport('official_resume_assets', {
+          select: 'content_hash,mime_type,byte_size,width,height,content_base64',
+          content_hash: `eq.${parsed.hash}`,
+          limit: '1',
+        }))
+        if (!rows.length)
+          throw new TemplateResolutionError('VERSION_NOT_FOUND', '未找到已发布的指定模板素材')
+        return rows[0]
+      }, input => decodeAsset(input, parsed), Infinity, options?.force)
+    },
     listTemplatePage: page,
     async listTemplates() {
-      // 兼容非 UI 消费者；页面和 AI 列表必须使用有界分页接口。
+      // 维护调用也受目录预算保护，页面使用有界分页接口。
       const items = []
       let offset: number | null = 0
       do {
         const result = await page({ offset })
         items.push(...result.items)
+        if (items.length > 1200)
+          throw new TemplateResolutionError('LOAD_FAILED', '目录条目超出单次读取预算，请使用分页接口')
         offset = result.nextOffset
       } while (offset !== null)
       return items

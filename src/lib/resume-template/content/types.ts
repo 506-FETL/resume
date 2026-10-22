@@ -34,6 +34,7 @@ export interface ContentSection {
   blocks: ContentBlock[]
 }
 export interface ProfileContent {
+  fields: ContentField[]
   name?: ContentField
   workYears?: ContentField
   jobIntent: ContentField[]

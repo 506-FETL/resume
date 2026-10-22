@@ -8,7 +8,9 @@ import useAssistantStore from '@/pages/assistant/store'
 // 简历）上。未绑定时返回 null，由调用方提示用户先在本会话打开简历。
 export function resolveActiveResumeId(): string | null {
   const { activeConversationId, conversations } = useAssistantStore.getState()
+
   if (!activeConversationId)
     return null
+
   return conversations.find(conversation => conversation.id === activeConversationId)?.resumeId ?? null
 }

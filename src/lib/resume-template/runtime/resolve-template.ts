@@ -1,6 +1,6 @@
 import type { TemplateDefinition } from '../definition-schema'
 import type { ResourceOptions, TemplateSource } from '../source/types'
-import { resolveTemplateReference } from '../compatibility/binding'
+import { resolveTemplateReference } from '../binding'
 import { parseTemplateDefinition, TemplateResolutionError } from '../definition-schema'
 
 export async function resolveTemplate(source: TemplateSource, binding: unknown, options?: ResourceOptions): Promise<TemplateDefinition> {

@@ -75,7 +75,7 @@ export function normalizeResumePreviewData(data: ResumePreviewData): TemplateRes
     order: migrateOrder(data.order ?? DEFAULT_ORDER),
     visibility: migrateVisibility(data.visibility ?? DEFAULT_VISIBILITY),
     type,
-    templateBinding: resolveResumeTemplateBinding(data.templateBinding, type),
+    templateBinding: resolveResumeTemplateBinding(data.templateBinding),
   }
 }
 

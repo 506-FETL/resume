@@ -14,7 +14,7 @@ import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/vari
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
-import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
+import { DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
 
 const MAX_VARIANT_TREE_DEPTH = 5
 
@@ -152,39 +152,6 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
  */
 function generateResumeId(): string {
   return `local-${crypto.randomUUID()}`
-}
-
-/**
- * 创建新的离线简历
- */
-export async function createOfflineResume(options: {
-  display_name?: string
-  description?: string
-  type?: ResumeType
-}) {
-  const db = await getDB()
-  const resumeId = generateResumeId()
-
-  const resume = {
-    resume_id: resumeId,
-    display_name: options.display_name || '未命名简历',
-    description: options.description || '',
-    type: options.type || 'default',
-    created_at: dayjs().toISOString(),
-    updated_at: dayjs().toISOString(),
-    data: {
-      ...DEFAULT_RESUME_APPEARANCE,
-      templateBinding: createLegacyResumeTemplateBinding(options.type || 'default'),
-    },
-    parent_resume_id: null,
-    linked_jd_text: null,
-    derived_metadata: null,
-    derived_status: null,
-  }
-
-  await db.add('resumes', resume)
-
-  return resumeId
 }
 
 /**

@@ -344,8 +344,18 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
                 onClick={toggleAll}
               >
                 {allExpanded
-                  ? <><ChevronsDownUp className="size-3.5" />全部折叠</>
-                  : <><ChevronsUpDown className="size-3.5" />全部展开</>}
+                  ? (
+                      <>
+                        <ChevronsDownUp className="size-3.5" />
+                        全部折叠
+                      </>
+                    )
+                  : (
+                      <>
+                        <ChevronsUpDown className="size-3.5" />
+                        全部展开
+                      </>
+                    )}
               </Button>
             )}
           </div>

@@ -15,19 +15,6 @@ function hash(value: string) {
   return (result >>> 0).toString(36)
 }
 
-function getNodePath(node: Node, root: HTMLElement) {
-  const indexes: number[] = []
-  let current: Node | null = node
-  while (current && current !== root) {
-    const parentNode: Node | null = current.parentNode
-    if (!parentNode)
-      break
-    indexes.push(Array.prototype.indexOf.call(parentNode.childNodes, current))
-    current = parentNode
-  }
-  return indexes.reverse().join('.')
-}
-
 function isVisible(element: Element) {
   const targetWindow = element.ownerDocument.defaultView
   if (!targetWindow)
@@ -39,12 +26,21 @@ function isVisible(element: Element) {
 }
 
 export function collectPageBoundaries(root: HTMLElement) {
+  const nodePaths = new WeakMap<Node, string>()
+  const pendingPaths: Array<{ node: Node, path: string }> = [{ node: root, path: '' }]
+  while (pendingPaths.length) {
+    const { node, path } = pendingPaths.pop()!
+    nodePaths.set(node, path)
+    node.childNodes.forEach((child, index) => pendingPaths.push({ node: child, path: path ? `${path}.${index}` : String(index) }))
+  }
   const targetDocument = root.ownerDocument
   const targetNodeFilter = targetDocument.defaultView?.NodeFilter
   const rootRect = root.getBoundingClientRect()
   const layoutHeight = Math.max(root.scrollHeight, rootRect.height)
   const candidates: PageBoundary[] = [{ offset: 0, key: 'start' }]
   const atomicRanges: Array<{ top: number, bottom: number }> = []
+  const lineRanges: Array<{ top: number, bottom: number }> = []
+  const geometry: string[] = []
   let visibleContentBottom = 0
   const walker = targetDocument.createTreeWalker(
     root,
@@ -62,18 +58,20 @@ export function collectPageBoundaries(root: HTMLElement) {
         const top = rect.top - rootRect.top
         const bottom = rect.bottom - rootRect.top
         if (rect.width > 0 && rect.height > 0) {
+          lineRanges.push({ top, bottom })
+          geometry.push(`${roundMetric(top)},${roundMetric(bottom)},${roundMetric(rect.left - rootRect.left)},${roundMetric(rect.width)}`)
           visibleContentBottom = Math.max(visibleContentBottom, bottom)
 
           if (top > BOUNDARY_EPSILON) {
             candidates.push({
               offset: top,
-              key: hash(`${getNodePath(current!, root)}:${text}:${lineIndex}`),
+              key: hash(`${nodePaths.get(current!)}:${text}:${lineIndex}`),
             })
           }
 
           candidates.push({
             offset: bottom,
-            key: hash(`${getNodePath(current!, root)}:${text}:${lineIndex}:end`),
+            key: hash(`${nodePaths.get(current!)}:${text}:${lineIndex}:end`),
           })
         }
       })
@@ -85,6 +83,9 @@ export function collectPageBoundaries(root: HTMLElement) {
   root.querySelectorAll('[data-pagination-atomic], img, svg, hr').forEach((element) => {
     if (!isVisible(element))
       return
+    // 背景矢量不决定断点；显式原子和图片始终保留不可拆分范围。
+    if (element.closest('[data-resume-decoration]') && !element.matches('[data-pagination-atomic], img'))
+      return
     const rect = element.getBoundingClientRect()
     const top = rect.top - rootRect.top
     const bottom = rect.bottom - rootRect.top
@@ -95,31 +96,48 @@ export function collectPageBoundaries(root: HTMLElement) {
       if (top > BOUNDARY_EPSILON) {
         candidates.push({
           offset: top,
-          key: hash(`${getNodePath(element, root)}:atomic-start`),
+          key: hash(`${nodePaths.get(element)}:atomic-start`),
         })
       }
 
       candidates.push({
         offset: bottom,
-        key: hash(`${getNodePath(element, root)}:atomic-end`),
+        key: hash(`${nodePaths.get(element)}:atomic-end`),
       })
     }
   })
 
-  const contentHeight = visibleContentBottom > BOUNDARY_EPSILON
-    ? Math.min(layoutHeight, visibleContentBottom)
-    : layoutHeight
+  const contentHeight = Math.max(layoutHeight, visibleContentBottom)
   candidates.push({ offset: contentHeight, key: 'end' })
   candidates.sort((left, right) => left.offset - right.offset)
 
-  // 原子元素中的文本行仍会贡献候选点，但不能从其边框或图片中间分页。
-  const boundaries = candidates.filter((candidate, index) => (
-    (index === 0 || Math.abs(candidate.offset - candidates[index - 1].offset) > BOUNDARY_EPSILON)
-    && !atomicRanges.some(range => candidate.offset > range.top + BOUNDARY_EPSILON
-      && candidate.offset < range.bottom - BOUNDARY_EPSILON)
-  ))
+  // 合并开放的禁止断点区间，再与有序候选点线性扫描；不能对每一行重扫全文。
+  const forbidden = [...atomicRanges, ...lineRanges]
+    .map(range => ({ top: range.top + BOUNDARY_EPSILON, bottom: range.bottom - BOUNDARY_EPSILON }))
+    .filter(range => range.top < range.bottom)
+    .sort((left, right) => left.top - right.top)
+  const merged: Array<{ top: number, bottom: number }> = []
+  for (const range of forbidden) {
+    const previous = merged.at(-1)
+    if (previous && range.top < previous.bottom)
+      previous.bottom = Math.max(previous.bottom, range.bottom)
+    else
+      merged.push({ ...range })
+  }
+  const boundaries: PageBoundary[] = []
+  let rangeIndex = 0
+  for (const candidate of candidates) {
+    while (merged[rangeIndex] && merged[rangeIndex].bottom <= candidate.offset)
+      rangeIndex += 1
+    const range = merged[rangeIndex]
+    if (range && candidate.offset > range.top && candidate.offset < range.bottom)
+      continue
+    const previous = boundaries.at(-1)
+    if (!previous || candidate.offset - previous.offset > BOUNDARY_EPSILON)
+      boundaries.push(candidate)
+  }
 
-  return { boundaries, contentHeight }
+  return { boundaries, contentHeight, atomicRanges, geometry: hash(geometry.join(';')) }
 }
 
 export function buildPageSegments(
@@ -133,14 +151,16 @@ export function buildPageSegments(
   const segments: PageSegment[] = []
   let start = 0
   let startKey = 'start'
+  let boundaryIndex = 0
 
   while (contentHeight - start > viewportHeight + BOUNDARY_EPSILON) {
     const limit = start + viewportHeight
-    const endBoundary = boundaries
-      .filter(boundary =>
-        boundary.offset > start + BOUNDARY_EPSILON
-        && boundary.offset <= limit + BOUNDARY_EPSILON)
-      .at(-1)
+    let endBoundary: PageBoundary | undefined
+    while (boundaryIndex < boundaries.length && boundaries[boundaryIndex].offset <= limit + BOUNDARY_EPSILON) {
+      const boundary = boundaries[boundaryIndex++]
+      if (boundary.offset > start + BOUNDARY_EPSILON)
+        endBoundary = boundary
+    }
 
     if (!endBoundary)
       throw new Error('当前页面内找不到完整文本行断点')
@@ -177,11 +197,15 @@ function roundMetric(value: number) {
 export function createLayoutSignature({
   page,
   source,
+  viewport,
   segments,
   fontFamily,
+  geometry,
 }: {
   page: HTMLElement
   source: HTMLElement
+  viewport: HTMLElement
+  geometry: string
   segments: PageSegment[]
   fontFamily: string
 }): ResumeLayoutSignature {
@@ -192,6 +216,9 @@ export function createLayoutSignature({
     pageWidth: roundMetric(pageRect.width),
     pageHeight: roundMetric(pageRect.height),
     contentHeight: roundMetric(contentHeight),
+    viewportWidth: roundMetric(viewport.getBoundingClientRect().width),
+    viewportHeight: roundMetric(viewport.getBoundingClientRect().height),
+    geometry,
     fontFamily,
     pages: segments.map(segment => ({
       startKey: segment.startKey,
@@ -211,14 +238,18 @@ export function measurePaginationSnapshot({
   source: HTMLElement
   fontFamily: string
 }): PaginationSnapshot {
-  const { boundaries, contentHeight } = collectPageBoundaries(source)
+  const { boundaries, contentHeight, atomicRanges, geometry } = collectPageBoundaries(source)
   const viewportHeight = viewport.getBoundingClientRect().height
+  if (atomicRanges.some(range => range.bottom - range.top > viewportHeight + BOUNDARY_EPSILON))
+    throw new Error('存在高于一页的不可拆分内容，请缩短该内容或调整字号与边距')
   const segments = buildPageSegments(boundaries, contentHeight, viewportHeight)
   return {
     segments,
     signature: createLayoutSignature({
       page,
       source,
+      viewport,
+      geometry,
       segments,
       fontFamily,
     }),
@@ -263,4 +294,20 @@ export function nextAnimationFrame() {
   return new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve())
   })
+}
+
+/** 图片解码完成前不发布稳定布局，打印副本执行相同门禁。 */
+export async function waitForResumeImages(root: HTMLElement | Document) {
+  await Promise.all(Array.from(root.querySelectorAll('img')).map(async (image) => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      await Promise.race([
+        image.decode(),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('简历图片加载超时')), 10000) }),
+      ])
+      if (!image.naturalWidth || !image.naturalHeight)
+        throw new Error('简历图片加载失败')
+    }
+    finally { clearTimeout(timer) }
+  }))
 }

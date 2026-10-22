@@ -49,7 +49,7 @@ export function createCatalogActions(source: TemplateSource, set: StoreApi<Templ
         if (id === revision) {
           const items = new Map(state.catalog.data.map(item => [item.templateId, item]))
           page.items.forEach(item => items.set(item.templateId, item))
-          set({ catalog: { status: 'ready', data: [...items.values()] }, nextOffset: page.nextOffset })
+          set({ catalog: { status: 'ready', data: [...items.values()].slice(-120) }, nextOffset: page.nextOffset })
         }
       }
       catch (error) {

@@ -14,6 +14,7 @@ interface ScaledReadonlyPreviewProps {
   data: TemplateResumeData
   appearance: Partial<ResumeAppearanceConfig>
   definition?: TemplateDefinition | null
+  assetUrls?: ReadonlyMap<string, string>
   className?: string
   documentRef?: Ref<HTMLDivElement>
   sourceRef?: Ref<HTMLDivElement>
@@ -21,8 +22,8 @@ interface ScaledReadonlyPreviewProps {
   projectionReferenceDate?: string
 }
 
-export default function ScaledReadonlyPreview({ data, appearance, definition, className, documentRef, sourceRef, onDocumentStateChange, projectionReferenceDate = new Date().toISOString().slice(0, 10) }: ScaledReadonlyPreviewProps) {
-  const { resource, retry } = useResolvedResumeTemplate({ binding: data.templateBinding, definition })
+export default function ScaledReadonlyPreview({ data, appearance, definition, assetUrls: suppliedAssetUrls, className, documentRef, sourceRef, onDocumentStateChange, projectionReferenceDate = new Date().toISOString().slice(0, 10) }: ScaledReadonlyPreviewProps) {
+  const { resource, retry, assetUrls } = useResolvedResumeTemplate({ binding: data.templateBinding, definition, assetUrls: suppliedAssetUrls })
   const effectiveAppearance = useMemo(() => normalizeResumeAppearance(appearance), [appearance])
   const error = resource.status === 'error' ? resource.error.message : null
   useLayoutEffect(() => {
@@ -41,7 +42,7 @@ export default function ScaledReadonlyPreview({ data, appearance, definition, cl
       onStateChange={onDocumentStateChange}
       className={className}
     >
-      <ResumeTemplateRuntime data={data} definition={resource.data} appearance={effectiveAppearance} projectionReferenceDate={projectionReferenceDate} />
+      <ResumeTemplateRuntime data={data} definition={resource.data} appearance={effectiveAppearance} projectionReferenceDate={projectionReferenceDate} assetUrls={assetUrls} />
     </ScaledResumeDocument>
   )
 }

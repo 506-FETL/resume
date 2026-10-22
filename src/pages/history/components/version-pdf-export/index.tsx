@@ -45,14 +45,17 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   })
 
   const previewData = useMemo(() => (snapshot ? buildTemplateResumeData(snapshot) : null), [snapshot])
-  const { resource, retry } = useResolvedResumeTemplate({ binding: previewData?.templateBinding, enabled: Boolean(snapshot) })
+  const { resource, retry, assetUrls } = useResolvedResumeTemplate({ binding: previewData?.templateBinding, enabled: Boolean(snapshot) })
   const definition = resource.status === 'ready' ? resource.data : null
   useEffect(() => {
+    if (snapshot && resource.status !== 'ready') {
+      setDocumentState({ status: resource.status === 'error' ? 'error' : 'measuring', signature: null, fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME, fontWeights: [400, 600, 700], error: resource.status === 'error' ? resource.error.message : null })
+    }
     if (resource.status === 'error') {
       shouldPrintRef.current = false
       toast.error(resource.error.message)
     }
-  }, [resource])
+  }, [resource, snapshot])
 
   const handlePrint = useResumePrint({
     contentRef: printRef,
@@ -131,6 +134,7 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
             <ResumeTemplateRuntime
               data={previewData}
               definition={definition}
+              assetUrls={assetUrls}
               appearance={snapshot}
               projectionReferenceDate={projectionReferenceDate}
             />

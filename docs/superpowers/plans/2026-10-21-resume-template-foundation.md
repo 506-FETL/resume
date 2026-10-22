@@ -37,17 +37,17 @@
 
 ### 1.3 需要落实的源码细节
 
-| 代码事实 | 实施约束 |
-| --- | --- |
-| `ResumeTemplateBinding` 已存在，但没有版本 | 扩展现有字段，不另建与其竞争的绑定字段 |
-| 预览、只读预览和历史 PDF 各自解析 manifest，失败时回退 | 统一解析；只允许明确的旧协议适配，不吞掉新引用错误 |
-| `visibility` 中 `true` 表示隐藏 | 沿用语义，不因命名直觉改成显示 |
-| 评论字段含合成投影，如 `professionalDegree`、`duration`、`skill` | 复用既有投影，不自行拼出新的评论文本 |
-| 申请信息当前显示为带边框标签 | 保留标签外观，不能把设计示例中的 `inline-fields@1` 理解为必须改成裸文本 |
-| `createNewResume` 也供 AI `create_resume` 使用 | 模板示例创建新增独立编排入口；AI 原有空白／指定内容语义保持 |
-| `mapSourceToPersistedSnapshot` 被历史和分享复用 | 不能在通用归一化时强制改写旧绑定、快照哈希或评论版本 |
-| `template_manifest` 是已有 JSONB，当前后端接收对象 | 首期沿用字段与接口；新定义放进 `definition` 扩展字段 |
-| `package.json` 声明的协作、评论、移动端及 AI 验证脚本有缺失 | 不把这些命令记为已通过；采用本计划的专项脚本与真实交互验证 |
+| 代码事实                                                         | 实施约束                                                                |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `ResumeTemplateBinding` 已存在，但没有版本                       | 扩展现有字段，不另建与其竞争的绑定字段                                  |
+| 预览、只读预览和历史 PDF 各自解析 manifest，失败时回退           | 统一解析；只允许明确的旧协议适配，不吞掉新引用错误                      |
+| `visibility` 中 `true` 表示隐藏                                  | 沿用语义，不因命名直觉改成显示                                          |
+| 评论字段含合成投影，如 `professionalDegree`、`duration`、`skill` | 复用既有投影，不自行拼出新的评论文本                                    |
+| 申请信息当前显示为带边框标签                                     | 保留标签外观，不能把设计示例中的 `inline-fields@1` 理解为必须改成裸文本 |
+| `createNewResume` 也供 AI `create_resume` 使用                   | 模板示例创建新增独立编排入口；AI 原有空白／指定内容语义保持             |
+| `mapSourceToPersistedSnapshot` 被历史和分享复用                  | 不能在通用归一化时强制改写旧绑定、快照哈希或评论版本                    |
+| `template_manifest` 是已有 JSONB，当前后端接收对象               | 首期沿用字段与接口；新定义放进 `definition` 扩展字段                    |
+| `package.json` 声明的协作、评论、移动端及 AI 验证脚本有缺失      | 不把这些命令记为已通过；采用本计划的专项脚本与真实交互验证              |
 
 编写计划时确认缺失的文件包括 `scripts/verify-realtime-collaboration.ts`、`scripts/verify-resume-comment-anchors.ts`、`scripts/verify-resume-comment-client.ts`、`scripts/verify-resume-comment-service.ts`、`scripts/verify-mobile-share-ai-stability.ts`、`scripts/verify-ai-resume-tools.ts`。执行时先复核；不为本次重构顺带恢复所有无关脚本。
 
@@ -55,40 +55,40 @@
 
 先保留旧工作台可编译，在调用方全部迁移后集中移除。新协议暂放 `definition-schema.ts`，避免一开始改写 `schema.ts` 导致旧工作台、分享和运行时同时失效；清理后 `schema.ts` 只作为新协议出口，旧 manifest 类型归入兼容目录。
 
-| 文件或目录 | 动作与职责 |
-| --- | --- |
-| `src/lib/resume-template/definition-schema.ts` | 新增：模板协议、组件参数校验、精确引用与错误类型 |
-| `src/lib/resume-template/source/types.ts`、`source/local.ts` | 新增：异步数据源契约及唯一的本地实现 |
-| `src/lib/resume-template/catalog/default.ts` | 新增：默认模板目录项、默认版本和可用示例引用 |
-| `src/lib/resume-template/definitions/default/v1.ts` | 新增：`default@1` 完整定义，发布后不可覆盖 |
-| `src/lib/resume-template/examples/graduate-v1.ts`、`frontend-v1.ts` | 新增：与视觉定义分离的完整示例 |
-| `src/lib/resume-template/compatibility/binding.ts` | 新增：仅供读取的旧绑定识别与精确引用解析 |
-| `src/lib/resume-template/compatibility/legacy-manifest.ts`、`share-manifest.ts` | 新增：旧分享协议与新分享信封的解析、序列化 |
-| `src/lib/resume-template/runtime/resolve-template.ts`、`resolve-appearance.ts` | 新增：定义解析及无全局状态依赖的外观派生 |
-| `src/lib/resume-template/content/types.ts`、`adapt-resume.ts`、`adapt-profile.ts`、`adapt-sections.ts` | 新增：只读内容块、原字段身份和显示投影 |
-| `src/lib/resume-template/registry/visual-components.tsx` | 新增：实际实现与受控组件 ID 的映射 |
-| `src/store/resume-template/index.ts` | 新增：跨页面模板目录、精确版本和示例资源缓存 |
-| `src/hooks/use-resolved-resume-template.ts` | 新增：解析状态、重试与过期请求隔离 |
-| `src/components/resume/fields/commentable-text/index.tsx`、`commentable-rich-text/index.tsx`、`projection.ts` | 从旧 `renderers/shared.tsx` 提取公共字段能力 |
-| `src/components/resume/template-layouts/single-column/v1/index.tsx` | 提取当前单栏布局 |
-| `src/components/resume/template-parts/*/v1/index.tsx` | 提取默认页头、标题、经历、富文本、技能与标签能力 |
-| `src/components/resume/runtime/ResumeTemplateRuntime.tsx`、`TemplateRuntimeProviders.tsx`、`context/` | 改造为配置驱动、显式快照与外观的只读运行时 |
-| `src/lib/schema/resume/persisted.ts`、`entry-id.ts` | 扩展绑定版本；增加仅新建时使用的全量条目 ID 重分配 |
-| `src/lib/resume-template/create/types.ts`、`prepare.ts`、`persist.ts` | 新增：创建请求、完整快照构造、持久化编排 |
-| `src/store/resume-creation/index.ts` | 新增：两个创建入口共享的操作状态、固定操作 ID、失败重试 |
-| `src/lib/supabase/resume/form.ts`、`src/lib/offline-resume-manager.ts` | 增加完整快照插入，保留原有创建和上传 API 的兼容性 |
-| `src/pages/template/{index.tsx,store.ts,types.ts,const.ts,utils.ts}` | 重构为模板库页面骨架和页面状态 |
-| `src/pages/template/hooks/use-template-library.ts` | 页面资源订阅、预览生命周期及创建衔接 |
-| `src/pages/template/components/{template-card,template-preview-dialog,template-preview,template-status}/index.tsx` | 卡片、预览、独立加载／错误状态 |
-| `src/pages/resume/components/create-resume-card/index.tsx` | 快速创建接入同一创建服务，去掉旧三类型选择 |
-| `src/components/resume/scaled-readonly-preview.tsx` | 所有只读场景共用的解析与渲染入口 |
-| `src/pages/resume/editor/components/preview/index.tsx` | 编辑器和评论审阅预览接入 |
-| `src/pages/history/components/version-pdf-export/index.tsx` | 历史 PDF 使用相同解析与就绪条件 |
-| `src/lib/supabase/resume/share.ts`、`share.types.ts` | 发布和读取完整模板配置快照，保留脱敏与权限 |
-| `src/pages/share/view/[token].tsx`、`src/pages/resume/editor/hooks/use-comment-review-mode.ts` | 使用冻结的分享配置；统一错误展示 |
-| `scripts/verify-resume-templates.ts`、`scripts/fixtures/resume-template/` | 专项协议、身份、兼容、创建与渲染校验；不搭建新测试框架 |
-| `docs/superpowers/plans/2026-10-21-resume-template-foundation-validation.md` | 执行时创建：基线、命令结果、人工验收记录、发布限制 |
-| `docs/resume-template-maintenance.md` | 执行时创建：模板维护操作手册 |
+| 文件或目录                                                                                                         | 动作与职责                                              |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `src/lib/resume-template/definition-schema.ts`                                                                     | 新增：模板协议、组件参数校验、精确引用与错误类型        |
+| `src/lib/resume-template/source/types.ts`、`source/local.ts`                                                       | 新增：异步数据源契约及唯一的本地实现                    |
+| `src/lib/resume-template/catalog/default.ts`                                                                       | 新增：默认模板目录项、默认版本和可用示例引用            |
+| `src/lib/resume-template/definitions/default/v1.ts`                                                                | 新增：`default@1` 完整定义，发布后不可覆盖              |
+| `src/lib/resume-template/examples/graduate-v1.ts`、`frontend-v1.ts`                                                | 新增：与视觉定义分离的完整示例                          |
+| `src/lib/resume-template/compatibility/binding.ts`                                                                 | 新增：仅供读取的旧绑定识别与精确引用解析                |
+| `src/lib/resume-template/compatibility/legacy-manifest.ts`、`share-manifest.ts`                                    | 新增：旧分享协议与新分享信封的解析、序列化              |
+| `src/lib/resume-template/runtime/resolve-template.ts`、`resolve-appearance.ts`                                     | 新增：定义解析及无全局状态依赖的外观派生                |
+| `src/lib/resume-template/content/types.ts`、`adapt-resume.ts`、`adapt-profile.ts`、`adapt-sections.ts`             | 新增：只读内容块、原字段身份和显示投影                  |
+| `src/lib/resume-template/registry/visual-components.tsx`                                                           | 新增：实际实现与受控组件 ID 的映射                      |
+| `src/store/resume-template/index.ts`                                                                               | 新增：跨页面模板目录、精确版本和示例资源缓存            |
+| `src/hooks/use-resolved-resume-template.ts`                                                                        | 新增：解析状态、重试与过期请求隔离                      |
+| `src/components/resume/fields/commentable-text/index.tsx`、`commentable-rich-text/index.tsx`、`projection.ts`      | 从旧 `renderers/shared.tsx` 提取公共字段能力            |
+| `src/components/resume/template-layouts/single-column/v1/index.tsx`                                                | 提取当前单栏布局                                        |
+| `src/components/resume/template-parts/*/v1/index.tsx`                                                              | 提取默认页头、标题、经历、富文本、技能与标签能力        |
+| `src/components/resume/runtime/ResumeTemplateRuntime.tsx`、`TemplateRuntimeProviders.tsx`、`context/`              | 改造为配置驱动、显式快照与外观的只读运行时              |
+| `src/lib/schema/resume/persisted.ts`、`entry-id.ts`                                                                | 扩展绑定版本；增加仅新建时使用的全量条目 ID 重分配      |
+| `src/lib/resume-template/create/types.ts`、`prepare.ts`、`persist.ts`                                              | 新增：创建请求、完整快照构造、持久化编排                |
+| `src/store/resume-creation/index.ts`                                                                               | 新增：两个创建入口共享的操作状态、固定操作 ID、失败重试 |
+| `src/lib/supabase/resume/form.ts`、`src/lib/offline-resume-manager.ts`                                             | 增加完整快照插入，保留原有创建和上传 API 的兼容性       |
+| `src/pages/template/{index.tsx,store.ts,types.ts,const.ts,utils.ts}`                                               | 重构为模板库页面骨架和页面状态                          |
+| `src/pages/template/hooks/use-template-library.ts`                                                                 | 页面资源订阅、预览生命周期及创建衔接                    |
+| `src/pages/template/components/{template-card,template-preview-dialog,template-preview,template-status}/index.tsx` | 卡片、预览、独立加载／错误状态                          |
+| `src/pages/resume/components/create-resume-card/index.tsx`                                                         | 快速创建接入同一创建服务，去掉旧三类型选择              |
+| `src/components/resume/scaled-readonly-preview.tsx`                                                                | 所有只读场景共用的解析与渲染入口                        |
+| `src/pages/resume/editor/components/preview/index.tsx`                                                             | 编辑器和评论审阅预览接入                                |
+| `src/pages/history/components/version-pdf-export/index.tsx`                                                        | 历史 PDF 使用相同解析与就绪条件                         |
+| `src/lib/supabase/resume/share.ts`、`share.types.ts`                                                               | 发布和读取完整模板配置快照，保留脱敏与权限              |
+| `src/pages/share/view/[token].tsx`、`src/pages/resume/editor/hooks/use-comment-review-mode.ts`                     | 使用冻结的分享配置；统一错误展示                        |
+| `scripts/verify-resume-templates.ts`、`scripts/fixtures/resume-template/`                                          | 专项协议、身份、兼容、创建与渲染校验；不搭建新测试框架  |
+| `docs/superpowers/plans/2026-10-21-resume-template-foundation-validation.md`                                       | 执行时创建：基线、命令结果、人工验收记录、发布限制      |
+| `docs/resume-template-maintenance.md`                                                                              | 执行时创建：模板维护操作手册                            |
 
 依赖方向固定为：`页面 → 资源 store／创建服务 → Source／纯协议`，`运行时 → 内容适配器＋视觉注册表＋公共字段`。`lib/schema/resume` 不得反向 import React、页面 store、Supabase 模板查询或完整模板目录。
 
@@ -393,13 +393,13 @@ interface AdaptedResumeContent {
 
 `adaptResumeContent(data, commentNodesByKey)` 返回 `AdaptedResumeContent`；`adapt-profile.ts` 提取默认 `BasicsRenderer` 的单栏字段顺序，`adapt-sections.ts` 提取以下映射。适配前沿用 `buildTemplateResumeData` 的既有正文归一化。
 
-| 模块 | 名称节点／副标题节点 | 富文本原字段 | 日期投影 |
-| --- | --- | --- | --- |
-| `edu_background` | `schoolName`／`professionalDegree` | `eduInfo` | `duration` |
-| `work_experience` | `companyName`／`position` | `workInfo` | `duration` |
-| `internship_experience` | `companyName`／`position` | `internshipInfo` | `duration` |
-| `campus_experience` | `experienceName`／`role` | `campusInfo` | `duration` |
-| `project_experience` | `projectName`／`participantRole` | `projectInfo` | `duration` |
+| 模块                    | 名称节点／副标题节点               | 富文本原字段     | 日期投影   |
+| ----------------------- | ---------------------------------- | ---------------- | ---------- |
+| `edu_background`        | `schoolName`／`professionalDegree` | `eduInfo`        | `duration` |
+| `work_experience`       | `companyName`／`position`          | `workInfo`       | `duration` |
+| `internship_experience` | `companyName`／`position`          | `internshipInfo` | `duration` |
+| `campus_experience`     | `experienceName`／`role`           | `campusInfo`     | `duration` |
+| `project_experience`    | `projectName`／`participantRole`   | `projectInfo`    | `duration` |
 
 各经历的日期原字段和空条目判断逐一沿用原 Renderer；富文本评论 `fieldKey` 仍为 `content`。技能保留一个 `skill` 节点，荣誉／兴趣保留原 `name` 节点；description 和列表输出为同一模块的不同 block。申请信息使用 `fieldList`。
 
@@ -427,16 +427,16 @@ assert.equal(JSON.stringify(snapshot), before)
 
 - [x] **5.1 按现有 DOM 和样式提取首期视觉部件。**
 
-| 注册 ID | 文件（均位于 `src/components/resume/`） | 提取来源 |
-| --- | --- | --- |
-| `single-column@1` | `template-layouts/single-column/v1/index.tsx` | `runtime/layouts/SingleColumnSkeleton.tsx` |
-| `centered-profile@1` | `template-parts/centered-profile/v1/index.tsx` | `BasicsRenderer` 单栏分支 |
-| `underline-heading@1` | `template-parts/underline-heading/v1/index.tsx` | `RuntimeSection` 的标题 |
-| `plain-entry-list@1` | `template-parts/plain-entry-list/v1/index.tsx` | `RuntimeEntry` 与原条目列表容器 |
-| `plain-rich-text@1` | `template-parts/plain-rich-text/v1/index.tsx` | 公共富文本字段，无额外卡片 |
-| `skill-badges@1` | `template-parts/skill-badges/v1/index.tsx` | `SkillsRenderer` 的标签 |
-| `inline-fields@1` | `template-parts/inline-fields/v1/index.tsx` | `ApplicationInfoRenderer` 的标签 |
-| `tag-list@1` | `template-parts/tag-list/v1/index.tsx` | 荣誉／兴趣的共同标签 |
+| 注册 ID               | 文件（均位于 `src/components/resume/`）         | 提取来源                                   |
+| --------------------- | ----------------------------------------------- | ------------------------------------------ |
+| `single-column@1`     | `template-layouts/single-column/v1/index.tsx`   | `runtime/layouts/SingleColumnSkeleton.tsx` |
+| `centered-profile@1`  | `template-parts/centered-profile/v1/index.tsx`  | `BasicsRenderer` 单栏分支                  |
+| `underline-heading@1` | `template-parts/underline-heading/v1/index.tsx` | `RuntimeSection` 的标题                    |
+| `plain-entry-list@1`  | `template-parts/plain-entry-list/v1/index.tsx`  | `RuntimeEntry` 与原条目列表容器            |
+| `plain-rich-text@1`   | `template-parts/plain-rich-text/v1/index.tsx`   | 公共富文本字段，无额外卡片                 |
+| `skill-badges@1`      | `template-parts/skill-badges/v1/index.tsx`      | `SkillsRenderer` 的标签                    |
+| `inline-fields@1`     | `template-parts/inline-fields/v1/index.tsx`     | `ApplicationInfoRenderer` 的标签           |
+| `tag-list@1`          | `template-parts/tag-list/v1/index.tsx`          | 荣誉／兴趣的共同标签                       |
 
 同类标签可共享不带业务语义的内部容器；不为教育、工作、实习各复制一份视觉实现。每个模板只选择一次标题与经历组件。
 
@@ -812,20 +812,20 @@ rg -n 'getManifestFromTemplateBinding|getBuiltInTemplateManifest|resolveTemplate
 
 - [ ] **12.4 按下表完成产品与兼容验收。**
 
-| 验收组 | 必做操作 | 通过结果 |
-| --- | --- | --- |
-| 模板页 | 游客／已登录打开，预览与直接使用 | 一张默认卡片，无私有模板查询；直接进入编辑器 |
-| 示例 | 两份示例各创建两次并独立编辑 | 完整初始化、相互隔离、新条目 ID 独立 |
-| 模式 | 本地、云端、登录、主动上传、会话失效 | 模式不被登录暗改；失效不偷偷切换存储 |
-| 保存 | 两种模式编辑、刷新、重新打开 | 内容、外观、绑定一致，不重播种 |
-| 旧数据 | 无绑定、旧绑定、旧历史、旧分享 | 默认外观可读；读取无迁移写入 |
-| 协作 | 双用户结构字段、富文本、增删排序隐藏 | 合并正常，会话／fragment 不重建 |
-| 评论 | 已有定位、新评论、回复、解决、多页几何 | 身份、作用域、权限与当前能力不变 |
-| 分享 | 发布、匿名、受限、隐藏信息、冻结版本 | 内容和配置冻结，权限及脱敏生效 |
-| 历史／派生 | 保存、预览、恢复、派生、跟进、AI 画布 | 快照绑定及外观不丢失，不串全局状态 |
-| 导出 | 短／长内容的编辑器 PDF、历史 PDF、Word | PDF 还原预览；Word 可编辑且完整 |
-| 异常 | 连击、网络响应丢失、未知配置、迟到响应 | 不重复创建、不错误回退、不污染当前简历 |
-| 界面 | 桌面、移动、键盘、两轮弹窗开关及反向切换 | 操作可用，动效和减少动效均正确 |
+| 验收组     | 必做操作                                 | 通过结果                                     |
+| ---------- | ---------------------------------------- | -------------------------------------------- |
+| 模板页     | 游客／已登录打开，预览与直接使用         | 一张默认卡片，无私有模板查询；直接进入编辑器 |
+| 示例       | 两份示例各创建两次并独立编辑             | 完整初始化、相互隔离、新条目 ID 独立         |
+| 模式       | 本地、云端、登录、主动上传、会话失效     | 模式不被登录暗改；失效不偷偷切换存储         |
+| 保存       | 两种模式编辑、刷新、重新打开             | 内容、外观、绑定一致，不重播种               |
+| 旧数据     | 无绑定、旧绑定、旧历史、旧分享           | 默认外观可读；读取无迁移写入                 |
+| 协作       | 双用户结构字段、富文本、增删排序隐藏     | 合并正常，会话／fragment 不重建              |
+| 评论       | 已有定位、新评论、回复、解决、多页几何   | 身份、作用域、权限与当前能力不变             |
+| 分享       | 发布、匿名、受限、隐藏信息、冻结版本     | 内容和配置冻结，权限及脱敏生效               |
+| 历史／派生 | 保存、预览、恢复、派生、跟进、AI 画布    | 快照绑定及外观不丢失，不串全局状态           |
+| 导出       | 短／长内容的编辑器 PDF、历史 PDF、Word   | PDF 还原预览；Word 可编辑且完整              |
+| 异常       | 连击、网络响应丢失、未知配置、迟到响应   | 不重复创建、不错误回退、不污染当前简历       |
+| 界面       | 桌面、移动、键盘、两轮弹窗开关及反向切换 | 操作可用，动效和减少动效均正确               |
 
 - [x] **12.5 执行工程检查并记录实际结果。**
 
@@ -851,14 +851,14 @@ ESLint 对本次变更的 TS／TSX 文件执行，使用 `git diff --name-only -
 
 按以下分类记录，不在首期真的添加第二个模板：
 
-| 维护目的 | 修改范围 | 明确不复制的代码 |
-| --- | --- | --- |
-| 用已有能力组合新设计 | 新 `definitions/<id>/v1.ts`、目录项、版本化资源和本地索引 | 表单 store、协作、评论、分享、导出业务 |
-| 需要新的标题或条目排版 | 新 `template-parts/<capability>/v1`、schema 与注册表，再加定义 | 教育／工作等内容适配器 |
-| 需要新的整体布局 | 新 `template-layouts/<capability>/v1`，验证分页契约，再加定义 | 内容身份和业务持久化 |
-| 修正示例文案 | 新示例版本和目录引用 | 已创建的正文 |
-| 修改名称和说明 | 目录元数据 | 已发布定义与既有绑定 |
-| 改变已发布模板外观 | 新模板版本；若共享部件视觉改变则新能力版本 | 旧定义及旧能力版本 |
+| 维护目的               | 修改范围                                                       | 明确不复制的代码                       |
+| ---------------------- | -------------------------------------------------------------- | -------------------------------------- |
+| 用已有能力组合新设计   | 新 `definitions/<id>/v1.ts`、目录项、版本化资源和本地索引      | 表单 store、协作、评论、分享、导出业务 |
+| 需要新的标题或条目排版 | 新 `template-parts/<capability>/v1`、schema 与注册表，再加定义 | 教育／工作等内容适配器                 |
+| 需要新的整体布局       | 新 `template-layouts/<capability>/v1`，验证分页契约，再加定义  | 内容身份和业务持久化                   |
+| 修正示例文案           | 新示例版本和目录引用                                           | 已创建的正文                           |
+| 修改名称和说明         | 目录元数据                                                     | 已发布定义与既有绑定                   |
+| 改变已发布模板外观     | 新模板版本；若共享部件视觉改变则新能力版本                     | 旧定义及旧能力版本                     |
 
 新增模板配置后执行协议、字段覆盖、评论投影、视觉、分页、PDF／Word 和兼容验收。组件数量随新视觉能力增长，不能为每个模板复制整套 React 运行时。
 
@@ -880,28 +880,28 @@ ESLint 对本次变更的 TS／TSX 文件执行，使用 `git diff --name-only -
 
 ## 5. 规格覆盖对照
 
-| 规格要求 | 对应任务 |
-| --- | --- |
-| §1～2 首期范围与完整链路 | 任务 3、7、8、11、12 |
-| §4～6 内容边界、Source、配置和版本 | 任务 2～6 |
-| §7 旧数据兼容、默认外观、工作台退出 | 任务 1、2、5、9～11 |
-| §8 示例、创建、存储模式 | 任务 3、7、8、9 |
-| §9 首期协作和未来模板变更约束 | 任务 9、13 |
-| §10 全文评论 | 任务 1、4、5、10、12 |
-| §11 分享、历史、派生 | 任务 6、9、10 |
-| §12 分页和导出 | 任务 5、6、12 |
-| §13～14 页面结构、状态、动效 | 任务 6、8、11 |
+| 规格要求                             | 对应任务                            |
+| ------------------------------------ | ----------------------------------- |
+| §1～2 首期范围与完整链路             | 任务 3、7、8、11、12                |
+| §4～6 内容边界、Source、配置和版本   | 任务 2～6                           |
+| §7 旧数据兼容、默认外观、工作台退出  | 任务 1、2、5、9～11                 |
+| §8 示例、创建、存储模式              | 任务 3、7、8、9                     |
+| §9 首期协作和未来模板变更约束        | 任务 9、13                          |
+| §10 全文评论                         | 任务 1、4、5、10、12                |
+| §11 分享、历史、派生                 | 任务 6、9、10                       |
+| §12 分页和导出                       | 任务 5、6、12                       |
+| §13～14 页面结构、状态、动效         | 任务 6、8、11                       |
 | §15～17 增加模板、版本维护、远端方向 | 任务 13，只文档化，不实施第二期功能 |
-| §18 异常与一致性 | 任务 2、6、7、10、12 |
-| A01～A04、A11 | 任务 3、7、8、11、12 |
-| A05～A08 | 任务 2、7、9、10、12 |
-| A09～A10 | 任务 1、4、5、12 |
-| A12 | 任务 2、6、7、12 |
-| B01～B02 | 任务 9、12 |
-| B03～B04 | 任务 4、10、12 |
-| B05～B06 | 任务 10、12 |
-| B07 | 任务 9、12 |
-| B08～B10 | 任务 6、8、12 |
+| §18 异常与一致性                     | 任务 2、6、7、10、12                |
+| A01～A04、A11                        | 任务 3、7、8、11、12                |
+| A05～A08                             | 任务 2、7、9、10、12                |
+| A09～A10                             | 任务 1、4、5、12                    |
+| A12                                  | 任务 2、6、7、12                    |
+| B01～B02                             | 任务 9、12                          |
+| B03～B04                             | 任务 4、10、12                      |
+| B05～B06                             | 任务 10、12                         |
+| B07                                  | 任务 9、12                          |
+| B08～B10                             | 任务 6、8、12                       |
 
 ## 6. 执行停止条件与完成判定
 

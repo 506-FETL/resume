@@ -10,7 +10,19 @@ export interface ResumeExample {
   projectionReferenceDate: string
   content: Pick<PersistedResumeSnapshot, keyof ResumeSchema | 'order' | 'visibility'>
 }
+export interface TemplateAssetRef { hash: string, mimeType: 'image/png' | 'image/webp' | 'image/jpeg', byteLength: number, width: number, height: number }
+export interface TemplatePreview {
+  templateId: string
+  templateVersion: number
+  example: ExampleRef
+  appearance: TemplateDefinition['appearanceDefaults']
+  projectionReferenceDate: string
+  asset: TemplateAssetRef
+}
 export interface TemplateCatalogItem {
+  schemaVersion: 2
+  renderContract: 'declarative-flow@1'
+  previews: TemplatePreview[]
   templateId: string
   name: string
   description: string
@@ -28,6 +40,8 @@ export interface TemplateSource {
   listTemplatePage: (query?: CatalogQuery, options?: ResourceOptions) => Promise<CatalogPage>
   getCatalogFacets: (options?: ResourceOptions) => Promise<CatalogFacets>
   getTemplateVersion: (ref: TemplateRef, options?: ResourceOptions) => Promise<TemplateDefinition>
+  getAsset: (ref: TemplateAssetRef, options?: ResourceOptions) => Promise<Blob>
+  retainResource: (key: string) => () => void
   getExample: (ref: ExampleRef, options?: ResourceOptions) => Promise<ResumeExample>
 }
 export const CATALOG_PAGE_SIZE = 12
