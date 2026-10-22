@@ -1,12 +1,24 @@
 import type { TemplatePageState } from './types'
 import { create } from 'zustand'
-import { defaultTemplateCatalogItem } from '@/lib/resume-template/catalog/default'
 
 export const useTemplatePageStore = create<TemplatePageState>(set => ({
   selectedTemplateId: null,
-  showPreview: (selectedTemplateId, selectedExample) => set({ selectedTemplateId, selectedExample, previewOpen: true }),
+  previewTrigger: null,
+  showPreview: (selectedTemplateId, example, previewTrigger) => set(state => ({
+    selectedTemplateId,
+    previewTrigger,
+    selectedExamples: { ...state.selectedExamples, [selectedTemplateId]: example },
+    previewOpen: true,
+  })),
   previewOpen: false,
-  selectedExample: defaultTemplateCatalogItem.defaultExample,
+  selectedExamples: {},
   setPreviewOpen: previewOpen => set({ previewOpen }),
-  selectExample: selectedExample => set({ selectedExample }),
+  selectExample: (templateId, example) => set(state => ({
+    selectedExamples: { ...state.selectedExamples, [templateId]: example },
+  })),
+  styleFilter: null,
+  layoutFilter: null,
+  setStyleFilter: styleFilter => set({ styleFilter }),
+  setLayoutFilter: layoutFilter => set({ layoutFilter }),
+  resetFilters: () => set({ styleFilter: null, layoutFilter: null }),
 }))

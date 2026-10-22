@@ -1,17 +1,26 @@
-import { motion, useReducedMotion } from 'motion/react'
+import { ScanSearch } from 'lucide-react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { PageHeader, PageLayout } from '@/components/layout/page-layout'
+import AnimatedContent from '@/components/motion/animated-content'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import TemplateResourceStatus from '@/components/resume/template-resource-status'
-import { DURATION, EASE } from '@/lib/motion'
+import { Button } from '@/components/ui/button'
+import { DURATION, EASE, staggerDelay } from '@/lib/motion'
 import { useResumeTemplateStore } from '@/store/resume-template'
 import PreviewDialog from './components/preview-dialog'
 import TemplateCard from './components/template-card'
+import TemplateFilters from './components/template-filters'
 import { useTemplatePageStore } from './store.ts'
+import { matchesTemplateFilters } from './utils'
 
 export default function Template() {
   const catalog = useResumeTemplateStore(state => state.catalog)
-  const selectedTemplateId = useTemplatePageStore(state => state.selectedTemplateId)
-  const previewItem = catalog.status === 'ready' ? catalog.data.find(item => item.templateId === selectedTemplateId) : undefined
+  const { selectedTemplateId, styleFilter, layoutFilter, resetFilters } = useTemplatePageStore()
+  // 预先挂载关闭状态的预览容器，让首次打开也能经过 primitive 的入场状态。
+  const previewItem = catalog.status === 'ready' ? catalog.data.find(item => item.templateId === selectedTemplateId) ?? catalog.data[0] : undefined
+  const items = catalog.status === 'ready' ? catalog.data.filter(item => matchesTemplateFilters(item, styleFilter, layoutFilter)) : []
   const load = useResumeTemplateStore(state => state.loadCatalog)
   const reduceMotion = useReducedMotion()
   const [params, setParams] = useSearchParams()
@@ -22,16 +31,52 @@ export default function Template() {
     if (params.size)
       setParams({}, { replace: true })
   }, [params, setParams])
+
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 py-4">
-      <header className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight">简历模板</h1>
-        <p className="text-muted-foreground">选好排版，从完整示例开始，写出你的经历。</p>
-      </header>
-      {catalog.status === 'ready'
-        ? <motion.div initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{catalog.data.map(item => <TemplateCard key={item.templateId} item={item} />)}</motion.div>
-        : <TemplateResourceStatus error={catalog.status === 'error' ? catalog.error.message : undefined} onRetry={() => { load(true) }} />}
+    <PageLayout width="wide">
+      <PageHeader title="简历模板" description="挑选适合你的排版，从完整示例开始填写。" />
+      <AnimatedContent animationKey={catalog.status}>
+        {catalog.status === 'ready'
+          ? (
+              <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]">
+                <TemplateFilters items={catalog.data} />
+                <section aria-label="模板列表" className="min-w-0 space-y-4">
+                  <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
+                    <h2 className="flex items-center gap-2 text-sm font-medium">
+                      {styleFilter || layoutFilter ? '筛选结果' : '全部模板'}
+                      <span aria-live="polite" className="rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">{items.length}</span>
+                    </h2>
+                    <p className="text-xs text-muted-foreground">点击模板，查看完整预览</p>
+                  </div>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15.5rem),1fr))] gap-5">
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {items.map((item, index) => (
+                        <PresenceDiv
+                          key={item.templateId}
+                          className="min-w-0"
+                          initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: reduceMotion ? 0 : -4, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                          transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, delay: reduceMotion ? 0 : staggerDelay(Math.min(index, 8)) }}
+                        >
+                          <TemplateCard item={item} />
+                        </PresenceDiv>
+                      ))}
+                      {!items.length && (
+                        <PresenceDiv key="empty" className="col-span-full flex min-h-72 flex-col items-center justify-center gap-3 rounded-xl border border-dashed text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : DURATION.base }}>
+                          <ScanSearch aria-hidden className="size-7 text-muted-foreground" />
+                          <p className="text-sm font-medium">暂无符合条件的模板</p>
+                          <Button variant="outline" size="sm" onClick={resetFilters} className="motion-reduce:transform-none" style={{ transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s` }}>清除筛选</Button>
+                        </PresenceDiv>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </section>
+              </div>
+            )
+          : <TemplateResourceStatus error={catalog.status === 'error' ? catalog.error.message : undefined} onRetry={() => { load(true) }} />}
+      </AnimatedContent>
       {previewItem && <PreviewDialog item={previewItem} />}
-    </div>
+    </PageLayout>
   )
 }

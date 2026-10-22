@@ -16,19 +16,18 @@ export function SiteHeader() {
   const reduceMotion = useReducedMotion()
   const crumbs = useBreadcrumbs()
   const location = useLocation()
-  const isTemplateRoute = location.pathname.startsWith('/template')
   const isResumeEditor = location.pathname.startsWith('/resume/editor')
 
   return (
-    <div className={cn('relative flex w-full min-w-0 items-center gap-1 lg:gap-2', isTemplateRoute ? 'px-4 lg:px-6 z-1000' : 'px-2 sm:px-4')}>
+    <div className="relative flex w-full min-w-0 items-center gap-1 px-2 sm:px-4 lg:gap-2">
       <SidebarTrigger className="-ml-1 shrink-0" aria-label="切换导航栏" />
       <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
       <Breadcrumb className={cn('min-w-0', isResumeEditor && 'hidden xl:block')}>
         <BreadcrumbList className="flex-nowrap">
           {crumbs.map((crumb, idx) => (
             <Fragment key={crumb.href}>
-              <BreadcrumbItem className={cn('min-w-0', (isTemplateRoute || idx < crumbs.length - 1) && 'hidden md:block')}>
-                {idx === crumbs.length - 1 && !isTemplateRoute
+              <BreadcrumbItem className={cn('min-w-0', idx < crumbs.length - 1 && 'hidden md:block')}>
+                {idx === crumbs.length - 1
                   ? <BreadcrumbPage className="truncate">{crumb.label}</BreadcrumbPage>
                   : <BreadcrumbLink asChild><Link to={crumb.href} className="whitespace-nowrap">{crumb.label}</Link></BreadcrumbLink>}
               </BreadcrumbItem>

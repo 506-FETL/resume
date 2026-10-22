@@ -15,8 +15,8 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, routeKey, fullBleed = false }: DashboardShellProps) {
   const reduceMotion = useReducedMotion()
-  // Opt-in avoids changing the template workbench and resume document containers.
-  const usesPageLayout = ['/', '/resume', '/share', '/tracker', '/history', '/optimize', '/profile', '/changelog', '/login', '/sign-up', '/forgot-password', '/reset-password'].includes(routeKey.replace(/\/$/, '') || '/')
+  // Only application pages opt in; resume document containers keep their own layout.
+  const usesPageLayout = ['/', '/resume', '/template', '/share', '/tracker', '/history', '/optimize', '/profile', '/changelog', '/login', '/sign-up', '/forgot-password', '/reset-password'].includes(routeKey.replace(/\/$/, '') || '/')
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
       return localStorage.getItem('sidebarOpen') !== 'false'
