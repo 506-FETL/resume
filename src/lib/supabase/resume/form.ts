@@ -8,6 +8,7 @@ import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
+import { ensureCloudResumeTemplateBinding } from './template-binding'
 
 const RESUME_PERSISTED_FIELDS = [
   'basics',
@@ -83,7 +84,7 @@ export async function getAllResumesFromUser() {
 
   const { data, error } = await supabase
     .from('resume_config')
-    .select('id,resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_text,derived_metadata,derived_status')
+    .select('id,resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_text,derived_metadata,derived_status,template_binding')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -91,7 +92,10 @@ export async function getAllResumesFromUser() {
     throw error
   }
 
-  return data
+  return Promise.all(data.map(async (resume) => {
+    const templateBinding = await ensureCloudResumeTemplateBinding(resume.resume_id, user.id, resume.template_binding)
+    return { ...resume, template_binding: templateBinding, templateBinding }
+  }))
 }
 
 export async function getResumeById<T = Record<string, unknown>>(id: string, selector = '*') {
@@ -117,6 +121,8 @@ export async function getResumeById<T = Record<string, unknown>>(id: string, sel
   if (!data)
     throw new ResumeNotFoundError()
 
+  if ('template_binding' in data)
+    data.template_binding = await ensureCloudResumeTemplateBinding(id, user.id, data.template_binding)
   return data as T
 }
 

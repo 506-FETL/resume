@@ -22,9 +22,11 @@ export function createCatalogActions(source: TemplateSource, set: StoreApi<Templ
       const key = catalogQueryKey(normalized)
       if (!force && catalogPending?.key === key)
         return catalogPending.promise
-      const id = ++revision
       const sameQuery = catalogQueryKey(get().catalogQuery) === key
-      set({ catalogQuery: normalized, loadingMore: false, loadMoreError: null, ...(!sameQuery || get().catalog.status !== 'ready' ? { catalog: { status: 'loading', requestId: id } as const, nextOffset: null } : {}) })
+      if (!force && sameQuery && get().catalog.status === 'ready')
+        return Promise.resolve()
+      const id = ++revision
+      set({ catalogQuery: normalized, loadingMore: false, loadMoreError: null, catalog: { status: 'loading', requestId: id }, nextOffset: null })
       const promise = source.listTemplatePage(normalized, { force }).then((page) => {
         if (id === revision)
           set({ catalog: { status: 'ready', data: page.items }, nextOffset: page.nextOffset })
@@ -49,7 +51,7 @@ export function createCatalogActions(source: TemplateSource, set: StoreApi<Templ
         if (id === revision) {
           const items = new Map(state.catalog.data.map(item => [item.templateId, item]))
           page.items.forEach(item => items.set(item.templateId, item))
-          set({ catalog: { status: 'ready', data: [...items.values()].slice(-120) }, nextOffset: page.nextOffset })
+          set({ catalog: { status: 'ready', data: [...items.values()] }, nextOffset: page.nextOffset })
         }
       }
       catch (error) {

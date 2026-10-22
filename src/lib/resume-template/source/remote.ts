@@ -2,7 +2,7 @@ import type { CachedResource, TemplateResourceCache } from './cache'
 import type { TemplateTransport } from './transport'
 import type { CatalogQuery, ResourceOptions, TemplateSource } from './types'
 import { z } from 'zod'
-import { parseTemplateDefinition, templateRefSchema, TemplateResolutionError } from '../definition-schema'
+import { parseTemplateDefinition, templateIdSchema, templateRefSchema, TemplateResolutionError } from '../definition-schema'
 import { assetEnvelopeSchema, decodeAsset } from './assets'
 import { MAX_CACHE_BYTES, resourceBytes } from './cache'
 import { assetRefSchema, catalogFacetsSchema, catalogItemSchema, catalogPageSchema, catalogQuerySchema, decodeResource, exampleRefSchema, exampleSchema, resourceEnvelopeSchema } from './resource-schema'
@@ -138,6 +138,17 @@ export function createRemoteTemplateSource({ transport, cache, now = Date.now }:
     }, input => catalogPageSchema.parse(input), CATALOG_TTL_MS, options.force)
   }
   return {
+    getTemplateName(templateId, options) {
+      const id = templateIdSchema.parse(templateId)
+      return read(`template-name:${id}`, async () => {
+        const rows = z.array(z.object({ name: z.string().min(1).max(100) })).max(1).parse(await transport('official_resume_template_catalog', {
+          select: 'name:metadata->>name',
+          template_id: `eq.${id}`,
+          limit: '1',
+        }))
+        return rows[0]?.name ?? null
+      }, input => z.string().min(1).max(100).nullable().parse(input), CATALOG_TTL_MS, options?.force)
+    },
     retainResource(key) {
       if (!retained.has(key) && retained.size >= 64)
         throw new TemplateResolutionError('LOAD_FAILED', '同时使用的模板资源过多，请关闭部分预览后重试')

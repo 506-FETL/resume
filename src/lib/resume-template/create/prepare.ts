@@ -36,5 +36,5 @@ export async function prepareTemplateResume(input: CreateTemplateResumeInput, so
 }
 
 export function createdResumeResult(prepared: PreparedResumeCreation, record: { resume_id: string, display_name?: string | null, description?: string | null, created_at: string, updated_at?: string | null }): CreatedTemplateResume {
-  return { resumeId: record.resume_id, mode: prepared.mode, displayName: record.display_name ?? prepared.displayName, description: record.description ?? '', createdAt: record.created_at, updatedAt: record.updated_at ?? record.created_at, type: 'default' }
+  return { resumeId: record.resume_id, mode: prepared.mode, displayName: record.display_name ?? prepared.displayName, description: record.description ?? '', createdAt: record.created_at, updatedAt: record.updated_at ?? record.created_at, type: 'default', templateBinding: prepared.snapshot.templateBinding }
 }

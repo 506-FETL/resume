@@ -9,7 +9,9 @@ import { PresenceDiv } from '@/components/motion/presence-item'
 import TemplateResourceStatus from '@/components/resume/template-resource-status'
 import { Button } from '@/components/ui/button'
 import { DURATION, EASE, staggerDelay } from '@/lib/motion'
+import { CATALOG_PAGE_SIZE } from '@/lib/resume-template/source/types'
 import { useResumeTemplateStore } from '@/store/resume-template'
+import CatalogFooter from './components/catalog-footer'
 import PreviewDialog from './components/preview-dialog'
 import TemplateCard from './components/template-card'
 import TemplateFilters from './components/template-filters'
@@ -25,12 +27,9 @@ export default function Template() {
     : undefined
   const items = catalog.status === 'ready' ? catalog.data : []
 
-  const { nextOffset, loadingMore, loadMoreError, loadMore, loadFacets } = useResumeTemplateStore(
+  const { nextOffset, loadFacets } = useResumeTemplateStore(
     useShallow(state => ({
       nextOffset: state.nextOffset,
-      loadingMore: state.loadingMore,
-      loadMoreError: state.loadMoreError,
-      loadMore: state.loadMore,
       loadFacets: state.loadFacets,
     })),
   )
@@ -55,7 +54,7 @@ export default function Template() {
 
   return (
     <PageLayout width="wide">
-      <PageHeader title="简历模板" description="挑选适合你的排版，从完整示例开始填写。" />
+      <PageHeader title="简历模板" description="挑选适合的排版" />
       <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <TemplateFilters />
         <AnimatedContent animationKey={catalog.status}>
@@ -73,7 +72,6 @@ export default function Template() {
                           {nextOffset !== null ? `${items.length}+` : items.length}
                         </span>
                       </h2>
-                      <p className="text-xs text-muted-foreground">点击模板，查看完整预览</p>
                     </div>
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15.5rem),1fr))] gap-5">
                       <AnimatePresence initial={false} mode="popLayout">
@@ -91,7 +89,7 @@ export default function Template() {
                             transition={{
                               duration: reduceMotion ? 0 : DURATION.base,
                               ease: EASE.out,
-                              delay: reduceMotion ? 0 : staggerDelay(Math.min(index, 8)),
+                              delay: reduceMotion ? 0 : staggerDelay(Math.min(index % CATALOG_PAGE_SIZE, 8)),
                             }}
                           >
                             <TemplateCard item={item} />
@@ -113,8 +111,7 @@ export default function Template() {
                         )}
                       </AnimatePresence>
                     </div>
-                    {loadMoreError && <p role="alert" className="text-sm text-destructive">{loadMoreError}</p>}
-                    {nextOffset !== null && <div className="flex justify-center py-4"><Button variant="outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? '加载中…' : loadMoreError ? '重试加载更多' : '加载更多'}</Button></div>}
+                    {items.length > 0 && <CatalogFooter />}
                   </section>
                 </div>
               )

@@ -16,6 +16,7 @@ import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
 import DeleteResumeDialog from '../delete-resume-dialog'
 import EditResumeDialog from '../edit-resume-dialog'
+import TemplateBadge from '../template-badge'
 import { RESUME_BADGE_COLORS, RESUME_CARD_APPEARANCE } from './const'
 import { VariantBadge } from './variant-badge'
 
@@ -134,6 +135,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
           <h2 className="line-clamp-2 text-sm leading-5 font-semibold" title={resume.display_name || '未命名简历'}>
             {resume.display_name || '未命名简历'}
           </h2>
+          <TemplateBadge binding={resume.templateBinding} />
           {resume.description && <p className="line-clamp-1 text-xs leading-5 text-muted-foreground" title={resume.description}>{resume.description}</p>}
           <div className="flex min-w-0 items-center gap-1.5">
             {isGenerating && (

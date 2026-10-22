@@ -5,6 +5,7 @@ import type {
   DocumentSaveResult,
 } from '../shared'
 import type { AutomergeResumeDocument, ChangeFn } from './schema'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
 import { CollaborationSessionManager } from '../collaboration/session-manager'
 import { getAutomergeRepo } from '../repo'
 import { createResumeDocument, touchDocumentMetadata } from './factory'
@@ -53,6 +54,18 @@ export class DocumentManager {
     const existingHandle = await this.persistence.loadPersistedHandle(repo)
 
     if (existingHandle) {
+      const doc = existingHandle.doc()
+      if (!readResumeListTemplateBinding(doc?.templateBinding)) {
+        const storedBinding = readResumeListTemplateBinding((doc as unknown as Record<string, unknown>)?.template_binding)
+        const binding = storedBinding ?? (await this.persistence.loadResumeConfig()).templateBinding
+        if (!binding)
+          throw new Error('简历模板尚未完成初始化，请重试')
+        existingHandle.change((current) => {
+          if (!readResumeListTemplateBinding(current.templateBinding))
+            current.templateBinding = { ...(readResumeListTemplateBinding((current as unknown as Record<string, unknown>).template_binding) ?? binding) }
+        })
+        await this.saveToSupabase(existingHandle)
+      }
       return this.attachHandle(existingHandle)
     }
 
