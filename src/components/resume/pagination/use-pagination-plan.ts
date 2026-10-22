@@ -6,6 +6,7 @@ import {
   measurePaginationSnapshot,
   nextAnimationFrame,
   waitForResumeFont,
+  waitForResumeImages,
 } from './utils'
 
 interface UsePaginationPlanOptions {
@@ -25,6 +26,7 @@ export function usePaginationPlan({
   familyName,
   weights,
 }: UsePaginationPlanOptions) {
+  const [measuredVersion, setMeasuredVersion] = useState<string | null>(null)
   const [status, setStatus] = useState<PaginationStatus>('measuring')
   const [snapshot, setSnapshot] = useState<PaginationSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +51,13 @@ export function usePaginationPlan({
       setError(null)
 
       try {
-        await waitForResumeFont(document, familyName, weights)
+        const gate = source.querySelector<HTMLElement>('[data-resume-runtime-ready="false"]')
+        if (gate) {
+          if (gate.dataset.resumeRuntimeError)
+            throw new Error(gate.dataset.resumeRuntimeError)
+          return
+        }
+        await Promise.all([waitForResumeFont(source.ownerDocument, familyName, weights), waitForResumeImages(source)])
         let previous: PaginationSnapshot | null = null
 
         for (let frame = 0; frame < MAX_STABILITY_FRAMES; frame += 1) {
@@ -70,6 +78,7 @@ export function usePaginationPlan({
             previous
             && layoutSignaturesEqual(previous.signature, current.signature)
           ) {
+            setMeasuredVersion(contentVersion)
             setSnapshot(current)
             setStatus('ready')
             return
@@ -82,12 +91,14 @@ export function usePaginationPlan({
       catch (caught) {
         if (!isCurrent(requestId))
           return
+        setMeasuredVersion(contentVersion)
         setStatus('error')
         setError(caught instanceof Error ? caught.message : '简历分页失败')
       }
     }
 
     const schedule = () => {
+      setStatus('measuring')
       const requestId = ++measurementId
       cancelAnimationFrame(scheduledFrame)
       scheduledFrame = requestAnimationFrame(() => {
@@ -96,7 +107,10 @@ export function usePaginationPlan({
     }
 
     const resizeObserver = new ResizeObserver(schedule)
+    const mutationObserver = new MutationObserver(schedule)
+    mutationObserver.observe(source, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-resume-runtime-ready', 'data-resume-runtime-error', 'src'] })
     resizeObserver.observe(source)
+    source.querySelectorAll('[data-resume-region-source]').forEach(region => resizeObserver.observe(region))
     resizeObserver.observe(viewport)
     schedule()
 
@@ -106,6 +120,7 @@ export function usePaginationPlan({
       generationRef.current += 1
       cancelAnimationFrame(scheduledFrame)
       resizeObserver.disconnect()
+      mutationObserver.disconnect()
     }
   }, [
     contentVersion,
@@ -116,5 +131,6 @@ export function usePaginationPlan({
     weights,
   ])
 
-  return { status, snapshot, error }
+  const current = measuredVersion === contentVersion
+  return { status: current ? status : 'measuring' as const, snapshot: current ? snapshot : null, error: current ? error : null }
 }

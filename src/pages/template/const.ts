@@ -1,11 +1,4 @@
-export const EXAMPLE_LABELS: Record<string, string> = { graduate: '应届生示例', frontend: '前端开发示例' }
-
-export const EXAMPLE_DESCRIPTIONS: Record<string, string> = {
-  graduate: '突出教育、实习与校园经历',
-  frontend: '突出工作、项目与专业技能',
-}
-
-export const TEMPLATE_CATEGORIES: Record<string, { style: string, layout: string }> = {
-  'default': { style: '简约', layout: '单栏' },
-  'classic-ribbon': { style: '经典', layout: '单栏' },
-}
+// 列表预加载范围；模板分类、示例文案由线上目录提供。
+export const TEMPLATE_PREVIEW_ROOT_MARGIN = '600px 0px'
+export const TEMPLATE_LOAD_MORE_DISTANCE = 480
+export const TEMPLATE_LOAD_MORE_ROOT_MARGIN = `0px 0px ${TEMPLATE_LOAD_MORE_DISTANCE}px 0px`

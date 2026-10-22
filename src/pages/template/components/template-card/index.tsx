@@ -1,27 +1,20 @@
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import { ArrowRight, ScanSearch } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
-import AnimatedContent from '@/components/motion/animated-content'
 import { DURATION } from '@/lib/motion'
-import { exampleKey } from '@/lib/resume-template/source/types'
-import { TEMPLATE_CATEGORIES } from '../../const'
 import { useTemplatePageStore } from '../../store.ts'
-import ExamplePreview from '../example-preview'
+import CardPreview from '../card-preview'
 
 export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
   const showPreview = useTemplatePageStore(state => state.showPreview)
   const selectedExample = useTemplatePageStore(state => state.selectedExamples[item.templateId]) ?? item.defaultExample
-  const category = TEMPLATE_CATEGORIES[item.templateId]
+  const category = item.category
   const reduceMotion = useReducedMotion()
   const transitionStyle = { transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s` }
 
   return (
     <article className="group relative aspect-[210/297] min-w-0 overflow-hidden rounded-xl border bg-card text-card-foreground transition-[border-color,box-shadow] hover:border-foreground/20 hover:shadow-md" style={transitionStyle}>
-      <div className="[&_button]:relative [&_button]:z-10" aria-label={`${item.name}首页预览`}>
-        <AnimatedContent animationKey={exampleKey(selectedExample)}>
-          <ExamplePreview item={item} example={selectedExample} />
-        </AnimatedContent>
-      </div>
+      <CardPreview item={item} example={selectedExample} />
       <button
         type="button"
         aria-label={`预览${item.name}`}

@@ -1,8 +1,8 @@
 import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareReleaseSummary, ResumeShareReviewPayload, ResumeShareReviewRelease, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
-import { parseSharedTemplateDefinition, serializeTemplateForShare } from '@/lib/resume-template/compatibility/share-manifest'
 import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
+import { parseSharedTemplateDefinition, serializeTemplateForShare } from '@/lib/resume-template/share'
 import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import { redactHiddenResumeSections } from '../../../../supabase/functions/shared/resume-share-redaction.ts'
@@ -130,7 +130,6 @@ export async function buildResumeShareSnapshotSource(
 ): Promise<ResumeShareSnapshotSource> {
   const publicSnapshot = redactHiddenResumeSections(snapshot)
   const definition = await resolveTemplate(resumeTemplateSource, snapshot.templateBinding)
-  publicSnapshot.templateBinding = undefined
 
   return {
     snapshot: publicSnapshot,

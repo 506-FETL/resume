@@ -1,3 +1,4 @@
+import type { ResumeTemplateBinding } from './persisted'
 import type { DerivedStatus, VariantMetadata } from './variant'
 
 import { z } from 'zod'
@@ -34,6 +35,7 @@ export function normalizeResumeType(value: unknown): ResumeType {
 
 // 简历列表
 export interface ResumeListItem {
+  templateBinding?: ResumeTemplateBinding | null
   resume_id: string
   created_at: string
   updated_at?: string

@@ -6,13 +6,13 @@
 
 使用 Node.js 24、pnpm 10.33.3，在项目根目录的 `.env.local` 中配置：
 
-| 变量 | 说明 |
-| --- | --- |
-| `VITE_SUPABASE_URL` | 必需，Supabase 项目 URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | 必需，可公开的 publishable / anon key |
-| `VITE_BASE_URL` | 站点基地址，用于认证回调和分享链接 |
-| `VITE_RESUME_COMMENTS_FUNCTION_REGION` | 可选，评论函数区域；未设置时自动解析 |
-| `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` | 可选，协作协议 v2 开关；当前默认关闭 |
+| 变量                                     | 说明                                  |
+| ---------------------------------------- | ------------------------------------- |
+| `VITE_SUPABASE_URL`                      | 必需，Supabase 项目 URL               |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`          | 必需，可公开的 publishable / anon key |
+| `VITE_BASE_URL`                          | 站点基地址，用于认证回调和分享链接    |
+| `VITE_RESUME_COMMENTS_FUNCTION_REGION`   | 可选，评论函数区域；未设置时自动解析  |
+| `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` | 可选，协作协议 v2 开关；当前默认关闭  |
 
 `VITE_` 变量会写入浏览器构建产物，只能放公开配置。模型密钥、service role key 和评论签名密钥放在服务端。
 
@@ -89,11 +89,11 @@ supabase functions deploy github-stars-refresh
 supabase functions deploy backend-ops-monitor
 ```
 
-| Secret | 用途 |
-| --- | --- |
-| `BACKEND_MAINTENANCE_TOKEN` | 后端维护调用鉴权，至少 32 位 |
-| `GITHUB_TOKEN` | GitHub stars 缓存刷新 |
-| `OPS_ALERT_WEBHOOK_URL` | 后端运维告警 |
+| Secret                                    | 用途                         |
+| ----------------------------------------- | ---------------------------- |
+| `BACKEND_MAINTENANCE_TOKEN`               | 后端维护调用鉴权，至少 32 位 |
+| `GITHUB_TOKEN`                            | GitHub stars 缓存刷新        |
+| `OPS_ALERT_WEBHOOK_URL`                   | 后端运维告警                 |
 | `COLLABORATION_LEGACY_REGISTER_CUTOFF_AT` | 可选，旧协作注册流程截止时间 |
 
 部署函数不会自动启用定时调用。开启前，将同一个维护令牌配置为 Edge secret 和 Vault secret，再设置项目 URL 与开关：

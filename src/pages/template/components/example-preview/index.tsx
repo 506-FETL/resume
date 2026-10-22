@@ -4,7 +4,7 @@ import { buildTemplateResumeData } from '@/components/resume/runtime/context/res
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import TemplateResourceStatus from '@/components/resume/template-resource-status'
 import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
-import { toTemplateBinding } from '@/lib/resume-template/compatibility/binding'
+import { toTemplateBinding } from '@/lib/resume-template/binding'
 import { useTemplateExample } from '../../hooks/use-template-example'
 import { catalogTemplateRef } from '../../utils.ts'
 
@@ -16,5 +16,5 @@ export default function ExamplePreview({ item, example }: { item: TemplateCatalo
     return <TemplateResourceStatus error={resource?.status === 'error' ? resource.error.message : undefined} onRetry={retry} />
   if (template.resource.status !== 'ready')
     return <TemplateResourceStatus error={template.resource.status === 'error' ? template.resource.error.message : undefined} onRetry={template.retry} />
-  return <ScaledReadonlyPreview data={data} definition={template.resource.data} appearance={template.resource.data.appearanceDefaults} projectionReferenceDate={resource.data.projectionReferenceDate} />
+  return <ScaledReadonlyPreview data={data} definition={template.resource.data} assetUrls={template.assetUrls} appearance={template.resource.data.appearanceDefaults} projectionReferenceDate={resource.data.projectionReferenceDate} />
 }

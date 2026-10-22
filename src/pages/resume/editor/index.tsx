@@ -256,8 +256,8 @@ function Editor() {
                       className="fixed bottom-6 right-6 z-1"
                     >
                       <Button
-                        variant="secondary"
                         className="shadow-md"
+                        variant="secondary"
                         onClick={() => {
                           setCommentsOpen(false)
                           setPanelOpen(true)
@@ -280,7 +280,7 @@ function Editor() {
                   <DrawerTrigger
                     render={(
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         aria-label="编辑简历"
                         className="fixed bottom-6 left-1/2 z-1 -transform -translate-x-1/2"
                         size="icon"

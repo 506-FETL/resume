@@ -80,13 +80,14 @@ registerTool({
 
 registerTool({
   name: 'list_templates',
-  description: '列出可选的正式简历模板。',
-  parameters: { type: 'object', properties: {}, additionalProperties: false },
+  description: '分页列出可选的正式简历模板，每页最多 12 项，nextOffset 可用于下一页。',
+  parameters: { type: 'object', properties: { offset: { type: 'integer', minimum: 0, description: '分页偏移，首次为 0' } }, additionalProperties: false },
   mode: 'read',
-  execute: async () => {
+  execute: async (args) => {
     try {
-      const list = await resumeTemplateSource.listTemplates()
-      return { count: list.length, templates: list.map(t => ({ id: t.templateId, version: t.currentVersion, name: t.name, description: t.description })) }
+      const page = await resumeTemplateSource.listTemplatePage({ offset: typeof args.offset === 'number' ? args.offset : 0 })
+      const list = page.items
+      return { count: list.length, nextOffset: page.nextOffset, templates: list.map(t => ({ id: t.templateId, version: t.currentVersion, name: t.name, description: t.description })) }
     }
     catch (error) {
       return { error: error instanceof Error ? error.message : '读取模板失败' }

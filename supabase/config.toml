@@ -1,6 +1,13 @@
 [api]
-schemas = ["public", "storage", "graphql_public"]
-extra_search_path = ["public", "extensions"]
+schemas = [
+  "public",
+  "storage",
+  "graphql_public"
+]
+extra_search_path = [
+  "public",
+  "extensions"
+]
 
 [functions.resume-share]
 verify_jwt = false

@@ -4,6 +4,7 @@ import type { StreamUsage } from './stream-parser'
 import type { AgentTool } from './tool-registry.ts'
 import { getSkillReferences } from '../skills/references.ts'
 import { buildSkillCatalogContext, createSkillRuntime } from '../skills/runtime.ts'
+import { serializeAiToolValue } from './serialize-tool-value'
 import { StreamParser } from './stream-parser.ts'
 import { toApiMessages } from './to-api-messages.ts'
 import { getTools, toApiToolDefs } from './tool-registry.ts'
@@ -131,7 +132,7 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
         tool_calls: toolCalls.map(tc => ({
           id: tc.id,
           type: 'function',
-          function: { name: tc.name, arguments: JSON.stringify(tc.args) },
+          function: { name: tc.name, arguments: serializeAiToolValue(tc.args) },
         })),
       } as any)
       if (text)
@@ -178,7 +179,7 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
           result,
           state: isError ? 'error' : cancelled ? 'cancelled' : 'result',
         })
-        apiMessages.push({ role: 'tool', content: JSON.stringify(result), tool_call_id: tc.id } as any)
+        apiMessages.push({ role: 'tool', content: serializeAiToolValue(result), tool_call_id: tc.id } as any)
       }
       // 继续下一轮
       continue

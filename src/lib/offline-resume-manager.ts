@@ -14,7 +14,9 @@ import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/vari
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
-import { createLegacyResumeTemplateBinding, DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
+import { resolveDefaultTemplateBinding } from '@/lib/resume-template/runtime/default-selection'
+import { DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
 
 const MAX_VARIANT_TREE_DEPTH = 5
 
@@ -99,15 +101,26 @@ async function hydrateOfflineResumeRecord(
     return resume
   }
 
-  if (hasPersistedAppearance(resume.data)) {
+  if (hasPersistedAppearance(resume.data) && readResumeListTemplateBinding(resume.data?.templateBinding)) {
     return resume
   }
-
-  const nextResume = {
-    ...resume,
-    data: hydrateOfflineResumeData(resume.data),
+  // 网络等待发生在事务之外；随后重读，防止覆盖其他标签页刚保存的正文或模板。
+  const binding = await resolveDefaultTemplateBinding(resume.data?.templateBinding)
+  const tx = db.transaction('resumes', 'readwrite')
+  const latest = await tx.store.get(resume.resume_id)
+  if (!latest) {
+    await tx.done
+    return undefined
   }
-  await db.put('resumes', nextResume)
+  const nextResume = {
+    ...latest,
+    data: {
+      ...hydrateOfflineResumeData(latest.data),
+      templateBinding: readResumeListTemplateBinding(latest.data?.templateBinding) ?? binding,
+    },
+  }
+  await tx.store.put(nextResume)
+  await tx.done
   return nextResume
 }
 
@@ -152,39 +165,6 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
  */
 function generateResumeId(): string {
   return `local-${crypto.randomUUID()}`
-}
-
-/**
- * 创建新的离线简历
- */
-export async function createOfflineResume(options: {
-  display_name?: string
-  description?: string
-  type?: ResumeType
-}) {
-  const db = await getDB()
-  const resumeId = generateResumeId()
-
-  const resume = {
-    resume_id: resumeId,
-    display_name: options.display_name || '未命名简历',
-    description: options.description || '',
-    type: options.type || 'default',
-    created_at: dayjs().toISOString(),
-    updated_at: dayjs().toISOString(),
-    data: {
-      ...DEFAULT_RESUME_APPEARANCE,
-      templateBinding: createLegacyResumeTemplateBinding(options.type || 'default'),
-    },
-    parent_resume_id: null,
-    linked_jd_text: null,
-    derived_metadata: null,
-    derived_status: null,
-  }
-
-  await db.add('resumes', resume)
-
-  return resumeId
 }
 
 /**

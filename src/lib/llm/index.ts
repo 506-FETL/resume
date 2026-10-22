@@ -5,6 +5,7 @@ import type { RewriteRequestArgs } from '@/components/ai-rewrite/types'
 import type { EditableResumeView } from '@/components/jd-variant/types'
 import { throttle } from 'lodash'
 import { REWRITE_TEMPERATURE } from '@/components/ai-rewrite/const'
+import { serializeAiToolValue } from '@/lib/ai/agent/serialize-tool-value'
 import { callLLM } from './call'
 import { buildJdParsePrompt, buildJdRewritePrompt, JD_VARIANT_PARSE_TEMPERATURE, JD_VARIANT_REWRITE_TEMPERATURE } from './prompts/jd-variant'
 import { createJobDescriptionAnalysisPrompt } from './prompts/job-description'
@@ -268,7 +269,7 @@ export async function runJobDescriptionStructured(
   onUpdate?: (data: StreamUpdate) => void,
   options?: { throttleMs?: number },
 ) {
-  const promptText = createJobDescriptionAnalysisPrompt(JSON.stringify(resumeConfig, null, 2), jobDescription)
+  const promptText = createJobDescriptionAnalysisPrompt(serializeAiToolValue(resumeConfig), jobDescription)
   const req = {
     messages: [
       {

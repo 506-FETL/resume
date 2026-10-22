@@ -2,7 +2,7 @@
 import type { PropsWithChildren } from 'react'
 import type { ORDERType, ResumeSchema, ResumeTemplateBinding, ResumeType, VisibilityFormType } from '@/lib/schema'
 import { createContext, use } from 'react'
-import { normalizeResumeFormData, resolveResumeTemplateBinding } from '@/lib/schema'
+import { normalizeResumeFormData } from '@/lib/schema'
 
 type VisibleSection = Exclude<ORDERType, 'basics'>
 
@@ -29,7 +29,7 @@ export function buildTemplateResumeData(snapshot: TemplateResumeDataInput): Temp
   return {
     ...snapshot,
     ...formData,
-    templateBinding: resolveResumeTemplateBinding(snapshot.templateBinding, snapshot.type),
+    templateBinding: snapshot.templateBinding,
     // visibility 存的是“是否隐藏”，runtime 读取时需要转换成“是否显示”
     getVisibility: id => snapshot.visibility[id] !== true,
   }

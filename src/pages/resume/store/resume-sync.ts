@@ -3,6 +3,7 @@ import type { ResumeItem } from '../types'
 import type { ResumeListState } from './types'
 import { toast } from 'sonner'
 import { syncOfflineResumesToCloud } from '@/lib/resume-sync-service'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
 import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
 
@@ -90,6 +91,7 @@ export function createResumeSyncSlice(set: SetState, get: GetState): ResumeSyncS
               display_name: payload.new.display_name,
               description: payload.new.description,
               isOffline: false,
+              templateBinding: readResumeListTemplateBinding(payload.new.template_binding),
             }
             set((state) => {
               if (state.resumes.some(r => r.resume_id === resume.resume_id))
@@ -107,6 +109,7 @@ export function createResumeSyncSlice(set: SetState, get: GetState): ResumeSyncS
                       display_name: payload.new.display_name,
                       description: payload.new.description,
                       updated_at: payload.new.updated_at,
+                      templateBinding: readResumeListTemplateBinding(payload.new.template_binding),
                     }
                   : r,
               ),

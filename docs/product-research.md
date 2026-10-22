@@ -4,22 +4,22 @@
 
 ## 同类产品已经提供什么
 
-| 来源 | 可核实的能力 | 对本次叙述的影响 |
-| --- | --- | --- |
-| [Teal：How it works](https://www.tealhq.com/how-it-works)；[跨简历同步](https://help.tealhq.com/en/articles/9457698-making-changes-across-resumes) | 简历编辑与投递追踪在同一产品内；已有内容可选择同步到其他简历，全新经历会自动加入其他简历 | 不能把“简历 + Tracker”写成独家能力。共享经历便于统一维护；GResume 的 JD 派生则复制父简历，优先隔离岗位修改 |
-| [Huntr：Building Your Tailored Resume](https://help.huntr.co/en/articles/13005373-building-your-tailored-resume)；[Job Match Score](https://help.huntr.co/en/articles/12241684-job-match-score) | 从基础简历和已保存职位创建定制版；评分包含要求、职责、关键词和职位匹配，并给出解释 | 不能把竞品概括为“只会套模板、数关键词”。GResume 应具体说明自己的评估依据与修改确认流程 |
-| [Reactive Resume 官方网站](https://rxresu.me/) | 开源、自托管、岗位定制、分享与求职追踪；可按需配置 AI | 免费、开源和自托管并非独有。GResume 应说明实际的数据边界，而非泛称“更安全” |
+| 来源                                                                                                                                                                                            | 可核实的能力                                                                             | 对本次叙述的影响                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [Teal：How it works](https://www.tealhq.com/how-it-works)；[跨简历同步](https://help.tealhq.com/en/articles/9457698-making-changes-across-resumes)                                              | 简历编辑与投递追踪在同一产品内；已有内容可选择同步到其他简历，全新经历会自动加入其他简历 | 不能把“简历 + Tracker”写成独家能力。共享经历便于统一维护；GResume 的 JD 派生则复制父简历，优先隔离岗位修改 |
+| [Huntr：Building Your Tailored Resume](https://help.huntr.co/en/articles/13005373-building-your-tailored-resume)；[Job Match Score](https://help.huntr.co/en/articles/12241684-job-match-score) | 从基础简历和已保存职位创建定制版；评分包含要求、职责、关键词和职位匹配，并给出解释       | 不能把竞品概括为“只会套模板、数关键词”。GResume 应具体说明自己的评估依据与修改确认流程                     |
+| [Reactive Resume 官方网站](https://rxresu.me/)                                                                                                                                                  | 开源、自托管、岗位定制、分享与求职追踪；可按需配置 AI                                    | 免费、开源和自托管并非独有。GResume 应说明实际的数据边界，而非泛称“更安全”                                 |
 
 这些是官方公布的能力，不代表本次已逐项实测。未查到某项功能，也不能据此写成“竞品不支持”。
 
 ## 公开反馈反映的问题
 
-| 来源与时间 | 用户报告的情况 | 支持的设计方向与限制 |
-| --- | --- | --- |
-| [r/jobsearchhacks：genuine curiosity](https://www.reddit.com/r/jobsearchhacks/comments/1vad8hk/genuine_curiosity/)，2026-07 | 发帖者多次弄混不同公司收到的简历版本；回复中有人用公司文件夹和表格保存版本、JD 与进度 | 把岗位与简历关联，并保存实际对外版本。GResume 的 Tracker 目前关联简历 ID，不能描述成自动归档每次投递快照 |
-| [r/resumes：岗位定制与经历叙述的冲突](https://www.reddit.com/r/resumes/comments/1me4kat/how_are_we_supposed_to_craft_the_perfect_resume/)，2025-07 | 发帖者使用 Teal 补充关键词，却觉得多轮修改削弱了经历的连贯性 | 修改建议应对应具体经历，由用户决定取舍。帖子中关于招聘 ATS 的推测不作为技术事实引用 |
-| [r/jobsearchhacks：Read your AI-generated resume carefully before submitting](https://www.reddit.com/r/jobsearchhacks/comments/1fo20o4/read_your_aigenerated_resume_carefully_before/)，2024-09 | 发帖者发现 AI 添加了没有的技能，并将成果移到另一段工作经历 | 展示改动和原文，写入前确认。结构校验和确认界面不能保证经历真实，也不能宣称消除幻觉 |
-| [Reactive Resume #3089](https://github.com/AmruthPillai/Reactive-Resume/issues/3089)，2026-05-19 | 自托管用户报告同份内容出现字距变化和文字裁切 | 支持重视渲染一致性的必要性。属于指定版本、模板与环境的个案，不表示当前所有版本都有问题，也未与 GResume 做对照测试 |
+| 来源与时间                                                                                                                                                                                      | 用户报告的情况                                                                        | 支持的设计方向与限制                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [r/jobsearchhacks：genuine curiosity](https://www.reddit.com/r/jobsearchhacks/comments/1vad8hk/genuine_curiosity/)，2026-07                                                                     | 发帖者多次弄混不同公司收到的简历版本；回复中有人用公司文件夹和表格保存版本、JD 与进度 | 把岗位与简历关联，并保存实际对外版本。GResume 的 Tracker 目前关联简历 ID，不能描述成自动归档每次投递快照          |
+| [r/resumes：岗位定制与经历叙述的冲突](https://www.reddit.com/r/resumes/comments/1me4kat/how_are_we_supposed_to_craft_the_perfect_resume/)，2025-07                                              | 发帖者使用 Teal 补充关键词，却觉得多轮修改削弱了经历的连贯性                          | 修改建议应对应具体经历，由用户决定取舍。帖子中关于招聘 ATS 的推测不作为技术事实引用                               |
+| [r/jobsearchhacks：Read your AI-generated resume carefully before submitting](https://www.reddit.com/r/jobsearchhacks/comments/1fo20o4/read_your_aigenerated_resume_carefully_before/)，2024-09 | 发帖者发现 AI 添加了没有的技能，并将成果移到另一段工作经历                            | 展示改动和原文，写入前确认。结构校验和确认界面不能保证经历真实，也不能宣称消除幻觉                                |
+| [Reactive Resume #3089](https://github.com/AmruthPillai/Reactive-Resume/issues/3089)，2026-05-19                                                                                                | 自托管用户报告同份内容出现字距变化和文字裁切                                          | 支持重视渲染一致性的必要性。属于指定版本、模板与环境的个案，不表示当前所有版本都有问题，也未与 GResume 做对照测试 |
 
 ## GResume 的取舍
 

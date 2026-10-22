@@ -6,6 +6,7 @@ import { next as Automerge } from '@automerge/automerge'
 import { parseAutomergeUrl } from '@automerge/automerge-repo'
 import supabase from '@/lib/supabase/client'
 import { RESUME_PERSISTED_SELECTOR } from '@/lib/supabase/resume/form'
+import { ensureCloudResumeTemplateBinding } from '@/lib/supabase/resume/template-binding'
 import {
   CollaborationDocumentLoadError,
   decodeDocumentData,
@@ -106,7 +107,10 @@ export class AutomergeDocumentPersistence {
       throw new Error('所有者简历配置不存在，无法初始化文档')
     }
 
-    return data as Partial<PersistedResumeSnapshot>
+    const config = data as unknown as Record<string, unknown>
+    const templateBinding = await ensureCloudResumeTemplateBinding(this.resumeId, this.userId, config.template_binding)
+    const { template_binding: _binding, ...snapshot } = config
+    return { ...snapshot, templateBinding } as Partial<PersistedResumeSnapshot>
   }
 
   async saveHandle(handle: DocHandle<AutomergeResumeDocument>, snapshot?: AutomergeResumeDocument): Promise<DocumentSaveResult> {

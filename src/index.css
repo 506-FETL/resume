@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/inter';
 @import './styles/motion.css';
 @plugin "@tailwindcss/typography";
 
@@ -157,7 +157,7 @@ body {
   --font-sans: 'Inter Variable', sans-serif;
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6)
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @layer base {
@@ -329,7 +329,7 @@ body {
 }
 
 /* 变更记录「定位」目标：给简历各章节留出 sticky 标题栏高度的滚动边距，避免滚动到顶部时被遮挡 */
-[id^="resume-section-"] {
+[id^='resume-section-'] {
   scroll-margin-top: 4rem;
 }
 

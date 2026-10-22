@@ -14,21 +14,21 @@ export function TemplateRuntimeProviders({
   data,
   appearance,
   projectionReferenceDate,
-  palette,
+  tokens,
 }: PropsWithChildren<{
   data: TemplateResumeData
   appearance: Partial<ResumeAppearanceConfig>
   projectionReferenceDate: string
-  palette?: TemplateDefinition['palette']
+  tokens?: TemplateDefinition['tokens']
 }>) {
   const { font, spacing, theme } = useMemo(() => {
     const normalized = normalizeResumeAppearance(appearance)
     const styles = resolveResumeAppearanceStyles(normalized)
-    if (!palette)
+    if (!tokens)
       return styles
-    const primaryColor = normalized.theme.theme === 'default' ? palette.primary : styles.theme.primaryColor
-    return { ...styles, theme: { ...styles.theme, primaryColor, progressBarFill: primaryColor, accentColor: palette.accent } }
-  }, [appearance, palette])
+    const primaryColor = normalized.theme.theme === 'default' ? tokens.primary : styles.theme.primaryColor
+    return { ...styles, theme: { ...styles.theme, primaryColor, progressBarFill: primaryColor, accentColor: tokens.accent } }
+  }, [appearance, tokens])
   const commentNodesByKey = useMemo(() => {
     const { document } = buildCommentAnchorDocument(data, projectionReferenceDate)
     return new Map(document.nodes.map(node => [node.nodeKey, node]))
@@ -52,9 +52,18 @@ export function TemplateRuntimeProviders({
       <ResumeContextProvider value={resumeContext}>
         <div
           data-resume-runtime-root
+          data-resume-runtime-ready="true"
           style={{
             fontFamily: font.fontFamily,
             fontSynthesis: 'none',
+            fontSize: font.contentSize,
+            fontWeight: font.normalWeight,
+            lineHeight: spacing.lineHeight,
+            color: theme.textPrimary,
+            overflowWrap: 'anywhere',
+            boxSizing: 'border-box',
+            printColorAdjust: 'exact',
+            WebkitPrintColorAdjust: 'exact',
           }}
         >
           {children}

@@ -1,6 +1,6 @@
 import type { CommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
-import type { PublishedTemplateManifest } from '@/lib/resume-template/compatibility/share-manifest'
 import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
+import type { PublishedTemplateManifest } from '@/lib/resume-template/share'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 
 export interface ResumeShareSnapshotSource {

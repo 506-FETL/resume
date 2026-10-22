@@ -3,6 +3,7 @@ import type { ResumeItem } from '../types'
 import type { ResumeListState } from './types'
 import { toast } from 'sonner'
 import { deleteOfflineResume, getAllOfflineResumes, isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
 import { deleteResume as deleteResumeApi, getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { getCurrentUser } from '@/lib/supabase/user'
 import useCurrentResumeStore from '@/store/resume/current'
@@ -61,7 +62,7 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
           })(),
           (async () => {
             const localResumes = await getAllOfflineResumes()
-            const offlineResumes = localResumes.map(r => ({ ...r, isOffline: true }))
+            const offlineResumes = localResumes.map(r => ({ ...r, isOffline: true, templateBinding: readResumeListTemplateBinding(r.data.templateBinding) }))
             if (request === requestId)
               set(state => ({ resumes: [...state.resumes.filter(r => !r.isOffline), ...offlineResumes], offlineResumes }))
           })(),

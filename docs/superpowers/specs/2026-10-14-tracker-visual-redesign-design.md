@@ -16,12 +16,12 @@
 
 已在本地浏览器实际查看求职跟进页的列表、看板，以及分享管理、首页、历史版本、我的简历页面，并对照源码。
 
-| 参考页面 | 可借鉴的设计 | 对应源码 |
-| --- | --- | --- |
-| 分享管理 | 独立标题与说明、右侧单一主操作；统计与筛选分层；轻边框圆角表面 | `src/pages/share/components/header/index.tsx`、`overview/index.tsx`、`toolbar/index.tsx` |
-| 首页 | 彩色小图标、数字和说明的层级、规则的统计网格 | `src/pages/index/components/statistical-card/index.tsx` |
-| 历史版本 | 页面身份图标；工具区与内容区分开；主次表面层级 | `src/pages/history/components/header/index.tsx`、`summary.tsx`、`components/workspace/index.tsx` |
-| 我的简历 | 标题留白、分段切换、卡片中主体与操作的分区 | `src/pages/resume/components/head-bars/index.tsx`、`resume-card/index.tsx` |
+| 参考页面 | 可借鉴的设计                                                   | 对应源码                                                                                         |
+| -------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 分享管理 | 独立标题与说明、右侧单一主操作；统计与筛选分层；轻边框圆角表面 | `src/pages/share/components/header/index.tsx`、`overview/index.tsx`、`toolbar/index.tsx`         |
+| 首页     | 彩色小图标、数字和说明的层级、规则的统计网格                   | `src/pages/index/components/statistical-card/index.tsx`                                          |
+| 历史版本 | 页面身份图标；工具区与内容区分开；主次表面层级                 | `src/pages/history/components/header/index.tsx`、`summary.tsx`、`components/workspace/index.tsx` |
+| 我的简历 | 标题留白、分段切换、卡片中主体与操作的分区                     | `src/pages/resume/components/head-bars/index.tsx`、`resume-card/index.tsx`                       |
 
 当前页面的具体问题：
 

@@ -1,7 +1,8 @@
 import type { ResumeItem } from '../types'
 import type { ResumeFilterMode } from './resume-ui'
+import type { TemplateNamesSlice } from './template-names'
 
-export interface ResumeListState {
+export interface ResumeListState extends TemplateNamesSlice {
   // List slice
   resumes: ResumeItem[]
   loading: boolean

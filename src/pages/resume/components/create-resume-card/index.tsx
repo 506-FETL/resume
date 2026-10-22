@@ -8,8 +8,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateTemplateResume } from '@/hooks/use-create-template-resume'
-import { defaultTemplateCatalogItem } from '@/lib/resume-template/catalog/default'
-import { DEFAULT_TEMPLATE_REF } from '@/lib/resume-template/compatibility/binding'
+import { getDefaultTemplateSelection } from '@/lib/resume-template/runtime/default-selection'
 import useResumeListStore from '@/pages/resume/store'
 import { useResumeCreationStore } from '@/store/resume-creation'
 
@@ -21,16 +20,34 @@ export default function CreateResumeCard({ trigger, online, onCreated, open, onO
   const setIsCreating = onOpenChange ?? setLocalOpen
   const [displayName, setDisplayName] = useState('')
   const [description, setDescription] = useState('')
-  const { createResume, loading, error, retrying } = useCreateTemplateResume()
+  const [selecting, setSelecting] = useState(false)
+  const [selectionError, setSelectionError] = useState<string | null>(null)
+  const { createResume, loading: creating, error, retrying } = useCreateTemplateResume()
+
+  const loading = selecting || creating
 
   async function handleCreateResume(e: FormEvent) {
     e.preventDefault()
-    const ok = await createResume({ template: DEFAULT_TEMPLATE_REF, example: defaultTemplateCatalogItem.defaultExample, mode: (online ?? isOnline) ? 'cloud' : 'local', displayName, description }, onCreated)
-    if (ok)
-      handleCancel()
+    if (loading)
+      return
+    setSelecting(true)
+    setSelectionError(null)
+    try {
+      const selection = await getDefaultTemplateSelection()
+      const ok = await createResume({ ...selection, mode: (online ?? isOnline) ? 'cloud' : 'local', displayName, description }, onCreated)
+      if (ok)
+        handleCancel()
+    }
+    catch (caught) {
+      setSelectionError(caught instanceof Error ? caught.message : '模板加载失败，请重试')
+    }
+    finally {
+      setSelecting(false)
+    }
   }
 
   function handleCancel() {
+    setSelectionError(null)
     setDisplayName('')
     setDescription('')
     useResumeCreationStore.getState().reset()
@@ -101,7 +118,7 @@ export default function CreateResumeCard({ trigger, online, onCreated, open, onO
             </Field>
 
             <p className="text-sm text-muted-foreground">默认模板 · 应届生示例。创建后可逐项替换。</p>
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            {(selectionError || error) && <p role="alert" className="text-sm text-destructive">{selectionError || error}</p>}
 
           </FieldGroup>
 

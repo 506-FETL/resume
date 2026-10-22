@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { resumePhotoSchema } from './photo'
 
 const genderSchema = z.enum(['不填', '男', '女', '其他']).default('不填')
 export type Gender = z.infer<typeof genderSchema>
@@ -18,6 +19,7 @@ const customFieldSchema = z
 export type BasicCustomField = z.infer<typeof customFieldSchema>
 
 export const basicsSchema = z.object({
+  photo: resumePhotoSchema.nullable().default(null),
   name: z.string().trim(),
   gender: genderSchema,
   birthMonth: z.string(),
@@ -37,6 +39,7 @@ export type BasicFormType = z.infer<typeof basicsSchema>
 export type BasicFormInput = z.input<typeof basicsSchema>
 
 export const DEFAULT_BASICS: BasicFormType = {
+  photo: null,
   name: 'Granular Resume',
   gender: '不填',
   birthMonth: '',

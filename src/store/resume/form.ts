@@ -24,7 +24,7 @@ interface FormSlice extends FormDataMap {
 
   toggleVisibility: (id: VisibilityItemsType) => void
   changeType: (type: ResumeType) => void
-  setTemplateBinding: (binding?: ResumeTemplateBinding) => void
+  setTemplateBinding: (binding: ResumeTemplateBinding) => void
   getVisibility: (id: VisibilityItemsType) => boolean
   setVisibility: (id: VisibilityItemsType, isHidden: boolean) => void
   updateActiveTabId: (newActiveTab: ORDERType) => void
