@@ -20,8 +20,8 @@ export interface TemplatePreview {
   asset: TemplateAssetRef
 }
 export interface TemplateCatalogItem {
-  schemaVersion: 2
-  renderContract: 'declarative-flow@1'
+  schemaVersion: 3
+  renderContract: 'declarative-page@1'
   previews: TemplatePreview[]
   templateId: string
   name: string

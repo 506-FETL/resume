@@ -51,7 +51,7 @@ export function createTemplateCache(namespace: string): TemplateResourceCache {
   const database = () => {
     if (typeof indexedDB === 'undefined')
       return Promise.reject(new Error('IndexedDB unavailable'))
-    pending ??= openDB<TemplateCacheDB>(`resume-public-templates-v2:${namespace}`, 1, {
+    pending ??= openDB<TemplateCacheDB>(`resume-public-templates-v3:${namespace}`, 1, {
       upgrade(db) {
         db.createObjectStore('resources', { keyPath: 'key' }).createIndex('savedAt', 'savedAt')
       },

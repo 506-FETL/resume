@@ -1,14 +1,14 @@
 # 简历模板维护手册
 
-适用版本：2026-10-22，单一声明式协议 `schemaVersion: 2`、渲染契约 `declarative-flow@1`。设计与实施依据见 [声明式模板方案](superpowers/specs/2026-10-22-declarative-template-engine-design.md) 和 [实现计划](superpowers/plans/2026-10-22-declarative-template-engine.md)。第 10 节保留历史导出问题的复盘与长期回归要求。
+适用版本：2026-10-23，单一声明式协议 `schemaVersion: 3`、渲染契约 `declarative-page@1`。设计与实施依据见 [声明式模板方案](superpowers/specs/2026-10-23-qm-hot-ten-templates-design.md) 和 [实现计划](superpowers/plans/2026-10-23-qm-hot-ten-templates.md)。第 10 节保留历史导出问题的复盘与长期回归要求。
 
 ## 1. 当前交付范围
 
-模板库提供 `default@2` 和 `classic-ribbon@2`（经典蓝金模板）。两套设计都由版本化 JSON 描述，经同一通用解释器呈现。运行时不注册模板专属 React 组件，不按模板 ID 选择页头、标题或经历样式。
+模板库提供原有 `default@3`、`classic-ribbon@3`，以及十套新模板的 `@1` 版本，共十二套。十套参考与模板 ID 的对应关系见本轮规格文档。所有设计都由版本化 JSON 描述，经同一通用解释器呈现。运行时不注册模板专属 React 组件，不按模板 ID 选择页头、标题或经历样式。
 
-目录、模板定义、独立示例和图片素材从 Supabase 官方资源读取。目录卡片使用实际 PNG 静态预览；打开详情才读取定义和示例、运行完整渲染与分页。前端生产构建不打入 `template-resources/` 的定义、示例或图片。测试用 harness 读取资源不属于生产入口。
+目录、模板定义、独立示例和图片素材从 Supabase 官方资源读取。目录卡片使用实际 PNG 静态预览；打开详情才读取定义和示例、运行完整渲染与分页。本地 `template-resources/`、一次性发布脚本和模板验收目录已按用户要求清理；前端生产构建不包含这些资源副本。
 
-第一批支持单一连续纵向内容流、横排、换行和局部网格，以及受控图形与技能条。独立流动双栏、跨页重复侧栏和自动平衡多栏没有纳入当前分页契约。没有模板发布后台或任意用户模板执行能力。
+支持单栏和两个独立分页区域、横排、换行、局部网格、受控图形、照片与技能条。双栏分别测量与切页，最终页数取区域页数最大值；较短区域后续页保持空白，纸张装饰继续绘制。不做内容自动平衡或跨栏流动，没有模板专属 React 分支。没有模板发布后台或任意用户模板执行能力。
 
 本次是上线前的一次性替换：应用只接受新协议、精确绑定和新分享信封；没有旧定义运行时、旧绑定回退、旧缓存读取或旧分享适配。数据库中的旧版本可作为静态档案保留，但新应用不渲染它们；本次不批量迁移或删除用户业务数据。
 
@@ -18,10 +18,10 @@
 | -------------------- | --------------------------------------------------------------- | ------------------------------------------ |
 | 协议公开入口         | `src/lib/resume-template/definition-schema.ts`                  | 严格解析并输出统一错误                     |
 | 节点、样式与语义校验 | `src/lib/resume-template/declarative/`                          | 白名单、绑定作用域、结构预算、样式解析     |
-| 模板定义             | `template-resources/<id>/v2.json`                               | 发布维护输入；不得从前端运行代码导入       |
-| 目录元数据           | `template-resources/catalog.json`                               | schema、契约、分类、示例与静态预览精确引用 |
-| 示例内容             | `template-resources/examples/<id>/v1.json`                      | 版本独立，使用现有正文 schema 与虚构信息   |
-| 图片资源             | `template-resources/previews/`、`assets/`                       | 内容哈希、真实类型、尺寸和体积必须一致     |
+| 模板定义             | Supabase `official_resume_template_versions`                               | 按精确版本读取，不在前端保存定义副本       |
+| 目录元数据           | Supabase `official_resume_template_catalog`                               | schema、契约、分类、示例与静态预览精确引用 |
+| 示例内容             | Supabase `official_resume_example_versions`                      | 版本独立，使用现有正文 schema 与虚构信息   |
+| 图片资源             | Supabase `official_resume_assets`                       | 内容哈希、真实类型、尺寸和体积必须一致     |
 | 数据源与缓存         | `src/lib/resume-template/source/`                               | 官方精确版本读取、完整性校验和有界缓存     |
 | 内容映射             | `src/lib/resume-template/content/`                              | 业务模块转为内容类型，保留字段身份         |
 | 通用解释器           | `src/components/resume/runtime/`                                | 只按节点类型分派，不按模板身份分派         |
@@ -31,7 +31,7 @@
 | 绑定与分享           | `src/lib/resume-template/binding.ts`、`share.ts`                | 无缺省回退；冻结新定义与精确素材清单       |
 | 创建操作             | `src/lib/resume-template/create/`、`src/store/resume-creation/` | 一次准备、完整插入、同一操作重试           |
 | 模板页面             | `src/pages/template/`                                           | 页面 store 保存预览目标、筛选和示例选择    |
-| 发布与验证           | `scripts/build-template-seed.ts`、`tests/resume-template/`      | 维护工具在 scripts；测试及数据在 tests     |
+| 发布与验证           | 受控云端维护通道及真实应用入口 | 临时生成目录已清理；新增验证仍放在 tests 下 |
 
 模板定义、用户正文、目录和示例各自独立。教育、工作、实习等业务模块共用 `experience` 内容类型；解释器使用模板中的该类配方，不重复实现领域映射。增加经历只增加业务数据，不生成另一份设计。
 
@@ -39,19 +39,20 @@
 
 ## 3. 声明式定义如何工作
 
-一份定义包含 `templateId`、`version`、`schemaVersion`、`renderContract`、`capabilities`、`document`、`section`、`contentByKind`、`styles`、`tokens`、`assets` 与 `appearanceDefaults`。
+一份定义包含 `templateId`、`version`、`schemaVersion`、`renderContract`、`capabilities`、`page`、`document`、`section`、`contentByKind`、`styles`、`tokens`、`assets` 与 `appearanceDefaults`。
 
-- `document` 描述页头与正文入口，`section` 描述模块标题和内容容器。
+- `page` 定义全出血、区域宽度、内边距、间隙和背景；`decorationFirstPageOnly` 可让页头装饰只出现在首页，防止续页文字被横带覆盖；`regions` 定义模块路由，其中恰有一个 `remaining` 区域接收其余模块。每个区域可覆盖 document、section、contentByKind。
+- `document` 描述页头与正文入口，`section` 描述模块标题和内容容器。标题 `keepWithNext` 与下一段首行作为原子分页约束。
 - `contentByKind` 分别提供 `experience`、`richText`、`skills`、`fieldList`、`tagList` 配方。
-- 通用节点包括 `box`、`text`、`field`、`richText`、`repeat`、`sections`、`blocks`、`shape`、`meter`、`image`。box/repeat 只提供受控的 stack、row、wrap、grid 排列。
+- 通用节点包括 `box`、`text`、`field`、`richText`、`repeat`、`sections`、`blocks`、`shape`、`meter`、`image`、`photo`。box/repeat 只提供受控的 stack、row、wrap、grid 排列。
 - 内容绑定限定在 profile、section、block、item 作用域。正文继续使用 `ContentField` 的 sectionKey、entryId、fieldKey、nodeKey；装饰不建立评论投影。同一字段只能有一个主评论投影，副本须显式使用 display 投影。
 - `styles` 是包内命名样式字典。数值可引用有限 token 并做 factor/add 运算，颜色使用六位十六进制值或受控颜色 token；不接受任意 CSS、选择器、脚本、组件路径或 URL。
 
 用户外观覆盖开放的字体、字号、主题、页边距、模块间距和行高。模板节点引用解析后的 token；`appearanceDefaults` 只在创建新简历时复制。经典蓝金在默认主题下使用模板蓝灰主色和金色强调色，切换主题后替换主色，强调色保持模板设计。
 
-新简历必须保存完整绑定，例如 `{ source: 'official', templateId: 'default', templateVersion: 2 }`。缺失字段、未知来源或不合法版本明确报错；指定版本不存在、能力缺失、资源失败时不能换用其他模板。
+新简历必须保存完整绑定，例如 `{ source: 'official', templateId: 'default', templateVersion: 3 }`。缺失字段、未知来源或不合法版本明确报错；指定版本不存在、能力缺失、资源失败时不能换用其他模板。
 
-可见模块先按简历顺序过滤隐藏、空内容和已由页头消费的模块，再计算相邻间距。默认模板不保留旧空槽。测量、展示与打印统一使用四边 `pageMargin` 计算正文视口，底边距不再为零；由此产生的新分页使用新基线，不要求与旧实现页数相同。
+可见模块先按简历顺序过滤隐藏、空内容和已由页头消费的模块，再计算相邻间距。默认模板不保留旧空槽。测量、展示与打印统一使用 `resolveTemplatePage` 计算 A4 和各区域几何。背景绝对定位，不占正文尺寸。每个区域分别记录内容高度与断点；打印前验证每一页的实际裁切矩形、内容位移和 overflow，随后严格比较布局签名。不得放宽签名容忍实际布局变化。
 
 定义预算为 256 KiB、512 个结构节点和 16 层深度；展开还有 30000 的渲染预算。超出时明确失败，不截断或缩小正文。具体预算与受支持能力以 `declarative/validate.ts` 为准。
 
@@ -59,10 +60,10 @@
 
 ### 4.1 只需发布资源的设计
 
-1. 在 `template-resources/<新模板 ID>/v<版本>.json` 编写结构配方、样式、token 和素材清单，使用严格 parser 验证。不得增加模板 ID 分支或专属组件注册。
-2. 选择已有示例的精确版本，或在 `examples/<示例 ID>/v<版本>.json` 新增独立示例。现有 `graduate@1` 与 `frontend@1` 可继续复用；模板升级不要求示例升级。
+1. 从云端读取所需定义，准备具有新 ID 或新版本的 JSON，编写结构配方、样式、token 和素材清单，使用严格 parser 验证。发布输入不要求保存在前端仓库，不能增加模板 ID 分支或专属组件注册。
+2. 选择云端已有示例的精确版本，或准备具有新 ID / 版本的独立示例。现有 `graduate@2` 与 `frontend@2` 可继续复用；模板升级不要求示例升级。
 3. 用真实解释器生成每个候选示例的首页静态图，记录模板 ID/版本、示例 ID/版本、完整外观、参考日期及素材引用。缺图只能显示占位，不能使用另一示例的图。
-4. 更新 `catalog.json`，执行第 8.3 节的严格发布器，先在隔离环境校验，再由受控维护通道发布资源，最后切换目录。
+4. 准备新的目录元数据，按第 8.3 节校验并通过受控维护通道发布资源，最后切换云端目录。
 5. 验证真实目录请求只取摘要及按需图片；详情加载精确资源。完成评论、分页、分享、Word 和 PDF 验收。
 
 已有节点能表达的标题造型、局部布局、字段排序、颜色、图形和经历形式都应通过数据描述。无需复制表单、简历 store、协作、评论、分享页面或导出服务，也无需将定义加入前端 bundle。
@@ -83,12 +84,12 @@
 | ------------------------ | -------------------------------- | ---------------------------- |
 | 名称、说明、排序         | 修改目录元数据                   | 正文与绑定不变               |
 | 示例正文                 | 新示例版本，更新目录及预览引用   | 已复制的正文不变             |
-| 模板结构、外观或必要素材 | 新模板版本，如 `default@3`       | 继续读取原精确版本           |
+| 模板结构、外观或必要素材 | 新模板版本，如 `default@4`       | 继续读取原精确版本           |
 | 公共排版行为             | 明确渲染契约策略并回归有效版本   | 不暗中改变既有版本的排版承诺 |
 | 下架推荐                 | 撤回目录上架状态，保留版本与资源 | 仍可按精确引用读取           |
 | 推荐版本回滚             | 目录指向受当前引擎支持的稳定版本 | 不自动改写已创建简历         |
 
-协议版本、模板版本、示例版本与渲染契约分别管理。`@2` 是本次两套模板的新不可变版本，不表示支持 `@1` 协议。目录回滚不能把新应用切回不支持的旧协议；完整发布回退需同时恢复对应应用与目录，不能只替换 JSON。
+协议版本、模板版本、示例版本与渲染契约分别管理。两套原模板使用 `@3`，十套新模板从 `@1` 开始；它们均使用协议 3。模板版本号不等于协议版本。目录回滚不能把新应用切回不支持的旧协议；完整发布回退需同时恢复对应应用与目录，不能只替换 JSON。
 
 不要覆盖或删除已发布定义、示例及素材。未来的主动升级须由所有者预览确认，并通过服务端权限与事务约束同步绑定；不能拿旧正文快照覆盖协作期间的新编辑。目前没有主动升级入口。
 
@@ -97,11 +98,15 @@
 - 正文继续使用既有 Zustand / Automerge / 富文本同步链路。只读映射不写回正文，不因切换预览重新创建协作文档。
 - 创建示例时生成新条目 ID；重试复用准备好的快照。读取、上传、历史恢复、派生和分享不得重新分配身份。
 - 历史预览、历史 PDF 和分享使用各自快照的外观与评论参考日期，不能读取当前编辑器的全局外观。
-- 分享只接受 schema2 信封，冻结完整定义和精确素材清单，并校验 ID、版本与清单一致。没有 definition 或清单不符即失败；没有旧信封回退。公开正文继续删除隐藏内容和内部模板绑定。
+- 分享只接受 schema3 信封，冻结完整定义和精确素材清单，并校验 ID、版本与清单一致。没有 definition 或清单不符即失败；没有旧信封回退。公开正文继续删除隐藏内容和内部模板绑定。
 - PDF 必须等待模板、字体、必要图片解码、分页及打印副本布局签名一致。更新正文、定义或外观后，旧 ready 状态立即失效；失败时禁止错误导出。
 - 纸张装饰使用不占正文尺寸的内描边，公共打印规则统一设置 `print-color-adjust: exact` 和 `-webkit-print-color-adjust: exact`。
 - Word 仍为简化 HTML `.doc`，从受控样式生成，去除纯装饰 SVG/轨道并保留文本顺序、基本样式和章节配色；不能标为 DOCX。
 - 评论定位继续使用字段投影、块序号和可见页根节点；测量源、隐藏分页副本、装饰和示例预览不能成为真实简历的评论目标。
+
+### 6.1 照片边界
+
+照片作为 basics.photo 的原子对象保存在用户简历正文，经裁切压缩后只接受 JPEG data URL，长边不超过 640px、字节不超过 96KiB。上传入口接受 JPG/PNG/WebP，验证实际图片并裁切为 3:4；可替换或删除。协作与表单同步把完整照片对象作为一个字段写入，避免图片字节与尺寸分开合并。分享、历史和导出使用各自正文快照；AI schema、工具文本和历史工具消息不序列化照片字节。
 
 ## 7. 创建失败如何处理
 
@@ -115,13 +120,13 @@
 
 ### 8.1 数据表、素材与读取链路
 
-- `official_resume_template_catalog` 保存可变目录，精确引用已发布模板与示例。metadata 包含 schema2、`declarative-flow@1`、分类、默认示例、候选示例及静态预览引用。
+- `official_resume_template_catalog` 保存可变目录，精确引用已发布模板与示例。metadata 包含 schema3、`declarative-page@1`、分类、默认示例、候选示例及静态预览引用。
 - `official_resume_template_versions`、`official_resume_example_versions` 保存确定的 JSON 文本及 SHA-256。发布后由数据库触发器禁止更新和删除，下架目录不删除精确版本。
 - 首批图片使用 `official_resume_assets` 表，按 `content_hash` 寻址。字段为 `content_hash`、`mime_type`、`byte_size`、`width`、`height`、`content_base64`、`published_at`；只接受 PNG/WebP/JPEG 小图，每份不超过 512 KiB，宽高不超过 4096。数据库核对真实字节哈希，发布器核对图片头与清单，浏览器核对哈希及解码尺寸。
 - 这是首批小型素材的公开资源表方案，无需 Storage 上传端点。未来可把 Source 内部的哈希获取实现切换到 Storage/CDN；协议继续使用内容哈希和精确尺寸等引用，不加入任意 URL 或远程可执行组件。
 - 以上表启用 RLS，anon/authenticated 只读上架目录或已发布资源。草稿不可公开读取，已发布资源不可变；浏览器只使用公开配置，不持有维护写入凭据。旧私有模板表不作为官方源。
 
-`source/index.ts` 是唯一装配入口。模板目录、详情、创建和分享冻结读取都走同一远端 Source；发布维护输入在仓库独立资源目录，线上目录不依赖本地索引。
+`source/index.ts` 是唯一装配入口。模板目录、详情、创建和分享冻结读取都走同一远端 Source；已发布资源以云端记录为准，线上目录不依赖本地索引。
 
 ### 8.2 性能与故障恢复
 
@@ -129,63 +134,44 @@
 
 Source 合并相同 key 的在途请求，网络并发最多 4，单请求超时 10 秒。强制重试与 Zustand 加载状态使用代次隔离，旧响应不能覆盖新状态或缓存。必要资源用活动引用保留；卡片和渲染实例释放后回收 URL 与引用。
 
-新 IndexedDB 命名空间是 `resume-public-templates-v2:<项目 URL>`，不会读取旧协议缓存。Source 内存及 IndexedDB 各限 128 条、32 MiB；Zustand 定义/示例资源记录各限 96 条及 32 MiB，活动引用有独立数量限制；目录保留有界摘要窗口。超出容量回收非活动条目，不靠永久累积维持暖缓存。
+新 IndexedDB 命名空间是 `resume-public-templates-v3:<项目 URL>`，不会读取旧协议缓存。Source 内存及 IndexedDB 各限 128 条、32 MiB；Zustand 定义/示例资源记录各限 96 条及 32 MiB，活动引用有独立数量限制；目录保留有界摘要窗口。超出容量回收非活动条目，不靠永久累积维持暖缓存。
 
 精确版本不按时间失效；目录和分类缓存 5 分钟，过期访问会重取，网络失败可使用保存时间不超过 24 小时的旧目录。损坏记录删除并重取；哈希、schema、能力、精确引用、资源预算或图片解码失败均有明确错误，不写入成功缓存。离线暖缓存可以复用已验证精确资源，冷缓存明确报错并提供重试；不得回退默认模板或重新播种正文。目录刷新不改变已打开简历的绑定。
 
 ### 8.3 发布与迁移操作
 
-维护文件布局见 [资源目录说明](../template-resources/README.md)。在仓库根目录生成严格发布 SQL：
+本地模板资源副本、`build-qm-templates.ts`、`build-template-seed.ts`、`build-template-release.ts` 和一次性验收工具已按用户要求清理。当前没有模板发布后台，也没有保留本地自动生成发布 SQL 的命令。后续发布须准备新的维护输入和受控发布工具，不能把已经删除的命令当作现有能力。
 
-```sh
-node scripts/build-template-seed.ts /tmp/declarative-resume-templates.sql
-```
+维护发布必须遵守以下约束：
 
-脚本只生成 SQL，不连接或部署数据库。它读取 `template-resources/`，校验新协议、绑定、预览外观和参考日期、真实图片类型/尺寸/体积及哈希，要求每个目录候选示例都有精确预览；最后生成一个事务，按依赖先发布素材、示例和模板，再切换目录。同版本已存在时核对内容一致，不覆盖已发布资源；内容冲突应失败并新增版本。
+1. 从云端读取现有精确版本；设计修改新增版本，禁止覆盖已发布定义、示例及素材。
+2. 校验协议、字段绑定、示例引用及完整预览集合。每个候选示例必须恰有一份预览；核对图片真实类型、尺寸、字节数与 SHA-256。
+3. 先在隔离环境验证。素材按哈希寻址，可分批上传；最终事务重新检查全部素材，原子发布示例、模板及目录，任何缺失或内容冲突必须回滚。
+4. 涉及 schema 时用 `supabase migration new <name>` 创建迁移，通过具备维护权限的通道部署，并核对迁移账本与原始文件。维护凭据不得写入前端、文档或发布输入。
+5. 发布后从公开 API 核对目录、精确资源、哈希、草稿隔离与只读权限，再通过真实应用预览、创建及 PDF 导出验证。
 
-`--allow-missing-previews` 仅供隔离验证，不能作为正式目录发布参数。不要重放历史首次种子 SQL，也不要通过修改已发布行修补设计。
+本轮迁移 `20261022164611_page_region_resume_templates` 已于北京时间 2026-10-23 发布到链接项目 `bitxrpdtlohlnywgusfw`，十二套模板、二十四份预览及迁移账本均已线上核验。示例为 `graduate@2`、`frontend@2`。本地清理不删除云端资源或数据库迁移；发布事实与验证范围见 [本轮验收记录](superpowers/plans/2026-10-23-qm-hot-ten-templates-validation.md)。
 
-需要 schema 变更时用 `supabase migration new <name>` 创建新迁移，先执行隔离数据库测试，再通过已有认证且具备项目维护权限的受控 SQL/迁移通道部署到链接项目。发布 SQL 也必须由该维护通道执行；公开浏览器角色没有写权限。执行前审查事务与版本，执行后核对云端迁移账本、精确资源读取、草稿隔离、不可变约束和公开 API smoke。维护密钥不写入前端、文档或生成文件。
-
-当前链接项目 `bitxrpdtlohlnywgusfw` 已部署 `20261022142621_declarative_resume_templates`，云端迁移账本以该版本为准；本地早先临时生成的时间戳已重命名。新 schema、两套 `@2` 模板与 4 份静态 PNG 资产已发布，`node tests/resume-template/online.ts` 已通过。示例继续独立使用 `graduate@1`、`frontend@1`，未因模板协议替换而覆盖原示例版本。
-
-这些证据覆盖公开 API 与本地浏览器流程，不能据此声称已完成登录后的云端创建、协作、历史或分享端到端验证。若本次涉及 Edge Functions 变更，还须部署相应函数并核对版本；本次模板资源发布不通过临时上传函数。
+如果涉及 Edge Functions 变更，还须部署相应函数并核对版本。本轮 `resume-share` 无源码变更，线上 ACTIVE v41，未进行不必要的重新部署。
 
 ## 9. 发布前验证
 
-协议、渲染、远端资源与业务回归：
+本轮一次性验收脚本、参考图、截图和 PDF 产物已经清理。历史验证结果保留在实施验收文档中，不代表这些脚本仍可运行。后续新增测试、验证脚本与测试数据仍统一放在 `tests/`，`scripts/` 只放构建、迁移和维护工具。
+
+当前代码基础检查：
 
 ```sh
-node tests/resume-template/protocol.ts
-node tests/resume-template/renderer.ts
-node tests/resume-template/remote-source.ts
-node tests/resume-template/business.ts
-node tests/resume-template/database.mjs
 pnpm exec tsc -p tsconfig.app.json --noEmit
 pnpm exec tsc -p tsconfig.node.json --noEmit
 pnpm build
 git diff --check
 ```
 
-对实际变更文件执行 ESLint。`database.mjs` 依赖可用的 Docker/PostgreSQL 隔离环境；它创建自己的数据库，不读取业务连接串。不要继续运行已删除的 `scripts/verify-resume-templates.ts` 或旧 `pnpm verify:*` 命令。测试和数据统一放在 `tests/`，scripts 只放构建、发布和维护工具。
+对实际变更文件执行 ESLint。模板、公共打印或分页变化还须通过真实导出入口验证：短内容、接近页底的临界内容、多页长内容，以及双栏分别长、同时长、空侧栏和空主栏。分别检查“背景图形”关闭与开启的最终 PDF，核对文字无缺失/重复、页数、字符边界、照片和装饰。
 
-启动测试用开发服务后执行浏览器与最终 PDF 检查：
+同时按变更范围覆盖模块重排/隐藏、空条目、长中英文姓名与邮箱、富文本、字体及外观边界、照片替换/删除、分享与历史快照。弹窗至少两轮完整开关并覆盖退出中重开，接入减少动效。云端发布后检查 12 个活动目录项及其精确版本、示例、24 张预览与哈希，再从真实应用创建、刷新和导出。
 
-```sh
-pnpm dev --host 127.0.0.1 --port 5174
-# 在另一个终端执行；需要 Chrome、Playwright 和 Poppler 工具。
-SKIP_PREVIEWS=1 node tests/resume-template/browser.mjs
-python3 tests/resume-template/inspect-pdfs.py
-node tests/resume-template/app-smoke.mjs
-```
-
-浏览器脚本默认地址为 `http://127.0.0.1:5174`，可用 `RESUME_TEST_URL` 修改；Playwright 不在项目解析路径时，用 `PLAYWRIGHT_NODE_MODULES` 指向其可用依赖目录。常规回归使用 `SKIP_PREVIEWS=1`，避免改写已发布预览文件。制作新版本预览时才移除此参数，重新计算清单并通过正式发布器校验。截图生成器当前针对两套首批模板；新增模板须补入覆盖集合。
-
-部署后执行 `node tests/resume-template/online.ts`，使用当前开发环境公开配置检查目录、定义、示例、素材哈希、预览身份、草稿隔离、旧协议拒绝和只读权限。该测试没有用户登录会话；`app-smoke.mjs` 覆盖线上资源目录到本地创建、刷新持久化和编辑器真实打印入口。
-
-最终人工/浏览器验收还须覆盖：两套设计、短/临界/长内容、模块重排与隐藏、空条目、长字段、中英文、富文本列表和链接、全部现有字体与外观边界；新建数据的本地与云端创建及重试、协作、评论、分享与历史快照；`.doc` 实际内容；移动端和减少动效。弹窗至少两轮完整开关，并覆盖退出中重开。按真实导出入口检查两种背景设置下的最终 PDF，第 10 节要求持续有效。
-
-验收结论必须区分脚本、数据库、公开 API、本地浏览器与登录后云端流程，并列明尚未验证的范围。类型检查和构建不能代替实际导出；以本轮验收记录保存证据，不把历史基线当作新协议验收结果。
+验收结论必须区分代码检查、隔离数据库、公开 API、本地浏览器及登录后云端流程。类型检查和构建不能替代最终 PDF 验收；第 10 节的长期回归要求仍然有效。
 
 ## 10. 导出问题复盘与回归要求（2026-10-22）
 
@@ -226,3 +212,13 @@ node tests/resume-template/app-smoke.mjs
 | 最终文件   | 检查生成的 PDF 图像与文本，确认无缺色、裁切、异常换行或空白页  |
 
 以上是浏览器／PDF 回归要求，协议、资源或业务脚本、类型检查和构建均不能替代这些检查。上文的一页和三页案例属于旧实现的历史复盘；新声明式引擎必须建立自己的短、临界和多页输出基线，不能据此宣称新引擎或所有浏览器已通过。历史证据见 [经典蓝金模板验收记录](superpowers/plans/2026-10-22-classic-ribbon-template-validation.md)，新体系证据以本轮声明式模板验收记录为准。
+
+## 11. 固定纸张的浏览器二次分页（2026-10-23）
+
+独立区域分页器已经计算每页裁切区间，但 Chrome 打印时仍可能对纸张内部的绝对定位长流再次进行原生 fragmentation。此时屏幕、打印前测量和布局签名都可能一致，最终 PDF 却少掉一整条经历或部分正文。仅检查页数与末尾标记不能发现这类缺失。
+
+公共打印样式给已有固定 `210mm × 297mm` 尺寸的 `[data-resume-page]` 增加 `contain: size`，使纸张成为独立分页单元。保留逐区域断点、真实裁切检查与严格签名比较，不使用 `contain: strict` 额外改变绘制或堆叠。因果实验与修复报告见本轮验收记录。
+
+长内容验收须逐项检查全部经历标题出现一次、每段正文次数正确，再检查末尾标记、照片、字符范围和两种背景设置的渲染图像。本轮长夹具为 18 个唯一标题、每项 4 段正文；双栏压力夹具另外检查 SIDE/MAIN 唯一标记。
+
+Poppler `pdftotext -bbox` 的 Noto 字体全局 ascender/descender 框可能越过纸张边缘，不能将它直接等同于可见字符被裁切。正文边界改由 PyMuPDF 字符定位框检查，并保留实际 PDF 图像检查；这不改变产品的分页签名或容差。

@@ -110,6 +110,7 @@ export function usePaginationPlan({
     const mutationObserver = new MutationObserver(schedule)
     mutationObserver.observe(source, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-resume-runtime-ready', 'data-resume-runtime-error', 'src'] })
     resizeObserver.observe(source)
+    source.querySelectorAll('[data-resume-region-source]').forEach(region => resizeObserver.observe(region))
     resizeObserver.observe(viewport)
     schedule()
 

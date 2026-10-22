@@ -1,5 +1,7 @@
 # 声明式简历模板引擎验收记录
 
+> 维护状态（2026-10-23）：本地模板资源、一次性模板发布/验收工具及截图/PDF 已按用户要求清理。下文涉及这些路径和命令的内容是当时的实施记录；当前操作以 `docs/resume-template-maintenance.md` 为准。云端已发布资源保持不变。
+
 日期：2026-10-22。对应 [设计规格](../specs/2026-10-22-declarative-template-engine-design.md) 与 [实施计划](./2026-10-22-declarative-template-engine.md)。
 
 ## 1. 交付结果

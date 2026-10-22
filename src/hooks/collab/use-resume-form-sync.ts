@@ -10,6 +10,9 @@ import { classifyLeaf } from './classify-leaf'
 import { getActiveTextField } from './focus-registry'
 import { buildWriteOps } from './write-plan'
 
+const PHOTO_ATOMIC_PATHS = ['photo'] as const
+const NO_ATOMIC_PATHS: readonly string[] = []
+
 /**
  * 简历表单与协作 store 的双向字段级同步。
  *
@@ -35,7 +38,9 @@ export function useResumeFormSync<T extends FieldValues>(
     getActiveField: getActiveTextField,
   }
 
-  const isResettingRef = useFormRemoteSync(form, storeData, fieldArrays, caret)
+  // 图像字节与尺寸必须同一次替换，防止协作合并出不匹配的照片描述。
+  const atomicPaths = sectionKey === 'basics' ? PHOTO_ATOMIC_PATHS : NO_ATOMIC_PATHS
+  const isResettingRef = useFormRemoteSync(form, storeData, fieldArrays, caret, atomicPaths)
 
   useEffect(() => {
     return form.subscribe({
@@ -47,7 +52,7 @@ export function useResumeFormSync<T extends FieldValues>(
 
         // 以「变更前的 store 值」为 base 计算最小 diff（实时读取，避免陈旧闭包）。
         const base = useResumeStore.getState()[sectionKey] as unknown
-        const plan = planRemoteFormSync(base, values, Object.keys(fieldArrays))
+        const plan = planRemoteFormSync(base, values, Object.keys(fieldArrays), atomicPaths)
 
         if (plan.fieldUpdates.length === 0 && plan.fieldArrayOperations.length === 0) {
           return

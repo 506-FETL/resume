@@ -126,6 +126,7 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
           style={{ left: '-100000px' }}
         >
           <CanonicalPagedDocument
+            definition={definition}
             appearance={snapshot}
             contentVersion={JSON.stringify([snapshot, definition, projectionReferenceDate])}
             documentRef={printRef}

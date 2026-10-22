@@ -1,5 +1,6 @@
 import type { CommentAnchorDocumentNode } from '@/features/resume-comments/anchors/types'
 import type { ResumeSchema, SkillItem } from '@/lib/schema'
+import type { ResumePhoto } from '@/lib/schema/resume/form/photo'
 
 export type CommentNodes = ReadonlyMap<string, CommentAnchorDocumentNode>
 export interface ContentField {
@@ -34,6 +35,7 @@ export interface ContentSection {
   blocks: ContentBlock[]
 }
 export interface ProfileContent {
+  photo: ResumePhoto | null
   fields: ContentField[]
   name?: ContentField
   workYears?: ContentField

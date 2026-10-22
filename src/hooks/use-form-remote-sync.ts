@@ -39,12 +39,15 @@ export function useFormRemoteSync<T extends FieldValues>(
   storeData: T,
   fieldArrays: RemoteFieldArrayAdapters = {},
   caret?: CaretPreservationConfig,
+  atomicPaths: readonly string[] = [],
 ) {
   const isResettingRef = useRef(false)
   const fieldArraysRef = useRef(fieldArrays)
   fieldArraysRef.current = fieldArrays
   const caretRef = useRef(caret)
   caretRef.current = caret
+  const atomicPathsRef = useRef(atomicPaths)
+  atomicPathsRef.current = atomicPaths
 
   useEffect(() => {
     const currentFormValues = form.getValues()
@@ -53,6 +56,7 @@ export function useFormRemoteSync<T extends FieldValues>(
       currentFormValues,
       storeData,
       Object.keys(adapters),
+      atomicPathsRef.current,
     )
 
     if (plan.fieldUpdates.length === 0 && plan.fieldArrayOperations.length === 0) {

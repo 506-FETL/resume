@@ -3,14 +3,14 @@ import { z } from 'zod'
 import { parseTemplateDefinition, TemplateResolutionError } from './definition-schema'
 
 export interface PublishedTemplateManifest {
-  schemaVersion: 2
+  schemaVersion: 3
   templateId: string
   templateVersion: number
   definition: TemplateDefinition
   assets: TemplateDefinition['assets']
 }
 const envelope = z.object({
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   templateId: z.string(),
   templateVersion: z.number().int().positive(),
   definition: z.unknown(),
@@ -31,5 +31,5 @@ export function parseSharedTemplateDefinition(input: unknown): TemplateDefinitio
 
 export function serializeTemplateForShare(input: TemplateDefinition): PublishedTemplateManifest {
   const definition = parseTemplateDefinition(input)
-  return structuredClone({ schemaVersion: 2, templateId: definition.templateId, templateVersion: definition.version, definition, assets: structuredClone(definition.assets) })
+  return structuredClone({ schemaVersion: 3, templateId: definition.templateId, templateVersion: definition.version, definition, assets: structuredClone(definition.assets) })
 }

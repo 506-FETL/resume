@@ -1,5 +1,6 @@
 import type { AiMessage, AiMessagePart } from '../types.ts'
 import { summarizeSkillToolResult } from '../skills/runtime.ts'
+import { serializeAiToolValue } from './serialize-tool-value'
 
 const SYSTEM_PROMPT = '你是简历与求职助手，由 DeepSeek 大模型（deepseek-v4-pro）驱动。当被问及你的身份或模型时，如实回答你是基于 DeepSeek 模型的简历与求职助手，不要自称为 Claude、GPT、ChatGPT 或其它厂商的模型。可调用工具读取用户数据来更准确地回答。回答用中文，简洁清晰。'
 
@@ -48,14 +49,14 @@ export function toApiMessages(messages: AiMessage[], context?: string): ApiMessa
               tool_calls: calls.map(call => ({
                 id: call.toolCallId,
                 type: 'function' as const,
-                function: { name: call.toolName, arguments: JSON.stringify(call.args ?? {}) },
+                function: { name: call.toolName, arguments: serializeAiToolValue(call.args ?? {}) },
               })),
             }
           : {}),
       })
       for (const call of calls) {
         const result = call.result ?? (call.state === 'cancelled' ? { cancelled: true } : { error: '该工具调用未完成' })
-        out.push({ role: 'tool', content: JSON.stringify(summarizeSkillToolResult(call.toolName, result)), tool_call_id: call.toolCallId })
+        out.push({ role: 'tool', content: serializeAiToolValue(summarizeSkillToolResult(call.toolName, result)), tool_call_id: call.toolCallId })
       }
       texts = []
       reasoning = []

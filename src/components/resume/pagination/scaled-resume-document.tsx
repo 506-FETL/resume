@@ -1,11 +1,13 @@
 import type { PropsWithChildren, Ref } from 'react'
 import type { ResumeDocumentStateChange } from './types'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { useLayoutEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import CanonicalPagedDocument from './canonical-paged-document'
 
 interface ScaledResumeDocumentProps {
+  definition: TemplateDefinition
   appearance?: Partial<ResumeAppearanceConfig> | null
   contentVersion: string
   documentRef?: Ref<HTMLDivElement>
@@ -16,6 +18,7 @@ interface ScaledResumeDocumentProps {
 
 export default function ScaledResumeDocument({
   children,
+  definition,
   appearance,
   contentVersion,
   documentRef,
@@ -98,6 +101,7 @@ export default function ScaledResumeDocument({
             }}
           >
             <CanonicalPagedDocument
+              definition={definition}
               appearance={appearance}
               contentVersion={contentVersion}
               documentRef={documentRef}

@@ -20,14 +20,31 @@ export interface ResumeLayoutSignature {
   viewportHeight: number
   geometry: string
   fontFamily: string
+  regions: Array<{
+    id: string
+    left: number
+    top: number
+    width: number
+    height: number
+    contentHeight: number
+    geometry: string
+    fontFamily: string
+  }>
   pages: Array<{
     startKey: string
     endKey: string
+    regions: Array<{ id: string } & PageSegment>
   }>
+}
+
+export interface RegionPaginationSnapshot {
+  id: string
+  segments: PageSegment[]
 }
 
 export interface PaginationSnapshot {
   segments: PageSegment[]
+  regions: RegionPaginationSnapshot[]
   signature: ResumeLayoutSignature
 }
 

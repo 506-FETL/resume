@@ -108,7 +108,7 @@ function describeField(schema: AnyZod): string {
 function describeObjectShape(objSchema: z.ZodObject<any>): string {
   const shape = objSchema.shape as Record<string, AnyZod>
   return Object.entries(shape)
-    .filter(([key]) => key !== 'entryId' && key !== 'hidden')
+    .filter(([key]) => key !== 'entryId' && key !== 'hidden' && key !== 'photo')
     .map(([key, field]) => `${key}: ${describeField(field)}`)
     .join('; ')
 }

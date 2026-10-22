@@ -18,6 +18,8 @@ export const RESUME_PRINT_PAGE_STYLE = `
       border: 0 !important;
       border-radius: 0 !important;
       box-shadow: none !important;
+      /* 固定纸张不再参与浏览器对子孙长流的二次分页，否则已计算的裁剪会丢行。 */
+      contain: size;
       break-after: page;
     }
     [data-resume-page]:last-child {

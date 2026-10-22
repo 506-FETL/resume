@@ -1,7 +1,8 @@
 import type { Binding, ContentKind, TemplateDefinition, TemplateNode } from './types'
+import { DEFAULT_ORDER } from '@/lib/schema'
 
 export const TEMPLATE_LIMITS = { definitionBytes: 256 * 1024, nodes: 512, depth: 16, renderedNodes: 30000 } as const
-export const SUPPORTED_TEMPLATE_CAPABILITIES = ['flow', 'local-grid', 'vector-shapes', 'skill-meter', 'images'] as const
+export const SUPPORTED_TEMPLATE_CAPABILITIES = ['flow', 'local-grid', 'vector-shapes', 'skill-meter', 'images', 'page-regions', 'page-background', 'photo', 'display-bindings'] as const
 export class TemplateValidationError extends Error {
   readonly reason: 'capability' | 'limit' | 'definition'
   constructor(reason: 'capability' | 'limit' | 'definition', message: string) {
@@ -16,7 +17,11 @@ type Scope = 'document' | 'section' | ContentKind | 'profile-fields' | 'experien
 function checkBinding(binding: Binding, scope: Scope, hasSection: boolean) {
   if (binding.startsWith('profile.') || binding === 'profile' || binding === 'sections')
     return
-  if (binding === 'section.title' && hasSection)
+  if (['section.title', 'section.key', 'section.index'].includes(binding) && hasSection)
+    return
+  if (['item.index', 'item.first', 'item.last'].includes(binding) && ['profile-fields', 'experience-item', 'skills-item', 'field-item'].includes(scope))
+    return
+  if (binding === 'item.fieldKey' && ['profile-fields', 'skills-item', 'field-item'].includes(scope))
     return
   if (binding === 'block.items' && ['experience', 'skills', 'fieldList', 'tagList'].includes(scope))
     return
@@ -35,6 +40,36 @@ export function validateTemplateDefinition(definition: TemplateDefinition): void
     throw new TemplateValidationError('limit', '模板定义超过大小预算')
   if (definition.capabilities.some(capability => !(SUPPORTED_TEMPLATE_CAPABILITIES as readonly string[]).includes(capability)))
     throw new TemplateValidationError('capability', '模板要求尚未支持的能力')
+  const regionIds = new Set<string>()
+  const sectionKeys = new Set<string>()
+  if (definition.page.regions.filter(region => region.sections === 'remaining').length !== 1)
+    fail('页面必须恰好有一个 remaining 区域')
+  definition.page.regions.forEach((region) => {
+    if (regionIds.has(region.id))
+      fail(`重复区域 ${region.id}`)
+    regionIds.add(region.id)
+    if (region.sections !== 'remaining') {
+      for (const key of region.sections) {
+        if (!(DEFAULT_ORDER as readonly string[]).includes(key) || key === 'basics' || key === 'job_intent')
+          fail(`无法路由的模块键 ${key}`)
+        if (sectionKeys.has(key))
+          fail(`重复路由模块 ${key}`)
+        sectionKeys.add(key)
+      }
+    }
+  })
+  const countSections = (nodes: TemplateNode[]): number => nodes.reduce((count, node) => count + (node.type === 'sections' ? 1 : 'children' in node ? countSections(node.children) : 0), 0)
+  if (definition.page.regions.some(region => countSections(region.document ?? definition.document) > 1))
+    fail('每个区域的模块集合只能消费一次')
+  // 按有效文档累计，继承相同默认配方也会实际渲染两次；条件不视作互斥证明。
+  const countProfileTargets = (nodes: TemplateNode[]): number => nodes.reduce((count, node) => count + (node.sectionTarget === 'basics' ? 1 : 0) + ('children' in node ? countProfileTargets(node.children) : 0), 0)
+  const effectiveProfileTargets = definition.page.regions.reduce((count, region) => count + countProfileTargets(region.document ?? definition.document), 0)
+  if (effectiveProfileTargets > 1)
+    fail('个人信息定位标记在所有有效区域中只能出现一次')
+  if (definition.page.pattern && definition.page.pattern.radius * 2 > definition.page.pattern.spacing)
+    fail('点阵半径不能超过间距的一半')
+  if (definition.page.pattern && Math.ceil(794 / definition.page.pattern.spacing) * Math.ceil(1123 / definition.page.pattern.spacing) > TEMPLATE_LIMITS.renderedNodes)
+    throw new TemplateValidationError('limit', '点阵重复超过渲染预算')
   const assets = new Set<string>()
   definition.assets.forEach((asset) => {
     if (assets.has(asset.id))
@@ -68,8 +103,15 @@ export function validateTemplateDefinition(definition: TemplateDefinition): void
         checkBinding(node.binding, scope, hasSection)
       if (node.type === 'text' && (node.text === undefined) === (node.binding === undefined))
         fail('文字节点必须且只能指定 text 或 binding')
-      if (node.style && definition.styles[node.style].height !== undefined && !['shape', 'meter', 'image'].includes(node.type))
+      if (node.style && definition.styles[node.style].height !== undefined && !['shape', 'meter', 'image', 'photo'].includes(node.type))
         fail('正文节点不得使用固定高度')
+      const style = node.style ? definition.styles[node.style] : undefined
+      if (style?.rotate && (!['shape', 'meter', 'image', 'photo'].includes(node.type) || style.width === undefined || style.height === undefined))
+        fail('旋转仅用于明确声明宽高的图形、技能条或图片')
+      if (node.type === 'shape' && Boolean(node.variants) !== Boolean(node.binding))
+        fail('图形映射必须同时声明 binding 和 variants')
+      if (node.type === 'text' && (node.map || node.format) && !node.binding)
+        fail('文字映射和格式需要绑定')
       if (node.type === 'image' && !assets.has(node.asset))
         fail(`缺少素材 ${node.asset}`)
       if (node.type === 'sections' && scope !== 'document')
@@ -83,8 +125,18 @@ export function validateTemplateDefinition(definition: TemplateDefinition): void
       }
       if (node.type === 'repeat') {
         checkBinding(node.source, scope, hasSection)
-        if (node.fieldOrder && !node.source.startsWith('profile.'))
+        if ((node.fieldOrder || node.fieldKeys) && !node.source.startsWith('profile.'))
           fail('字段排序仅用于个人信息集合')
+        const profileKeys: Record<string, string[]> = {
+          'profile.jobIntent': ['jobIntent', 'intentionalCity', 'expectedSalary', 'dateEntry'],
+          'profile.meta': ['age', 'gender', 'nation', 'height', 'weight', 'nativePlace'],
+          'profile.contact': ['phone', 'email'],
+        }
+        const allowedFields = node.source === 'profile.fields' ? ['name', 'workYears', ...Object.values(profileKeys).flat()] : profileKeys[node.source] ?? []
+        if (node.fieldKeys?.some(key => !allowedFields.includes(key)))
+          fail('字段选择包含当前集合未知的字段')
+        if (node.fieldKeys && new Set(node.fieldKeys).size !== node.fieldKeys.length)
+          fail('字段选择不可重复')
         const itemScope = node.source.startsWith('profile.') ? 'profile-fields' : scope === 'experience' ? 'experience-item' : scope === 'skills' ? 'skills-item' : 'field-item'
         walk(node.children, itemScope, depth + 1, hasSection)
       }
@@ -93,4 +145,14 @@ export function validateTemplateDefinition(definition: TemplateDefinition): void
   walk(definition.document, 'document', 1, false)
   walk(definition.section, 'section', 1, true)
   Object.entries(definition.contentByKind).forEach(([kind, nodes]) => walk(nodes, kind as ContentKind, 1, true))
+  for (const region of definition.page.regions) {
+    // 覆盖配方属于独立命名域；总预算仍跨全部配方累计。
+    ids.clear()
+    profileTargets = 0
+    if (region.document)
+      walk(region.document, 'document', 1, false)
+    if (region.section)
+      walk(region.section, 'section', 1, true)
+    Object.entries(region.contentByKind ?? {}).forEach(([kind, nodes]) => walk(nodes, kind as ContentKind, 1, true))
+  }
 }

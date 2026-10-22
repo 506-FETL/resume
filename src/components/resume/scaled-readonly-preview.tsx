@@ -35,6 +35,7 @@ export default function ScaledReadonlyPreview({ data, appearance, definition, as
     return <TemplateResourceStatus error={error ?? undefined} onRetry={retry} />
   return (
     <ScaledResumeDocument
+      definition={resource.data}
       appearance={effectiveAppearance}
       contentVersion={JSON.stringify([data, resource.data, effectiveAppearance, projectionReferenceDate])}
       documentRef={documentRef}

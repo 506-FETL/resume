@@ -115,6 +115,9 @@ registerTool({
     if (!rawValue || typeof rawValue !== 'object' || Array.isArray(rawValue))
       return { error: `value 必须是【${SECTION_LABELS[sectionKey] ?? sectionKey}】模块的内容对象` }
 
+    if (sectionKey === 'basics' && Object.hasOwn(rawValue, 'photo'))
+      return { error: '照片请在简历编辑器中选择或替换，AI 工具只修改文字内容' }
+
     const merged = { ...(before as Record<string, unknown> | null ?? {}), ...(rawValue as Record<string, unknown>) }
     const normalized = normalizeResumeSection(sectionKey, merged)
     const parsed = resumeSchema.shape[sectionKey].safeParse(normalized)

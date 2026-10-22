@@ -13,7 +13,7 @@ export function createTemplateStyleEnvironment(definition: TemplateDefinition, a
   const weights = getResumeFontWeights(appearance.font.fontFamily)
   const theme = themeColorMap[appearance.theme.theme]
   return {
-    numbers: { fontSize: size, nameSize: size * 1.5, contentSize: size * 0.875, smallSize: size * 0.75, lineHeight: appearance.spacing.lineHeight, sectionSpacing: appearance.spacing.sectionSpacing, entrySpacing: 8.8, paragraphSpacing: 4, normalWeight: weights.normal, mediumWeight: weights.medium, boldWeight: weights.bold },
+    numbers: { pageMargin: appearance.spacing.pageMargin, fontSize: size, nameSize: size * 1.5, contentSize: size * 0.875, smallSize: size * 0.75, lineHeight: appearance.spacing.lineHeight, sectionSpacing: appearance.spacing.sectionSpacing, entrySpacing: 8.8, paragraphSpacing: 4, normalWeight: weights.normal, mediumWeight: weights.medium, boldWeight: weights.bold },
     colors: { primary: appearance.theme.theme === 'default' ? definition.tokens.primary : theme.primaryColor, accent: definition.tokens.accent, text: theme.textPrimary, secondary: theme.textSecondary, muted: theme.textMuted, track: theme.progressBarBg, badge: theme.badgeBg },
     fontFamily: getFontFamilyCSS(appearance.font.fontFamily),
   }
@@ -24,19 +24,28 @@ export function resolveNumeric(value: StyleValue, environment: TemplateStyleEnvi
 export function resolveColor(value: ColorValue, environment: TemplateStyleEnvironment): string {
   return typeof value === 'string' ? value : environment.colors[value.token]
 }
-const unitless = new Set(['fontWeight', 'lineHeight', 'flexGrow', 'flexShrink'])
+const unitless = new Set(['fontWeight', 'lineHeight', 'flexGrow', 'flexShrink', 'opacity'])
 export function resolveTemplateStyle(style: TemplateStyle | undefined, environment: TemplateStyleEnvironment): CSSProperties {
   const resolved: Record<string, string | number> = {}
   Object.entries(style ?? {}).forEach(([property, value]) => {
     if (value === undefined)
       return
-    if (property === 'columns') {
+    if (property === 'rotate') {
+      // 几何外接框由渲染器处理，禁止把旋转藏进普通 CSS 布局。
+      return
+    }
+    if (property === 'boxShadow') {
+      const shadow = value as NonNullable<TemplateStyle['boxShadow']>
+      const color = resolveColor(shadow.color, environment)
+      resolved.boxShadow = `${shadow.x}px ${shadow.y}px ${shadow.blur}px ${shadow.spread}px ${color}${Math.round(shadow.opacity * 255).toString(16).padStart(2, '0')}`
+    }
+    else if (property === 'columns') {
       resolved.gridTemplateColumns = (value as number[]).map(column => `minmax(0, ${column}fr)`).join(' ')
     }
     else if (['color', 'backgroundColor', 'borderColor'].includes(property)) {
       resolved[property] = resolveColor(value as ColorValue, environment)
     }
-    else if (['textAlign', 'alignItems', 'justifyContent', 'whiteSpace'].includes(property)) {
+    else if (['textAlign', 'alignItems', 'justifyContent', 'whiteSpace', 'borderStyle'].includes(property)) {
       resolved[property] = value as string
     }
     else {
@@ -47,7 +56,7 @@ export function resolveTemplateStyle(style: TemplateStyle | undefined, environme
     }
   })
   if (Object.keys(resolved).some(property => property.startsWith('border') && property.endsWith('Width')))
-    resolved.borderStyle = 'solid'
+    resolved.borderStyle ??= 'solid'
   return resolved as CSSProperties
 }
 export function resolveLayoutStyle(layout: 'stack' | 'row' | 'wrap' | 'grid'): CSSProperties {

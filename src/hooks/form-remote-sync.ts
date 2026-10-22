@@ -43,13 +43,21 @@ export function planRemoteFormSync(
   currentValues: unknown,
   remoteValues: unknown,
   fieldArrayPaths: readonly string[] = [],
+  atomicPaths: readonly string[] = [],
 ): RemoteFormSyncPlan {
   const fieldUpdates: RemoteFieldUpdate[] = []
   const fieldArrayOperations: RemoteFieldArrayOperation[] = []
   const fieldArrays = new Set(fieldArrayPaths)
+  const atomicFields = new Set(atomicPaths)
 
   function visit(current: unknown, remote: unknown, path: string) {
     if (Object.is(current, remote)) {
+      return
+    }
+
+    if (atomicFields.has(path)) {
+      if (JSON.stringify(current) !== JSON.stringify(remote))
+        fieldUpdates.push({ path, value: remote })
       return
     }
 

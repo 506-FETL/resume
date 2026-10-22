@@ -10,6 +10,7 @@ import {
   waitForResumeFont,
   waitForResumeImages,
 } from './utils'
+import { validatePrintRegions } from './validate-print'
 
 function getPrintElements(printDocument: Document) {
   const firstPage = printDocument.querySelector<HTMLElement>('[data-resume-page]')
@@ -60,6 +61,8 @@ export function useResumePrint({
       })
       if (!layoutSignaturesEqual(documentState.signature, clone.signature))
         throw new Error('打印布局尚未稳定，请重试')
+
+      validatePrintRegions(printDocument, clone.signature)
 
       printWindow.focus()
       printWindow.print()

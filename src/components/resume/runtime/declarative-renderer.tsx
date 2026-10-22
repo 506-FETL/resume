@@ -1,28 +1,17 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { AdaptedResumeContent } from '@/lib/resume-template/content/types'
 import type { TemplateStyleEnvironment } from '@/lib/resume-template/declarative/styles'
-import type { RenderScope, TemplateDefinition, TemplateNode, TemplateShape } from '@/lib/resume-template/declarative/types'
+import type { RenderScope, TemplateDefinition, TemplateNode } from '@/lib/resume-template/declarative/types'
+import { use } from 'react'
 import { CommentableRichText } from '@/components/resume/fields/commentable-rich-text'
 import { CommentableText } from '@/components/resume/fields/commentable-text'
 import { conditionMatches, itemIdentity, resolveBinding, resolveField, resolveList, resolveRichText } from '@/lib/resume-template/declarative/bindings'
+import { routeTemplateSections } from '@/lib/resume-template/declarative/page'
 import { resolveColor, resolveLayoutStyle, resolveTemplateStyle } from '@/lib/resume-template/declarative/styles'
 import { TEMPLATE_LIMITS } from '@/lib/resume-template/declarative/validate'
 import { TemplateResolutionError } from '@/lib/resume-template/definition-schema'
-
-function ShapeView({ shapes, viewBox, environment, style }: { shapes: TemplateShape[], viewBox: [number, number, number, number], environment: TemplateStyleEnvironment, style?: CSSProperties }) {
-  return (
-    <svg aria-hidden="true" data-resume-decoration viewBox={viewBox.join(' ')} preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', ...style }}>
-      {shapes.map((shape, index) => {
-        const paint = { fill: shape.fill ? resolveColor(shape.fill, environment) : 'none', stroke: shape.stroke ? resolveColor(shape.stroke, environment) : undefined, strokeWidth: shape.strokeWidth, vectorEffect: 'non-scaling-stroke' as const }
-        if (shape.kind === 'path')
-          return <path key={index} d={shape.d} {...paint} />
-        if (shape.kind === 'circle')
-          return <circle key={index} cx={shape.cx} cy={shape.cy} r={shape.radius} {...paint} />
-        return <rect key={index} x={shape.x} y={shape.y} width={shape.width} height={shape.height} rx={shape.radius} {...paint} />
-      })}
-    </svg>
-  )
-}
+import { TemplateRegionContext } from './template-region-context'
+import { ShapeView, TemplatePaint } from './template-shapes'
 
 /** 同一解释器用于测量、展示和打印；模板 ID 从不参与结构分派。 */
 export function DeclarativeRenderer({ definition, content, environment, assetUrls }: {
@@ -31,6 +20,7 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
   environment: TemplateStyleEnvironment
   assetUrls?: ReadonlyMap<string, string>
 }) {
+  const regionId = use(TemplateRegionContext)
   let renderedNodes = 0
   const chargeNodes = (count: number) => {
     renderedNodes += count
@@ -46,14 +36,33 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
     primaryFields.add(key)
   }
   function renderNodes(nodes: TemplateNode[], scope: RenderScope): ReactNode[] {
-    return nodes.map(node => renderNode(node, scope))
+    return nodes.map((node) => {
+      const rendered = renderNode(node, scope)
+      const rotation = node.style ? definition.styles[node.style].rotate : undefined
+      if (!rotation || rendered === null)
+        return rendered
+      const style = resolveTemplateStyle(definition.styles[node.style!], environment)
+      const width = Number.parseFloat(String(style.width))
+      const height = Number.parseFloat(String(style.height))
+      const radians = Math.abs(rotation) * Math.PI / 180
+      const outerWidth = width * Math.cos(radians) + height * Math.sin(radians)
+      const outerHeight = width * Math.sin(radians) + height * Math.cos(radians)
+      chargeNodes(2)
+      return <div key={node.id} data-pagination-atomic data-template-rotated style={{ position: 'relative', width: outerWidth, height: outerHeight, flexShrink: 0, marginTop: style.marginTop, marginRight: style.marginRight, marginBottom: style.marginBottom, marginLeft: style.marginLeft }}><div style={{ position: 'absolute', left: (outerWidth - width) / 2, top: (outerHeight - height) / 2, width, height, transform: `rotate(${rotation}deg)` }}>{rendered}</div></div>
+    })
   }
   function renderNode(node: TemplateNode, scope: RenderScope): ReactNode {
     if (!conditionMatches(node.when, scope))
       return null
     chargeNodes(1)
     const style = resolveTemplateStyle(node.style ? definition.styles[node.style] : undefined, environment)
-    const common = { 'id': node.sectionTarget ? `resume-section-${node.sectionTarget}` : undefined, 'data-section': node.sectionTarget, 'data-layout-node': node.id, 'data-pagination-atomic': node.atomic || undefined }
+    if (node.style && definition.styles[node.style].rotate) {
+      style.marginTop = style.marginRight = style.marginBottom = style.marginLeft = 0
+    }
+    if (style.backgroundColor)
+      chargeNodes(2)
+    const paint = <TemplatePaint style={style} />
+    const common = { 'data-pagination-keep-with-next': node.keepWithNext || undefined, 'id': node.sectionTarget ? `resume-section-${node.sectionTarget}` : undefined, 'data-section': node.sectionTarget, 'data-layout-node': node.id, 'data-pagination-atomic': node.atomic || undefined }
     switch (node.type) {
       case 'box': {
         const children = renderNodes(node.children, scope)
@@ -62,17 +71,27 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         if (node.decoration?.length)
           chargeNodes(1 + node.decoration.length)
         return (
-          <div key={node.id} {...common} style={{ minWidth: 0, position: 'relative', ...resolveLayoutStyle(node.layout), ...style }}>
+          <div key={node.id} {...common} style={{ minWidth: 0, position: 'relative', isolation: 'isolate', ...resolveLayoutStyle(node.layout), ...style }}>
+            {paint}
             {node.decoration && node.viewBox && <ShapeView shapes={node.decoration} viewBox={node.viewBox} environment={environment} style={{ position: 'absolute', inset: 0 }} />}
             {children}
           </div>
         )
       }
       case 'text': {
-        const text = node.text ?? String(resolveBinding(node.binding!, scope) ?? '')
+        const value = node.text ?? String(resolveBinding(node.binding!, scope) ?? '')
+        if (!value)
+          return null
+        const mapped = node.map && Object.hasOwn(node.map, value) ? node.map[value] : value
+        const text = node.format === 'pad2' ? mapped.padStart(2, '0') : mapped
         if (!text)
           return null
-        return <span key={node.id} {...common} style={{ position: 'relative', overflowWrap: 'anywhere', ...style }}>{text}</span>
+        return (
+          <span key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', overflowWrap: 'anywhere', ...style }}>
+            {paint}
+            {text}
+          </span>
+        )
       }
       case 'field': {
         const field = resolveField(node.binding, scope)
@@ -81,7 +100,8 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         claimProjection(field.nodeKey, node.projection)
         chargeNodes(1 + (node.showLabel ? 1 : 0))
         return (
-          <span key={node.id} {...common} style={{ position: 'relative', minWidth: 0, overflowWrap: 'anywhere', ...style }}>
+          <span key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', minWidth: 0, overflowWrap: 'anywhere', ...style }}>
+            {paint}
             {node.showLabel && (
               <span>
                 {field.label}
@@ -101,23 +121,25 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         // 富文本沿用净化与投影链路；预算按原始标签计数可安全高估，不静默截断正文。
         chargeNodes(1 + (richText.html.match(/<[a-z][^>]*>/gi)?.length ?? 0))
         return (
-          <div key={node.id} {...common} style={{ minWidth: 0, ...style }}>
+          <div key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', minWidth: 0, ...style }}>
+            {paint}
             <CommentableRichText nodeKey={richText.field.nodeKey} fieldLabel={richText.field.label} html={richText.html} projection={node.projection} style={{ fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }} />
           </div>
         )
       }
       case 'repeat': {
-        const items = resolveList(node.source, scope, node.fieldOrder)
+        const items = resolveList(node.source, scope, node.fieldOrder, node.fieldKeys)
         if (!items.length)
           return null
-        const renderedItems = items.map(item => ({ identity: itemIdentity(item), children: renderNodes(node.children, { ...scope, item }) })).filter(item => item.children.some(child => child !== null))
+        const renderedItems = items.map((item, itemIndex) => ({ identity: itemIdentity(item), children: renderNodes(node.children, { ...scope, item, itemIndex, itemCount: items.length }) })).filter(item => item.children.some(child => child !== null))
         if (!renderedItems.length)
           return null
         chargeNodes(renderedItems.length)
         if (node.separator)
           chargeNodes(Math.max(0, renderedItems.length - 1))
         return (
-          <div key={node.id} {...common} style={{ minWidth: 0, ...resolveLayoutStyle(node.layout), ...style }}>
+          <div key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', minWidth: 0, ...resolveLayoutStyle(node.layout), ...style }}>
+            {paint}
             {renderedItems.map((item, index) => (
               <div key={item.identity} data-template-entry={item.identity} style={{ minWidth: 0, display: node.layout === 'row' || node.layout === 'wrap' ? 'flex' : undefined, alignItems: 'baseline', columnGap: style.columnGap ?? style.gap }}>
                 {index > 0 && node.separator && <span aria-hidden="true" data-resume-decoration>{node.separator}</span>}
@@ -128,14 +150,15 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         )
       }
       case 'sections':
-        if (!content.sections.length)
+        if (!(scope.sections ?? []).length)
           return null
-        chargeNodes(content.sections.length)
+        chargeNodes((scope.sections ?? []).length)
         return (
-          <div key={node.id} {...common} style={{ display: 'flex', flexDirection: 'column', gap: `${environment.numbers.sectionSpacing}px`, ...style }}>
-            {content.sections.map(section => (
+          <div key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', display: 'flex', flexDirection: 'column', gap: `${environment.numbers.sectionSpacing}px`, ...style }}>
+            {paint}
+            {(scope.sections ?? []).map((section, sectionIndex) => (
               <section key={section.key} id={`resume-section-${section.key}`} data-section={section.key} style={{ minWidth: 0 }}>
-                {renderNodes(definition.section, { ...scope, section })}
+                {renderNodes(scope.region?.section ?? definition.section, { ...scope, section, sectionIndex })}
               </section>
             ))}
           </div>
@@ -145,17 +168,41 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
           return null
         chargeNodes(scope.section?.blocks.length ?? 0)
         return (
-          <div key={node.id} {...common} style={{ display: 'flex', flexDirection: 'column', gap: `${environment.numbers.entrySpacing}px`, ...style }}>
-            {scope.section?.blocks.map((block, index) => <div key={`${block.kind}-${index}`} data-content-kind={block.kind}>{renderNodes(definition.contentByKind[block.kind], { ...scope, block })}</div>)}
+          <div key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', display: 'flex', flexDirection: 'column', gap: `${environment.numbers.entrySpacing}px`, ...style }}>
+            {paint}
+            {scope.section?.blocks.map((block, index) => <div key={`${block.kind}-${index}`} data-content-kind={block.kind}>{renderNodes(scope.region?.contentByKind?.[block.kind] ?? definition.contentByKind[block.kind], { ...scope, block })}</div>)}
           </div>
         )
-      case 'shape':
-        chargeNodes(1 + node.shapes.length)
-        return <div key={node.id} {...common} data-resume-decoration aria-hidden="true" style={{ position: 'relative', minWidth: 0, ...style }}><ShapeView shapes={node.shapes} viewBox={node.viewBox} environment={environment} /></div>
+      case 'shape': {
+        const variant = node.binding ? String(resolveBinding(node.binding, scope) ?? '') : ''
+        const shapes = node.variants && Object.hasOwn(node.variants, variant) ? node.variants[variant] : node.shapes
+        if (!shapes.length)
+          return null
+        chargeNodes(1 + shapes.length)
+        return (
+          <div key={node.id} {...common} data-resume-decoration aria-hidden="true" style={{ position: 'relative', isolation: 'isolate', minWidth: 0, ...style }}>
+            {paint}
+            <ShapeView shapes={shapes} viewBox={node.viewBox} environment={environment} />
+          </div>
+        )
+      }
       case 'meter': {
-        chargeNodes(1)
+        chargeNodes(3)
         const value = Number(resolveBinding(node.binding, scope))
-        return <div key={node.id} {...common} data-resume-decoration aria-hidden="true" style={{ flexGrow: 1, height: 6, backgroundColor: resolveColor(node.track, environment), ...style }}><div style={{ width: `${Math.max(0, Math.min(100, value))}%`, height: '100%', backgroundColor: resolveColor(node.fill, environment), borderRadius: 'inherit' }} /></div>
+        return (
+          <div key={node.id} {...common} data-resume-decoration aria-hidden="true" style={{ position: 'relative', flexGrow: 1, height: 6, ...style }}>
+            <svg width="100%" height="100%" style={{ display: 'block', borderRadius: style.borderRadius, overflow: 'hidden' }}>
+              <rect width="100%" height="100%" fill={resolveColor(node.track, environment)} />
+              <rect width={`${Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0}%`} height="100%" fill={resolveColor(node.fill, environment)} />
+            </svg>
+          </div>
+        )
+      }
+      case 'photo': {
+        const photo = scope.profile?.photo
+        if (!photo)
+          return null
+        return <img key={node.id} {...common} data-resume-photo src={photo.dataUrl} alt={node.alt ?? '个人照片'} width={photo.width} height={photo.height} style={{ display: 'block', maxWidth: '100%', objectFit: 'cover', flexShrink: 0, ...style }} />
       }
       case 'image': {
         const asset = definition.assets.find(asset => asset.id === node.asset)!
@@ -171,5 +218,13 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
       }
     }
   }
-  return renderNodes(definition.document, { profile: content.profile, sections: content.sections })
+  const regions = definition.page.regions.filter(region => regionId === null || region.id === regionId)
+  if (!regions.length)
+    throw new TemplateResolutionError('INVALID_DEFINITION', '请求的模板区域不存在')
+  // 先构造全部配方再选择输出，令字段主投影和展开预算的校验覆盖跨区域重复。
+  const renderedRegions = definition.page.regions.map(region => ({
+    id: region.id,
+    node: <div key={region.id} data-template-region={region.id} style={{ minWidth: 0 }}>{renderNodes(region.document ?? definition.document, { profile: content.profile, sections: routeTemplateSections(definition, content.sections, region), region })}</div>,
+  }))
+  return renderedRegions.filter(region => regionId === null || region.id === regionId).map(region => region.node)
 }

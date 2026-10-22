@@ -21,7 +21,7 @@ export function resolveRichText(binding: RichTextBinding, scope: RenderScope): {
     return scope.block?.kind === 'richText' ? scope.block : undefined
   return (scope.item as ExperienceContent | undefined)?.description
 }
-export function resolveList(binding: ListBinding, scope: RenderScope, fieldOrder?: string[]): NonNullable<RenderScope['item']>[] {
+export function resolveList(binding: ListBinding, scope: RenderScope, fieldOrder?: string[], fieldKeys?: string[]): NonNullable<RenderScope['item']>[] {
   const values = binding === 'block.items'
     ? scope.block && 'items' in scope.block ? scope.block.items : []
     : binding === 'profile.fields'
@@ -30,6 +30,8 @@ export function resolveList(binding: ListBinding, scope: RenderScope, fieldOrder
         ? scope.profile?.jobIntent ?? []
         : binding === 'profile.meta' ? scope.profile?.meta ?? [] : scope.profile?.contact ?? []
   const visible = values.filter((item) => {
+    if (fieldKeys && (!isContentField(item) || !fieldKeys.includes(item.fieldKey)))
+      return false
     if (isContentField(item))
       return item.text.trim().length > 0
     if ('field' in item)
@@ -42,6 +44,20 @@ export function resolveList(binding: ListBinding, scope: RenderScope, fieldOrder
   return [...visible].sort((a, b) => (rank(a) < 0 ? fieldOrder.length : rank(a)) - (rank(b) < 0 ? fieldOrder.length : rank(b)))
 }
 export function resolveBinding(binding: Binding, scope: RenderScope): unknown {
+  if (binding === 'profile.photo')
+    return scope.profile?.photo
+  if (binding === 'section.key')
+    return scope.section?.key
+  if (binding === 'section.index')
+    return scope.sectionIndex === undefined ? undefined : scope.sectionIndex + 1
+  if (binding === 'item.index')
+    return scope.itemIndex === undefined ? undefined : scope.itemIndex + 1
+  if (binding === 'item.first')
+    return scope.itemIndex === 0
+  if (binding === 'item.last')
+    return scope.itemIndex !== undefined && scope.itemIndex === (scope.itemCount ?? 0) - 1
+  if (binding === 'item.fieldKey')
+    return isContentField(scope.item) ? scope.item.fieldKey : scope.item && 'field' in scope.item ? scope.item.field.fieldKey : undefined
   if (binding === 'profile')
     return scope.profile
   if (binding === 'sections')
