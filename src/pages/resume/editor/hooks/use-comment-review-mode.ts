@@ -1,6 +1,6 @@
 import type { CommentAccessContext } from '@/features/resume-comments/api/client.ts'
 import type { CommentSourceOption } from '@/features/resume-comments/components/comment-source-selector.tsx'
-import type { TemplateManifest } from '@/lib/resume-template/schema'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
@@ -23,7 +23,7 @@ export interface CommentReviewMode {
   selectedKey: CommentSourceOption['key']
   access: CommentAccessContext
   snapshotOverride: PersistedResumeSnapshot | null
-  manifestOverride: TemplateManifest | null
+  definitionOverride: TemplateDefinition | null
   projectionReferenceDate: string | undefined
   sourceLabel: string
   isWorking: boolean
@@ -58,13 +58,13 @@ export function useCommentReviewMode({
   const [error, setError] = useState<string | null>(null)
   const [selectedKey, setSelectedKey] = useState<CommentSourceOption['key']>('working')
   const [snapshotOverride, setSnapshotOverride] = useState<PersistedResumeSnapshot | null>(null)
-  const [manifestOverride, setManifestOverride] = useState<TemplateManifest | null>(null)
+  const [definitionOverride, setDefinitionOverride] = useState<TemplateDefinition | null>(null)
   const [projectionReferenceDate, setProjectionReferenceDate] = useState<string>()
 
   useEffect(() => {
     setSelectedKey('working')
     setSnapshotOverride(null)
-    setManifestOverride(null)
+    setDefinitionOverride(null)
     setProjectionReferenceDate(undefined)
     setSources([{ key: 'working', kind: 'working', label: '当前工作版本' }])
     setSourcesLoading(false)
@@ -124,13 +124,13 @@ export function useCommentReviewMode({
     try {
       if (source.kind === 'working') {
         setSnapshotOverride(null)
-        setManifestOverride(null)
+        setDefinitionOverride(null)
         setProjectionReferenceDate(undefined)
       }
       else {
         const version = await getResumeVersionForShare(resumeId ?? '', source.historyVersionId)
         setSnapshotOverride(mapSourceToPersistedSnapshot(version.snapshot))
-        setManifestOverride(null)
+        setDefinitionOverride(null)
         setProjectionReferenceDate(source.projectionReferenceDate)
       }
       setSelectedKey(key)
@@ -154,7 +154,7 @@ export function useCommentReviewMode({
         return
       setSelectedKey('working')
       setSnapshotOverride(null)
-      setManifestOverride(null)
+      setDefinitionOverride(null)
       setProjectionReferenceDate(undefined)
       setError('正在审阅的历史版本已删除，已切回当前工作版本')
     }
@@ -197,7 +197,7 @@ export function useCommentReviewMode({
     selectedKey,
     access,
     snapshotOverride,
-    manifestOverride,
+    definitionOverride,
     projectionReferenceDate,
     sourceLabel: selected.kind === 'working' ? workingLabel : selected.label,
     isWorking: selected.kind === 'working',

@@ -152,7 +152,8 @@ export default function CanonicalPagedDocument({
             data-resume-page
             data-resume-page-index={index}
             data-comment-page-visibility="visible"
-            className="mx-auto overflow-hidden rounded-md border bg-white shadow-md"
+            // 用内描边装饰纸张，避免 border 缩小正文尺寸而与测量页相差 2px。
+            className="mx-auto overflow-hidden rounded-md bg-white shadow-md ring-1 ring-inset ring-border"
             style={{
               width: A4_PAGE_WIDTH,
               height: A4_PAGE_HEIGHT,

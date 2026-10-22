@@ -1,128 +1,82 @@
+import { ScanSearch } from 'lucide-react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AnimatedContent } from '@/components/motion/animated-content'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import useUserStore from '@/store/user'
-import TemplateEditor from './components/editor'
-import TemplateWorkbench from './components/workbench'
-import WorkbenchHero from './components/workbench/workbench-hero'
-import { TEMPLATE_CENTER_SUMMARY_ITEMS } from './const'
-import { useTemplateEditorStore, useTemplateWorkbenchStore } from './store'
+import { useSearchParams } from 'react-router-dom'
+import { PageHeader, PageLayout } from '@/components/layout/page-layout'
+import AnimatedContent from '@/components/motion/animated-content'
+import { PresenceDiv } from '@/components/motion/presence-item'
+import TemplateResourceStatus from '@/components/resume/template-resource-status'
+import { Button } from '@/components/ui/button'
+import { DURATION, EASE, staggerDelay } from '@/lib/motion'
+import { useResumeTemplateStore } from '@/store/resume-template'
+import PreviewDialog from './components/preview-dialog'
+import TemplateCard from './components/template-card'
+import TemplateFilters from './components/template-filters'
+import { useTemplatePageStore } from './store.ts'
+import { matchesTemplateFilters } from './utils'
 
-function Template() {
-  const navigate = useNavigate()
-  const { mode, loading, error, setNavigate, loadTemplates } = useTemplateWorkbenchStore()
-  const { dirty } = useTemplateEditorStore()
-  const authStatus = useUserStore(state => state.authStatus)
-  const userId = useUserStore(state => state.currentUser?.id)
-
+export default function Template() {
+  const catalog = useResumeTemplateStore(state => state.catalog)
+  const { selectedTemplateId, styleFilter, layoutFilter, resetFilters } = useTemplatePageStore()
+  // 预先挂载关闭状态的预览容器，让首次打开也能经过 primitive 的入场状态。
+  const previewItem = catalog.status === 'ready' ? catalog.data.find(item => item.templateId === selectedTemplateId) ?? catalog.data[0] : undefined
+  const items = catalog.status === 'ready' ? catalog.data.filter(item => matchesTemplateFilters(item, styleFilter, layoutFilter)) : []
+  const load = useResumeTemplateStore(state => state.loadCatalog)
+  const reduceMotion = useReducedMotion()
+  const [params, setParams] = useSearchParams()
   useEffect(() => {
-    setNavigate(navigate)
-    return () => setNavigate(null)
-  }, [navigate, setNavigate])
-
+    load()
+  }, [load])
   useEffect(() => {
-    if (authStatus !== 'unknown')
-      loadTemplates()
-  }, [authStatus, userId, loadTemplates])
-
-  useEffect(() => {
-    if (!dirty) {
-      return
-    }
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault()
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [dirty])
+    if (params.size)
+      setParams({}, { replace: true })
+  }, [params, setParams])
 
   return (
-    <AnimatedContent animationKey={loading ? 'loading' : mode}>
-      {loading
-        ? <TemplateLibraryLoadingState />
-        : mode === 'editor'
-          ? <TemplateEditor />
-          : (
-              <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:gap-8">
-                <WorkbenchHero />
-
-                {error && (
-                  <Card className="border-destructive/35 bg-destructive/5">
-                    <CardHeader className="gap-2">
-                      <Badge variant="destructive">模板加载失败</Badge>
-                      <CardTitle className="text-base">社区模板或我的模板暂时不可用</CardTitle>
-                      <CardDescription>{error}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                )}
-
-                <TemplateWorkbench />
+    <PageLayout width="wide">
+      <PageHeader title="简历模板" description="挑选适合你的排版，从完整示例开始填写。" />
+      <AnimatedContent animationKey={catalog.status}>
+        {catalog.status === 'ready'
+          ? (
+              <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]">
+                <TemplateFilters items={catalog.data} />
+                <section aria-label="模板列表" className="min-w-0 space-y-4">
+                  <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
+                    <h2 className="flex items-center gap-2 text-sm font-medium">
+                      {styleFilter || layoutFilter ? '筛选结果' : '全部模板'}
+                      <span aria-live="polite" className="rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">{items.length}</span>
+                    </h2>
+                    <p className="text-xs text-muted-foreground">点击模板，查看完整预览</p>
+                  </div>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15.5rem),1fr))] gap-5">
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {items.map((item, index) => (
+                        <PresenceDiv
+                          key={item.templateId}
+                          className="min-w-0"
+                          initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: reduceMotion ? 0 : -4, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
+                          transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, delay: reduceMotion ? 0 : staggerDelay(Math.min(index, 8)) }}
+                        >
+                          <TemplateCard item={item} />
+                        </PresenceDiv>
+                      ))}
+                      {!items.length && (
+                        <PresenceDiv key="empty" className="col-span-full flex min-h-72 flex-col items-center justify-center gap-3 rounded-xl border border-dashed text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : DURATION.base }}>
+                          <ScanSearch aria-hidden className="size-7 text-muted-foreground" />
+                          <p className="text-sm font-medium">暂无符合条件的模板</p>
+                          <Button variant="outline" size="sm" onClick={resetFilters} className="motion-reduce:transform-none" style={{ transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s` }}>清除筛选</Button>
+                        </PresenceDiv>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </section>
               </div>
-            )}
-    </AnimatedContent>
+            )
+          : <TemplateResourceStatus error={catalog.status === 'error' ? catalog.error.message : undefined} onRetry={() => { load(true) }} />}
+      </AnimatedContent>
+      {previewItem && <PreviewDialog item={previewItem} />}
+    </PageLayout>
   )
 }
-
-function TemplateLibraryLoadingState() {
-  return (
-    <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col gap-6 p-6 lg:gap-8">
-      <Card className="overflow-hidden border-border/70">
-        <CardHeader className="gap-4">
-          <Skeleton className="h-6 w-20 rounded-full" />
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-6">
-
-          <div className="grid gap-3 md:grid-cols-3">
-            {TEMPLATE_CENTER_SUMMARY_ITEMS.map(item => (
-              <div key={item.key} className="rounded-2xl border bg-background/70 p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <Skeleton className="size-9 rounded-xl" />
-                  <div className="flex flex-1 flex-col gap-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-full max-w-45" />
-                  </div>
-                </div>
-                <Skeleton className="mt-4 h-8 w-14" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/70">
-        <CardHeader className="gap-4">
-          <div className="flex flex-wrap gap-2">
-            {[0, 1, 2].map(key => (
-              <Skeleton key={key} className="h-10 w-32 rounded-md" />
-            ))}
-          </div>
-          <Skeleton className="h-4 w-56" />
-        </CardHeader>
-
-        <CardContent>
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(key => (
-              <div key={key} className="rounded-2xl border bg-background/70 p-4 shadow-sm">
-                <Skeleton className="aspect-4/5 w-full rounded-xl" />
-                <div className="mt-4 flex flex-col gap-3">
-                  <div className="flex gap-2">
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-export default Template

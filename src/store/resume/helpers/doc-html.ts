@@ -92,6 +92,12 @@ export function createResumeDocHtml(contentHtml: string, options: DocHtmlOptions
     
     /* 尺寸相关 */
     .grid { display: grid; }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .block { display: block; }
+    .inline-block { display: inline-block; }
+    .min-w-0 { min-width: 0; }
+    .break-words { overflow-wrap: break-word; }
     .flex-1 { flex: 1 1 0%; }
     .w-full { width: 100%; }
     .h-2 { height: ${progressHeight}px; }
@@ -172,6 +178,10 @@ export function createResumeDocHtml(contentHtml: string, options: DocHtmlOptions
     
     /* 隐藏不需要导出的元素 */
     button, [role="button"] {
+      display: none !important;
+    }
+    /* Word 保留内容和章节配色，简化不受其排版引擎支持的装饰。 */
+    [data-resume-decoration] {
       display: none !important;
     }
   `

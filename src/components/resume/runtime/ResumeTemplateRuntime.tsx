@@ -1,95 +1,90 @@
-import type { ReactNode } from 'react'
-import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import type { ResolvedTemplateManifest, TemplateManifest } from '@/lib/resume-template/schema'
+import type { TemplateResumeData } from './context/resume-data-context'
+import type { ContentBlock } from '@/lib/resume-template/content/types'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
-import { layoutSkeletonRegistry } from '@/lib/resume-template/registry/layout-skeletons'
-import { sectionRendererOrderKeyMap, sectionRendererRegistry } from '@/lib/resume-template/registry/section-renderers'
-import { resolveTemplateManifest } from '@/lib/resume-template/runtime'
+import { useMemo } from 'react'
+import { adaptResumeContent } from '@/lib/resume-template/content/adapt-resume'
+import { parseTemplateDefinition } from '@/lib/resume-template/definition-schema'
+import { visualComponents } from '@/lib/resume-template/registry/visual-components'
+import { DEFAULT_ORDER, normalizeResumeAppearance } from '@/lib/schema'
+import { useResumeContext } from './context/resume-context'
 import { TemplateRuntimeProviders } from './TemplateRuntimeProviders'
 
-function renderSection(section: ResolvedTemplateManifest['sections'][number], data: TemplateResumeData) {
-  const Renderer = sectionRendererRegistry[section.renderer]
-  const orderKey = sectionRendererOrderKeyMap[section.renderer]
-
-  if (!Renderer || !section.visible) {
-    return null
+function ContentBlockView({ block, definition }: { block: ContentBlock, definition: TemplateDefinition }) {
+  switch (block.kind) {
+    case 'experience': {
+      const Part = visualComponents.experience[definition.contentByKind.experience.component]
+      return <Part items={block.items} />
+    }
+    case 'richText': {
+      const Part = visualComponents.richText[definition.contentByKind.richText.component]
+      return <Part field={block.field} html={block.html} />
+    }
+    case 'skills': {
+      const Part = visualComponents.skills[definition.contentByKind.skills.component]
+      return <Part items={block.items} />
+    }
+    case 'fieldList': {
+      const Part = visualComponents.fieldList[definition.contentByKind.fieldList.component]
+      return <Part items={block.items} />
+    }
+    case 'tagList': {
+      const Part = visualComponents.tagList[definition.contentByKind.tagList.component]
+      return <Part items={block.items} />
+    }
   }
+}
 
-  if (orderKey && !data.order.includes(orderKey)) {
-    return null
-  }
-
+function ResumeContent({ data, definition }: { data: TemplateResumeData, definition: TemplateDefinition }) {
+  const { commentNodesByKey, spacing } = useResumeContext()
+  const content = useMemo(() => adaptResumeContent(data, commentNodesByKey), [data, commentNodesByKey])
+  const Layout = visualComponents.layout[definition.layout.component]
+  const Header = visualComponents.header[definition.header.component]
+  const Heading = visualComponents.heading[definition.sectionHeading.component]
+  const sectionsByKey = new Map(content.sections.map(section => [section.key, section]))
+  // 默认模板原先为隐藏模块和页头已消费的求职信息保留外层占位。
+  // 这些占位影响 flex gap 和分页，v1 必须保持其几何行为。
+  const sectionSlots = definition.layout.component === 'single-column@1'
+    ? data.order.filter(key => key !== 'basics' && DEFAULT_ORDER.includes(key))
+    : content.sections.map(section => section.key)
   return (
-    <div key={`${section.sectionId}-${section.order}`} data-section={orderKey ?? section.renderer}>
-      <Renderer />
-    </div>
+    <Layout
+      header={content.profile && <div data-section="basics"><Header profile={content.profile} /></div>}
+      main={sectionSlots.map((key) => {
+        const section = sectionsByKey.get(key)
+        return (
+          <div key={key} data-section={key}>
+            {section && (
+              <section id={`resume-section-${section.key}`}>
+                <Heading title={section.title} />
+                <div className="flex flex-col" style={{ gap: spacing.entrySpacing }}>
+                  {section.blocks.map((block, index) => <ContentBlockView key={`${block.kind}-${index}`} block={block} definition={definition} />)}
+                </div>
+              </section>
+            )}
+          </div>
+        )
+      })}
+    />
   )
 }
 
-export function ResumeTemplateRuntime({
-  data,
-  manifest,
-  appearance,
-  projectionReferenceDate = new Date().toISOString().slice(0, 10),
-}: {
+export function ResumeTemplateRuntime({ data, definition: definitionInput, appearance, projectionReferenceDate }: {
   data: TemplateResumeData
-  manifest: TemplateManifest
-  appearance?: Partial<ResumeAppearanceConfig> | null
-  projectionReferenceDate?: string
+  definition: TemplateDefinition
+  appearance: Partial<ResumeAppearanceConfig>
+  projectionReferenceDate: string
 }) {
-  const resolvedManifest = resolveTemplateManifest(manifest)
-  const layout = layoutSkeletonRegistry[resolvedManifest.layout.skeleton]
-  const mainSections: ReactNode[] = []
-  const sidebarSections: ReactNode[] = []
-  let header: ReactNode = null
-
-  const orderedSections = [...resolvedManifest.sections].sort((left, right) => {
-    const leftKey = sectionRendererOrderKeyMap[left.renderer]
-    const rightKey = sectionRendererOrderKeyMap[right.renderer]
-    const leftIndex = leftKey ? data.order.indexOf(leftKey) : -1
-    const rightIndex = rightKey ? data.order.indexOf(rightKey) : -1
-
-    if (leftIndex !== -1 && rightIndex !== -1)
-      return leftIndex - rightIndex
-    if (leftIndex !== -1)
-      return -1
-    if (rightIndex !== -1)
-      return 1
-    return left.order - right.order
-  })
-
-  for (const section of orderedSections) {
-    const node = renderSection(section, data)
-    if (!node) {
-      continue
-    }
-
-    if (section.renderer === 'basics') {
-      header = node
-      continue
-    }
-
-    if (section.region === 'sidebar') {
-      sidebarSections.push(node)
-      continue
-    }
-
-    mainSections.push(node)
-  }
-
+  const definition = useMemo(() => parseTemplateDefinition(definitionInput), [definitionInput])
+  const effectiveAppearance = useMemo(() => normalizeResumeAppearance(appearance), [appearance])
   return (
     <TemplateRuntimeProviders
       data={data}
-      appearance={appearance}
-      layout={resolvedManifest.layout}
+      appearance={effectiveAppearance}
       projectionReferenceDate={projectionReferenceDate}
+      palette={definition.palette}
     >
-      {layout({
-        manifest: resolvedManifest,
-        header,
-        main: <>{mainSections}</>,
-        sidebar: sidebarSections.length > 0 ? <>{sidebarSections}</> : null,
-      })}
+      <ResumeContent data={data} definition={definition} />
     </TemplateRuntimeProviders>
   )
 }

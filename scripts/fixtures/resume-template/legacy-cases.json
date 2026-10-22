@@ -1,0 +1,185 @@
+{
+  "bindings": [
+    null,
+    {
+      "source": "official",
+      "templateId": "simple"
+    },
+    {
+      "source": "official",
+      "templateId": "modern"
+    },
+    {
+      "source": "user",
+      "templateId": "legacy-user"
+    },
+    {
+      "source": "community",
+      "templateId": "legacy-community"
+    }
+  ],
+  "manifest": {
+    "id": "default",
+    "version": 1,
+    "familyId": "classic-single-column",
+    "meta": {
+      "name": "默认模板",
+      "description": "兼容现有 default 模板类型的内置模板",
+      "ownerType": "official",
+      "visibility": "private",
+      "status": "active"
+    },
+    "layout": {
+      "skeleton": "single-column",
+      "headerVariant": "default",
+      "density": "normal",
+      "page": {
+        "size": "A4",
+        "pagePaddingToken": "md"
+      }
+    },
+    "sections": [
+      {
+        "sectionId": "basics",
+        "renderer": "basics",
+        "region": "main",
+        "order": 1,
+        "visible": true
+      },
+      {
+        "sectionId": "job_intent",
+        "renderer": "job_intent",
+        "region": "main",
+        "order": 2,
+        "visible": true
+      },
+      {
+        "sectionId": "application_info",
+        "renderer": "application_info",
+        "region": "main",
+        "order": 3,
+        "visible": true
+      },
+      {
+        "sectionId": "education",
+        "renderer": "education",
+        "region": "main",
+        "order": 4,
+        "visible": true
+      },
+      {
+        "sectionId": "work_experience",
+        "renderer": "work_experience",
+        "region": "main",
+        "order": 5,
+        "visible": true
+      },
+      {
+        "sectionId": "internship_experience",
+        "renderer": "internship_experience",
+        "region": "main",
+        "order": 6,
+        "visible": true
+      },
+      {
+        "sectionId": "campus_experience",
+        "renderer": "campus_experience",
+        "region": "main",
+        "order": 7,
+        "visible": true
+      },
+      {
+        "sectionId": "project_experience",
+        "renderer": "project_experience",
+        "region": "main",
+        "order": 8,
+        "visible": true
+      },
+      {
+        "sectionId": "skills",
+        "renderer": "skills",
+        "region": "main",
+        "order": 9,
+        "visible": true
+      },
+      {
+        "sectionId": "honors_certificates",
+        "renderer": "honors_certificates",
+        "region": "main",
+        "order": 10,
+        "visible": true
+      },
+      {
+        "sectionId": "self_evaluation",
+        "renderer": "self_evaluation",
+        "region": "main",
+        "order": 11,
+        "visible": true
+      },
+      {
+        "sectionId": "hobbies",
+        "renderer": "hobbies",
+        "region": "main",
+        "order": 12,
+        "visible": true
+      }
+    ],
+    "tokens": {
+      "colorPreset": "default",
+      "fontPreset": "default",
+      "spacingPreset": "default",
+      "radiusPreset": "none"
+    },
+    "rules": {
+      "requiredSections": [
+        "basics"
+      ],
+      "lockedSections": [
+        "basics"
+      ],
+      "allowedRegions": {
+        "basics": [
+          "main"
+        ],
+        "job_intent": [
+          "main"
+        ],
+        "application_info": [
+          "main",
+          "sidebar"
+        ],
+        "education": [
+          "main"
+        ],
+        "work_experience": [
+          "main"
+        ],
+        "internship_experience": [
+          "main"
+        ],
+        "campus_experience": [
+          "main"
+        ],
+        "project_experience": [
+          "main"
+        ],
+        "skills": [
+          "main",
+          "sidebar"
+        ],
+        "honors_certificates": [
+          "main",
+          "sidebar"
+        ],
+        "self_evaluation": [
+          "main",
+          "sidebar"
+        ],
+        "hobbies": [
+          "main",
+          "sidebar"
+        ]
+      }
+    }
+  }
+}

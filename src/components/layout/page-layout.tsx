@@ -7,7 +7,7 @@ const widths = {
   narrow: 'max-w-4xl',
 }
 
-/** Opt-in application layout. Resume documents and template pages keep their own typography. */
+/** Opt-in application layout. Resume documents keep their own typography. */
 export function PageLayout({ width = 'default', className, ...props }: ComponentProps<'div'> & { width?: keyof typeof widths }) {
   return <div className={cn('mx-auto flex w-full min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8', widths[width], className)} {...props} />
 }

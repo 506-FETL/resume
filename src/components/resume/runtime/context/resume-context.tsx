@@ -1,6 +1,5 @@
 import type { PropsWithChildren } from 'react'
 import type { CommentAnchorDocumentNode } from '@/features/resume-comments/anchors/types.ts'
-import type { ResolvedTemplateManifest } from '@/lib/resume-template/schema'
 import { createContext, use } from 'react'
 
 /**
@@ -8,6 +7,7 @@ import { createContext, use } from 'react'
  */
 export interface ResumeTheme {
   primaryColor: string
+  accentColor?: string
   textPrimary: string
   textSecondary: string
   textMuted: string
@@ -55,7 +55,6 @@ export interface ResumeContextType {
   theme: ResumeTheme
   spacing: ResumeSpacing
   font: ResumeFont
-  layout: ResolvedTemplateManifest['layout']
   projectionReferenceDate: string
   commentNodesByKey: ReadonlyMap<string, CommentAnchorDocumentNode>
 }

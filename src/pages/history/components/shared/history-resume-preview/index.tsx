@@ -4,14 +4,15 @@ import { buildTemplateResumeData } from '@/components/resume/runtime/context/res
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 
 interface HistoryResumePreviewProps {
+  projectionReferenceDate?: string
   snapshot: ResumeSnapshot
 }
 
-function HistoryResumePreview({ snapshot }: HistoryResumePreviewProps) {
+function HistoryResumePreview({ snapshot, projectionReferenceDate }: HistoryResumePreviewProps) {
   const previewData = useMemo(() => buildTemplateResumeData(snapshot), [snapshot])
 
   return (
-    <ScaledReadonlyPreview data={previewData} appearance={snapshot} />
+    <ScaledReadonlyPreview data={previewData} appearance={snapshot} projectionReferenceDate={projectionReferenceDate} />
   )
 }
 

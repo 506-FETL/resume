@@ -88,7 +88,7 @@ export default function HistoryDetailContent({ state,
         <TabsContent ref={resumeScrollRef} forceMount value="resume" hidden={activeTab !== 'resume'} inert={activeTab !== 'resume'} className={cn('scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain', activeTab !== 'resume' && 'hidden')}>
           <motion.div animate={{ opacity: activeTab === 'resume' ? 1 : 0 }} transition={enter} className="min-h-full bg-muted/35 p-3 sm:p-5">
             {resumeSnapshot
-              ? <HistoryResumePreview snapshot={resumeSnapshot} />
+              ? <HistoryResumePreview snapshot={resumeSnapshot} projectionReferenceDate={isCurrent ? undefined : state.selectedVersion?.projection_reference_date} />
               : <Skeleton className={cn('h-96 w-full', reduceMotion && 'animate-none')} />}
           </motion.div>
         </TabsContent>

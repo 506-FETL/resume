@@ -233,7 +233,7 @@ function Editor() {
                     onDocumentStateChange={setDocumentState}
                     scrollContainerRef={previewScrollRef}
                     snapshotOverride={commentReview.snapshotOverride}
-                    manifestOverride={commentReview.manifestOverride}
+                    definitionOverride={commentReview.definitionOverride}
                     projectionReferenceDate={commentReview.projectionReferenceDate}
                   />
                 </div>
@@ -328,7 +328,7 @@ function Editor() {
                   onDocumentStateChange={setDocumentState}
                   scrollContainerRef={previewScrollRef}
                   snapshotOverride={commentReview.snapshotOverride}
-                  manifestOverride={commentReview.manifestOverride}
+                  definitionOverride={commentReview.definitionOverride}
                   projectionReferenceDate={commentReview.projectionReferenceDate}
                 />
               </div>
