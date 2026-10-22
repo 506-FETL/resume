@@ -6,7 +6,7 @@
 
 模板库提供 `default@1` 和 `classic-ribbon@1`（经典蓝金模板）。用户可以在预览中选择应届生或社招前端示例，再创建完整简历并进入已有编辑器。快速创建仍使用默认模板和应届生示例，保留名称、描述和既有存储模式。
 
-模板配置保存在前端；没有模板数据库读取、模板发布后台或用户自定义设计工作台。旧工作台前端已移除，数据库旧模板记录保留。普通简历内容仍按原本的本地或云端方式保存。
+官方目录、模板定义和示例已迁入 Supabase；运行时从线上按需读取并缓存。前端保留受控视觉组件，本地定义用于迁移基线、验证及旧分享兼容。没有模板发布后台或用户自定义设计工作台。旧工作台前端已移除，数据库旧私有模板记录保留。普通简历内容仍按原本的本地或云端方式保存。
 
 ## 2. 代码边界
 
@@ -14,10 +14,10 @@
 | --- | --- | --- |
 | 配置协议 | `src/lib/resume-template/definition-schema.ts` | Zod 严格白名单，引用明确能力版本 |
 | 模板定义 | `src/lib/resume-template/definitions/<id>/v1.ts` | 每个 ID／版本独立定义，不放正文或业务逻辑 |
-| 目录元数据 | `src/lib/resume-template/catalog/default.ts` | 名称、说明、当前版本、可选示例 |
+| 目录元数据 | `src/lib/resume-template/catalog/default.ts` | 迁移输入；线上 metadata 包含名称、说明、分类和示例文案 |
 | 示例内容 | `src/lib/resume-template/examples/` | 独立版本，使用现有正文 schema 和虚构信息 |
-| 数据源装配 | `src/lib/resume-template/source/index.ts` | 对外导出 `resumeTemplateSource`，当前指向本地实现 |
-| 本地版本索引 | `src/lib/resume-template/source/local.ts` | 按精确 ID / 版本读取，返回深复制数据 |
+| 数据源装配 | `src/lib/resume-template/source/index.ts` | 对外导出 `resumeTemplateSource`，当前指向 remote 实现 |
+| 本地版本索引 | `src/lib/resume-template/source/local.ts` | 仅供迁移和验证，应用不从此入口读取官方目录 |
 | 内容映射 | `src/lib/resume-template/content/` | 教育、工作等映射到内容类型，保留字段身份 |
 | 布局和视觉部件 | `src/components/resume/template-layouts/`、`template-parts/` | 按视觉能力组织，版本化目录 |
 | 能力注册 | `src/lib/resume-template/registry/visual-components.tsx` | 仅引用受支持的编译期组件 |
@@ -44,10 +44,10 @@
 
 ### 4.1 已有能力可以组合出的设计
 
-1. 新建 `definitions/<template-id>/v1.ts`，使用 `parseTemplateDefinition` 校验完整配置。
-2. 新建对应目录项，指定展示名、说明、当前版本和示例引用。
-3. 在本地 Source 注册定义与目录。需要新的示例时增加独立的版本化示例，并在 `src/pages/template/const.ts` 补充展示名称。
-4. 通过字段覆盖、评论投影、分页、分享和导出验收后再加入正式目录。
+1. 准备新定义 JSON，使用 `parseTemplateDefinition` 校验完整配置；通过字段覆盖、评论投影、分页、分享及导出验收。
+2. 将定义的确定 JSON 文本及对应 SHA-256 写入 `official_resume_template_versions` 的新 ID／版本，完成验证后设置 `published_at`。新示例按相同方式写入 `official_resume_example_versions`，已有示例可直接引用。
+3. 写入或更新 `official_resume_template_catalog`：当前版本、排序、上架状态，以及名称、说明、分类、示例文案和引用的 metadata。目录仅可引用已发布资源。
+4. 通过受控数据库迁移发布；复用已有视觉能力时不需要修改前端分类映射或重新打包模板数据。发布含新视觉能力的模板前，先部署支持该能力的前端。
 
 无需复制表单、简历 store、协作、评论、分享页面或导出服务。协议只接受已注册的版本化能力，不能仅填写一个尚未实现的布局名称就期望它工作。
 
@@ -99,17 +99,34 @@ PDF 的纸张装饰使用不占空间的内描边，确保测量、预览和打�
 
 连击复用进行中的 Promise。关闭弹窗不丢弃结果未确认的操作；重试继续原操作。首期只保证当前页面会话内的重试，没有刷新后的创建事务恢复能力，也不把正文复制到 localStorage。
 
-## 8. 将来迁移远端配置
+## 8. 线上资源与缓存维护
 
-新增实现相同 `TemplateSource` 接口的远端 Provider，在 `source/index.ts` 更换装配。资源缓存、创建与分享均消费这个入口。旧分享兼容层仍固定引用本地 `default@1`，不通过网络猜测旧版本。
+### 8.1 数据表与读取链路
 
-后续服务需要目录摘要、不可变版本、配置校验、配置哈希、版本化字体和图片、访问控制、缓存及失败策略；首期没有实现这些服务。先发布支持新组件的前端，再发布引用该能力的配置。远端请求失败不能解释为版本不存在，更不能静默采用当前最新版本。
+- `official_resume_template_catalog` 保存可变目录；`template_id` 唯一，`current_version` 指向精确版本。`metadata` 包含 `category`、示例名称和说明，不再维护前端 ID 映射。
+- `official_resume_template_versions`、`official_resume_example_versions` 保存版本化 JSON 文本及 SHA-256。已发布记录由数据库触发器禁止更新和删除；改外观或示例正文必须新增版本。下架目录不会删除历史引用的版本。
+- 全部表启用 RLS，anon／authenticated 只读可见资源。只有受控维护通道有写入权限，浏览器不持有服务端密钥。旧 `resume_templates` 私有表不作为官方目录。
+- `source/index.ts` 装配 remote Source。目录、定义、示例、创建与分享发布均走同一入口；旧分享兼容及发布时冻结 definition 的读取继续保持独立。
 
-保留 `templateId` / `templateVersion` 和示例 ID / 版本，避免迁移用户正文。旧私有模板表不直接充当官方模板目录。远端模板可存储 JSON 数据和资源地址，不承载可执行代码。
+### 8.2 性能与故障恢复
+
+目录服务端筛选、排序，每页 12 条摘要，多读一条判断是否有下一页；不携带完整模板或示例正文。分类选项独立请求，不阻塞目录。卡片接近视口才挂载完整预览，离开后释放测量与分页 DOM。
+
+Source 合并相同 key 的在途请求，网络并发最多 4，单请求超时 10 秒。内存与 IndexedDB 资源缓存各有 128 条上限；IndexedDB 按项目 URL 隔离。精确版本不因时间失效；目录与筛选项缓存 5 分钟，过期后访问会重取，网络失败可使用不超过 24 小时的旧目录。缓存被淘汰后需要重新联网取得该资源。
+
+缓存不可用不阻塞网络；损坏记录移除重取。线上返回值需经过哈希、协议及引用匹配校验，失败不缓存。离线且无可用缓存时明确报错，可重试；不切换为默认模板、不重新播种正文。目录刷新不会改变已打开简历的绑定。
+
+### 8.3 发布与迁移操作
+
+使用 `supabase migration new <name>` 创建迁移文件，保存新资源和目录变更，先隔离数据库验证再应用到链接项目。两个资源表的 `content_hash` 必须等于 `encode(sha256(convert_to(content, 'UTF8')), 'hex')`，浏览器对收到的同一段 UTF-8 文本校验哈希。不要将 JSON 重排后继续使用旧哈希。
+
+`scripts/build-template-seed.ts <输出文件>` 只导出当前本地基线的首次迁移 SQL，不连接数据库。**已完成首次迁移后，不得再次整批执行这份 INSERT**；后续迁移只加入新的 ID／版本和明确需要变更的目录项，不覆盖或重复插入旧发布资源。可保留新配置的审查文件，但目录以数据库为准。
+
+本次迁移保持两套模板和两份示例的 ID、版本、内容不变，没有用户简历迁移。线上验收命令为 `pnpm verify:templates-online`，使用开发环境配置的公开 key，只读检查及不匹配任何记录的权限探测，不修改业务数据。计划与发布证据见 `superpowers/plans/2026-10-22-remote-template-source-validation.md`。
 
 ## 9. 发布前验证
 
-执行 `pnpm verify:templates`、两个 TypeScript 配置检查、变更文件 ESLint、`pnpm build` 和 `git diff --check`。固定样本在 `scripts/fixtures/resume-template/`；不得通过改写评论基线掩盖身份变化。
+执行 `pnpm verify:templates`、`pnpm verify:remote-templates`；部署后执行 `pnpm verify:templates-online`。同时执行两个 TypeScript 配置检查、变更文件 ESLint、`pnpm build` 和 `git diff --check`。本期新增验收代码与 SQL 位于 `tests/resume-template/`；后续测试和测试数据统一放在 `tests/`，不再新增到 `scripts/`。历史固定样本仍在 `scripts/fixtures/resume-template/`；不得通过改写评论基线掩盖身份变化。
 
 实际浏览器覆盖：新旧绑定、两份示例、本地与云端创建及重试、两人协作、评论选区与回复解决、旧新分享及口令、历史恢复与派生、长短 PDF、Word、移动端和减少动效。弹窗至少两轮完整开关及退出中重开。
 

@@ -5,7 +5,6 @@ import { useId } from 'react'
 import { DURATION } from '@/lib/motion'
 import { exampleKey } from '@/lib/resume-template/source/types'
 import { cn } from '@/lib/utils'
-import { EXAMPLE_DESCRIPTIONS, EXAMPLE_LABELS } from '../../const'
 import { useTemplatePageStore } from '../../store.ts'
 
 export default function ExamplePicker({ item, disabled = false }: { item: TemplateCatalogItem, disabled?: boolean }) {
@@ -24,7 +23,7 @@ export default function ExamplePicker({ item, disabled = false }: { item: Templa
           <label
             key={exampleKey(example)}
             className={cn(
-              'relative flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-disabled:cursor-not-allowed has-disabled:opacity-60',
+              'relative flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-disabled:cursor-not-allowed has-disabled:opacity-60',
               selected ? 'border-foreground/50 bg-muted/40' : 'border-border hover:border-foreground/25 hover:bg-muted/25',
             )}
             style={transitionStyle}
@@ -38,8 +37,8 @@ export default function ExamplePicker({ item, disabled = false }: { item: Templa
               className="sr-only"
             />
             <span className="min-w-0 flex-1 space-y-1">
-              <span className="block text-sm font-medium">{EXAMPLE_LABELS[example.exampleId] ?? example.exampleId}</span>
-              {EXAMPLE_DESCRIPTIONS[example.exampleId] && <span className="block text-xs leading-5 text-muted-foreground">{EXAMPLE_DESCRIPTIONS[example.exampleId]}</span>}
+              <span className="block text-sm font-medium">{example.name}</span>
+              {example.description && <span className="block text-xs leading-5 text-muted-foreground">{example.description}</span>}
             </span>
             <span aria-hidden className={cn('flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors', selected ? 'border-primary bg-primary text-primary-foreground' : 'border-input')} style={transitionStyle}>
               <Check className={cn('size-3 transition-opacity', selected ? 'opacity-100' : 'opacity-0')} style={transitionStyle} />

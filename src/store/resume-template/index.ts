@@ -1,11 +1,12 @@
 import type { TemplateDefinition, TemplateRef, TemplateResolutionError } from '@/lib/resume-template/definition-schema'
-import type { ExampleRef, ResumeExample, TemplateCatalogItem, TemplateSource } from '@/lib/resume-template/source/types'
+import type { CatalogFacets, CatalogQuery, ExampleRef, ResumeExample, TemplateCatalogItem, TemplateSource } from '@/lib/resume-template/source/types'
 import { create } from 'zustand'
 import { toTemplateBinding } from '@/lib/resume-template/compatibility/binding'
 import { asTemplateError } from '@/lib/resume-template/definition-schema'
 import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
 import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { exampleKey, templateKey } from '@/lib/resume-template/source/types'
+import { createCatalogActions } from './catalog'
 
 export type ResourceState<T>
   = | { status: 'idle' }
@@ -14,11 +15,18 @@ export type ResourceState<T>
     | { status: 'error', error: TemplateResolutionError }
 
 export const IDLE_RESOURCE = { status: 'idle' } as const
-interface TemplateResources {
+export interface TemplateResources {
   catalog: ResourceState<TemplateCatalogItem[]>
+  catalogQuery: CatalogQuery
+  nextOffset: number | null
+  loadingMore: boolean
+  loadMoreError: string | null
+  facets: ResourceState<CatalogFacets>
   definitions: Record<string, ResourceState<TemplateDefinition>>
   examples: Record<string, ResourceState<ResumeExample>>
-  loadCatalog: (force?: boolean) => Promise<void>
+  loadCatalog: (query?: CatalogQuery, force?: boolean) => Promise<void>
+  loadMore: () => Promise<void>
+  loadFacets: (force?: boolean) => Promise<void>
   loadDefinition: (ref: TemplateRef, force?: boolean) => Promise<void>
   loadExample: (ref: ExampleRef, force?: boolean) => Promise<void>
 }
@@ -52,17 +60,16 @@ export function createTemplateResourceStore(source: TemplateSource) {
       return promise
     }
     return {
-      catalog: IDLE_RESOURCE,
+      ...createCatalogActions(source, set, get),
       definitions: {},
       examples: {},
-      loadCatalog: force => load('catalog', get().catalog, () => source.listTemplates(), catalog => set({ catalog }), force),
       loadDefinition: (ref, force) => {
         const key = templateKey(ref)
-        return load(`definition:${key}`, get().definitions[key], () => resolveTemplate(source, toTemplateBinding(ref)), value => set(state => ({ definitions: { ...state.definitions, [key]: value } })), force)
+        return load(`definition:${key}`, get().definitions[key], () => resolveTemplate(source, toTemplateBinding(ref), { force }), value => set(state => ({ definitions: { ...state.definitions, [key]: value } })), force)
       },
       loadExample: (ref, force) => {
         const key = exampleKey(ref)
-        return load(`example:${key}`, get().examples[key], () => source.getExample(ref), value => set(state => ({ examples: { ...state.examples, [key]: value } })), force)
+        return load(`example:${key}`, get().examples[key], () => source.getExample(ref, { force }), value => set(state => ({ examples: { ...state.examples, [key]: value } })), force)
       },
     }
   })

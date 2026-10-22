@@ -1,3 +1,11 @@
-// 数据源唯一装配入口；远端阶段在此替换实现，消费者继续使用 TemplateSource 契约。
-export { localTemplateSource as resumeTemplateSource } from './local'
-export type { ExampleRef, ResumeExample, TemplateCatalogItem, TemplateSource } from './types'
+import { createTemplateCache } from './cache'
+import { createRemoteTemplateSource } from './remote'
+import { createTemplateTransport } from './transport'
+
+// 唯一装配入口。线上为真源；本地定义仅用于种子迁移及旧分享兼容。
+const projectUrl = import.meta.env.VITE_SUPABASE_URL
+export const resumeTemplateSource = createRemoteTemplateSource({
+  transport: createTemplateTransport(projectUrl, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
+  cache: createTemplateCache(projectUrl),
+})
+export type { CatalogFacets, CatalogPage, CatalogQuery, ExampleRef, ResumeExample, TemplateCatalogItem, TemplateSource } from './types'

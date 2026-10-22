@@ -10,7 +10,6 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION } from '@/lib/motion'
 import { exampleKey } from '@/lib/resume-template/source/types'
 import { cn } from '@/lib/utils'
-import { EXAMPLE_LABELS, TEMPLATE_CATEGORIES } from '../../const'
 import { useTemplateCreation } from '../../hooks/use-template-creation'
 import { useTemplatePageStore } from '../../store.ts'
 import ExamplePicker from '../example-picker'
@@ -19,7 +18,7 @@ import ExamplePreview from '../example-preview'
 export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
   const { previewOpen, setPreviewOpen, previewTrigger, selectedExamples, selectExample } = useTemplatePageStore()
   const selectedExample = selectedExamples[item.templateId] ?? item.defaultExample
-  const category = TEMPLATE_CATEGORIES[item.templateId]
+  const category = item.category
   const creation = useTemplateCreation(item)
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
@@ -54,7 +53,7 @@ export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
               disabled={creation.loading}
             >
               <SelectTrigger aria-label="示例内容" className="w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>{item.examples.map(example => <SelectItem key={example.exampleId} value={example.exampleId}>{EXAMPLE_LABELS[example.exampleId] ?? example.exampleId}</SelectItem>)}</SelectContent>
+              <SelectContent>{item.examples.map(example => <SelectItem key={example.exampleId} value={example.exampleId}>{example.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         )}
@@ -87,7 +86,7 @@ export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
         <Footer className="m-0 shrink-0 flex-row items-center border-t px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
           <p className="mr-auto hidden text-xs text-muted-foreground sm:block">
             当前示例：
-            {EXAMPLE_LABELS[selectedExample.exampleId] ?? selectedExample.exampleId}
+            {item.examples.find(example => exampleKey(example) === exampleKey(selectedExample))?.name ?? selectedExample.exampleId}
           </p>
           <Button variant="outline" className="h-10 motion-reduce:transform-none" style={transitionStyle} onClick={() => setPreviewOpen(false)}>返回列表</Button>
           <Button

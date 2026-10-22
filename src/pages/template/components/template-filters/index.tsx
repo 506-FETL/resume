@@ -1,4 +1,3 @@
-import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import { ChevronDown, Columns2, Palette, SlidersHorizontal } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { useState } from 'react'
@@ -6,10 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { TEMPLATE_CATEGORIES } from '../../const'
+import { useResumeTemplateStore } from '@/store/resume-template'
 import { useTemplatePageStore } from '../../store.ts'
 
-export default function TemplateFilters({ items }: { items: TemplateCatalogItem[] }) {
+export default function TemplateFilters() {
+  const facets = useResumeTemplateStore(state => state.facets)
+  const loadFacets = useResumeTemplateStore(state => state.loadFacets)
   const { styleFilter, layoutFilter, setStyleFilter, setLayoutFilter, resetFilters } = useTemplatePageStore()
   const [open, setOpen] = useState(true)
   const [openGroups, setOpenGroups] = useState({ style: true, layout: true })
@@ -45,10 +46,17 @@ export default function TemplateFilters({ items }: { items: TemplateCatalogItem[
           <Button variant="ghost" size="xs" disabled={!styleFilter && !layoutFilter} onClick={resetFilters} className="px-1 text-xs text-muted-foreground motion-reduce:transform-none" style={transitionStyle}>重置</Button>
         </div>
         <CollapsibleContent inert={!open} style={collapseStyle(open)}>
+          {facets.status === 'error' && (
+            <div role="alert" className="px-3 py-2 text-xs text-destructive">
+              筛选选项加载失败
+              <Button variant="ghost" size="xs" onClick={() => loadFacets(true)}>重试</Button>
+            </div>
+          )}
+          {(facets.status === 'idle' || facets.status === 'loading') && <p role="status" className="px-3 py-2 text-xs text-muted-foreground">加载筛选选项…</p>}
           <div className="grid grid-cols-2 gap-4 border-t p-3 lg:grid-cols-1 lg:gap-5 lg:py-4">
             {groups.map(({ key, title, all, icon: Icon, value, onChange }) => {
               const expanded = openGroups[key]
-              const options = Array.from(new Set(items.map(item => TEMPLATE_CATEGORIES[item.templateId]?.[key]).filter((tag): tag is string => Boolean(tag))))
+              const options = facets.status === 'ready' ? facets.data[key === 'style' ? 'styles' : 'layouts'] : []
               return (
                 <Collapsible key={key} open={expanded} onOpenChange={next => setOpenGroups(current => ({ ...current, [key]: next }))} className="min-w-0">
                   <h3>
