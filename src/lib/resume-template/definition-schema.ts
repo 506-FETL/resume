@@ -15,25 +15,29 @@ export const templateDefinitionSchema = z.object({
   version: z.number().int().positive(),
   renderContract: z.literal('resume-v1'),
   layout: z.object({
-    component: z.literal('single-column@1'),
+    component: z.enum(['single-column@1', 'ruled-column@1']),
     sectionOrder: z.literal('resume'),
     sectionVisibility: z.literal('resume'),
   }).strict(),
   header: z.object({
-    component: z.literal('centered-profile@1'),
+    component: z.enum(['centered-profile@1', 'banner-profile@1']),
     fieldBinding: z.literal('profile-with-job-intent@1'),
   }).strict(),
-  sectionHeading: z.object({ component: z.literal('underline-heading@1') }).strict(),
+  sectionHeading: z.object({ component: z.enum(['underline-heading@1', 'ribbon-heading@1']) }).strict(),
   contentByKind: z.object({
-    experience: z.object({
-      component: z.literal('plain-entry-list@1'),
-      metaLayout: z.literal('title-subtitle-inline-date-right'),
-    }).strict(),
+    experience: z.discriminatedUnion('component', [
+      z.object({ component: z.literal('plain-entry-list@1'), metaLayout: z.literal('title-subtitle-inline-date-right') }).strict(),
+      z.object({ component: z.literal('aligned-entry-list@1'), metaLayout: z.literal('date-title-subtitle-columns') }).strict(),
+    ]),
     richText: z.object({ component: z.literal('plain-rich-text@1') }).strict(),
-    skills: z.object({ component: z.literal('skill-badges@1') }).strict(),
+    skills: z.object({ component: z.enum(['skill-badges@1', 'skill-meters@1']) }).strict(),
     fieldList: z.object({ component: z.literal('inline-fields@1'), presentation: z.literal('outlined-tags') }).strict(),
     tagList: z.object({ component: z.literal('tag-list@1') }).strict(),
   }).strict(),
+  palette: z.object({
+    primary: z.string().regex(/^#[\da-f]{6}$/i),
+    accent: z.string().regex(/^#[\da-f]{6}$/i),
+  }).strict().optional(),
   appearanceDefaults: z.object({
     theme: themeConfigSchema.strict(),
     font: fontConfigSchema.strict(),

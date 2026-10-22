@@ -10,6 +10,7 @@ export function adaptProfile(data: TemplateResumeData, nodes: CommentNodes): Pro
     .filter(field => nodes.has(field.nodeKey))
   return {
     name: contentField(nodes, 'basics', 'singleton', 'name', '姓名'),
+    workYears: fields('basics', [['workYears', '工作年限']])[0],
     jobIntent: data.getVisibility('job_intent')
       ? fields('job_intent', [['jobIntent', '求职意向'], ['intentionalCity', '意向城市'], ['expectedSalary', '期望薪资'], ['dateEntry', '到岗时间']])
       : [],

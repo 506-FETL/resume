@@ -11,6 +11,8 @@ export const RESUME_PRINT_PAGE_STYLE = `
   @media print {
     [data-resume-document] {
       gap: 0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     [data-resume-page] {
       border: 0 !important;

@@ -7,6 +7,7 @@ import { createContext, use } from 'react'
  */
 export interface ResumeTheme {
   primaryColor: string
+  accentColor?: string
   textPrimary: string
   textSecondary: string
   textMuted: string

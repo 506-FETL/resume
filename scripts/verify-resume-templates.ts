@@ -29,8 +29,7 @@ try {
   const { resumeSchema } = await server.ssrLoadModule('/src/lib/schema/index.ts')
   const { parseTemplateDefinition } = await server.ssrLoadModule('/src/lib/resume-template/definition-schema.ts')
   const catalog = await localTemplateSource.listTemplates()
-  assert.equal(catalog.length, 1)
-  assert.equal(catalog[0].templateId, 'default')
+  assert.deepEqual(catalog.map((item: { templateId: string }) => item.templateId), ['default', 'classic-ribbon'])
   const definition = await localTemplateSource.getTemplateVersion(DEFAULT_TEMPLATE_REF)
   for (const ref of catalog[0].examples) {
     const example = await localTemplateSource.getExample(ref)
@@ -44,6 +43,12 @@ try {
   assert.throws(() => parseTemplateDefinition({ ...definition, schemaVersion: 2 }))
   assert.throws(() => parseTemplateDefinition({ ...definition, layout: { ...definition.layout, component: 'unknown@1' } }))
   assert.throws(() => parseTemplateDefinition({ ...definition, appearanceDefaults: { ...definition.appearanceDefaults, spacing: { ...definition.appearanceDefaults.spacing, lineHeight: 999 } } }))
+  const ribbonRef = { templateId: 'classic-ribbon', templateVersion: 1 }
+  const ribbon = await localTemplateSource.getTemplateVersion(ribbonRef)
+  assert.deepEqual(ribbon.palette, { primary: '#4f7483', accent: '#c1a065' })
+  await assert.rejects(() => localTemplateSource.getTemplateVersion({ ...ribbonRef, templateVersion: 2 }))
+  assert.throws(() => parseTemplateDefinition({ ...ribbon, palette: { primary: 'url(https://example.com)', accent: '#ffffff' } }))
+  assert.throws(() => parseTemplateDefinition({ ...ribbon, contentByKind: { ...ribbon.contentByKind, experience: { component: 'aligned-entry-list@1', metaLayout: 'title-subtitle-inline-date-right' } } }))
   console.log('PASS 本地目录、完整示例、深复制隔离及配置校验')
   const { buildTemplateResumeData } = await server.ssrLoadModule('/src/components/resume/runtime/context/resume-data-context.tsx')
   const { adaptResumeContent } = await server.ssrLoadModule('/src/lib/resume-template/content/adapt-resume.ts')
@@ -137,6 +142,20 @@ try {
   const frozenLegacy = JSON.stringify(legacyEnvelope)
   assert.deepEqual(parseSharedTemplateDefinition(legacyEnvelope), definition)
   assert.equal(JSON.stringify(legacyEnvelope), frozenLegacy)
+  for (const example of catalog[1].examples) {
+    const created = await prepareTemplateResume({ ...input, template: ribbonRef, example }, localTemplateSource, { operationId: crypto.randomUUID(), ownerId: null })
+    assert.deepEqual(created.snapshot.templateBinding, { source: 'official', ...ribbonRef })
+    assert.deepEqual(created.snapshot.font, ribbon.appearanceDefaults.font)
+    const frozen = serializeTemplateForShare(ribbon)
+    assert.deepEqual(parseSharedTemplateDefinition(JSON.parse(JSON.stringify(frozen))), ribbon)
+    assert.deepEqual(buildCommentAnchorDocument(created.snapshot, '2026-10-21'), buildCommentAnchorDocument({ ...created.snapshot, templateBinding: { source: 'official', ...DEFAULT_TEMPLATE_REF } }, '2026-10-21'))
+    const copy = await localTemplateSource.getTemplateVersion(ribbonRef)
+    copy.palette.primary = '#000000'
+    assert.equal((await localTemplateSource.getTemplateVersion(ribbonRef)).palette.primary, '#4f7483')
+    frozen.definition.palette.primary = '#ffffff'
+    assert.equal(ribbon.palette.primary, '#4f7483')
+  }
+  console.log('PASS 第二模板精确版本、两份示例创建、评论身份不变与分享定义冻结')
   const { redactHiddenResumeSections } = await server.ssrLoadModule('/supabase/functions/shared/resume-share-redaction.ts')
   const hiddenSnapshot = structuredClone(snapshot)
   hiddenSnapshot.visibility.work_experience = true

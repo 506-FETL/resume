@@ -1,19 +1,19 @@
 # 简历模板维护手册
 
-适用版本：2026-10-21，默认模板第一期。设计背景见 `superpowers/specs/2026-10-21-resume-template-architecture-design.md`，执行记录见 `superpowers/plans/2026-10-21-resume-template-foundation-validation.md`。
+适用版本：2026-10-22，默认模板及经典蓝金模板。设计背景见 `superpowers/specs/2026-10-21-resume-template-architecture-design.md`，第一期执行记录见 `superpowers/plans/2026-10-21-resume-template-foundation-validation.md`。
 
 ## 1. 当前交付范围
 
-模板库只提供 `default@1`，沿用项目原有单栏样式。用户可直接使用应届生示例，或在预览弹窗选择社招前端示例，再创建完整简历并进入已有编辑器。快速创建也使用默认模板和应届生示例，保留名称、描述和既有存储模式。
+模板库提供 `default@1` 和 `classic-ribbon@1`（经典蓝金模板）。用户可以在预览中选择应届生或社招前端示例，再创建完整简历并进入已有编辑器。快速创建仍使用默认模板和应届生示例，保留名称、描述和既有存储模式。
 
-模板配置保存在前端；没有模板数据库读取、模板发布后台、第二套模板或用户自定义设计工作台。旧工作台前端已移除，数据库旧模板记录保留。普通简历内容仍按原本的本地或云端方式保存。
+模板配置保存在前端；没有模板数据库读取、模板发布后台或用户自定义设计工作台。旧工作台前端已移除，数据库旧模板记录保留。普通简历内容仍按原本的本地或云端方式保存。
 
 ## 2. 代码边界
 
 | 职责 | 位置 | 维护原则 |
 | --- | --- | --- |
 | 配置协议 | `src/lib/resume-template/definition-schema.ts` | Zod 严格白名单，引用明确能力版本 |
-| 模板定义 | `src/lib/resume-template/definitions/default/v1.ts` | 唯一 `default@1` 定义，不放正文或业务逻辑 |
+| 模板定义 | `src/lib/resume-template/definitions/<id>/v1.ts` | 每个 ID／版本独立定义，不放正文或业务逻辑 |
 | 目录元数据 | `src/lib/resume-template/catalog/default.ts` | 名称、说明、当前版本、可选示例 |
 | 示例内容 | `src/lib/resume-template/examples/` | 独立版本，使用现有正文 schema 和虚构信息 |
 | 数据源装配 | `src/lib/resume-template/source/index.ts` | 对外导出 `resumeTemplateSource`，当前指向本地实现 |
@@ -49,7 +49,7 @@
 3. 在本地 Source 注册定义与目录。需要新的示例时增加独立的版本化示例，并在 `src/pages/template/const.ts` 补充展示名称。
 4. 通过字段覆盖、评论投影、分页、分享和导出验收后再加入正式目录。
 
-无需复制表单、简历 store、协作、评论、分享页面或导出服务。首期协议只接受已实现的默认视觉能力，因此不能仅填写一个尚未注册的布局名称就期望它工作。
+无需复制表单、简历 store、协作、评论、分享页面或导出服务。协议只接受已注册的版本化能力，不能仅填写一个尚未实现的布局名称就期望它工作。
 
 ### 4.2 需要新视觉能力的设计
 
@@ -59,7 +59,11 @@
 
 图标、章节号、圆点、卡片装饰都属于呈现；`entryId`、字段键、评论 `nodeKey`、富文本 fragment 和正文顺序仍属于业务数据。新增任何视觉能力不得重建这些身份。
 
-首期分享序列化器明确只支持 `default@1`。开放第二套模板或新版本前，必须扩展 `compatibility/share-manifest.ts` 的发布兼容协议和验证样本；不能仅新增目录就宣称新模板完整可用。该限制会显式报错。
+分享序列化器现支持经过白名单校验的完整定义，信封的 ID／版本必须与冻结定义一致；经典蓝金模板已加入创建与分享往返验证。新模板上线仍须验证其分页、评论字段及导出。
+
+经典蓝金模板新增五个可复用能力：`ruled-column@1`、`banner-profile@1`、`ribbon-heading@1`、`aligned-entry-list@1`、`skill-meters@1`。可选 `palette` 只接受六位十六进制主色和强调色；主题为“默认”时使用模板主色，切换现有主题会替换主色。头像尚无业务字段，此版本不包含头像。
+
+PDF 的纸张装饰使用不占空间的内描边，确保测量、预览和打印正文尺寸相同。打印样式使用 `print-color-adjust: exact`，保留模板色块与白色标题。Word 仍为 HTML `.doc`，通过 `data-resume-decoration` 隐藏装饰性 SVG／进度条，保留正文与章节配色，允许简化排版。
 
 ### 4.3 大量模板的维护规模
 

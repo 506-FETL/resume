@@ -44,7 +44,9 @@ function ResumeContent({ data, definition }: { data: TemplateResumeData, definit
   const sectionsByKey = new Map(content.sections.map(section => [section.key, section]))
   // 默认模板原先为隐藏模块和页头已消费的求职信息保留外层占位。
   // 这些占位影响 flex gap 和分页，v1 必须保持其几何行为。
-  const sectionSlots = data.order.filter(key => key !== 'basics' && DEFAULT_ORDER.includes(key))
+  const sectionSlots = definition.layout.component === 'single-column@1'
+    ? data.order.filter(key => key !== 'basics' && DEFAULT_ORDER.includes(key))
+    : content.sections.map(section => section.key)
   return (
     <Layout
       header={content.profile && <div data-section="basics"><Header profile={content.profile} /></div>}
@@ -80,6 +82,7 @@ export function ResumeTemplateRuntime({ data, definition: definitionInput, appea
       data={data}
       appearance={effectiveAppearance}
       projectionReferenceDate={projectionReferenceDate}
+      palette={definition.palette}
     >
       <ResumeContent data={data} definition={definition} />
     </TemplateRuntimeProviders>

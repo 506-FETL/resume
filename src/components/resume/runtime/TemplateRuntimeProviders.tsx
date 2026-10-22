@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react'
 import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { useMemo } from 'react'
 import { ResumeContextProvider } from '@/components/resume/runtime/context/resume-context'
@@ -13,12 +14,21 @@ export function TemplateRuntimeProviders({
   data,
   appearance,
   projectionReferenceDate,
+  palette,
 }: PropsWithChildren<{
   data: TemplateResumeData
   appearance: Partial<ResumeAppearanceConfig>
   projectionReferenceDate: string
+  palette?: TemplateDefinition['palette']
 }>) {
-  const { font, spacing, theme } = useMemo(() => resolveResumeAppearanceStyles(normalizeResumeAppearance(appearance)), [appearance])
+  const { font, spacing, theme } = useMemo(() => {
+    const normalized = normalizeResumeAppearance(appearance)
+    const styles = resolveResumeAppearanceStyles(normalized)
+    if (!palette)
+      return styles
+    const primaryColor = normalized.theme.theme === 'default' ? palette.primary : styles.theme.primaryColor
+    return { ...styles, theme: { ...styles.theme, primaryColor, progressBarFill: primaryColor, accentColor: palette.accent } }
+  }, [appearance, palette])
   const commentNodesByKey = useMemo(() => {
     const { document } = buildCommentAnchorDocument(data, projectionReferenceDate)
     return new Map(document.nodes.map(node => [node.nodeKey, node]))

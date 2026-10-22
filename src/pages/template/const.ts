@@ -6,5 +6,6 @@ export const EXAMPLE_DESCRIPTIONS: Record<string, string> = {
 }
 
 export const TEMPLATE_CATEGORIES: Record<string, { style: string, layout: string }> = {
-  default: { style: '简约', layout: '单栏' },
+  'default': { style: '简约', layout: '单栏' },
+  'classic-ribbon': { style: '经典', layout: '单栏' },
 }

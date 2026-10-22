@@ -24,14 +24,13 @@ export type PublishedTemplateManifest = LegacyTemplateManifest & { definition: T
 
 export function serializeTemplateForShare(input: TemplateDefinition): PublishedTemplateManifest {
   const definition = parseTemplateDefinition(input)
-  if (definition.templateId !== 'default' || definition.version !== 1)
-    throw new TemplateResolutionError('UNSUPPORTED_CAPABILITY', '当前发布协议尚不支持此模板版本')
   const sections = ['basics', 'job_intent', 'application_info', 'education', 'work_experience', 'internship_experience', 'campus_experience', 'project_experience', 'skills', 'honors_certificates', 'self_evaluation', 'hobbies']
   return {
     id: definition.templateId,
     version: definition.version,
-    familyId: 'classic-single-column',
-    meta: { name: '默认模板', ownerType: 'official', visibility: 'private', status: 'active' },
+    familyId: definition.layout.component === 'single-column@1' ? 'classic-single-column' : definition.layout.component.split('@')[0],
+    // 兼容信封不参与新版视觉渲染，分享效果完全由冻结的 definition 决定。
+    meta: { name: definition.templateId === 'default' ? '默认模板' : definition.templateId, ownerType: 'official', visibility: 'private', status: 'active' },
     layout: { skeleton: definition.layout.component.split('@')[0], headerVariant: 'default', density: 'normal', page: { size: 'A4', pagePaddingToken: 'md' } },
     sections: sections.map((sectionId, index) => ({ sectionId, renderer: sectionId, region: 'main', order: index + 1, visible: true })),
     tokens: { colorPreset: definition.appearanceDefaults.theme.theme, fontPreset: 'default', spacingPreset: 'default', radiusPreset: 'none' },

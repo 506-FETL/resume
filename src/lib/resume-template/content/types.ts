@@ -35,6 +35,7 @@ export interface ContentSection {
 }
 export interface ProfileContent {
   name?: ContentField
+  workYears?: ContentField
   jobIntent: ContentField[]
   meta: ContentField[]
   contact: ContentField[]
