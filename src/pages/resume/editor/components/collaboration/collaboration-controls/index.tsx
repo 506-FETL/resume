@@ -4,10 +4,10 @@ import { DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/dr
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { cn } from '@/lib/utils'
-import useResumeListStore from '@/pages/resume/store'
 import useShareStore from '@/pages/share/store'
 import { useCurrentResumeStore } from '@/store/resume'
 import { formatTime } from '@/utils/date'
+import { useResumeDisplayName } from '../../../hooks/use-resume-display-name'
 import { useCollaborationPanel } from '../context'
 
 interface CollaborationControlsProps {
@@ -33,8 +33,7 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
   } = useCollaborationPanel()
 
   const resumeId = useCurrentResumeStore(state => state.resumeId)
-  const resumes = useResumeListStore(state => state.resumes)
-  const resumeName = resumeId ? (resumes.find(r => r.resume_id === resumeId)?.display_name ?? null) : null
+  const resumeName = useResumeDisplayName()
   const { openDialog: openQuickDialog } = useShareStore()
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
   const canShare = Boolean(resumeId) && !isOffline

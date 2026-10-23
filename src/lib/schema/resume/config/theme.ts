@@ -4,7 +4,7 @@ import { z } from 'zod'
  * 主题选项
  */
 export const themeOptions = [
-  { label: '默认黑', value: 'default' },
+  { label: '默认', value: 'default' },
   { label: '商务蓝', value: 'blue' },
   { label: '清新绿', value: 'green' },
   { label: '优雅紫', value: 'purple' },

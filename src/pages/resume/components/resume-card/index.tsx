@@ -101,7 +101,14 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
         className={cn('group h-full shadow-xs', appearance.border)}
         contentClassName="flex h-full min-h-56 flex-col p-4"
       >
-        <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          aria-label={`编辑${resume.display_name || '未命名简历'}`}
+          data-resume-edit-trigger={resume.resume_id}
+          className="absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+          onClick={handleCardClick}
+        />
+        <div className="pointer-events-none relative flex items-center gap-2.5 [&_button]:pointer-events-auto">
           <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', appearance.icon)}>
             <TypeIcon className="size-4" aria-hidden />
           </div>
@@ -131,7 +138,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
           </DropdownMenu>
         </div>
 
-        <div className="mt-3 flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="pointer-events-none relative mt-3 flex min-w-0 flex-1 flex-col gap-1.5 [&_button]:pointer-events-auto">
           <h2 className="line-clamp-2 text-sm leading-5 font-semibold" title={resume.display_name || '未命名简历'}>
             {resume.display_name || '未命名简历'}
           </h2>
@@ -152,6 +159,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
             )}
             {isVariant && !isGenerating && !isFailed && (
               <VariantBadge
+                onEdit={handleCardClick}
                 parentName={parent?.display_name ?? null}
                 jdSnippet={resume.linked_jd_text ? resume.linked_jd_text.slice(0, 80) : null}
                 matchRate={resume.derived_metadata?.matchRate ?? null}
@@ -173,7 +181,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
           </div>
         </div>
 
-        <div className="mt-3 flex items-center gap-1.5 border-t border-border/60 pt-3">
+        <div className="pointer-events-none relative mt-3 flex items-center gap-1.5 border-t border-border/60 pt-3 [&_button]:pointer-events-auto!">
           <Button size="sm" onClick={handleCardClick} className="min-w-0 flex-1 text-xs">
             <Edit2 data-icon="inline-start" className="size-3.5" />
             编辑简历

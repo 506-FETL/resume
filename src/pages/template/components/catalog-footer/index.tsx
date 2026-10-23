@@ -3,6 +3,7 @@ import { useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import AnimatedContent from '@/components/motion/animated-content'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useResumeTemplateStore } from '@/store/resume-template'
@@ -42,8 +43,9 @@ export default function CatalogFooter() {
           ? (
               <p role="status" className="text-xs text-muted-foreground">
                 已展示全部
-                {catalog.status === 'ready' ? catalog.data.length : 0}
-                {' '}
+                <Badge variant="outline" className="mx-1">
+                  {catalog.status === 'ready' ? catalog.data.length : 0}
+                </Badge>
                 套模板
               </p>
             )

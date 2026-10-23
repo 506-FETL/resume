@@ -115,13 +115,15 @@ export async function getCloudAppearanceSource(resumeId: string): Promise<{
   status: 'present' | 'missing' | 'error'
   appearance: ResumeAppearancePatch | null
   resumeExists: boolean | null
+  displayName: string | null
 }> {
   try {
-    const appearance = await getResumeById(resumeId, 'spacing,font,theme')
+    const { display_name, ...appearance } = await getResumeById<ResumeAppearancePatch & { display_name: string | null }>(resumeId, 'spacing,font,theme,display_name')
     return {
       status: hasPersistedAppearance(appearance) ? 'present' : 'missing',
       appearance,
       resumeExists: true,
+      displayName: display_name,
     }
   }
   catch (error) {
@@ -131,6 +133,7 @@ export async function getCloudAppearanceSource(resumeId: string): Promise<{
       status: 'error',
       appearance: null,
       resumeExists: isResumeNotFoundError(error) ? false : null,
+      displayName: null,
     }
   }
 }

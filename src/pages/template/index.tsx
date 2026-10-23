@@ -4,11 +4,10 @@ import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { PageHeader, PageLayout } from '@/components/layout/page-layout'
-import AnimatedContent from '@/components/motion/animated-content'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import TemplateResourceStatus from '@/components/resume/template-resource-status'
 import { Button } from '@/components/ui/button'
-import { DURATION, EASE, staggerDelay } from '@/lib/motion'
+import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { CATALOG_PAGE_SIZE } from '@/lib/resume-template/source/types'
 import { useResumeTemplateStore } from '@/store/resume-template'
 import CatalogFooter from './components/catalog-footer'
@@ -27,9 +26,11 @@ export default function Template() {
     : undefined
   const items = catalog.status === 'ready' ? catalog.data : []
 
-  const { nextOffset, loadFacets } = useResumeTemplateStore(
+  const { nextOffset, loadFacets, refreshingCatalog, catalogRefreshError } = useResumeTemplateStore(
     useShallow(state => ({
       nextOffset: state.nextOffset,
+      refreshingCatalog: state.refreshingCatalog,
+      catalogRefreshError: state.catalogRefreshError,
       loadFacets: state.loadFacets,
     })),
   )
@@ -57,7 +58,7 @@ export default function Template() {
       <PageHeader title="简历模板" description="挑选适合的排版" />
       <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <TemplateFilters />
-        <AnimatedContent animationKey={catalog.status}>
+        <div className="min-w-0">
           {catalog.status === 'ready'
             ? (
                 <div className="min-w-0">
@@ -72,6 +73,13 @@ export default function Template() {
                           {nextOffset !== null ? `${items.length}+` : items.length}
                         </span>
                       </h2>
+                      {refreshingCatalog && <span role="status" className="text-xs text-muted-foreground">正在更新筛选结果…</span>}
+                      {catalogRefreshError && (
+                        <div role="alert" className="flex items-center gap-2 text-xs text-destructive">
+                          筛选结果加载失败，当前保留上次结果
+                          <Button variant="outline" size="sm" onClick={() => load({ style: styleFilter, layout: layoutFilter }, true)}>重试</Button>
+                        </div>
+                      )}
                     </div>
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15.5rem),1fr))] gap-5">
                       <AnimatePresence initial={false} mode="popLayout">
@@ -79,7 +87,8 @@ export default function Template() {
                           <PresenceDiv
                             key={item.templateId}
                             className="min-w-0"
-                            initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+                            layout={reduceMotion ? false : 'position'}
+                            initial={{ opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{
                               opacity: 0,
@@ -90,6 +99,7 @@ export default function Template() {
                               duration: reduceMotion ? 0 : DURATION.base,
                               ease: EASE.out,
                               delay: reduceMotion ? 0 : staggerDelay(Math.min(index % CATALOG_PAGE_SIZE, 8)),
+                              layout: reduceMotion ? { duration: 0 } : SPRING.layout,
                             }}
                           >
                             <TemplateCard item={item} />
@@ -111,12 +121,12 @@ export default function Template() {
                         )}
                       </AnimatePresence>
                     </div>
-                    {items.length > 0 && <CatalogFooter />}
+                    {items.length > 0 && !refreshingCatalog && !catalogRefreshError && <CatalogFooter />}
                   </section>
                 </div>
               )
             : <TemplateResourceStatus error={catalog.status === 'error' ? catalog.error.message : undefined} onRetry={() => { load({ style: styleFilter, layout: layoutFilter }, true) }} />}
-        </AnimatedContent>
+        </div>
       </div>
       {previewItem && <PreviewDialog item={previewItem} />}
     </PageLayout>

@@ -18,7 +18,6 @@ import { useCollaborationStore } from '@/lib/collaboration'
 import { DURATION, EASE } from '@/lib/motion'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
-import useResumeListStore from '@/pages/resume/store'
 import QuickDialog from '@/pages/share/components/quick-dialog'
 import useCurrentResumeStore from '@/store/resume/current'
 import useResumeExportStore from '@/store/resume/export'
@@ -34,6 +33,7 @@ import ResumePreview from './components/preview'
 import SidebarEditor from './components/sidebar'
 import { useCommentReviewMode, usePrepareWorkingCommentWrite, useWorkingDocumentCommentSync } from './hooks/use-comment-review-mode'
 import { useEditPanel } from './hooks/use-edit-panel'
+import { useResumeDisplayName } from './hooks/use-resume-display-name'
 import { useResumeLoader } from './hooks/use-resume-loader'
 import { useScrollToSection } from './hooks/use-scroll-to-section'
 import { useResumeReviewStore } from './review-store'
@@ -83,10 +83,7 @@ function Editor() {
     const access = await useCollaborationStore.getState().refreshCommentAccess()
     return { kind: 'collaborator' as const, ...access }
   }, [])
-  const resumes = useResumeListStore(state => state.resumes)
-  const currentDisplayName = currentResumeId
-    ? (resumes.find(resume => resume.resume_id === currentResumeId)?.display_name ?? null)
-    : null
+  const currentDisplayName = useResumeDisplayName()
   const setSourceRef = useResumeExportStore(state => state.setSourceRef)
   const setHandlePrint = useResumeExportStore(state => state.setHandlePrint)
   const setExportDocumentState = useResumeExportStore(state => state.setDocumentState)
@@ -124,7 +121,7 @@ function Editor() {
   const prepareCommentWrite = usePrepareWorkingCommentWrite(currentResumeId)
   const commentReview = useCommentReviewMode({
     resumeId: currentResumeId,
-    workingLabel: currentDisplayName ?? resumeName ?? '当前简历',
+    workingLabel: currentDisplayName,
     enabled: commentsOpen,
     collaboratorMode,
     collaboratorAccess: collaboratorCommentContext,
