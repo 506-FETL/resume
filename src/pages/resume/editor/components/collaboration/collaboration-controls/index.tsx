@@ -1,4 +1,6 @@
-import { ArrowUpDown, Clock, Link2, Loader2, Radio, Save, Share2 } from 'lucide-react'
+import { ArrowUpDown, Clock, Cloud, HardDrive, Link2, Loader2, Radio, Save, Share2 } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -6,6 +8,7 @@ import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { cn } from '@/lib/utils'
 import useShareStore from '@/pages/share/store'
 import { useCurrentResumeStore } from '@/store/resume'
+import useResumeStore from '@/store/resume/form'
 import { formatTime } from '@/utils/date'
 import { useResumeDisplayName } from '../../../hooks/use-resume-display-name'
 import { useCollaborationPanel } from '../context'
@@ -34,6 +37,8 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
 
   const resumeId = useCurrentResumeStore(state => state.resumeId)
   const resumeName = useResumeDisplayName()
+  const syncError = useResumeStore(state => state.syncError)
+  const reduceMotion = useReducedMotion()
   const { openDialog: openQuickDialog } = useShareStore()
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
   const canShare = Boolean(resumeId) && !isOffline
@@ -44,12 +49,12 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
       : undefined
 
   const HeaderTag = plain ? 'div' : DrawerHeader
-  const TitleTag = plain ? 'div' : DrawerTitle
+  const TitleTag = plain ? 'h2' : DrawerTitle
+  const syncStatusKey = isSyncing ? 'syncing' : syncError ? 'error' : pendingChanges ? 'pending' : lastSyncTime ? 'saved' : 'idle'
 
   const body = (
     <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-3">
-      <span>实时同步到云端</span>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mt-4">
         <Button
           size={isMobile ? 'icon' : 'sm'}
           variant="outline"
@@ -73,7 +78,7 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
                 )}
               >
                 {isCollabConnecting
-                  ? <Loader2 className="size-4 animate-spin" />
+                  ? <Loader2 className={cn('size-4', !reduceMotion && 'animate-spin')} />
                   : isSharing
                     ? <Radio className="size-4" />
                     : <Share2 className="size-4" />}
@@ -115,10 +120,19 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
 
   return (
     <HeaderTag className={cn('relative', plain && 'flex flex-col gap-1.5 p-4')}>
-      <TitleTag className="flex items-center gap-3 font-semibold">
-        简历信息
-        {renderSyncStatus({ isSyncing, pendingChanges, lastSyncTime })}
-      </TitleTag>
+      <div className="flex min-w-0 items-center gap-3">
+        <TitleTag className="flex min-w-0 items-center gap-2 font-semibold">
+          {isOffline
+            ? <HardDrive aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+            : <Cloud aria-hidden className="size-4 shrink-0 text-muted-foreground" />}
+          <span className="truncate" title={resumeName}>{resumeName}</span>
+        </TitleTag>
+        <span role="status" aria-live="polite" className="shrink-0">
+          <AnimatedContent as="span" animationKey={syncStatusKey} className="block">
+            {renderSyncStatus({ isSyncing, syncError, pendingChanges, lastSyncTime, reduceMotion: !!reduceMotion })}
+          </AnimatedContent>
+        </span>
+      </div>
       {plain ? body : <DrawerDescription render={body} />}
     </HeaderTag>
   )
@@ -126,20 +140,28 @@ export function CollaborationControls({ onOpenSortDialog, plain = false }: Colla
 
 function renderSyncStatus({
   isSyncing,
+  syncError,
   pendingChanges,
   lastSyncTime,
+  reduceMotion,
 }: {
   isSyncing: boolean
+  syncError: string | null
   pendingChanges: boolean
   lastSyncTime: number | null
+  reduceMotion: boolean
 }) {
   if (isSyncing) {
     return (
       <span className="flex items-center gap-2 text-sm text-muted-foreground font-normal">
-        <Clock className="size-4 animate-spin" />
+        <Clock className={cn('size-4', !reduceMotion && 'animate-spin')} />
         同步中...
       </span>
     )
+  }
+
+  if (syncError) {
+    return <span className="text-sm text-destructive font-normal">保存失败，请重试</span>
   }
 
   if (pendingChanges) {

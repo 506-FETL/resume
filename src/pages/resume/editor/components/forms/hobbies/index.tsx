@@ -143,7 +143,7 @@ function HobbiesForm({ className }: { className?: string }) {
           {fields.length > 0 && (
             <div className="space-y-4">
               <FormLabel>已添加的爱好</FormLabel>
-              <div className="grid grid-cols-2 @md/panel:grid-cols-4 @2xl/panel:grid-cols-6 gap-3">
+              <div className="grid min-w-0 grid-cols-1 gap-3 @2xl/panel:grid-cols-2 @5xl/panel:grid-cols-3">
                 {fields.map((item, index) => {
                   const hobbyValue = form.watch(`hobbies.${index}.name`)
                   const hidden = form.watch(`hobbies.${index}.hidden` as any)
@@ -158,10 +158,10 @@ function HobbiesForm({ className }: { className?: string }) {
                         layout: reduceMotion ? { duration: 0 } : SPRING.layout,
                       }}
                       layout={!reduceMotion}
-                      className={cn('flex items-center justify-between gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
+                      className={cn('flex min-w-0 items-center justify-between gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
                     >
-                      <span className="font-medium text-base truncate flex-1">{hobbyValue}</span>
-                      <div className="flex items-center gap-0.5">
+                      <span className="min-w-0 font-medium text-base truncate flex-1">{hobbyValue}</span>
+                      <div className="flex shrink-0 items-center gap-0.5">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

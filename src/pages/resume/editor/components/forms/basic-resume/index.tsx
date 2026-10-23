@@ -43,7 +43,7 @@ function BasicResumeForm({ className }: { className?: string }) {
     <Form {...form}>
       <form id="basic-resume-form" className={cn(className)}>
         <ResumePhotoField form={form} />
-        <motion.div layout={!reduceMotion} transition={reduceMotion ? { duration: 0 } : SPRING.layout} className="grid gap-4 justify-items-start @sm/panel:grid-cols-2 @lg/panel:grid-cols-3 @2xl/panel:grid-cols-4">
+        <motion.div layout={!reduceMotion} transition={reduceMotion ? { duration: 0 } : SPRING.layout} className="grid grid-cols-1 items-start gap-4 @lg/panel:grid-cols-2 @3xl/panel:grid-cols-3 @5xl/panel:grid-cols-4 [&>[data-slot=form-item]]:min-w-0">
           <PersonalFields form={form} />
           <ContactFields form={form} />
           <DemographicFields form={form} />

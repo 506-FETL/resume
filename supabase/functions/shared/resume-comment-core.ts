@@ -563,6 +563,15 @@ function projectSingletonSections(
   pushTextNode(sections.basics, 'basics', 'singleton', 'height', readNumber(basics.heightCm) > 0 ? `${readNumber(basics.heightCm)}cm` : '')
   pushTextNode(sections.basics, 'basics', 'singleton', 'weight', readNumber(basics.weightKg) > 0 ? `${readNumber(basics.weightKg)}kg` : '')
   pushTextNode(sections.basics, 'basics', 'singleton', 'nativePlace', basics.nativePlace)
+  pushTextNode(sections.basics, 'basics', 'singleton', 'maritalStatus', basics.maritalStatus === '不填' ? '' : basics.maritalStatus)
+  pushTextNode(sections.basics, 'basics', 'singleton', 'politicalStatus', basics.politicalStatus === '不填' ? '' : basics.politicalStatus)
+  readArray(basics.customFields).forEach((item, index) => {
+    const field = readRecord(item)
+    const value = readString(field.value).trim()
+    if (value) {
+      pushTextNode(sections.basics, 'basics', 'singleton', `customFields.${index}`, value)
+    }
+  })
 
   const jobIntent = readRecord(resume.job_intent)
   pushTextNode(sections.job_intent, 'job_intent', 'singleton', 'jobIntent', jobIntent.jobIntent)

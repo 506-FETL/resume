@@ -1,5 +1,5 @@
 import type { ContentField, ExperienceContent, SkillContent } from '../content/types'
-import type { Binding, FieldBinding, ListBinding, RenderScope, RichTextBinding, TemplateCondition } from './types'
+import type { Binding, FieldBinding, ListBinding, RenderScope, RichTextBinding, TemplateCondition, TemplateNode } from './types'
 import { PROFICIENCY_PERCENTAGE_MAP } from '@/lib/schema/resume/form/skillSpecialty'
 
 export function isContentField(value: unknown): value is ContentField {
@@ -79,6 +79,13 @@ export function resolveBinding(binding: Binding, scope: RenderScope): unknown {
   if (binding === 'block.richText' || binding === 'item.description')
     return resolveRichText(binding, scope)
   return resolveField(binding as FieldBinding, scope)
+}
+export function resolveText(node: Extract<TemplateNode, { type: 'text' }>, scope: RenderScope): string {
+  const value = node.text ?? String(resolveBinding(node.binding!, scope) ?? '')
+  if (!value)
+    return ''
+  const mapped = node.map && Object.hasOwn(node.map, value) ? node.map[value] : value
+  return node.format === 'pad2' ? mapped.padStart(2, '0') : mapped
 }
 export function conditionMatches(condition: TemplateCondition | undefined, scope: RenderScope): boolean {
   if (!condition)

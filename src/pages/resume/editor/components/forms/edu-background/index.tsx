@@ -84,10 +84,10 @@ function EduBackgroundForm({ className }: { className?: string }) {
                 return (
                   <FormItem>
                     <FormLabel>就读时间</FormLabel>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
+                          <Button variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
                             {field.value?.[0] || '入学年月'}
                             <Baby className="ml-auto size-4 opacity-50" />
                           </Button>
@@ -103,11 +103,11 @@ function EduBackgroundForm({ className }: { className?: string }) {
                         </PopoverContent>
                       </Popover>
 
-                      <span className="text-muted-foreground hidden sm:inline">-</span>
+                      <span className="hidden text-muted-foreground @lg/panel:inline">-</span>
 
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button disabled={isUptoNow} variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
+                          <Button disabled={isUptoNow} variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
                             {field.value?.[1] || '毕业年月'}
                             <GraduationCap className="ml-auto size-4 opacity-50" />
                           </Button>
@@ -121,7 +121,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
                           />
                         </PopoverContent>
                       </Popover>
-                      <div className="flex items-center">
+                      <div className="flex min-h-9 shrink-0 items-center gap-2">
                         <Label htmlFor="up-to-now">至今</Label>
                         <Checkbox
                           id="up-to-now"

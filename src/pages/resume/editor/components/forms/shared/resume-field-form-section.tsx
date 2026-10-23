@@ -127,7 +127,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
                   </div>
                 </div>
 
-                <div className={cn(hidden && 'opacity-50')}>
+                <div className={cn('flex min-w-0 flex-col gap-4', hidden && 'opacity-50')}>
                   {renderItem(index, item)}
                 </div>
               </div>
@@ -140,7 +140,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
           variant="outline"
           size={isMobile ? 'sm' : 'default'}
           onClick={onAddItem}
-          className="w-full sm:w-auto"
+          className="w-full @lg/panel:w-auto"
         >
           <Plus className="size-4" />
           {!isMobile && <span className="ml-2">{addLabel}</span>}

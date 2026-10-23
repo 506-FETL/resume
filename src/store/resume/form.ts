@@ -175,12 +175,17 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
   },
 
   setTemplateBinding: (templateBinding) => {
+    const previousBinding = get().templateBinding
     applyResumeChange(
       set,
       get,
       { templateBinding },
       (doc) => {
         doc.templateBinding = templateBinding
+      },
+      (error) => {
+        set({ templateBinding: previousBinding })
+        throw error
       },
     )
   },

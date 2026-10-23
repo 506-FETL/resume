@@ -4,6 +4,7 @@ import { fontConfigSchema } from '@/lib/schema/resume/config/font'
 import { spacingConfigSchema } from '@/lib/schema/resume/config/spacing'
 import { themeConfigSchema } from '@/lib/schema/resume/config/theme'
 import { isSafeTemplatePath } from './svg-path'
+import { RICH_TEXT_STYLE_ELEMENTS } from './types'
 
 export const templateIdSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80)
 export const templateRefSchema = z.object({ templateId: templateIdSchema, templateVersion: z.number().int().positive() }).strict()
@@ -50,7 +51,7 @@ export const templateNodeSchema: z.ZodType<TemplateNode> = z.lazy(() => z.discri
   z.object({ ...base, type: z.literal('box'), layout, children: z.array(templateNodeSchema).max(512), decoration: z.array(shape).max(32).optional(), viewBox: viewBox.optional() }).strict(),
   z.object({ ...base, type: z.literal('text'), text: z.string().max(1000).optional(), binding: text.optional(), map: z.record(z.string().max(80), z.string().max(200)).refine(value => Object.keys(value).length <= 40).optional(), format: z.literal('pad2').optional() }).strict(),
   z.object({ ...base, type: z.literal('field'), binding: field, projection, showLabel: z.boolean().optional(), suffix: z.string().max(40).optional() }).strict(),
-  z.object({ ...base, type: z.literal('richText'), binding: richText, projection }).strict(),
+  z.object({ ...base, type: z.literal('richText'), binding: richText, projection, elementStyles: z.object(Object.fromEntries(RICH_TEXT_STYLE_ELEMENTS.map(tag => [tag, identifier.optional()]))).strict().optional() }).strict(),
   z.object({ ...base, type: z.literal('repeat'), source: list, fieldOrder: z.array(z.string().regex(/^[a-z][a-z0-9]*$/i).max(80)).max(40).optional(), fieldKeys: z.array(z.string().regex(/^[a-z][a-z0-9]*$/i).max(80)).max(40).optional(), separator: z.string().max(40).optional(), layout, children: z.array(templateNodeSchema).max(512) }).strict(),
   z.object({ ...base, type: z.literal('sections') }).strict(),
   z.object({ ...base, type: z.literal('blocks') }).strict(),

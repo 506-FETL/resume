@@ -80,10 +80,10 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                 return (
                   <FormItem>
                     <FormLabel>实习时间</FormLabel>
-                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
+                          <Button variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
                             {field.value?.[0] || '开始时间'}
                             <Laptop className="ml-auto size-4 opacity-50" />
                           </Button>
@@ -99,11 +99,11 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                         </PopoverContent>
                       </Popover>
 
-                      <span className="text-muted-foreground hidden sm:inline">-</span>
+                      <span className="hidden text-muted-foreground @lg/panel:inline">-</span>
 
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button disabled={isUptoNow} variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
+                          <Button disabled={isUptoNow} variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
                             {field.value?.[1] || '结束时间'}
                             <DoorOpen className="ml-auto size-4 opacity-50" />
                           </Button>
@@ -118,7 +118,7 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                           />
                         </PopoverContent>
                       </Popover>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-h-9 shrink-0 items-center gap-2">
                         <Label htmlFor="up-to-now">至今</Label>
                         <Checkbox
                           id="up-to-now"
@@ -146,7 +146,7 @@ function InternshipExperienceForm({ className }: { className?: string }) {
             control={form.control}
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="mt-4">实习描述</FormLabel>
+                <FormLabel>实习描述</FormLabel>
                 <FormControl>
                   <RichTextFieldEditor
                     sectionKey="internship_experience"

@@ -6,6 +6,7 @@ export const RESUME_FONT_FAMILIES = {
   serif: 'noto-serif-sc',
   wenkai: 'lxgw-wenkai',
   arimo: 'arimo',
+  tinos: 'tinos',
   zcoolXiaowei: 'zcool-xiaowei',
 } as const
 
@@ -17,6 +18,7 @@ export const fontFamilyOptions = [
   { label: '思源宋体', value: RESUME_FONT_FAMILIES.serif },
   { label: '霞鹜文楷', value: RESUME_FONT_FAMILIES.wenkai },
   { label: 'Arimo', value: RESUME_FONT_FAMILIES.arimo },
+  { label: 'Tinos · 中西文混排', value: RESUME_FONT_FAMILIES.tinos },
   { label: '站酷小薇体', value: RESUME_FONT_FAMILIES.zcoolXiaowei },
 ] as const
 
@@ -26,6 +28,7 @@ export const fontFamilyEnum = z.enum([
   RESUME_FONT_FAMILIES.serif,
   RESUME_FONT_FAMILIES.wenkai,
   RESUME_FONT_FAMILIES.arimo,
+  RESUME_FONT_FAMILIES.tinos,
   RESUME_FONT_FAMILIES.zcoolXiaowei,
 ])
 
@@ -73,6 +76,8 @@ export function getFontFamilyName(fontFamily: ResumeFontFamily) {
       return 'LXGW WenKai'
     case RESUME_FONT_FAMILIES.arimo:
       return 'Arimo Variable'
+    case RESUME_FONT_FAMILIES.tinos:
+      return 'Tinos'
     case RESUME_FONT_FAMILIES.zcoolXiaowei:
       return 'ZCOOL XiaoWei'
     default:
@@ -82,7 +87,7 @@ export function getFontFamilyName(fontFamily: ResumeFontFamily) {
 
 export function getFontFamilyCSS(fontFamily: ResumeFontFamily) {
   const familyName = getFontFamilyName(fontFamily)
-  if (fontFamily === RESUME_FONT_FAMILIES.arimo)
+  if (fontFamily === RESUME_FONT_FAMILIES.arimo || fontFamily === RESUME_FONT_FAMILIES.tinos)
     return `'${familyName}', 'Noto Sans SC Variable', sans-serif`
   if (fontFamily === RESUME_FONT_FAMILIES.zcoolXiaowei)
     return `'${familyName}', 'Noto Serif SC Variable', serif`
@@ -91,6 +96,8 @@ export function getFontFamilyCSS(fontFamily: ResumeFontFamily) {
 }
 
 export function getResumeFontWeights(fontFamily: ResumeFontFamily) {
+  if (fontFamily === RESUME_FONT_FAMILIES.tinos)
+    return { normal: 400, medium: 700, bold: 700 }
   if (fontFamily === RESUME_FONT_FAMILIES.zcoolXiaowei)
     return { normal: 400, medium: 400, bold: 400 }
   return fontFamily === RESUME_FONT_FAMILIES.wenkai
