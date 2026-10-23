@@ -2,7 +2,7 @@ import type { Binding, ContentKind, TemplateDefinition, TemplateNode } from './t
 import { DEFAULT_ORDER } from '@/lib/schema'
 
 export const TEMPLATE_LIMITS = { definitionBytes: 256 * 1024, nodes: 512, depth: 16, renderedNodes: 30000 } as const
-export const SUPPORTED_TEMPLATE_CAPABILITIES = ['flow', 'local-grid', 'vector-shapes', 'skill-meter', 'images', 'page-regions', 'page-background', 'photo', 'display-bindings', 'item-parity'] as const
+export const SUPPORTED_TEMPLATE_CAPABILITIES = ['flow', 'local-grid', 'vector-shapes', 'skill-meter', 'images', 'page-regions', 'page-background', 'photo', 'display-bindings', 'item-parity', 'rich-text-styles'] as const
 export class TemplateValidationError extends Error {
   readonly reason: 'capability' | 'limit' | 'definition'
   constructor(reason: 'capability' | 'limit' | 'definition', message: string) {
@@ -94,6 +94,17 @@ export function validateTemplateDefinition(definition: TemplateDefinition): void
       }
       if (node.style && !Object.hasOwn(definition.styles, node.style))
         fail(`缺少命名样式 ${node.style}`)
+      if (node.type === 'richText' && node.elementStyles) {
+        if (!definition.capabilities.includes('rich-text-styles'))
+          fail('富文本元素样式需要声明 rich-text-styles 能力')
+        for (const styleId of Object.values(node.elementStyles)) {
+          if (!Object.hasOwn(definition.styles, styleId))
+            fail(`缺少富文本命名样式 ${styleId}`)
+          const elementStyle = definition.styles[styleId]
+          if (elementStyle.height !== undefined || elementStyle.rotate)
+            fail('富文本元素不得使用固定高度或旋转')
+        }
+      }
       if (node.when) {
         checkBinding(node.when.binding, scope, hasSection)
         if (node.when.operator === 'equals' && node.when.value === undefined)
@@ -135,7 +146,7 @@ export function validateTemplateDefinition(definition: TemplateDefinition): void
           fail('字段排序仅用于个人信息集合')
         const profileKeys: Record<string, string[]> = {
           'profile.jobIntent': ['jobIntent', 'intentionalCity', 'expectedSalary', 'dateEntry'],
-          'profile.meta': ['age', 'gender', 'nation', 'height', 'weight', 'nativePlace'],
+          'profile.meta': ['age', 'gender', 'nation', 'height', 'weight', 'nativePlace', 'maritalStatus', 'politicalStatus'],
           'profile.contact': ['phone', 'email'],
         }
         const allowedFields = node.source === 'profile.fields' ? ['name', 'workYears', ...Object.values(profileKeys).flat()] : profileKeys[node.source] ?? []

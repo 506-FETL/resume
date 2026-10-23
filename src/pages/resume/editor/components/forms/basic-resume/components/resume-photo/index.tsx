@@ -98,7 +98,7 @@ export function ResumePhotoField({ form }: { form: UseFormReturn<BasicFormInput>
           </motion.div>
         </AnimatePresence>
       </div>
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <p className="text-sm font-medium">简历照片</p>
         <p className="text-xs text-muted-foreground">选填，支持 JPG、PNG、WebP。照片会随简历保存。</p>
         <input
@@ -112,7 +112,7 @@ export function ResumePhotoField({ form }: { form: UseFormReturn<BasicFormInput>
             event.currentTarget.value = ''
           }}
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
             {busy && <LoaderCircle className={cn('size-3.5', !reduceMotion && 'animate-spin')} />}
             {photo ? '替换照片' : '选择照片'}

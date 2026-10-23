@@ -9,6 +9,7 @@ export interface ContentField {
   fieldKey: string
   nodeKey: string
   label: string
+  labelRequired?: boolean
   text: string
 }
 export interface ExperienceContent {

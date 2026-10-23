@@ -65,6 +65,7 @@ export function applyResumeChange(
   get: StoreApi<ResumeState>['getState'],
   stateUpdate: ((prev: ResumeState) => Partial<ResumeState>) | Partial<ResumeState>,
   docUpdate?: (doc: AutomergeResumeDocument) => void,
+  onDocumentError?: (error: unknown) => never,
 ) {
   // 1. 应用本地状态更新 (Optimistic UI)
   set((prev: ResumeState) => {
@@ -102,6 +103,7 @@ export function applyResumeChange(
     catch (error) {
       console.error('Document update failed:', error)
       set({ syncError: '文档同步失败，请刷新重试' })
+      onDocumentError?.(error)
     }
   }
 

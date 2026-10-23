@@ -162,7 +162,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
           {fields.length > 0 && (
             <div className="flex flex-col gap-4">
               <FormLabel>技能列表</FormLabel>
-              <div className="grid grid-cols-1 gap-3 @md/panel:grid-cols-2 @2xl/panel:grid-cols-3">
+              <div className="grid min-w-0 grid-cols-1 gap-4 @2xl/panel:grid-cols-2 @5xl/panel:grid-cols-3">
                 {fields.map((item, index) => {
                   const hidden = form.watch(`skills.${index}.hidden` as any)
                   return (
@@ -176,12 +176,12 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
                         layout: reduceMotion ? { duration: 0 } : SPRING.layout,
                       }}
                       layout={!reduceMotion}
-                      className={cn('flex flex-col gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
+                      className={cn('flex min-w-0 flex-col gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
                     >
                       {/* 技能标签和操作按钮 */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-base truncate">{item.label}</span>
-                        <div className="flex items-center gap-0.5">
+                        <span className="min-w-0 font-semibold text-base truncate">{item.label}</span>
+                        <div className="flex shrink-0 items-center gap-0.5">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button

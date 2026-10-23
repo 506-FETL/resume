@@ -29,21 +29,21 @@ export function CustomFields({ form, fields, append, remove }: CustomFieldsProps
         <Plus />
         {!isMobile && '添加自定义字段'}
       </Button>
-      <div className="mt-6 grid gap-4 justify-items-start @md/panel:grid-cols-2 @2xl/panel:grid-cols-3">
+      <div className="mt-6 flex min-w-0 flex-col gap-4">
         {fields.map((item, index) => (
           <motion.div
             key={item.id}
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, layout: reduceMotion ? { duration: 0 } : SPRING.layout }}
-            className="flex gap-2 items-end"
+            className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto] items-end gap-3"
             layout={!reduceMotion}
           >
             <FormField
               control={form.control}
               name={`customFields.${index}.label`}
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>标签</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="标签" />
@@ -55,7 +55,7 @@ export function CustomFields({ form, fields, append, remove }: CustomFieldsProps
               control={form.control}
               name={`customFields.${index}.value`}
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>值</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="值" />
@@ -63,9 +63,8 @@ export function CustomFields({ form, fields, append, remove }: CustomFieldsProps
                 </FormItem>
               )}
             />
-            <Button type="button" variant="destructive" size={isMobile ? 'icon' : 'sm'} onClick={() => remove(index)}>
+            <Button type="button" variant="destructive" size="icon" aria-label={`删除自定义字段 ${index + 1}`} onClick={() => remove(index)}>
               <Delete />
-              {!isMobile && '删除'}
             </Button>
           </motion.div>
         ))}

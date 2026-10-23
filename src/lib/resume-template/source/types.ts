@@ -36,6 +36,7 @@ export interface CatalogPage { items: TemplateCatalogItem[], nextOffset: number 
 export interface CatalogFacets { styles: string[], layouts: string[] }
 export interface ResourceOptions { force?: boolean }
 export interface TemplateSource {
+  getTemplateCatalogEntry: (templateId: string, options?: ResourceOptions) => Promise<{ item: TemplateCatalogItem, listed: boolean } | null>
   getTemplateName: (templateId: string, options?: ResourceOptions) => Promise<string | null>
   listTemplates: () => Promise<TemplateCatalogItem[]>
   listTemplatePage: (query?: CatalogQuery, options?: ResourceOptions) => Promise<CatalogPage>

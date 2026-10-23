@@ -5,13 +5,21 @@ import type { RenderScope, TemplateDefinition, TemplateNode } from '@/lib/resume
 import { use } from 'react'
 import { CommentableRichText } from '@/components/resume/fields/commentable-rich-text'
 import { CommentableText } from '@/components/resume/fields/commentable-text'
-import { conditionMatches, itemIdentity, resolveBinding, resolveField, resolveList, resolveRichText } from '@/lib/resume-template/declarative/bindings'
+import { conditionMatches, itemIdentity, resolveBinding, resolveField, resolveList, resolveRichText, resolveText } from '@/lib/resume-template/declarative/bindings'
+import { completeProfileFields } from '@/lib/resume-template/declarative/complete-profile-fields'
 import { routeTemplateSections } from '@/lib/resume-template/declarative/page'
 import { resolveColor, resolveLayoutStyle, resolveTemplateStyle } from '@/lib/resume-template/declarative/styles'
 import { TEMPLATE_LIMITS } from '@/lib/resume-template/declarative/validate'
 import { TemplateResolutionError } from '@/lib/resume-template/definition-schema'
 import { TemplateRegionContext } from './template-region-context'
 import { ShapeView, TemplatePaint } from './template-shapes'
+
+function hasItemLabel(nodes: TemplateNode[], scope: RenderScope): boolean {
+  return nodes.some(node => conditionMatches(node.when, scope) && (
+    (node.type === 'text' && node.binding === 'item.label' && Boolean(resolveText(node, scope).trim()))
+    || (node.type === 'box' && hasItemLabel(node.children, scope))
+  ))
+}
 
 /** 同一解释器用于测量、展示和打印；模板 ID 从不参与结构分派。 */
 export function DeclarativeRenderer({ definition, content, environment, assetUrls }: {
@@ -28,6 +36,7 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
       throw new TemplateResolutionError('RESOURCE_LIMIT', '简历展开超过渲染预算，请减少内容或更换模板')
   }
   const primaryFields = new Set<string>()
+  const additionalProfileFields = completeProfileFields(definition, content)
   const claimProjection = (key: string, projection = 'primary') => {
     if (projection !== 'primary')
       return
@@ -79,11 +88,7 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         )
       }
       case 'text': {
-        const value = node.text ?? String(resolveBinding(node.binding!, scope) ?? '')
-        if (!value)
-          return null
-        const mapped = node.map && Object.hasOwn(node.map, value) ? node.map[value] : value
-        const text = node.format === 'pad2' ? mapped.padStart(2, '0') : mapped
+        const text = resolveText(node, scope)
         if (!text)
           return null
         return (
@@ -101,7 +106,7 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         const label = field.label.trim()
         const text = field.text.trimStart()
         const hasLabelPrefix = label && text.startsWith(label) && /^[：:]/u.test(text.slice(label.length).trimStart())
-        const showLabel = node.showLabel && Boolean(label) && !hasLabelPrefix
+        const showLabel = (node.showLabel || (field.labelRequired && !scope.itemLabelVisible)) && Boolean(label) && !hasLabelPrefix
         chargeNodes(1 + (showLabel ? 1 : 0))
         return (
           <span key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', minWidth: 0, overflowWrap: 'anywhere', ...style }}>
@@ -127,15 +132,21 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         return (
           <div key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', minWidth: 0, ...style }}>
             {paint}
-            <CommentableRichText nodeKey={richText.field.nodeKey} fieldLabel={richText.field.label} html={richText.html} projection={node.projection} style={{ fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }} />
+            <CommentableRichText nodeKey={richText.field.nodeKey} fieldLabel={richText.field.label} html={richText.html} projection={node.projection} style={{ fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }} elementStyles={node.elementStyles ? Object.fromEntries(Object.entries(node.elementStyles).map(([tag, styleId]) => [tag, resolveTemplateStyle(definition.styles[styleId], environment)])) : undefined} />
           </div>
         )
       }
       case 'repeat': {
-        const items = resolveList(node.source, scope, node.fieldOrder, node.fieldKeys)
+        const items = [
+          ...resolveList(node.source, scope, node.fieldOrder, node.fieldKeys),
+          ...(additionalProfileFields.get(`${scope.region?.id}/${node.id}`) ?? []),
+        ]
         if (!items.length)
           return null
-        const renderedItems = items.map((item, itemIndex) => ({ identity: itemIdentity(item), children: renderNodes(node.children, { ...scope, item, itemIndex, itemCount: items.length }) })).filter(item => item.children.some(child => child !== null))
+        const renderedItems = items.map((item, itemIndex) => {
+          const itemScope = { ...scope, item, itemIndex, itemCount: items.length }
+          return { identity: itemIdentity(item), children: renderNodes(node.children, { ...itemScope, itemLabelVisible: hasItemLabel(node.children, itemScope) }) }
+        }).filter(item => item.children.some(child => child !== null))
         if (!renderedItems.length)
           return null
         chargeNodes(renderedItems.length)

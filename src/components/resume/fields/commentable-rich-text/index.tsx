@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react'
+import type { RichTextStyleElement } from '@/lib/resume-template/declarative/types'
 import { Element } from 'html-react-parser'
+import { cloneElement, isValidElement } from 'react'
 import { useResumeContext } from '@/components/resume/runtime/context/resume-context'
 import { normalizeCommentRichTextBlock, projectCommentRichTextBlocks } from '@/features/resume-comments/anchors/projection'
 import { parseSanitizedHtml } from '@/lib/safe-html'
@@ -45,12 +47,14 @@ export function CommentableRichText({
   fieldLabel,
   html,
   style,
+  elementStyles,
   projection = 'primary',
 }: {
   nodeKey: string
   fieldLabel: string
   html: string
   style?: CSSProperties
+  elementStyles?: Partial<Record<RichTextStyleElement, CSSProperties>>
   projection?: 'primary' | 'display'
 }) {
   const node = useCommentProjectionNode(nodeKey)
@@ -63,6 +67,21 @@ export function CommentableRichText({
   const projectedBlocks = projectCommentRichTextBlocks(html)
   let blockOrdinal = 0
   const content = parseSanitizedHtml(html, undefined, {
+    transform(reactNode, domNode) {
+      if (typeof reactNode === 'string')
+        return reactNode
+      if (!isValidElement<{ style?: CSSProperties }>(reactNode))
+        return null
+      if (!(domNode instanceof Element))
+        return reactNode
+      const elementStyle = elementStyles?.[domNode.name as RichTextStyleElement]
+      if (elementStyle) {
+        // 只补充净化后元素的样式，保留解析器生成的子节点、key 和评论锚点。
+        // eslint-disable-next-line react/no-clone-element
+        return cloneElement(reactNode, { style: { ...elementStyle, ...reactNode.props.style } })
+      }
+      return reactNode
+    },
     replace(domNode) {
       if (
         !(domNode instanceof Element)

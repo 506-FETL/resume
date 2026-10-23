@@ -138,6 +138,19 @@ export function createRemoteTemplateSource({ transport, cache, now = Date.now }:
     }, input => catalogPageSchema.parse(input), CATALOG_TTL_MS, options.force)
   }
   return {
+    getTemplateCatalogEntry(templateId, options) {
+      const id = templateIdSchema.parse(templateId)
+      const entrySchema = z.object({ item: catalogItemSchema, listed: z.boolean() }).nullable()
+      return read(`catalog-entry:${id}`, async () => {
+        // 当前简历的精确版本可继续使用，即使它已经从候选目录下架。
+        const rows = z.array(z.object({ metadata: catalogItemSchema, listed: z.boolean() })).max(1).parse(await transport('official_resume_template_catalog', {
+          select: 'metadata,listed',
+          template_id: `eq.${id}`,
+          limit: '1',
+        }))
+        return rows[0] ? { item: rows[0].metadata, listed: rows[0].listed } : null
+      }, input => entrySchema.parse(input), CATALOG_TTL_MS, options?.force)
+    },
     getTemplateName(templateId, options) {
       const id = templateIdSchema.parse(templateId)
       return read(`template-name:${id}`, async () => {

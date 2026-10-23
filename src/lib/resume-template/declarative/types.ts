@@ -56,6 +56,8 @@ export interface TemplateStyle {
 export type FieldBinding = 'profile.name' | 'profile.workYears' | 'item' | 'item.field' | 'item.title' | 'item.subtitle' | 'item.duration'
 export type TextBinding = 'section.key' | 'section.index' | 'item.index' | 'item.first' | 'item.last' | 'item.fieldKey' | 'section.title' | 'item.label' | 'item.percentage' | 'item.proficiency'
 export type RichTextBinding = 'block.richText' | 'item.description'
+export const RICH_TEXT_STYLE_ELEMENTS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'a', 'blockquote'] as const
+export type RichTextStyleElement = typeof RICH_TEXT_STYLE_ELEMENTS[number]
 export type ListBinding = 'profile.fields' | 'profile.jobIntent' | 'profile.meta' | 'profile.contact' | 'block.items'
 export type Binding = FieldBinding | TextBinding | RichTextBinding | ListBinding | 'profile.photo' | 'profile' | 'sections' | 'item.displayType' | 'item.parity'
 export interface TemplateCondition { binding: Binding, operator: 'present' | 'equals', value?: string }
@@ -68,7 +70,7 @@ export type TemplateNode
   = | (NodeBase & { type: 'box', layout: 'stack' | 'row' | 'wrap' | 'grid', children: TemplateNode[], decoration?: TemplateShape[], viewBox?: [number, number, number, number] })
     | (NodeBase & { type: 'text', text?: string, binding?: TextBinding, map?: Record<string, string>, format?: 'pad2' })
     | (NodeBase & { type: 'field', binding: FieldBinding, projection?: 'primary' | 'display', showLabel?: boolean, suffix?: string })
-    | (NodeBase & { type: 'richText', binding: RichTextBinding, projection?: 'primary' | 'display' })
+    | (NodeBase & { type: 'richText', binding: RichTextBinding, projection?: 'primary' | 'display', elementStyles?: Partial<Record<RichTextStyleElement, string>> })
     | (NodeBase & { type: 'repeat', source: ListBinding, fieldOrder?: string[], fieldKeys?: string[], separator?: string, layout: 'stack' | 'row' | 'wrap' | 'grid', children: TemplateNode[] })
     | (NodeBase & { type: 'sections' })
     | (NodeBase & { type: 'blocks' })
@@ -124,6 +126,7 @@ export interface RenderScope {
   sectionIndex?: number
   itemIndex?: number
   itemCount?: number
+  itemLabelVisible?: boolean
   profile?: ProfileContent | null
   sections?: ContentSection[]
   section?: ContentSection

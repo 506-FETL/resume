@@ -42,6 +42,9 @@ importers:
       '@fontsource/lxgw-wenkai':
         specifier: 5.2.5
         version: 5.2.5
+      '@fontsource/tinos':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/zcool-xiaowei':
         specifier: 5.2.8
         version: 5.2.8
@@ -1096,6 +1099,9 @@ packages:
 
   '@fontsource/lxgw-wenkai@5.2.5':
     resolution: {integrity: sha512-lIBouZW7qNw3VdVnjc0NC80iDfxjU7OnaKGaz6QHiHjC8z0fv9MyrHpeBMzkPnyEVabcpUu4Wf8DnaihfGVYtw==}
+
+  '@fontsource/tinos@5.3.0':
+    resolution: {integrity: sha512-VVDyyZdbcsLKxo/W7rClAvacD/7DsGc7J5xzzp51Tndib8kDkEe/0bqbb3Xb3iH6+IUjt07aRsvtQ9MGeGGi4w==}
 
   '@fontsource/zcool-xiaowei@5.2.8':
     resolution: {integrity: sha512-HppFdc8Y0djYbSpK6FbMFhEaZJwfGE5yIKLN3d5q5V239NQxm3sULJjfbMYyAMKswhG6hNTtXQkt8lOl4OmoLA==}
@@ -7426,6 +7432,8 @@ snapshots:
   '@fontsource-variable/noto-serif-sc@5.2.9': {}
 
   '@fontsource/lxgw-wenkai@5.2.5': {}
+
+  '@fontsource/tinos@5.3.0': {}
 
   '@fontsource/zcool-xiaowei@5.2.8': {}
 
