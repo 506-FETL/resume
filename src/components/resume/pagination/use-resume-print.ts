@@ -45,6 +45,9 @@ export function useResumePrint({
       if (typeof printWindow.print !== 'function')
         throw new TypeError('当前浏览器不支持 PDF 导出，请使用 Safari 或 Chrome')
 
+      // react-to-print 不复制根节点语言；WebKit 会据此选择不同的标点字形。
+      printDocument.documentElement.lang = iframe.ownerDocument.documentElement.lang
+
       await waitForResumeFont(
         printDocument,
         documentState.fontFamily,
