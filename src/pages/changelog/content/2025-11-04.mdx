@@ -1,34 +1,13 @@
 ---
-title: 'PDF 导出与账号系统'
+title: '导出 PDF，换台设备继续写'
 date: '2025-11-04'
-tags: ['Export', 'Auth', 'PDF']
+tags: ['PDF 导出', '账号与保存']
 version: '0.3'
 ---
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
+写好的简历可以导出为 PDF，也可以登录账号保存到云端，之后在其他设备上继续编辑。
 
-简历写得再好看，导出来一坨就白搭了。这个版本终于补上了最关键的一环——高保真 PDF 导出。
-
-- **PDF 导出** — 点击导出，浏览器直接生成 PDF，支持 A4 精确分页
-- **智能分页** — 导出时会在合适的位置自动断页，尽量保证每一页都干净整洁
-- **编辑器配置工具栏** — 字体、间距、主题色，不用去设置页，编辑器里直接调
-- **账号与云端保存** — 登录后可以保存在线简历，并在不同设备继续编辑
-
-<Accordion type='multiple' className='w-full not-prose'>
-  <AccordionItem value='item-1'>
-    <AccordionTrigger>导出体验有哪些优化？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>导出前会按 A4 页面重新排版，减少尺寸和边距偏差</li>
-        <li>分页时识别模块边界，尽量避免标题、段落或一句话被拦腰截断</li>
-        <li>字体、间距和主题色会跟随当前简历配置写入导出结果</li>
-        <li>编辑界面增加更柔和的背景效果，长时间填写时更舒适</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-</Accordion>
+- **A4 格式导出**：保留简历的字体、间距和配色，生成用于投递的 PDF。
+- **自动分页**：内容超过一页时自动分配到下一页，减少标题与正文分离、段落被截断的情况。
+- **就地调整外观**：在编辑器工具栏直接修改字体、间距和主题色。
+- **云端保存**：登录后保存在线简历，换设备登录即可接着写。

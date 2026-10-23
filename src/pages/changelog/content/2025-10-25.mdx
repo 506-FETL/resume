@@ -1,36 +1,13 @@
 ---
-title: '实时协作上线'
+title: '邀请他人一起修改简历'
 date: '2025-10-25'
-tags: ['Collaboration', 'Sharing', 'Editing']
+tags: ['多人协作']
 version: '0.2'
 ---
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
+需要朋友或导师帮忙修改时，可以发送协作邀请，在同一份简历上一起编辑。
 
-现在你可以把链接甩给朋友、导师或者学姐，让他们直接在你的简历上动手改。
-
-- **多人实时编辑** — 多个人可以同时修改同一份简历，系统会自动合并各自的变化
-- **一键分享协作链接** — 点一下就能生成邀请链接，对方打开就能一起编辑，零门槛
-- **远程光标** — 能看到对方正在改哪里，再也不用喊"你别动那段我在改"
-- **实时变更提醒** — 对方改了什么，弹窗第一时间告诉你
-- **协作面板** — 查看在线成员、管理协作会话，一目了然
-
-<Accordion type='multiple' className='w-full not-prose'>
-  <AccordionItem value='item-1'>
-    <AccordionTrigger>协作时会发生什么？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>多人同时修改不同字段时，各自的输入会自动保留并合并</li>
-        <li>在线修改会快速同步给其他参与者，减少来回刷新页面</li>
-        <li>网络短暂中断时仍可继续编辑，恢复连接后自动同步变化</li>
-        <li>远程光标平滑展示，让你更容易判断对方正在修改的位置</li>
-        <li>发起协作时会先保存最新简历，确保参与者从同一版本开始</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-</Accordion>
+- **链接邀请**：生成协作链接，邀请对方加入当前简历。
+- **同步修改**：多人可以同时编辑，彼此的修改会实时显示；短暂断网后，恢复连接会继续同步。
+- **看到对方的位置**：光标会标出协作者正在编辑的地方，修改提醒帮助你了解内容变化。
+- **管理协作**：在协作面板查看在线成员，开启或结束协作。

@@ -1,53 +1,19 @@
 ---
-title: '简历构建器的诞生'
+title: '开始制作你的第一份简历'
 date: '2025-10-13'
-tags: ['Launch', 'Editor', 'Forms']
+tags: ['简历编辑', '外观设置']
 version: '0.1'
 ---
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-
 <img
   src='https://bitxrpdtlohlnywgusfw.supabase.co/storage/v1/object/public/changelog/Resume%20Editing.png'
-  alt='预览图'
+  alt='简历编辑器与实时预览'
   className='w-full'
 />
 
-万事开头难——但我们还是动手了。这是项目的第一个可用版本，一个能真正"写简历"的东西终于跑起来了。
+GResume 的第一个版本上线了。填写经历、调整顺序和排版，就能完成一份简历。
 
-- **所见即所得编辑** — 支持加粗、列表、图片等常用格式，编辑时就能看到最终效果
-- **覆盖 10+ 模块的表单系统** — 求职意向、教育背景、校园经历、实习、项目、工作经验、技能、荣誉、兴趣爱好、自我评价……你能想到的简历板块，全都有了
-- **拖拽排序** — 觉得"项目经历"应该放在"工作经验"前面？拖一下就行
-- **实时预览** — 编辑的同时，右侧就能看到最终效果
-- **个性化配置** — 字体、间距、主题色，已支持！
-
-<Accordion type='multiple' className='w-full not-prose'>
-  <AccordionItem value='item-1'>
-    <AccordionTrigger>这个版本里都塞了什么？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>工具栏提供常用文字格式、快捷键和格式调整能力</li>
-        <li>每个简历模块都可以自由增删条目，也支持补充自定义字段</li>
-        <li>首套基础模板可以完整展示并导出已填写的简历内容</li>
-        <li>模块支持拖拽排序，显示顺序可以随求职目标灵活调整</li>
-        <li>填写异常内容时会尽量保留当前页面和已输入的信息</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-  <AccordionItem value='item-2'>
-    <AccordionTrigger>首个版本能完成什么？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>从零创建并填写一份结构完整的简历</li>
-        <li>按需增删、隐藏和排序各个内容模块</li>
-        <li>一边编辑，一边查看接近最终成品的实时预览</li>
-        <li>调整字体、间距和主题色，形成个人化样式</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-</Accordion>
+- **边写边预览**：填写时就能看到简历的样子，支持加粗、列表和图片等常用格式。
+- **按需组织内容**：提供教育、工作、实习、项目、技能等十余个模块，可以增删条目、补充自定义字段，也可以隐藏暂时不用的内容。
+- **拖动调整顺序**：把最想展示的经历放到前面。
+- **调整简历外观**：选择字体、间距和主题色，查看排版效果。

@@ -1,86 +1,23 @@
 ---
-title: 'AI 助手技能、求职流程与使用体验优化'
+title: '让 AI 专注当前简历，求职进度记得更细'
 date: '2026-10-18'
-tags: ['Assistant', 'Tracker', 'Stability']
+tags: ['AI 助手', '求职跟进', '问题修复']
 version: '0.21'
 ---
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { Badge } from '@/components/ui/badge'
+每段 AI 对话可以单独选择要修改的简历；求职看板加入测评和笔试阶段，方便记录更完整的招聘流程。
 
-<Badge className='mr-1'>V 0.21</Badge>
-AI 助手支持技能选择和会话级简历绑定，求职跟进补齐测评、笔试阶段；同时改进协作、评论、分享和登录体验，减少历史版本切换时的等待与卡顿。
+- **为对话选简历和技能**：按需要选择内置的简历提升技能，预览和修改记录会对应这段对话中的简历。
+- **检查和撤销 AI 修改**：用中文字段名查看前后差异，定位到原文，支持单项或批量撤销、重新应用。
+- **按条目隐藏经历**：教育、工作、项目等经历可以单独隐藏，保留内容而不显示在简历上。
+- **记录测评和笔试**：新增“测评中”“笔试中”，可记录阶段日期、面试轮次、备注和下一步行动。进度自动保存，失败时保留草稿并支持重试。
+- **更快回看历史版本**：减少切换时的空白和重复等待，分享卡片也更容易查看和筛选。
 
-- **AI 助手技能与会话绑定** — 为对话选择简历提升技能，画布和修改记录跟随当前会话绑定的简历
-- **更清楚的修改记录** — 用中文字段展示修改前后差异，支持定位、撤销和重新应用；简历条目可以单独隐藏
-- **更完整的求职流程** — 新增测评、笔试阶段，优化职位概览、筛选、阶段记录和自动保存反馈
-- **协作与评论稳定性** — 修复协作者打开空文档、评论删除残留和高亮叠加，发送评论后即时显示待发送状态
-- **未登录访问适配** — 需要账户的页面显示明确的登录入口，官方模板仍可浏览，不再停留在加载占位
-- **历史版本与分享体验** — 右侧详情和预览直接切换，减少空白与重复加载；同步优化分享卡片、筛选和设置交互
+这次还修复了这些问题：
 
-<Accordion type='multiple' className='w-full not-prose'>
-  <AccordionItem value='assistant'>
-    <AccordionTrigger>AI 助手和简历编辑有哪些变化？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>对话支持选择内置简历提升技能，并在消息中展示技能引用和执行状态</li>
-        <li>每个会话独立绑定简历，工具操作、画布预览和修改记录使用对应的简历内容</li>
-        <li>变更记录展示中文字段名和修改前后内容，可定位到简历中的对应位置，支持单项及批量撤销、重新应用</li>
-        <li>教育、工作、项目等经历可以按条目隐藏，隐藏内容不再占用预览中的空行</li>
-        <li>较早的对话消息按需加载，工具调用及时显示进度，并修复流式输出时自动滚动中断和按钮闪回</li>
-        <li>手机端画布增加明确的关闭入口，便于返回对话继续编辑</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-  <AccordionItem value='tracker'>
-    <AccordionTrigger>求职跟进如何记录更细的流程？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>新增“测评中”和“笔试中”，与已投递、筛选、面试和录用等阶段一起展示在看板中</li>
-        <li>职位详情整合阶段时间线、日期、备注、面试轮次和下一步行动，方便持续记录进展</li>
-        <li>流程修改自动保存，清楚区分等待保存、保存中、已保存和失败状态；保存失败时保留草稿并支持重试</li>
-        <li>概览统计、搜索筛选、列表和看板切换更加一致，并改善快速编辑及切换账户时的数据加载</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-  <AccordionItem value='collaboration-comments'>
-    <AccordionTrigger>协作和评论修复了哪些问题？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>修复协作者进入邀请后看到空简历、登录后未正确返回邀请以及连接恢复异常等问题</li>
-        <li>改进协作内容保存和会话切换，避免旧连接或迟到的保存结果影响当前文档</li>
-        <li>评论和回复提交后立即显示待发送内容，减少等待服务端返回期间的空白反馈</li>
-        <li>修复删除评论后的残留、跨行高亮重叠，以及切换简历或评论范围后旧请求更新当前界面的问题</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-  <AccordionItem value='history-sharing'>
-    <AccordionTrigger>历史版本和分享有哪些改进？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>历史版本右侧的标题、操作区、标签页和简历预览取消切换动画，选中后直接更新内容</li>
-        <li>已查看的版本复用缓存，减少切换时的空白和卡顿；PDF 在点击导出后才准备</li>
-        <li>修复快速保存时版本名称错位、版本时间偏早，以及删除被分享版本时报错的问题</li>
-        <li>优化分享卡片的信息布局和状态筛选，改善设置弹窗与筛选操作的焦点处理</li>
-        <li>完善分享内容的隐私字段处理，并简化分享、协作和导出相关的提示文案</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-  <AccordionItem value='account-loading'>
-    <AccordionTrigger>登录、加载和其他细节有什么调整？</AccordionTrigger>
-    <AccordionContent className='flex flex-col gap-4 text-balance'>
-      <ul className='list-disc space-y-2 pl-4'>
-        <li>未登录访问求职跟进、分享管理、历史版本、AI 助手和简历优化时，显示登录说明与入口，并保留登录后的返回位置</li>
-        <li>访客可以继续浏览官方模板，“我的模板”在登录后开放，避免未登录时请求个人模板数据</li>
-        <li>完善密码重置页面和邮件返回流程，统一验证、邀请及账户安全邮件的样式与文案</li>
-        <li>首页各模块按自己的加载进度展示，改进历史版本、分享、模板和优化页面的请求处理，减少旧请求覆盖新内容</li>
-        <li>修复首页 ATS 趋势图刻度被裁切的问题，并调整手机端抽屉、弹窗和工具栏的交互细节</li>
-      </ul>
-    </AccordionContent>
-  </AccordionItem>
-</Accordion>
+- 加入协作后看到空简历，或登录后没有返回邀请页面。
+- 删除评论后仍有残留，以及跨行评论高亮重叠；发送评论和回复后，现在会立即显示待发送状态。
+- 快速保存时版本名称或时间显示不正确，以及删除已用于分享的历史版本时报错。
+- 未登录时部分页面一直显示加载中；现在会提示登录，登录后返回原位置，官方模板仍可直接浏览。
+
+首页各模块会在各自加载完成后显示，手机端 AI 预览也新增了关闭按钮，方便返回对话。
