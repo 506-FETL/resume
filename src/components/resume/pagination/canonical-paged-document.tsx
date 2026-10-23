@@ -89,7 +89,8 @@ export default function CanonicalPagedDocument({
     )
   })
   const measurementSource = (
-    <div aria-hidden="true" data-resume-measurement-source="true" className="pointer-events-none fixed top-0 opacity-0" style={{ left: '-100000px', width: A4_PAGE_WIDTH }}>
+    // WebKit 在极远的离屏坐标会损失文字矩形精度；原点裁切保持测量与打印的几何一致。
+    <div aria-hidden="true" data-resume-measurement-source="true" className="pointer-events-none fixed top-0 left-0 h-0 overflow-hidden opacity-0" style={{ width: A4_PAGE_WIDTH }}>
       <div ref={setPage} style={paperStyle}>
         <div ref={setViewport} style={{ position: 'absolute', inset: 0 }}>
           <div ref={handleSourceRef} data-resume-source="true" style={{ position: 'absolute', inset: 0, ...fontStyle }}>{renderRegions(null)}</div>

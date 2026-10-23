@@ -361,6 +361,9 @@ export async function waitForResumeFont(
   if (!targetDocument.fonts)
     throw new Error('当前浏览器不支持字体状态检测')
 
+  // Safari 的字体就绪状态依赖样式与布局解析，先触发正文实际使用的字体分片加载。
+  targetDocument.body.getBoundingClientRect()
+
   const loadedFaces = await Promise.all(
     weights.map(weight =>
       targetDocument.fonts.load(`${weight} 16px "${familyName}"`)),

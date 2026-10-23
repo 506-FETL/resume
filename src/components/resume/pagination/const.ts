@@ -4,6 +4,13 @@ export const BOUNDARY_EPSILON = 0.5
 export const MAX_STABILITY_FRAMES = 8
 
 export const RESUME_PRINT_PAGE_STYLE = `
+  body {
+    margin: 0;
+  }
+  /* 打印前校验也使用测量页的原点，避免 WebKit 居中偏移造成文字矩形精度差异。 */
+  [data-resume-page] {
+    margin: 0 !important;
+  }
   @page {
     size: A4;
     margin: 0;
