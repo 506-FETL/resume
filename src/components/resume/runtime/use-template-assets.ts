@@ -1,87 +1,40 @@
 import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { asTemplateError, TemplateResolutionError } from '@/lib/resume-template/definition-schema'
-import { resumeTemplateSource } from '@/lib/resume-template/source'
+import { useCallback, useEffect, useMemo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
+import { IDLE_IMAGE, useTemplateImageStore } from '@/store/resume-template/images'
 
-interface AssetState {
-  definition: TemplateDefinition | null | undefined
-  attempt: number
-  status: 'loading' | 'ready' | 'error'
-  assetUrls: ReadonlyMap<string, string>
-  error: TemplateResolutionError | null
-}
 const EMPTY_ASSETS: ReadonlyMap<string, string> = new Map()
 const URL_RELEASE_DELAY_MS = 60000
-/** 哈希验证由 source 完成；此处等待浏览器解码，并将资源生命周期绑定到活动预览。 */
+
 export function useTemplateAssets(definition: TemplateDefinition | null | undefined) {
-  const [retryRequest, setRetryRequest] = useState<{ definition: TemplateDefinition | null | undefined, sequence: number }>({ definition: null, sequence: 0 })
-  const consumedRetry = useRef(0)
-  const attempt = retryRequest.definition === definition ? retryRequest.sequence : 0
-  const [state, setState] = useState<AssetState>({ definition: undefined, attempt: 0, status: 'ready', assetUrls: EMPTY_ASSETS, error: null })
-  const retry = useCallback(() => setRetryRequest(value => ({ definition, sequence: value.sequence + 1 })), [definition])
+  const images = useTemplateImageStore(useShallow(state => definition?.assets.map(asset => state.images[asset.sha256] ?? IDLE_IMAGE) ?? []))
+  const load = useTemplateImageStore(state => state.load)
+  const retain = useTemplateImageStore(state => state.retain)
+  const loadAssets = useCallback((force = false) => {
+    definition?.assets.forEach(asset => load({ hash: asset.sha256, byteLength: asset.bytes, mimeType: asset.mimeType, width: asset.width, height: asset.height }, force))
+  }, [definition, load])
   useEffect(() => {
+    const releases = definition?.assets.map(asset => retain(asset.sha256, URL_RELEASE_DELAY_MS)) ?? []
+    loadAssets()
+    return () => releases.forEach(release => release())
+  }, [definition, loadAssets, retain])
+  const assetUrls = useMemo(() => {
     if (!definition?.assets.length)
-      return
-    const force = attempt > 0 && consumedRetry.current !== attempt
-    if (force)
-      consumedRetry.current = attempt
-    let disposed = false
+      return EMPTY_ASSETS
     const urls = new Map<string, string>()
-    const releases = definition.assets.map(asset => resumeTemplateSource.retainResource(`asset:${asset.sha256}`))
-    const tasks = definition.assets.map(async (asset) => {
-      let url: string | undefined
-      try {
-        const blob = await resumeTemplateSource.getAsset({ hash: asset.sha256, byteLength: asset.bytes, mimeType: asset.mimeType, width: asset.width, height: asset.height }, force ? { force: true } : undefined)
-        if (disposed)
-          return
-        url = URL.createObjectURL(blob)
-        const image = new Image()
-        image.src = url
-        await image.decode()
-        if (image.naturalWidth !== asset.width || image.naturalHeight !== asset.height)
-          throw new TemplateResolutionError('INVALID_DEFINITION', '模板素材尺寸与清单不符')
-        if (disposed) {
-          URL.revokeObjectURL(url)
-          return
-        }
-        urls.set(asset.id, url)
-      }
-      catch (error) {
-        if (url)
-          URL.revokeObjectURL(url)
-        if (asset.required)
-          throw error
-      }
+    definition.assets.forEach((asset, index) => {
+      const image = images[index]
+      if (image?.status === 'ready')
+        urls.set(asset.id, image.url)
     })
-    // 等全部任务落定后释放失败资源，避免其他请求迟到时遗失 blob URL。
-    Promise.allSettled(tasks).then((results) => {
-      if (disposed)
-        return
-      const failure = results.find(result => result.status === 'rejected')
-      if (failure?.status === 'rejected') {
-        urls.forEach(url => URL.revokeObjectURL(url))
-        urls.clear()
-        setState({ definition, attempt, status: 'error', assetUrls: EMPTY_ASSETS, error: asTemplateError(failure.reason) })
-      }
-      else {
-        setState({ definition, attempt, status: 'ready', assetUrls: new Map(urls), error: null })
-      }
-    })
-    return () => {
-      disposed = true
-      const retainedUrls = [...urls.values()]
-      // 打印 iframe 在卸载预览后仍可能正读取同一 URL。
-      // 此计时器故意跨越组件卸载存活，保护正在读取素材的打印副本。
-      // eslint-disable-next-line react-web-api/no-leaked-timeout
-      setTimeout(() => {
-        retainedUrls.forEach(url => URL.revokeObjectURL(url))
-        releases.forEach(release => release())
-      }, URL_RELEASE_DELAY_MS)
-    }
-  }, [definition, attempt])
-  if (!definition?.assets.length)
-    return { status: 'ready' as const, assetUrls: EMPTY_ASSETS, error: null, retry }
-  if (state.definition !== definition || state.attempt !== attempt)
-    return { status: 'loading' as const, assetUrls: EMPTY_ASSETS, error: null, retry }
-  return { status: state.status, assetUrls: state.assetUrls, error: state.error, retry }
+    return urls
+  }, [definition, images])
+  const failure = images.find((image, index) => image.status === 'error' && definition?.assets[index]?.required)
+  const loading = images.some(image => image.status === 'idle' || image.status === 'loading')
+  return {
+    status: failure ? 'error' as const : loading ? 'loading' as const : 'ready' as const,
+    assetUrls,
+    error: failure?.status === 'error' ? failure.error : null,
+    retry: useCallback(() => loadAssets(true), [loadAssets]),
+  }
 }

@@ -59,7 +59,7 @@ export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
         )}
         <div className="flex min-h-0 flex-1">
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-muted/50 p-4 sm:p-7">
-            <AnimatedContent animationKey={exampleKey(selectedExample)} className="mx-auto max-w-2xl">
+            <AnimatedContent animationKey={`${item.templateId}@${item.currentVersion}:${exampleKey(selectedExample)}`} className="mx-auto max-w-2xl">
               <ExamplePreview item={item} example={selectedExample} />
             </AnimatedContent>
           </div>

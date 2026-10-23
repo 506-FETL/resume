@@ -3,6 +3,7 @@ import { FileText, LoaderCircle } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
+import { exampleKey } from '@/lib/resume-template/source/types'
 import { cn } from '@/lib/utils'
 import { TEMPLATE_PREVIEW_ROOT_MARGIN } from '../../const'
 import { useTemplateIntersection } from '../../hooks/use-template-intersection'
@@ -15,7 +16,7 @@ export default function CardPreview({ item, example }: { item: TemplateCatalogIt
   const { url, status, retry } = useTemplatePreview(preview, inRange)
   return (
     <div ref={ref} className={cn('aspect-[210/297]', status === 'error' && 'pointer-events-none relative z-10')} aria-label={`${item.name}首页预览`} data-preview-status={status}>
-      <AnimatedContent animationKey={url ?? status}>
+      <AnimatedContent animationKey={exampleKey(example)}>
         {url
           ? <img src={url} alt={`${item.name}首页静态预览`} width={preview?.asset.width} height={preview?.asset.height} className="aspect-[210/297] w-full object-cover object-top" />
           : (

@@ -20,6 +20,8 @@ export interface TemplateResources {
   catalog: ResourceState<TemplateCatalogItem[]>
   catalogQuery: CatalogQuery
   nextOffset: number | null
+  refreshingCatalog: boolean
+  catalogRefreshError: string | null
   loadingMore: boolean
   loadMoreError: string | null
   facets: ResourceState<CatalogFacets>

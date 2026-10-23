@@ -6,6 +6,7 @@ import { DURATION } from '@/lib/motion'
 import { exampleKey } from '@/lib/resume-template/source/types'
 import { cn } from '@/lib/utils'
 import { useTemplatePageStore } from '../../store.ts'
+import { prefetchTemplatePreview } from '../../utils'
 
 export default function ExamplePicker({ item, disabled = false }: { item: TemplateCatalogItem, disabled?: boolean }) {
   const selectedExample = useTemplatePageStore(state => state.selectedExamples[item.templateId]) ?? item.defaultExample
@@ -22,6 +23,10 @@ export default function ExamplePicker({ item, disabled = false }: { item: Templa
         return (
           <label
             key={exampleKey(example)}
+            onPointerEnter={() => {
+              if (!disabled)
+                prefetchTemplatePreview(item, example)
+            }}
             className={cn(
               'relative flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2 has-disabled:cursor-not-allowed has-disabled:opacity-60',
               selected ? 'border-foreground/50 bg-muted/40' : 'border-border hover:border-foreground/25 hover:bg-muted/25',
@@ -33,6 +38,7 @@ export default function ExamplePicker({ item, disabled = false }: { item: Templa
               name={name}
               value={exampleKey(example)}
               checked={selected}
+              onFocus={() => prefetchTemplatePreview(item, example)}
               onChange={() => selectExample(item.templateId, example)}
               className="sr-only"
             />

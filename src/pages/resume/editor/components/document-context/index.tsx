@@ -1,15 +1,12 @@
 import { CircleCheck, Cloud, HardDrive } from 'lucide-react'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { cn } from '@/lib/utils'
-import useResumeListStore from '@/pages/resume/store'
-import useCurrentResumeStore from '@/store/resume/current'
 import useResumeStore from '@/store/resume/form'
+import { useResumeDisplayName } from '../../hooks/use-resume-display-name'
 import { useResumeReviewStore } from '../../review-store'
 
 export function DocumentContext() {
-  const resumeId = useCurrentResumeStore(state => state.resumeId)
-  const title = useResumeListStore(state => state.resumes.find(resume => resume.resume_id === resumeId)?.display_name)
-  const name = useResumeStore(state => state.basics.name)
+  const title = useResumeDisplayName()
   const mode = useResumeStore(state => state.mode)
   const isSyncing = useResumeStore(state => state.isSyncing)
   const syncError = useResumeStore(state => state.syncError)
@@ -22,7 +19,7 @@ export function DocumentContext() {
     <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-background/90 px-3 py-2 sm:px-4">
       <div className="flex min-w-0 items-center gap-2">
         {mode === 'offline' ? <HardDrive className="size-4 shrink-0 text-muted-foreground" /> : <Cloud className="size-4 shrink-0 text-muted-foreground" />}
-        <h1 className="truncate text-sm font-medium">{title || name || '当前简历'}</h1>
+        <h1 className="truncate text-sm font-medium">{title}</h1>
       </div>
       <span role="status" className="shrink-0">
         <AnimatedContent as="span" animationKey={status} className={cn('flex items-center gap-1.5 text-xs', syncError && !reviewActive ? 'text-destructive' : 'text-muted-foreground')}>

@@ -17,6 +17,7 @@ import { getCloudAppearanceSource, scheduleOnlinePersist } from '../helpers/sync
 export interface DocumentSlice {
   mode: EditorMode
   currentResumeId: string | null
+  documentDisplayName: string | null
   docManager: DocumentManager | null
   docHandle: DocHandle<AutomergeResumeDocument> | null
   cleanupFns: Array<() => void>
@@ -36,9 +37,10 @@ export interface ResumeLoadOptions {
   source?: DocumentInitializationSource
 }
 
-export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady' | 'documentChangeRevision' | 'documentSessionId'> = {
+export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'documentDisplayName' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady' | 'documentChangeRevision' | 'documentSessionId'> = {
   mode: null,
   currentResumeId: null,
+  documentDisplayName: null,
   docManager: null,
   docHandle: null,
   cleanupFns: [],
@@ -111,6 +113,7 @@ export function createDocumentSlice(
         docHandle: null,
         cleanupFns: [],
         currentResumeId: resumeId,
+        documentDisplayName: null,
         mode: isOfflineResumeId(resumeId) ? 'offline' : 'online',
         isInitialized: false,
         cloudAppearanceStatus: source.kind === 'collaboration' ? 'not_applicable' : 'error',
@@ -135,6 +138,7 @@ export function createDocumentSlice(
           pendingChanges: false,
           syncError: null,
           mode: 'offline',
+          documentDisplayName: offlineResume.display_name,
           isInitialized: true,
           lastSyncTime: offlineResume.updated_at ? dayjs(offlineResume.updated_at).valueOf() : null,
           cloudAppearanceStatus: 'not_applicable',
@@ -233,6 +237,7 @@ export function createDocumentSlice(
         set({
           ...mapSnapshotToState(snapshot),
           docManager: manager,
+          documentDisplayName: cloudAppearanceResult?.displayName ?? null,
           docHandle: handle,
           cleanupFns: [offChange],
           isSyncing: false,
@@ -289,6 +294,7 @@ export function createDocumentSlice(
         docHandle: null,
         mode: null,
         currentResumeId: null,
+        documentDisplayName: null,
         isInitialized: false,
         cloudAppearanceStatus: 'not_applicable',
         docHasPersistedAppearance: false,

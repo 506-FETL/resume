@@ -52,6 +52,8 @@ export function resolveBinding(binding: Binding, scope: RenderScope): unknown {
     return scope.sectionIndex === undefined ? undefined : scope.sectionIndex + 1
   if (binding === 'item.index')
     return scope.itemIndex === undefined ? undefined : scope.itemIndex + 1
+  if (binding === 'item.parity')
+    return scope.itemIndex === undefined ? undefined : scope.itemIndex % 2 === 0 ? 'odd' : 'even'
   if (binding === 'item.first')
     return scope.itemIndex === 0
   if (binding === 'item.last')
