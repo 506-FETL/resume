@@ -98,11 +98,15 @@ export function DeclarativeRenderer({ definition, content, environment, assetUrl
         if (!field?.text.trim())
           return null
         claimProjection(field.nodeKey, node.projection)
-        chargeNodes(1 + (node.showLabel ? 1 : 0))
+        const label = field.label.trim()
+        const text = field.text.trimStart()
+        const hasLabelPrefix = label && text.startsWith(label) && /^[：:]/u.test(text.slice(label.length).trimStart())
+        const showLabel = node.showLabel && Boolean(label) && !hasLabelPrefix
+        chargeNodes(1 + (showLabel ? 1 : 0))
         return (
           <span key={node.id} {...common} style={{ position: 'relative', isolation: 'isolate', minWidth: 0, overflowWrap: 'anywhere', ...style }}>
             {paint}
-            {node.showLabel && (
+            {showLabel && (
               <span>
                 {field.label}
                 ：

@@ -2,7 +2,7 @@ import type { Binding, ContentKind, TemplateDefinition, TemplateNode } from './t
 import { DEFAULT_ORDER } from '@/lib/schema'
 
 export const TEMPLATE_LIMITS = { definitionBytes: 256 * 1024, nodes: 512, depth: 16, renderedNodes: 30000 } as const
-export const SUPPORTED_TEMPLATE_CAPABILITIES = ['flow', 'local-grid', 'vector-shapes', 'skill-meter', 'images', 'page-regions', 'page-background', 'photo', 'display-bindings'] as const
+export const SUPPORTED_TEMPLATE_CAPABILITIES = ['flow', 'local-grid', 'vector-shapes', 'skill-meter', 'images', 'page-regions', 'page-background', 'photo', 'display-bindings', 'item-parity'] as const
 export class TemplateValidationError extends Error {
   readonly reason: 'capability' | 'limit' | 'definition'
   constructor(reason: 'capability' | 'limit' | 'definition', message: string) {
@@ -19,7 +19,7 @@ function checkBinding(binding: Binding, scope: Scope, hasSection: boolean) {
     return
   if (['section.title', 'section.key', 'section.index'].includes(binding) && hasSection)
     return
-  if (['item.index', 'item.first', 'item.last'].includes(binding) && ['profile-fields', 'experience-item', 'skills-item', 'field-item'].includes(scope))
+  if (['item.index', 'item.first', 'item.last', 'item.parity'].includes(binding) && ['profile-fields', 'experience-item', 'skills-item', 'field-item'].includes(scope))
     return
   if (binding === 'item.fieldKey' && ['profile-fields', 'skills-item', 'field-item'].includes(scope))
     return
@@ -98,6 +98,12 @@ export function validateTemplateDefinition(definition: TemplateDefinition): void
         checkBinding(node.when.binding, scope, hasSection)
         if (node.when.operator === 'equals' && node.when.value === undefined)
           fail('相等条件需要 value')
+        if (node.when.binding === 'item.parity') {
+          if (!definition.capabilities.includes('item-parity'))
+            fail('交错布局需要声明 item-parity 能力')
+          if (node.when.operator !== 'equals' || !['odd', 'even'].includes(node.when.value ?? ''))
+            fail('条目奇偶条件必须比较 odd 或 even')
+        }
       }
       if ('binding' in node && node.binding)
         checkBinding(node.binding, scope, hasSection)

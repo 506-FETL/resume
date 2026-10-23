@@ -57,7 +57,7 @@ export type FieldBinding = 'profile.name' | 'profile.workYears' | 'item' | 'item
 export type TextBinding = 'section.key' | 'section.index' | 'item.index' | 'item.first' | 'item.last' | 'item.fieldKey' | 'section.title' | 'item.label' | 'item.percentage' | 'item.proficiency'
 export type RichTextBinding = 'block.richText' | 'item.description'
 export type ListBinding = 'profile.fields' | 'profile.jobIntent' | 'profile.meta' | 'profile.contact' | 'block.items'
-export type Binding = FieldBinding | TextBinding | RichTextBinding | ListBinding | 'profile.photo' | 'profile' | 'sections' | 'item.displayType'
+export type Binding = FieldBinding | TextBinding | RichTextBinding | ListBinding | 'profile.photo' | 'profile' | 'sections' | 'item.displayType' | 'item.parity'
 export interface TemplateCondition { binding: Binding, operator: 'present' | 'equals', value?: string }
 interface NodeBase { id: string, style?: string, when?: TemplateCondition, atomic?: boolean, keepWithNext?: boolean, sectionTarget?: 'basics' }
 export type TemplateShape
