@@ -2,17 +2,38 @@ import type { DocHandle } from '@automerge/automerge-repo'
 import type { StoreApi } from 'zustand'
 import type { ResumeState } from '../form'
 import type { EditorMode, ResumeLoadResult } from '../helpers/sync-service'
-import type { AutomergeResumeDocument, DocumentInitializationSource } from '@/lib/automerge'
+import type {
+  AutomergeResumeDocument,
+  DocumentInitializationSource,
+} from '@/lib/automerge'
 import dayjs from 'dayjs'
 import { toast } from 'sonner'
-import { CollaborationDocumentLoadError, DocumentManager } from '@/lib/automerge'
-import { getOfflineResumeById, isOfflineResumeId } from '@/lib/offline-resume-manager'
+import {
+  CollaborationDocumentLoadError,
+  DocumentManager,
+} from '@/lib/automerge'
+import {
+  getOfflineResumeById,
+  isOfflineResumeId,
+} from '@/lib/offline-resume-manager'
 import { ResumeNotFoundError } from '@/lib/resume-id'
-import { applyResumeEntryIdPatches, collectMissingResumeEntryIdPatches, hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
+import {
+  applyResumeEntryIdPatches,
+  collectMissingResumeEntryIdPatches,
+  hasCompleteResumeEntryIds,
+} from '@/lib/schema/resume/entry-id'
 import { getCurrentUser } from '@/lib/supabase/user'
 import useResumeConfigStore from '../config'
-import { hasPersistedAppearance, mapSnapshotToState, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '../helpers'
-import { getCloudAppearanceSource, scheduleOnlinePersist } from '../helpers/sync-service'
+import {
+  hasPersistedAppearance,
+  mapSnapshotToState,
+  mapSourceToPersistedSnapshot,
+  mergeSnapshotAppearance,
+} from '../helpers'
+import {
+  getCloudAppearanceSource,
+  scheduleOnlinePersist,
+} from '../helpers/sync-service'
 
 export interface DocumentSlice {
   mode: EditorMode
@@ -29,7 +50,10 @@ export interface DocumentSlice {
   documentChangeRevision: number
   documentSessionId: number
 
-  loadResumeData: (resumeId: string, options?: ResumeLoadOptions) => Promise<ResumeLoadResult>
+  loadResumeData: (
+    resumeId: string,
+    options?: ResumeLoadOptions,
+  ) => Promise<ResumeLoadResult>
   cleanup: () => void
 }
 
@@ -37,7 +61,22 @@ export interface ResumeLoadOptions {
   source?: DocumentInitializationSource
 }
 
-export const documentDefaults: Pick<DocumentSlice, 'mode' | 'currentResumeId' | 'documentDisplayName' | 'docManager' | 'docHandle' | 'cleanupFns' | 'isInitialized' | 'cloudAppearanceStatus' | 'docHasPersistedAppearance' | 'appearanceDirty' | 'entryIdMigrationReady' | 'documentChangeRevision' | 'documentSessionId'> = {
+export const documentDefaults: Pick<
+  DocumentSlice,
+  | 'mode'
+  | 'currentResumeId'
+  | 'documentDisplayName'
+  | 'docManager'
+  | 'docHandle'
+  | 'cleanupFns'
+  | 'isInitialized'
+  | 'cloudAppearanceStatus'
+  | 'docHasPersistedAppearance'
+  | 'appearanceDirty'
+  | 'entryIdMigrationReady'
+  | 'documentChangeRevision'
+  | 'documentSessionId'
+> = {
   mode: null,
   currentResumeId: null,
   documentDisplayName: null,
@@ -78,8 +117,7 @@ export function createDocumentSlice(
       const requestId = ++latestLoadRequestId
       const isCurrentRequest = () => requestId === latestLoadRequestId
       const assertCurrentRequest = () => {
-        if (!isCurrentRequest())
-          throw new ResumeLoadSupersededError()
+        if (!isCurrentRequest()) throw new ResumeLoadSupersededError()
       }
 
       // 切文档前先落盘；失败时保留旧文档和 pending/error，允许显式重试。
@@ -94,12 +132,15 @@ export function createDocumentSlice(
         await get().flushPendingChanges()
         assertCurrentRequest()
         const current = get()
-        hasPendingPersistableChanges = current.isInitialized && current.pendingChanges
-          && (current.mode === 'offline' || current.docManager?.canPersist() === true)
+        hasPendingPersistableChanges =
+          current.isInitialized &&
+          current.pendingChanges &&
+          (current.mode === 'offline' ||
+            current.docManager?.canPersist() === true)
       } while (hasPendingPersistableChanges)
       const { docManager, cleanupFns } = get()
       if (cleanupFns.length > 0) {
-        cleanupFns.forEach(fn => fn())
+        cleanupFns.forEach((fn) => fn())
       }
       if (docManager) {
         docManager.destroy()
@@ -116,7 +157,8 @@ export function createDocumentSlice(
         documentDisplayName: null,
         mode: isOfflineResumeId(resumeId) ? 'offline' : 'online',
         isInitialized: false,
-        cloudAppearanceStatus: source.kind === 'collaboration' ? 'not_applicable' : 'error',
+        cloudAppearanceStatus:
+          source.kind === 'collaboration' ? 'not_applicable' : 'error',
         entryIdMigrationReady: false,
         documentChangeRevision: 0,
         documentSessionId: get().documentSessionId + 1,
@@ -130,7 +172,9 @@ export function createDocumentSlice(
         }
 
         const data = offlineResume.data || {}
-        const snapshot = mapSourceToPersistedSnapshot(data as Partial<AutomergeResumeDocument>)
+        const snapshot = mapSourceToPersistedSnapshot(
+          data as Partial<AutomergeResumeDocument>,
+        )
 
         set({
           ...mapSnapshotToState(snapshot),
@@ -140,7 +184,9 @@ export function createDocumentSlice(
           mode: 'offline',
           documentDisplayName: offlineResume.display_name,
           isInitialized: true,
-          lastSyncTime: offlineResume.updated_at ? dayjs(offlineResume.updated_at).valueOf() : null,
+          lastSyncTime: offlineResume.updated_at
+            ? dayjs(offlineResume.updated_at).valueOf()
+            : null,
           cloudAppearanceStatus: 'not_applicable',
           docHasPersistedAppearance: hasPersistedAppearance(data),
           appearanceDirty: false,
@@ -165,9 +211,10 @@ export function createDocumentSlice(
       try {
         // 自有云端简历先验证 resume_config 行存在，避免已删除的 UUID 被初始化成一份空白 Automerge 文档。
         // 协作来源已经由 Edge 返回的 bootstrap 鉴权，不得再读 owner-only 外观数据或回退 owner 文档。
-        const initialCloudAppearanceResult = source.kind === 'owner'
-          ? await getCloudAppearanceSource(resumeId)
-          : null
+        const initialCloudAppearanceResult =
+          source.kind === 'owner'
+            ? await getCloudAppearanceSource(resumeId)
+            : null
         assertCurrentRequest()
         if (initialCloudAppearanceResult?.resumeExists === false)
           throw new ResumeNotFoundError()
@@ -179,7 +226,10 @@ export function createDocumentSlice(
         assertCurrentRequest()
         const sourceDoc = handle.doc()
         let docSnapshot = mapSourceToPersistedSnapshot(sourceDoc)
-        const entryIdPatches = collectMissingResumeEntryIdPatches(sourceDoc, docSnapshot)
+        const entryIdPatches = collectMissingResumeEntryIdPatches(
+          sourceDoc,
+          docSnapshot,
+        )
 
         if (entryIdPatches.length > 0) {
           manager.change((doc) => {
@@ -189,21 +239,37 @@ export function createDocumentSlice(
         }
 
         const doc = handle.doc()
-        const cloudAppearanceResult = source.kind === 'owner'
-          ? initialCloudAppearanceResult ?? await getCloudAppearanceSource(resumeId)
-          : null
+        const cloudAppearanceResult =
+          source.kind === 'owner'
+            ? (initialCloudAppearanceResult ??
+              (await getCloudAppearanceSource(resumeId)))
+            : null
         assertCurrentRequest()
-        const cloudHasPersistedAppearance = cloudAppearanceResult?.status === 'present'
+        const cloudHasPersistedAppearance =
+          cloudAppearanceResult?.status === 'present'
         const docHasPersistedAppearance = hasPersistedAppearance(doc)
-        const snapshot = cloudHasPersistedAppearance && cloudAppearanceResult
-          ? mergeSnapshotAppearance(docSnapshot, cloudAppearanceResult.appearance)
-          : docSnapshot
-        const cloudAppearanceStatus = cloudAppearanceResult?.status ?? 'not_applicable'
+        const snapshot =
+          cloudHasPersistedAppearance && cloudAppearanceResult
+            ? mergeSnapshotAppearance(
+                docSnapshot,
+                cloudAppearanceResult.appearance,
+              )
+            : docSnapshot
+        const cloudAppearanceStatus =
+          cloudAppearanceResult?.status ?? 'not_applicable'
 
-        const changeHandler = ({ doc }: { doc: AutomergeResumeDocument | null }) => {
+        const changeHandler = ({
+          doc,
+        }: {
+          doc: AutomergeResumeDocument | null
+        }) => {
           // 新 load 等待旧文档落盘期间，旧文档仍是当前编辑目标。
           // 用实际 manager/handle 身份隔离回调，切换失败后旧文档也能继续编辑。
-          if (!doc || get().docManager !== manager || get().docHandle !== handle)
+          if (
+            !doc ||
+            get().docManager !== manager ||
+            get().docHandle !== handle
+          )
             return
 
           const nextSnapshot = mapSourceToPersistedSnapshot(doc)
@@ -212,7 +278,7 @@ export function createDocumentSlice(
           // replaceConfig 仅更新本地 store，不会触发反向写入。
           useResumeConfigStore.getState().replaceConfig(nextSnapshot)
 
-          set(prev => ({
+          set((prev) => ({
             ...prev,
             ...mapSnapshotToState(nextSnapshot),
             isInitialized: true,
@@ -220,13 +286,13 @@ export function createDocumentSlice(
             documentChangeRevision: canPersist
               ? prev.documentChangeRevision + 1
               : prev.documentChangeRevision,
-            entryIdMigrationReady: prev.entryIdMigrationReady && hasCompleteResumeEntryIds(doc),
+            entryIdMigrationReady:
+              prev.entryIdMigrationReady && hasCompleteResumeEntryIds(doc),
           }))
 
           if (canPersist) {
             const persist = get().capturePersistRequest()
-            if (persist)
-              scheduleOnlinePersist(persist)
+            if (persist) scheduleOnlinePersist(persist)
           }
         }
 
@@ -248,7 +314,8 @@ export function createDocumentSlice(
           cloudAppearanceStatus,
           docHasPersistedAppearance,
           appearanceDirty: false,
-          entryIdMigrationReady: entryIdPatches.length === 0 && hasCompleteResumeEntryIds(doc),
+          entryIdMigrationReady:
+            entryIdPatches.length === 0 && hasCompleteResumeEntryIds(doc),
           documentChangeRevision: 0,
         })
 
@@ -259,12 +326,12 @@ export function createDocumentSlice(
 
         return {
           snapshot,
-          hasPersistedAppearance: cloudHasPersistedAppearance || docHasPersistedAppearance,
+          hasPersistedAppearance:
+            cloudHasPersistedAppearance || docHasPersistedAppearance,
           cloudAppearanceStatus,
           mode: 'online',
         }
-      }
-      catch (error) {
+      } catch (error) {
         if (!isCurrentRequest()) {
           manager?.destroy()
           throw new ResumeLoadSupersededError()
@@ -275,7 +342,8 @@ export function createDocumentSlice(
           isSyncing: false,
           syncError: error instanceof Error ? error.message : '初始化失败',
           mode: 'online',
-          cloudAppearanceStatus: source.kind === 'collaboration' ? 'not_applicable' : 'error',
+          cloudAppearanceStatus:
+            source.kind === 'collaboration' ? 'not_applicable' : 'error',
           entryIdMigrationReady: false,
         })
         throw error
@@ -284,9 +352,15 @@ export function createDocumentSlice(
 
     cleanup: () => {
       latestLoadRequestId += 1
-      get().flushPendingChanges().catch(error => toast.error(`离开前保存失败：${error instanceof Error ? error.message : '同步失败'}`))
+      get()
+        .flushPendingChanges()
+        .catch((error) =>
+          toast.error(
+            `离开前保存失败：${error instanceof Error ? error.message : '同步失败'}`,
+          ),
+        )
       const { cleanupFns, docManager } = get()
-      cleanupFns.forEach(fn => fn())
+      cleanupFns.forEach((fn) => fn())
       docManager?.destroy()
       set({
         cleanupFns: [],

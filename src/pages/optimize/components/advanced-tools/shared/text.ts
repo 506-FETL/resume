@@ -1,6 +1,11 @@
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
-import { DAYJS_FULL_DATE_FORMATS, DAYJS_YEAR_MONTH_FORMATS, JD_STOPWORDS, NORMALIZED_PRESENT_TOKENS } from './const'
+import {
+  DAYJS_FULL_DATE_FORMATS,
+  DAYJS_YEAR_MONTH_FORMATS,
+  JD_STOPWORDS,
+  NORMALIZED_PRESENT_TOKENS,
+} from './const'
 
 dayjs.extend(customParseFormat)
 
@@ -16,7 +21,7 @@ export function normalizeMultilineText(value: string | null | undefined) {
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .split('\n')
-    .map(line => normalizeInlineText(line))
+    .map((line) => normalizeInlineText(line))
 
   const compacted: string[] = []
 
@@ -72,7 +77,9 @@ export function normalizeDateRange(value: string[] | null | undefined) {
   return [normalizeDateToken(range[0]), normalizeDateToken(range[1])]
 }
 
-export function isPlainObject(value: unknown): value is Record<string, unknown> {
+export function isPlainObject(
+  value: unknown,
+): value is Record<string, unknown> {
   return Object.prototype.toString.call(value) === '[object Object]'
 }
 
@@ -82,7 +89,12 @@ export function isStructurallyEmpty(value: unknown): boolean {
   }
 
   if (typeof value === 'string') {
-    return value.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim() === ''
+    return (
+      value
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]+/g, ' ')
+        .trim() === ''
+    )
   }
 
   if (typeof value === 'number') {
@@ -90,11 +102,13 @@ export function isStructurallyEmpty(value: unknown): boolean {
   }
 
   if (Array.isArray(value)) {
-    return value.length === 0 || value.every(item => isStructurallyEmpty(item))
+    return (
+      value.length === 0 || value.every((item) => isStructurallyEmpty(item))
+    )
   }
 
   if (isPlainObject(value)) {
-    return Object.values(value).every(item => isStructurallyEmpty(item))
+    return Object.values(value).every((item) => isStructurallyEmpty(item))
   }
 
   return false
@@ -114,7 +128,13 @@ export function extractKeywords(input: string) {
       .toLowerCase()
       .replace(/^[^\u4E00-\u9FFF\w]+|[^\u4E00-\u9FFF\w.+#/-]+$/g, '')
 
-    if (!keyword || keyword.length < 2 || JD_STOPWORDS.has(keyword) || /^\d+$/.test(keyword) || deduped.has(keyword)) {
+    if (
+      !keyword ||
+      keyword.length < 2 ||
+      JD_STOPWORDS.has(keyword) ||
+      /^\d+$/.test(keyword) ||
+      deduped.has(keyword)
+    ) {
       return
     }
 

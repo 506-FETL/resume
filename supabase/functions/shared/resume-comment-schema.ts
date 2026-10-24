@@ -26,7 +26,7 @@ export const COMMENT_API_OPS = [
   'issue_realtime_token',
 ] as const
 
-export type CommentApiOp = typeof COMMENT_API_OPS[number]
+export type CommentApiOp = (typeof COMMENT_API_OPS)[number]
 
 export const COMMENT_ERROR_CODES = [
   'unauthorized',
@@ -44,7 +44,7 @@ export const COMMENT_ERROR_CODES = [
   'unexpected',
 ] as const
 
-export type CommentErrorCode = typeof COMMENT_ERROR_CODES[number]
+export type CommentErrorCode = (typeof COMMENT_ERROR_CODES)[number]
 
 export interface CommentApiErrorBody {
   code: CommentErrorCode
@@ -52,9 +52,9 @@ export interface CommentApiErrorBody {
   retryAfterSeconds?: number
 }
 
-export type CommentApiResponse<T>
-  = | { ok: true, data: T, eventSeq: number }
-    | { ok: false, error: CommentApiErrorBody }
+export type CommentApiResponse<T> =
+  | { ok: true; data: T; eventSeq: number }
+  | { ok: false; error: CommentApiErrorBody }
 
 export interface CommentAnchorInput {
   nodeKey: string
@@ -129,7 +129,11 @@ export function readOptionalString(
 
 export function readUuid(value: unknown, field: string): string {
   const result = readRequiredString(value, field, 36)
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(result)) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+      result,
+    )
+  ) {
     throw new CommentApiError('not_found', `字段 ${field} 无效`)
   }
   return result
@@ -141,8 +145,7 @@ export function readNonNegativeInteger(
   fallback?: number,
 ): number {
   if (!isRecord(value) || value[field] === undefined) {
-    if (fallback !== undefined)
-      return fallback
+    if (fallback !== undefined) return fallback
     throw new CommentApiError('not_found', `缺少字段 ${field}`)
   }
   const result = value[field]
@@ -178,21 +181,35 @@ export function readCommentAnchor(value: unknown): CommentAnchorInput {
     throw new CommentApiError('invalid_selection', '评论选区无效')
   }
   const nodeKey = readRequiredString(value, 'nodeKey', 512)
-  const startGraphemeOffset = readNonNegativeInteger(value, 'startGraphemeOffset')
+  const startGraphemeOffset = readNonNegativeInteger(
+    value,
+    'startGraphemeOffset',
+  )
   const endGraphemeOffset = readNonNegativeInteger(value, 'endGraphemeOffset')
   const blockOrdinal = readNonNegativeInteger(value, 'blockOrdinal')
-  const exactQuote = normalizeCommentText(readRequiredString(value, 'exactQuote', 8_000))
-  const prefix = normalizeCommentText(readOptionalString(value, 'prefix', 1_000) ?? '')
-  const suffix = normalizeCommentText(readOptionalString(value, 'suffix', 1_000) ?? '')
+  const exactQuote = normalizeCommentText(
+    readRequiredString(value, 'exactQuote', 8_000),
+  )
+  const prefix = normalizeCommentText(
+    readOptionalString(value, 'prefix', 1_000) ?? '',
+  )
+  const suffix = normalizeCommentText(
+    readOptionalString(value, 'suffix', 1_000) ?? '',
+  )
   const nodeTextHash = readRequiredString(value, 'nodeTextHash', 64)
-  const createdAtContentHash = readRequiredString(value, 'createdAtContentHash', 64)
+  const createdAtContentHash = readRequiredString(
+    value,
+    'createdAtContentHash',
+    64,
+  )
   if (
-    startGraphemeOffset >= endGraphemeOffset
-    || countCommentGraphemes(exactQuote) !== endGraphemeOffset - startGraphemeOffset
-    || countCommentGraphemes(prefix) > 32
-    || countCommentGraphemes(suffix) > 32
-    || !/^[0-9a-f]{64}$/u.test(nodeTextHash)
-    || !/^[0-9a-f]{64}$/u.test(createdAtContentHash)
+    startGraphemeOffset >= endGraphemeOffset ||
+    countCommentGraphemes(exactQuote) !==
+      endGraphemeOffset - startGraphemeOffset ||
+    countCommentGraphemes(prefix) > 32 ||
+    countCommentGraphemes(suffix) > 32 ||
+    !/^[0-9a-f]{64}$/u.test(nodeTextHash) ||
+    !/^[0-9a-f]{64}$/u.test(createdAtContentHash)
   ) {
     throw new CommentApiError('invalid_selection', '评论选区无效')
   }
@@ -213,8 +230,7 @@ export function isSafeCommentLink(value: string): boolean {
   try {
     const url = new URL(value)
     return ['http:', 'https:', 'mailto:'].includes(url.protocol)
-  }
-  catch {
+  } catch {
     return false
   }
 }

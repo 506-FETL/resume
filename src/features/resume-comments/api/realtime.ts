@@ -1,8 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import type {
-  CommentRealtimeAccess,
-  ResumeCommentClient,
-} from './client.ts'
+import type { CommentRealtimeAccess, ResumeCommentClient } from './client.ts'
 import supabase from '@/lib/supabase/client'
 
 export interface CommentRealtimeInvalidation {
@@ -18,13 +15,16 @@ export interface CommentRealtimeCallbacks {
 }
 
 function readInvalidation(value: unknown): CommentRealtimeInvalidation | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    return null
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const payload = value as Record<string, unknown>
   if (payload.schemaVersion !== undefined && payload.schemaVersion !== 1)
     return null
   const eventSeq = Number(payload.eventSeq)
-  if (!Number.isInteger(eventSeq) || eventSeq < 0 || typeof payload.type !== 'string')
+  if (
+    !Number.isInteger(eventSeq) ||
+    eventSeq < 0 ||
+    typeof payload.type !== 'string'
+  )
     return null
   return { schemaVersion: 1, eventSeq, type: payload.type }
 }
@@ -40,7 +40,10 @@ export class ResumeCommentRealtimeSubscription {
   private callbacks: CommentRealtimeCallbacks | null = null
   private generation = 0
 
-  constructor(client: ResumeCommentClient, accessKind: 'owner' | 'scope' = 'scope') {
+  constructor(
+    client: ResumeCommentClient,
+    accessKind: 'owner' | 'scope' = 'scope',
+  ) {
     this.client = client
     this.accessKind = accessKind
   }
@@ -87,8 +90,7 @@ export class ResumeCommentRealtimeSubscription {
     this.topic = access.topic
     channel
       .on('broadcast', { event: 'invalidate' }, (message) => {
-        if (channel !== this.channel)
-          return
+        if (channel !== this.channel) return
         const invalidation = readInvalidation(message.payload)
         if (!invalidation) {
           this.callbacks?.onProtocolMismatch()
@@ -97,14 +99,17 @@ export class ResumeCommentRealtimeSubscription {
         this.callbacks?.onInvalidation(invalidation)
       })
       .subscribe((status) => {
-        if (channel !== this.channel)
-          return
+        if (channel !== this.channel) return
         if (status === 'SUBSCRIBED') {
           this.channelStatus = 'live'
           this.callbacks?.onStatusChange('live')
           return
         }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        if (
+          status === 'CHANNEL_ERROR' ||
+          status === 'TIMED_OUT' ||
+          status === 'CLOSED'
+        ) {
           this.channelStatus = 'offline'
           this.callbacks?.onStatusChange('offline')
         }
@@ -114,15 +119,14 @@ export class ResumeCommentRealtimeSubscription {
   }
 
   private scheduleRefresh(access?: CommentRealtimeAccess) {
-    if (this.refreshTimer)
-      clearTimeout(this.refreshTimer)
+    if (this.refreshTimer) clearTimeout(this.refreshTimer)
     const remainingMs = access ? Date.parse(access.expiresAt) - Date.now() : 0
     // Topic 只在桶边界变化；过期的同 topic 响应也走退避，避免时钟偏差造成轮询风暴。
-    const refreshInMs = remainingMs > 0
-      ? remainingMs
-      : Math.min(1_000 * 2 ** Math.min(this.retryAttempts++, 5), 30_000)
-    if (remainingMs > 0)
-      this.retryAttempts = 0
+    const refreshInMs =
+      remainingMs > 0
+        ? remainingMs
+        : Math.min(1_000 * 2 ** Math.min(this.retryAttempts++, 5), 30_000)
+    if (remainingMs > 0) this.retryAttempts = 0
     const generation = this.generation
     this.refreshTimer = setTimeout(() => {
       this.refreshTimer = null
@@ -132,20 +136,17 @@ export class ResumeCommentRealtimeSubscription {
   }
 
   private async refresh(generation: number) {
-    if (generation !== this.generation || !this.callbacks)
-      return
+    if (generation !== this.generation || !this.callbacks) return
     try {
       const response = await this.client.issueRealtimeToken()
-      if (generation !== this.generation || !this.callbacks)
-        return
-      const access = this.accessKind === 'owner'
-        ? response.data.ownerRealtime
-        : response.data.scopeRealtime
-      if (!access)
-        throw new Error('Realtime access is unavailable')
+      if (generation !== this.generation || !this.callbacks) return
+      const access =
+        this.accessKind === 'owner'
+          ? response.data.ownerRealtime
+          : response.data.scopeRealtime
+      if (!access) throw new Error('Realtime access is unavailable')
       this.subscribe(access)
-    }
-    catch {
+    } catch {
       if (generation === this.generation && this.callbacks) {
         this.callbacks?.onStatusChange('offline')
         this.scheduleRefresh()

@@ -3,7 +3,9 @@ import { ForgotPasswordForm } from './components/forgot-password-form'
 
 function ForgotPassword() {
   return (
-    <AuthLayout><ForgotPasswordForm /></AuthLayout>
+    <AuthLayout>
+      <ForgotPasswordForm />
+    </AuthLayout>
   )
 }
 

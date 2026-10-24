@@ -34,7 +34,7 @@ export function RichTextFieldEditor({
   return (
     <SimpleEditor
       content={value || ''}
-      onChange={editor => onChange(editor.getHTML())}
+      onChange={(editor) => onChange(editor.getHTML())}
       fieldContext={fieldContext}
       collab={collab}
     />

@@ -7,13 +7,16 @@ import type { LeafClass } from './classify-leaf'
  *
  * `path` 为**含 sectionKey 的完整 Prop 路径**，数组索引段为 number。
  */
-export type WriteOp
-  = | { kind: 'updateText', path: (string | number)[], value: string }
-    | { kind: 'setLeaf', path: (string | number)[], value: unknown }
-    | { kind: 'arrayPush', path: (string | number)[], value: unknown }
-    | { kind: 'arrayDeleteAt', path: (string | number)[], index: number }
+export type WriteOp =
+  | { kind: 'updateText'; path: (string | number)[]; value: string }
+  | { kind: 'setLeaf'; path: (string | number)[]; value: unknown }
+  | { kind: 'arrayPush'; path: (string | number)[]; value: unknown }
+  | { kind: 'arrayDeleteAt'; path: (string | number)[]; index: number }
 
-export type ClassifyLeaf = (sectionKey: string, relativePath: string) => LeafClass
+export type ClassifyLeaf = (
+  sectionKey: string,
+  relativePath: string,
+) => LeafClass
 
 /**
  * 把某个 section 的读路径 diff plan 翻译成字段级写操作。
@@ -39,8 +42,7 @@ export function buildWriteOps(
 
     if (isFreeText && typeof update.value === 'string') {
       ops.push({ kind: 'updateText', path: fullPath, value: update.value })
-    }
-    else {
+    } else {
       ops.push({ kind: 'setLeaf', path: fullPath, value: update.value })
     }
   }
@@ -50,9 +52,12 @@ export function buildWriteOps(
 
     if (operation.type === 'append') {
       ops.push({ kind: 'arrayPush', path: fullPath, value: operation.value })
-    }
-    else {
-      ops.push({ kind: 'arrayDeleteAt', path: fullPath, index: operation.index })
+    } else {
+      ops.push({
+        kind: 'arrayDeleteAt',
+        path: fullPath,
+        index: operation.index,
+      })
     }
   }
 
@@ -63,11 +68,16 @@ export function buildWriteOps(
  * `sectionKey` + 相对路径 -> 完整 Prop 路径，数组索引段规范化为 number。
  * 例：`('work_experience', 'items.0.companyName')` -> `['work_experience','items',0,'companyName']`
  */
-function toFullPath(sectionKey: string, relativePath: string): (string | number)[] {
+function toFullPath(
+  sectionKey: string,
+  relativePath: string,
+): (string | number)[] {
   if (relativePath === '') {
     return [sectionKey]
   }
 
-  const segments = relativePath.split('.').map(seg => (/^\d+$/.test(seg) ? Number(seg) : seg))
+  const segments = relativePath
+    .split('.')
+    .map((seg) => (/^\d+$/.test(seg) ? Number(seg) : seg))
   return [sectionKey, ...segments]
 }

@@ -3,7 +3,12 @@
 
 export type AiMessageRole = 'user' | 'assistant' | 'system'
 
-export type AiToolCallState = 'call' | 'awaiting-confirm' | 'result' | 'error' | 'cancelled'
+export type AiToolCallState =
+  | 'call'
+  | 'awaiting-confirm'
+  | 'result'
+  | 'error'
+  | 'cancelled'
 
 export interface AiSkillReference {
   type: 'skill-reference'
@@ -22,11 +27,11 @@ export interface AiSkillActivity {
   error?: string
 }
 
-export type AiMessagePart
-  = | { type: 'text', text: string }
-    | AiSkillReference
-    | AiSkillActivity
-    | {
+export type AiMessagePart =
+  | { type: 'text'; text: string }
+  | AiSkillReference
+  | AiSkillActivity
+  | {
       type: 'tool-call'
       toolCallId: string
       toolName: string
@@ -36,7 +41,7 @@ export type AiMessagePart
       state: AiToolCallState
       undone?: boolean // 该写操作是否已被用户在画布「变更记录」里一键撤销（持久化状态）
     }
-    | { type: 'reasoning', text: string }
+  | { type: 'reasoning'; text: string }
 
 export interface AiConversation {
   id: string

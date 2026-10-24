@@ -1,4 +1,9 @@
-import type { FieldPath, FieldPathValue, FieldValues, UseFormReturn } from 'react-hook-form'
+import type {
+  FieldPath,
+  FieldPathValue,
+  FieldValues,
+  UseFormReturn,
+} from 'react-hook-form'
 import type { LeafClass } from './collab/classify-leaf'
 import type { ActiveTextField } from './collab/focus-registry'
 import type { RemoteFieldArrayAdapters } from './form-remote-sync'
@@ -59,7 +64,10 @@ export function useFormRemoteSync<T extends FieldValues>(
       atomicPathsRef.current,
     )
 
-    if (plan.fieldUpdates.length === 0 && plan.fieldArrayOperations.length === 0) {
+    if (
+      plan.fieldUpdates.length === 0 &&
+      plan.fieldArrayOperations.length === 0
+    ) {
       isResettingRef.current = false
       return
     }
@@ -71,11 +79,12 @@ export function useFormRemoteSync<T extends FieldValues>(
     applyRemoteFormSyncPlan(
       plan,
       {
-        setValue: (path, value, options) => form.setValue(
-          path as FieldPath<T>,
-          value as FieldPathValue<T, FieldPath<T>>,
-          options,
-        ),
+        setValue: (path, value, options) =>
+          form.setValue(
+            path as FieldPath<T>,
+            value as FieldPathValue<T, FieldPath<T>>,
+            options,
+          ),
       },
       adapters,
     )
@@ -122,11 +131,12 @@ function captureCaretRestore(
     return null
   }
 
-  const match = plan.fieldUpdates.find(update => (
-    update.path === active.name
-    && typeof update.value === 'string'
-    && caret.classify(caret.sectionKey, update.path) === 'freeText'
-  ))
+  const match = plan.fieldUpdates.find(
+    (update) =>
+      update.path === active.name &&
+      typeof update.value === 'string' &&
+      caret.classify(caret.sectionKey, update.path) === 'freeText',
+  )
 
   if (!match || typeof active.el.value !== 'string') {
     return null
@@ -142,7 +152,10 @@ function captureCaretRestore(
 }
 
 function restoreCaret({ el, oldValue, start, end, newValue }: CaretRestore) {
-  if (!el.isConnected || (typeof document !== 'undefined' && document.activeElement !== el)) {
+  if (
+    !el.isConnected ||
+    (typeof document !== 'undefined' && document.activeElement !== el)
+  ) {
     return
   }
 
@@ -151,8 +164,7 @@ function restoreCaret({ el, oldValue, start, end, newValue }: CaretRestore) {
 
   try {
     el.setSelectionRange(nextStart, nextEnd)
-  }
-  catch {
+  } catch {
     // 某些 input 类型不支持 setSelectionRange；忽略即可。
   }
 }

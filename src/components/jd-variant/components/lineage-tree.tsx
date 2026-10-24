@@ -3,10 +3,20 @@ import { ArrowRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
-const STATUS_VARIANT: Record<string, 'default' | 'destructive' | 'outline' | 'secondary'> = {
+const STATUS_VARIANT: Record<
+  string,
+  'default' | 'destructive' | 'outline' | 'secondary'
+> = {
   ready: 'default',
   generating: 'secondary',
   failed: 'destructive',
@@ -25,10 +35,16 @@ interface VariantLineageTreeProps {
   depth?: number
 }
 
-export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }: VariantLineageTreeProps) {
+export function VariantLineageTree({
+  node,
+  currentResumeId,
+  onOpen,
+  depth = 0,
+}: VariantLineageTreeProps) {
   const isCurrent = node.resumeId === currentResumeId
   const status = node.derivedStatus
-  const matchPct = node.matchRate == null ? null : `${Math.round(node.matchRate * 100)}%`
+  const matchPct =
+    node.matchRate == null ? null : `${Math.round(node.matchRate * 100)}%`
 
   return (
     <div
@@ -37,7 +53,12 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
         depth > 0 && 'border-l border-border pl-5',
       )}
     >
-      {depth > 0 && <span className="absolute -left-px top-7 h-px w-5 bg-border" aria-hidden />}
+      {depth > 0 && (
+        <span
+          className='absolute -left-px top-7 h-px w-5 bg-border'
+          aria-hidden
+        />
+      )}
       <Card
         data-current={isCurrent}
         className={cn(
@@ -45,21 +66,23 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
           isCurrent ? 'border-primary bg-primary/5' : 'hover:bg-accent/30',
         )}
       >
-        <CardHeader className="px-4">
-          <CardTitle className="truncate">{node.displayName || '未命名简历'}</CardTitle>
+        <CardHeader className='px-4'>
+          <CardTitle className='truncate'>
+            {node.displayName || '未命名简历'}
+          </CardTitle>
           {isCurrent && <CardDescription>当前简历</CardDescription>}
           <CardAction>
-            <div className="flex items-center gap-2">
+            <div className='flex items-center gap-2'>
               {status && (
                 <Badge variant={STATUS_VARIANT[status] ?? 'outline'}>
                   {STATUS_LABEL[status] ?? status}
                 </Badge>
               )}
-              {matchPct && <Badge variant="outline">{matchPct}</Badge>}
+              {matchPct && <Badge variant='outline'>{matchPct}</Badge>}
               {!isCurrent && (
                 <Button
-                  size="icon-sm"
-                  variant="ghost"
+                  size='icon-sm'
+                  variant='ghost'
                   onClick={() => onOpen(node.resumeId)}
                   aria-label={`打开 ${node.displayName || '未命名简历'}`}
                 >
@@ -70,8 +93,8 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
           </CardAction>
         </CardHeader>
         {node.jdSnippet && (
-          <CardContent className="px-4">
-            <p className="line-clamp-2 text-sm text-muted-foreground">
+          <CardContent className='px-4'>
+            <p className='line-clamp-2 text-sm text-muted-foreground'>
               JD：
               {node.jdSnippet}
             </p>
@@ -80,8 +103,8 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
       </Card>
 
       {node.children.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {node.children.map(child => (
+        <div className='flex flex-col gap-3'>
+          {node.children.map((child) => (
             <VariantLineageTree
               key={child.resumeId}
               node={child}
@@ -96,14 +119,16 @@ export function VariantLineageTree({ node, currentResumeId, onOpen, depth = 0 }:
   )
 }
 
-function findPath(node: VariantTreeNode, targetId: string, acc: VariantTreeNode[] = []): VariantTreeNode[] | null {
+function findPath(
+  node: VariantTreeNode,
+  targetId: string,
+  acc: VariantTreeNode[] = [],
+): VariantTreeNode[] | null {
   const next = [...acc, node]
-  if (node.resumeId === targetId)
-    return next
+  if (node.resumeId === targetId) return next
   for (const c of node.children) {
     const r = findPath(c, targetId, next)
-    if (r)
-      return r
+    if (r) return r
   }
   return null
 }
@@ -113,19 +138,22 @@ interface VariantLineagePathProps {
   currentResumeId: string
 }
 
-export function VariantLineagePath({ tree, currentResumeId }: VariantLineagePathProps) {
+export function VariantLineagePath({
+  tree,
+  currentResumeId,
+}: VariantLineagePathProps) {
   const path = useMemo(
-    () => (tree ? findPath(tree, currentResumeId) ?? [] : []),
+    () => (tree ? (findPath(tree, currentResumeId) ?? []) : []),
     [tree, currentResumeId],
   )
   if (path.length === 0) {
-    return <p className="text-xs text-muted-foreground">暂无派生关系</p>
+    return <p className='text-xs text-muted-foreground'>暂无派生关系</p>
   }
 
   return (
-    <ol className="flex flex-col gap-2">
+    <ol className='flex flex-col gap-2'>
       {path.map((n, i) => (
-        <li key={n.resumeId} className="flex min-w-0 items-center gap-2">
+        <li key={n.resumeId} className='flex min-w-0 items-center gap-2'>
           <span
             className={cn(
               'flex size-5 shrink-0 items-center justify-center rounded-full text-xs',
@@ -139,15 +167,14 @@ export function VariantLineagePath({ tree, currentResumeId }: VariantLineagePath
           </span>
           <Badge
             variant={i === path.length - 1 ? 'default' : 'outline'}
-            className="min-w-0 flex-1 shrink justify-start"
+            className='min-w-0 flex-1 shrink justify-start'
             title={n.displayName || '未命名'}
           >
-            <span className="truncate">{n.displayName || '未命名'}</span>
+            <span className='truncate'>{n.displayName || '未命名'}</span>
           </Badge>
           {n.matchRate != null && (
-            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-              {Math.round(n.matchRate * 100)}
-              %
+            <span className='shrink-0 text-xs tabular-nums text-muted-foreground'>
+              {Math.round(n.matchRate * 100)}%
             </span>
           )}
         </li>

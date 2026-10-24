@@ -2,15 +2,45 @@ import type { FormDataMap } from './const'
 import type { DocumentSlice } from './slices/document'
 import type { SyncSlice } from './slices/sync'
 import type { WriteOp } from '@/hooks/collab/write-plan'
-import type { ORDERType, PersistedResumeSnapshot, ResumeAppearancePatch, ResumeTemplateBinding, ResumeType, VisibilityItemsType } from '@/lib/schema'
+import type {
+  ORDERType,
+  PersistedResumeSnapshot,
+  ResumeAppearancePatch,
+  ResumeTemplateBinding,
+  ResumeType,
+  VisibilityItemsType,
+} from '@/lib/schema'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { create } from 'zustand'
 import { applyWriteOpsDefault } from '@/hooks/collab/apply-write-ops'
-import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_ORDER, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_VISIBILITY, DEFAULT_WORK_EXPERIENCE } from '@/lib/schema'
+import {
+  DEFAULT_APPLICATION_INFO,
+  DEFAULT_BASICS,
+  DEFAULT_CAMPUS_EXPERIENCE,
+  DEFAULT_EDU_BACKGROUND,
+  DEFAULT_HOBBIES,
+  DEFAULT_HONORS_CERTIFICATES,
+  DEFAULT_INTERNSHIP_EXPERIENCE,
+  DEFAULT_JOB_INTENT,
+  DEFAULT_ORDER,
+  DEFAULT_PROJECT_EXPERIENCE,
+  DEFAULT_SELF_EVALUATION,
+  DEFAULT_SKILL_SPECIALTY,
+  DEFAULT_VISIBILITY,
+  DEFAULT_WORK_EXPERIENCE,
+} from '@/lib/schema'
 import useResumeConfigStore, { registerResumeConfigPersistence } from './config'
 import { FORM_DATA_KEYS, FORM_FIELD_DEFAULTS } from './const'
-import { applyPatch, mapSourceToPersistedSnapshot, sanitizeDeep } from './helpers'
-import { applyResumeChange, ensureSection, getPersistedSnapshot } from './helpers/sync-service'
+import {
+  applyPatch,
+  mapSourceToPersistedSnapshot,
+  sanitizeDeep,
+} from './helpers'
+import {
+  applyResumeChange,
+  ensureSection,
+  getPersistedSnapshot,
+} from './helpers/sync-service'
 import { createDocumentSlice } from './slices/document'
 import { createSyncSlice } from './slices/sync'
 
@@ -31,9 +61,19 @@ interface FormSlice extends FormDataMap {
   setSectionOpen: (id: ORDERType, open: boolean) => void
   getResumeFormData: () => FormDataMap
   getPersistedSnapshot: () => PersistedResumeSnapshot
-  getHistoryRestoreSource: () => { snapshot: ResumeSnapshot, updatedAt: string | null }
-  updateForm: <K extends keyof FormDataMap>(key: K, data: Partial<FormDataMap[K]>) => void
-  updateFormFields: <K extends keyof FormDataMap>(key: K, nextValue: FormDataMap[K], ops: WriteOp[]) => void
+  getHistoryRestoreSource: () => {
+    snapshot: ResumeSnapshot
+    updatedAt: string | null
+  }
+  updateForm: <K extends keyof FormDataMap>(
+    key: K,
+    data: Partial<FormDataMap[K]>,
+  ) => void
+  updateFormFields: <K extends keyof FormDataMap>(
+    key: K,
+    nextValue: FormDataMap[K],
+    ops: WriteOp[],
+  ) => void
   updateOrder: (newOrder: ORDERType[]) => void
   updateAppearanceConfig: (appearance: ResumeAppearancePatch) => void
   resetToDefaults: () => void
@@ -72,7 +112,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
   getResumeFormData: () => {
     const state = get()
     return FORM_DATA_KEYS.reduce((acc, key) => {
-      (acc[key] as any) = state[key]
+      ;(acc[key] as any) = state[key]
       return acc
     }, {} as FormDataMap)
   },
@@ -87,26 +127,26 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
     }
   },
 
-  updateActiveTabId: newActiveTab => set({ activeTabId: newActiveTab }),
+  updateActiveTabId: (newActiveTab) => set({ activeTabId: newActiveTab }),
 
   // 单开集合：纯本地 UI 态（不写 Automerge），协作经 UI 广播同步。展开自动置为 activeTab。
-  setSectionOpen: (id, open) => set((state) => {
-    if (open) {
-      if (state.openSections.length === 1 && state.openSections[0] === id)
-        return {}
-      return { openSections: [id], activeTabId: id }
-    }
-    if (!state.openSections.includes(id))
-      return {}
-    return { openSections: [] }
-  }),
+  setSectionOpen: (id, open) =>
+    set((state) => {
+      if (open) {
+        if (state.openSections.length === 1 && state.openSections[0] === id)
+          return {}
+        return { openSections: [id], activeTabId: id }
+      }
+      if (!state.openSections.includes(id)) return {}
+      return { openSections: [] }
+    }),
 
   updateForm: (key, data) => {
     const sanitized = sanitizeDeep(data)
     applyResumeChange(
       set,
       get,
-      prev => ({ [key]: { ...prev[key], ...sanitized } }),
+      (prev) => ({ [key]: { ...prev[key], ...sanitized } }),
       (doc) => {
         ensureSection(doc, key)
         applyPatch(doc[key], sanitized)
@@ -129,14 +169,9 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
   },
 
   updateOrder: (newOrder) => {
-    applyResumeChange(
-      set,
-      get,
-      { order: newOrder },
-      (doc) => {
-        doc.order = [...newOrder]
-      },
-    )
+    applyResumeChange(set, get, { order: newOrder }, (doc) => {
+      doc.order = [...newOrder]
+    })
   },
 
   updateAppearanceConfig: (appearance) => {
@@ -145,33 +180,23 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
       return
     }
 
-    applyResumeChange(
-      set,
-      get,
-      { appearanceDirty: true },
-      (doc) => {
-        if (sanitized.spacing) {
-          doc.spacing = { ...(doc.spacing ?? {}), ...sanitized.spacing }
-        }
-        if (sanitized.font) {
-          doc.font = { ...(doc.font ?? {}), ...sanitized.font }
-        }
-        if (sanitized.theme) {
-          doc.theme = { ...(doc.theme ?? {}), ...sanitized.theme }
-        }
-      },
-    )
+    applyResumeChange(set, get, { appearanceDirty: true }, (doc) => {
+      if (sanitized.spacing) {
+        doc.spacing = { ...(doc.spacing ?? {}), ...sanitized.spacing }
+      }
+      if (sanitized.font) {
+        doc.font = { ...(doc.font ?? {}), ...sanitized.font }
+      }
+      if (sanitized.theme) {
+        doc.theme = { ...(doc.theme ?? {}), ...sanitized.theme }
+      }
+    })
   },
 
   changeType: (type) => {
-    applyResumeChange(
-      set,
-      get,
-      { type },
-      (doc) => {
-        doc.type = type
-      },
-    )
+    applyResumeChange(set, get, { type }, (doc) => {
+      doc.type = type
+    })
   },
 
   setTemplateBinding: (templateBinding) => {
@@ -195,7 +220,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
     applyResumeChange(
       set,
       get,
-      prev => ({ visibility: { ...prev.visibility, [id]: nextValue } }),
+      (prev) => ({ visibility: { ...prev.visibility, [id]: nextValue } }),
       (doc) => {
         ensureSection(doc, 'visibility')
         doc.visibility[id] = nextValue
@@ -203,13 +228,13 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
     )
   },
 
-  getVisibility: id => get().visibility[id] !== true,
+  getVisibility: (id) => get().visibility[id] !== true,
 
   setVisibility: (id, isHidden) => {
     applyResumeChange(
       set,
       get,
-      prev => ({ visibility: { ...prev.visibility, [id]: isHidden } }),
+      (prev) => ({ visibility: { ...prev.visibility, [id]: isHidden } }),
       (doc) => {
         ensureSection(doc, 'visibility')
         doc.visibility[id] = isHidden
@@ -221,25 +246,22 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
     useResumeConfigStore.getState().resetConfig()
     const defaultState = {
       ...Object.fromEntries(
-        FORM_DATA_KEYS.map(key => [key, FORM_FIELD_DEFAULTS[key].default]),
+        FORM_DATA_KEYS.map((key) => [key, FORM_FIELD_DEFAULTS[key].default]),
       ),
       order: DEFAULT_ORDER,
       visibility: DEFAULT_VISIBILITY,
       templateBinding: undefined,
     }
 
-    applyResumeChange(
-      set,
-      get,
-      defaultState,
-      (doc) => {
-        Object.assign(doc, mapSourceToPersistedSnapshot(null))
-      },
-    )
+    applyResumeChange(set, get, defaultState, (doc) => {
+      Object.assign(doc, mapSourceToPersistedSnapshot(null))
+    })
   },
 }))
 
-registerResumeConfigPersistence(appearance => useResumeStore.getState().updateAppearanceConfig(appearance))
+registerResumeConfigPersistence((appearance) =>
+  useResumeStore.getState().updateAppearanceConfig(appearance),
+)
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {

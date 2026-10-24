@@ -3,7 +3,11 @@ import type { ExampleRef } from '@/lib/resume-template/source/types'
 export interface TemplatePageState {
   selectedTemplateId: string | null
   previewTrigger: HTMLButtonElement | null
-  showPreview: (templateId: string, example: ExampleRef, trigger: HTMLButtonElement) => void
+  showPreview: (
+    templateId: string,
+    example: ExampleRef,
+    trigger: HTMLButtonElement,
+  ) => void
   previewOpen: boolean
   selectedExamples: Record<string, ExampleRef>
   setPreviewOpen: (open: boolean) => void

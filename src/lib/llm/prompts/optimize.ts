@@ -2,15 +2,19 @@ import type { AtsAssessmentInput } from '../../ats/types.ts'
 import { ATS_SCORE_MAX } from '../../ats/constants.ts'
 
 function serializeAssessmentInput(input: AtsAssessmentInput): string {
-  return JSON.stringify({
-    rubricVersion: input.rubricVersion,
-    sections: input.sections,
-    scope: {
-      evaluatedSections: input.scope.evaluatedSections,
-      hasCandidateName: input.scope.hasCandidateName,
-      hasContactMethod: input.scope.hasContactMethod,
+  return JSON.stringify(
+    {
+      rubricVersion: input.rubricVersion,
+      sections: input.sections,
+      scope: {
+        evaluatedSections: input.scope.evaluatedSections,
+        hasCandidateName: input.scope.hasCandidateName,
+        hasContactMethod: input.scope.hasContactMethod,
+      },
     },
-  }, null, 2)
+    null,
+    2,
+  )
 }
 
 export function buildOptimizePrompt(input: AtsAssessmentInput): string {

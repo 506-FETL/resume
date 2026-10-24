@@ -10,29 +10,41 @@ interface SuggestionEditorProps {
   onOk?: (suggestions: Suggestion[]) => void
 }
 
-function CustomEditor({ suggestions: initialSuggestions, onChange, onOk }: SuggestionEditorProps) {
-  const [currentSuggestions, setCurrentSuggestions] = useState(initialSuggestions)
-  const [originalSuggestions, setOriginalSuggestions] = useState(initialSuggestions)
+function CustomEditor({
+  suggestions: initialSuggestions,
+  onChange,
+  onOk,
+}: SuggestionEditorProps) {
+  const [currentSuggestions, setCurrentSuggestions] =
+    useState(initialSuggestions)
+  const [originalSuggestions, setOriginalSuggestions] =
+    useState(initialSuggestions)
 
   useEffect(() => {
     setCurrentSuggestions(initialSuggestions)
     setOriginalSuggestions(initialSuggestions)
   }, [initialSuggestions])
 
-  const handleSuggestionChange = useCallback((index: number, updatedSuggestion: Suggestion) => {
-    const newSuggestions = [...currentSuggestions]
-    newSuggestions[index] = updatedSuggestion
+  const handleSuggestionChange = useCallback(
+    (index: number, updatedSuggestion: Suggestion) => {
+      const newSuggestions = [...currentSuggestions]
+      newSuggestions[index] = updatedSuggestion
 
-    setCurrentSuggestions(newSuggestions)
-    onChange?.(newSuggestions)
-  }, [currentSuggestions, onChange])
+      setCurrentSuggestions(newSuggestions)
+      onChange?.(newSuggestions)
+    },
+    [currentSuggestions, onChange],
+  )
 
-  const handleReset = useCallback((index: number) => {
-    const newSuggestions = [...currentSuggestions]
-    newSuggestions[index] = originalSuggestions[index]
-    setCurrentSuggestions(newSuggestions)
-    onChange?.(newSuggestions)
-  }, [currentSuggestions, originalSuggestions, onChange])
+  const handleReset = useCallback(
+    (index: number) => {
+      const newSuggestions = [...currentSuggestions]
+      newSuggestions[index] = originalSuggestions[index]
+      setCurrentSuggestions(newSuggestions)
+      onChange?.(newSuggestions)
+    },
+    [currentSuggestions, originalSuggestions, onChange],
+  )
 
   const handleResetAll = useCallback(() => {
     setCurrentSuggestions(originalSuggestions)
@@ -40,55 +52,59 @@ function CustomEditor({ suggestions: initialSuggestions, onChange, onOk }: Sugge
   }, [originalSuggestions, onChange])
 
   const isModified = (index: number) => {
-    return JSON.stringify(currentSuggestions[index]) !== JSON.stringify(originalSuggestions[index])
+    return (
+      JSON.stringify(currentSuggestions[index]) !==
+      JSON.stringify(originalSuggestions[index])
+    )
   }
 
   const hasAnyModification = currentSuggestions.some((_, i) => isModified(i))
 
   if (currentSuggestions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="size-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <Edit3 className="size-5 text-muted-foreground" />
+      <div className='flex flex-col items-center justify-center py-12 text-center'>
+        <div className='size-12 rounded-full bg-muted flex items-center justify-center mb-3'>
+          <Edit3 className='size-5 text-muted-foreground' />
         </div>
-        <p className="text-sm text-muted-foreground">暂无可编辑的建议</p>
+        <p className='text-sm text-muted-foreground'>暂无可编辑的建议</p>
       </div>
     )
   }
 
   return (
-    <div className="min-w-0 space-y-4">
+    <div className='min-w-0 space-y-4'>
       {/* 操作栏 */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
+      <div className='flex items-center justify-between'>
+        <p className='text-xs text-muted-foreground'>
           {hasAnyModification && (
-            <span className="text-primary ml-1">
-              {currentSuggestions.filter((_, i) => isModified(i)).length}
-              {' '}
+            <span className='text-primary ml-1'>
+              {currentSuggestions.filter((_, i) => isModified(i)).length}{' '}
               条已修改
             </span>
           )}
         </p>
         {hasAnyModification && (
           <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
+            variant='ghost'
+            size='sm'
+            className='h-7 text-xs'
             onClick={handleResetAll}
           >
-            <RotateCcw className="size-3 mr-1" />
+            <RotateCcw className='size-3 mr-1' />
             全部还原
           </Button>
         )}
       </div>
 
       {/* 建议卡片列表 */}
-      <div className="min-w-0 space-y-3">
+      <div className='min-w-0 space-y-3'>
         {currentSuggestions.map((suggestion, index) => (
           <SuggestionEditCard
             key={`edit-${suggestion.locate.path || 'unknown'}-${suggestion.kind}-${suggestion.reason}`}
             suggestion={suggestion}
-            onChange={updatedSuggestion => handleSuggestionChange(index, updatedSuggestion)}
+            onChange={(updatedSuggestion) =>
+              handleSuggestionChange(index, updatedSuggestion)
+            }
             onReset={() => handleReset(index)}
             isModified={isModified(index)}
             onOk={onOk}

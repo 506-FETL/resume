@@ -23,12 +23,12 @@ export default function PdfExport({
 
   return (
     <Button
-      variant="outline"
+      variant='outline'
       disabled={documentState.status !== 'ready'}
       title={documentState.error ?? undefined}
       onClick={() => handlePrint().catch(() => undefined)}
     >
-      <FileDown data-icon="inline-start" />
+      <FileDown data-icon='inline-start' />
       {documentState.status === 'measuring'
         ? '准备中…'
         : documentState.status === 'error'

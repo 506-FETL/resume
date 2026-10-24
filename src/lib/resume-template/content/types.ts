@@ -17,19 +17,19 @@ export interface ExperienceContent {
   title?: ContentField
   subtitle?: ContentField
   duration?: ContentField
-  description?: { field: ContentField, html: string }
+  description?: { field: ContentField; html: string }
 }
 export interface SkillContent {
   field: ContentField
   proficiencyLevel: SkillItem['proficiencyLevel']
   displayType: SkillItem['displayType']
 }
-export type ContentBlock
-  = | { kind: 'experience', items: ExperienceContent[] }
-    | { kind: 'richText', field: ContentField, html: string }
-    | { kind: 'skills', items: SkillContent[] }
-    | { kind: 'fieldList', items: ContentField[] }
-    | { kind: 'tagList', items: ContentField[] }
+export type ContentBlock =
+  | { kind: 'experience'; items: ExperienceContent[] }
+  | { kind: 'richText'; field: ContentField; html: string }
+  | { kind: 'skills'; items: SkillContent[] }
+  | { kind: 'fieldList'; items: ContentField[] }
+  | { kind: 'tagList'; items: ContentField[] }
 export interface ContentSection {
   key: keyof ResumeSchema
   title: string
@@ -49,7 +49,20 @@ export interface AdaptedResumeContent {
   sections: ContentSection[]
 }
 
-export function contentField(nodes: CommentNodes, sectionKey: keyof ResumeSchema, entryId: string, fieldKey: string, label: string): ContentField {
+export function contentField(
+  nodes: CommentNodes,
+  sectionKey: keyof ResumeSchema,
+  entryId: string,
+  fieldKey: string,
+  label: string,
+): ContentField {
   const nodeKey = `${sectionKey}/${entryId}/${fieldKey}`
-  return { sectionKey, entryId, fieldKey, nodeKey, label, text: nodes.get(nodeKey)?.text ?? '' }
+  return {
+    sectionKey,
+    entryId,
+    fieldKey,
+    nodeKey,
+    label,
+    text: nodes.get(nodeKey)?.text ?? '',
+  }
 }

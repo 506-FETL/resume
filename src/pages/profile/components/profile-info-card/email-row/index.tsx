@@ -12,10 +12,10 @@ interface EmailRowProps {
 
 export function EmailRow({ initialEmail }: EmailRowProps) {
   const [email, setEmail] = useState(initialEmail)
-  const editing = useProfileStore(s => s.email.isEditing)
-  const saving = useProfileStore(s => s.email.isSaving)
-  const setEditing = useProfileStore(s => s.setEmailEditing)
-  const setSaving = useProfileStore(s => s.setEmailSaving)
+  const editing = useProfileStore((s) => s.email.isEditing)
+  const saving = useProfileStore((s) => s.email.isSaving)
+  const setEditing = useProfileStore((s) => s.setEmailEditing)
+  const setSaving = useProfileStore((s) => s.setEmailSaving)
 
   useEffect(() => {
     setEmail(initialEmail)
@@ -42,11 +42,9 @@ export function EmailRow({ initialEmail }: EmailRowProps) {
       await updateProfile({ email })
       toast.success('邮箱更新请求已发送，请查收验证邮件')
       setEditing(false)
-    }
-    catch {
+    } catch {
       toast.error('邮箱更新失败，请稍后重试')
-    }
-    finally {
+    } finally {
       setSaving(false)
     }
   }
@@ -55,10 +53,10 @@ export function EmailRow({ initialEmail }: EmailRowProps) {
 
   return (
     <EditableField
-      id="email"
-      label="邮箱地址"
-      icon={<Mail className="size-4 shrink-0" />}
-      type="email"
+      id='email'
+      label='邮箱地址'
+      icon={<Mail className='size-4 shrink-0' />}
+      type='email'
       value={email}
       isEditing={editing}
       isSaving={saving}

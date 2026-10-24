@@ -10,20 +10,30 @@ export interface DocHtmlOptions {
 }
 
 /** Word 使用同一份渲染后的确定样式，降为连续文档，不维护模板类名映射。 */
-export function createResumeDocHtml(contentHtml: string, options: DocHtmlOptions) {
+export function createResumeDocHtml(
+  contentHtml: string,
+  options: DocHtmlOptions,
+) {
   const document = new DOMParser().parseFromString(contentHtml, 'text/html')
-  document.querySelectorAll('script, style, iframe, object, embed, button, [data-resume-decoration], svg').forEach(node => node.remove())
+  document
+    .querySelectorAll(
+      'script, style, iframe, object, embed, button, [data-resume-decoration], svg',
+    )
+    .forEach((node) => node.remove())
   for (const element of document.body.querySelectorAll<HTMLElement>('*')) {
     for (const attribute of Array.from(element.attributes)) {
-      if (/^on/i.test(attribute.name) || attribute.name === 'class' || attribute.name.startsWith('data-comment'))
+      if (
+        /^on/i.test(attribute.name) ||
+        attribute.name === 'class' ||
+        attribute.name.startsWith('data-comment')
+      )
         element.removeAttribute(attribute.name)
     }
     const style = element.style
     if (style.display === 'grid' || style.display === 'flex') {
       style.display = 'block'
       for (const child of Array.from(element.children)) {
-        if (child instanceof HTMLElement)
-          child.style.marginBottom ||= '4px'
+        if (child instanceof HTMLElement) child.style.marginBottom ||= '4px'
       }
     }
     style.removeProperty('grid-template-columns')

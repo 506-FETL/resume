@@ -13,10 +13,8 @@ interface UseCommentSelectionOptions {
 }
 
 function getEventTargetElement(target: EventTarget | null) {
-  if (target instanceof Element)
-    return target
-  if (target instanceof Node)
-    return target.parentElement
+  if (target instanceof Element) return target
+  if (target instanceof Node) return target.parentElement
   return null
 }
 
@@ -24,13 +22,12 @@ function toPendingSelection(
   resolved: NonNullable<ReturnType<typeof resolveCommentSelection>>,
 ): PendingCommentSelection | null {
   const pageRects = rangeToVisiblePageRects(resolved.range)
-  if (pageRects.length === 0)
-    return null
+  if (pageRects.length === 0) return null
   return {
     anchor: resolved.anchor,
     exactQuote: resolved.anchor.exactQuote,
     originalPageIndex: pageRects[0]?.pageIndex ?? null,
-    clientRects: Array.from(resolved.range.getClientRects()).map(rect => ({
+    clientRects: Array.from(resolved.range.getClientRects()).map((rect) => ({
       top: rect.top,
       right: rect.right,
       bottom: rect.bottom,
@@ -69,10 +66,10 @@ export function useCommentSelection({
 
   const evaluate = useCallback(() => {
     if (
-      !enabled
-      || !documentHash
-      || pointerSelecting.current
-      || keyboardSelecting.current
+      !enabled ||
+      !documentHash ||
+      pointerSelecting.current ||
+      keyboardSelecting.current
     ) {
       return
     }
@@ -88,23 +85,29 @@ export function useCommentSelection({
       return
     }
     const resolved = resolveCommentSelection(range, { documentHash })
-    const pending = resolved && root.contains(resolved.nodeElement)
-      ? toPendingSelection(resolved)
-      : null
+    const pending =
+      resolved && root.contains(resolved.nodeElement)
+        ? toPendingSelection(resolved)
+        : null
     if (!pending) {
       hidePendingSelection()
       onInvalidSelection?.()
       return
     }
     store.getState().setSelection(pending)
-  }, [documentHash, enabled, hidePendingSelection, onInvalidSelection, rootRef, store])
+  }, [
+    documentHash,
+    enabled,
+    hidePendingSelection,
+    onInvalidSelection,
+    rootRef,
+    store,
+  ])
 
   useEffect(() => {
-    if (!enabled)
-      return
+    if (!enabled) return
     const root = rootRef.current
-    if (!root)
-      return
+    if (!root) return
 
     const cancelScheduledEvaluation = () => {
       if (evaluationTimer.current !== null) {
@@ -122,9 +125,9 @@ export function useCommentSelection({
         evaluationFrame.current = requestAnimationFrame(() => {
           stabilizationFrame.current = requestAnimationFrame(() => {
             if (
-              generation !== interactionGeneration.current
-              || pointerSelecting.current
-              || keyboardSelecting.current
+              generation !== interactionGeneration.current ||
+              pointerSelecting.current ||
+              keyboardSelecting.current
             ) {
               return
             }
@@ -135,25 +138,22 @@ export function useCommentSelection({
     }
     const beginSelectionInteraction = (kind: 'pointer' | 'keyboard') => {
       interactionGeneration.current += 1
-      if (kind === 'pointer')
-        pointerSelecting.current = true
-      else
-        keyboardSelecting.current = true
+      if (kind === 'pointer') pointerSelecting.current = true
+      else keyboardSelecting.current = true
       completionArmed.current = false
       cancelScheduledEvaluation()
       hidePendingSelection()
     }
     const finishSelectionInteraction = (kind: 'pointer' | 'keyboard') => {
-      const wasSelecting = kind === 'pointer'
-        ? pointerSelecting.current
-        : keyboardSelecting.current
+      const wasSelecting =
+        kind === 'pointer'
+          ? pointerSelecting.current
+          : keyboardSelecting.current
       if (!wasSelecting) {
         return
       }
-      if (kind === 'pointer')
-        pointerSelecting.current = false
-      else
-        keyboardSelecting.current = false
+      if (kind === 'pointer') pointerSelecting.current = false
+      else keyboardSelecting.current = false
       completionArmed.current = true
       interactionGeneration.current += 1
       scheduleEvaluation(120)
@@ -161,9 +161,9 @@ export function useCommentSelection({
     const handlePointerDown = (event: PointerEvent) => {
       const target = getEventTargetElement(event.target)
       if (
-        !target
-        || !root.contains(target)
-        || target.closest('[data-resume-comment-ui]')
+        !target ||
+        !root.contains(target) ||
+        target.closest('[data-resume-comment-ui]')
       ) {
         return
       }
@@ -172,11 +172,11 @@ export function useCommentSelection({
     const handleSelectStart = (event: Event) => {
       const target = getEventTargetElement(event.target)
       if (
-        !target
-        || !root.contains(target)
-        || target.closest('[data-resume-comment-ui]')
-        || pointerSelecting.current
-        || keyboardSelecting.current
+        !target ||
+        !root.contains(target) ||
+        target.closest('[data-resume-comment-ui]') ||
+        pointerSelecting.current ||
+        keyboardSelecting.current
       ) {
         return
       }
@@ -209,16 +209,20 @@ export function useCommentSelection({
         hidePendingSelection()
         return
       }
-      const selectsAll = event.key.toLowerCase() === 'a' && (event.metaKey || event.ctrlKey)
+      const selectsAll =
+        event.key.toLowerCase() === 'a' && (event.metaKey || event.ctrlKey)
       if (
-        ((event.shiftKey && selectionKeys.has(event.key)) || selectsAll)
-        && !keyboardSelecting.current
+        ((event.shiftKey && selectionKeys.has(event.key)) || selectsAll) &&
+        !keyboardSelecting.current
       ) {
         beginSelectionInteraction('keyboard')
       }
     }
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key === 'Shift' || (keyboardSelecting.current && !event.shiftKey))
+      if (
+        event.key === 'Shift' ||
+        (keyboardSelecting.current && !event.shiftKey)
+      )
         finishSelectionInteraction('keyboard')
     }
     const handleSelectionChange = () => {
@@ -229,10 +233,8 @@ export function useCommentSelection({
       }
       cancelScheduledEvaluation()
       // 同一次已完成选择的后续通知仍需重新读取选区，不能把有效按钮清掉。
-      if (completionArmed.current)
-        scheduleEvaluation(120)
-      else
-        hidePendingSelection()
+      if (completionArmed.current) scheduleEvaluation(120)
+      else hidePendingSelection()
     }
     const cancelInteraction = () => {
       pointerSelecting.current = false
@@ -243,8 +245,7 @@ export function useCommentSelection({
       hidePendingSelection()
     }
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden')
-        cancelInteraction()
+      if (document.visibilityState === 'hidden') cancelInteraction()
     }
 
     document.addEventListener('pointerdown', handlePointerDown, true)
@@ -271,8 +272,7 @@ export function useCommentSelection({
   }, [enabled, evaluate, hidePendingSelection, rootRef])
 
   useEffect(() => {
-    if (!enabled)
-      hidePendingSelection()
+    if (!enabled) hidePendingSelection()
   }, [enabled, hidePendingSelection])
 
   return { clearSelection, evaluateSelection: evaluate }

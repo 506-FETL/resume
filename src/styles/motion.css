@@ -42,16 +42,26 @@
   transition-timing-function: var(--ui-motion-enter-ease);
 }
 
-:where([data-slot='drawer-popup'], [data-slot='drawer-overlay'])[data-ending-style] {
+:where(
+  [data-slot='drawer-popup'],
+  [data-slot='drawer-overlay']
+)[data-ending-style] {
   transition-duration: var(--ui-motion-fast);
   transition-timing-function: var(--ui-motion-exit-ease);
 }
 
-:where([data-slot='drawer-popup'], [data-slot='drawer-overlay']):is([data-swiping], [data-nested-drawer-swiping]) {
+:where([data-slot='drawer-popup'], [data-slot='drawer-overlay']):is(
+  [data-swiping],
+  [data-nested-drawer-swiping]
+) {
   transition-duration: 0s;
 }
 
-:where([data-slot='button'], [data-slot='tabs-trigger'], [data-slot='sidebar-menu-button']) {
+:where(
+  [data-slot='button'],
+  [data-slot='tabs-trigger'],
+  [data-slot='sidebar-menu-button']
+) {
   transition-duration: var(--ui-motion-fast);
   transition-timing-function: var(--ui-motion-enter-ease);
 }

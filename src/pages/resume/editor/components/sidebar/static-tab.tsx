@@ -2,7 +2,11 @@ import type { ReactNode } from 'react'
 import type { VisibilityItemsType } from '@/lib/schema'
 import { Tab } from '@/components/ui/side-tabs'
 import { Switch } from '@/components/ui/switch'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface StaticTabProps {
   id: VisibilityItemsType
@@ -27,7 +31,7 @@ export function StaticTab({
 }: StaticTabProps) {
   return (
     <div
-      className="flex flex-col items-center justify-end gap-2 select-none"
+      className='flex flex-col items-center justify-end gap-2 select-none'
       data-active={active}
     >
       <Tooltip>

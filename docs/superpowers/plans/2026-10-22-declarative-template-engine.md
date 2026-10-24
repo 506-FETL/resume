@@ -25,21 +25,21 @@
 
 ## 文件与职责
 
-| 文件/目录 | 责任 | 执行者 |
-| --- | --- | --- |
-| `src/lib/resume-template/declarative/types.ts`、`schema.ts`、`validate.ts` | 节点、绑定、样式协议与语义预算校验 | 主代理 |
-| `src/lib/resume-template/definition-schema.ts` | 新协议公开入口和统一错误 | 主代理 |
-| `src/lib/resume-template/declarative/styles.ts`、`bindings.ts` | 受控样式解析、绑定作用域、资源约束 | 渲染任务 |
-| `src/components/resume/runtime/`、`src/components/resume/fields/` | 通用节点渲染、字段投影、富文本样式 | 渲染任务 |
-| `template-resources/` | 两份结构化定义、目录、素材与示例引用 | 模板任务 |
-| `src/lib/resume-template/content/` | 空内容过滤和统一展示字段 | 主代理 |
-| `src/lib/resume-template/binding.ts`、`share.ts` | 精确引用与新分享信封 | 主代理 |
-| `src/lib/resume-template/source/`、`src/store/resume-template/` | 新目录、资源、缓存和加载 | 资源任务 |
-| `src/pages/template/`、创建入口 | 静态卡片与新默认创建 | 资源任务/主代理 |
-| `src/components/resume/pagination/` | 四边边距、资源门禁、稳定签名和合法断点 | 主代理 |
-| `src/store/resume/helpers/doc-html.ts` | 新结构 Word 简化 | 主代理 |
-| `scripts/build-template-seed.ts`、发布工具 | 严格读取资源、生成新发布 SQL，不重放旧种子 | 主代理 |
-| `tests/resume-template/` | 协议、资源、数据库、浏览器和 PDF 证据 | 主代理 |
+| 文件/目录                                                                  | 责任                                       | 执行者          |
+| -------------------------------------------------------------------------- | ------------------------------------------ | --------------- |
+| `src/lib/resume-template/declarative/types.ts`、`schema.ts`、`validate.ts` | 节点、绑定、样式协议与语义预算校验         | 主代理          |
+| `src/lib/resume-template/definition-schema.ts`                             | 新协议公开入口和统一错误                   | 主代理          |
+| `src/lib/resume-template/declarative/styles.ts`、`bindings.ts`             | 受控样式解析、绑定作用域、资源约束         | 渲染任务        |
+| `src/components/resume/runtime/`、`src/components/resume/fields/`          | 通用节点渲染、字段投影、富文本样式         | 渲染任务        |
+| `template-resources/`                                                      | 两份结构化定义、目录、素材与示例引用       | 模板任务        |
+| `src/lib/resume-template/content/`                                         | 空内容过滤和统一展示字段                   | 主代理          |
+| `src/lib/resume-template/binding.ts`、`share.ts`                           | 精确引用与新分享信封                       | 主代理          |
+| `src/lib/resume-template/source/`、`src/store/resume-template/`            | 新目录、资源、缓存和加载                   | 资源任务        |
+| `src/pages/template/`、创建入口                                            | 静态卡片与新默认创建                       | 资源任务/主代理 |
+| `src/components/resume/pagination/`                                        | 四边边距、资源门禁、稳定签名和合法断点     | 主代理          |
+| `src/store/resume/helpers/doc-html.ts`                                     | 新结构 Word 简化                           | 主代理          |
+| `scripts/build-template-seed.ts`、发布工具                                 | 严格读取资源、生成新发布 SQL，不重放旧种子 | 主代理          |
+| `tests/resume-template/`                                                   | 协议、资源、数据库、浏览器和 PDF 证据      | 主代理          |
 
 ## 任务 1：固定公开协议与执行接口
 
@@ -54,7 +54,12 @@
 
 ```ts
 type TemplateContract = 'declarative-flow@1'
-type ContentKind = 'experience' | 'richText' | 'skills' | 'fieldList' | 'tagList'
+type ContentKind =
+  | 'experience'
+  | 'richText'
+  | 'skills'
+  | 'fieldList'
+  | 'tagList'
 interface RenderScope {
   profile?: ProfileContent
   section?: ContentSection

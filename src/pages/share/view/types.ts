@@ -2,10 +2,10 @@ import type { ShareCommentAccess } from './hooks/use-share-comment-access'
 import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 
-export type ViewState
-  = | { phase: 'loading' }
-    | { phase: 'password', wrong: boolean, rateLimited: boolean }
-    | {
+export type ViewState =
+  | { phase: 'loading' }
+  | { phase: 'password'; wrong: boolean; rateLimited: boolean }
+  | {
       sourceKind: 'current' | 'history'
       contentRevision?: string
       phase: 'ready'
@@ -21,4 +21,4 @@ export type ViewState
       projectionReferenceDate: string | undefined
       commentAccess: ShareCommentAccess | null
     }
-    | { phase: 'unavailable' }
+  | { phase: 'unavailable' }

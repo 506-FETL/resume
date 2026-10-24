@@ -24,7 +24,10 @@ export async function restoreResumeHistoryVersion({
     })
   }
 
-  const restoredSnapshot = await replaceAutomergeDocumentSnapshot(resumeId, targetSnapshot)
+  const restoredSnapshot = await replaceAutomergeDocumentSnapshot(
+    resumeId,
+    targetSnapshot,
+  )
 
   return createResumeHistoryVersion({
     resume_id: resumeId,

@@ -11,8 +11,7 @@ export function constantTimeEqual(left: string, right: string) {
 
 export function readBearerToken(request: Request) {
   const authorization = request.headers.get('authorization')?.trim() ?? ''
-  if (authorization.slice(0, 7).toLowerCase() !== 'bearer ')
-    return ''
+  if (authorization.slice(0, 7).toLowerCase() !== 'bearer ') return ''
   return authorization.slice(7).trim()
 }
 

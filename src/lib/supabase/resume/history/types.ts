@@ -1,11 +1,16 @@
-import type { ORDERType, PersistedResumeSnapshot, ResumeType, VisibilityFormType } from '@/lib/schema'
+import type {
+  ORDERType,
+  PersistedResumeSnapshot,
+  ResumeType,
+  VisibilityFormType,
+} from '@/lib/schema'
 
-export type ResumeVersionSourceType
-  = | 'manual'
-    | 'autosave'
-    | 'restore'
-    | 'ai_optimize'
-    | 'import'
+export type ResumeVersionSourceType =
+  | 'manual'
+  | 'autosave'
+  | 'restore'
+  | 'ai_optimize'
+  | 'import'
 
 export type RestoreStrategy = 'with_backup' | 'without_backup'
 export type ResumeVersionStatus = 'active' | 'frozen'
@@ -43,9 +48,13 @@ export interface ResumeVersionListItem extends ResumeHistoryVersionMeta {
 }
 
 // 完整版本行/记录（含 snapshot）——create/update/restore 返回、按需加载后使用
-export type ResumeHistoryVersionRow = ResumeHistoryVersionMeta & { snapshot: ResumeSnapshot | Record<string, unknown> }
+export type ResumeHistoryVersionRow = ResumeHistoryVersionMeta & {
+  snapshot: ResumeSnapshot | Record<string, unknown>
+}
 
-export type ResumeHistoryVersionRecord = ResumeHistoryVersionMeta & { snapshot: ResumeSnapshot }
+export type ResumeHistoryVersionRecord = ResumeHistoryVersionMeta & {
+  snapshot: ResumeSnapshot
+}
 
 export interface ResumeHistoryShareReleaseRow {
   resume_id: string

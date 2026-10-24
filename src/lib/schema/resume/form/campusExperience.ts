@@ -15,9 +15,13 @@ export type CampusInfo = z.infer<typeof campusInfo>
 
 const campusExperienceFields = { experienceName, role, duration, campusInfo }
 
-export const campusExperienceFormSchema = createExperienceSchema(campusExperienceFields)
+export const campusExperienceFormSchema = createExperienceSchema(
+  campusExperienceFields,
+)
 
-export type CampusExperienceFormType = z.infer<typeof campusExperienceFormSchema>
+export type CampusExperienceFormType = z.infer<
+  typeof campusExperienceFormSchema
+>
 export type CampusExperienceItem = CampusExperienceFormType['items'][number]
 
 export const DEFAULT_CAMPUS_EXPERIENCE: CampusExperienceFormType = {

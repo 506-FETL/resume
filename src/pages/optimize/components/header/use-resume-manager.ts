@@ -38,10 +38,18 @@ interface UseResumeManagerReturn {
 }
 
 export function useResumeManager(): UseResumeManagerReturn {
-  const { atsConfigs, currentAtsConfig, selectedResumeId, setSelectedResume } = useAtsStore()
-  const { resumes: storedResumes, accountId, loading: listLoading, loadError: listError, loadResumes, cancelLoad } = useResumeListStore()
-  const userId = useUserStore(state => state.currentUser?.id ?? null)
-  const authStatus = useUserStore(state => state.authStatus)
+  const { atsConfigs, currentAtsConfig, selectedResumeId, setSelectedResume } =
+    useAtsStore()
+  const {
+    resumes: storedResumes,
+    accountId,
+    loading: listLoading,
+    loadError: listError,
+    loadResumes,
+    cancelLoad,
+  } = useResumeListStore()
+  const userId = useUserStore((state) => state.currentUser?.id ?? null)
+  const authStatus = useUserStore((state) => state.authStatus)
   const accountMatches = authStatus !== 'unknown' && accountId === userId
   const loading = !accountMatches || listLoading
   const loadError = accountMatches ? listError : null
@@ -49,17 +57,17 @@ export function useResumeManager(): UseResumeManagerReturn {
   const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
-    if (authStatus === 'unknown')
-      return
+    if (authStatus === 'unknown') return
     loadResumes()
     return cancelLoad
   }, [authStatus, userId, loadResumes, cancelLoad])
 
   const resumes = useMemo<ResumeConfig[]>(() => {
-    if (!accountMatches)
-      return []
+    if (!accountMatches) return []
     return storedResumes.map((resume) => {
-      const resumeAts = atsConfigs?.find(ats => ats.resume_id === resume.resume_id)
+      const resumeAts = atsConfigs?.find(
+        (ats) => ats.resume_id === resume.resume_id,
+      )
       return {
         id: resume.resume_id,
         resume_id: resume.resume_id,
@@ -74,18 +82,31 @@ export function useResumeManager(): UseResumeManagerReturn {
 
   useEffect(() => {
     if (currentAtsConfig && !selectedResumeId && resumes.length > 0) {
-      const found = resumes.find(r => r.resume_id === currentAtsConfig.resume_id)
+      const found = resumes.find(
+        (r) => r.resume_id === currentAtsConfig.resume_id,
+      )
       if (found)
-        setSelectedResume(found.resume_id, found.isOffline ? 'offline' : 'online')
+        setSelectedResume(
+          found.resume_id,
+          found.isOffline ? 'offline' : 'online',
+        )
     }
   }, [currentAtsConfig, resumes, selectedResumeId, setSelectedResume])
 
-  const selectedResumeName = resumes.find(r => r.resume_id === selectedResumeId)?.display_name || '选择简历'
+  const selectedResumeName =
+    resumes.find((r) => r.resume_id === selectedResumeId)?.display_name ||
+    '选择简历'
 
-  const handleSelect = useCallback((resume: ResumeConfig) => {
-    setSelectedResume(resume.resume_id, resume.isOffline ? 'offline' : 'online')
-    setOpen(false)
-  }, [setSelectedResume])
+  const handleSelect = useCallback(
+    (resume: ResumeConfig) => {
+      setSelectedResume(
+        resume.resume_id,
+        resume.isOffline ? 'offline' : 'online',
+      )
+      setOpen(false)
+    },
+    [setSelectedResume],
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -119,14 +140,16 @@ export function useResumeManager(): UseResumeManagerReturn {
     input.click()
   }, [])
 
-  const onlineResumes = resumes.filter(r => !r.isOffline)
-  const offlineResumes = resumes.filter(r => r.isOffline)
+  const onlineResumes = resumes.filter((r) => !r.isOffline)
+  const offlineResumes = resumes.filter((r) => r.isOffline)
 
-  const currentResume = useMemo(() => resumes.find(r => r.resume_id === selectedResumeId), [resumes, selectedResumeId])
+  const currentResume = useMemo(
+    () => resumes.find((r) => r.resume_id === selectedResumeId),
+    [resumes, selectedResumeId],
+  )
 
   const ButtonIcon = useMemo(() => {
-    if (!currentResume)
-      return FileText
+    if (!currentResume) return FileText
     if (currentResume.isOffline)
       return currentResume.isScored ? FileCheck : HardDrive
 
@@ -134,10 +157,8 @@ export function useResumeManager(): UseResumeManagerReturn {
   }, [currentResume])
 
   const iconColorClass = useMemo(() => {
-    if (!currentResume)
-      return 'text-muted-foreground'
-    if (currentResume.isScored)
-      return 'text-green-600'
+    if (!currentResume) return 'text-muted-foreground'
+    if (currentResume.isScored) return 'text-green-600'
     return currentResume.isOffline ? 'text-amber-600' : 'text-blue-600'
   }, [currentResume])
 

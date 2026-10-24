@@ -24,7 +24,7 @@
  */
 
 export interface AwarenessLikeState {
-  user?: { id?: string, name?: string, color?: string } | null
+  user?: { id?: string; name?: string; color?: string } | null
   cursor?: unknown
   [key: string]: unknown
 }
@@ -40,7 +40,9 @@ export interface AwarenessMetaLike {
  * 退化为 `name|color` 组合键，保证同一个人的多个 clientId 仍能被归为一组去重，
  * 而不是因为缺 id 就各自渲染导致重叠。完全没有可辨识信息时返回 null（不参与去重）。
  */
-export function identityOf(state: AwarenessLikeState | undefined | null): string | null {
+export function identityOf(
+  state: AwarenessLikeState | undefined | null,
+): string | null {
   const user = state?.user
   if (!user) {
     return null
@@ -112,7 +114,11 @@ export function createDedupeAwarenessFilter(
   getStates: () => Map<number, AwarenessLikeState>,
   getMeta?: () => Map<number, AwarenessMetaLike>,
 ) {
-  return (currentClientId: number, userClientId: number, state: AwarenessLikeState): boolean => {
+  return (
+    currentClientId: number,
+    userClientId: number,
+    state: AwarenessLikeState,
+  ): boolean => {
     if (currentClientId === userClientId) {
       return false
     }

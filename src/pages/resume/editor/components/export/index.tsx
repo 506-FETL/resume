@@ -2,7 +2,15 @@ import type { ReactNode } from 'react'
 import { FileText, Printer } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import useResumeExportStore from '@/store/resume/export'
 
 interface ExportDialogProps {
@@ -25,24 +33,20 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
 
   return (
     <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>导出简历</DialogTitle>
-          <DialogDescription>
-            Word 可能替换设备中缺失的字体。
-          </DialogDescription>
+          <DialogDescription>Word 可能替换设备中缺失的字体。</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <DialogFooter className='flex flex-col gap-2 sm:flex-row sm:justify-end'>
           <Button
-            variant="outline"
+            variant='outline'
             onClick={handleExportPdf}
             disabled={documentState.status !== 'ready'}
             title={documentState.error ?? undefined}
           >
-            <Printer data-icon="inline-start" />
+            <Printer data-icon='inline-start' />
             {documentState.status === 'measuring'
               ? '准备中…'
               : documentState.status === 'error'
@@ -50,7 +54,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
                 : '导出 PDF'}
           </Button>
           <Button onClick={handleExportDoc}>
-            <FileText data-icon="inline-start" />
+            <FileText data-icon='inline-start' />
             导出 Word
           </Button>
         </DialogFooter>

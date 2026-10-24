@@ -1,6 +1,17 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { MIN_JD_CHARS } from '../../const'
 
@@ -26,34 +37,22 @@ export function StepInput({ value, onChange, recentJds }: StepInputProps) {
   return (
     <FieldGroup>
       <Field data-invalid={showError || undefined}>
-        <FieldLabel htmlFor="jd-input">粘贴职位描述</FieldLabel>
+        <FieldLabel htmlFor='jd-input'>粘贴职位描述</FieldLabel>
         <Textarea
-          id="jd-input"
+          id='jd-input'
           value={value}
-          onChange={e => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           rows={8}
-          placeholder="粘贴目标岗位 JD…"
-          className="max-h-60"
+          placeholder='粘贴目标岗位 JD…'
+          className='max-h-60'
           aria-invalid={showError}
         />
-        <FieldDescription aria-live="polite">
-          已输入
-          {' '}
-          {trimmedLen}
-          {' '}
-          字，至少需要
-          {' '}
-          {MIN_JD_CHARS}
-          {' '}
-          字。
+        <FieldDescription aria-live='polite'>
+          已输入 {trimmedLen} 字，至少需要 {MIN_JD_CHARS} 字。
         </FieldDescription>
         {showError && (
           <FieldError>
-            还差
-            {' '}
-            {Math.max(0, MIN_JD_CHARS - trimmedLen)}
-            {' '}
-            字。
+            还差 {Math.max(0, MIN_JD_CHARS - trimmedLen)} 字。
           </FieldError>
         )}
       </Field>
@@ -61,29 +60,31 @@ export function StepInput({ value, onChange, recentJds }: StepInputProps) {
       {recentJds.length > 0 && (
         <Field>
           <FieldLabel>最近使用</FieldLabel>
-          <div className="flex flex-wrap gap-2">
-            {recentJds.slice(0, 3).map(jd => (
+          <div className='flex flex-wrap gap-2'>
+            {recentJds.slice(0, 3).map((jd) => (
               <Button
                 key={jd.snippet}
-                type="button"
-                size="xs"
-                variant="outline"
+                type='button'
+                size='xs'
+                variant='outline'
                 onClick={() => onChange(jd.full)}
                 aria-label={`复用 JD：${jd.snippet}`}
-                className="max-w-full"
+                className='max-w-full'
               >
-                <span className="truncate">{jd.snippet}</span>
+                <span className='truncate'>{jd.snippet}</span>
               </Button>
             ))}
           </div>
         </Field>
       )}
 
-      <Accordion type="single" collapsible>
-        <AccordionItem value="sample">
+      <Accordion type='single' collapsible>
+        <AccordionItem value='sample'>
           <AccordionTrigger>查看示例 JD</AccordionTrigger>
           <AccordionContent>
-            <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">{SAMPLE_JD}</pre>
+            <pre className='whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-xs text-muted-foreground'>
+              {SAMPLE_JD}
+            </pre>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

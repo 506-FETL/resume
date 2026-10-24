@@ -1,9 +1,8 @@
-import type {
-  RemoteUserUIState,
-  UIStateBroadcastPayload,
-} from './types'
+import type { RemoteUserUIState, UIStateBroadcastPayload } from './types'
 
-export function createRemoteUserUIState(payload: UIStateBroadcastPayload): RemoteUserUIState {
+export function createRemoteUserUIState(
+  payload: UIStateBroadcastPayload,
+): RemoteUserUIState {
   return {
     userId: payload.userId,
     userName: payload.userName,

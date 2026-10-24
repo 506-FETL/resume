@@ -40,7 +40,11 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   private readyWaiters = new Set<() => void>()
   private closed = false
 
-  constructor(resumeId: string, sessionId: string, callbacks: CollaborationCallbacks = {}) {
+  constructor(
+    resumeId: string,
+    sessionId: string,
+    callbacks: CollaborationCallbacks = {},
+  ) {
     super()
     this.resumeId = resumeId
     this.sessionId = sessionId
@@ -99,7 +103,11 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       p_lease_id: authorization.leaseId,
       p_metadata: { ...this.peerMetadata, ...this.presenceMetadata },
     })
-    if (error || !data?.inboxId || data.topic !== `automerge:inbox:${data.inboxId}`) {
+    if (
+      error ||
+      !data?.inboxId ||
+      data.topic !== `automerge:inbox:${data.inboxId}`
+    ) {
       throw error || new Error('协作频道授权失败')
     }
     if (generation !== this.connectionGeneration || this.closed) {
@@ -156,7 +164,9 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   }
 
   private closeInbox(inboxId: string) {
-    Promise.resolve(supabase.rpc('close_automerge_peer', { p_inbox_id: inboxId })).catch(() => {
+    Promise.resolve(
+      supabase.rpc('close_automerge_peer', { p_inbox_id: inboxId }),
+    ).catch(() => {
       // A disconnected inbox expires server-side even if cleanup cannot reach it.
     })
   }
@@ -170,7 +180,9 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       messageType: message.type,
       documentId: (message as any).documentId || this.localDocumentId,
       message: encodeBytesToBase64(message.data),
-    }).catch(() => { /* sendAuthorized already closes this connection. */ })
+    }).catch(() => {
+      /* sendAuthorized already closes this connection. */
+    })
   }
 
   private sendAuthorized(event: string, payload: Record<string, unknown>) {
@@ -197,7 +209,10 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     return this.channelName
   }
 
-  async broadcastControlMessage(type: string, data: Record<string, unknown> = {}) {
+  async broadcastControlMessage(
+    type: string,
+    data: Record<string, unknown> = {},
+  ) {
     if (!this.channel || !this.ready) {
       throw new Error('协作控制频道尚未就绪')
     }
@@ -212,9 +227,13 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       }
 
       const incoming = payload.payload || {}
-      if (incoming.sessionId !== this.sessionId || typeof incoming.senderId !== 'string'
-        || typeof incoming.userId !== 'string' || typeof incoming.message !== 'string'
-        || incoming.senderId === String(this.peerId)) {
+      if (
+        incoming.sessionId !== this.sessionId ||
+        typeof incoming.senderId !== 'string' ||
+        typeof incoming.userId !== 'string' ||
+        typeof incoming.message !== 'string' ||
+        incoming.senderId === String(this.peerId)
+      ) {
         return
       }
       this.rememberPeer(incoming.senderId, incoming.metadata || {})
@@ -239,7 +258,10 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     })
   }
 
-  private registerControlBroadcast(channel: RealtimeChannel, generation: number) {
+  private registerControlBroadcast(
+    channel: RealtimeChannel,
+    generation: number,
+  ) {
     channel.on('broadcast', { event: 'automerge-control' }, (payload: any) => {
       if (!this.isCurrentConnection(channel, generation)) {
         return
@@ -262,12 +284,17 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       return
     }
     this.peers.add(peerId)
-    this.emit('peer-candidate', { peerId: peerId as PeerId, peerMetadata: metadata })
+    this.emit('peer-candidate', {
+      peerId: peerId as PeerId,
+      peerMetadata: metadata,
+    })
     this.callbacks.onPeerJoin?.({ peerId, metadata })
   }
 
   private async refreshPeers(channel: RealtimeChannel, generation: number) {
-    const { data, error } = await supabase.rpc('refresh_automerge_peer', { p_inbox_id: this.inboxId })
+    const { data, error } = await supabase.rpc('refresh_automerge_peer', {
+      p_inbox_id: this.inboxId,
+    })
     if (!this.isCurrentConnection(channel, generation)) {
       return
     }
@@ -276,7 +303,11 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     }
     const activePeers = new Set<string>()
     for (const peer of data) {
-      if (typeof peer.peerId !== 'string' || !peer.metadata || typeof peer.metadata.userId !== 'string') {
+      if (
+        typeof peer.peerId !== 'string' ||
+        !peer.metadata ||
+        typeof peer.metadata.userId !== 'string'
+      ) {
         throw new Error('协作成员数据无效')
       }
       activePeers.add(peer.peerId)
@@ -290,7 +321,9 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       }
     }
     this.heartbeat = setTimeout(() => {
-      this.refreshPeers(channel, generation).catch(() => this.failConnection(generation))
+      this.refreshPeers(channel, generation).catch(() =>
+        this.failConnection(generation),
+      )
     }, 10_000)
   }
 
@@ -304,13 +337,15 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
         return
       }
       this.ready = true
-      this.refreshPeers(channel, generation).then(() => {
-        if (!this.isCurrentConnection(channel, generation)) {
-          return
-        }
-        this.settleReadyWaiters()
-        this.callbacks.onChannelReady?.(this.channelName)
-      }).catch(() => this.failConnection(generation))
+      this.refreshPeers(channel, generation)
+        .then(() => {
+          if (!this.isCurrentConnection(channel, generation)) {
+            return
+          }
+          this.settleReadyWaiters()
+          this.callbacks.onChannelReady?.(this.channelName)
+        })
+        .catch(() => this.failConnection(generation))
     })
   }
 
@@ -321,7 +356,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   private settleReadyWaiters() {
     const waiters = [...this.readyWaiters]
     this.readyWaiters.clear()
-    waiters.forEach(resolve => resolve())
+    waiters.forEach((resolve) => resolve())
   }
 
   private unsubscribe(channel: RealtimeChannel) {
@@ -334,7 +369,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     const now = Date.now()
 
     this.pendingMessages = this.pendingMessages.filter(
-      message => now - message.timestamp < PENDING_MESSAGE_TTL_MS,
+      (message) => now - message.timestamp < PENDING_MESSAGE_TTL_MS,
     )
 
     if (this.pendingMessages.length >= PENDING_MESSAGE_LIMIT) {
@@ -357,7 +392,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     }
 
     const messages = this.pendingMessages.splice(0, PENDING_MESSAGE_FLUSH_LIMIT)
-    messages.forEach(message => this.emitSyncMessage(message))
+    messages.forEach((message) => this.emitSyncMessage(message))
   }
 
   private emitSyncMessage(message: PendingSyncMessage) {
@@ -372,14 +407,14 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       // An owner restore imports the same resume with a new Automerge ID while
       // guests retain the invite's ID. Server authorization binds this transport
       // to one resume/session; map its messages onto this repo's local handle.
-      const resolvedDocumentId = this.localDocumentId || message.documentId || this.resumeId
+      const resolvedDocumentId =
+        this.localDocumentId || message.documentId || this.resumeId
 
       ;(payload as any).documentId = resolvedDocumentId
       ;(payload as any).channelId = resolvedDocumentId
 
       this.emit('message', payload)
-    }
-    catch {
+    } catch {
       // 忽略单条消息解析失败
     }
   }

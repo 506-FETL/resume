@@ -42,7 +42,10 @@ export function removeRealtimeCursor(
 
 export function projectRealtimeCursor(
   payload: CursorEventPayload,
-  projectPoint: (point: CursorEventPayload['position'], viewport: CursorEventPayload['viewport']) => CursorEventPayload['position'],
+  projectPoint: (
+    point: CursorEventPayload['position'],
+    viewport: CursorEventPayload['viewport'],
+  ) => CursorEventPayload['position'],
 ): CursorEventPayload {
   return {
     ...payload,

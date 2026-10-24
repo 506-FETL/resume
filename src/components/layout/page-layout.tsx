@@ -8,7 +8,15 @@ const widths = {
 }
 
 /** Workspaces own their panel scrolling; short viewports scroll the page as a fallback. */
-export function PageLayout({ width = 'default', workspace = false, className, ...props }: ComponentProps<'div'> & { width?: keyof typeof widths, workspace?: boolean }) {
+export function PageLayout({
+  width = 'default',
+  workspace = false,
+  className,
+  ...props
+}: ComponentProps<'div'> & {
+  width?: keyof typeof widths
+  workspace?: boolean
+}) {
   return (
     <div
       className={cn(
@@ -24,15 +32,35 @@ export function PageLayout({ width = 'default', workspace = false, className, ..
   )
 }
 
-export function PageHeader({ title, description, actions, children }: { title: string, description?: ReactNode, actions?: ReactNode, children?: ReactNode }) {
+export function PageHeader({
+  title,
+  description,
+  actions,
+  children,
+}: {
+  title: string
+  description?: ReactNode
+  actions?: ReactNode
+  children?: ReactNode
+}) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
-      <div className="min-w-0 space-y-1.5">
-        <h1 className="text-2xl leading-8 font-semibold tracking-tight text-foreground">{title}</h1>
-        {description && <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>}
+    <header className='flex flex-wrap items-start justify-between gap-4'>
+      <div className='min-w-0 space-y-1.5'>
+        <h1 className='text-2xl leading-8 font-semibold tracking-tight text-foreground'>
+          {title}
+        </h1>
+        {description && (
+          <p className='text-sm leading-relaxed text-muted-foreground'>
+            {description}
+          </p>
+        )}
         {children}
       </div>
-      {actions && <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className='flex max-w-full flex-wrap items-center gap-2'>
+          {actions}
+        </div>
+      )}
     </header>
   )
 }

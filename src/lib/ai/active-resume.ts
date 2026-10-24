@@ -9,8 +9,11 @@ import useAssistantStore from '@/pages/assistant/store'
 export function resolveActiveResumeId(): string | null {
   const { activeConversationId, conversations } = useAssistantStore.getState()
 
-  if (!activeConversationId)
-    return null
+  if (!activeConversationId) return null
 
-  return conversations.find(conversation => conversation.id === activeConversationId)?.resumeId ?? null
+  return (
+    conversations.find(
+      (conversation) => conversation.id === activeConversationId,
+    )?.resumeId ?? null
+  )
 }

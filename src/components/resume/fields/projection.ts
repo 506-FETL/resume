@@ -9,7 +9,9 @@ export function buildCommentNodeKey(
   return `${sectionKey}/${entryId}/${fieldKey}`
 }
 
-export function useCommentProjectionNode(nodeKey: string): CommentAnchorDocumentNode | null {
+export function useCommentProjectionNode(
+  nodeKey: string,
+): CommentAnchorDocumentNode | null {
   const { commentNodesByKey } = useResumeContext()
   return commentNodesByKey.get(nodeKey) ?? null
 }

@@ -19,6 +19,10 @@ export function useHistoryMotion() {
     enter,
     exit,
     layout,
-    surfaceProps: { 'className': 'history-motion-surface', style, 'data-reduced-motion': reduceMotion },
+    surfaceProps: {
+      className: 'history-motion-surface',
+      style,
+      'data-reduced-motion': reduceMotion,
+    },
   }
 }

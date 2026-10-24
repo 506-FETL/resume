@@ -3,7 +3,11 @@ import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import { create } from 'zustand'
-import { DEFAULT_RESUME_FONT_FAMILY_NAME, getFontFamilyCSS, themeColorMap } from '@/lib/schema'
+import {
+  DEFAULT_RESUME_FONT_FAMILY_NAME,
+  getFontFamilyCSS,
+  themeColorMap,
+} from '@/lib/schema'
 import useResumeConfigStore from './config'
 import useResumeStore from './form'
 import { createResumeDocHtml } from './helpers'
@@ -52,9 +56,10 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
 
     try {
       await handlePrint()
-    }
-    catch (error) {
-      toast.error(`导出 PDF 失败,请稍后重试${error instanceof Error ? `: ${error.message}` : ''}`)
+    } catch (error) {
+      toast.error(
+        `导出 PDF 失败,请稍后重试${error instanceof Error ? `: ${error.message}` : ''}`,
+      )
     }
   },
 
@@ -93,9 +98,10 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
 
       saveAs(blob, resumeName ? `${resumeName}-简历.doc` : '我的简历.doc')
       toast.success('导出成功!')
-    }
-    catch (error) {
-      toast.error(`导出 Word 失败,请稍后重试${error instanceof Error ? `: ${error.message}` : ''}`)
+    } catch (error) {
+      toast.error(
+        `导出 Word 失败,请稍后重试${error instanceof Error ? `: ${error.message}` : ''}`,
+      )
     }
   },
 }))

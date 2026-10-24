@@ -35,8 +35,7 @@ export default function ScaledResumeDocument({
   } | null>(null)
 
   useLayoutEffect(() => {
-    if (!viewport || !canvas)
-      return
+    if (!viewport || !canvas) return
 
     let frame = 0
     const measure = () => {
@@ -44,21 +43,21 @@ export default function ScaledResumeDocument({
       frame = requestAnimationFrame(() => {
         const width = canvas.offsetWidth
         const height = canvas.offsetHeight
-        const nextScale = width > 0
-          ? Math.min(1, viewport.clientWidth / width)
-          : 1
+        const nextScale =
+          width > 0 ? Math.min(1, viewport.clientWidth / width) : 1
 
-        setScale(current =>
-          Math.abs(current - nextScale) < 0.001 ? current : nextScale)
+        setScale((current) =>
+          Math.abs(current - nextScale) < 0.001 ? current : nextScale,
+        )
         setScaledSize((current) => {
           const next = {
             width: width * nextScale,
             height: height * nextScale,
           }
           if (
-            current
-            && Math.abs(current.width - next.width) < 1
-            && Math.abs(current.height - next.height) < 1
+            current &&
+            Math.abs(current.width - next.width) < 1 &&
+            Math.abs(current.height - next.height) < 1
           ) {
             return current
           }
@@ -80,20 +79,22 @@ export default function ScaledResumeDocument({
 
   return (
     <div ref={setViewport} className={cn('w-full min-w-0', className)}>
-      <div className="flex justify-center">
+      <div className='flex justify-center'>
         <div
-          className="relative"
-          style={scaledSize
-            ? {
-                width: `${scaledSize.width}px`,
-                height: `${scaledSize.height}px`,
-              }
-            : undefined}
+          className='relative'
+          style={
+            scaledSize
+              ? {
+                  width: `${scaledSize.width}px`,
+                  height: `${scaledSize.height}px`,
+                }
+              : undefined
+          }
         >
           <div
             ref={setCanvas}
             data-resume-scale={scale}
-            className="absolute left-0 top-0 origin-top-left"
+            className='absolute left-0 top-0 origin-top-left'
             style={{
               transform: `scale(${scale})`,
               visibility: scaledSize ? 'visible' : 'hidden',

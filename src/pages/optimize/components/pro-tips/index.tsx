@@ -1,6 +1,10 @@
 import { ChevronDown, Lightbulb } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { DURATION } from '@/lib/motion'
 
 const tips = [
@@ -13,15 +17,23 @@ const tips = [
 export default function ProTips() {
   const reduceMotion = useReducedMotion()
   return (
-    <Collapsible className="rounded-xl border bg-muted/20">
-      <CollapsibleTrigger className="group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
-        <Lightbulb className="size-4 text-muted-foreground" />
+    <Collapsible className='rounded-xl border bg-muted/20'>
+      <CollapsibleTrigger className='group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'>
+        <Lightbulb className='size-4 text-muted-foreground' />
         提高 ATS 可读性的建议
-        <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none" style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }} />
+        <ChevronDown
+          className='ml-auto size-4 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none'
+          style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
+        />
       </CollapsibleTrigger>
-      <CollapsibleContent className="motion-reduce:animate-none" style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}>
-        <ul className="list-disc space-y-2 pr-4 pb-4 pl-10 text-sm leading-relaxed text-muted-foreground">
-          {tips.map(tip => <li key={tip}>{tip}</li>)}
+      <CollapsibleContent
+        className='motion-reduce:animate-none'
+        style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
+      >
+        <ul className='list-disc space-y-2 pr-4 pb-4 pl-10 text-sm leading-relaxed text-muted-foreground'>
+          {tips.map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
         </ul>
       </CollapsibleContent>
     </Collapsible>

@@ -18,7 +18,7 @@ import { ResumePhotoField } from './components/resume-photo'
 
 function BasicResumeForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
-  const basics = useResumeStore(state => state.basics)
+  const basics = useResumeStore((state) => state.basics)
 
   const form = useForm({
     resolver: zodResolver(resumeSchema.shape.basics),
@@ -31,24 +31,31 @@ function BasicResumeForm({ className }: { className?: string }) {
     control: form.control,
     name: 'customFields',
   })
-  const remoteFieldArrays = useMemo<RemoteFieldArrayAdapters>(() => ({
-    customFields: {
-      append: (value, options) => append(value as any, options),
-      remove,
-    },
-  }), [append, remove])
+  const remoteFieldArrays = useMemo<RemoteFieldArrayAdapters>(
+    () => ({
+      customFields: {
+        append: (value, options) => append(value as any, options),
+        remove,
+      },
+    }),
+    [append, remove],
+  )
   useResumeFormSync(form, 'basics', basics, remoteFieldArrays)
 
   return (
     <Form {...form}>
-      <form id="basic-resume-form" className={cn(className)}>
+      <form id='basic-resume-form' className={cn(className)}>
         <ResumePhotoField form={form} />
-        <motion.div layout={!reduceMotion} transition={reduceMotion ? { duration: 0 } : SPRING.layout} className="grid grid-cols-1 items-start gap-4 @lg/panel:grid-cols-2 @3xl/panel:grid-cols-3 @5xl/panel:grid-cols-4 [&>[data-slot=form-item]]:min-w-0">
+        <motion.div
+          layout={!reduceMotion}
+          transition={reduceMotion ? { duration: 0 } : SPRING.layout}
+          className='grid grid-cols-1 items-start gap-4 @lg/panel:grid-cols-2 @3xl/panel:grid-cols-3 @5xl/panel:grid-cols-4 [&>[data-slot=form-item]]:min-w-0'
+        >
           <PersonalFields form={form} />
           <ContactFields form={form} />
           <DemographicFields form={form} />
         </motion.div>
-        <Separator className="mt-6" />
+        <Separator className='mt-6' />
         <CustomFields
           form={form}
           fields={fields}

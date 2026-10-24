@@ -14,24 +14,24 @@
 
 ## 2. 代码边界
 
-| 职责                 | 位置                                                            | 维护原则                                   |
-| -------------------- | --------------------------------------------------------------- | ------------------------------------------ |
-| 协议公开入口         | `src/lib/resume-template/definition-schema.ts`                  | 严格解析并输出统一错误                     |
-| 节点、样式与语义校验 | `src/lib/resume-template/declarative/`                          | 白名单、绑定作用域、结构预算、样式解析     |
-| 模板定义             | Supabase `official_resume_template_versions`                               | 按精确版本读取，不在前端保存定义副本       |
-| 目录元数据           | Supabase `official_resume_template_catalog`                               | schema、契约、分类、示例与静态预览精确引用 |
-| 示例内容             | Supabase `official_resume_example_versions`                      | 版本独立，使用现有正文 schema 与虚构信息   |
-| 图片资源             | Supabase `official_resume_assets`                       | 内容哈希、真实类型、尺寸和体积必须一致     |
-| 数据源与缓存         | `src/lib/resume-template/source/`                               | 官方精确版本读取、完整性校验和有界缓存     |
-| 内容映射             | `src/lib/resume-template/content/`                              | 业务模块转为内容类型，保留字段身份         |
-| 通用解释器           | `src/components/resume/runtime/`                                | 只按节点类型分派，不按模板身份分派         |
-| 公共字段             | `src/components/resume/fields/`                                 | 复用评论投影、富文本净化与安全链接         |
-| 测量与打印           | `src/components/resume/pagination/`                             | 四边页边距、统一布局签名与资源门禁         |
-| 加载状态             | `src/store/resume-template/`                                    | 目录、定义和示例独立加载，活动资源保留     |
-| 绑定与分享           | `src/lib/resume-template/binding.ts`、`share.ts`                | 精确引用校验；冻结新定义与精确素材清单     |
-| 创建操作             | `src/lib/resume-template/create/`、`src/store/resume-creation/` | 一次准备、完整插入、同一操作重试           |
-| 模板页面             | `src/pages/template/`                                           | 页面 store 保存预览目标、筛选和示例选择    |
-| 发布与验证           | 受控云端维护通道及真实应用入口 | 临时生成目录已清理；新增验证仍放在 tests 下 |
+| 职责                 | 位置                                                            | 维护原则                                    |
+| -------------------- | --------------------------------------------------------------- | ------------------------------------------- |
+| 协议公开入口         | `src/lib/resume-template/definition-schema.ts`                  | 严格解析并输出统一错误                      |
+| 节点、样式与语义校验 | `src/lib/resume-template/declarative/`                          | 白名单、绑定作用域、结构预算、样式解析      |
+| 模板定义             | Supabase `official_resume_template_versions`                    | 按精确版本读取，不在前端保存定义副本        |
+| 目录元数据           | Supabase `official_resume_template_catalog`                     | schema、契约、分类、示例与静态预览精确引用  |
+| 示例内容             | Supabase `official_resume_example_versions`                     | 版本独立，使用现有正文 schema 与虚构信息    |
+| 图片资源             | Supabase `official_resume_assets`                               | 内容哈希、真实类型、尺寸和体积必须一致      |
+| 数据源与缓存         | `src/lib/resume-template/source/`                               | 官方精确版本读取、完整性校验和有界缓存      |
+| 内容映射             | `src/lib/resume-template/content/`                              | 业务模块转为内容类型，保留字段身份          |
+| 通用解释器           | `src/components/resume/runtime/`                                | 只按节点类型分派，不按模板身份分派          |
+| 公共字段             | `src/components/resume/fields/`                                 | 复用评论投影、富文本净化与安全链接          |
+| 测量与打印           | `src/components/resume/pagination/`                             | 四边页边距、统一布局签名与资源门禁          |
+| 加载状态             | `src/store/resume-template/`                                    | 目录、定义和示例独立加载，活动资源保留      |
+| 绑定与分享           | `src/lib/resume-template/binding.ts`、`share.ts`                | 精确引用校验；冻结新定义与精确素材清单      |
+| 创建操作             | `src/lib/resume-template/create/`、`src/store/resume-creation/` | 一次准备、完整插入、同一操作重试            |
+| 模板页面             | `src/pages/template/`                                           | 页面 store 保存预览目标、筛选和示例选择     |
+| 发布与验证           | 受控云端维护通道及真实应用入口                                  | 临时生成目录已清理；新增验证仍放在 tests 下 |
 
 模板定义、用户正文、目录和示例各自独立。教育、工作、实习等业务模块共用 `experience` 内容类型；解释器使用模板中的该类配方，不重复实现领域映射。增加经历只增加业务数据，不生成另一份设计。
 
@@ -41,14 +41,14 @@
 
 2026-10-24 的职责拆分保持现有协议和模板输出。新增公共语义时，应修改对应策略入口：
 
-| 变化 | 维护位置 | 约束 |
-| --- | --- | --- |
-| 新增绑定 | `declarative/binding-registry.ts` | 同时声明读取函数和合法作用域，解析器与校验器共享；字段、列表和富文本分别限定返回类型 |
-| 新增节点约束 | `declarative/node-validation.ts` | 通用规则先执行，专用规则按判别联合分派；`repeat` 返回子作用域，由外层统一递归 |
-| 调整结构预算 | `declarative/validation-context.ts`、`declarative/validate.ts` | 常量与错误集中定义，遍历维护全局数量、深度和区域命名域；原 `validate.ts` 导出仍可使用 |
-| 新增样式属性 | `declarative/style-properties.ts` | 类型要求完整覆盖 `TemplateStyle`；显式选择数值单位、下界、颜色或专用转换，并同步严格 schema |
-| 新增内容类型 | `content/adapt-sections.ts` | 业务映射保留字段身份；经历采用命名字段配置，空内容清理按 `ContentBlock.kind` 分派 |
-| 修改资源查询 | `source/remote.ts` | 负责接口参数与精确资源解析；`resource-loader.ts` 独立管理缓存、请求合并、写入顺序和引用释放 |
+| 变化         | 维护位置                                                       | 约束                                                                                        |
+| ------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 新增绑定     | `declarative/binding-registry.ts`                              | 同时声明读取函数和合法作用域，解析器与校验器共享；字段、列表和富文本分别限定返回类型        |
+| 新增节点约束 | `declarative/node-validation.ts`                               | 通用规则先执行，专用规则按判别联合分派；`repeat` 返回子作用域，由外层统一递归               |
+| 调整结构预算 | `declarative/validation-context.ts`、`declarative/validate.ts` | 常量与错误集中定义，遍历维护全局数量、深度和区域命名域；原 `validate.ts` 导出仍可使用       |
+| 新增样式属性 | `declarative/style-properties.ts`                              | 类型要求完整覆盖 `TemplateStyle`；显式选择数值单位、下界、颜色或专用转换，并同步严格 schema |
+| 新增内容类型 | `content/adapt-sections.ts`                                    | 业务映射保留字段身份；经历采用命名字段配置，空内容清理按 `ContentBlock.kind` 分派           |
+| 修改资源查询 | `source/remote.ts`                                             | 负责接口参数与精确资源解析；`resource-loader.ts` 独立管理缓存、请求合并、写入顺序和引用释放 |
 
 这些注册表是前端受控实现，不是远程可执行插件。安全校验、空值检查和预算限制继续使用清晰的条件分支；不以消除所有 `if` 或 `switch` 为目标。公共渲染器、分页与打印仍走原入口。
 

@@ -36,7 +36,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function cloneValue(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map(item => cloneValue(item))
+    return value.map((item) => cloneValue(item))
   }
 
   if (isRecord(value)) {
@@ -51,8 +51,8 @@ function cloneValue(value: unknown): unknown {
 function mergeWithDefaults(value: unknown, defaultValue: unknown): unknown {
   if (Array.isArray(defaultValue)) {
     return Array.isArray(value)
-      ? value.map(item => cloneValue(item))
-      : defaultValue.map(item => cloneValue(item))
+      ? value.map((item) => cloneValue(item))
+      : defaultValue.map((item) => cloneValue(item))
   }
 
   if (isRecord(defaultValue)) {
@@ -73,7 +73,10 @@ export function normalizeResumeSection<K extends keyof ResumeSchema>(
   key: K,
   value: unknown,
 ): ResumeSchema[K] {
-  const normalized = mergeWithDefaults(value, RESUME_FORM_DEFAULTS[key]) as ResumeSchema[K]
+  const normalized = mergeWithDefaults(
+    value,
+    RESUME_FORM_DEFAULTS[key],
+  ) as ResumeSchema[K]
   return ensureResumeSectionEntryIds(key, normalized)
 }
 
@@ -82,7 +85,7 @@ export function normalizeResumeFormData(value: unknown): ResumeSchema {
   const keys = Object.keys(RESUME_FORM_DEFAULTS) as (keyof ResumeSchema)[]
 
   const normalized = Object.fromEntries(
-    keys.map(key => [key, normalizeResumeSection(key, source[key])]),
+    keys.map((key) => [key, normalizeResumeSection(key, source[key])]),
   ) as ResumeSchema
 
   return ensureResumeEntryIds(normalized)

@@ -23,14 +23,12 @@ export function useCountUp(target: number, duration = 500): number {
       const t = Math.min(1, (now - start) / duration)
       const eased = 1 - (1 - t) ** 3
       setValue(Math.round(from + (target - from) * eased))
-      if (t < 1)
-        rafRef.current = requestAnimationFrame(tick)
+      if (t < 1) rafRef.current = requestAnimationFrame(tick)
       else fromRef.current = target
     }
     rafRef.current = requestAnimationFrame(tick)
     return () => {
-      if (rafRef.current)
-        cancelAnimationFrame(rafRef.current)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
       fromRef.current = target
     }
   }, [target, duration, reduce])

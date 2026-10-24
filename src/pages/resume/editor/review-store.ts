@@ -5,7 +5,7 @@ interface ResumeReviewState {
   setActive: (active: boolean) => void
 }
 
-export const useResumeReviewStore = create<ResumeReviewState>(set => ({
+export const useResumeReviewStore = create<ResumeReviewState>((set) => ({
   active: false,
-  setActive: active => set({ active }),
+  setActive: (active) => set({ active }),
 }))

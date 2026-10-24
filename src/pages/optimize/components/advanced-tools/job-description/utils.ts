@@ -4,7 +4,11 @@ import type { AnalysisState } from '@/pages/optimize/types'
 import { isArray, isFinite, isNumber } from 'lodash'
 import { SECTION_LABEL_MAP } from '../shared/const'
 import { getResumeSections } from '../shared/resume'
-import { isPlainObject, normalizeInlineText, normalizeMultilineText } from '../shared/text'
+import {
+  isPlainObject,
+  normalizeInlineText,
+  normalizeMultilineText,
+} from '../shared/text'
 
 const MAX_KEYWORD_COUNT = 24
 const MAX_INSIGHT_COUNT = 5
@@ -28,7 +32,9 @@ function normalizeStringList(value: unknown, limit: number) {
   const items: string[] = []
 
   value.forEach((entry) => {
-    const normalized = normalizeInlineText(typeof entry === 'string' ? entry : String(entry ?? ''))
+    const normalized = normalizeInlineText(
+      typeof entry === 'string' ? entry : String(entry ?? ''),
+    )
 
     if (!normalized) {
       return
@@ -73,20 +79,35 @@ export function normalizeJobDescriptionComparisonResult(
   const payload = isPlainObject(raw) ? raw : {}
   const resumeSections = getResumeSections(resume)
 
-  const extractedKeywords = normalizeStringList(payload.extractedKeywords, MAX_KEYWORD_COUNT)
-  const extractedKeywordSet = new Set(extractedKeywords.map(keyword => keyword.toLowerCase()))
+  const extractedKeywords = normalizeStringList(
+    payload.extractedKeywords,
+    MAX_KEYWORD_COUNT,
+  )
+  const extractedKeywordSet = new Set(
+    extractedKeywords.map((keyword) => keyword.toLowerCase()),
+  )
 
-  const matchedKeywords = normalizeStringList(payload.matchedKeywords, MAX_KEYWORD_COUNT)
-    .filter(keyword => extractedKeywordSet.has(keyword.toLowerCase()))
-  const matchedKeywordSet = new Set(matchedKeywords.map(keyword => keyword.toLowerCase()))
+  const matchedKeywords = normalizeStringList(
+    payload.matchedKeywords,
+    MAX_KEYWORD_COUNT,
+  ).filter((keyword) => extractedKeywordSet.has(keyword.toLowerCase()))
+  const matchedKeywordSet = new Set(
+    matchedKeywords.map((keyword) => keyword.toLowerCase()),
+  )
 
-  const missingKeywords = extractedKeywords.filter(keyword => !matchedKeywordSet.has(keyword.toLowerCase()))
+  const missingKeywords = extractedKeywords.filter(
+    (keyword) => !matchedKeywordSet.has(keyword.toLowerCase()),
+  )
 
-  const derivedMatchScore = extractedKeywords.length > 0
-    ? Math.round((matchedKeywords.length / extractedKeywords.length) * 100)
-    : 0
+  const derivedMatchScore =
+    extractedKeywords.length > 0
+      ? Math.round((matchedKeywords.length / extractedKeywords.length) * 100)
+      : 0
 
-  const rawSectionMatches = new Map<keyof ResumeSchema, Record<string, unknown>>()
+  const rawSectionMatches = new Map<
+    keyof ResumeSchema,
+    Record<string, unknown>
+  >()
   if (Array.isArray(payload.sectionMatches)) {
     payload.sectionMatches.forEach((section) => {
       if (!isPlainObject(section) || !isResumeSectionKey(section.sectionKey)) {
@@ -100,17 +121,23 @@ export function normalizeJobDescriptionComparisonResult(
   const sectionMatches = resumeSections
     .map((section) => {
       const rawSection = rawSectionMatches.get(section.key)
-      const sectionMatchedKeywords = normalizeStringList(rawSection?.matchedKeywords, MAX_KEYWORD_COUNT)
-        .filter(keyword => extractedKeywordSet.has(keyword.toLowerCase()))
+      const sectionMatchedKeywords = normalizeStringList(
+        rawSection?.matchedKeywords,
+        MAX_KEYWORD_COUNT,
+      ).filter((keyword) => extractedKeywordSet.has(keyword.toLowerCase()))
       const matchedCount = sectionMatchedKeywords.length
       const coverage = rawSection
         ? clampPercentage(rawSection.coverage)
-        : (extractedKeywords.length > 0 ? Math.round((matchedCount / extractedKeywords.length) * 100) : 0)
-      const analysis = normalizeMultilineText(
-        typeof rawSection?.analysis === 'string' ? rawSection.analysis : '',
-      ) || (matchedCount > 0
-        ? `该板块已经承接了 ${matchedCount} 个岗位关键词，可以继续补充更具体的职责和结果描述。`
-        : '该板块与岗位描述的直接承接较弱，建议补充更贴近 JD 的关键词和成果表达。')
+        : extractedKeywords.length > 0
+          ? Math.round((matchedCount / extractedKeywords.length) * 100)
+          : 0
+      const analysis =
+        normalizeMultilineText(
+          typeof rawSection?.analysis === 'string' ? rawSection.analysis : '',
+        ) ||
+        (matchedCount > 0
+          ? `该板块已经承接了 ${matchedCount} 个岗位关键词，可以继续补充更具体的职责和结果描述。`
+          : '该板块与岗位描述的直接承接较弱，建议补充更贴近 JD 的关键词和成果表达。')
 
       return {
         sectionKey: section.key,
@@ -123,57 +150,89 @@ export function normalizeJobDescriptionComparisonResult(
     })
     .sort((left, right) => right.matchedCount - left.matchedCount)
 
-  const summary = normalizeMultilineText(typeof payload.summary === 'string' ? payload.summary : '')
-    || buildSummaryFallback(
-      typeof payload.matchScore === 'number' ? clampPercentage(payload.matchScore) : derivedMatchScore,
+  const summary =
+    normalizeMultilineText(
+      typeof payload.summary === 'string' ? payload.summary : '',
+    ) ||
+    buildSummaryFallback(
+      typeof payload.matchScore === 'number'
+        ? clampPercentage(payload.matchScore)
+        : derivedMatchScore,
       missingKeywords,
     )
 
   const strengths = normalizeStringList(payload.strengths, MAX_INSIGHT_COUNT)
   const risks = normalizeStringList(payload.risks, MAX_INSIGHT_COUNT)
-  const recommendations = normalizeStringList(payload.recommendations, MAX_INSIGHT_COUNT)
+  const recommendations = normalizeStringList(
+    payload.recommendations,
+    MAX_INSIGHT_COUNT,
+  )
 
   return {
     summary,
-    strengths: strengths.length > 0
-      ? strengths
-      : (() => {
-          const fallbackStrengths = sectionMatches
-            .filter(section => section.matchedCount > 0)
-            .slice(0, 3)
-            .map(section => `${section.sectionLabel}对岗位要求有一定承接，可以继续强化证据表达。`)
+    strengths:
+      strengths.length > 0
+        ? strengths
+        : (() => {
+            const fallbackStrengths = sectionMatches
+              .filter((section) => section.matchedCount > 0)
+              .slice(0, 3)
+              .map(
+                (section) =>
+                  `${section.sectionLabel}对岗位要求有一定承接，可以继续强化证据表达。`,
+              )
 
-          return fallbackStrengths.length > 0
-            ? fallbackStrengths
-            : ['当前简历已经成功纳入分析，建议结合更完整的 JD 信息继续判断岗位亮点。']
-        })(),
-    risks: risks.length > 0
-      ? risks
-      : (missingKeywords.length > 0
-          ? missingKeywords.slice(0, 3).map(keyword => `简历里缺少对“${keyword}”的明确承接，容易影响岗位匹配判断。`)
-          : ['关键词覆盖已经比较完整，但仍建议继续优化经历的说服力和结果表达。']),
-    matchScore: typeof payload.matchScore === 'number' ? clampPercentage(payload.matchScore) : derivedMatchScore,
+            return fallbackStrengths.length > 0
+              ? fallbackStrengths
+              : [
+                  '当前简历已经成功纳入分析，建议结合更完整的 JD 信息继续判断岗位亮点。',
+                ]
+          })(),
+    risks:
+      risks.length > 0
+        ? risks
+        : missingKeywords.length > 0
+          ? missingKeywords
+              .slice(0, 3)
+              .map(
+                (keyword) =>
+                  `简历里缺少对“${keyword}”的明确承接，容易影响岗位匹配判断。`,
+              )
+          : [
+              '关键词覆盖已经比较完整，但仍建议继续优化经历的说服力和结果表达。',
+            ],
+    matchScore:
+      typeof payload.matchScore === 'number'
+        ? clampPercentage(payload.matchScore)
+        : derivedMatchScore,
     extractedKeywords,
     matchedKeywords,
     missingKeywords,
-    recommendations: recommendations.length > 0
-      ? recommendations
-      : (missingKeywords.length > 0
+    recommendations:
+      recommendations.length > 0
+        ? recommendations
+        : missingKeywords.length > 0
           ? [
               `优先在最相关的经历里补齐这些关键词：${missingKeywords.slice(0, 5).join('、')}`,
               '把与 JD 最相关的项目或工作经历前置，并复用岗位描述中的核心术语。',
               '补充可验证的结果数据，例如提升比例、交付规模、覆盖范围或效率变化。',
             ]
-          : ['当前关键词覆盖较完整，建议继续优化项目结果、业务影响和经历排序。']),
+          : [
+              '当前关键词覆盖较完整，建议继续优化项目结果、业务影响和经历排序。',
+            ],
     sectionMatches,
   }
 }
 
-export function hasJobDescriptionAnalysisFlow(state: AnalysisState, error: string | null) {
-  return state.status !== 'idle' && (
-    state.reasoning
-    || state.content
-    || Object.keys(state.logs).length > 0
-    || error
+export function hasJobDescriptionAnalysisFlow(
+  state: AnalysisState,
+  error: string | null,
+) {
+  return (
+    state.status !== 'idle' &&
+    (state.reasoning ||
+      state.content ||
+      Object.keys(state.logs).length > 0 ||
+      error)
   )
 }

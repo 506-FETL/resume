@@ -1,6 +1,6 @@
 import { BASE64_CHUNK_SIZE } from './constants'
 
-const AUTOMERGE_MAGIC_BYTES = [0x85, 0x6F, 0x4A, 0x83] as const
+const AUTOMERGE_MAGIC_BYTES = [0x85, 0x6f, 0x4a, 0x83] as const
 
 export function encodeBytesToBase64(bytes: Uint8Array): string {
   let binary = ''
@@ -29,7 +29,11 @@ function hasAutomergeMagic(bytes: Uint8Array): boolean {
 }
 
 function decodeByteaPayload(bytes: Uint8Array): Uint8Array {
-  if (hasAutomergeMagic(bytes) || bytes.length === 0 || bytes.length % 4 !== 0) {
+  if (
+    hasAutomergeMagic(bytes) ||
+    bytes.length === 0 ||
+    bytes.length % 4 !== 0
+  ) {
     return bytes
   }
 
@@ -46,8 +50,7 @@ function decodeByteaPayload(bytes: Uint8Array): Uint8Array {
   try {
     const decoded = decodeBase64ToBytes(ascii)
     return hasAutomergeMagic(decoded) ? decoded : bytes
-  }
-  catch {
+  } catch {
     return bytes
   }
 }
@@ -71,7 +74,11 @@ export function decodeDocumentData(raw: unknown): Uint8Array | null {
   if (typeof raw === 'string') {
     if (raw.startsWith('\\x')) {
       const hex = raw.slice(2)
-      if (hex.length === 0 || hex.length % 2 !== 0 || !/^[0-9a-f]+$/iu.test(hex)) {
+      if (
+        hex.length === 0 ||
+        hex.length % 2 !== 0 ||
+        !/^[0-9a-f]+$/iu.test(hex)
+      ) {
         return null
       }
       const bytes = new Uint8Array(hex.length / 2)

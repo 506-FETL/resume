@@ -4,7 +4,11 @@ import { ArrowRightToLine } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { CollaborationControls } from '../collaboration/collaboration-controls'
@@ -35,10 +39,8 @@ function clampRatio(ratio: number): number {
 function readStoredRatio(): number {
   try {
     const raw = Number(localStorage.getItem(RATIO_KEY))
-    if (raw >= MIN_RATIO && raw <= MAX_RATIO)
-      return raw
-  }
-  catch {
+    if (raw >= MIN_RATIO && raw <= MAX_RATIO) return raw
+  } catch {
     // 存储不可用时用默认比例
   }
   return DEFAULT_RATIO
@@ -91,8 +93,7 @@ export default function EditPanel({
   }
 
   const onHandlePointerMove = (event: ReactPointerEvent) => {
-    if (!draggingRef.current)
-      return
+    if (!draggingRef.current) return
     // 侧栏在右侧：宽度 = 窗口右边缘 - 指针 X，向左拖变宽；换算成比例存储
     const nextWidth = window.innerWidth - event.clientX
     const nextRatio = clampRatio(nextWidth / window.innerWidth)
@@ -101,8 +102,7 @@ export default function EditPanel({
   }
 
   const onHandlePointerUp = (event: ReactPointerEvent) => {
-    if (!draggingRef.current)
-      return
+    if (!draggingRef.current) return
     draggingRef.current = false
     setIsResizing(false)
     event.currentTarget.releasePointerCapture(event.pointerId)
@@ -112,8 +112,7 @@ export default function EditPanel({
   const persistRatio = useCallback(() => {
     try {
       localStorage.setItem(RATIO_KEY, String(ratio))
-    }
-    catch {
+    } catch {
       // 忽略存储失败
     }
   }, [ratio])
@@ -124,28 +123,42 @@ export default function EditPanel({
     }
   }, [])
 
-  const widthTransition = reduceMotion || isResizing
-    ? { duration: 0 }
-    : { duration: DURATION.slow, ease: EASE.out }
+  const widthTransition =
+    reduceMotion || isResizing
+      ? { duration: 0 }
+      : { duration: DURATION.slow, ease: EASE.out }
 
   return (
     <AnimatePresence initial={false}>
       {open && (
         <motion.aside
-          key="edit-panel"
+          key='edit-panel'
           initial={reduceMotion ? false : { width: 0, opacity: 0 }}
           animate={{ width, opacity: 1 }}
-          exit={{ width: 0, opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
-          transition={{ width: widthTransition, opacity: { duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out } }}
-          className="relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-l bg-background"
+          exit={{
+            width: 0,
+            opacity: 0,
+            transition: {
+              duration: reduceMotion ? 0 : DURATION.fast,
+              ease: EASE.in,
+            },
+          }}
+          transition={{
+            width: widthTransition,
+            opacity: {
+              duration: reduceMotion ? 0 : DURATION.base,
+              ease: EASE.out,
+            },
+          }}
+          className='relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-l bg-background'
         >
           {/* 内层固定宽度：动画期间内容一次性按目标宽度布局，由外层裁剪呈现，避免 @container 列数跳变 */}
-          <div style={{ width }} className="flex h-full min-h-0 flex-col">
+          <div style={{ width }} className='flex h-full min-h-0 flex-col'>
             {/* 左边缘拖拽手柄：调整宽度比例 */}
             <div
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="拖拽调整编辑栏宽度"
+              role='separator'
+              aria-orientation='vertical'
+              aria-label='拖拽调整编辑栏宽度'
               onPointerDown={onHandlePointerDown}
               onPointerMove={onHandlePointerMove}
               onPointerUp={onHandlePointerUp}
@@ -157,24 +170,29 @@ export default function EditPanel({
             />
 
             {/* 顶部：协作控制条 + 收起入口 */}
-            <div className="flex shrink-0 items-start justify-between gap-2 border-b pr-2">
-              <div className="min-w-0 flex-1">
+            <div className='flex shrink-0 items-start justify-between gap-2 border-b pr-2'>
+              <div className='min-w-0 flex-1'>
                 <CollaborationControls plain />
               </div>
-              <div className="flex shrink-0 items-center gap-1 pt-4">
+              <div className='flex shrink-0 items-center gap-1 pt-4'>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" aria-label="收起编辑栏" onClick={onClose}>
-                      <ArrowRightToLine className="size-4" />
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      aria-label='收起编辑栏'
+                      onClick={onClose}
+                    >
+                      <ArrowRightToLine className='size-4' />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">收起编辑栏</TooltipContent>
+                  <TooltipContent side='bottom'>收起编辑栏</TooltipContent>
                 </Tooltip>
               </div>
             </div>
 
             {/* 仅此区域滚动，编辑栏整体固定；@container/panel 让内部表单按面板宽度自适应列数 */}
-            <div className="@container/panel min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4">
+            <div className='@container/panel min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4'>
               <AccordionEditor
                 order={order}
                 visibilityState={visibilityState}

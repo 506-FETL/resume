@@ -41,7 +41,14 @@
 - [x] 扩展 ApplicationStatus、状态配置、看板列、下一步动作和显示文案。保留 APPLICATION_STATUS_ORDER 的历史漏斗兼容用法，另提供在办阶段与终态常量。
 
 ```ts
-export const ACTIVE_APPLICATION_STAGES = ['saved', 'applied', 'assessment', 'screen', 'written', 'interview'] as const
+export const ACTIVE_APPLICATION_STAGES = [
+  'saved',
+  'applied',
+  'assessment',
+  'screen',
+  'written',
+  'interview',
+] as const
 export const TERMINAL_APPLICATION_STATUSES = ['offer', 'rejected'] as const
 ```
 
@@ -74,7 +81,10 @@ type WorkflowSaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
 - [x] 声明 d3-shape 直接依赖，用 linkHorizontal 生成右侧上下两条曲线；当前分支高亮，结束于早期阶段有明确位置说明。窄屏仅流程区域横向滚动。
 
 ```ts
-const path = linkHorizontal<{ source: [number, number], target: [number, number] }, [number, number]>()({ source, target })
+const path = linkHorizontal<
+  { source: [number, number]; target: [number, number] },
+  [number, number]
+>()({ source, target })
 ```
 
 - [x] drawer 中提高桌面可用宽度（上限 56rem），流程导航与当前查看阶段可达；保留既有顶部推进/结束确认操作。

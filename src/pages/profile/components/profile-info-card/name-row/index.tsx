@@ -14,10 +14,10 @@ interface NameRowProps {
 export function NameRow({ initialFullName }: NameRowProps) {
   const currentName = useCurrentUserName()
   const [fullName, setFullName] = useState(initialFullName)
-  const editing = useProfileStore(s => s.name.isEditing)
-  const saving = useProfileStore(s => s.name.isSaving)
-  const setEditing = useProfileStore(s => s.setNameEditing)
-  const setSaving = useProfileStore(s => s.setNameSaving)
+  const editing = useProfileStore((s) => s.name.isEditing)
+  const saving = useProfileStore((s) => s.name.isSaving)
+  const setEditing = useProfileStore((s) => s.setNameEditing)
+  const setSaving = useProfileStore((s) => s.setNameSaving)
 
   useEffect(() => {
     setFullName(initialFullName)
@@ -39,11 +39,9 @@ export function NameRow({ initialFullName }: NameRowProps) {
       await updateProfile({ data: { full_name: fullName } })
       toast.success('用户名更新成功')
       setEditing(false)
-    }
-    catch {
+    } catch {
       toast.error('用户名更新失败，请稍后重试')
-    }
-    finally {
+    } finally {
       setSaving(false)
     }
   }
@@ -52,9 +50,9 @@ export function NameRow({ initialFullName }: NameRowProps) {
 
   return (
     <EditableField
-      id="name"
-      label="用户名"
-      icon={<UserIcon className="size-4 shrink-0" />}
+      id='name'
+      label='用户名'
+      icon={<UserIcon className='size-4 shrink-0' />}
       value={fullName}
       isEditing={editing}
       isSaving={saving}

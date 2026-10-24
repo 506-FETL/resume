@@ -1,8 +1,17 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import type { CollaborationUIIdentity, UIAction, UIActionBroadcastPayload, UIStateBroadcastPayload } from './types'
+import type {
+  CollaborationUIIdentity,
+  UIAction,
+  UIActionBroadcastPayload,
+  UIStateBroadcastPayload,
+} from './types'
 import { REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js'
 import { getPresenceUserId } from '../shared'
-import { COLLAB_UI_ACTION_EVENT, COLLAB_UI_CHANNEL_SUFFIX, COLLAB_UI_STATE_EVENT } from './constants'
+import {
+  COLLAB_UI_ACTION_EVENT,
+  COLLAB_UI_CHANNEL_SUFFIX,
+  COLLAB_UI_STATE_EVENT,
+} from './constants'
 
 export function buildCollaborationUIChannelName(roomName: string) {
   return `${roomName}:${COLLAB_UI_CHANNEL_SUFFIX}`
@@ -28,7 +37,10 @@ export function createUIStatePayload(options: {
   }
 }
 
-export function createUIActionPayload(identity: CollaborationUIIdentity, action: UIAction): UIActionBroadcastPayload {
+export function createUIActionPayload(
+  identity: CollaborationUIIdentity,
+  action: UIAction,
+): UIActionBroadcastPayload {
   return {
     type: 'ui-action',
     action,

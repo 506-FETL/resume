@@ -1,4 +1,8 @@
-import type { RewriteAction, RewriteFieldContext, RewriteSelection } from '../types'
+import type {
+  RewriteAction,
+  RewriteFieldContext,
+  RewriteSelection,
+} from '../types'
 import { useEffect, useRef } from 'react'
 import { runBulletRewrite } from '@/lib/llm'
 import { parseRewriteResponse } from '../utils/parse-rewrite-response'
@@ -39,23 +43,18 @@ export function useAiRewrite({ fieldContext }: Args) {
         { abortController: controller },
       )
 
-      if (controller.signal.aborted)
-        return
+      if (controller.signal.aborted) return
 
       const candidates = parseRewriteResponse(content, action)
       session.succeed(candidates)
-    }
-    catch (err) {
-      if (controller.signal.aborted)
-        return
+    } catch (err) {
+      if (controller.signal.aborted) return
 
       const message = err instanceof Error ? err.message : 'AI 改写失败'
       const isAuth = message.includes('用户未登录')
       session.fail(isAuth ? '请先登录后再使用 AI 改写' : message)
-    }
-    finally {
-      if (abortRef.current === controller)
-        abortRef.current = null
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null
     }
   }
 

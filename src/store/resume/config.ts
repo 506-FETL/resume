@@ -1,6 +1,14 @@
-import type { PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeAppearancePatch } from '@/lib/schema'
+import type {
+  PersistedResumeSnapshot,
+  ResumeAppearanceConfig,
+  ResumeAppearancePatch,
+} from '@/lib/schema'
 import { create } from 'zustand'
-import { DEFAULT_RESUME_APPEARANCE, mergeResumeAppearance, normalizeResumeAppearance } from '@/lib/schema'
+import {
+  DEFAULT_RESUME_APPEARANCE,
+  mergeResumeAppearance,
+  normalizeResumeAppearance,
+} from '@/lib/schema'
 import { LEGACY_RESUME_CONFIG_STORAGE_KEY } from './const'
 
 interface ResumeConfigState {
@@ -11,29 +19,40 @@ interface ResumeConfigState {
 
   updateSpacing: (data: Partial<ResumeAppearanceConfig['spacing']>) => void
   beginSpacingPreview: () => void
-  updateSpacingPreview: (data: Partial<ResumeAppearanceConfig['spacing']>) => void
+  updateSpacingPreview: (
+    data: Partial<ResumeAppearanceConfig['spacing']>,
+  ) => void
   commitSpacingPreview: () => void
   discardSpacingPreview: () => void
   updateFont: (data: Partial<ResumeAppearanceConfig['font']>) => void
   updateTheme: (data: Partial<ResumeAppearanceConfig['theme']>) => void
   replaceConfig: (nextConfig: ResumeAppearancePatch) => void
   resetConfig: () => void
-  hydrateFromSnapshot: (snapshot: Partial<PersistedResumeSnapshot> | null | undefined) => void
+  hydrateFromSnapshot: (
+    snapshot: Partial<PersistedResumeSnapshot> | null | undefined,
+  ) => void
   readLegacyLocalConfig: () => ResumeAppearanceConfig | null
 }
 
-let persistResumeAppearance: ((appearance: ResumeAppearancePatch) => void) | null = null
+let persistResumeAppearance:
+  | ((appearance: ResumeAppearancePatch) => void)
+  | null = null
 
 function applyAppearance(
-  set: (updater: (state: ResumeConfigState) => Partial<ResumeConfigState>) => void,
+  set: (
+    updater: (state: ResumeConfigState) => Partial<ResumeConfigState>,
+  ) => void,
   appearance: ResumeAppearancePatch,
 ) {
-  set(state => ({
-    ...mergeResumeAppearance({
-      spacing: state.spacing,
-      font: state.font,
-      theme: state.theme,
-    }, appearance),
+  set((state) => ({
+    ...mergeResumeAppearance(
+      {
+        spacing: state.spacing,
+        font: state.font,
+        theme: state.theme,
+      },
+      appearance,
+    ),
   }))
 }
 
@@ -50,8 +69,7 @@ function readLegacyLocalConfig(): ResumeAppearanceConfig | null {
   try {
     const parsed = JSON.parse(raw)
     return normalizeResumeAppearance(parsed?.state)
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -65,17 +83,20 @@ const useResumeConfigStore = create<ResumeConfigState>()((set, get) => ({
     persistResumeAppearance?.({ spacing: data })
   },
   beginSpacingPreview: () => {
-    set(state => state.spacingPreview ? {} : { spacingPreview: { ...state.spacing } })
+    set((state) =>
+      state.spacingPreview ? {} : { spacingPreview: { ...state.spacing } },
+    )
   },
   updateSpacingPreview: (data) => {
-    set(state => state.spacingPreview
-      ? { spacingPreview: { ...state.spacingPreview, ...data } }
-      : {})
+    set((state) =>
+      state.spacingPreview
+        ? { spacingPreview: { ...state.spacingPreview, ...data } }
+        : {},
+    )
   },
   commitSpacingPreview: () => {
     const preview = get().spacingPreview
-    if (!preview)
-      return
+    if (!preview) return
 
     const spacing = { ...preview }
     set({ spacing, spacingPreview: null })
@@ -90,13 +111,20 @@ const useResumeConfigStore = create<ResumeConfigState>()((set, get) => ({
     applyAppearance(set, { theme: data })
     persistResumeAppearance?.({ theme: data })
   },
-  replaceConfig: nextConfig => applyAppearance(set, nextConfig),
-  resetConfig: () => set(() => ({ ...DEFAULT_RESUME_APPEARANCE, spacingPreview: null })),
-  hydrateFromSnapshot: snapshot => set(() => ({ ...normalizeResumeAppearance(snapshot), spacingPreview: null })),
+  replaceConfig: (nextConfig) => applyAppearance(set, nextConfig),
+  resetConfig: () =>
+    set(() => ({ ...DEFAULT_RESUME_APPEARANCE, spacingPreview: null })),
+  hydrateFromSnapshot: (snapshot) =>
+    set(() => ({
+      ...normalizeResumeAppearance(snapshot),
+      spacingPreview: null,
+    })),
   readLegacyLocalConfig,
 }))
 
-export function registerResumeConfigPersistence(handler: ((appearance: ResumeAppearancePatch) => void) | null) {
+export function registerResumeConfigPersistence(
+  handler: ((appearance: ResumeAppearancePatch) => void) | null,
+) {
   persistResumeAppearance = handler
 }
 

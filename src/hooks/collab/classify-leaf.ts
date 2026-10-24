@@ -29,7 +29,15 @@ const RICH_TEXT: Record<string, ReadonlySet<string>> = {
 
 /** 自由文本 `<Input>` 叶子：按 section -> 末段字段名集合。 */
 const FREE_TEXT: Record<string, ReadonlySet<string>> = {
-  basics: new Set(['name', 'phone', 'email', 'nation', 'nativePlace', 'label', 'value']),
+  basics: new Set([
+    'name',
+    'phone',
+    'email',
+    'nation',
+    'nativePlace',
+    'label',
+    'value',
+  ]),
   job_intent: new Set(['jobIntent', 'intentionalCity']),
   application_info: new Set(['applicationSchool', 'applicationMajor']),
   work_experience: new Set(['companyName', 'position']),
@@ -56,7 +64,10 @@ function leafFieldName(relativePath: string): string {
   return segments[segments.length - 1] ?? relativePath
 }
 
-export function classifyLeaf(sectionKey: string, relativePath: string): LeafClass {
+export function classifyLeaf(
+  sectionKey: string,
+  relativePath: string,
+): LeafClass {
   const field = leafFieldName(relativePath)
 
   if (RICH_TEXT[sectionKey]?.has(field)) {

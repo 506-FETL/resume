@@ -2,7 +2,16 @@ import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { toast } from 'sonner'
 import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
 import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
-import { archiveResumeShare, createResumeShareRelease, deleteResumeShare, listAllResumeShares, listResumeShares, publishResumeShareRelease, setResumeShareActive, updateResumeShareSettings } from '@/lib/supabase/resume/share'
+import {
+  archiveResumeShare,
+  createResumeShareRelease,
+  deleteResumeShare,
+  listAllResumeShares,
+  listResumeShares,
+  publishResumeShareRelease,
+  setResumeShareActive,
+  updateResumeShareSettings,
+} from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
 
 const versionOptionRequests = new Map<string, Promise<void>>()
@@ -12,12 +21,14 @@ function addPending(ids: string[], shareId: string) {
 }
 
 function removePending(ids: string[], shareId: string) {
-  return ids.filter(id => id !== shareId)
+  return ids.filter((id) => id !== shareId)
 }
 
 function mapShareLists(
   state: ShareStoreState,
-  updater: (share: ShareStoreState['allShares'][number]) => ShareStoreState['allShares'][number],
+  updater: (
+    share: ShareStoreState['allShares'][number],
+  ) => ShareStoreState['allShares'][number],
 ) {
   return {
     allShares: state.allShares.map(updater),
@@ -48,11 +59,9 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     })
     try {
       const user = await getCurrentUser()
-      if (!user)
-        throw new Error('用户未登录')
+      if (!user) throw new Error('用户未登录')
 
-      if (get().pageRequestId !== requestId)
-        return
+      if (get().pageRequestId !== requestId) return
       if (get().ownerUserId && get().ownerUserId !== user.id) {
         set({
           shares: [],
@@ -73,15 +82,13 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         listAllResumeShares(),
         getAllResumesFromUser(),
       ])
-      if (get().pageRequestId !== requestId)
-        return
+      if (get().pageRequestId !== requestId) return
       const currentUser = await getCurrentUser()
-      if (get().pageRequestId !== requestId)
-        return
+      if (get().pageRequestId !== requestId) return
       if (!currentUser || currentUser.id !== user.id)
         throw new Error('登录状态已变更，请重新加载')
       const resumeMap = Object.fromEntries(
-        resumes.map(resume => [
+        resumes.map((resume) => [
           resume.resume_id,
           {
             resumeId: resume.resume_id,
@@ -96,17 +103,14 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         resumeMap,
         pageLoading: false,
       })
-    }
-    catch (error) {
-      if (get().pageRequestId !== requestId)
-        return
+    } catch (error) {
+      if (get().pageRequestId !== requestId) return
       const currentUser = await getCurrentUser()
-      if (get().pageRequestId !== requestId)
-        return
+      if (get().pageRequestId !== requestId) return
       const keepData = currentUser && currentUser.id === get().ownerUserId
-      const message = error instanceof Error ? error.message : '加载分享链接失败'
-      if (keepData && get().allShares.length > 0)
-        toast.error(message)
+      const message =
+        error instanceof Error ? error.message : '加载分享链接失败'
+      if (keepData && get().allShares.length > 0) toast.error(message)
       set({
         ...(!keepData && {
           ownerUserId: null,
@@ -131,19 +135,18 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     try {
       const shares = await listResumeShares(resumeId)
       if (
-        get().dialogRequestId === requestId
-        && get().openForResumeId === resumeId
+        get().dialogRequestId === requestId &&
+        get().openForResumeId === resumeId
       ) {
         set({
           shares,
           dialogLoading: false,
         })
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (
-        get().dialogRequestId === requestId
-        && get().openForResumeId === resumeId
+        get().dialogRequestId === requestId &&
+        get().openForResumeId === resumeId
       ) {
         set({
           dialogLoading: false,
@@ -155,15 +158,13 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
   loadVersionOptions: async (resumeId, options) => {
     const activeRequest = versionOptionRequests.get(resumeId)
-    if (activeRequest)
-      return activeRequest
+    if (activeRequest) return activeRequest
 
     const current = get().versionOptionsByResumeId[resumeId]
-    if (current?.loaded && !options?.force)
-      return
+    if (current?.loaded && !options?.force) return
 
     const requestId = (current?.requestId ?? 0) + 1
-    set(state => ({
+    set((state) => ({
       versionOptionsByResumeId: {
         ...state.versionOptionsByResumeId,
         [resumeId]: {
@@ -181,7 +182,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         const items = await listResumeHistoryVersions(resumeId)
         if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
           return
-        set(state => ({
+        set((state) => ({
           versionOptionsByResumeId: {
             ...state.versionOptionsByResumeId,
             [resumeId]: {
@@ -193,17 +194,17 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
             },
           },
         }))
-      }
-      catch (error) {
+      } catch (error) {
         if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
           return
-        set(state => ({
+        set((state) => ({
           versionOptionsByResumeId: {
             ...state.versionOptionsByResumeId,
             [resumeId]: {
               items: state.versionOptionsByResumeId[resumeId]?.items ?? [],
               loading: false,
-              error: error instanceof Error ? error.message : '历史版本加载失败',
+              error:
+                error instanceof Error ? error.message : '历史版本加载失败',
               requestId,
               loaded: state.versionOptionsByResumeId[resumeId]?.loaded ?? false,
             },
@@ -215,8 +216,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     versionOptionRequests.set(resumeId, request)
     try {
       await request
-    }
-    finally {
+    } finally {
       if (versionOptionRequests.get(resumeId) === request)
         versionOptionRequests.delete(resumeId)
     }
@@ -224,10 +224,11 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
   createRelease: async (resumeId, release, options) => {
     const record = await createResumeShareRelease(resumeId, release, options)
-    set(state => ({
-      shares: state.openForResumeId === resumeId
-        ? [record, ...state.shares]
-        : state.shares,
+    set((state) => ({
+      shares:
+        state.openForResumeId === resumeId
+          ? [record, ...state.shares]
+          : state.shares,
       allShares: [record, ...state.allShares],
     }))
   },
@@ -236,19 +237,18 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     if (get().pendingShareIds.includes(shareId))
       throw new Error('操作正在进行中')
 
-    set(state => ({
+    set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
     try {
       await setResumeShareActive(shareId, isActive)
-      set(state => ({
-        ...mapShareLists(state, share => (
-          share.id === shareId ? { ...share, is_active: isActive } : share
-        )),
+      set((state) => ({
+        ...mapShareLists(state, (share) =>
+          share.id === shareId ? { ...share, is_active: isActive } : share,
+        ),
       }))
-    }
-    finally {
-      set(state => ({
+    } finally {
+      set((state) => ({
         pendingShareIds: removePending(state.pendingShareIds, shareId),
       }))
     }
@@ -258,29 +258,29 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     if (get().pendingShareIds.includes(shareId))
       throw new Error('操作正在进行中')
 
-    set(state => ({
+    set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
     try {
       await updateResumeShareSettings(shareId, settings)
-      set(state => ({
-        ...mapShareLists(state, share => (
+      set((state) => ({
+        ...mapShareLists(state, (share) =>
           share.id === shareId
             ? {
                 ...share,
                 label: settings.label,
                 expires_at: settings.expiresAt,
-                has_password: settings.password === undefined
-                  ? share.has_password
-                  : Boolean(settings.password),
+                has_password:
+                  settings.password === undefined
+                    ? share.has_password
+                    : Boolean(settings.password),
                 allowComments: settings.allowComments,
               }
-            : share
-        )),
+            : share,
+        ),
       }))
-    }
-    finally {
-      set(state => ({
+    } finally {
+      set((state) => ({
         pendingShareIds: removePending(state.pendingShareIds, shareId),
       }))
     }
@@ -290,19 +290,18 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     if (get().pendingShareIds.includes(shareId))
       throw new Error('操作正在进行中')
 
-    set(state => ({
+    set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
     try {
       const record = await publishResumeShareRelease(shareId, release)
-      set(state => ({
-        ...mapShareLists(state, share => (
-          share.id === shareId ? record : share
-        )),
+      set((state) => ({
+        ...mapShareLists(state, (share) =>
+          share.id === shareId ? record : share,
+        ),
       }))
-    }
-    finally {
-      set(state => ({
+    } finally {
+      set((state) => ({
         pendingShareIds: removePending(state.pendingShareIds, shareId),
       }))
     }
@@ -312,21 +311,25 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     if (get().pendingShareIds.includes(shareId))
       throw new Error('操作正在进行中')
 
-    set(state => ({ pendingShareIds: addPending(state.pendingShareIds, shareId) }))
+    set((state) => ({
+      pendingShareIds: addPending(state.pendingShareIds, shareId),
+    }))
     try {
       await archiveResumeShare(shareId)
       const archivedAt = new Date().toISOString()
-      set(state => ({
-        ...mapShareLists(state, share => share.id === shareId
-          ? { ...share, archivedAt, is_active: false }
-          : share),
-        archiveDialogOpen: state.archiveShareId === shareId
-          ? false
-          : state.archiveDialogOpen,
+      set((state) => ({
+        ...mapShareLists(state, (share) =>
+          share.id === shareId
+            ? { ...share, archivedAt, is_active: false }
+            : share,
+        ),
+        archiveDialogOpen:
+          state.archiveShareId === shareId ? false : state.archiveDialogOpen,
       }))
-    }
-    finally {
-      set(state => ({ pendingShareIds: removePending(state.pendingShareIds, shareId) }))
+    } finally {
+      set((state) => ({
+        pendingShareIds: removePending(state.pendingShareIds, shareId),
+      }))
     }
   },
 
@@ -334,30 +337,25 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     if (get().pendingShareIds.includes(shareId))
       throw new Error('操作正在进行中')
 
-    set(state => ({
+    set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
     try {
       await deleteResumeShare(shareId)
-      set(state => ({
-        shares: state.shares.filter(share => share.id !== shareId),
-        allShares: state.allShares.filter(share => share.id !== shareId),
-        settingsDialogOpen: state.settingsShareId === shareId
-          ? false
-          : state.settingsDialogOpen,
-        archiveDialogOpen: state.archiveShareId === shareId
-          ? false
-          : state.archiveDialogOpen,
-        deleteDialogOpen: state.deleteShareId === shareId
-          ? false
-          : state.deleteDialogOpen,
-        versionDialogOpen: state.versionShareId === shareId
-          ? false
-          : state.versionDialogOpen,
+      set((state) => ({
+        shares: state.shares.filter((share) => share.id !== shareId),
+        allShares: state.allShares.filter((share) => share.id !== shareId),
+        settingsDialogOpen:
+          state.settingsShareId === shareId ? false : state.settingsDialogOpen,
+        archiveDialogOpen:
+          state.archiveShareId === shareId ? false : state.archiveDialogOpen,
+        deleteDialogOpen:
+          state.deleteShareId === shareId ? false : state.deleteDialogOpen,
+        versionDialogOpen:
+          state.versionShareId === shareId ? false : state.versionDialogOpen,
       }))
-    }
-    finally {
-      set(state => ({
+    } finally {
+      set((state) => ({
         pendingShareIds: removePending(state.pendingShareIds, shareId),
       }))
     }

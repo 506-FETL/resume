@@ -7,8 +7,13 @@ interface PageLoadingProps {
 
 export function PageLoading({ className }: PageLoadingProps) {
   return (
-    <div className={cn('flex h-full min-h-48 w-full items-center justify-center text-foreground', className)}>
-      <WanderingEyes className="w-24 sm:w-28 [--duration:3s]" />
+    <div
+      className={cn(
+        'flex h-full min-h-48 w-full items-center justify-center text-foreground',
+        className,
+      )}
+    >
+      <WanderingEyes className='w-24 sm:w-28 [--duration:3s]' />
     </div>
   )
 }

@@ -11,11 +11,7 @@ export {
   migrateVisibility,
   resumeSchema,
 } from './form'
-export type {
-  ORDERType,
-  ResumeSchema,
-  VisibilityItemsType,
-} from './form'
+export type { ORDERType, ResumeSchema, VisibilityItemsType } from './form'
 
 // 模板类型
 export const resumeTypeEnum = z.enum(['default', 'simple', 'modern'])

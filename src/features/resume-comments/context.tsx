@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react'
 import type { CommentAccessContext } from './api/client.ts'
 import type { ResumeCommentStoreState } from './store/types.ts'
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useStore } from 'zustand'
 import { attachStoredAnonymousCommentIdentity } from './api/anonymous-identity.ts'
 import { ResumeCommentClient } from './api/client.ts'
@@ -16,7 +24,9 @@ interface ResumeCommentContextValue {
   panelHeaderContent?: ReactNode
 }
 
-const ResumeCommentContext = createContext<ResumeCommentContextValue | null>(null)
+const ResumeCommentContext = createContext<ResumeCommentContextValue | null>(
+  null,
+)
 
 export interface ResumeCommentProviderProps {
   access: CommentAccessContext
@@ -28,18 +38,23 @@ export interface ResumeCommentProviderProps {
   panelHeaderContent?: ReactNode
 }
 
-function attachVersionAnonymousCredential(client: ResumeCommentClient, access: CommentAccessContext) {
+function attachVersionAnonymousCredential(
+  client: ResumeCommentClient,
+  access: CommentAccessContext,
+) {
   if (access.kind === 'share')
     attachStoredAnonymousCommentIdentity(client, access.versionId)
 }
 
 function getAccessIdentityKey(access: CommentAccessContext) {
   if (access.kind === 'owner') {
-    return `owner:${'scopeId' in access
-      ? `scope:${access.scopeId}`
-      : 'versionId' in access
-        ? `version:${access.versionId}`
-        : `resume:${access.resumeId}`}`
+    return `owner:${
+      'scopeId' in access
+        ? `scope:${access.scopeId}`
+        : 'versionId' in access
+          ? `version:${access.versionId}`
+          : `resume:${access.resumeId}`
+    }`
   }
   if (access.kind === 'collaborator')
     return `collaborator:${access.sessionId}:${access.resumeId}:${access.userId}`
@@ -75,12 +90,15 @@ export function ResumeCommentProvider({
     attachVersionAnonymousCredential(client, access)
   }, [access, accessIdentityKey, client, store])
 
-  const handleAccessInvalidated = useCallback((reason: 'stale_release' | 'share_unavailable') => {
-    store.getState().setAccessState('unavailable', reason)
-    if (reason === 'stale_release')
-      store.getState().preserveDraftsForNextScope()
-    onAccessInvalidated?.(reason)
-  }, [onAccessInvalidated, store])
+  const handleAccessInvalidated = useCallback(
+    (reason: 'stale_release' | 'share_unavailable') => {
+      store.getState().setAccessState('unavailable', reason)
+      if (reason === 'stale_release')
+        store.getState().preserveDraftsForNextScope()
+      onAccessInvalidated?.(reason)
+    },
+    [onAccessInvalidated, store],
+  )
 
   useCommentRealtime({
     accessIdentityKey,
@@ -90,24 +108,31 @@ export function ResumeCommentProvider({
     refreshAccess,
     onAccessInvalidated: handleAccessInvalidated,
   })
-  const value = useMemo(() => ({
-    beforeWrite,
-    client,
-    invalidateAccess: handleAccessInvalidated,
-    panelHeaderContent,
-    store,
-  }), [beforeWrite, client, handleAccessInvalidated, panelHeaderContent, store])
+  const value = useMemo(
+    () => ({
+      beforeWrite,
+      client,
+      invalidateAccess: handleAccessInvalidated,
+      panelHeaderContent,
+      store,
+    }),
+    [beforeWrite, client, handleAccessInvalidated, panelHeaderContent, store],
+  )
   return <ResumeCommentContext value={value}>{children}</ResumeCommentContext>
 }
 
 export function useResumeCommentContext() {
   const context = use(ResumeCommentContext)
   if (!context)
-    throw new Error('useResumeCommentContext 必须在 ResumeCommentProvider 内使用')
+    throw new Error(
+      'useResumeCommentContext 必须在 ResumeCommentProvider 内使用',
+    )
   return context
 }
 
-export function useResumeCommentStore<T>(selector: (state: ResumeCommentStoreState) => T) {
+export function useResumeCommentStore<T>(
+  selector: (state: ResumeCommentStoreState) => T,
+) {
   const { store } = useResumeCommentContext()
   return useStore(store, selector)
 }

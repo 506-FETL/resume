@@ -66,11 +66,7 @@ export function ResumeContextProvider({
   children,
   value,
 }: PropsWithChildren<{ value: ResumeContextType }>) {
-  return (
-    <ResumeContext value={value}>
-      {children}
-    </ResumeContext>
-  )
+  return <ResumeContext value={value}>{children}</ResumeContext>
 }
 
 /**

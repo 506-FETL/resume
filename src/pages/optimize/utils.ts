@@ -1,20 +1,44 @@
-import type { AnalysisAction, AnalysisState, AnalysisStatus, StepConfig, ValueType } from './types'
+import type {
+  AnalysisAction,
+  AnalysisState,
+  AnalysisStatus,
+  StepConfig,
+  ValueType,
+} from './types'
 import type { AutomergeResumeDocument } from '@/lib/automerge'
 import type { ResumeSchema } from '@/lib/schema'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
-import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_WORK_EXPERIENCE, normalizeResumeFormData } from '@/lib/schema'
+import {
+  DEFAULT_APPLICATION_INFO,
+  DEFAULT_BASICS,
+  DEFAULT_CAMPUS_EXPERIENCE,
+  DEFAULT_EDU_BACKGROUND,
+  DEFAULT_HOBBIES,
+  DEFAULT_HONORS_CERTIFICATES,
+  DEFAULT_INTERNSHIP_EXPERIENCE,
+  DEFAULT_JOB_INTENT,
+  DEFAULT_PROJECT_EXPERIENCE,
+  DEFAULT_SELF_EVALUATION,
+  DEFAULT_SKILL_SPECIALTY,
+  DEFAULT_WORK_EXPERIENCE,
+  normalizeResumeFormData,
+} from '@/lib/schema'
 import { getResumeById } from '@/lib/supabase/resume'
-import { ANALYSIS_INITIAL_STATE, ANALYSIS_STATUS_ORDER, FIELD_LABEL_MAP, PREVIEW_RENDERER_MAP } from './const'
+import {
+  ANALYSIS_INITIAL_STATE,
+  ANALYSIS_STATUS_ORDER,
+  FIELD_LABEL_MAP,
+  PREVIEW_RENDERER_MAP,
+} from './const'
 
 function sanitizeDeep<T>(value: T): T {
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeDeep(item)) as T
+    return value.map((item) => sanitizeDeep(item)) as T
   }
   if (value && typeof value === 'object') {
     const result: Record<string, unknown> = {}
     Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
-      if (val === undefined)
-        return
+      if (val === undefined) return
       result[key] = sanitizeDeep(val)
     })
     return result as T
@@ -22,68 +46,108 @@ function sanitizeDeep<T>(value: T): T {
   return value
 }
 
-function mapDocToResumeSchema(doc: Partial<AutomergeResumeDocument> | null | undefined): ResumeSchema {
+function mapDocToResumeSchema(
+  doc: Partial<AutomergeResumeDocument> | null | undefined,
+): ResumeSchema {
   const source = doc as Record<string, any> | undefined
 
   const getVal = <T>(key: string, defaultVal: T, legacyKey?: string) => {
-    const val = source?.[key] ?? (legacyKey ? source?.[legacyKey] : undefined) ?? defaultVal
+    const val =
+      source?.[key] ??
+      (legacyKey ? source?.[legacyKey] : undefined) ??
+      defaultVal
     return sanitizeDeep(val as T)
   }
 
   return normalizeResumeFormData({
     basics: getVal('basics', DEFAULT_BASICS),
     job_intent: getVal('job_intent', DEFAULT_JOB_INTENT, 'jobIntent'),
-    application_info: getVal('application_info', DEFAULT_APPLICATION_INFO, 'applicationInfo'),
-    edu_background: getVal('edu_background', DEFAULT_EDU_BACKGROUND, 'eduBackground'),
-    work_experience: getVal('work_experience', DEFAULT_WORK_EXPERIENCE, 'workExperience'),
-    internship_experience: getVal('internship_experience', DEFAULT_INTERNSHIP_EXPERIENCE, 'internshipExperience'),
-    campus_experience: getVal('campus_experience', DEFAULT_CAMPUS_EXPERIENCE, 'campusExperience'),
-    project_experience: getVal('project_experience', DEFAULT_PROJECT_EXPERIENCE, 'projectExperience'),
-    skill_specialty: getVal('skill_specialty', DEFAULT_SKILL_SPECIALTY, 'skillSpecialty'),
-    honors_certificates: getVal('honors_certificates', DEFAULT_HONORS_CERTIFICATES, 'honorsCertificates'),
-    self_evaluation: getVal('self_evaluation', DEFAULT_SELF_EVALUATION, 'selfEvaluation'),
+    application_info: getVal(
+      'application_info',
+      DEFAULT_APPLICATION_INFO,
+      'applicationInfo',
+    ),
+    edu_background: getVal(
+      'edu_background',
+      DEFAULT_EDU_BACKGROUND,
+      'eduBackground',
+    ),
+    work_experience: getVal(
+      'work_experience',
+      DEFAULT_WORK_EXPERIENCE,
+      'workExperience',
+    ),
+    internship_experience: getVal(
+      'internship_experience',
+      DEFAULT_INTERNSHIP_EXPERIENCE,
+      'internshipExperience',
+    ),
+    campus_experience: getVal(
+      'campus_experience',
+      DEFAULT_CAMPUS_EXPERIENCE,
+      'campusExperience',
+    ),
+    project_experience: getVal(
+      'project_experience',
+      DEFAULT_PROJECT_EXPERIENCE,
+      'projectExperience',
+    ),
+    skill_specialty: getVal(
+      'skill_specialty',
+      DEFAULT_SKILL_SPECIALTY,
+      'skillSpecialty',
+    ),
+    honors_certificates: getVal(
+      'honors_certificates',
+      DEFAULT_HONORS_CERTIFICATES,
+      'honorsCertificates',
+    ),
+    self_evaluation: getVal(
+      'self_evaluation',
+      DEFAULT_SELF_EVALUATION,
+      'selfEvaluation',
+    ),
     hobbies: getVal('hobbies', DEFAULT_HOBBIES),
   })
 }
 
-export async function fetchResumeDataForAnalysis(id: string, isOffline: boolean): Promise<ResumeSchema> {
+export async function fetchResumeDataForAnalysis(
+  id: string,
+  isOffline: boolean,
+): Promise<ResumeSchema> {
   if (isOffline) {
     const offlineResume = await getOfflineResumeById(id)
     if (!offlineResume) {
       throw new Error('离线简历不存在')
     }
-    return mapDocToResumeSchema(offlineResume.data as Partial<AutomergeResumeDocument>)
+    return mapDocToResumeSchema(
+      offlineResume.data as Partial<AutomergeResumeDocument>,
+    )
   }
 
   const onlineResume = await getResumeById(id)
   if (!onlineResume) {
     throw new Error('在线简历不存在')
   }
-  return mapDocToResumeSchema(onlineResume as unknown as Partial<AutomergeResumeDocument>)
+  return mapDocToResumeSchema(
+    onlineResume as unknown as Partial<AutomergeResumeDocument>,
+  )
 }
 
 export function calculateRating(score: number) {
-  if (score >= 90)
-    return 'text-green-600'
-  if (score >= 80)
-    return 'text-emerald-600'
-  if (score >= 60)
-    return 'text-yellow-600'
-  if (score >= 40)
-    return 'text-orange-600'
+  if (score >= 90) return 'text-green-600'
+  if (score >= 80) return 'text-emerald-600'
+  if (score >= 60) return 'text-yellow-600'
+  if (score >= 40) return 'text-orange-600'
 
   return 'text-red-600'
 }
 
 export function calculateReadabilityRating(score: number) {
-  if (score >= 9)
-    return 'text-green-600'
-  if (score >= 7)
-    return 'text-emerald-600'
-  if (score >= 5)
-    return 'text-yellow-600'
-  if (score >= 3)
-    return 'text-orange-600'
+  if (score >= 9) return 'text-green-600'
+  if (score >= 7) return 'text-emerald-600'
+  if (score >= 5) return 'text-yellow-600'
+  if (score >= 3) return 'text-orange-600'
   return 'text-red-600'
 }
 
@@ -92,28 +156,44 @@ export function getFieldLabel(key: string): string {
 }
 
 export function isEmptyValue(value: unknown): boolean {
-  if (value === null || value === undefined)
-    return true
-  if (typeof value === 'string' && value.trim() === '')
-    return true
-  if (Array.isArray(value) && value.length === 0)
-    return true
-  if (Array.isArray(value) && value.every(v => v === '' || v === null))
+  if (value === null || value === undefined) return true
+  if (typeof value === 'string' && value.trim() === '') return true
+  if (Array.isArray(value) && value.length === 0) return true
+  if (Array.isArray(value) && value.every((v) => v === '' || v === null))
     return true
   return false
 }
 
-export function detectValueType(value: unknown): 'skill_list' | 'skill_item' | 'certificate_list' | 'date_range' | 'string_array' | 'object_array' | 'object' | 'string' | 'empty' {
-  if (isEmptyValue(value))
-    return 'empty'
+export function detectValueType(
+  value: unknown,
+):
+  | 'skill_list'
+  | 'skill_item'
+  | 'certificate_list'
+  | 'date_range'
+  | 'string_array'
+  | 'object_array'
+  | 'object'
+  | 'string'
+  | 'empty' {
+  if (isEmptyValue(value)) return 'empty'
 
   // 检测日期范围（长度为2的字符串数组）
-  if (Array.isArray(value) && value.length === 2 && value.every(v => typeof v === 'string' || v === null || v === '')) {
+  if (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every((v) => typeof v === 'string' || v === null || v === '')
+  ) {
     return 'date_range'
   }
 
   // 检测技能列表
-  if (Array.isArray(value) && value.length > 0 && value[0] && typeof value[0] === 'object') {
+  if (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value[0] &&
+    typeof value[0] === 'object'
+  ) {
     const first = value[0] as Record<string, unknown>
     if ('label' in first && 'proficiencyLevel' in first) {
       return 'skill_list'
@@ -134,7 +214,7 @@ export function detectValueType(value: unknown): 'skill_list' | 'skill_item' | '
   }
 
   // 检测字符串数组
-  if (Array.isArray(value) && value.every(v => typeof v === 'string')) {
+  if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
     return 'string_array'
   }
 
@@ -142,23 +222,17 @@ export function detectValueType(value: unknown): 'skill_list' | 'skill_item' | '
 }
 
 export function renderValue(value: unknown): string {
-  if (value === null || value === undefined)
-    return '-'
-  if (typeof value === 'boolean')
-    return value ? '是' : '否'
-  if (typeof value === 'number')
-    return value.toString()
-  if (typeof value === 'string')
-    return value || '-'
-  if (Array.isArray(value))
-    return value.join(', ') || '-'
+  if (value === null || value === undefined) return '-'
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  if (typeof value === 'number') return value.toString()
+  if (typeof value === 'string') return value || '-'
+  if (Array.isArray(value)) return value.join(', ') || '-'
   return JSON.stringify(value)
 }
 
 // 渲染预览值
 export function renderPreview(value: unknown, valueType: ValueType): string {
-  if (isEmptyValue(value))
-    return '（空）'
+  if (isEmptyValue(value)) return '（空）'
 
   if (valueType === 'html_string') {
     const text = (value as string).replace(/<[^>]*>/g, ' ').trim()
@@ -175,7 +249,10 @@ export function renderPreview(value: unknown, valueType: ValueType): string {
   return String(value)
 }
 
-export const callAll = <T>(fns: Array<(...args: T[]) => void | undefined>) => (...args: T[]) => fns.forEach(fn => fn?.(...args))
+export const callAll =
+  <T>(fns: Array<(...args: T[]) => void | undefined>) =>
+  (...args: T[]) =>
+    fns.forEach((fn) => fn?.(...args))
 
 export function setLeaf(root: any, path: Array<string | number>, value: any) {
   if (!path || path.length === 0) {
@@ -187,22 +264,31 @@ export function setLeaf(root: any, path: Array<string | number>, value: any) {
     const key = path[i]
     const nextKey = path[i + 1]
     // 将字符串形式的数字转换为数字（Automerge 数组索引必须是数字）
-    const normalizedKey = typeof key === 'string' && /^\d+$/.test(key) ? Number(key) : key
+    const normalizedKey =
+      typeof key === 'string' && /^\d+$/.test(key) ? Number(key) : key
     if (cur[normalizedKey] == null) {
       // 根据下一个 key 的类型决定创建对象还是数组
-      const isNextKeyNumeric = typeof nextKey === 'number' || (typeof nextKey === 'string' && /^\d+$/.test(nextKey))
+      const isNextKeyNumeric =
+        typeof nextKey === 'number' ||
+        (typeof nextKey === 'string' && /^\d+$/.test(nextKey))
       cur[normalizedKey] = isNextKeyNumeric ? [] : {}
     }
     cur = cur[normalizedKey]
   }
   // 最后一个 key 也需要处理
   const lastKey = path[path.length - 1]
-  const normalizedLastKey = typeof lastKey === 'string' && /^\d+$/.test(lastKey) ? Number(lastKey) : lastKey
+  const normalizedLastKey =
+    typeof lastKey === 'string' && /^\d+$/.test(lastKey)
+      ? Number(lastKey)
+      : lastKey
   cur[normalizedLastKey] = value
 }
 
 // Reducer 函数
-export function analysisReducer(state: AnalysisState, action: AnalysisAction): AnalysisState {
+export function analysisReducer(
+  state: AnalysisState,
+  action: AnalysisAction,
+): AnalysisState {
   switch (action.type) {
     case 'RESET':
       return ANALYSIS_INITIAL_STATE
@@ -255,8 +341,13 @@ export function getStepStatus(
   }
 
   // 检查是否已完成（通过状态顺序或日志判断）
-  const maxActiveStatusOrder = Math.max(...activeStatuses.map(s => ANALYSIS_STATUS_ORDER[s]))
-  if (ANALYSIS_STATUS_ORDER[currentStatus] > maxActiveStatusOrder || logs[stepConfig.id]) {
+  const maxActiveStatusOrder = Math.max(
+    ...activeStatuses.map((s) => ANALYSIS_STATUS_ORDER[s]),
+  )
+  if (
+    ANALYSIS_STATUS_ORDER[currentStatus] > maxActiveStatusOrder ||
+    logs[stepConfig.id]
+  ) {
     return 'complete'
   }
 
@@ -289,7 +380,13 @@ export function shouldShowContent(
   reasoning: string,
   content: string,
 ): boolean {
-  const stepStatus = getStepStatus(stepConfig, currentStatus, logs, reasoning, content)
+  const stepStatus = getStepStatus(
+    stepConfig,
+    currentStatus,
+    logs,
+    reasoning,
+    content,
+  )
   // 只有当步骤是 active 或 complete 时才显示内容
   return stepStatus === 'active' || stepStatus === 'complete'
 }

@@ -8,8 +8,8 @@ export function buildAtsPreview(resume: ResumeSchema): AtsPreviewResult {
   const sections = getResumeSections(resume)
   const evidenceStats = getResumeEvidenceStats(resume)
   const plainText = sections
-    .filter(section => section.lines.length > 0)
-    .map(section => [`[${section.label}]`, ...section.lines].join('\n'))
+    .filter((section) => section.lines.length > 0)
+    .map((section) => [`[${section.label}]`, ...section.lines].join('\n'))
     .join('\n\n')
 
   const stats = {
@@ -29,7 +29,9 @@ export function buildAtsPreview(resume: ResumeSchema): AtsPreviewResult {
     evidenceStats.impactEvidenceRatio < 0.35
       ? '现有经历的成果支撑偏少，建议补充真实交付、影响范围、问题解决情况或数据证据。'
       : '',
-    resume.self_evaluation.content.trim().length > 180 ? '自我评价偏长，ATS 预览里会挤压更关键的经历信息。' : '',
+    resume.self_evaluation.content.trim().length > 180
+      ? '自我评价偏长，ATS 预览里会挤压更关键的经历信息。'
+      : '',
   ].filter(Boolean)
 
   return {

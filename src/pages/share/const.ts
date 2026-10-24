@@ -1,6 +1,15 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ShareStatusFilter } from './utils'
-import { Archive, Ban, BriefcaseBusiness, CircleCheck, CircleX, FileUser, Send, Target } from 'lucide-react'
+import {
+  Archive,
+  Ban,
+  BriefcaseBusiness,
+  CircleCheck,
+  CircleX,
+  FileUser,
+  Send,
+  Target,
+} from 'lucide-react'
 import { DURATION, EASE } from '@/lib/motion'
 
 export const SHARE_SEARCH_INPUT_ID = 'share-management-search'
@@ -13,7 +22,8 @@ export const SHARE_STATUS_FILTERS = [
   { value: 'archived', label: '已归档' },
 ] as const
 
-export const SHARE_GRID_CLASS = 'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3 sm:gap-4'
+export const SHARE_GRID_CLASS =
+  'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3 sm:gap-4'
 
 export const SHARE_STATUS_META: Record<
   Exclude<ShareStatusFilter, 'all'>,
@@ -28,25 +38,29 @@ export const SHARE_STATUS_META: Record<
     label: '有效',
     icon: CircleCheck,
     dotClassName: 'bg-emerald-500',
-    badgeClassName: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300',
+    badgeClassName:
+      'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300',
   },
   inactive: {
     label: '已关闭',
     icon: Ban,
     dotClassName: 'bg-slate-400',
-    badgeClassName: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300',
+    badgeClassName:
+      'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300',
   },
   expired: {
     label: '已过期',
     icon: CircleX,
     dotClassName: 'bg-red-500',
-    badgeClassName: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300',
+    badgeClassName:
+      'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300',
   },
   archived: {
     label: '已归档',
     icon: Archive,
     dotClassName: 'bg-violet-500',
-    badgeClassName: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/50 dark:text-violet-300',
+    badgeClassName:
+      'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/50 dark:text-violet-300',
   },
 }
 

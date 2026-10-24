@@ -22,7 +22,8 @@ export function createHistoryUiSlice(set: Set): HistoryUiSlice {
     mobilePanel: 'timeline',
     timelineFocusTarget: null,
     showDetail: () => set({ mobilePanel: 'detail', timelineFocusTarget: null }),
-    showTimeline: target => set({ mobilePanel: 'timeline', timelineFocusTarget: target }),
+    showTimeline: (target) =>
+      set({ mobilePanel: 'timeline', timelineFocusTarget: target }),
     clearTimelineFocus: () => set({ timelineFocusTarget: null }),
     loading: false,
     savingCurrent: false,

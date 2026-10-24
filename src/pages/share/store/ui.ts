@@ -25,41 +25,51 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
       dialogLoading: true,
       dialogError: null,
     })
-    get().loadDialogShares(resumeId).catch(() => undefined)
-    get().loadVersionOptions(resumeId, { force: true }).catch(() => undefined)
+    get()
+      .loadDialogShares(resumeId)
+      .catch(() => undefined)
+    get()
+      .loadVersionOptions(resumeId, { force: true })
+      .catch(() => undefined)
   },
 
-  closeDialog: () => set(state => ({
-    openForResumeId: null,
-    openForResumeName: null,
-    dialogRequestId: state.dialogRequestId + 1,
-    shares: [],
-    dialogLoading: false,
-    dialogError: null,
-  })),
+  closeDialog: () =>
+    set((state) => ({
+      openForResumeId: null,
+      openForResumeName: null,
+      dialogRequestId: state.dialogRequestId + 1,
+      shares: [],
+      dialogLoading: false,
+      dialogError: null,
+    })),
 
-  setSearchKeyword: searchKeyword => set({ searchKeyword }),
-  setResumeFilters: resumeFilters => set({ resumeFilters }),
-  setStatusFilter: statusFilter => set({ statusFilter }),
-  resetFilters: () => set({ searchKeyword: '', resumeFilters: [], statusFilter: 'all' }),
-  openSettingsDialog: settingsShareId => set({
-    settingsShareId,
-    settingsDialogOpen: true,
-  }),
+  setSearchKeyword: (searchKeyword) => set({ searchKeyword }),
+  setResumeFilters: (resumeFilters) => set({ resumeFilters }),
+  setStatusFilter: (statusFilter) => set({ statusFilter }),
+  resetFilters: () =>
+    set({ searchKeyword: '', resumeFilters: [], statusFilter: 'all' }),
+  openSettingsDialog: (settingsShareId) =>
+    set({
+      settingsShareId,
+      settingsDialogOpen: true,
+    }),
   closeSettingsDialog: () => set({ settingsDialogOpen: false }),
-  openArchiveDialog: archiveShareId => set({
-    archiveShareId,
-    archiveDialogOpen: true,
-  }),
+  openArchiveDialog: (archiveShareId) =>
+    set({
+      archiveShareId,
+      archiveDialogOpen: true,
+    }),
   closeArchiveDialog: () => set({ archiveDialogOpen: false }),
-  openDeleteDialog: deleteShareId => set({
-    deleteShareId,
-    deleteDialogOpen: true,
-  }),
+  openDeleteDialog: (deleteShareId) =>
+    set({
+      deleteShareId,
+      deleteDialogOpen: true,
+    }),
   closeDeleteDialog: () => set({ deleteDialogOpen: false }),
-  openVersionDialog: versionShareId => set({
-    versionShareId,
-    versionDialogOpen: true,
-  }),
+  openVersionDialog: (versionShareId) =>
+    set({
+      versionShareId,
+      versionDialogOpen: true,
+    }),
   closeVersionDialog: () => set({ versionDialogOpen: false }),
 })

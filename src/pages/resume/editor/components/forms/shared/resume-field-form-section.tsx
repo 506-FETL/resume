@@ -1,11 +1,19 @@
 import type { ReactNode } from 'react'
-import type { FieldArrayWithId, FieldValues, UseFormReturn } from 'react-hook-form'
+import type {
+  FieldArrayWithId,
+  FieldValues,
+  UseFormReturn,
+} from 'react-hook-form'
 import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -21,7 +29,10 @@ interface ResumeFieldFormSectionProps<TFieldValues extends FieldValues> {
   title: string
   addLabel: string
   className?: string
-  renderItem: (index: number, field: FieldArrayWithId<TFieldValues>) => ReactNode
+  renderItem: (
+    index: number,
+    field: FieldArrayWithId<TFieldValues>,
+  ) => ReactNode
 }
 
 export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
@@ -50,31 +61,40 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
               key={item.id}
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out, layout: reduceMotion ? { duration: 0 } : SPRING.layout }}
+              transition={{
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+                layout: reduceMotion ? { duration: 0 } : SPRING.layout,
+              }}
               layout={!reduceMotion}
             >
-              {index > 0 && <Separator className="my-6" />}
+              {index > 0 && <Separator className='my-6' />}
 
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h3 className={cn('text-sm font-medium text-muted-foreground', hidden && 'opacity-50')}>
+              <div className='flex flex-col gap-4'>
+                <div className='flex items-center justify-between'>
+                  <h3
+                    className={cn(
+                      'text-sm font-medium text-muted-foreground',
+                      hidden && 'opacity-50',
+                    )}
+                  >
                     {title}
                     {multiple ? `#${index + 1}` : ''}
                   </h3>
-                  <div className="flex items-center gap-0.5">
+                  <div className='flex items-center gap-0.5'>
                     {multiple && move && (
                       <>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
+                              type='button'
+                              variant='ghost'
+                              size='icon-sm'
                               disabled={index === 0}
                               onClick={() => move(index, index - 1)}
                               aria-label={`上移${title}#${index + 1}`}
                             >
-                              <ArrowUp className="size-4" />
+                              <ArrowUp className='size-4' />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>上移</TooltipContent>
@@ -82,14 +102,14 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
+                              type='button'
+                              variant='ghost'
+                              size='icon-sm'
                               disabled={index === fields.length - 1}
                               onClick={() => move(index, index + 1)}
                               aria-label={`下移${title}#${index + 1}`}
                             >
-                              <ArrowDown className="size-4" />
+                              <ArrowDown className='size-4' />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>下移</TooltipContent>
@@ -99,35 +119,50 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
+                          type='button'
+                          variant='ghost'
+                          size='icon-sm'
                           onClick={() => {
-                            form.setValue(`items.${index}.hidden` as any, !hidden as any, { shouldDirty: true })
+                            form.setValue(
+                              `items.${index}.hidden` as any,
+                              !hidden as any,
+                              { shouldDirty: true },
+                            )
                           }}
                           aria-label={`${hidden ? '显示' : '隐藏'}${title}${multiple ? `#${index + 1}` : ''}`}
                         >
-                          {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                          {hidden ? (
+                            <EyeOff className='size-4' />
+                          ) : (
+                            <Eye className='size-4' />
+                          )}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{hidden ? '显示此项' : '隐藏此项（内容保留）'}</TooltipContent>
+                      <TooltipContent>
+                        {hidden ? '显示此项' : '隐藏此项（内容保留）'}
+                      </TooltipContent>
                     </Tooltip>
                     {multiple && (
                       <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
+                        type='button'
+                        variant='ghost'
+                        size='sm'
                         onClick={() => remove(index)}
-                        className="h-8 text-destructive hover:text-destructive"
+                        className='h-8 text-destructive hover:text-destructive'
                       >
-                        <Trash2 className="size-4" />
-                        {!isMobile && <span className="ml-1">删除</span>}
+                        <Trash2 className='size-4' />
+                        {!isMobile && <span className='ml-1'>删除</span>}
                       </Button>
                     )}
                   </div>
                 </div>
 
-                <div className={cn('flex min-w-0 flex-col gap-4', hidden && 'opacity-50')}>
+                <div
+                  className={cn(
+                    'flex min-w-0 flex-col gap-4',
+                    hidden && 'opacity-50',
+                  )}
+                >
                   {renderItem(index, item)}
                 </div>
               </div>
@@ -136,14 +171,14 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
         })}
 
         <Button
-          type="button"
-          variant="outline"
+          type='button'
+          variant='outline'
           size={isMobile ? 'sm' : 'default'}
           onClick={onAddItem}
-          className="w-full @lg/panel:w-auto"
+          className='w-full @lg/panel:w-auto'
         >
-          <Plus className="size-4" />
-          {!isMobile && <span className="ml-2">{addLabel}</span>}
+          <Plus className='size-4' />
+          {!isMobile && <span className='ml-2'>{addLabel}</span>}
         </Button>
       </form>
     </Form>

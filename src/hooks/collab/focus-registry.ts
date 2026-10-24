@@ -24,7 +24,9 @@ const TEXT_INPUT_TYPES = new Set([
   '',
 ])
 
-function isEditableTextInput(el: Element | null): el is HTMLInputElement | HTMLTextAreaElement {
+function isEditableTextInput(
+  el: Element | null,
+): el is HTMLInputElement | HTMLTextAreaElement {
   if (el instanceof HTMLTextAreaElement) {
     return true
   }

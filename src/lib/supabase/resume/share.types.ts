@@ -9,13 +9,13 @@ export interface ResumeShareSnapshotSource {
   displayName: string | null
 }
 
-export type ShareVersionSelection
-  = | { kind: 'current' }
-    | { kind: 'history', versionId: number }
+export type ShareVersionSelection =
+  | { kind: 'current' }
+  | { kind: 'history'; versionId: number }
 
-export type ShareVersionSource
-  = | { kind: 'current' }
-    | {
+export type ShareVersionSource =
+  | { kind: 'current' }
+  | {
       kind: 'history'
       versionId: number | null
       versionNo: number
@@ -23,9 +23,9 @@ export type ShareVersionSource
       versionCreatedAt: string
     }
 
-export type ResolvedShareVersionSource
-  = | { kind: 'current' }
-    | {
+export type ResolvedShareVersionSource =
+  | { kind: 'current' }
+  | {
       kind: 'history'
       versionId: number
       versionNo: number
@@ -67,8 +67,9 @@ export interface ResumeShareReviewPayload {
   displayName: string | null
 }
 
-export type CurrentResumeShareSnapshotProvider
-  = (resumeId: string) => Promise<ResumeShareSnapshotSource>
+export type CurrentResumeShareSnapshotProvider = (
+  resumeId: string,
+) => Promise<ResumeShareSnapshotSource>
 
 export interface ResumeShareVersionSourceColumns {
   source_kind: 'current' | 'history'

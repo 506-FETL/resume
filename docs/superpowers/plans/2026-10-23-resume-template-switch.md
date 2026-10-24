@@ -31,7 +31,8 @@
 
 ```ts
 // 相同事件循环中完成校验和写入，不等待网络保存。
-if (!sameSession || readOnly || !previewReady || selectedKey !== readyKey) return false
+if (!sameSession || readOnly || !previewReady || selectedKey !== readyKey)
+  return false
 const previous = live.templateBinding
 live.setTemplateBinding(selectedBinding)
 // 仅在绑定确实更新时记录撤销。网络同步失败与本地更换失败分别处理。

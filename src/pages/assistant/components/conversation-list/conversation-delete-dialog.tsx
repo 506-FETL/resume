@@ -24,7 +24,7 @@ export function ConversationDeleteDialog({
 }: ConversationDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent size="sm">
+      <AlertDialogContent size='sm'>
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除该会话？</AlertDialogTitle>
           <AlertDialogDescription>
@@ -34,7 +34,7 @@ export function ConversationDeleteDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             onClick={onConfirm}
           >
             删除

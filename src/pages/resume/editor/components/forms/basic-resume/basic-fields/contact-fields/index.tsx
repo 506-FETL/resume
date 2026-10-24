@@ -1,6 +1,11 @@
 import type { UseFormReturn } from 'react-hook-form'
 import type { BasicFormInput } from '@/lib/schema'
-import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
 interface ContactFieldsProps {
@@ -12,24 +17,24 @@ export function ContactFields({ form }: ContactFieldsProps) {
     <>
       <FormField
         control={form.control}
-        name="phone"
+        name='phone'
         render={({ field }) => (
           <FormItem>
             <FormLabel>联系方式</FormLabel>
             <FormControl>
-              <Input placeholder="手机号" {...field} />
+              <Input placeholder='手机号' {...field} />
             </FormControl>
           </FormItem>
         )}
       />
       <FormField
         control={form.control}
-        name="email"
+        name='email'
         render={({ field }) => (
           <FormItem>
             <FormLabel>联系邮箱</FormLabel>
             <FormControl>
-              <Input placeholder="you@example.com" {...field} />
+              <Input placeholder='you@example.com' {...field} />
             </FormControl>
           </FormItem>
         )}

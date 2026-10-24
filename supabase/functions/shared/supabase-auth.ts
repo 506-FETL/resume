@@ -29,7 +29,8 @@ export class SupabaseAuthenticationError extends Error {
   }
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
 function unauthorized(): never {
   throw new SupabaseAuthenticationError()
@@ -46,40 +47,38 @@ export async function authenticateSupabaseUser(params: {
   }
 
   const jwt = authorization.slice('Bearer'.length).trim()
-  if (!jwt)
-    return unauthorized()
+  if (!jwt) return unauthorized()
 
   const apikey = params.request.headers.get('apikey')?.trim()
   if (jwt === apikey && jwt.startsWith('sb_publishable_')) {
     return { userId: null, authMode: 'anonymous' }
   }
-  if (jwt.split('.').length !== 3 || jwt.split('.').some(part => !part))
+  if (jwt.split('.').length !== 3 || jwt.split('.').some((part) => !part))
     return unauthorized()
 
   let result: SupabaseClaimsResult
   try {
     result = await params.client.auth.getClaims(jwt)
-  }
-  catch {
+  } catch {
     return unauthorized()
   }
-  if (result.error || !result.data)
-    return unauthorized()
+  if (result.error || !result.data) return unauthorized()
 
   const { claims, header } = result.data
   const expectedIssuer = `${params.supabaseUrl.replace(/\/$/u, '')}/auth/v1`
-  const hasAuthenticatedAudience = claims.aud === 'authenticated'
-    || (Array.isArray(claims.aud) && claims.aud.includes('authenticated'))
+  const hasAuthenticatedAudience =
+    claims.aud === 'authenticated' ||
+    (Array.isArray(claims.aud) && claims.aud.includes('authenticated'))
   if (
-    claims.iss !== expectedIssuer
-    || !hasAuthenticatedAudience
-    || !Number.isInteger(claims.exp)
-    || (claims.exp as number) <= Math.floor(Date.now() / 1_000)
-    || typeof claims.sub !== 'string'
-    || !UUID_PATTERN.test(claims.sub)
-    || claims.role !== 'authenticated'
-    || typeof claims.session_id !== 'string'
-    || !UUID_PATTERN.test(claims.session_id)
+    claims.iss !== expectedIssuer ||
+    !hasAuthenticatedAudience ||
+    !Number.isInteger(claims.exp) ||
+    (claims.exp as number) <= Math.floor(Date.now() / 1_000) ||
+    typeof claims.sub !== 'string' ||
+    !UUID_PATTERN.test(claims.sub) ||
+    claims.role !== 'authenticated' ||
+    typeof claims.session_id !== 'string' ||
+    !UUID_PATTERN.test(claims.session_id)
   ) {
     return unauthorized()
   }

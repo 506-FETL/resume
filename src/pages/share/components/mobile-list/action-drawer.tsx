@@ -3,7 +3,13 @@ import { Archive, Eye, History, Power, Settings2, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import useShareStore from '../../store'
 import { buildShareUrl } from '../../utils'
 
@@ -37,130 +43,171 @@ export default function ActionDrawer({
     onOpenChange(nextOpen)
     if (!nextOpen) {
       requestAnimationFrame(() => {
-        if (restoreFocusTo?.isConnected)
-          restoreFocusTo.focus()
+        if (restoreFocusTo?.isConnected) restoreFocusTo.focus()
       })
     }
   }
 
   const handlePreview = () => {
-    if (!share)
-      return
+    if (!share) return
     window.open(buildShareUrl(share.token), '_blank', 'noopener,noreferrer')
     handleDrawerOpenChange(false)
   }
 
   const handleSettings = () => {
-    if (!share)
-      return
+    if (!share) return
     openSettingsDialog(share.id)
     handleDrawerOpenChange(false)
   }
 
   const handleVersion = () => {
-    if (!share)
-      return
+    if (!share) return
     openVersionDialog(share.id)
     handleDrawerOpenChange(false)
   }
 
   const handleToggleActive = async () => {
-    if (!share)
-      return
+    if (!share) return
     try {
       await setActive(share.id, !share.is_active)
       toast.success(share.is_active ? '链接已关闭' : '链接已启用')
       handleDrawerOpenChange(false)
-    }
-    catch {
+    } catch {
       toast.error('操作失败')
     }
   }
 
   const handleDelete = () => {
-    if (!share)
-      return
+    if (!share) return
     openDeleteDialog(share.id)
     handleDrawerOpenChange(false)
   }
 
   const handleArchive = () => {
-    if (!share)
-      return
+    if (!share) return
     openArchiveDialog(share.id)
     handleDrawerOpenChange(false)
   }
 
   const actions = [
-    { key: 'preview', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={Boolean(share?.archivedAt)} onClick={handlePreview}>
-        <Eye data-icon="inline-start" />
-        预览
-      </Button>
-    ) },
-    { key: 'settings', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy || Boolean(share?.archivedAt)} onClick={handleSettings}>
-        <Settings2 data-icon="inline-start" />
-        编辑设置
-      </Button>
-    ) },
-    { key: 'version', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy || Boolean(share?.archivedAt)} onClick={handleVersion}>
-        <History data-icon="inline-start" />
-        更换分享版本
-      </Button>
-    ) },
-    { key: 'power', node: (
-      <Button variant="outline" className="h-11 w-full justify-start" disabled={busy || Boolean(share?.archivedAt)} onClick={handleToggleActive}>
-        <Power data-icon="inline-start" />
-        {share?.is_active ? '关闭链接' : '启用链接'}
-      </Button>
-    ) },
+    {
+      key: 'preview',
+      node: (
+        <Button
+          variant='outline'
+          className='h-11 w-full justify-start'
+          disabled={Boolean(share?.archivedAt)}
+          onClick={handlePreview}
+        >
+          <Eye data-icon='inline-start' />
+          预览
+        </Button>
+      ),
+    },
+    {
+      key: 'settings',
+      node: (
+        <Button
+          variant='outline'
+          className='h-11 w-full justify-start'
+          disabled={busy || Boolean(share?.archivedAt)}
+          onClick={handleSettings}
+        >
+          <Settings2 data-icon='inline-start' />
+          编辑设置
+        </Button>
+      ),
+    },
+    {
+      key: 'version',
+      node: (
+        <Button
+          variant='outline'
+          className='h-11 w-full justify-start'
+          disabled={busy || Boolean(share?.archivedAt)}
+          onClick={handleVersion}
+        >
+          <History data-icon='inline-start' />
+          更换分享版本
+        </Button>
+      ),
+    },
+    {
+      key: 'power',
+      node: (
+        <Button
+          variant='outline'
+          className='h-11 w-full justify-start'
+          disabled={busy || Boolean(share?.archivedAt)}
+          onClick={handleToggleActive}
+        >
+          <Power data-icon='inline-start' />
+          {share?.is_active ? '关闭链接' : '启用链接'}
+        </Button>
+      ),
+    },
   ]
 
   return (
-    <Drawer
-      open={open}
-      showSwipeHandle
-      onOpenChange={handleDrawerOpenChange}
-    >
+    <Drawer open={open} showSwipeHandle onOpenChange={handleDrawerOpenChange}>
       <DrawerContent>
-        <DrawerHeader className="text-left">
+        <DrawerHeader className='text-left'>
           <DrawerTitle>{share?.label || '分享链接'}</DrawerTitle>
-          <DrawerDescription>{share?.display_name || '选择要执行的操作'}</DrawerDescription>
+          <DrawerDescription>
+            {share?.display_name || '选择要执行的操作'}
+          </DrawerDescription>
         </DrawerHeader>
-        <div className="grid grid-cols-2 gap-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+        <div className='grid grid-cols-2 gap-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]'>
           {actions.map((action, index) => (
             <motion.div
               key={action.key}
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.16, delay: reduceMotion ? 0 : index * 0.035 }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.16,
+                delay: reduceMotion ? 0 : index * 0.035,
+              }}
             >
               {action.node}
             </motion.div>
           ))}
           {!share?.archivedAt && (
             <motion.div
-              className="col-span-2"
+              className='col-span-2'
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.16, delay: reduceMotion ? 0 : actions.length * 0.035 }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.16,
+                delay: reduceMotion ? 0 : actions.length * 0.035,
+              }}
             >
-              <Button variant="outline" className="h-11 w-full justify-start" disabled={busy} onClick={handleArchive}>
-                <Archive data-icon="inline-start" />
+              <Button
+                variant='outline'
+                className='h-11 w-full justify-start'
+                disabled={busy}
+                onClick={handleArchive}
+              >
+                <Archive data-icon='inline-start' />
                 归档分享
               </Button>
             </motion.div>
           )}
           <motion.div
-            className="col-span-2"
+            className='col-span-2'
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.16, delay: reduceMotion ? 0 : actions.length * 0.035 }}
+            transition={{
+              duration: reduceMotion ? 0 : 0.16,
+              delay: reduceMotion ? 0 : actions.length * 0.035,
+            }}
           >
-            <Button variant="destructive" className="h-11 w-full justify-start" disabled={busy} onClick={handleDelete}>
-              <Trash2 data-icon="inline-start" />
+            <Button
+              variant='destructive'
+              className='h-11 w-full justify-start'
+              disabled={busy}
+              onClick={handleDelete}
+            >
+              <Trash2 data-icon='inline-start' />
               永久删除
             </Button>
           </motion.div>

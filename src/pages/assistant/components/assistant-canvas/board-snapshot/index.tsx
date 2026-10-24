@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getCompanies } from '@/lib/supabase/resume'
 import useAssistantStore from '../../../store'
@@ -20,43 +27,46 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function BoardSnapshot({ model }: { model: CanvasModel }) {
   const isMobile = useIsMobile()
-  const canvasVisible = useAssistantStore(s => isMobile ? s.canvasMobileOpen : s.canvasOpen)
+  const canvasVisible = useAssistantStore((s) =>
+    isMobile ? s.canvasMobileOpen : s.canvasOpen,
+  )
   const [jobs, setJobs] = useState<JobApplication[] | null>(null)
 
   // 仅统计「已应用」的看板写操作：awaiting-confirm 阶段刷新会读到旧数据，
   // 且确认后计数不变导致不再刷新（stale）。只在 result 时触发重新拉取。
-  const boardWriteCount = model.writes.filter(w => w.category === 'board' && w.state === 'result').length
+  const boardWriteCount = model.writes.filter(
+    (w) => w.category === 'board' && w.state === 'result',
+  ).length
   useEffect(() => {
-    if (!canvasVisible)
-      return
+    if (!canvasVisible) return
     let cancelled = false
     getCompanies()
       .then((rows) => {
-        if (!cancelled)
-          setJobs(rows)
+        if (!cancelled) setJobs(rows)
       })
       .catch(() => {
-        if (!cancelled)
-          setJobs(current => current ?? [])
+        if (!cancelled) setJobs((current) => current ?? [])
       })
     return () => {
       cancelled = true
     }
   }, [boardWriteCount, canvasVisible])
 
-  const deleted = model.writes.filter(w => w.action === 'delete' && w.targetTab === 'board')
+  const deleted = model.writes.filter(
+    (w) => w.action === 'delete' && w.targetTab === 'board',
+  )
 
   if (!jobs) {
     return (
-      <div className="p-3">
-        <Skeleton className="h-64 w-full" />
+      <div className='p-3'>
+        <Skeleton className='h-64 w-full' />
       </div>
     )
   }
 
   return (
-    <ScrollArea className="h-full min-h-0">
-      <div className="p-3">
+    <ScrollArea className='h-full min-h-0'>
+      <div className='p-3'>
         <Table>
           <TableHeader>
             <TableRow>
@@ -66,19 +76,23 @@ export default function BoardSnapshot({ model }: { model: CanvasModel }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {jobs.map(job => (
+            {jobs.map((job) => (
               <TableRow key={job.id}>
-                <TableCell className="font-medium">{job.company}</TableCell>
+                <TableCell className='font-medium'>{job.company}</TableCell>
                 <TableCell>{job.position}</TableCell>
-                <TableCell><Badge variant="secondary">{STATUS_LABELS[job.status] ?? job.status}</Badge></TableCell>
+                <TableCell>
+                  <Badge variant='secondary'>
+                    {STATUS_LABELS[job.status] ?? job.status}
+                  </Badge>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
         {deleted.length > 0 && (
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className='mt-3 text-xs text-muted-foreground'>
             本轮已删除：
-            {deleted.map(d => d.title).join('；')}
+            {deleted.map((d) => d.title).join('；')}
           </p>
         )}
       </div>

@@ -13,15 +13,18 @@ interface MessageActionsProps {
 }
 
 function getPlainText(message: AiMessage): string {
-  if (message.role === 'user')
-    return getEditableMessageText(message.parts)
+  if (message.role === 'user') return getEditableMessageText(message.parts)
   return message.parts
-    .filter(p => p.type === 'text')
-    .map(p => (p as { text: string }).text)
+    .filter((p) => p.type === 'text')
+    .map((p) => (p as { text: string }).text)
     .join('\n')
 }
 
-export function MessageActions({ message, onEdit, onRegenerate }: MessageActionsProps) {
+export function MessageActions({
+  message,
+  onEdit,
+  onRegenerate,
+}: MessageActionsProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
 
@@ -30,8 +33,7 @@ export function MessageActions({ message, onEdit, onRegenerate }: MessageActions
       await navigator.clipboard.writeText(getPlainText(message))
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    }
-    catch {
+    } catch {
       // 剪贴板不可用时静默失败
     }
   }
@@ -43,20 +45,42 @@ export function MessageActions({ message, onEdit, onRegenerate }: MessageActions
         isUser && 'justify-end',
       )}
     >
-      <span className="ml-0.5 text-[11px] tabular-nums">
+      <span className='ml-0.5 text-[11px] tabular-nums'>
         {dayjs(message.createdAt).format('YYYY-MM-DD HH:mm:ss')}
       </span>
-      <Button variant="ghost" size="icon-xs" aria-label="复制" title="复制" onClick={handleCopy}>
-        {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+      <Button
+        variant='ghost'
+        size='icon-xs'
+        aria-label='复制'
+        title='复制'
+        onClick={handleCopy}
+      >
+        {copied ? (
+          <Check className='size-3.5 text-primary' />
+        ) : (
+          <Copy className='size-3.5' />
+        )}
       </Button>
       {isUser && onEdit && (
-        <Button variant="ghost" size="icon-xs" aria-label="编辑" title="编辑并重新生成" onClick={onEdit}>
-          <Pencil className="size-3.5" />
+        <Button
+          variant='ghost'
+          size='icon-xs'
+          aria-label='编辑'
+          title='编辑并重新生成'
+          onClick={onEdit}
+        >
+          <Pencil className='size-3.5' />
         </Button>
       )}
       {!isUser && onRegenerate && (
-        <Button variant="ghost" size="icon-xs" aria-label="重新生成" title="重新生成" onClick={onRegenerate}>
-          <RefreshCw className="size-3.5" />
+        <Button
+          variant='ghost'
+          size='icon-xs'
+          aria-label='重新生成'
+          title='重新生成'
+          onClick={onRegenerate}
+        >
+          <RefreshCw className='size-3.5' />
         </Button>
       )}
     </div>

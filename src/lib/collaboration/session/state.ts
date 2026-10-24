@@ -1,7 +1,16 @@
-import type { CollaborationActivationResult, CollaborationParticipant, CollaborationParticipantMetadata, CollaborationPhase, CollaborationSessionState } from './types'
+import type {
+  CollaborationActivationResult,
+  CollaborationParticipant,
+  CollaborationParticipantMetadata,
+  CollaborationPhase,
+  CollaborationSessionState,
+} from './types'
 import { getParticipantColor } from '../shared'
 
-function readMetadataString(metadata: Record<string, unknown> | undefined, key: string) {
+function readMetadataString(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+) {
   const value = metadata?.[key]
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
@@ -20,9 +29,9 @@ export function normalizeParticipantMetadata(
   return {
     userId,
     userName:
-      readMetadataString(metadata, 'userName')
-      ?? readMetadataString(metadata, 'name')
-      ?? `协作者 ${peerId.slice(-4)}`,
+      readMetadataString(metadata, 'userName') ??
+      readMetadataString(metadata, 'name') ??
+      `协作者 ${peerId.slice(-4)}`,
     color: readMetadataString(metadata, 'color') ?? getParticipantColor(userId),
     role: readParticipantRole(metadata),
   }
@@ -52,19 +61,18 @@ function getCollaborationPhaseFlags(phase: CollaborationPhase) {
   return {
     isSharing: phase === 'connected' || phase === 'stopping',
     isConnecting:
-      phase === 'authenticating'
-      || phase === 'authorizing'
-      || phase === 'hydrating'
-      || phase === 'connecting'
-      || phase === 'syncing'
-      || phase === 'stopping',
+      phase === 'authenticating' ||
+      phase === 'authorizing' ||
+      phase === 'hydrating' ||
+      phase === 'connecting' ||
+      phase === 'syncing' ||
+      phase === 'stopping',
   }
 }
 
-type CollaborationPhaseOverrides = Partial<Omit<
-  CollaborationSessionState,
-  'phase' | 'isSharing' | 'isConnecting'
->>
+type CollaborationPhaseOverrides = Partial<
+  Omit<CollaborationSessionState, 'phase' | 'isSharing' | 'isConnecting'>
+>
 
 export function createCollaborationPhaseState(
   phase: CollaborationPhase,
@@ -136,7 +144,9 @@ export function createConnectedSessionState(
     shareUrl: result.shareUrl,
     resumeId: result.resumeId,
     roomName: result.roomName,
-    participants: selfParticipant ? { [selfParticipant.peerId]: selfParticipant } : {},
+    participants: selfParticipant
+      ? { [selfParticipant.peerId]: selfParticipant }
+      : {},
     self: result.self,
     ...commentAuthorization,
     error: null,

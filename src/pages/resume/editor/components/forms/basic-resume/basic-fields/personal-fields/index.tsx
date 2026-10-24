@@ -3,11 +3,27 @@ import type { BasicFormInput } from '@/lib/schema'
 import { Cake } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { MonthPicker } from '@/components/ui/month-picker'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { genderOptions, workYearsOptions } from '../../const'
 
 interface PersonalFieldsProps {
@@ -21,31 +37,31 @@ export function PersonalFields({ form }: PersonalFieldsProps) {
     <>
       <FormField
         control={form.control}
-        name="name"
+        name='name'
         render={({ field }) => (
           <FormItem>
             <FormLabel>您的姓名</FormLabel>
             <FormControl>
-              <Input placeholder="输入您的姓名" {...field} />
+              <Input placeholder='输入您的姓名' {...field} />
             </FormControl>
           </FormItem>
         )}
       />
       <FormField
         control={form.control}
-        name="gender"
+        name='gender'
         render={({ field }) => (
           <FormItem>
             <FormLabel>性别</FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="请选择性别" />
+                  <SelectValue placeholder='请选择性别' />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 <SelectGroup>
-                  {genderOptions.map(o => (
+                  {genderOptions.map((o) => (
                     <SelectItem key={o} value={o}>
                       {o}
                     </SelectItem>
@@ -58,7 +74,7 @@ export function PersonalFields({ form }: PersonalFieldsProps) {
       />
       <FormField
         control={form.control}
-        name="birthMonth"
+        name='birthMonth'
         render={({ field }) => {
           return (
             <FormItem>
@@ -66,12 +82,15 @@ export function PersonalFields({ form }: PersonalFieldsProps) {
               <FormControl>
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" id="date">
+                    <Button variant='outline' id='date'>
                       {field.value ? field.value : '选择年月'}
                       <Cake />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                  <PopoverContent
+                    className='w-auto overflow-hidden p-0'
+                    align='start'
+                  >
                     <MonthPicker
                       value={field.value}
                       disableFuture
@@ -89,19 +108,19 @@ export function PersonalFields({ form }: PersonalFieldsProps) {
       />
       <FormField
         control={form.control}
-        name="workYears"
+        name='workYears'
         render={({ field }) => (
           <FormItem>
             <FormLabel>工作年限</FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="不填" />
+                  <SelectValue placeholder='不填' />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 <SelectGroup>
-                  {workYearsOptions.map(o => (
+                  {workYearsOptions.map((o) => (
                     <SelectItem key={o} value={o}>
                       {o}
                     </SelectItem>

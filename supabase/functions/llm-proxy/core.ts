@@ -31,5 +31,5 @@ export function classifyUpstreamFailure(status: number): UpstreamFailure {
 }
 
 export function streamFailureDeliveryState(deliveryStarted: boolean) {
-  return deliveryStarted ? 'partial' as const : 'none' as const
+  return deliveryStarted ? ('partial' as const) : ('none' as const)
 }

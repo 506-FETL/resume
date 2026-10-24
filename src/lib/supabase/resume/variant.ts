@@ -26,7 +26,7 @@ export interface VariantLineage {
 const MAX_VARIANT_TREE_DEPTH = 5
 
 export async function cloneResumeAsDraft(args: {
-  parent: PersistedResumeSnapshot & { resume_id: string, display_name?: string }
+  parent: PersistedResumeSnapshot & { resume_id: string; display_name?: string }
   jdText: string
   keywords: string[]
   summary?: string
@@ -104,8 +104,10 @@ export async function applyVariantChanges(
   }
 
   const updates: Record<string, unknown> = {}
-  for (const sec of new Set(changes.map(c => c.section))) {
-    updates[sec as string] = (next as unknown as Record<string, unknown>)[sec as string]
+  for (const sec of new Set(changes.map((c) => c.section))) {
+    updates[sec as string] = (next as unknown as Record<string, unknown>)[
+      sec as string
+    ]
   }
 
   const { error } = await supabase
@@ -122,7 +124,12 @@ export async function applyVariantChanges(
 
 export async function markVariantReady(
   draftResumeId: string,
-  args: { matchRate: number, generatedAt: string, changes?: VariantChange[], keywords?: string[] },
+  args: {
+    matchRate: number
+    generatedAt: string
+    changes?: VariantChange[]
+    keywords?: string[]
+  },
 ): Promise<void> {
   const user = await getCurrentUser()
   if (!user) {
@@ -138,7 +145,9 @@ export async function markVariantReady(
   if (selectError) {
     throw selectError
   }
-  const prior = (existing as { derived_metadata: VariantMetadata | null } | null)?.derived_metadata ?? null
+  const prior =
+    (existing as { derived_metadata: VariantMetadata | null } | null)
+      ?.derived_metadata ?? null
   const next: VariantMetadata = {
     keywords: args.keywords ?? prior?.keywords ?? [],
     changes: args.changes ?? prior?.changes ?? [],
@@ -159,7 +168,10 @@ export async function markVariantReady(
   }
 }
 
-export async function markVariantFailed(draftResumeId: string, errorMessage: string): Promise<void> {
+export async function markVariantFailed(
+  draftResumeId: string,
+  errorMessage: string,
+): Promise<void> {
   const user = await getCurrentUser()
   if (!user) {
     throw new Error('用户未登陆')
@@ -213,7 +225,9 @@ function toTreeNode(row: RawNode): VariantTreeNode {
   }
 }
 
-export async function fetchVariantTree(currentResumeId: string): Promise<VariantLineage> {
+export async function fetchVariantTree(
+  currentResumeId: string,
+): Promise<VariantLineage> {
   const user = await getCurrentUser()
   if (!user) {
     throw new Error('用户未登陆')
@@ -227,7 +241,9 @@ export async function fetchVariantTree(currentResumeId: string): Promise<Variant
     visited.add(walker)
     const { data, error } = await supabase
       .from('resume_config')
-      .select('resume_id,parent_resume_id,display_name,derived_status,derived_metadata,linked_jd_text')
+      .select(
+        'resume_id,parent_resume_id,display_name,derived_status,derived_metadata,linked_jd_text',
+      )
       .eq('user_id', user.id)
       .eq('resume_id', walker)
       .maybeSingle()
@@ -266,10 +282,12 @@ export async function fetchVariantTree(currentResumeId: string): Promise<Variant
   let bfsDepth = 0
 
   while (queue.length > 0 && bfsDepth < MAX_VARIANT_TREE_DEPTH) {
-    const layerIds = queue.map(n => n.resumeId)
+    const layerIds = queue.map((n) => n.resumeId)
     const { data, error } = await supabase
       .from('resume_config')
-      .select('resume_id,parent_resume_id,display_name,derived_status,derived_metadata,linked_jd_text')
+      .select(
+        'resume_id,parent_resume_id,display_name,derived_status,derived_metadata,linked_jd_text',
+      )
       .eq('user_id', user.id)
       .in('parent_resume_id', layerIds)
     if (error) {
@@ -278,11 +296,10 @@ export async function fetchVariantTree(currentResumeId: string): Promise<Variant
     const rows = (data ?? []) as RawNode[]
     const nextLayer: VariantTreeNode[] = []
     for (const row of rows) {
-      if (seen.has(row.resume_id))
-        continue
+      if (seen.has(row.resume_id)) continue
       seen.add(row.resume_id)
       const child = toTreeNode(row)
-      const parent = queue.find(p => p.resumeId === row.parent_resume_id)
+      const parent = queue.find((p) => p.resumeId === row.parent_resume_id)
       parent?.children.push(child)
       nextLayer.push(child)
     }

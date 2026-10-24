@@ -81,10 +81,10 @@ Deno.serve(async (request) => {
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   const maintenanceToken = Deno.env.get('BACKEND_MAINTENANCE_TOKEN')
   if (
-    !supabaseUrl
-    || !serviceRoleKey
-    || !maintenanceToken
-    || maintenanceToken.length < 32
+    !supabaseUrl ||
+    !serviceRoleKey ||
+    !maintenanceToken ||
+    maintenanceToken.length < 32
   ) {
     return respond(
       { error: 'service_not_configured' },
@@ -106,8 +106,7 @@ Deno.serve(async (request) => {
   let body: unknown = {}
   try {
     body = rawBody.trim() ? JSON.parse(rawBody) : {}
-  }
-  catch {
+  } catch {
     return respond(
       { error: 'unsupported_payload' },
       400,
@@ -116,10 +115,10 @@ Deno.serve(async (request) => {
     )
   }
   if (
-    !body
-    || typeof body !== 'object'
-    || Array.isArray(body)
-    || Object.keys(body).length > 0
+    !body ||
+    typeof body !== 'object' ||
+    Array.isArray(body) ||
+    Object.keys(body).length > 0
   ) {
     return respond(
       { error: 'unsupported_payload' },
@@ -199,8 +198,7 @@ Deno.serve(async (request) => {
       body: JSON.stringify(buildBackendAlertWebhook(snapshot)),
       signal: AbortSignal.timeout(5_000),
     })
-  }
-  catch {
+  } catch {
     return respond(
       { error: 'alert_delivery_failed' },
       503,

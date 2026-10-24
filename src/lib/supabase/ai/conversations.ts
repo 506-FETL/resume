@@ -42,8 +42,7 @@ interface SearchConversationOptions {
 
 export async function listConversations(): Promise<AiConversation[]> {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登录')
+  if (!user) throw new Error('用户未登录')
 
   const { data, error } = await supabase
     .from('ai_conversations')
@@ -51,15 +50,15 @@ export async function listConversations(): Promise<AiConversation[]> {
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
-  if (error)
-    throw error
+  if (error) throw error
   return (data || []).map(mapConversation)
 }
 
-export async function createConversation(title = '新对话'): Promise<AiConversation> {
+export async function createConversation(
+  title = '新对话',
+): Promise<AiConversation> {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登录')
+  if (!user) throw new Error('用户未登录')
 
   const { data, error } = await supabase
     .from('ai_conversations')
@@ -67,8 +66,7 @@ export async function createConversation(title = '新对话'): Promise<AiConvers
     .select()
     .single()
 
-  if (error)
-    throw error
+  if (error) throw error
   return mapConversation(data)
 }
 
@@ -77,8 +75,7 @@ export async function updateConversation(
   patch: { title?: string },
 ): Promise<AiConversation> {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登录')
+  if (!user) throw new Error('用户未登录')
 
   const { data, error } = await supabase
     .from('ai_conversations')
@@ -88,16 +85,14 @@ export async function updateConversation(
     .select()
     .single()
 
-  if (error)
-    throw error
+  if (error) throw error
   return mapConversation(data)
 }
 
 // 触碰 updated_at，使该会话在列表回到顶部（写完消息后调用）
 export async function touchConversation(id: string): Promise<void> {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登录')
+  if (!user) throw new Error('用户未登录')
 
   const { error } = await supabase
     .from('ai_conversations')
@@ -105,15 +100,16 @@ export async function touchConversation(id: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', user.id)
 
-  if (error)
-    throw error
+  if (error) throw error
 }
 
 // 绑定该会话当前查看/编辑的简历（画布预览按会话切换用）。不触碰 updated_at，避免打开简历就把会话顶上去。
-export async function updateConversationResumeBinding(id: string, resumeId: string | null): Promise<void> {
+export async function updateConversationResumeBinding(
+  id: string,
+  resumeId: string | null,
+): Promise<void> {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登录')
+  if (!user) throw new Error('用户未登录')
 
   const { error } = await supabase
     .from('ai_conversations')
@@ -121,14 +117,12 @@ export async function updateConversationResumeBinding(id: string, resumeId: stri
     .eq('id', id)
     .eq('user_id', user.id)
 
-  if (error)
-    throw error
+  if (error) throw error
 }
 
 export async function deleteConversation(id: string): Promise<void> {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登录')
+  if (!user) throw new Error('用户未登录')
 
   const { error } = await supabase
     .from('ai_conversations')
@@ -136,8 +130,7 @@ export async function deleteConversation(id: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', user.id)
 
-  if (error)
-    throw error
+  if (error) throw error
 }
 
 export async function searchConversations({
@@ -152,18 +145,18 @@ export async function searchConversations({
     p_result_offset: offset,
   })
 
-  if (signal)
-    request = request.abortSignal(signal)
+  if (signal) request = request.abortSignal(signal)
 
   const { data, error } = await request
-  if (error)
-    throw error
+  if (error) throw error
 
   return (data || []).map(mapConversationSearchResult)
 }
 
 export function isConversationSearchUnavailable(error: unknown): boolean {
-  const candidate = error as { code?: string, message?: string }
-  return candidate.code === 'PGRST202'
-    || candidate.message?.includes('search_ai_conversations') === true
+  const candidate = error as { code?: string; message?: string }
+  return (
+    candidate.code === 'PGRST202' ||
+    candidate.message?.includes('search_ai_conversations') === true
+  )
 }

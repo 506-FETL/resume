@@ -33,9 +33,9 @@ export function CollaborationUISync({
   scrollContainerRef,
 }: CollaborationUISyncProps) {
   const [followMode, setFollowMode] = useState(true)
-  const spacing = useResumeConfigStore(state => state.spacing)
-  const font = useResumeConfigStore(state => state.font)
-  const theme = useResumeConfigStore(state => state.theme)
+  const spacing = useResumeConfigStore((state) => state.spacing)
+  const font = useResumeConfigStore((state) => state.font)
+  const theme = useResumeConfigStore((state) => state.theme)
   const isApplyingRemote = useRef(false)
   const broadcastUIActionRef = useRef<(action: UIAction) => void>(() => {})
 
@@ -43,10 +43,7 @@ export function CollaborationUISync({
     broadcastUIActionRef.current(action)
   }, [])
 
-  const {
-    suppressScrollSync,
-    animateRemoteScrollTo,
-  } = useScrollSync({
+  const { suppressScrollSync, animateRemoteScrollTo } = useScrollSync({
     scrollContainerRef,
     isApplyingRemote,
     followMode,
@@ -107,7 +104,7 @@ export function CollaborationUISync({
   }, [followMode])
 
   return (
-    <div className="flex items-center gap-2">
+    <div className='flex items-center gap-2'>
       <FollowModeToggle enabled={followMode} onToggle={toggleFollowMode} />
       <OnlineCollaborators users={remoteUsers} />
     </div>

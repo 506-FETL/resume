@@ -15,7 +15,7 @@ function ContentPanel({ children }: { children: ReactNode }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: reduceMotion ? 0 : -4, transition: exit }}
       transition={enter}
-      className="col-start-1 row-start-1 flex min-h-0 min-w-0 flex-col"
+      className='col-start-1 row-start-1 flex min-h-0 min-w-0 flex-col'
       style={{ pointerEvents: present ? undefined : 'none' }}
     >
       {children}
@@ -34,7 +34,12 @@ export default function HistoryMotionContent({
   className?: string
 }) {
   return (
-    <div className={cn('relative grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)]', className)}>
+    <div
+      className={cn(
+        'relative grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)]',
+        className,
+      )}
+    >
       <AnimatePresence initial={false}>
         <ContentPanel key={transitionKey}>{children}</ContentPanel>
       </AnimatePresence>

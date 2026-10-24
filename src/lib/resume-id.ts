@@ -15,7 +15,13 @@ export class ResumeNotFoundError extends Error {
   }
 }
 
-export function isResumeNotFoundError(error: unknown): error is ResumeNotFoundError {
-  return error instanceof ResumeNotFoundError
-    || (typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'RESUME_NOT_FOUND')
+export function isResumeNotFoundError(
+  error: unknown,
+): error is ResumeNotFoundError {
+  return (
+    error instanceof ResumeNotFoundError ||
+    (typeof error === 'object' &&
+      error !== null &&
+      (error as { code?: unknown }).code === 'RESUME_NOT_FOUND')
+  )
 }

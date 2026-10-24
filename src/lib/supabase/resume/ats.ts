@@ -1,4 +1,12 @@
-import type { AtsCreatePayload, AtsEvaluationResult, AtsPersistPatch, AtsRecordId, FindingsGroup, FixChecklistItem, Summary } from '@/lib/schema/ats'
+import type {
+  AtsCreatePayload,
+  AtsEvaluationResult,
+  AtsPersistPatch,
+  AtsRecordId,
+  FindingsGroup,
+  FixChecklistItem,
+  Summary,
+} from '@/lib/schema/ats'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { sanitizeAtsPersistInput } from './utils'
@@ -54,7 +62,10 @@ export async function listAtsSummaries() {
   return (data ?? []) as AtsSummaryRecord[]
 }
 
-export async function updateAtsConfig(id: AtsRecordId, payload: AtsPersistPatch) {
+export async function updateAtsConfig(
+  id: AtsRecordId,
+  payload: AtsPersistPatch,
+) {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -103,7 +114,10 @@ export async function createAtsConfig(payload: AtsCreatePayload) {
   return data as AtsEvaluationResult
 }
 
-export async function updateFixChecklist(fixChecklist: FixChecklistItem[], id: AtsRecordId) {
+export async function updateFixChecklist(
+  fixChecklist: FixChecklistItem[],
+  id: AtsRecordId,
+) {
   const user = await getCurrentUser()
 
   if (!user) {

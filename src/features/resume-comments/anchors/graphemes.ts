@@ -1,4 +1,8 @@
-import { countCommentGraphemes, normalizeCommentText, splitCommentGraphemes } from '../../../../supabase/functions/shared/resume-comment-core.ts'
+import {
+  countCommentGraphemes,
+  normalizeCommentText,
+  splitCommentGraphemes,
+} from '../../../../supabase/functions/shared/resume-comment-core.ts'
 
 export { countCommentGraphemes, normalizeCommentText, splitCommentGraphemes }
 
@@ -11,7 +15,9 @@ export interface TextPoint<TText extends TextLike = TextLike> {
   utf16Offset: number
 }
 
-const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: 'grapheme',
+})
 
 function clampOffset(value: number, max: number): number {
   if (!Number.isFinite(value)) {
@@ -20,11 +26,18 @@ function clampOffset(value: number, max: number): number {
   return Math.min(Math.max(Math.trunc(value), 0), max)
 }
 
-export function graphemeSlice(value: string, start: number, end?: number): string {
+export function graphemeSlice(
+  value: string,
+  start: number,
+  end?: number,
+): string {
   return splitCommentGraphemes(value).slice(start, end).join('')
 }
 
-export function utf16OffsetToGraphemeOffset(value: string, utf16Offset: number): number {
+export function utf16OffsetToGraphemeOffset(
+  value: string,
+  utf16Offset: number,
+): number {
   const offset = clampOffset(utf16Offset, value.length)
   let graphemeOffset = 0
 
@@ -39,7 +52,10 @@ export function utf16OffsetToGraphemeOffset(value: string, utf16Offset: number):
   return graphemeOffset
 }
 
-export function graphemeOffsetToUtf16Offset(value: string, graphemeOffset: number): number {
+export function graphemeOffsetToUtf16Offset(
+  value: string,
+  graphemeOffset: number,
+): number {
   const target = Math.max(0, Math.trunc(graphemeOffset))
   let index = 0
 
@@ -66,7 +82,7 @@ export function textPointToGraphemeOffset<TText extends TextLike>(
   const precedingLength = textNodes
     .slice(0, targetIndex)
     .reduce((total, node) => total + node.data.length, 0)
-  const fullText = textNodes.map(node => node.data).join('')
+  const fullText = textNodes.map((node) => node.data).join('')
   return utf16OffsetToGraphemeOffset(
     fullText,
     precedingLength + clampOffset(utf16Offset, textNode.data.length),
@@ -81,7 +97,7 @@ export function graphemeOffsetToTextPoint<TText extends TextLike>(
     throw new Error('Comment block has no text nodes')
   }
 
-  const fullText = textNodes.map(node => node.data).join('')
+  const fullText = textNodes.map((node) => node.data).join('')
   let remainingUtf16 = graphemeOffsetToUtf16Offset(fullText, graphemeOffset)
 
   for (const textNode of textNodes) {

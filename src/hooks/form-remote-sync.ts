@@ -3,9 +3,9 @@ export interface RemoteFieldUpdate {
   value: unknown
 }
 
-export type RemoteFieldArrayOperation
-  = | { type: 'append', path: string, value: unknown }
-    | { type: 'remove', path: string, index: number }
+export type RemoteFieldArrayOperation =
+  | { type: 'append'; path: string; value: unknown }
+  | { type: 'remove'; path: string; index: number }
 
 export interface RemoteFormSyncPlan {
   fieldUpdates: RemoteFieldUpdate[]
@@ -77,7 +77,11 @@ export function planRemoteFormSync(
           })
         }
 
-        for (let index = current.length - 1; index >= remote.length; index -= 1) {
+        for (
+          let index = current.length - 1;
+          index >= remote.length;
+          index -= 1
+        ) {
           fieldArrayOperations.push({
             type: 'remove',
             path,
@@ -133,7 +137,9 @@ export function applyRemoteFormSyncPlan(
   plan.fieldArrayOperations.forEach((operation) => {
     const adapter = fieldArrays[operation.path]
     if (!adapter) {
-      throw new Error(`Missing remote field array adapter for "${operation.path}"`)
+      throw new Error(
+        `Missing remote field array adapter for "${operation.path}"`,
+      )
     }
 
     if (operation.type === 'append') {

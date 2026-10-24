@@ -59,7 +59,7 @@ const COMMENT_FIELD_LABELS: Record<string, string> = {
 }
 
 function formatCommentField(nodeKey: string) {
-  const [sectionKey = '',, fieldKey = ''] = nodeKey.split('/')
+  const [sectionKey = '', , fieldKey = ''] = nodeKey.split('/')
   const section = COMMENT_SECTION_LABELS[sectionKey] ?? sectionKey
   const field = COMMENT_FIELD_LABELS[fieldKey] ?? fieldKey
   return [section, field].filter(Boolean).join(' · ')
@@ -87,102 +87,152 @@ export function ThreadDetail({
     displayName: string
   } | null>(null)
   const client = useResumeCommentClient()
-  const relinkThreadId = useResumeCommentStore(state => state.relinkThreadId)
-  const relinkError = useResumeCommentStore(state => state.relinkError)
-  const cancelRelink = useResumeCommentStore(state => state.cancelRelink)
-  const accessState = useResumeCommentStore(state => state.accessState)
-  const hasPendingCreation = useResumeCommentStore(state => Object.values(
-    state.pendingCreationsByRequestId,
-  ).some(pending => pending.threadId === thread.id))
-  const root = thread.comments.find(comment => comment.parentId === null)
+  const relinkThreadId = useResumeCommentStore((state) => state.relinkThreadId)
+  const relinkError = useResumeCommentStore((state) => state.relinkError)
+  const cancelRelink = useResumeCommentStore((state) => state.cancelRelink)
+  const accessState = useResumeCommentStore((state) => state.accessState)
+  const hasPendingCreation = useResumeCommentStore((state) =>
+    Object.values(state.pendingCreationsByRequestId).some(
+      (pending) => pending.threadId === thread.id,
+    ),
+  )
+  const root = thread.comments.find((comment) => comment.parentId === null)
   const access = client.getAccessContext()
   const effectivePermissions = {
     ...permissions,
-    currentAnonymousId: permissions.currentAnonymousId
-      ?? (access.kind === 'share' ? access.anonymous?.id : null),
+    currentAnonymousId:
+      permissions.currentAnonymousId ??
+      (access.kind === 'share' ? access.anonymous?.id : null),
   }
-  const canResolve = !thread.localOnly && (
-    permissions.canModerateAll
-    || Boolean(root && isCurrentCommentAuthor(root.author, effectivePermissions))
-  )
+  const canResolve =
+    !thread.localOnly &&
+    (permissions.canModerateAll ||
+      Boolean(
+        root && isCurrentCommentAuthor(root.author, effectivePermissions),
+      ))
   const resolving = actions.pendingAction === `thread:${thread.id}:resolve`
   const reopening = actions.pendingAction === `thread:${thread.id}:reopen`
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
-        <Button size="icon-sm" variant="ghost" aria-label="返回评论列表" onClick={onBack}>
+    <div className='flex min-h-0 flex-1 flex-col'>
+      <header className='flex shrink-0 items-center gap-2 border-b px-3 py-2'>
+        <Button
+          size='icon-sm'
+          variant='ghost'
+          aria-label='返回评论列表'
+          onClick={onBack}
+        >
           <ArrowLeft />
         </Button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate border-l-2 border-amber-300 pl-2 text-xs text-muted-foreground">
+        <div className='min-w-0 flex-1'>
+          <p className='truncate border-l-2 border-amber-300 pl-2 text-xs text-muted-foreground'>
             {thread.anchor.exactQuote}
           </p>
         </div>
-        {canResolve && !thread.resolvedAt
-          ? (
-              <Button size="sm" variant="ghost" disabled={resolving} onClick={() => actions.resolveThread(thread)}>
-                {resolving ? <LoaderCircle className="animate-spin" /> : null}
-                {resolving ? '解决中…' : '解决'}
+        {canResolve && !thread.resolvedAt ? (
+          <Button
+            size='sm'
+            variant='ghost'
+            disabled={resolving}
+            onClick={() => actions.resolveThread(thread)}
+          >
+            {resolving ? <LoaderCircle className='animate-spin' /> : null}
+            {resolving ? '解决中…' : '解决'}
+          </Button>
+        ) : null}
+        {canResolve && thread.resolvedAt ? (
+          <Button
+            size='sm'
+            variant='ghost'
+            disabled={reopening}
+            onClick={() => actions.reopenThread(thread)}
+          >
+            {reopening ? (
+              <LoaderCircle className='animate-spin' />
+            ) : (
+              <RotateCcw />
+            )}
+            {reopening ? '重开中…' : '重开'}
+          </Button>
+        ) : null}
+        {permissions.canModerateAll && !thread.localOnly ? (
+          confirmingThreadDelete ? (
+            <div className='flex items-center gap-1'>
+              <Button
+                size='xs'
+                variant='destructive'
+                onClick={() =>
+                  actions
+                    .deleteThread(thread)
+                    .then((response) => response && onBack())
+                }
+              >
+                确认删除
               </Button>
-            )
-          : null}
-        {canResolve && thread.resolvedAt
-          ? (
-              <Button size="sm" variant="ghost" disabled={reopening} onClick={() => actions.reopenThread(thread)}>
-                {reopening ? <LoaderCircle className="animate-spin" /> : <RotateCcw />}
-                {reopening ? '重开中…' : '重开'}
+              <Button
+                size='xs'
+                variant='ghost'
+                onClick={() => setConfirmingThreadDelete(false)}
+              >
+                取消
               </Button>
-            )
-          : null}
-        {permissions.canModerateAll && !thread.localOnly
-          ? confirmingThreadDelete
-            ? (
-                <div className="flex items-center gap-1">
-                  <Button size="xs" variant="destructive" onClick={() => actions.deleteThread(thread).then(response => response && onBack())}>确认删除</Button>
-                  <Button size="xs" variant="ghost" onClick={() => setConfirmingThreadDelete(false)}>取消</Button>
-                </div>
-              )
-            : (
-                <Button size="icon-sm" variant="ghost" aria-label="删除评论线程" onClick={() => setConfirmingThreadDelete(true)}>
-                  <Trash2 />
-                </Button>
-              )
-          : null}
-      </header>
-      {thread.anchorStatus === 'detached'
-        ? (
-            <div className="m-3 rounded-lg border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
-              <p>原文字已变化，这条评论暂时无法定位。</p>
-              <p className="mt-2 text-xs">
-                原选区：“
-                {thread.anchor.exactQuote}
-                ”
-              </p>
-              <p className="mt-1 text-xs">
-                原字段：
-                {formatCommentField(thread.anchor.nodeKey)}
-              </p>
-              {relinkThreadId === thread.id
-                ? (
-                    <div className="mt-3 rounded-md bg-background p-2">
-                      <p className="text-xs text-foreground">请回到简历正文选择新文字，再点击“关联到此处”。</p>
-                      {relinkError ? <p role="alert" className="mt-1 text-xs text-destructive">{relinkError}</p> : null}
-                      <Button className="mt-2" size="xs" variant="ghost" onClick={cancelRelink}>取消重新关联</Button>
-                    </div>
-                  )
-                : canResolve
-                  ? (
-                      <Button className="mt-2" size="sm" variant="outline" onClick={() => onBeginRelink(thread.id)}>
-                        <Link2 />
-                        重新关联
-                      </Button>
-                    )
-                  : null}
             </div>
+          ) : (
+            <Button
+              size='icon-sm'
+              variant='ghost'
+              aria-label='删除评论线程'
+              onClick={() => setConfirmingThreadDelete(true)}
+            >
+              <Trash2 />
+            </Button>
           )
-        : null}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4">
+        ) : null}
+      </header>
+      {thread.anchorStatus === 'detached' ? (
+        <div className='m-3 rounded-lg border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground'>
+          <p>原文字已变化，这条评论暂时无法定位。</p>
+          <p className='mt-2 text-xs'>
+            原选区：“
+            {thread.anchor.exactQuote}”
+          </p>
+          <p className='mt-1 text-xs'>
+            原字段：
+            {formatCommentField(thread.anchor.nodeKey)}
+          </p>
+          {relinkThreadId === thread.id ? (
+            <div className='mt-3 rounded-md bg-background p-2'>
+              <p className='text-xs text-foreground'>
+                请回到简历正文选择新文字，再点击“关联到此处”。
+              </p>
+              {relinkError ? (
+                <p role='alert' className='mt-1 text-xs text-destructive'>
+                  {relinkError}
+                </p>
+              ) : null}
+              <Button
+                className='mt-2'
+                size='xs'
+                variant='ghost'
+                onClick={cancelRelink}
+              >
+                取消重新关联
+              </Button>
+            </div>
+          ) : canResolve ? (
+            <Button
+              className='mt-2'
+              size='sm'
+              variant='outline'
+              onClick={() => onBeginRelink(thread.id)}
+            >
+              <Link2 />
+              重新关联
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      <div className='min-h-0 flex-1 overflow-y-auto px-4'>
         <CommentTree
           comments={thread.comments}
           thread={thread}
@@ -190,43 +240,54 @@ export function ThreadDetail({
           onReply={setReplyTarget}
         />
       </div>
-      {actions.errorMessage
-        ? <p role="alert" className="shrink-0 px-4 py-2 text-xs text-destructive">{actions.errorMessage}</p>
-        : null}
-      {permissions.canCreate && accessState === 'active' && !thread.resolvedAt && !thread.localOnly
-        ? (
-            <div className={cn(
-              'shrink-0 border-t bg-popover p-3',
-              keyboardAwareReply
-              && 'will-change-[padding-bottom] transition-[padding-bottom] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] focus-within:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px))] motion-reduce:transition-none',
-            )}
-            >
-              {replyTarget
-                ? (
-                    <div className="mb-2 flex items-center justify-between rounded-md bg-muted px-2 py-1.5 text-xs text-muted-foreground">
-                      <span className="truncate">
-                        回复
-                        {' '}
-                        {replyTarget.displayName}
-                      </span>
-                      <Button size="xs" variant="ghost" onClick={() => setReplyTarget(null)}>取消</Button>
-                    </div>
-                  )
-                : null}
-              <CommentComposer
-                draftKey={`reply:${thread.id}:${replyTarget?.commentId ?? 'root'}`}
-                placeholder={replyTarget ? `回复 ${replyTarget.displayName}…` : '回复…'}
-                submitDisabled={actions.pendingAction !== null || hasPendingCreation}
-                onSubmit={async (value) => {
-                  const response = await actions.createReply(thread, value, replyTarget?.commentId)
-                  if (response)
-                    setReplyTarget(null)
-                  return Boolean(response)
-                }}
-              />
+      {actions.errorMessage ? (
+        <p role='alert' className='shrink-0 px-4 py-2 text-xs text-destructive'>
+          {actions.errorMessage}
+        </p>
+      ) : null}
+      {permissions.canCreate &&
+      accessState === 'active' &&
+      !thread.resolvedAt &&
+      !thread.localOnly ? (
+        <div
+          className={cn(
+            'shrink-0 border-t bg-popover p-3',
+            keyboardAwareReply &&
+              'will-change-[padding-bottom] transition-[padding-bottom] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] focus-within:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px)+var(--drawer-keyboard-inset,0px))] motion-reduce:transition-none',
+          )}
+        >
+          {replyTarget ? (
+            <div className='mb-2 flex items-center justify-between rounded-md bg-muted px-2 py-1.5 text-xs text-muted-foreground'>
+              <span className='truncate'>回复 {replyTarget.displayName}</span>
+              <Button
+                size='xs'
+                variant='ghost'
+                onClick={() => setReplyTarget(null)}
+              >
+                取消
+              </Button>
             </div>
-          )
-        : null}
+          ) : null}
+          <CommentComposer
+            draftKey={`reply:${thread.id}:${replyTarget?.commentId ?? 'root'}`}
+            placeholder={
+              replyTarget ? `回复 ${replyTarget.displayName}…` : '回复…'
+            }
+            submitDisabled={
+              actions.pendingAction !== null || hasPendingCreation
+            }
+            onSubmit={async (value) => {
+              const response = await actions.createReply(
+                thread,
+                value,
+                replyTarget?.commentId,
+              )
+              if (response) setReplyTarget(null)
+              return Boolean(response)
+            }}
+          />
+        </div>
+      ) : null}
       {footer}
     </div>
   )

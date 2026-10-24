@@ -13,19 +13,23 @@ interface FixedTabProps {
   onActivate: () => void
 }
 
-export function FixedTab({ id, label, icon, visible, active, isMobile, onActivate }: FixedTabProps) {
+export function FixedTab({
+  id,
+  label,
+  icon,
+  visible,
+  active,
+  isMobile,
+  onActivate,
+}: FixedTabProps) {
   return (
     <div
       className={cn('flex flex-col items-center justify-end gap-2 select-none')}
       data-active={active}
     >
-      {!isMobile && <div className="size-4" aria-hidden="true" />}
+      {!isMobile && <div className='size-4' aria-hidden='true' />}
 
-      <Tab
-        id={id}
-        onClick={onActivate}
-        disabled={!visible}
-      >
+      <Tab id={id} onClick={onActivate} disabled={!visible}>
         {icon}
         {!isMobile && label}
       </Tab>

@@ -9,7 +9,8 @@ let activeSubscribers = 0
 export function useTemplateSwitchSession() {
   useEffect(() => {
     activeSubscribers += 1
-    const synchronize = () => useTemplateSwitchStore.getState().synchronizeSession()
+    const synchronize = () =>
+      useTemplateSwitchStore.getState().synchronizeSession()
     synchronize()
     const unsubscribeForm = useResumeStore.subscribe(synchronize)
     const unsubscribeReview = useResumeReviewStore.subscribe(synchronize)
@@ -20,7 +21,13 @@ export function useTemplateSwitchSession() {
       // StrictMode 会在同一任务里重新挂载，真正离开编辑器才销毁会话记录。
       queueMicrotask(() => {
         if (activeSubscribers === 0)
-          useTemplateSwitchStore.setState({ sessionKey: null, open: false, selectedBinding: null, conflictBinding: null, undoRecord: null })
+          useTemplateSwitchStore.setState({
+            sessionKey: null,
+            open: false,
+            selectedBinding: null,
+            conflictBinding: null,
+            undoRecord: null,
+          })
       })
     }
   }, [])

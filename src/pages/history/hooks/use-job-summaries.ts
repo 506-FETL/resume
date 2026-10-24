@@ -17,31 +17,28 @@ export function useJobSummaries() {
     setLoading(true)
     listJobApplicationSummaries()
       .then((rows) => {
-        if (!cancelled)
-          setJobs(rows)
+        if (!cancelled) setJobs(rows)
       })
       .catch(() => {
-        if (!cancelled)
-          setJobs([])
+        if (!cancelled) setJobs([])
       })
       .finally(() => {
-        if (!cancelled)
-          setLoading(false)
+        if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
     }
   }, [])
 
-  const options: JobOption[] = jobs.map(job => ({
+  const options: JobOption[] = jobs.map((job) => ({
     id: job.id,
-    label: [job.company, job.position].filter(Boolean).join(' · ') || '未命名岗位',
+    label:
+      [job.company, job.position].filter(Boolean).join(' · ') || '未命名岗位',
   }))
 
   const getLabel = (companyId: string | null | undefined): string | null => {
-    if (!companyId)
-      return null
-    return options.find(option => option.id === companyId)?.label ?? null
+    if (!companyId) return null
+    return options.find((option) => option.id === companyId)?.label ?? null
   }
 
   return { options, getLabel, loading }

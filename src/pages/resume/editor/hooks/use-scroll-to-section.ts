@@ -8,26 +8,40 @@ import { useCallback } from 'react'
  * 渲染内容被 transform: scale() 缩放，故用相对 getBoundingClientRect 差值换算 scrollTop，
  * 不能用 scrollIntoView（会被缩放干扰）。多页克隆下只定位首页内容容器内的第一个匹配 section。
  */
-export function useScrollToSection(scrollContainerRef: RefObject<HTMLElement | null>) {
+export function useScrollToSection(
+  scrollContainerRef: RefObject<HTMLElement | null>,
+) {
   const reduceMotion = useReducedMotion()
-  return useCallback((sectionKey: ORDERType) => {
-    const container = scrollContainerRef.current
-    if (!container)
-      return
+  return useCallback(
+    (sectionKey: ORDERType) => {
+      const container = scrollContainerRef.current
+      if (!container) return
 
-    // 多页克隆：优先在首页内容容器内查找，避免命中后续页的重复锚点
-    const scope = container.querySelector('[data-resume-content]') ?? container
-    const target = scope.querySelector(`[data-section="${sectionKey}"]`) as HTMLElement | null
+      // 多页克隆：优先在首页内容容器内查找，避免命中后续页的重复锚点
+      const scope =
+        container.querySelector('[data-resume-content]') ?? container
+      const target = scope.querySelector(
+        `[data-section="${sectionKey}"]`,
+      ) as HTMLElement | null
 
-    // basics 或找不到锚点 → 滚到顶部
-    if (!target || sectionKey === 'basics') {
-      container.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
-      return
-    }
+      // basics 或找不到锚点 → 滚到顶部
+      if (!target || sectionKey === 'basics') {
+        container.scrollTo({
+          top: 0,
+          behavior: reduceMotion ? 'auto' : 'smooth',
+        })
+        return
+      }
 
-    const containerRect = container.getBoundingClientRect()
-    const targetRect = target.getBoundingClientRect()
-    const nextTop = container.scrollTop + (targetRect.top - containerRect.top) - 16 // 顶部留 16px 余量
-    container.scrollTo({ top: Math.max(0, nextTop), behavior: reduceMotion ? 'auto' : 'smooth' })
-  }, [reduceMotion, scrollContainerRef])
+      const containerRect = container.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const nextTop =
+        container.scrollTop + (targetRect.top - containerRect.top) - 16 // 顶部留 16px 余量
+      container.scrollTo({
+        top: Math.max(0, nextTop),
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      })
+    },
+    [reduceMotion, scrollContainerRef],
+  )
 }

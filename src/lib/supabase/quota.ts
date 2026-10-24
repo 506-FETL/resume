@@ -27,8 +27,7 @@ interface RawAiQuota {
 export async function getAiQuota(): Promise<AiQuota> {
   const { data, error } = await supabase.rpc('get_ai_quota')
 
-  if (error)
-    throw error
+  if (error) throw error
 
   const raw = (data ?? {}) as Partial<RawAiQuota>
   return {

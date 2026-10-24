@@ -27,24 +27,9 @@ export default function ResumePreview({
   definitionOverride,
   projectionReferenceDate,
 }: ResumePreviewProps) {
-  const { type, templateBinding, basics, job_intent: jobIntent, application_info: applicationInfo, edu_background: eduBackground, work_experience: workExperience, internship_experience: internshipExperience, campus_experience: campusExperience, project_experience: projectExperience, skill_specialty: skillSpecialty, honors_certificates: honorsCertificates, self_evaluation: selfEvaluation, hobbies, order, visibility } = useResumeStore()
-  const spacing = useResumeConfigStore(state => state.spacing)
-  const spacingPreview = useResumeConfigStore(state => state.spacingPreview)
-  const font = useResumeConfigStore(state => state.font)
-  const theme = useResumeConfigStore(state => state.theme)
-  const editorAppearance = useMemo(() => snapshotOverride
-    ? {
-        spacing: snapshotOverride.spacing,
-        font: snapshotOverride.font,
-        theme: snapshotOverride.theme,
-      }
-    : {
-        spacing: spacingPreview ?? spacing,
-        font,
-        theme,
-      }, [font, snapshotOverride, spacing, spacingPreview, theme])
-
-  const previewData = buildTemplateResumeData(snapshotOverride ?? {
+  const {
+    type,
+    templateBinding,
     basics,
     job_intent: jobIntent,
     application_info: applicationInfo,
@@ -58,13 +43,54 @@ export default function ResumePreview({
     self_evaluation: selfEvaluation,
     hobbies,
     order,
-    type,
-    templateBinding,
     visibility,
-  })
+  } = useResumeStore()
+  const spacing = useResumeConfigStore((state) => state.spacing)
+  const spacingPreview = useResumeConfigStore((state) => state.spacingPreview)
+  const font = useResumeConfigStore((state) => state.font)
+  const theme = useResumeConfigStore((state) => state.theme)
+  const editorAppearance = useMemo(
+    () =>
+      snapshotOverride
+        ? {
+            spacing: snapshotOverride.spacing,
+            font: snapshotOverride.font,
+            theme: snapshotOverride.theme,
+          }
+        : {
+            spacing: spacingPreview ?? spacing,
+            font,
+            theme,
+          },
+    [font, snapshotOverride, spacing, spacingPreview, theme],
+  )
+
+  const previewData = buildTemplateResumeData(
+    snapshotOverride ?? {
+      basics,
+      job_intent: jobIntent,
+      application_info: applicationInfo,
+      edu_background: eduBackground,
+      work_experience: workExperience,
+      internship_experience: internshipExperience,
+      campus_experience: campusExperience,
+      project_experience: projectExperience,
+      skill_specialty: skillSpecialty,
+      honors_certificates: honorsCertificates,
+      self_evaluation: selfEvaluation,
+      hobbies,
+      order,
+      type,
+      templateBinding,
+      visibility,
+    },
+  )
 
   return (
-    <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto p-3 md:p-8">
+    <div
+      ref={scrollContainerRef}
+      className='min-h-0 flex-1 overflow-auto p-3 md:p-8'
+    >
       <ScaledReadonlyPreview
         data={previewData}
         appearance={editorAppearance}

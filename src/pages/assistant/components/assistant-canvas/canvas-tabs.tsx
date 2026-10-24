@@ -1,8 +1,19 @@
 import type { CanvasModel } from '../../types'
-import { FileText, GitBranch, ListChecks, Pin, PinOff, Table2 } from 'lucide-react'
+import {
+  FileText,
+  GitBranch,
+  ListChecks,
+  Pin,
+  PinOff,
+  Table2,
+} from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import useAssistantStore from '../../store'
 
@@ -11,35 +22,42 @@ export function CanvasTabs({ model }: { model: CanvasModel }) {
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className="flex shrink-0 items-center justify-between gap-2 border-b p-2">
+    <div className='flex shrink-0 items-center justify-between gap-2 border-b p-2'>
       {/* 内容自适应宽度、左对齐，保持 shadcn 胶囊样式 */}
       <TabsList
-        className="min-w-0 max-w-full justify-start overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className='min-w-0 max-w-full justify-start overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         onFocusCapture={(event) => {
-          if (event.target.getAttribute('role') === 'tab' && event.currentTarget.scrollWidth > event.currentTarget.clientWidth) {
-            event.target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduceMotion ? 'instant' : 'smooth' })
+          if (
+            event.target.getAttribute('role') === 'tab' &&
+            event.currentTarget.scrollWidth > event.currentTarget.clientWidth
+          ) {
+            event.target.scrollIntoView({
+              block: 'nearest',
+              inline: 'nearest',
+              behavior: reduceMotion ? 'instant' : 'smooth',
+            })
           }
         }}
       >
-        <TabsTrigger value="resume" className="shrink-0 gap-1.5">
-          <FileText className="size-4" />
+        <TabsTrigger value='resume' className='shrink-0 gap-1.5'>
+          <FileText className='size-4' />
           简历预览
         </TabsTrigger>
         {model.touchedBoard && (
-          <TabsTrigger value="board" className="shrink-0 gap-1.5">
-            <Table2 className="size-4" />
+          <TabsTrigger value='board' className='shrink-0 gap-1.5'>
+            <Table2 className='size-4' />
             求职看板
           </TabsTrigger>
         )}
         {model.touchedVersion && (
-          <TabsTrigger value="version" className="shrink-0 gap-1.5">
-            <GitBranch className="size-4" />
+          <TabsTrigger value='version' className='shrink-0 gap-1.5'>
+            <GitBranch className='size-4' />
             历史版本
           </TabsTrigger>
         )}
         {model.hasWrites && (
-          <TabsTrigger value="changes" className="shrink-0 gap-1.5">
-            <ListChecks className="size-4" />
+          <TabsTrigger value='changes' className='shrink-0 gap-1.5'>
+            <ListChecks className='size-4' />
             变更记录
           </TabsTrigger>
         )}
@@ -48,7 +66,7 @@ export function CanvasTabs({ model }: { model: CanvasModel }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            type="button"
+            type='button'
             aria-label={canvasTabPinned ? '取消固定当前标签' : '固定当前标签'}
             aria-pressed={canvasTabPinned}
             onClick={() => setCanvasTabPinned(!canvasTabPinned)}
@@ -59,10 +77,14 @@ export function CanvasTabs({ model }: { model: CanvasModel }) {
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            {canvasTabPinned ? <Pin className="size-4" /> : <PinOff className="size-4" />}
+            {canvasTabPinned ? (
+              <Pin className='size-4' />
+            ) : (
+              <PinOff className='size-4' />
+            )}
           </button>
         </TooltipTrigger>
-        <TooltipContent side="left">
+        <TooltipContent side='left'>
           {canvasTabPinned ? '已固定：切换会话不自动跳走' : '固定当前标签'}
         </TooltipContent>
       </Tooltip>

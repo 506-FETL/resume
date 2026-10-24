@@ -22,19 +22,17 @@ interface RawGithubStars {
 export async function getGithubStars(): Promise<GithubStars | null> {
   const { data, error } = await supabase.rpc('get_app_github_stars')
 
-  if (error)
-    throw error
+  if (error) throw error
 
-  if (!data || typeof data !== 'object' || Array.isArray(data))
-    return null
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null
 
   const raw = data as Partial<RawGithubStars>
   if (
-    raw.repo !== '506-fetl/resume'
-    || !Number.isSafeInteger(raw.stars)
-    || Number(raw.stars) < 0
-    || typeof raw.fetched_at !== 'string'
-    || typeof raw.stale !== 'boolean'
+    raw.repo !== '506-fetl/resume' ||
+    !Number.isSafeInteger(raw.stars) ||
+    Number(raw.stars) < 0 ||
+    typeof raw.fetched_at !== 'string' ||
+    typeof raw.stale !== 'boolean'
   ) {
     return null
   }

@@ -58,14 +58,16 @@ export function useCollaborationPanelValue({
     lastSyncTime,
     mode,
     isDocumentInitialized,
-  } = useResumeStore(useShallow(state => ({
-    manualSync: state.manualSync,
-    isSyncing: state.isSyncing,
-    pendingChanges: state.pendingChanges,
-    lastSyncTime: state.lastSyncTime,
-    mode: state.mode,
-    isDocumentInitialized: state.isInitialized,
-  })))
+  } = useResumeStore(
+    useShallow((state) => ({
+      manualSync: state.manualSync,
+      isSyncing: state.isSyncing,
+      pendingChanges: state.pendingChanges,
+      lastSyncTime: state.lastSyncTime,
+      mode: state.mode,
+      isDocumentInitialized: state.isInitialized,
+    })),
+  )
 
   const {
     participants,
@@ -79,43 +81,44 @@ export function useCollaborationPanelValue({
     collaborationError,
     shareEndedByRemote,
     acknowledgeRemoteShareEnd,
-  } = useCollaborationStore(useShallow(state => ({
-    participants: state.participants,
-    isSharing: state.isSharing,
-    isCollabConnecting: state.isConnecting,
-    collaborationConnectionPhase: state.phase,
-    shareUrl: state.shareUrl,
-    collaborationRole: state.role,
-    startSharing: state.startSharing,
-    stopSharing: state.stopSharing,
-    collaborationError: state.error,
-    shareEndedByRemote: state.shareEndedByRemote,
-    acknowledgeRemoteShareEnd: state.acknowledgeRemoteShareEnd,
-  })))
+  } = useCollaborationStore(
+    useShallow((state) => ({
+      participants: state.participants,
+      isSharing: state.isSharing,
+      isCollabConnecting: state.isConnecting,
+      collaborationConnectionPhase: state.phase,
+      shareUrl: state.shareUrl,
+      collaborationRole: state.role,
+      startSharing: state.startSharing,
+      stopSharing: state.stopSharing,
+      collaborationError: state.error,
+      shareEndedByRemote: state.shareEndedByRemote,
+      acknowledgeRemoteShareEnd: state.acknowledgeRemoteShareEnd,
+    })),
+  )
 
   const participantCount = Object.keys(participants).length
 
   const collabDisabledReason = useMemo(() => {
-    if (mode !== 'online')
-      return '离线简历暂不支持实时协作'
-    if (!currentUser)
-      return '请先登录以启用实时协作'
-    if (!isDocumentInitialized)
-      return '数据加载中，请稍候'
+    if (mode !== 'online') return '离线简历暂不支持实时协作'
+    if (!currentUser) return '请先登录以启用实时协作'
+    if (!isDocumentInitialized) return '数据加载中，请稍候'
     return null
   }, [mode, currentUser, isDocumentInitialized])
 
-  const collaborationConnectionLabel = getConnectionPhaseLabel(collaborationConnectionPhase)
-  const shareButtonTooltip = collabDisabledReason
-    ?? collaborationConnectionLabel
-    ?? (isSharing ? '查看协作信息' : '开启实时协作')
+  const collaborationConnectionLabel = getConnectionPhaseLabel(
+    collaborationConnectionPhase,
+  )
+  const shareButtonTooltip =
+    collabDisabledReason ??
+    collaborationConnectionLabel ??
+    (isSharing ? '查看协作信息' : '开启实时协作')
   const canCopyLink = typeof navigator !== 'undefined' && !!navigator.clipboard
 
   const handleManualSync = useCallback(() => manualSync(), [manualSync])
 
   const handleStartSharing = useCallback(async () => {
-    if (!activeResumeId || !currentUser)
-      return
+    if (!activeResumeId || !currentUser) return
     try {
       await startSharing({
         resumeId: activeResumeId,
@@ -130,12 +133,17 @@ export function useCollaborationPanelValue({
         params.delete('docUrl')
         setSearchParams(params, { replace: true })
       }
-    }
-    catch (error: unknown) {
+    } catch (error: unknown) {
       const msg = getErrorMessage(error, '')
       toast.error(`开启实时协作失败，请稍后重试${msg ? `: ${msg}` : ''}`)
     }
-  }, [activeResumeId, currentUser, setSearchParams, startSharing, userDisplayName])
+  }, [
+    activeResumeId,
+    currentUser,
+    setSearchParams,
+    startSharing,
+    userDisplayName,
+  ])
 
   const handleStopSharing = useCallback(async () => {
     try {
@@ -150,19 +158,24 @@ export function useCollaborationPanelValue({
       const params = new URLSearchParams(window.location.search)
       params.delete('collabSession')
       params.delete('docUrl')
-      if (activeResumeId)
-        params.set('resumeId', activeResumeId)
+      if (activeResumeId) params.set('resumeId', activeResumeId)
       setSearchParams(params, { replace: true })
       setCollabDialogOpen(false)
+    } catch (error: unknown) {
+      toast.error(
+        `停止实时协作失败，请重试: ${getErrorMessage(error, '未知错误')}`,
+      )
     }
-    catch (error: unknown) {
-      toast.error(`停止实时协作失败，请重试: ${getErrorMessage(error, '未知错误')}`)
-    }
-  }, [activeResumeId, collaborationRole, navigate, setSearchParams, stopSharing])
+  }, [
+    activeResumeId,
+    collaborationRole,
+    navigate,
+    setSearchParams,
+    stopSharing,
+  ])
 
   const handleCopyShareLink = useCallback(() => {
-    if (!shareUrl)
-      return
+    if (!shareUrl) return
     if (!canCopyLink) {
       toast.info('请手动复制链接')
       return
@@ -173,23 +186,29 @@ export function useCollaborationPanelValue({
       .catch(() => toast.error('复制失败，请手动复制'))
   }, [canCopyLink, shareUrl])
 
-  const canStartSharing = Boolean(activeResumeId && currentUser && !collabDisabledReason && !isCollabConnecting)
+  const canStartSharing = Boolean(
+    activeResumeId &&
+    currentUser &&
+    !collabDisabledReason &&
+    !isCollabConnecting,
+  )
 
   useEffect(() => {
-    if (!shareEndedByRemote)
-      return
+    if (!shareEndedByRemote) return
     acknowledgeRemoteShareEnd()
     navigate('/resume', { replace: true })
   }, [acknowledgeRemoteShareEnd, navigate, shareEndedByRemote])
 
-  const openCollaborationDialog = useCallback(() => setCollabDialogOpen(true), [])
+  const openCollaborationDialog = useCallback(
+    () => setCollabDialogOpen(true),
+    [],
+  )
   const closeCollaborationDialog = useCallback(() => {
     if (!useCollaborationStore.getState().isConnecting)
       setCollabDialogOpen(false)
   }, [])
   const setCollaborationDialogOpen = useCallback((open: boolean) => {
-    if (!open && useCollaborationStore.getState().isConnecting)
-      return
+    if (!open && useCollaborationStore.getState().isConnecting) return
     setCollabDialogOpen(open)
   }, [])
 

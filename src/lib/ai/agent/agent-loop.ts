@@ -3,7 +3,10 @@ import type { AiMessage, AiMessagePart, AiSkillActivity } from '../types.ts'
 import type { StreamUsage } from './stream-parser'
 import type { AgentTool } from './tool-registry.ts'
 import { getSkillReferences } from '../skills/references.ts'
-import { buildSkillCatalogContext, createSkillRuntime } from '../skills/runtime.ts'
+import {
+  buildSkillCatalogContext,
+  createSkillRuntime,
+} from '../skills/runtime.ts'
 import { serializeAiToolValue } from './serialize-tool-value'
 import { StreamParser } from './stream-parser.ts'
 import { toApiMessages } from './to-api-messages.ts'
@@ -17,9 +20,24 @@ export interface AgentCallbacks {
   onReasoning?: (full: string) => void
   onText?: (full: string) => void
   // 流式期间：一旦解析出工具函数名即触发（每个工具仅首次触发一次），用于即时上屏 pending 轨迹行
-  onToolCallPending?: (call: { id: string, name: string, step?: number }) => void
-  onToolCallStart?: (call: { id: string, name: string, args: Record<string, unknown>, awaitingConfirm?: boolean, step?: number }) => void
-  onToolResult?: (id: string, result: unknown, isError: boolean, cancelled?: boolean) => void
+  onToolCallPending?: (call: {
+    id: string
+    name: string
+    step?: number
+  }) => void
+  onToolCallStart?: (call: {
+    id: string
+    name: string
+    args: Record<string, unknown>
+    awaitingConfirm?: boolean
+    step?: number
+  }) => void
+  onToolResult?: (
+    id: string,
+    result: unknown,
+    isError: boolean,
+    cancelled?: boolean,
+  ) => void
   // 累计 token 用量（本轮多步求和），每步结束回调一次
   onUsage?: (usage: StreamUsage) => void
 }
@@ -35,39 +53,62 @@ export interface AgentRunOptions {
 
 // 运行多步 agent，返回最终 assistant 消息的 parts（供落库）
 export interface AgentDependencies {
-  request?: (request: Record<string, unknown>, controller: AbortController) => Promise<AsyncIterable<ChatCompletionChunk>>
+  request?: (
+    request: Record<string, unknown>,
+    controller: AbortController,
+  ) => Promise<AsyncIterable<ChatCompletionChunk>>
   tools?: AgentTool[]
   skillLoaders?: Parameters<typeof createSkillRuntime>[0]['loaders']
 }
 
-export async function runAgent(options: AgentRunOptions, dependencies: AgentDependencies = {}): Promise<AiMessagePart[]> {
-  const { history, signal, thinking = false, maxSteps = 12, context, callbacks = {} } = options
+export async function runAgent(
+  options: AgentRunOptions,
+  dependencies: AgentDependencies = {},
+): Promise<AiMessagePart[]> {
+  const {
+    history,
+    signal,
+    thinking = false,
+    maxSteps = 12,
+    context,
+    callbacks = {},
+  } = options
   const finalParts: AiMessagePart[] = []
   const skillRuntime = createSkillRuntime({
     signal,
     loaders: dependencies.skillLoaders,
     onActivity: (activity) => {
-      const index = finalParts.findIndex(part => part.type === 'skill-activity' && part.id === activity.id)
-      if (index < 0)
-        finalParts.push(activity)
-      else
-        finalParts[index] = activity
+      const index = finalParts.findIndex(
+        (part) => part.type === 'skill-activity' && part.id === activity.id,
+      )
+      if (index < 0) finalParts.push(activity)
+      else finalParts[index] = activity
       callbacks.onSkillActivity?.(activity)
     },
   })
-  const lastUser = [...history].reverse().find(message => message.role === 'user')
-  const skillContext = await skillRuntime.loadExplicit(lastUser ? getSkillReferences(lastUser.parts) : [])
-  const apiMessages = toApiMessages(history, [context, buildSkillCatalogContext(), skillContext].filter(Boolean).join('\n\n'))
+  const lastUser = [...history]
+    .reverse()
+    .find((message) => message.role === 'user')
+  const skillContext = await skillRuntime.loadExplicit(
+    lastUser ? getSkillReferences(lastUser.parts) : [],
+  )
+  const apiMessages = toApiMessages(
+    history,
+    [context, buildSkillCatalogContext(), skillContext]
+      .filter(Boolean)
+      .join('\n\n'),
+  )
   const tools = [...(dependencies.tools ?? getTools()), ...skillRuntime.tools]
-  const requestLLM = dependencies.request ?? (async (request, controller) => {
-    const { callLLM } = await import('../../llm/call.ts')
-    return callLLM(request as any, controller)
-  })
+  const requestLLM =
+    dependencies.request ??
+    (async (request, controller) => {
+      const { callLLM } = await import('../../llm/call.ts')
+      return callLLM(request as any, controller)
+    })
   const cumulativeUsage: StreamUsage = { input: 0, output: 0, total: 0 }
 
   for (let step = 0; step < maxSteps; step++) {
-    if (signal.aborted)
-      throw new DOMException('aborted', 'AbortError')
+    if (signal.aborted) throw new DOMException('aborted', 'AbortError')
 
     const parser = new StreamParser({
       onReasoning: (_d, full) => callbacks.onReasoning?.(full),
@@ -84,16 +125,14 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
     const requestController = new AbortController()
     const abortRequest = () => requestController.abort()
     signal.addEventListener('abort', abortRequest, { once: true })
-    if (signal.aborted)
-      requestController.abort()
+    if (signal.aborted) requestController.abort()
 
     try {
       const stream = await requestLLM(req, requestController)
 
       const seenPendingTools = new Set<string>()
       for await (const chunk of stream) {
-        if (signal.aborted)
-          throw new DOMException('aborted', 'AbortError')
+        if (signal.aborted) throw new DOMException('aborted', 'AbortError')
         parser.push(chunk)
         // 仅在 id 已就绪时上屏（避免 idx-N 兜底 key 与 onToolCallStart 真实 id 不匹配产生重复行）
         for (const p of parser.pendingToolCalls()) {
@@ -103,8 +142,7 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
           }
         }
       }
-    }
-    finally {
+    } finally {
       signal.removeEventListener('abort', abortRequest)
     }
 
@@ -117,8 +155,7 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
       callbacks.onUsage?.({ ...cumulativeUsage })
     }
 
-    if (reasoning)
-      finalParts.push({ type: 'reasoning', text: reasoning })
+    if (reasoning) finalParts.push({ type: 'reasoning', text: reasoning })
 
     // 需要调用工具
     if (finishReason === 'tool_calls' && toolCalls.length > 0) {
@@ -129,19 +166,17 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
         role: 'assistant',
         content: text || null,
         reasoning_content: reasoning || undefined,
-        tool_calls: toolCalls.map(tc => ({
+        tool_calls: toolCalls.map((tc) => ({
           id: tc.id,
           type: 'function',
           function: { name: tc.name, arguments: serializeAiToolValue(tc.args) },
         })),
       } as any)
-      if (text)
-        finalParts.push({ type: 'text', text })
+      if (text) finalParts.push({ type: 'text', text })
 
       for (const tc of toolCalls) {
-        if (signal.aborted)
-          throw new DOMException('aborted', 'AbortError')
-        const tool = tools.find(tool => tool.name === tc.name)
+        if (signal.aborted) throw new DOMException('aborted', 'AbortError')
+        const tool = tools.find((tool) => tool.name === tc.name)
         const isWrite = tool?.mode === 'write'
         callbacks.onToolCallStart?.({ ...tc, awaitingConfirm: isWrite, step })
         let result: unknown
@@ -150,21 +185,16 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
         if (!tool) {
           result = { error: `工具不存在: ${tc.name}` }
           isError = true
-        }
-        else {
+        } else {
           try {
             result = await tool.execute(tc.args, { signal })
             if (result && typeof result === 'object') {
               const obj = result as Record<string, unknown>
-              if ('error' in obj)
-                isError = true
-              if ('cancelled' in obj && obj.cancelled)
-                cancelled = true
+              if ('error' in obj) isError = true
+              if ('cancelled' in obj && obj.cancelled) cancelled = true
             }
-          }
-          catch (e) {
-            if (signal.aborted)
-              throw e
+          } catch (e) {
+            if (signal.aborted) throw e
             result = { error: e instanceof Error ? e.message : '工具执行失败' }
             isError = true
           }
@@ -179,19 +209,25 @@ export async function runAgent(options: AgentRunOptions, dependencies: AgentDepe
           result,
           state: isError ? 'error' : cancelled ? 'cancelled' : 'result',
         })
-        apiMessages.push({ role: 'tool', content: serializeAiToolValue(result), tool_call_id: tc.id } as any)
+        apiMessages.push({
+          role: 'tool',
+          content: serializeAiToolValue(result),
+          tool_call_id: tc.id,
+        } as any)
       }
       // 继续下一轮
       continue
     }
 
     // 正常结束
-    if (text)
-      finalParts.push({ type: 'text', text })
+    if (text) finalParts.push({ type: 'text', text })
     return finalParts
   }
 
   // 到达步数上限
-  finalParts.push({ type: 'text', text: '（已达到工具调用步数上限，以上为当前进展）' })
+  finalParts.push({
+    type: 'text',
+    text: '（已达到工具调用步数上限，以上为当前进展）',
+  })
   return finalParts
 }

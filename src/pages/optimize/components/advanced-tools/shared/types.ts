@@ -1,7 +1,11 @@
 import type { ResumeSchema } from '@/lib/schema'
 import type { AtsEvaluationResult } from '@/pages/optimize/types'
 
-export type AdvancedToolKey = 'job-description' | 'formatter' | 'ats-preview' | 'benchmark'
+export type AdvancedToolKey =
+  | 'job-description'
+  | 'formatter'
+  | 'ats-preview'
+  | 'benchmark'
 
 export interface ResumeToolContext {
   resumeId: string
@@ -22,4 +26,10 @@ export interface AdvancedToolDefinition {
   description?: string
 }
 
-export type ToolTone = 'default' | 'danger' | 'info' | 'primary' | 'success' | 'warning'
+export type ToolTone =
+  | 'default'
+  | 'danger'
+  | 'info'
+  | 'primary'
+  | 'success'
+  | 'warning'

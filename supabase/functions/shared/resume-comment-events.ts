@@ -7,7 +7,7 @@ const REALTIME_BUCKET_SECONDS = 15 * 60
 interface RealtimeChannel {
   httpSend: (
     event: 'invalidate',
-    payload: { eventSeq: number, type: string },
+    payload: { eventSeq: number; type: string },
   ) => Promise<unknown>
   unsubscribe: () => Promise<unknown>
 }
@@ -18,8 +18,7 @@ export interface RealtimeAdminClient {
 
 function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = ''
-  for (const byte of bytes)
-    binary += String.fromCharCode(byte)
+  for (const byte of bytes) binary += String.fromCharCode(byte)
   return btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
@@ -38,7 +37,10 @@ async function topicDigest(value: string, secret: string): Promise<string> {
   return bytesToBase64Url(new Uint8Array(digest))
 }
 
-function currentBucket(nowSeconds: number): { bucket: number, expiresAt: number } {
+function currentBucket(nowSeconds: number): {
+  bucket: number
+  expiresAt: number
+} {
   const bucket = Math.floor(nowSeconds / REALTIME_BUCKET_SECONDS)
   return {
     bucket,
@@ -120,13 +122,14 @@ export async function broadcastCommentInvalidation({
   eventSeq: number
   type: string
 }) {
-  await Promise.allSettled(topics.map(async (topic) => {
-    const channel = admin.channel(topic)
-    try {
-      await channel.httpSend('invalidate', { eventSeq, type })
-    }
-    finally {
-      await channel.unsubscribe()
-    }
-  }))
+  await Promise.allSettled(
+    topics.map(async (topic) => {
+      const channel = admin.channel(topic)
+      try {
+        await channel.httpSend('invalidate', { eventSeq, type })
+      } finally {
+        await channel.unsubscribe()
+      }
+    }),
+  )
 }

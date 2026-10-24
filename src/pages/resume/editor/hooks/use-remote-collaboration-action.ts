@@ -24,71 +24,79 @@ export function useRemoteCollaborationAction({
   suppressScrollSync,
   animateRemoteScrollTo,
 }: UseRemoteCollaborationActionOptions) {
-  const replaceConfig = useResumeConfigStore(state => state.replaceConfig)
+  const replaceConfig = useResumeConfigStore((state) => state.replaceConfig)
   const releaseApplyingFrameRef = useRef<number | null>(null)
 
-  const handleRemoteAction = useCallback((payload: UIActionBroadcastPayload) => {
-    if (!followMode) {
-      return
-    }
+  const handleRemoteAction = useCallback(
+    (payload: UIActionBroadcastPayload) => {
+      if (!followMode) {
+        return
+      }
 
-    isApplyingRemote.current = true
+      isApplyingRemote.current = true
 
-    switch (payload.action.kind) {
-      case 'drawer-toggle':
-        setDrawerOpen(payload.action.open)
-        toast.info(`${payload.userName} ${payload.action.open ? '打开' : '关闭'}了编辑抽屉`, {
-          duration: 2000,
-          position: 'bottom-left',
-        })
-        break
+      switch (payload.action.kind) {
+        case 'drawer-toggle':
+          setDrawerOpen(payload.action.open)
+          toast.info(
+            `${payload.userName} ${payload.action.open ? '打开' : '关闭'}了编辑抽屉`,
+            {
+              duration: 2000,
+              position: 'bottom-left',
+            },
+          )
+          break
 
-      case 'tab-switch':
-        updateActiveTabId(payload.action.tabId)
-        break
+        case 'tab-switch':
+          updateActiveTabId(payload.action.tabId)
+          break
 
-      case 'section-toggle':
-        useResumeStore.getState().setSectionOpen(payload.action.tabId, payload.action.open)
-        break
+        case 'section-toggle':
+          useResumeStore
+            .getState()
+            .setSectionOpen(payload.action.tabId, payload.action.open)
+          break
 
-      case 'config-spacing':
-        replaceConfig({ spacing: payload.action.data })
-        break
+        case 'config-spacing':
+          replaceConfig({ spacing: payload.action.data })
+          break
 
-      case 'config-font':
-        replaceConfig({ font: payload.action.data })
-        break
+        case 'config-font':
+          replaceConfig({ font: payload.action.data })
+          break
 
-      case 'config-theme':
-        replaceConfig({ theme: payload.action.data })
-        toast.info(`${payload.userName} 更改了主题`, {
-          duration: 1500,
-          position: 'bottom-left',
-        })
-        break
+        case 'config-theme':
+          replaceConfig({ theme: payload.action.data })
+          toast.info(`${payload.userName} 更改了主题`, {
+            duration: 1500,
+            position: 'bottom-left',
+          })
+          break
 
-      case 'scroll':
-        suppressScrollSync()
-        animateRemoteScrollTo(payload.action.target, payload.action.position)
-        break
-    }
+        case 'scroll':
+          suppressScrollSync()
+          animateRemoteScrollTo(payload.action.target, payload.action.position)
+          break
+      }
 
-    if (releaseApplyingFrameRef.current !== null) {
-      cancelAnimationFrame(releaseApplyingFrameRef.current)
-    }
-    releaseApplyingFrameRef.current = requestAnimationFrame(() => {
-      releaseApplyingFrameRef.current = null
-      isApplyingRemote.current = false
-    })
-  }, [
-    animateRemoteScrollTo,
-    followMode,
-    isApplyingRemote,
-    replaceConfig,
-    setDrawerOpen,
-    suppressScrollSync,
-    updateActiveTabId,
-  ])
+      if (releaseApplyingFrameRef.current !== null) {
+        cancelAnimationFrame(releaseApplyingFrameRef.current)
+      }
+      releaseApplyingFrameRef.current = requestAnimationFrame(() => {
+        releaseApplyingFrameRef.current = null
+        isApplyingRemote.current = false
+      })
+    },
+    [
+      animateRemoteScrollTo,
+      followMode,
+      isApplyingRemote,
+      replaceConfig,
+      setDrawerOpen,
+      suppressScrollSync,
+      updateActiveTabId,
+    ],
+  )
 
   useEffect(() => {
     return () => {

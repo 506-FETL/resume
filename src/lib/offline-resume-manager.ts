@@ -9,14 +9,27 @@
 
 import type { DBSchema, IDBPDatabase } from 'idb'
 import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
-import type { DerivedStatus, PersistedResumeSnapshot, ResumeAppearanceConfig, ResumeType, VariantChange, VariantMetadata } from '@/lib/schema'
-import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/variant'
+import type {
+  DerivedStatus,
+  PersistedResumeSnapshot,
+  ResumeAppearanceConfig,
+  ResumeType,
+  VariantChange,
+  VariantMetadata,
+} from '@/lib/schema'
+import type {
+  VariantLineage,
+  VariantTreeNode,
+} from '@/lib/supabase/resume/variant'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
 import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
 import { resolveDefaultTemplateBinding } from '@/lib/resume-template/runtime/default-selection'
-import { DEFAULT_RESUME_APPEARANCE, normalizeResumeAppearance } from '@/lib/schema'
+import {
+  DEFAULT_RESUME_APPEARANCE,
+  normalizeResumeAppearance,
+} from '@/lib/schema'
 
 const MAX_VARIANT_TREE_DEPTH = 5
 
@@ -53,13 +66,19 @@ const DB_VERSION = 2
 let dbInstance: IDBPDatabase<ResumeDB> | null = null
 const LEGACY_STORAGE_KEY = 'resume-config-storage'
 
-function hasPersistedAppearance(data: unknown): data is Partial<ResumeAppearanceConfig> {
+function hasPersistedAppearance(
+  data: unknown,
+): data is Partial<ResumeAppearanceConfig> {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     return false
   }
 
   const record = data as Record<string, unknown>
-  return record.spacing !== undefined || record.font !== undefined || record.theme !== undefined
+  return (
+    record.spacing !== undefined ||
+    record.font !== undefined ||
+    record.theme !== undefined
+  )
 }
 
 function readLegacyLocalAppearance(): ResumeAppearanceConfig | null {
@@ -75,13 +94,14 @@ function readLegacyLocalAppearance(): ResumeAppearanceConfig | null {
   try {
     const parsed = JSON.parse(raw)
     return normalizeResumeAppearance(parsed?.state)
-  }
-  catch {
+  } catch {
     return null
   }
 }
 
-function hydrateOfflineResumeData(data: Partial<PersistedResumeSnapshot> | undefined): Partial<PersistedResumeSnapshot> {
+function hydrateOfflineResumeData(
+  data: Partial<PersistedResumeSnapshot> | undefined,
+): Partial<PersistedResumeSnapshot> {
   if (hasPersistedAppearance(data)) {
     return data
   }
@@ -101,11 +121,16 @@ async function hydrateOfflineResumeRecord(
     return resume
   }
 
-  if (hasPersistedAppearance(resume.data) && readResumeListTemplateBinding(resume.data?.templateBinding)) {
+  if (
+    hasPersistedAppearance(resume.data) &&
+    readResumeListTemplateBinding(resume.data?.templateBinding)
+  ) {
     return resume
   }
   // 网络等待发生在事务之外；随后重读，防止覆盖其他标签页刚保存的正文或模板。
-  const binding = await resolveDefaultTemplateBinding(resume.data?.templateBinding)
+  const binding = await resolveDefaultTemplateBinding(
+    resume.data?.templateBinding,
+  )
   const tx = db.transaction('resumes', 'readwrite')
   const latest = await tx.store.get(resume.resume_id)
   if (!latest) {
@@ -116,7 +141,8 @@ async function hydrateOfflineResumeRecord(
     ...latest,
     data: {
       ...hydrateOfflineResumeData(latest.data),
-      templateBinding: readResumeListTemplateBinding(latest.data?.templateBinding) ?? binding,
+      templateBinding:
+        readResumeListTemplateBinding(latest.data?.templateBinding) ?? binding,
     },
   }
   await tx.store.put(nextResume)
@@ -128,13 +154,14 @@ async function hydrateOfflineResumeRecord(
  * 获取或创建数据库实例
  */
 async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
-  if (dbInstance)
-    return dbInstance
+  if (dbInstance) return dbInstance
 
   const connection = await openDB<ResumeDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
-        const resumeStore = db.createObjectStore('resumes', { keyPath: 'resume_id' })
+        const resumeStore = db.createObjectStore('resumes', {
+          keyPath: 'resume_id',
+        })
         resumeStore.createIndex('created_at', 'created_at')
         resumeStore.createIndex('updated_at', 'updated_at')
       }
@@ -153,13 +180,25 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
     try {
       const transaction = existing.transaction('resumes', 'readonly')
       const store = transaction.store
-      const indexes = ['created_at', 'updated_at', 'parent_resume_id', 'derived_status'] as const
-      if (store.keyPath !== 'resume_id' || indexes.some(name => !store.indexNames.contains(name) || store.index(name).keyPath !== name || store.index(name).unique))
+      const indexes = [
+        'created_at',
+        'updated_at',
+        'parent_resume_id',
+        'derived_status',
+      ] as const
+      if (
+        store.keyPath !== 'resume_id' ||
+        indexes.some(
+          (name) =>
+            !store.indexNames.contains(name) ||
+            store.index(name).keyPath !== name ||
+            store.index(name).unique,
+        )
+      )
         throw new Error('本地简历数据库结构不兼容，已有数据已保留')
       await transaction.done
       return existing
-    }
-    catch (error) {
+    } catch (error) {
       existing.close()
       throw error
     }
@@ -169,14 +208,12 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
   // 当其他标签页升级数据库版本时，关闭当前连接以避免阻塞
   connection.onversionchange = () => {
     connection.close()
-    if (dbInstance === connection)
-      dbInstance = null
+    if (dbInstance === connection) dbInstance = null
   }
 
   // 异常关闭时清除缓存引用，下次访问会重新打开
   connection.onclose = () => {
-    if (dbInstance === connection)
-      dbInstance = null
+    if (dbInstance === connection) dbInstance = null
   }
 
   return connection
@@ -195,15 +232,26 @@ function generateResumeId(): string {
 export async function getAllOfflineResumes() {
   const db = await getDB()
   const resumes = await db.getAllFromIndex('resumes', 'created_at')
-  const hydratedResumes = (await Promise.all(resumes.map(resume => hydrateOfflineResumeRecord(db, resume))))
-    .filter((resume): resume is OfflineResumeRecord => Boolean(resume))
+  const hydratedResumes = (
+    await Promise.all(
+      resumes.map((resume) => hydrateOfflineResumeRecord(db, resume)),
+    )
+  ).filter((resume): resume is OfflineResumeRecord => Boolean(resume))
 
   // 按创建时间倒序排列
-  return hydratedResumes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  return hydratedResumes.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  )
 }
 
-export async function createOfflineResumeFromSnapshot(prepared: PreparedResumeCreation) {
-  if (prepared.mode !== 'local' || prepared.resumeId !== `local-${prepared.operationId}`)
+export async function createOfflineResumeFromSnapshot(
+  prepared: PreparedResumeCreation,
+) {
+  if (
+    prepared.mode !== 'local' ||
+    prepared.resumeId !== `local-${prepared.operationId}`
+  )
     throw new Error('本地创建操作无效')
   const db = await getDB()
   const now = dayjs().toISOString()
@@ -255,7 +303,10 @@ export async function updateOfflineResume(
 /**
  * 更新简历元信息
  */
-export async function updateOfflineResumeMeta(resumeId: string, meta: { display_name?: string, description?: string }) {
+export async function updateOfflineResumeMeta(
+  resumeId: string,
+  meta: { display_name?: string; description?: string },
+) {
   const db = await getDB()
   const resume = await db.get('resumes', resumeId)
 
@@ -263,10 +314,8 @@ export async function updateOfflineResumeMeta(resumeId: string, meta: { display_
     throw new Error('简历不存在')
   }
 
-  if (meta.display_name !== undefined)
-    resume.display_name = meta.display_name
-  if (meta.description !== undefined)
-    resume.description = meta.description
+  if (meta.display_name !== undefined) resume.display_name = meta.display_name
+  if (meta.description !== undefined) resume.description = meta.description
   resume.updated_at = dayjs().toISOString()
 
   await db.put('resumes', resume)
@@ -300,14 +349,26 @@ export async function clearAllOfflineResumes() {
  * 用于登录后同步本地数据
  */
 export async function migrateOfflineResumesToCloud(
-  uploadFn: (resume: { display_name: string, description?: string, type: ResumeType, data: Partial<PersistedResumeSnapshot> }) => Promise<string>,
+  uploadFn: (resume: {
+    display_name: string
+    description?: string
+    type: ResumeType
+    data: Partial<PersistedResumeSnapshot>
+  }) => Promise<string>,
   selectedIds?: string[],
-): Promise<{ success: number, failed: number, errors: string[], successIds: string[] }> {
+): Promise<{
+  success: number
+  failed: number
+  errors: string[]
+  successIds: string[]
+}> {
   let offlineResumes = await getAllOfflineResumes()
 
   // 如果指定了选择的ID，只迁移这些简历
   if (selectedIds && selectedIds.length > 0) {
-    offlineResumes = offlineResumes.filter(r => selectedIds.includes(r.resume_id))
+    offlineResumes = offlineResumes.filter((r) =>
+      selectedIds.includes(r.resume_id),
+    )
   }
 
   if (offlineResumes.length === 0) {
@@ -333,8 +394,7 @@ export async function migrateOfflineResumesToCloud(
       await deleteOfflineResume(resume.resume_id)
       success++
       successIds.push(resume.resume_id)
-    }
-    catch (error) {
+    } catch (error) {
       failed++
       const errorMsg = error instanceof Error ? error.message : '未知错误'
       errors.push(`${resume.display_name}: ${errorMsg}`)
@@ -451,7 +511,8 @@ export async function applyOfflineVariantChanges(
   if (!draft) {
     throw new Error('草稿不存在')
   }
-  let snapshot: Partial<PersistedResumeSnapshot> = (draft.data ?? {}) as Partial<PersistedResumeSnapshot>
+  let snapshot: Partial<PersistedResumeSnapshot> = (draft.data ??
+    {}) as Partial<PersistedResumeSnapshot>
   for (const change of changes) {
     snapshot = applyVariantChange(snapshot, change)
   }
@@ -469,7 +530,12 @@ export async function applyOfflineVariantChanges(
  */
 export async function markOfflineVariantReady(
   draftResumeId: string,
-  args: { matchRate: number, generatedAt: string, changes?: VariantChange[], keywords?: string[] },
+  args: {
+    matchRate: number
+    generatedAt: string
+    changes?: VariantChange[]
+    keywords?: string[]
+  },
 ): Promise<void> {
   const db = await getDB()
   const draft = await db.get('resumes', draftResumeId)
@@ -491,7 +557,10 @@ export async function markOfflineVariantReady(
 /**
  * 将 draft 标记为 failed 并写入错误描述
  */
-export async function markOfflineVariantFailed(draftResumeId: string, message: string): Promise<void> {
+export async function markOfflineVariantFailed(
+  draftResumeId: string,
+  message: string,
+): Promise<void> {
   const db = await getDB()
   const draft = await db.get('resumes', draftResumeId)
   if (!draft) {
@@ -506,7 +575,9 @@ export async function markOfflineVariantFailed(draftResumeId: string, message: s
 /**
  * 删除离线 draft 简历
  */
-export async function deleteOfflineDraftVariant(draftResumeId: string): Promise<void> {
+export async function deleteOfflineDraftVariant(
+  draftResumeId: string,
+): Promise<void> {
   const db = await getDB()
   await db.delete('resumes', draftResumeId)
 }
@@ -516,10 +587,12 @@ export async function deleteOfflineDraftVariant(draftResumeId: string): Promise<
  * - 先沿 parent 链向上找到真正的 root（visited 防环，无步数上限）
  * - 再从 root 向下 BFS 构建子树（深度上限 MAX_VARIANT_TREE_DEPTH）
  */
-export async function fetchOfflineVariantTree(currentResumeId: string): Promise<VariantLineage> {
+export async function fetchOfflineVariantTree(
+  currentResumeId: string,
+): Promise<VariantLineage> {
   const db = await getDB()
   const all = await db.getAll('resumes')
-  const byId = new Map(all.map(r => [r.resume_id, r]))
+  const byId = new Map(all.map((r) => [r.resume_id, r]))
 
   const visited = new Set<string>()
   let walker: string | null = currentResumeId
@@ -540,8 +613,7 @@ export async function fetchOfflineVariantTree(currentResumeId: string): Promise<
     const list = childrenByParent.get(parentId)
     if (list) {
       list.push(record)
-    }
-    else {
+    } else {
       childrenByParent.set(parentId, [record])
     }
   }
@@ -552,7 +624,8 @@ export async function fetchOfflineVariantTree(currentResumeId: string): Promise<
     if (!r) {
       throw new Error('简历节点不存在')
     }
-    const childRecords = lvl >= MAX_VARIANT_TREE_DEPTH ? [] : (childrenByParent.get(id) ?? [])
+    const childRecords =
+      lvl >= MAX_VARIANT_TREE_DEPTH ? [] : (childrenByParent.get(id) ?? [])
     const children: VariantTreeNode[] = []
     for (const c of childRecords) {
       if (seen.has(c.resume_id)) {

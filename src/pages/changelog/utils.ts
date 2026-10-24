@@ -4,12 +4,12 @@ import { formatDate } from '@/utils/date'
 
 const modules = import.meta.glob('./content/*.mdx', { eager: true }) as Record<
   string,
-  { default: MDXContent, frontmatter: ChangelogFrontmatter }
+  { default: MDXContent; frontmatter: ChangelogFrontmatter }
 >
 
 export function loadChangelogEntries(): ChangelogEntry[] {
   return Object.values(modules)
-    .map(mod => ({
+    .map((mod) => ({
       frontmatter: mod.frontmatter,
       Content: mod.default,
     }))

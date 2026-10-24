@@ -31,15 +31,13 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
 )
 
 function getSystemTheme(): ResolvedTheme {
-  if (typeof window === 'undefined')
-    return 'light'
+  if (typeof window === 'undefined') return 'light'
 
   return window.matchMedia(COLOR_SCHEME_QUERY).matches ? 'dark' : 'light'
 }
 
 function getStoredTheme(storageKey: string, defaultTheme: Theme): Theme {
-  if (typeof window === 'undefined')
-    return defaultTheme
+  if (typeof window === 'undefined') return defaultTheme
 
   const storedTheme = window.localStorage.getItem(storageKey)
   return THEME_STORAGE_VALUES.includes(storedTheme as Theme)
@@ -58,8 +56,7 @@ export function ThemeProvider({
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme)
 
   useEffect(() => {
-    if (typeof window === 'undefined')
-      return
+    if (typeof window === 'undefined') return
 
     const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY)
     const handleChange = (event: MediaQueryListEvent) => {
@@ -87,8 +84,7 @@ export function ThemeProvider({
   )
 
   useEffect(() => {
-    if (typeof window === 'undefined')
-      return
+    if (typeof window === 'undefined') return
 
     const root = window.document.documentElement
 

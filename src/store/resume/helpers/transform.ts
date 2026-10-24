@@ -1,8 +1,24 @@
-import type { FormDataMap, PersistableResumeState, ResumeFormPayload } from '../const'
+import type {
+  FormDataMap,
+  PersistableResumeState,
+  ResumeFormPayload,
+} from '../const'
 import type { AutomergeResumeDocument } from '@/lib/automerge'
-import type { PersistedResumeSnapshot, ResumeAppearancePatch } from '@/lib/schema'
+import type {
+  PersistedResumeSnapshot,
+  ResumeAppearancePatch,
+} from '@/lib/schema'
 import { get } from 'lodash'
-import { DEFAULT_ORDER, DEFAULT_VISIBILITY, migrateOrder, migrateVisibility, normalizeResumeAppearance, normalizeResumeSection, normalizeResumeType, resolveResumeTemplateBinding } from '@/lib/schema'
+import {
+  DEFAULT_ORDER,
+  DEFAULT_VISIBILITY,
+  migrateOrder,
+  migrateVisibility,
+  normalizeResumeAppearance,
+  normalizeResumeSection,
+  normalizeResumeType,
+  resolveResumeTemplateBinding,
+} from '@/lib/schema'
 import { FORM_DATA_KEYS, FORM_FIELD_DEFAULTS } from '../const'
 import { sanitizeDeep } from './sanitize'
 
@@ -14,7 +30,9 @@ export function setFormDataField<K extends keyof FormDataMap>(
   target[key] = value
 }
 
-export function mapSnapshotToState(snapshot: PersistedResumeSnapshot): PersistableResumeState {
+export function mapSnapshotToState(
+  snapshot: PersistedResumeSnapshot,
+): PersistableResumeState {
   const formData = {} as FormDataMap
 
   for (const key of FORM_DATA_KEYS) {
@@ -30,12 +48,15 @@ export function mapSnapshotToState(snapshot: PersistedResumeSnapshot): Persistab
   }
 }
 
-export function hasPersistedAppearance(source: unknown): source is ResumeAppearancePatch {
+export function hasPersistedAppearance(
+  source: unknown,
+): source is ResumeAppearancePatch {
   const record = source as Record<string, unknown> | null | undefined
-  return record != null && (
-    record.spacing !== undefined
-    || record.font !== undefined
-    || record.theme !== undefined
+  return (
+    record != null &&
+    (record.spacing !== undefined ||
+      record.font !== undefined ||
+      record.theme !== undefined)
   )
 }
 
@@ -61,8 +82,8 @@ export function mapSourceToPersistedSnapshot(
 
   for (const key of FORM_DATA_KEYS) {
     const { legacyKey } = FORM_FIELD_DEFAULTS[key]
-    const value = get(source, key)
-      ?? (legacyKey ? get(source, legacyKey) : undefined)
+    const value =
+      get(source, key) ?? (legacyKey ? get(source, legacyKey) : undefined)
     setFormDataField(
       formData,
       key,
@@ -73,14 +94,18 @@ export function mapSourceToPersistedSnapshot(
   return {
     ...formData,
     order: migrateOrder(sanitizeDeep(get(source, 'order', DEFAULT_ORDER))),
-    visibility: migrateVisibility(sanitizeDeep(get(source, 'visibility', DEFAULT_VISIBILITY))),
+    visibility: migrateVisibility(
+      sanitizeDeep(get(source, 'visibility', DEFAULT_VISIBILITY)),
+    ),
     type,
     templateBinding: resolveResumeTemplateBinding(templateBinding),
     ...normalizeResumeAppearance(source),
   }
 }
 
-export function getFormPayload(state: PersistableResumeState): ResumeFormPayload {
+export function getFormPayload(
+  state: PersistableResumeState,
+): ResumeFormPayload {
   const formData = {} as FormDataMap
 
   for (const key of FORM_DATA_KEYS) {

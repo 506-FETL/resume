@@ -33,26 +33,21 @@ export function FormFooter({
   size = 'sm',
   className,
 }: FormFooterProps) {
-  if (hidden)
-    return null
+  if (hidden) return null
 
   const disabled = saving || !isDirty
 
   return (
     <div className={cn('flex justify-end gap-2 border-t pt-3', className)}>
       <Button
-        variant="ghost"
+        variant='ghost'
         size={size}
         onClick={onCancel}
         disabled={disabled}
       >
         {cancelLabel}
       </Button>
-      <Button
-        size={size}
-        onClick={onSave}
-        disabled={disabled}
-      >
+      <Button size={size} onClick={onSave} disabled={disabled}>
         {saveLabel}
       </Button>
     </div>

@@ -7,7 +7,7 @@ function trimToNull(value: string | null | undefined) {
 
 function sanitizeSnapshot(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeSnapshot(item))
+    return value.map((item) => sanitizeSnapshot(item))
   }
 
   if (value && typeof value === 'object') {
@@ -23,7 +23,7 @@ function sanitizeSnapshot(value: unknown): unknown {
 
 function sortSnapshotKeys(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map(item => sortSnapshotKeys(item))
+    return value.map((item) => sortSnapshotKeys(item))
   }
 
   if (value && typeof value === 'object') {
@@ -52,7 +52,7 @@ export async function createResumeSnapshotHash(snapshot: ResumeSnapshot) {
   const encoded = new TextEncoder().encode(content)
   const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded)
   return Array.from(new Uint8Array(digest))
-    .map(value => value.toString(16).padStart(2, '0'))
+    .map((value) => value.toString(16).padStart(2, '0'))
     .join('')
 }
 

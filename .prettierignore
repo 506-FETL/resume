@@ -1,0 +1,28 @@
+# 构建产物、缓存与依赖
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.vite/
+.playwright-mcp/
+.superpowers/
+.worktrees/
+supabase/.temp/
+supabase/.branches/
+
+# 锁文件与外部技能
+pnpm-lock.yaml
+skills-lock.json
+skills/
+.agents/
+.agent/
+.cursor/
+.trae/
+.github/skills/
+.github/prompts/
+
+# 沿用共享 UI 和 Tiptap 生成组件的忽略范围
+src/components/ui/
+src/components/animate-ui/
+**/tiptap-*/**

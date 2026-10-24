@@ -1,6 +1,11 @@
 import type { JdVariantStore } from './types'
 import { create } from 'zustand'
-import { createAbortTask, createClearTask, createDiscardTask, createStartGenerate } from './generate'
+import {
+  createAbortTask,
+  createClearTask,
+  createDiscardTask,
+  createStartGenerate,
+} from './generate'
 
 const useJdVariantStore = create<JdVariantStore>()((set, get) => ({
   tasks: {},

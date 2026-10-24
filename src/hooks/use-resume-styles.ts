@@ -17,19 +17,22 @@ import useResumeConfigStore from '@/store/resume/config'
  *
  * @returns 包含 `font`、`spacing` 和 `theme` 的样式配置对象
  */
-export function useResumeStyles(appearanceOverride?: Partial<ResumeAppearanceConfig> | null) {
-  const storeSpacingConfig = useResumeConfigStore(state => state.spacing)
-  const storeFontConfig = useResumeConfigStore(state => state.font)
-  const storeThemeConfig = useResumeConfigStore(state => state.theme)
+export function useResumeStyles(
+  appearanceOverride?: Partial<ResumeAppearanceConfig> | null,
+) {
+  const storeSpacingConfig = useResumeConfigStore((state) => state.spacing)
+  const storeFontConfig = useResumeConfigStore((state) => state.font)
+  const storeThemeConfig = useResumeConfigStore((state) => state.theme)
 
   const appearance = useMemo(
-    () => appearanceOverride
-      ? normalizeResumeAppearance(appearanceOverride)
-      : {
-          spacing: storeSpacingConfig,
-          font: storeFontConfig,
-          theme: storeThemeConfig,
-        },
+    () =>
+      appearanceOverride
+        ? normalizeResumeAppearance(appearanceOverride)
+        : {
+            spacing: storeSpacingConfig,
+            font: storeFontConfig,
+            theme: storeThemeConfig,
+          },
     [appearanceOverride, storeFontConfig, storeSpacingConfig, storeThemeConfig],
   )
 

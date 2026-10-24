@@ -1,10 +1,25 @@
 import type { ResumeToolContext } from '../shared/types'
-import { Copy, FileText, List, Search, ShieldAlert, ShieldCheck, Type } from 'lucide-react'
+import {
+  Copy,
+  FileText,
+  List,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Type,
+} from 'lucide-react'
 import { useMemo } from 'react'
 import Markdown from 'react-markdown'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard, ToolStatsGrid } from '../shared/primitives'
+import {
+  ToolMetaBadge,
+  ToolPanelBody,
+  ToolPanelCard,
+  ToolPanelHeader,
+  ToolStatCard,
+  ToolStatsGrid,
+} from '../shared/primitives'
 import { buildAtsPreview } from './utils'
 
 interface AtsPreviewToolProps {
@@ -12,7 +27,10 @@ interface AtsPreviewToolProps {
 }
 
 function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
-  const preview = useMemo(() => buildAtsPreview(resumeContext.resume), [resumeContext])
+  const preview = useMemo(
+    () => buildAtsPreview(resumeContext.resume),
+    [resumeContext],
+  )
   const hasWarnings = preview.warnings.length > 0
   const RiskIcon = hasWarnings ? ShieldAlert : ShieldCheck
 
@@ -27,100 +45,107 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       <ToolPanelCard>
         <ToolPanelHeader
-          title="ATS 纯文本预览"
+          title='ATS 纯文本预览'
           icon={FileText}
-          badge={(
+          badge={
             <ToolMetaBadge tone={hasWarnings ? 'warning' : 'success'}>
-              {hasWarnings ? `${preview.warnings.length} 个风险提醒` : '结构稳定'}
+              {hasWarnings
+                ? `${preview.warnings.length} 个风险提醒`
+                : '结构稳定'}
             </ToolMetaBadge>
-          )}
+          }
         />
         <ToolPanelBody>
           <ToolStatsGrid>
             <ToolStatCard
-              label="有效能力证据"
+              label='有效能力证据'
               value={preview.stats.evidenceCount}
-              hint="工作、项目等经历中的有效内容"
+              hint='工作、项目等经历中的有效内容'
               icon={FileText}
-              tone="info"
-              badge={<ToolMetaBadge tone="info">结构信息</ToolMetaBadge>}
+              tone='info'
+              badge={<ToolMetaBadge tone='info'>结构信息</ToolMetaBadge>}
             />
             <ToolStatCard
-              label="文本行数"
+              label='文本行数'
               value={preview.stats.lineCount}
               icon={List}
-              tone="primary"
-              badge={<ToolMetaBadge tone="primary">阅读长度</ToolMetaBadge>}
+              tone='primary'
+              badge={<ToolMetaBadge tone='primary'>阅读长度</ToolMetaBadge>}
             />
             <ToolStatCard
-              label="字符数"
+              label='字符数'
               value={preview.stats.characterCount}
-              hint="不含空白的文本长度"
+              hint='不含空白的文本长度'
               icon={Type}
-              tone="default"
-              badge={<ToolMetaBadge tone="default">文本体量</ToolMetaBadge>}
+              tone='default'
+              badge={<ToolMetaBadge tone='default'>文本体量</ToolMetaBadge>}
             />
             <ToolStatCard
-              label="关键词数"
+              label='关键词数'
               value={preview.stats.keywordCount}
               icon={Search}
-              tone="success"
-              badge={<ToolMetaBadge tone="success">检索线索</ToolMetaBadge>}
+              tone='success'
+              badge={<ToolMetaBadge tone='success'>检索线索</ToolMetaBadge>}
             />
           </ToolStatsGrid>
         </ToolPanelBody>
       </ToolPanelCard>
 
-      <div className="grid gap-4 lg:grid-cols-[0.96fr_1.44fr]">
+      <div className='grid gap-4 lg:grid-cols-[0.96fr_1.44fr]'>
         <ToolPanelCard>
           <ToolPanelHeader
-            title="ATS 风险提醒"
+            title='ATS 风险提醒'
             icon={RiskIcon}
-            badge={(
+            badge={
               <ToolMetaBadge tone={hasWarnings ? 'warning' : 'success'}>
-                {hasWarnings ? `${preview.warnings.length} 项待关注` : '暂无明显风险'}
+                {hasWarnings
+                  ? `${preview.warnings.length} 项待关注`
+                  : '暂无明显风险'}
               </ToolMetaBadge>
-            )}
+            }
           />
           <ToolPanelBody>
-            <div className="space-y-3">
-              {hasWarnings
-                ? preview.warnings.map(warning => (
-                    <div key={warning} className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
-                      <ShieldAlert className="mt-0.5 size-4 shrink-0" />
-                      <span>{warning}</span>
-                    </div>
-                  ))
-                : (
-                    <div className="flex items-start gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm leading-6 text-green-700 dark:text-green-300">
-                      <ShieldCheck className="mt-0.5 size-4 shrink-0" />
-                      <span>当前没有检测到明显的 ATS 结构风险。</span>
-                    </div>
-                  )}
+            <div className='space-y-3'>
+              {hasWarnings ? (
+                preview.warnings.map((warning) => (
+                  <div
+                    key={warning}
+                    className='flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200'
+                  >
+                    <ShieldAlert className='mt-0.5 size-4 shrink-0' />
+                    <span>{warning}</span>
+                  </div>
+                ))
+              ) : (
+                <div className='flex items-start gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm leading-6 text-green-700 dark:text-green-300'>
+                  <ShieldCheck className='mt-0.5 size-4 shrink-0' />
+                  <span>当前没有检测到明显的 ATS 结构风险。</span>
+                </div>
+              )}
             </div>
           </ToolPanelBody>
         </ToolPanelCard>
 
         <ToolPanelCard>
           <ToolPanelHeader
-            title="纯文本预览"
+            title='纯文本预览'
             icon={FileText}
-            badge={<ToolMetaBadge tone="primary">ATS 解析视角</ToolMetaBadge>}
+            badge={<ToolMetaBadge tone='primary'>ATS 解析视角</ToolMetaBadge>}
           />
-          <ToolPanelBody className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <ToolMetaBadge tone="info">{`${preview.stats.evidenceCount} 条有效证据`}</ToolMetaBadge>
-              <ToolMetaBadge tone="success">{`${preview.stats.keywordCount} 个关键词`}</ToolMetaBadge>
-              <ToolMetaBadge tone="default">{`${preview.stats.lineCount} 行文本`}</ToolMetaBadge>
-              <Button size="xs" onClick={handleCopy}>
+          <ToolPanelBody className='space-y-4'>
+            <div className='flex flex-wrap gap-2'>
+              <ToolMetaBadge tone='info'>{`${preview.stats.evidenceCount} 条有效证据`}</ToolMetaBadge>
+              <ToolMetaBadge tone='success'>{`${preview.stats.keywordCount} 个关键词`}</ToolMetaBadge>
+              <ToolMetaBadge tone='default'>{`${preview.stats.lineCount} 行文本`}</ToolMetaBadge>
+              <Button size='xs' onClick={handleCopy}>
                 <Copy />
                 复制纯文本
               </Button>
             </div>
-            <div className="overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-4 text-[13px] leading-6 text-foreground [&_blockquote]:mb-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-background/80 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_h1]:mb-2 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mb-1 [&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:mb-3 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-background/80 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5">
+            <div className='overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-4 text-[13px] leading-6 text-foreground [&_blockquote]:mb-3 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-background/80 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_h1]:mb-2 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-medium [&_li]:mb-1 [&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:mb-3 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-background/80 [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5'>
               <Markdown>{preview.plainText || '暂无可预览内容'}</Markdown>
             </div>
           </ToolPanelBody>

@@ -7,16 +7,16 @@ export interface LegacyResumeEntryIdInput {
 
 function normalizeStableValue(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map(item => normalizeStableValue(item))
+    return value.map((item) => normalizeStableValue(item))
   }
 
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>
     return Object.fromEntries(
       Object.keys(record)
-        .filter(key => record[key] !== undefined)
+        .filter((key) => record[key] !== undefined)
         .sort()
-        .map(key => [key, normalizeStableValue(record[key])]),
+        .map((key) => [key, normalizeStableValue(record[key])]),
     )
   }
 
@@ -58,8 +58,8 @@ export function createLegacyResumeEntryId({
     sectionKey,
     value,
   })
-  const first = fnv1a32(payload, 0x811C9DC5)
-  const second = fnv1a32(payload, 0x9E3779B9)
+  const first = fnv1a32(payload, 0x811c9dc5)
+  const second = fnv1a32(payload, 0x9e3779b9)
 
   return `legacy_${toHex32(first)}${toHex32(second)}`
 }
@@ -103,14 +103,17 @@ export interface ResumeCommentAnchor {
   createdAtContentHash: string
 }
 
-export type ResumeCommentRelocationResult
-  = | {
-    status: 'anchored'
-    anchor: ResumeCommentAnchor
-    moved: boolean
-    contextChanged: boolean
-  }
-  | { status: 'detached', reason: 'node_missing' | 'quote_missing' | 'ambiguous' }
+export type ResumeCommentRelocationResult =
+  | {
+      status: 'anchored'
+      anchor: ResumeCommentAnchor
+      moved: boolean
+      contextChanged: boolean
+    }
+  | {
+      status: 'detached'
+      reason: 'node_missing' | 'quote_missing' | 'ambiguous'
+    }
 
 export interface CommentProjectedBlock {
   text: string
@@ -151,70 +154,17 @@ const HTML_BLOCK_TAGS = new Set([
 ])
 
 const SHA256_CONSTANTS = [
-  0x428A2F98,
-  0x71374491,
-  0xB5C0FBCF,
-  0xE9B5DBA5,
-  0x3956C25B,
-  0x59F111F1,
-  0x923F82A4,
-  0xAB1C5ED5,
-  0xD807AA98,
-  0x12835B01,
-  0x243185BE,
-  0x550C7DC3,
-  0x72BE5D74,
-  0x80DEB1FE,
-  0x9BDC06A7,
-  0xC19BF174,
-  0xE49B69C1,
-  0xEFBE4786,
-  0x0FC19DC6,
-  0x240CA1CC,
-  0x2DE92C6F,
-  0x4A7484AA,
-  0x5CB0A9DC,
-  0x76F988DA,
-  0x983E5152,
-  0xA831C66D,
-  0xB00327C8,
-  0xBF597FC7,
-  0xC6E00BF3,
-  0xD5A79147,
-  0x06CA6351,
-  0x14292967,
-  0x27B70A85,
-  0x2E1B2138,
-  0x4D2C6DFC,
-  0x53380D13,
-  0x650A7354,
-  0x766A0ABB,
-  0x81C2C92E,
-  0x92722C85,
-  0xA2BFE8A1,
-  0xA81A664B,
-  0xC24B8B70,
-  0xC76C51A3,
-  0xD192E819,
-  0xD6990624,
-  0xF40E3585,
-  0x106AA070,
-  0x19A4C116,
-  0x1E376C08,
-  0x2748774C,
-  0x34B0BCB5,
-  0x391C0CB3,
-  0x4ED8AA4A,
-  0x5B9CCA4F,
-  0x682E6FF3,
-  0x748F82EE,
-  0x78A5636F,
-  0x84C87814,
-  0x8CC70208,
-  0x90BEFFFA,
-  0xA4506CEB,
-  0xBEF9A3F7,
-  0xC67178F2,
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+  0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+  0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -244,8 +194,10 @@ export function normalizeCommentText(value: string): string {
 export function splitCommentGraphemes(value: string): string[] {
   const normalized = normalizeCommentText(value)
   return Array.from(
-    new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(normalized),
-    segment => segment.segment,
+    new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
+      normalized,
+    ),
+    (segment) => segment.segment,
   )
 }
 
@@ -269,14 +221,8 @@ export function sha256Hex(value: string): string {
   view.setUint32(paddedLength - 4, bitLength >>> 0, false)
 
   const hash = new Uint32Array([
-    0x6A09E667,
-    0xBB67AE85,
-    0x3C6EF372,
-    0xA54FF53A,
-    0x510E527F,
-    0x9B05688C,
-    0x1F83D9AB,
-    0x5BE0CD19,
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
+    0x1f83d9ab, 0x5be0cd19,
   ])
   const words = new Uint32Array(64)
 
@@ -287,18 +233,16 @@ export function sha256Hex(value: string): string {
     for (let index = 16; index < 64; index += 1) {
       const previous15 = words[index - 15]
       const previous2 = words[index - 2]
-      const sigma0 = rotateRight(previous15, 7)
-        ^ rotateRight(previous15, 18)
-        ^ (previous15 >>> 3)
-      const sigma1 = rotateRight(previous2, 17)
-        ^ rotateRight(previous2, 19)
-        ^ (previous2 >>> 10)
-      words[index] = (
-        words[index - 16]
-        + sigma0
-        + words[index - 7]
-        + sigma1
-      ) >>> 0
+      const sigma0 =
+        rotateRight(previous15, 7) ^
+        rotateRight(previous15, 18) ^
+        (previous15 >>> 3)
+      const sigma1 =
+        rotateRight(previous2, 17) ^
+        rotateRight(previous2, 19) ^
+        (previous2 >>> 10)
+      words[index] =
+        (words[index - 16] + sigma0 + words[index - 7] + sigma1) >>> 0
     }
 
     let a = hash[0]
@@ -313,7 +257,8 @@ export function sha256Hex(value: string): string {
     for (let index = 0; index < 64; index += 1) {
       const sigma1 = rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25)
       const choice = (e & f) ^ (~e & g)
-      const temp1 = (h + sigma1 + choice + SHA256_CONSTANTS[index] + words[index]) >>> 0
+      const temp1 =
+        (h + sigma1 + choice + SHA256_CONSTANTS[index] + words[index]) >>> 0
       const sigma0 = rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22)
       const majority = (a & b) ^ (a & c) ^ (b & c)
       const temp2 = (sigma0 + majority) >>> 0
@@ -345,7 +290,7 @@ function decodeHtmlEntity(entity: string): string {
   const normalized = entity.toLowerCase()
   const named: Record<string, string> = {
     '&amp;': '&',
-    '&apos;': '\'',
+    '&apos;': "'",
     '&gt;': '>',
     '&lt;': '<',
     '&nbsp;': ' ',
@@ -362,14 +307,17 @@ function decodeHtmlEntity(entity: string): string {
     : hexadecimal
       ? Number.parseInt(hexadecimal[1], 16)
       : Number.NaN
-  if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10FFFF) {
+  if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
     return entity
   }
   return String.fromCodePoint(codePoint)
 }
 
 function decodeHtmlText(value: string): string {
-  return value.replace(/&(?:amp|apos|gt|lt|nbsp|quot|#\d+|#x[0-9a-f]+);/giu, decodeHtmlEntity)
+  return value.replace(
+    /&(?:amp|apos|gt|lt|nbsp|quot|#\d+|#x[0-9a-f]+);/giu,
+    decodeHtmlEntity,
+  )
 }
 
 export function normalizeCommentRichTextBlock(value: string): string {
@@ -379,9 +327,13 @@ export function normalizeCommentRichTextBlock(value: string): string {
     .trim()
 }
 
-export function projectCommentRichTextBlocks(html: string): CommentProjectedBlock[] {
-  const source = readString(html)
-    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/giu, '')
+export function projectCommentRichTextBlocks(
+  html: string,
+): CommentProjectedBlock[] {
+  const source = readString(html).replace(
+    /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/giu,
+    '',
+  )
   const tokens = source.match(/<[^>]*>|[^<]+/gu) ?? []
   const blocks: CommentProjectedBlock[] = []
   let activeBlockTag: string | null = null
@@ -447,7 +399,10 @@ function normalizeProjectionReferenceDate(value: string | Date): string {
   }
   const normalized = `${match[1]}-${match[2]}-${match[3]}`
   const date = new Date(`${normalized}T00:00:00Z`)
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized) {
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== normalized
+  ) {
     throw new Error('Invalid projection reference date')
   }
   return normalized
@@ -460,7 +415,9 @@ function calculateAge(birthValue: unknown, referenceDate: string): string {
     return ''
   }
 
-  const [referenceYear, referenceMonth, referenceDay] = referenceDate.split('-').map(Number)
+  const [referenceYear, referenceMonth, referenceDay] = referenceDate
+    .split('-')
+    .map(Number)
   const birthYear = Number(match[1])
   const birthMonth = Number(match[2])
   const birthDay = Number(match[3] ?? 1)
@@ -468,7 +425,10 @@ function calculateAge(birthValue: unknown, referenceDate: string): string {
     return ''
   }
   let age = referenceYear - birthYear
-  if (referenceMonth < birthMonth || (referenceMonth === birthMonth && referenceDay < birthDay)) {
+  if (
+    referenceMonth < birthMonth ||
+    (referenceMonth === birthMonth && referenceDay < birthDay)
+  ) {
     age -= 1
   }
   return age >= 0 && age <= 150 ? `${age}岁` : ''
@@ -550,41 +510,153 @@ function projectSingletonSections(
   referenceDate: string,
 ): Record<string, ProjectedNodeInput[]> {
   const sections = Object.fromEntries(
-    COMMENT_SECTION_ORDER.map(sectionKey => [sectionKey, [] as ProjectedNodeInput[]]),
+    COMMENT_SECTION_ORDER.map((sectionKey) => [
+      sectionKey,
+      [] as ProjectedNodeInput[],
+    ]),
   ) as Record<string, ProjectedNodeInput[]>
   const basics = readRecord(resume.basics)
-  pushTextNode(sections.basics, 'basics', 'singleton', 'name', basics.name, '姓名')
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'name',
+    basics.name,
+    '姓名',
+  )
   pushTextNode(sections.basics, 'basics', 'singleton', 'phone', basics.phone)
   pushTextNode(sections.basics, 'basics', 'singleton', 'email', basics.email)
-  pushTextNode(sections.basics, 'basics', 'singleton', 'age', calculateAge(basics.birthMonth, referenceDate))
-  pushTextNode(sections.basics, 'basics', 'singleton', 'gender', basics.gender === '不填' ? '' : basics.gender)
-  pushTextNode(sections.basics, 'basics', 'singleton', 'workYears', basics.workYears === '不填' ? '' : basics.workYears)
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'age',
+    calculateAge(basics.birthMonth, referenceDate),
+  )
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'gender',
+    basics.gender === '不填' ? '' : basics.gender,
+  )
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'workYears',
+    basics.workYears === '不填' ? '' : basics.workYears,
+  )
   pushTextNode(sections.basics, 'basics', 'singleton', 'nation', basics.nation)
-  pushTextNode(sections.basics, 'basics', 'singleton', 'height', readNumber(basics.heightCm) > 0 ? `${readNumber(basics.heightCm)}cm` : '')
-  pushTextNode(sections.basics, 'basics', 'singleton', 'weight', readNumber(basics.weightKg) > 0 ? `${readNumber(basics.weightKg)}kg` : '')
-  pushTextNode(sections.basics, 'basics', 'singleton', 'nativePlace', basics.nativePlace)
-  pushTextNode(sections.basics, 'basics', 'singleton', 'maritalStatus', basics.maritalStatus === '不填' ? '' : basics.maritalStatus)
-  pushTextNode(sections.basics, 'basics', 'singleton', 'politicalStatus', basics.politicalStatus === '不填' ? '' : basics.politicalStatus)
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'height',
+    readNumber(basics.heightCm) > 0 ? `${readNumber(basics.heightCm)}cm` : '',
+  )
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'weight',
+    readNumber(basics.weightKg) > 0 ? `${readNumber(basics.weightKg)}kg` : '',
+  )
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'nativePlace',
+    basics.nativePlace,
+  )
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'maritalStatus',
+    basics.maritalStatus === '不填' ? '' : basics.maritalStatus,
+  )
+  pushTextNode(
+    sections.basics,
+    'basics',
+    'singleton',
+    'politicalStatus',
+    basics.politicalStatus === '不填' ? '' : basics.politicalStatus,
+  )
   readArray(basics.customFields).forEach((item, index) => {
     const field = readRecord(item)
     const value = readString(field.value).trim()
     if (value) {
-      pushTextNode(sections.basics, 'basics', 'singleton', `customFields.${index}`, value)
+      pushTextNode(
+        sections.basics,
+        'basics',
+        'singleton',
+        `customFields.${index}`,
+        value,
+      )
     }
   })
 
   const jobIntent = readRecord(resume.job_intent)
-  pushTextNode(sections.job_intent, 'job_intent', 'singleton', 'jobIntent', jobIntent.jobIntent)
-  pushTextNode(sections.job_intent, 'job_intent', 'singleton', 'intentionalCity', jobIntent.intentionalCity)
-  pushTextNode(sections.job_intent, 'job_intent', 'singleton', 'expectedSalary', readNumber(jobIntent.expectedSalary) > 0 ? `${readNumber(jobIntent.expectedSalary)}K` : '')
-  pushTextNode(sections.job_intent, 'job_intent', 'singleton', 'dateEntry', jobIntent.dateEntry === '不填' ? '' : jobIntent.dateEntry)
+  pushTextNode(
+    sections.job_intent,
+    'job_intent',
+    'singleton',
+    'jobIntent',
+    jobIntent.jobIntent,
+  )
+  pushTextNode(
+    sections.job_intent,
+    'job_intent',
+    'singleton',
+    'intentionalCity',
+    jobIntent.intentionalCity,
+  )
+  pushTextNode(
+    sections.job_intent,
+    'job_intent',
+    'singleton',
+    'expectedSalary',
+    readNumber(jobIntent.expectedSalary) > 0
+      ? `${readNumber(jobIntent.expectedSalary)}K`
+      : '',
+  )
+  pushTextNode(
+    sections.job_intent,
+    'job_intent',
+    'singleton',
+    'dateEntry',
+    jobIntent.dateEntry === '不填' ? '' : jobIntent.dateEntry,
+  )
 
   const applicationInfo = readRecord(resume.application_info)
-  pushTextNode(sections.application_info, 'application_info', 'singleton', 'applicationSchool', applicationInfo.applicationSchool ? `申请院校：${readString(applicationInfo.applicationSchool)}` : '')
-  pushTextNode(sections.application_info, 'application_info', 'singleton', 'applicationMajor', applicationInfo.applicationMajor ? `申请专业：${readString(applicationInfo.applicationMajor)}` : '')
+  pushTextNode(
+    sections.application_info,
+    'application_info',
+    'singleton',
+    'applicationSchool',
+    applicationInfo.applicationSchool
+      ? `申请院校：${readString(applicationInfo.applicationSchool)}`
+      : '',
+  )
+  pushTextNode(
+    sections.application_info,
+    'application_info',
+    'singleton',
+    'applicationMajor',
+    applicationInfo.applicationMajor
+      ? `申请专业：${readString(applicationInfo.applicationMajor)}`
+      : '',
+  )
 
   const selfEvaluation = readRecord(resume.self_evaluation)
-  pushRichTextNode(sections.self_evaluation, 'self_evaluation', 'singleton', 'content', selfEvaluation.content)
+  pushRichTextNode(
+    sections.self_evaluation,
+    'self_evaluation',
+    'singleton',
+    'content',
+    selfEvaluation.content,
+  )
   return sections
 }
 
@@ -609,7 +681,13 @@ function projectExperienceCollection(
     if (entry.hidden === true) {
       return
     }
-    const entryId = buildEntryId(sectionKey, collectionKey, index, entry, usedIds)
+    const entryId = buildEntryId(
+      sectionKey,
+      collectionKey,
+      index,
+      entry,
+      usedIds,
+    )
     const subtitle = fields.subtitleProject
       ? fields.subtitleProject(entry)
       : fields.subtitle
@@ -621,14 +699,36 @@ function projectExperienceCollection(
       ...(fields.subtitle ? [fields.subtitle] : []),
       fields.content,
     ]
-    if (!visibilityFields.some(field => Boolean(readString(entry[field]))) && !duration) {
+    if (
+      !visibilityFields.some((field) => Boolean(readString(entry[field]))) &&
+      !duration
+    ) {
       return
     }
 
-    pushTextNode(target, sectionKey, entryId, fields.title, entry[fields.title], fields.titleFallback)
-    pushTextNode(target, sectionKey, entryId, fields.subtitle ?? 'subtitle', subtitle)
+    pushTextNode(
+      target,
+      sectionKey,
+      entryId,
+      fields.title,
+      entry[fields.title],
+      fields.titleFallback,
+    )
+    pushTextNode(
+      target,
+      sectionKey,
+      entryId,
+      fields.subtitle ?? 'subtitle',
+      subtitle,
+    )
     pushTextNode(target, sectionKey, entryId, 'duration', duration)
-    pushRichTextNode(target, sectionKey, entryId, 'content', entry[fields.content])
+    pushRichTextNode(
+      target,
+      sectionKey,
+      entryId,
+      'content',
+      entry[fields.content],
+    )
   })
 }
 
@@ -645,10 +745,13 @@ function projectCollectionSections(
       title: 'schoolName',
       titleFallback: '学校',
       subtitle: 'professionalDegree',
-      subtitleProject: entry => [
-        readString(entry.professional),
-        entry.degree !== '不填' ? readString(entry.degree) : '',
-      ].filter(Boolean).join(' / '),
+      subtitleProject: (entry) =>
+        [
+          readString(entry.professional),
+          entry.degree !== '不填' ? readString(entry.degree) : '',
+        ]
+          .filter(Boolean)
+          .join(' / '),
       duration: 'duration',
       content: 'eduInfo',
       visibilityFields: ['schoolName', 'professional', 'eduInfo'],
@@ -708,14 +811,26 @@ function projectCollectionSections(
   )
 
   const skillSection = readRecord(resume.skill_specialty)
-  pushRichTextNode(sections.skill_specialty, 'skill_specialty', 'singleton', 'description', skillSection.description)
+  pushRichTextNode(
+    sections.skill_specialty,
+    'skill_specialty',
+    'singleton',
+    'description',
+    skillSection.description,
+  )
   const usedSkillIds = new Set<string>()
   readArray(skillSection.skills).forEach((value, index) => {
     const entry = readRecord(value)
     if (entry.hidden === true) {
       return
     }
-    const entryId = buildEntryId('skill_specialty', 'skills', index, entry, usedSkillIds)
+    const entryId = buildEntryId(
+      'skill_specialty',
+      'skills',
+      index,
+      entry,
+      usedSkillIds,
+    )
     const label = readString(entry.label).trim()
     const proficiency = readString(entry.proficiencyLevel).trim()
     pushTextNode(
@@ -728,7 +843,13 @@ function projectCollectionSections(
   })
 
   const certificateSection = readRecord(resume.honors_certificates)
-  pushRichTextNode(sections.honors_certificates, 'honors_certificates', 'singleton', 'description', certificateSection.description)
+  pushRichTextNode(
+    sections.honors_certificates,
+    'honors_certificates',
+    'singleton',
+    'description',
+    certificateSection.description,
+  )
   const usedCertificateIds = new Set<string>()
   readArray(certificateSection.certificates).forEach((value, index) => {
     const entry = readRecord(value)
@@ -738,14 +859,26 @@ function projectCollectionSections(
     pushTextNode(
       sections.honors_certificates,
       'honors_certificates',
-      buildEntryId('honors_certificates', 'certificates', index, entry, usedCertificateIds),
+      buildEntryId(
+        'honors_certificates',
+        'certificates',
+        index,
+        entry,
+        usedCertificateIds,
+      ),
       'name',
       entry.name,
     )
   })
 
   const hobbySection = readRecord(resume.hobbies)
-  pushRichTextNode(sections.hobbies, 'hobbies', 'singleton', 'description', hobbySection.description)
+  pushRichTextNode(
+    sections.hobbies,
+    'hobbies',
+    'singleton',
+    'description',
+    hobbySection.description,
+  )
   const usedHobbyIds = new Set<string>()
   readArray(hobbySection.hobbies).forEach((value, index) => {
     const entry = readRecord(value)
@@ -762,9 +895,11 @@ function projectCollectionSections(
   })
 }
 
-function toAnchorDocumentNode(input: ProjectedNodeInput): CommentAnchorDocumentNode {
+function toAnchorDocumentNode(
+  input: ProjectedNodeInput,
+): CommentAnchorDocumentNode {
   const normalizedBlocks = input.blocks
-    .map(block => normalizeCommentText(block.text))
+    .map((block) => normalizeCommentText(block.text))
     .filter(Boolean)
   const text = normalizedBlocks.join('\n')
   let cursor = 0
@@ -795,14 +930,20 @@ export function buildCommentAnchorDocument(
   projectionReferenceDateValue: string | Date,
 ): CommentAnchorDocumentResult {
   const resume = readRecord(resumeValue)
-  const projectionReferenceDate = normalizeProjectionReferenceDate(projectionReferenceDateValue)
+  const projectionReferenceDate = normalizeProjectionReferenceDate(
+    projectionReferenceDateValue,
+  )
   const sections = projectSingletonSections(resume, projectionReferenceDate)
   projectCollectionSections(resume, sections)
   const visibility = readRecord(resume.visibility)
   const requestedOrder = readArray(resume.order).map(readString)
   const orderedSections = [
-    ...requestedOrder.filter(key => COMMENT_SECTION_ORDER.includes(key as typeof COMMENT_SECTION_ORDER[number])),
-    ...COMMENT_SECTION_ORDER.filter(key => !requestedOrder.includes(key)),
+    ...requestedOrder.filter((key) =>
+      COMMENT_SECTION_ORDER.includes(
+        key as (typeof COMMENT_SECTION_ORDER)[number],
+      ),
+    ),
+    ...COMMENT_SECTION_ORDER.filter((key) => !requestedOrder.includes(key)),
   ].filter((key, index, all) => all.indexOf(key) === index)
 
   const nodes = orderedSections.flatMap((sectionKey) => {
@@ -822,7 +963,11 @@ export function buildCommentAnchorDocument(
   }
 }
 
-function commentGraphemeSlice(value: string, start: number, end?: number): string {
+function commentGraphemeSlice(
+  value: string,
+  start: number,
+  end?: number,
+): string {
   return splitCommentGraphemes(value).slice(start, end).join('')
 }
 
@@ -834,7 +979,9 @@ function findCommentQuoteOffsets(text: string, quote: string): number[] {
   }
   const matches: number[] = []
   for (let start = 0; start <= haystack.length - needle.length; start += 1) {
-    if (needle.every((grapheme, index) => haystack[start + index] === grapheme)) {
+    if (
+      needle.every((grapheme, index) => haystack[start + index] === grapheme)
+    ) {
       matches.push(start)
     }
   }
@@ -855,7 +1002,10 @@ function commentAnchorContextMatches(
   end: number,
 ): boolean {
   const context = readCommentAnchorContext(text, start, end)
-  return context.prefix.endsWith(anchor.prefix) && context.suffix.startsWith(anchor.suffix)
+  return (
+    context.prefix.endsWith(anchor.prefix) &&
+    context.suffix.startsWith(anchor.suffix)
+  )
 }
 
 function moveResumeCommentAnchor(
@@ -865,14 +1015,13 @@ function moveResumeCommentAnchor(
   nextDocumentHash?: string,
 ): ResumeCommentAnchor | null {
   const end = start + countCommentGraphemes(anchor.exactQuote)
-  const startBlock = node.blocks.find(item => (
-    start >= item.startGraphemeOffset
-    && start <= item.endGraphemeOffset
-  ))
-  const endBlock = node.blocks.find(item => (
-    end >= item.startGraphemeOffset
-    && end <= item.endGraphemeOffset
-  ))
+  const startBlock = node.blocks.find(
+    (item) =>
+      start >= item.startGraphemeOffset && start <= item.endGraphemeOffset,
+  )
+  const endBlock = node.blocks.find(
+    (item) => end >= item.startGraphemeOffset && end <= item.endGraphemeOffset,
+  )
   if (!startBlock || !endBlock) {
     return null
   }
@@ -930,17 +1079,20 @@ export function relocateResumeCommentAnchor(
     return { status: 'detached', reason: 'quote_missing' }
   }
   const quoteLength = countCommentGraphemes(anchor.exactQuote)
-  const matchingOffsets = offsets.filter(start => commentAnchorContextMatches(
-    anchor,
-    nextNode.text,
-    start,
-    start + quoteLength,
-  ))
-  const selectedOffset = matchingOffsets.length === 1
-    ? matchingOffsets[0]
-    : offsets.length === 1
-      ? offsets[0]
-      : null
+  const matchingOffsets = offsets.filter((start) =>
+    commentAnchorContextMatches(
+      anchor,
+      nextNode.text,
+      start,
+      start + quoteLength,
+    ),
+  )
+  const selectedOffset =
+    matchingOffsets.length === 1
+      ? matchingOffsets[0]
+      : offsets.length === 1
+        ? offsets[0]
+        : null
   if (selectedOffset === null) {
     return { status: 'detached', reason: 'ambiguous' }
   }

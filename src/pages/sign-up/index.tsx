@@ -6,7 +6,9 @@ function Signup() {
   useAlreadyLoggedRedirect()
 
   return (
-    <AuthLayout><SignUpForm /></AuthLayout>
+    <AuthLayout>
+      <SignUpForm />
+    </AuthLayout>
   )
 }
 

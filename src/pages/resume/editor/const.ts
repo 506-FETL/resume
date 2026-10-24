@@ -1,6 +1,19 @@
 import type { Item } from './types'
 import type { ORDERType } from '@/lib/schema'
-import { Award, Briefcase, Building2, Code2, GraduationCap, Heart, Lightbulb, MessageSquare, School, Trophy, UserCheck, UserRound } from 'lucide-react'
+import {
+  Award,
+  Briefcase,
+  Building2,
+  Code2,
+  GraduationCap,
+  Heart,
+  Lightbulb,
+  MessageSquare,
+  School,
+  Trophy,
+  UserCheck,
+  UserRound,
+} from 'lucide-react'
 import { createElement } from 'react'
 import ApplicationInfoForm from './components/forms/application-info'
 import BasicResumeForm from './components/forms/basic-resume'

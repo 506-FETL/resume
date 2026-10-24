@@ -1,8 +1,16 @@
-import type { HistorySelection, PendingDiscardAction, VersionMetadataDraft } from '../../types'
+import type {
+  HistorySelection,
+  PendingDiscardAction,
+  VersionMetadataDraft,
+} from '../../types'
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import useHistoryStore from '../../store'
-import { applyMetadataDraftPatch, createMetadataDraft, isMetadataDraftDirty } from '../../utils'
+import {
+  applyMetadataDraftPatch,
+  createMetadataDraft,
+  isMetadataDraftDirty,
+} from '../../utils'
 
 const EMPTY_DRAFT = createMetadataDraft()
 
@@ -28,23 +36,30 @@ export interface HistoryDetailPanelState {
   cancelDiscardChanges: () => void
 }
 
-export function useHistoryDetailPanelState(activeResumeId: string | null): HistoryDetailPanelState {
-  const versions = useHistoryStore(state => state.versions)
-  const updateVersionMetadata = useHistoryStore(state => state.updateVersionMetadata)
-  const showDetail = useHistoryStore(state => state.showDetail)
-  const showTimeline = useHistoryStore(state => state.showTimeline)
+export function useHistoryDetailPanelState(
+  activeResumeId: string | null,
+): HistoryDetailPanelState {
+  const versions = useHistoryStore((state) => state.versions)
+  const updateVersionMetadata = useHistoryStore(
+    (state) => state.updateVersionMetadata,
+  )
+  const showDetail = useHistoryStore((state) => state.showDetail)
+  const showTimeline = useHistoryStore((state) => state.showTimeline)
 
-  const [selectedEntry, setSelectedEntry] = useState<HistorySelection>('current')
+  const [selectedEntry, setSelectedEntry] =
+    useState<HistorySelection>('current')
   const [editing, setEditing] = useState(false)
   const [editDraft, setEditDraft] = useState<VersionMetadataDraft>(EMPTY_DRAFT)
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
-  const [pendingDiscardAction, setPendingDiscardAction] = useState<PendingDiscardAction>(null)
+  const [pendingDiscardAction, setPendingDiscardAction] =
+    useState<PendingDiscardAction>(null)
   const [activeTab, setActiveTab] = useState<HistoryDetailTab>('resume')
 
   const selectedVersion = useMemo(
-    () => typeof selectedEntry === 'number'
-      ? versions.find(version => version.id === selectedEntry) ?? null
-      : null,
+    () =>
+      typeof selectedEntry === 'number'
+        ? (versions.find((version) => version.id === selectedEntry) ?? null)
+        : null,
     [selectedEntry, versions],
   )
 
@@ -58,13 +73,15 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
     setPendingDiscardAction(null)
   }, [])
 
-  const selectEntry = useCallback((target: HistorySelection) => {
-    setSelectedEntry(target)
-    resetEditingState()
-    clearPendingDiscard()
-    if (target !== null)
-      showDetail()
-  }, [clearPendingDiscard, resetEditingState, showDetail])
+  const selectEntry = useCallback(
+    (target: HistorySelection) => {
+      setSelectedEntry(target)
+      resetEditingState()
+      clearPendingDiscard()
+      if (target !== null) showDetail()
+    },
+    [clearPendingDiscard, resetEditingState, showDetail],
+  )
 
   useEffect(() => {
     setSelectedEntry('current')
@@ -74,38 +91,47 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
   }, [activeResumeId, clearPendingDiscard, resetEditingState, showTimeline])
 
   useEffect(() => {
-    if (typeof selectedEntry === 'number' && !versions.some(version => version.id === selectedEntry)) {
+    if (
+      typeof selectedEntry === 'number' &&
+      !versions.some((version) => version.id === selectedEntry)
+    ) {
       setSelectedEntry('current')
       resetEditingState()
       clearPendingDiscard()
     }
   }, [clearPendingDiscard, resetEditingState, selectedEntry, versions])
 
-  const hasDirtyEditDraft = editing && isMetadataDraftDirty(editDraft, selectedVersion)
+  const hasDirtyEditDraft =
+    editing && isMetadataDraftDirty(editDraft, selectedVersion)
 
-  const requestDiscard = useCallback((action: PendingDiscardAction) => {
-    if (!hasDirtyEditDraft) {
-      return false
-    }
+  const requestDiscard = useCallback(
+    (action: PendingDiscardAction) => {
+      if (!hasDirtyEditDraft) {
+        return false
+      }
 
-    setPendingDiscardAction(action)
-    setDiscardDialogOpen(true)
-    return true
-  }, [hasDirtyEditDraft])
+      setPendingDiscardAction(action)
+      setDiscardDialogOpen(true)
+      return true
+    },
+    [hasDirtyEditDraft],
+  )
 
-  const requestSelectEntry = useCallback((target: HistorySelection) => {
-    if (selectedEntry === target) {
-      if (target !== null)
-        showDetail()
-      return
-    }
+  const requestSelectEntry = useCallback(
+    (target: HistorySelection) => {
+      if (selectedEntry === target) {
+        if (target !== null) showDetail()
+        return
+      }
 
-    if (requestDiscard({ type: 'select', target })) {
-      return
-    }
+      if (requestDiscard({ type: 'select', target })) {
+        return
+      }
 
-    selectEntry(target)
-  }, [requestDiscard, selectEntry, selectedEntry, showDetail])
+      selectEntry(target)
+    },
+    [requestDiscard, selectEntry, selectedEntry, showDetail],
+  )
 
   const backToTimeline = useCallback(() => {
     resetEditingState()
@@ -114,8 +140,7 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
   }, [clearPendingDiscard, resetEditingState, selectedEntry, showTimeline])
 
   const requestBackToTimeline = useCallback(() => {
-    if (!requestDiscard({ type: 'back' }))
-      backToTimeline()
+    if (!requestDiscard({ type: 'back' })) backToTimeline()
   }, [backToTimeline, requestDiscard])
 
   const requestCloseDetail = useCallback(() => {
@@ -139,9 +164,12 @@ export function useHistoryDetailPanelState(activeResumeId: string | null): Histo
     resetEditingState()
   }, [resetEditingState])
 
-  const updateEditDraft = useCallback((patch: Partial<VersionMetadataDraft>) => {
-    setEditDraft(current => applyMetadataDraftPatch(current, patch))
-  }, [])
+  const updateEditDraft = useCallback(
+    (patch: Partial<VersionMetadataDraft>) => {
+      setEditDraft((current) => applyMetadataDraftPatch(current, patch))
+    },
+    [],
+  )
 
   const submitEditDraft = useCallback(async () => {
     if (!selectedVersion) {

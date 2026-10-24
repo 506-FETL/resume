@@ -39,8 +39,7 @@ export interface IconConfig {
  * Normalize a category/integration name for icon lookup
  */
 function normalizeCategoryName(name: string): string {
-  if (!name)
-    return 'general'
+  if (!name) return 'general'
   return name
     .toLowerCase()
     .trim()
@@ -259,7 +258,11 @@ const iconConfigs: Record<string, IconConfig> = {
  * Get icon for a tool category with optional URL-based icon fallback.
  * Supports built-in categories and custom integration icons via iconUrl.
  */
-export function getToolCategoryIcon(category: string,	iconProps: Partial<IconProps> & { showBackground?: boolean } = {},	iconUrl?: string | null) {
+export function getToolCategoryIcon(
+  category: string,
+  iconProps: Partial<IconProps> & { showBackground?: boolean } = {},
+  iconUrl?: string | null,
+) {
   const { showBackground = true, ...restProps } = iconProps
 
   const defaultProps = {
@@ -274,10 +277,10 @@ export function getToolCategoryIcon(category: string,	iconProps: Partial<IconPro
   const normalizedCategory = normalizeCategoryName(category)
 
   // Resolve aliases
-  const aliasedCategory
-    = iconAliases[normalizedCategory]
-      || iconAliases[category]
-      || normalizedCategory
+  const aliasedCategory =
+    iconAliases[normalizedCategory] ||
+    iconAliases[category] ||
+    normalizedCategory
 
   const finalCategory = normalizeCategoryName(aliasedCategory)
 
@@ -306,53 +309,51 @@ export function getToolCategoryIcon(category: string,	iconProps: Partial<IconPro
           src={iconUrl}
         />
       )
-      return showBackground
-        ? (
-            <div className="rounded-lg p-1 bg-zinc-700 dark:bg-zinc-700">{iconElement}</div>
-          )
-        : (
-            iconElement
-          )
+      return showBackground ? (
+        <div className='rounded-lg p-1 bg-zinc-700 dark:bg-zinc-700'>
+          {iconElement}
+        </div>
+      ) : (
+        iconElement
+      )
     }
     return null
   }
 
   // Render image or component icon
-  const iconElement = config.isImage
-    ? (
-        <img
-          alt={`${category} Icon`}
-          width={defaultProps.width}
-          height={defaultProps.height}
-          className={`${restProps.className || ''} aspect-square object-contain`}
-          src={config.icon as string}
-        />
-      )
-    : (
-        <HugeiconsIcon
-          icon={config.icon as IconSvgElement}
-          size={defaultProps.size}
-          className={restProps.className || config.iconColor}
-        />
-      )
+  const iconElement = config.isImage ? (
+    <img
+      alt={`${category} Icon`}
+      width={defaultProps.width}
+      height={defaultProps.height}
+      className={`${restProps.className || ''} aspect-square object-contain`}
+      src={config.icon as string}
+    />
+  ) : (
+    <HugeiconsIcon
+      icon={config.icon as IconSvgElement}
+      size={defaultProps.size}
+      className={restProps.className || config.iconColor}
+    />
+  )
 
   // Return with or without background based on showBackground prop
   // Using dark: prefix for proper light/dark mode support
-  return showBackground
-    ? (
-        <div className={`rounded-lg p-1 ${config.bgColorLight || config.bgColor} dark:${config.bgColor}`}>
-          {iconElement}
-        </div>
-      )
-    : (
-        iconElement
-      )
+  return showBackground ? (
+    <div
+      className={`rounded-lg p-1 ${config.bgColorLight || config.bgColor} dark:${config.bgColor}`}
+    >
+      {iconElement}
+    </div>
+  ) : (
+    iconElement
+  )
 }
 
 // Format tool names from snake_case to Title Case
 export function formatToolName(name: string): string {
   return name
     .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
 }

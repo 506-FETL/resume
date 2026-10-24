@@ -15,7 +15,7 @@ export interface ParseVariantResult {
 
 export function parseVariantResponse(
   raw: string,
-  options: { strict: boolean, snapshot?: PersistedResumeSnapshot },
+  options: { strict: boolean; snapshot?: PersistedResumeSnapshot },
 ): ParseVariantResult {
   const changes = options.strict
     ? parseLlmJsonObject<RawShape>(raw).changes
@@ -26,7 +26,9 @@ export function parseVariantResponse(
     const parsed = variantChangeSchema.safeParse(item)
     if (!parsed.success) {
       if (options.strict) {
-        throw new Error(`AI 改写格式或路径无效：${parsed.error.issues[0]?.message ?? '未知错误'}`)
+        throw new Error(
+          `AI 改写格式或路径无效：${parsed.error.issues[0]?.message ?? '未知错误'}`,
+        )
       }
       continue
     }

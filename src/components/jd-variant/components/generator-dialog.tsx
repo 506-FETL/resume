@@ -5,7 +5,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { DURATION, EASE } from '@/lib/motion'
 import { MIN_JD_CHARS } from '../const'
@@ -36,7 +43,8 @@ export function JdVariantDialog({
   skipInputStep = false,
 }: JdVariantDialogProps) {
   const [jd, setJd] = useState(initialJd)
-  const { state, generate, abort, reset, discardDraft } = useJdVariantGenerator(parentResumeId)
+  const { state, generate, abort, reset, discardDraft } =
+    useJdVariantGenerator(parentResumeId)
   const shouldReduceMotion = useReducedMotion()
 
   const startGenerate = useCallback(() => {
@@ -67,7 +75,14 @@ export function JdVariantDialog({
     onOpenChange(next)
   }
 
-  const stepIndex = state.phase === 'idle' ? 1 : state.phase === 'parsing' ? 2 : state.phase === 'rewriting' ? 3 : 4
+  const stepIndex =
+    state.phase === 'idle'
+      ? 1
+      : state.phase === 'parsing'
+        ? 2
+        : state.phase === 'rewriting'
+          ? 3
+          : 4
   const total = 4
   const canStart = jd.trim().length >= MIN_JD_CHARS
 
@@ -92,18 +107,30 @@ export function JdVariantDialog({
 
   const footer = (() => {
     if (state.phase === 'idle') {
-      return <Button type="button" disabled={!canStart} onClick={startGenerate}>开始派生</Button>
+      return (
+        <Button type='button' disabled={!canStart} onClick={startGenerate}>
+          开始派生
+        </Button>
+      )
     }
 
     if (state.phase === 'parsing' || state.phase === 'rewriting') {
-      return <Button type="button" variant="outline" onClick={abort}>取消生成</Button>
+      return (
+        <Button type='button' variant='outline' onClick={abort}>
+          取消生成
+        </Button>
+      )
     }
 
     if (state.phase === 'error') {
       return (
         <>
-          <Button type="button" variant="outline" onClick={handleDiscardTask}>放弃草稿</Button>
-          <Button type="button" onClick={startGenerate}>重试</Button>
+          <Button type='button' variant='outline' onClick={handleDiscardTask}>
+            放弃草稿
+          </Button>
+          <Button type='button' onClick={startGenerate}>
+            重试
+          </Button>
         </>
       )
     }
@@ -111,46 +138,68 @@ export function JdVariantDialog({
     if (state.phase === 'aborted') {
       return (
         <>
-          <Button type="button" variant="outline" onClick={handleDiscardTask}>丢弃草稿</Button>
-          <Button type="button" disabled={!jd.trim()} onClick={startGenerate}>重新生成</Button>
+          <Button type='button' variant='outline' onClick={handleDiscardTask}>
+            丢弃草稿
+          </Button>
+          <Button type='button' disabled={!jd.trim()} onClick={startGenerate}>
+            重新生成
+          </Button>
         </>
       )
     }
 
     return (
       <>
-        <Button type="button" variant="outline" onClick={handleDiscardResult}>丢弃</Button>
-        <Button type="button" disabled={!state.draftResumeId} onClick={handleOpenResult}>打开新简历</Button>
+        <Button type='button' variant='outline' onClick={handleDiscardResult}>
+          丢弃
+        </Button>
+        <Button
+          type='button'
+          disabled={!state.draftResumeId}
+          onClick={handleOpenResult}
+        >
+          打开新简历
+        </Button>
       </>
     )
   })()
 
   return (
     <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
-      <ResponsiveDialogContent className="min-h-0 sm:max-h-[82vh] sm:max-w-2xl">
-        <ResponsiveDialogHeader className="shrink-0 gap-3 border-b px-6 pb-5 pt-6 text-left">
+      <ResponsiveDialogContent className='min-h-0 sm:max-h-[82vh] sm:max-w-2xl'>
+        <ResponsiveDialogHeader className='shrink-0 gap-3 border-b px-6 pb-5 pt-6 text-left'>
           <ResponsiveDialogTitle>JD 驱动派生简历</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription aria-live="polite">
-            <span className="sr-only">{`当前第 ${stepIndex} / ${total} 步`}</span>
+          <ResponsiveDialogDescription aria-live='polite'>
+            <span className='sr-only'>{`当前第 ${stepIndex} / ${total} 步`}</span>
           </ResponsiveDialogDescription>
           <GeneratorStepIndicator phase={state.phase} />
         </ResponsiveDialogHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="min-h-55 px-6 py-5">
-            <AnimatePresence mode="wait" initial={false}>
+        <ScrollArea className='min-h-0 flex-1'>
+          <div className='min-h-55 px-6 py-5'>
+            <AnimatePresence mode='wait' initial={false}>
               <motion.div
                 key={state.phase}
                 initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -4 }}
-                transition={{ duration: shouldReduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+                transition={{
+                  duration: shouldReduceMotion ? 0 : DURATION.base,
+                  ease: EASE.out,
+                }}
               >
                 {state.phase === 'idle' && (
-                  <StepInput value={jd} onChange={setJd} recentJds={recentJds} />
+                  <StepInput
+                    value={jd}
+                    onChange={setJd}
+                    recentJds={recentJds}
+                  />
                 )}
                 {state.phase === 'parsing' && (
-                  <StepParsing reasoning={state.parseReasoning} keywords={state.keywords} />
+                  <StepParsing
+                    reasoning={state.parseReasoning}
+                    keywords={state.keywords}
+                  />
                 )}
                 {state.phase === 'rewriting' && (
                   <StepRewriting
@@ -161,13 +210,18 @@ export function JdVariantDialog({
                   />
                 )}
                 {state.phase === 'success' && state.draftResumeId && (
-                  <StepResult matchRate={state.matchRate} changes={state.changes} />
+                  <StepResult
+                    matchRate={state.matchRate}
+                    changes={state.changes}
+                  />
                 )}
                 {state.phase === 'error' && (
-                  <Alert variant="destructive">
+                  <Alert variant='destructive'>
                     <AlertCircle aria-hidden />
                     <AlertTitle>派生失败</AlertTitle>
-                    <AlertDescription>{state.errorMessage ?? '派生失败，请稍后重试。'}</AlertDescription>
+                    <AlertDescription>
+                      {state.errorMessage ?? '派生失败，请稍后重试。'}
+                    </AlertDescription>
                   </Alert>
                 )}
                 {state.phase === 'aborted' && (
@@ -182,7 +236,7 @@ export function JdVariantDialog({
           </div>
         </ScrollArea>
 
-        <ResponsiveDialogFooter className="shrink-0 gap-2 border-t bg-background">
+        <ResponsiveDialogFooter className='shrink-0 gap-2 border-t bg-background'>
           {footer}
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

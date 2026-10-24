@@ -41,8 +41,13 @@ export function useTrackerJobs(): { reload: () => Promise<void> }
 - [x] toolbar 第一行显示“职位进展”与数量、ViewToggle，第二行放搜索和管理操作。查询用以下同源逻辑：
 
 ```ts
-filterJobs(jobs, viewMode === 'list' ? filterStatus : null,
-  searchKeyword, showArchived, viewMode === 'list' ? metricFilter : null)
+filterJobs(
+  jobs,
+  viewMode === 'list' ? filterStatus : null,
+  searchKeyword,
+  showArchived,
+  viewMode === 'list' ? metricFilter : null,
+)
 ```
 
 - [x] 添加清空搜索、筛选/定位提示和归档退出；批量工具条和提示使用 AnimatePresence 高度过渡。

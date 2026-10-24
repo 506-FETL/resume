@@ -7,7 +7,12 @@ import { throttle } from 'lodash'
 import { REWRITE_TEMPERATURE } from '@/components/ai-rewrite/const'
 import { serializeAiToolValue } from '@/lib/ai/agent/serialize-tool-value'
 import { callLLM } from './call'
-import { buildJdParsePrompt, buildJdRewritePrompt, JD_VARIANT_PARSE_TEMPERATURE, JD_VARIANT_REWRITE_TEMPERATURE } from './prompts/jd-variant'
+import {
+  buildJdParsePrompt,
+  buildJdRewritePrompt,
+  JD_VARIANT_PARSE_TEMPERATURE,
+  JD_VARIANT_REWRITE_TEMPERATURE,
+} from './prompts/jd-variant'
 import { createJobDescriptionAnalysisPrompt } from './prompts/job-description'
 import { buildOptimizePrompt } from './prompts/optimize'
 import { buildRewritePrompt } from './prompts/rewrite'
@@ -20,9 +25,17 @@ interface StreamUpdate {
 async function streamStructuredJson(
   req: ChatCompletionCreateParamsBase,
   onUpdate?: (data: StreamUpdate) => void,
-  options?: { throttleMs?: number, abortController?: AbortController, requireComplete?: boolean },
+  options?: {
+    throttleMs?: number
+    abortController?: AbortController
+    requireComplete?: boolean
+  },
 ) {
-  const { throttleMs = 100, abortController, requireComplete = false } = options || {}
+  const {
+    throttleMs = 100,
+    abortController,
+    requireComplete = false,
+  } = options || {}
   const stream = await callLLM(req, abortController)
 
   let fullContent = ''
@@ -31,21 +44,26 @@ async function streamStructuredJson(
 
   const throttledUpdate = onUpdate
     ? throttle((data: StreamUpdate) => {
-        if (!abortController?.signal.aborted)
-          onUpdate(data)
+        if (!abortController?.signal.aborted) onUpdate(data)
       }, throttleMs)
     : null
 
   try {
     for await (const chunk of stream) {
       const choice = chunk.choices[0]
-      const delta = choice?.delta as { content?: string, reasoning_content?: string } | undefined
+      const delta = choice?.delta as
+        | { content?: string; reasoning_content?: string }
+        | undefined
       // finish_reason 权威区分：'length'=被截断（超出 token 预算）、'stop'=正常结束、null=流被中断
-      const chunkFinish = (choice as { finish_reason?: string | null } | undefined)?.finish_reason
-      if (chunkFinish)
-        finishReason = chunkFinish
+      const chunkFinish = (
+        choice as { finish_reason?: string | null } | undefined
+      )?.finish_reason
+      if (chunkFinish) finishReason = chunkFinish
       const content = typeof delta?.content === 'string' ? delta.content : ''
-      const reasoning = typeof delta?.reasoning_content === 'string' ? delta.reasoning_content : ''
+      const reasoning =
+        typeof delta?.reasoning_content === 'string'
+          ? delta.reasoning_content
+          : ''
 
       if (!content && !reasoning) {
         continue
@@ -74,13 +92,11 @@ async function streamStructuredJson(
         throw new Error('AI 输出被内容过滤，无法生成完整结果，请调整输入后重试')
       if (finishReason !== 'stop')
         throw new Error('AI 输出中断，结果不完整，请重试')
-      if (!fullContent.trim())
-        throw new Error('AI 未返回有效结果，请重试')
+      if (!fullContent.trim()) throw new Error('AI 未返回有效结果，请重试')
     }
 
     return { content: fullContent, reasoning: fullReasoning, finishReason }
-  }
-  finally {
+  } finally {
     // 正常完成已 flush；异常或取消时丢弃排队更新，避免覆盖任务终态。
     throttledUpdate?.cancel()
   }
@@ -102,8 +118,7 @@ function repairJsonText(text: string): string {
   const nextMeaningfulChar = (from: number): string => {
     for (let j = from; j < cleaned.length; j++) {
       const c = cleaned[j]
-      if (c !== ' ' && c !== '\n' && c !== '\r' && c !== '\t')
-        return c
+      if (c !== ' ' && c !== '\n' && c !== '\r' && c !== '\t') return c
     }
     return ''
   }
@@ -124,11 +139,16 @@ function repairJsonText(text: string): string {
       }
       if (ch === '"') {
         const next = nextMeaningfulChar(i + 1)
-        if (next === '' || next === ',' || next === '}' || next === ']' || next === ':') {
+        if (
+          next === '' ||
+          next === ',' ||
+          next === '}' ||
+          next === ']' ||
+          next === ':'
+        ) {
           out.push('"')
           inString = false
-        }
-        else {
+        } else {
           // 字符串内的游离引号 → 补转义
           out.push('\\"')
         }
@@ -162,8 +182,7 @@ function repairJsonText(text: string): string {
     }
     if (ch === ',') {
       const next = nextMeaningfulChar(i + 1)
-      if (next === '}' || next === ']')
-        continue // 删除尾逗号
+      if (next === '}' || next === ']') continue // 删除尾逗号
     }
     out.push(ch)
   }
@@ -195,8 +214,7 @@ export function parseLlmJsonObject<T>(value: string): T {
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
         throw new Error('LLM 返回的 JSON 结构无效')
       return parsed as T
-    }
-    catch (error) {
+    } catch (error) {
       lastError = error
     }
   }
@@ -211,7 +229,9 @@ export function parseLlmJsonObject<T>(value: string): T {
       `｜总长度=${jsonText.length}`,
     )
   }
-  throw lastError instanceof Error ? lastError : new Error('LLM 返回的 JSON 无法解析')
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('LLM 返回的 JSON 无法解析')
 }
 
 export async function runAtsStructured(
@@ -224,7 +244,8 @@ export async function runAtsStructured(
     messages: [
       {
         role: 'system',
-        content: '你是 ATS 简历评估引擎。请先综合判断本次真实内容的适用性与证据强度，再只输出符合约定的评估 JSON；未提供的可选模板模块不得扣分。',
+        content:
+          '你是 ATS 简历评估引擎。请先综合判断本次真实内容的适用性与证据强度，再只输出符合约定的评估 JSON；未提供的可选模板模块不得扣分。',
       },
       { role: 'user', content: promptText },
     ],
@@ -237,7 +258,10 @@ export async function runAtsStructured(
     thinking: { type: 'enabled' },
     // 标记本次调用为 ATS 用途（服务端据系统提示词权威判定 cost，此字段仅作辅助/日志）。
     action: 'ats',
-  } as ChatCompletionCreateParamsBase & { action?: string, thinking?: { type: string } }
+  } as ChatCompletionCreateParamsBase & {
+    action?: string
+    thinking?: { type: string }
+  }
 
   return await streamStructuredJson(req, onUpdate, options)
 }
@@ -245,14 +269,15 @@ export async function runAtsStructured(
 export async function runBulletRewrite(
   args: RewriteRequestArgs,
   onUpdate?: (data: StreamUpdate) => void,
-  options?: { throttleMs?: number, abortController?: AbortController },
+  options?: { throttleMs?: number; abortController?: AbortController },
 ) {
   const promptText = buildRewritePrompt(args)
   const req = {
     messages: [
       {
         role: 'system',
-        content: '你是一个简历内容改写引擎。你只输出严格符合契约的 JSON，禁止输出任何额外文本。',
+        content:
+          '你是一个简历内容改写引擎。你只输出严格符合契约的 JSON，禁止输出任何额外文本。',
       },
       { role: 'user', content: promptText },
     ],
@@ -269,12 +294,16 @@ export async function runJobDescriptionStructured(
   onUpdate?: (data: StreamUpdate) => void,
   options?: { throttleMs?: number },
 ) {
-  const promptText = createJobDescriptionAnalysisPrompt(serializeAiToolValue(resumeConfig), jobDescription)
+  const promptText = createJobDescriptionAnalysisPrompt(
+    serializeAiToolValue(resumeConfig),
+    jobDescription,
+  )
   const req = {
     messages: [
       {
         role: 'system',
-        content: '你是一个职位描述匹配分析引擎。你会同时收到当前简历 JSON 和岗位描述文本。你的任务是只根据输入内容，输出一份严格符合约定结构的职位匹配分析 JSON。',
+        content:
+          '你是一个职位描述匹配分析引擎。你会同时收到当前简历 JSON 和岗位描述文本。你的任务是只根据输入内容，输出一份严格符合约定结构的职位匹配分析 JSON。',
       },
       { role: 'user', content: promptText },
     ],
@@ -289,7 +318,7 @@ export async function runJobDescriptionStructured(
 export async function runJdVariantParse(
   jdText: string,
   onUpdate?: (data: StreamUpdate) => void,
-  options?: { throttleMs?: number, abortController?: AbortController },
+  options?: { throttleMs?: number; abortController?: AbortController },
 ) {
   const { system, user } = buildJdParsePrompt(jdText)
   const req = {
@@ -300,13 +329,20 @@ export async function runJdVariantParse(
     response_format: { type: 'json_object' },
     temperature: JD_VARIANT_PARSE_TEMPERATURE,
   } as ChatCompletionCreateParamsBase
-  return await streamStructuredJson(req, onUpdate, { ...options, requireComplete: true })
+  return await streamStructuredJson(req, onUpdate, {
+    ...options,
+    requireComplete: true,
+  })
 }
 
 export async function runJdVariantRewrite(
-  args: { resumeJson: EditableResumeView, jdText: string, keywords: readonly string[] },
+  args: {
+    resumeJson: EditableResumeView
+    jdText: string
+    keywords: readonly string[]
+  },
   onUpdate?: (data: StreamUpdate) => void,
-  options?: { throttleMs?: number, abortController?: AbortController },
+  options?: { throttleMs?: number; abortController?: AbortController },
 ) {
   const { system, user } = buildJdRewritePrompt(args)
   const req = {
@@ -317,5 +353,8 @@ export async function runJdVariantRewrite(
     response_format: { type: 'json_object' },
     temperature: JD_VARIANT_REWRITE_TEMPERATURE,
   } as ChatCompletionCreateParamsBase
-  return await streamStructuredJson(req, onUpdate, { ...options, requireComplete: true })
+  return await streamStructuredJson(req, onUpdate, {
+    ...options,
+    requireComplete: true,
+  })
 }

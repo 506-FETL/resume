@@ -11,13 +11,14 @@ interface UserStore {
   setCurrentUser: (user: SupabaseUser) => void
 }
 
-const useUserStore = create<UserStore>()(set => ({
+const useUserStore = create<UserStore>()((set) => ({
   currentUser: null,
   authStatus: 'unknown',
-  setCurrentUser: user => set({
-    currentUser: user,
-    authStatus: user ? 'authenticated' : 'anonymous',
-  }),
+  setCurrentUser: (user) =>
+    set({
+      currentUser: user,
+      authStatus: user ? 'authenticated' : 'anonymous',
+    }),
 }))
 
 supabase.auth.onAuthStateChange((_event, session) => {

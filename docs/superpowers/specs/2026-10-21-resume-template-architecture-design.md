@@ -213,7 +213,10 @@ flowchart TD
     },
     "richText": { "component": "plain-rich-text@1" },
     "skills": { "component": "skill-badges@1" },
-    "fieldList": { "component": "inline-fields@1", "presentation": "outlined-tags" },
+    "fieldList": {
+      "component": "inline-fields@1",
+      "presentation": "outlined-tags"
+    },
     "tagList": { "component": "tag-list@1" }
   },
   "appearanceDefaults": {

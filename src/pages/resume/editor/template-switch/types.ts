@@ -16,7 +16,10 @@ export interface TemplateSwitchState {
   openDialog: () => boolean
   closeDialog: () => void
   selectTemplate: (binding: ResumeTemplateBinding) => void
-  applyTemplate: (input: { binding: ResumeTemplateBinding, contentKey: string }) => boolean
+  applyTemplate: (input: {
+    binding: ResumeTemplateBinding
+    contentKey: string
+  }) => boolean
   undoTemplate: (operationId?: string) => boolean
   synchronizeSession: () => void
 }

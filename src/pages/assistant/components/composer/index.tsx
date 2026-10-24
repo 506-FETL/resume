@@ -3,7 +3,11 @@ import { Brain, Briefcase, FileText, Square } from 'lucide-react'
 import { useMemo } from 'react'
 import { QuotaMeter } from '@/components/quota/quota-meter'
 import { Composer as GaiaComposer } from '@/components/ui/composer'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 import { cn } from '@/lib/utils'
 import { ASSISTANT_TOOLS, TEMPLATE_PROMPTS } from '../../composer-tools'
@@ -14,7 +18,15 @@ import useAssistantStore from '../../store'
 import { SkillPicker } from '../skill-picker'
 
 export default function Composer() {
-  const { streaming, composerDraft: draft, composerSkillIds, initializing, loadingMessages, deepThinking, setDeepThinking } = useAssistantStore()
+  const {
+    streaming,
+    composerDraft: draft,
+    composerSkillIds,
+    initializing,
+    loadingMessages,
+    deepThinking,
+    setDeepThinking,
+  } = useAssistantStore()
   const { sendMessage, stopStreaming } = useChatStream()
   const { resumes, jobs } = useComposerContext()
   const disabled = streaming || initializing || loadingMessages
@@ -28,18 +40,23 @@ export default function Composer() {
 
   const contextOptions = useMemo<ComposerContextOption[]>(() => {
     const opts: ComposerContextOption[] = []
-    resumes.forEach(r => opts.push({
-      id: `resume-${r.resumeId}`,
-      label: `简历：${r.name}`,
-      icon: <FileText className="size-4" />,
-      onClick: () => appendDraft(`【参考简历：${r.name}(resumeId=${r.resumeId})】`),
-    }))
-    jobs.forEach(j => opts.push({
-      id: `job-${j.id}`,
-      label: `职位：${j.company} · ${j.position}`,
-      icon: <Briefcase className="size-4" />,
-      onClick: () => appendDraft(`【参考职位：${j.company}·${j.position}】`),
-    }))
+    resumes.forEach((r) =>
+      opts.push({
+        id: `resume-${r.resumeId}`,
+        label: `简历：${r.name}`,
+        icon: <FileText className='size-4' />,
+        onClick: () =>
+          appendDraft(`【参考简历：${r.name}(resumeId=${r.resumeId})】`),
+      }),
+    )
+    jobs.forEach((j) =>
+      opts.push({
+        id: `job-${j.id}`,
+        label: `职位：${j.company} · ${j.position}`,
+        icon: <Briefcase className='size-4' />,
+        onClick: () => appendDraft(`【参考职位：${j.company}·${j.position}】`),
+      }),
+    )
     return opts
   }, [resumes, jobs])
 
@@ -52,11 +69,14 @@ export default function Composer() {
       return
     }
     const template = TEMPLATE_PROMPTS[tool.name] ?? ''
-    if (!template)
-      return
+    if (!template) return
     const cur = useAssistantStore.getState().composerDraft
     // 通过 "/" 触发时替换掉查询串；否则追加到已有内容
-    const merged = cur.startsWith('/') ? template : (cur ? `${cur}\n${template}` : template)
+    const merged = cur.startsWith('/')
+      ? template
+      : cur
+        ? `${cur}\n${template}`
+        : template
     // 去掉模板末尾多余的换行，避免插入后留下一个空行（光标随后聚焦到末尾）
     const next = merged.replace(/\n+$/, '')
     useAssistantStore.getState().setComposerDraft(next)
@@ -64,20 +84,23 @@ export default function Composer() {
 
   const submit = (message: string) => {
     const text = message.trim()
-    if (disabled || (!text && composerSkillIds.length === 0))
-      return
+    if (disabled || (!text && composerSkillIds.length === 0)) return
     if (sendMessage(text, composerSkillIds)) {
       useAssistantStore.setState({ composerDraft: '', composerSkillIds: [] })
     }
   }
 
-  const selectedSkills = useMemo(() => composerSkillIds.flatMap((id) => {
-    const skill = BUILTIN_SKILLS.find(item => item.id === id)
-    return skill ? [{ id: skill.id, displayName: skill.displayName }] : []
-  }), [composerSkillIds])
+  const selectedSkills = useMemo(
+    () =>
+      composerSkillIds.flatMap((id) => {
+        const skill = BUILTIN_SKILLS.find((item) => item.id === id)
+        return skill ? [{ id: skill.id, displayName: skill.displayName }] : []
+      }),
+    [composerSkillIds],
+  )
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-3 sm:px-6 lg:px-8">
+    <div className='mx-auto w-full max-w-4xl px-3 sm:px-6 lg:px-8'>
       <GaiaComposer
         value={draft}
         placeholder={COMPOSER_PLACEHOLDER}
@@ -85,27 +108,33 @@ export default function Composer() {
         showToolsButton
         tools={ASSISTANT_TOOLS}
         onToolSelect={handleToolSelect}
-        composerHeader={(
+        composerHeader={
           <SkillPicker
             skills={selectedSkills}
             disabled={disabled}
-            onRemove={id => useAssistantStore.getState().setComposerSkillIds(composerSkillIds.filter(skillId => skillId !== id))}
+            onRemove={(id) =>
+              useAssistantStore
+                .getState()
+                .setComposerSkillIds(
+                  composerSkillIds.filter((skillId) => skillId !== id),
+                )
+            }
           />
-        )}
+        }
         canSubmit={composerSkillIds.length > 0}
         contextOptions={contextOptions}
-        trailingActions={(
+        trailingActions={
           <>
             {streaming && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    type="button"
-                    aria-label="停止生成"
+                    type='button'
+                    aria-label='停止生成'
                     onClick={stopStreaming}
-                    className="flex h-9 items-center gap-1.5 rounded-full bg-destructive/10 px-3 text-sm text-destructive transition-colors hover:bg-destructive/20 motion-reduce:transition-none"
+                    className='flex h-9 items-center gap-1.5 rounded-full bg-destructive/10 px-3 text-sm text-destructive transition-colors hover:bg-destructive/20 motion-reduce:transition-none'
                   >
-                    <Square className="size-3.5 fill-current" />
+                    <Square className='size-3.5 fill-current' />
                     停止
                   </button>
                 </TooltipTrigger>
@@ -115,8 +144,8 @@ export default function Composer() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  type="button"
-                  aria-label="深度思考"
+                  type='button'
+                  aria-label='深度思考'
                   aria-pressed={deepThinking}
                   onClick={() => setDeepThinking(!deepThinking)}
                   className={cn(
@@ -126,18 +155,22 @@ export default function Composer() {
                       : 'bg-muted text-muted-foreground hover:bg-accent',
                   )}
                 >
-                  <Brain className="size-4" />
+                  <Brain className='size-4' />
                   深度思考
                 </button>
               </TooltipTrigger>
-              <TooltipContent>{deepThinking ? '已开启深度思考' : '开启深度思考，耗时更长'}</TooltipContent>
+              <TooltipContent>
+                {deepThinking ? '已开启深度思考' : '开启深度思考，耗时更长'}
+              </TooltipContent>
             </Tooltip>
           </>
-        )}
-        onChange={value => useAssistantStore.getState().setComposerDraft(value)}
+        }
+        onChange={(value) =>
+          useAssistantStore.getState().setComposerDraft(value)
+        }
         onSubmit={submit}
       />
-      <QuotaMeter className="mt-1.5" />
+      <QuotaMeter className='mt-1.5' />
     </div>
   )
 }

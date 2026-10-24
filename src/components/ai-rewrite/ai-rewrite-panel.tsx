@@ -1,4 +1,8 @@
-import type { RewriteCandidate, RewriteSelection, RewriteSessionState } from './types'
+import type {
+  RewriteCandidate,
+  RewriteSelection,
+  RewriteSessionState,
+} from './types'
 import { RewriteCandidateList } from './components/candidate-list'
 import { JdContextInput } from './components/jd-context-input'
 import { RewriteStatusView } from './components/status-view'
@@ -10,14 +14,18 @@ interface Props {
   onJdDraftChange: (value: string) => void
 }
 
-export function AiRewritePanel({ state, selection, onApply, onJdDraftChange }: Props) {
-  if (state.status === 'idle' || !state.action || !selection)
-    return null
+export function AiRewritePanel({
+  state,
+  selection,
+  onApply,
+  onJdDraftChange,
+}: Props) {
+  if (state.status === 'idle' || !state.action || !selection) return null
 
   const isAlignJd = state.action === 'align_jd'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+    <div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5'>
       {isAlignJd && (
         <JdContextInput value={state.jdDraft} onChange={onJdDraftChange} />
       )}

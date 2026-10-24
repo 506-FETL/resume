@@ -1,6 +1,7 @@
 export type CorsMode = 'public' | 'allowlist'
 
-const ALLOW_HEADERS = 'authorization, x-client-info, x-request-id, apikey, content-type'
+const ALLOW_HEADERS =
+  'authorization, x-client-info, x-request-id, apikey, content-type'
 const EXPOSE_HEADERS = [
   'Server-Timing',
   'X-Request-Id',

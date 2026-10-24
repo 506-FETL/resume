@@ -10,7 +10,9 @@ function Login() {
   useAlreadyLoggedRedirect(redirect)
 
   return (
-    <AuthLayout><LoginForm redirect={redirect} /></AuthLayout>
+    <AuthLayout>
+      <LoginForm redirect={redirect} />
+    </AuthLayout>
   )
 }
 

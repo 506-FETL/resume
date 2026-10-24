@@ -14,18 +14,23 @@ interface CurrentVersionCardProps {
   onSelectEntry: (target: HistorySelection) => void
 }
 
-export default function CurrentVersionCard({ selected, onSelectEntry }: CurrentVersionCardProps) {
+export default function CurrentVersionCard({
+  selected,
+  onSelectEntry,
+}: CurrentVersionCardProps) {
   const { reduceMotion, enter } = useHistoryMotion()
   const { currentResume, versions } = useHistoryStore()
-  const { latestVersionNo, synced } = getCurrentSyncState(currentResume, versions)
+  const { latestVersionNo, synced } = getCurrentSyncState(
+    currentResume,
+    versions,
+  )
 
-  if (!currentResume)
-    return null
+  if (!currentResume) return null
 
   return (
     <motion.button
-      type="button"
-      data-history-entry="current"
+      type='button'
+      data-history-entry='current'
       aria-pressed={selected}
       onClick={() => onSelectEntry('current')}
       className={cn(
@@ -37,21 +42,42 @@ export default function CurrentVersionCard({ selected, onSelectEntry }: CurrentV
       transition={enter}
     >
       {selected && <SelectionHighlight />}
-      <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', selected ? 'bg-primary/10 text-primary' : 'bg-background text-muted-foreground')}>
-        <FileText className="size-4" />
+      <div
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center rounded-lg',
+          selected
+            ? 'bg-primary/10 text-primary'
+            : 'bg-background text-muted-foreground',
+        )}
+      >
+        <FileText className='size-4' />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold">当前内容</span>
-          <ChevronRight className={cn('size-3.5 shrink-0', selected ? 'text-primary' : 'text-muted-foreground')} />
+      <div className='flex min-w-0 flex-1 flex-col gap-1.5'>
+        <div className='flex items-center justify-between gap-2'>
+          <span className='text-sm font-semibold'>当前内容</span>
+          <ChevronRight
+            className={cn(
+              'size-3.5 shrink-0',
+              selected ? 'text-primary' : 'text-muted-foreground',
+            )}
+          />
         </div>
-        <span className="truncate text-xs text-muted-foreground">{currentResume.displayName}</span>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <Badge variant="outline" className="bg-background text-xs font-normal">
-            {versions.length === 0 ? '尚未保存版本' : synced ? `已同步至 V${latestVersionNo}` : '有未保存更新'}
+        <span className='truncate text-xs text-muted-foreground'>
+          {currentResume.displayName}
+        </span>
+        <div className='mt-0.5 flex flex-wrap items-center gap-1.5'>
+          <Badge
+            variant='outline'
+            className='bg-background text-xs font-normal'
+          >
+            {versions.length === 0
+              ? '尚未保存版本'
+              : synced
+                ? `已同步至 V${latestVersionNo}`
+                : '有未保存更新'}
           </Badge>
           {currentResume.updatedAt && (
-            <span className="text-xs text-muted-foreground">
+            <span className='text-xs text-muted-foreground'>
               {formatRelativeTime(currentResume.updatedAt)}
               更新
             </span>

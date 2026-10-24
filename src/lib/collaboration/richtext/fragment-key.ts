@@ -7,6 +7,9 @@
  *
  * 纯函数，无 `@/`/Yjs 依赖，便于 `node --test`。
  */
-export function buildFragmentKey(sectionKey: string, relativePath: string): string {
+export function buildFragmentKey(
+  sectionKey: string,
+  relativePath: string,
+): string {
   return relativePath ? `${sectionKey}.${relativePath}` : sectionKey
 }

@@ -5,11 +5,24 @@ import useUserStore from '@/store/user'
 import { useCollaborationPanelValue } from '../../hooks/use-collaboration-panel-value'
 import { CollaborationPanelContext } from './context'
 
-export default function CollaborationPanelProvider({ children }: { children: ReactNode }) {
-  const currentUser = useUserStore(state => state.currentUser)
-  const activeResumeId = useCurrentResumeStore(state => state.resumeId) ?? undefined
+export default function CollaborationPanelProvider({
+  children,
+}: {
+  children: ReactNode
+}) {
+  const currentUser = useUserStore((state) => state.currentUser)
+  const activeResumeId =
+    useCurrentResumeStore((state) => state.resumeId) ?? undefined
   const userDisplayName = getUserDisplayName(currentUser)
-  const value = useCollaborationPanelValue({ currentUser, activeResumeId, userDisplayName })
+  const value = useCollaborationPanelValue({
+    currentUser,
+    activeResumeId,
+    userDisplayName,
+  })
 
-  return <CollaborationPanelContext value={value}>{children}</CollaborationPanelContext>
+  return (
+    <CollaborationPanelContext value={value}>
+      {children}
+    </CollaborationPanelContext>
+  )
 }

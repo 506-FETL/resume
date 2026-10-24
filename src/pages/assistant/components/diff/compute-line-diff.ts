@@ -10,11 +10,10 @@ export interface DiffStatValue {
 
 // 把任意值规范为文本行
 export function toLines(value: unknown): string[] {
-  if (value == null)
-    return ['（空）']
-  const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
-  if (text === '')
-    return ['（空）']
+  if (value == null) return ['（空）']
+  const text =
+    typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+  if (text === '') return ['（空）']
   return text.split('\n')
 }
 
@@ -25,12 +24,15 @@ export function computeLineDiff(before: unknown, after: unknown): DiffLine[] {
   const m = a.length
   const n = b.length
   // dp[i][j] = LCS(a[i:], b[j:]) 长度
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array.from({ length: n + 1 }, () => 0))
+  const dp: number[][] = Array.from({ length: m + 1 }, () =>
+    Array.from({ length: n + 1 }, () => 0),
+  )
   for (let i = m - 1; i >= 0; i--) {
     for (let j = n - 1; j >= 0; j--) {
-      dp[i][j] = a[i] === b[j]
-        ? dp[i + 1][j + 1] + 1
-        : Math.max(dp[i + 1][j], dp[i][j + 1])
+      dp[i][j] =
+        a[i] === b[j]
+          ? dp[i + 1][j + 1] + 1
+          : Math.max(dp[i + 1][j], dp[i][j + 1])
     }
   }
   const lines: DiffLine[] = []
@@ -41,12 +43,10 @@ export function computeLineDiff(before: unknown, after: unknown): DiffLine[] {
       lines.push({ type: 'context', text: a[i] })
       i++
       j++
-    }
-    else if (dp[i + 1][j] >= dp[i][j + 1]) {
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
       lines.push({ type: 'remove', text: a[i] })
       i++
-    }
-    else {
+    } else {
       lines.push({ type: 'add', text: b[j] })
       j++
     }
@@ -64,7 +64,7 @@ export function computeLineDiff(before: unknown, after: unknown): DiffLine[] {
 
 export function diffStat(lines: DiffLine[]): DiffStatValue {
   return {
-    additions: lines.filter(l => l.type === 'add').length,
-    deletions: lines.filter(l => l.type === 'remove').length,
+    additions: lines.filter((l) => l.type === 'add').length,
+    deletions: lines.filter((l) => l.type === 'remove').length,
   }
 }

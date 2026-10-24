@@ -14,15 +14,14 @@ export function QuotaMenuRow() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-1.5 px-2 py-1.5">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-1.5 w-full rounded-full" />
+      <div className='flex flex-col gap-1.5 px-2 py-1.5'>
+        <Skeleton className='h-3 w-28' />
+        <Skeleton className='h-1.5 w-full rounded-full' />
       </div>
     )
   }
 
-  if (error || !quota)
-    return null
+  if (error || !quota) return null
 
   const { remaining, dailyLimit, usedToday, plan, unlimited } = quota
   const badge = getPlanBadge(plan)
@@ -31,10 +30,10 @@ export function QuotaMenuRow() {
 
   if (unlimited) {
     return (
-      <div className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs">
-        <span className="text-muted-foreground">今日 AI 额度</span>
-        <span className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
-          <InfinityIcon className="size-3" />
+      <div className='flex items-center justify-between gap-2 px-2 py-1.5 text-xs'>
+        <span className='text-muted-foreground'>今日 AI 额度</span>
+        <span className='inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400'>
+          <InfinityIcon className='size-3' />
           无限
         </span>
       </div>
@@ -42,9 +41,9 @@ export function QuotaMenuRow() {
   }
 
   return (
-    <div className="flex flex-col gap-1.5 px-2 py-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+    <div className='flex flex-col gap-1.5 px-2 py-1.5'>
+      <div className='flex items-center justify-between text-xs'>
+        <span className='inline-flex items-center gap-1.5 text-muted-foreground'>
           今日 AI 额度
           <span
             className={cn(
@@ -62,14 +61,10 @@ export function QuotaMenuRow() {
             tone === 'empty' && 'text-destructive',
           )}
         >
-          剩余
-          {' '}
-          {remaining}
-          /
-          {dailyLimit}
+          剩余 {remaining}/{dailyLimit}
         </span>
       </div>
-      <Progress value={percent} className="h-1.5" />
+      <Progress value={percent} className='h-1.5' />
     </div>
   )
 }

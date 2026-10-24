@@ -37,8 +37,7 @@ export function applyWriteOps(doc: any, ops: WriteOp[], deps: WriteDeps): void {
         const current = getIn(doc, op.path)
         if (typeof current === 'string') {
           deps.updateText(doc, op.path, op.value)
-        }
-        else {
+        } else {
           deps.setLeaf(doc, op.path, op.value)
         }
         break
@@ -72,8 +71,7 @@ export function applyWriteOps(doc: any, ops: WriteOp[], deps: WriteDeps): void {
         }
         if (typeof arr.deleteAt === 'function') {
           arr.deleteAt(op.index)
-        }
-        else if (typeof arr.splice === 'function') {
+        } else if (typeof arr.splice === 'function') {
           arr.splice(op.index, 1)
         }
         break

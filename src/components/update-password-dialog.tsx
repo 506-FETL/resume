@@ -2,7 +2,15 @@ import { Lock } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -46,8 +54,7 @@ export function UpdatePasswordDialog() {
   }, [oldPassword, newPassword, confirmPassword])
 
   const handleUpdatePassword = useCallback(async () => {
-    if (!validatePassword())
-      return
+    if (!validatePassword()) return
 
     setLoading(true)
     try {
@@ -79,8 +86,7 @@ export function UpdatePasswordDialog() {
         password: newPassword,
       })
 
-      if (updateError)
-        throw updateError
+      if (updateError) throw updateError
 
       toast.success('密码修改成功')
       setOpen(false)
@@ -88,12 +94,10 @@ export function UpdatePasswordDialog() {
       setOldPassword('')
       setNewPassword('')
       setConfirmPassword('')
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to update password:', error)
       toast.error('密码修改失败，请稍后重试')
-    }
-    finally {
+    } finally {
       setLoading(false)
     }
   }, [validatePassword, oldPassword, newPassword])
@@ -109,51 +113,53 @@ export function UpdatePasswordDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">修改密码</Button>
+        <Button variant='outline'>修改密码</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Lock className="size-5" />
+          <DialogTitle className='flex items-center gap-2'>
+            <Lock className='size-5' />
             修改密码
           </DialogTitle>
-          <DialogDescription className="sr-only">修改账户密码</DialogDescription>
+          <DialogDescription className='sr-only'>
+            修改账户密码
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <FieldGroup className="gap-4 py-4">
+          <FieldGroup className='gap-4 py-4'>
             <Field>
-              <FieldLabel htmlFor="old-password">旧密码</FieldLabel>
+              <FieldLabel htmlFor='old-password'>旧密码</FieldLabel>
               <Input
-                id="old-password"
-                type="password"
-                placeholder="请输入旧密码"
+                id='old-password'
+                type='password'
+                placeholder='请输入旧密码'
                 value={oldPassword}
-                onChange={e => setOldPassword(e.target.value)}
+                onChange={(e) => setOldPassword(e.target.value)}
                 disabled={loading}
                 required
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="new-password">新密码</FieldLabel>
+              <FieldLabel htmlFor='new-password'>新密码</FieldLabel>
               <Input
-                id="new-password"
-                type="password"
-                placeholder="至少 6 个字符"
+                id='new-password'
+                type='password'
+                placeholder='至少 6 个字符'
                 value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
+                onChange={(e) => setNewPassword(e.target.value)}
                 disabled={loading}
                 required
                 minLength={6}
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
+              <FieldLabel htmlFor='confirm-password'>确认新密码</FieldLabel>
               <Input
-                id="confirm-password"
-                type="password"
-                placeholder="请再次输入新密码"
+                id='confirm-password'
+                type='password'
+                placeholder='请再次输入新密码'
                 value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}
                 required
                 minLength={6}
@@ -161,11 +167,16 @@ export function UpdatePasswordDialog() {
             </Field>
           </FieldGroup>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
               取消
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Spinner data-icon="inline-start" />}
+            <Button type='submit' disabled={loading}>
+              {loading && <Spinner data-icon='inline-start' />}
               确认修改
             </Button>
           </DialogFooter>

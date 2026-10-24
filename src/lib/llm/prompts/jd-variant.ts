@@ -34,9 +34,14 @@ interface BuildJdRewritePromptArgs {
   keywords: readonly string[]
 }
 
-export function buildJdRewritePrompt(args: BuildJdRewritePromptArgs): JdPromptPair {
+export function buildJdRewritePrompt(
+  args: BuildJdRewritePromptArgs,
+): JdPromptPair {
   const whitelist = Object.entries(VARIANT_FIELD_MAPPINGS)
-    .map(([section, mapping]) => `- ${section}${mapping.collection ? '.*' : ''}.${mapping.fieldPath}`)
+    .map(
+      ([section, mapping]) =>
+        `- ${section}${mapping.collection ? '.*' : ''}.${mapping.fieldPath}`,
+    )
     .join('\n')
   const system = `你是资深简历优化顾问，擅长把现有简历针对特定岗位做"局部精修"。
 

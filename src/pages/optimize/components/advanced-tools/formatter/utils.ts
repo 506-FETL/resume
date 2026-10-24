@@ -10,9 +10,11 @@ import { SEVERITY_ORDER } from './const'
 function buildLocationText(finding: Finding) {
   const locate = finding.why.evidence[0]?.locate ?? finding.locate
 
-  return [locate?.sectionLabel, locate?.itemLabel, locate?.fieldLabel]
-    .filter(Boolean)
-    .join(' / ') || '未定位到具体位置'
+  return (
+    [locate?.sectionLabel, locate?.itemLabel, locate?.fieldLabel]
+      .filter(Boolean)
+      .join(' / ') || '未定位到具体位置'
+  )
 }
 
 function getPendingSuggestionEntries(finding: Finding) {
@@ -24,7 +26,9 @@ function getPendingSuggestionEntries(finding: Finding) {
     .filter(({ suggestion }) => !suggestion.fixed && suggestion.locate.path)
 }
 
-export function buildBatchOptimizationResult(findings: FindingsGroup | null | undefined): BatchOptimizationResult {
+export function buildBatchOptimizationResult(
+  findings: FindingsGroup | null | undefined,
+): BatchOptimizationResult {
   const items: BatchOptimizationItem[] = []
   const suggestionsToApply: Suggestion[] = []
   const appliedSuggestionIds: string[] = []
@@ -49,7 +53,10 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
       const pendingSuggestions = getPendingSuggestionEntries(finding)
 
       if (pendingSuggestions.length === 0) {
-        if (suggestions.length > 0 && suggestions.every(suggestion => suggestion.fixed)) {
+        if (
+          suggestions.length > 0 &&
+          suggestions.every((suggestion) => suggestion.fixed)
+        ) {
           fixedIssueCount += 1
         }
         return
@@ -104,7 +111,7 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
         fixSummary: finding.fix.summary,
         locationText: buildLocationText(finding),
         pendingSuggestionCount: pendingSuggestions.length,
-        pendingSuggestions: pendingSuggestions.map(item => item.suggestion),
+        pendingSuggestions: pendingSuggestions.map((item) => item.suggestion),
         requiresInputSuggestionCount: requiresInputInFinding,
         severity,
         steps: finding.fix.steps,
@@ -149,41 +156,44 @@ export function buildBatchOptimizationResult(findings: FindingsGroup | null | un
   }
 }
 
-export function markAppliedSuggestionsAsFixed(findings: FindingsGroup, appliedSuggestionIds: string[]): FindingsGroup {
+export function markAppliedSuggestionsAsFixed(
+  findings: FindingsGroup,
+  appliedSuggestionIds: string[],
+): FindingsGroup {
   const appliedSet = new Set(appliedSuggestionIds)
 
   return {
-    high: findings.high.map(finding => ({
+    high: findings.high.map((finding) => ({
       ...finding,
       fix: {
         ...finding.fix,
-        suggestions: (finding.fix.suggestions ?? []).map((suggestion, index) => (
+        suggestions: (finding.fix.suggestions ?? []).map((suggestion, index) =>
           appliedSet.has(`${finding.id}:${index}`)
             ? { ...suggestion, fixed: true }
-            : suggestion
-        )),
+            : suggestion,
+        ),
       },
     })),
-    medium: findings.medium.map(finding => ({
+    medium: findings.medium.map((finding) => ({
       ...finding,
       fix: {
         ...finding.fix,
-        suggestions: (finding.fix.suggestions ?? []).map((suggestion, index) => (
+        suggestions: (finding.fix.suggestions ?? []).map((suggestion, index) =>
           appliedSet.has(`${finding.id}:${index}`)
             ? { ...suggestion, fixed: true }
-            : suggestion
-        )),
+            : suggestion,
+        ),
       },
     })),
-    low: findings.low.map(finding => ({
+    low: findings.low.map((finding) => ({
       ...finding,
       fix: {
         ...finding.fix,
-        suggestions: (finding.fix.suggestions ?? []).map((suggestion, index) => (
+        suggestions: (finding.fix.suggestions ?? []).map((suggestion, index) =>
           appliedSet.has(`${finding.id}:${index}`)
             ? { ...suggestion, fixed: true }
-            : suggestion
-        )),
+            : suggestion,
+        ),
       },
     })),
   }
@@ -267,7 +277,10 @@ export function updateFindingPendingSuggestions(
   }
 }
 
-export function applySuggestionsToResume(resume: ResumeSchema, suggestions: Suggestion[]) {
+export function applySuggestionsToResume(
+  resume: ResumeSchema,
+  suggestions: Suggestion[],
+) {
   const nextResume = JSON.parse(JSON.stringify(resume)) as ResumeSchema
 
   suggestions.forEach((suggestion) => {

@@ -5,33 +5,40 @@ import { VariantLineageTreeDialog } from '@/components/jd-variant/components/lin
 import { VariantLineagePath } from '@/components/jd-variant/components/lineage-tree'
 import { useVariantLineage } from '@/components/jd-variant/hooks/use-lineage'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useCurrentResumeStore from '@/store/resume/current'
 
-export function VariantLineageButton({ reviewActive = false }: { reviewActive?: boolean }) {
+export function VariantLineageButton({
+  reviewActive = false,
+}: {
+  reviewActive?: boolean
+}) {
   const isMobile = useIsMobile()
   const { resumeId } = useCurrentResumeStore()
-  const resumes = useResumeListStore(s => s.resumes)
+  const resumes = useResumeListStore((s) => s.resumes)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [treeOpen, setTreeOpen] = useState(false)
   const navigate = useNavigate()
   const { setCurrentResume } = useCurrentResumeStore()
 
-  const current = resumeId ? resumes.find(r => r.resume_id === resumeId) ?? null : null
+  const current = resumeId
+    ? (resumes.find((r) => r.resume_id === resumeId) ?? null)
+    : null
   const parentId = current?.parent_resume_id ?? null
   // 沿父链找根：当前列表里查找祖先
   const findRoot = (id: string | null | undefined): string | null => {
-    if (!id)
-      return null
-    const item = resumes.find(r => r.resume_id === id)
-    if (!item)
-      return id
-    if (!item.parent_resume_id)
-      return item.resume_id
+    if (!id) return null
+    const item = resumes.find((r) => r.resume_id === id)
+    if (!item) return id
+    if (!item.parent_resume_id) return item.resume_id
     return findRoot(item.parent_resume_id)
   }
   const rootId = findRoot(resumeId)
@@ -40,7 +47,7 @@ export function VariantLineageButton({ reviewActive = false }: { reviewActive?: 
   const { tree } = useVariantLineage(disabled ? null : rootId)
 
   const handleOpen = (id: string) => {
-    const target = resumes.find(r => r.resume_id === id)
+    const target = resumes.find((r) => r.resume_id === id)
     setCurrentResume(id, target?.type ?? 'default')
     navigate('/resume/editor')
   }
@@ -50,31 +57,31 @@ export function VariantLineageButton({ reviewActive = false }: { reviewActive?: 
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
+            variant='outline'
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
             disabled={disabled}
-            aria-label="查看派生关系"
+            aria-label='查看派生关系'
             title={reviewActive ? '请先切回当前工作版本' : undefined}
           >
-            <GitBranch data-icon="inline-start" />
+            <GitBranch data-icon='inline-start' />
             {!isMobile && <span>派生关系</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="flex w-80 flex-col gap-3 p-4">
-          <h3 className="text-sm font-semibold">派生关系</h3>
+        <PopoverContent align='end' className='flex w-80 flex-col gap-3 p-4'>
+          <h3 className='text-sm font-semibold'>派生关系</h3>
           <VariantLineagePath tree={tree} currentResumeId={resumeId ?? ''} />
           <Separator />
           <Button
-            size="sm"
-            variant="outline"
-            className="w-full"
+            size='sm'
+            variant='outline'
+            className='w-full'
             onClick={() => {
               setPopoverOpen(false)
               setTreeOpen(true)
             }}
           >
-            <GitBranch data-icon="inline-start" />
+            <GitBranch data-icon='inline-start' />
             查看完整派生关系
           </Button>
         </PopoverContent>

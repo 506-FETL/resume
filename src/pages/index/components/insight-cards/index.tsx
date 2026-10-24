@@ -1,13 +1,43 @@
 import type { ReactNode } from 'react'
-import type { ActivityDay, AtsTrendPoint, FollowUpJob, FunnelStage } from '../../insights'
+import type {
+  ActivityDay,
+  AtsTrendPoint,
+  FollowUpJob,
+  FunnelStage,
+} from '../../insights'
 import type { ChartConfig } from '@/components/ui/chart'
-import { Activity, ArrowRight, BellRing, LineChart as LineChartIcon, LoaderCircle, TrendingUp } from 'lucide-react'
+import {
+  Activity,
+  ArrowRight,
+  BellRing,
+  LineChart as LineChartIcon,
+  LoaderCircle,
+  TrendingUp,
+} from 'lucide-react'
 import { useIsPresent, useReducedMotion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { AnimatedContent } from '@/components/motion/animated-content'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
 import { DURATION } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { NEXT_ACTION_TONE_CLASSES } from '@/pages/tracker/const'
@@ -16,17 +46,30 @@ import { NEXT_ACTION_TONE_CLASSES } from '@/pages/tracker/const'
 const CHART_HEIGHT = 'h-[140px]'
 const CHART_MARGIN = { top: 4, right: 8, left: 0, bottom: 0 } as const
 // 数值型 X 轴（首尾刻度贴着绘图区边缘）需要更大的右侧留白，否则最后一个刻度文案会被卡片裁掉
-const NUMERIC_AXIS_CHART_MARGIN = { top: 4, right: 28, left: 0, bottom: 0 } as const
+const NUMERIC_AXIS_CHART_MARGIN = {
+  top: 4,
+  right: 28,
+  left: 0,
+  bottom: 0,
+} as const
 
 // 卡片头：图标 chip + 标题 + 描述（复用首页既有视觉语言）
-function CardHead({ icon, title, description }: { icon: ReactNode, title: string, description: string }) {
+function CardHead({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode
+  title: string
+  description: string
+}) {
   return (
-    <CardHeader className="pb-4">
-      <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-md bg-primary/8 text-primary">{icon}</div>
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+    <CardHeader className='pb-4'>
+      <div className='flex items-center gap-2'>
+        <div className='p-1.5 rounded-md bg-primary/8 text-primary'>{icon}</div>
+        <CardTitle className='text-sm font-medium'>{title}</CardTitle>
       </div>
-      <CardDescription className="text-xs">{description}</CardDescription>
+      <CardDescription className='text-xs'>{description}</CardDescription>
     </CardHeader>
   )
 }
@@ -34,19 +77,33 @@ function CardHead({ icon, title, description }: { icon: ReactNode, title: string
 // 图表加载中：占位与图表等高，居中显示旋转的 LoaderCircle（比默认 spinner 的放射状图标更利落）
 function ChartLoading() {
   return (
-    <div className={cn('flex w-full items-center justify-center', CHART_HEIGHT)}>
-      <LoaderCircle className="size-6 animate-spin motion-reduce:animate-none text-muted-foreground/60" aria-label="加载中" role="status" />
+    <div
+      className={cn('flex w-full items-center justify-center', CHART_HEIGHT)}
+    >
+      <LoaderCircle
+        className='size-6 animate-spin motion-reduce:animate-none text-muted-foreground/60'
+        aria-label='加载中'
+        role='status'
+      />
     </div>
   )
 }
 
 // 空数据只展示紧凑操作行，不保留空图表高度。
-function ChartEmpty({ icon, text, onClick }: { icon: ReactNode, text: string, onClick?: () => void }) {
+function ChartEmpty({
+  icon,
+  text,
+  onClick,
+}: {
+  icon: ReactNode
+  text: string
+  onClick?: () => void
+}) {
   return (
     <button
-      type="button"
+      type='button'
       onClick={onClick}
-      className="flex w-full items-center gap-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground motion-reduce:transition-none"
+      className='flex w-full items-center gap-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground motion-reduce:transition-none'
     >
       {icon}
       {text}
@@ -55,52 +112,66 @@ function ChartEmpty({ icon, text, onClick }: { icon: ReactNode, text: string, on
 }
 
 // ==================== 待跟进岗位 Top3 ====================
-function followUpTone(daysUntil: number | null): { text: string, tone: 'overdue' | 'today' | 'upcoming' } {
-  if (daysUntil === null)
-    return { text: '长时间未推进', tone: 'upcoming' }
+function followUpTone(daysUntil: number | null): {
+  text: string
+  tone: 'overdue' | 'today' | 'upcoming'
+} {
+  if (daysUntil === null) return { text: '长时间未推进', tone: 'upcoming' }
   if (daysUntil < 0)
     return { text: `逾期 ${Math.abs(daysUntil)} 天`, tone: 'overdue' }
-  if (daysUntil === 0)
-    return { text: '今天跟进', tone: 'today' }
-  if (daysUntil === 1)
-    return { text: '明天跟进', tone: 'upcoming' }
+  if (daysUntil === 0) return { text: '今天跟进', tone: 'today' }
+  if (daysUntil === 1) return { text: '明天跟进', tone: 'upcoming' }
   return { text: `${daysUntil} 天后`, tone: 'upcoming' }
 }
 
-export function FollowUpCard({ followUps, total }: { followUps: FollowUpJob[], total: number }) {
+export function FollowUpCard({
+  followUps,
+  total,
+}: {
+  followUps: FollowUpJob[]
+  total: number
+}) {
   const navigate = useNavigate()
   const isPresent = useIsPresent()
 
-  if (followUps.length === 0)
-    return null
+  if (followUps.length === 0) return null
 
   return (
-    <Card className="flex flex-col" inert={!isPresent} aria-hidden={!isPresent || undefined}>
+    <Card
+      className='flex flex-col'
+      inert={!isPresent}
+      aria-hidden={!isPresent || undefined}
+    >
       <CardHead
-        icon={<BellRing className="size-4" />}
-        title="待跟进岗位"
-        description="已到期或长时间未推进的岗位"
+        icon={<BellRing className='size-4' />}
+        title='待跟进岗位'
+        description='已到期或长时间未推进的岗位'
       />
-      <CardContent className="flex-1 pt-0">
-        <div className="flex flex-col gap-2">
+      <CardContent className='flex-1 pt-0'>
+        <div className='flex flex-col gap-2'>
           {followUps.map((job) => {
             const badge = followUpTone(job.daysUntil)
             return (
               <button
-                type="button"
+                type='button'
                 key={job.id}
                 onClick={() => navigate('/tracker')}
-                className="group flex items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent/50 hover:border-border/80"
+                className='group flex items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent/50 hover:border-border/80'
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{job.company}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                <div className='min-w-0'>
+                  <p className='text-sm font-medium truncate'>{job.company}</p>
+                  <p className='text-xs text-muted-foreground truncate'>
                     {job.position}
                     {' · '}
                     {job.statusLabel}
                   </p>
                 </div>
-                <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', NEXT_ACTION_TONE_CLASSES[badge.tone])}>
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                    NEXT_ACTION_TONE_CLASSES[badge.tone],
+                  )}
+                >
                   {badge.text}
                 </span>
               </button>
@@ -109,14 +180,16 @@ export function FollowUpCard({ followUps, total }: { followUps: FollowUpJob[], t
         </div>
         {total > followUps.length && (
           <button
-            type="button"
+            type='button'
             onClick={() => navigate('/tracker')}
-            className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className='mt-3 flex w-full items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors'
           >
             还有
-            <span className="font-medium text-foreground">{total - followUps.length}</span>
+            <span className='font-medium text-foreground'>
+              {total - followUps.length}
+            </span>
             个待跟进
-            <ArrowRight className="size-3" />
+            <ArrowRight className='size-3' />
           </button>
         )}
       </CardContent>
@@ -129,41 +202,76 @@ const funnelConfig = {
   count: { label: '岗位数', color: 'var(--chart-1)' },
 } satisfies ChartConfig
 
-export function FunnelCard({ funnel, loading }: { funnel: FunnelStage[], loading: boolean }) {
+export function FunnelCard({
+  funnel,
+  loading,
+}: {
+  funnel: FunnelStage[]
+  loading: boolean
+}) {
   const reduceMotion = useReducedMotion()
   const navigate = useNavigate()
-  const hasData = funnel.some(stage => stage.count > 0)
+  const hasData = funnel.some((stage) => stage.count > 0)
 
   return (
-    <Card className="flex flex-col">
+    <Card className='flex flex-col'>
       <CardHead
-        icon={<TrendingUp className="size-4" />}
-        title="求职漏斗"
-        description="各阶段在办岗位分布"
+        icon={<TrendingUp className='size-4' />}
+        title='求职漏斗'
+        description='各阶段在办岗位分布'
       />
-      <CardContent className="flex-1 pt-0">
-        <AnimatedContent animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}>
-          {loading
-            ? <ChartLoading />
-            : hasData
-              ? (
-                  <ChartContainer config={funnelConfig} className={cn(CHART_HEIGHT, 'w-full')}>
-                    <BarChart accessibilityLayer data={funnel} margin={CHART_MARGIN}>
-                      <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                      <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                      <Bar isAnimationActive={!reduceMotion} animationDuration={DURATION.slow * 1000} animationEasing="ease-out" dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={44} />
-                    </BarChart>
-                  </ChartContainer>
-                )
-              : (
-                  <ChartEmpty
-                    icon={<Activity className="size-4 text-muted-foreground/40" />}
-                    text="添加岗位"
-                    onClick={() => navigate('/tracker')}
-                  />
-                )}
+      <CardContent className='flex-1 pt-0'>
+        <AnimatedContent
+          animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}
+        >
+          {loading ? (
+            <ChartLoading />
+          ) : hasData ? (
+            <ChartContainer
+              config={funnelConfig}
+              className={cn(CHART_HEIGHT, 'w-full')}
+            >
+              <BarChart accessibilityLayer data={funnel} margin={CHART_MARGIN}>
+                <CartesianGrid
+                  vertical={false}
+                  stroke='var(--border)'
+                  strokeDasharray='3 3'
+                />
+                <XAxis
+                  dataKey='label'
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent />}
+                />
+                <Bar
+                  isAnimationActive={!reduceMotion}
+                  animationDuration={DURATION.slow * 1000}
+                  animationEasing='ease-out'
+                  dataKey='count'
+                  fill='var(--chart-1)'
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={44}
+                />
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <ChartEmpty
+              icon={<Activity className='size-4 text-muted-foreground/40' />}
+              text='添加岗位'
+              onClick={() => navigate('/tracker')}
+            />
+          )}
         </AnimatedContent>
       </CardContent>
     </Card>
@@ -175,89 +283,150 @@ const trendConfig = {
   score: { label: 'ATS 分', color: 'var(--chart-2)' },
 } satisfies ChartConfig
 
-export function AtsTrendCard({ trend, loading }: { trend: AtsTrendPoint[], loading: boolean }) {
+export function AtsTrendCard({
+  trend,
+  loading,
+}: {
+  trend: AtsTrendPoint[]
+  loading: boolean
+}) {
   const reduceMotion = useReducedMotion()
   const navigate = useNavigate()
   // 至少两次检测才绘制趋势，单次检测展示分数与时间摘要。
   const hasData = trend.length > 0
 
   return (
-    <Card className="flex flex-col">
+    <Card className='flex flex-col'>
       <CardHead
-        icon={<LineChartIcon className="size-4" />}
-        title="ATS 分数趋势"
-        description="最近 8 次检测得分"
+        icon={<LineChartIcon className='size-4' />}
+        title='ATS 分数趋势'
+        description='最近 8 次检测得分'
       />
-      <CardContent className="flex-1 pt-0">
-        <AnimatedContent animationKey={loading ? 'loading' : trend.length > 1 ? 'ready' : hasData ? 'summary' : 'empty'}>
-          {loading
-            ? <ChartLoading />
-            : trend.length === 1
-              ? (
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
-                    <span className="text-2xl font-semibold tabular-nums">
-                      {trend[0].score}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">分</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {trend[0].fullLabel}
-                      {' '}
-                      · 再次检测后展示趋势
-                    </span>
-                  </div>
-                )
-              : hasData
-                ? (
-                    <ChartContainer config={trendConfig} className={cn(CHART_HEIGHT, 'w-full')}>
-                      <AreaChart accessibilityLayer data={trend} margin={NUMERIC_AXIS_CHART_MARGIN}>
-                        <defs>
-                          <linearGradient id="ats-trend-fill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.02} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="index"
-                          type="number"
-                          domain={['dataMin', 'dataMax']}
-                          ticks={trend.map(point => point.index)}
-                          interval={0}
-                          tickMargin={8}
-                          height={24}
-                          tickFormatter={(value: number) => trend[value]?.label ?? ''}
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                        />
-                        <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                        <ChartTooltip
-                          cursor={false}
-                          content={<ChartTooltipContent labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel ?? ''} />}
-                        />
-                        <Area
-                          isAnimationActive={!reduceMotion}
-                          animationDuration={DURATION.slow * 1000}
-                          animationEasing="ease-out"
-                          dataKey="score"
-                          type="monotone"
-                          stroke="var(--chart-2)"
-                          strokeWidth={2}
-                          fill="url(#ats-trend-fill)"
-                          // 常驻数据点：每次检测都有一个圆点，hover 时放大，避免只有折线看不出「几次检测」
-                          dot={{ r: 3, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 1.5 }}
-                          activeDot={{ r: 5, fill: 'var(--chart-2)', stroke: 'var(--background)', strokeWidth: 2 }}
-                        />
-                      </AreaChart>
-                    </ChartContainer>
-                  )
-                : (
-                    <ChartEmpty
-                      icon={<LineChartIcon className="size-4 text-muted-foreground/40" />}
-                      text="开始 ATS 检测"
-                      onClick={() => navigate('/optimize')}
+      <CardContent className='flex-1 pt-0'>
+        <AnimatedContent
+          animationKey={
+            loading
+              ? 'loading'
+              : trend.length > 1
+                ? 'ready'
+                : hasData
+                  ? 'summary'
+                  : 'empty'
+          }
+        >
+          {loading ? (
+            <ChartLoading />
+          ) : trend.length === 1 ? (
+            <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2'>
+              <span className='text-2xl font-semibold tabular-nums'>
+                {trend[0].score}
+                <span className='ml-1 text-xs font-normal text-muted-foreground'>
+                  分
+                </span>
+              </span>
+              <span className='text-xs text-muted-foreground'>
+                {trend[0].fullLabel} · 再次检测后展示趋势
+              </span>
+            </div>
+          ) : hasData ? (
+            <ChartContainer
+              config={trendConfig}
+              className={cn(CHART_HEIGHT, 'w-full')}
+            >
+              <AreaChart
+                accessibilityLayer
+                data={trend}
+                margin={NUMERIC_AXIS_CHART_MARGIN}
+              >
+                <defs>
+                  <linearGradient
+                    id='ats-trend-fill'
+                    x1='0'
+                    y1='0'
+                    x2='0'
+                    y2='1'
+                  >
+                    <stop
+                      offset='5%'
+                      stopColor='var(--chart-2)'
+                      stopOpacity={0.3}
                     />
-                  )}
+                    <stop
+                      offset='95%'
+                      stopColor='var(--chart-2)'
+                      stopOpacity={0.02}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  vertical={false}
+                  stroke='var(--border)'
+                  strokeDasharray='3 3'
+                />
+                <XAxis
+                  dataKey='index'
+                  type='number'
+                  domain={['dataMin', 'dataMax']}
+                  ticks={trend.map((point) => point.index)}
+                  interval={0}
+                  tickMargin={8}
+                  height={24}
+                  tickFormatter={(value: number) => trend[value]?.label ?? ''}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(_, payload) =>
+                        payload?.[0]?.payload?.fullLabel ?? ''
+                      }
+                    />
+                  }
+                />
+                <Area
+                  isAnimationActive={!reduceMotion}
+                  animationDuration={DURATION.slow * 1000}
+                  animationEasing='ease-out'
+                  dataKey='score'
+                  type='monotone'
+                  stroke='var(--chart-2)'
+                  strokeWidth={2}
+                  fill='url(#ats-trend-fill)'
+                  // 常驻数据点：每次检测都有一个圆点，hover 时放大，避免只有折线看不出「几次检测」
+                  dot={{
+                    r: 3,
+                    fill: 'var(--chart-2)',
+                    stroke: 'var(--background)',
+                    strokeWidth: 1.5,
+                  }}
+                  activeDot={{
+                    r: 5,
+                    fill: 'var(--chart-2)',
+                    stroke: 'var(--background)',
+                    strokeWidth: 2,
+                  }}
+                />
+              </AreaChart>
+            </ChartContainer>
+          ) : (
+            <ChartEmpty
+              icon={
+                <LineChartIcon className='size-4 text-muted-foreground/40' />
+              }
+              text='开始 ATS 检测'
+              onClick={() => navigate('/optimize')}
+            />
+          )}
         </AnimatedContent>
       </CardContent>
     </Card>
@@ -270,15 +439,21 @@ const activityConfig = {
   applies: { label: '投递', color: 'var(--chart-3)' },
 } satisfies ChartConfig
 
-export function ActivityCard({ activity, loading }: { activity: ActivityDay[], loading: boolean }) {
+export function ActivityCard({
+  activity,
+  loading,
+}: {
+  activity: ActivityDay[]
+  loading: boolean
+}) {
   const reduceMotion = useReducedMotion()
   const total = activity.reduce((sum, day) => sum + day.total, 0)
   const hasData = total > 0
 
   if (!loading && !hasData) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground">
-        <Activity className="size-4" aria-hidden />
+      <div className='flex flex-wrap items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground'>
+        <Activity className='size-4' aria-hidden />
         <span>本周活跃度</span>
         <span>暂无编辑或投递记录</span>
       </div>
@@ -286,35 +461,83 @@ export function ActivityCard({ activity, loading }: { activity: ActivityDay[], l
   }
 
   return (
-    <Card className="flex flex-col">
+    <Card className='flex flex-col'>
       <CardHead
-        icon={<Activity className="size-4" />}
-        title="本周活跃度"
-        description="本周的编辑与投递"
+        icon={<Activity className='size-4' />}
+        title='本周活跃度'
+        description='本周的编辑与投递'
       />
-      <CardContent className="flex-1 pt-0">
-        <AnimatedContent animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}>
-          {loading
-            ? <ChartLoading />
-            : total > 0
-              ? (
-                  <ChartContainer config={activityConfig} className={cn(CHART_HEIGHT, 'w-full')}>
-                    <BarChart accessibilityLayer data={activity} margin={CHART_MARGIN}>
-                      <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                      <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                      <Bar isAnimationActive={!reduceMotion} animationDuration={DURATION.slow * 1000} animationEasing="ease-out" dataKey="edits" stackId="a" fill="var(--chart-1)" radius={[0, 0, 0, 0]} maxBarSize={28} />
-                      <Bar isAnimationActive={!reduceMotion} animationDuration={DURATION.slow * 1000} animationEasing="ease-out" dataKey="applies" stackId="a" fill="var(--chart-3)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                    </BarChart>
-                  </ChartContainer>
-                )
-              : (
-                  <div className={cn('flex w-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground', CHART_HEIGHT)}>
-                    <Activity className="size-4 text-muted-foreground/40" />
-                    本周还没有编辑或投递记录
-                  </div>
-                )}
+      <CardContent className='flex-1 pt-0'>
+        <AnimatedContent
+          animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}
+        >
+          {loading ? (
+            <ChartLoading />
+          ) : total > 0 ? (
+            <ChartContainer
+              config={activityConfig}
+              className={cn(CHART_HEIGHT, 'w-full')}
+            >
+              <BarChart
+                accessibilityLayer
+                data={activity}
+                margin={CHART_MARGIN}
+              >
+                <CartesianGrid
+                  vertical={false}
+                  stroke='var(--border)'
+                  strokeDasharray='3 3'
+                />
+                <XAxis
+                  dataKey='label'
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent />}
+                />
+                <Bar
+                  isAnimationActive={!reduceMotion}
+                  animationDuration={DURATION.slow * 1000}
+                  animationEasing='ease-out'
+                  dataKey='edits'
+                  stackId='a'
+                  fill='var(--chart-1)'
+                  radius={[0, 0, 0, 0]}
+                  maxBarSize={28}
+                />
+                <Bar
+                  isAnimationActive={!reduceMotion}
+                  animationDuration={DURATION.slow * 1000}
+                  animationEasing='ease-out'
+                  dataKey='applies'
+                  stackId='a'
+                  fill='var(--chart-3)'
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={28}
+                />
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <div
+              className={cn(
+                'flex w-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground',
+                CHART_HEIGHT,
+              )}
+            >
+              <Activity className='size-4 text-muted-foreground/40' />
+              本周还没有编辑或投递记录
+            </div>
+          )}
         </AnimatedContent>
       </CardContent>
     </Card>

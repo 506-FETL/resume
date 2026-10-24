@@ -202,7 +202,7 @@ interface TemplateDefinition {
     }
     richText: { component: 'plain-rich-text@1' }
     skills: { component: 'skill-badges@1' }
-    fieldList: { component: 'inline-fields@1', presentation: 'outlined-tags' }
+    fieldList: { component: 'inline-fields@1'; presentation: 'outlined-tags' }
     tagList: { component: 'tag-list@1' }
   }
   appearanceDefaults: ResumeAppearanceConfig
@@ -259,12 +259,20 @@ assert.deepEqual(
   DEFAULT_TEMPLATE_REF,
 )
 assert.deepEqual(
-  resolveTemplateReference({ source: 'official', templateId: 'default', templateVersion: 2 }),
+  resolveTemplateReference({
+    source: 'official',
+    templateId: 'default',
+    templateVersion: 2,
+  }),
   { templateId: 'default', templateVersion: 2 },
 )
-assert.throws(() => resolveTemplateReference({
-  source: 'official', templateId: 'default', templateVersion: 0,
-}))
+assert.throws(() =>
+  resolveTemplateReference({
+    source: 'official',
+    templateId: 'default',
+    templateVersion: 0,
+  }),
+)
 ```
 
 版本 2 的引用格式合法，但数据源必须在找不到定义时报 `VERSION_NOT_FOUND`。再覆盖 `null` 版本、未知 source、额外脚本字段、参数越界和 schemaVersion 不支持；原输入深冻结后调用，确认无原地修改。
@@ -278,13 +286,19 @@ assert.throws(() => resolveTemplateReference({
 - [x] **3.1 固定异步 Source 契约。**
 
 ```ts
-interface ExampleRef { exampleId: string, version: number }
+interface ExampleRef {
+  exampleId: string
+  version: number
+}
 interface ResumeExample {
   exampleId: string
   version: number
   name: string
   projectionReferenceDate: string
-  content: Pick<PersistedResumeSnapshot, keyof ResumeSchema | 'order' | 'visibility'>
+  content: Pick<
+    PersistedResumeSnapshot,
+    keyof ResumeSchema | 'order' | 'visibility'
+  >
 }
 interface TemplateCatalogItem {
   templateId: string
@@ -359,7 +373,7 @@ interface ExperienceContent {
   title?: ContentField
   subtitle?: ContentField
   duration?: ContentField
-  description?: { field: ContentField, html: string }
+  description?: { field: ContentField; html: string }
 }
 interface SkillContent {
   field: ContentField
@@ -367,11 +381,11 @@ interface SkillContent {
   displayType: SkillItem['displayType']
 }
 type ContentBlock =
-  | { kind: 'experience', items: ExperienceContent[] }
-  | { kind: 'richText', field: ContentField, html: string }
-  | { kind: 'skills', items: SkillContent[] }
-  | { kind: 'fieldList', items: ContentField[] }
-  | { kind: 'tagList', items: ContentField[] }
+  | { kind: 'experience'; items: ExperienceContent[] }
+  | { kind: 'richText'; field: ContentField; html: string }
+  | { kind: 'skills'; items: SkillContent[] }
+  | { kind: 'fieldList'; items: ContentField[] }
+  | { kind: 'tagList'; items: ContentField[] }
 interface ContentSection {
   key: keyof ResumeSchema
   title: string
@@ -485,9 +499,17 @@ async function resolveTemplate(
   binding: unknown,
 ): Promise<TemplateDefinition> {
   const ref = resolveTemplateReference(binding)
-  const definition = templateDefinitionSchema.parse(await source.getTemplateVersion(ref))
-  if (definition.templateId !== ref.templateId || definition.version !== ref.templateVersion) {
-    throw new TemplateResolutionError('REFERENCE_MISMATCH', '模板版本与请求不一致')
+  const definition = templateDefinitionSchema.parse(
+    await source.getTemplateVersion(ref),
+  )
+  if (
+    definition.templateId !== ref.templateId ||
+    definition.version !== ref.templateVersion
+  ) {
+    throw new TemplateResolutionError(
+      'REFERENCE_MISMATCH',
+      '模板版本与请求不一致',
+    )
   }
   return definition
 }
@@ -500,9 +522,9 @@ async function resolveTemplate(
 ```ts
 type ResourceState<T> =
   | { status: 'idle' }
-  | { status: 'loading', requestId: number }
-  | { status: 'ready', data: T }
-  | { status: 'error', error: TemplateResolutionError }
+  | { status: 'loading'; requestId: number }
+  | { status: 'ready'; data: T }
+  | { status: 'error'; error: TemplateResolutionError }
 ```
 
 模板 store 分开保存目录、`templateKey(ref)` 对应的定义、`exampleId@version` 对应的示例。相同 key 的进行中请求去重；失败可重试；不同 key 完成后各自展示。Source 通过模块组合入口固定为 `localTemplateSource`，页面和组件不直接 import 定义文件。
@@ -573,7 +595,9 @@ interface CreatedTemplateResume {
 在现有 `entry-id.ts` 中增加 `cloneResumeWithFreshEntryIds`，复用其私有集合清单和 `createResumeEntryId`，不导出另一份重复列表。
 
 ```ts
-export function cloneResumeWithFreshEntryIds(resume: ResumeSchema): ResumeSchema {
+export function cloneResumeWithFreshEntryIds(
+  resume: ResumeSchema,
+): ResumeSchema {
   const clone = structuredClone(resume)
   for (const collection of RESUME_ENTRY_COLLECTIONS) {
     for (const entry of readCollection(clone, collection)) {

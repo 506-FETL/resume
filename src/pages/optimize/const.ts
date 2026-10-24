@@ -1,6 +1,24 @@
-import type { AnalysisState, AnalysisStatus, Severity, SeverityConfigVariant, StepConfig, SuggestionKind } from './types'
+import type {
+  AnalysisState,
+  AnalysisStatus,
+  Severity,
+  SeverityConfigVariant,
+  StepConfig,
+  SuggestionKind,
+} from './types'
 import type { SkillItem } from '@/lib/schema'
-import { AlertCircle, AlertTriangle, Brain, Calendar, CloudUpload, Database, FileText, Info, Sparkles, Tag } from 'lucide-react'
+import {
+  AlertCircle,
+  AlertTriangle,
+  Brain,
+  Calendar,
+  CloudUpload,
+  Database,
+  FileText,
+  Info,
+  Sparkles,
+  Tag,
+} from 'lucide-react'
 
 export const SCORE_LABELS = {
   job_match: '岗位定位与相关性',
@@ -107,27 +125,73 @@ export const PROFICIENCY_MAP: Record<string, number> = {
 }
 
 // 编辑器
-export const KIND_CONFIG: Record<SuggestionKind, { label: string, color: string, bg: string }> = {
-  replace_text: { label: '替换文本', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-  replace_value: { label: '替换值', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-  fill_field: { label: '填充字段', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  normalize_date: { label: '规范日期', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+export const KIND_CONFIG: Record<
+  SuggestionKind,
+  { label: string; color: string; bg: string }
+> = {
+  replace_text: {
+    label: '替换文本',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-500/20',
+  },
+  replace_value: {
+    label: '替换值',
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-500/10 border-purple-500/20',
+  },
+  fill_field: {
+    label: '填充字段',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-500/10 border-emerald-500/20',
+  },
+  normalize_date: {
+    label: '规范日期',
+    color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-500/10 border-amber-500/20',
+  },
 }
 
-export const PROFICIENCY_LEVELS = ['一般', '良好', '熟练', '擅长', '精通'] as const
+export const PROFICIENCY_LEVELS = [
+  '一般',
+  '良好',
+  '熟练',
+  '擅长',
+  '精通',
+] as const
 export const DISPLAY_TYPES = [
   { value: 'text', label: '文字' },
   { value: 'percentage', label: '百分比' },
 ] as const
 
 // 预设技能
-export const PRESET_SKILLS = ['JavaScript', 'TypeScript', 'React', 'Vue', 'Node.js', 'Python', 'Java', 'Go', 'SQL', 'Git']
+export const PRESET_SKILLS = [
+  'JavaScript',
+  'TypeScript',
+  'React',
+  'Vue',
+  'Node.js',
+  'Python',
+  'Java',
+  'Go',
+  'SQL',
+  'Git',
+]
 
 // 预设证书
-export const PRESET_CERTIFICATES = ['CET-4', 'CET-6', '计算机二级', '普通话证书', '驾驶证', '教师资格证']
+export const PRESET_CERTIFICATES = [
+  'CET-4',
+  'CET-6',
+  '计算机二级',
+  '普通话证书',
+  '驾驶证',
+  '教师资格证',
+]
 
 // 渲染器
-export const KIND_LABEL_MAP: Record<SuggestionKind, { label: string, icon: typeof Tag }> = {
+export const KIND_LABEL_MAP: Record<
+  SuggestionKind,
+  { label: string; icon: typeof Tag }
+> = {
   replace_text: { label: '文本替换', icon: Tag },
   replace_value: { label: '值替换', icon: Tag },
   fill_field: { label: '字段填充', icon: Tag },
@@ -136,8 +200,12 @@ export const KIND_LABEL_MAP: Record<SuggestionKind, { label: string, icon: typeo
 
 // 预览渲染器映射
 export const PREVIEW_RENDERER_MAP: Record<string, (value: any) => string> = {
-  skill_list: (value: SkillItem[]) => value.map(skill => `${skill.label}(${skill.proficiencyLevel})`).join('、'),
-  certificate_list: (value: Array<{ name: string }>) => value.map(cert => cert.name).join('、'),
+  skill_list: (value: SkillItem[]) =>
+    value
+      .map((skill) => `${skill.label}(${skill.proficiencyLevel})`)
+      .join('、'),
+  certificate_list: (value: Array<{ name: string }>) =>
+    value.map((cert) => cert.name).join('、'),
   date_range: (value: string[]) => {
     const [start, end] = value
     return `${start || '未填'} 至 ${end || '至今'}`

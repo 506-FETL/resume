@@ -25,9 +25,9 @@ type AnyZod = z.ZodTypeAny
 function unwrap(schema: AnyZod): AnyZod {
   let cur: any = schema
   while (
-    cur instanceof z.ZodOptional
-    || cur instanceof z.ZodDefault
-    || cur instanceof z.ZodNullable
+    cur instanceof z.ZodOptional ||
+    cur instanceof z.ZodDefault ||
+    cur instanceof z.ZodNullable
   ) {
     cur = cur._def.innerType
   }
@@ -71,7 +71,7 @@ function describeField(schema: AnyZod): string {
     // Zod 4 公开 API：t.options 返回枚举值数组
 
     const values = (t as any).options as string[]
-    return `enum(${values.map(v => `"${v}"`).join(' | ')})`
+    return `enum(${values.map((v) => `"${v}"`).join(' | ')})`
   }
 
   if (t instanceof z.ZodArray) {
@@ -131,7 +131,9 @@ export function buildResumeSchemaDoc(): string {
 
   for (const [key, sectionSchema] of Object.entries(shape)) {
     const label = SECTION_LABELS[key] ?? key
-    lines.push(`- ${key}（${label}）：${describeField(sectionSchema as AnyZod)}`)
+    lines.push(
+      `- ${key}（${label}）：${describeField(sectionSchema as AnyZod)}`,
+    )
   }
 
   return lines.join('\n')

@@ -1,6 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { PropsWithChildren } from 'react'
-import type { ORDERType, ResumeSchema, ResumeTemplateBinding, ResumeType, VisibilityFormType } from '@/lib/schema'
+import type {
+  ORDERType,
+  ResumeSchema,
+  ResumeTemplateBinding,
+  ResumeType,
+  VisibilityFormType,
+} from '@/lib/schema'
 import { createContext, use } from 'react'
 import { normalizeResumeFormData } from '@/lib/schema'
 
@@ -23,7 +29,9 @@ export interface TemplateResumeData extends ResumeSchema {
 
 const TemplateResumeDataContext = createContext<TemplateResumeData | null>(null)
 
-export function buildTemplateResumeData(snapshot: TemplateResumeDataInput): TemplateResumeData {
+export function buildTemplateResumeData(
+  snapshot: TemplateResumeDataInput,
+): TemplateResumeData {
   const formData = normalizeResumeFormData(snapshot)
 
   return {
@@ -31,7 +39,7 @@ export function buildTemplateResumeData(snapshot: TemplateResumeDataInput): Temp
     ...formData,
     templateBinding: snapshot.templateBinding,
     // visibility 存的是“是否隐藏”，runtime 读取时需要转换成“是否显示”
-    getVisibility: id => snapshot.visibility[id] !== true,
+    getVisibility: (id) => snapshot.visibility[id] !== true,
   }
 }
 
@@ -49,7 +57,9 @@ export function TemplateResumeDataProvider({
 export function useTemplateResumeData(): TemplateResumeData {
   const context = use(TemplateResumeDataContext)
   if (!context) {
-    throw new Error('useTemplateResumeData must be used within a TemplateResumeDataProvider')
+    throw new Error(
+      'useTemplateResumeData must be used within a TemplateResumeDataProvider',
+    )
   }
   return context
 }

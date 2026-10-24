@@ -1,4 +1,8 @@
-import type { BenchmarkMetric, BenchmarkMetricStatus, BenchmarkResult } from './types'
+import type {
+  BenchmarkMetric,
+  BenchmarkMetricStatus,
+  BenchmarkResult,
+} from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import { getResumeEvidenceStats } from '@/lib/ats'
 import { normalizeMultilineText } from '../shared/text'
@@ -7,18 +11,29 @@ import { BENCHMARK_PROFILES, GENERAL_BENCHMARK_PROFILE } from './const'
 function inferBenchmarkProfile(resume: ResumeSchema) {
   const referenceText = [
     resume.job_intent.jobIntent,
-    ...resume.skill_specialty.skills.map(skill => skill.label),
-    ...resume.work_experience.items.map(item => `${item.position} ${item.workInfo}`),
-    ...resume.internship_experience.items.map(item => `${item.position} ${item.internshipInfo}`),
-    ...resume.project_experience.items.map(item => `${item.projectName} ${item.participantRole} ${item.projectInfo}`),
-    ...resume.campus_experience.items.map(item => `${item.experienceName} ${item.role} ${item.campusInfo}`),
+    ...resume.skill_specialty.skills.map((skill) => skill.label),
+    ...resume.work_experience.items.map(
+      (item) => `${item.position} ${item.workInfo}`,
+    ),
+    ...resume.internship_experience.items.map(
+      (item) => `${item.position} ${item.internshipInfo}`,
+    ),
+    ...resume.project_experience.items.map(
+      (item) =>
+        `${item.projectName} ${item.participantRole} ${item.projectInfo}`,
+    ),
+    ...resume.campus_experience.items.map(
+      (item) => `${item.experienceName} ${item.role} ${item.campusInfo}`,
+    ),
   ]
-    .map(text => normalizeMultilineText(text).toLowerCase())
+    .map((text) => normalizeMultilineText(text).toLowerCase())
     .join('\n')
 
-  const rankedProfiles = BENCHMARK_PROFILES
-    .map(profile => ({ profile, score: profile.keywords.filter(keyword => referenceText.includes(keyword)).length }))
-    .sort((a, b) => b.score - a.score)
+  const rankedProfiles = BENCHMARK_PROFILES.map((profile) => ({
+    profile,
+    score: profile.keywords.filter((keyword) => referenceText.includes(keyword))
+      .length,
+  })).sort((a, b) => b.score - a.score)
 
   const winner = rankedProfiles[0]
   if (!winner || winner.score === 0) {
@@ -26,7 +41,10 @@ function inferBenchmarkProfile(resume: ResumeSchema) {
   }
 
   return {
-    confidence: Math.min(100, Math.round((winner.score / winner.profile.keywords.length) * 100)),
+    confidence: Math.min(
+      100,
+      Math.round((winner.score / winner.profile.keywords.length) * 100),
+    ),
     profile: winner.profile,
   }
 }
@@ -39,15 +57,14 @@ function createBenchmarkMetric(config: {
   label: string
   target: number | null
 }): BenchmarkMetric {
-  const formatter = config.formatter ?? (value => `${value ?? 0}`)
-  const ratio = config.target && config.target > 0 ? config.current / config.target : 1
+  const formatter = config.formatter ?? ((value) => `${value ?? 0}`)
+  const ratio =
+    config.target && config.target > 0 ? config.current / config.target : 1
 
   let status: BenchmarkMetricStatus = 'good'
   if (config.target !== null) {
-    if (ratio < 0.5)
-      status = 'missing'
-    else if (ratio < 0.9)
-      status = 'warn'
+    if (ratio < 0.5) status = 'missing'
+    else if (ratio < 0.9) status = 'warn'
   }
 
   return {
@@ -56,7 +73,8 @@ function createBenchmarkMetric(config: {
     current: config.current,
     target: config.target,
     displayCurrent: formatter(config.current),
-    displayTarget: config.target === null ? '仅供参考' : formatter(config.target),
+    displayTarget:
+      config.target === null ? '仅供参考' : formatter(config.target),
     status,
     description: config.description,
   }
@@ -66,7 +84,10 @@ function formatPercent(value: number | null) {
   return `${Math.round((value ?? 0) * 100)}%`
 }
 
-export function buildBenchmarkReport(resume: ResumeSchema, overallScore: number | null): BenchmarkResult {
+export function buildBenchmarkReport(
+  resume: ResumeSchema,
+  overallScore: number | null,
+): BenchmarkResult {
   const { confidence, profile } = inferBenchmarkProfile(resume)
   const stats = getResumeEvidenceStats(resume)
   const metrics = [
@@ -75,7 +96,8 @@ export function buildBenchmarkReport(resume: ResumeSchema, overallScore: number 
       label: '有效能力证据',
       current: stats.evidenceCount,
       target: profile.targets.evidenceCount,
-      description: '汇总教育、工作、实习、校园和项目中真实存在的有效内容，不要求固定模块组合。',
+      description:
+        '汇总教育、工作、实习、校园和项目中真实存在的有效内容，不要求固定模块组合。',
     }),
     createBenchmarkMetric({
       key: 'substantiveRatio',
@@ -91,7 +113,8 @@ export function buildBenchmarkReport(resume: ResumeSchema, overallScore: number 
       current: stats.impactEvidenceRatio,
       target: profile.targets.impactEvidenceRatio,
       formatter: formatPercent,
-      description: '现有经历中包含交付、结果、影响、规模或数据证据的比例；数字不是唯一证据。',
+      description:
+        '现有经历中包含交付、结果、影响、规模或数据证据的比例；数字不是唯一证据。',
     }),
     createBenchmarkMetric({
       key: 'positioningConsistency',
@@ -106,20 +129,25 @@ export function buildBenchmarkReport(resume: ResumeSchema, overallScore: number 
       label: 'ATS 综合评分',
       current: overallScore ?? 0,
       target: overallScore === null ? null : profile.targets.atsScore,
-      formatter: value => overallScore === null ? '未生成' : `${value ?? 0}`,
-      description: overallScore === null
-        ? '尚未生成 ATS 报告，此项暂不参与基准判断。'
-        : '当前内容自适应 ATS 报告的综合评分。',
+      formatter: (value) =>
+        overallScore === null ? '未生成' : `${value ?? 0}`,
+      description:
+        overallScore === null
+          ? '尚未生成 ATS 报告，此项暂不参与基准判断。'
+          : '当前内容自适应 ATS 报告的综合评分。',
     }),
   ]
 
   const strengths = metrics
-    .filter(metric => metric.status === 'good' && metric.key !== 'atsScore')
+    .filter((metric) => metric.status === 'good' && metric.key !== 'atsScore')
     .slice(0, 3)
-    .map(metric => `${metric.label}达到${profile.label}的内容参考水平，当前为 ${metric.displayCurrent}。`)
+    .map(
+      (metric) =>
+        `${metric.label}达到${profile.label}的内容参考水平，当前为 ${metric.displayCurrent}。`,
+    )
 
   const recommendations = metrics
-    .filter(metric => metric.status !== 'good')
+    .filter((metric) => metric.status !== 'good')
     .slice(0, 4)
     .map((metric) => {
       if (metric.key === 'evidenceCount')
@@ -134,17 +162,18 @@ export function buildBenchmarkReport(resume: ResumeSchema, overallScore: number 
     })
 
   const pendingLabels = metrics
-    .filter(metric => metric.status !== 'good')
+    .filter((metric) => metric.status !== 'good')
     .slice(0, 2)
-    .map(metric => metric.label)
+    .map((metric) => metric.label)
 
   return {
     profileKey: profile.key,
     profileLabel: profile.label,
     profileConfidence: confidence,
-    summary: pendingLabels.length > 0
-      ? `${profile.label}内容画像下，当前更值得加强的是${pendingLabels.join('、')}。`
-      : `${profile.label}内容画像下，现有证据结构较完整，可以继续打磨表达细节。`,
+    summary:
+      pendingLabels.length > 0
+        ? `${profile.label}内容画像下，当前更值得加强的是${pendingLabels.join('、')}。`
+        : `${profile.label}内容画像下，现有证据结构较完整，可以继续打磨表达细节。`,
     metrics,
     strengths,
     recommendations,

@@ -13,14 +13,20 @@ interface RawShape {
 }
 
 function generateId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID()
   }
 
   return `cand_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-export function parseRewriteResponse(raw: string, action: RewriteAction): RewriteCandidate[] {
+export function parseRewriteResponse(
+  raw: string,
+  action: RewriteAction,
+): RewriteCandidate[] {
   const obj = parseLlmJsonObject<RawShape>(raw)
   const list = Array.isArray(obj.candidates) ? obj.candidates : []
 
@@ -35,19 +41,20 @@ export function parseRewriteResponse(raw: string, action: RewriteAction): Rewrit
     const c = item as RawCandidate
     const html = typeof c.html === 'string' ? c.html.trim() : ''
 
-    if (!html)
-      return
+    if (!html) return
 
-    let title = typeof c.title === 'string' && c.title.trim()
-      ? c.title.trim().slice(0, 10)
-      : `${REWRITE_ACTION_META[action].label}候选 #${index + 1}`
+    let title =
+      typeof c.title === 'string' && c.title.trim()
+        ? c.title.trim().slice(0, 10)
+        : `${REWRITE_ACTION_META[action].label}候选 #${index + 1}`
 
     if (seenTitles.has(title)) {
       title = `${title} #${index + 1}`
     }
     seenTitles.add(title)
 
-    const notes = typeof c.notes === 'string' ? c.notes.trim().slice(0, 200) : undefined
+    const notes =
+      typeof c.notes === 'string' ? c.notes.trim().slice(0, 200) : undefined
 
     candidates.push({ id: generateId(), title, html, notes })
   })

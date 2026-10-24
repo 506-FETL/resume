@@ -1,7 +1,11 @@
 import type { DocHandle, Repo } from '@automerge/automerge-repo'
 import type { AutomergeResumeDocument } from './schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
-import { DEFAULT_ORDER, DEFAULT_VISIBILITY, normalizeResumeAppearance } from '@/lib/schema'
+import {
+  DEFAULT_ORDER,
+  DEFAULT_VISIBILITY,
+  normalizeResumeAppearance,
+} from '@/lib/schema'
 
 interface DocumentIdentity {
   resumeId: string
@@ -28,16 +32,23 @@ function buildMetadata(
   }
 }
 
-export function ensureDocumentMetadata(doc: AutomergeResumeDocument, identity: DocumentIdentity) {
+export function ensureDocumentMetadata(
+  doc: AutomergeResumeDocument,
+  identity: DocumentIdentity,
+) {
   doc._metadata = buildMetadata(doc._metadata, identity)
   return doc._metadata
 }
 
-export function touchDocumentMetadata(doc: AutomergeResumeDocument, identity: DocumentIdentity) {
+export function touchDocumentMetadata(
+  doc: AutomergeResumeDocument,
+  identity: DocumentIdentity,
+) {
   const metadata = ensureDocumentMetadata(doc, identity)
 
   metadata.updatedAt = new Date().toISOString()
-  metadata.version = typeof metadata.version === 'number' ? metadata.version + 1 : 1
+  metadata.version =
+    typeof metadata.version === 'number' ? metadata.version + 1 : 1
 }
 
 export async function createResumeDocument({
@@ -61,10 +72,14 @@ export async function createResumeDocument({
     }
 
     if (!doc.visibility) {
-      doc.visibility = { ...DEFAULT_VISIBILITY } as AutomergeResumeDocument['visibility']
+      doc.visibility = {
+        ...DEFAULT_VISIBILITY,
+      } as AutomergeResumeDocument['visibility']
     }
 
-    doc.spacing = { ...appearance.spacing } as AutomergeResumeDocument['spacing']
+    doc.spacing = {
+      ...appearance.spacing,
+    } as AutomergeResumeDocument['spacing']
     doc.font = { ...appearance.font } as AutomergeResumeDocument['font']
     doc.theme = { ...appearance.theme } as AutomergeResumeDocument['theme']
   })

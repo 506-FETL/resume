@@ -2,7 +2,16 @@ import type { MouseEvent } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Spinner } from '@/components/ui/spinner'
 import useShareStore from '../../store'
 import { findShareById } from '../../utils'
@@ -18,25 +27,26 @@ export default function ArchiveDialog() {
     archive,
   } = useShareStore()
   const share = findShareById(allShares, shares, archiveShareId)
-  const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
-  const renderedShare = share
-    ?? (retainedShare?.id === archiveShareId ? retainedShare : null)
-  const busy = Boolean(archiveShareId && pendingShareIds.includes(archiveShareId))
+  const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
+    null,
+  )
+  const renderedShare =
+    share ?? (retainedShare?.id === archiveShareId ? retainedShare : null)
+  const busy = Boolean(
+    archiveShareId && pendingShareIds.includes(archiveShareId),
+  )
 
   useEffect(() => {
-    if (share)
-      setRetainedShare(share)
+    if (share) setRetainedShare(share)
   }, [share])
 
   const handleArchive = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
-    if (!archiveShareId)
-      return
+    if (!archiveShareId) return
     try {
       await archive(archiveShareId)
       toast.success('分享已归档')
-    }
-    catch {
+    } catch {
       toast.error('归档失败')
     }
   }
@@ -45,8 +55,7 @@ export default function ArchiveDialog() {
     <AlertDialog
       open={archiveDialogOpen}
       onOpenChange={(open) => {
-        if (!open)
-          closeArchiveDialog()
+        if (!open) closeArchiveDialog()
       }}
     >
       <AlertDialogContent>
@@ -60,8 +69,11 @@ export default function ArchiveDialog() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
-          <AlertDialogAction disabled={!archiveShareId || busy} onClick={handleArchive}>
-            {busy && <Spinner data-icon="inline-start" />}
+          <AlertDialogAction
+            disabled={!archiveShareId || busy}
+            onClick={handleArchive}
+          >
+            {busy && <Spinner data-icon='inline-start' />}
             确认归档
           </AlertDialogAction>
         </AlertDialogFooter>

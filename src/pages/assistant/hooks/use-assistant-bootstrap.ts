@@ -24,11 +24,11 @@ export function useAssistantBootstrap() {
 
       try {
         const conversations = await listConversations()
-        if (cancelled)
-          return
+        if (cancelled) return
 
         useAssistantStore.getState().setConversations(conversations)
-        const currentActiveId = useAssistantStore.getState().activeConversationId
+        const currentActiveId =
+          useAssistantStore.getState().activeConversationId
         const restored = chooseRestoredConversation(
           conversations,
           currentActiveId,
@@ -44,20 +44,21 @@ export function useAssistantBootstrap() {
           return
         }
 
-        const { messages, hasMore } = await listMessages(restored.id, { limit: 30 })
-        if (cancelled)
-          return
+        const { messages, hasMore } = await listMessages(restored.id, {
+          limit: 30,
+        })
+        if (cancelled) return
 
         useAssistantStore.setState({
           initializing: false,
           loadingConversations: false,
         })
-        useAssistantStore.getState().setConversationView(restored.id, messages, { hasMore })
+        useAssistantStore
+          .getState()
+          .setConversationView(restored.id, messages, { hasMore })
         writeLastConversationId(restored.id)
-      }
-      catch (error) {
-        if (cancelled)
-          return
+      } catch (error) {
+        if (cancelled) return
         if (getErrorMessage(error) === '用户未登录') {
           useAssistantStore.getState().setConversations([])
           useAssistantStore.getState().setConversationView(null, [], {})

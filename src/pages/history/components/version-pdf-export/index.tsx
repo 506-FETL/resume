@@ -26,10 +26,20 @@ interface VersionPdfExportButtonProps {
  * 再用 react-to-print 打印（浏览器原生「另存为 PDF」）。appearance 取版本自身快照，
  * 保证导出的是该版本当时的样子，而非当前编辑内容。
  */
-export default function VersionPdfExportButton({ versionId, documentTitle, className }: VersionPdfExportButtonProps) {
-  const loadVersionSnapshot = useHistoryStore(state => state.loadVersionSnapshot)
-  const projectionReferenceDate = useHistoryStore(state => state.versions.find(version => version.id === versionId)?.projection_reference_date)
-    ?? new Date().toISOString().slice(0, 10)
+export default function VersionPdfExportButton({
+  versionId,
+  documentTitle,
+  className,
+}: VersionPdfExportButtonProps) {
+  const loadVersionSnapshot = useHistoryStore(
+    (state) => state.loadVersionSnapshot,
+  )
+  const projectionReferenceDate =
+    useHistoryStore(
+      (state) =>
+        state.versions.find((version) => version.id === versionId)
+          ?.projection_reference_date,
+    ) ?? new Date().toISOString().slice(0, 10)
   const reduceMotion = useReducedMotion()
   const printRef = useRef<HTMLDivElement>(null)
   // 仅点击导出后挂载打印文档；命中快照缓存不代表需要提前渲染、测量 PDF。
@@ -44,12 +54,24 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
     error: null,
   })
 
-  const previewData = useMemo(() => (snapshot ? buildTemplateResumeData(snapshot) : null), [snapshot])
-  const { resource, retry, assetUrls } = useResolvedResumeTemplate({ binding: previewData?.templateBinding, enabled: Boolean(snapshot) })
+  const previewData = useMemo(
+    () => (snapshot ? buildTemplateResumeData(snapshot) : null),
+    [snapshot],
+  )
+  const { resource, retry, assetUrls } = useResolvedResumeTemplate({
+    binding: previewData?.templateBinding,
+    enabled: Boolean(snapshot),
+  })
   const definition = resource.status === 'ready' ? resource.data : null
   useEffect(() => {
     if (snapshot && resource.status !== 'ready') {
-      setDocumentState({ status: resource.status === 'error' ? 'error' : 'measuring', signature: null, fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME, fontWeights: [400, 600, 700], error: resource.status === 'error' ? resource.error.message : null })
+      setDocumentState({
+        status: resource.status === 'error' ? 'error' : 'measuring',
+        signature: null,
+        fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
+        fontWeights: [400, 600, 700],
+        error: resource.status === 'error' ? resource.error.message : null,
+      })
     }
     if (resource.status === 'error') {
       shouldPrintRef.current = false
@@ -66,29 +88,21 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   // 快照与 definition 就绪、且用户点击过导出后，触发打印
   useEffect(() => {
     if (
-      shouldPrintRef.current
-      && snapshot
-      && previewData
-      && definition
-      && documentState.status === 'ready'
+      shouldPrintRef.current &&
+      snapshot &&
+      previewData &&
+      definition &&
+      documentState.status === 'ready'
     ) {
       shouldPrintRef.current = false
       handlePrint().catch(() => undefined)
     }
-  }, [
-    documentState.status,
-    handlePrint,
-    definition,
-    previewData,
-    snapshot,
-  ])
+  }, [documentState.status, handlePrint, definition, previewData, snapshot])
 
   const handleExport = async () => {
     if (snapshot && previewData && definition) {
-      if (documentState.status !== 'measuring')
-        await handlePrint()
-      else
-        shouldPrintRef.current = true
+      if (documentState.status !== 'measuring') await handlePrint()
+      else shouldPrintRef.current = true
       return
     }
 
@@ -99,9 +113,10 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
     }
 
     setLoading(true)
-    const snap = await loadVersionSnapshot(versionId).finally(() => setLoading(false))
-    if (!snap)
-      return
+    const snap = await loadVersionSnapshot(versionId).finally(() =>
+      setLoading(false),
+    )
+    if (!snap) return
     shouldPrintRef.current = true
     setSnapshot(snap)
   }
@@ -109,26 +124,41 @@ export default function VersionPdfExportButton({ versionId, documentTitle, class
   return (
     <>
       <Button
-        variant="outline"
-        size="sm"
+        variant='outline'
+        size='sm'
         className={className}
         disabled={loading}
         onClick={handleExport}
       >
-        {loading ? <LoaderCircle className={cn(!reduceMotion && 'animate-spin')} data-icon="inline-start" /> : <FileDown data-icon="inline-start" />}
-        {loading ? '加载中…' : documentState.status === 'measuring' && snapshot ? '准备中…' : '导出 PDF'}
+        {loading ? (
+          <LoaderCircle
+            className={cn(!reduceMotion && 'animate-spin')}
+            data-icon='inline-start'
+          />
+        ) : (
+          <FileDown data-icon='inline-start' />
+        )}
+        {loading
+          ? '加载中…'
+          : documentState.status === 'measuring' && snapshot
+            ? '准备中…'
+            : '导出 PDF'}
       </Button>
 
       {snapshot && previewData && definition && (
         <div
           aria-hidden
-          className="pointer-events-none fixed top-0 opacity-0"
+          className='pointer-events-none fixed top-0 opacity-0'
           style={{ left: '-100000px' }}
         >
           <CanonicalPagedDocument
             definition={definition}
             appearance={snapshot}
-            contentVersion={JSON.stringify([snapshot, definition, projectionReferenceDate])}
+            contentVersion={JSON.stringify([
+              snapshot,
+              definition,
+              projectionReferenceDate,
+            ])}
             documentRef={printRef}
             onStateChange={setDocumentState}
           >

@@ -7,7 +7,13 @@ export function MotionProvider({ children }: { children: ReactNode }) {
   const reduceMotion = useReducedMotion()
 
   return (
-    <MotionConfig reducedMotion="user" transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}>
+    <MotionConfig
+      reducedMotion='user'
+      transition={{
+        duration: reduceMotion ? 0 : DURATION.base,
+        ease: EASE.out,
+      }}
+    >
       <style>
         {`:root {
         --ui-motion-fast: ${reduceMotion ? 0 : DURATION.fast}s;

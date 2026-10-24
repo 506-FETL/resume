@@ -8,8 +8,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
   },
   "dependencies": {
     "@automerge/automerge": "^3.2.0",
@@ -80,7 +82,6 @@
     "devicon": "2.17.0",
     "docx": "^9.5.1",
     "dompurify": "^3.3.3",
-    "eslint-plugin-antfu": "^3.1.1",
     "file-saver": "^2.0.5",
     "html-react-parser": "^5.2.7",
     "idb": "^8.0.3",
@@ -120,7 +121,6 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^6.2.0",
     "@eslint-react/eslint-plugin": "^2.3.1",
     "@eslint/js": "^9.39.0",
     "@types/d3-shape": "3.1.8",
@@ -134,11 +134,11 @@
     "@vitejs/plugin-react": "^5.1.0",
     "baseline-browser-mapping": "^2.9.19",
     "eslint": "^9.39.0",
-    "eslint-plugin-format": "^1.0.2",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^16.5.0",
-    "jiti": "^2.6.1",
     "pg": "^8.23.0",
     "prettier": "^3.6.2",
     "sass-embedded": "^1.93.3",

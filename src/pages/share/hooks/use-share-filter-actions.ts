@@ -7,8 +7,8 @@ function focusSearchInput() {
 }
 
 export function useShareFilterActions() {
-  const resetFilters = useShareStore(state => state.resetFilters)
-  const setSearchKeyword = useShareStore(state => state.setSearchKeyword)
+  const resetFilters = useShareStore((state) => state.resetFilters)
+  const setSearchKeyword = useShareStore((state) => state.setSearchKeyword)
 
   return {
     resetFilters() {

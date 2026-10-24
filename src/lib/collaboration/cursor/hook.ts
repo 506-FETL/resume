@@ -1,17 +1,44 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import type { CursorEventPayload, UseRealtimeCursorsOptions, UseRealtimeCursorsReturn } from './types'
+import type {
+  CursorEventPayload,
+  UseRealtimeCursorsOptions,
+  UseRealtimeCursorsReturn,
+} from './types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import supabase from '@/lib/supabase/client'
-import { createRealtimeUserId, getViewportSize, projectPointToViewport } from '../shared'
-import { bindCursorChannel, broadcastCursorPayload, createCursorPayload, isCursorChannelSubscribed, trackCursorPresence } from './channel'
-import { projectRealtimeCursor, removeRealtimeCursor, upsertRealtimeCursorBatch } from './state'
+import {
+  createRealtimeUserId,
+  getViewportSize,
+  projectPointToViewport,
+} from '../shared'
+import {
+  bindCursorChannel,
+  broadcastCursorPayload,
+  createCursorPayload,
+  isCursorChannelSubscribed,
+  trackCursorPresence,
+} from './channel'
+import {
+  projectRealtimeCursor,
+  removeRealtimeCursor,
+  upsertRealtimeCursorBatch,
+} from './state'
 
-export function useRealtimeCursors({ roomName, username, color, throttleMs }: UseRealtimeCursorsOptions): UseRealtimeCursorsReturn {
+export function useRealtimeCursors({
+  roomName,
+  username,
+  color,
+  throttleMs,
+}: UseRealtimeCursorsOptions): UseRealtimeCursorsReturn {
   const [userId] = useState(createRealtimeUserId)
-  const [cursors, setCursors] = useState<UseRealtimeCursorsReturn['cursors']>({})
+  const [cursors, setCursors] = useState<UseRealtimeCursorsReturn['cursors']>(
+    {},
+  )
   const cursorPayloadRef = useRef<CursorEventPayload | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
-  const latestPointerPositionRef = useRef<CursorEventPayload['position'] | null>(null)
+  const latestPointerPositionRef = useRef<
+    CursorEventPayload['position'] | null
+  >(null)
   const sendFrameRef = useRef<number | null>(null)
   const lastSentAtRef = useRef(0)
   const pendingRemoteCursorsRef = useRef<Record<number, CursorEventPayload>>({})
@@ -28,7 +55,7 @@ export function useRealtimeCursors({ roomName, username, color, throttleMs }: Us
       return
     }
 
-    setCursors(prev => upsertRealtimeCursorBatch(prev, batch))
+    setCursors((prev) => upsertRealtimeCursorBatch(prev, batch))
   }, [])
 
   const scheduleRemoteCursorFlush = useCallback(() => {
@@ -39,34 +66,37 @@ export function useRealtimeCursors({ roomName, username, color, throttleMs }: Us
     flushRemoteFrameRef.current = requestAnimationFrame(flushRemoteCursors)
   }, [flushRemoteCursors])
 
-  const flushOutgoingCursor = useCallback((frameTime: number) => {
-    sendFrameRef.current = null
+  const flushOutgoingCursor = useCallback(
+    (frameTime: number) => {
+      sendFrameRef.current = null
 
-    const latestPosition = latestPointerPositionRef.current
-    if (!latestPosition) {
-      return
-    }
+      const latestPosition = latestPointerPositionRef.current
+      if (!latestPosition) {
+        return
+      }
 
-    if (frameTime - lastSentAtRef.current < throttleMs) {
-      sendFrameRef.current = requestAnimationFrame((nextFrameTime) => {
-        flushOutgoingCursorRef.current(nextFrameTime)
+      if (frameTime - lastSentAtRef.current < throttleMs) {
+        sendFrameRef.current = requestAnimationFrame((nextFrameTime) => {
+          flushOutgoingCursorRef.current(nextFrameTime)
+        })
+        return
+      }
+
+      const payload = createCursorPayload({
+        position: latestPosition,
+        viewport: getViewportSize(),
+        userId,
+        username,
+        color,
       })
-      return
-    }
 
-    const payload = createCursorPayload({
-      position: latestPosition,
-      viewport: getViewportSize(),
-      userId,
-      username,
-      color,
-    })
-
-    cursorPayloadRef.current = payload
-    latestPointerPositionRef.current = null
-    lastSentAtRef.current = frameTime
-    broadcastCursorPayload(channelRef.current, payload)
-  }, [throttleMs, userId, username, color])
+      cursorPayloadRef.current = payload
+      latestPointerPositionRef.current = null
+      lastSentAtRef.current = frameTime
+      broadcastCursorPayload(channelRef.current, payload)
+    },
+    [throttleMs, userId, username, color],
+  )
 
   useEffect(() => {
     flushOutgoingCursorRef.current = flushOutgoingCursor
@@ -82,14 +112,17 @@ export function useRealtimeCursors({ roomName, username, color, throttleMs }: Us
     })
   }, [])
 
-  const handlePointerMove = useCallback((event: PointerEvent) => {
-    latestPointerPositionRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-    }
+  const handlePointerMove = useCallback(
+    (event: PointerEvent) => {
+      latestPointerPositionRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      }
 
-    scheduleOutgoingCursorFlush()
-  }, [scheduleOutgoingCursorFlush])
+      scheduleOutgoingCursorFlush()
+    },
+    [scheduleOutgoingCursorFlush],
+  )
 
   useEffect(() => {
     const channel = bindCursorChannel({
@@ -97,13 +130,13 @@ export function useRealtimeCursors({ roomName, username, color, throttleMs }: Us
       selfUserId: userId,
       onRemoteLeave: (leftUserId) => {
         delete pendingRemoteCursorsRef.current[leftUserId]
-        setCursors(prev => removeRealtimeCursor(prev, leftUserId))
+        setCursors((prev) => removeRealtimeCursor(prev, leftUserId))
       },
       onRemoteCursor: (payload) => {
-        pendingRemoteCursorsRef.current[payload.user.id] = projectRealtimeCursor(
-          payload,
-          (point, viewport) => projectPointToViewport(point, viewport),
-        )
+        pendingRemoteCursorsRef.current[payload.user.id] =
+          projectRealtimeCursor(payload, (point, viewport) =>
+            projectPointToViewport(point, viewport),
+          )
         scheduleRemoteCursorFlush()
       },
       onPeerJoin: () => {
@@ -119,8 +152,7 @@ export function useRealtimeCursors({ roomName, username, color, throttleMs }: Us
       if (isCursorChannelSubscribed(status)) {
         channelRef.current = channel
         await trackCursorPresence(channel, { userId, username, color })
-      }
-      else {
+      } else {
         setCursors({})
         channelRef.current = null
       }

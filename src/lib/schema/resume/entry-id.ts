@@ -1,8 +1,6 @@
 import type { ResumeSchema } from './form'
 import { z } from 'zod'
-import {
-  createLegacyResumeEntryId,
-} from '../../../../supabase/functions/shared/resume-comment-core.ts'
+import { createLegacyResumeEntryId } from '../../../../supabase/functions/shared/resume-comment-core.ts'
 
 export { createLegacyResumeEntryId }
 
@@ -95,12 +93,13 @@ export function createResumeEntryId(): string {
 }
 
 /** 仅供示例新建：重新打开、上传、恢复历史不能调用此函数。 */
-export function cloneResumeWithFreshEntryIds(resume: ResumeSchema): ResumeSchema {
+export function cloneResumeWithFreshEntryIds(
+  resume: ResumeSchema,
+): ResumeSchema {
   const clone = structuredClone(resume)
   for (const collection of RESUME_ENTRY_COLLECTIONS) {
     for (const entry of readCollection(clone, collection)) {
-      if (isRecord(entry))
-        entry.entryId = createResumeEntryId()
+      if (isRecord(entry)) entry.entryId = createResumeEntryId()
     }
   }
   return clone
@@ -179,18 +178,22 @@ export function collectMissingResumeEntryIdPatches(
     return normalizedEntries.flatMap((entry, index) => {
       const entryId = readEntryId(entry)
       const sourceEntry = sourceEntries[index]
-      const sourceEntryId = isRecord(sourceEntry) ? sourceEntry.entryId : undefined
+      const sourceEntryId = isRecord(sourceEntry)
+        ? sourceEntry.entryId
+        : undefined
 
       if (!entryId || sourceEntryId === entryId) {
         return []
       }
 
-      return [{
-        sectionKey: collection.sectionKey,
-        collectionKey: collection.collectionKey,
-        index,
-        entryId,
-      }]
+      return [
+        {
+          sectionKey: collection.sectionKey,
+          collectionKey: collection.collectionKey,
+          index,
+          entryId,
+        },
+      ]
     })
   })
 }

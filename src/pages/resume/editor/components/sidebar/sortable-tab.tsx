@@ -9,7 +9,11 @@ import {
 } from '@/components/ui/motion-reorder'
 import { Tab } from '@/components/ui/side-tabs'
 import { Switch } from '@/components/ui/switch'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface SortableTabProps {
   id: VisibilityItemsType
@@ -43,12 +47,12 @@ export function SortableTab({
 
   return (
     <Reorder.Item
-      as="div"
+      as='div'
       ref={itemRef}
       value={id}
       dragListener={false}
       dragControls={dragControls}
-      layout="position"
+      layout='position'
       onDragStart={() => {
         setIsDragging(true)
         onDragStart()
@@ -57,30 +61,32 @@ export function SortableTab({
         setIsDragging(false)
         onDragEnd()
       }}
-      whileDrag={reduceMotion
-        ? { zIndex: 10 }
-        : {
-            scale: 1.015,
-            boxShadow: '0 12px 28px rgb(0 0 0 / 0.16)',
-            zIndex: 10,
-          }}
+      whileDrag={
+        reduceMotion
+          ? { zIndex: 10 }
+          : {
+              scale: 1.015,
+              boxShadow: '0 12px 28px rgb(0 0 0 / 0.16)',
+              zIndex: 10,
+            }
+      }
       transition={reduceMotion ? { duration: 0 } : MOTION_REORDER_TRANSITION}
       onDrag={(_event, info) => {
         const scrollContainer = itemRef.current?.parentElement?.parentElement
         autoScrollAtEdge(scrollContainer ?? null, info.point, 'x')
       }}
-      className="relative flex flex-col items-center justify-end gap-2 select-none"
+      className='relative flex flex-col items-center justify-end gap-2 select-none'
       data-active={active}
       data-dragging={isDragging || undefined}
     >
-      <div className="flex flex-row items-center gap-1.5">
+      <div className='flex flex-row items-center gap-1.5'>
         <span
-          role="button"
+          role='button'
           tabIndex={0}
-          className="touch-none cursor-grab rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+          className='touch-none cursor-grab rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing'
           aria-label={`拖动 ${label} 模块`}
-          aria-keyshortcuts="ArrowLeft ArrowRight"
-          onPointerDown={event => dragControls.start(event)}
+          aria-keyshortcuts='ArrowLeft ArrowRight'
+          onPointerDown={(event) => dragControls.start(event)}
           onKeyDown={(event) => {
             if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
               event.preventDefault()
@@ -88,11 +94,11 @@ export function SortableTab({
             }
           }}
         >
-          <GripVertical className="size-4" />
+          <GripVertical className='size-4' />
         </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div onPointerDownCapture={event => event.stopPropagation()}>
+            <div onPointerDownCapture={(event) => event.stopPropagation()}>
               <Switch checked={visible} onCheckedChange={onToggleVisibility} />
             </div>
           </TooltipTrigger>

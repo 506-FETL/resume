@@ -20,6 +20,9 @@ export function buildCollaborationShareUrl(
   return url.toString()
 }
 
-export function buildCollaborationRoomName(resumeId: string, sessionId: string) {
+export function buildCollaborationRoomName(
+  resumeId: string,
+  sessionId: string,
+) {
   return `resume-collab:${resumeId}:${sessionId}`
 }

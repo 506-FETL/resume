@@ -15,7 +15,11 @@ import { isSuggestionReadyToApply } from '@/lib/ats'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { KIND_CONFIG } from '@/pages/optimize/const'
-import { detectValueType, isEmptyValue, renderPreview } from '@/pages/optimize/utils'
+import {
+  detectValueType,
+  isEmptyValue,
+  renderPreview,
+} from '@/pages/optimize/utils'
 import CertificateListEditor from '../../editors/certificate-list-editor'
 import DateRangeEditor from '../../editors/date-range-editor'
 import ObjectEditor from '../../editors/object-editor'
@@ -23,13 +27,23 @@ import SkillListEditor from '../../editors/skill-list-editor'
 import StringArrayEditor from '../../editors/string-array-editor'
 
 // 编辑器组件映射
-const EDITOR_MAP: Record<string, (props: { value: AfterValue, onChange: (newValue: AfterValue) => void }) => ReactNode> = {
-  date_range: ({ value, onChange }) => <DateRangeEditor value={value as string[]} onChange={onChange} />,
-  skill_list: ({ value, onChange }) => <SkillListEditor value={value as SkillItem[]} onChange={onChange} />,
+const EDITOR_MAP: Record<
+  string,
+  (props: {
+    value: AfterValue
+    onChange: (newValue: AfterValue) => void
+  }) => ReactNode
+> = {
+  date_range: ({ value, onChange }) => (
+    <DateRangeEditor value={value as string[]} onChange={onChange} />
+  ),
+  skill_list: ({ value, onChange }) => (
+    <SkillListEditor value={value as SkillItem[]} onChange={onChange} />
+  ),
   skill_item: ({ value, onChange }) => (
     <SkillListEditor
       value={[value as SkillItem]}
-      onChange={updatedList => onChange(updatedList[0])}
+      onChange={(updatedList) => onChange(updatedList[0])}
     />
   ),
   certificate_list: ({ value, onChange }) => (
@@ -38,7 +52,9 @@ const EDITOR_MAP: Record<string, (props: { value: AfterValue, onChange: (newValu
       onChange={onChange}
     />
   ),
-  string_array: ({ value, onChange }) => <StringArrayEditor value={value as string[]} onChange={onChange} />,
+  string_array: ({ value, onChange }) => (
+    <StringArrayEditor value={value as string[]} onChange={onChange} />
+  ),
   object: ({ value, onChange }) => (
     <ObjectEditor
       value={value as Record<string, unknown>}
@@ -46,7 +62,7 @@ const EDITOR_MAP: Record<string, (props: { value: AfterValue, onChange: (newValu
     />
   ),
   object_array: ({ value, onChange }) => (
-    <div className="space-y-2">
+    <div className='space-y-2'>
       {(value as Array<Record<string, unknown>>).map((item, index) => (
         <ObjectEditor
           key={`obj-edit-${JSON.stringify(item)}`}
@@ -70,7 +86,13 @@ interface SuggestionEditCardProps {
   isModified: boolean
 }
 
-function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }: SuggestionEditCardProps) {
+function SuggestionEditCard({
+  suggestion,
+  onChange,
+  onOk,
+  onReset,
+  isModified,
+}: SuggestionEditCardProps) {
   const reduceMotion = useReducedMotion()
   const kindConfig = KIND_CONFIG[suggestion.kind]
   const [isEditing, setIsEditing] = useState(false)
@@ -80,22 +102,35 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
     setInternalValue(suggestion.after)
   }, [suggestion.after])
 
-  const handleValueChange = useCallback((updatedValue: AfterValue) => {
-    setInternalValue(updatedValue)
-    const candidate = { ...suggestion, after: updatedValue, requiresUserInput: false }
-    onChange({ ...candidate, requiresUserInput: !isSuggestionReadyToApply(candidate) })
-  }, [suggestion, onChange])
+  const handleValueChange = useCallback(
+    (updatedValue: AfterValue) => {
+      setInternalValue(updatedValue)
+      const candidate = {
+        ...suggestion,
+        after: updatedValue,
+        requiresUserInput: false,
+      }
+      onChange({
+        ...candidate,
+        requiresUserInput: !isSuggestionReadyToApply(candidate),
+      })
+    },
+    [suggestion, onChange],
+  )
 
   const handleOk = () => {
     isEditing && onOk?.([{ ...suggestion, after: internalValue }])
     setIsEditing(!isEditing)
   }
 
-  const handleRestore = useCallback((e: MouseEvent) => {
-    e.stopPropagation()
-    onReset()
-    onOk?.([])
-  }, [onReset, onOk])
+  const handleRestore = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation()
+      onReset()
+      onOk?.([])
+    },
+    [onReset, onOk],
+  )
 
   return (
     <PresenceDiv
@@ -103,7 +138,10 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
       layoutDependency={isEditing}
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+      transition={{
+        duration: reduceMotion ? 0 : DURATION.base,
+        ease: EASE.out,
+      }}
       className={cn(
         'min-w-0 max-w-full overflow-hidden rounded-xl border bg-card transition-shadow',
         isEditing && 'ring-2 ring-primary/20 shadow-md',
@@ -111,126 +149,161 @@ function SuggestionEditCard({ suggestion, onChange, onOk, onReset, isModified }:
       )}
     >
       {/* 头部 */}
-      <div className={cn(
-        'flex flex-col gap-2 p-3 border-b sm:flex-row sm:items-center sm:justify-between sm:px-4',
-        suggestion.fixed ? 'bg-green-100/30 dark:bg-green-900/10' : 'bg-muted/30',
-      )}
+      <div
+        className={cn(
+          'flex flex-col gap-2 p-3 border-b sm:flex-row sm:items-center sm:justify-between sm:px-4',
+          suggestion.fixed
+            ? 'bg-green-100/30 dark:bg-green-900/10'
+            : 'bg-muted/30',
+        )}
       >
-        <div className="flex flex-col gap-1.5 min-w-0 flex-1 sm:flex-row sm:items-center sm:gap-2">
-          <div className="flex items-center gap-2 shrink-0">
+        <div className='flex flex-col gap-1.5 min-w-0 flex-1 sm:flex-row sm:items-center sm:gap-2'>
+          <div className='flex items-center gap-2 shrink-0'>
             <Badge
-              variant="outline"
-              className={cn('text-xs px-2 py-0.5 shrink-0', kindConfig.bg, kindConfig.color)}
+              variant='outline'
+              className={cn(
+                'text-xs px-2 py-0.5 shrink-0',
+                kindConfig.bg,
+                kindConfig.color,
+              )}
             >
               {kindConfig.label}
             </Badge>
             {isModified && !suggestion.fixed && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary">
+              <Badge
+                variant='secondary'
+                className='text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary'
+              >
                 已修改
               </Badge>
             )}
           </div>
-          <span className="text-xs text-muted-foreground line-clamp-2 sm:truncate">
+          <span className='text-xs text-muted-foreground line-clamp-2 sm:truncate'>
             {suggestion.reason}
           </span>
         </div>
-        <div className="flex items-center gap-1 shrink-0 justify-end w-full sm:w-auto">
+        <div className='flex items-center gap-1 shrink-0 justify-end w-full sm:w-auto'>
           {isModified && !suggestion.fixed && (
             <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs"
+              variant='ghost'
+              size='sm'
+              className='h-7 px-2 text-xs'
               onClick={handleRestore}
             >
-              <RotateCcw className="size-3 mr-1" />
+              <RotateCcw className='size-3 mr-1' />
               还原
             </Button>
           )}
-          {suggestion.fixed
-            ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2 text-xs text-green-600 border-green-200 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 pointer-events-none"
-                >
-                  <Check className="size-3 mr-1" />
-                  已修复
-                </Button>
-              )
-            : (
-                <Button
-                  variant={isEditing ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={handleOk}
-                >
-                  {isEditing
-                    ? <Check className="size-3 mr-1" />
-                    : <Edit3 className="size-3 mr-1" />}
-                  {isEditing ? '确定' : '编辑'}
-                </Button>
+          {suggestion.fixed ? (
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-7 px-2 text-xs text-green-600 border-green-200 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30 pointer-events-none'
+            >
+              <Check className='size-3 mr-1' />
+              已修复
+            </Button>
+          ) : (
+            <Button
+              variant={isEditing ? 'default' : 'outline'}
+              size='sm'
+              className='h-7 px-2 text-xs'
+              onClick={handleOk}
+            >
+              {isEditing ? (
+                <Check className='size-3 mr-1' />
+              ) : (
+                <Edit3 className='size-3 mr-1' />
               )}
+              {isEditing ? '确定' : '编辑'}
+            </Button>
+          )}
         </div>
       </div>
 
       {/* 内容 */}
-      <AnimatePresence mode="wait" initial={false}>
-        {isEditing
-          ? (
-              <PresenceDiv
-                key="editing"
-                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
-                transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
-                className="min-w-0 p-4"
-              >
-                <ValueEditor
-                  value={internalValue}
-                  valueType={suggestion.valueType}
-                  onChange={handleValueChange}
-                />
-              </PresenceDiv>
-            )
-          : (
-              <PresenceDiv
-                key="preview"
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
-                transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
-                className="min-w-0 space-y-3 p-4"
-              >
-                {/* 修改前 */}
-                {!isEmptyValue(suggestion.before) && (
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">修改前</span>
-                    <div className="text-sm text-muted-foreground/70 line-through bg-muted/30 rounded-md p-2 break-all whitespace-pre-wrap">
-                      {renderPreview(suggestion.before, suggestion.valueType)}
-                    </div>
-                  </div>
-                )}
-                {/* 修改后 */}
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-wider text-primary font-medium">修改后</span>
-                  <div className={cn(
-                    'text-sm rounded-md p-2 border break-all whitespace-pre-wrap',
-                    isModified
-                      ? 'bg-primary/5 border-primary/20 text-foreground font-medium'
-                      : 'bg-emerald-500/5 border-emerald-500/20 text-foreground',
-                  )}
-                  >
-                    {renderPreview(suggestion.after, suggestion.valueType)}
-                  </div>
+      <AnimatePresence mode='wait' initial={false}>
+        {isEditing ? (
+          <PresenceDiv
+            key='editing'
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{
+              opacity: 0,
+              transition: {
+                duration: reduceMotion ? 0 : DURATION.fast,
+                ease: EASE.in,
+              },
+            }}
+            transition={{
+              duration: reduceMotion ? 0 : DURATION.base,
+              ease: EASE.out,
+            }}
+            className='min-w-0 p-4'
+          >
+            <ValueEditor
+              value={internalValue}
+              valueType={suggestion.valueType}
+              onChange={handleValueChange}
+            />
+          </PresenceDiv>
+        ) : (
+          <PresenceDiv
+            key='preview'
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{
+              opacity: 0,
+              transition: {
+                duration: reduceMotion ? 0 : DURATION.fast,
+                ease: EASE.in,
+              },
+            }}
+            transition={{
+              duration: reduceMotion ? 0 : DURATION.base,
+              ease: EASE.out,
+            }}
+            className='min-w-0 space-y-3 p-4'
+          >
+            {/* 修改前 */}
+            {!isEmptyValue(suggestion.before) && (
+              <div className='space-y-1'>
+                <span className='text-[10px] uppercase tracking-wider text-muted-foreground font-medium'>
+                  修改前
+                </span>
+                <div className='text-sm text-muted-foreground/70 line-through bg-muted/30 rounded-md p-2 break-all whitespace-pre-wrap'>
+                  {renderPreview(suggestion.before, suggestion.valueType)}
                 </div>
-              </PresenceDiv>
+              </div>
             )}
+            {/* 修改后 */}
+            <div className='space-y-1'>
+              <span className='text-[10px] uppercase tracking-wider text-primary font-medium'>
+                修改后
+              </span>
+              <div
+                className={cn(
+                  'text-sm rounded-md p-2 border break-all whitespace-pre-wrap',
+                  isModified
+                    ? 'bg-primary/5 border-primary/20 text-foreground font-medium'
+                    : 'bg-emerald-500/5 border-emerald-500/20 text-foreground',
+                )}
+              >
+                {renderPreview(suggestion.after, suggestion.valueType)}
+              </div>
+            </div>
+          </PresenceDiv>
+        )}
       </AnimatePresence>
     </PresenceDiv>
   )
 }
 
-function ValueEditor({ value, valueType, onChange }: {
+function ValueEditor({
+  value,
+  valueType,
+  onChange,
+}: {
   value: AfterValue
   valueType: ValueType
   onChange: (newValue: AfterValue) => void
@@ -238,12 +311,11 @@ function ValueEditor({ value, valueType, onChange }: {
   if (valueType === 'number') {
     return (
       <Input
-        type="number"
+        type='number'
         value={typeof value === 'number' ? value : ''}
         onChange={(event) => {
           const nextValue = event.currentTarget.valueAsNumber
-          if (Number.isFinite(nextValue))
-            onChange(nextValue)
+          if (Number.isFinite(nextValue)) onChange(nextValue)
         }}
       />
     )
@@ -251,8 +323,11 @@ function ValueEditor({ value, valueType, onChange }: {
 
   if (valueType === 'boolean') {
     return (
-      <label className="flex items-center gap-2 text-sm text-foreground">
-        <Checkbox checked={Boolean(value)} onCheckedChange={checked => onChange(checked === true)} />
+      <label className='flex items-center gap-2 text-sm text-foreground'>
+        <Checkbox
+          checked={Boolean(value)}
+          onCheckedChange={(checked) => onChange(checked === true)}
+        />
         {value ? '是' : '否'}
       </label>
     )
@@ -261,7 +336,12 @@ function ValueEditor({ value, valueType, onChange }: {
   const detectedType = detectValueType(value)
 
   if (valueType === 'html_string') {
-    return <SimpleEditor content={value as string} onChange={editor => onChange(editor.getHTML())} />
+    return (
+      <SimpleEditor
+        content={value as string}
+        onChange={(editor) => onChange(editor.getHTML())}
+      />
+    )
   }
 
   const Editor = EDITOR_MAP[detectedType]
@@ -271,7 +351,12 @@ function ValueEditor({ value, valueType, onChange }: {
   }
 
   // 默认使用Tiptap文本编辑器
-  return <SimpleEditor content={String(value || '')} onChange={editor => onChange(editor.getText())} />
+  return (
+    <SimpleEditor
+      content={String(value || '')}
+      onChange={(editor) => onChange(editor.getText())}
+    />
+  )
 }
 
 export default SuggestionEditCard

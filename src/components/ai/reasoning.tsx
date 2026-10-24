@@ -3,7 +3,15 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import { BrainIcon, ChevronDownIcon } from 'lucide-react'
-import { createContext, memo, use, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  memo,
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Streamdown } from 'streamdown'
 import { Shimmer } from '@/components/ai/shimmer'
 import {
@@ -75,8 +83,7 @@ export const Reasoning = memo(
         if (startTime === null) {
           setStartTime(Date.now())
         }
-      }
-      else if (startTime !== null) {
+      } else if (startTime !== null) {
         setDuration(Math.ceil((Date.now() - startTime) / MS_IN_S))
         setStartTime(null)
       }
@@ -84,7 +91,13 @@ export const Reasoning = memo(
 
     // 仅对默认展开的思考块自动收起；手动展开的内容保留用户选择。
     useEffect(() => {
-      if (defaultOpen && hasStreamedRef.current && !isStreaming && isOpen && !hasAutoClosed) {
+      if (
+        defaultOpen &&
+        hasStreamedRef.current &&
+        !isStreaming &&
+        isOpen &&
+        !hasAutoClosed
+      ) {
         // Add a small delay before closing to allow user to see the content
         const timer = setTimeout(() => {
           setIsOpen(false)
@@ -135,9 +148,7 @@ function defaultGetThinkingMessage(isStreaming: boolean, duration?: number) {
   return (
     <p>
       Thought for
-      {duration}
-      {' '}
-      seconds
+      {duration} seconds
     </p>
   )
 }
@@ -161,7 +172,7 @@ export const ReasoningTrigger = memo(
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4" />
+            <BrainIcon className='size-4' />
             {getThinkingMessage(isStreaming, duration)}
             <ChevronDownIcon
               className={cn(

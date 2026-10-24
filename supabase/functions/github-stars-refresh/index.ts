@@ -4,7 +4,10 @@ import type { GithubRefreshErrorCode } from './core.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsPreflightResponse, isOriginAllowed } from '../shared/cors.ts'
 import { hasValidMaintenanceToken } from '../shared/maintenance-auth.ts'
-import { recordOperationMetric, scheduleBackground } from '../shared/operation-metrics.ts'
+import {
+  recordOperationMetric,
+  scheduleBackground,
+} from '../shared/operation-metrics.ts'
 import { createRequestContext } from '../shared/request-context.ts'
 import {
   APP_GITHUB_API_URL,
@@ -36,19 +39,27 @@ async function recordFailure(
   current: GithubCacheRow | null,
   errorCode: GithubRefreshErrorCode,
 ) {
-  if (!current)
-    return
+  if (!current) return
   const attemptedAt = new Date().toISOString()
   const { error } = await admin
     .from('github_stars')
-    .update(buildGithubFailureUpdate(current.consecutive_failures, errorCode, attemptedAt))
+    .update(
+      buildGithubFailureUpdate(
+        current.consecutive_failures,
+        errorCode,
+        attemptedAt,
+      ),
+    )
     .eq('repo', APP_GITHUB_REPOSITORY_KEY)
-  if (error)
-    throw new Error('github cache failure state write failed')
+  if (error) throw new Error('github cache failure state write failed')
 }
 
 Deno.serve(async (request) => {
-  const context = createRequestContext(request, 'github-stars-refresh', 'allowlist')
+  const context = createRequestContext(
+    request,
+    'github-stars-refresh',
+    'allowlist',
+  )
   let admin: AdminClient | null = null
 
   const respond = (
@@ -58,22 +69,29 @@ Deno.serve(async (request) => {
     errorCode?: string,
   ) => {
     context.log({
-      level: outcome === 'success' ? 'info' : outcome === 'client_error' ? 'warn' : 'error',
+      level:
+        outcome === 'success'
+          ? 'info'
+          : outcome === 'client_error'
+            ? 'warn'
+            : 'error',
       event: outcome === 'success' ? 'request_completed' : 'request_failed',
       operation: 'refresh',
       status,
       errorCode,
     })
     if (admin) {
-      scheduleBackground(recordOperationMetric(admin, {
-        requestId: context.requestId,
-        functionName: 'github-stars-refresh',
-        operation: 'refresh',
-        outcome,
-        errorCode,
-        status,
-        durationMs: context.durationMs(),
-      }))
+      scheduleBackground(
+        recordOperationMetric(admin, {
+          requestId: context.requestId,
+          functionName: 'github-stars-refresh',
+          operation: 'refresh',
+          outcome,
+          errorCode,
+          status,
+          durationMs: context.durationMs(),
+        }),
+      )
     }
     return context.json(body, status)
   }
@@ -81,7 +99,12 @@ Deno.serve(async (request) => {
   if (request.method === 'OPTIONS')
     return corsPreflightResponse(request, 'allowlist')
   if (!isOriginAllowed(request, 'allowlist'))
-    return respond({ error: 'origin_forbidden' }, 403, 'client_error', 'origin_forbidden')
+    return respond(
+      { error: 'origin_forbidden' },
+      403,
+      'client_error',
+      'origin_forbidden',
+    )
   if (request.method !== 'POST')
     return respond({ error: 'not_found' }, 404, 'client_error', 'not_found')
 
@@ -89,10 +112,10 @@ Deno.serve(async (request) => {
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   const maintenanceToken = Deno.env.get('BACKEND_MAINTENANCE_TOKEN')
   if (
-    !supabaseUrl
-    || !serviceRoleKey
-    || !maintenanceToken
-    || maintenanceToken.length < 32
+    !supabaseUrl ||
+    !serviceRoleKey ||
+    !maintenanceToken ||
+    maintenanceToken.length < 32
   ) {
     return respond(
       { error: 'service_not_configured' },
@@ -103,18 +126,37 @@ Deno.serve(async (request) => {
   }
 
   if (!hasValidMaintenanceToken(request, maintenanceToken))
-    return respond({ error: 'unauthorized' }, 401, 'client_error', 'unauthorized')
+    return respond(
+      { error: 'unauthorized' },
+      401,
+      'client_error',
+      'unauthorized',
+    )
 
   const rawBody = await request.text()
   let body: unknown = {}
   try {
     body = rawBody.trim() ? JSON.parse(rawBody) : {}
+  } catch {
+    return respond(
+      { error: 'unsupported_payload' },
+      400,
+      'client_error',
+      'unsupported_payload',
+    )
   }
-  catch {
-    return respond({ error: 'unsupported_payload' }, 400, 'client_error', 'unsupported_payload')
-  }
-  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length > 0) {
-    return respond({ error: 'unsupported_payload' }, 400, 'client_error', 'unsupported_payload')
+  if (
+    !body ||
+    typeof body !== 'object' ||
+    Array.isArray(body) ||
+    Object.keys(body).length > 0
+  ) {
+    return respond(
+      { error: 'unsupported_payload' },
+      400,
+      'client_error',
+      'unsupported_payload',
+    )
   }
 
   admin = createAdminClient(supabaseUrl, serviceRoleKey)
@@ -124,19 +166,22 @@ Deno.serve(async (request) => {
     .eq('repo', APP_GITHUB_REPOSITORY_KEY)
     .maybeSingle()
   if (readError)
-    return respond({ error: 'github_cache_read_failed' }, 503, 'server_error', 'github_cache_read_failed')
+    return respond(
+      { error: 'github_cache_read_failed' },
+      503,
+      'server_error',
+      'github_cache_read_failed',
+    )
   const current = currentValue as GithubCacheRow | null
 
   const headers = new Headers({
-    'Accept': 'application/vnd.github+json',
+    Accept: 'application/vnd.github+json',
     'User-Agent': '506-resume-stars-refresh',
     'X-GitHub-Api-Version': '2022-11-28',
   })
-  if (current?.etag)
-    headers.set('If-None-Match', current.etag)
+  if (current?.etag) headers.set('If-None-Match', current.etag)
   const githubToken = Deno.env.get('GITHUB_TOKEN')?.trim()
-  if (githubToken)
-    headers.set('Authorization', `Bearer ${githubToken}`)
+  if (githubToken) headers.set('Authorization', `Bearer ${githubToken}`)
 
   let upstream: Response
   try {
@@ -145,16 +190,20 @@ Deno.serve(async (request) => {
       headers,
       signal: AbortSignal.timeout(5_000),
     })
-  }
-  catch (error) {
-    const errorCode = error instanceof DOMException && error.name === 'TimeoutError'
-      ? 'github_timeout'
-      : 'github_upstream_error'
+  } catch (error) {
+    const errorCode =
+      error instanceof DOMException && error.name === 'TimeoutError'
+        ? 'github_timeout'
+        : 'github_upstream_error'
     try {
       await recordFailure(admin, current, errorCode)
-    }
-    catch {
-      return respond({ error: 'github_cache_write_failed' }, 503, 'server_error', 'github_cache_write_failed')
+    } catch {
+      return respond(
+        { error: 'github_cache_write_failed' },
+        503,
+        'server_error',
+        'github_cache_write_failed',
+      )
     }
     return respond({ error: errorCode }, 503, 'server_error', errorCode)
   }
@@ -180,7 +229,12 @@ Deno.serve(async (request) => {
       })
       .eq('repo', APP_GITHUB_REPOSITORY_KEY)
     if (error)
-      return respond({ error: 'github_cache_write_failed' }, 503, 'server_error', 'github_cache_write_failed')
+      return respond(
+        { error: 'github_cache_write_failed' },
+        503,
+        'server_error',
+        'github_cache_write_failed',
+      )
     return respond({ ok: true, status: 'not_modified' }, 200, 'success')
   }
 
@@ -188,9 +242,13 @@ Deno.serve(async (request) => {
     const errorCode = classifyGithubStatus(upstream.status)
     try {
       await recordFailure(admin, current, errorCode)
-    }
-    catch {
-      return respond({ error: 'github_cache_write_failed' }, 503, 'server_error', 'github_cache_write_failed')
+    } catch {
+      return respond(
+        { error: 'github_cache_write_failed' },
+        503,
+        'server_error',
+        'github_cache_write_failed',
+      )
     }
     return respond({ error: errorCode }, 503, 'server_error', errorCode)
   }
@@ -200,9 +258,13 @@ Deno.serve(async (request) => {
   if (stars === null) {
     try {
       await recordFailure(admin, current, 'github_invalid_response')
-    }
-    catch {
-      return respond({ error: 'github_cache_write_failed' }, 503, 'server_error', 'github_cache_write_failed')
+    } catch {
+      return respond(
+        { error: 'github_cache_write_failed' },
+        503,
+        'server_error',
+        'github_cache_write_failed',
+      )
     }
     return respond(
       { error: 'github_invalid_response' },
@@ -212,9 +274,8 @@ Deno.serve(async (request) => {
     )
   }
 
-  const { error: writeError } = await admin
-    .from('github_stars')
-    .upsert({
+  const { error: writeError } = await admin.from('github_stars').upsert(
+    {
       repo: APP_GITHUB_REPOSITORY_KEY,
       stars,
       fetched_at: attemptedAt,
@@ -223,9 +284,16 @@ Deno.serve(async (request) => {
       consecutive_failures: 0,
       last_error_at: null,
       last_error_code: null,
-    }, { onConflict: 'repo' })
+    },
+    { onConflict: 'repo' },
+  )
   if (writeError)
-    return respond({ error: 'github_cache_write_failed' }, 503, 'server_error', 'github_cache_write_failed')
+    return respond(
+      { error: 'github_cache_write_failed' },
+      503,
+      'server_error',
+      'github_cache_write_failed',
+    )
 
   return respond({ ok: true, status: 'updated', stars }, 200, 'success')
 })

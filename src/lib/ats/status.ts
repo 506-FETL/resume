@@ -6,9 +6,11 @@ const SEVERITIES: Severity[] = ['high', 'medium', 'low']
 export function isAtsFindingPending(finding: Finding): boolean {
   const suggestions = finding?.fix?.suggestions
 
-  return !Array.isArray(suggestions)
-    || suggestions.length === 0
-    || suggestions.some(suggestion => suggestion?.fixed !== true)
+  return (
+    !Array.isArray(suggestions) ||
+    suggestions.length === 0 ||
+    suggestions.some((suggestion) => suggestion?.fixed !== true)
+  )
 }
 
 export function countPendingAtsFindings(findings: unknown): number {

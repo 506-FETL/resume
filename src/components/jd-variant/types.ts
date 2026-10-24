@@ -6,17 +6,26 @@ import type {
   VariantChange,
   VariantMetadata,
 } from '@/lib/schema'
-import type { VariantLineage, VariantTreeNode } from '@/lib/supabase/resume/variant'
+import type {
+  VariantLineage,
+  VariantTreeNode,
+} from '@/lib/supabase/resume/variant'
 
-export type { DerivedStatus, VariantChange, VariantLineage, VariantMetadata, VariantTreeNode }
+export type {
+  DerivedStatus,
+  VariantChange,
+  VariantLineage,
+  VariantMetadata,
+  VariantTreeNode,
+}
 
-export type GeneratorPhase
-  = | 'idle'
-    | 'parsing'
-    | 'rewriting'
-    | 'success'
-    | 'error'
-    | 'aborted'
+export type GeneratorPhase =
+  | 'idle'
+  | 'parsing'
+  | 'rewriting'
+  | 'success'
+  | 'error'
+  | 'aborted'
 
 export interface VariantAnalysisLog {
   id: string
@@ -55,13 +64,13 @@ export type ResumeFilterMode = 'all' | 'originals' | 'variants'
 
 /** 给 LLM 喂的简历视图，仅含白名单字段 */
 export type EditableResumeView = Partial<{
-  job_intent: { id: 'whole', content?: string }
-  skill_specialty: { id: 'whole', content?: string }
-  self_evaluation: { id: 'whole', content?: string }
-  work_experience: Array<{ id: string, description?: string }>
-  internship_experience: Array<{ id: string, description?: string }>
-  project_experience: Array<{ id: string, description?: string }>
-  campus_experience: Array<{ id: string, description?: string }>
+  job_intent: { id: 'whole'; content?: string }
+  skill_specialty: { id: 'whole'; content?: string }
+  self_evaluation: { id: 'whole'; content?: string }
+  work_experience: Array<{ id: string; description?: string }>
+  internship_experience: Array<{ id: string; description?: string }>
+  project_experience: Array<{ id: string; description?: string }>
+  campus_experience: Array<{ id: string; description?: string }>
 }>
 
 export interface VariantApplyContext {

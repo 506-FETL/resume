@@ -9,13 +9,16 @@ import { DURATION, EASE } from '@/lib/motion'
 import { formatDate } from '../../utils'
 
 function MdxPre({ children }: { children?: ReactNode }) {
-  if (!isValidElement<{ className?: string, children?: string }>(children)) {
+  if (!isValidElement<{ className?: string; children?: string }>(children)) {
     return <pre>{children}</pre>
   }
 
   const className = (children.props.className as string) ?? ''
   const language = className.replace('language-', '') || 'plaintext'
-  const code = typeof children.props.children === 'string' ? children.props.children.trim() : ''
+  const code =
+    typeof children.props.children === 'string'
+      ? children.props.children.trim()
+      : ''
 
   return <CodeBlock language={language}>{code}</CodeBlock>
 }
@@ -32,21 +35,27 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
 
   return (
     <motion.div
-      className="relative"
+      className='relative'
       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.05 }}
-      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+      transition={{
+        duration: reduceMotion ? 0 : DURATION.base,
+        ease: EASE.out,
+      }}
     >
-      <div className="flex flex-col gap-y-3 md:flex-row">
+      <div className='flex flex-col gap-y-3 md:flex-row'>
         {/* 左侧：日期 + 版本 */}
-        <div className="md:w-48 shrink-0">
-          <div className="flex items-center gap-3 md:sticky md:top-16 md:block md:pb-10">
-            <time dateTime={frontmatter.date} className="block text-sm font-medium text-muted-foreground md:mb-3">
+        <div className='md:w-48 shrink-0'>
+          <div className='flex items-center gap-3 md:sticky md:top-16 md:block md:pb-10'>
+            <time
+              dateTime={frontmatter.date}
+              className='block text-sm font-medium text-muted-foreground md:mb-3'
+            >
               {formatDate(frontmatter.date)}
             </time>
             {frontmatter.version && (
-              <div className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
+              <div className='inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground'>
                 {frontmatter.version}
               </div>
             )}
@@ -54,24 +63,24 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
         </div>
 
         {/* 右侧：时间轴线 + 内容 */}
-        <div className="flex-1 md:pl-8 relative pb-10">
+        <div className='flex-1 md:pl-8 relative pb-10'>
           {/* 时间轴竖线 + 圆点 */}
-          <div className="hidden md:block absolute top-2 left-0 w-px h-full bg-border">
-            <div className="hidden md:block absolute -translate-x-1/2 size-3 bg-primary rounded-full " />
+          <div className='hidden md:block absolute top-2 left-0 w-px h-full bg-border'>
+            <div className='hidden md:block absolute -translate-x-1/2 size-3 bg-primary rounded-full ' />
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="relative  flex flex-col gap-2">
-              <h2 className="text-xl font-semibold tracking-tight text-balance">
+          <div className='flex flex-col gap-6'>
+            <div className='relative  flex flex-col gap-2'>
+              <h2 className='text-xl font-semibold tracking-tight text-balance'>
                 {frontmatter.title}
               </h2>
 
               {frontmatter.tags && frontmatter.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {frontmatter.tags.map(tag => (
+                <div className='flex flex-wrap gap-2'>
+                  {frontmatter.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="h-6 w-fit px-2 text-xs font-medium bg-muted text-muted-foreground rounded-full border flex items-center justify-center"
+                      className='h-6 w-fit px-2 text-xs font-medium bg-muted text-muted-foreground rounded-full border flex items-center justify-center'
                     >
                       {tag}
                     </span>
@@ -80,7 +89,7 @@ export function ChangelogEntry({ entry }: ChangelogEntryProps) {
               )}
             </div>
 
-            <div className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-8 prose-headings:font-semibold prose-a:no-underline prose-headings:tracking-tight prose-headings:text-balance prose-p:tracking-tight prose-p:text-balance">
+            <div className='prose dark:prose-invert max-w-none prose-headings:scroll-mt-8 prose-headings:font-semibold prose-a:no-underline prose-headings:tracking-tight prose-headings:text-balance prose-p:tracking-tight prose-p:text-balance'>
               <Content components={mdxComponents} />
             </div>
           </div>

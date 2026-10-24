@@ -101,7 +101,11 @@ export const FIELD_LABELS: Record<string, string> = {
 }
 
 /** 不展示给用户的技术字段 */
-export const HIDDEN_DIFF_FIELDS = new Set<string>(['entryId', 'hidden', 'displayType'])
+export const HIDDEN_DIFF_FIELDS = new Set<string>([
+  'entryId',
+  'hidden',
+  'displayType',
+])
 
 /**
  * 根据字段 key 返回对应中文名；若无映射则原样返回 key。

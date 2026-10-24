@@ -3,25 +3,47 @@ import { DoorOpen, Laptop } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MonthPicker } from '@/components/ui/month-picker'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { DEFAULT_INTERNSHIP_EXPERIENCE, internshipExperienceFormSchema } from '@/lib/schema'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  DEFAULT_INTERNSHIP_EXPERIENCE,
+  internshipExperienceFormSchema,
+} from '@/lib/schema'
 import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 import { ResumeFieldFormSection } from '../shared/resume-field-form-section'
 
 function InternshipExperienceForm({ className }: { className?: string }) {
-  const internshipExperience = useResumeStore(state => state.internship_experience)
-  const jobIntentText = useResumeStore(state => state.job_intent.jobIntent)
-  const [isUptoNow, setIsUptoNow] = useState(() => internshipExperience.items?.some(item => item.internshipDuration?.[1] === '至今') || false)
+  const internshipExperience = useResumeStore(
+    (state) => state.internship_experience,
+  )
+  const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
+  const [isUptoNow, setIsUptoNow] = useState(
+    () =>
+      internshipExperience.items?.some(
+        (item) => item.internshipDuration?.[1] === '至今',
+      ) || false,
+  )
 
-  const storeFormData = useMemo(() => ({
-    items: internshipExperience.items || DEFAULT_INTERNSHIP_EXPERIENCE.items,
-  }), [internshipExperience.items])
+  const storeFormData = useMemo(
+    () => ({
+      items: internshipExperience.items || DEFAULT_INTERNSHIP_EXPERIENCE.items,
+    }),
+    [internshipExperience.items],
+  )
 
   const { form, fields, remove, move, onAddItem } = useResumeFieldForm({
     fieldName: 'internship_experience',
@@ -38,13 +60,13 @@ function InternshipExperienceForm({ className }: { className?: string }) {
       remove={remove}
       move={move}
       onAddItem={onAddItem}
-      formId="internship-experience-form"
-      title="实习经验"
-      addLabel="添加实习经验"
+      formId='internship-experience-form'
+      title='实习经验'
+      addLabel='添加实习经验'
       className={className}
-      renderItem={index => (
+      renderItem={(index) => (
         <>
-          <section className="flex flex-col gap-4">
+          <section className='flex flex-col gap-4'>
             <FormField
               name={`items.${index}.companyName`}
               control={form.control}
@@ -52,7 +74,7 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                 <FormItem>
                   <FormLabel>公司名称</FormLabel>
                   <FormControl>
-                    <Input placeholder="请输入公司名称" {...field} />
+                    <Input placeholder='请输入公司名称' {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -65,7 +87,7 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                 <FormItem>
                   <FormLabel>职位</FormLabel>
                   <FormControl>
-                    <Input placeholder="请输入职位" {...field} />
+                    <Input placeholder='请输入职位' {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -75,20 +97,25 @@ function InternshipExperienceForm({ className }: { className?: string }) {
               name={`items.${index}.internshipDuration`}
               control={form.control}
               render={({ field }) => {
-                const start = dayjs(field.value?.[0]).isValid() ? dayjs(field.value?.[0]) : dayjs('2020-01')
+                const start = dayjs(field.value?.[0]).isValid()
+                  ? dayjs(field.value?.[0])
+                  : dayjs('2020-01')
 
                 return (
                   <FormItem>
                     <FormLabel>实习时间</FormLabel>
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                    <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2'>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
+                          <Button
+                            variant='outline'
+                            className='w-full justify-start text-left font-normal @lg/panel:w-auto'
+                          >
                             {field.value?.[0] || '开始时间'}
-                            <Laptop className="ml-auto size-4 opacity-50" />
+                            <Laptop className='ml-auto size-4 opacity-50' />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="start" className="w-auto p-0">
+                        <PopoverContent align='start' className='w-auto p-0'>
                           <MonthPicker
                             value={field.value?.[0]}
                             disableFuture
@@ -99,16 +126,22 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                         </PopoverContent>
                       </Popover>
 
-                      <span className="hidden text-muted-foreground @lg/panel:inline">-</span>
+                      <span className='hidden text-muted-foreground @lg/panel:inline'>
+                        -
+                      </span>
 
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button disabled={isUptoNow} variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
+                          <Button
+                            disabled={isUptoNow}
+                            variant='outline'
+                            className='w-full justify-start text-left font-normal @lg/panel:w-auto'
+                          >
                             {field.value?.[1] || '结束时间'}
-                            <DoorOpen className="ml-auto size-4 opacity-50" />
+                            <DoorOpen className='ml-auto size-4 opacity-50' />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="start" className="w-auto p-0">
+                        <PopoverContent align='start' className='w-auto p-0'>
                           <MonthPicker
                             value={field.value?.[1]}
                             disableFuture
@@ -118,17 +151,16 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                           />
                         </PopoverContent>
                       </Popover>
-                      <div className="flex min-h-9 shrink-0 items-center gap-2">
-                        <Label htmlFor="up-to-now">至今</Label>
+                      <div className='flex min-h-9 shrink-0 items-center gap-2'>
+                        <Label htmlFor='up-to-now'>至今</Label>
                         <Checkbox
-                          id="up-to-now"
+                          id='up-to-now'
                           checked={isUptoNow}
                           onCheckedChange={(checked) => {
                             setIsUptoNow(!!checked)
                             if (checked) {
                               field.onChange([start.format('YYYY-MM'), '至今'])
-                            }
-                            else {
+                            } else {
                               field.onChange([start.format('YYYY-MM'), ''])
                             }
                           }}
@@ -149,11 +181,15 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                 <FormLabel>实习描述</FormLabel>
                 <FormControl>
                   <RichTextFieldEditor
-                    sectionKey="internship_experience"
+                    sectionKey='internship_experience'
                     relativePath={`items.${index}.internshipInfo`}
                     value={field.value || ''}
                     onChange={field.onChange}
-                    fieldContext={{ sectionKey: 'internship_experience', fieldLabel: '实习描述', jobIntent: jobIntentText }}
+                    fieldContext={{
+                      sectionKey: 'internship_experience',
+                      fieldLabel: '实习描述',
+                      jobIntent: jobIntentText,
+                    }}
                   />
                 </FormControl>
               </FormItem>

@@ -8,7 +8,9 @@ function hashUserId(userId: string) {
 }
 
 function colorChannelToHex(channel: number) {
-  return Math.round(channel * 255).toString(16).padStart(2, '0')
+  return Math.round(channel * 255)
+    .toString(16)
+    .padStart(2, '0')
 }
 
 function participantHueToHex(hue: number) {
@@ -16,7 +18,7 @@ function participantHueToHex(hue: number) {
   const lightness = 0.6
   const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation
   const hueSection = hue / 60
-  const secondary = chroma * (1 - Math.abs(hueSection % 2 - 1))
+  const secondary = chroma * (1 - Math.abs((hueSection % 2) - 1))
   const offset = lightness - chroma / 2
 
   let red = 0
@@ -26,24 +28,19 @@ function participantHueToHex(hue: number) {
   if (hueSection < 1) {
     red = chroma
     green = secondary
-  }
-  else if (hueSection < 2) {
+  } else if (hueSection < 2) {
     red = secondary
     green = chroma
-  }
-  else if (hueSection < 3) {
+  } else if (hueSection < 3) {
     green = chroma
     blue = secondary
-  }
-  else if (hueSection < 4) {
+  } else if (hueSection < 4) {
     green = secondary
     blue = chroma
-  }
-  else if (hueSection < 5) {
+  } else if (hueSection < 5) {
     red = secondary
     blue = chroma
-  }
-  else {
+  } else {
     red = chroma
     blue = secondary
   }

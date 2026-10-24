@@ -1,5 +1,9 @@
 import type { ResumeComment, ResumeCommentThread } from '../types.ts'
-import type { PendingCommentCreation, PendingReplyCreation, PendingThreadCreation } from './types.ts'
+import type {
+  PendingCommentCreation,
+  PendingReplyCreation,
+  PendingThreadCreation,
+} from './types.ts'
 
 export const LOCAL_THREAD_ID_PREFIX = 'local-thread:'
 export const LOCAL_COMMENT_ID_PREFIX = 'local-comment:'
@@ -51,7 +55,9 @@ function createPendingComment(pending: PendingCommentCreation): ResumeComment {
   }
 }
 
-export function createPendingThread(pending: PendingThreadCreation): ResumeCommentThread {
+export function createPendingThread(
+  pending: PendingThreadCreation,
+): ResumeCommentThread {
   return {
     id: pending.threadId,
     scopeId: pending.scopeId,
@@ -72,7 +78,7 @@ export function appendPendingReply(
   thread: ResumeCommentThread,
   pending: PendingReplyCreation,
 ): ResumeCommentThread {
-  if (thread.comments.some(comment => comment.id === pending.commentId))
+  if (thread.comments.some((comment) => comment.id === pending.commentId))
     return thread
   return {
     ...thread,
@@ -92,11 +98,12 @@ export function removePendingCreationFromThreads(
   }
 
   const thread = next[pending.threadId]
-  if (!thread)
-    return next
+  if (!thread) return next
   next[pending.threadId] = {
     ...thread,
-    comments: thread.comments.filter(comment => comment.id !== pending.commentId),
+    comments: thread.comments.filter(
+      (comment) => comment.id !== pending.commentId,
+    ),
   }
   return next
 }
@@ -108,18 +115,19 @@ export function updatePendingCreationDelivery(
   errorMessage: string | null,
 ): Record<string, ResumeCommentThread> {
   const thread = threadsById[pending.threadId]
-  if (!thread)
-    return threadsById
+  if (!thread) return threadsById
   return {
     ...threadsById,
     [pending.threadId]: {
       ...thread,
-      comments: thread.comments.map(comment => comment.id === pending.commentId
-        ? {
-            ...comment,
-            delivery: { requestId: pending.requestId, state, errorMessage },
-          }
-        : comment),
+      comments: thread.comments.map((comment) =>
+        comment.id === pending.commentId
+          ? {
+              ...comment,
+              delivery: { requestId: pending.requestId, state, errorMessage },
+            }
+          : comment,
+      ),
     },
   }
 }
@@ -129,18 +137,22 @@ export function mergePendingCreationsIntoThreads(
   currentThreadsById: Record<string, ResumeCommentThread>,
   pendingCreations: Record<string, PendingCommentCreation>,
 ): Record<string, ResumeCommentThread> {
-  const threadsById = Object.fromEntries(incomingThreads.map(thread => [thread.id, thread]))
+  const threadsById = Object.fromEntries(
+    incomingThreads.map((thread) => [thread.id, thread]),
+  )
   for (const pending of Object.values(pendingCreations)) {
     const currentThread = currentThreadsById[pending.threadId]
-    if (!currentThread)
-      continue
+    if (!currentThread) continue
     if (pending.kind === 'thread') {
       threadsById[pending.threadId] = currentThread
       continue
     }
     const incomingThread = threadsById[pending.threadId]
     if (incomingThread)
-      threadsById[pending.threadId] = appendPendingReply(incomingThread, pending)
+      threadsById[pending.threadId] = appendPendingReply(
+        incomingThread,
+        pending,
+      )
   }
   return threadsById
 }

@@ -17,15 +17,21 @@ interface ConversationItemProps {
   onDelete: (id: string) => void
 }
 
-export function ConversationItem({ conversation, active, pending, onSelect, onRename, onDelete }: ConversationItemProps) {
+export function ConversationItem({
+  conversation,
+  active,
+  pending,
+  onSelect,
+  onRename,
+  onDelete,
+}: ConversationItemProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(conversation.title)
   const [pendingDelete, setPendingDelete] = useState(false)
 
   const commitRename = () => {
     const next = draft.trim()
-    if (next && next !== conversation.title)
-      onRename(conversation.id, next)
+    if (next && next !== conversation.title) onRename(conversation.id, next)
     setEditing(false)
   }
 
@@ -36,30 +42,42 @@ export function ConversationItem({ conversation, active, pending, onSelect, onRe
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1">
+      <div className='flex items-center gap-1'>
         <Input
           value={draft}
           autoFocus
-          className="h-9 flex-1 rounded-lg"
-          onChange={e => setDraft(e.target.value)}
+          className='h-9 flex-1 rounded-lg'
+          onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter')
-              commitRename()
-            if (e.key === 'Escape')
-              setEditing(false)
+            if (e.key === 'Enter') commitRename()
+            if (e.key === 'Escape') setEditing(false)
           }}
         />
-        <Button variant="ghost" size="icon-sm" aria-label="确认" onClick={commitRename}><Check className="size-3.5" /></Button>
-        <Button variant="ghost" size="icon-sm" aria-label="取消" onClick={() => setEditing(false)}><X className="size-3.5" /></Button>
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-label='确认'
+          onClick={commitRename}
+        >
+          <Check className='size-3.5' />
+        </Button>
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-label='取消'
+          onClick={() => setEditing(false)}
+        >
+          <X className='size-3.5' />
+        </Button>
       </div>
     )
   }
 
   return (
     <>
-      <div className="group relative">
+      <div className='group relative'>
         <button
-          type="button"
+          type='button'
           className={cn(
             'flex h-9 w-full items-center rounded-lg px-2.5 text-left text-sm transition-colors',
             active
@@ -68,7 +86,7 @@ export function ConversationItem({ conversation, active, pending, onSelect, onRe
           )}
           onClick={() => onSelect(conversation.id)}
         >
-          <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
+          <span className='min-w-0 flex-1 truncate'>{conversation.title}</span>
         </button>
 
         {/* hover 时右侧渐隐遮罩，避免标题与操作按钮重叠 */}
@@ -79,16 +97,16 @@ export function ConversationItem({ conversation, active, pending, onSelect, onRe
           )}
         />
 
-        <div className="absolute inset-y-0 right-1 flex items-center">
-          {pending
-            ? <Spinner className="mr-1.5 size-4 text-muted-foreground" />
-            : (
-                <ConversationActions
-                  title={conversation.title}
-                  onRename={startRename}
-                  onDelete={() => setPendingDelete(true)}
-                />
-              )}
+        <div className='absolute inset-y-0 right-1 flex items-center'>
+          {pending ? (
+            <Spinner className='mr-1.5 size-4 text-muted-foreground' />
+          ) : (
+            <ConversationActions
+              title={conversation.title}
+              onRename={startRename}
+              onDelete={() => setPendingDelete(true)}
+            />
+          )}
         </div>
       </div>
 

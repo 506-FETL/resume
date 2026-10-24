@@ -3,12 +3,17 @@ import { LoaderCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  createNextResumeVersion,
-} from '@/lib/supabase/resume'
+import { createNextResumeVersion } from '@/lib/supabase/resume'
 import useResumeStore from '@/store/resume/form'
 
 interface QuickSaveVersionDialogProps {
@@ -17,7 +22,11 @@ interface QuickSaveVersionDialogProps {
   resumeId: string
 }
 
-export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSaveVersionDialogProps) {
+export function QuickSaveVersionDialog({
+  open,
+  onOpenChange,
+  resumeId,
+}: QuickSaveVersionDialogProps) {
   const [versionName, setVersionName] = useState('')
   const [saving, setSaving] = useState(false)
   const isMountedRef = useRef(true)
@@ -31,22 +40,18 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
   }, [])
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && savingRef.current)
-      return
-    if (!nextOpen)
-      setVersionName('')
+    if (!nextOpen && savingRef.current) return
+    if (!nextOpen) setVersionName('')
     onOpenChange(nextOpen)
   }
 
   const notifyIfMounted = (notify: () => void) => {
-    if (isMountedRef.current)
-      notify()
+    if (isMountedRef.current) notify()
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (savingRef.current)
-      return
+    if (savingRef.current) return
 
     savingRef.current = true
     setSaving(true)
@@ -62,16 +67,18 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
           throw new Error(synced.syncError ?? '简历尚未同步，无法创建新版本')
       }
       await createNextResumeVersion(resumeId, normalizedVersionName || null)
-      window.dispatchEvent(new CustomEvent('resume-active-version-created', {
-        detail: { resumeId },
-      }))
+      window.dispatchEvent(
+        new CustomEvent('resume-active-version-created', {
+          detail: { resumeId },
+        }),
+      )
       notifyIfMounted(() => toast.success('新版本已创建'))
       completed = true
-    }
-    catch (error) {
-      notifyIfMounted(() => toast.error(error instanceof Error ? error.message : '保存版本失败'))
-    }
-    finally {
+    } catch (error) {
+      notifyIfMounted(() =>
+        toast.error(error instanceof Error ? error.message : '保存版本失败'),
+      )
+    } finally {
       savingRef.current = false
       if (isMountedRef.current) {
         setSaving(false)
@@ -85,30 +92,42 @@ export function QuickSaveVersionDialog({ open, onOpenChange, resumeId }: QuickSa
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" showCloseButton={!saving}>
+      <DialogContent className='sm:max-w-md' showCloseButton={!saving}>
         <DialogHeader>
           <DialogTitle>快速保存版本</DialogTitle>
-          <DialogDescription className="sr-only">保存当前简历版本。</DialogDescription>
+          <DialogDescription className='sr-only'>
+            保存当前简历版本。
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-2 py-4">
-            <Label htmlFor="quick-save-version-name">版本名称（可选）</Label>
+          <div className='grid gap-2 py-4'>
+            <Label htmlFor='quick-save-version-name'>版本名称（可选）</Label>
             <Input
-              id="quick-save-version-name"
+              id='quick-save-version-name'
               value={versionName}
-              onChange={event => setVersionName(event.target.value)}
-              placeholder="例如：项目优化版、字节投递版"
+              onChange={(event) => setVersionName(event.target.value)}
+              placeholder='例如：项目优化版、字节投递版'
               maxLength={60}
               autoFocus
               disabled={saving}
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={saving}>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => handleOpenChange(false)}
+              disabled={saving}
+            >
               取消
             </Button>
-            <Button type="submit" disabled={saving}>
-              {saving && <LoaderCircle className="animate-spin" data-icon="inline-start" />}
+            <Button type='submit' disabled={saving}>
+              {saving && (
+                <LoaderCircle
+                  className='animate-spin'
+                  data-icon='inline-start'
+                />
+              )}
               {saving ? '保存中...' : '保存版本'}
             </Button>
           </DialogFooter>

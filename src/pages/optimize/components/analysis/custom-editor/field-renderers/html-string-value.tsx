@@ -4,9 +4,11 @@ import { cn } from '@/lib/utils'
 import { isEmptyValue } from '@/pages/optimize/utils'
 import { EmptyValue } from './types'
 
-export function HtmlStringValue({ value, variant }: FieldRendererProps<string>) {
-  if (isEmptyValue(value))
-    return <EmptyValue />
+export function HtmlStringValue({
+  value,
+  variant,
+}: FieldRendererProps<string>) {
+  if (isEmptyValue(value)) return <EmptyValue />
 
   return (
     <div

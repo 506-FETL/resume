@@ -1,7 +1,11 @@
 import { CalendarIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/date'
 
@@ -17,35 +21,44 @@ function startOfToday() {
   return today
 }
 
-export default function DateField({ value, onChange, className }: DateFieldProps) {
+export default function DateField({
+  value,
+  onChange,
+  className,
+}: DateFieldProps) {
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="min-w-0 flex-1 justify-start font-normal">
-            <CalendarIcon data-icon="inline-start" />
-            <span className="truncate">{value ? formatDate(value) : '长期有效'}</span>
+          <Button
+            variant='outline'
+            className='min-w-0 flex-1 justify-start font-normal'
+          >
+            <CalendarIcon data-icon='inline-start' />
+            <span className='truncate'>
+              {value ? formatDate(value) : '长期有效'}
+            </span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className='w-auto p-0' align='start'>
           <Calendar
-            mode="single"
-            captionLayout="dropdown"
+            mode='single'
+            captionLayout='dropdown'
             selected={value}
-            disabled={date => date < startOfToday()}
+            disabled={(date) => date < startOfToday()}
             onSelect={onChange}
           />
         </PopoverContent>
       </Popover>
       {value && (
         <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="清除有效期"
+          type='button'
+          variant='ghost'
+          size='icon-sm'
+          aria-label='清除有效期'
           onClick={() => onChange(undefined)}
         >
-          <X data-icon="inline-start" />
+          <X data-icon='inline-start' />
         </Button>
       )}
     </div>

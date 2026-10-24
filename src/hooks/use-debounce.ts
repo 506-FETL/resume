@@ -13,7 +13,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * @param delay 防抖等待时间，单位为毫秒
  * @returns 一个参数签名与原始回调一致的防抖函数
  */
-export function useDebounce<T extends (...args: any[]) => any>(callback: T, delay: number) {
+export function useDebounce<T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number,
+) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const callbackRef = useRef(callback)
 

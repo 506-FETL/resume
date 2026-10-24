@@ -3,10 +3,20 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { hobbiesFormSchema, PRESET_HOBBIES } from '@/lib/schema'
@@ -18,15 +28,18 @@ import { RichTextFieldEditor } from '../shared/rich-text-field-editor'
 
 function HobbiesForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
-  const hobbies = useResumeStore(state => state.hobbies)
-  const jobIntentText = useResumeStore(state => state.job_intent.jobIntent)
+  const hobbies = useResumeStore((state) => state.hobbies)
+  const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
   const isMobile = useIsMobile()
   const [customHobbyInput, setCustomHobbyInput] = useState('')
 
-  const storeFormData = useMemo(() => ({
-    description: hobbies.description || '',
-    hobbies: hobbies.hobbies || [],
-  }), [hobbies.description, hobbies.hobbies])
+  const storeFormData = useMemo(
+    () => ({
+      description: hobbies.description || '',
+      hobbies: hobbies.hobbies || [],
+    }),
+    [hobbies.description, hobbies.hobbies],
+  )
 
   const { form, fields, append, remove } = useResumeFieldForm({
     fieldName: 'hobbies',
@@ -37,16 +50,15 @@ function HobbiesForm({ className }: { className?: string }) {
 
   // 检查预设爱好是否已添加
   const isPresetHobbyAdded = (hobby: string) => {
-    return fields.some(field => field.name === hobby)
+    return fields.some((field) => field.name === hobby)
   }
 
   // 切换预设爱好
   const togglePresetHobby = (hobby: string) => {
-    const existingIndex = fields.findIndex(field => field.name === hobby)
+    const existingIndex = fields.findIndex((field) => field.name === hobby)
     if (existingIndex >= 0) {
       remove(existingIndex)
-    }
-    else {
+    } else {
       append({ entryId: createResumeEntryId(), name: hobby })
     }
   }
@@ -60,7 +72,7 @@ function HobbiesForm({ className }: { className?: string }) {
     }
 
     // 检查是否已存在
-    if (fields.some(field => field.name === trimmedValue)) {
+    if (fields.some((field) => field.name === trimmedValue)) {
       toast.error('爱好已存在', {
         description: `"${trimmedValue}" 已经添加过了`,
       })
@@ -73,21 +85,25 @@ function HobbiesForm({ className }: { className?: string }) {
 
   return (
     <Form {...form}>
-      <form id="hobbies-form">
+      <form id='hobbies-form'>
         <div className={cn('space-y-6', className)}>
           <FormField
-            name="description"
+            name='description'
             control={form.control}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>兴趣爱好描述</FormLabel>
                 <FormControl>
                   <RichTextFieldEditor
-                    sectionKey="hobbies"
-                    relativePath="description"
+                    sectionKey='hobbies'
+                    relativePath='description'
                     value={field.value || ''}
                     onChange={field.onChange}
-                    fieldContext={{ sectionKey: 'hobbies', fieldLabel: '兴趣爱好描述', jobIntent: jobIntentText }}
+                    fieldContext={{
+                      sectionKey: 'hobbies',
+                      fieldLabel: '兴趣爱好描述',
+                      jobIntent: jobIntentText,
+                    }}
                   />
                 </FormControl>
               </FormItem>
@@ -97,60 +113,67 @@ function HobbiesForm({ className }: { className?: string }) {
           <Separator />
 
           {/* 预设爱好标签 */}
-          <div className="space-y-4">
+          <div className='space-y-4'>
             <FormLabel>快速添加爱好</FormLabel>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_HOBBIES.map(hobby => (
+            <div className='flex flex-wrap gap-2'>
+              {PRESET_HOBBIES.map((hobby) => (
                 <Button
                   key={hobby}
-                  type="button"
+                  type='button'
                   variant={isPresetHobbyAdded(hobby) ? 'default' : 'outline'}
-                  size="sm"
+                  size='sm'
                   onClick={() => togglePresetHobby(hobby)}
-                  className="h-8"
+                  className='h-8'
                 >
                   {hobby}
-                  {isPresetHobbyAdded(hobby) && <X className="ml-1 size-3" />}
+                  {isPresetHobbyAdded(hobby) && <X className='ml-1 size-3' />}
                 </Button>
               ))}
             </div>
           </div>
 
           {/* 自定义爱好输入 */}
-          <div className="space-y-4">
+          <div className='space-y-4'>
             <FormLabel>添加自定义爱好</FormLabel>
-            <div className="flex gap-2 max-w-md">
+            <div className='flex gap-2 max-w-md'>
               <Input
-                placeholder="输入爱好名称"
+                placeholder='输入爱好名称'
                 value={customHobbyInput}
-                onChange={e => setCustomHobbyInput(e.target.value)}
+                onChange={(e) => setCustomHobbyInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     addCustomHobby()
                   }
                 }}
-                className="flex-1"
+                className='flex-1'
               />
-              <Button type="button" variant="outline" size={isMobile ? 'sm' : 'default'} onClick={addCustomHobby}>
-                <Plus className="size-4" />
-                {!isMobile && <span className="ml-2">添加</span>}
+              <Button
+                type='button'
+                variant='outline'
+                size={isMobile ? 'sm' : 'default'}
+                onClick={addCustomHobby}
+              >
+                <Plus className='size-4' />
+                {!isMobile && <span className='ml-2'>添加</span>}
               </Button>
             </div>
           </div>
 
           {/* 爱好列表 */}
           {fields.length > 0 && (
-            <div className="space-y-4">
+            <div className='space-y-4'>
               <FormLabel>已添加的爱好</FormLabel>
-              <div className="grid min-w-0 grid-cols-1 gap-3 @2xl/panel:grid-cols-2 @5xl/panel:grid-cols-3">
+              <div className='grid min-w-0 grid-cols-1 gap-3 @2xl/panel:grid-cols-2 @5xl/panel:grid-cols-3'>
                 {fields.map((item, index) => {
                   const hobbyValue = form.watch(`hobbies.${index}.name`)
                   const hidden = form.watch(`hobbies.${index}.hidden` as any)
                   return (
                     <motion.div
                       key={item.id}
-                      initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: 8 }}
+                      initial={
+                        reduceMotion ? false : { opacity: 0, scale: 0.96, y: 8 }
+                      }
                       animate={{ opacity: hidden ? 0.5 : 1, scale: 1, y: 0 }}
                       transition={{
                         duration: reduceMotion ? 0 : DURATION.base,
@@ -158,37 +181,52 @@ function HobbiesForm({ className }: { className?: string }) {
                         layout: reduceMotion ? { duration: 0 } : SPRING.layout,
                       }}
                       layout={!reduceMotion}
-                      className={cn('flex min-w-0 items-center justify-between gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow', hidden && 'opacity-50')}
+                      className={cn(
+                        'flex min-w-0 items-center justify-between gap-3 p-4 rounded-lg border bg-card hover:shadow-md transition-shadow',
+                        hidden && 'opacity-50',
+                      )}
                     >
-                      <span className="min-w-0 font-medium text-base truncate flex-1">{hobbyValue}</span>
-                      <div className="flex shrink-0 items-center gap-0.5">
+                      <span className='min-w-0 font-medium text-base truncate flex-1'>
+                        {hobbyValue}
+                      </span>
+                      <div className='flex shrink-0 items-center gap-0.5'>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
+                              type='button'
+                              variant='ghost'
+                              size='sm'
                               onClick={() => {
-                                form.setValue(`hobbies.${index}.hidden` as any, !hidden as any, { shouldDirty: true })
+                                form.setValue(
+                                  `hobbies.${index}.hidden` as any,
+                                  !hidden as any,
+                                  { shouldDirty: true },
+                                )
                               }}
                               aria-label={`${hidden ? '显示' : '隐藏'}爱好 ${hobbyValue}`}
-                              className="size-8 p-0"
+                              className='size-8 p-0'
                             >
-                              {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                              {hidden ? (
+                                <EyeOff className='size-4' />
+                              ) : (
+                                <Eye className='size-4' />
+                              )}
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>{hidden ? '显示此爱好' : '隐藏此爱好（内容保留）'}</TooltipContent>
+                          <TooltipContent>
+                            {hidden ? '显示此爱好' : '隐藏此爱好（内容保留）'}
+                          </TooltipContent>
                         </Tooltip>
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
+                          type='button'
+                          variant='ghost'
+                          size='sm'
                           onClick={() => {
                             remove(index)
                           }}
-                          className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                          className='size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0'
                         >
-                          <Trash2 className="size-4" />
+                          <Trash2 className='size-4' />
                         </Button>
                       </div>
                     </motion.div>

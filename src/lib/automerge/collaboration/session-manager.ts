@@ -44,7 +44,11 @@ export class CollaborationSessionManager {
 
     this.disable()
 
-    const adapter = new SupabaseNetworkAdapter(this.options.resumeId, sessionId, callbacks)
+    const adapter = new SupabaseNetworkAdapter(
+      this.options.resumeId,
+      sessionId,
+      callbacks,
+    )
     this.options.repo.networkSubsystem.addNetworkAdapter(adapter)
 
     this.adapter = adapter
@@ -57,8 +61,8 @@ export class CollaborationSessionManager {
 
   disable(expectedActivationId?: number) {
     if (
-      expectedActivationId !== undefined
-      && expectedActivationId !== this.currentActivationId
+      expectedActivationId !== undefined &&
+      expectedActivationId !== this.currentActivationId
     ) {
       return false
     }
@@ -71,8 +75,7 @@ export class CollaborationSessionManager {
 
     try {
       this.adapter.disconnect()
-    }
-    catch {
+    } catch {
       // 忽略手动断开时的网络错误
     }
 
@@ -83,7 +86,9 @@ export class CollaborationSessionManager {
     return true
   }
 
-  syncHandle(handle: DocHandle<AutomergeResumeDocument> | null = this.options.getHandle()) {
+  syncHandle(
+    handle: DocHandle<AutomergeResumeDocument> | null = this.options.getHandle(),
+  ) {
     this.adapter?.setLocalDocumentId(handle?.documentId ?? null)
   }
 

@@ -9,10 +9,13 @@ import type { FormDataMap } from '@/store/resume/const'
 export interface RichFieldEntry {
   sectionKey: keyof FormDataMap
   /** 列出该 section 下所有富文本字段实例（section 级 1 个；数组级每项 1 个）。 */
-  list: (data: FormDataMap) => Array<{ relativePath: string, html: string }>
+  list: (data: FormDataMap) => Array<{ relativePath: string; html: string }>
 }
 
-function sectionLevel(sectionKey: keyof FormDataMap, field: string): RichFieldEntry {
+function sectionLevel(
+  sectionKey: keyof FormDataMap,
+  field: string,
+): RichFieldEntry {
   return {
     sectionKey,
     list: (data) => {
@@ -23,12 +26,17 @@ function sectionLevel(sectionKey: keyof FormDataMap, field: string): RichFieldEn
   }
 }
 
-function arrayLevel(sectionKey: keyof FormDataMap, itemKey: string, field: string): RichFieldEntry {
+function arrayLevel(
+  sectionKey: keyof FormDataMap,
+  itemKey: string,
+  field: string,
+): RichFieldEntry {
   return {
     sectionKey,
     list: (data) => {
       const section = data[sectionKey] as Record<string, unknown> | undefined
-      const items = (section?.[itemKey] as Array<Record<string, unknown>> | undefined) ?? []
+      const items =
+        (section?.[itemKey] as Array<Record<string, unknown>> | undefined) ?? []
       return items.map((item, index) => ({
         relativePath: `${itemKey}.${index}.${field}`,
         html: (item?.[field] as string | undefined) ?? '',

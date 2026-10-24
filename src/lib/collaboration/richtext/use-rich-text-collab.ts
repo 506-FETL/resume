@@ -1,6 +1,9 @@
 import type { CollabExtensionConfig } from '@/lib/collaboration/richtext'
 import { useMemo } from 'react'
-import { buildFragmentKey, useRichTextCollabStore } from '@/lib/collaboration/richtext'
+import {
+  buildFragmentKey,
+  useRichTextCollabStore,
+} from '@/lib/collaboration/richtext'
 import useCollaborationStore from '@/lib/collaboration/session/store'
 
 /**
@@ -13,11 +16,11 @@ export function useRichTextCollab(
   sectionKey: string,
   relativePath: string,
 ): CollabExtensionConfig | undefined {
-  const session = useRichTextCollabStore(state => state.session)
-  const provider = useRichTextCollabStore(state => state.provider)
-  const ready = useRichTextCollabStore(state => state.ready)
+  const session = useRichTextCollabStore((state) => state.session)
+  const provider = useRichTextCollabStore((state) => state.provider)
+  const ready = useRichTextCollabStore((state) => state.ready)
 
-  const self = useCollaborationStore(state => state.self)
+  const self = useCollaborationStore((state) => state.self)
 
   const key = buildFragmentKey(sectionKey, relativePath)
 

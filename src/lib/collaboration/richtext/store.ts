@@ -48,7 +48,12 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
     get().stop()
 
     const session = new RichTextCollabSession()
-    const provider = new SupabaseYjsProvider(resumeId, sessionId, session.doc, session.awareness)
+    const provider = new SupabaseYjsProvider(
+      resumeId,
+      sessionId,
+      session.doc,
+      session.awareness,
+    )
 
     // 从连接第一帧就带上稳定 id，确保该端广播的所有 awareness 状态（含随后被 start/stop
     // 竞态遗留的幽灵）都归属同一个人，供远端去重。身份后续由 SimpleEditor 直接刷新 awareness。
@@ -79,11 +84,13 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
         for (const entry of RICH_FIELDS) {
           for (const { relativePath, html } of entry.list(data)) {
             try {
-              const key = buildFragmentKey(entry.sectionKey as string, relativePath)
+              const key = buildFragmentKey(
+                entry.sectionKey as string,
+                relativePath,
+              )
               const fragment = session.getFieldFragment(key)
               seedFragmentFromHtml(fragment, html, extensions)
-            }
-            catch (error) {
+            } catch (error) {
               console.warn('[richtext-collab] seed failed:', error)
             }
           }

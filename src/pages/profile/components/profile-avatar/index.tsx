@@ -21,18 +21,17 @@ export function ProfileAvatar() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [cropOpen, setCropOpen] = useState(false)
-  const [pendingAvatar, setPendingAvatar] = useState<PendingAvatarSelection | null>(null)
+  const [pendingAvatar, setPendingAvatar] =
+    useState<PendingAvatarSelection | null>(null)
 
   useEffect(() => {
     return () => {
-      if (pendingAvatar?.src)
-        URL.revokeObjectURL(pendingAvatar.src)
+      if (pendingAvatar?.src) URL.revokeObjectURL(pendingAvatar.src)
     }
   }, [pendingAvatar])
 
   const clearPendingAvatar = () => {
-    if (pendingAvatar?.src)
-      URL.revokeObjectURL(pendingAvatar.src)
+    if (pendingAvatar?.src) URL.revokeObjectURL(pendingAvatar.src)
 
     setPendingAvatar(null)
   }
@@ -73,16 +72,17 @@ export function ProfileAvatar() {
   }
 
   const handleCropOpenChange = (open: boolean) => {
-    if (uploading)
-      return
+    if (uploading) return
 
     setCropOpen(open)
     // 退出动画期间保留裁剪内容；下一次选图或卸载时释放对象 URL。
   }
 
-  const handleCropConfirm = async (crop: AvatarPercentCrop, shape: AvatarCropShape) => {
-    if (!pendingAvatar)
-      return
+  const handleCropConfirm = async (
+    crop: AvatarPercentCrop,
+    shape: AvatarCropShape,
+  ) => {
+    if (!pendingAvatar) return
 
     setUploading(true)
     try {
@@ -97,32 +97,44 @@ export function ProfileAvatar() {
       await changeAvatar(croppedFile)
       toast.success('头像更新成功')
       setCropOpen(false)
-    }
-    catch (error) {
+    } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误'
       toast.error(`头像上传失败，请稍后重试：${message}`)
-    }
-    finally {
+    } finally {
       setUploading(false)
     }
   }
 
   return (
     <>
-      <div className="relative">
-        <CurrentUserAvatar className="size-24" />
+      <div className='relative'>
+        <CurrentUserAvatar className='size-24' />
         <Button
           onClick={handleAvatarClick}
           disabled={uploading}
-          size="icon"
-          className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full hover:cursor-pointer hover:shadow-md"
-          title="更换头像"
+          size='icon'
+          className='absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full hover:cursor-pointer hover:shadow-md'
+          title='更换头像'
         >
-          <AnimatedContent as="span" animationKey={uploading ? 'uploading' : 'idle'} className="flex items-center">
-            {uploading ? <Spinner className="size-4" /> : <Camera className="size-4" />}
+          <AnimatedContent
+            as='span'
+            animationKey={uploading ? 'uploading' : 'idle'}
+            className='flex items-center'
+          >
+            {uploading ? (
+              <Spinner className='size-4' />
+            ) : (
+              <Camera className='size-4' />
+            )}
           </AnimatedContent>
         </Button>
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type='file'
+          accept='image/*'
+          onChange={handleFileChange}
+          className='hidden'
+        />
       </div>
 
       <AvatarCropDialog

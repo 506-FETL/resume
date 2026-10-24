@@ -14,23 +14,31 @@ import AtsPreviewTool from './ats-preview'
 import BenchmarkTool from './benchmark'
 import FormatterTool from './formatter'
 import JobDescriptionTool from './job-description'
-import { formatToolError, getToolDefinition, TOOL_DEFINITIONS } from './shared/config'
+import {
+  formatToolError,
+  getToolDefinition,
+  TOOL_DEFINITIONS,
+} from './shared/config'
 import { AdvancedToolsModal } from './shared/modal'
-import { getAdvancedToolResumeSummary, loadResumeToolContext } from './shared/resume'
+import {
+  getAdvancedToolResumeSummary,
+  loadResumeToolContext,
+} from './shared/resume'
 import { ToolCard } from './shared/tool-card'
 
 function AdvancedTools() {
-  const { currentAtsConfig, selectedResumeId, selectedResumeType } = useAtsStore()
+  const { currentAtsConfig, selectedResumeId, selectedResumeType } =
+    useAtsStore()
   const isMobile = useIsMobile()
 
-  const activeTool = useAtsStore(s => s.advancedToolActiveTool)
-  const open = useAtsStore(s => s.advancedToolOpen)
-  const loadingContext = useAtsStore(s => s.advancedToolLoadingContext)
-  const resumeContext = useAtsStore(s => s.advancedToolResumeContext)
-  const setActiveTool = useAtsStore(s => s.setAdvancedToolActiveTool)
-  const setOpen = useAtsStore(s => s.setAdvancedToolOpen)
-  const setLoadingContext = useAtsStore(s => s.setAdvancedToolLoadingContext)
-  const setResumeContext = useAtsStore(s => s.setAdvancedToolResumeContext)
+  const activeTool = useAtsStore((s) => s.advancedToolActiveTool)
+  const open = useAtsStore((s) => s.advancedToolOpen)
+  const loadingContext = useAtsStore((s) => s.advancedToolLoadingContext)
+  const resumeContext = useAtsStore((s) => s.advancedToolResumeContext)
+  const setActiveTool = useAtsStore((s) => s.setAdvancedToolActiveTool)
+  const setOpen = useAtsStore((s) => s.setAdvancedToolOpen)
+  const setLoadingContext = useAtsStore((s) => s.setAdvancedToolLoadingContext)
+  const setResumeContext = useAtsStore((s) => s.setAdvancedToolResumeContext)
   const requestIdRef = useRef(0)
 
   const hasSelectedResume = Boolean(selectedResumeId && selectedResumeType)
@@ -53,7 +61,8 @@ function AdvancedTools() {
   )
 
   const resumeSummary = useMemo(
-    () => resumeContext ? getAdvancedToolResumeSummary(resumeContext.resume) : null,
+    () =>
+      resumeContext ? getAdvancedToolResumeSummary(resumeContext.resume) : null,
     [resumeContext],
   )
 
@@ -63,9 +72,9 @@ function AdvancedTools() {
     }
 
     return (
-      resumeContext.resumeId === selectedResumeId
-      && resumeContext.resumeType === selectedResumeType
-      && (resumeContext.atsConfig?.id ?? null) === (selectedAtsConfig?.id ?? null)
+      resumeContext.resumeId === selectedResumeId &&
+      resumeContext.resumeType === selectedResumeType &&
+      (resumeContext.atsConfig?.id ?? null) === (selectedAtsConfig?.id ?? null)
     )
   }, [resumeContext, selectedAtsConfig, selectedResumeId, selectedResumeType])
 
@@ -106,13 +115,11 @@ function AdvancedTools() {
       }
 
       setResumeContext(nextContext)
-    }
-    catch (error) {
+    } catch (error) {
       if (requestId === requestIdRef.current) {
         toast.error(formatToolError(error))
       }
-    }
-    finally {
+    } finally {
       if (requestId === requestIdRef.current) {
         setLoadingContext(false)
       }
@@ -135,13 +142,11 @@ function AdvancedTools() {
       }
 
       setResumeContext(nextContext)
-    }
-    catch (error) {
+    } catch (error) {
       if (requestId === requestIdRef.current) {
         toast.error(formatToolError(error))
       }
-    }
-    finally {
+    } finally {
       if (requestId === requestIdRef.current) {
         setLoadingContext(false)
       }
@@ -160,23 +165,28 @@ function AdvancedTools() {
   function renderToolContent() {
     if (loadingContext) {
       return (
-        <div className="flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground">
-          <div className="size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
-          <p className="text-sm">正在准备工具结果...</p>
+        <div className='flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground'>
+          <div className='size-6 animate-spin rounded-full border-2 border-muted border-t-primary' />
+          <p className='text-sm'>正在准备工具结果...</p>
         </div>
       )
     }
 
     if (!resumeContext || !activeTool) {
       return (
-        <div className="flex min-h-48 flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
-          <p className="text-sm">请先选择简历，再打开工具箱。</p>
+        <div className='flex min-h-48 flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground'>
+          <p className='text-sm'>请先选择简历，再打开工具箱。</p>
         </div>
       )
     }
 
     if (activeTool === 'job-description') {
-      return <JobDescriptionTool key={`${resumeContext.resumeId}-${resumeContext.resumeType}`} resumeContext={resumeContext} />
+      return (
+        <JobDescriptionTool
+          key={`${resumeContext.resumeId}-${resumeContext.resumeType}`}
+          resumeContext={resumeContext}
+        />
+      )
     }
 
     if (activeTool === 'formatter') {
@@ -190,27 +200,43 @@ function AdvancedTools() {
     }
 
     if (activeTool === 'ats-preview') {
-      return <AtsPreviewTool key={`${resumeContext.resumeId}-${resumeContext.resumeType}`} resumeContext={resumeContext} />
+      return (
+        <AtsPreviewTool
+          key={`${resumeContext.resumeId}-${resumeContext.resumeType}`}
+          resumeContext={resumeContext}
+        />
+      )
     }
 
-    return <BenchmarkTool key={`${resumeContext.resumeId}-${resumeContext.resumeType}`} resumeContext={resumeContext} />
+    return (
+      <BenchmarkTool
+        key={`${resumeContext.resumeId}-${resumeContext.resumeType}`}
+        resumeContext={resumeContext}
+      />
+    )
   }
 
   return (
     <>
-      <Card className="border-primary/10 shadow-sm">
-        <CardHeader className="border-b border-border/50 p-4 md:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <CardTitle className="text-base font-semibold md:text-lg">高级工具箱</CardTitle>
-              <Badge variant="outline" className="rounded-full">4 个工具</Badge>
+      <Card className='border-primary/10 shadow-sm'>
+        <CardHeader className='border-b border-border/50 p-4 md:p-5'>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+            <div className='flex min-w-0 flex-wrap items-center gap-2'>
+              <CardTitle className='text-base font-semibold md:text-lg'>
+                高级工具箱
+              </CardTitle>
+              <Badge variant='outline' className='rounded-full'>
+                4 个工具
+              </Badge>
             </div>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <div className='flex shrink-0 flex-wrap items-center gap-2'>
               <Badge
-                className={hasSelectedResume
-                  ? 'rounded-full border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                  : 'rounded-full border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'}
+                className={
+                  hasSelectedResume
+                    ? 'rounded-full border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                    : 'rounded-full border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                }
               >
                 {hasSelectedResume ? '已选择简历' : '请先选择简历'}
               </Badge>
@@ -218,9 +244,9 @@ function AdvancedTools() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 md:p-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {TOOL_DEFINITIONS.map(tool => (
+        <CardContent className='p-4 md:p-5'>
+          <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+            {TOOL_DEFINITIONS.map((tool) => (
               <ToolCard
                 key={tool.key}
                 disabled={!hasSelectedResume}
@@ -235,46 +261,64 @@ function AdvancedTools() {
       <AdvancedToolsModal
         description={activeToolDefinition?.description}
         footer={
-          isMobile
-            ? (
-                <DrawerFooter className="shrink-0 border-t bg-muted/30 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:flex md:flex-row md:justify-end md:gap-2">
-                  <DrawerClose render={<Button variant="outline" />}>
-                    取消
-                  </DrawerClose>
-                  <Button onClick={handleRefreshContext} disabled={!activeTool || loadingContext}>
-                    刷新数据
-                  </Button>
-                </DrawerFooter>
-              )
-            : (
-                <DialogFooter className="px-4 py-3 shrink-0 border-t bg-muted/30">
-                  <DialogClose asChild>
-                    <Button variant="outline">取消</Button>
-                  </DialogClose>
-                  <Button onClick={handleRefreshContext} disabled={!activeTool || loadingContext}>
-                    刷新数据
-                  </Button>
-                </DialogFooter>
-              )
+          isMobile ? (
+            <DrawerFooter className='shrink-0 border-t bg-muted/30 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:flex md:flex-row md:justify-end md:gap-2'>
+              <DrawerClose render={<Button variant='outline' />}>
+                取消
+              </DrawerClose>
+              <Button
+                onClick={handleRefreshContext}
+                disabled={!activeTool || loadingContext}
+              >
+                刷新数据
+              </Button>
+            </DrawerFooter>
+          ) : (
+            <DialogFooter className='px-4 py-3 shrink-0 border-t bg-muted/30'>
+              <DialogClose asChild>
+                <Button variant='outline'>取消</Button>
+              </DialogClose>
+              <Button
+                onClick={handleRefreshContext}
+                disabled={!activeTool || loadingContext}
+              >
+                刷新数据
+              </Button>
+            </DialogFooter>
+          )
         }
         onOpenChange={handleOpenChange}
         open={open}
-        meta={resumeSummary
-          ? (
-              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span className="max-w-64 truncate font-medium text-foreground">{resumeSummary.title}</span>
-                <span>{resumeSummary.jobIntent}</span>
-                <span>
-                  {resumeSummary.evidenceCount}
-                  {' 条有效证据'}
-                </span>
-                <span>{resumeContext?.resumeType === 'offline' ? '本地简历' : '在线简历'}</span>
-              </div>
-            )
-          : undefined}
+        meta={
+          resumeSummary ? (
+            <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground'>
+              <span className='max-w-64 truncate font-medium text-foreground'>
+                {resumeSummary.title}
+              </span>
+              <span>{resumeSummary.jobIntent}</span>
+              <span>
+                {resumeSummary.evidenceCount}
+                {' 条有效证据'}
+              </span>
+              <span>
+                {resumeContext?.resumeType === 'offline'
+                  ? '本地简历'
+                  : '在线简历'}
+              </span>
+            </div>
+          ) : undefined
+        }
         title={activeToolDefinition?.title || '高级工具箱'}
       >
-        <AnimatedContent animationKey={loadingContext ? 'loading' : resumeContext && activeTool ? activeTool : 'empty'}>
+        <AnimatedContent
+          animationKey={
+            loadingContext
+              ? 'loading'
+              : resumeContext && activeTool
+                ? activeTool
+                : 'empty'
+          }
+        >
           {renderToolContent()}
         </AnimatedContent>
       </AdvancedToolsModal>

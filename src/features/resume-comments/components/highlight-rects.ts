@@ -26,32 +26,42 @@ interface VisualLine {
 }
 
 export function rectanglesOverlap(left: RectBounds, right: RectBounds) {
-  return left.x < right.x + right.width
-    && right.x < left.x + left.width
-    && left.y < right.y + right.height
-    && right.y < left.y + left.height
+  return (
+    left.x < right.x + right.width &&
+    right.x < left.x + left.width &&
+    left.y < right.y + right.height &&
+    right.y < left.y + left.height
+  )
 }
 
 function verticalOverlapRatio(left: RectBounds, right: RectBounds) {
   const overlap = Math.max(
     0,
-    Math.min(left.y + left.height, right.y + right.height)
-    - Math.max(left.y, right.y),
+    Math.min(left.y + left.height, right.y + right.height) -
+      Math.max(left.y, right.y),
   )
   return overlap / Math.max(1, Math.min(left.height, right.height))
 }
 
-function areLineCompatible(left: HighlightSourceRect, right: HighlightSourceRect) {
-  const heightSimilarity = Math.min(left.height, right.height)
-    / Math.max(1, Math.max(left.height, right.height))
-  return left.pageIndex === right.pageIndex
-    && heightSimilarity >= 0.6
-    && verticalOverlapRatio(left, right) >= 0.6
+function areLineCompatible(
+  left: HighlightSourceRect,
+  right: HighlightSourceRect,
+) {
+  const heightSimilarity =
+    Math.min(left.height, right.height) /
+    Math.max(1, Math.max(left.height, right.height))
+  return (
+    left.pageIndex === right.pageIndex &&
+    heightSimilarity >= 0.6 &&
+    verticalOverlapRatio(left, right) >= 0.6
+  )
 }
 
 function isSameVisualLine(line: VisualLine, rect: HighlightSourceRect) {
-  return line.pageIndex === rect.pageIndex
-    && line.rects.some(candidate => areLineCompatible(candidate, rect))
+  return (
+    line.pageIndex === rect.pageIndex &&
+    line.rects.some((candidate) => areLineCompatible(candidate, rect))
+  )
 }
 
 function geometryKey(rect: Omit<HighlightVisualRect, 'key' | 'threadIds'>) {
@@ -77,12 +87,17 @@ function mergeLineIntervals(line: VisualLine): HighlightVisualRect[] {
       const x = Math.min(previous.x, rect.x)
       const y = Math.min(previous.y, rect.y)
       const right = Math.max(previous.x + previous.width, rectRight)
-      const bottom = Math.max(previous.y + previous.height, rect.y + rect.height)
+      const bottom = Math.max(
+        previous.y + previous.height,
+        rect.y + rect.height,
+      )
       previous.x = x
       previous.y = y
       previous.width = right - x
       previous.height = bottom - y
-      previous.threadIds = Array.from(new Set([...previous.threadIds, rect.threadId]))
+      previous.threadIds = Array.from(
+        new Set([...previous.threadIds, rect.threadId]),
+      )
       previous.key = geometryKey(previous)
       continue
     }
@@ -107,19 +122,20 @@ function mergeLineIntervals(line: VisualLine): HighlightVisualRect[] {
 export function mergeHighlightVisualRects(
   rects: readonly HighlightSourceRect[],
 ): HighlightVisualRect[] {
-  const ordered = [...rects].sort((left, right) => (
-    left.pageIndex - right.pageIndex
-    || left.y - right.y
-    || left.x - right.x
-  ))
+  const ordered = [...rects].sort(
+    (left, right) =>
+      left.pageIndex - right.pageIndex || left.y - right.y || left.x - right.x,
+  )
   const lines: VisualLine[] = []
 
   for (const rect of ordered) {
-    const matchingLines = lines.filter(candidate => isSameVisualLine(candidate, rect))
+    const matchingLines = lines.filter((candidate) =>
+      isSameVisualLine(candidate, rect),
+    )
     const line = matchingLines[0]
     if (line) {
       line.rects.push(
-        ...matchingLines.slice(1).flatMap(candidate => candidate.rects),
+        ...matchingLines.slice(1).flatMap((candidate) => candidate.rects),
         rect,
       )
       for (const mergedLine of matchingLines.slice(1))

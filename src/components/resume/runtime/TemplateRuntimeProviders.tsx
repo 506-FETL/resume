@@ -24,35 +24,45 @@ export function TemplateRuntimeProviders({
   const { font, spacing, theme } = useMemo(() => {
     const normalized = normalizeResumeAppearance(appearance)
     const styles = resolveResumeAppearanceStyles(normalized)
-    if (!tokens)
-      return styles
-    const primaryColor = normalized.theme.theme === 'default' ? tokens.primary : styles.theme.primaryColor
-    return { ...styles, theme: { ...styles.theme, primaryColor, progressBarFill: primaryColor, accentColor: tokens.accent } }
+    if (!tokens) return styles
+    const primaryColor =
+      normalized.theme.theme === 'default'
+        ? tokens.primary
+        : styles.theme.primaryColor
+    return {
+      ...styles,
+      theme: {
+        ...styles.theme,
+        primaryColor,
+        progressBarFill: primaryColor,
+        accentColor: tokens.accent,
+      },
+    }
   }, [appearance, tokens])
   const commentNodesByKey = useMemo(() => {
-    const { document } = buildCommentAnchorDocument(data, projectionReferenceDate)
-    return new Map(document.nodes.map(node => [node.nodeKey, node]))
+    const { document } = buildCommentAnchorDocument(
+      data,
+      projectionReferenceDate,
+    )
+    return new Map(document.nodes.map((node) => [node.nodeKey, node]))
   }, [data, projectionReferenceDate])
-  const resumeContext = useMemo(() => ({
-    theme,
-    spacing,
-    font,
-    projectionReferenceDate,
-    commentNodesByKey,
-  }), [
-    commentNodesByKey,
-    font,
-    projectionReferenceDate,
-    spacing,
-    theme,
-  ])
+  const resumeContext = useMemo(
+    () => ({
+      theme,
+      spacing,
+      font,
+      projectionReferenceDate,
+      commentNodesByKey,
+    }),
+    [commentNodesByKey, font, projectionReferenceDate, spacing, theme],
+  )
 
   return (
     <TemplateResumeDataProvider value={data}>
       <ResumeContextProvider value={resumeContext}>
         <div
           data-resume-runtime-root
-          data-resume-runtime-ready="true"
+          data-resume-runtime-ready='true'
           style={{
             fontFamily: font.fontFamily,
             fontSynthesis: 'none',

@@ -1,4 +1,7 @@
-export function createJobDescriptionAnalysisPrompt(resumeJson: string, jobDescription: string) {
+export function createJobDescriptionAnalysisPrompt(
+  resumeJson: string,
+  jobDescription: string,
+) {
   return `
 你会收到两段输入：
 1. 当前简历 JSON

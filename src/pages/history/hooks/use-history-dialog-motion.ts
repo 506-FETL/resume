@@ -56,41 +56,64 @@ export function useHistoryDialogMotion() {
   return {
     reduceMotion,
     styles,
-    contentClassName: cn('history-modal-motion', reduceMotion && 'history-dialog-reduced'),
-    overlayClassName: cn('history-overlay-motion', reduceMotion && 'history-dialog-reduced'),
-    enterTransition: { duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out },
-    exitTransition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in },
+    contentClassName: cn(
+      'history-modal-motion',
+      reduceMotion && 'history-dialog-reduced',
+    ),
+    overlayClassName: cn(
+      'history-overlay-motion',
+      reduceMotion && 'history-dialog-reduced',
+    ),
+    enterTransition: {
+      duration: reduceMotion ? 0 : DURATION.base,
+      ease: EASE.out,
+    },
+    exitTransition: {
+      duration: reduceMotion ? 0 : DURATION.fast,
+      ease: EASE.in,
+    },
     layoutTransition: reduceMotion ? { duration: 0 } : SPRING.layout,
   }
 }
 
-export function useHistoryDialogCloseReset(open: boolean, reset: () => void, elementRef: RefObject<HTMLElement | null>) {
+export function useHistoryDialogCloseReset(
+  open: boolean,
+  reset: () => void,
+  elementRef: RefObject<HTMLElement | null>,
+) {
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
-    if (open)
-      return
+    if (open) return
 
-    const content = elementRef.current?.closest('[data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="drawer-popup"]')
+    const content = elementRef.current?.closest(
+      '[data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="drawer-popup"]',
+    )
     let frame = 0
     const afterExit = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(reset)
     }
     const onAnimationEnd = (event: Event) => {
-      if (event.target === content && (event as AnimationEvent).animationName === 'history-dialog-presence')
+      if (
+        event.target === content &&
+        (event as AnimationEvent).animationName === 'history-dialog-presence'
+      )
         afterExit()
     }
     const onTransitionEnd = (event: Event) => {
-      if (content?.getAttribute('data-slot') === 'drawer-popup' && event.target === content && (event as TransitionEvent).propertyName === 'transform')
+      if (
+        content?.getAttribute('data-slot') === 'drawer-popup' &&
+        event.target === content &&
+        (event as TransitionEvent).propertyName === 'transform'
+      )
         afterExit()
     }
 
     // Follow the actual exit completion instead of racing a timer against a busy frame.
     if (reduceMotion || !content) {
       afterExit()
-    }
-    else {
+    } else {
       content.addEventListener('animationend', onAnimationEnd)
       content.addEventListener('transitionend', onTransitionEnd)
     }

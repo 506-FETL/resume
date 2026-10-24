@@ -12,18 +12,18 @@
 
 参考入口：https://www.qmjianli.com/cv/jianlimoban/ 。以下为 2026-10-23 浏览“热门”列表后的选择，不声称排名永久不变。用户追加要求“相似的话就换一个”，因此排除与现有默认模板接近的 1045，以及与经典蓝金模板接近的 1004；保留现有两套，新增下面 10 套。
 
-| 来源 ID / 详情 | 来源名称 | 新模板 ID / 展示名 | 必须还原的视觉特征 |
-| --- | --- | --- | --- |
-| [1015](https://www.qmjianli.com/cv/details/1015) | 人气蓝色左右结构模板 | navy-sidebar / 深蓝侧栏 | 深蓝通高侧栏、照片、白色个人信息与技能条；右侧圆形图标标题 |
-| [1044](https://www.qmjianli.com/cv/details/1044) | 蓝色系简约求职简历模板 | blue-section-bars / 蓝色横条 | 居中页头、深浅蓝章节横条、独立求职意向、右侧照片、三列经历标题 |
-| [1054](https://www.qmjianli.com/cv/details/1054) | 淡蓝色上下结构模板 | sky-cards / 浅蓝卡片 | 浅蓝圆角页头、突出照片卡片、圆形章节图标、浅灰经历卡片 |
-| [1057](https://www.qmjianli.com/cv/details/1057) | 时尚卡通贴图风格模板 | playful-stickers / 卡通贴纸 | 黄蓝几何页头、倾斜相框与联系卡、星形装饰、点阵底纹、编号章节与时间线 |
-| [1058](https://www.qmjianli.com/cv/details/1058) | 绿色大自然风格模板 | nature-green / 自然绿意 | 绿色曲线页头、太阳与叶片、拱形照片、奶油底色、白色卡片与编号时间线 |
-| [1012](https://www.qmjianli.com/cv/details/1012) | 经典上下结构简历模板 | blue-angle / 蓝色斜角 | 蓝色通栏斜角页头、右侧照片、蓝色竖线串联章节圆形图标 |
-| [1056](https://www.qmjianli.com/cv/details/1056) | 墨绿色简洁模板 | teal-timeline / 墨绿时间线 | 墨绿通栏页头、照片与联系方式分区、半透明圆环、左侧日期与右侧经历 |
-| [1005](https://www.qmjianli.com/cv/details/1005) | 蓝色线条个人简历模板 | blue-capsule / 蓝色胶囊 | 左侧伸入页边的圆端页头、胶囊章节标题、横线与竖线、三列经历标题 |
-| [1046](https://www.qmjianli.com/cv/details/1046) | 淡蓝色上下结构模板 | blue-portrait / 蓝色圆像 | 居中圆形照片、整块蓝色页头、居中白色信息、细蓝章节时间线 |
-| [1011](https://www.qmjianli.com/cv/details/1011) | 时尚前卫的通用简历模板 | slate-sidebar / 灰蓝时间线 | 浅灰通高侧栏、居中照片姓名、描边侧栏标题、顶部英文横带、主栏经历时间线 |
+| 来源 ID / 详情                                   | 来源名称               | 新模板 ID / 展示名           | 必须还原的视觉特征                                                     |
+| ------------------------------------------------ | ---------------------- | ---------------------------- | ---------------------------------------------------------------------- |
+| [1015](https://www.qmjianli.com/cv/details/1015) | 人气蓝色左右结构模板   | navy-sidebar / 深蓝侧栏      | 深蓝通高侧栏、照片、白色个人信息与技能条；右侧圆形图标标题             |
+| [1044](https://www.qmjianli.com/cv/details/1044) | 蓝色系简约求职简历模板 | blue-section-bars / 蓝色横条 | 居中页头、深浅蓝章节横条、独立求职意向、右侧照片、三列经历标题         |
+| [1054](https://www.qmjianli.com/cv/details/1054) | 淡蓝色上下结构模板     | sky-cards / 浅蓝卡片         | 浅蓝圆角页头、突出照片卡片、圆形章节图标、浅灰经历卡片                 |
+| [1057](https://www.qmjianli.com/cv/details/1057) | 时尚卡通贴图风格模板   | playful-stickers / 卡通贴纸  | 黄蓝几何页头、倾斜相框与联系卡、星形装饰、点阵底纹、编号章节与时间线   |
+| [1058](https://www.qmjianli.com/cv/details/1058) | 绿色大自然风格模板     | nature-green / 自然绿意      | 绿色曲线页头、太阳与叶片、拱形照片、奶油底色、白色卡片与编号时间线     |
+| [1012](https://www.qmjianli.com/cv/details/1012) | 经典上下结构简历模板   | blue-angle / 蓝色斜角        | 蓝色通栏斜角页头、右侧照片、蓝色竖线串联章节圆形图标                   |
+| [1056](https://www.qmjianli.com/cv/details/1056) | 墨绿色简洁模板         | teal-timeline / 墨绿时间线   | 墨绿通栏页头、照片与联系方式分区、半透明圆环、左侧日期与右侧经历       |
+| [1005](https://www.qmjianli.com/cv/details/1005) | 蓝色线条个人简历模板   | blue-capsule / 蓝色胶囊      | 左侧伸入页边的圆端页头、胶囊章节标题、横线与竖线、三列经历标题         |
+| [1046](https://www.qmjianli.com/cv/details/1046) | 淡蓝色上下结构模板     | blue-portrait / 蓝色圆像     | 居中圆形照片、整块蓝色页头、居中白色信息、细蓝章节时间线               |
+| [1011](https://www.qmjianli.com/cv/details/1011) | 时尚前卫的通用简历模板 | slate-sidebar / 灰蓝时间线   | 浅灰通高侧栏、居中照片姓名、描边侧栏标题、顶部英文横带、主栏经历时间线 |
 
 公开预览原图与来源、尺寸、SHA-256 已保存于 `tests/resume-template/references/qm-hot-2026-10-23/`。这些文件仅用于参考与验收，不发布为用户简历的整页背景。1005 预览底部的编辑器分页提示不属于模板正文，不复刻。
 

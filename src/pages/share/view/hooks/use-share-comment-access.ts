@@ -7,14 +7,16 @@ export interface ShareCommentAccess {
   expiresAt: string
 }
 
-export function readShareCommentAccess(result: ShareViewResult): ShareCommentAccess | null {
+export function readShareCommentAccess(
+  result: ShareViewResult,
+): ShareCommentAccess | null {
   if (
-    !result.shareId
-    || !result.releaseId
-    || !result.versionId
-    || !result.commentScopeId
-    || !result.commentAccessToken
-    || !result.commentAccessExpiresAt
+    !result.shareId ||
+    !result.releaseId ||
+    !result.versionId ||
+    !result.commentScopeId ||
+    !result.commentAccessToken ||
+    !result.commentAccessExpiresAt
   ) {
     return null
   }

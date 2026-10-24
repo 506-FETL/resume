@@ -1,4 +1,9 @@
-import type { FontConfigType, ORDERType, SpacingConfigType, ThemeConfigType } from '@/lib/schema'
+import type {
+  FontConfigType,
+  ORDERType,
+  SpacingConfigType,
+  ThemeConfigType,
+} from '@/lib/schema'
 
 export interface RemoteUserUIState {
   userId: number
@@ -20,14 +25,14 @@ export interface UIStateBroadcastPayload {
   timestamp: number
 }
 
-export type UIAction
-  = | { kind: 'drawer-toggle', open: boolean }
-    | { kind: 'tab-switch', tabId: ORDERType }
-    | { kind: 'section-toggle', tabId: ORDERType, open: boolean }
-    | { kind: 'scroll', position: number, target: 'window' | 'preview' }
-    | { kind: 'config-spacing', data: Partial<SpacingConfigType> }
-    | { kind: 'config-font', data: Partial<FontConfigType> }
-    | { kind: 'config-theme', data: Partial<ThemeConfigType> }
+export type UIAction =
+  | { kind: 'drawer-toggle'; open: boolean }
+  | { kind: 'tab-switch'; tabId: ORDERType }
+  | { kind: 'section-toggle'; tabId: ORDERType; open: boolean }
+  | { kind: 'scroll'; position: number; target: 'window' | 'preview' }
+  | { kind: 'config-spacing'; data: Partial<SpacingConfigType> }
+  | { kind: 'config-font'; data: Partial<FontConfigType> }
+  | { kind: 'config-theme'; data: Partial<ThemeConfigType> }
 
 export interface UIActionBroadcastPayload {
   type: 'ui-action'

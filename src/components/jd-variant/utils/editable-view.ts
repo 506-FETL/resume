@@ -9,7 +9,9 @@ interface SnapshotLike {
   self_evaluation?: { content?: unknown }
   work_experience?: { items?: Array<{ workInfo?: unknown }> }
   internship_experience?: { items?: Array<{ internshipInfo?: unknown }> }
-  project_experience?: { items?: Array<{ projectInfo?: unknown, projectName?: unknown }> }
+  project_experience?: {
+    items?: Array<{ projectInfo?: unknown; projectName?: unknown }>
+  }
   campus_experience?: { items?: Array<{ campusInfo?: unknown }> }
 }
 
@@ -25,7 +27,9 @@ function getItems<T>(value: unknown): T[] {
   return Array.isArray(items) ? (items as T[]) : []
 }
 
-export function buildEditableView(snapshot: PersistedResumeSnapshot): EditableResumeView {
+export function buildEditableView(
+  snapshot: PersistedResumeSnapshot,
+): EditableResumeView {
   const view: Record<string, unknown> = {}
   for (const [section, mapping] of Object.entries(VARIANT_FIELD_MAPPINGS)) {
     const current = snapshot[section as keyof typeof VARIANT_FIELD_MAPPINGS]
@@ -38,14 +42,22 @@ export function buildEditableView(snapshot: PersistedResumeSnapshot): EditableRe
       view[section] = items.map((item) => {
         const id = asString(item.entryId)
         if (!id || ids.has(id)) {
-          throw new Error(`JD 改写条目缺少稳定 entryId 或 entryId 重复：${section}`)
+          throw new Error(
+            `JD 改写条目缺少稳定 entryId 或 entryId 重复：${section}`,
+          )
         }
         ids.add(id)
-        return { id, [mapping.fieldPath]: asString(item[mapping.snapshotField]) }
+        return {
+          id,
+          [mapping.fieldPath]: asString(item[mapping.snapshotField]),
+        }
       })
-    }
-    else {
-      const content = asString((current as Record<string, unknown> | undefined)?.[mapping.snapshotField])
+    } else {
+      const content = asString(
+        (current as Record<string, unknown> | undefined)?.[
+          mapping.snapshotField
+        ],
+      )
       if (content) {
         view[section] = { id: 'whole', [mapping.fieldPath]: content }
       }
@@ -66,7 +78,9 @@ function flattenSnapshotText(snapshot: PersistedResumeSnapshot): string {
   for (const w of getItems<{ workInfo?: unknown }>(s.work_experience)) {
     parts.push(asString(w.workInfo) ?? '')
   }
-  for (const w of getItems<{ internshipInfo?: unknown }>(s.internship_experience)) {
+  for (const w of getItems<{ internshipInfo?: unknown }>(
+    s.internship_experience,
+  )) {
     parts.push(asString(w.internshipInfo) ?? '')
   }
   for (const p of getItems<{ projectInfo?: unknown }>(s.project_experience)) {
@@ -79,7 +93,10 @@ function flattenSnapshotText(snapshot: PersistedResumeSnapshot): string {
   return parts.filter(Boolean).join('\n').toLowerCase()
 }
 
-export function computeMatchRate(keywords: string[], snapshot: PersistedResumeSnapshot): number {
+export function computeMatchRate(
+  keywords: string[],
+  snapshot: PersistedResumeSnapshot,
+): number {
   if (!Array.isArray(keywords) || keywords.length === 0) {
     return 0
   }

@@ -1,4 +1,8 @@
-import { countCommentGraphemes, graphemeOffsetToUtf16Offset, splitCommentGraphemes } from './graphemes.ts'
+import {
+  countCommentGraphemes,
+  graphemeOffsetToUtf16Offset,
+  splitCommentGraphemes,
+} from './graphemes.ts'
 import { normalizeCommentRichTextBlock } from './projection.ts'
 
 export interface CommentDomPoint {
@@ -30,7 +34,10 @@ function serializeCommentDom(node: Node): string {
   if (node.nodeType === node.TEXT_NODE) {
     return node.nodeValue ?? ''
   }
-  if (node.nodeType === node.ELEMENT_NODE && (node as Element).tagName === 'BR') {
+  if (
+    node.nodeType === node.ELEMENT_NODE &&
+    (node as Element).tagName === 'BR'
+  ) {
     return '\n'
   }
   return Array.from(node.childNodes).map(serializeCommentDom).join('')
@@ -71,8 +78,14 @@ export function commentDomPointToGraphemeOffset(
   container: Node,
   offset: number,
 ) {
-  const { before, after } = serializedCommentDomAroundPoint(block, container, offset)
-  const marker = COMMENT_POINT_MARKERS.find(value => !before.includes(value) && !after.includes(value))
+  const { before, after } = serializedCommentDomAroundPoint(
+    block,
+    container,
+    offset,
+  )
+  const marker = COMMENT_POINT_MARKERS.find(
+    (value) => !before.includes(value) && !after.includes(value),
+  )
   if (!marker) {
     return null
   }
@@ -82,7 +95,10 @@ export function commentDomPointToGraphemeOffset(
     return null
   }
   const normalizedBlock = normalizeCommentRichTextBlock(`${before}${after}`)
-  return countCommonPrefixGraphemes(markedText.slice(0, markerIndex), normalizedBlock)
+  return countCommonPrefixGraphemes(
+    markedText.slice(0, markerIndex),
+    normalizedBlock,
+  )
 }
 
 function collectCommentDomPointCandidates(block: HTMLElement) {
@@ -100,11 +116,16 @@ function collectCommentDomPointCandidates(block: HTMLElement) {
       }
       return
     }
-    if (node.nodeType === node.ELEMENT_NODE && (node as Element).tagName === 'BR') {
+    if (
+      node.nodeType === node.ELEMENT_NODE &&
+      (node as Element).tagName === 'BR'
+    ) {
       const parent = node.parentNode
-      if (!parent)
-        return
-      const childIndex = Array.prototype.indexOf.call(parent.childNodes, node) as number
+      if (!parent) return
+      const childIndex = Array.prototype.indexOf.call(
+        parent.childNodes,
+        node,
+      ) as number
       points.push({ container: parent, offset: childIndex })
       points.push({ container: parent, offset: childIndex + 1 })
       return
@@ -115,11 +136,12 @@ function collectCommentDomPointCandidates(block: HTMLElement) {
   block.childNodes.forEach(visit)
   points.push({ container: block, offset: block.childNodes.length })
 
-  return points.filter((point, index) => (
-    index === 0
-    || point.container !== points[index - 1]!.container
-    || point.offset !== points[index - 1]!.offset
-  ))
+  return points.filter(
+    (point, index) =>
+      index === 0 ||
+      point.container !== points[index - 1]!.container ||
+      point.offset !== points[index - 1]!.offset,
+  )
 }
 
 export function commentDomGraphemeOffsetToPoint(
@@ -133,12 +155,14 @@ export function commentDomGraphemeOffsetToPoint(
 
   let match: CommentDomPoint | null = null
   for (const point of collectCommentDomPointCandidates(block)) {
-    const offset = commentDomPointToGraphemeOffset(block, point.container, point.offset)
-    if (offset === null)
-      return null
+    const offset = commentDomPointToGraphemeOffset(
+      block,
+      point.container,
+      point.offset,
+    )
+    if (offset === null) return null
     if (offset === targetOffset) {
-      if (affinity === 'end')
-        return point
+      if (affinity === 'end') return point
       match = point
       continue
     }
@@ -149,14 +173,22 @@ export function commentDomGraphemeOffsetToPoint(
   return match
 }
 
-export function projectCommentDomNode(nodeElement: HTMLElement): CommentDomNodeProjection {
+export function projectCommentDomNode(
+  nodeElement: HTMLElement,
+): CommentDomNodeProjection {
   const elements = [
-    ...(nodeElement.matches('[data-comment-block-ordinal]') ? [nodeElement] : []),
-    ...Array.from(nodeElement.querySelectorAll<HTMLElement>('[data-comment-block-ordinal]')),
-  ].filter(element => element.closest('[data-comment-node-key]') === nodeElement)
+    ...(nodeElement.matches('[data-comment-block-ordinal]')
+      ? [nodeElement]
+      : []),
+    ...Array.from(
+      nodeElement.querySelectorAll<HTMLElement>('[data-comment-block-ordinal]'),
+    ),
+  ].filter(
+    (element) => element.closest('[data-comment-node-key]') === nodeElement,
+  )
 
   const ordered = elements
-    .map(element => ({
+    .map((element) => ({
       element,
       ordinal: Number(element.dataset.commentBlockOrdinal),
       text: normalizeCommentRichTextBlock(serializeCommentDom(element)),
@@ -164,20 +196,20 @@ export function projectCommentDomNode(nodeElement: HTMLElement): CommentDomNodeP
     .sort((left, right) => left.ordinal - right.ordinal)
 
   if (
-    ordered.length === 0
-    || ordered.some((item, index) => (
-      !Number.isInteger(item.ordinal)
-      || item.ordinal !== index
-      || item.text.length === 0
-    ))
+    ordered.length === 0 ||
+    ordered.some(
+      (item, index) =>
+        !Number.isInteger(item.ordinal) ||
+        item.ordinal !== index ||
+        item.text.length === 0,
+    )
   ) {
     return EMPTY_COMMENT_DOM_PROJECTION
   }
 
   let cursor = 0
   const blocks = ordered.map((item, index) => {
-    if (index > 0)
-      cursor += 1
+    if (index > 0) cursor += 1
     const startGraphemeOffset = cursor
     cursor += countCommentGraphemes(item.text)
     return {
@@ -188,7 +220,7 @@ export function projectCommentDomNode(nodeElement: HTMLElement): CommentDomNodeP
   })
 
   return {
-    text: blocks.map(block => block.text).join('\n'),
+    text: blocks.map((block) => block.text).join('\n'),
     blocks,
   }
 }
@@ -197,15 +229,18 @@ export function findCommentDomBlockByOrdinal(
   projection: CommentDomNodeProjection,
   ordinal: number,
 ) {
-  return projection.blocks.find(block => block.ordinal === ordinal) ?? null
+  return projection.blocks.find((block) => block.ordinal === ordinal) ?? null
 }
 
 export function findCommentDomBlockAtOffset(
   projection: CommentDomNodeProjection,
   offset: number,
 ) {
-  return projection.blocks.find(block => (
-    offset >= block.startGraphemeOffset
-    && offset <= block.endGraphemeOffset
-  )) ?? null
+  return (
+    projection.blocks.find(
+      (block) =>
+        offset >= block.startGraphemeOffset &&
+        offset <= block.endGraphemeOffset,
+    ) ?? null
+  )
 }

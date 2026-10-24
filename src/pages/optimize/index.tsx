@@ -11,9 +11,9 @@ import RepairChecklist from './components/repair-checklist'
 import useAtsStore from './store'
 
 function Optimize() {
-  const init = useAtsStore(state => state.init)
-  const scores = useAtsStore(state => state.currentAtsConfig?.scores)
-  const loading = useAtsStore(state => state.loading)
+  const init = useAtsStore((state) => state.init)
+  const scores = useAtsStore((state) => state.currentAtsConfig?.scores)
+  const loading = useAtsStore((state) => state.loading)
 
   useEffect(() => {
     init()
@@ -24,19 +24,19 @@ function Optimize() {
       <Header />
       <OptimizeDashboard />
 
-      <div className="grid min-w-0 items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0 xl:col-start-1 xl:row-start-1">
+      <div className='grid min-w-0 items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]'>
+        <div className='min-w-0 xl:col-start-1 xl:row-start-1'>
           <IssueAnalysis />
         </div>
 
-        <div className="min-w-0 xl:col-start-2 xl:row-start-1">
+        <div className='min-w-0 xl:col-start-2 xl:row-start-1'>
           <RepairChecklist />
         </div>
 
-        <div className="min-w-0 xl:col-start-1 xl:row-start-2">
+        <div className='min-w-0 xl:col-start-1 xl:row-start-2'>
           <AssessmentBasisCard />
         </div>
-        <div className="min-w-0 xl:col-start-2 xl:row-start-2">
+        <div className='min-w-0 xl:col-start-2 xl:row-start-2'>
           <ScoresRadarChart scores={scores} loading={loading} />
         </div>
       </div>

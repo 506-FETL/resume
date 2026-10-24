@@ -19,12 +19,12 @@ type Set = StoreApi<ResumeListState>['setState']
 export function createResumeUiSlice(set: Set): ResumeUiSlice {
   return {
     showSyncDialog: false,
-    setShowSyncDialog: show => set({ showSyncDialog: show }),
+    setShowSyncDialog: (show) => set({ showSyncDialog: show }),
     filterMode: 'all',
-    setFilterMode: mode => set({ filterMode: mode }),
+    setFilterMode: (mode) => set({ filterMode: mode }),
     derivePendingFor: null,
-    openDeriveFor: id => set({ derivePendingFor: id }),
+    openDeriveFor: (id) => set({ derivePendingFor: id }),
     derivedJobsOpen: false,
-    setDerivedJobsOpen: open => set({ derivedJobsOpen: open }),
+    setDerivedJobsOpen: (open) => set({ derivedJobsOpen: open }),
   }
 }

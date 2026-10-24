@@ -1,7 +1,16 @@
 import type { VersionDialogSelection } from './types'
-import type { ResumeShareRecord, ShareVersionSelection, ShareVersionSource } from '@/lib/supabase/resume/share.types'
+import type {
+  ResumeShareRecord,
+  ShareVersionSelection,
+  ShareVersionSource,
+} from '@/lib/supabase/resume/share.types'
 
-export type ShareStatusFilter = 'all' | 'active' | 'inactive' | 'expired' | 'archived'
+export type ShareStatusFilter =
+  | 'all'
+  | 'active'
+  | 'inactive'
+  | 'expired'
+  | 'archived'
 
 export function formatShareVersionSource(source: ShareVersionSource) {
   return source.kind === 'current'
@@ -12,8 +21,7 @@ export function formatShareVersionSource(source: ShareVersionSource) {
 export function toVersionDialogSelection(
   source: ShareVersionSource,
 ): VersionDialogSelection {
-  if (source.kind === 'current')
-    return source
+  if (source.kind === 'current') return source
 
   if (source.versionId != null) {
     return {
@@ -44,19 +52,16 @@ export function formatShareUrlForDisplay(url: string) {
   try {
     const parsed = new URL(url)
     const token = parsed.pathname.split('/').at(-1) ?? ''
-    const shortToken = token.length > 18
-      ? `${token.slice(0, 8)}…${token.slice(-7)}`
-      : token
+    const shortToken =
+      token.length > 18 ? `${token.slice(0, 8)}…${token.slice(-7)}` : token
     return `${parsed.host}/share/view/${shortToken}`
-  }
-  catch {
+  } catch {
     return url
   }
 }
 
 export function dateToExpiryIso(date: Date | undefined) {
-  if (!date)
-    return null
+  if (!date) return null
   const next = new Date(date)
   next.setHours(23, 59, 59, 999)
   return next.toISOString()
@@ -66,9 +71,10 @@ export function expiryIsoToDate(value: string | null) {
   return value ? new Date(value) : undefined
 }
 
-export function deriveShareStatus(share: ResumeShareRecord): Exclude<ShareStatusFilter, 'all'> {
-  if (share.archivedAt)
-    return 'archived'
+export function deriveShareStatus(
+  share: ResumeShareRecord,
+): Exclude<ShareStatusFilter, 'all'> {
+  if (share.archivedAt) return 'archived'
   if (share.expires_at && new Date(share.expires_at).getTime() < Date.now())
     return 'expired'
   return share.is_active ? 'active' : 'inactive'
@@ -85,18 +91,18 @@ export function filterShares(
   const keyword = filters.keyword.trim().toLocaleLowerCase()
 
   return shares.filter((share) => {
-    if (filters.resumeIds.length > 0 && !filters.resumeIds.includes(share.resume_id))
+    if (
+      filters.resumeIds.length > 0 &&
+      !filters.resumeIds.includes(share.resume_id)
+    )
       return false
     if (filters.status !== 'all' && deriveShareStatus(share) !== filters.status)
       return false
-    if (!keyword)
-      return true
+    if (!keyword) return true
 
-    return [
-      share.label,
-      share.display_name,
-      share.token,
-    ].some(value => value?.toLocaleLowerCase().includes(keyword))
+    return [share.label, share.display_name, share.token].some((value) =>
+      value?.toLocaleLowerCase().includes(keyword),
+    )
   })
 }
 
@@ -105,9 +111,10 @@ export function findShareById(
   dialogShares: ResumeShareRecord[],
   shareId: string | null,
 ) {
-  if (!shareId)
-    return null
-  return allShares.find(share => share.id === shareId)
-    ?? dialogShares.find(share => share.id === shareId)
-    ?? null
+  if (!shareId) return null
+  return (
+    allShares.find((share) => share.id === shareId) ??
+    dialogShares.find((share) => share.id === shareId) ??
+    null
+  )
 }
