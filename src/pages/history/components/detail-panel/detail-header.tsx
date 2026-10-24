@@ -50,18 +50,16 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
   if (selectedEntry === 'current' && currentResume) {
     const syncState = getCurrentSyncState(currentResume, versions)
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
+          <h2 className="min-w-0 truncate text-base font-semibold tracking-tight">{currentResume.displayName}</h2>
           <Badge variant="secondary" className="font-normal">当前内容</Badge>
           <span className="text-xs text-muted-foreground">
             {versions.length === 0 ? '尚未保存版本' : syncState.synced ? `已与 V${syncState.latestVersionNo} 同步` : '有未保存的修改'}
           </span>
         </div>
-        <div className="min-w-0">
-          <h2 className="truncate text-lg font-semibold tracking-tight">{currentResume.displayName}</h2>
-          {currentResume.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{currentResume.description}</p>}
-        </div>
-        <div className="flex min-h-8 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {currentResume.description && <p className="line-clamp-1 text-xs text-muted-foreground" title={currentResume.description}>{currentResume.description}</p>}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5" title={currentResume.updatedAt ? formatDateTime(currentResume.updatedAt) : undefined}>
             <Clock3 className="size-3.5" />
             {currentResume.updatedAt ? `${formatRelativeTime(currentResume.updatedAt)}更新` : '暂无更新时间'}
@@ -83,17 +81,17 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
   const canCompare = versions.length >= 2 || Boolean(currentResume)
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary" className="font-normal">
           V
           {selectedVersion.version_no}
         </Badge>
+        <h2 className="min-w-0 truncate text-base font-semibold tracking-tight" title={getVersionTitle(selectedVersion)}>{getVersionTitle(selectedVersion)}</h2>
         <span className="text-xs text-muted-foreground">{sourceMeta.label}</span>
         {selectedVersion.milestone_name && <Badge variant="outline" className="max-w-full truncate border-primary/20 text-primary">{selectedVersion.milestone_name}</Badge>}
       </div>
       <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 className="min-w-0 break-words text-lg font-semibold tracking-tight">{getVersionTitle(selectedVersion)}</h2>
         <time dateTime={selectedVersion.created_at} className="text-xs text-muted-foreground">{formatDateTime(selectedVersion.created_at)}</time>
       </div>
       <div className="flex min-h-8 flex-wrap items-center gap-2">

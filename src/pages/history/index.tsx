@@ -18,11 +18,12 @@ function History() {
   const { surfaceProps } = useHistoryMotion()
 
   return (
-    <PageLayout {...surfaceProps}>
+    <PageLayout workspace {...surfaceProps}>
       <HistoryHeader activeResumeId={activeResumeId} resumeOptions={resumeOptions} loading={loading} error={error} onResumeChange={selectResume} />
 
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
           key={activeResumeId ?? (loading ? 'loading' : 'empty')}
           initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -31,14 +32,14 @@ function History() {
         >
           {!activeResumeId && loading
             ? (
-                <div role="status" aria-label="正在加载历史版本" className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-                  <Skeleton className={reduceMotion ? 'h-80 animate-none rounded-xl' : 'h-80 rounded-xl'} />
-                  <Skeleton className={reduceMotion ? 'h-80 animate-none rounded-xl' : 'h-80 rounded-xl'} />
+                <div role="status" aria-label="正在加载历史版本" className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-3 @min-[900px]/workspace:grid-cols-[clamp(16rem,23%,20rem)_minmax(0,1fr)]">
+                  <Skeleton className={`h-full min-h-0 rounded-xl ${reduceMotion ? 'animate-none' : ''}`} />
+                  <Skeleton className={`hidden h-full min-h-0 rounded-xl @min-[900px]/workspace:block ${reduceMotion ? 'animate-none' : ''}`} />
                 </div>
               )
             : !activeResumeId
                 ? (
-                    <Empty className="min-h-80 rounded-xl border bg-muted/10">
+                    <Empty className="min-h-0 flex-1 overflow-y-auto rounded-xl border bg-muted/10">
                       <EmptyHeader>
                         <EmptyMedia variant="icon"><HistoryIcon /></EmptyMedia>
                         <EmptyTitle>{error ? '简历列表暂时不可用' : resumeOptions.length > 0 ? '请选择一份简历' : '暂无云端简历'}</EmptyTitle>
