@@ -42,14 +42,48 @@ function readSelectionBoundary(node: Node) {
   return { blockElement, nodeElement, blockOrdinal, nodeKey }
 }
 
+function normalizeSelectionRange(range: Range): Range | null {
+  const root = range.commonAncestorContainer
+  const document = root.ownerDocument
+  if (!document)
+    return null
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node = root.nodeType === Node.TEXT_NODE ? root : walker.nextNode()
+  let first: { node: Node, offset: number } | null = null
+  let last: { node: Node, offset: number } | null = null
+
+  // 浏览器连续点击选中整行时，末端可能落在下一字段的 offset 0。
+  // 以真正选中的非空文本收紧边界，避免把未选中的相邻字段算进锚点。
+  while (node) {
+    if (range.intersectsNode(node)) {
+      const text = node.nodeValue ?? ''
+      const start = node === range.startContainer ? range.startOffset : 0
+      const end = node === range.endContainer ? range.endOffset : text.length
+      if (start < end && normalizeCommentRichTextBlock(text.slice(start, end))) {
+        first ??= { node, offset: start }
+        last = { node, offset: end }
+      }
+    }
+    node = walker.nextNode()
+  }
+
+  if (!first || !last)
+    return null
+  const normalized = range.cloneRange()
+  normalized.setStart(first.node, first.offset)
+  normalized.setEnd(last.node, last.offset)
+  return normalized
+}
+
 export function resolveCommentSelection(
-  range: Range,
+  inputRange: Range,
   options: ResolveCommentSelectionOptions,
 ): ResolvedCommentSelection | null {
-  if (range.collapsed) {
+  if (inputRange.collapsed) {
     return null
   }
-  if (!normalizeCommentRichTextBlock(range.toString())) {
+  const range = normalizeSelectionRange(inputRange)
+  if (!range) {
     return null
   }
 

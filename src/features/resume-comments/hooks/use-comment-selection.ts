@@ -12,13 +12,6 @@ interface UseCommentSelectionOptions {
   onInvalidSelection?: () => void
 }
 
-function rangeBelongsToRoot(range: Range, root: HTMLElement) {
-  const common = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
-    ? range.commonAncestorContainer as Element
-    : range.commonAncestorContainer.parentElement
-  return Boolean(common && root.contains(common))
-}
-
 function getEventTargetElement(target: EventTarget | null) {
   if (target instanceof Element)
     return target
@@ -68,6 +61,8 @@ export function useCommentSelection({
   }, [store])
 
   const clearSelection = useCallback(() => {
+    completionArmed.current = false
+    interactionGeneration.current += 1
     hidePendingSelection()
     window.getSelection()?.removeAllRanges()
   }, [hidePendingSelection])
@@ -88,16 +83,14 @@ export function useCommentSelection({
       return
     }
     const range = selection.getRangeAt(0)
-    if (!rangeBelongsToRoot(range, root)) {
-      hidePendingSelection()
-      return
-    }
     if (range.collapsed) {
       hidePendingSelection()
       return
     }
     const resolved = resolveCommentSelection(range, { documentHash })
-    const pending = resolved ? toPendingSelection(resolved) : null
+    const pending = resolved && root.contains(resolved.nodeElement)
+      ? toPendingSelection(resolved)
+      : null
     if (!pending) {
       hidePendingSelection()
       onInvalidSelection?.()
@@ -135,7 +128,6 @@ export function useCommentSelection({
             ) {
               return
             }
-            completionArmed.current = false
             evaluate()
           })
         })
@@ -184,10 +176,15 @@ export function useCommentSelection({
         || !root.contains(target)
         || target.closest('[data-resume-comment-ui]')
         || pointerSelecting.current
+        || keyboardSelecting.current
       ) {
         return
       }
-      beginSelectionInteraction('pointer')
+      // 原生选词可能在 pointerup 之后继续派发 selectstart；不能因此
+      // 重新锁定为“正在拖动”，否则再也等不到对应的 pointerup。
+      completionArmed.current = true
+      hidePendingSelection()
+      scheduleEvaluation(120)
     }
     const handlePointerEnd = () => {
       finishSelectionInteraction('pointer')
@@ -206,6 +203,7 @@ export function useCommentSelection({
       if (event.key === 'Escape') {
         pointerSelecting.current = false
         keyboardSelecting.current = false
+        completionArmed.current = false
         interactionGeneration.current += 1
         cancelScheduledEvaluation()
         hidePendingSelection()
@@ -230,10 +228,11 @@ export function useCommentSelection({
         return
       }
       cancelScheduledEvaluation()
-      hidePendingSelection()
-      // 只有明确收到结束事件后才允许重新计时；孤立的选区变化绝不展示按钮。
+      // 同一次已完成选择的后续通知仍需重新读取选区，不能把有效按钮清掉。
       if (completionArmed.current)
         scheduleEvaluation(120)
+      else
+        hidePendingSelection()
     }
     const cancelInteraction = () => {
       pointerSelecting.current = false

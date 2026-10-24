@@ -120,7 +120,10 @@ export function CommentSurface({
     const matching = threads.filter(thread => (
       !thread.resolvedAt
       && thread.anchorStatus === 'anchored'
-      && compareAnchorOverlap(thread.anchor, selection.anchor) !== 'none'
+      && compareAnchorOverlap(
+        geometry.find(item => item.threadId === thread.id)?.anchor ?? thread.anchor,
+        selection.anchor,
+      ) !== 'none'
     ))
     if (matching.length === 1) {
       openThread(matching[0]!.id)
@@ -141,7 +144,7 @@ export function CommentSurface({
       scopeEpoch,
     })
     setOpen(true)
-  }, [actions, cancelRelink, clearSelection, openThread, relinkThreadId, scope, scopeEpoch, selection, setActiveThread, setOpen, setRelinkError, threads])
+  }, [actions, cancelRelink, clearSelection, geometry, openThread, relinkThreadId, scope, scopeEpoch, selection, setActiveThread, setOpen, setRelinkError, threads])
 
   useEffect(() => {
     if (!creationSnapshot)

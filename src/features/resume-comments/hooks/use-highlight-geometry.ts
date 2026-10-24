@@ -1,14 +1,17 @@
 import type { RefObject } from 'react'
 import type { CommentPageRect } from '../anchors/geometry.ts'
+import type { CommentAnchor } from '../anchors/types.ts'
 import type { ResumeCommentThread } from '../types.ts'
 import { useCallback, useEffect, useState } from 'react'
+import { sha256Hex } from '../anchors/document.ts'
 import { commentDomGraphemeOffsetToPoint, findCommentDomBlockAtOffset, findCommentDomBlockByOrdinal, projectCommentDomNode } from '../anchors/dom-projection.ts'
 import { rangeToVisiblePageRects } from '../anchors/geometry.ts'
-import { graphemeSlice } from '../anchors/graphemes.ts'
+import { relocateAnchor } from '../anchors/relocate.ts'
 import { COMMENT_HIDDEN_PAGE_SELECTOR, COMMENT_MEASUREMENT_SOURCE_SELECTOR } from '../const.ts'
 
 export interface CommentThreadGeometry {
   threadId: string
+  anchor: CommentAnchor
   rects: CommentPageRect[]
 }
 
@@ -23,30 +26,35 @@ function findVisibleNodes(root: HTMLElement, nodeKey: string) {
 
 function anchorToRange(node: HTMLElement, thread: ResumeCommentThread) {
   const projection = projectCommentDomNode(node)
-  const ordinalStartBlock = findCommentDomBlockByOrdinal(projection, thread.anchor.blockOrdinal)
+  const [sectionKey = '', entryId = '', fieldKey = ''] = thread.anchor.nodeKey.split('/')
+  // 已解决期间正文可能发生过变化；重开后按当前 DOM 重定位，不能只沿用旧偏移。
+  const relocated = relocateAnchor(thread.anchor, {
+    nodeKey: thread.anchor.nodeKey,
+    sectionKey,
+    entryId,
+    fieldKey,
+    text: projection.text,
+    blocks: projection.blocks,
+    nodeTextHash: sha256Hex(projection.text),
+  })
+  if (relocated.status !== 'anchored')
+    return null
+  const anchor = relocated.anchor
+  const ordinalStartBlock = findCommentDomBlockByOrdinal(projection, anchor.blockOrdinal)
   const startBlock = ordinalStartBlock
-    && thread.anchor.startGraphemeOffset >= ordinalStartBlock.startGraphemeOffset
-    && thread.anchor.startGraphemeOffset <= ordinalStartBlock.endGraphemeOffset
+    && anchor.startGraphemeOffset >= ordinalStartBlock.startGraphemeOffset
+    && anchor.startGraphemeOffset <= ordinalStartBlock.endGraphemeOffset
     ? ordinalStartBlock
-    : findCommentDomBlockAtOffset(projection, thread.anchor.startGraphemeOffset)
-  const endBlock = findCommentDomBlockAtOffset(projection, thread.anchor.endGraphemeOffset)
+    : findCommentDomBlockAtOffset(projection, anchor.startGraphemeOffset)
+  const endBlock = findCommentDomBlockAtOffset(projection, anchor.endGraphemeOffset)
   if (!startBlock || !endBlock)
     return null
-  if (
-    graphemeSlice(
-      projection.text,
-      thread.anchor.startGraphemeOffset,
-      thread.anchor.endGraphemeOffset,
-    ) !== thread.anchor.exactQuote
-  ) {
-    return null
-  }
-  const localStart = thread.anchor.startGraphemeOffset - startBlock.startGraphemeOffset
-  const localEnd = thread.anchor.endGraphemeOffset - endBlock.startGraphemeOffset
+  const localStart = anchor.startGraphemeOffset - startBlock.startGraphemeOffset
+  const localEnd = anchor.endGraphemeOffset - endBlock.startGraphemeOffset
   if (
     localStart < 0
     || localEnd < 0
-    || thread.anchor.endGraphemeOffset <= thread.anchor.startGraphemeOffset
+    || anchor.endGraphemeOffset <= anchor.startGraphemeOffset
     || (startBlock.element === endBlock.element && localEnd <= localStart)
   ) {
     return null
@@ -58,7 +66,7 @@ function anchorToRange(node: HTMLElement, thread: ResumeCommentThread) {
   const range = node.ownerDocument.createRange()
   range.setStart(start.container, start.offset)
   range.setEnd(end.container, end.offset)
-  return range.collapsed ? null : range
+  return range.collapsed ? null : { range, anchor }
 }
 
 export function useHighlightGeometry({
@@ -83,11 +91,12 @@ export function useHighlightGeometry({
     setGeometry(threads.flatMap((thread) => {
       if (thread.localOnly || thread.resolvedAt || thread.anchorStatus === 'detached')
         return []
-      const rects = findVisibleNodes(root, thread.anchor.nodeKey).flatMap((node) => {
-        const range = anchorToRange(node, thread)
-        return range ? rangeToVisiblePageRects(range) : []
+      const ranges = findVisibleNodes(root, thread.anchor.nodeKey).flatMap((node) => {
+        const resolved = anchorToRange(node, thread)
+        return resolved ? [resolved] : []
       })
-      return rects.length > 0 ? [{ threadId: thread.id, rects }] : []
+      const rects = ranges.flatMap(({ range }) => rangeToVisiblePageRects(range))
+      return rects.length > 0 ? [{ threadId: thread.id, anchor: ranges[0]!.anchor, rects }] : []
     }))
   }, [enabled, rootRef, threads])
 
