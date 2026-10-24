@@ -1,5 +1,8 @@
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
-import type { PersistedResumeSnapshot, ResumeTemplateBinding } from '@/lib/schema'
+import type {
+  PersistedResumeSnapshot,
+  ResumeTemplateBinding,
+} from '@/lib/schema'
 import { RefreshCw } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useCallback, useMemo, useState } from 'react'
@@ -10,13 +13,45 @@ import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
-export interface TemplateSwitchPreviewState { contentKey: string, document: ResumeDocumentState }
-interface PreviewFrame { contentKey: string, snapshot: PersistedResumeSnapshot, binding: ResumeTemplateBinding, referenceDate: string }
+export interface TemplateSwitchPreviewState {
+  contentKey: string
+  document: ResumeDocumentState
+}
 
-function Frame({ frame, visible, onState, onShown }: { frame: PreviewFrame, visible: boolean, onState: (frame: PreviewFrame, state: ResumeDocumentState) => void, onShown: (frame: PreviewFrame) => void }) {
+interface PreviewFrame {
+  contentKey: string
+  snapshot: PersistedResumeSnapshot
+  binding: ResumeTemplateBinding
+  referenceDate: string
+}
+
+function Frame({
+  frame,
+  visible,
+  onState,
+  onShown,
+}: {
+  frame: PreviewFrame
+  visible: boolean
+  onState: (frame: PreviewFrame, state: ResumeDocumentState) => void
+  onShown: (frame: PreviewFrame) => void
+}) {
   const reduceMotion = useReducedMotion()
-  const data = useMemo(() => buildTemplateResumeData({ ...frame.snapshot, templateBinding: frame.binding }), [frame])
-  const onDocumentStateChange = useCallback((state: ResumeDocumentState) => onState(frame, state), [frame, onState])
+
+  const data = useMemo(
+    () =>
+      buildTemplateResumeData({
+        ...frame.snapshot,
+        templateBinding: frame.binding,
+      }),
+    [frame],
+  )
+
+  const onDocumentStateChange = useCallback(
+    (state: ResumeDocumentState) => onState(frame, state),
+    [frame, onState],
+  )
+
   return (
     <motion.div
       data-template-switch-frame={frame.binding.templateId}
@@ -24,16 +59,33 @@ function Frame({ frame, visible, onState, onShown }: { frame: PreviewFrame, visi
       inert={!visible}
       initial={{ opacity: reduceMotion ? 1 : 0 }}
       animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
+      transition={{
+        duration: reduceMotion ? 0 : DURATION.base,
+        ease: EASE.out,
+      }}
       onAnimationComplete={() => visible && onShown(frame)}
-      className={cn('w-full', !visible && 'pointer-events-none absolute inset-x-0 top-0')}
+      className={cn(
+        'w-full',
+        !visible && 'pointer-events-none absolute inset-x-0 top-0',
+      )}
     >
-      <ScaledReadonlyPreview data={data} appearance={frame.snapshot} projectionReferenceDate={frame.referenceDate} onDocumentStateChange={onDocumentStateChange} />
+      <ScaledReadonlyPreview
+        data={data}
+        appearance={frame.snapshot}
+        projectionReferenceDate={frame.referenceDate}
+        onDocumentStateChange={onDocumentStateChange}
+      />
     </motion.div>
   )
 }
 
-export default function TemplateSwitchPreview({ snapshot, binding, contentKey, referenceDate, onStateChange }: {
+export default function TemplateSwitchPreview({
+  snapshot,
+  binding,
+  contentKey,
+  referenceDate,
+  onStateChange,
+}: {
   snapshot: PersistedResumeSnapshot
   binding: ResumeTemplateBinding
   contentKey: string
@@ -41,45 +93,87 @@ export default function TemplateSwitchPreview({ snapshot, binding, contentKey, r
   onStateChange: (state: TemplateSwitchPreviewState) => void
 }) {
   const serializedSnapshot = JSON.stringify(snapshot)
-  const frame = useMemo<PreviewFrame>(() => ({ contentKey, snapshot: JSON.parse(serializedSnapshot), binding, referenceDate }), [contentKey, serializedSnapshot, binding, referenceDate])
+
+  const frame = useMemo<PreviewFrame>(
+    () => ({
+      contentKey,
+      snapshot: JSON.parse(serializedSnapshot),
+      binding,
+      referenceDate,
+    }),
+    [contentKey, serializedSnapshot, binding, referenceDate],
+  )
+
   const [previous, setPrevious] = useState<PreviewFrame | null>(null)
-  const [prepared, setPrepared] = useState<TemplateSwitchPreviewState | null>(null)
+
+  const [prepared, setPrepared] = useState<TemplateSwitchPreviewState | null>(
+    null,
+  )
+
   const [retryCount, setRetryCount] = useState(0)
   const { retry } = useResolvedResumeTemplate({ binding })
-  const ready = prepared?.contentKey === contentKey && prepared.document.status === 'ready'
-  const error = prepared?.contentKey === contentKey ? prepared.document.error : null
-  const onState = useCallback((reported: PreviewFrame, document: ResumeDocumentState) => {
-    if (reported.contentKey !== contentKey)
-      return
-    const state = { contentKey, document }
-    setPrepared(state)
-    onStateChange(state)
-  }, [contentKey, onStateChange])
-  const onShown = useCallback((shown: PreviewFrame) => {
-    if (shown.contentKey === contentKey)
-      setPrevious(shown)
-  }, [contentKey])
-  const frames = previous && previous.contentKey !== frame.contentKey ? [previous, frame] : [frame]
+
+  const ready =
+    prepared?.contentKey === contentKey && prepared.document.status === 'ready'
+
+  const error =
+    prepared?.contentKey === contentKey ? prepared.document.error : null
+
+  const onState = useCallback(
+    (reported: PreviewFrame, document: ResumeDocumentState) => {
+      if (reported.contentKey !== contentKey) return
+
+      const state = { contentKey, document }
+
+      setPrepared(state)
+      onStateChange(state)
+    },
+    [contentKey, onStateChange],
+  )
+
+  const onShown = useCallback(
+    (shown: PreviewFrame) => {
+      if (shown.contentKey === contentKey) setPrevious(shown)
+    },
+    [contentKey],
+  )
+
+  const frames =
+    previous && previous.contentKey !== frame.contentKey
+      ? [previous, frame]
+      : [frame]
+
   return (
-    <div className="relative min-h-full" data-preview-ready={ready} data-testid="template-switch-preview">
+    <div
+      className='relative min-h-full'
+      data-preview-ready={ready}
+      data-testid='template-switch-preview'
+    >
       {error && (
-        <div role="alert" className="sticky top-0 z-10 mb-4 flex flex-wrap items-center justify-center gap-2 rounded-lg border bg-background/95 px-4 py-3 text-sm shadow-sm">
-          <span>{navigator.onLine ? '候选模板暂时无法预览' : '联网后可使用：此模板资源尚未完整缓存'}</span>
+        <div
+          role='alert'
+          className='sticky top-0 z-10 mb-4 flex flex-wrap items-center justify-center gap-2 rounded-lg border bg-background/95 px-4 py-3 text-sm shadow-sm'
+        >
+          <span>
+            {navigator.onLine
+              ? '候选模板暂时无法预览'
+              : '联网后可使用：此模板资源尚未完整缓存'}
+          </span>
           <Button
-            size="sm"
-            variant="outline"
+            size='sm'
+            variant='outline'
             onClick={() => {
               retry?.()
-              setRetryCount(value => value + 1)
+              setRetryCount((value) => value + 1)
             }}
           >
-            <RefreshCw className="size-3" />
+            <RefreshCw className='size-3' />
             重试预览
           </Button>
         </div>
       )}
-      <div className="relative min-h-64">
-        {frames.map(candidate => (
+      <div className='relative min-h-64'>
+        {frames.map((candidate) => (
           <Frame
             key={`${candidate.contentKey}:${retryCount}`}
             frame={candidate}

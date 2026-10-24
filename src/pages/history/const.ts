@@ -1,7 +1,15 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ResumeType } from '@/lib/schema'
 import type { ResumeVersionSourceType } from '@/lib/supabase/resume/history'
-import { BookmarkCheck, Clock3, EyeOff, Flag, RotateCcw, Sparkles, Upload } from 'lucide-react'
+import {
+  BookmarkCheck,
+  Clock3,
+  EyeOff,
+  Flag,
+  RotateCcw,
+  Sparkles,
+  Upload,
+} from 'lucide-react'
 
 export const RESUME_TYPE_LABEL_MAP: Record<ResumeType, string> = {
   default: '默认模板',
@@ -23,42 +31,56 @@ export const SOURCE_META: Record<
   manual: {
     label: '手动保存',
     icon: BookmarkCheck,
-    badgeClassName: 'border-primary/15 bg-primary/[0.07] text-primary dark:text-chart-1',
+    badgeClassName:
+      'border-primary/15 bg-primary/[0.07] text-primary dark:text-chart-1',
     nodeClassName: 'border-primary/25 bg-primary/[0.14] text-primary',
-    surfaceClassName: 'bg-linear-to-br from-muted/35 via-background to-background',
-    selectedSurfaceClassName: 'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
+    surfaceClassName:
+      'bg-linear-to-br from-muted/35 via-background to-background',
+    selectedSurfaceClassName:
+      'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
   },
   autosave: {
     label: '自动保存',
     icon: Clock3,
     badgeClassName: 'border-border/80 bg-muted/65 text-muted-foreground',
     nodeClassName: 'border-border/90 bg-muted/80 text-muted-foreground',
-    surfaceClassName: 'bg-linear-to-br from-muted/35 via-background to-background',
-    selectedSurfaceClassName: 'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
+    surfaceClassName:
+      'bg-linear-to-br from-muted/35 via-background to-background',
+    selectedSurfaceClassName:
+      'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
   },
   restore: {
     label: '恢复后生成',
     icon: RotateCcw,
-    badgeClassName: 'border-chart-2/20 bg-chart-2/[0.08] text-chart-4 dark:text-chart-1',
+    badgeClassName:
+      'border-chart-2/20 bg-chart-2/[0.08] text-chart-4 dark:text-chart-1',
     nodeClassName: 'border-chart-2/30 bg-chart-2/[0.14] text-chart-4',
-    surfaceClassName: 'bg-linear-to-br from-muted/35 via-background to-background',
-    selectedSurfaceClassName: 'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
+    surfaceClassName:
+      'bg-linear-to-br from-muted/35 via-background to-background',
+    selectedSurfaceClassName:
+      'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
   },
   ai_optimize: {
     label: 'AI 优化',
     icon: Sparkles,
-    badgeClassName: 'border-chart-3/20 bg-chart-3/[0.08] text-chart-4 dark:text-chart-1',
+    badgeClassName:
+      'border-chart-3/20 bg-chart-3/[0.08] text-chart-4 dark:text-chart-1',
     nodeClassName: 'border-chart-3/30 bg-chart-3/[0.14] text-chart-4',
-    surfaceClassName: 'bg-linear-to-br from-muted/35 via-background to-background',
-    selectedSurfaceClassName: 'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
+    surfaceClassName:
+      'bg-linear-to-br from-muted/35 via-background to-background',
+    selectedSurfaceClassName:
+      'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
   },
   import: {
     label: '导入版本',
     icon: Upload,
-    badgeClassName: 'border-chart-1/30 bg-chart-1/[0.12] text-chart-5 dark:text-chart-1',
+    badgeClassName:
+      'border-chart-1/30 bg-chart-1/[0.12] text-chart-5 dark:text-chart-1',
     nodeClassName: 'border-chart-1/35 bg-chart-1/[0.2] text-chart-5',
-    surfaceClassName: 'bg-linear-to-br from-muted/35 via-background to-background',
-    selectedSurfaceClassName: 'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
+    surfaceClassName:
+      'bg-linear-to-br from-muted/35 via-background to-background',
+    selectedSurfaceClassName:
+      'border-primary/25 bg-linear-to-br from-primary/[0.08] via-background to-background ring-1 ring-primary/10',
   },
 }
 

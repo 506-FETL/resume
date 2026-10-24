@@ -24,7 +24,7 @@
  */
 
 export interface AwarenessLikeState {
-  user?: { id?: string, name?: string, color?: string } | null
+  user?: { id?: string; name?: string; color?: string } | null
   cursor?: unknown
   [key: string]: unknown
 }
@@ -40,19 +40,25 @@ export interface AwarenessMetaLike {
  * 退化为 `name|color` 组合键，保证同一个人的多个 clientId 仍能被归为一组去重，
  * 而不是因为缺 id 就各自渲染导致重叠。完全没有可辨识信息时返回 null（不参与去重）。
  */
-export function identityOf(state: AwarenessLikeState | undefined | null): string | null {
+export function identityOf(
+  state: AwarenessLikeState | undefined | null,
+): string | null {
   const user = state?.user
+
   if (!user) {
     return null
   }
   if (user.id != null && user.id !== '') {
     return `id:${user.id}`
   }
+
   const name = user.name ?? ''
   const color = user.color ?? ''
+
   if (name === '' && color === '') {
     return null
   }
+
   return `nc:${name}|${color}`
 }
 
@@ -65,14 +71,18 @@ function isBetter(
 ): boolean {
   const aHasCursor = states.get(aClientId)?.cursor != null
   const bHasCursor = states.get(bClientId)?.cursor != null
+
   if (aHasCursor !== bHasCursor) {
     return aHasCursor
   }
+
   const aUpdated = meta?.get(aClientId)?.lastUpdated ?? 0
   const bUpdated = meta?.get(bClientId)?.lastUpdated ?? 0
+
   if (aUpdated !== bUpdated) {
     return aUpdated > bUpdated
   }
+
   // 完全并列时用 clientId 兜底，保证选择稳定、幂等（避免抖动）。
   return aClientId > bClientId
 }
@@ -86,16 +96,21 @@ export function computeWinningClientIdByUser(
   meta?: Map<number, AwarenessMetaLike>,
 ): Map<string, number> {
   const winner = new Map<string, number>()
+
   states.forEach((state, clientId) => {
     const identity = identityOf(state)
+
     if (identity == null) {
       return
     }
+
     const prev = winner.get(identity)
+
     if (prev == null || isBetter(clientId, prev, states, meta)) {
       winner.set(identity, clientId)
     }
   })
+
   return winner
 }
 
@@ -112,18 +127,24 @@ export function createDedupeAwarenessFilter(
   getStates: () => Map<number, AwarenessLikeState>,
   getMeta?: () => Map<number, AwarenessMetaLike>,
 ) {
-  return (currentClientId: number, userClientId: number, state: AwarenessLikeState): boolean => {
+  return (
+    currentClientId: number,
+    userClientId: number,
+    state: AwarenessLikeState,
+  ): boolean => {
     if (currentClientId === userClientId) {
       return false
     }
 
     const identity = identityOf(state)
+
     if (identity == null) {
       return true
     }
 
     const winner = computeWinningClientIdByUser(getStates(), getMeta?.())
     const winnerForUser = winner.get(identity)
+
     // 若查不到（理论上不会），保守渲染；否则只渲染胜出的 clientId。
     return winnerForUser == null || winnerForUser === userClientId
   }

@@ -3,8 +3,21 @@
 import { cn } from '@/lib/utils'
 import { motion, useReducedMotion } from 'motion/react'
 import { SPRING } from '@/lib/motion'
-import type { Dispatch, PropsWithChildren, RefObject, SetStateAction } from 'react'
-import { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import type {
+  Dispatch,
+  PropsWithChildren,
+  RefObject,
+  SetStateAction,
+} from 'react'
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+} from 'react'
 
 interface Props {
   defaultId: string
@@ -37,34 +50,45 @@ interface SideTabsState {
   outlineD: string
 }
 
-type SideTabsAction
-  = | { type: 'set-active', value: string | ((prev: string) => string) }
-    | { type: 'set-box', value: BoxState }
-    | { type: 'set-outline', value: string }
+type SideTabsAction =
+  | { type: 'set-active'; value: string | ((prev: string) => string) }
+  | { type: 'set-box'; value: BoxState }
+  | { type: 'set-outline'; value: string }
 
 function reducer(state: SideTabsState, action: SideTabsAction): SideTabsState {
   switch (action.type) {
     case 'set-active': {
-      const next = typeof action.value === 'function' ? action.value(state.active) : action.value
+      const next =
+        typeof action.value === 'function'
+          ? action.value(state.active)
+          : action.value
+
       return next === state.active ? state : { ...state, active: next }
     }
+
     case 'set-box': {
       const prev = state.box
       const next = action.value
+
       if (
-        prev.x === next.x
-        && prev.y === next.y
-        && prev.w === next.w
-        && prev.h === next.h
-        && prev.totalHeight === next.totalHeight
+        prev.x === next.x &&
+        prev.y === next.y &&
+        prev.w === next.w &&
+        prev.h === next.h &&
+        prev.totalHeight === next.totalHeight
       ) {
         return state
       }
+
       return { ...state, box: next }
     }
+
     case 'set-outline': {
-      return state.outlineD === action.value ? state : { ...state, outlineD: action.value }
+      return state.outlineD === action.value
+        ? state
+        : { ...state, outlineD: action.value }
     }
+
     default:
       return state
   }
@@ -89,9 +113,11 @@ export const SideTabsContext = createContext<SideTabsContextValue | null>(null)
 
 export function useSideTabsContext() {
   const context = use(SideTabsContext)
+
   if (!context) {
     throw new Error('SideTabs components must be used within a SideTabsWrapper')
   }
+
   return context
 }
 
@@ -110,20 +136,25 @@ export function SideTabsProvider({
   ...props
 }: PropsWithChildren<Props>) {
   const reduceMotion = useReducedMotion()
+
   const [state, dispatch] = useReducer(reducer, undefined, () => ({
     active: defaultId,
     box: { x: 0, y: 0, w: 0, h: minHeight, totalHeight: minHeight },
     outlineD: '',
   }))
+
   const { active, box, outlineD } = state
 
   const setActive = useCallback<Dispatch<SetStateAction<string>>>((value) => {
-    dispatch({ type: 'set-active', value: value as string | ((prev: string) => string) })
+    dispatch({
+      type: 'set-active',
+      value: value as string | ((prev: string) => string),
+    })
   }, [])
 
   // 当外部 defaultId 变化时同步内部 active 状态（用于协作 tab 同步等场景）
   useEffect(() => {
-    setActive(prev => prev !== defaultId ? defaultId : prev)
+    setActive((prev) => (prev !== defaultId ? defaultId : prev))
   }, [defaultId, setActive])
 
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -136,8 +167,8 @@ export function SideTabsProvider({
     const container = containerRef.current
     const tabs = tabsRef.current
     const contentEl = contentRef.current
-    if (!container || !tabs || !contentEl)
-      return
+
+    if (!container || !tabs || !contentEl) return
 
     const cRect = container.getBoundingClientRect()
     const tRect = tabs.getBoundingClientRect()
@@ -149,17 +180,25 @@ export function SideTabsProvider({
       const rawW = cRect.right - (tRect.right + gapPx) - cRect.left
       const w = Math.max(0, rawW)
       const totalHeight = Math.max(measuredHeight, tRect.height)
-      dispatch({ type: 'set-box', value: { x, y: 0, w, h: measuredHeight, totalHeight } })
+
+      dispatch({
+        type: 'set-box',
+        value: { x, y: 0, w, h: measuredHeight, totalHeight },
+      })
+
       return
     }
 
     const y = tRect.bottom - cRect.top + gapPx
     const w = Math.max(0, cRect.width)
     const x = 0
+
     const h = fillAvailableHeight
       ? Math.max(0, cRect.height - y)
       : measuredHeight
+
     const totalHeight = y + h
+
     dispatch({ type: 'set-box', value: { x, y, w, h, totalHeight } })
   }, [fillAvailableHeight, gapPx, minHeight, orientation, padding])
 
@@ -168,11 +207,10 @@ export function SideTabsProvider({
     const container = containerRef.current
     const tabs = tabsRef.current
     const btn = btnRefs.current[active]
-    if (!container || !tabs || !btn)
-      return
 
-    if (box.w <= 0 || box.h <= 0)
-      return
+    if (!container || !tabs || !btn) return
+
+    if (box.w <= 0 || box.h <= 0) return
 
     const cRect = container.getBoundingClientRect()
     const tRect = tabs.getBoundingClientRect()
@@ -200,17 +238,18 @@ export function SideTabsProvider({
       const yr1 = yt + radius
       const yr2 = yb - radius
 
-      const d
-        = `M ${sx},${sy} `
-          + `C ${c1x},${sy} ${c2xTop},${yt} ${xIn},${yt} `
-          + `L ${xt - radius},${yt} `
-          + `A ${radius},${radius} 0 0 1 ${xt},${yr1} `
-          + `L ${xt},${yr2} `
-          + `A ${radius},${radius} 0 0 1 ${xt - radius},${yb} `
-          + `L ${xIn},${yb} `
-          + `C ${c2xBot},${yb} ${c1x},${sy} ${sx},${sy} Z`
+      const d =
+        `M ${sx},${sy} ` +
+        `C ${c1x},${sy} ${c2xTop},${yt} ${xIn},${yt} ` +
+        `L ${xt - radius},${yt} ` +
+        `A ${radius},${radius} 0 0 1 ${xt},${yr1} ` +
+        `L ${xt},${yr2} ` +
+        `A ${radius},${radius} 0 0 1 ${xt - radius},${yb} ` +
+        `L ${xIn},${yb} ` +
+        `C ${c2xBot},${yb} ${c1x},${sy} ${sx},${sy} Z`
 
       dispatch({ type: 'set-outline', value: d })
+
       return
     }
 
@@ -227,15 +266,23 @@ export function SideTabsProvider({
 
     if (xr <= xl || yBottom <= yTop) {
       dispatch({ type: 'set-outline', value: '' })
+
       return
     }
 
     const availableWidth = xr - xl
-    const tailWidth = Math.max(Math.min(availableWidth * 0.6, 160), Math.min(availableWidth, 48))
+
+    const tailWidth = Math.max(
+      Math.min(availableWidth * 0.6, 160),
+      Math.min(availableWidth, 48),
+    )
+
     if (tailWidth <= 0) {
       dispatch({ type: 'set-outline', value: '' })
+
       return
     }
+
     const halfTail = tailWidth / 2
     const entryCenter = Math.min(Math.max(sx, xl + halfTail), xr - halfTail)
     const entryLeft = entryCenter - halfTail
@@ -249,21 +296,21 @@ export function SideTabsProvider({
     const yr1 = yTop + radius // 右上圆角切点 y
     const yr2 = yBottom - radius // 右下圆角切点 y
 
-    const d
-      = `M ${sx},${sy} `
+    const d =
+      `M ${sx},${sy} ` +
       // 进入顶部：最后一个控制点与终点同高(yTop)，保证与水平顶边切线连续
-        + `C ${sx},${curveMidY} ${rightCtrlX},${yTop} ${entryRight - tailWidth * 0.2},${yTop} `
-        + `L ${xt},${yTop} `
-        + `A ${radius},${radius} 0 0 1 ${xr},${yr1} `
-        + `L ${xr},${yr2} `
-        + `A ${radius},${radius} 0 0 1 ${xt},${yBottom} `
-        + `L ${xl + radius},${yBottom} `
-        + `A ${radius},${radius} 0 0 1 ${xl},${yBottom - radius} `
-        + `L ${xl},${yTop + radius} `
-        + `A ${radius},${radius} 0 0 1 ${xl + radius},${yTop} `
+      `C ${sx},${curveMidY} ${rightCtrlX},${yTop} ${entryRight - tailWidth * 0.2},${yTop} ` +
+      `L ${xt},${yTop} ` +
+      `A ${radius},${radius} 0 0 1 ${xr},${yr1} ` +
+      `L ${xr},${yr2} ` +
+      `A ${radius},${radius} 0 0 1 ${xt},${yBottom} ` +
+      `L ${xl + radius},${yBottom} ` +
+      `A ${radius},${radius} 0 0 1 ${xl},${yBottom - radius} ` +
+      `L ${xl},${yTop + radius} ` +
+      `A ${radius},${radius} 0 0 1 ${xl + radius},${yTop} ` +
       // 离开顶部：第一个控制点与起点同高(yTop)，保证与水平顶边切线连续
-        + `C ${leftCtrlX},${yTop} ${sx},${curveMidY} ${sx},${sy} `
-        + `Z`
+      `C ${leftCtrlX},${yTop} ${sx},${curveMidY} ${sx},${sy} ` +
+      `Z`
 
     dispatch({ type: 'set-outline', value: d })
   }, [active, box, offsetX, orientation, padding, radius, controlDown])
@@ -278,6 +325,7 @@ export function SideTabsProvider({
   useEffect(() => {
     recomputeGeometry()
   }, [recomputeGeometry])
+
   useEffect(() => {
     computeOutline()
   }, [computeOutline])
@@ -287,26 +335,27 @@ export function SideTabsProvider({
     const ro = new ResizeObserver(() => {
       recomputeGeometry()
     })
-    if (containerRef.current)
-      ro.observe(containerRef.current)
-    if (tabsRef.current)
-      ro.observe(tabsRef.current)
-    if (contentRef.current)
-      ro.observe(contentRef.current)
+
+    if (containerRef.current) ro.observe(containerRef.current)
+    if (tabsRef.current) ro.observe(tabsRef.current)
+    if (contentRef.current) ro.observe(contentRef.current)
 
     const onScrollOrResize = (event: Event) => {
       if (
-        fillAvailableHeight
-        && event.type === 'scroll'
-        && event.target instanceof Node
-        && contentRef.current?.contains(event.target)
+        fillAvailableHeight &&
+        event.type === 'scroll' &&
+        event.target instanceof Node &&
+        contentRef.current?.contains(event.target)
       ) {
         return
       }
+
       recomputeGeometry()
     }
+
     window.addEventListener('resize', onScrollOrResize)
     window.addEventListener('scroll', onScrollOrResize, true)
+
     return () => {
       ro.disconnect()
       window.removeEventListener('resize', onScrollOrResize)
@@ -314,20 +363,36 @@ export function SideTabsProvider({
     }
   }, [fillAvailableHeight, recomputeGeometry])
 
-  const value: SideTabsContextValue = useMemo(() => ({
-    active,
-    setActive,
-    box,
-    outlineD,
-    containerRef,
-    tabsRef,
-    btnRefs,
-    contentRef,
-    computeBox,
-    computeOutline,
-    recomputeGeometry,
-    padding,
-  }), [active, setActive, box, outlineD, containerRef, tabsRef, btnRefs, contentRef, computeBox, computeOutline, recomputeGeometry, padding])
+  const value: SideTabsContextValue = useMemo(
+    () => ({
+      active,
+      setActive,
+      box,
+      outlineD,
+      containerRef,
+      tabsRef,
+      btnRefs,
+      contentRef,
+      computeBox,
+      computeOutline,
+      recomputeGeometry,
+      padding,
+    }),
+    [
+      active,
+      setActive,
+      box,
+      outlineD,
+      containerRef,
+      tabsRef,
+      btnRefs,
+      contentRef,
+      computeBox,
+      computeOutline,
+      recomputeGeometry,
+      padding,
+    ],
+  )
 
   return (
     <SideTabsContext value={value}>
@@ -339,7 +404,11 @@ export function SideTabsProvider({
           fillAvailableHeight && 'h-full min-h-0 w-full overflow-hidden',
           className,
         )}
-        animate={fillAvailableHeight ? undefined : { height: Math.max(minHeight, box.totalHeight) }}
+        animate={
+          fillAvailableHeight
+            ? undefined
+            : { height: Math.max(minHeight, box.totalHeight) }
+        }
         transition={reduceMotion ? { duration: 0 } : SPRING.layout}
         {...props}
       >

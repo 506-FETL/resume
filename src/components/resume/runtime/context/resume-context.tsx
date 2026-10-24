@@ -66,11 +66,7 @@ export function ResumeContextProvider({
   children,
   value,
 }: PropsWithChildren<{ value: ResumeContextType }>) {
-  return (
-    <ResumeContext value={value}>
-      {children}
-    </ResumeContext>
-  )
+  return <ResumeContext value={value}>{children}</ResumeContext>
 }
 
 /**
@@ -78,9 +74,11 @@ export function ResumeContextProvider({
  */
 export function useResumeContext() {
   const context = use(ResumeContext)
+
   if (!context) {
     throw new Error('useResumeContext 必须在 ResumeContextProvider 内部使用')
   }
+
   return context
 }
 

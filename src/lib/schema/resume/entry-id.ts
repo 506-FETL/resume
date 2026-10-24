@@ -1,8 +1,6 @@
 import type { ResumeSchema } from './form'
 import { z } from 'zod'
-import {
-  createLegacyResumeEntryId,
-} from '../../../../supabase/functions/shared/resume-comment-core.ts'
+import { createLegacyResumeEntryId } from '../../../../supabase/functions/shared/resume-comment-core.ts'
 
 export { createLegacyResumeEntryId }
 
@@ -41,11 +39,13 @@ function readCollection(
   }
 
   const section = value[sectionKey]
+
   if (!isRecord(section)) {
     return []
   }
 
   const collection = section[collectionKey]
+
   return Array.isArray(collection) ? collection : []
 }
 
@@ -55,6 +55,7 @@ function readEntryId(value: unknown): string | null {
   }
 
   const parsed = resumeEntryIdSchema.safeParse(value.entryId)
+
   return parsed.success ? parsed.data : null
 }
 
@@ -64,6 +65,7 @@ function withoutEntryId(value: unknown): unknown {
   }
 
   const { entryId: _entryId, ...rest } = value
+
   return rest
 }
 
@@ -79,6 +81,7 @@ function createUniqueLegacyEntryId(
     index,
     value: withoutEntryId(value),
   })
+
   let candidate = base
   let suffix = 1
 
@@ -95,14 +98,17 @@ export function createResumeEntryId(): string {
 }
 
 /** 仅供示例新建：重新打开、上传、恢复历史不能调用此函数。 */
-export function cloneResumeWithFreshEntryIds(resume: ResumeSchema): ResumeSchema {
+export function cloneResumeWithFreshEntryIds(
+  resume: ResumeSchema,
+): ResumeSchema {
   const clone = structuredClone(resume)
+
   for (const collection of RESUME_ENTRY_COLLECTIONS) {
     for (const entry of readCollection(clone, collection)) {
-      if (isRecord(entry))
-        entry.entryId = createResumeEntryId()
+      if (isRecord(entry)) entry.entryId = createResumeEntryId()
     }
   }
+
   return clone
 }
 
@@ -119,13 +125,16 @@ function ensureCollectionEntryIds(
     }
 
     const existingId = readEntryId(entry)
+
     if (existingId && !usedIds.has(existingId)) {
       entry.entryId = existingId
       usedIds.add(existingId)
+
       return
     }
 
     const entryId = createUniqueLegacyEntryId(collection, index, entry, usedIds)
+
     entry.entryId = entryId
     usedIds.add(entryId)
   })
@@ -136,6 +145,7 @@ export function ensureResumeSectionEntryIds<K extends keyof ResumeSchema>(
   value: ResumeSchema[K],
 ): ResumeSchema[K] {
   const resume = { [sectionKey]: value }
+
   for (const collection of RESUME_ENTRY_COLLECTIONS) {
     if (collection.sectionKey === sectionKey) {
       ensureCollectionEntryIds(resume, collection)
@@ -159,10 +169,13 @@ export function hasCompleteResumeEntryIds(value: unknown): boolean {
 
     return readCollection(value, collection).every((entry) => {
       const entryId = readEntryId(entry)
+
       if (!entryId || usedIds.has(entryId)) {
         return false
       }
+
       usedIds.add(entryId)
+
       return true
     })
   })
@@ -179,18 +192,23 @@ export function collectMissingResumeEntryIdPatches(
     return normalizedEntries.flatMap((entry, index) => {
       const entryId = readEntryId(entry)
       const sourceEntry = sourceEntries[index]
-      const sourceEntryId = isRecord(sourceEntry) ? sourceEntry.entryId : undefined
+
+      const sourceEntryId = isRecord(sourceEntry)
+        ? sourceEntry.entryId
+        : undefined
 
       if (!entryId || sourceEntryId === entryId) {
         return []
       }
 
-      return [{
-        sectionKey: collection.sectionKey,
-        collectionKey: collection.collectionKey,
-        index,
-        entryId,
-      }]
+      return [
+        {
+          sectionKey: collection.sectionKey,
+          collectionKey: collection.collectionKey,
+          index,
+          entryId,
+        },
+      ]
     })
   })
 }
@@ -205,16 +223,19 @@ export function applyResumeEntryIdPatches(
 
   for (const patch of patches) {
     const section = target[patch.sectionKey]
+
     if (!isRecord(section)) {
       continue
     }
 
     const collection = section[patch.collectionKey]
+
     if (!Array.isArray(collection)) {
       continue
     }
 
     const entry = collection[patch.index]
+
     if (isRecord(entry)) {
       entry.entryId = patch.entryId
     }

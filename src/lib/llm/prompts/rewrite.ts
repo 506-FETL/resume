@@ -1,4 +1,7 @@
-import type { RewriteAction, RewriteFieldContext } from '@/components/ai-rewrite/types'
+import type {
+  RewriteAction,
+  RewriteFieldContext,
+} from '@/components/ai-rewrite/types'
 
 const ACTION_INSTRUCTIONS: Record<RewriteAction, string> = {
   star_rewrite: `请将原文按 STAR 法则重写：
@@ -37,10 +40,14 @@ export function buildRewritePrompt(args: BuildArgs): string {
   const { action, selectionText, selectionHtml, fieldContext, jdDraft } = args
   const sections: string[] = []
 
-  sections.push(`你是一个简历内容改写专家。当前用户正在编辑「${fieldContext.fieldLabel}」字段。`)
+  sections.push(
+    `你是一个简历内容改写专家。当前用户正在编辑「${fieldContext.fieldLabel}」字段。`,
+  )
+
   if (fieldContext.jobIntent?.trim()) {
     sections.push(`用户的求职意向：${fieldContext.jobIntent.trim()}`)
   }
+
   sections.push(`你的任务：\n${ACTION_INSTRUCTIONS[action]}`)
 
   if (action === 'align_jd' && jdDraft?.trim()) {

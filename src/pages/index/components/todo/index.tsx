@@ -1,6 +1,15 @@
 import type { LucideIcon } from 'lucide-react'
 import type { DashboardAction, DashboardActionTone } from '../../insights'
-import { AlertCircle, ArrowRight, CircleCheckBig, FilePlus2, FileSearch, ListChecks, LogIn, Send } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowRight,
+  CircleCheckBig,
+  FilePlus2,
+  FileSearch,
+  ListChecks,
+  LogIn,
+  Send,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,7 +25,10 @@ interface TodoCardProps {
   unavailable?: boolean
 }
 
-const TONE_STYLES: Record<DashboardActionTone, { icon: LucideIcon, box: string, count: string }> = {
+const TONE_STYLES: Record<
+  DashboardActionTone,
+  { icon: LucideIcon; box: string; count: string }
+> = {
   urgent: {
     icon: AlertCircle,
     box: 'bg-red-500/10 text-red-600 dark:text-red-400',
@@ -39,64 +51,116 @@ const TONE_STYLES: Record<DashboardActionTone, { icon: LucideIcon, box: string, 
   },
 }
 
-export function TodoCard({ actions, loading, isAuthenticated, hasCloudResume, unavailable }: TodoCardProps) {
+export function TodoCard({
+  actions,
+  loading,
+  isAuthenticated,
+  hasCloudResume,
+  unavailable,
+}: TodoCardProps) {
   const navigate = useNavigate()
 
   if (!loading && !unavailable && actions.length === 0) {
-    const message = !isAuthenticated ? '登录后查看今日待办' : !hasCloudResume ? '创建云端简历后可查看优化待办' : '今日待办已完成'
+    const message = !isAuthenticated
+      ? '登录后查看今日待办'
+      : !hasCloudResume
+        ? '创建云端简历后可查看优化待办'
+        : '今日待办已完成'
+
     return (
-      <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground">
-        <CircleCheckBig className="size-4 shrink-0" aria-hidden />
+      <div className='flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground'>
+        <CircleCheckBig className='size-4 shrink-0' aria-hidden />
         <span>{message}</span>
       </div>
     )
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className='overflow-hidden'>
       <TodoHeader />
-      <CardContent className="pt-0">
-        <AnimatedContent animationKey={unavailable ? 'unavailable' : loading ? 'loading' : !isAuthenticated ? 'guest' : !hasCloudResume ? 'no-resume' : actions.length === 0 ? 'empty' : 'ready'}>
-          {unavailable
-            ? <EmptyState icon={AlertCircle} title="— 待办数据暂不可用" hint="请重试失败的数据源。" />
-            : loading
-              ? <TodoSkeleton />
-              : !isAuthenticated
-                  ? <EmptyState icon={LogIn} title="登录后查看今日待办" />
+      <CardContent className='pt-0'>
+        <AnimatedContent
+          animationKey={
+            unavailable
+              ? 'unavailable'
+              : loading
+                ? 'loading'
+                : !isAuthenticated
+                  ? 'guest'
                   : !hasCloudResume
-                      ? <EmptyState icon={FilePlus2} title="还没有云端简历" hint="创建简历或将本地简历同步到云端后，可查看待办。" />
-                      : actions.length === 0
-                        ? <EmptyState icon={CircleCheckBig} title="待办已完成" tone="positive" />
-                        : (
-                            <div className="flex flex-col gap-2.5">
-                              {actions.map((action) => {
-                                const tone = TONE_STYLES[action.tone]
-                                const Icon = tone.icon
-                                return (
-                                  <button
-                                    type="button"
-                                    key={action.id}
-                                    onClick={() => navigate(action.to)}
-                                    className="group flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent/40"
-                                  >
-                                    <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', tone.box)}>
-                                      <Icon className="size-[18px]" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-sm font-medium">
-                                        <span className={cn('mr-1 text-base font-semibold tabular-nums', tone.count)}>
-                                          {action.count}
-                                        </span>
-                                        {action.label}
-                                      </p>
-                                      {action.hint && <p className="truncate text-xs text-muted-foreground">{action.hint}</p>}
-                                    </div>
-                                    <ArrowRight className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-                                  </button>
-                                )
-                              })}
-                            </div>
+                    ? 'no-resume'
+                    : actions.length === 0
+                      ? 'empty'
+                      : 'ready'
+          }
+        >
+          {unavailable ? (
+            <EmptyState
+              icon={AlertCircle}
+              title='— 待办数据暂不可用'
+              hint='请重试失败的数据源。'
+            />
+          ) : loading ? (
+            <TodoSkeleton />
+          ) : !isAuthenticated ? (
+            <EmptyState icon={LogIn} title='登录后查看今日待办' />
+          ) : !hasCloudResume ? (
+            <EmptyState
+              icon={FilePlus2}
+              title='还没有云端简历'
+              hint='创建简历或将本地简历同步到云端后，可查看待办。'
+            />
+          ) : actions.length === 0 ? (
+            <EmptyState
+              icon={CircleCheckBig}
+              title='待办已完成'
+              tone='positive'
+            />
+          ) : (
+            <div className='flex flex-col gap-2.5'>
+              {actions.map((action) => {
+                const tone = TONE_STYLES[action.tone]
+                const Icon = tone.icon
+
+                return (
+                  <button
+                    type='button'
+                    key={action.id}
+                    onClick={() => navigate(action.to)}
+                    className='group flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent/40'
+                  >
+                    <div
+                      className={cn(
+                        'flex size-9 shrink-0 items-center justify-center rounded-lg',
+                        tone.box,
+                      )}
+                    >
+                      <Icon className='size-[18px]' />
+                    </div>
+                    <div className='min-w-0 flex-1'>
+                      <p className='text-sm font-medium'>
+                        <span
+                          className={cn(
+                            'mr-1 text-base font-semibold tabular-nums',
+                            tone.count,
                           )}
+                        >
+                          {action.count}
+                        </span>
+                        {action.label}
+                      </p>
+                      {action.hint && (
+                        <p className='truncate text-xs text-muted-foreground'>
+                          {action.hint}
+                        </p>
+                      )}
+                    </div>
+                    <ArrowRight className='size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground' />
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </AnimatedContent>
       </CardContent>
     </Card>
@@ -115,17 +179,19 @@ function EmptyState({
   tone?: 'muted' | 'positive'
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-left">
+    <div className='flex flex-wrap items-center gap-2 text-left'>
       <div
         className={cn(
           'flex size-7 items-center justify-center rounded-full',
-          tone === 'positive' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
+          tone === 'positive'
+            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            : 'bg-muted text-muted-foreground',
         )}
       >
-        <Icon className="size-5" />
+        <Icon className='size-5' />
       </div>
-      <p className="text-sm font-medium">{title}</p>
-      {hint && <p className="max-w-xs text-xs text-muted-foreground">{hint}</p>}
+      <p className='text-sm font-medium'>{title}</p>
+      {hint && <p className='max-w-xs text-xs text-muted-foreground'>{hint}</p>}
     </div>
   )
 }

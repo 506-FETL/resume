@@ -1,8 +1,20 @@
 import type { PropsWithChildren, ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 interface AdvancedToolsModalProps extends PropsWithChildren {
@@ -16,7 +28,7 @@ interface AdvancedToolsModalProps extends PropsWithChildren {
 
 function ModalBody({ children }: PropsWithChildren) {
   return (
-    <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-5">
+    <div className='min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-5'>
       {children}
     </div>
   )
@@ -36,17 +48,25 @@ export function AdvancedToolsModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-        <DrawerContent overlayClassName="supports-backdrop-filter:backdrop-blur-none">
-          <DrawerHeader className="border-b border-border/60 pb-4 text-left">
-            <div className="min-w-0">
-              <div className="min-w-0 space-y-1">
+        <DrawerContent overlayClassName='supports-backdrop-filter:backdrop-blur-none'>
+          <DrawerHeader className='border-b border-border/60 pb-4 text-left'>
+            <div className='min-w-0'>
+              <div className='min-w-0 space-y-1'>
                 <DrawerTitle>{title}</DrawerTitle>
-                <DrawerDescription className={description ? 'wrap-break-word text-left leading-5' : 'sr-only'}>
+                <DrawerDescription
+                  className={
+                    description
+                      ? 'wrap-break-word text-left leading-5'
+                      : 'sr-only'
+                  }
+                >
                   {description || '查看当前简历的分析结果。'}
                 </DrawerDescription>
               </div>
             </div>
-            {meta && <div className="flex flex-wrap gap-2 pt-2 text-left">{meta}</div>}
+            {meta && (
+              <div className='flex flex-wrap gap-2 pt-2 text-left'>{meta}</div>
+            )}
           </DrawerHeader>
 
           <ModalBody>{children}</ModalBody>
@@ -59,25 +79,36 @@ export function AdvancedToolsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="h-[80vh] w-[60vw] gap-0 rounded-none bg-transparent p-0 ring-0 sm:max-w-[min(90rem,calc(100vw-4rem))]"
+        className='h-[80vh] w-[60vw] gap-0 rounded-none bg-transparent p-0 ring-0 sm:max-w-[min(90rem,calc(100vw-4rem))]'
         showCloseButton={false}
       >
-        <div
-          className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10"
-        >
-          <DialogHeader className="shrink-0 border-b border-border/60 p-5 text-left md:px-6">
-            <div className="flex min-w-0 items-start justify-between gap-4">
-              <div className="min-w-0 space-y-1.5">
+        <div className='flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl bg-popover text-sm text-popover-foreground ring-1 ring-foreground/10'>
+          <DialogHeader className='shrink-0 border-b border-border/60 p-5 text-left md:px-6'>
+            <div className='flex min-w-0 items-start justify-between gap-4'>
+              <div className='min-w-0 space-y-1.5'>
                 <DialogTitle>{title}</DialogTitle>
-                <DialogDescription className={description ? 'wrap-break-word text-left leading-6' : 'sr-only'}>
+                <DialogDescription
+                  className={
+                    description
+                      ? 'wrap-break-word text-left leading-6'
+                      : 'sr-only'
+                  }
+                >
                   {description || '查看当前简历的分析结果。'}
                 </DialogDescription>
               </div>
-              <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)} aria-label="关闭">
-                <X className="size-4" />
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                onClick={() => onOpenChange(false)}
+                aria-label='关闭'
+              >
+                <X className='size-4' />
               </Button>
             </div>
-            {meta && <div className="flex flex-wrap gap-2 pt-1 text-left">{meta}</div>}
+            {meta && (
+              <div className='flex flex-wrap gap-2 pt-1 text-left'>{meta}</div>
+            )}
           </DialogHeader>
 
           <ModalBody>{children}</ModalBody>

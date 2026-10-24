@@ -1,32 +1,38 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { motion, AnimatePresence, useReducedMotion, type HTMLMotionProps } from 'motion/react';
-
-import { Slot, type WithAsChild } from '@/components/animate-ui/primitives/animate/slot';
+import * as React from 'react'
 import {
-  useIsInView,
-  type UseIsInViewOptions,
-} from '@/hooks/use-is-in-view';
-import { getStrictContext } from '@/lib/get-strict-context';
+  motion,
+  AnimatePresence,
+  useReducedMotion,
+  type HTMLMotionProps,
+} from 'motion/react'
 
-type Side = 'top' | 'bottom' | 'left' | 'right';
-type Align = 'start' | 'center' | 'end';
+import {
+  Slot,
+  type WithAsChild,
+} from '@/components/animate-ui/primitives/animate/slot'
+import { useIsInView, type UseIsInViewOptions } from '@/hooks/use-is-in-view'
+import { getStrictContext } from '@/lib/get-strict-context'
+
+type Side = 'top' | 'bottom' | 'left' | 'right'
+
+type Align = 'start' | 'center' | 'end'
 
 type ParticlesContextType = {
-  animate: boolean;
-  isInView: boolean;
-};
+  animate: boolean
+  isInView: boolean
+}
 
 const [ParticlesProvider, useParticles] =
-  getStrictContext<ParticlesContextType>('ParticlesContext');
+  getStrictContext<ParticlesContextType>('ParticlesContext')
 
 type ParticlesProps = WithAsChild<
   Omit<HTMLMotionProps<'div'>, 'children'> & {
-    animate?: boolean;
-    children: React.ReactNode;
+    animate?: boolean
+    children: React.ReactNode
   } & UseIsInViewOptions
->;
+>
 
 function Particles({
   ref,
@@ -42,9 +48,9 @@ function Particles({
   const { ref: localRef, isInView } = useIsInView(
     ref as React.Ref<HTMLDivElement>,
     { inView, inViewOnce, inViewMargin },
-  );
+  )
 
-  const Component = asChild ? Slot : motion.div;
+  const Component = asChild ? Slot : motion.div
 
   return (
     <ParticlesProvider value={{ animate, isInView }}>
@@ -56,21 +62,21 @@ function Particles({
         {children}
       </Component>
     </ParticlesProvider>
-  );
+  )
 }
 
 type ParticlesEffectProps = Omit<HTMLMotionProps<'div'>, 'children'> & {
-  side?: Side;
-  align?: Align;
-  count?: number;
-  radius?: number;
-  spread?: number;
-  duration?: number;
-  holdDelay?: number;
-  sideOffset?: number;
-  alignOffset?: number;
-  delay?: number;
-};
+  side?: Side
+  align?: Align
+  count?: number
+  radius?: number
+  spread?: number
+  duration?: number
+  holdDelay?: number
+  sideOffset?: number
+  alignOffset?: number
+  delay?: number
+}
 
 function ParticlesEffect({
   side = 'top',
@@ -87,41 +93,42 @@ function ParticlesEffect({
   style,
   ...props
 }: ParticlesEffectProps) {
-  const reduceMotion = useReducedMotion();
-  const { animate, isInView } = useParticles();
+  const reduceMotion = useReducedMotion()
+  const { animate, isInView } = useParticles()
 
-  const isVertical = side === 'top' || side === 'bottom';
-  const alignPct = align === 'start' ? '0%' : align === 'end' ? '100%' : '50%';
+  const isVertical = side === 'top' || side === 'bottom'
+  const alignPct = align === 'start' ? '0%' : align === 'end' ? '100%' : '50%'
 
   const top = isVertical
     ? side === 'top'
       ? `calc(0% - ${sideOffset}px)`
       : `calc(100% + ${sideOffset}px)`
-    : `calc(${alignPct} + ${alignOffset}px)`;
+    : `calc(${alignPct} + ${alignOffset}px)`
 
   const left = isVertical
     ? `calc(${alignPct} + ${alignOffset}px)`
     : side === 'left'
       ? `calc(0% - ${sideOffset}px)`
-      : `calc(100% + ${sideOffset}px)`;
+      : `calc(100% + ${sideOffset}px)`
 
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
     top,
     left,
     transform: 'translate(-50%, -50%)',
-  };
+  }
 
-  const angleStep = (spread * (Math.PI / 180)) / Math.max(1, count - 1);
+  const angleStep = (spread * (Math.PI / 180)) / Math.max(1, count - 1)
 
   return (
     <AnimatePresence>
-      {!reduceMotion && animate &&
+      {!reduceMotion &&
+        animate &&
         isInView &&
         [...Array(count)].map((_, i) => {
-          const angle = i * angleStep;
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
+          const angle = i * angleStep
+          const x = Math.cos(angle) * radius
+          const y = Math.sin(angle) * radius
 
           return (
             <motion.div
@@ -142,10 +149,10 @@ function ParticlesEffect({
               }}
               {...props}
             />
-          );
+          )
         })}
     </AnimatePresence>
-  );
+  )
 }
 
 export {
@@ -153,4 +160,4 @@ export {
   ParticlesEffect,
   type ParticlesProps,
   type ParticlesEffectProps,
-};
+}

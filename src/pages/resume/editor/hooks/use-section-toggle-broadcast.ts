@@ -20,22 +20,23 @@ export function useSectionToggleBroadcast({
   isApplyingRemote,
   broadcastUIAction,
 }: UseSectionToggleBroadcastOptions) {
-  const openSections = useResumeStore(state => state.openSections)
+  const openSections = useResumeStore((state) => state.openSections)
   const previousRef = useRef<ORDERType[]>(openSections)
 
   useEffect(() => {
     const prev = previousRef.current
-    if (prev === openSections)
-      return
+
+    if (prev === openSections) return
+
     previousRef.current = openSections
 
-    if (isApplyingRemote.current)
-      return
+    if (isApplyingRemote.current) return
 
     for (const id of openSections) {
       if (!prev.includes(id))
         broadcastUIAction({ kind: 'section-toggle', tabId: id, open: true })
     }
+
     for (const id of prev) {
       if (!openSections.includes(id))
         broadcastUIAction({ kind: 'section-toggle', tabId: id, open: false })

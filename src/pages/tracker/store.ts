@@ -1,7 +1,18 @@
 import type { TrackerAccountScope } from './lib/account-scope'
-import type { ApplicationStatus, JobApplication, TrackerMetricKey, TrackerSortBy, TrackerSortDir, ViewMode } from './types'
+import type {
+  ApplicationStatus,
+  JobApplication,
+  TrackerMetricKey,
+  TrackerSortBy,
+  TrackerSortDir,
+  ViewMode,
+} from './types'
 import { create } from 'zustand'
-import { assertTrackerAccountScope, getTrackerAccountScope, subscribeTrackerAccountScope } from './lib/account-scope'
+import {
+  assertTrackerAccountScope,
+  getTrackerAccountScope,
+  subscribeTrackerAccountScope,
+} from './lib/account-scope'
 import { createTrackerPersistence } from './store/workflow-save'
 import { filterJobs } from './utils'
 
@@ -60,8 +71,8 @@ interface TrackerStore extends ReturnType<typeof createTrackerPersistence> {
 let pendingDrawerOpenFrame: number | null = null
 
 function cancelPendingDrawerOpen() {
-  if (pendingDrawerOpenFrame === null)
-    return
+  if (pendingDrawerOpenFrame === null) return
+
   cancelAnimationFrame(pendingDrawerOpenFrame)
   pendingDrawerOpenFrame = null
 }
@@ -100,32 +111,37 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     addDrawerOpen: false,
 
     // 共享状态操作
-    setViewMode: mode => set({ viewMode: mode }),
-    setFilterStatus: status => set({ filterStatus: status, metricFilter: null }),
-    setMetricFilter: key => set(state => ({
-      metricFilter: state.metricFilter === key ? null : key,
-      filterStatus: null,
-    })),
+    setViewMode: (mode) => set({ viewMode: mode }),
+    setFilterStatus: (status) =>
+      set({ filterStatus: status, metricFilter: null }),
+    setMetricFilter: (key) =>
+      set((state) => ({
+        metricFilter: state.metricFilter === key ? null : key,
+        filterStatus: null,
+      })),
     clearFilters: () => set({ filterStatus: null, metricFilter: null }),
-    setSearchKeyword: keyword => set({ searchKeyword: keyword }),
-    setShowArchived: value => set({ showArchived: value }),
-    setSort: sortBy => set(state => (
-      state.sortBy === sortBy
-        ? { sortDir: state.sortDir === 'asc' ? 'desc' : 'asc' }
-        : { sortBy, sortDir: 'desc' }
-    )),
-    toggleRejectedCollapsed: () => set(state => ({ rejectedCollapsed: !state.rejectedCollapsed })),
+    setSearchKeyword: (keyword) => set({ searchKeyword: keyword }),
+    setShowArchived: (value) => set({ showArchived: value }),
+    setSort: (sortBy) =>
+      set((state) =>
+        state.sortBy === sortBy
+          ? { sortDir: state.sortDir === 'asc' ? 'desc' : 'asc' }
+          : { sortBy, sortDir: 'desc' },
+      ),
+    toggleRejectedCollapsed: () =>
+      set((state) => ({ rejectedCollapsed: !state.rejectedCollapsed })),
     enterSelectMode: () => set({ isSelectMode: true, selectedIds: new Set() }),
     exitSelectMode: () => set({ isSelectMode: false, selectedIds: new Set() }),
     toggleSelect: (id) => {
       set((state) => {
         const nextSelectedIds = new Set(state.selectedIds)
+
         if (nextSelectedIds.has(id)) {
           nextSelectedIds.delete(id)
-        }
-        else {
+        } else {
           nextSelectedIds.add(id)
         }
+
         return { selectedIds: nextSelectedIds }
       })
     },
@@ -140,32 +156,51 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         )
 
         return {
-          selectedIds: state.selectedIds.size === selectableJobs.length
-            ? new Set()
-            : new Set(selectableJobs.map(job => job.id)),
+          selectedIds:
+            state.selectedIds.size === selectableJobs.length
+              ? new Set()
+              : new Set(selectableJobs.map((job) => job.id)),
         }
       })
     },
     openJobDrawer: (job) => {
-      const current = get().jobs.find(row => row.id === job.id && row.user_id === getTrackerAccountScope().userId)
-      if (!current)
-        return
+      const current = get().jobs.find(
+        (row) =>
+          row.id === job.id && row.user_id === getTrackerAccountScope().userId,
+      )
+
+      if (!current) return
+
       cancelPendingDrawerOpen()
+
       const previousId = get().selectedJob?.id
+
       if (previousId && previousId !== job.id)
-        get().flushWorkflow(previousId).catch(() => {})
+        get()
+          .flushWorkflow(previousId)
+          .catch(() => {})
+
       set({ selectedJob: current, drawerOpen: false })
+
       // Base UI 需要先渲染一次关闭态的 Popup，下一帧切换 open 才能应用 starting-style。
       pendingDrawerOpenFrame = requestAnimationFrame(() => {
         pendingDrawerOpenFrame = null
-        set(state => state.selectedJob?.id === job.id ? { drawerOpen: true } : {})
+
+        set((state) =>
+          state.selectedJob?.id === job.id ? { drawerOpen: true } : {},
+        )
       })
     },
     closeJobDrawer: () => {
       cancelPendingDrawerOpen()
+
       const id = get().selectedJob?.id
+
       if (id)
-        get().flushWorkflow(id).catch(() => {})
+        get()
+          .flushWorkflow(id)
+          .catch(() => {})
+
       set({ drawerOpen: false })
     },
     openAddDrawer: () => set({ addDrawerOpen: true }),
@@ -174,16 +209,22 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
       const idsSet = ids instanceof Set ? ids : new Set(ids)
 
       get().invalidateJobs(idsSet)
+
       set((state) => {
-        const deletingSelectedJob = state.selectedJob ? idsSet.has(state.selectedJob.id) : false
+        const deletingSelectedJob = state.selectedJob
+          ? idsSet.has(state.selectedJob.id)
+          : false
+
         const nextSelectedIds = new Set(
-          Array.from(state.selectedIds).filter(id => !idsSet.has(id)),
+          Array.from(state.selectedIds).filter((id) => !idsSet.has(id)),
         )
 
         return {
-          jobs: state.jobs.filter(job => !idsSet.has(job.id)),
+          jobs: state.jobs.filter((job) => !idsSet.has(job.id)),
           selectedIds: nextSelectedIds,
-          saveStates: Object.fromEntries(Object.entries(state.saveStates).filter(([id]) => !idsSet.has(id))),
+          saveStates: Object.fromEntries(
+            Object.entries(state.saveStates).filter(([id]) => !idsSet.has(id)),
+          ),
           isSelectMode: false,
           selectedJob: deletingSelectedJob ? null : state.selectedJob,
           drawerOpen: deletingSelectedJob ? false : state.drawerOpen,
@@ -192,9 +233,19 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     },
     prependJob: (job, scope) => {
       assertTrackerAccountScope(scope)
-      if (job.user_id !== scope.userId)
-        throw new Error('职位不属于当前账号')
-      set(state => ({ jobs: [get().acceptNewJob(job), ...state.jobs.filter(row => row.id !== job.id)], saveStates: { ...state.saveStates, [job.id]: { status: 'idle', error: null } } }))
+
+      if (job.user_id !== scope.userId) throw new Error('职位不属于当前账号')
+
+      set((state) => ({
+        jobs: [
+          get().acceptNewJob(job),
+          ...state.jobs.filter((row) => row.id !== job.id),
+        ],
+        saveStates: {
+          ...state.saveStates,
+          [job.id]: { status: 'idle', error: null },
+        },
+      }))
     },
   }
 })
@@ -203,6 +254,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
 subscribeTrackerAccountScope(() => {
   cancelPendingDrawerOpen()
   useTrackerStore.getState().resetPersistence()
+
   useTrackerStore.setState({
     accountScope: getTrackerAccountScope(),
     jobs: [],

@@ -1,6 +1,12 @@
-import type { ChatCompletionChunk, ChatCompletionCreateParams } from 'openai/resources/chat/completions'
+import type {
+  ChatCompletionChunk,
+  ChatCompletionCreateParams,
+} from 'openai/resources/chat/completions'
 import { Stream } from 'openai/streaming'
-import { applyAiQuotaReservation, captureAiQuotaIdentity } from '@/store/ai-quota'
+import {
+  applyAiQuotaReservation,
+  captureAiQuotaIdentity,
+} from '@/store/ai-quota'
 import supabase from '../supabase/client'
 
 // 额度超限错误：供上层（P3 UI）识别并展示「明日 0 点恢复」等提示。
@@ -11,7 +17,9 @@ export class QuotaExceededError extends Error {
   readonly dailyLimit?: number
   readonly resetAt?: string
 
-  constructor(info: { remaining?: number, dailyLimit?: number, resetAt?: string } = {}) {
+  constructor(
+    info: { remaining?: number; dailyLimit?: number; resetAt?: string } = {},
+  ) {
     super('AI 每日额度已用尽，明日 0 点恢复')
     this.name = 'QuotaExceededError'
     this.remaining = info.remaining
@@ -41,7 +49,10 @@ export async function callLLM(
     ...rest
   } = req
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
   const token = session?.access_token
 
   if (!token) {
@@ -52,24 +63,27 @@ export async function callLLM(
   const controller = abortController ?? new AbortController()
   const requestId = providedRequestId ?? crypto.randomUUID()
 
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llm-proxy`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'X-Request-Id': requestId,
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llm-proxy`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'X-Request-Id': requestId,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        stream,
+        // action 仅作无害透传（服务端不据此扣费）
+        ...(action !== undefined ? { action } : {}),
+        ...rest,
+      }),
+      signal: controller.signal,
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature,
-      stream,
-      // action 仅作无害透传（服务端不据此扣费）
-      ...(action !== undefined ? { action } : {}),
-      ...rest,
-    }),
-    signal: controller.signal,
-  })
+  )
 
   const quotaRemaining = Number(response.headers.get('x-ai-quota-remaining'))
   const quotaDailyLimit = Number(response.headers.get('x-ai-quota-daily-limit'))
@@ -77,20 +91,24 @@ export async function callLLM(
   const quotaUnlimited = response.headers.get('x-ai-quota-unlimited') === 'true'
 
   if (
-    Number.isFinite(quotaRemaining)
-    && Number.isFinite(quotaDailyLimit)
-    && quotaResetAt
+    Number.isFinite(quotaRemaining) &&
+    Number.isFinite(quotaDailyLimit) &&
+    quotaResetAt
   ) {
-    applyAiQuotaReservation({
-      remaining: quotaRemaining,
-      dailyLimit: quotaDailyLimit,
-      resetAt: quotaResetAt,
-      unlimited: quotaUnlimited,
-    }, quotaIdentity)
+    applyAiQuotaReservation(
+      {
+        remaining: quotaRemaining,
+        dailyLimit: quotaDailyLimit,
+        resetAt: quotaResetAt,
+        unlimited: quotaUnlimited,
+      },
+      quotaIdentity,
+    )
   }
 
   if (!response.ok) {
     const errorText = await response.text()
+
     // 额度超限：抛出可识别的 QuotaExceededError，供上层兜底处理（本阶段不做专门 UI）
     if (response.status === 403) {
       try {
@@ -100,6 +118,7 @@ export async function callLLM(
           daily_limit?: number
           reset_at?: string
         }
+
         if (parsed?.error === 'quota_exceeded') {
           throw new QuotaExceededError({
             remaining: parsed.remaining,
@@ -107,17 +126,19 @@ export async function callLLM(
             resetAt: parsed.reset_at,
           })
         }
-      }
-      catch (e) {
-        if (e instanceof QuotaExceededError)
-          throw e
+      } catch (e) {
+        if (e instanceof QuotaExceededError) throw e
         // JSON 解析失败则回退到通用错误
       }
     }
+
     throw new Error(`LLM request failed: ${response.status} ${errorText}`)
   }
 
-  const streamData = Stream.fromSSEResponse<ChatCompletionChunk>(response, controller)
+  const streamData = Stream.fromSSEResponse<ChatCompletionChunk>(
+    response,
+    controller,
+  )
 
   return streamData
 }

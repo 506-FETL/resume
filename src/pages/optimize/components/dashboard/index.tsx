@@ -7,7 +7,8 @@ export default function OptimizeDashboard() {
   const { fixChecklist } = currentAtsConfig || {}
 
   const totalTasks = fixChecklist?.length || 0
-  const completedTasks = fixChecklist?.filter(item => item.isDone).length || 0
+  const completedTasks = fixChecklist?.filter((item) => item.isDone).length || 0
+
   const progress = !currentAtsConfig
     ? 0
     : totalTasks === 0
@@ -15,8 +16,13 @@ export default function OptimizeDashboard() {
       : Math.round((completedTasks / totalTasks) * 100)
 
   return (
-    <div className="min-w-0">
-      <AnimatedContent animationKey={loading ? 'loading' : currentAtsConfig ? 'summary' : 'empty'} className="min-w-0">
+    <div className='min-w-0'>
+      <AnimatedContent
+        animationKey={
+          loading ? 'loading' : currentAtsConfig ? 'summary' : 'empty'
+        }
+        className='min-w-0'
+      >
         <OverviewSummaryCard
           completedTasks={completedTasks}
           loading={loading}

@@ -11,7 +11,11 @@
  * - 光标落在被替换区间内：钳到新串被替换区间的边界。
  * 结果始终 clamp 到 `[0, newStr.length]`。
  */
-export function mapCaretByDiff(oldStr: string, newStr: string, caret: number): number {
+export function mapCaretByDiff(
+  oldStr: string,
+  newStr: string,
+  caret: number,
+): number {
   if (oldStr === newStr) {
     return clamp(caret, 0, newStr.length)
   }
@@ -22,6 +26,7 @@ export function mapCaretByDiff(oldStr: string, newStr: string, caret: number): n
 
   // 最长公共前缀
   let pre = 0
+
   while (pre < maxPrefix && oldStr[pre] === newStr[pre]) {
     pre += 1
   }
@@ -29,9 +34,10 @@ export function mapCaretByDiff(oldStr: string, newStr: string, caret: number): n
   // 最长公共后缀（不与前缀在任一串上重叠）
   const maxSuffix = Math.min(oldLen - pre, newLen - pre)
   let suf = 0
+
   while (
-    suf < maxSuffix
-    && oldStr[oldLen - 1 - suf] === newStr[newLen - 1 - suf]
+    suf < maxSuffix &&
+    oldStr[oldLen - 1 - suf] === newStr[newLen - 1 - suf]
   ) {
     suf += 1
   }
@@ -51,6 +57,7 @@ export function mapCaretByDiff(oldStr: string, newStr: string, caret: number): n
   // 光标落在被替换区间内：钳到新串被替换区间边界
   const replacedEnd = newLen - suf
   const mapped = Math.min(caret, pre + Math.max(0, newLen - pre - suf))
+
   return clamp(mapped, pre, replacedEnd)
 }
 

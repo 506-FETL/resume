@@ -1,6 +1,14 @@
 import type { StoreApi } from 'zustand/vanilla'
 import type { CommentAnchor } from '../anchors/types.ts'
-import type { CommentErrorCode, CommentScopeKind, CommentThreadCounts, CommentThreadReadState, CommentVersionReference, ResumeCommentEvent, ResumeCommentThread } from '../types.ts'
+import type {
+  CommentErrorCode,
+  CommentScopeKind,
+  CommentThreadCounts,
+  CommentThreadReadState,
+  CommentVersionReference,
+  ResumeCommentEvent,
+  ResumeCommentThread,
+} from '../types.ts'
 
 export interface CommentScopeSummary {
   id: string
@@ -72,9 +80,12 @@ export interface PendingReplyCreation extends PendingCommentCreationBase {
   documentHash: string
 }
 
-export type PendingCommentCreation = PendingThreadCreation | PendingReplyCreation
+export type PendingCommentCreation =
+  | PendingThreadCreation
+  | PendingReplyCreation
 
 export type CommentConnectionState = 'idle' | 'connecting' | 'live' | 'offline'
+
 export type CommentAccessState = 'active' | 'read_only' | 'unavailable'
 
 export interface CommentMutationSnapshot {
@@ -143,13 +154,16 @@ export interface ResumeCommentStoreState {
     removedThreadId?: string | null
     counts?: CommentThreadCounts
   }) => CommentMutationSnapshot
-  commitMutation: (entityKey: string, input: {
-    thread: ResumeCommentThread | null
-    removedThreadId?: string | null
-    counts: CommentThreadCounts
-    event: ResumeCommentEvent
-    eventSeq: number
-  }) => void
+  commitMutation: (
+    entityKey: string,
+    input: {
+      thread: ResumeCommentThread | null
+      removedThreadId?: string | null
+      counts: CommentThreadCounts
+      event: ResumeCommentEvent
+      eventSeq: number
+    },
+  ) => void
   rollbackMutation: (
     entityKey: string,
     snapshot: CommentMutationSnapshot,
@@ -168,17 +182,26 @@ export interface ResumeCommentStoreState {
     event: ResumeCommentEvent
     eventSeq: number
   }) => void
-  enqueuePendingThread: (input: Omit<PendingThreadCreation, 'kind' | 'threadId' | 'commentId'>) => PendingThreadCreation
-  enqueuePendingReply: (input: Omit<PendingReplyCreation, 'kind' | 'commentId'>) => PendingReplyCreation | null
-  markPendingCreationSending: (requestId: string) => PendingCommentCreation | null
+  enqueuePendingThread: (
+    input: Omit<PendingThreadCreation, 'kind' | 'threadId' | 'commentId'>,
+  ) => PendingThreadCreation
+  enqueuePendingReply: (
+    input: Omit<PendingReplyCreation, 'kind' | 'commentId'>,
+  ) => PendingReplyCreation | null
+  markPendingCreationSending: (
+    requestId: string,
+  ) => PendingCommentCreation | null
   failPendingCreation: (requestId: string, message: string) => void
   discardPendingCreation: (requestId: string) => void
-  settlePendingCreation: (requestId: string, input: {
-    thread: ResumeCommentThread | null
-    counts: CommentThreadCounts
-    event: ResumeCommentEvent
-    eventSeq: number
-  }) => void
+  settlePendingCreation: (
+    requestId: string,
+    input: {
+      thread: ResumeCommentThread | null
+      counts: CommentThreadCounts
+      event: ResumeCommentEvent
+      eventSeq: number
+    },
+  ) => void
   beginPending: (entityKey: string) => void
   finishPending: (entityKey: string) => void
   failPending: (entityKey: string, message: string) => void
@@ -195,7 +218,10 @@ export interface ResumeCommentStoreState {
   setRelinkError: (message: string | null) => void
   setHighlightsHidden: (hidden: boolean) => void
   setConnection: (connection: CommentConnectionState) => void
-  setAccessState: (state: CommentAccessState, error?: CommentErrorCode | null) => void
+  setAccessState: (
+    state: CommentAccessState,
+    error?: CommentErrorCode | null,
+  ) => void
   markReadLocally: (eventSeq: number) => void
   markThreadReadLocally: (threadId: string, eventSeq: number) => void
   markAllReadLocally: (eventSeq: number) => void

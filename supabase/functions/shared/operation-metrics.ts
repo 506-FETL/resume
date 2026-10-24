@@ -1,7 +1,10 @@
 import type { RequestOutcome } from './request-context.ts'
 
 interface MetricsClient {
-  rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ error: { code?: string } | null }>
+  rpc: (
+    name: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ error: { code?: string } | null }>
 }
 
 export interface OperationMetric {
@@ -15,21 +18,28 @@ export interface OperationMetric {
   durationMs: number
 }
 
-export function scheduleBackground(task: Promise<unknown>, eventName = 'background_task_failed') {
+export function scheduleBackground(
+  task: Promise<unknown>,
+  eventName = 'background_task_failed',
+) {
   const guarded = task.catch(() => {
-    console.error(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      level: 'error',
-      event: eventName,
-    }))
+    console.error(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'error',
+        event: eventName,
+      }),
+    )
   })
-  const edgeRuntime = (globalThis as typeof globalThis & {
-    EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void }
-  }).EdgeRuntime
-  if (edgeRuntime?.waitUntil)
-    edgeRuntime.waitUntil(guarded)
-  else
-    guarded.catch(() => undefined)
+
+  const edgeRuntime = (
+    globalThis as typeof globalThis & {
+      EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void }
+    }
+  ).EdgeRuntime
+
+  if (edgeRuntime?.waitUntil) edgeRuntime.waitUntil(guarded)
+  else guarded.catch(() => undefined)
 }
 
 export async function recordOperationMetric(
@@ -46,6 +56,6 @@ export async function recordOperationMetric(
     p_status: metric.status,
     p_duration_ms: Math.max(0, Math.round(metric.durationMs)),
   })
-  if (error)
-    throw new Error('operation metric write failed')
+
+  if (error) throw new Error('operation metric write failed')
 }

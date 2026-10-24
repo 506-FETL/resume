@@ -35,19 +35,15 @@ export default function SidebarEditor({
   onUpdateOrder,
   onToggleVisibility,
 }: SidebarEditorProps) {
-  const sortableOrder = order.filter(id => id !== 'basics')
-  const basicsItem = ITEMS.find(item => item.id === 'basics')!
-  const {
-    draft,
-    setDraft,
-    startDragging,
-    finishDragging,
-    moveByKeyboard,
-  } = useMotionReorder({
-    values: sortableOrder,
-    axis: 'x',
-    onCommit: next => onUpdateOrder(['basics', ...next]),
-  })
+  const sortableOrder = order.filter((id) => id !== 'basics')
+  const basicsItem = ITEMS.find((item) => item.id === 'basics')!
+
+  const { draft, setDraft, startDragging, finishDragging, moveByKeyboard } =
+    useMotionReorder({
+      values: sortableOrder,
+      axis: 'x',
+      onCommit: (next) => onUpdateOrder(['basics', ...next]),
+    })
 
   const renderBasics = () => (
     <FixedTab
@@ -67,64 +63,69 @@ export default function SidebarEditor({
       fillAvailableHeight={isMobile}
       className={isMobile ? 'h-full min-h-0 w-full' : undefined}
     >
-      {isMobile
-        ? (
-            <SideTabs className="shrink-0">
-              {renderBasics()}
-              {sortableOrder.map((id) => {
-                const item = ITEMS.find(it => it.id === id)!
-                const visibilityKey = item.id as VisibilityItemsType
-                return (
-                  <StaticTab
-                    key={id}
-                    id={visibilityKey}
-                    label={item.label}
-                    icon={item.icon}
-                    visible={!visibilityState[visibilityKey]}
-                    active={activeTabId === item.id}
-                    isMobile={isMobile}
-                    onActivate={() => onUpdateActiveTabId(item.id)}
-                    onToggleVisibility={() => onToggleVisibility(visibilityKey)}
-                  />
-                )
-              })}
-            </SideTabs>
-          )
-        : (
-            <SideTabs>
-              {renderBasics()}
-              <Reorder.Group
-                as="div"
-                axis="x"
-                values={draft}
-                onReorder={setDraft}
-                layoutScroll
-                className="flex flex-row gap-3"
-              >
-                {draft.map((id) => {
-                  const item = ITEMS.find(it => it.id === id)!
-                  const visibilityKey = item.id as VisibilityItemsType
-                  return (
-                    <SortableTab
-                      key={id}
-                      id={visibilityKey}
-                      label={item.label}
-                      icon={item.icon}
-                      visible={!visibilityState[visibilityKey]}
-                      active={activeTabId === item.id}
-                      onActivate={() => onUpdateActiveTabId(item.id)}
-                      onToggleVisibility={() => onToggleVisibility(visibilityKey)}
-                      onDragStart={startDragging}
-                      onDragEnd={finishDragging}
-                      onKeyboardMove={moveByKeyboard}
-                    />
-                  )
-                })}
-              </Reorder.Group>
-            </SideTabs>
-          )}
+      {isMobile ? (
+        <SideTabs className='shrink-0'>
+          {renderBasics()}
+          {sortableOrder.map((id) => {
+            const item = ITEMS.find((it) => it.id === id)!
+            const visibilityKey = item.id as VisibilityItemsType
 
-      <ViewPort items={ITEMS} fill={fill} stroke={stroke} scrollable={isMobile} />
+            return (
+              <StaticTab
+                key={id}
+                id={visibilityKey}
+                label={item.label}
+                icon={item.icon}
+                visible={!visibilityState[visibilityKey]}
+                active={activeTabId === item.id}
+                isMobile={isMobile}
+                onActivate={() => onUpdateActiveTabId(item.id)}
+                onToggleVisibility={() => onToggleVisibility(visibilityKey)}
+              />
+            )
+          })}
+        </SideTabs>
+      ) : (
+        <SideTabs>
+          {renderBasics()}
+          <Reorder.Group
+            as='div'
+            axis='x'
+            values={draft}
+            onReorder={setDraft}
+            layoutScroll
+            className='flex flex-row gap-3'
+          >
+            {draft.map((id) => {
+              const item = ITEMS.find((it) => it.id === id)!
+              const visibilityKey = item.id as VisibilityItemsType
+
+              return (
+                <SortableTab
+                  key={id}
+                  id={visibilityKey}
+                  label={item.label}
+                  icon={item.icon}
+                  visible={!visibilityState[visibilityKey]}
+                  active={activeTabId === item.id}
+                  onActivate={() => onUpdateActiveTabId(item.id)}
+                  onToggleVisibility={() => onToggleVisibility(visibilityKey)}
+                  onDragStart={startDragging}
+                  onDragEnd={finishDragging}
+                  onKeyboardMove={moveByKeyboard}
+                />
+              )
+            })}
+          </Reorder.Group>
+        </SideTabs>
+      )}
+
+      <ViewPort
+        items={ITEMS}
+        fill={fill}
+        stroke={stroke}
+        scrollable={isMobile}
+      />
 
       {isMobile && (
         <MobileSortDrawer

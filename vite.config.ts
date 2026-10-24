@@ -10,12 +10,26 @@ import topLevelAwait from 'vite-plugin-top-level-await'
 import wasm from 'vite-plugin-wasm'
 
 export default defineConfig({
+  server: {
+    watch: {
+      ignored: ['**/.superpowers/**'],
+    },
+  },
   plugins: [
     wasm(),
     topLevelAwait(),
     // MDX 会去掉 query 再匹配；Skill 文档必须保留 ?raw 的原始文本。
-    { enforce: 'pre', ...mdx({ exclude: '**/src/lib/ai/skills/**/*.md', remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter] }) },
-    react({ include: /\.(jsx|js|mdx|md|tsx|ts)$/, exclude: [/node_modules/, /src\/lib\/ai\/skills\/.*\.md(?:\?|$)/] }),
+    {
+      enforce: 'pre',
+      ...mdx({
+        exclude: '**/src/lib/ai/skills/**/*.md',
+        remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter],
+      }),
+    },
+    react({
+      include: /\.(jsx|js|mdx|md|tsx|ts)$/,
+      exclude: [/node_modules/, /src\/lib\/ai\/skills\/.*\.md(?:\?|$)/],
+    }),
     tailwindcss(),
     Pages({
       exclude: [
@@ -79,13 +93,13 @@ export default defineConfig({
             '@automerge/automerge-repo-storage-indexeddb',
           ],
           // 动画
-          'motion': ['motion'],
+          motion: ['motion'],
           // 图标库
-          'icons': ['lucide-react'],
+          icons: ['lucide-react'],
           // Supabase
-          'supabase': ['@supabase/supabase-js'],
+          supabase: ['@supabase/supabase-js'],
           // 其他工具库
-          'utils': ['clsx', 'tailwind-merge', 'dayjs', 'zod', 'zustand'],
+          utils: ['clsx', 'tailwind-merge', 'dayjs', 'zod', 'zustand'],
         },
       },
     },

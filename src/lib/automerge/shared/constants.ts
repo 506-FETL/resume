@@ -1,8 +1,11 @@
 export const AUTOMERGE_STORAGE_KEY = 'resume-automerge-v1'
+
 export const BASE64_CHUNK_SIZE = 0x8000
 
 export const PENDING_MESSAGE_TTL_MS = 30_000
+
 export const PENDING_MESSAGE_LIMIT = 1000
+
 export const PENDING_MESSAGE_FLUSH_LIMIT = 200
 
 export const COLLABORATION_CONTROL_ACK_TIMEOUT_MS = 2_000

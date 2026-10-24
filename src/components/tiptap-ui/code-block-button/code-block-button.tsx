@@ -19,8 +19,7 @@ import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 import { parseShortcutKeys } from '@/lib/tiptap-utils'
 
 export interface CodeBlockButtonProps
-  extends Omit<ButtonProps, 'type'>,
-  UseCodeBlockConfig {
+  extends Omit<ButtonProps, 'type'>, UseCodeBlockConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -45,8 +44,19 @@ export function CodeBlockShortcutBadge({
  *
  * For custom button implementations, use the `useCodeBlock` hook instead.
  */
-export function CodeBlockButton({ ref, editor: providedEditor, text, hideWhenUnavailable = false, onToggled, showShortcut = false, onClick, children, ...buttonProps }: CodeBlockButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function CodeBlockButton({
+  ref,
+  editor: providedEditor,
+  text,
+  hideWhenUnavailable = false,
+  onToggled,
+  showShortcut = false,
+  onClick,
+  children,
+  ...buttonProps
+}: CodeBlockButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
   const { editor } = useTiptapEditor(providedEditor)
+
   const {
     isVisible,
     canToggle,
@@ -64,8 +74,9 @@ export function CodeBlockButton({ ref, editor: providedEditor, text, hideWhenUna
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
-      if (event.defaultPrevented)
-        return
+
+      if (event.defaultPrevented) return
+
       handleToggle()
     },
     [handleToggle, onClick],
@@ -77,24 +88,24 @@ export function CodeBlockButton({ ref, editor: providedEditor, text, hideWhenUna
 
   return (
     <Button
-      type="button"
-      data-style="ghost"
+      type='button'
+      data-style='ghost'
       data-active-state={isActive ? 'on' : 'off'}
-      role="button"
+      role='button'
       disabled={!canToggle}
       data-disabled={!canToggle}
       tabIndex={-1}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip="Code Block"
+      tooltip='Code Block'
       onClick={handleClick}
       {...buttonProps}
       ref={ref}
     >
       {children ?? (
         <>
-          <Icon className="tiptap-button-icon" />
-          {text && <span className="tiptap-button-text">{text}</span>}
+          <Icon className='tiptap-button-icon' />
+          {text && <span className='tiptap-button-text'>{text}</span>}
           {showShortcut && (
             <CodeBlockShortcutBadge shortcutKeys={shortcutKeys} />
           )}

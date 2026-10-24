@@ -10,18 +10,22 @@ import { useWriteConfirmBridge } from './hooks/use-write-confirm-bridge'
 
 export default function Assistant() {
   const rootRef = useAssistantLayout()
+
   useWriteConfirmBridge()
   useAssistantBootstrap()
   useAssistantNavigation(true)
 
   return (
-    <div ref={rootRef} className="flex h-full min-h-0 w-full overflow-hidden bg-background">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+    <div
+      ref={rootRef}
+      className='flex h-full min-h-0 w-full overflow-hidden bg-background'
+    >
+      <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
         <ChatHeader />
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className='min-h-0 flex-1 overflow-hidden'>
           <MessageList />
         </div>
-        <div className="shrink-0 border-t bg-background/90 py-3 backdrop-blur">
+        <div className='shrink-0 border-t bg-background/90 py-3 backdrop-blur'>
           <Composer />
         </div>
       </div>

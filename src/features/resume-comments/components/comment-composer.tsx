@@ -32,18 +32,22 @@ export function CommentComposer({
   onSubmit: (value: string) => Promise<boolean>
   onCancel?: () => void
 }) {
-  const value = useResumeCommentStore(state => state.draftsByThreadKey[draftKey] ?? initialValue ?? '')
-  const setDraft = useResumeCommentStore(state => state.setDraft)
+  const value = useResumeCommentStore(
+    (state) => state.draftsByThreadKey[draftKey] ?? initialValue ?? '',
+  )
+
+  const setDraft = useResumeCommentStore((state) => state.setDraft)
   const count = useMemo(() => countCommentGraphemes(value), [value])
   const valid = value.trim().length > 0 && count <= COMMENT_BODY_MAX_GRAPHEMES
 
   return (
     <form
-      className="space-y-2"
+      className='space-y-2'
       onSubmit={(event) => {
         event.preventDefault()
-        if (!valid || disabled || submitDisabled || pending)
-          return
+
+        if (!valid || disabled || submitDisabled || pending) return
+
         onSubmit(value.trim()).catch(() => undefined)
       }}
     >
@@ -53,30 +57,38 @@ export function CommentComposer({
         placeholder={placeholder}
         disabled={disabled}
         aria-invalid={count > COMMENT_BODY_MAX_GRAPHEMES}
-        className="max-h-40 min-h-20 resize-y"
-        onChange={event => setDraft(draftKey, event.target.value)}
+        className='max-h-40 min-h-20 resize-y'
+        onChange={(event) => setDraft(draftKey, event.target.value)}
         onKeyDown={(event) => {
           if ((event.metaKey || event.ctrlKey) && event.key === 'Enter')
             event.currentTarget.form?.requestSubmit()
         }}
       />
-      <div className="flex items-center justify-between gap-3">
-        <span className={cn(
-          'text-xs text-muted-foreground',
-          count > COMMENT_BODY_MAX_GRAPHEMES && 'text-destructive',
-        )}
+      <div className='flex items-center justify-between gap-3'>
+        <span
+          className={cn(
+            'text-xs text-muted-foreground',
+            count > COMMENT_BODY_MAX_GRAPHEMES && 'text-destructive',
+          )}
         >
-          {count.toLocaleString()}
-          {' '}
-          /
+          {count.toLocaleString()} /
           {COMMENT_BODY_MAX_GRAPHEMES.toLocaleString()}
         </span>
-        <div className="flex gap-2">
-          {onCancel
-            ? <Button type="button" size="sm" variant="ghost" onClick={onCancel}>取消</Button>
-            : null}
-          <Button type="submit" size="sm" disabled={!valid || disabled || submitDisabled || pending} aria-live="polite">
-            {pending ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : null}
+        <div className='flex gap-2'>
+          {onCancel ? (
+            <Button type='button' size='sm' variant='ghost' onClick={onCancel}>
+              取消
+            </Button>
+          ) : null}
+          <Button
+            type='submit'
+            size='sm'
+            disabled={!valid || disabled || submitDisabled || pending}
+            aria-live='polite'
+          >
+            {pending ? (
+              <LoaderCircle className='animate-spin' data-icon='inline-start' />
+            ) : null}
             {pending ? pendingLabel : submitLabel}
           </Button>
         </div>

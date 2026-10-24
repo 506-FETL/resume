@@ -8,7 +8,10 @@ import { SkillItemValue } from './skill-item-value'
 import { SkillListValue } from './skill-list-value'
 import { StringArrayValue } from './string-array-value'
 
-export const RENDERER_MAP: Record<string, ComponentType<{ value: any, variant?: RendererVariant }>> = {
+export const RENDERER_MAP: Record<
+  string,
+  ComponentType<{ value: any; variant?: RendererVariant }>
+> = {
   date_range: DateRangeValue,
   skill_list: SkillListValue,
   skill_item: SkillItemValue,
@@ -19,6 +22,9 @@ export const RENDERER_MAP: Record<string, ComponentType<{ value: any, variant?: 
 }
 
 export { HtmlStringValue } from './html-string-value'
+
 export { StringValue } from './string-value'
+
 export { EmptyValue } from './types'
+
 export type { RendererVariant } from './types'

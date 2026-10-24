@@ -11,10 +11,12 @@ export const hiddenField = z.boolean().optional()
 
 export function createExperienceSchema<T extends z.ZodRawShape>(fields: T) {
   return z.object({
-    items: z.array(z.object({
-      entryId: resumeEntryIdSchema,
-      hidden: hiddenField,
-      ...fields,
-    })),
+    items: z.array(
+      z.object({
+        entryId: resumeEntryIdSchema,
+        hidden: hiddenField,
+        ...fields,
+      }),
+    ),
   })
 }

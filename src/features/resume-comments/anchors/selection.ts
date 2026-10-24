@@ -1,7 +1,19 @@
-import type { AnchorOverlap, CommentAnchor, ResolvedCommentSelection } from './types.ts'
-import { COMMENT_ANCHOR_CONTEXT_GRAPHEMES, COMMENT_HIDDEN_PAGE_SELECTOR, COMMENT_MEASUREMENT_SOURCE_SELECTOR } from '../const.ts'
+import type {
+  AnchorOverlap,
+  CommentAnchor,
+  ResolvedCommentSelection,
+} from './types.ts'
+import {
+  COMMENT_ANCHOR_CONTEXT_GRAPHEMES,
+  COMMENT_HIDDEN_PAGE_SELECTOR,
+  COMMENT_MEASUREMENT_SOURCE_SELECTOR,
+} from '../const.ts'
 import { sha256Hex } from './document.ts'
-import { commentDomPointToGraphemeOffset, findCommentDomBlockByOrdinal, projectCommentDomNode } from './dom-projection.ts'
+import {
+  commentDomPointToGraphemeOffset,
+  findCommentDomBlockByOrdinal,
+  projectCommentDomNode,
+} from './dom-projection.ts'
 import { graphemeSlice } from './graphemes.ts'
 import { normalizeCommentRichTextBlock } from './projection.ts'
 
@@ -25,89 +37,158 @@ export function areCommentSelectionBoundariesCompatible(
 
 function toElement(node: Node): Element | null {
   return node.nodeType === Node.ELEMENT_NODE
-    ? node as Element
+    ? (node as Element)
     : node.parentElement
 }
 
 function readSelectionBoundary(node: Node) {
   const element = toElement(node)
-  const blockElement = element?.closest<HTMLElement>('[data-comment-block-ordinal]') ?? null
-  const nodeElement = element?.closest<HTMLElement>('[data-comment-node-key]') ?? null
+
+  const blockElement =
+    element?.closest<HTMLElement>('[data-comment-block-ordinal]') ?? null
+
+  const nodeElement =
+    element?.closest<HTMLElement>('[data-comment-node-key]') ?? null
+
   const blockOrdinal = Number(blockElement?.dataset.commentBlockOrdinal)
   const nodeKey = nodeElement?.dataset.commentNodeKey?.trim() ?? ''
 
-  if (!blockElement || !nodeElement || !Number.isInteger(blockOrdinal) || blockOrdinal < 0 || !nodeKey) {
+  if (
+    !blockElement ||
+    !nodeElement ||
+    !Number.isInteger(blockOrdinal) ||
+    blockOrdinal < 0 ||
+    !nodeKey
+  ) {
     return null
   }
+
   return { blockElement, nodeElement, blockOrdinal, nodeKey }
 }
 
+function normalizeSelectionRange(range: Range): Range | null {
+  const root = range.commonAncestorContainer
+  const document = root.ownerDocument
+
+  if (!document) return null
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node = root.nodeType === Node.TEXT_NODE ? root : walker.nextNode()
+  let first: { node: Node; offset: number } | null = null
+  let last: { node: Node; offset: number } | null = null
+
+  // 浏览器连续点击选中整行时，末端可能落在下一字段的 offset 0。
+  // 以真正选中的非空文本收紧边界，避免把未选中的相邻字段算进锚点。
+  while (node) {
+    if (range.intersectsNode(node)) {
+      const text = node.nodeValue ?? ''
+      const start = node === range.startContainer ? range.startOffset : 0
+      const end = node === range.endContainer ? range.endOffset : text.length
+
+      if (
+        start < end &&
+        normalizeCommentRichTextBlock(text.slice(start, end))
+      ) {
+        first ??= { node, offset: start }
+        last = { node, offset: end }
+      }
+    }
+
+    node = walker.nextNode()
+  }
+
+  if (!first || !last) return null
+
+  const normalized = range.cloneRange()
+
+  normalized.setStart(first.node, first.offset)
+  normalized.setEnd(last.node, last.offset)
+
+  return normalized
+}
+
 export function resolveCommentSelection(
-  range: Range,
+  inputRange: Range,
   options: ResolveCommentSelectionOptions,
 ): ResolvedCommentSelection | null {
-  if (range.collapsed) {
+  if (inputRange.collapsed) {
     return null
   }
-  if (!normalizeCommentRichTextBlock(range.toString())) {
+
+  const range = normalizeSelectionRange(inputRange)
+
+  if (!range) {
     return null
   }
 
   const start = readSelectionBoundary(range.startContainer)
   const end = readSelectionBoundary(range.endContainer)
+
   if (
-    !start
-    || !end
-    || start.nodeElement !== end.nodeElement
-    || !areCommentSelectionBoundariesCompatible(start, end)
+    !start ||
+    !end ||
+    start.nodeElement !== end.nodeElement ||
+    !areCommentSelectionBoundariesCompatible(start, end)
   ) {
     return null
   }
 
   if (
-    options.rejectMeasurementSource !== false
-    && start.nodeElement.closest(COMMENT_MEASUREMENT_SOURCE_SELECTOR)
+    options.rejectMeasurementSource !== false &&
+    start.nodeElement.closest(COMMENT_MEASUREMENT_SOURCE_SELECTOR)
   ) {
     return null
   }
   if (
-    options.rejectHiddenPage !== false
-    && start.nodeElement.closest(COMMENT_HIDDEN_PAGE_SELECTOR)
+    options.rejectHiddenPage !== false &&
+    start.nodeElement.closest(COMMENT_HIDDEN_PAGE_SELECTOR)
   ) {
     return null
   }
 
   const projection = projectCommentDomNode(start.nodeElement)
-  const startBlock = findCommentDomBlockByOrdinal(projection, start.blockOrdinal)
+
+  const startBlock = findCommentDomBlockByOrdinal(
+    projection,
+    start.blockOrdinal,
+  )
+
   const endBlock = findCommentDomBlockByOrdinal(projection, end.blockOrdinal)
+
   if (
-    !startBlock
-    || !endBlock
-    || startBlock.element !== start.blockElement
-    || endBlock.element !== end.blockElement
+    !startBlock ||
+    !endBlock ||
+    startBlock.element !== start.blockElement ||
+    endBlock.element !== end.blockElement
   ) {
     return null
   }
+
   const localStart = commentDomPointToGraphemeOffset(
     start.blockElement,
     range.startContainer,
     range.startOffset,
   )
+
   const localEnd = commentDomPointToGraphemeOffset(
     end.blockElement,
     range.endContainer,
     range.endOffset,
   )
+
   if (localStart === null || localEnd === null) {
     return null
   }
+
   const startOffset = startBlock.startGraphemeOffset + localStart
   const endOffset = endBlock.startGraphemeOffset + localEnd
+
   if (startOffset >= endOffset) {
     return null
   }
 
   const exactQuote = graphemeSlice(projection.text, startOffset, endOffset)
+
   if (!exactQuote) {
     return null
   }
@@ -140,33 +221,37 @@ export function resolveCommentSelection(
   }
 }
 
-export function compareAnchorOverlap(left: CommentAnchor, right: CommentAnchor): AnchorOverlap {
+export function compareAnchorOverlap(
+  left: CommentAnchor,
+  right: CommentAnchor,
+): AnchorOverlap {
   if (left.nodeKey !== right.nodeKey) {
     return 'none'
   }
   if (
-    left.startGraphemeOffset === right.startGraphemeOffset
-    && left.endGraphemeOffset === right.endGraphemeOffset
+    left.startGraphemeOffset === right.startGraphemeOffset &&
+    left.endGraphemeOffset === right.endGraphemeOffset
   ) {
     return 'exact'
   }
   if (
-    left.startGraphemeOffset <= right.startGraphemeOffset
-    && left.endGraphemeOffset >= right.endGraphemeOffset
+    left.startGraphemeOffset <= right.startGraphemeOffset &&
+    left.endGraphemeOffset >= right.endGraphemeOffset
   ) {
     return 'contains'
   }
   if (
-    right.startGraphemeOffset <= left.startGraphemeOffset
-    && right.endGraphemeOffset >= left.endGraphemeOffset
+    right.startGraphemeOffset <= left.startGraphemeOffset &&
+    right.endGraphemeOffset >= left.endGraphemeOffset
   ) {
     return 'contained_by'
   }
   if (
-    left.startGraphemeOffset < right.endGraphemeOffset
-    && right.startGraphemeOffset < left.endGraphemeOffset
+    left.startGraphemeOffset < right.endGraphemeOffset &&
+    right.startGraphemeOffset < left.endGraphemeOffset
   ) {
     return 'partial'
   }
+
   return 'none'
 }

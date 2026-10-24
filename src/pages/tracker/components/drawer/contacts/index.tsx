@@ -27,19 +27,24 @@ interface ContactsProps {
 }
 
 // 单行相等判断：用于逐行 dirty 计算，与全局保存解耦。
-function contactEqual(a: TrackerContact | undefined, b: TrackerContact | undefined) {
-  if (!a || !b)
-    return false
-  return a.id === b.id
-    && a.name === b.name
-    && a.role === b.role
-    && a.channel === b.channel
-    && a.note === b.note
+function contactEqual(
+  a: TrackerContact | undefined,
+  b: TrackerContact | undefined,
+) {
+  if (!a || !b) return false
+
+  return (
+    a.id === b.id &&
+    a.name === b.name &&
+    a.role === b.role &&
+    a.channel === b.channel &&
+    a.note === b.note
+  )
 }
 
 export default function Contacts({ job }: ContactsProps) {
   const reduceMotion = useReducedMotion()
-  const saveJobFields = useTrackerStore(state => state.saveJobFields)
+  const saveJobFields = useTrackerStore((state) => state.saveJobFields)
   const [contacts, setContacts] = useState<TrackerContact[]>(job.contacts)
   const [baseline, setBaseline] = useState<TrackerContact[]>(job.contacts)
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -49,6 +54,7 @@ export default function Contacts({ job }: ContactsProps) {
   const jobContactsRef = useRef(job.contacts)
   const jobIdRef = useRef(job.id)
   const requestGenerationRef = useRef(0)
+
   contactsRef.current = contacts
   baselineRef.current = baseline
   jobContactsRef.current = job.contacts
@@ -70,200 +76,282 @@ export default function Contacts({ job }: ContactsProps) {
   const persistRow = async (
     rowId: string,
     dbNext: TrackerContact[],
-    options: { successText: string, isDelete?: boolean },
+    options: { successText: string; isDelete?: boolean },
   ) => {
     const requestJobId = job.id
     const requestGeneration = requestGenerationRef.current + 1
+
     requestGenerationRef.current = requestGeneration
-    const isCurrentRequest = () => (
-      jobIdRef.current === requestJobId
-      && requestGenerationRef.current === requestGeneration
-    )
+
+    const isCurrentRequest = () =>
+      jobIdRef.current === requestJobId &&
+      requestGenerationRef.current === requestGeneration
 
     setSavingId(rowId)
+
     try {
-      const edited = dbNext.find(contact => contact.id === rowId)
-      const savedJob = await saveJobFields(job.id, current => ({
+      const edited = dbNext.find((contact) => contact.id === rowId)
+
+      const savedJob = await saveJobFields(job.id, (current) => ({
         contacts: options.isDelete
-          ? current.contacts.filter(contact => contact.id !== rowId)
-          : current.contacts.some(contact => contact.id === rowId)
-            ? current.contacts.map(contact => contact.id === rowId && edited ? edited : contact)
-            : edited ? [...current.contacts, edited] : current.contacts,
+          ? current.contacts.filter((contact) => contact.id !== rowId)
+          : current.contacts.some((contact) => contact.id === rowId)
+            ? current.contacts.map((contact) =>
+                contact.id === rowId && edited ? edited : contact,
+              )
+            : edited
+              ? [...current.contacts, edited]
+              : current.contacts,
       }))
+
       if (isCurrentRequest()) {
         setBaseline(savedJob.contacts)
+
         setContacts((prev) => {
-          if (options.isDelete)
-            return prev.filter(c => c.id !== rowId)
-          const savedRow = savedJob.contacts.find(c => c.id === rowId)
-          return prev.map(c => (c.id === rowId ? (savedRow ?? c) : c))
+          if (options.isDelete) return prev.filter((c) => c.id !== rowId)
+
+          const savedRow = savedJob.contacts.find((c) => c.id === rowId)
+
+          return prev.map((c) => (c.id === rowId ? (savedRow ?? c) : c))
         })
+
         toast.success(options.successText)
       }
-    }
-    catch (error) {
-      if (isTrackerAccountScopeError(error))
-        return
+    } catch (error) {
+      if (isTrackerAccountScopeError(error)) return
+
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
-    }
-    finally {
-      if (isCurrentRequest())
-        setSavingId(null)
+    } finally {
+      if (isCurrentRequest()) setSavingId(null)
     }
   }
 
   const handleAdd = () => {
-    if (saving)
-      return
-    const contact: TrackerContact = { id: crypto.randomUUID(), name: '', role: '', channel: '', note: '' }
-    setContacts(prev => [...prev, contact])
+    if (saving) return
+
+    const contact: TrackerContact = {
+      id: crypto.randomUUID(),
+      name: '',
+      role: '',
+      channel: '',
+      note: '',
+    }
+
+    setContacts((prev) => [...prev, contact])
   }
 
   const handleFieldChange = (id: string, patch: Partial<TrackerContact>) => {
-    setContacts(prev => prev.map(c => (c.id === id ? { ...c, ...patch } : c)))
+    setContacts((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    )
   }
 
   const handleSaveRow = async (id: string) => {
-    if (saving)
-      return
-    const edited = contactsRef.current.find(c => c.id === id)
-    if (!edited)
-      return
+    if (saving) return
+
+    const edited = contactsRef.current.find((c) => c.id === id)
+
+    if (!edited) return
+
     const base = baselineRef.current
-    const exists = base.some(c => c.id === id)
-    const dbNext = exists ? base.map(c => (c.id === id ? edited : c)) : [...base, edited]
+    const exists = base.some((c) => c.id === id)
+
+    const dbNext = exists
+      ? base.map((c) => (c.id === id ? edited : c))
+      : [...base, edited]
+
     await persistRow(id, dbNext, { successText: '已保存联系人' })
   }
 
   const handleDelete = async () => {
     const deleteId = pendingDeleteId
-    if (!deleteId || saving)
-      return
+
+    if (!deleteId || saving) return
+
     setPendingDeleteId(null)
-    const dbNext = baselineRef.current.filter(c => c.id !== deleteId)
-    await persistRow(deleteId, dbNext, { successText: '已删除联系人', isDelete: true })
+
+    const dbNext = baselineRef.current.filter((c) => c.id !== deleteId)
+
+    await persistRow(deleteId, dbNext, {
+      successText: '已删除联系人',
+      isDelete: true,
+    })
   }
 
-  const pendingDeleteContact = contacts.find(contact => contact.id === pendingDeleteId)
+  const pendingDeleteContact = contacts.find(
+    (contact) => contact.id === pendingDeleteId,
+  )
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <UserRound className="size-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">联系人</h3>
-          <span className="text-xs text-muted-foreground">{contacts.length}</span>
+    <section className='flex flex-col gap-3'>
+      <div className='flex items-center justify-between gap-2'>
+        <div className='flex items-center gap-2'>
+          <UserRound className='size-4 text-muted-foreground' />
+          <h3 className='text-sm font-semibold'>联系人</h3>
+          <span className='text-xs text-muted-foreground'>
+            {contacts.length}
+          </span>
         </div>
-        <Button variant="outline" size="sm" className="h-8" disabled={saving} onClick={handleAdd}>
-          <Plus className="size-3.5" />
+        <Button
+          variant='outline'
+          size='sm'
+          className='h-8'
+          disabled={saving}
+          onClick={handleAdd}
+        >
+          <Plus className='size-3.5' />
           添加联系人
         </Button>
       </div>
 
-      <AnimatedContent animationKey={contacts.length === 0 ? 'empty' : 'contacts'}>
-        {contacts.length === 0
-          ? (
-              <p className="rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground">
-                暂无联系人
-              </p>
-            )
-          : (
-              <ul className="flex flex-col gap-3">
-                <AnimatePresence initial={false} mode="popLayout">
-                  {contacts.map((contact) => {
-                    const baselineRow = baseline.find(c => c.id === contact.id)
-                    const isPersisted = Boolean(baselineRow)
-                    const rowDirty = !contactEqual(contact, baselineRow)
-                    return (
-                      <PresenceListItem
-                        key={contact.id}
-                        layout={reduceMotion ? false : 'position'}
-                        layoutDependency={contacts.length}
-                        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
-                        transition={reduceMotion ? { duration: 0 } : { duration: DURATION.base, ease: EASE.out, layout: SPRING.layout }}
-                        className="flex items-start gap-2 rounded-lg border bg-card p-3"
+      <AnimatedContent
+        animationKey={contacts.length === 0 ? 'empty' : 'contacts'}
+      >
+        {contacts.length === 0 ? (
+          <p className='rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground'>
+            暂无联系人
+          </p>
+        ) : (
+          <ul className='flex flex-col gap-3'>
+            <AnimatePresence initial={false} mode='popLayout'>
+              {contacts.map((contact) => {
+                const baselineRow = baseline.find((c) => c.id === contact.id)
+                const isPersisted = Boolean(baselineRow)
+                const rowDirty = !contactEqual(contact, baselineRow)
+
+                return (
+                  <PresenceListItem
+                    key={contact.id}
+                    layout={reduceMotion ? false : 'position'}
+                    layoutDependency={contacts.length}
+                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{
+                      opacity: 0,
+                      transition: {
+                        duration: reduceMotion ? 0 : DURATION.fast,
+                        ease: EASE.in,
+                      },
+                    }}
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : {
+                            duration: DURATION.base,
+                            ease: EASE.out,
+                            layout: SPRING.layout,
+                          }
+                    }
+                    className='flex items-start gap-2 rounded-lg border bg-card p-3'
+                  >
+                    <div className='grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]'>
+                      <label className='flex flex-col gap-1'>
+                        <span className='text-[11px] font-medium text-muted-foreground'>
+                          姓名
+                        </span>
+                        <Input
+                          value={contact.name}
+                          placeholder='如 佘明聪'
+                          className='h-8 font-medium'
+                          disabled={saving}
+                          onChange={(e) =>
+                            handleFieldChange(contact.id, {
+                              name: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className='flex flex-col gap-1'>
+                        <span className='text-[11px] font-medium text-muted-foreground'>
+                          角色
+                        </span>
+                        <Input
+                          value={contact.role}
+                          placeholder='HR / 面试官 / 内推人'
+                          className='h-8'
+                          disabled={saving}
+                          onChange={(e) =>
+                            handleFieldChange(contact.id, {
+                              role: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className='flex flex-col gap-1'>
+                        <span className='text-[11px] font-medium text-muted-foreground'>
+                          联系方式
+                        </span>
+                        <Input
+                          value={contact.channel}
+                          placeholder='微信 / 邮箱 / 电话'
+                          className='h-8'
+                          disabled={saving}
+                          onChange={(e) =>
+                            handleFieldChange(contact.id, {
+                              channel: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className='flex flex-col gap-1'>
+                        <span className='text-[11px] font-medium text-muted-foreground'>
+                          备注
+                        </span>
+                        <Input
+                          value={contact.note}
+                          placeholder='如账号、补充说明'
+                          className='h-8'
+                          disabled={saving}
+                          onChange={(e) =>
+                            handleFieldChange(contact.id, {
+                              note: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className='flex shrink-0 items-center gap-1 pt-[22px]'>
+                      {rowDirty && (
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          className='h-8'
+                          disabled={saving}
+                          onClick={() => handleSaveRow(contact.id)}
+                        >
+                          保存
+                        </Button>
+                      )}
+                      <Button
+                        variant='ghost'
+                        size='icon-sm'
+                        className='text-destructive hover:bg-destructive/10 hover:text-destructive'
+                        aria-label='删除联系人'
+                        disabled={saving}
+                        onClick={() => {
+                          if (isPersisted) setPendingDeleteId(contact.id)
+                          else
+                            setContacts((prev) =>
+                              prev.filter((c) => c.id !== contact.id),
+                            )
+                        }}
                       >
-                        <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]">
-                          <label className="flex flex-col gap-1">
-                            <span className="text-[11px] font-medium text-muted-foreground">姓名</span>
-                            <Input
-                              value={contact.name}
-                              placeholder="如 佘明聪"
-                              className="h-8 font-medium"
-                              disabled={saving}
-                              onChange={e => handleFieldChange(contact.id, { name: e.target.value })}
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="text-[11px] font-medium text-muted-foreground">角色</span>
-                            <Input
-                              value={contact.role}
-                              placeholder="HR / 面试官 / 内推人"
-                              className="h-8"
-                              disabled={saving}
-                              onChange={e => handleFieldChange(contact.id, { role: e.target.value })}
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="text-[11px] font-medium text-muted-foreground">联系方式</span>
-                            <Input
-                              value={contact.channel}
-                              placeholder="微信 / 邮箱 / 电话"
-                              className="h-8"
-                              disabled={saving}
-                              onChange={e => handleFieldChange(contact.id, { channel: e.target.value })}
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="text-[11px] font-medium text-muted-foreground">备注</span>
-                            <Input
-                              value={contact.note}
-                              placeholder="如账号、补充说明"
-                              className="h-8"
-                              disabled={saving}
-                              onChange={e => handleFieldChange(contact.id, { note: e.target.value })}
-                            />
-                          </label>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1 pt-[22px]">
-                          {rowDirty && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              disabled={saving}
-                              onClick={() => handleSaveRow(contact.id)}
-                            >
-                              保存
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            aria-label="删除联系人"
-                            disabled={saving}
-                            onClick={() => {
-                              if (isPersisted)
-                                setPendingDeleteId(contact.id)
-                              else setContacts(prev => prev.filter(c => c.id !== contact.id))
-                            }}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
-                      </PresenceListItem>
-                    )
-                  })}
-                </AnimatePresence>
-              </ul>
-            )}
+                        <Trash2 className='size-4' />
+                      </Button>
+                    </div>
+                  </PresenceListItem>
+                )
+              })}
+            </AnimatePresence>
+          </ul>
+        )}
       </AnimatedContent>
 
-      <AlertDialog open={pendingDeleteId !== null} onOpenChange={open => !open && setPendingDeleteId(null)}>
-        <AlertDialogContent size="sm">
+      <AlertDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => !open && setPendingDeleteId(null)}
+      >
+        <AlertDialogContent size='sm'>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除联系人？</AlertDialogTitle>
             <AlertDialogDescription>
@@ -271,8 +359,15 @@ export default function Contacts({ job }: ContactsProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={saving} onClick={() => setPendingDeleteId(null)}>取消</AlertDialogCancel>
-            <AlertDialogAction disabled={saving} onClick={handleDelete}>删除</AlertDialogAction>
+            <AlertDialogCancel
+              disabled={saving}
+              onClick={() => setPendingDeleteId(null)}
+            >
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction disabled={saving} onClick={handleDelete}>
+              删除
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

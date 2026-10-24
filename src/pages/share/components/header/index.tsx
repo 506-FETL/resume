@@ -13,20 +13,20 @@ export default function Header() {
   return (
     <>
       <PageHeader
-        title="分享管理"
-        description="管理分享版本、访问权限与链接有效期。"
-        actions={(
+        title='分享管理'
+        description='管理分享版本、访问权限与链接有效期。'
+        actions={
           <Button
-            className="h-10 shrink-0 rounded-lg px-4"
+            className='h-10 shrink-0 rounded-lg px-4'
             onClick={() => setCreateDialogOpen(true)}
             disabled={!canCreate}
             title={canCreate ? undefined : '请先创建或同步一份云端简历'}
           >
-            <Plus data-icon="inline-start" />
-            <span className="hidden sm:inline">新建分享</span>
-            <span className="sm:hidden">新建</span>
+            <Plus data-icon='inline-start' />
+            <span className='hidden sm:inline'>新建分享</span>
+            <span className='sm:hidden'>新建</span>
           </Button>
-        )}
+        }
       />
       <CreateDialog
         open={createDialogOpen}

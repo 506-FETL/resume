@@ -35,38 +35,64 @@ export function EditableField({
 }: EditableFieldProps) {
   return (
     <Field>
-      <FieldLabel htmlFor={id} className="items-center">
+      <FieldLabel htmlFor={id} className='items-center'>
         {icon}
         {label}
       </FieldLabel>
-      <div className="flex gap-2">
+      <div className='flex gap-2'>
         <Input
           id={id}
           type={type}
           value={value}
-          onChange={e => onValueChange(e.target.value)}
+          onChange={(e) => onValueChange(e.target.value)}
           disabled={!isEditing || isSaving}
-          className={!isEditing ? 'bg-muted transition-colors motion-reduce:transition-none' : 'transition-colors motion-reduce:transition-none'}
+          className={
+            !isEditing
+              ? 'bg-muted transition-colors motion-reduce:transition-none'
+              : 'transition-colors motion-reduce:transition-none'
+          }
         />
-        <AnimatedContent animationKey={isEditing ? 'editing' : 'idle'} className="flex shrink-0 gap-2">
-          {!isEditing
-            ? (
-                <Button variant="outline" size="icon" onClick={onEdit} aria-label={`编辑${label}`}>
-                  <Pencil />
-                </Button>
-              )
-            : (
-                <>
-                  <Button variant="outline" size="icon" onClick={onSave} disabled={isSaving} aria-label={`保存${label}`}>
-                    <AnimatedContent as="span" animationKey={isSaving ? 'saving' : 'idle'} className="flex items-center">
-                      {isSaving ? <Spinner /> : <Check />}
-                    </AnimatedContent>
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={onCancel} disabled={isSaving} aria-label={`取消编辑${label}`}>
-                    <X />
-                  </Button>
-                </>
-              )}
+        <AnimatedContent
+          animationKey={isEditing ? 'editing' : 'idle'}
+          className='flex shrink-0 gap-2'
+        >
+          {!isEditing ? (
+            <Button
+              variant='outline'
+              size='icon'
+              onClick={onEdit}
+              aria-label={`编辑${label}`}
+            >
+              <Pencil />
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={onSave}
+                disabled={isSaving}
+                aria-label={`保存${label}`}
+              >
+                <AnimatedContent
+                  as='span'
+                  animationKey={isSaving ? 'saving' : 'idle'}
+                  className='flex items-center'
+                >
+                  {isSaving ? <Spinner /> : <Check />}
+                </AnimatedContent>
+              </Button>
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={onCancel}
+                disabled={isSaving}
+                aria-label={`取消编辑${label}`}
+              >
+                <X />
+              </Button>
+            </>
+          )}
         </AnimatedContent>
       </div>
     </Field>

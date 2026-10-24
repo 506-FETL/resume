@@ -41,23 +41,42 @@ function PanelBody({
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
   const { panelHeaderContent } = useResumeCommentContext()
   const actions = useCommentActions()
-  const threads = useResumeCommentStore(useShallow(
-    state => state.orderedThreadIds.map(id => state.threadsById[id]).filter(Boolean),
-  ))
-  const activeThreadId = useResumeCommentStore(state => state.activeThreadId)
-  const setActiveThread = useResumeCommentStore(state => state.setActiveThread)
-  const hidden = useResumeCommentStore(state => state.highlightsHidden)
-  const setHidden = useResumeCommentStore(state => state.setHighlightsHidden)
-  const unreadThreadIds = useResumeCommentStore(useShallow(
-    state => getUnreadCommentThreadIds(
-      state.threadReadStateById,
-      state.lastReadEventSeq,
+
+  const threads = useResumeCommentStore(
+    useShallow((state) =>
+      state.orderedThreadIds.map((id) => state.threadsById[id]).filter(Boolean),
     ),
-  ))
-  const accessState = useResumeCommentStore(state => state.accessState)
-  const contentNotice = useResumeCommentStore(state => state.contentNotice)
-  const setContentNotice = useResumeCommentStore(state => state.setContentNotice)
-  const activeThread = activeThreadId ? threads.find(thread => thread.id === activeThreadId) : null
+  )
+
+  const activeThreadId = useResumeCommentStore((state) => state.activeThreadId)
+
+  const setActiveThread = useResumeCommentStore(
+    (state) => state.setActiveThread,
+  )
+
+  const hidden = useResumeCommentStore((state) => state.highlightsHidden)
+  const setHidden = useResumeCommentStore((state) => state.setHighlightsHidden)
+
+  const unreadThreadIds = useResumeCommentStore(
+    useShallow((state) =>
+      getUnreadCommentThreadIds(
+        state.threadReadStateById,
+        state.lastReadEventSeq,
+      ),
+    ),
+  )
+
+  const accessState = useResumeCommentStore((state) => state.accessState)
+  const contentNotice = useResumeCommentStore((state) => state.contentNotice)
+
+  const setContentNotice = useResumeCommentStore(
+    (state) => state.setContentNotice,
+  )
+
+  const activeThread = activeThreadId
+    ? threads.find((thread) => thread.id === activeThreadId)
+    : null
+
   const selectThread = (threadId: string) => {
     setActiveThread(threadId)
     actions.markThreadRead(threadId).catch(() => undefined)
@@ -76,109 +95,128 @@ function PanelBody({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="shrink-0 border-b px-4 pb-3 pt-4">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <h2 className="font-semibold">评论</h2>
-            <p className="truncate text-xs text-muted-foreground">{sourceLabel}</p>
+    <div className='flex min-h-0 flex-1 flex-col'>
+      <header className='shrink-0 border-b px-4 pb-3 pt-4'>
+        <div className='flex items-center gap-2'>
+          <div className='min-w-0 flex-1'>
+            <h2 className='font-semibold'>评论</h2>
+            <p className='truncate text-xs text-muted-foreground'>
+              {sourceLabel}
+            </p>
           </div>
-          {unreadThreadIds.length > 0
-            ? <Badge>{`新评论 ${unreadThreadIds.length}`}</Badge>
-            : null}
-          {unreadThreadIds.length > 0
-            ? (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  disabled={actions.pendingAction === 'comments:mark-all-read'}
-                  onClick={() => actions.markAllRead().catch(() => undefined)}
-                >
-                  全部已读
-                </Button>
-              )
-            : null}
+          {unreadThreadIds.length > 0 ? (
+            <Badge>{`新评论 ${unreadThreadIds.length}`}</Badge>
+          ) : null}
+          {unreadThreadIds.length > 0 ? (
+            <Button
+              size='xs'
+              variant='ghost'
+              disabled={actions.pendingAction === 'comments:mark-all-read'}
+              onClick={() => actions.markAllRead().catch(() => undefined)}
+            >
+              全部已读
+            </Button>
+          ) : null}
           <Button
-            size="icon-sm"
-            variant="ghost"
+            size='icon-sm'
+            variant='ghost'
             aria-label={hidden ? '显示评论高亮' : '隐藏评论高亮'}
             onClick={() => setHidden(!hidden)}
           >
             {hidden ? <Eye /> : <EyeOff />}
           </Button>
         </div>
-        {accessState !== 'active'
-          ? (
-              <p className="mt-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                {accessState === 'read_only' ? '评论只读，无法新增或回复。' : '此版本评论已不可用，请刷新页面。'}
-              </p>
-            )
-          : null}
-        {contentNotice
-          ? (
-              <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-                <p className="flex-1">{contentNotice}</p>
-                <Button size="xs" variant="ghost" onClick={() => setContentNotice(null)}>知道了</Button>
-              </div>
-            )
-          : null}
+        {accessState !== 'active' ? (
+          <p className='mt-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground'>
+            {accessState === 'read_only'
+              ? '评论只读，无法新增或回复。'
+              : '此版本评论已不可用，请刷新页面。'}
+          </p>
+        ) : null}
+        {contentNotice ? (
+          <div className='mt-3 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100'>
+            <p className='flex-1'>{contentNotice}</p>
+            <Button
+              size='xs'
+              variant='ghost'
+              onClick={() => setContentNotice(null)}
+            >
+              知道了
+            </Button>
+          </div>
+        ) : null}
         {panelHeaderContent}
-        {actions.errorMessage
-          ? <p role="alert" className="mt-2 text-xs text-destructive">{actions.errorMessage}</p>
-          : null}
+        {actions.errorMessage ? (
+          <p role='alert' className='mt-2 text-xs text-destructive'>
+            {actions.errorMessage}
+          </p>
+        ) : null}
       </header>
-      {creationSnapshot
-        ? (
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <p className="mb-3 border-l-2 border-amber-300 pl-3 text-sm text-muted-foreground">{creationSnapshot.selection.exactQuote}</p>
-              <CommentComposer
-                draftKey="new-thread"
-                placeholder="写下你的评论…"
-                autoFocus
-                disabled={!permissions.canCreate || accessState !== 'active'}
-                submitDisabled={actions.pendingAction !== null}
-                onCancel={onCancelCreating}
-                onSubmit={async (value) => {
-                  const pending = await actions.createThread(value, creationSnapshot)
-                  if (!pending)
-                    return false
-                  onFinishCreating()
-                  return true
-                }}
-              />
-              {actions.errorMessage ? <p className="mt-2 text-xs text-destructive">{actions.errorMessage}</p> : null}
-            </div>
-          )
-        : (
-            <>
-              <div className="grid shrink-0 grid-cols-3 gap-1 border-b p-2">
-                {([
-                  ['open', '未解决'],
-                  ['resolved', '已解决'],
-                  ['detached', '失去锚点'],
-                ] as const).map(([value, label]) => (
-                  <Button
-                    key={value}
-                    size="sm"
-                    variant={filter === value ? 'secondary' : 'ghost'}
-                    onClick={() => setFilter(value)}
-                  >
-                    {label}
-                    <span className="text-xs text-muted-foreground">{filterCommentThreads(threads, value).length}</span>
-                  </Button>
-                ))}
-              </div>
-              <div className="flex min-h-0 flex-1 overflow-y-auto">
-                <ThreadList
-                  threads={threads}
-                  filter={filter}
-                  permissions={permissions}
-                  unreadThreadIds={unreadThreadIds}
-                  onSelect={selectThread}
-                />
-              </div>
-            </>
-          )}
+      {creationSnapshot ? (
+        <div className='min-h-0 flex-1 overflow-y-auto p-4'>
+          <p className='mb-3 border-l-2 border-amber-300 pl-3 text-sm text-muted-foreground'>
+            {creationSnapshot.selection.exactQuote}
+          </p>
+          <CommentComposer
+            draftKey='new-thread'
+            placeholder='写下你的评论…'
+            autoFocus
+            disabled={!permissions.canCreate || accessState !== 'active'}
+            submitDisabled={actions.pendingAction !== null}
+            onCancel={onCancelCreating}
+            onSubmit={async (value) => {
+              const pending = await actions.createThread(
+                value,
+                creationSnapshot,
+              )
+
+              if (!pending) return false
+
+              onFinishCreating()
+
+              return true
+            }}
+          />
+          {actions.errorMessage ? (
+            <p className='mt-2 text-xs text-destructive'>
+              {actions.errorMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <>
+          <div className='grid shrink-0 grid-cols-3 gap-1 border-b p-2'>
+            {(
+              [
+                ['open', '未解决'],
+                ['resolved', '已解决'],
+                ['detached', '失去锚点'],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                size='sm'
+                variant={filter === value ? 'secondary' : 'ghost'}
+                onClick={() => setFilter(value)}
+              >
+                {label}
+                <span className='text-xs text-muted-foreground'>
+                  {filterCommentThreads(threads, value).length}
+                </span>
+              </Button>
+            ))}
+          </div>
+          <div className='flex min-h-0 flex-1 overflow-y-auto'>
+            <ThreadList
+              threads={threads}
+              filter={filter}
+              permissions={permissions}
+              unreadThreadIds={unreadThreadIds}
+              onSelect={selectThread}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -201,10 +239,12 @@ export function CommentsPanel({
   onFinishCreating: () => void
 }) {
   const isMobile = useCommentMobileLayout()
-  const beginRelink = useResumeCommentStore(state => state.beginRelink)
+  const beginRelink = useResumeCommentStore((state) => state.beginRelink)
+
   const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen)
   }
+
   const body = (
     <PanelBody
       sourceLabel={sourceLabel}
@@ -219,42 +259,45 @@ export function CommentsPanel({
       }}
     />
   )
+
   const content = (
     <DrawerContent
       data-resume-comment-ui
-      aria-label="简历评论"
-      overlayClassName="supports-backdrop-filter:backdrop-blur-none"
-      className={isMobile
-        ? undefined
-        : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'}
+      aria-label='简历评论'
+      overlayClassName='supports-backdrop-filter:backdrop-blur-none'
+      className={
+        isMobile
+          ? undefined
+          : '[--drawer-content-width:min(400px,calc(100vw-1rem))]'
+      }
     >
-      <DrawerTitle className="sr-only">简历评论</DrawerTitle>
-      <DrawerDescription className="sr-only">{sourceLabel}</DrawerDescription>
+      <DrawerTitle className='sr-only'>简历评论</DrawerTitle>
+      <DrawerDescription className='sr-only'>{sourceLabel}</DrawerDescription>
       {body}
     </DrawerContent>
   )
+
   if (isMobile) {
     return (
       <Drawer
-        key="resume-comments-mobile"
+        key='resume-comments-mobile'
         open={open}
         onOpenChange={handleOpenChange}
         modal
-        swipeDirection="down"
+        swipeDirection='down'
       >
-        <DrawerVirtualKeyboardProvider>
-          {content}
-        </DrawerVirtualKeyboardProvider>
+        <DrawerVirtualKeyboardProvider>{content}</DrawerVirtualKeyboardProvider>
       </Drawer>
     )
   }
+
   return (
     <Drawer
-      key="resume-comments-desktop"
+      key='resume-comments-desktop'
       open={open}
       onOpenChange={handleOpenChange}
       modal
-      swipeDirection="right"
+      swipeDirection='right'
     >
       {content}
     </Drawer>

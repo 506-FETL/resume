@@ -25,7 +25,10 @@ export function createCursorPayload(options: {
   }
 }
 
-export function broadcastCursorPayload(channel: RealtimeChannel | null, payload: CursorEventPayload) {
+export function broadcastCursorPayload(
+  channel: RealtimeChannel | null,
+  payload: CursorEventPayload,
+) {
   channel?.send({
     type: 'broadcast',
     event: COLLAB_CURSOR_EVENT,
@@ -40,13 +43,8 @@ export function bindCursorChannel(options: {
   onRemoteCursor: (payload: CursorEventPayload) => void
   onPeerJoin: () => void
 }) {
-  const {
-    channel,
-    selfUserId,
-    onRemoteLeave,
-    onRemoteCursor,
-    onPeerJoin,
-  } = options
+  const { channel, selfUserId, onRemoteLeave, onRemoteCursor, onPeerJoin } =
+    options
 
   channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
     leftPresences.forEach((presence) => {
@@ -81,7 +79,7 @@ export function bindCursorChannel(options: {
 
 export async function trackCursorPresence(
   channel: RealtimeChannel,
-  options: { userId: number, username: string, color: string },
+  options: { userId: number; username: string; color: string },
 ) {
   const { userId, username, color } = options
 

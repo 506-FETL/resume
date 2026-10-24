@@ -4,16 +4,18 @@ import { cn } from '@/lib/utils'
 import { isEmptyValue } from '@/pages/optimize/utils'
 import { EmptyValue } from './types'
 
-export function StringArrayValue({ value, variant }: FieldRendererProps<string[]>) {
-  if (isEmptyValue(value))
-    return <EmptyValue />
+export function StringArrayValue({
+  value,
+  variant,
+}: FieldRendererProps<string[]>) {
+  if (isEmptyValue(value)) return <EmptyValue />
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {value.map(item => (
+    <div className='flex flex-wrap gap-1'>
+      {value.map((item) => (
         <Badge
           key={`tag-${item}`}
-          variant="secondary"
+          variant='secondary'
           className={cn(
             'text-[10px] px-1.5 py-0.5',
             variant === 'before' && 'bg-muted/50 text-muted-foreground',

@@ -3,6 +3,12 @@ import type { TemplateResumeData } from '@/components/resume/runtime/context/res
 import { adaptProfile } from './adapt-profile'
 import { adaptSections } from './adapt-sections'
 
-export function adaptResumeContent(data: TemplateResumeData, nodes: CommentNodes): AdaptedResumeContent {
-  return { profile: adaptProfile(data, nodes), sections: adaptSections(data, nodes) }
+export function adaptResumeContent(
+  data: TemplateResumeData,
+  nodes: CommentNodes,
+): AdaptedResumeContent {
+  return {
+    profile: adaptProfile(data, nodes),
+    sections: adaptSections(data, nodes),
+  }
 }

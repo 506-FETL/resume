@@ -1,4 +1,9 @@
-import type { FieldPath, FieldPathValue, FieldValues, UseFormReturn } from 'react-hook-form'
+import type {
+  FieldPath,
+  FieldPathValue,
+  FieldValues,
+  UseFormReturn,
+} from 'react-hook-form'
 import type { LeafClass } from './collab/classify-leaf'
 import type { ActiveTextField } from './collab/focus-registry'
 import type { RemoteFieldArrayAdapters } from './form-remote-sync'
@@ -43,15 +48,21 @@ export function useFormRemoteSync<T extends FieldValues>(
 ) {
   const isResettingRef = useRef(false)
   const fieldArraysRef = useRef(fieldArrays)
+
   fieldArraysRef.current = fieldArrays
+
   const caretRef = useRef(caret)
+
   caretRef.current = caret
+
   const atomicPathsRef = useRef(atomicPaths)
+
   atomicPathsRef.current = atomicPaths
 
   useEffect(() => {
     const currentFormValues = form.getValues()
     const adapters = fieldArraysRef.current
+
     const plan = planRemoteFormSync(
       currentFormValues,
       storeData,
@@ -59,8 +70,12 @@ export function useFormRemoteSync<T extends FieldValues>(
       atomicPathsRef.current,
     )
 
-    if (plan.fieldUpdates.length === 0 && plan.fieldArrayOperations.length === 0) {
+    if (
+      plan.fieldUpdates.length === 0 &&
+      plan.fieldArrayOperations.length === 0
+    ) {
       isResettingRef.current = false
+
       return
     }
 
@@ -68,14 +83,16 @@ export function useFormRemoteSync<T extends FieldValues>(
     const caretRestore = captureCaretRestore(plan, caretRef.current)
 
     isResettingRef.current = true
+
     applyRemoteFormSyncPlan(
       plan,
       {
-        setValue: (path, value, options) => form.setValue(
-          path as FieldPath<T>,
-          value as FieldPathValue<T, FieldPath<T>>,
-          options,
-        ),
+        setValue: (path, value, options) =>
+          form.setValue(
+            path as FieldPath<T>,
+            value as FieldPathValue<T, FieldPath<T>>,
+            options,
+          ),
       },
       adapters,
     )
@@ -85,15 +102,18 @@ export function useFormRemoteSync<T extends FieldValues>(
     }, 0)
 
     let caretFrame = 0
+
     if (caretRestore) {
       caretFrame = requestAnimationFrame(() => restoreCaret(caretRestore))
     }
 
     return () => {
       clearTimeout(cleanup)
+
       if (caretFrame) {
         cancelAnimationFrame(caretFrame)
       }
+
       isResettingRef.current = false
     }
   }, [storeData, form])
@@ -118,15 +138,17 @@ function captureCaretRestore(
   }
 
   const active = caret.getActiveField()
+
   if (!active) {
     return null
   }
 
-  const match = plan.fieldUpdates.find(update => (
-    update.path === active.name
-    && typeof update.value === 'string'
-    && caret.classify(caret.sectionKey, update.path) === 'freeText'
-  ))
+  const match = plan.fieldUpdates.find(
+    (update) =>
+      update.path === active.name &&
+      typeof update.value === 'string' &&
+      caret.classify(caret.sectionKey, update.path) === 'freeText',
+  )
 
   if (!match || typeof active.el.value !== 'string') {
     return null
@@ -142,7 +164,10 @@ function captureCaretRestore(
 }
 
 function restoreCaret({ el, oldValue, start, end, newValue }: CaretRestore) {
-  if (!el.isConnected || (typeof document !== 'undefined' && document.activeElement !== el)) {
+  if (
+    !el.isConnected ||
+    (typeof document !== 'undefined' && document.activeElement !== el)
+  ) {
     return
   }
 
@@ -151,8 +176,7 @@ function restoreCaret({ el, oldValue, start, end, newValue }: CaretRestore) {
 
   try {
     el.setSelectionRange(nextStart, nextEnd)
-  }
-  catch {
+  } catch {
     // 某些 input 类型不支持 setSelectionRange；忽略即可。
   }
 }

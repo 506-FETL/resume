@@ -11,6 +11,7 @@ export function useOverflowState<T extends HTMLElement>() {
   useEffect(() => {
     if (!element) {
       setOverflowing(false)
+
       return
     }
 
@@ -18,6 +19,7 @@ export function useOverflowState<T extends HTMLElement>() {
 
     const measure = () => {
       cancelAnimationFrame(frameId)
+
       frameId = window.requestAnimationFrame(() => {
         setOverflowing(element.scrollHeight > element.clientHeight + 1)
       })
@@ -30,6 +32,7 @@ export function useOverflowState<T extends HTMLElement>() {
     resizeObserver.observe(element)
 
     const firstChild = element.firstElementChild
+
     if (firstChild instanceof HTMLElement) {
       resizeObserver.observe(firstChild)
     }

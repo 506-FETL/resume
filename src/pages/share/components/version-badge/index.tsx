@@ -1,19 +1,29 @@
 import type { ShareVersionSource } from '@/lib/supabase/resume/share.types'
 import { History } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { formatShareVersionSource } from '../../utils'
 
-export default function VersionBadge({ source }: { source: ShareVersionSource }) {
+export default function VersionBadge({
+  source,
+}: {
+  source: ShareVersionSource
+}) {
   const badge = (
-    <Badge variant="outline" className="max-w-full font-normal text-muted-foreground">
-      <History className="size-3" />
-      <span className="truncate">{formatShareVersionSource(source)}</span>
+    <Badge
+      variant='outline'
+      className='max-w-full font-normal text-muted-foreground'
+    >
+      <History className='size-3' />
+      <span className='truncate'>{formatShareVersionSource(source)}</span>
     </Badge>
   )
 
-  if (source.kind !== 'history' || source.versionId != null)
-    return badge
+  if (source.kind !== 'history' || source.versionId != null) return badge
 
   return (
     <Tooltip>

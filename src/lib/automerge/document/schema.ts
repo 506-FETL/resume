@@ -29,4 +29,5 @@ export interface AutomergeResumeDocument extends PersistedResumeSnapshot {
 }
 
 export type ChangeFn<T> = (doc: T) => void
+
 export type FieldPath = string[]

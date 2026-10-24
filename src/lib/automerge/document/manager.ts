@@ -26,11 +26,20 @@ export class DocumentManager {
   private saveListeners = new Set<(result: DocumentSaveResult) => void>()
   private saveStartListeners = new Set<() => void>()
 
-  constructor(resumeId: string, userId: string, options: DocumentManagerOptions = {}) {
+  constructor(
+    resumeId: string,
+    userId: string,
+    options: DocumentManagerOptions = {},
+  ) {
     this.resumeId = resumeId
     this.userId = userId
     this.source = options.source ?? { kind: 'owner' }
-    this.persistence = new AutomergeDocumentPersistence(resumeId, userId, this.source)
+
+    this.persistence = new AutomergeDocumentPersistence(
+      resumeId,
+      userId,
+      this.source,
+    )
   }
 
   async initialize() {
@@ -39,6 +48,7 @@ export class DocumentManager {
     }
 
     const repo = getAutomergeRepo(this.resumeId)
+
     this.repo = repo
     this.collaboration ??= this.createCollaborationSession(repo)
 
@@ -48,6 +58,7 @@ export class DocumentManager {
         this.source.documentUrl,
         this.source.documentData,
       )
+
       return this.attachHandle(handle)
     }
 
@@ -55,21 +66,36 @@ export class DocumentManager {
 
     if (existingHandle) {
       const doc = existingHandle.doc()
+
       if (!readResumeListTemplateBinding(doc?.templateBinding)) {
-        const storedBinding = readResumeListTemplateBinding((doc as unknown as Record<string, unknown>)?.template_binding)
-        const binding = storedBinding ?? (await this.persistence.loadResumeConfig()).templateBinding
-        if (!binding)
-          throw new Error('简历模板尚未完成初始化，请重试')
+        const storedBinding = readResumeListTemplateBinding(
+          (doc as unknown as Record<string, unknown>)?.template_binding,
+        )
+
+        const binding =
+          storedBinding ??
+          (await this.persistence.loadResumeConfig()).templateBinding
+
+        if (!binding) throw new Error('简历模板尚未完成初始化，请重试')
+
         existingHandle.change((current) => {
           if (!readResumeListTemplateBinding(current.templateBinding))
-            current.templateBinding = { ...(readResumeListTemplateBinding((current as unknown as Record<string, unknown>).template_binding) ?? binding) }
+            current.templateBinding = {
+              ...(readResumeListTemplateBinding(
+                (current as unknown as Record<string, unknown>)
+                  .template_binding,
+              ) ?? binding),
+            }
         })
+
         await this.saveToSupabase(existingHandle)
       }
+
       return this.attachHandle(existingHandle)
     }
 
     const seedData = await this.persistence.loadResumeConfig()
+
     const handle = await createResumeDocument({
       repo,
       resumeId: this.resumeId,
@@ -88,7 +114,10 @@ export class DocumentManager {
     return this.persistence.canPersist()
   }
 
-  async saveToSupabase(handle: DocHandle<AutomergeResumeDocument> | null = this.handle, snapshot?: AutomergeResumeDocument) {
+  async saveToSupabase(
+    handle: DocHandle<AutomergeResumeDocument> | null = this.handle,
+    snapshot?: AutomergeResumeDocument,
+  ) {
     if (!handle) {
       return
     }
@@ -98,6 +127,7 @@ export class DocumentManager {
     }
 
     const result = await this.persistence.saveHandle(handle, snapshot)
+
     this.notifySaveListeners(result)
 
     if (!result.success) {
@@ -105,12 +135,16 @@ export class DocumentManager {
     }
   }
 
-  async enableCollaboration(sessionId: string, callbacks: CollaborationCallbacks = {}) {
+  async enableCollaboration(
+    sessionId: string,
+    callbacks: CollaborationCallbacks = {},
+  ) {
     if (!this.repo) {
       throw new Error('Automerge repo 尚未初始化')
     }
 
     this.collaboration ??= this.createCollaborationSession(this.repo)
+
     return this.collaboration.enable(sessionId, callbacks)
   }
 
@@ -126,7 +160,10 @@ export class DocumentManager {
     return this.collaboration?.getSessionId() ?? null
   }
 
-  async broadcastCollaborationEvent(type: string, data: Record<string, unknown> = {}) {
+  async broadcastCollaborationEvent(
+    type: string,
+    data: Record<string, unknown> = {},
+  ) {
     if (!this.collaboration) {
       throw new Error('协作连接尚未建立')
     }
@@ -173,6 +210,7 @@ export class DocumentManager {
 
     this.handle.change((doc) => {
       changeFn(doc)
+
       touchDocumentMetadata(doc, {
         resumeId: this.resumeId,
         userId: this.userId,
@@ -200,6 +238,7 @@ export class DocumentManager {
   private attachHandle(handle: DocHandle<AutomergeResumeDocument>) {
     this.handle = handle
     this.collaboration?.syncHandle(handle)
+
     return handle
   }
 
@@ -207,8 +246,7 @@ export class DocumentManager {
     this.saveListeners.forEach((listener) => {
       try {
         listener(result)
-      }
-      catch (error) {
+      } catch (error) {
         console.warn('[DocumentManager] save listener threw:', error)
       }
     })
@@ -218,8 +256,7 @@ export class DocumentManager {
     this.saveStartListeners.forEach((listener) => {
       try {
         listener()
-      }
-      catch (error) {
+      } catch (error) {
         console.warn('[DocumentManager] save start listener threw:', error)
       }
     })

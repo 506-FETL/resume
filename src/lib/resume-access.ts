@@ -1,7 +1,22 @@
-import type { PersistedResumeSnapshot, ResumeListItem, ResumeType } from '@/lib/schema'
-import { deleteOfflineResume, getAllOfflineResumes, getOfflineResumeById, isOfflineResumeId, updateOfflineResumeMeta } from '@/lib/offline-resume-manager'
+import type {
+  PersistedResumeSnapshot,
+  ResumeListItem,
+  ResumeType,
+} from '@/lib/schema'
+import {
+  deleteOfflineResume,
+  getAllOfflineResumes,
+  getOfflineResumeById,
+  isOfflineResumeId,
+  updateOfflineResumeMeta,
+} from '@/lib/offline-resume-manager'
 import { ResumeNotFoundError } from '@/lib/resume-id'
-import { deleteResume, getAllResumesFromUser, getResumeById, updateResumeConfig } from '@/lib/supabase/resume'
+import {
+  deleteResume,
+  getAllResumesFromUser,
+  getResumeById,
+  updateResumeConfig,
+} from '@/lib/supabase/resume'
 import { getCurrentUser } from '@/lib/supabase/user'
 
 export type ResumeStorage = 'local' | 'cloud'
@@ -25,18 +40,27 @@ interface ResumeMetaPatch {
   description?: string
 }
 
-export async function listAccessibleResumes(): Promise<AccessibleResumeListItem[]> {
+export async function listAccessibleResumes(): Promise<
+  AccessibleResumeListItem[]
+> {
   const localPromise = getAllOfflineResumes()
-  const cloudPromise = getCurrentUser().then(user => user ? getAllResumesFromUser() : [])
-  const [cloudResumes, localResumes] = await Promise.all([cloudPromise, localPromise])
+
+  const cloudPromise = getCurrentUser().then((user) =>
+    user ? getAllResumesFromUser() : [],
+  )
+
+  const [cloudResumes, localResumes] = await Promise.all([
+    cloudPromise,
+    localPromise,
+  ])
 
   return [
-    ...cloudResumes.map(resume => ({
+    ...cloudResumes.map((resume) => ({
       ...resume,
       isOffline: false,
       storage: 'cloud' as const,
     })),
-    ...localResumes.map(resume => ({
+    ...localResumes.map((resume) => ({
       ...resume,
       isOffline: true,
       storage: 'local' as const,
@@ -44,13 +68,16 @@ export async function listAccessibleResumes(): Promise<AccessibleResumeListItem[
   ]
 }
 
-export async function getAccessibleResumeById(resumeId: string): Promise<AccessibleResumeRecord> {
+export async function getAccessibleResumeById(
+  resumeId: string,
+): Promise<AccessibleResumeRecord> {
   if (isOfflineResumeId(resumeId)) {
     const localResume = await getOfflineResumeById(resumeId)
-    if (!localResume)
-      throw new ResumeNotFoundError()
+
+    if (!localResume) throw new ResumeNotFoundError()
 
     const { data, ...metadata } = localResume
+
     return {
       ...(data as Partial<PersistedResumeSnapshot>),
       ...metadata,
@@ -60,6 +87,7 @@ export async function getAccessibleResumeById(resumeId: string): Promise<Accessi
   }
 
   const cloudResume = await getResumeById(resumeId)
+
   return {
     ...cloudResume,
     isOffline: false,
@@ -67,12 +95,17 @@ export async function getAccessibleResumeById(resumeId: string): Promise<Accessi
   } as AccessibleResumeRecord
 }
 
-export async function updateAccessibleResumeMeta(resumeId: string, patch: ResumeMetaPatch): Promise<void> {
+export async function updateAccessibleResumeMeta(
+  resumeId: string,
+  patch: ResumeMetaPatch,
+): Promise<void> {
   if (isOfflineResumeId(resumeId)) {
     const localResume = await getOfflineResumeById(resumeId)
-    if (!localResume)
-      throw new ResumeNotFoundError()
+
+    if (!localResume) throw new ResumeNotFoundError()
+
     await updateOfflineResumeMeta(resumeId, patch)
+
     return
   }
 
@@ -83,9 +116,11 @@ export async function updateAccessibleResumeMeta(resumeId: string, patch: Resume
 export async function deleteAccessibleResume(resumeId: string): Promise<void> {
   if (isOfflineResumeId(resumeId)) {
     const localResume = await getOfflineResumeById(resumeId)
-    if (!localResume)
-      throw new ResumeNotFoundError()
+
+    if (!localResume) throw new ResumeNotFoundError()
+
     await deleteOfflineResume(resumeId)
+
     return
   }
 

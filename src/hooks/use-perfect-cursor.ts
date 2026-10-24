@@ -25,7 +25,8 @@ export function usePerfectCursor(cb: (point: number[]) => void) {
   const cursorRef = useRef<PerfectCursor | null>(null)
 
   useEffect(() => {
-    cursorRef.current = new PerfectCursor(point => callbackRef.current(point))
+    cursorRef.current = new PerfectCursor((point) => callbackRef.current(point))
+
     return () => {
       cursorRef.current?.dispose()
       cursorRef.current = null

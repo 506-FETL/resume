@@ -3,11 +3,21 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
-import { BrainIcon, ChevronDownIcon, DotIcon, ImageIcon, SearchIcon } from 'lucide-react'
+import {
+  BrainIcon,
+  ChevronDownIcon,
+  DotIcon,
+  ImageIcon,
+  SearchIcon,
+} from 'lucide-react'
 import { createContext, memo, use, useMemo } from 'react'
 import { Image } from '@/components/ai/image'
 import { Badge } from '@/components/ui/badge'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 
 import { cn } from '@/lib/utils'
 
@@ -16,13 +26,19 @@ interface ChainOfThoughtContextValue {
   setIsOpen: (open: boolean) => void
 }
 
-const ChainOfThoughtContext = createContext<ChainOfThoughtContextValue | null>(null)
+const ChainOfThoughtContext = createContext<ChainOfThoughtContextValue | null>(
+  null,
+)
 
 function useChainOfThought() {
   const context = use(ChainOfThoughtContext)
+
   if (!context) {
-    throw new Error('ChainOfThought components must be used within ChainOfThought')
+    throw new Error(
+      'ChainOfThought components must be used within ChainOfThought',
+    )
   }
+
   return context
 }
 
@@ -47,11 +63,17 @@ export const ChainOfThought = memo(
       onChange: onOpenChange,
     })
 
-    const chainOfThoughtContext = useMemo(() => ({ isOpen, setIsOpen }), [isOpen, setIsOpen])
+    const chainOfThoughtContext = useMemo(
+      () => ({ isOpen, setIsOpen }),
+      [isOpen, setIsOpen],
+    )
 
     return (
       <ChainOfThoughtContext value={chainOfThoughtContext}>
-        <div className={cn('not-prose max-w-prose space-y-4', className)} {...props}>
+        <div
+          className={cn('not-prose max-w-prose space-y-4', className)}
+          {...props}
+        >
           {children}
         </div>
       </ChainOfThoughtContext>
@@ -59,7 +81,9 @@ export const ChainOfThought = memo(
   },
 )
 
-export type ChainOfThoughtHeaderProps = ComponentProps<typeof CollapsibleTrigger>
+export type ChainOfThoughtHeaderProps = ComponentProps<
+  typeof CollapsibleTrigger
+>
 
 export const ChainOfThoughtHeader = memo(
   ({ className, children, ...props }: ChainOfThoughtHeaderProps) => {
@@ -74,10 +98,15 @@ export const ChainOfThoughtHeader = memo(
           )}
           {...props}
         >
-          <BrainIcon className="size-4" />
-          <span className="flex-1 text-left">{children ?? 'Chain of Thought'}</span>
+          <BrainIcon className='size-4' />
+          <span className='flex-1 text-left'>
+            {children ?? 'Chain of Thought'}
+          </span>
           <ChevronDownIcon
-            className={cn('size-4 transition-transform', isOpen ? 'rotate-180' : 'rotate-0')}
+            className={cn(
+              'size-4 transition-transform',
+              isOpen ? 'rotate-180' : 'rotate-0',
+            )}
           />
         </CollapsibleTrigger>
       </Collapsible>
@@ -118,13 +147,15 @@ export const ChainOfThoughtStep = memo(
         )}
         {...props}
       >
-        <div className="relative mt-0.5">
-          <Icon className="size-4" />
-          <div className="-mx-px absolute top-7 bottom-0 left-1/2 w-px bg-border" />
+        <div className='relative mt-0.5'>
+          <Icon className='size-4' />
+          <div className='-mx-px absolute top-7 bottom-0 left-1/2 w-px bg-border' />
         </div>
-        <div className="flex-1 space-y-2 overflow-hidden">
+        <div className='flex-1 space-y-2 overflow-hidden'>
           <div>{label}</div>
-          {description && <div className="text-muted-foreground text-xs">{description}</div>}
+          {description && (
+            <div className='text-muted-foreground text-xs'>{description}</div>
+          )}
           {children}
         </div>
       </div>
@@ -136,7 +167,10 @@ export type ChainOfThoughtSearchResultsProps = ComponentProps<'div'>
 
 export const ChainOfThoughtSearchResults = memo(
   ({ className, ...props }: ChainOfThoughtSearchResultsProps) => (
-    <div className={cn('flex flex-wrap items-center gap-2', className)} {...props} />
+    <div
+      className={cn('flex flex-wrap items-center gap-2', className)}
+      {...props}
+    />
   ),
 )
 
@@ -146,7 +180,7 @@ export const ChainOfThoughtSearchResult = memo(
   ({ className, children, ...props }: ChainOfThoughtSearchResultProps) => (
     <Badge
       className={cn('gap-1 px-2 py-0.5 font-normal text-xs', className)}
-      variant="secondary"
+      variant='secondary'
       {...props}
     >
       {children}
@@ -154,7 +188,9 @@ export const ChainOfThoughtSearchResult = memo(
   ),
 )
 
-export type ChainOfThoughtContentProps = ComponentProps<typeof CollapsibleContent>
+export type ChainOfThoughtContentProps = ComponentProps<
+  typeof CollapsibleContent
+>
 
 export const ChainOfThoughtContent = memo(
   ({ className, children, ...props }: ChainOfThoughtContentProps) => {
@@ -184,10 +220,10 @@ export type ChainOfThoughtImageProps = ComponentProps<'div'> & {
 export const ChainOfThoughtImage = memo(
   ({ className, children, caption, ...props }: ChainOfThoughtImageProps) => (
     <div className={cn('mt-2 space-y-2', className)} {...props}>
-      <div className="relative flex max-h-88 items-center justify-center overflow-hidden rounded-lg bg-muted p-3">
+      <div className='relative flex max-h-88 items-center justify-center overflow-hidden rounded-lg bg-muted p-3'>
         {children}
       </div>
-      {caption && <p className="text-muted-foreground text-xs">{caption}</p>}
+      {caption && <p className='text-muted-foreground text-xs'>{caption}</p>}
     </div>
   ),
 )
@@ -215,30 +251,32 @@ export default function ChainOfThoughtDemo() {
       <ChainOfThoughtContent>
         <ChainOfThoughtStep
           icon={SearchIcon}
-          label="Searching for chocolate chip cookie recipes"
-          status="complete"
+          label='Searching for chocolate chip cookie recipes'
+          status='complete'
         >
           <ChainOfThoughtSearchResults>
-            {['https://www.allrecipes.com', 'https://www.foodnetwork.com', 'https://www.seriouseats.com'].map(
-              website => (
-                <ChainOfThoughtSearchResult key={website}>
-                  {new URL(website).hostname}
-                </ChainOfThoughtSearchResult>
-              ),
-            )}
+            {[
+              'https://www.allrecipes.com',
+              'https://www.foodnetwork.com',
+              'https://www.seriouseats.com',
+            ].map((website) => (
+              <ChainOfThoughtSearchResult key={website}>
+                {new URL(website).hostname}
+              </ChainOfThoughtSearchResult>
+            ))}
           </ChainOfThoughtSearchResults>
         </ChainOfThoughtStep>
 
         <ChainOfThoughtStep
           icon={ImageIcon}
-          label="Found a highly-rated recipe with 4.8 stars"
-          status="complete"
+          label='Found a highly-rated recipe with 4.8 stars'
+          status='complete'
         >
-          <ChainOfThoughtImage caption="Classic chocolate chip cookies fresh from the oven.">
+          <ChainOfThoughtImage caption='Classic chocolate chip cookies fresh from the oven.'>
             <Image
-              alt="Chocolate chip cookies"
+              alt='Chocolate chip cookies'
               base64={exampleImage.base64}
-              className="aspect-square h-[150px] border"
+              className='aspect-square h-[150px] border'
               mediaType={exampleImage.mediaType}
               uint8Array={exampleImage.uint8Array}
             />
@@ -246,14 +284,23 @@ export default function ChainOfThoughtDemo() {
         </ChainOfThoughtStep>
 
         <ChainOfThoughtStep
-          label="This recipe uses brown butter for extra flavor and requires chilling the dough."
-          status="complete"
+          label='This recipe uses brown butter for extra flavor and requires chilling the dough.'
+          status='complete'
         />
 
-        <ChainOfThoughtStep icon={SearchIcon} label="Looking for ingredient substitutions..." status="active">
+        <ChainOfThoughtStep
+          icon={SearchIcon}
+          label='Looking for ingredient substitutions...'
+          status='active'
+        >
           <ChainOfThoughtSearchResults>
-            {['https://www.kingarthurbaking.com', 'https://www.thekitchn.com'].map(website => (
-              <ChainOfThoughtSearchResult key={website}>{new URL(website).hostname}</ChainOfThoughtSearchResult>
+            {[
+              'https://www.kingarthurbaking.com',
+              'https://www.thekitchn.com',
+            ].map((website) => (
+              <ChainOfThoughtSearchResult key={website}>
+                {new URL(website).hostname}
+              </ChainOfThoughtSearchResult>
             ))}
           </ChainOfThoughtSearchResults>
         </ChainOfThoughtStep>

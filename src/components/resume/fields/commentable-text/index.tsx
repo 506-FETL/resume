@@ -29,7 +29,7 @@ export function CommentableText({
     <span
       style={style}
       data-comment-node-key={nodeKey}
-      data-comment-block-ordinal="0"
+      data-comment-block-ordinal='0'
       data-comment-field-label={fieldLabel}
     >
       {node.text}

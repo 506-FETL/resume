@@ -12,7 +12,10 @@ export interface DebouncedMirror<T> {
   cancel: () => void
 }
 
-export function createDebouncedMirror<T>(fn: (arg: T) => void, wait: number): DebouncedMirror<T> {
+export function createDebouncedMirror<T>(
+  fn: (arg: T) => void,
+  wait: number,
+): DebouncedMirror<T> {
   let timer: ReturnType<typeof setTimeout> | null = null
   let hasPending = false
   let lastArg: T
@@ -22,6 +25,7 @@ export function createDebouncedMirror<T>(fn: (arg: T) => void, wait: number): De
       clearTimeout(timer)
       timer = null
     }
+
     hasPending = false
   }
 
@@ -29,9 +33,11 @@ export function createDebouncedMirror<T>(fn: (arg: T) => void, wait: number): De
     run(arg: T) {
       lastArg = arg
       hasPending = true
+
       if (timer !== null) {
         clearTimeout(timer)
       }
+
       timer = setTimeout(() => {
         timer = null
         hasPending = false
@@ -41,6 +47,7 @@ export function createDebouncedMirror<T>(fn: (arg: T) => void, wait: number): De
     flush() {
       if (hasPending) {
         const arg = lastArg
+
         clear()
         fn(arg)
       }

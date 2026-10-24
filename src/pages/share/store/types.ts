@@ -2,7 +2,11 @@ import type { StateCreator } from 'zustand'
 import type { ResumeSummary } from '../types'
 import type { ShareStatusFilter } from '../utils'
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
-import type { CreateShareOptions, ResolvedResumeShareRelease, ResumeShareRecord } from '@/lib/supabase/resume/share.types'
+import type {
+  CreateShareOptions,
+  ResolvedResumeShareRelease,
+  ResumeShareRecord,
+} from '@/lib/supabase/resume/share.types'
 
 export interface SettingsPayload {
   label: string | null
@@ -87,4 +91,5 @@ export interface ShareUiSlice {
 }
 
 export type ShareStoreState = ShareDataSlice & ShareUiSlice
+
 export type ShareSlice<T> = StateCreator<ShareStoreState, [], [], T>

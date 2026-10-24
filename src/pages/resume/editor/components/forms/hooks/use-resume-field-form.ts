@@ -41,12 +41,15 @@ export function useResumeFieldForm<
     name: arrayFieldName,
   })
 
-  const remoteFieldArrays = useMemo<RemoteFieldArrayAdapters>(() => ({
-    [arrayFieldName]: {
-      append: (value, options) => append(value as any, options),
-      remove,
-    },
-  }), [append, arrayFieldName, remove])
+  const remoteFieldArrays = useMemo<RemoteFieldArrayAdapters>(
+    () => ({
+      [arrayFieldName]: {
+        append: (value, options) => append(value as any, options),
+        remove,
+      },
+    }),
+    [append, arrayFieldName, remove],
+  )
 
   useResumeFormSync(form, fieldName, storeFormData, remoteFieldArrays)
 

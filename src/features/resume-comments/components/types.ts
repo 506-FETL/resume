@@ -11,7 +11,10 @@ export function isCurrentCommentAuthor(
   author: CommentAuthor,
   permissions: CommentUiPermissions,
 ) {
-  return permissions.canModerateAll
-    || (author.kind === 'user' && author.userId === permissions.currentUserId)
-    || (author.kind === 'anonymous' && author.anonymousId === permissions.currentAnonymousId)
+  return (
+    permissions.canModerateAll ||
+    (author.kind === 'user' && author.userId === permissions.currentUserId) ||
+    (author.kind === 'anonymous' &&
+      author.anonymousId === permissions.currentAnonymousId)
+  )
 }

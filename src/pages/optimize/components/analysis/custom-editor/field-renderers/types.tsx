@@ -8,9 +8,7 @@ export interface FieldRendererProps<T = unknown> {
 }
 
 export function EmptyValue() {
-  return (
-    <span className="text-muted-foreground/50 italic text-xs">空</span>
-  )
+  return <span className='text-muted-foreground/50 italic text-xs'>空</span>
 }
 
 export function variantText(variant?: RendererVariant) {

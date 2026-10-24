@@ -30,17 +30,16 @@ function readStore(): StoredSession[] {
     if (Array.isArray(parsed)) {
       return parsed.filter(
         (entry): entry is StoredSession =>
-          entry
-          && typeof entry.sessionId === 'string'
-          && typeof entry.resumeId === 'string'
-          && typeof entry.userId === 'string'
-          && (entry.role === 'host' || entry.role === 'guest'),
+          entry &&
+          typeof entry.sessionId === 'string' &&
+          typeof entry.resumeId === 'string' &&
+          typeof entry.userId === 'string' &&
+          (entry.role === 'host' || entry.role === 'guest'),
       )
     }
 
     return []
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -52,35 +51,54 @@ function writeStore(entries: StoredSession[]) {
 
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-  }
-  catch {
+  } catch {
     // ignore quota errors
   }
 }
 
 export function rememberSessionRole(entry: StoredSession) {
   const entries = readStore()
+
   const filtered = entries.filter(
-    item => item.sessionId !== entry.sessionId || item.resumeId !== entry.resumeId || item.userId !== entry.userId,
+    (item) =>
+      item.sessionId !== entry.sessionId ||
+      item.resumeId !== entry.resumeId ||
+      item.userId !== entry.userId,
   )
 
   filtered.push(entry)
   writeStore(filtered)
 }
 
-export function getStoredSessionRole(sessionId: string, resumeId: string, userId: string): StoredRole | null {
+export function getStoredSessionRole(
+  sessionId: string,
+  resumeId: string,
+  userId: string,
+): StoredRole | null {
   const entries = readStore()
+
   const matched = entries.find(
-    item => item.sessionId === sessionId && item.resumeId === resumeId && item.userId === userId,
+    (item) =>
+      item.sessionId === sessionId &&
+      item.resumeId === resumeId &&
+      item.userId === userId,
   )
 
   return matched?.role ?? null
 }
 
-export function clearStoredSession(sessionId: string, resumeId: string, userId: string) {
+export function clearStoredSession(
+  sessionId: string,
+  resumeId: string,
+  userId: string,
+) {
   const entries = readStore()
+
   const filtered = entries.filter(
-    item => item.sessionId !== sessionId || item.resumeId !== resumeId || item.userId !== userId,
+    (item) =>
+      item.sessionId !== sessionId ||
+      item.resumeId !== resumeId ||
+      item.userId !== userId,
   )
 
   writeStore(filtered)

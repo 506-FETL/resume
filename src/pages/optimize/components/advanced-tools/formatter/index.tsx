@@ -1,6 +1,13 @@
 import type { ResumeToolContext } from '../shared/types'
 import type { FindingsGroup, Suggestion } from '@/pages/optimize/types'
-import { CircleAlert, FileText, ListChecks, Sparkles, TriangleAlert, Wand2 } from 'lucide-react'
+import {
+  CircleAlert,
+  FileText,
+  ListChecks,
+  Sparkles,
+  TriangleAlert,
+  Wand2,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -11,9 +18,22 @@ import { updateAtsConfig } from '@/lib/supabase/resume'
 import useAtsStore from '@/pages/optimize/store'
 import { startConfetti } from '@/utils'
 import { formatToolError } from '../shared/config'
-import { ToolEmptyState, ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader, ToolStatCard, ToolStatsGrid } from '../shared/primitives'
+import {
+  ToolEmptyState,
+  ToolMetaBadge,
+  ToolPanelBody,
+  ToolPanelCard,
+  ToolPanelHeader,
+  ToolStatCard,
+  ToolStatsGrid,
+} from '../shared/primitives'
 import FormatterFindingCard from './finding-card'
-import { applySuggestionsToResume, buildBatchOptimizationResult, markAppliedSuggestionsAsFixed, updateFindingPendingSuggestions } from './utils'
+import {
+  applySuggestionsToResume,
+  buildBatchOptimizationResult,
+  markAppliedSuggestionsAsFixed,
+  updateFindingPendingSuggestions,
+} from './utils'
 
 interface FormatterToolProps {
   onResumeUpdated: (nextContext: ResumeToolContext) => void
@@ -22,7 +42,10 @@ interface FormatterToolProps {
 
 function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
   const [applying, setApplying] = useState(false)
-  const [editableFindings, setEditableFindings] = useState<FindingsGroup | null>(null)
+
+  const [editableFindings, setEditableFindings] =
+    useState<FindingsGroup | null>(null)
+
   const actionButtonRef = useRef<HTMLButtonElement | null>(null)
   const { currentAtsConfig, update } = useAtsStore()
 
@@ -42,29 +65,41 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
     )
   }, [activeAtsConfig])
 
-  const effectiveFindings = editableFindings ?? activeAtsConfig?.findings ?? null
+  const effectiveFindings =
+    editableFindings ?? activeAtsConfig?.findings ?? null
 
   const batchResult = useMemo(
     () => buildBatchOptimizationResult(effectiveFindings),
     [effectiveFindings],
   )
 
-  const handleSuggestionsChange = (findingId: string, suggestions: Suggestion[]) => {
+  const handleSuggestionsChange = (
+    findingId: string,
+    suggestions: Suggestion[],
+  ) => {
     if (!effectiveFindings) {
       return
     }
 
-    setEditableFindings(updateFindingPendingSuggestions(effectiveFindings, findingId, suggestions))
+    setEditableFindings(
+      updateFindingPendingSuggestions(
+        effectiveFindings,
+        findingId,
+        suggestions,
+      ),
+    )
   }
 
   const handleApply = async () => {
     if (!activeAtsConfig) {
       toast.error('请先完成当前简历的问题分析')
+
       return
     }
 
     if (batchResult.pendingIssueCount === 0) {
       toast.success('当前没有待处理的自动修复建议')
+
       return
     }
 
@@ -74,12 +109,21 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
           ? '请先在下方补充真实信息，再一键应用'
           : '剩余问题存在同字段冲突，请逐条确认',
       )
+
       return
     }
 
     const findingsToApply = editableFindings ?? activeAtsConfig.findings
-    const nextFindings = markAppliedSuggestionsAsFixed(findingsToApply, batchResult.appliedSuggestionIds)
-    const updatedResume = applySuggestionsToResume(resumeContext.resume, batchResult.suggestionsToApply)
+
+    const nextFindings = markAppliedSuggestionsAsFixed(
+      findingsToApply,
+      batchResult.appliedSuggestionIds,
+    )
+
+    const updatedResume = applySuggestionsToResume(
+      resumeContext.resume,
+      batchResult.suggestionsToApply,
+    )
 
     setApplying(true)
 
@@ -94,8 +138,7 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
           batchResult.suggestionsToApply,
           { syncToResumeConfig: true },
         )
-      }
-      else {
+      } else {
         await updateOfflineResume(resumeContext.resumeId, updatedResume)
       }
 
@@ -103,19 +146,24 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
 
       update('findings', nextFindings)
       setEditableFindings(nextFindings)
-      onResumeUpdated({ ...resumeContext, atsConfig: nextAtsConfig, resume: updatedResume })
+
+      onResumeUpdated({
+        ...resumeContext,
+        atsConfig: nextAtsConfig,
+        resume: updatedResume,
+      })
+
       startConfetti(actionButtonRef)
 
       toast.success(
-        batchResult.conflictedSuggestionCount > 0 || batchResult.requiresInputSuggestionCount > 0
+        batchResult.conflictedSuggestionCount > 0 ||
+          batchResult.requiresInputSuggestionCount > 0
           ? `已应用 ${batchResult.autoApplicableSuggestionCount} 条优化，剩余建议请补充或逐条确认`
           : '已完成当前简历的一键优化',
       )
-    }
-    catch (error) {
+    } catch (error) {
       toast.error(formatToolError(error))
-    }
-    finally {
+    } finally {
       setApplying(false)
     }
   }
@@ -131,58 +179,99 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
         : '已全部处理'
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       <ToolPanelCard>
         <ToolPanelHeader
-          action={(
+          action={
             <Button
               ref={actionButtonRef}
-              className="w-full sm:w-auto"
+              className='w-full sm:w-auto'
               onClick={handleApply}
-              disabled={applying || !activeAtsConfig || batchResult.pendingIssueCount === 0}
+              disabled={
+                applying ||
+                !activeAtsConfig ||
+                batchResult.pendingIssueCount === 0
+              }
             >
-              <Wand2 className="size-4" />
+              <Wand2 className='size-4' />
               {actionLabel}
             </Button>
-          )}
-          title="一键优化"
+          }
+          title='一键优化'
           icon={Wand2}
-          badge={(
-            <ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>
-              {batchResult.pendingIssueCount > 0 ? `${batchResult.pendingIssueCount} 个待处理问题` : '自动修复已完成'}
+          badge={
+            <ToolMetaBadge
+              tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}
+            >
+              {batchResult.pendingIssueCount > 0
+                ? `${batchResult.pendingIssueCount} 个待处理问题`
+                : '自动修复已完成'}
             </ToolMetaBadge>
-          )}
+          }
         />
         <ToolPanelBody>
           <ToolStatsGrid>
             <ToolStatCard
-              label="待处理问题"
+              label='待处理问题'
               value={batchResult.pendingIssueCount}
               icon={CircleAlert}
               tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}
-              badge={<ToolMetaBadge tone={batchResult.pendingIssueCount > 0 ? 'warning' : 'success'}>问题总览</ToolMetaBadge>}
+              badge={
+                <ToolMetaBadge
+                  tone={
+                    batchResult.pendingIssueCount > 0 ? 'warning' : 'success'
+                  }
+                >
+                  问题总览
+                </ToolMetaBadge>
+              }
             />
             <ToolStatCard
-              label="待执行建议"
+              label='待执行建议'
               value={batchResult.pendingSuggestionCount}
               icon={ListChecks}
-              tone="info"
-              badge={<ToolMetaBadge tone="info">建议池</ToolMetaBadge>}
+              tone='info'
+              badge={<ToolMetaBadge tone='info'>建议池</ToolMetaBadge>}
             />
             <ToolStatCard
-              label="可一键完成"
+              label='可一键完成'
               value={batchResult.autoApplicableIssueCount}
               icon={Sparkles}
-              tone="success"
-              badge={<ToolMetaBadge tone="success">自动应用</ToolMetaBadge>}
+              tone='success'
+              badge={<ToolMetaBadge tone='success'>自动应用</ToolMetaBadge>}
             />
             <ToolStatCard
-              label="需人工确认"
-              value={batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount}
-              hint="补充真实信息或确认同字段冲突"
+              label='需人工确认'
+              value={
+                batchResult.conflictedSuggestionCount +
+                batchResult.requiresInputSuggestionCount
+              }
+              hint='补充真实信息或确认同字段冲突'
               icon={TriangleAlert}
-              tone={batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount > 0 ? 'warning' : 'default'}
-              badge={<ToolMetaBadge tone={batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount > 0 ? 'warning' : 'default'}>{batchResult.conflictedSuggestionCount + batchResult.requiresInputSuggestionCount > 0 ? '待确认' : '无需确认'}</ToolMetaBadge>}
+              tone={
+                batchResult.conflictedSuggestionCount +
+                  batchResult.requiresInputSuggestionCount >
+                0
+                  ? 'warning'
+                  : 'default'
+              }
+              badge={
+                <ToolMetaBadge
+                  tone={
+                    batchResult.conflictedSuggestionCount +
+                      batchResult.requiresInputSuggestionCount >
+                    0
+                      ? 'warning'
+                      : 'default'
+                  }
+                >
+                  {batchResult.conflictedSuggestionCount +
+                    batchResult.requiresInputSuggestionCount >
+                  0
+                    ? '待确认'
+                    : '无需确认'}
+                </ToolMetaBadge>
+              }
             />
           </ToolStatsGrid>
         </ToolPanelBody>
@@ -190,16 +279,21 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
 
       <ToolPanelCard>
         <ToolPanelHeader
-          title="执行摘要"
+          title='执行摘要'
           icon={FileText}
-          badge={<ToolMetaBadge tone="primary">{`${batchResult.summary.length} 条说明`}</ToolMetaBadge>}
+          badge={
+            <ToolMetaBadge tone='primary'>{`${batchResult.summary.length} 条说明`}</ToolMetaBadge>
+          }
         />
         <ToolPanelBody>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {batchResult.summary.map(line => (
-              <div key={line} className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 text-sm leading-6 text-muted-foreground">
-                <div className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Sparkles className="size-3.5" />
+          <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
+            {batchResult.summary.map((line) => (
+              <div
+                key={line}
+                className='flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 text-sm leading-6 text-muted-foreground'
+              >
+                <div className='mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary'>
+                  <Sparkles className='size-3.5' />
                 </div>
                 <p>{line}</p>
               </div>
@@ -208,38 +302,34 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
         </ToolPanelBody>
       </ToolPanelCard>
 
-      {!activeAtsConfig
-        ? (
-            <ToolEmptyState
-              title="当前简历还没有问题分析结果"
-              description="请先在页面顶部运行检测。"
-            />
-          )
-        : batchResult.pendingIssueCount === 0
-          ? (
-              <ToolEmptyState
-                title="当前自动修复建议已全部完成"
+      {!activeAtsConfig ? (
+        <ToolEmptyState
+          title='当前简历还没有问题分析结果'
+          description='请先在页面顶部运行检测。'
+        />
+      ) : batchResult.pendingIssueCount === 0 ? (
+        <ToolEmptyState title='当前自动修复建议已全部完成' />
+      ) : (
+        <ToolPanelCard>
+          <ToolPanelHeader
+            title='待执行问题'
+            description='同一字段有多条建议时，优先应用严重程度较高的一条，其余需逐项确认。'
+            icon={ListChecks}
+            badge={
+              <ToolMetaBadge tone='warning'>{`${batchResult.pendingIssueCount} 个问题待处理`}</ToolMetaBadge>
+            }
+          />
+          <ToolPanelBody className='space-y-3'>
+            {batchResult.items.map((item) => (
+              <FormatterFindingCard
+                key={item.findingId}
+                item={item}
+                onSuggestionsChange={handleSuggestionsChange}
               />
-            )
-          : (
-              <ToolPanelCard>
-                <ToolPanelHeader
-                  title="待执行问题"
-                  description="同一字段有多条建议时，优先应用严重程度较高的一条，其余需逐项确认。"
-                  icon={ListChecks}
-                  badge={<ToolMetaBadge tone="warning">{`${batchResult.pendingIssueCount} 个问题待处理`}</ToolMetaBadge>}
-                />
-                <ToolPanelBody className="space-y-3">
-                  {batchResult.items.map(item => (
-                    <FormatterFindingCard
-                      key={item.findingId}
-                      item={item}
-                      onSuggestionsChange={handleSuggestionsChange}
-                    />
-                  ))}
-                </ToolPanelBody>
-              </ToolPanelCard>
-            )}
+            ))}
+          </ToolPanelBody>
+        </ToolPanelCard>
+      )}
     </div>
   )
 }

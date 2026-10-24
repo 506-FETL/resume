@@ -8,9 +8,13 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 
 export const SIDEBAR_COOKIE_NAME = 'sidebar_state'
+
 export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+
 export const SIDEBAR_WIDTH = '16rem'
+
 export const SIDEBAR_WIDTH_MOBILE = '18rem'
+
 export const SIDEBAR_WIDTH_ICON = '3rem'
 
 interface SidebarContextProps {
@@ -27,6 +31,7 @@ const SidebarContext = React.createContext<SidebarContextProps | null>(null)
 
 export function useSidebar() {
   const context = React.use(SidebarContext)
+
   if (!context) {
     throw new Error('useSidebar must be used within a SidebarProvider.')
   }
@@ -52,13 +57,14 @@ export function SidebarProvider({
 
   const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
+
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === 'function' ? value(open) : value
+
       if (setOpenProp) {
         setOpenProp(openState)
-      }
-      else {
+      } else {
         _setOpen(openState)
       }
 
@@ -68,7 +74,7 @@ export function SidebarProvider({
   )
 
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile(open => !open) : setOpen(open => !open)
+    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
   // NOTE：因为本项目需要使用报告富文本编辑器，避免和编辑器快捷键冲突，暂时注释掉侧边栏快捷键功能
@@ -92,7 +98,7 @@ export function SidebarProvider({
     <SidebarContext value={contextValue}>
       <TooltipProvider delayDuration={0}>
         <div
-          data-slot="sidebar-wrapper"
+          data-slot='sidebar-wrapper'
           style={
             {
               '--sidebar-width': SIDEBAR_WIDTH,
@@ -100,7 +106,10 @@ export function SidebarProvider({
               ...style,
             } as React.CSSProperties
           }
-          className={cn('group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full', className)}
+          className={cn(
+            'group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full',
+            className,
+          )}
           {...props}
         >
           {children}

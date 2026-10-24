@@ -1,4 +1,5 @@
-.history-motion-surface :is(button, a, input, textarea, [data-slot='select-trigger']) {
+.history-motion-surface
+  :is(button, a, input, textarea, [data-slot='select-trigger']) {
   transition-duration: var(--history-fast);
   transition-timing-function: var(--history-ease);
 }

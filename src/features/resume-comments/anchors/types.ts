@@ -1,4 +1,9 @@
-import type { CommentAnchorDocument, CommentAnchorDocumentBlock, CommentAnchorDocumentNode, CommentAnchorDocumentResult } from '../../../../supabase/functions/shared/resume-comment-core.ts'
+import type {
+  CommentAnchorDocument,
+  CommentAnchorDocumentBlock,
+  CommentAnchorDocumentNode,
+  CommentAnchorDocumentResult,
+} from '../../../../supabase/functions/shared/resume-comment-core.ts'
 
 export type {
   CommentAnchorDocument,
@@ -26,8 +31,21 @@ export interface ResolvedCommentSelection {
   blockElement: HTMLElement
 }
 
-export type RelocationResult
-  = | { status: 'anchored', anchor: CommentAnchor, moved: boolean, contextChanged: boolean }
-    | { status: 'detached', reason: 'node_missing' | 'quote_missing' | 'ambiguous' }
+export type RelocationResult =
+  | {
+      status: 'anchored'
+      anchor: CommentAnchor
+      moved: boolean
+      contextChanged: boolean
+    }
+  | {
+      status: 'detached'
+      reason: 'node_missing' | 'quote_missing' | 'ambiguous'
+    }
 
-export type AnchorOverlap = 'none' | 'exact' | 'partial' | 'contains' | 'contained_by'
+export type AnchorOverlap =
+  | 'none'
+  | 'exact'
+  | 'partial'
+  | 'contains'
+  | 'contained_by'

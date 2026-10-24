@@ -13,11 +13,19 @@ import {
 import { validatePrintRegions } from './validate-print'
 
 function getPrintElements(printDocument: Document) {
-  const firstPage = printDocument.querySelector<HTMLElement>('[data-resume-page]')
-  const viewport = printDocument.querySelector<HTMLElement>('[data-resume-page-viewport]')
-  const source = printDocument.querySelector<HTMLElement>('[data-resume-page-content]')
-  if (!firstPage || !viewport || !source)
-    throw new Error('打印文档结构不完整')
+  const firstPage =
+    printDocument.querySelector<HTMLElement>('[data-resume-page]')
+
+  const viewport = printDocument.querySelector<HTMLElement>(
+    '[data-resume-page-viewport]',
+  )
+
+  const source = printDocument.querySelector<HTMLElement>(
+    '[data-resume-page-content]',
+  )
+
+  if (!firstPage || !viewport || !source) throw new Error('打印文档结构不完整')
+
   return { firstPage, viewport, source }
 }
 
@@ -35,18 +43,21 @@ export function useResumePrint({
     documentTitle,
     pageStyle: RESUME_PRINT_PAGE_STYLE,
     print: async (iframe) => {
-      if (!documentState.signature)
-        throw new Error('简历分页尚未准备完成')
+      if (!documentState.signature) throw new Error('简历分页尚未准备完成')
 
       const printDocument = iframe.contentDocument
       const printWindow = iframe.contentWindow
+
       if (!printDocument || !printWindow)
         throw new Error('当前浏览器无法创建打印窗口')
       if (typeof printWindow.print !== 'function')
-        throw new TypeError('当前浏览器不支持 PDF 导出，请使用 Safari 或 Chrome')
+        throw new TypeError(
+          '当前浏览器不支持 PDF 导出，请使用 Safari 或 Chrome',
+        )
 
       // react-to-print 不复制根节点语言；WebKit 会据此选择不同的标点字形。
-      printDocument.documentElement.lang = iframe.ownerDocument.documentElement.lang
+      printDocument.documentElement.lang =
+        iframe.ownerDocument.documentElement.lang
 
       await waitForResumeFont(
         printDocument,
@@ -55,13 +66,16 @@ export function useResumePrint({
       )
 
       await waitForResumeImages(printDocument)
+
       const { firstPage, viewport, source } = getPrintElements(printDocument)
+
       const clone = measurePaginationSnapshot({
         page: firstPage,
         viewport,
         source,
         fontFamily: printWindow.getComputedStyle(source).fontFamily,
       })
+
       if (!layoutSignaturesEqual(documentState.signature, clone.signature))
         throw new Error('打印布局尚未稳定，请重试')
 
@@ -78,13 +92,17 @@ export function useResumePrint({
   return useCallback(async () => {
     if (documentState.status === 'measuring') {
       toast.info('简历分页准备中')
+
       return false
     }
     if (documentState.status === 'error') {
       toast.error(documentState.error || '简历分页失败')
+
       return false
     }
+
     await handlePrint()
+
     return true
   }, [documentState, handlePrint])
 }

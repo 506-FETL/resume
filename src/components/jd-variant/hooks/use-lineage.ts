@@ -1,7 +1,10 @@
 import type { VariantLineage } from '@/lib/supabase/resume/variant'
 import { useCallback, useEffect, useState } from 'react'
 import { create } from 'zustand'
-import { fetchOfflineVariantTree, isOfflineResumeId } from '@/lib/offline-resume-manager'
+import {
+  fetchOfflineVariantTree,
+  isOfflineResumeId,
+} from '@/lib/offline-resume-manager'
 import { fetchVariantTree } from '@/lib/supabase/resume/variant'
 
 interface CacheState {
@@ -10,43 +13,53 @@ interface CacheState {
   invalidate: (id: string) => void
 }
 
-const useLineageCache = create<CacheState>(set => ({
+const useLineageCache = create<CacheState>((set) => ({
   byId: {},
-  set: (id, lineage) => set(s => ({ byId: { ...s.byId, [id]: lineage } })),
-  invalidate: id => set((s) => {
-    const next = { ...s.byId }
-    delete next[id]
-    return { byId: next }
-  }),
+  set: (id, lineage) => set((s) => ({ byId: { ...s.byId, [id]: lineage } })),
+  invalidate: (id) =>
+    set((s) => {
+      const next = { ...s.byId }
+
+      delete next[id]
+
+      return { byId: next }
+    }),
 }))
 
 export function useVariantLineage(rootId: string | null | undefined) {
-  const cached = useLineageCache(s => (rootId ? s.byId[rootId] : undefined))
-  const setCache = useLineageCache(s => s.set)
-  const invalidate = useLineageCache(s => s.invalidate)
+  const cached = useLineageCache((s) => (rootId ? s.byId[rootId] : undefined))
+  const setCache = useLineageCache((s) => s.set)
+  const invalidate = useLineageCache((s) => s.invalidate)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async (id: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const fetcher = isOfflineResumeId(id) ? fetchOfflineVariantTree : fetchVariantTree
-      const lineage = await fetcher(id)
-      setCache(id, lineage)
-    }
-    catch (e) {
-      setError(e instanceof Error ? e.message : 'lineage fetch failed')
-    }
-    finally {
-      setLoading(false)
-    }
-  }, [setCache])
+  const load = useCallback(
+    async (id: string) => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const fetcher = isOfflineResumeId(id)
+          ? fetchOfflineVariantTree
+          : fetchVariantTree
+
+        const lineage = await fetcher(id)
+
+        setCache(id, lineage)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'lineage fetch failed')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [setCache],
+  )
 
   useEffect(() => {
     if (!rootId || cached) {
       return
     }
+
     load(rootId)
   }, [rootId, cached, load])
 
@@ -54,9 +67,16 @@ export function useVariantLineage(rootId: string | null | undefined) {
     if (!rootId) {
       return
     }
+
     invalidate(rootId)
     await load(rootId)
   }, [rootId, invalidate, load])
 
-  return { tree: cached?.root ?? null, lineage: cached ?? null, loading, error, refresh }
+  return {
+    tree: cached?.root ?? null,
+    lineage: cached ?? null,
+    loading,
+    error,
+    refresh,
+  }
 }

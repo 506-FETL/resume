@@ -20,37 +20,40 @@ export function useComposerContext() {
 
   useEffect(() => {
     let alive = true
+
     ;(async () => {
       try {
         const rows = await listAccessibleResumes()
+
         if (alive) {
           setResumes(
-            rows.slice(0, 20).map(r => ({
+            rows.slice(0, 20).map((r) => ({
               resumeId: r.resume_id,
               name: String(r.display_name ?? '未命名简历'),
             })),
           )
         }
-      }
-      catch {
+      } catch {
         // 概况拉取失败时静默降级
       }
+
       try {
         const companies = await getCompanies()
+
         if (alive) {
           setJobs(
-            companies.slice(0, 20).map(j => ({
+            companies.slice(0, 20).map((j) => ({
               id: String(j.id),
               company: j.company ?? '未知公司',
               position: j.position ?? '未知岗位',
             })),
           )
         }
-      }
-      catch {
+      } catch {
         // 概况拉取失败时静默降级
       }
     })()
+
     return () => {
       alive = false
     }

@@ -13,7 +13,10 @@ export interface ResumeListState extends TemplateNamesSlice {
 
   loadResumes: () => Promise<void>
   deleteResume: (id: string) => void
-  updateResume: (resumeId: string, updates: { display_name: string, description: string }) => void
+  updateResume: (
+    resumeId: string,
+    updates: { display_name: string; description: string },
+  ) => void
   addResume: (resume: ResumeItem) => void
 
   // Sync slice

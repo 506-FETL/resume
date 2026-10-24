@@ -1,10 +1,26 @@
 import type { UseFormReturn } from 'react-hook-form'
 import type { BasicFormInput } from '@/lib/schema'
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
-import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from '@/components/ui/input-otp'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { maritalStatusOptions, politicalStatusOptions } from '../../const'
 
 interface DemographicFieldsProps {
@@ -16,19 +32,19 @@ export function DemographicFields({ form }: DemographicFieldsProps) {
     <>
       <FormField
         control={form.control}
-        name="maritalStatus"
+        name='maritalStatus'
         render={({ field }) => (
           <FormItem>
             <FormLabel>婚姻状况</FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="不填" />
+                  <SelectValue placeholder='不填' />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 <SelectGroup>
-                  {maritalStatusOptions.map(o => (
+                  {maritalStatusOptions.map((o) => (
                     <SelectItem key={o} value={o}>
                       {o}
                     </SelectItem>
@@ -42,7 +58,7 @@ export function DemographicFields({ form }: DemographicFieldsProps) {
 
       <FormField
         control={form.control}
-        name="heightCm"
+        name='heightCm'
         render={({ field }) => (
           <FormItem>
             <FormLabel>身高(cm)</FormLabel>
@@ -67,7 +83,7 @@ export function DemographicFields({ form }: DemographicFieldsProps) {
       />
       <FormField
         control={form.control}
-        name="weightKg"
+        name='weightKg'
         render={({ field }) => (
           <FormItem>
             <FormLabel>体重(kg)</FormLabel>
@@ -93,12 +109,12 @@ export function DemographicFields({ form }: DemographicFieldsProps) {
 
       <FormField
         control={form.control}
-        name="nation"
+        name='nation'
         render={({ field }) => (
           <FormItem>
             <FormLabel>民族</FormLabel>
             <FormControl>
-              <Input placeholder="请输入民族" {...field} />
+              <Input placeholder='请输入民族' {...field} />
             </FormControl>
           </FormItem>
         )}
@@ -106,12 +122,12 @@ export function DemographicFields({ form }: DemographicFieldsProps) {
 
       <FormField
         control={form.control}
-        name="nativePlace"
+        name='nativePlace'
         render={({ field }) => (
           <FormItem>
             <FormLabel>籍贯</FormLabel>
             <FormControl>
-              <Input placeholder="四川 / 江苏南京" {...field} />
+              <Input placeholder='四川 / 江苏南京' {...field} />
             </FormControl>
           </FormItem>
         )}
@@ -119,19 +135,19 @@ export function DemographicFields({ form }: DemographicFieldsProps) {
 
       <FormField
         control={form.control}
-        name="politicalStatus"
+        name='politicalStatus'
         render={({ field }) => (
           <FormItem>
             <FormLabel>政治面貌</FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="共青团员" />
+                  <SelectValue placeholder='共青团员' />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 <SelectGroup>
-                  {politicalStatusOptions.map(o => (
+                  {politicalStatusOptions.map((o) => (
                     <SelectItem key={o} value={o}>
                       {o}
                     </SelectItem>

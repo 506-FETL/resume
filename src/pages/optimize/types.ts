@@ -21,7 +21,16 @@ export interface SeverityConfigVariant {
 }
 
 // 分析状态类型
-export type AnalysisStatus = 'idle' | 'uploading' | 'fetching' | 'sending' | 'thinking' | 'generating' | 'received' | 'saving' | 'complete'
+export type AnalysisStatus =
+  | 'idle'
+  | 'uploading'
+  | 'fetching'
+  | 'sending'
+  | 'thinking'
+  | 'generating'
+  | 'received'
+  | 'saving'
+  | 'complete'
 
 // 步骤配置接口
 export interface StepConfig {
@@ -41,9 +50,12 @@ export interface AnalysisState {
 }
 
 // Action 类型
-export type AnalysisAction
-  = | { type: 'RESET' }
-    | { type: 'SET_STATUS', payload: AnalysisStatus }
-    | { type: 'UPDATE_LOG', payload: { key: string, value: string, append?: boolean } }
-    | { type: 'SET_REASONING', payload: string }
-    | { type: 'SET_CONTENT', payload: string }
+export type AnalysisAction =
+  | { type: 'RESET' }
+  | { type: 'SET_STATUS'; payload: AnalysisStatus }
+  | {
+      type: 'UPDATE_LOG'
+      payload: { key: string; value: string; append?: boolean }
+    }
+  | { type: 'SET_REASONING'; payload: string }
+  | { type: 'SET_CONTENT'; payload: string }

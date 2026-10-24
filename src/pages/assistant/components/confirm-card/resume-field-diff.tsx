@@ -6,6 +6,10 @@ interface ResumeFieldDiffProps {
   after: unknown
 }
 
-export function ResumeFieldDiff({ sectionKey, before, after }: ResumeFieldDiffProps) {
+export function ResumeFieldDiff({
+  sectionKey,
+  before,
+  after,
+}: ResumeFieldDiffProps) {
   return <FieldDiffView sectionKey={sectionKey} before={before} after={after} />
 }

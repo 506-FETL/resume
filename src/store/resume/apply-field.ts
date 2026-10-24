@@ -9,6 +9,7 @@ export async function applyResumeFieldToDocument(
 ): Promise<void> {
   if (useResumeStore.getState().currentResumeId !== resumeId)
     await useResumeStore.getState().loadResumeData(resumeId)
+
   useResumeStore.getState().updateForm(sectionKey, value as never)
   await useResumeStore.getState().manualSync()
 }

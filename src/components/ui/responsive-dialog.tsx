@@ -32,9 +32,13 @@ const ResponsiveDialogContext = React.createContext<{
 
 function useResponsiveDialogContext() {
   const context = React.useContext(ResponsiveDialogContext)
+
   if (!context) {
-    throw new Error('useResponsiveDialogContext must be used within ResponsiveDialog')
+    throw new Error(
+      'useResponsiveDialogContext must be used within ResponsiveDialog',
+    )
   }
+
   return context
 }
 
@@ -68,20 +72,26 @@ export function ResponsiveDialog({
   const isMobile = useIsMobile()
   const [activeSection, setActiveSection] = React.useState('')
 
-  const contextValue = React.useMemo(() => ({
-    activeSection,
-    setActiveSection,
-    isMobile,
-    variant,
-    errors,
-  }), [activeSection, errors, isMobile, variant])
+  const contextValue = React.useMemo(
+    () => ({
+      activeSection,
+      setActiveSection,
+      isMobile,
+      variant,
+      errors,
+    }),
+    [activeSection, errors, isMobile, variant],
+  )
 
   if (isMobile) {
     return (
       <ResponsiveDialogContext.Provider value={contextValue}>
         <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
           {trigger && <DrawerTrigger render={trigger} />}
-          <DrawerContent className={contentClassName} overlayClassName={overlayClassName}>
+          <DrawerContent
+            className={contentClassName}
+            overlayClassName={overlayClassName}
+          >
             {children}
           </DrawerContent>
         </Drawer>
@@ -145,8 +155,7 @@ export function ResponsiveDialogSidebar({
 }) {
   const { isMobile, variant } = useResponsiveDialogContext()
 
-  if (isMobile || variant !== 'sidebar')
-    return null
+  if (isMobile || variant !== 'sidebar') return null
 
   return (
     <div
@@ -156,12 +165,19 @@ export function ResponsiveDialogSidebar({
       )}
     >
       {(title || description) && (
-        <div className="p-6 shrink-0">
-          {title && <h2 className="text-xl font-bold tracking-tight">{title}</h2>}
-          {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+        <div className='p-6 shrink-0'>
+          {title && (
+            <h2 className='text-xl font-bold tracking-tight'>{title}</h2>
+          )}
+          {description && (
+            <p className='text-xs text-muted-foreground mt-1'>{description}</p>
+          )}
         </div>
       )}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto" role="tablist">
+      <nav
+        className='flex-1 px-3 py-2 space-y-1 overflow-y-auto'
+        role='tablist'
+      >
         {children}
       </nav>
     </div>
@@ -179,14 +195,18 @@ export function ResponsiveDialogSidebarItem({
   icon?: React.ElementType
   className?: string
 }) {
-  const { activeSection, setActiveSection, errors } = useResponsiveDialogContext()
+  const { activeSection, setActiveSection, errors } =
+    useResponsiveDialogContext()
+
   const isActive = activeSection === id
   const hasError = errors?.[id]
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
     setActiveSection(id)
+
     const element = document.getElementById(id)
+
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
@@ -194,7 +214,7 @@ export function ResponsiveDialogSidebarItem({
 
   return (
     <button
-      role="tab"
+      role='tab'
       aria-selected={isActive}
       aria-controls={id}
       onClick={handleClick}
@@ -206,10 +226,19 @@ export function ResponsiveDialogSidebarItem({
         className,
       )}
     >
-      {Icon && <Icon className={cn('size-4 mr-3 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-accent-foreground')} />}
-      <span className="truncate">{label}</span>
+      {Icon && (
+        <Icon
+          className={cn(
+            'size-4 mr-3 shrink-0',
+            isActive
+              ? 'text-primary'
+              : 'text-muted-foreground group-hover:text-accent-foreground',
+          )}
+        />
+      )}
+      <span className='truncate'>{label}</span>
       {hasError && (
-        <AlertCircle className="size-3.5 ml-auto text-destructive animate-pulse shrink-0" />
+        <AlertCircle className='size-3.5 ml-auto text-destructive animate-pulse shrink-0' />
       )}
     </button>
   )
@@ -226,8 +255,7 @@ export function ResponsiveDialogMain({
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    if (variant !== 'sidebar' || !scrollRef.current)
-      return
+    if (variant !== 'sidebar' || !scrollRef.current) return
 
     const observerOptions = {
       root: scrollRef.current,
@@ -245,7 +273,8 @@ export function ResponsiveDialogMain({
 
     const observer = new IntersectionObserver(observerCallback, observerOptions)
     const sections = scrollRef.current.querySelectorAll('section[id]')
-    sections.forEach(section => observer.observe(section))
+
+    sections.forEach((section) => observer.observe(section))
 
     return () => observer.disconnect()
   }, [variant, setActiveSection])
@@ -279,17 +308,23 @@ export function ResponsiveDialogSection({
   return (
     <section id={id} className={cn('scroll-mt-6', className)}>
       {(isMobile || variant === 'sidebar') && title && (
-        <div className={cn(
-          'px-6 py-3 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 z-10 border-b border-border/40 mb-4',
-          isMobile && 'sticky top-0',
-        )}>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground/70 uppercase">{title}</h3>
+        <div
+          className={cn(
+            'px-6 py-3 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 z-10 border-b border-border/40 mb-4',
+            isMobile && 'sticky top-0',
+          )}
+        >
+          <h3 className='text-sm font-semibold tracking-tight text-foreground/70 uppercase'>
+            {title}
+          </h3>
         </div>
       )}
-      <div className={cn(
-        'px-6',
-        (isMobile || variant === 'sidebar') && title ? 'pb-8' : 'py-6',
-      )}>
+      <div
+        className={cn(
+          'px-6',
+          (isMobile || variant === 'sidebar') && title ? 'pb-8' : 'py-6',
+        )}
+      >
         {children}
       </div>
     </section>
@@ -305,7 +340,7 @@ export function ResponsiveDialogHeader({
 
   if (variant === 'sidebar' && !isMobile) {
     return (
-      <div className="sr-only" {...props}>
+      <div className='sr-only' {...props}>
         {children}
       </div>
     )
@@ -381,7 +416,7 @@ export function ResponsiveDialogFooter({
     return (
       <DrawerFooter className={className} {...props}>
         {children}
-        <DrawerClose render={<button className="hidden" />} />
+        <DrawerClose render={<button className='hidden' />} />
       </DrawerFooter>
     )
   }

@@ -1,6 +1,12 @@
-import type { AtsCreatePayload, AtsLlmDraft, AtsPersistPatch } from '@/lib/schema/ats'
+import type {
+  AtsCreatePayload,
+  AtsLlmDraft,
+  AtsPersistPatch,
+} from '@/lib/schema/ats'
 
-export function sanitizeAtsPersistInput(input: AtsLlmDraft | AtsPersistPatch | AtsCreatePayload): AtsPersistPatch {
+export function sanitizeAtsPersistInput(
+  input: AtsLlmDraft | AtsPersistPatch | AtsCreatePayload,
+): AtsPersistPatch {
   const payload: AtsPersistPatch = {}
 
   if (input.todo_items !== undefined) {

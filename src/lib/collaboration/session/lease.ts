@@ -3,8 +3,10 @@ import { CollaborationOperationError } from './service'
 export const COLLABORATION_LEASE_INTERVAL_MS = 30_000
 
 export function isCollaborationRevokedError(error: unknown) {
-  return error instanceof CollaborationOperationError
-    && (error.code === 'unauthorized' || error.status === 401)
+  return (
+    error instanceof CollaborationOperationError &&
+    (error.code === 'unauthorized' || error.status === 401)
+  )
 }
 
 export function startCollaborationLeaseMonitor(options: {
@@ -34,21 +36,20 @@ export function startCollaborationLeaseMonitor(options: {
     if (stopped || running) {
       return
     }
+
     timer = null
     running = true
+
     try {
       await options.renew()
-    }
-    catch (error) {
+    } catch (error) {
       if (isCollaborationRevokedError(error)) {
         stopped = true
         options.onRevoked(error)
-      }
-      else {
+      } else {
         options.onTransientError(error)
       }
-    }
-    finally {
+    } finally {
       running = false
       schedule()
     }
@@ -59,6 +60,7 @@ export function startCollaborationLeaseMonitor(options: {
       if (timer) {
         clearTimeout(timer)
       }
+
       timer = null
       tick().catch(options.onTransientError)
     }
@@ -69,10 +71,12 @@ export function startCollaborationLeaseMonitor(options: {
 
   return () => {
     stopped = true
+
     if (timer) {
       clearTimeout(timer)
       timer = null
     }
+
     document.removeEventListener('visibilitychange', onVisibilityChange)
   }
 }

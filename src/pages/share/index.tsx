@@ -14,6 +14,7 @@ import { useSharePageBootstrap } from './hooks/use-share-page-bootstrap'
 
 export default function Management() {
   useSharePageBootstrap()
+
   const reduceMotion = useReducedMotion()
 
   return (
@@ -25,11 +26,11 @@ export default function Management() {
           ...SHARE_MOTION.page.transition,
           duration: reduceMotion ? 0 : SHARE_MOTION.page.transition.duration,
         }}
-        className="flex min-w-0 flex-col gap-6"
+        className='flex min-w-0 flex-col gap-6'
       >
         <Header />
         <Overview />
-        <section aria-label="分享链接" className="min-w-0 space-y-5">
+        <section aria-label='分享链接' className='min-w-0 space-y-5'>
           <Toolbar />
           <Content />
         </section>

@@ -39,47 +39,48 @@ export function RewriteBubbleMenu({
 
   useEffect(() => {
     const element = measureRef.current
-    if (!measuring || !element || !onFullWidthChange)
-      return
+
+    if (!measuring || !element || !onFullWidthChange) return
 
     const reportWidth = () => {
       onFullWidthChange(element.getBoundingClientRect().width)
     }
+
     const observer = new ResizeObserver(reportWidth)
+
     observer.observe(element)
     reportWidth()
 
     return () => observer.disconnect()
   }, [measuring, onFullWidthChange])
 
-  const renderActionButtons = () => REWRITE_ACTION_LIST.map((action) => {
-    const meta = REWRITE_ACTION_META[action]
-    const Icon = meta.icon
+  const renderActionButtons = () =>
+    REWRITE_ACTION_LIST.map((action) => {
+      const meta = REWRITE_ACTION_META[action]
+      const Icon = meta.icon
 
-    return (
-      <Button
-        key={action}
-        type="button"
-        size="sm"
-        variant="ghost"
-        title={meta.description}
-        onPointerDown={(event) => {
-          if (!event.isPrimary || event.button !== 0)
-            return
+      return (
+        <Button
+          key={action}
+          type='button'
+          size='sm'
+          variant='ghost'
+          title={meta.description}
+          onPointerDown={(event) => {
+            if (!event.isPrimary || event.button !== 0) return
 
-          event.preventDefault()
-          onAction(action)
-        }}
-        onClick={(event) => {
-          if (event.detail === 0)
+            event.preventDefault()
             onAction(action)
-        }}
-      >
-        <Icon data-icon="inline-start" />
-        <span>{meta.label}</span>
-      </Button>
-    )
-  })
+          }}
+          onClick={(event) => {
+            if (event.detail === 0) onAction(action)
+          }}
+        >
+          <Icon data-icon='inline-start' />
+          <span>{meta.label}</span>
+        </Button>
+      )
+    })
 
   const variants: Variants = {
     hidden: {
@@ -92,24 +93,26 @@ export function RewriteBubbleMenu({
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out },
+      transition: {
+        duration: reduceMotion ? 0 : DURATION.base,
+        ease: EASE.out,
+      },
     },
   }
+
   const animationState = visible ? 'visible' : 'hidden'
+
   const handleAnimationComplete = (definition: AnimationDefinition) => {
-    if (definition === 'hidden')
-      onHidden?.()
+    if (definition === 'hidden') onHidden?.()
   }
+
   if (measuring) {
     return (
       <div
         ref={measureRef}
-        className={cn(
-          'tiptap-toolbar',
-          'ai-rewrite-bubble-measure-content',
-        )}
-        data-mode="full"
-        data-variant="floating"
+        className={cn('tiptap-toolbar', 'ai-rewrite-bubble-measure-content')}
+        data-mode='full'
+        data-variant='floating'
       >
         {renderActionButtons()}
       </div>
@@ -129,8 +132,8 @@ export function RewriteBubbleMenu({
           'tiptap-toolbar origin-bottom will-change-transform',
           !visible && 'pointer-events-none',
         )}
-        data-mode="full"
-        data-variant="floating"
+        data-mode='full'
+        data-variant='floating'
       >
         {renderActionButtons()}
       </motion.div>
@@ -149,25 +152,21 @@ export function RewriteBubbleMenu({
         'tiptap-toolbar origin-bottom will-change-transform',
         !visible && 'pointer-events-none',
       )}
-      data-mode="compact"
-      data-variant="floating"
+      data-mode='compact'
+      data-variant='floating'
     >
-      <DropdownMenu
-        modal={false}
-        open={menuOpen}
-        onOpenChange={setMenuOpen}
-      >
+      <DropdownMenu modal={false} open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
-            type="button"
-            size="icon-sm"
-            variant="outline"
-            aria-label="更多 AI 改写操作"
+            type='button'
+            size='icon-sm'
+            variant='outline'
+            aria-label='更多 AI 改写操作'
           >
-            <Ellipsis data-icon="inline-start" />
+            <Ellipsis data-icon='inline-start' />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" sideOffset={6}>
+        <DropdownMenuContent align='center' sideOffset={6}>
           <DropdownMenuGroup>
             {REWRITE_ACTION_LIST.map((action) => {
               const meta = REWRITE_ACTION_META[action]
@@ -182,10 +181,10 @@ export function RewriteBubbleMenu({
                     setMenuOpen(false)
                   }}
                 >
-                  <Icon data-icon="inline-start" />
-                  <span className="flex min-w-0 flex-col gap-0.5">
+                  <Icon data-icon='inline-start' />
+                  <span className='flex min-w-0 flex-col gap-0.5'>
                     <span>{meta.label}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className='text-xs text-muted-foreground'>
                       {meta.description}
                     </span>
                   </span>

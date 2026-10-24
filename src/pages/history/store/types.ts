@@ -1,5 +1,14 @@
-import type { HistoryCurrentResume, HistorySelection, RestoreStrategy, VersionMetadataDraft } from '../types'
-import type { ResumeHistoryVersionListItem, ResumeHistoryVersionRecord, ResumeSnapshot } from '@/lib/supabase/resume/history'
+import type {
+  HistoryCurrentResume,
+  HistorySelection,
+  RestoreStrategy,
+  VersionMetadataDraft,
+} from '../types'
+import type {
+  ResumeHistoryVersionListItem,
+  ResumeHistoryVersionRecord,
+  ResumeSnapshot,
+} from '@/lib/supabase/resume/history'
 
 export interface HistoryStoreState {
   // Data slice
@@ -12,9 +21,17 @@ export interface HistoryStoreState {
   init: (resumeId: string | null | undefined) => Promise<void>
   reload: () => Promise<void>
   loadVersionSnapshot: (id: number) => Promise<ResumeSnapshot | null>
-  saveCurrentVersion: (draft: VersionMetadataDraft) => Promise<ResumeHistoryVersionRecord | null>
-  updateVersionMetadata: (versionId: number, draft: VersionMetadataDraft) => Promise<ResumeHistoryVersionRecord | null>
-  restoreVersion: (versionId: number, strategy: RestoreStrategy) => Promise<ResumeHistoryVersionRecord | null>
+  saveCurrentVersion: (
+    draft: VersionMetadataDraft,
+  ) => Promise<ResumeHistoryVersionRecord | null>
+  updateVersionMetadata: (
+    versionId: number,
+    draft: VersionMetadataDraft,
+  ) => Promise<ResumeHistoryVersionRecord | null>
+  restoreVersion: (
+    versionId: number,
+    strategy: RestoreStrategy,
+  ) => Promise<ResumeHistoryVersionRecord | null>
   deleteVersion: (versionId: number) => Promise<boolean>
 
   // UI slice

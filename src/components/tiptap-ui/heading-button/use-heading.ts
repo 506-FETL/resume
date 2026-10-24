@@ -74,11 +74,10 @@ export function canToggle(
   level?: Level,
   turnInto: boolean = true,
 ): boolean {
-  if (!editor || !editor.isEditable)
-    return false
+  if (!editor || !editor.isEditable) return false
   if (
-    !isNodeInSchema('heading', editor)
-    || isNodeTypeSelected(editor, ['image'])
+    !isNodeInSchema('heading', editor) ||
+    isNodeTypeSelected(editor, ['image'])
   ) {
     return false
   }
@@ -99,13 +98,12 @@ export function canToggle(
         editor,
         node: state.selection.$anchor.node(1),
       })?.pos
-      if (!isValidPosition(pos))
-        return false
+
+      if (!isValidPosition(pos)) return false
     }
 
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -117,11 +115,10 @@ export function isHeadingActive(
   editor: Editor | null,
   level?: Level | Level[],
 ): boolean {
-  if (!editor || !editor.isEditable)
-    return false
+  if (!editor || !editor.isEditable) return false
 
   if (Array.isArray(level)) {
-    return level.some(l => editor.isActive('heading', { level: l }))
+    return level.some((l) => editor.isActive('heading', { level: l }))
   }
 
   return level
@@ -136,14 +133,12 @@ export function toggleHeading(
   editor: Editor | null,
   level: Level | Level[],
 ): boolean {
-  if (!editor || !editor.isEditable)
-    return false
+  if (!editor || !editor.isEditable) return false
 
   const levels = Array.isArray(level) ? level : [level]
-  const toggleLevel = levels.find(l => canToggle(editor, l))
+  const toggleLevel = levels.find((l) => canToggle(editor, l))
 
-  if (!toggleLevel)
-    return false
+  if (!toggleLevel) return false
 
   try {
     const view = editor.view
@@ -156,8 +151,8 @@ export function toggleHeading(
         editor,
         node: state.selection.$anchor.node(1),
       })?.pos
-      if (!isValidPosition(pos))
-        return false
+
+      if (!isValidPosition(pos)) return false
 
       tr = tr.setSelection(NodeSelection.create(state.doc, pos))
       view.dispatch(tr)
@@ -183,7 +178,7 @@ export function toggleHeading(
       chain = chain.setTextSelection({ from, to }).clearNodes()
     }
 
-    const isActive = levels.some(l =>
+    const isActive = levels.some((l) =>
       editor.isActive('heading', { level: l }),
     )
 
@@ -196,8 +191,7 @@ export function toggleHeading(
     editor.chain().focus().selectTextblockEnd().run()
 
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -212,15 +206,14 @@ export function shouldShowButton(props: {
 }): boolean {
   const { editor, level, hideWhenUnavailable } = props
 
-  if (!editor || !editor.isEditable)
-    return false
-  if (!isNodeInSchema('heading', editor))
-    return false
+  if (!editor || !editor.isEditable) return false
+  if (!isNodeInSchema('heading', editor)) return false
 
   if (hideWhenUnavailable && !editor.isActive('code')) {
     if (Array.isArray(level)) {
-      return level.some(l => canToggle(editor, l))
+      return level.some((l) => canToggle(editor, l))
     }
+
     return canToggle(editor, level)
   }
 
@@ -287,8 +280,7 @@ export function useHeading(config: UseHeadingConfig) {
   const isActive = isHeadingActive(editor, level)
 
   React.useEffect(() => {
-    if (!editor)
-      return
+    if (!editor) return
 
     const handleSelectionUpdate = () => {
       setIsVisible(shouldShowButton({ editor, level, hideWhenUnavailable }))
@@ -304,13 +296,14 @@ export function useHeading(config: UseHeadingConfig) {
   }, [editor, level, hideWhenUnavailable])
 
   const handleToggle = React.useCallback(() => {
-    if (!editor)
-      return false
+    if (!editor) return false
 
     const success = toggleHeading(editor, level)
+
     if (success) {
       onToggled?.()
     }
+
     return success
   }, [editor, level, onToggled])
 

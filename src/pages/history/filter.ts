@@ -1,4 +1,7 @@
-import type { ResumeHistoryVersionListItem, ResumeVersionSourceType } from '@/lib/supabase/resume/history'
+import type {
+  ResumeHistoryVersionListItem,
+  ResumeVersionSourceType,
+} from '@/lib/supabase/resume/history'
 import { getVersionTitle } from './utils'
 
 export type VersionSortOrder = 'newest' | 'oldest'
@@ -22,21 +25,30 @@ export const DEFAULT_VERSION_FILTER: VersionFilterCriteria = {
 
 /** 当前筛选是否处于「激活」状态（非默认），用于给筛选入口显示徽标。 */
 export function isFilterActive(criteria: VersionFilterCriteria): boolean {
-  return criteria.source !== 'all'
-    || criteria.milestoneOnly
-    || criteria.sort !== 'newest'
+  return (
+    criteria.source !== 'all' ||
+    criteria.milestoneOnly ||
+    criteria.sort !== 'newest'
+  )
 }
 
-function matchesKeyword(version: ResumeHistoryVersionListItem, keyword: string): boolean {
+function matchesKeyword(
+  version: ResumeHistoryVersionListItem,
+  keyword: string,
+): boolean {
   const q = keyword.trim().toLowerCase()
-  if (!q)
-    return true
+
+  if (!q) return true
+
   const haystack = [
     getVersionTitle(version),
     version.description ?? '',
     version.milestone_name ?? '',
     ...(version.tags ?? []),
-  ].join('\n').toLowerCase()
+  ]
+    .join('\n')
+    .toLowerCase()
+
   return haystack.includes(q)
 }
 
@@ -48,8 +60,8 @@ export function filterVersions(
   const filtered = versions.filter((version) => {
     if (criteria.source !== 'all' && version.source_type !== criteria.source)
       return false
-    if (criteria.milestoneOnly && !version.milestone_name?.trim())
-      return false
+    if (criteria.milestoneOnly && !version.milestone_name?.trim()) return false
+
     return matchesKeyword(version, criteria.keyword)
   })
 

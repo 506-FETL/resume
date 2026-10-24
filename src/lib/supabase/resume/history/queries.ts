@@ -154,17 +154,18 @@ export async function listResumeHistoryVersions(resumeId: string) {
       .order('version_no', { ascending: false })
       .range(from, to)
 
-    if (error)
-      throw error
+    if (error) throw error
 
     return (data ?? []) as ResumeHistoryVersionListRow[]
   })
 }
 
-export async function listResumeVersions(resumeId: string): Promise<ResumeVersionListItem[]> {
+export async function listResumeVersions(
+  resumeId: string,
+): Promise<ResumeVersionListItem[]> {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登陆')
+
+  if (!user) throw new Error('用户未登陆')
 
   const [versions, shares] = await Promise.all([
     collectPages(async (from, to) => {
@@ -176,8 +177,9 @@ export async function listResumeVersions(resumeId: string): Promise<ResumeVersio
         .order('status', { ascending: true })
         .order('version_no', { ascending: false })
         .range(from, to)
-      if (error)
-        throw error
+
+      if (error) throw error
+
       return (data ?? []) as ResumeHistoryVersionListRow[]
     }),
     collectPages(async (from, to) => {
@@ -188,18 +190,25 @@ export async function listResumeVersions(resumeId: string): Promise<ResumeVersio
         .eq('user_id', user.id)
         .is('archived_at', null)
         .range(from, to)
-      if (error)
-        throw error
+
+      if (error) throw error
+
       return (data ?? []) as Array<{ version_id: number | null }>
     }),
   ])
+
   const sharedCounts = new Map<number, number>()
+
   for (const share of shares) {
-    if (share.version_id == null)
-      continue
-    sharedCounts.set(share.version_id, (sharedCounts.get(share.version_id) ?? 0) + 1)
+    if (share.version_id == null) continue
+
+    sharedCounts.set(
+      share.version_id,
+      (sharedCounts.get(share.version_id) ?? 0) + 1,
+    )
   }
-  return versions.map(version => ({
+
+  return versions.map((version) => ({
     ...version,
     shared_link_count: sharedCounts.get(version.id) ?? 0,
   }))
@@ -207,8 +216,8 @@ export async function listResumeVersions(resumeId: string): Promise<ResumeVersio
 
 export async function getCurrentResumeVersion(resumeId: string) {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登陆')
+
+  if (!user) throw new Error('用户未登陆')
 
   const { data, error } = await supabase
     .from('resume_config_versions')
@@ -217,24 +226,32 @@ export async function getCurrentResumeVersion(resumeId: string) {
     .eq('user_id', user.id)
     .eq('status', 'active')
     .single()
-  if (error)
-    throw error
+
+  if (error) throw error
+
   return data as ResumeHistoryVersionRow
 }
 
-export async function createNextResumeVersion(resumeId: string, versionName: string | null) {
+export async function createNextResumeVersion(
+  resumeId: string,
+  versionName: string | null,
+) {
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('用户未登陆')
+
+  if (!user) throw new Error('用户未登陆')
+
   const { data, error } = await supabase.rpc('create_next_resume_version', {
     p_resume_id: resumeId,
     p_version_name: versionName?.trim() || null,
   })
-  if (error)
-    throw error
+
+  if (error) throw error
+
   const versionId = Number(data)
+
   if (!Number.isSafeInteger(versionId) || versionId <= 0)
     throw new Error('新版本创建结果无效')
+
   return versionId
 }
 
@@ -244,8 +261,7 @@ export async function getResumeHistoryVersionForShare(
 ) {
   const user = await getCurrentUser()
 
-  if (!user)
-    throw new Error('用户未登陆')
+  if (!user) throw new Error('用户未登陆')
 
   const { data, error } = await supabase
     .from('resume_config_versions')
@@ -255,8 +271,7 @@ export async function getResumeHistoryVersionForShare(
     .eq('user_id', user.id)
     .single()
 
-  if (error)
-    throw error
+  if (error) throw error
 
   return data as ResumeHistoryShareReleaseRow
 }
@@ -286,7 +301,8 @@ export async function getResumeHistoryVersionSnapshot(id: number) {
     throw error
   }
 
-  return (data as { snapshot: ResumeSnapshot | Record<string, unknown> }).snapshot
+  return (data as { snapshot: ResumeSnapshot | Record<string, unknown> })
+    .snapshot
 }
 
 export async function listResumeHistoryVersionSummaries() {
@@ -309,7 +325,9 @@ export async function listResumeHistoryVersionSummaries() {
   return (data ?? []) as ResumeHistoryVersionSummaryRecord[]
 }
 
-export async function createResumeHistoryVersion(input: CreateResumeHistoryVersionInput) {
+export async function createResumeHistoryVersion(
+  input: CreateResumeHistoryVersionInput,
+) {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -343,7 +361,10 @@ export async function createResumeHistoryVersion(input: CreateResumeHistoryVersi
   return data as ResumeHistoryVersionRow
 }
 
-export async function updateResumeHistoryVersion(id: number, input: UpdateResumeHistoryVersionInput) {
+export async function updateResumeHistoryVersion(
+  id: number,
+  input: UpdateResumeHistoryVersionInput,
+) {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -379,22 +400,32 @@ export async function deleteResumeHistoryVersion(id: number) {
     throw new Error('用户未登陆')
   }
 
-  const { error } = await supabase.rpc('delete_resume_history_version_with_comments', {
-    p_history_version_id: id,
-  })
+  const { error } = await supabase.rpc(
+    'delete_resume_history_version_with_comments',
+    {
+      p_history_version_id: id,
+    },
+  )
 
   if (error) {
     throw error
   }
 
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('resume-history-version-deleted', {
-      detail: { historyVersionId: id },
-    }))
+    window.dispatchEvent(
+      new CustomEvent('resume-history-version-deleted', {
+        detail: { historyVersionId: id },
+      }),
+    )
   }
   if (typeof BroadcastChannel !== 'undefined') {
     const channel = new BroadcastChannel('resume-history-events')
-    channel.postMessage({ type: 'history-version-deleted', historyVersionId: id })
+
+    channel.postMessage({
+      type: 'history-version-deleted',
+      historyVersionId: id,
+    })
+
     channel.close()
   }
 }

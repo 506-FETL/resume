@@ -1,7 +1,40 @@
-import type { HistoryCurrentResume, HistoryResumeOption, HistoryVersionGroup, VersionMetadataDraft } from './types'
-import type { ResumeHistoryOptionRecord, ResumeHistoryResumeRecord, ResumeHistoryVersionListItem, ResumeHistoryVersionListRow, ResumeHistoryVersionRecord, ResumeHistoryVersionRow, ResumeSnapshot } from '@/lib/supabase/resume/history'
+import type {
+  HistoryCurrentResume,
+  HistoryResumeOption,
+  HistoryVersionGroup,
+  VersionMetadataDraft,
+} from './types'
+import type {
+  ResumeHistoryOptionRecord,
+  ResumeHistoryResumeRecord,
+  ResumeHistoryVersionListItem,
+  ResumeHistoryVersionListRow,
+  ResumeHistoryVersionRecord,
+  ResumeHistoryVersionRow,
+  ResumeSnapshot,
+} from '@/lib/supabase/resume/history'
 import dayjs from 'dayjs'
-import { DEFAULT_APPLICATION_INFO, DEFAULT_BASICS, DEFAULT_CAMPUS_EXPERIENCE, DEFAULT_EDU_BACKGROUND, DEFAULT_HOBBIES, DEFAULT_HONORS_CERTIFICATES, DEFAULT_INTERNSHIP_EXPERIENCE, DEFAULT_JOB_INTENT, DEFAULT_ORDER, DEFAULT_PROJECT_EXPERIENCE, DEFAULT_SELF_EVALUATION, DEFAULT_SKILL_SPECIALTY, DEFAULT_VISIBILITY, DEFAULT_WORK_EXPERIENCE, migrateOrder, migrateVisibility, normalizeResumeAppearance, normalizeResumeType, resolveResumeTemplateBinding } from '@/lib/schema'
+import {
+  DEFAULT_APPLICATION_INFO,
+  DEFAULT_BASICS,
+  DEFAULT_CAMPUS_EXPERIENCE,
+  DEFAULT_EDU_BACKGROUND,
+  DEFAULT_HOBBIES,
+  DEFAULT_HONORS_CERTIFICATES,
+  DEFAULT_INTERNSHIP_EXPERIENCE,
+  DEFAULT_JOB_INTENT,
+  DEFAULT_ORDER,
+  DEFAULT_PROJECT_EXPERIENCE,
+  DEFAULT_SELF_EVALUATION,
+  DEFAULT_SKILL_SPECIALTY,
+  DEFAULT_VISIBILITY,
+  DEFAULT_WORK_EXPERIENCE,
+  migrateOrder,
+  migrateVisibility,
+  normalizeResumeAppearance,
+  normalizeResumeType,
+  resolveResumeTemplateBinding,
+} from '@/lib/schema'
 import { createResumeSnapshotHash } from '@/lib/supabase/resume'
 import { RESUME_TYPE_LABEL_MAP } from './const'
 
@@ -10,26 +43,63 @@ interface SnapshotFieldConfig {
   legacyKey?: string
 }
 
-type SnapshotSectionKey = Exclude<keyof ResumeSnapshot, 'order' | 'visibility' | 'type' | 'spacing' | 'font' | 'theme' | 'templateBinding'>
+type SnapshotSectionKey = Exclude<
+  keyof ResumeSnapshot,
+  | 'order'
+  | 'visibility'
+  | 'type'
+  | 'spacing'
+  | 'font'
+  | 'theme'
+  | 'templateBinding'
+>
 
-const SNAPSHOT_FIELD_DEFAULTS: Record<SnapshotSectionKey, SnapshotFieldConfig> = {
-  basics: { default: DEFAULT_BASICS },
-  job_intent: { default: DEFAULT_JOB_INTENT, legacyKey: 'jobIntent' },
-  application_info: { default: DEFAULT_APPLICATION_INFO, legacyKey: 'applicationInfo' },
-  edu_background: { default: DEFAULT_EDU_BACKGROUND, legacyKey: 'eduBackground' },
-  work_experience: { default: DEFAULT_WORK_EXPERIENCE, legacyKey: 'workExperience' },
-  internship_experience: { default: DEFAULT_INTERNSHIP_EXPERIENCE, legacyKey: 'internshipExperience' },
-  campus_experience: { default: DEFAULT_CAMPUS_EXPERIENCE, legacyKey: 'campusExperience' },
-  project_experience: { default: DEFAULT_PROJECT_EXPERIENCE, legacyKey: 'projectExperience' },
-  skill_specialty: { default: DEFAULT_SKILL_SPECIALTY, legacyKey: 'skillSpecialty' },
-  honors_certificates: { default: DEFAULT_HONORS_CERTIFICATES, legacyKey: 'honorsCertificates' },
-  self_evaluation: { default: DEFAULT_SELF_EVALUATION, legacyKey: 'selfEvaluation' },
-  hobbies: { default: DEFAULT_HOBBIES },
-}
+const SNAPSHOT_FIELD_DEFAULTS: Record<SnapshotSectionKey, SnapshotFieldConfig> =
+  {
+    basics: { default: DEFAULT_BASICS },
+    job_intent: { default: DEFAULT_JOB_INTENT, legacyKey: 'jobIntent' },
+    application_info: {
+      default: DEFAULT_APPLICATION_INFO,
+      legacyKey: 'applicationInfo',
+    },
+    edu_background: {
+      default: DEFAULT_EDU_BACKGROUND,
+      legacyKey: 'eduBackground',
+    },
+    work_experience: {
+      default: DEFAULT_WORK_EXPERIENCE,
+      legacyKey: 'workExperience',
+    },
+    internship_experience: {
+      default: DEFAULT_INTERNSHIP_EXPERIENCE,
+      legacyKey: 'internshipExperience',
+    },
+    campus_experience: {
+      default: DEFAULT_CAMPUS_EXPERIENCE,
+      legacyKey: 'campusExperience',
+    },
+    project_experience: {
+      default: DEFAULT_PROJECT_EXPERIENCE,
+      legacyKey: 'projectExperience',
+    },
+    skill_specialty: {
+      default: DEFAULT_SKILL_SPECIALTY,
+      legacyKey: 'skillSpecialty',
+    },
+    honors_certificates: {
+      default: DEFAULT_HONORS_CERTIFICATES,
+      legacyKey: 'honorsCertificates',
+    },
+    self_evaluation: {
+      default: DEFAULT_SELF_EVALUATION,
+      legacyKey: 'selfEvaluation',
+    },
+    hobbies: { default: DEFAULT_HOBBIES },
+  }
 
 export function sanitizeDeep<T>(value: T): T {
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeDeep(item)) as T
+    return value.map((item) => sanitizeDeep(item)) as T
   }
 
   if (value && typeof value === 'object') {
@@ -55,11 +125,7 @@ export function normalizeTags(value: unknown): string[] {
       : []
 
   return Array.from(
-    new Set(
-      source
-        .map(item => String(item).trim())
-        .filter(Boolean),
-    ),
+    new Set(source.map((item) => String(item).trim()).filter(Boolean)),
   )
 }
 
@@ -68,17 +134,28 @@ function getSnapshotSectionValue<K extends SnapshotSectionKey>(
   sourceRecord?: Record<string, unknown>,
 ): ResumeSnapshot[K] {
   const { default: defaultValue, legacyKey } = SNAPSHOT_FIELD_DEFAULTS[key]
-  const nextValue = sourceRecord?.[key] ?? (legacyKey ? sourceRecord?.[legacyKey] : undefined) ?? defaultValue
+
+  const nextValue =
+    sourceRecord?.[key] ??
+    (legacyKey ? sourceRecord?.[legacyKey] : undefined) ??
+    defaultValue
+
   return sanitizeDeep(nextValue) as ResumeSnapshot[K]
 }
 
 export function buildResumeSnapshot(source: unknown): ResumeSnapshot {
   const sourceRecord = isRecord(source) ? source : undefined
-  const orderValue = Array.isArray(sourceRecord?.order) ? sourceRecord.order : DEFAULT_ORDER
+
+  const orderValue = Array.isArray(sourceRecord?.order)
+    ? sourceRecord.order
+    : DEFAULT_ORDER
+
   const visibilityValue = isRecord(sourceRecord?.visibility)
-    ? sourceRecord.visibility as Record<string, boolean>
+    ? (sourceRecord.visibility as Record<string, boolean>)
     : DEFAULT_VISIBILITY
+
   const type = normalizeResumeType(sourceRecord?.type)
+
   const templateBinding = resolveResumeTemplateBinding(
     sourceRecord?.templateBinding ?? sourceRecord?.template_binding,
   )
@@ -89,11 +166,23 @@ export function buildResumeSnapshot(source: unknown): ResumeSnapshot {
     application_info: getSnapshotSectionValue('application_info', sourceRecord),
     edu_background: getSnapshotSectionValue('edu_background', sourceRecord),
     work_experience: getSnapshotSectionValue('work_experience', sourceRecord),
-    internship_experience: getSnapshotSectionValue('internship_experience', sourceRecord),
-    campus_experience: getSnapshotSectionValue('campus_experience', sourceRecord),
-    project_experience: getSnapshotSectionValue('project_experience', sourceRecord),
+    internship_experience: getSnapshotSectionValue(
+      'internship_experience',
+      sourceRecord,
+    ),
+    campus_experience: getSnapshotSectionValue(
+      'campus_experience',
+      sourceRecord,
+    ),
+    project_experience: getSnapshotSectionValue(
+      'project_experience',
+      sourceRecord,
+    ),
     skill_specialty: getSnapshotSectionValue('skill_specialty', sourceRecord),
-    honors_certificates: getSnapshotSectionValue('honors_certificates', sourceRecord),
+    honors_certificates: getSnapshotSectionValue(
+      'honors_certificates',
+      sourceRecord,
+    ),
     self_evaluation: getSnapshotSectionValue('self_evaluation', sourceRecord),
     hobbies: getSnapshotSectionValue('hobbies', sourceRecord),
     order: migrateOrder(orderValue as string[]),
@@ -104,11 +193,15 @@ export function buildResumeSnapshot(source: unknown): ResumeSnapshot {
   }
 }
 
-export function normalizeHistoryVersionListItem(row: ResumeHistoryVersionListRow): ResumeHistoryVersionListItem {
+export function normalizeHistoryVersionListItem(
+  row: ResumeHistoryVersionListRow,
+): ResumeHistoryVersionListItem {
   return { ...row, tags: normalizeTags(row.tags) }
 }
 
-export function normalizeHistoryVersion(version: ResumeHistoryVersionRow): ResumeHistoryVersionRecord {
+export function normalizeHistoryVersion(
+  version: ResumeHistoryVersionRow,
+): ResumeHistoryVersionRecord {
   return {
     ...version,
     tags: normalizeTags(version.tags),
@@ -116,8 +209,11 @@ export function normalizeHistoryVersion(version: ResumeHistoryVersionRow): Resum
   }
 }
 
-export async function buildCurrentResume(record: ResumeHistoryResumeRecord): Promise<HistoryCurrentResume> {
+export async function buildCurrentResume(
+  record: ResumeHistoryResumeRecord,
+): Promise<HistoryCurrentResume> {
   const snapshot = buildResumeSnapshot(record)
+
   return {
     resumeId: record.resume_id,
     displayName: record.display_name?.trim() || '未命名简历',
@@ -129,7 +225,9 @@ export async function buildCurrentResume(record: ResumeHistoryResumeRecord): Pro
   }
 }
 
-export function buildHistoryResumeOption(record: ResumeHistoryOptionRecord): HistoryResumeOption {
+export function buildHistoryResumeOption(
+  record: ResumeHistoryOptionRecord,
+): HistoryResumeOption {
   return {
     resumeId: record.resume_id,
     displayName: record.display_name?.trim() || '未命名简历',
@@ -151,7 +249,9 @@ export function getVersionSubtitle(version: ResumeHistoryVersionListItem) {
   return `V${version.version_no}`
 }
 
-export function createMetadataDraft(version?: ResumeHistoryVersionListItem | null): VersionMetadataDraft {
+export function createMetadataDraft(
+  version?: ResumeHistoryVersionListItem | null,
+): VersionMetadataDraft {
   return {
     versionName: version?.version_name ?? '',
     milestoneName: version?.milestone_name ?? '',
@@ -190,15 +290,19 @@ export function isMetadataDraftDirty(
 ) {
   const left = JSON.stringify(normalizeDraft(draft))
   const right = JSON.stringify(normalizeDraft(createMetadataDraft(version)))
+
   return left !== right
 }
 
-export function groupVersionsByDay(versions: ResumeHistoryVersionListItem[]): HistoryVersionGroup[] {
+export function groupVersionsByDay(
+  versions: ResumeHistoryVersionListItem[],
+): HistoryVersionGroup[] {
   const groups = new Map<string, ResumeHistoryVersionListItem[]>()
 
   versions.forEach((version) => {
     const key = dayjs(version.created_at).format('YYYY-MM-DD')
     const current = groups.get(key) ?? []
+
     current.push(version)
     groups.set(key, current)
   })
@@ -211,6 +315,7 @@ export function groupVersionsByDay(versions: ResumeHistoryVersionListItem[]): Hi
 
 export function trimToNull(value: string | null | undefined) {
   const nextValue = value?.trim()
+
   return nextValue || null
 }
 
@@ -232,7 +337,10 @@ export function getDateGroupLabel(value: string) {
   return date.format('YYYY 年 M 月 D 日')
 }
 
-export function getCurrentSyncState(currentResume: HistoryCurrentResume | null, versions: ResumeHistoryVersionListItem[]) {
+export function getCurrentSyncState(
+  currentResume: HistoryCurrentResume | null,
+  versions: ResumeHistoryVersionListItem[],
+) {
   if (!currentResume || versions.length === 0) {
     return {
       latestVersionNo: null,
@@ -241,8 +349,11 @@ export function getCurrentSyncState(currentResume: HistoryCurrentResume | null, 
   }
 
   const latest = versions[0]
+
   // content_hash 为 null（迁移前旧数据）→ 保守显示「有未保存的更新」，不误报已同步
-  const synced = Boolean(latest?.content_hash) && latest.content_hash === currentResume.contentHash
+  const synced =
+    Boolean(latest?.content_hash) &&
+    latest.content_hash === currentResume.contentHash
 
   return {
     latestVersionNo: latest?.version_no ?? null,
@@ -250,14 +361,17 @@ export function getCurrentSyncState(currentResume: HistoryCurrentResume | null, 
   }
 }
 
-export function getOrderedSections(snapshot: ResumeSnapshot): SnapshotSectionKey[] {
+export function getOrderedSections(
+  snapshot: ResumeSnapshot,
+): SnapshotSectionKey[] {
   const merged = ['basics', ...snapshot.order] as SnapshotSectionKey[]
+
   return Array.from(new Set(merged))
 }
 
 export function sortObjectKeys(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map(item => sortObjectKeys(item))
+    return value.map((item) => sortObjectKeys(item))
   }
 
   if (value && typeof value === 'object') {
@@ -265,6 +379,7 @@ export function sortObjectKeys(value: unknown): unknown {
       .sort()
       .reduce<Record<string, unknown>>((result, key) => {
         result[key] = sortObjectKeys((value as Record<string, unknown>)[key])
+
         return result
       }, {})
   }
@@ -276,7 +391,10 @@ export function stableSerialize(value: unknown) {
   return JSON.stringify(sortObjectKeys(sanitizeDeep(value)))
 }
 
-export function areSnapshotsEqual(left: ResumeSnapshot, right?: ResumeSnapshot | null) {
+export function areSnapshotsEqual(
+  left: ResumeSnapshot,
+  right?: ResumeSnapshot | null,
+) {
   if (!right) {
     return false
   }

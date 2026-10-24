@@ -1,4 +1,4 @@
-#  10 套模板实现计划
+# 10 套模板实现计划
 
 > 维护状态（2026-10-23）：本地模板资源、一次性模板发布/验收工具及截图/PDF 已按用户要求清理。下文涉及这些路径和命令的内容是当时的实施记录；当前操作以 `docs/resume-template-maintenance.md` 为准。云端已发布资源保持不变。
 
@@ -27,24 +27,24 @@
 
 ## 文件与职责
 
-| 文件/目录 | 职责 |
-| --- | --- |
-| src/lib/resume-template/declarative/{types,schema,validate,bindings,styles}.ts | 唯一协议、绑定校验、样式解析 |
-| src/lib/resume-template/declarative/page.ts | 纯函数解析区域几何、模块路由 |
-| src/components/resume/runtime/declarative-renderer.tsx | 通用节点解释、区域配方选择 |
-| src/components/resume/runtime/{template-region-context,template-page-background,template-shapes}.tsx | 区域上下文、页面装饰、共享图形 |
-| src/components/resume/pagination/{types,utils,use-pagination-plan,canonical-paged-document,use-resume-print}.ts(x) | 独立区域测量、逐页裁切、打印复核 |
-| src/components/resume/pagination/scaled-resume-document.tsx、src/components/resume/scaled-readonly-preview.tsx | 向分页层传递完整定义 |
-| src/pages/history/components/version-pdf-export/index.tsx | 历史导出使用同一页面计划 |
-| src/lib/schema/resume/form/{basic,photo}.ts | 可选照片与严格大小/格式约束 |
-| src/pages/resume/editor/components/forms/basic-resume/components/resume-photo/ | 选择、裁切、替换、删除与动效 |
-| src/lib/resume-template/content/{types,adapt-profile}.ts | 照片及字段语义适配 |
-| src/lib/resume-template/{share,source/resource-schema,source/types}.ts | 新协议分享与远端资源格式 |
-| template-resources/*/v*.json、catalog.json、previews/ | 12 套资源及 24 份精确预览 |
-| scripts/build-qm-templates.ts、scripts/build-template-seed.ts | 维护端配方生成及发布 SQL |
-| supabase/migrations/、supabase/functions/resume-share/ | 云端协议约束与分享校验审计（函数无需修改） |
-| tests/resume-template/{page-protocol,photo,hot-templates}.ts | 协议、照片、目录行为验证 |
-| tests/resume-template/{harness.tsx,browser.mjs,previews.mjs,inspect-pdfs.py} | 浏览器/真实打印矩阵与证据 |
+| 文件/目录                                                                                                          | 职责                                       |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| src/lib/resume-template/declarative/{types,schema,validate,bindings,styles}.ts                                     | 唯一协议、绑定校验、样式解析               |
+| src/lib/resume-template/declarative/page.ts                                                                        | 纯函数解析区域几何、模块路由               |
+| src/components/resume/runtime/declarative-renderer.tsx                                                             | 通用节点解释、区域配方选择                 |
+| src/components/resume/runtime/{template-region-context,template-page-background,template-shapes}.tsx               | 区域上下文、页面装饰、共享图形             |
+| src/components/resume/pagination/{types,utils,use-pagination-plan,canonical-paged-document,use-resume-print}.ts(x) | 独立区域测量、逐页裁切、打印复核           |
+| src/components/resume/pagination/scaled-resume-document.tsx、src/components/resume/scaled-readonly-preview.tsx     | 向分页层传递完整定义                       |
+| src/pages/history/components/version-pdf-export/index.tsx                                                          | 历史导出使用同一页面计划                   |
+| src/lib/schema/resume/form/{basic,photo}.ts                                                                        | 可选照片与严格大小/格式约束                |
+| src/pages/resume/editor/components/forms/basic-resume/components/resume-photo/                                     | 选择、裁切、替换、删除与动效               |
+| src/lib/resume-template/content/{types,adapt-profile}.ts                                                           | 照片及字段语义适配                         |
+| src/lib/resume-template/{share,source/resource-schema,source/types}.ts                                             | 新协议分享与远端资源格式                   |
+| template-resources/_/v_.json、catalog.json、previews/                                                              | 12 套资源及 24 份精确预览                  |
+| scripts/build-qm-templates.ts、scripts/build-template-seed.ts                                                      | 维护端配方生成及发布 SQL                   |
+| supabase/migrations/、supabase/functions/resume-share/                                                             | 云端协议约束与分享校验审计（函数无需修改） |
+| tests/resume-template/{page-protocol,photo,hot-templates}.ts                                                       | 协议、照片、目录行为验证                   |
+| tests/resume-template/{harness.tsx,browser.mjs,previews.mjs,inspect-pdfs.py}                                       | 浏览器/真实打印矩阵与证据                  |
 
 ## 接口约定
 
@@ -57,7 +57,13 @@ interface TemplatePage {
   background?: ColorValue
   decorationFirstPageOnly?: boolean
   decoration?: TemplateShape[]
-  pattern?: { kind: 'dots'; color: ColorValue; spacing: number; radius: number; opacity: number }
+  pattern?: {
+    kind: 'dots'
+    color: ColorValue
+    spacing: number
+    radius: number
+    opacity: number
+  }
   regions: TemplateRegion[] // 1–2 个，width 为相对权重
 }
 interface TemplateRegion {

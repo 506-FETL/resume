@@ -24,14 +24,25 @@ export function SelectionAction({
   const isPresent = useIsPresent()
   const reduceMotion = useReducedMotion()
   const lastRect = selection.clientRects.at(-1)
-  if (!lastRect)
-    return null
-  const left = Math.min(Math.max(lastRect.right - 52, 12), window.innerWidth - 116)
+
+  if (!lastRect) return null
+
+  const left = Math.min(
+    Math.max(lastRect.right - 52, 12),
+    window.innerWidth - 116,
+  )
+
   const top = Math.min(lastRect.bottom + 8, window.innerHeight - 48)
   const selectedCount = countCommentGraphemes(selection.exactQuote)
   const Icon = mode === 'relink' ? Link2 : MessageSquarePlus
   const baseLabel = mode === 'relink' ? '关联到此处' : '评论'
-  const label = pending ? (mode === 'relink' ? '关联中…' : '发送中…') : baseLabel
+
+  const label = pending
+    ? mode === 'relink'
+      ? '关联中…'
+      : '发送中…'
+    : baseLabel
+
   const motionProps = {
     initial: reduceMotion ? false : SELECTION_ACTION_HIDDEN,
     animate: {
@@ -53,23 +64,24 @@ export function SelectionAction({
           },
         },
   }
+
   return (
     <>
       <motion.div
         {...motionProps}
         data-resume-comment-ui
         aria-hidden={!isPresent}
-        className="fixed z-60 hidden md:block"
+        className='fixed z-60 hidden md:block'
         style={{ left, top }}
-        onPointerDown={event => event.preventDefault()}
+        onPointerDown={(event) => event.preventDefault()}
       >
         <Button
-          variant="secondary"
-          size="sm"
+          variant='secondary'
+          size='sm'
           disabled={disabled || pending || !isPresent}
           onClick={onComment}
         >
-          {pending ? <LoaderCircle className="animate-spin" /> : <Icon />}
+          {pending ? <LoaderCircle className='animate-spin' /> : <Icon />}
           {label}
         </Button>
       </motion.div>
@@ -77,18 +89,18 @@ export function SelectionAction({
         {...motionProps}
         data-resume-comment-ui
         aria-hidden={!isPresent}
-        className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-60 md:hidden"
-        onPointerDown={event => event.preventDefault()}
+        className='fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-60 md:hidden'
+        onPointerDown={(event) => event.preventDefault()}
       >
         <Button
-          variant="outline"
-          size="lg"
+          variant='outline'
+          size='lg'
           disabled={disabled || pending || !isPresent}
-          className="w-full"
+          className='w-full'
           aria-label={`已选择 ${selectedCount} 个字，${label}`}
           onClick={onComment}
         >
-          {pending ? <LoaderCircle className="animate-spin" /> : <Icon />}
+          {pending ? <LoaderCircle className='animate-spin' /> : <Icon />}
           <span>{`已选择 ${selectedCount} 个字 · ${label}`}</span>
         </Button>
       </motion.div>

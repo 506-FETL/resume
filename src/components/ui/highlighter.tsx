@@ -5,14 +5,14 @@ import { useEffect, useRef } from 'react'
 import { annotate } from 'rough-notation'
 import { DURATION } from '@/lib/motion'
 
-type AnnotationAction
-  = | 'highlight'
-    | 'underline'
-    | 'box'
-    | 'circle'
-    | 'strike-through'
-    | 'crossed-off'
-    | 'bracket'
+type AnnotationAction =
+  | 'highlight'
+  | 'underline'
+  | 'box'
+  | 'circle'
+  | 'strike-through'
+  | 'crossed-off'
+  | 'bracket'
 
 interface HighlighterProps {
   children: React.ReactNode
@@ -50,12 +50,11 @@ export function Highlighter({
   const shouldShow = !isView || isInView
 
   useEffect(() => {
-    if (!shouldShow)
-      return
+    if (!shouldShow) return
 
     const element = elementRef.current
-    if (!element)
-      return
+
+    if (!element) return
 
     const annotationConfig = {
       type: action,
@@ -74,9 +73,11 @@ export function Highlighter({
     annotationRef.current.show()
 
     let hasObservedInitialSize = false
+
     const resizeObserver = new ResizeObserver(() => {
       if (!hasObservedInitialSize) {
         hasObservedInitialSize = true
+
         return
       }
 
@@ -107,7 +108,7 @@ export function Highlighter({
   ])
 
   return (
-    <span ref={elementRef} className="relative inline-block bg-transparent">
+    <span ref={elementRef} className='relative inline-block bg-transparent'>
       {children}
     </span>
   )

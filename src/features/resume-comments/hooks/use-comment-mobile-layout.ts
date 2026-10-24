@@ -6,8 +6,10 @@ export const COMMENT_MOBILE_LAYOUT_QUERY = [
 ].join(', ')
 
 function readCommentMobileLayout() {
-  return typeof window !== 'undefined'
-    && window.matchMedia(COMMENT_MOBILE_LAYOUT_QUERY).matches
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia(COMMENT_MOBILE_LAYOUT_QUERY).matches
+  )
 }
 
 export function useCommentMobileLayout() {
@@ -16,8 +18,10 @@ export function useCommentMobileLayout() {
   useEffect(() => {
     const media = window.matchMedia(COMMENT_MOBILE_LAYOUT_QUERY)
     const update = () => setIsMobileLayout(media.matches)
+
     media.addEventListener('change', update)
     update()
+
     return () => media.removeEventListener('change', update)
   }, [])
 

@@ -7,36 +7,67 @@ import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { PROFICIENCY_PERCENTAGE_MAP } from '@/lib/schema/resume/form/skillSpecialty'
-import { DISPLAY_TYPES, PRESET_SKILLS, PROFICIENCY_LEVELS } from '../../../const'
+import {
+  DISPLAY_TYPES,
+  PRESET_SKILLS,
+  PROFICIENCY_LEVELS,
+} from '../../../const'
 
-function SkillListEditor({ value, onChange }: {
+function SkillListEditor({
+  value,
+  onChange,
+}: {
   value: SkillItem[]
   onChange: (val: SkillItem[]) => void
 }) {
   const reduceMotion = useReducedMotion()
   const [customInput, setCustomInput] = useState('')
 
-  const isSkillAdded = (label: string) => value.some(s => s.label === label)
+  const isSkillAdded = (label: string) => value.some((s) => s.label === label)
 
   const togglePresetSkill = (label: string) => {
     if (isSkillAdded(label)) {
-      onChange(value.filter(s => s.label !== label))
-    }
-    else {
-      onChange([{ entryId: createResumeEntryId(), label, proficiencyLevel: '熟练', displayType: 'percentage' }, ...value])
+      onChange(value.filter((s) => s.label !== label))
+    } else {
+      onChange([
+        {
+          entryId: createResumeEntryId(),
+          label,
+          proficiencyLevel: '熟练',
+          displayType: 'percentage',
+        },
+        ...value,
+      ])
     }
   }
 
   const addCustomSkill = () => {
     const trimmed = customInput.trim()
-    if (!trimmed || isSkillAdded(trimmed))
-      return
-    onChange([{ entryId: createResumeEntryId(), label: trimmed, proficiencyLevel: '熟练', displayType: 'percentage' }, ...value])
+
+    if (!trimmed || isSkillAdded(trimmed)) return
+
+    onChange([
+      {
+        entryId: createResumeEntryId(),
+        label: trimmed,
+        proficiencyLevel: '熟练',
+        displayType: 'percentage',
+      },
+      ...value,
+    ])
+
     setCustomInput('')
   }
 
@@ -49,6 +80,7 @@ function SkillListEditor({ value, onChange }: {
 
   const updateSkill = (index: number, updates: Partial<SkillItem>) => {
     const newValue = [...value]
+
     newValue[index] = { ...newValue[index], ...updates }
     onChange(newValue)
   }
@@ -58,45 +90,49 @@ function SkillListEditor({ value, onChange }: {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className='flex flex-col gap-4'>
       {/* 快速添加 */}
-      <div className="flex flex-col gap-2">
-        <label className="text-xs font-medium text-muted-foreground">快速添加</label>
-        <div className="flex flex-wrap gap-1.5">
-          {PRESET_SKILLS.map(skill => (
+      <div className='flex flex-col gap-2'>
+        <label className='text-xs font-medium text-muted-foreground'>
+          快速添加
+        </label>
+        <div className='flex flex-wrap gap-1.5'>
+          {PRESET_SKILLS.map((skill) => (
             <Button
               key={skill}
-              type="button"
+              type='button'
               variant={isSkillAdded(skill) ? 'default' : 'outline'}
-              size="sm"
+              size='sm'
               onClick={() => togglePresetSkill(skill)}
-              className="h-7 text-xs"
+              className='h-7 text-xs'
             >
               {skill}
-              {isSkillAdded(skill) && <X data-icon="inline-end" className="size-3" />}
+              {isSkillAdded(skill) && (
+                <X data-icon='inline-end' className='size-3' />
+              )}
             </Button>
           ))}
         </div>
       </div>
 
       {/* 自定义添加 */}
-      <div className="flex gap-2">
+      <div className='flex gap-2'>
         <Input
-          placeholder="输入自定义技能名称"
+          placeholder='输入自定义技能名称'
           value={customInput}
-          onChange={e => setCustomInput(e.target.value)}
+          onChange={(e) => setCustomInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 h-9"
+          className='flex-1 h-9'
         />
         <Button
-          type="button"
-          variant="outline"
-          size="sm"
+          type='button'
+          variant='outline'
+          size='sm'
           onClick={addCustomSkill}
           disabled={!customInput.trim()}
-          className="h-9"
+          className='h-9'
         >
-          <Plus data-icon="inline-start" />
+          <Plus data-icon='inline-start' />
           添加
         </Button>
       </div>
@@ -105,78 +141,122 @@ function SkillListEditor({ value, onChange }: {
       <AnimatePresence initial={false}>
         {value.length > 0 && (
           <PresenceDiv
-            key="skills"
+            key='skills'
             initial={reduceMotion ? false : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
-            className="flex flex-col gap-4 overflow-hidden"
+            transition={{
+              duration: reduceMotion ? 0 : DURATION.fast,
+              ease: EASE.out,
+            }}
+            className='flex flex-col gap-4 overflow-hidden'
           >
             <Separator />
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence mode="popLayout" initial={false}>
+            <div className='grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3'>
+              <AnimatePresence mode='popLayout' initial={false}>
                 {value.map((skill, index) => {
-                // 确保有默认值，防止空值导致 UI 异常
+                  // 确保有默认值，防止空值导致 UI 异常
                   const safeLevel = skill.proficiencyLevel || '熟练'
-                  const safePercentage = PROFICIENCY_PERCENTAGE_MAP[safeLevel as keyof typeof PROFICIENCY_PERCENTAGE_MAP] || 50
+
+                  const safePercentage =
+                    PROFICIENCY_PERCENTAGE_MAP[
+                      safeLevel as keyof typeof PROFICIENCY_PERCENTAGE_MAP
+                    ] || 50
 
                   return (
                     <PresenceDiv
                       key={skill.entryId}
                       layout={reduceMotion ? false : 'position'}
-                      initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
+                      initial={
+                        reduceMotion ? false : { opacity: 0, scale: 0.96 }
+                      }
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.96 }}
-                      transition={reduceMotion ? { duration: 0 } : { duration: DURATION.fast, ease: EASE.out, layout: SPRING.layout }}
-                      className="flex flex-col gap-2 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow overflow-hidden"
+                      transition={
+                        reduceMotion
+                          ? { duration: 0 }
+                          : {
+                              duration: DURATION.fast,
+                              ease: EASE.out,
+                              layout: SPRING.layout,
+                            }
+                      }
+                      className='flex flex-col gap-2 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow overflow-hidden'
                     >
                       {/* 标题行 */}
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">{skill.label}</span>
+                      <div className='flex items-center justify-between'>
+                        <span className='font-medium text-sm'>
+                          {skill.label}
+                        </span>
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
+                          type='button'
+                          variant='ghost'
+                          size='icon'
                           onClick={() => removeSkill(index)}
-                          className="size-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className='size-7 text-destructive hover:text-destructive hover:bg-destructive/10'
                         >
                           <Trash2 />
                         </Button>
                       </div>
 
                       {/* 选项行 */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-muted-foreground">熟练程度</label>
+                      <div className='grid grid-cols-2 gap-2'>
+                        <div className='flex flex-col gap-1'>
+                          <label className='text-[10px] text-muted-foreground'>
+                            熟练程度
+                          </label>
                           <Select
                             value={safeLevel}
-                            onValueChange={v => updateSkill(index, { proficiencyLevel: v as typeof PROFICIENCY_LEVELS[number] })}
+                            onValueChange={(v) =>
+                              updateSkill(index, {
+                                proficiencyLevel:
+                                  v as (typeof PROFICIENCY_LEVELS)[number],
+                              })
+                            }
                           >
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger className='h-8 text-xs'>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectGroup>
-                                {PROFICIENCY_LEVELS.map(level => (
-                                  <SelectItem key={level} value={level} className="text-xs">{level}</SelectItem>
+                                {PROFICIENCY_LEVELS.map((level) => (
+                                  <SelectItem
+                                    key={level}
+                                    value={level}
+                                    className='text-xs'
+                                  >
+                                    {level}
+                                  </SelectItem>
                                 ))}
                               </SelectGroup>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-[10px] text-muted-foreground">展示方式</label>
+                        <div className='flex flex-col gap-1'>
+                          <label className='text-[10px] text-muted-foreground'>
+                            展示方式
+                          </label>
                           <Select
                             value={skill.displayType}
-                            onValueChange={v => updateSkill(index, { displayType: v as 'text' | 'percentage' })}
+                            onValueChange={(v) =>
+                              updateSkill(index, {
+                                displayType: v as 'text' | 'percentage',
+                              })
+                            }
                           >
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger className='h-8 text-xs'>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectGroup>
-                                {DISPLAY_TYPES.map(type => (
-                                  <SelectItem key={type.value} value={type.value} className="text-xs">{type.label}</SelectItem>
+                                {DISPLAY_TYPES.map((type) => (
+                                  <SelectItem
+                                    key={type.value}
+                                    value={type.value}
+                                    className='text-xs'
+                                  >
+                                    {type.label}
+                                  </SelectItem>
                                 ))}
                               </SelectGroup>
                             </SelectContent>
@@ -185,16 +265,16 @@ function SkillListEditor({ value, onChange }: {
                       </div>
 
                       {/* 预览 */}
-                      <div className="flex flex-col gap-1.5 border-t pt-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">预览</span>
-                          <span className="font-medium text-primary">
+                      <div className='flex flex-col gap-1.5 border-t pt-2'>
+                        <div className='flex items-center justify-between text-xs'>
+                          <span className='text-muted-foreground'>预览</span>
+                          <span className='font-medium text-primary'>
                             {skill.displayType === 'percentage'
                               ? `${safePercentage}%`
                               : safeLevel}
                           </span>
                         </div>
-                        <Progress value={safePercentage} className="h-1.5" />
+                        <Progress value={safePercentage} className='h-1.5' />
                       </div>
                     </PresenceDiv>
                   )

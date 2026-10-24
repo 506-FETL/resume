@@ -1,4 +1,8 @@
-import type { GenerateVariantArgs, GeneratorPhase, VariantChange } from '@/components/jd-variant/types'
+import type {
+  GenerateVariantArgs,
+  GeneratorPhase,
+  VariantChange,
+} from '@/components/jd-variant/types'
 import type { ResumeSchema } from '@/lib/schema'
 
 export interface VariantTask {

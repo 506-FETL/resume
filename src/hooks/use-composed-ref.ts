@@ -3,11 +3,11 @@
 import * as React from 'react'
 
 // basically Exclude<React.ClassAttributes<T>["ref"], string>
-type UserRef<T>
-  = | ((instance: T | null) => void)
-    | React.RefObject<T | null>
-    | null
-    | undefined
+type UserRef<T> =
+  | ((instance: T | null) => void)
+  | React.RefObject<T | null>
+  | null
+  | undefined
 
 /**
  * 将同一个 DOM 实例同步写入不同形式的 ref。
@@ -21,8 +21,7 @@ type UserRef<T>
 function updateRef<T>(ref: NonNullable<UserRef<T>>, value: T | null) {
   if (typeof ref === 'function') {
     ref(value)
-  }
-  else if (ref && typeof ref === 'object' && 'current' in ref) {
+  } else if (ref && typeof ref === 'object' && 'current' in ref) {
     // Safe assignment without MutableRefObject
     ref.current = value
   }
@@ -40,7 +39,10 @@ function updateRef<T>(ref: NonNullable<UserRef<T>>, value: T | null) {
  * @param userRef 外部调用方传入的 ref，支持回调 ref、对象 ref 或空值
  * @returns 一个可直接绑定到 JSX `ref` 属性上的合并回调函数
  */
-export function useComposedRef<T extends HTMLElement>(libRef: React.RefObject<T | null>, userRef: UserRef<T>) {
+export function useComposedRef<T extends HTMLElement>(
+  libRef: React.RefObject<T | null>,
+  userRef: UserRef<T>,
+) {
   const prevUserRef = React.useRef<UserRef<T>>(null)
 
   return React.useCallback(

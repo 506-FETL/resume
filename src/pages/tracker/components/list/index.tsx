@@ -13,23 +13,56 @@ import { JobTable } from './job-table'
 function ListView() {
   const reduceMotion = useReducedMotion()
   const isMobile = useIsMobile()
-  const { jobs, filterStatus, metricFilter, searchKeyword, showArchived, sortBy, sortDir } = useTrackerStore(useShallow(state => ({
-    jobs: selectTrackerListJobs(state),
-    filterStatus: state.filterStatus,
-    metricFilter: state.metricFilter,
-    searchKeyword: state.searchKeyword,
-    showArchived: state.showArchived,
-    sortBy: state.sortBy,
-    sortDir: state.sortDir,
-  })))
-  const filteredJobs = useMemo(() => sortJobs(filterJobs(jobs, filterStatus, searchKeyword, showArchived, metricFilter), sortBy, sortDir), [jobs, filterStatus, metricFilter, searchKeyword, showArchived, sortBy, sortDir])
 
-  if (!isMobile)
-    return <JobTable jobs={filteredJobs} />
+  const {
+    jobs,
+    filterStatus,
+    metricFilter,
+    searchKeyword,
+    showArchived,
+    sortBy,
+    sortDir,
+  } = useTrackerStore(
+    useShallow((state) => ({
+      jobs: selectTrackerListJobs(state),
+      filterStatus: state.filterStatus,
+      metricFilter: state.metricFilter,
+      searchKeyword: state.searchKeyword,
+      showArchived: state.showArchived,
+      sortBy: state.sortBy,
+      sortDir: state.sortDir,
+    })),
+  )
+
+  const filteredJobs = useMemo(
+    () =>
+      sortJobs(
+        filterJobs(
+          jobs,
+          filterStatus,
+          searchKeyword,
+          showArchived,
+          metricFilter,
+        ),
+        sortBy,
+        sortDir,
+      ),
+    [
+      jobs,
+      filterStatus,
+      metricFilter,
+      searchKeyword,
+      showArchived,
+      sortBy,
+      sortDir,
+    ],
+  )
+
+  if (!isMobile) return <JobTable jobs={filteredJobs} />
 
   return (
-    <div className="grid grid-cols-1 content-start gap-2">
-      <AnimatePresence initial={false} mode="popLayout">
+    <div className='grid grid-cols-1 content-start gap-2'>
+      <AnimatePresence initial={false} mode='popLayout'>
         {filteredJobs.map((job, index) => (
           <PresenceDiv
             key={job.id}
@@ -37,8 +70,23 @@ function ListView() {
             layoutDependency={filteredJobs}
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
-            transition={reduceMotion ? { duration: 0 } : { duration: DURATION.base, ease: EASE.out, delay: staggerDelay(Math.min(index, 8)), layout: SPRING.layout }}
+            exit={{
+              opacity: 0,
+              transition: {
+                duration: reduceMotion ? 0 : DURATION.fast,
+                ease: EASE.in,
+              },
+            }}
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : {
+                    duration: DURATION.base,
+                    ease: EASE.out,
+                    delay: staggerDelay(Math.min(index, 8)),
+                    layout: SPRING.layout,
+                  }
+            }
           >
             <JobCard job={job} />
           </PresenceDiv>

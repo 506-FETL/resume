@@ -9,8 +9,8 @@ interface PresenceLike {
 
 export function createRealtimeUserId(): number {
   if (
-    typeof crypto !== 'undefined'
-    && typeof crypto.getRandomValues === 'function'
+    typeof crypto !== 'undefined' &&
+    typeof crypto.getRandomValues === 'function'
   ) {
     return crypto.getRandomValues(new Uint32Array(1))[0]
   }
@@ -27,6 +27,7 @@ export function getPresenceUserId(presence: PresenceLike): number | null {
 
   if (typeof rawUserId === 'string') {
     const parsedUserId = Number(rawUserId)
+
     return Number.isFinite(parsedUserId) ? parsedUserId : null
   }
 

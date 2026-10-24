@@ -12,28 +12,31 @@ import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 import { PRESET_CERTIFICATES } from '../../../const'
 
-function CertificateListEditor({ value, onChange }: {
+function CertificateListEditor({
+  value,
+  onChange,
+}: {
   value: CertificateItem[]
   onChange: (val: CertificateItem[]) => void
 }) {
   const reduceMotion = useReducedMotion()
   const [customInput, setCustomInput] = useState('')
 
-  const isCertAdded = (name: string) => value.some(c => c.name === name)
+  const isCertAdded = (name: string) => value.some((c) => c.name === name)
 
   const togglePresetCert = (name: string) => {
     if (isCertAdded(name)) {
-      onChange(value.filter(c => c.name !== name))
-    }
-    else {
+      onChange(value.filter((c) => c.name !== name))
+    } else {
       onChange([{ entryId: createResumeEntryId(), name }, ...value])
     }
   }
 
   const addCustomCert = () => {
     const trimmed = customInput.trim()
-    if (!trimmed || isCertAdded(trimmed))
-      return
+
+    if (!trimmed || isCertAdded(trimmed)) return
+
     onChange([{ entryId: createResumeEntryId(), name: trimmed }, ...value])
     setCustomInput('')
   }
@@ -46,45 +49,47 @@ function CertificateListEditor({ value, onChange }: {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className='flex flex-col gap-4'>
       {/* 快速添加 */}
-      <div className="flex flex-col gap-2">
-        <label className="text-xs font-medium text-muted-foreground">快速添加证书</label>
-        <div className="flex flex-wrap gap-1.5">
-          {PRESET_CERTIFICATES.map(cert => (
+      <div className='flex flex-col gap-2'>
+        <label className='text-xs font-medium text-muted-foreground'>
+          快速添加证书
+        </label>
+        <div className='flex flex-wrap gap-1.5'>
+          {PRESET_CERTIFICATES.map((cert) => (
             <Button
               key={cert}
-              type="button"
+              type='button'
               variant={isCertAdded(cert) ? 'default' : 'outline'}
-              size="sm"
+              size='sm'
               onClick={() => togglePresetCert(cert)}
-              className="h-7 text-xs"
+              className='h-7 text-xs'
             >
               {cert}
-              {isCertAdded(cert) && <X className="ml-1 size-3" />}
+              {isCertAdded(cert) && <X className='ml-1 size-3' />}
             </Button>
           ))}
         </div>
       </div>
 
       {/* 自定义添加 */}
-      <div className="flex gap-2">
+      <div className='flex gap-2'>
         <Input
-          placeholder="输入自定义证书名称"
+          placeholder='输入自定义证书名称'
           value={customInput}
-          onChange={e => setCustomInput(e.target.value)}
+          onChange={(e) => setCustomInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 h-9"
+          className='flex-1 h-9'
         />
         <Button
-          type="button"
-          variant="outline"
-          size="sm"
+          type='button'
+          variant='outline'
+          size='sm'
           onClick={addCustomCert}
           disabled={!customInput.trim()}
-          className="h-9"
+          className='h-9'
         >
-          <Plus className="size-4 mr-1" />
+          <Plus className='size-4 mr-1' />
           添加
         </Button>
       </div>
@@ -93,36 +98,49 @@ function CertificateListEditor({ value, onChange }: {
       <AnimatePresence initial={false}>
         {value.length > 0 && (
           <PresenceDiv
-            key="certificates"
+            key='certificates'
             initial={reduceMotion ? false : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
-            className="flex flex-col gap-4 overflow-hidden"
+            transition={{
+              duration: reduceMotion ? 0 : DURATION.fast,
+              ease: EASE.out,
+            }}
+            className='flex flex-col gap-4 overflow-hidden'
           >
             <Separator />
-            <div className="flex flex-wrap gap-2">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {value.map(cert => (
+            <div className='flex flex-wrap gap-2'>
+              <AnimatePresence mode='popLayout' initial={false}>
+                {value.map((cert) => (
                   <PresenceDiv
                     layout={reduceMotion ? false : 'position'}
                     key={`cert-${cert.name}`}
                     initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.96 }}
-                    transition={reduceMotion ? { duration: 0 } : { duration: DURATION.fast, ease: EASE.out, layout: SPRING.layout }}
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : {
+                            duration: DURATION.fast,
+                            ease: EASE.out,
+                            layout: SPRING.layout,
+                          }
+                    }
                   >
                     <Badge
-                      variant="outline"
-                      className="text-sm px-3 py-1.5 gap-1.5 pr-1.5 border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+                      variant='outline'
+                      className='text-sm px-3 py-1.5 gap-1.5 pr-1.5 border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400'
                     >
                       {cert.name}
                       <button
-                        type="button"
-                        className="size-4 rounded-full hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors"
-                        onClick={() => onChange(value.filter(c => c.name !== cert.name))}
+                        type='button'
+                        className='size-4 rounded-full hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors'
+                        onClick={() =>
+                          onChange(value.filter((c) => c.name !== cert.name))
+                        }
                       >
-                        <X className="size-3" />
+                        <X className='size-3' />
                       </button>
                     </Badge>
                   </PresenceDiv>

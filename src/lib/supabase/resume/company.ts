@@ -1,4 +1,11 @@
-import type { ApplicationStatus, InterviewSubStage, JobApplication, StageDetail, TrackerActivity, TrackerContact } from '@/pages/tracker/types'
+import type {
+  ApplicationStatus,
+  InterviewSubStage,
+  JobApplication,
+  StageDetail,
+  TrackerActivity,
+  TrackerContact,
+} from '@/pages/tracker/types'
 import { normalizeJobWorkflow } from '@/pages/tracker/workflow'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
@@ -17,12 +24,14 @@ export interface JobApplicationSummary {
 // 获取用户所有公司/职位
 type CompanyRequestGuard = (userId: string | null) => void
 
-export async function getCompanies(assertUser?: CompanyRequestGuard): Promise<JobApplication[]> {
+export async function getCompanies(
+  assertUser?: CompanyRequestGuard,
+): Promise<JobApplication[]> {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
-  if (!user)
-    throw new Error('用户未登陆')
+  if (!user) throw new Error('用户未登陆')
 
   const { data, error } = await supabase
     .from('company')
@@ -35,19 +44,24 @@ export async function getCompanies(assertUser?: CompanyRequestGuard): Promise<Jo
   }
 
   // 转换 JSON 字段为数组
-  return (data || []).map(item => normalizeJobWorkflow({
-    ...item,
-    stage_details: (item.stage_details || []) as StageDetail[],
-    interview_sub_stages: (item.interview_sub_stages || []) as InterviewSubStage[],
-    archived: item.archived ?? false,
-    next_action: item.next_action ?? null,
-    next_action_date: item.next_action_date ?? null,
-    activities: (item.activities || []) as TrackerActivity[],
-    contacts: (item.contacts || []) as TrackerContact[],
-  }))
+  return (data || []).map((item) =>
+    normalizeJobWorkflow({
+      ...item,
+      stage_details: (item.stage_details || []) as StageDetail[],
+      interview_sub_stages: (item.interview_sub_stages ||
+        []) as InterviewSubStage[],
+      archived: item.archived ?? false,
+      next_action: item.next_action ?? null,
+      next_action_date: item.next_action_date ?? null,
+      activities: (item.activities || []) as TrackerActivity[],
+      contacts: (item.contacts || []) as TrackerContact[],
+    }),
+  )
 }
 
-export async function listJobApplicationSummaries(): Promise<JobApplicationSummary[]> {
+export async function listJobApplicationSummaries(): Promise<
+  JobApplicationSummary[]
+> {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -56,7 +70,9 @@ export async function listJobApplicationSummaries(): Promise<JobApplicationSumma
 
   const { data, error } = await supabase
     .from('company')
-    .select('id,resume_id,status,updated_at,company,position,archived,next_action_date')
+    .select(
+      'id,resume_id,status,updated_at,company,position,archived,next_action_date',
+    )
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
@@ -64,7 +80,7 @@ export async function listJobApplicationSummaries(): Promise<JobApplicationSumma
     throw error
   }
 
-  return (data ?? []).map(item => ({
+  return (data ?? []).map((item) => ({
     ...item,
     archived: item.archived ?? false,
     next_action_date: item.next_action_date ?? null,
@@ -77,10 +93,10 @@ export async function createCompany(
   assertUser?: CompanyRequestGuard,
 ): Promise<JobApplication> {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
-  if (!user)
-    throw new Error('用户未登陆')
+  if (!user) throw new Error('用户未登陆')
 
   const { data, error } = await supabase
     .from('company')
@@ -98,7 +114,8 @@ export async function createCompany(
   return normalizeJobWorkflow({
     ...data,
     stage_details: (data.stage_details || []) as StageDetail[],
-    interview_sub_stages: (data.interview_sub_stages || []) as InterviewSubStage[],
+    interview_sub_stages: (data.interview_sub_stages ||
+      []) as InterviewSubStage[],
     archived: data.archived ?? false,
     next_action: data.next_action ?? null,
     next_action_date: data.next_action_date ?? null,
@@ -114,10 +131,10 @@ export async function updateCompany(
   assertUser?: CompanyRequestGuard,
 ): Promise<JobApplication> {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
-  if (!user)
-    throw new Error('用户未登陆')
+  if (!user) throw new Error('用户未登陆')
 
   const { data, error } = await supabase
     .from('company')
@@ -137,7 +154,8 @@ export async function updateCompany(
   return normalizeJobWorkflow({
     ...data,
     stage_details: (data.stage_details || []) as StageDetail[],
-    interview_sub_stages: (data.interview_sub_stages || []) as InterviewSubStage[],
+    interview_sub_stages: (data.interview_sub_stages ||
+      []) as InterviewSubStage[],
     archived: data.archived ?? false,
     next_action: data.next_action ?? null,
     next_action_date: data.next_action_date ?? null,
@@ -153,8 +171,7 @@ export async function updateCompanyStatus(
 ) {
   const user = await getCurrentUser()
 
-  if (!user)
-    throw new Error('用户未登陆')
+  if (!user) throw new Error('用户未登陆')
 
   const { error } = await supabase
     .from('company')
@@ -188,12 +205,15 @@ export async function addActivity(
 }
 
 // 删除公司/职位
-export async function deleteCompany(id: string, assertUser?: CompanyRequestGuard) {
+export async function deleteCompany(
+  id: string,
+  assertUser?: CompanyRequestGuard,
+) {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
-  if (!user)
-    throw new Error('用户未登陆')
+  if (!user) throw new Error('用户未登陆')
 
   const { error } = await supabase
     .from('company')

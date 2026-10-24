@@ -28,6 +28,7 @@ function WanderingEyes({
   const safePupilScale = clamp(pupilScale, 0.12, 0.45)
   const safeBlinkScale = clamp(blinkScale, 0.15, 1)
   const safeTravelScale = clamp(travelScale, 0.08, 0.5)
+
   const eyesStyle = {
     ...style,
     '--loading-ui-wandering-eyes-eye': `${(safeEyeScale * 100).toFixed(2)}cqmin`,
@@ -100,7 +101,7 @@ function WanderingEyes({
       `}
       </style>
       <span
-        role="status"
+        role='status'
         className={cn(
           '@container-[size] relative inline-flex aspect-9/4 items-center justify-center align-middle [--eye-color:color-mix(in_srgb,currentColor_16%,transparent)] [--pupil-color:currentColor]',
           className,
@@ -109,13 +110,13 @@ function WanderingEyes({
         {...props}
       >
         <span
-          aria-hidden="true"
-          className="inline-flex items-center justify-center gap-(--loading-ui-wandering-eyes-gap)"
+          aria-hidden='true'
+          className='inline-flex items-center justify-center gap-(--loading-ui-wandering-eyes-gap)'
         >
           {Array.from({ length: 2 }, (_, index) => (
             <span
               key={index}
-              className="inline-block rounded-full"
+              className='inline-block rounded-full'
               style={{
                 width: 'var(--loading-ui-wandering-eyes-eye)',
                 height: 'var(--loading-ui-wandering-eyes-eye)',
@@ -129,7 +130,7 @@ function WanderingEyes({
             />
           ))}
         </span>
-        <span className="sr-only">Loading</span>
+        <span className='sr-only'>Loading</span>
       </span>
     </>
   )

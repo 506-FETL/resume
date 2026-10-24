@@ -1,21 +1,36 @@
 import type { VariantStepConfig } from './types'
 import type { ResumeSchema } from '@/lib/schema'
-import { Brain, CheckCircle2, Copy, ScanText, ShieldCheck, Wand2 } from 'lucide-react'
+import {
+  Brain,
+  CheckCircle2,
+  Copy,
+  ScanText,
+  ShieldCheck,
+  Wand2,
+} from 'lucide-react'
 import { VARIANT_FIELD_MAPPINGS } from '@/lib/schema'
 
 export const MIN_JD_CHARS = 30
+
 export const MIN_KEYWORDS = 3
+
 export const MAX_KEYWORDS = 30
+
 export const MIN_CHANGES = 3
+
 export const MAX_CHANGES = 15
+
 export const MAX_VARIANT_DEPTH = 5
+
 export const REWRITE_AFTER_LENGTH_RATIO = 1.5
 
 /** 可改写字段白名单，与视图、解析和持久化映射共用同一契约。 */
-export const FIELD_WHITELIST = Object.entries(VARIANT_FIELD_MAPPINGS).map(([section, mapping]) => ({
-  section: section as keyof ResumeSchema,
-  fieldPath: mapping.fieldPath,
-}))
+export const FIELD_WHITELIST = Object.entries(VARIANT_FIELD_MAPPINGS).map(
+  ([section, mapping]) => ({
+    section: section as keyof ResumeSchema,
+    fieldPath: mapping.fieldPath,
+  }),
+)
 
 export const JD_VARIANT_STEPS: VariantStepConfig[] = [
   { id: 'parsing', label: '解析 JD 关键词', icon: ScanText },
@@ -39,7 +54,8 @@ export const SECTION_LABEL: Partial<Record<keyof ResumeSchema, string>> = {
 
 export const MESSAGES = {
   dialogTitle: (name: string) => `为「${name}」派生 JD 变体`,
-  dialogSubtitle: '在原简历基础上，AI 会针对 JD 局部改写文案，事实型字段保持不变。',
+  dialogSubtitle:
+    '在原简历基础上，AI 会针对 JD 局部改写文案，事实型字段保持不变。',
   jdPlaceholder: '粘贴目标岗位的 JD 文本（≥ 30 字）。',
   jdMinHint: (curr: number) => `${curr} / 至少 ${MIN_JD_CHARS} 字`,
   parsing: '正在解析 JD 关键词…',
@@ -58,5 +74,6 @@ export const MESSAGES = {
   filterAll: '全部',
   filterOriginals: '原始简历',
   filterVariants: 'JD 变体',
-  derivedJobsBanner: (n: number, m: number) => `派生中 (${n}) / 失败的派生 (${m})`,
+  derivedJobsBanner: (n: number, m: number) =>
+    `派生中 (${n}) / 失败的派生 (${m})`,
 } as const

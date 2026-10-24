@@ -1,0 +1,23 @@
+# 构建产物、缓存与依赖
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.vite/
+.playwright-mcp/
+.superpowers/
+.worktrees/
+supabase/.temp/
+supabase/.branches/
+
+# 锁文件与外部技能
+pnpm-lock.yaml
+skills-lock.json
+skills/
+.agents/
+.agent/
+.cursor/
+.trae/
+.github/skills/
+.github/prompts/

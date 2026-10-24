@@ -19,81 +19,138 @@ interface ToolCallPartProps {
   streaming?: boolean
 }
 
-function statOf(part: ToolCallPart): { additions: number, deletions: number } | null {
+function statOf(
+  part: ToolCallPart,
+): { additions: number; deletions: number } | null {
   const result = part.result
-  const sectionKey = (part.args as { sectionKey?: string } | undefined)?.sectionKey
-  if (!sectionKey || !result || typeof result !== 'object' || !('before' in result) || !('after' in result))
+
+  const sectionKey = (part.args as { sectionKey?: string } | undefined)
+    ?.sectionKey
+
+  if (
+    !sectionKey ||
+    !result ||
+    typeof result !== 'object' ||
+    !('before' in result) ||
+    !('after' in result)
+  )
     return null
-  const r = result as { before: unknown, after: unknown }
+
+  const r = result as { before: unknown; after: unknown }
+
   return fieldDiffStat(sectionKey, r.before, r.after)
 }
 
-export function ToolCallPartGroup({ calls, streaming = false }: ToolCallPartProps) {
+export function ToolCallPartGroup({
+  calls,
+  streaming = false,
+}: ToolCallPartProps) {
   const reduced = useReducedMotion()
+
   const targetTab = calls
-    .map(c => TOOL_CANVAS_META[c.toolName]?.targetTab)
+    .map((c) => TOOL_CANVAS_META[c.toolName]?.targetTab)
     .find(Boolean)
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className='flex flex-col gap-1'>
       {/* ChatGPT/Codex 式工具活动轨迹：左侧引导线 + 逐行「图标 + 动作 + 增删统计」 */}
-      <div className="flex flex-col gap-0.5 border-l-2 border-border/70 pl-3">
+      <div className='flex flex-col gap-0.5 border-l-2 border-border/70 pl-3'>
         {calls.map((c) => {
           const meta = TOOL_CANVAS_META[c.toolName]
-          const label = getSkillToolLabel(c.toolName, c.args) ?? meta?.label ?? c.toolName
-          const skillError = isSkillTool(c.toolName) && c.state === 'error' && c.result && typeof c.result === 'object' && 'error' in c.result
-            ? String(c.result.error)
-            : null
+
+          const label =
+            getSkillToolLabel(c.toolName, c.args) ?? meta?.label ?? c.toolName
+
+          const skillError =
+            isSkillTool(c.toolName) &&
+            c.state === 'error' &&
+            c.result &&
+            typeof c.result === 'object' &&
+            'error' in c.result
+              ? String(c.result.error)
+              : null
+
           const pending = c.state === 'call' || c.state === 'awaiting-confirm'
           const stat = statOf(c)
+
           return (
             <motion.div
               key={c.toolCallId}
               initial={reduced || !streaming ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduced ? 0 : DURATION.base, ease: EASE.out }}
-              className="flex items-center gap-2 py-0.5 text-sm"
+              transition={{
+                duration: reduced ? 0 : DURATION.base,
+                ease: EASE.out,
+              }}
+              className='flex items-center gap-2 py-0.5 text-sm'
             >
-              <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
-                {pending
-                  ? <Loader2 className={`size-3.5 ${reduced ? '' : 'animate-spin'}`} />
-                  : getToolCategoryIcon(meta?.iconCategory ?? 'general', { showBackground: false, size: 16 })}
+              <span className='flex size-4 shrink-0 items-center justify-center text-muted-foreground'>
+                {pending ? (
+                  <Loader2
+                    className={`size-3.5 ${reduced ? '' : 'animate-spin'}`}
+                  />
+                ) : (
+                  getToolCategoryIcon(meta?.iconCategory ?? 'general', {
+                    showBackground: false,
+                    size: 16,
+                  })
+                )}
               </span>
-              <span className="min-w-0 flex-1 truncate text-foreground/80">{label}</span>
-              {stat && <DiffStat additions={stat.additions} deletions={stat.deletions} />}
-              {c.state === 'cancelled' && <span className="text-xs text-muted-foreground">已取消</span>}
+              <span className='min-w-0 flex-1 truncate text-foreground/80'>
+                {label}
+              </span>
+              {stat && (
+                <DiffStat
+                  additions={stat.additions}
+                  deletions={stat.deletions}
+                />
+              )}
+              {c.state === 'cancelled' && (
+                <span className='text-xs text-muted-foreground'>已取消</span>
+              )}
               {c.state === 'error' && (
                 <>
-                  <span className="text-xs text-rose-500" title={skillError ?? undefined}>失败</span>
+                  <span
+                    className='text-xs text-rose-500'
+                    title={skillError ?? undefined}
+                  >
+                    失败
+                  </span>
                   {!isSkillTool(c.toolName) && (
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 gap-1 px-1.5 text-xs text-rose-500 hover:text-rose-600"
+                      variant='ghost'
+                      size='sm'
+                      className='h-6 gap-1 px-1.5 text-xs text-rose-500 hover:text-rose-600'
                       onClick={() => retryToolCall(c.toolCallId)}
                     >
-                      <RotateCw className="size-3.5" />
+                      <RotateCw className='size-3.5' />
                       重试
                     </Button>
                   )}
                 </>
               )}
-              {skillError && <span className="text-xs text-destructive">{skillError}</span>}
+              {skillError && (
+                <span className='text-xs text-destructive'>{skillError}</span>
+              )}
             </motion.div>
           )
         })}
       </div>
       {targetTab && (
         <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-fit gap-1 px-2 text-xs text-muted-foreground"
+          variant='ghost'
+          size='sm'
+          className='h-7 w-fit gap-1 px-2 text-xs text-muted-foreground'
           onClick={() => {
-            useAssistantStore.setState({ canvasOpen: true, canvasMobileOpen: true })
+            useAssistantStore.setState({
+              canvasOpen: true,
+              canvasMobileOpen: true,
+            })
+
             useAssistantStore.getState().requestCanvasTab(targetTab)
           }}
         >
-          <PanelRight className="size-3.5" />
+          <PanelRight className='size-3.5' />
           在画布中查看
         </Button>
       )}

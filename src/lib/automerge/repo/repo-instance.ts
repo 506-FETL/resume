@@ -21,7 +21,12 @@ function createAutomergeRepo(): Repo {
  * 当前编辑器一次只维护一份在线简历；切换简历时重建 repo，避免上一个会话的网络适配器残留。
  */
 export function getAutomergeRepo(resumeId?: string): Repo {
-  if (repoInstance && resumeId && activeResumeId && activeResumeId !== resumeId) {
+  if (
+    repoInstance &&
+    resumeId &&
+    activeResumeId &&
+    activeResumeId !== resumeId
+  ) {
     destroyAutomergeRepo()
   }
 
@@ -43,8 +48,7 @@ export function destroyAutomergeRepo() {
 
   try {
     repoInstance.networkSubsystem.disconnect()
-  }
-  catch {
+  } catch {
     // 忽略断开过程中的网络错误
   }
 

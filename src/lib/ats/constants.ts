@@ -8,8 +8,10 @@ export const ATS_SCORE_MAX = {
   format_readability: 15,
 } satisfies Record<ScoreKey, number>
 
-export const ATS_SCORE_TOTAL = Object.values(ATS_SCORE_MAX)
-  .reduce((sum, value) => sum + value, 0)
+export const ATS_SCORE_TOTAL = Object.values(ATS_SCORE_MAX).reduce(
+  (sum, value) => sum + value,
+  0,
+)
 
 export const ATS_SECTION_LABELS = {
   basics: '基本信息',

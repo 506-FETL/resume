@@ -20,6 +20,17 @@ Always respond in Chinese-simplified.
 - 默认在当前分支上工作，除非用户明确要求创建或切换分支。
 - 在 `src/pages` 下创建或重构页面时，遵循 history-style 模块结构，包含 `components/`、`hooks/`、`const.ts`、`index.tsx`、`store.ts`、`types.ts` 和 `utils.ts`；使用 kebab-case 命名，组件以文件夹导出（`index.tsx`），并通过将共享页面状态/动作提升到页面的 store 中来避免多级 prop 传递。
 
+# 代码排版与逻辑分段
+
+- 新增、修改和生成代码必须按职责分段：变量准备、提前返回、处理逻辑、最终返回之间使用一个空行。不得将整个函数写成没有段落的连续语句。
+- import 保持连续，与正文之间留一个空行；函数、类、接口、类型和导出声明之间留一个空行。
+- 紧密相关的简短变量声明可以连续排列；多行声明、回调和复杂表达式单独成段。
+- 同一组简短的 guard 判断可以连续排列，例如连续检查空值、类型和数组。不同职责或较复杂的分支应主动用空行分组，不要给每一行机械添加空行。
+- return、throw 前通常留一个空行；函数或分支只有这一条语句时，不在大括号内强行添加首尾空行。
+- 对象属性、数组元素和 JSX 属性不机械插入空行。嵌套、长参数列表与长表达式交给 Prettier 折行，保持现有 80 列、两空格、单引号、无分号约定。
+- 自动规则由 ESLint 的 `@stylistic/padding-line-between-statements` 执行，Prettier 保留段落并统一格式。生成代码完成后必须对改动文件执行 layout 修复与 Prettier，不能只依赖编辑器或口头约定。
+- 全项目使用 `pnpm format`；检查使用 `pnpm format:check`。局部修改先执行 `pnpm exec prettier <文件> --write`，再执行 `pnpm exec eslint <文件> --fix --fix-type layout`，确保折行后也补足段落间距。格式整理只允许排版变化，不得顺带删除导入、改名或改写逻辑。
+
 # 状态管理指南
 
 - **Zustand**：用于全局应用状态、跨页面共享数据与复杂领域状态（例如：简历表单、ATS 配置、模板工作台）。Stores 存放在 `src/store/`（应用级）或 `src/pages/<page>/store/`（页面级）。将大型 store 拆分为 slice 文件，并使用 barrel `index.ts` 导出。

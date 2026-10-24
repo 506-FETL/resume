@@ -14,17 +14,16 @@ import useAiQuotaStore from '@/store/ai-quota'
  * @returns quota 额度数据；loading 首次加载态；error 错误文案；refetch 手动刷新
  */
 export function useAiQuota() {
-  const quota = useAiQuotaStore(s => s.quota)
-  const loading = useAiQuotaStore(s => s.loading)
-  const error = useAiQuotaStore(s => s.error)
-  const hasFetched = useAiQuotaStore(s => s.hasFetched)
-  const currentUserId = useAiQuotaStore(s => s.currentUserId)
-  const fetchQuota = useAiQuotaStore(s => s.fetchQuota)
+  const quota = useAiQuotaStore((s) => s.quota)
+  const loading = useAiQuotaStore((s) => s.loading)
+  const error = useAiQuotaStore((s) => s.error)
+  const hasFetched = useAiQuotaStore((s) => s.hasFetched)
+  const currentUserId = useAiQuotaStore((s) => s.currentUserId)
+  const fetchQuota = useAiQuotaStore((s) => s.fetchQuota)
 
   useEffect(() => {
     // 兜底：仅当登录态已确定为「已登录」(currentUserId 为真) 且尚未拉取过时补一次
-    if (currentUserId && !hasFetched)
-      fetchQuota()
+    if (currentUserId && !hasFetched) fetchQuota()
   }, [currentUserId, hasFetched, fetchQuota])
 
   return {

@@ -32,8 +32,7 @@ export function AccountMenu({
     try {
       await SignOut()
       navigate('/login')
-    }
-    catch (error) {
+    } catch (error) {
       toast.error(`登出失败，请稍后重试, ${error}`)
     }
   }
@@ -42,7 +41,7 @@ export function AccountMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent
-        className="min-w-56 rounded-lg"
+        className='min-w-56 rounded-lg'
         side={side}
         align={align}
         sideOffset={6}
@@ -73,23 +72,21 @@ export function AccountMenu({
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {user
-          ? (
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut />
-                  登出
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            )
-          : (
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => navigate('/login')}>
-                  <LogIn />
-                  登录
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            )}
+        {user ? (
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut />
+              登出
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        ) : (
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => navigate('/login')}>
+              <LogIn />
+              登录
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

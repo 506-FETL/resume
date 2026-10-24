@@ -16,8 +16,8 @@ interface ProfileInfoCardProps {
 }
 
 function formatRegistrationDate(dateString?: string) {
-  if (!dateString)
-    return '未知'
+  if (!dateString) return '未知'
+
   return new Date(dateString).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
@@ -47,21 +47,26 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
   const email = user.email || ''
 
   return (
-    <Card className="shadow-none">
+    <Card className='shadow-none'>
       <CardHeader>
-        <CardTitle className="font-semibold">个人资料</CardTitle>
+        <CardTitle className='font-semibold'>个人资料</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <div className="flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <CardContent className='flex flex-col gap-6'>
+        <div className='flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6'>
           <ProfileAvatar />
-          <div className="flex min-w-0 max-w-full flex-col items-start gap-1">
-            <h3 className="max-w-full wrap-anywhere text-xl font-semibold">{currentName || '?'}</h3>
-            <p className="text-muted-foreground flex max-w-full items-start gap-2 text-sm leading-6">
-              <Mail className="size-4 shrink-0" />
-              <span className="min-w-0 break-all">{email}</span>
+          <div className='flex min-w-0 max-w-full flex-col items-start gap-1'>
+            <h3 className='max-w-full wrap-anywhere text-xl font-semibold'>
+              {currentName || '?'}
+            </h3>
+            <p className='text-muted-foreground flex max-w-full items-start gap-2 text-sm leading-6'>
+              <Mail className='size-4 shrink-0' />
+              <span className='min-w-0 break-all'>{email}</span>
             </p>
-            <Badge variant={user.email_confirmed_at ? 'outline' : 'destructive'} className="mt-2 gap-1">
-              <Shield className="size-3 shrink-0" />
+            <Badge
+              variant={user.email_confirmed_at ? 'outline' : 'destructive'}
+              className='mt-2 gap-1'
+            >
+              <Shield className='size-3 shrink-0' />
               {user.email_confirmed_at ? '邮箱已验证' : '邮箱未验证'}
             </Badge>
           </div>
@@ -69,21 +74,21 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
 
         <Separator />
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className='grid gap-4 sm:grid-cols-2'>
           <NameRow initialFullName={fullName} />
           <EmailRow initialEmail={email} />
 
           <ReadonlyField
-            id="created"
-            label="注册时间"
-            icon={<CalendarIcon className="size-4 shrink-0" />}
+            id='created'
+            label='注册时间'
+            icon={<CalendarIcon className='size-4 shrink-0' />}
             value={formatRegistrationDate(user.created_at)}
           />
 
           <ReadonlyField
-            id="updated"
-            label="最后更新"
-            icon={<CalendarIcon className="size-4 shrink-0" />}
+            id='updated'
+            label='最后更新'
+            icon={<CalendarIcon className='size-4 shrink-0' />}
             value={formatRegistrationDate(user.updated_at || user.created_at)}
           />
         </div>

@@ -40,19 +40,19 @@ export function useFetchData<T>(
   useEffect(() => {
     const controller = new AbortController()
     const myTick = ++tickRef.current
-    setState(prev => ({ ...prev, loading: true, error: null }))
+
+    setState((prev) => ({ ...prev, loading: true, error: null }))
 
     fetcher(controller.signal)
       .then((data) => {
-        if (myTick !== tickRef.current)
-          return
+        if (myTick !== tickRef.current) return
+
         setState({ data, loading: false, error: null })
       })
       .catch((error) => {
-        if (controller.signal.aborted)
-          return
-        if (myTick !== tickRef.current)
-          return
+        if (controller.signal.aborted) return
+        if (myTick !== tickRef.current) return
+
         setState({ data: null, loading: false, error })
       })
 
@@ -64,7 +64,7 @@ export function useFetchData<T>(
 
   return {
     ...state,
-    refetch: () => setTrigger(t => t + 1),
-    setData: next => setState(prev => ({ ...prev, data: next })),
+    refetch: () => setTrigger((t) => t + 1),
+    setData: (next) => setState((prev) => ({ ...prev, data: next })),
   }
 }

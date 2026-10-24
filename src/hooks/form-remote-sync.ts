@@ -3,9 +3,9 @@ export interface RemoteFieldUpdate {
   value: unknown
 }
 
-export type RemoteFieldArrayOperation
-  = | { type: 'append', path: string, value: unknown }
-    | { type: 'remove', path: string, index: number }
+export type RemoteFieldArrayOperation =
+  | { type: 'append'; path: string; value: unknown }
+  | { type: 'remove'; path: string; index: number }
 
 export interface RemoteFormSyncPlan {
   fieldUpdates: RemoteFieldUpdate[]
@@ -58,6 +58,7 @@ export function planRemoteFormSync(
     if (atomicFields.has(path)) {
       if (JSON.stringify(current) !== JSON.stringify(remote))
         fieldUpdates.push({ path, value: remote })
+
       return
     }
 
@@ -77,32 +78,41 @@ export function planRemoteFormSync(
           })
         }
 
-        for (let index = current.length - 1; index >= remote.length; index -= 1) {
+        for (
+          let index = current.length - 1;
+          index >= remote.length;
+          index -= 1
+        ) {
           fieldArrayOperations.push({
             type: 'remove',
             path,
             index,
           })
         }
+
         return
       }
 
       if (current.length !== remote.length) {
         fieldUpdates.push({ path, value: remote })
+
         return
       }
 
       remote.forEach((value, index) => {
         visit(current[index], value, joinPath(path, index))
       })
+
       return
     }
 
     if (isRecord(current) && isRecord(remote)) {
       const keys = new Set([...Object.keys(current), ...Object.keys(remote)])
+
       keys.forEach((key) => {
         visit(current[key], remote[key], joinPath(path, key))
       })
+
       return
     }
 
@@ -132,12 +142,16 @@ export function applyRemoteFormSyncPlan(
 
   plan.fieldArrayOperations.forEach((operation) => {
     const adapter = fieldArrays[operation.path]
+
     if (!adapter) {
-      throw new Error(`Missing remote field array adapter for "${operation.path}"`)
+      throw new Error(
+        `Missing remote field array adapter for "${operation.path}"`,
+      )
     }
 
     if (operation.type === 'append') {
       adapter.append(operation.value, { shouldFocus: false })
+
       return
     }
 

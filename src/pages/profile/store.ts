@@ -20,13 +20,17 @@ const initialFieldState: ProfileFieldEditState = {
   isSaving: false,
 }
 
-export const useProfileStore = create<ProfileStore>(set => ({
+export const useProfileStore = create<ProfileStore>((set) => ({
   name: { ...initialFieldState },
   email: { ...initialFieldState },
-  setNameEditing: editing => set(state => ({ name: { ...state.name, isEditing: editing } })),
-  setNameSaving: saving => set(state => ({ name: { ...state.name, isSaving: saving } })),
-  setEmailEditing: editing => set(state => ({ email: { ...state.email, isEditing: editing } })),
-  setEmailSaving: saving => set(state => ({ email: { ...state.email, isSaving: saving } })),
+  setNameEditing: (editing) =>
+    set((state) => ({ name: { ...state.name, isEditing: editing } })),
+  setNameSaving: (saving) =>
+    set((state) => ({ name: { ...state.name, isSaving: saving } })),
+  setEmailEditing: (editing) =>
+    set((state) => ({ email: { ...state.email, isEditing: editing } })),
+  setEmailSaving: (saving) =>
+    set((state) => ({ email: { ...state.email, isSaving: saving } })),
   reset: () =>
     set({
       name: { ...initialFieldState },

@@ -124,8 +124,10 @@
 
   /* Shadows Light */
   --tt-shadow-elevated-md:
-    0px 16px 48px 0px rgba(17, 24, 39, 0.04), 0px 12px 24px 0px rgba(17, 24, 39, 0.04),
-    0px 6px 8px 0px rgba(17, 24, 39, 0.02), 0px 2px 3px 0px rgba(17, 24, 39, 0.02);
+    0px 16px 48px 0px rgba(17, 24, 39, 0.04),
+    0px 12px 24px 0px rgba(17, 24, 39, 0.04),
+    0px 6px 8px 0px rgba(17, 24, 39, 0.02),
+    0px 2px 3px 0px rgba(17, 24, 39, 0.02);
 
   /**************************************************
        Radius variables
@@ -164,7 +166,8 @@
   ::before,
   ::after {
     box-sizing: border-box;
-    transition: none var(--tt-transition-duration-default) var(--tt-transition-easing-default);
+    transition: none var(--tt-transition-duration-default)
+      var(--tt-transition-easing-default);
   }
 }
 
@@ -198,8 +201,8 @@
   --tt-card-border-color: var(--tt-gray-dark-a-50);
 
   --tt-shadow-elevated-md:
-    0px 16px 48px 0px rgba(0, 0, 0, 0.5), 0px 12px 24px 0px rgba(0, 0, 0, 0.24), 0px 6px 8px 0px rgba(0, 0, 0, 0.22),
-    0px 2px 3px 0px rgba(0, 0, 0, 0.12);
+    0px 16px 48px 0px rgba(0, 0, 0, 0.5), 0px 12px 24px 0px rgba(0, 0, 0, 0.24),
+    0px 6px 8px 0px rgba(0, 0, 0, 0.22), 0px 2px 3px 0px rgba(0, 0, 0, 0.12);
 }
 
 /* Text colors */

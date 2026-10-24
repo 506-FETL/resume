@@ -33,22 +33,30 @@ const BUBBLE_BOUNDARY_PADDING = 8
 const COMPACT_BUBBLE_WIDTH = 42
 
 export function AiRewriteBubble({ editor, fieldContext }: Props) {
-  const { state, run, setJdDraft, reset, retry, cancel, waitForJd } = useAiRewrite({ fieldContext })
+  const { state, run, setJdDraft, reset, retry, cancel, waitForJd } =
+    useAiRewrite({ fieldContext })
+
   const [bubbleEl, setBubbleEl] = useState<HTMLDivElement | null>(null)
   const [bubbleVisible, setBubbleVisible] = useState(false)
   const [measureEl, setMeasureEl] = useState<HTMLDivElement | null>(null)
   const [boundaryEl, setBoundaryEl] = useState<HTMLElement | null>(null)
   const [fullMenuWidth, setFullMenuWidth] = useState(0)
   const [availableWidth, setAvailableWidth] = useState(0)
-  const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(null)
+
+  const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(
+    null,
+  )
+
   const bubbleVisibleRef = useRef(false)
-  const bubbleMode = fullMenuWidth > 0
-    ? getBubbleDisplayMode({
-        availableWidth,
-        fullWidth: fullMenuWidth,
-        compactWidth: COMPACT_BUBBLE_WIDTH,
-      })
-    : 'hidden'
+
+  const bubbleMode =
+    fullMenuWidth > 0
+      ? getBubbleDisplayMode({
+          availableWidth,
+          fullWidth: fullMenuWidth,
+          compactWidth: COMPACT_BUBBLE_WIDTH,
+        })
+      : 'hidden'
 
   const activeSelection = state.status === 'idle' ? null : savedSelection
   const dialogOpen = state.status !== 'idle'
@@ -79,21 +87,25 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   }, [])
 
   useEffect(() => {
-    const boundary = editor.view.dom.closest<HTMLElement>(
-      '.simple-editor-content',
-    ) ?? editor.view.dom.parentElement
+    const boundary =
+      editor.view.dom.closest<HTMLElement>('.simple-editor-content') ??
+      editor.view.dom.parentElement
+
     setBoundaryEl(boundary)
-    if (!boundary)
-      return
+
+    if (!boundary) return
 
     const updateAvailableWidth = () => {
-      setAvailableWidth(Math.max(
-        0,
-        boundary.getBoundingClientRect().width
-        - BUBBLE_BOUNDARY_PADDING * 2,
-      ))
+      setAvailableWidth(
+        Math.max(
+          0,
+          boundary.getBoundingClientRect().width - BUBBLE_BOUNDARY_PADDING * 2,
+        ),
+      )
     }
+
     const observer = new ResizeObserver(updateAvailableWidth)
+
     observer.observe(boundary)
     updateAvailableWidth()
 
@@ -103,14 +115,13 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   }, [editor])
 
   const handleFullWidthChange = useCallback((width: number) => {
-    setFullMenuWidth(current => (
-      Math.abs(current - width) < 0.5 ? current : width
-    ))
+    setFullMenuWidth((current) =>
+      Math.abs(current - width) < 0.5 ? current : width,
+    )
   }, [])
 
   const updateBubblePosition = useCallback(() => {
-    if (editor.isDestroyed)
-      return
+    if (editor.isDestroyed) return
 
     editor.view.dispatch(
       editor.state.tr.setMeta(BUBBLE_MENU_PLUGIN_KEY, 'updatePosition'),
@@ -119,10 +130,10 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
 
   // 通过公共 API 注册 BubbleMenu 的 ProseMirror 插件。
   useEffect(() => {
-    if (!bubbleEl || !boundaryEl || bubbleMode === 'hidden')
-      return
+    if (!bubbleEl || !boundaryEl || bubbleMode === 'hidden') return
 
     let disposed = false
+
     const plugin = BubbleMenuPlugin({
       editor,
       element: bubbleEl,
@@ -130,7 +141,9 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       appendTo: () => document.body,
       getReferencedVirtualElement: () => {
         const reference = createSelectionVirtualElement(editor, boundaryEl)
+
         bubbleEl.style.visibility = reference ? 'visible' : 'hidden'
+
         return reference
       },
       options: {
@@ -161,15 +174,13 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
         inline: true,
         scrollTarget: boundaryEl,
         onShow: () => {
-          if (disposed)
-            return
+          if (disposed) return
 
           bubbleVisibleRef.current = true
           setBubbleVisible(true)
         },
         onHide: () => {
-          if (disposed)
-            return
+          if (disposed) return
 
           // TipTap 会先隐藏并移除宿主；临时恢复原位置宿主，让内容层完成退出动画。
           bubbleVisibleRef.current = false
@@ -180,12 +191,11 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
         },
       },
       shouldShow: ({ editor: ed, from, to }) => {
-        if (from === to)
-          return false
+        if (from === to) return false
 
         return (
-          ed.state.doc.textBetween(from, to).trim().length
-          >= SELECTION_MIN_CHARS
+          ed.state.doc.textBetween(from, to).trim().length >=
+          SELECTION_MIN_CHARS
         )
       },
     })
@@ -199,32 +209,27 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   }, [boundaryEl, bubbleEl, bubbleMode, editor])
 
   const handleBubbleHidden = useCallback(() => {
-    if (!bubbleVisibleRef.current)
-      bubbleEl?.remove()
+    if (!bubbleVisibleRef.current) bubbleEl?.remove()
   }, [bubbleEl])
 
   useEffect(() => {
-    if (bubbleMode === 'hidden')
-      return
+    if (bubbleMode === 'hidden') return
 
     const frame = requestAnimationFrame(updateBubblePosition)
+
     return () => cancelAnimationFrame(frame)
-  }, [
-    availableWidth,
-    bubbleMode,
-    fullMenuWidth,
-    updateBubblePosition,
-  ])
+  }, [availableWidth, bubbleMode, fullMenuWidth, updateBubblePosition])
 
   useEffect(() => {
-    if (!boundaryEl || bubbleMode === 'hidden')
-      return
+    if (!boundaryEl || bubbleMode === 'hidden') return
 
     let frame = 0
+
     const schedulePositionUpdate = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(updateBubblePosition)
     }
+
     window.addEventListener('scroll', schedulePositionUpdate, true)
 
     return () => {
@@ -242,16 +247,16 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   function handleAction(nextAction: RewriteAction) {
     const sel = readRewriteSelection(editor)
 
-    if (!sel)
-      return
+    if (!sel) return
 
     setSavedSelection(sel)
 
     if (
-      nextAction === 'align_jd'
-      && state.jdDraft.trim().length < JD_MIN_CHARS
+      nextAction === 'align_jd' &&
+      state.jdDraft.trim().length < JD_MIN_CHARS
     ) {
       waitForJd()
+
       return
     }
 
@@ -259,8 +264,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   }
 
   function handleApply(candidate: RewriteCandidate) {
-    if (!savedSelection)
-      return
+    if (!savedSelection) return
 
     editor
       .chain()
@@ -277,44 +281,46 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   }
 
   function handleRetry() {
-    if (savedSelection)
-      retry(savedSelection)
+    if (savedSelection) retry(savedSelection)
   }
 
   return (
     <>
-      {bubbleEl && bubbleMode !== 'hidden' && createPortal(
-        <RewriteBubbleMenu
-          mode={bubbleMode}
-          visible={bubbleVisible}
-          onAction={handleAction}
-          onHidden={handleBubbleHidden}
-        />,
-        bubbleEl,
-      )}
-      {measureEl && createPortal(
-        <RewriteBubbleMenu
-          mode="full"
-          measuring
-          onAction={handleAction}
-          onFullWidthChange={handleFullWidthChange}
-        />,
-        measureEl,
-      )}
+      {bubbleEl &&
+        bubbleMode !== 'hidden' &&
+        createPortal(
+          <RewriteBubbleMenu
+            mode={bubbleMode}
+            visible={bubbleVisible}
+            onAction={handleAction}
+            onHidden={handleBubbleHidden}
+          />,
+          bubbleEl,
+        )}
+      {measureEl &&
+        createPortal(
+          <RewriteBubbleMenu
+            mode='full'
+            measuring
+            onAction={handleAction}
+            onFullWidthChange={handleFullWidthChange}
+          />,
+          measureEl,
+        )}
 
       <RewriteDialogShell
         open={dialogOpen}
-        onOpenChange={open => !open && handleClose()}
+        onOpenChange={(open) => !open && handleClose()}
         title={title}
         description={description}
         icon={HeaderIcon}
-        footer={(
+        footer={
           <RewritePanelFooter
             canRetry={canRetry}
             isStreaming={state.status === 'streaming'}
             onRetry={handleRetry}
           />
-        )}
+        }
       >
         <AiRewritePanel
           state={state}

@@ -4,28 +4,65 @@ import { Baby, GraduationCap } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MonthPicker } from '@/components/ui/month-picker'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DEFAULT_EDU_BACKGROUND, eduBackgroundFormSchema } from '@/lib/schema'
 import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 import { ResumeFieldFormSection } from '../shared/resume-field-form-section'
 
-const degreeOptions: Degree[] = ['不填', '初中', '高中', '中专', '大专', '本科', '学士', '硕士', '博士', 'MBA', 'EMBA', '其他']
+const degreeOptions: Degree[] = [
+  '不填',
+  '初中',
+  '高中',
+  '中专',
+  '大专',
+  '本科',
+  '学士',
+  '硕士',
+  '博士',
+  'MBA',
+  'EMBA',
+  '其他',
+]
 
 function EduBackgroundForm({ className }: { className?: string }) {
-  const eduBackground = useResumeStore(state => state.edu_background)
-  const jobIntentText = useResumeStore(state => state.job_intent.jobIntent)
-  const [isUptoNow, setIsUptoNow] = useState(() => eduBackground.items?.some(item => item.duration?.[1] === '至今') || false)
+  const eduBackground = useResumeStore((state) => state.edu_background)
+  const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
 
-  const storeFormData = useMemo(() => ({
-    items: eduBackground.items || DEFAULT_EDU_BACKGROUND.items,
-  }), [eduBackground.items])
+  const [isUptoNow, setIsUptoNow] = useState(
+    () =>
+      eduBackground.items?.some((item) => item.duration?.[1] === '至今') ||
+      false,
+  )
+
+  const storeFormData = useMemo(
+    () => ({
+      items: eduBackground.items || DEFAULT_EDU_BACKGROUND.items,
+    }),
+    [eduBackground.items],
+  )
 
   const { form, fields, remove, move, onAddItem } = useResumeFieldForm({
     fieldName: 'edu_background',
@@ -42,13 +79,13 @@ function EduBackgroundForm({ className }: { className?: string }) {
       remove={remove}
       move={move}
       onAddItem={onAddItem}
-      formId="edu-background-form"
-      title="教育背景"
-      addLabel="添加教育背景"
+      formId='edu-background-form'
+      title='教育背景'
+      addLabel='添加教育背景'
       className={className}
-      renderItem={index => (
+      renderItem={(index) => (
         <>
-          <section className="flex flex-col gap-4">
+          <section className='flex flex-col gap-4'>
             <FormField
               name={`items.${index}.schoolName`}
               control={form.control}
@@ -56,7 +93,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
                 <FormItem>
                   <FormLabel>学校</FormLabel>
                   <FormControl>
-                    <Input placeholder="请输入学校名称" {...field} />
+                    <Input placeholder='请输入学校名称' {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -69,7 +106,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
                 <FormItem>
                   <FormLabel>专业</FormLabel>
                   <FormControl>
-                    <Input placeholder="请输入所学专业" {...field} />
+                    <Input placeholder='请输入所学专业' {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -79,20 +116,25 @@ function EduBackgroundForm({ className }: { className?: string }) {
               name={`items.${index}.duration`}
               control={form.control}
               render={({ field }) => {
-                const start = dayjs(field.value?.[0]).isValid() ? dayjs(field.value?.[0]) : dayjs('2018-01')
+                const start = dayjs(field.value?.[0]).isValid()
+                  ? dayjs(field.value?.[0])
+                  : dayjs('2018-01')
 
                 return (
                   <FormItem>
                     <FormLabel>就读时间</FormLabel>
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                    <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2'>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
+                          <Button
+                            variant='outline'
+                            className='w-full justify-start text-left font-normal @lg/panel:w-auto'
+                          >
                             {field.value?.[0] || '入学年月'}
-                            <Baby className="ml-auto size-4 opacity-50" />
+                            <Baby className='ml-auto size-4 opacity-50' />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="start" className="w-auto p-0">
+                        <PopoverContent align='start' className='w-auto p-0'>
                           <MonthPicker
                             value={field.value?.[0]}
                             disableFuture
@@ -103,16 +145,22 @@ function EduBackgroundForm({ className }: { className?: string }) {
                         </PopoverContent>
                       </Popover>
 
-                      <span className="hidden text-muted-foreground @lg/panel:inline">-</span>
+                      <span className='hidden text-muted-foreground @lg/panel:inline'>
+                        -
+                      </span>
 
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button disabled={isUptoNow} variant="outline" className="w-full justify-start text-left font-normal @lg/panel:w-auto">
+                          <Button
+                            disabled={isUptoNow}
+                            variant='outline'
+                            className='w-full justify-start text-left font-normal @lg/panel:w-auto'
+                          >
                             {field.value?.[1] || '毕业年月'}
-                            <GraduationCap className="ml-auto size-4 opacity-50" />
+                            <GraduationCap className='ml-auto size-4 opacity-50' />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="start" className="w-auto p-0">
+                        <PopoverContent align='start' className='w-auto p-0'>
                           <MonthPicker
                             value={field.value?.[1]}
                             onChange={(next) => {
@@ -121,17 +169,17 @@ function EduBackgroundForm({ className }: { className?: string }) {
                           />
                         </PopoverContent>
                       </Popover>
-                      <div className="flex min-h-9 shrink-0 items-center gap-2">
-                        <Label htmlFor="up-to-now">至今</Label>
+                      <div className='flex min-h-9 shrink-0 items-center gap-2'>
+                        <Label htmlFor='up-to-now'>至今</Label>
                         <Checkbox
-                          id="up-to-now"
+                          id='up-to-now'
                           checked={isUptoNow}
                           onCheckedChange={(checked) => {
                             setIsUptoNow(!!checked)
+
                             if (checked) {
                               field.onChange([start.format('YYYY-MM'), '至今'])
-                            }
-                            else {
+                            } else {
                               field.onChange([start.format('YYYY-MM'), ''])
                             }
                           }}
@@ -147,16 +195,16 @@ function EduBackgroundForm({ className }: { className?: string }) {
               name={`items.${index}.degree`}
               control={form.control}
               render={({ field }) => (
-                <FormItem className="w-full">
+                <FormItem className='w-full'>
                   <FormLabel>学历</FormLabel>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger>
-                        <SelectValue placeholder="请选择学历" />
+                        <SelectValue placeholder='请选择学历' />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          {degreeOptions.map(option => (
+                          {degreeOptions.map((option) => (
                             <SelectItem key={option} value={option}>
                               {option}
                             </SelectItem>
@@ -178,11 +226,15 @@ function EduBackgroundForm({ className }: { className?: string }) {
                 <FormLabel>教育背景描述</FormLabel>
                 <FormControl>
                   <RichTextFieldEditor
-                    sectionKey="edu_background"
+                    sectionKey='edu_background'
                     relativePath={`items.${index}.eduInfo`}
                     value={field.value || ''}
                     onChange={field.onChange}
-                    fieldContext={{ sectionKey: 'edu_background', fieldLabel: '教育经历描述', jobIntent: jobIntentText }}
+                    fieldContext={{
+                      sectionKey: 'edu_background',
+                      fieldLabel: '教育经历描述',
+                      jobIntent: jobIntentText,
+                    }}
                   />
                 </FormControl>
               </FormItem>

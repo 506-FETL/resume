@@ -12,7 +12,14 @@ export const themeOptions = [
   { label: '稳重灰', value: 'gray' },
 ] as const
 
-export const themeEnum = z.enum(['default', 'blue', 'green', 'purple', 'orange', 'gray'])
+export const themeEnum = z.enum([
+  'default',
+  'blue',
+  'green',
+  'purple',
+  'orange',
+  'gray',
+])
 
 /**
  * 主题配置 Schema

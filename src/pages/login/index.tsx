@@ -7,10 +7,13 @@ import { LoginForm } from './components/login-form'
 function Login() {
   const [searchParams] = useSearchParams()
   const redirect = sanitizeAppRedirect(searchParams.get('redirect'))
+
   useAlreadyLoggedRedirect(redirect)
 
   return (
-    <AuthLayout><LoginForm redirect={redirect} /></AuthLayout>
+    <AuthLayout>
+      <LoginForm redirect={redirect} />
+    </AuthLayout>
   )
 }
 

@@ -1,6 +1,11 @@
 import type { VariantChange } from '../../types'
 import { Sparkles } from 'lucide-react'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,58 +19,72 @@ export interface StepResultProps {
 
 export function StepResult({ matchRate, changes }: StepResultProps) {
   const grouped = changes.reduce<Record<string, VariantChange[]>>((acc, c) => {
-    (acc[c.section] ??= []).push(c)
+    ;(acc[c.section] ??= []).push(c)
+
     return acc
   }, {})
+
   const pct = matchRate == null ? '—' : `${Math.round(matchRate * 100)}%`
 
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className='flex flex-col gap-4 p-2'>
       <Alert>
         <Sparkles aria-hidden />
         <AlertTitle>派生完成</AlertTitle>
         <AlertDescription>
           关键词匹配度：
-          <span className="font-semibold tabular-nums">{pct}</span>
+          <span className='font-semibold tabular-nums'>{pct}</span>
         </AlertDescription>
       </Alert>
 
-      <Accordion type="multiple" className="flex flex-col gap-2">
+      <Accordion type='multiple' className='flex flex-col gap-2'>
         {Object.entries(grouped).map(([section, items]) => (
-          <AccordionItem key={section} value={section} className="rounded-lg border px-4">
+          <AccordionItem
+            key={section}
+            value={section}
+            className='rounded-lg border px-4'
+          >
             <AccordionTrigger>
-              <span className="flex items-center gap-2">
-                {SECTION_LABEL[section as keyof typeof SECTION_LABEL] ?? section}
-                <Badge variant="secondary">{items.length}</Badge>
+              <span className='flex items-center gap-2'>
+                {SECTION_LABEL[section as keyof typeof SECTION_LABEL] ??
+                  section}
+                <Badge variant='secondary'>{items.length}</Badge>
               </span>
             </AccordionTrigger>
             <AccordionContent>
-              <ul className="flex flex-col gap-3">
-                {items.map(change => (
-                  <li key={`${change.itemId}-${change.fieldPath}`} className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-2">
-                      <p className="text-sm text-muted-foreground">{change.reason}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {change.matchedKeywords.map(keyword => (
-                          <Badge key={keyword} variant="outline">{keyword}</Badge>
+              <ul className='flex flex-col gap-3'>
+                {items.map((change) => (
+                  <li
+                    key={`${change.itemId}-${change.fieldPath}`}
+                    className='flex flex-col gap-3'
+                  >
+                    <div className='flex flex-col gap-2'>
+                      <p className='text-sm text-muted-foreground'>
+                        {change.reason}
+                      </p>
+                      <div className='flex flex-wrap gap-1.5'>
+                        {change.matchedKeywords.map((keyword) => (
+                          <Badge key={keyword} variant='outline'>
+                            {keyword}
+                          </Badge>
                         ))}
                       </div>
                     </div>
 
-                    <div className="flex gap-3 flex-col">
-                      <Card className="gap-3 py-3 shadow-none">
-                        <CardHeader className="px-3">
+                    <div className='flex gap-3 flex-col'>
+                      <Card className='gap-3 py-3 shadow-none'>
+                        <CardHeader className='px-3'>
                           <CardTitle>改写前</CardTitle>
                         </CardHeader>
-                        <CardContent className="prose prose-sm max-w-none wrap-break-word px-3 leading-relaxed text-foreground">
+                        <CardContent className='prose prose-sm max-w-none wrap-break-word px-3 leading-relaxed text-foreground'>
                           {parseSanitizedHtml(String(change.before ?? ''))}
                         </CardContent>
                       </Card>
-                      <Card className="gap-3 border-primary/30 bg-primary/5 py-3 shadow-none">
-                        <CardHeader className="px-3">
+                      <Card className='gap-3 border-primary/30 bg-primary/5 py-3 shadow-none'>
+                        <CardHeader className='px-3'>
                           <CardTitle>改写后</CardTitle>
                         </CardHeader>
-                        <CardContent className="prose prose-sm max-w-none wrap-break-word px-3 leading-relaxed text-foreground">
+                        <CardContent className='prose prose-sm max-w-none wrap-break-word px-3 leading-relaxed text-foreground'>
                           {parseSanitizedHtml(String(change.after ?? ''))}
                         </CardContent>
                       </Card>

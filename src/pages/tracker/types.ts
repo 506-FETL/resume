@@ -1,8 +1,25 @@
 // types.ts
-export type ApplicationStatus = 'saved' | 'applied' | 'assessment' | 'screen' | 'written' | 'interview' | 'offer' | 'rejected'
+export type ApplicationStatus =
+  | 'saved'
+  | 'applied'
+  | 'assessment'
+  | 'screen'
+  | 'written'
+  | 'interview'
+  | 'offer'
+  | 'rejected'
+
 export type StageStatus = '待处理' | '进行中' | '已完成' | '已拒绝'
+
 export type ViewMode = 'list' | 'board'
-export type TrackerSortBy = 'updated' | 'created' | 'days' | 'company' | 'status'
+
+export type TrackerSortBy =
+  | 'updated'
+  | 'created'
+  | 'days'
+  | 'company'
+  | 'status'
+
 export type TrackerSortDir = 'asc' | 'desc'
 
 export interface InterviewSubStage {
@@ -23,7 +40,11 @@ export interface StageDetail {
   source_stage?: Exclude<ApplicationStatus, 'offer' | 'rejected'> | null
 }
 
-export type TrackerActivityType = 'status_change' | 'note' | 'interview' | 'follow_up'
+export type TrackerActivityType =
+  | 'status_change'
+  | 'note'
+  | 'interview'
+  | 'follow_up'
 
 export interface TrackerActivity {
   id: string

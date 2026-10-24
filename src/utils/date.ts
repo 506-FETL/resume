@@ -12,15 +12,16 @@ dayjs.locale('zh-cn')
  * @param includeTime - 是否在超过7天时包含时分信息，默认 false
  * @returns 格式化后的相对时间字符串 (如: "刚刚", "5分钟前", "3小时前", "2天前", "2023年1月1日")
  */
-export function formatRelativeTime(dateString: string | Date | number | null | undefined, includeTime = false): string {
-  if (!dateString)
-    return '未知'
+export function formatRelativeTime(
+  dateString: string | Date | number | null | undefined,
+  includeTime = false,
+): string {
+  if (!dateString) return '未知'
 
   const date = dayjs(dateString)
   const now = dayjs()
 
-  if (!date.isValid())
-    return '无效日期'
+  if (!date.isValid()) return '无效日期'
 
   const diffInMinutes = now.diff(date, 'minute')
   const diffInHours = now.diff(date, 'hour')
@@ -46,6 +47,7 @@ export function formatRelativeTime(dateString: string | Date | number | null | u
     if (diffInDays < 30) {
       return `${Math.floor(diffInDays / 7)} 周前`
     }
+
     return date.format('YYYY年M月D日')
   }
 
@@ -62,9 +64,10 @@ export function formatDate(
   dateString: string | Date | number | null | undefined,
   template: string = 'YYYY年M月D日',
 ): string {
-  if (!dateString)
-    return '未知'
+  if (!dateString) return '未知'
+
   const date = dayjs(dateString)
+
   return date.isValid() ? date.format(template) : '无效日期'
 }
 
@@ -74,9 +77,10 @@ export function formatDate(
  * @returns 格式化后的时间字符串 (如: "2023年1月1日 12:30")
  */
 export function formatDateTime(dateString: string | Date | number): string {
-  if (!dateString)
-    return '未知'
+  if (!dateString) return '未知'
+
   const date = dayjs(dateString)
+
   return date.isValid() ? date.format('YYYY年M月D日 HH:mm') : '无效日期'
 }
 
@@ -85,10 +89,13 @@ export function formatDateTime(dateString: string | Date | number): string {
  * @param dateString - 日期字符串或Date对象
  * @returns 格式化后的时间字符串 (如: "12:30:45")
  */
-export function formatTime(dateString: string | Date | number | null | undefined): string {
-  if (!dateString)
-    return '未知'
+export function formatTime(
+  dateString: string | Date | number | null | undefined,
+): string {
+  if (!dateString) return '未知'
+
   const date = dayjs(dateString)
+
   return date.isValid() ? date.format('HH:mm:ss') : '无效日期'
 }
 
@@ -97,13 +104,14 @@ export function formatTime(dateString: string | Date | number | null | undefined
  * @param birthDateString - 出生日期字符串
  * @returns 年龄数字，如果无效则返回空字符串
  */
-export function getAge(birthDateString: string | Date | number | null | undefined): number | string {
-  if (!birthDateString)
-    return ''
+export function getAge(
+  birthDateString: string | Date | number | null | undefined,
+): number | string {
+  if (!birthDateString) return ''
 
   const birthDate = dayjs(birthDateString)
-  if (!birthDate.isValid())
-    return ''
+
+  if (!birthDate.isValid()) return ''
 
   return dayjs().diff(birthDate, 'year')
 }
@@ -114,7 +122,10 @@ export function getAge(birthDateString: string | Date | number | null | undefine
  * @param dateB
  * @returns 毫秒差值
  */
-export function diffDates(dateA: string | Date | number, dateB: string | Date | number): number {
+export function diffDates(
+  dateA: string | Date | number,
+  dateB: string | Date | number,
+): number {
   return dayjs(dateA).diff(dayjs(dateB))
 }
 

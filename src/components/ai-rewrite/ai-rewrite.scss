@@ -12,7 +12,10 @@
 .ai-rewrite-bubble-measure > .tiptap-toolbar[data-mode='full'] {
   width: max-content;
   border: var(--tt-toolbar-border-width) solid var(--tt-toolbar-border-color);
-  border-radius: calc(var(--tt-toolbar-padding) + var(--tt-radius-lg) + var(--tt-toolbar-border-width));
+  border-radius: calc(
+    var(--tt-toolbar-padding) + var(--tt-radius-lg) +
+      var(--tt-toolbar-border-width)
+  );
   background-color: var(--tt-toolbar-bg-color);
   box-shadow: var(--tt-shadow-elevated-md);
 }

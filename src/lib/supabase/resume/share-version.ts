@@ -8,10 +8,10 @@ export function readShareVersionSource(
   row: ResumeShareVersionSourceColumns,
 ): ShareVersionSource {
   if (
-    row.source_kind !== 'history'
-    || row.source_version_no == null
-    || !row.source_version_label
-    || !row.source_version_created_at
+    row.source_kind !== 'history' ||
+    row.source_version_no == null ||
+    !row.source_version_label ||
+    !row.source_version_created_at
   ) {
     return { kind: 'current' }
   }

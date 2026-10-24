@@ -19,19 +19,31 @@ import { QuickSaveVersionDialog } from './quick-save-version-dialog'
  * 编辑器工具栏的历史版本入口：只保留「打开历史版本」（跳转 /history）与「快速保存」两个动作，
  * 完整的列表/预览/对比/恢复统一在 /history 页完成，避免维护多套版本 UI。
  */
-export function ResumeHistoryVersionDropdown({ reviewActive = false }: { reviewActive?: boolean }) {
+export function ResumeHistoryVersionDropdown({
+  reviewActive = false,
+}: {
+  reviewActive?: boolean
+}) {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
-  const resumeId = useCurrentResumeStore(state => state.resumeId)
-  const isInitialized = useResumeStore(state => state.isInitialized)
+  const resumeId = useCurrentResumeStore((state) => state.resumeId)
+  const isInitialized = useResumeStore((state) => state.isInitialized)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [quickSaveResumeId, setQuickSaveResumeId] = useState<string | null>(null)
+
+  const [quickSaveResumeId, setQuickSaveResumeId] = useState<string | null>(
+    null,
+  )
+
   const pendingQuickSaveResumeIdRef = useRef<string | null>(null)
 
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
-  const canUseHistory = Boolean(resumeId) && !isOffline && isInitialized && !reviewActive
+
+  const canUseHistory =
+    Boolean(resumeId) && !isOffline && isInitialized && !reviewActive
+
   const activeResumeIdRef = useRef(resumeId)
   const canUseHistoryRef = useRef(canUseHistory)
+
   activeResumeIdRef.current = resumeId
   canUseHistoryRef.current = canUseHistory
 
@@ -44,9 +56,9 @@ export function ResumeHistoryVersionDropdown({ reviewActive = false }: { reviewA
         : undefined
 
   const openHistory = () => {
-    if (!canUseHistory || !resumeId)
-      return
-    navigate(`/history?resumeId=${resumeId}`)
+    if (!canUseHistory || !resumeId) return
+
+    navigate('/history')
   }
 
   useEffect(() => {
@@ -61,10 +73,10 @@ export function ResumeHistoryVersionDropdown({ reviewActive = false }: { reviewA
   }, [])
 
   const openQuickSave = () => {
-    if (!canUseHistory || !resumeId)
-      return
+    if (!canUseHistory || !resumeId) return
 
     const capturedResumeId = resumeId
+
     pendingQuickSaveResumeIdRef.current = capturedResumeId
     setMenuOpen(false)
   }
@@ -74,38 +86,42 @@ export function ResumeHistoryVersionDropdown({ reviewActive = false }: { reviewA
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
-            aria-label="历史版本"
-            variant="outline"
+            aria-label='历史版本'
+            variant='outline'
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
             disabled={!canUseHistory}
             title={disabledReason}
           >
-            <History data-icon="inline-start" />
+            <History data-icon='inline-start' />
             {!isMobile && <span>历史版本</span>}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          align="start"
-          side="bottom"
-          className="w-44"
+          align='start'
+          side='bottom'
+          className='w-44'
           onCloseAutoFocus={(event) => {
             const pendingResumeId = pendingQuickSaveResumeIdRef.current
-            if (!pendingResumeId)
-              return
+
+            if (!pendingResumeId) return
 
             event.preventDefault()
             pendingQuickSaveResumeIdRef.current = null
-            if (activeResumeIdRef.current === pendingResumeId && canUseHistoryRef.current)
+
+            if (
+              activeResumeIdRef.current === pendingResumeId &&
+              canUseHistoryRef.current
+            )
               setQuickSaveResumeId(pendingResumeId)
           }}
         >
           <DropdownMenuItem onClick={openHistory}>
-            <History data-icon="inline-start" />
+            <History data-icon='inline-start' />
             查看历史版本
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={openQuickSave}>
-            <Save data-icon="inline-start" />
+            <Save data-icon='inline-start' />
             快速保存
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -115,8 +131,7 @@ export function ResumeHistoryVersionDropdown({ reviewActive = false }: { reviewA
           key={quickSaveResumeId}
           open
           onOpenChange={(open) => {
-            if (!open)
-              setQuickSaveResumeId(null)
+            if (!open) setQuickSaveResumeId(null)
           }}
           resumeId={quickSaveResumeId}
         />

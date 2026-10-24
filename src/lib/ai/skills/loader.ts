@@ -10,6 +10,7 @@ const resourceLoaders: Record<string, () => Promise<RawMarkdownModule>> = {
 
 function requireSkill(id: string, version?: string): SkillDefinition {
   const skill = getSkillDefinition(id)
+
   if (!skill)
     throw new Error(`未找到内置技能「${id}」`)
 
@@ -29,6 +30,7 @@ function isUnsafeResourcePath(path: string): boolean {
 export async function loadSkill(id: string, version?: string): Promise<LoadedSkill> {
   const skill = requireSkill(id, version)
   const { default: instructions } = await import('./builtin/great-resume/SKILL.md?raw')
+
   return { ...skill, instructions }
 }
 
@@ -38,14 +40,17 @@ export async function readSkillResource(
   version?: string,
 ): Promise<LoadedSkillResource> {
   const skill = requireSkill(id, version)
+
   if (isUnsafeResourcePath(path))
     throw new Error(`技能「${id}」拒绝读取不安全资料路径「${path}」`)
 
   const resource = skill.resources.find(item => item.path === path)
   const loader = resource && resourceLoaders[resource.path]
+
   if (!resource || !loader)
     throw new Error(`技能「${id}」未声明资料「${path}」`)
 
   const { default: content } = await loader()
+
   return { ...resource, content }
 }

@@ -2,55 +2,58 @@
 // ATS Evaluation Types
 // =====================
 export type ChecklistOption = 'required' | 'optional'
+
 export type Priority = 0 | 1 | 2
+
 export type Mode = 'general_ats_check' | 'optimize_resume'
+
 export type Severity = 'high' | 'medium' | 'low'
 
-export type ScoreKey
-  = | 'ats_parsing'
-    | 'format_readability'
-    | 'content_completeness'
-    | 'impact_quantification'
-    | 'job_match'
+export type ScoreKey =
+  | 'ats_parsing'
+  | 'format_readability'
+  | 'content_completeness'
+  | 'impact_quantification'
+  | 'job_match'
 
-export type SuggestionKind
-  = | 'replace_text'
-    | 'replace_value'
-    | 'fill_field'
-    | 'normalize_date'
+export type SuggestionKind =
+  | 'replace_text'
+  | 'replace_value'
+  | 'fill_field'
+  | 'normalize_date'
 
-export type ValueType
-  = | 'string'
-    | 'number'
-    | 'boolean'
-    | 'html_string'
-    | 'string_array'
-    | 'object_array'
-    | 'object'
-    | 'date_range'
-    | 'skill_list'
-    | 'skill_item'
-    | 'certificate_list'
+export type ValueType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'html_string'
+  | 'string_array'
+  | 'object_array'
+  | 'object'
+  | 'date_range'
+  | 'skill_list'
+  | 'skill_item'
+  | 'certificate_list'
 
-export type RawValue
-  = | string
-    | number
-    | boolean
-    | null
-    | string[]
-    | number[]
-    | Record<string, unknown>
-    | Array<Record<string, unknown>>
+export type RawValue =
+  | string
+  | number
+  | boolean
+  | null
+  | string[]
+  | number[]
+  | Record<string, unknown>
+  | Array<Record<string, unknown>>
 
-export type AfterValue
-  = | string
-    | number
-    | boolean
-    | null
-    | string[]
-    | number[]
-    | Record<string, unknown>
-    | Array<Record<string, unknown>>
+export type AfterValue =
+  | string
+  | number
+  | boolean
+  | null
+  | string[]
+  | number[]
+  | Record<string, unknown>
+  | Array<Record<string, unknown>>
 
 export interface Locate {
   path: string
@@ -79,7 +82,7 @@ export interface AtsAssessmentMeta {
 
 export interface ReadabilityIndex {
   score: number
-  scale: { min: 1, max: 10 }
+  scale: { min: 1; max: 10 }
   summary: string
 }
 
@@ -172,15 +175,15 @@ export interface AtsEvaluationResult {
   findings: FindingsGroup
 }
 
-export type AtsWritableFieldKey
-  = | 'todo_items'
-    | 'version'
-    | 'meta'
-    | 'readabilityIndex'
-    | 'fixChecklist'
-    | 'summary'
-    | 'scores'
-    | 'findings'
+export type AtsWritableFieldKey =
+  | 'todo_items'
+  | 'version'
+  | 'meta'
+  | 'readabilityIndex'
+  | 'fixChecklist'
+  | 'summary'
+  | 'scores'
+  | 'findings'
 
 export type AtsWritableFields = Pick<AtsEvaluationResult, AtsWritableFieldKey>
 

@@ -18,16 +18,16 @@ import { formatResetTime } from './utils'
  * 触发来源：AI 超额自动弹出、用户中心「升级」按钮。
  */
 export function UpgradeDialog() {
-  const open = useUpgradeDialogStore(s => s.open)
-  const reason = useUpgradeDialogStore(s => s.reason)
-  const resetAt = useUpgradeDialogStore(s => s.resetAt)
-  const setOpen = useUpgradeDialogStore(s => s.setOpen)
+  const open = useUpgradeDialogStore((s) => s.open)
+  const reason = useUpgradeDialogStore((s) => s.reason)
+  const resetAt = useUpgradeDialogStore((s) => s.resetAt)
+  const setOpen = useUpgradeDialogStore((s) => s.setOpen)
 
   const title = reason === 'quota_exceeded' ? '今日 AI 额度已用完' : '升级 Pro'
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className='sm:max-w-md'>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -39,7 +39,7 @@ export function UpgradeDialog() {
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline">我知道了</Button>
+            <Button variant='outline'>我知道了</Button>
           </DialogClose>
           <Button onClick={() => toast('Pro 升级暂未开放')}>
             <Sparkles />

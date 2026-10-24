@@ -2,12 +2,32 @@ import { CircleAlert, GitBranch } from 'lucide-react'
 import { useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog'
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import {
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { deleteOfflineDraftVariant, isOfflineResumeId } from '@/lib/offline-resume-manager'
+import {
+  deleteOfflineDraftVariant,
+  isOfflineResumeId,
+} from '@/lib/offline-resume-manager'
 import { deleteDraftVariant } from '@/lib/supabase/resume/variant'
 import useResumeListStore from '@/pages/resume/store'
 import useJdVariantStore from '@/store/jd-variant'
@@ -17,42 +37,57 @@ export interface DerivedJobsDialogProps {
   onOpenChange: (next: boolean) => void
 }
 
-type RunningItem
-  = | { parentResumeId: string, parentName: string, source: 'store' }
-    | { parentResumeId: string, parentName: string, source: 'db', dbResumeId: string }
+type RunningItem =
+  | { parentResumeId: string; parentName: string; source: 'store' }
+  | {
+      parentResumeId: string
+      parentName: string
+      source: 'db'
+      dbResumeId: string
+    }
 
-export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps) {
+export function DerivedJobsDialog({
+  open,
+  onOpenChange,
+}: DerivedJobsDialogProps) {
   const { resumes, openDeriveFor, loadResumes } = useResumeListStore()
-  const tasks = useJdVariantStore(s => s.tasks)
-  const discardTask = useJdVariantStore(s => s.discardTask)
+  const tasks = useJdVariantStore((s) => s.tasks)
+  const discardTask = useJdVariantStore((s) => s.discardTask)
 
   const runningItems = useMemo<RunningItem[]>(() => {
-    const resumeNameById = new Map(resumes.map(r => [r.resume_id, r.display_name]))
+    const resumeNameById = new Map(
+      resumes.map((r) => [r.resume_id, r.display_name]),
+    )
 
     const storeRunning: RunningItem[] = Object.values(tasks)
-      .filter(t => t.phase === 'parsing' || t.phase === 'rewriting')
-      .map(t => ({
+      .filter((t) => t.phase === 'parsing' || t.phase === 'rewriting')
+      .map((t) => ({
         parentResumeId: t.parentResumeId,
         parentName: resumeNameById.get(t.parentResumeId) ?? '未命名简历',
         source: 'store',
       }))
 
-    const storeParentIds = new Set(storeRunning.map(item => item.parentResumeId))
+    const storeParentIds = new Set(
+      storeRunning.map((item) => item.parentResumeId),
+    )
 
     const seen = new Set<string>()
     const dbRunning: RunningItem[] = []
+
     for (const r of resumes) {
-      if (r.derived_status !== 'generating')
-        continue
+      if (r.derived_status !== 'generating') continue
+
       const parentId = r.parent_resume_id ?? r.resume_id
-      if (storeParentIds.has(r.parent_resume_id ?? ''))
-        continue
-      if (seen.has(parentId))
-        continue
+
+      if (storeParentIds.has(r.parent_resume_id ?? '')) continue
+      if (seen.has(parentId)) continue
+
       seen.add(parentId)
+
       dbRunning.push({
         parentResumeId: parentId,
-        parentName: resumeNameById.get(r.parent_resume_id ?? '') ?? '未命名简历',
+        parentName:
+          resumeNameById.get(r.parent_resume_id ?? '') ?? '未命名简历',
         source: 'db',
         dbResumeId: r.resume_id,
       })
@@ -62,18 +97,15 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
   }, [tasks, resumes])
 
   const failed = useMemo(
-    () => resumes.filter(r => r.derived_status === 'failed'),
+    () => resumes.filter((r) => r.derived_status === 'failed'),
     [resumes],
   )
 
   const discard = async (id: string) => {
     try {
-      if (isOfflineResumeId(id))
-        await deleteOfflineDraftVariant(id)
-      else
-        await deleteDraftVariant(id)
-    }
-    finally {
+      if (isOfflineResumeId(id)) await deleteOfflineDraftVariant(id)
+      else await deleteDraftVariant(id)
+    } finally {
       await loadResumes()
     }
   }
@@ -81,8 +113,10 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
   const discardRunning = (item: RunningItem) => {
     if (item.source === 'db') {
       discard(item.dbResumeId)
+
       return
     }
+
     // store 任务：discardTask 会中止生成并删除草稿，随后刷新列表清除陈旧的 generating 行
     discardTask(item.parentResumeId)
       .catch(() => undefined)
@@ -90,8 +124,8 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
   }
 
   const retry = (id: string, parentId: string | null | undefined) => {
-    if (!parentId)
-      return
+    if (!parentId) return
+
     discard(id).finally(() => {
       openDeriveFor(parentId)
       onOpenChange(false)
@@ -100,139 +134,149 @@ export function DerivedJobsDialog({ open, onOpenChange }: DerivedJobsDialogProps
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="min-h-0 overflow-hidden sm:max-w-lg">
-        <ResponsiveDialogHeader className="border-b px-6 pb-4 pt-6 text-left">
+      <ResponsiveDialogContent className='min-h-0 overflow-hidden sm:max-w-lg'>
+        <ResponsiveDialogHeader className='border-b px-6 pb-4 pt-6 text-left'>
           <ResponsiveDialogTitle>派生任务</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="sr-only">派生任务进度与草稿</ResponsiveDialogDescription>
+          <ResponsiveDialogDescription className='sr-only'>
+            派生任务进度与草稿
+          </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <Tabs defaultValue="running" className="min-h-0 flex-1 gap-4 px-6 py-5">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="running">
+        <Tabs defaultValue='running' className='min-h-0 flex-1 gap-4 px-6 py-5'>
+          <TabsList className='grid w-full grid-cols-2'>
+            <TabsTrigger value='running'>
               生成中
-              <Badge variant="secondary">{runningItems.length}</Badge>
+              <Badge variant='secondary'>{runningItems.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="failed">
+            <TabsTrigger value='failed'>
               失败
-              <Badge variant="destructive">{failed.length}</Badge>
+              <Badge variant='destructive'>{failed.length}</Badge>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="running" className="min-h-0">
-            {runningItems.length === 0
-              ? (
-                  <Empty className="min-h-72 border border-dashed">
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <GitBranch />
-                      </EmptyMedia>
-                      <EmptyTitle>暂无进行中的派生任务</EmptyTitle>
-                    </EmptyHeader>
-                  </Empty>
-                )
-              : (
-                  <ScrollArea className="h-[min(55vh,28rem)] pr-3">
-                    <ul className="flex flex-col gap-3">
-                      {runningItems.map(item => (
-                        <li key={item.parentResumeId}>
-                          <Card className="gap-4 py-4 shadow-none">
-                            <CardHeader className="px-4">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <CardTitle className="truncate">{item.parentName}</CardTitle>
-                                </div>
-                                <Badge variant="secondary">生成中</Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="px-4">
-                              <p className="text-sm text-muted-foreground">
-                                {item.source === 'store'
-                                  ? '关闭弹窗后仍会继续生成。'
-                                  : '页面刷新后无法恢复生成进度，可丢弃草稿。'}
-                              </p>
-                            </CardContent>
-                            <CardFooter className="flex flex-wrap justify-end gap-2 px-4">
-                              {item.source === 'store' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    openDeriveFor(item.parentResumeId)
-                                    onOpenChange(false)
-                                  }}
-                                >
-                                  查看进度
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => discardRunning(item)}
-                              >
-                                丢弃
-                              </Button>
-                            </CardFooter>
-                          </Card>
-                        </li>
-                      ))}
-                    </ul>
-                  </ScrollArea>
-                )}
+          <TabsContent value='running' className='min-h-0'>
+            {runningItems.length === 0 ? (
+              <Empty className='min-h-72 border border-dashed'>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <GitBranch />
+                  </EmptyMedia>
+                  <EmptyTitle>暂无进行中的派生任务</EmptyTitle>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <ScrollArea className='h-[min(55vh,28rem)] pr-3'>
+                <ul className='flex flex-col gap-3'>
+                  {runningItems.map((item) => (
+                    <li key={item.parentResumeId}>
+                      <Card className='gap-4 py-4 shadow-none'>
+                        <CardHeader className='px-4'>
+                          <div className='flex items-start justify-between gap-3'>
+                            <div className='min-w-0'>
+                              <CardTitle className='truncate'>
+                                {item.parentName}
+                              </CardTitle>
+                            </div>
+                            <Badge variant='secondary'>生成中</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className='px-4'>
+                          <p className='text-sm text-muted-foreground'>
+                            {item.source === 'store'
+                              ? '关闭弹窗后仍会继续生成。'
+                              : '页面刷新后无法恢复生成进度，可丢弃草稿。'}
+                          </p>
+                        </CardContent>
+                        <CardFooter className='flex flex-wrap justify-end gap-2 px-4'>
+                          {item.source === 'store' && (
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() => {
+                                openDeriveFor(item.parentResumeId)
+                                onOpenChange(false)
+                              }}
+                            >
+                              查看进度
+                            </Button>
+                          )}
+                          <Button
+                            size='sm'
+                            variant='destructive'
+                            onClick={() => discardRunning(item)}
+                          >
+                            丢弃
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            )}
           </TabsContent>
 
-          <TabsContent value="failed" className="min-h-0">
-            {failed.length === 0
-              ? (
-                  <Empty className="min-h-72 border border-dashed">
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <CircleAlert />
-                      </EmptyMedia>
-                      <EmptyTitle>暂无失败任务</EmptyTitle>
-                    </EmptyHeader>
-                  </Empty>
-                )
-              : (
-                  <ScrollArea className="h-[min(55vh,28rem)] pr-3">
-                    <ul className="flex flex-col gap-3">
-                      {failed.map(item => (
-                        <li key={item.resume_id}>
-                          <Card className="gap-4 py-4 shadow-none">
-                            <CardHeader className="px-4">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <CardTitle className="truncate">{item.display_name || '未命名草稿'}</CardTitle>
-                                </div>
-                                <Badge variant="destructive">失败</Badge>
-                              </div>
-                            </CardHeader>
-                            {item.linked_jd_text && (
-                              <CardContent className="px-4">
-                                <p className="line-clamp-3 text-sm text-muted-foreground">
-                                  JD：
-                                  {item.linked_jd_text.slice(0, 120)}
-                                </p>
-                              </CardContent>
-                            )}
-                            <CardFooter className="flex flex-wrap justify-end gap-2 px-4">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => retry(item.resume_id, item.parent_resume_id)}
-                                disabled={!item.parent_resume_id}
-                              >
-                                重试
-                              </Button>
-                              <Button size="sm" variant="destructive" onClick={() => { discard(item.resume_id) }}>
-                                丢弃
-                              </Button>
-                            </CardFooter>
-                          </Card>
-                        </li>
-                      ))}
-                    </ul>
-                  </ScrollArea>
-                )}
+          <TabsContent value='failed' className='min-h-0'>
+            {failed.length === 0 ? (
+              <Empty className='min-h-72 border border-dashed'>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <CircleAlert />
+                  </EmptyMedia>
+                  <EmptyTitle>暂无失败任务</EmptyTitle>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <ScrollArea className='h-[min(55vh,28rem)] pr-3'>
+                <ul className='flex flex-col gap-3'>
+                  {failed.map((item) => (
+                    <li key={item.resume_id}>
+                      <Card className='gap-4 py-4 shadow-none'>
+                        <CardHeader className='px-4'>
+                          <div className='flex items-start justify-between gap-3'>
+                            <div className='min-w-0'>
+                              <CardTitle className='truncate'>
+                                {item.display_name || '未命名草稿'}
+                              </CardTitle>
+                            </div>
+                            <Badge variant='destructive'>失败</Badge>
+                          </div>
+                        </CardHeader>
+                        {item.linked_jd_text && (
+                          <CardContent className='px-4'>
+                            <p className='line-clamp-3 text-sm text-muted-foreground'>
+                              JD：
+                              {item.linked_jd_text.slice(0, 120)}
+                            </p>
+                          </CardContent>
+                        )}
+                        <CardFooter className='flex flex-wrap justify-end gap-2 px-4'>
+                          <Button
+                            size='sm'
+                            variant='outline'
+                            onClick={() =>
+                              retry(item.resume_id, item.parent_resume_id)
+                            }
+                            disabled={!item.parent_resume_id}
+                          >
+                            重试
+                          </Button>
+                          <Button
+                            size='sm'
+                            variant='destructive'
+                            onClick={() => {
+                              discard(item.resume_id)
+                            }}
+                          >
+                            丢弃
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            )}
           </TabsContent>
         </Tabs>
       </ResponsiveDialogContent>

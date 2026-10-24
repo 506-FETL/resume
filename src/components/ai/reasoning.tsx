@@ -3,7 +3,15 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import { BrainIcon, ChevronDownIcon } from 'lucide-react'
-import { createContext, memo, use, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  memo,
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Streamdown } from 'streamdown'
 import { Shimmer } from '@/components/ai/shimmer'
 import {
@@ -24,9 +32,11 @@ const ReasoningContext = createContext<ReasoningContextValue | null>(null)
 
 export function useReasoning() {
   const context = use(ReasoningContext)
+
   if (!context) {
     throw new Error('Reasoning components must be used within Reasoning')
   }
+
   return context
 }
 
@@ -57,6 +67,7 @@ export const Reasoning = memo(
       defaultProp: defaultOpen,
       onChange: onOpenChange,
     })
+
     const [duration, setDuration] = useControllableState({
       prop: durationProp,
       defaultProp: undefined,
@@ -72,11 +83,11 @@ export const Reasoning = memo(
     useEffect(() => {
       if (isStreaming) {
         hasStreamedRef.current = true
+
         if (startTime === null) {
           setStartTime(Date.now())
         }
-      }
-      else if (startTime !== null) {
+      } else if (startTime !== null) {
         setDuration(Math.ceil((Date.now() - startTime) / MS_IN_S))
         setStartTime(null)
       }
@@ -84,7 +95,13 @@ export const Reasoning = memo(
 
     // 仅对默认展开的思考块自动收起；手动展开的内容保留用户选择。
     useEffect(() => {
-      if (defaultOpen && hasStreamedRef.current && !isStreaming && isOpen && !hasAutoClosed) {
+      if (
+        defaultOpen &&
+        hasStreamedRef.current &&
+        !isStreaming &&
+        isOpen &&
+        !hasAutoClosed
+      ) {
         // Add a small delay before closing to allow user to see the content
         const timer = setTimeout(() => {
           setIsOpen(false)
@@ -132,12 +149,11 @@ function defaultGetThinkingMessage(isStreaming: boolean, duration?: number) {
   if (duration === undefined) {
     return <p>Thought for a few seconds</p>
   }
+
   return (
     <p>
       Thought for
-      {duration}
-      {' '}
-      seconds
+      {duration} seconds
     </p>
   )
 }
@@ -161,7 +177,7 @@ export const ReasoningTrigger = memo(
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4" />
+            <BrainIcon className='size-4' />
             {getThinkingMessage(isStreaming, duration)}
             <ChevronDownIcon
               className={cn(

@@ -1,9 +1,8 @@
 import type React from 'react'
 import { Cloud, FileCheck, FileText, HardDrive } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { getAllOfflineResumes } from '@/lib/offline-resume-manager'
-import supabase from '@/lib/supabase/client'
-import { getCurrentUser } from '@/lib/supabase/user'
+import useResumeListStore from '@/pages/resume/store'
+import useUserStore from '@/store/user'
 import useAtsStore from '../../store'
 
 export interface ResumeConfig {
@@ -18,6 +17,9 @@ export interface ResumeConfig {
 
 interface UseResumeManagerReturn {
   resumes: ResumeConfig[]
+  loading: boolean
+  loadError: string | null
+  retry: () => Promise<void>
   open: boolean
   setOpen: (open: boolean) => void
   isDragging: boolean
@@ -36,88 +38,83 @@ interface UseResumeManagerReturn {
 }
 
 export function useResumeManager(): UseResumeManagerReturn {
-  const { atsConfigs, currentAtsConfig, loading, selectedResumeId, setSelectedResume } = useAtsStore()
-  const [resumes, setResumes] = useState<ResumeConfig[]>([])
+  const { atsConfigs, currentAtsConfig, selectedResumeId, setSelectedResume } =
+    useAtsStore()
+
+  const {
+    resumes: storedResumes,
+    accountId,
+    loading: listLoading,
+    loadError: listError,
+    loadResumes,
+    cancelLoad,
+  } = useResumeListStore()
+
+  const userId = useUserStore((state) => state.currentUser?.id ?? null)
+  const authStatus = useUserStore((state) => state.authStatus)
+  const accountMatches = authStatus !== 'unknown' && accountId === userId
+  const loading = !accountMatches || listLoading
+  const loadError = accountMatches ? listError : null
   const [open, setOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
-    const initResumeConfig = async () => {
-      if (loading)
-        return
+    if (authStatus === 'unknown') return
 
-      const user = await getCurrentUser()
+    loadResumes()
 
-      if (!user)
-        return
+    return cancelLoad
+  }, [authStatus, userId, loadResumes, cancelLoad])
 
-      const { data: userResumes, error: fetchResumesError } = await supabase
-        .from('resume_config')
-        .select('created_at,id,display_name,resume_id')
-        .eq('user_id', user.id)
+  const resumes = useMemo<ResumeConfig[]>(() => {
+    if (!accountMatches) return []
 
-      if (fetchResumesError)
-        return
+    return storedResumes.map((resume) => {
+      const resumeAts = atsConfigs?.find(
+        (ats) => ats.resume_id === resume.resume_id,
+      )
 
-      const structuredResumes = userResumes.map((resume) => {
-        const resumeAts = atsConfigs?.find(ats => ats.resume_id === resume.resume_id)
-
-        if (resumeAts) {
-          return {
-            ...resume,
-            isScored: true,
-            overall_score: resumeAts.summary.overall_score,
-            isOffline: false,
-          }
-        }
-        else {
-          return {
-            ...resume,
-            isScored: false,
-            overall_score: null,
-            isOffline: false,
-          }
-        }
-      })
-
-      const offlineResumes = await (await getAllOfflineResumes()).map(resume => ({
-        id: resume.created_at,
+      return {
+        id: resume.resume_id,
         resume_id: resume.resume_id,
-        display_name: resume.display_name,
-        isScored: false,
-        overall_score: null,
+        display_name: resume.display_name || '未命名简历',
         created_at: resume.created_at,
-        isOffline: true,
-      }))
-
-      const structuredOfflineResumes = offlineResumes.map((resume) => {
-        const resumeAts = atsConfigs?.find(ats => ats.resume_id === resume.resume_id)
-        if (resumeAts)
-          return { ...resume, isScored: true, overall_score: resumeAts.summary.overall_score }
-
-        return resume
-      })
-
-      setResumes([...structuredResumes, ...structuredOfflineResumes])
-    }
-
-    initResumeConfig()
-  }, [atsConfigs, loading])
+        isOffline: resume.isOffline,
+        isScored: Boolean(resumeAts),
+        overall_score: resumeAts?.summary.overall_score ?? null,
+      }
+    })
+  }, [accountMatches, storedResumes, atsConfigs])
 
   useEffect(() => {
     if (currentAtsConfig && !selectedResumeId && resumes.length > 0) {
-      const found = resumes.find(r => r.resume_id === currentAtsConfig.resume_id)
+      const found = resumes.find(
+        (r) => r.resume_id === currentAtsConfig.resume_id,
+      )
+
       if (found)
-        setSelectedResume(found.resume_id, found.isOffline ? 'offline' : 'online')
+        setSelectedResume(
+          found.resume_id,
+          found.isOffline ? 'offline' : 'online',
+        )
     }
   }, [currentAtsConfig, resumes, selectedResumeId, setSelectedResume])
 
-  const selectedResumeName = resumes.find(r => r.resume_id === selectedResumeId)?.display_name || '选择简历'
+  const selectedResumeName =
+    resumes.find((r) => r.resume_id === selectedResumeId)?.display_name ||
+    '选择简历'
 
-  const handleSelect = useCallback((resume: ResumeConfig) => {
-    setSelectedResume(resume.resume_id, resume.isOffline ? 'offline' : 'online')
-    setOpen(false)
-  }, [setSelectedResume])
+  const handleSelect = useCallback(
+    (resume: ResumeConfig) => {
+      setSelectedResume(
+        resume.resume_id,
+        resume.isOffline ? 'offline' : 'online',
+      )
+
+      setOpen(false)
+    },
+    [setSelectedResume],
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -132,7 +129,9 @@ export function useResumeManager(): UseResumeManagerReturn {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
+
     const files = e.dataTransfer.files
+
     if (files.length > 0) {
       // TODO: 处理文件上传
     }
@@ -140,25 +139,31 @@ export function useResumeManager(): UseResumeManagerReturn {
 
   const handleFileSelect = useCallback(() => {
     const input = document.createElement('input')
+
     input.type = 'file'
     input.accept = '.pdf,.doc,.docx'
+
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files
+
       if (files && files.length > 0) {
         // TODO: 处理文件选择逻辑
       }
     }
+
     input.click()
   }, [])
 
-  const onlineResumes = resumes.filter(r => !r.isOffline)
-  const offlineResumes = resumes.filter(r => r.isOffline)
+  const onlineResumes = resumes.filter((r) => !r.isOffline)
+  const offlineResumes = resumes.filter((r) => r.isOffline)
 
-  const currentResume = useMemo(() => resumes.find(r => r.resume_id === selectedResumeId), [resumes, selectedResumeId])
+  const currentResume = useMemo(
+    () => resumes.find((r) => r.resume_id === selectedResumeId),
+    [resumes, selectedResumeId],
+  )
 
   const ButtonIcon = useMemo(() => {
-    if (!currentResume)
-      return FileText
+    if (!currentResume) return FileText
     if (currentResume.isOffline)
       return currentResume.isScored ? FileCheck : HardDrive
 
@@ -166,15 +171,17 @@ export function useResumeManager(): UseResumeManagerReturn {
   }, [currentResume])
 
   const iconColorClass = useMemo(() => {
-    if (!currentResume)
-      return 'text-muted-foreground'
-    if (currentResume.isScored)
-      return 'text-green-600'
+    if (!currentResume) return 'text-muted-foreground'
+    if (currentResume.isScored) return 'text-green-600'
+
     return currentResume.isOffline ? 'text-amber-600' : 'text-blue-600'
   }, [currentResume])
 
   return {
     resumes,
+    loading,
+    loadError,
+    retry: loadResumes,
     open,
     setOpen,
     isDragging,

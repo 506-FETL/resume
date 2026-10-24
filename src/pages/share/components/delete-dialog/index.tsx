@@ -2,7 +2,16 @@ import type { MouseEvent } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Spinner } from '@/components/ui/spinner'
 import useShareStore from '../../store'
 import { findShareById } from '../../utils'
@@ -17,27 +26,31 @@ export default function DeleteDialog() {
     closeDeleteDialog,
     remove,
   } = useShareStore()
+
   const share = findShareById(allShares, shares, deleteShareId)
-  const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(null)
-  const renderedShare = share
-    ?? (retainedShare?.id === deleteShareId ? retainedShare : null)
+
+  const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
+    null,
+  )
+
+  const renderedShare =
+    share ?? (retainedShare?.id === deleteShareId ? retainedShare : null)
+
   const busy = Boolean(deleteShareId && pendingShareIds.includes(deleteShareId))
 
   useEffect(() => {
-    if (share)
-      setRetainedShare(share)
+    if (share) setRetainedShare(share)
   }, [share])
 
   const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
-    if (!deleteShareId)
-      return
+
+    if (!deleteShareId) return
 
     try {
       await remove(deleteShareId)
       toast.success('分享链接已永久删除')
-    }
-    catch {
+    } catch {
       toast.error('删除失败')
     }
   }
@@ -46,8 +59,7 @@ export default function DeleteDialog() {
     <AlertDialog
       open={deleteDialogOpen}
       onOpenChange={(open) => {
-        if (!open)
-          closeDeleteDialog()
+        if (!open) closeDeleteDialog()
       }}
     >
       <AlertDialogContent>
@@ -62,11 +74,11 @@ export default function DeleteDialog() {
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
           <AlertDialogAction
-            variant="destructive"
+            variant='destructive'
             disabled={!deleteShareId || busy}
             onClick={handleDelete}
           >
-            {busy && <Spinner data-icon="inline-start" />}
+            {busy && <Spinner data-icon='inline-start' />}
             永久删除
           </AlertDialogAction>
         </AlertDialogFooter>

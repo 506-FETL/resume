@@ -1,20 +1,20 @@
-export type RewriteAction
-  = | 'star_rewrite'
-    | 'quantify'
-    | 'strong_verb'
-    | 'polish'
-    | 'align_jd'
+export type RewriteAction =
+  | 'star_rewrite'
+  | 'quantify'
+  | 'strong_verb'
+  | 'polish'
+  | 'align_jd'
 
-export type RewriteSectionKey
-  = | 'work_experience'
-    | 'project_experience'
-    | 'internship_experience'
-    | 'campus_experience'
-    | 'edu_background'
-    | 'self_evaluation'
-    | 'honors_certificates'
-    | 'hobbies'
-    | 'skill_specialty'
+export type RewriteSectionKey =
+  | 'work_experience'
+  | 'project_experience'
+  | 'internship_experience'
+  | 'campus_experience'
+  | 'edu_background'
+  | 'self_evaluation'
+  | 'honors_certificates'
+  | 'hobbies'
+  | 'skill_specialty'
 
 export interface RewriteFieldContext {
   sectionKey: RewriteSectionKey
@@ -37,7 +37,12 @@ export interface RewriteRequestArgs {
   jdDraft?: string
 }
 
-export type RewriteSessionStatus = 'idle' | 'waiting_jd' | 'streaming' | 'success' | 'error'
+export type RewriteSessionStatus =
+  | 'idle'
+  | 'waiting_jd'
+  | 'streaming'
+  | 'success'
+  | 'error'
 
 export interface RewriteSessionState {
   status: RewriteSessionStatus

@@ -23,8 +23,7 @@ const IMAGE_MIME_TYPE_MAP = {
 } as const
 
 function resolveExportMimeType(shape: AvatarCropShape, mimeType?: string) {
-  if (shape === 'circle')
-    return 'image/png'
+  if (shape === 'circle') return 'image/png'
 
   if (mimeType && mimeType in IMAGE_MIME_TYPE_MAP)
     return mimeType as keyof typeof IMAGE_MIME_TYPE_MAP
@@ -59,8 +58,7 @@ export async function createCroppedImageFile({
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
-  if (!context)
-    throw new Error('当前浏览器不支持头像裁剪')
+  if (!context) throw new Error('当前浏览器不支持头像裁剪')
 
   const exportMimeType = resolveExportMimeType(shape, mimeType)
   const sourceX = image.naturalWidth * (crop.x / 100)
@@ -73,12 +71,14 @@ export async function createCroppedImageFile({
 
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
+
   if (shape === 'circle') {
     context.beginPath()
     context.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2)
     context.closePath()
     context.clip()
   }
+
   context.drawImage(
     image,
     sourceX,
@@ -96,6 +96,7 @@ export async function createCroppedImageFile({
       (result) => {
         if (!result) {
           reject(new Error('头像裁剪失败，请稍后重试'))
+
           return
         }
 

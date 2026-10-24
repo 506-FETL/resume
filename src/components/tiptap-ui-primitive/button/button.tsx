@@ -14,8 +14,7 @@ import '@/components/tiptap-ui-primitive/button/button-colors.scss'
 import '@/components/tiptap-ui-primitive/button/button-group.scss'
 import '@/components/tiptap-ui-primitive/button/button.scss'
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string
   showTooltip?: boolean
   tooltip?: React.ReactNode
@@ -25,8 +24,7 @@ export interface ButtonProps
 export const ShortcutDisplay: React.FC<{ shortcuts: string[] }> = ({
   shortcuts,
 }) => {
-  if (shortcuts.length === 0)
-    return null
+  if (shortcuts.length === 0) return null
 
   return (
     <div>
@@ -40,7 +38,16 @@ export const ShortcutDisplay: React.FC<{ shortcuts: string[] }> = ({
   )
 }
 
-export function Button({ ref, className, children, tooltip, showTooltip = true, shortcutKeys, 'aria-label': ariaLabel, ...props }: ButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function Button({
+  ref,
+  className,
+  children,
+  tooltip,
+  showTooltip = true,
+  shortcutKeys,
+  'aria-label': ariaLabel,
+  ...props
+}: ButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
   const shortcuts = React.useMemo(
     () => parseShortcutKeys({ shortcutKeys }),
     [shortcutKeys],
@@ -79,7 +86,13 @@ export function Button({ ref, className, children, tooltip, showTooltip = true, 
 
 Button.displayName = 'Button'
 
-export function ButtonGroup({ ref, className, children, orientation = 'vertical', ...props }: React.ComponentProps<'div'> & {
+export function ButtonGroup({
+  ref,
+  className,
+  children,
+  orientation = 'vertical',
+  ...props
+}: React.ComponentProps<'div'> & {
   orientation?: 'horizontal' | 'vertical'
 } & { ref?: React.RefObject<HTMLDivElement | null> }) {
   return (
@@ -87,13 +100,14 @@ export function ButtonGroup({ ref, className, children, orientation = 'vertical'
       ref={ref}
       className={cn('tiptap-button-group', className)}
       data-orientation={orientation}
-      role="group"
+      role='group'
       {...props}
     >
       {children}
     </div>
   )
 }
+
 ButtonGroup.displayName = 'ButtonGroup'
 
 export default Button

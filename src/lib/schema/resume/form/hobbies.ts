@@ -33,6 +33,7 @@ export const hobbiesFormSchema = z.object({
 })
 
 export type HobbiesFormType = z.infer<typeof hobbiesFormSchema>
+
 export type HobbyItem = z.infer<typeof hobbyItemSchema>
 
 export const DEFAULT_HOBBIES: HobbiesFormType = {

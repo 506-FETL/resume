@@ -4,7 +4,20 @@ import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+const MONTH_LABELS = [
+  '1月',
+  '2月',
+  '3月',
+  '4月',
+  '5月',
+  '6月',
+  '7月',
+  '8月',
+  '9月',
+  '10月',
+  '11月',
+  '12月',
+]
 
 // 年份面板一页展示的年数（3 列 × 4 行）
 const YEARS_PER_PAGE = 12
@@ -45,17 +58,22 @@ export function MonthPicker({
   const parsed = value && dayjs(value).isValid() ? dayjs(value) : null
 
   // 视图年份：优先跟随已选值，否则回落到当前年
-  const [viewYear, setViewYear] = React.useState(() => parsed?.year() ?? now.year())
+  const [viewYear, setViewYear] = React.useState(
+    () => parsed?.year() ?? now.year(),
+  )
+
   // 面板视图：month=月份宫格，year=年份快速选择
   const [view, setView] = React.useState<'month' | 'year'>('month')
+
   // 年份面板当前页的起始年
-  const [yearBlockStart, setYearBlockStart] = React.useState(() => yearBlockStartFor(viewYear))
+  const [yearBlockStart, setYearBlockStart] = React.useState(() =>
+    yearBlockStartFor(viewYear),
+  )
 
   // 已选值变化时（如外部重置），同步视图年份
   React.useEffect(() => {
-    if (parsed)
-      setViewYear(parsed.year())
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (parsed) setViewYear(parsed.year())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
   const resolvedMaxYear = maxYear ?? now.year() + 10
@@ -63,22 +81,22 @@ export function MonthPicker({
   const selectedMonth = parsed?.month() ?? null // 0-11
 
   const isMonthDisabled = (monthIndex: number) => {
-    if (!disableFuture)
-      return false
+    if (!disableFuture) return false
+
     // 禁止晚于当前月的年月
     return dayjs(new Date(viewYear, monthIndex, 1)).isAfter(now, 'month')
   }
 
   const isYearDisabled = (year: number) => {
-    if (year < minYear || year > resolvedMaxYear)
-      return true
+    if (year < minYear || year > resolvedMaxYear) return true
+
     // 未来年份整年不可选（当前年仍可选，其月份由 isMonthDisabled 控制）
     return disableFuture && year > now.year()
   }
 
   const handleSelectMonth = (monthIndex: number) => {
-    if (isMonthDisabled(monthIndex))
-      return
+    if (isMonthDisabled(monthIndex)) return
+
     onChange(dayjs(new Date(viewYear, monthIndex, 1)).format('YYYY-MM'))
   }
 
@@ -88,130 +106,131 @@ export function MonthPicker({
   }
 
   const handleSelectYear = (year: number) => {
-    if (isYearDisabled(year))
-      return
+    if (isYearDisabled(year)) return
+
     setViewYear(year)
     setView('month')
   }
 
   // 月份视图翻年 / 年份视图翻页 的可用性
-  const canStepPrev = view === 'month'
-    ? viewYear > minYear
-    : yearBlockStart > minYear
-  const canStepNext = view === 'month'
-    ? viewYear < resolvedMaxYear
-    : yearBlockStart + YEARS_PER_PAGE <= resolvedMaxYear
+  const canStepPrev =
+    view === 'month' ? viewYear > minYear : yearBlockStart > minYear
+
+  const canStepNext =
+    view === 'month'
+      ? viewYear < resolvedMaxYear
+      : yearBlockStart + YEARS_PER_PAGE <= resolvedMaxYear
 
   const handlePrev = () => {
-    if (view === 'month')
-      setViewYear(y => Math.max(minYear, y - 1))
-    else
-      setYearBlockStart(s => s - YEARS_PER_PAGE)
+    if (view === 'month') setViewYear((y) => Math.max(minYear, y - 1))
+    else setYearBlockStart((s) => s - YEARS_PER_PAGE)
   }
 
   const handleNext = () => {
-    if (view === 'month')
-      setViewYear(y => Math.min(resolvedMaxYear, y + 1))
-    else
-      setYearBlockStart(s => s + YEARS_PER_PAGE)
+    if (view === 'month') setViewYear((y) => Math.min(resolvedMaxYear, y + 1))
+    else setYearBlockStart((s) => s + YEARS_PER_PAGE)
   }
 
-  const years = Array.from({ length: YEARS_PER_PAGE }, (_, i) => yearBlockStart + i)
+  const years = Array.from(
+    { length: YEARS_PER_PAGE },
+    (_, i) => yearBlockStart + i,
+  )
 
   return (
-    <div className={cn('w-64 p-3', className)} data-slot="month-picker">
-      <div className="mb-3 flex items-center justify-between">
+    <div className={cn('w-64 p-3', className)} data-slot='month-picker'>
+      <div className='mb-3 flex items-center justify-between'>
         <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
+          type='button'
+          variant='ghost'
+          size='icon-sm'
           aria-label={view === 'month' ? '上一年' : '上一页'}
           disabled={!canStepPrev}
           onClick={handlePrev}
         >
-          <ChevronLeft className="size-4" />
+          <ChevronLeft className='size-4' />
         </Button>
 
-        {view === 'month'
-          ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-sm font-medium tabular-nums"
-                aria-label="选择年份"
-                onClick={openYearPanel}
-              >
-                {viewYear}
-                年
-              </Button>
-            )
-          : (
-              <span className="text-sm font-medium tabular-nums">
-                {`${yearBlockStart} - ${yearBlockStart + YEARS_PER_PAGE - 1}`}
-              </span>
-            )}
+        {view === 'month' ? (
+          <Button
+            type='button'
+            variant='ghost'
+            size='sm'
+            className='h-8 px-2 text-sm font-medium tabular-nums'
+            aria-label='选择年份'
+            onClick={openYearPanel}
+          >
+            {viewYear}年
+          </Button>
+        ) : (
+          <span className='text-sm font-medium tabular-nums'>
+            {`${yearBlockStart} - ${yearBlockStart + YEARS_PER_PAGE - 1}`}
+          </span>
+        )}
 
         <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
+          type='button'
+          variant='ghost'
+          size='icon-sm'
           aria-label={view === 'month' ? '下一年' : '下一页'}
           disabled={!canStepNext}
           onClick={handleNext}
         >
-          <ChevronRight className="size-4" />
+          <ChevronRight className='size-4' />
         </Button>
       </div>
 
-      {view === 'month'
-        ? (
-            <div className="grid grid-cols-3 gap-1.5">
-              {MONTH_LABELS.map((label, index) => {
-                const isSelected = selectedYear === viewYear && selectedMonth === index
-                const disabled = isMonthDisabled(index)
-                return (
-                  <Button
-                    key={label}
-                    type="button"
-                    variant={isSelected ? 'default' : 'ghost'}
-                    size="sm"
-                    aria-label={`${viewYear}年${label}`}
-                    aria-pressed={isSelected}
-                    disabled={disabled}
-                    onClick={() => handleSelectMonth(index)}
-                    className="h-9"
-                  >
-                    {label}
-                  </Button>
-                )
-              })}
-            </div>
-          )
-        : (
-            <div className="grid grid-cols-3 gap-1.5">
-              {years.map((year) => {
-                const isSelected = selectedYear === year
-                const isCurrent = year === viewYear
-                const disabled = isYearDisabled(year)
-                return (
-                  <Button
-                    key={year}
-                    type="button"
-                    variant={isSelected ? 'default' : isCurrent ? 'secondary' : 'ghost'}
-                    size="sm"
-                    aria-label={`${year}年`}
-                    aria-pressed={isSelected}
-                    disabled={disabled}
-                    onClick={() => handleSelectYear(year)}
-                    className="h-9 tabular-nums"
-                  >
-                    {year}
-                  </Button>
-                )
-              })}
-            </div>
-          )}
+      {view === 'month' ? (
+        <div className='grid grid-cols-3 gap-1.5'>
+          {MONTH_LABELS.map((label, index) => {
+            const isSelected =
+              selectedYear === viewYear && selectedMonth === index
+
+            const disabled = isMonthDisabled(index)
+
+            return (
+              <Button
+                key={label}
+                type='button'
+                variant={isSelected ? 'default' : 'ghost'}
+                size='sm'
+                aria-label={`${viewYear}年${label}`}
+                aria-pressed={isSelected}
+                disabled={disabled}
+                onClick={() => handleSelectMonth(index)}
+                className='h-9'
+              >
+                {label}
+              </Button>
+            )
+          })}
+        </div>
+      ) : (
+        <div className='grid grid-cols-3 gap-1.5'>
+          {years.map((year) => {
+            const isSelected = selectedYear === year
+            const isCurrent = year === viewYear
+            const disabled = isYearDisabled(year)
+
+            return (
+              <Button
+                key={year}
+                type='button'
+                variant={
+                  isSelected ? 'default' : isCurrent ? 'secondary' : 'ghost'
+                }
+                size='sm'
+                aria-label={`${year}年`}
+                aria-pressed={isSelected}
+                disabled={disabled}
+                onClick={() => handleSelectYear(year)}
+                className='h-9 tabular-nums'
+              >
+                {year}
+              </Button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

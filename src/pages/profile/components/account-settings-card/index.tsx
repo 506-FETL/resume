@@ -28,6 +28,7 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
 
         if (!user) {
           toast.error('无法获取用户信息')
+
           return
         }
 
@@ -35,8 +36,7 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
           lastSignInAt: user.last_sign_in_at || undefined,
           provider: user.app_metadata.provider || 'email',
         })
-      }
-      catch (error) {
+      } catch (error) {
         toast.error(`加载会话信息失败${error}`)
       }
     }
@@ -45,12 +45,12 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
   }, [user])
 
   return (
-    <Card className="shadow-none">
+    <Card className='shadow-none'>
       <CardHeader>
         <CardTitle>账户设置</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+      <CardContent className='flex flex-col gap-4'>
+        <div className='flex items-center justify-between'>
           <Label>修改密码</Label>
           <UpdatePasswordDialog />
         </div>
@@ -58,7 +58,14 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
         <Separator />
 
         <AnimatedContent animationKey={sessionInfo ? 'ready' : 'loading'}>
-          {sessionInfo ? <SessionInfo {...sessionInfo} formatDate={d => formatRelativeTime(d, true)} /> : <LoadingSkeleton />}
+          {sessionInfo ? (
+            <SessionInfo
+              {...sessionInfo}
+              formatDate={(d) => formatRelativeTime(d, true)}
+            />
+          ) : (
+            <LoadingSkeleton />
+          )}
         </AnimatedContent>
       </CardContent>
     </Card>
@@ -67,11 +74,15 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
 
 function LoadingSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2" aria-label="正在加载会话信息" aria-busy="true">
-      {[0, 1].map(item => (
-        <div key={item} className="space-y-2">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-5 w-full" />
+    <div
+      className='grid gap-4 sm:grid-cols-2'
+      aria-label='正在加载会话信息'
+      aria-busy='true'
+    >
+      {[0, 1].map((item) => (
+        <div key={item} className='space-y-2'>
+          <Skeleton className='h-4 w-20' />
+          <Skeleton className='h-5 w-full' />
         </div>
       ))}
     </div>

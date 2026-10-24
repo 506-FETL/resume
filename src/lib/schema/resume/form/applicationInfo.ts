@@ -1,9 +1,11 @@
 import { z } from 'zod'
 
 const applicationSchoolSchema = z.string().trim().default('')
+
 export type ApplicationSchool = z.infer<typeof applicationSchoolSchema>
 
 const applicationMajorSchema = z.string().trim().default('')
+
 export type ApplicationMajor = z.infer<typeof applicationMajorSchema>
 
 export const applicationInfoForm = z.object({

@@ -19,8 +19,7 @@ import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 import { parseShortcutKeys } from '@/lib/tiptap-utils'
 
 export interface ImageUploadButtonProps
-  extends Omit<ButtonProps, 'type'>,
-  UseImageUploadConfig {
+  extends Omit<ButtonProps, 'type'>, UseImageUploadConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -45,8 +44,21 @@ export function ImageShortcutBadge({
  *
  * For custom button implementations, use the `useImage` hook instead.
  */
-export function ImageUploadButton({ ref, editor: providedEditor, text, hideWhenUnavailable = false, onInserted, showShortcut = false, onClick, children, ...buttonProps }: ImageUploadButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function ImageUploadButton({
+  ref,
+  editor: providedEditor,
+  text,
+  hideWhenUnavailable = false,
+  onInserted,
+  showShortcut = false,
+  onClick,
+  children,
+  ...buttonProps
+}: ImageUploadButtonProps & {
+  ref?: React.RefObject<HTMLButtonElement | null>
+}) {
   const { editor } = useTiptapEditor(providedEditor)
+
   const {
     isVisible,
     canInsert,
@@ -64,8 +76,9 @@ export function ImageUploadButton({ ref, editor: providedEditor, text, hideWhenU
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
-      if (event.defaultPrevented)
-        return
+
+      if (event.defaultPrevented) return
+
       handleImage()
     },
     [handleImage, onClick],
@@ -77,10 +90,10 @@ export function ImageUploadButton({ ref, editor: providedEditor, text, hideWhenU
 
   return (
     <Button
-      type="button"
-      data-style="ghost"
+      type='button'
+      data-style='ghost'
       data-active-state={isActive ? 'on' : 'off'}
-      role="button"
+      role='button'
       tabIndex={-1}
       disabled={!canInsert}
       data-disabled={!canInsert}
@@ -93,8 +106,8 @@ export function ImageUploadButton({ ref, editor: providedEditor, text, hideWhenU
     >
       {children ?? (
         <>
-          <Icon className="tiptap-button-icon" />
-          {text && <span className="tiptap-button-text">{text}</span>}
+          <Icon className='tiptap-button-icon' />
+          {text && <span className='tiptap-button-text'>{text}</span>}
           {showShortcut && <ImageShortcutBadge shortcutKeys={shortcutKeys} />}
         </>
       )}

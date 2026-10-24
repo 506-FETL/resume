@@ -23,10 +23,11 @@ interface CollaborationCommentAccessBase {
   role: 'editor' | 'viewer'
 }
 
-export type CollaborationCommentAccess = CollaborationCommentAccessBase & (
-  | { protocolVersion: 1, memberLeaseId: null }
-  | { protocolVersion: 2, memberLeaseId: string }
-)
+export type CollaborationCommentAccess = CollaborationCommentAccessBase &
+  (
+    | { protocolVersion: 1; memberLeaseId: null }
+    | { protocolVersion: 2; memberLeaseId: string }
+  )
 
 export interface CollaborationDocumentBootstrap {
   documentData: string
@@ -59,17 +60,17 @@ export interface JoinShareParams extends StartShareParams {
   sessionId: string
 }
 
-export type CollaborationPhase
-  = | 'idle'
-    | 'authenticating'
-    | 'authorizing'
-    | 'hydrating'
-    | 'connecting'
-    | 'syncing'
-    | 'connected'
-    | 'stopping'
-    | 'ended'
-    | 'error'
+export type CollaborationPhase =
+  | 'idle'
+  | 'authenticating'
+  | 'authorizing'
+  | 'hydrating'
+  | 'connecting'
+  | 'syncing'
+  | 'connected'
+  | 'stopping'
+  | 'ended'
+  | 'error'
 
 export interface PreparedGuestSession extends JoinShareParams {
   generation: number
@@ -100,23 +101,31 @@ export interface CollaborationSessionActions {
   /** @deprecated 邀请加载器迁移期间的兼容入口；新流程应分阶段调用 prepare/hydrate/connect。 */
   joinSession: (params: JoinShareParams) => Promise<void>
   markInviteAuthenticating: () => void
-  prepareGuestSession: (params: JoinShareParams) => Promise<PreparedGuestSession>
+  prepareGuestSession: (
+    params: JoinShareParams,
+  ) => Promise<PreparedGuestSession>
   markGuestSessionHydrating: (prepared: PreparedGuestSession) => void
   connectPreparedGuestSession: (prepared: PreparedGuestSession) => Promise<void>
   abortPreparedGuestSession: (prepared: PreparedGuestSession) => Promise<void>
   resumeHosting: (params: JoinShareParams) => Promise<void>
-  stopSharing: (options?: { silent?: boolean, bestEffort?: boolean }) => Promise<void>
+  stopSharing: (options?: {
+    silent?: boolean
+    bestEffort?: boolean
+  }) => Promise<void>
   refreshCommentAccess: () => Promise<CollaborationCommentAccess>
   handleRemoteShareEnd: () => void
   acknowledgeRemoteShareEnd: () => void
 }
 
-export type CollaborationSessionStore = CollaborationSessionState & CollaborationSessionActions
+export type CollaborationSessionStore = CollaborationSessionState &
+  CollaborationSessionActions
 
 export type CollaborationSessionSetState = (
   state:
     | Partial<CollaborationSessionState>
-    | ((state: CollaborationSessionStore) => Partial<CollaborationSessionState>),
+    | ((
+        state: CollaborationSessionStore,
+      ) => Partial<CollaborationSessionState>),
 ) => void
 
 export interface CollaborationSessionStoreAccess {
@@ -149,4 +158,6 @@ export interface CollaborationActivationResult {
   roomName: string
 }
 
-export type CreateSessionCallbacks = (options: SessionCallbacksOptions) => CollaborationCallbacks
+export type CreateSessionCallbacks = (
+  options: SessionCallbacksOptions,
+) => CollaborationCallbacks

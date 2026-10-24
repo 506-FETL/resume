@@ -39,8 +39,16 @@ export function useResumeFormSync<T extends FieldValues>(
   }
 
   // 图像字节与尺寸必须同一次替换，防止协作合并出不匹配的照片描述。
-  const atomicPaths = sectionKey === 'basics' ? PHOTO_ATOMIC_PATHS : NO_ATOMIC_PATHS
-  const isResettingRef = useFormRemoteSync(form, storeData, fieldArrays, caret, atomicPaths)
+  const atomicPaths =
+    sectionKey === 'basics' ? PHOTO_ATOMIC_PATHS : NO_ATOMIC_PATHS
+
+  const isResettingRef = useFormRemoteSync(
+    form,
+    storeData,
+    fieldArrays,
+    caret,
+    atomicPaths,
+  )
 
   useEffect(() => {
     return form.subscribe({
@@ -52,18 +60,30 @@ export function useResumeFormSync<T extends FieldValues>(
 
         // 以「变更前的 store 值」为 base 计算最小 diff（实时读取，避免陈旧闭包）。
         const base = useResumeStore.getState()[sectionKey] as unknown
-        const plan = planRemoteFormSync(base, values, Object.keys(fieldArrays), atomicPaths)
 
-        if (plan.fieldUpdates.length === 0 && plan.fieldArrayOperations.length === 0) {
+        const plan = planRemoteFormSync(
+          base,
+          values,
+          Object.keys(fieldArrays),
+          atomicPaths,
+        )
+
+        if (
+          plan.fieldUpdates.length === 0 &&
+          plan.fieldArrayOperations.length === 0
+        ) {
           return
         }
 
         const ops = buildWriteOps(plan, sectionKey as string, classifyLeaf)
-        useResumeStore.getState().updateFormFields(
-          sectionKey,
-          values as unknown as FormDataMap[typeof sectionKey],
-          ops,
-        )
+
+        useResumeStore
+          .getState()
+          .updateFormFields(
+            sectionKey,
+            values as unknown as FormDataMap[typeof sectionKey],
+            ops,
+          )
       },
     })
     // fieldArrays 每次渲染重建，用其 key 集合作为稳定依赖

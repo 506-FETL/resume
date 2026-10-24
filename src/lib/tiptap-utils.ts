@@ -31,7 +31,10 @@ export { cn }
  * @returns boolean indicating if the current platform is Mac
  */
 export function isMac(): boolean {
-  return typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac')
+  return (
+    typeof navigator !== 'undefined' &&
+    navigator.platform.toLowerCase().includes('mac')
+  )
 }
 
 /**
@@ -41,9 +44,14 @@ export function isMac(): boolean {
  * @param capitalize - Whether to capitalize the key (default: true)
  * @returns Formatted shortcut key symbol
  */
-export function formatShortcutKey(key: string, isMac: boolean, capitalize: boolean = true) {
+export function formatShortcutKey(
+  key: string,
+  isMac: boolean,
+  capitalize: boolean = true,
+) {
   if (isMac) {
     const lowerKey = key.toLowerCase()
+
     return MAC_SYMBOLS[lowerKey] || (capitalize ? key.toUpperCase() : key)
   }
 
@@ -64,13 +72,12 @@ export function parseShortcutKeys(props: {
 }) {
   const { shortcutKeys, delimiter = '+', capitalize = true } = props
 
-  if (!shortcutKeys)
-    return []
+  if (!shortcutKeys) return []
 
   return shortcutKeys
     .split(delimiter)
-    .map(key => key.trim())
-    .map(key => formatShortcutKey(key, isMac(), capitalize))
+    .map((key) => key.trim())
+    .map((key) => formatShortcutKey(key, isMac(), capitalize))
 }
 
 /**
@@ -79,9 +86,12 @@ export function parseShortcutKeys(props: {
  * @param editor - The editor instance
  * @returns boolean indicating if the mark exists in the schema
  */
-export function isMarkInSchema(markName: string, editor: Editor | null): boolean {
-  if (!editor?.schema)
-    return false
+export function isMarkInSchema(
+  markName: string,
+  editor: Editor | null,
+): boolean {
+  if (!editor?.schema) return false
+
   return editor.schema.spec.marks.get(markName) !== undefined
 }
 
@@ -91,9 +101,12 @@ export function isMarkInSchema(markName: string, editor: Editor | null): boolean
  * @param editor - The editor instance
  * @returns boolean indicating if the node exists in the schema
  */
-export function isNodeInSchema(nodeName: string, editor: Editor | null): boolean {
-  if (!editor?.schema)
-    return false
+export function isNodeInSchema(
+  nodeName: string,
+  editor: Editor | null,
+): boolean {
+  if (!editor?.schema) return false
+
   return editor.schema.spec.nodes.get(nodeName) !== undefined
 }
 
@@ -107,14 +120,18 @@ export function focusNextNode(editor: Editor) {
   const { doc, selection } = state
 
   const nextSel = Selection.findFrom(selection.$to, 1, true)
+
   if (nextSel) {
     view.dispatch(state.tr.setSelection(nextSel).scrollIntoView())
+
     return true
   }
 
   const paragraphType = state.schema.nodes.paragraph
+
   if (!paragraphType) {
     console.warn('No paragraph node type found in schema.')
+
     return false
   }
 
@@ -124,8 +141,10 @@ export function focusNextNode(editor: Editor) {
 
   // Place the selection inside the new paragraph
   const $inside = tr.doc.resolve(end + 1)
+
   tr = tr.setSelection(TextSelection.near($inside)).scrollIntoView()
   view.dispatch(tr)
+
   return true
 }
 
@@ -144,13 +163,19 @@ export function isValidPosition(pos: number | null | undefined): pos is number {
  * @param extensionNames - A single extension name or an array of names to check
  * @returns True if at least one of the extensions is available, false otherwise
  */
-export function isExtensionAvailable(editor: Editor | null, extensionNames: string | string[]): boolean {
-  if (!editor)
-    return false
+export function isExtensionAvailable(
+  editor: Editor | null,
+  extensionNames: string | string[],
+): boolean {
+  if (!editor) return false
 
-  const names = Array.isArray(extensionNames) ? extensionNames : [extensionNames]
+  const names = Array.isArray(extensionNames)
+    ? extensionNames
+    : [extensionNames]
 
-  const found = names.some(name => editor.extensionManager.extensions.some(ext => ext.name === name))
+  const found = names.some((name) =>
+    editor.extensionManager.extensions.some((ext) => ext.name === name),
+  )
 
   if (!found) {
     console.warn(
@@ -170,14 +195,17 @@ export function isExtensionAvailable(editor: Editor | null, extensionNames: stri
 export function findNodeAtPosition(editor: Editor, position: number) {
   try {
     const node = editor.state.doc.nodeAt(position)
+
     if (!node) {
       console.warn(`No node found at position ${position}`)
+
       return null
     }
+
     return node
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`Error getting node at position ${position}:`, error)
+
     return null
   }
 }
@@ -194,11 +222,10 @@ export function findNodePosition(props: {
   editor: Editor | null
   node?: TiptapNode | null
   nodePos?: number | null
-}): { pos: number, node: TiptapNode } | null {
+}): { pos: number; node: TiptapNode } | null {
   const { editor, node, nodePos } = props
 
-  if (!editor || !editor.state?.doc)
-    return null
+  if (!editor || !editor.state?.doc) return null
 
   // Zero is valid position
   const hasValidNode = node !== undefined && node !== null
@@ -219,8 +246,10 @@ export function findNodePosition(props: {
       if (currentNode === node) {
         foundPos = pos
         foundNode = currentNode
+
         return false
       }
+
       return true
     })
 
@@ -232,6 +261,7 @@ export function findNodePosition(props: {
   // If we have a valid position, use findNodeAtPosition
   if (hasValidPos) {
     const nodeAtPos = findNodeAtPosition(editor, nodePos!)
+
     if (nodeAtPos) {
       return { pos: nodePos!, node: nodeAtPos }
     }
@@ -246,18 +276,20 @@ export function findNodePosition(props: {
  * @param types An array of node type names to check against
  * @returns boolean indicating if the selected node matches any of the specified types
  */
-export function isNodeTypeSelected(editor: Editor | null, types: string[] = []): boolean {
-  if (!editor || !editor.state.selection)
-    return false
+export function isNodeTypeSelected(
+  editor: Editor | null,
+  types: string[] = [],
+): boolean {
+  if (!editor || !editor.state.selection) return false
 
   const { state } = editor
   const { selection } = state
 
-  if (selection.empty)
-    return false
+  if (selection.empty) return false
 
   if (selection instanceof NodeSelection) {
     const node = selection.node
+
     return node ? types.includes(node.type.name) : false
   }
 
@@ -294,45 +326,59 @@ export async function handleImageUpload(
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`)
+    throw new Error(
+      `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
+    )
   }
 
   onProgress?.({ progress: 5 })
 
   // Step 1: Get current user (5% -> 10%)
   checkAborted(abortSignal)
+
   const user = await getCurrentUser()
-  if (!user)
-    throw new Error('未登陆用户')
+
+  if (!user) throw new Error('未登陆用户')
+
   onProgress?.({ progress: 10 })
 
   // Step 2: Upload file to storage (10% -> 70%)
   // Using XMLHttpRequest for real progress tracking
   checkAborted(abortSignal)
+
   const path = `${user.id}/${Date.now()}-${file.name}`
 
-  await uploadWithProgress(file, path, (uploadProgress) => {
-    // Map upload progress (0-100) to our range (10-70)
-    const mappedProgress = 10 + (uploadProgress * 0.6)
-    onProgress?.({ progress: Math.round(mappedProgress) })
-  }, abortSignal)
+  await uploadWithProgress(
+    file,
+    path,
+    (uploadProgress) => {
+      // Map upload progress (0-100) to our range (10-70)
+      const mappedProgress = 10 + uploadProgress * 0.6
+
+      onProgress?.({ progress: Math.round(mappedProgress) })
+    },
+    abortSignal,
+  )
 
   onProgress?.({ progress: 70 })
 
   // Step 3: Get public URL (70% -> 80%)
   checkAborted(abortSignal)
+
   const { data } = supabase.storage.from('avatar').getPublicUrl(path)
   const avatarUrl = data.publicUrl
+
   onProgress?.({ progress: 80 })
 
   // Step 4: Update user profile (80% -> 95%)
   checkAborted(abortSignal)
+
   const { error } = await supabase.auth.updateUser({
     data: { avatar_url: avatarUrl },
   })
 
-  if (error)
-    throw error
+  if (error) throw error
+
   onProgress?.({ progress: 95 })
 
   // Complete
@@ -356,16 +402,18 @@ async function uploadWithProgress(
 
   // Get the session token for authenticated upload
   let authToken: string
+
   try {
-    const { data: { session } } = await supabase.auth.getSession()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
     if (session?.access_token) {
       authToken = session.access_token
-    }
-    else {
+    } else {
       throw new Error('No valid session')
     }
-  }
-  catch {
+  } catch {
     throw new Error('Authentication required for upload')
   }
 
@@ -391,21 +439,24 @@ async function uploadWithProgress(
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable) {
         const progress = (event.loaded / event.total) * 100
+
         onProgress(progress)
       }
     })
 
     xhr.addEventListener('load', () => {
       abortSignal?.removeEventListener('abort', abortHandler)
+
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve(path)
-      }
-      else {
+      } else {
         try {
           const errorData = JSON.parse(xhr.responseText)
-          reject(new Error(errorData.message || `上传失败，状态码 ${xhr.status}`))
-        }
-        catch {
+
+          reject(
+            new Error(errorData.message || `上传失败，状态码 ${xhr.status}`),
+          )
+        } catch {
           reject(new Error(`上传失败，状态码 ${xhr.status}`))
         }
       }
@@ -450,16 +501,31 @@ interface ProtocolOptions {
 
 type ProtocolConfig = Array<ProtocolOptions | string>
 
-const ATTR_WHITESPACE
+const ATTR_WHITESPACE =
   // eslint-disable-next-line no-control-regex
-  = /[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g
+  /[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g
 
-export function isAllowedUri(uri: string | undefined, protocols?: ProtocolConfig) {
-  const allowedProtocols: string[] = ['http', 'https', 'ftp', 'ftps', 'mailto', 'tel', 'callto', 'sms', 'cid', 'xmpp']
+export function isAllowedUri(
+  uri: string | undefined,
+  protocols?: ProtocolConfig,
+) {
+  const allowedProtocols: string[] = [
+    'http',
+    'https',
+    'ftp',
+    'ftps',
+    'mailto',
+    'tel',
+    'callto',
+    'sms',
+    'cid',
+    'xmpp',
+  ]
 
   if (protocols) {
     protocols.forEach((protocol) => {
-      const nextProtocol = typeof protocol === 'string' ? protocol : protocol.scheme
+      const nextProtocol =
+        typeof protocol === 'string' ? protocol : protocol.scheme
 
       if (nextProtocol) {
         allowedProtocols.push(nextProtocol)
@@ -468,23 +534,32 @@ export function isAllowedUri(uri: string | undefined, protocols?: ProtocolConfig
   }
 
   return (
-    !uri
-    || uri
+    !uri ||
+    uri
       .replace(ATTR_WHITESPACE, '')
-      .match(new RegExp(`^(?:(?:${allowedProtocols.join('|')}):|[^a-z]|[a-z0-9+.\-]+(?:[^a-z+.\-:]|$))`, 'i'))
+      .match(
+        new RegExp(
+          `^(?:(?:${allowedProtocols.join('|')}):|[^a-z]|[a-z0-9+.-]+(?:[^a-z+.-:]|$))`,
+          'i',
+        ),
+      )
   )
 }
 
-export function sanitizeUrl(inputUrl: string, baseUrl: string, protocols?: ProtocolConfig): string {
+export function sanitizeUrl(
+  inputUrl: string,
+  baseUrl: string,
+  protocols?: ProtocolConfig,
+): string {
   try {
     const url = new URL(inputUrl, baseUrl)
 
     if (isAllowedUri(url.href, protocols)) {
       return url.href
     }
-  }
-  catch {
+  } catch {
     // If URL creation fails, it's considered invalid
   }
+
   return '#'
 }

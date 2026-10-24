@@ -4,53 +4,97 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { APPLICATION_STATUS_CONFIG, APPLICATION_STATUS_ORDER } from '../../const'
+import {
+  APPLICATION_STATUS_CONFIG,
+  APPLICATION_STATUS_ORDER,
+} from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
 import { selectTrackerListJobs } from '../../store/selectors'
 import { filterJobs, getTrackerErrorMessage } from '../../utils'
 
 export default function BatchActions() {
-  const { jobs, isSelectMode, selectedIds, selectAll, exitSelectMode, deleteJob, changeJobStatus, saveJobFields, filterStatus, metricFilter, searchKeyword, showArchived, viewMode } = useTrackerStore(useShallow(state => ({
-    jobs: selectTrackerListJobs(state),
-    isSelectMode: state.isSelectMode,
-    selectedIds: state.selectedIds,
-    selectAll: state.selectAll,
-    exitSelectMode: state.exitSelectMode,
-    deleteJob: state.deleteJob,
-    changeJobStatus: state.changeJobStatus,
-    saveJobFields: state.saveJobFields,
-    filterStatus: state.filterStatus,
-    metricFilter: state.metricFilter,
-    searchKeyword: state.searchKeyword,
-    showArchived: state.showArchived,
-    viewMode: state.viewMode,
-  })))
+  const {
+    jobs,
+    isSelectMode,
+    selectedIds,
+    selectAll,
+    exitSelectMode,
+    deleteJob,
+    changeJobStatus,
+    saveJobFields,
+    filterStatus,
+    metricFilter,
+    searchKeyword,
+    showArchived,
+    viewMode,
+  } = useTrackerStore(
+    useShallow((state) => ({
+      jobs: selectTrackerListJobs(state),
+      isSelectMode: state.isSelectMode,
+      selectedIds: state.selectedIds,
+      selectAll: state.selectAll,
+      exitSelectMode: state.exitSelectMode,
+      deleteJob: state.deleteJob,
+      changeJobStatus: state.changeJobStatus,
+      saveJobFields: state.saveJobFields,
+      filterStatus: state.filterStatus,
+      metricFilter: state.metricFilter,
+      searchKeyword: state.searchKeyword,
+      showArchived: state.showArchived,
+      viewMode: state.viewMode,
+    })),
+  )
+
   const reduce = useReducedMotion()
-  const [pendingBatchStatus, setPendingBatchStatus] = useState<ApplicationStatus | null>(null)
+
+  const [pendingBatchStatus, setPendingBatchStatus] =
+    useState<ApplicationStatus | null>(null)
+
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
-  const selectableCount = filterJobs(jobs, viewMode === 'list' ? filterStatus : null, searchKeyword, showArchived, viewMode === 'list' ? metricFilter : null).length
+
+  const selectableCount = filterJobs(
+    jobs,
+    viewMode === 'list' ? filterStatus : null,
+    searchKeyword,
+    showArchived,
+    viewMode === 'list' ? metricFilter : null,
+  ).length
+
   const selectedCount = selectedIds.size
 
   const handleDeleteSelectedJobs = async () => {
     const { selectedIds: currentSelectedIds } = useTrackerStore.getState()
-    if (currentSelectedIds.size === 0)
-      return
+
+    if (currentSelectedIds.size === 0) return
 
     const ids = new Set(currentSelectedIds)
 
     try {
-      await Promise.all(Array.from(ids).map(id => deleteJob(id)))
+      await Promise.all(Array.from(ids).map((id) => deleteJob(id)))
       toast.success(`已删除 ${ids.size} 个职位`)
-    }
-    catch (error) {
-      if (isTrackerAccountScopeError(error))
-        return
+    } catch (error) {
+      if (isTrackerAccountScopeError(error)) return
+
       console.error('Failed to delete jobs:', error)
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
@@ -58,18 +102,25 @@ export default function BatchActions() {
 
   const runBatchStatusChange = async (newStatus: ApplicationStatus) => {
     const state = useTrackerStore.getState()
-    const targets = state.jobs.filter(job => state.selectedIds.has(job.id) && job.status !== newStatus)
-    if (targets.length === 0)
-      return
+
+    const targets = state.jobs.filter(
+      (job) => state.selectedIds.has(job.id) && job.status !== newStatus,
+    )
+
+    if (targets.length === 0) return
 
     try {
-      await Promise.all(targets.map(job => changeJobStatus(job.id, newStatus)))
+      await Promise.all(
+        targets.map((job) => changeJobStatus(job.id, newStatus)),
+      )
+
       exitSelectMode()
-    }
-    catch (error) {
-      if (isTrackerAccountScopeError(error))
-        return
-      toast.error('批量更新失败', { description: getTrackerErrorMessage(error) })
+    } catch (error) {
+      if (isTrackerAccountScopeError(error)) return
+
+      toast.error('批量更新失败', {
+        description: getTrackerErrorMessage(error),
+      })
     }
   }
 
@@ -77,25 +128,34 @@ export default function BatchActions() {
   const handleBatchStatusChange = (newStatus: ApplicationStatus) => {
     if (newStatus === 'rejected' || newStatus === 'offer') {
       setPendingBatchStatus(newStatus)
+
       return
     }
+
     runBatchStatusChange(newStatus)
   }
 
   const handleBatchArchive = async () => {
     const state = useTrackerStore.getState()
-    const targets = state.jobs.filter(job => state.selectedIds.has(job.id) && !job.archived)
-    if (targets.length === 0)
-      return
+
+    const targets = state.jobs.filter(
+      (job) => state.selectedIds.has(job.id) && !job.archived,
+    )
+
+    if (targets.length === 0) return
 
     try {
-      await Promise.all(targets.map(job => saveJobFields(job.id, { archived: true })))
+      await Promise.all(
+        targets.map((job) => saveJobFields(job.id, { archived: true })),
+      )
+
       exitSelectMode()
-    }
-    catch (error) {
-      if (isTrackerAccountScopeError(error))
-        return
-      toast.error('批量归档失败', { description: getTrackerErrorMessage(error) })
+    } catch (error) {
+      if (isTrackerAccountScopeError(error)) return
+
+      toast.error('批量归档失败', {
+        description: getTrackerErrorMessage(error),
+      })
     }
   }
 
@@ -104,59 +164,81 @@ export default function BatchActions() {
       <AnimatePresence initial={false}>
         {isSelectMode && (
           <motion.div
-            key="batch-actions"
+            key='batch-actions'
             initial={reduce ? false : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0, transition: { duration: reduce ? 0 : DURATION.fast, ease: EASE.in } }}
-            transition={{ duration: reduce ? 0 : DURATION.base, ease: EASE.out }}
-            className="overflow-hidden"
+            exit={{
+              opacity: 0,
+              height: 0,
+              transition: {
+                duration: reduce ? 0 : DURATION.fast,
+                ease: EASE.in,
+              },
+            }}
+            transition={{
+              duration: reduce ? 0 : DURATION.base,
+              ease: EASE.out,
+            }}
+            className='overflow-hidden'
           >
-            <div className={cn(
-              'mt-3 flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-sm',
-              selectedCount > 0 && 'border-primary/40 bg-primary/5',
-            )}
+            <div
+              className={cn(
+                'mt-3 flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-sm',
+                selectedCount > 0 && 'border-primary/40 bg-primary/5',
+              )}
             >
-              <span className="font-medium">
+              <span className='font-medium'>
                 已选
-                <span className="mx-1 text-primary">{selectedCount}</span>
-                /
-                {' '}
+                <span className='mx-1 text-primary'>{selectedCount}</span>/{' '}
                 {selectableCount}
               </span>
               <Button
-                variant="ghost"
-                size="sm"
-                className="h-7"
+                variant='ghost'
+                size='sm'
+                className='h-7'
                 onClick={selectAll}
               >
-                {selectedCount === selectableCount && selectableCount > 0 ? '取消全选' : '全选当前筛选'}
+                {selectedCount === selectableCount && selectableCount > 0
+                  ? '取消全选'
+                  : '全选当前筛选'}
               </Button>
               {selectedCount > 0 && (
-                <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                <div className='flex flex-wrap items-center gap-2 sm:ml-auto'>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-7 gap-1">
-                        <ArrowRightLeft className="size-3.5" />
+                      <Button variant='outline' size='sm' className='h-7 gap-1'>
+                        <ArrowRightLeft className='size-3.5' />
                         改状态
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {[...APPLICATION_STATUS_ORDER, 'rejected' as ApplicationStatus].map(status => (
-                        <DropdownMenuItem key={status} onClick={() => handleBatchStatusChange(status)}>
+                    <DropdownMenuContent align='end'>
+                      {[
+                        ...APPLICATION_STATUS_ORDER,
+                        'rejected' as ApplicationStatus,
+                      ].map((status) => (
+                        <DropdownMenuItem
+                          key={status}
+                          onClick={() => handleBatchStatusChange(status)}
+                        >
                           标记为
                           {APPLICATION_STATUS_CONFIG[status].label}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button variant="outline" size="sm" className="h-7 gap-1" onClick={() => handleBatchArchive()}>
-                    <Archive className="size-3.5" />
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='h-7 gap-1'
+                    onClick={() => handleBatchArchive()}
+                  >
+                    <Archive className='size-3.5' />
                     归档
                   </Button>
                   <Button
-                    variant="destructive"
-                    size="sm"
-                    className="h-7"
+                    variant='destructive'
+                    size='sm'
+                    className='h-7'
                     onClick={() => setPendingBatchDelete(true)}
                   >
                     <Trash2 />
@@ -165,8 +247,8 @@ export default function BatchActions() {
                 </div>
               )}
               <Button
-                variant="ghost"
-                size="sm"
+                variant='ghost'
+                size='sm'
                 className={cn('h-7', selectedCount > 0 ? '' : 'ml-auto')}
                 onClick={exitSelectMode}
               >
@@ -177,28 +259,31 @@ export default function BatchActions() {
           </motion.div>
         )}
       </AnimatePresence>
-      <AlertDialog open={pendingBatchStatus !== null} onOpenChange={open => !open && setPendingBatchStatus(null)}>
+      <AlertDialog
+        open={pendingBatchStatus !== null}
+        onOpenChange={(open) => !open && setPendingBatchStatus(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认批量变更流程？</AlertDialogTitle>
             <AlertDialogDescription>
-              将把选中的
-              {' '}
-              {selectedCount}
-              {' '}
-              个职位标记为「
-              {pendingBatchStatus ? APPLICATION_STATUS_CONFIG[pendingBatchStatus].label : ''}
+              将把选中的 {selectedCount} 个职位标记为「
+              {pendingBatchStatus
+                ? APPLICATION_STATUS_CONFIG[pendingBatchStatus].label
+                : ''}
               」。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingBatchStatus(null)}>取消</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setPendingBatchStatus(null)}>
+              取消
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
                 setPendingBatchStatus(null)
-                if (pendingBatchStatus)
-                  runBatchStatusChange(pendingBatchStatus)
+
+                if (pendingBatchStatus) runBatchStatusChange(pendingBatchStatus)
               }}
             >
               确认
@@ -207,22 +292,23 @@ export default function BatchActions() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={pendingBatchDelete} onOpenChange={open => !open && setPendingBatchDelete(false)}>
+      <AlertDialog
+        open={pendingBatchDelete}
+        onOpenChange={(open) => !open && setPendingBatchDelete(false)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除选中的职位？</AlertDialogTitle>
             <AlertDialogDescription>
-              将永久删除当前选中的
-              {' '}
-              {selectedCount}
-              {' '}
-              个职位，且无法恢复。
+              将永久删除当前选中的 {selectedCount} 个职位，且无法恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingBatchDelete(false)}>取消</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setPendingBatchDelete(false)}>
+              取消
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
                 setPendingBatchDelete(false)
                 handleDeleteSelectedJobs()

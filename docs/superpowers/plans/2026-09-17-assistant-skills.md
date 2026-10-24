@@ -21,7 +21,8 @@
 ```ts
 export async function loadSkill(id: string, version?: string) {
   const skill = requireSkill(id, version)
-  const { default: instructions } = await import('./builtin/great-resume/SKILL.md?raw')
+  const { default: instructions } =
+    await import('./builtin/great-resume/SKILL.md?raw')
   return { ...skill, instructions }
 }
 ```
@@ -55,7 +56,7 @@ if (sendMessage(text, composerSkillIds)) {
 
 ```ts
 const tools = [...getTools(), ...skillRuntime.tools]
-const tool = tools.find(candidate => candidate.name === call.name)
+const tool = tools.find((candidate) => candidate.name === call.name)
 if (signal.aborted) throw new DOMException('aborted', 'AbortError')
 const result = await tool?.execute(call.args)
 ```

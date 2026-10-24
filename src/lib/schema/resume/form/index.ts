@@ -32,20 +32,33 @@ export const resumeSchema = z.object({
 export type ResumeSchema = z.infer<typeof resumeSchema>
 
 export * from './applicationInfo'
+
 export * from './basic'
+
 export * from './campusExperience'
+
 export * from './eduBackground'
+
 export * from './hobbies'
+
 export * from './honorsCertificates'
+
 export * from './internshipExperience'
+
 export * from './jobIntent'
+
 export * from './projectExperience'
+
 export * from './selfEvaluation'
+
 export * from './skillSpecialty'
+
 export * from './workExperience'
 
 export type ORDERType = keyof ResumeSchema
+
 export type VisibilityItemsType = Exclude<ORDERType, 'basics'>
+
 export const DEFAULT_ORDER: ORDERType[] = [
   'basics',
   'job_intent',
@@ -77,11 +90,13 @@ export const LEGACY_KEY_MAP: Record<string, string> = {
 
 /** 将 order 数组中的旧 camelCase 值迁移为 snake_case */
 export function migrateOrder(order: string[]): ORDERType[] {
-  return order.map(key => (LEGACY_KEY_MAP[key] ?? key) as ORDERType)
+  return order.map((key) => (LEGACY_KEY_MAP[key] ?? key) as ORDERType)
 }
 
 /** 将 visibility 对象中的旧 camelCase 键迁移为 snake_case */
-export function migrateVisibility(visibility?: Partial<Record<string, boolean>> | null): VisibilityFormType {
+export function migrateVisibility(
+  visibility?: Partial<Record<string, boolean>> | null,
+): VisibilityFormType {
   const result: VisibilityFormType = { ...DEFAULT_VISIBILITY }
 
   if (!visibility) {
@@ -90,9 +105,11 @@ export function migrateVisibility(visibility?: Partial<Record<string, boolean>> 
 
   for (const [key, value] of Object.entries(visibility)) {
     const normalizedKey = LEGACY_KEY_MAP[key] ?? key
+
     if (normalizedKey in result && typeof value === 'boolean') {
       result[normalizedKey as keyof VisibilityFormType] = value
     }
   }
+
   return result
 }

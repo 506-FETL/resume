@@ -49,23 +49,39 @@ interface BuildExtensionsOptions {
 const DedupeCollaborationCaret = CollaborationCaret.extend({
   addProseMirrorPlugins() {
     const awareness = this.options.provider.awareness as Awareness
+
     const awarenessStatesToArray = (states: Map<number, AwarenessLikeState>) =>
-      Array.from(states.entries()).map(([clientId, value]) => ({ clientId, ...(value.user ?? {}) }))
+      Array.from(states.entries()).map(([clientId, value]) => ({
+        clientId,
+        ...(value.user ?? {}),
+      }))
 
     return [
       yCursorPlugin(
         (() => {
           awareness.setLocalStateField('user', this.options.user)
-          this.storage.users = awarenessStatesToArray(awareness.states as Map<number, AwarenessLikeState>)
+
+          this.storage.users = awarenessStatesToArray(
+            awareness.states as Map<number, AwarenessLikeState>,
+          )
+
           awareness.on('update', () => {
-            this.storage.users = awarenessStatesToArray(awareness.states as Map<number, AwarenessLikeState>)
+            this.storage.users = awarenessStatesToArray(
+              awareness.states as Map<number, AwarenessLikeState>,
+            )
           })
+
           return awareness
         })(),
         {
           awarenessStateFilter: createDedupeAwarenessFilter(
             () => awareness.getStates() as Map<number, AwarenessLikeState>,
-            () => (awareness as unknown as { meta: Map<number, { lastUpdated?: number }> }).meta,
+            () =>
+              (
+                awareness as unknown as {
+                  meta: Map<number, { lastUpdated?: number }>
+                }
+              ).meta,
           ),
           cursorBuilder: this.options.render,
           selectionBuilder: this.options.selectionRender,
@@ -85,7 +101,10 @@ const DedupeCollaborationCaret = CollaborationCaret.extend({
  * 注意：必须保留 `horizontalRule: false`（避免与单独注册的 HorizontalRule 重复），
  * 以及 `link` 配置。
  */
-export function buildEditorExtensions({ onImageError, collab }: BuildExtensionsOptions = {}) {
+export function buildEditorExtensions({
+  onImageError,
+  collab,
+}: BuildExtensionsOptions = {}) {
   const starterKit = StarterKit.configure({
     horizontalRule: false,
     link: {
@@ -113,7 +132,7 @@ export function buildEditorExtensions({ onImageError, collab }: BuildExtensionsO
       maxSize: MAX_FILE_SIZE,
       limit: 2,
       upload: handleImageUpload,
-      onError: error => onImageError?.(error.message),
+      onError: (error) => onImageError?.(error.message),
     }),
   ]
 

@@ -7,7 +7,10 @@ import {
   removeAwarenessStates,
 } from 'y-protocols/awareness'
 import { applyUpdate, encodeStateAsUpdate } from 'yjs'
-import { decodeBase64ToBytes, encodeBytesToBase64 } from '@/lib/automerge/shared'
+import {
+  decodeBase64ToBytes,
+  encodeBytesToBase64,
+} from '@/lib/automerge/shared'
 import supabase from '@/lib/supabase/client'
 
 interface YjsUpdateBroadcast {
@@ -41,11 +44,16 @@ export class SupabaseYjsProvider {
 
   private readonly onDocUpdate: (update: Uint8Array, origin: unknown) => void
   private readonly onAwarenessUpdate: (
-    changes: { added: number[], updated: number[], removed: number[] },
+    changes: { added: number[]; updated: number[]; removed: number[] },
     origin: unknown,
   ) => void
 
-  constructor(resumeId: string, sessionId: string, doc: Doc, awareness: Awareness) {
+  constructor(
+    resumeId: string,
+    sessionId: string,
+    doc: Doc,
+    awareness: Awareness,
+  ) {
     this.doc = doc
     this.awareness = awareness
     this.channelName = `yjs:resume:${resumeId}:${sessionId}`
@@ -55,6 +63,7 @@ export class SupabaseYjsProvider {
       if (origin === this) {
         return
       }
+
       this.broadcast('yjs-update', { update: encodeBytesToBase64(update) })
     }
 
@@ -62,9 +71,13 @@ export class SupabaseYjsProvider {
       if (origin === 'remote') {
         return
       }
+
       const changed = [...added, ...updated, ...removed]
+
       this.broadcast('yjs-awareness', {
-        update: encodeBytesToBase64(encodeAwarenessUpdate(this.awareness, changed)),
+        update: encodeBytesToBase64(
+          encodeAwarenessUpdate(this.awareness, changed),
+        ),
       })
     }
   }
@@ -75,21 +88,36 @@ export class SupabaseYjsProvider {
     }
 
     const channel = supabase.channel(this.channelName)
+
     this.channel = channel
 
-    channel.on('broadcast', { event: 'yjs-update' }, (payload: YjsUpdateBroadcast) => {
-      const b64 = payload?.payload?.update
-      if (typeof b64 === 'string') {
-        applyUpdate(this.doc, decodeBase64ToBytes(b64), this)
-      }
-    })
+    channel.on(
+      'broadcast',
+      { event: 'yjs-update' },
+      (payload: YjsUpdateBroadcast) => {
+        const b64 = payload?.payload?.update
 
-    channel.on('broadcast', { event: 'yjs-awareness' }, (payload: YjsUpdateBroadcast) => {
-      const b64 = payload?.payload?.update
-      if (typeof b64 === 'string') {
-        applyAwarenessUpdate(this.awareness, decodeBase64ToBytes(b64), 'remote')
-      }
-    })
+        if (typeof b64 === 'string') {
+          applyUpdate(this.doc, decodeBase64ToBytes(b64), this)
+        }
+      },
+    )
+
+    channel.on(
+      'broadcast',
+      { event: 'yjs-awareness' },
+      (payload: YjsUpdateBroadcast) => {
+        const b64 = payload?.payload?.update
+
+        if (typeof b64 === 'string') {
+          applyAwarenessUpdate(
+            this.awareness,
+            decodeBase64ToBytes(b64),
+            'remote',
+          )
+        }
+      },
+    )
 
     // 新加入者请求全量；在场者以完整状态响应
     channel.on('broadcast', { event: 'yjs-sync-request' }, () => {
@@ -102,8 +130,9 @@ export class SupabaseYjsProvider {
     // 不必等 y-protocols 30s 超时回收。用各 peer 上报的 Yjs clientID 定位。
     channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
       const leftClientIds = (leftPresences ?? [])
-        .map(presence => (presence as YjsPresence).clientId)
+        .map((presence) => (presence as YjsPresence).clientId)
         .filter((id: unknown): id is number => typeof id === 'number')
+
       if (leftClientIds.length > 0) {
         removeAwarenessStates(this.awareness, leftClientIds, 'remote')
       }
@@ -113,6 +142,7 @@ export class SupabaseYjsProvider {
       if (status !== 'SUBSCRIBED') {
         return
       }
+
       this.connected = true
       this.doc.on('update', this.onDocUpdate)
       this.awareness.on('update', this.onAwarenessUpdate)
@@ -136,9 +166,11 @@ export class SupabaseYjsProvider {
     if (!this.channel) {
       return 0
     }
+
     const state = this.channel.presenceState() as Record<string, unknown[]>
     // 每个 presence key 对应一个连接；扣除自己（本端 track 一次）
     const total = Object.keys(state).length
+
     return Math.max(0, total - 1)
   }
 
@@ -151,8 +183,7 @@ export class SupabaseYjsProvider {
     // 让他人即时移除本端光标，而非等 y-protocols 30s 超时回收。
     try {
       removeAwarenessStates(this.awareness, [this.doc.clientID], 'local')
-    }
-    catch {
+    } catch {
       // 忽略清理异常
     }
 
@@ -163,6 +194,7 @@ export class SupabaseYjsProvider {
       this.channel.unsubscribe()
       this.channel = null
     }
+
     this.connected = false
   }
 
@@ -170,6 +202,7 @@ export class SupabaseYjsProvider {
     if (!this.channel || !this.connected) {
       return
     }
+
     this.channel.send({ type: 'broadcast', event, payload })
   }
 }

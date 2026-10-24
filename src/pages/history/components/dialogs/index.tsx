@@ -1,7 +1,16 @@
 import type { RestoreStrategy } from '../../types'
 import { LoaderCircle, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogMedia, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useHistoryDialogMotion } from '../../hooks/use-history-dialog-motion'
@@ -27,15 +36,20 @@ export default function HistoryDialogs({
 }: HistoryDialogsProps) {
   const { versions, restoring, deletingVersionId } = useHistoryStore()
   const dialogMotion = useHistoryDialogMotion()
-  const [restoreStrategy, setRestoreStrategy] = useState<RestoreStrategy | null>(null)
-  const restoreTarget = versions.find(version => version.id === restoreTargetId)
-  const deleteTarget = versions.find(version => version.id === deleteTargetId)
+
+  const [restoreStrategy, setRestoreStrategy] =
+    useState<RestoreStrategy | null>(null)
+
+  const restoreTarget = versions.find(
+    (version) => version.id === restoreTargetId,
+  )
+
+  const deleteTarget = versions.find((version) => version.id === deleteTargetId)
   const [retainedDeleteTarget, setRetainedDeleteTarget] = useState(deleteTarget)
   const displayedDeleteTarget = deleteTarget ?? retainedDeleteTarget
 
   useEffect(() => {
-    if (deleteTarget)
-      setRetainedDeleteTarget(deleteTarget)
+    if (deleteTarget) setRetainedDeleteTarget(deleteTarget)
   }, [deleteTarget])
 
   useEffect(() => {
@@ -67,10 +81,13 @@ export default function HistoryDialogs({
           }
         }}
       >
-        <AlertDialogContent className={dialogMotion.contentClassName} overlayClassName={dialogMotion.overlayClassName}>
+        <AlertDialogContent
+          className={dialogMotion.contentClassName}
+          overlayClassName={dialogMotion.overlayClassName}
+        >
           <style>{dialogMotion.styles}</style>
           <AlertDialogHeader>
-            <AlertDialogMedia className="bg-destructive/10 text-destructive">
+            <AlertDialogMedia className='bg-destructive/10 text-destructive'>
               <Trash2 />
             </AlertDialogMedia>
             <AlertDialogTitle>删除此版本？</AlertDialogTitle>
@@ -81,13 +98,20 @@ export default function HistoryDialogs({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={Boolean(deletingVersionId)}>取消</AlertDialogCancel>
+            <AlertDialogCancel disabled={Boolean(deletingVersionId)}>
+              取消
+            </AlertDialogCancel>
             <Button
-              variant="destructive"
+              variant='destructive'
               disabled={Boolean(deletingVersionId)}
               onClick={onConfirmDelete}
             >
-              {deletingVersionId && <LoaderCircle data-icon="inline-start" className={cn(!dialogMotion.reduceMotion && 'animate-spin')} />}
+              {deletingVersionId && (
+                <LoaderCircle
+                  data-icon='inline-start'
+                  className={cn(!dialogMotion.reduceMotion && 'animate-spin')}
+                />
+              )}
               {deletingVersionId ? '删除中...' : '确认删除'}
             </Button>
           </AlertDialogFooter>

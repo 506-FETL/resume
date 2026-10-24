@@ -14,16 +14,17 @@ export function QuotaMeter({ className }: { className?: string }) {
 
   if (loading) {
     return (
-      <div className={cn('flex items-center justify-center gap-2 py-1', className)}>
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-1 w-16 rounded-full" />
+      <div
+        className={cn('flex items-center justify-center gap-2 py-1', className)}
+      >
+        <Skeleton className='h-3 w-24' />
+        <Skeleton className='h-1 w-16 rounded-full' />
       </div>
     )
   }
 
   // 拉取失败或无数据时静默隐藏，不打扰输入
-  if (error || !quota)
-    return null
+  if (error || !quota) return null
 
   const { remaining, dailyLimit, usedToday, unlimited } = quota
   const tone = getQuotaTone(remaining)
@@ -31,15 +32,25 @@ export function QuotaMeter({ className }: { className?: string }) {
 
   if (unlimited) {
     return (
-      <div className={cn('flex items-center justify-center gap-1 py-1 text-xs text-amber-600 dark:text-amber-400', className)}>
-        <InfinityIcon className="size-3" />
+      <div
+        className={cn(
+          'flex items-center justify-center gap-1 py-1 text-xs text-amber-600 dark:text-amber-400',
+          className,
+        )}
+      >
+        <InfinityIcon className='size-3' />
         AI 额度无限
       </div>
     )
   }
 
   return (
-    <div className={cn('flex items-center justify-center gap-2 py-1 text-xs', className)}>
+    <div
+      className={cn(
+        'flex items-center justify-center gap-2 py-1 text-xs',
+        className,
+      )}
+    >
       <span
         className={cn(
           'text-muted-foreground',
@@ -51,9 +62,7 @@ export function QuotaMeter({ className }: { className?: string }) {
           ? '今日额度已用完，明日 0 点恢复'
           : `今日剩余 ${remaining}/${dailyLimit}`}
       </span>
-      {tone !== 'empty' && (
-        <Progress value={percent} className="h-1 w-16" />
-      )}
+      {tone !== 'empty' && <Progress value={percent} className='h-1 w-16' />}
     </div>
   )
 }

@@ -14,12 +14,15 @@ export interface WriteDeps {
 /** 按完整 Prop 路径解引用文档节点。 */
 export function getIn(doc: any, path: (string | number)[]): unknown {
   let cur: any = doc
+
   for (const key of path) {
     if (cur == null) {
       return undefined
     }
+
     cur = cur[key]
   }
+
   return cur
 }
 
@@ -35,24 +38,29 @@ export function applyWriteOps(doc: any, ops: WriteOp[], deps: WriteDeps): void {
     switch (op.kind) {
       case 'updateText': {
         const current = getIn(doc, op.path)
+
         if (typeof current === 'string') {
           deps.updateText(doc, op.path, op.value)
-        }
-        else {
+        } else {
           deps.setLeaf(doc, op.path, op.value)
         }
+
         break
       }
+
       case 'setLeaf': {
         // Automerge 不接受 undefined（会抛错并使整个 change 事务失败）。
         // 与旧的 applyPatch/sanitizeDeep 行为一致：跳过 undefined。
         if (op.value !== undefined) {
           deps.setLeaf(doc, op.path, op.value)
         }
+
         break
       }
+
       case 'arrayPush': {
         let arr = getIn(doc, op.path) as any
+
         if (arr == null) {
           // 全新简历 / 从未编辑过的 section：父数组尚未物化。
           // 先用 setLeaf 建出空数组（会一并建出缺失的 section 对象），再 push，
@@ -63,19 +71,22 @@ export function applyWriteOps(doc: any, ops: WriteOp[], deps: WriteDeps): void {
         if (Array.isArray(arr) || typeof arr?.push === 'function') {
           arr.push(op.value)
         }
+
         break
       }
+
       case 'arrayDeleteAt': {
         const arr = getIn(doc, op.path) as any
+
         if (arr == null) {
           break
         }
         if (typeof arr.deleteAt === 'function') {
           arr.deleteAt(op.index)
-        }
-        else if (typeof arr.splice === 'function') {
+        } else if (typeof arr.splice === 'function') {
           arr.splice(op.index, 1)
         }
+
         break
       }
     }

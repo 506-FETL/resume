@@ -1,4 +1,14 @@
-import { Axe, FileUser, FolderKanban, History, HomeIcon, LayoutTemplate, PencilRuler, Settings, Share2 } from 'lucide-react'
+import {
+  Axe,
+  FileUser,
+  FolderKanban,
+  History,
+  HomeIcon,
+  LayoutTemplate,
+  PencilRuler,
+  Settings,
+  Share2,
+} from 'lucide-react'
 
 export const Data = {
   modules: [

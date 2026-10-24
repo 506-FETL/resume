@@ -8,11 +8,21 @@ interface HistoryResumePreviewProps {
   snapshot: ResumeSnapshot
 }
 
-function HistoryResumePreview({ snapshot, projectionReferenceDate }: HistoryResumePreviewProps) {
-  const previewData = useMemo(() => buildTemplateResumeData(snapshot), [snapshot])
+function HistoryResumePreview({
+  snapshot,
+  projectionReferenceDate,
+}: HistoryResumePreviewProps) {
+  const previewData = useMemo(
+    () => buildTemplateResumeData(snapshot),
+    [snapshot],
+  )
 
   return (
-    <ScaledReadonlyPreview data={previewData} appearance={snapshot} projectionReferenceDate={projectionReferenceDate} />
+    <ScaledReadonlyPreview
+      data={previewData}
+      appearance={snapshot}
+      projectionReferenceDate={projectionReferenceDate}
+    />
   )
 }
 

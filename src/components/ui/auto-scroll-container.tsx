@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 import { cn } from '@/lib/utils'
 
 export interface AutoScrollContainerHandle {
@@ -11,7 +17,10 @@ interface AutoScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> 
   enabled?: boolean
   dependency?: any // 触发滚动的依赖项
   // 覆盖层渲染器：接收当前是否在底部与滚动到底方法，用于渲染"回到底部"按钮等
-  renderOverlay?: (state: { atBottom: boolean, scrollToBottom: () => void }) => React.ReactNode
+  renderOverlay?: (state: {
+    atBottom: boolean
+    scrollToBottom: () => void
+  }) => React.ReactNode
 }
 
 // 判定"是否已接近底部"的阈值：仅用于同步"回到底部"按钮与恢复跟随，不用于判断用户是否脱离
@@ -35,26 +44,34 @@ export function AutoScrollContainer({
 
   const measureAtBottom = useCallback(() => {
     const el = containerRef.current
-    if (!el)
-      return true
+
+    if (!el) return true
+
     const { scrollTop, scrollHeight, clientHeight } = el
+
     return scrollHeight - scrollTop - clientHeight <= BOTTOM_THRESHOLD
   }, [])
 
-  useImperativeHandle(ref, () => ({
-    pauseAutoScroll() {
-      followRef.current = false
-      programmaticRef.current = false
-      setAtBottom(measureAtBottom())
-    },
-  }), [measureAtBottom])
+  useImperativeHandle(
+    ref,
+    () => ({
+      pauseAutoScroll() {
+        followRef.current = false
+        programmaticRef.current = false
+        setAtBottom(measureAtBottom())
+      },
+    }),
+    [measureAtBottom],
+  )
 
   const scrollToBottomNow = useCallback((behavior: ScrollBehavior) => {
     const el = containerRef.current
-    if (!el)
-      return
+
+    if (!el) return
+
     programmaticRef.current = true
     el.scrollTo({ top: el.scrollHeight, behavior })
+
     // 程序化滚动可能异步派发 scroll 事件，下一帧再解除标记
     requestAnimationFrame(() => {
       programmaticRef.current = false
@@ -69,47 +86,58 @@ export function AutoScrollContainer({
 
   // scroll 事件仅用于同步"回到底部"按钮显隐，不改变跟随状态（跟随只由用户 wheel/touch 意图决定）
   const handleScroll = useCallback(() => {
-    if (programmaticRef.current)
-      return
+    if (programmaticRef.current) return
     // 跟随态下按钮本就不应出现；跳过更新可避免 smooth 滚动动画期间按钮闪回
     if (followRef.current) {
-      if (atBottom)
-        return
+      if (atBottom) return
+
       setAtBottom(true)
+
       return
     }
+
     setAtBottom(measureAtBottom())
   }, [atBottom, measureAtBottom])
 
   // 用户主动上滚（滚轮上滚 / 触摸下拉）→ 解除跟随；滚回底部则恢复
-  const handleUserScrollIntent = useCallback((deltaUp: boolean) => {
-    const isBottom = measureAtBottom()
-    if (deltaUp) {
-      followRef.current = false
-    }
-    else if (isBottom) {
-      followRef.current = true
-    }
-    setAtBottom(isBottom)
-  }, [measureAtBottom])
+  const handleUserScrollIntent = useCallback(
+    (deltaUp: boolean) => {
+      const isBottom = measureAtBottom()
+
+      if (deltaUp) {
+        followRef.current = false
+      } else if (isBottom) {
+        followRef.current = true
+      }
+
+      setAtBottom(isBottom)
+    },
+    [measureAtBottom],
+  )
 
   useEffect(() => {
     const el = containerRef.current
-    if (!el)
-      return
+
+    if (!el) return
+
     const onWheel = (e: WheelEvent) => handleUserScrollIntent(e.deltaY < 0)
     let lastTouchY = 0
+
     const onTouchStart = (e: TouchEvent) => {
       lastTouchY = e.touches[0]?.clientY ?? 0
     }
+
     const onTouchMove = (e: TouchEvent) => {
       const y = e.touches[0]?.clientY ?? 0
+
       handleUserScrollIntent(y > lastTouchY)
       lastTouchY = y
     }
+
     el.addEventListener('wheel', onWheel, { passive: true })
     el.addEventListener('touchstart', onTouchStart, { passive: true })
     el.addEventListener('touchmove', onTouchMove, { passive: true })
+
     return () => {
       el.removeEventListener('wheel', onWheel)
       el.removeEventListener('touchstart', onTouchStart)
@@ -135,7 +163,7 @@ export function AutoScrollContainer({
   }, [dependency, enabled, scrollToBottomNow])
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className='relative flex h-full min-h-0 flex-col'>
       <div
         ref={containerRef}
         className={cn('overflow-auto', className)}

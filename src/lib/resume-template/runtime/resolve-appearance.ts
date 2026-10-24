@@ -1,10 +1,23 @@
 import type { ResumeAppearanceConfig } from '@/lib/schema'
-import { getFontFamilyCSS, getFontFamilyName, getResumeFontWeights, themeColorMap } from '@/lib/schema'
+import {
+  getFontFamilyCSS,
+  getFontFamilyName,
+  getResumeFontWeights,
+  themeColorMap,
+} from '@/lib/schema'
 
-export function resolveResumeAppearanceStyles(appearance: ResumeAppearanceConfig) {
-  const { font: fontConfig, spacing: spacingConfig, theme: themeConfig } = appearance
+export function resolveResumeAppearanceStyles(
+  appearance: ResumeAppearanceConfig,
+) {
+  const {
+    font: fontConfig,
+    spacing: spacingConfig,
+    theme: themeConfig,
+  } = appearance
+
   const fontSize = fontConfig.fontSize
   const weights = getResumeFontWeights(fontConfig.fontFamily)
+
   return {
     appearance,
     font: {

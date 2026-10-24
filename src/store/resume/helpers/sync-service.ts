@@ -2,11 +2,19 @@ import type { StoreApi } from 'zustand'
 import type { PersistableResumeState } from '../const'
 import type { ResumeState } from '../form'
 import type { AutomergeResumeDocument } from '@/lib/automerge'
-import type { PersistedResumeSnapshot, ResumeAppearancePatch } from '@/lib/schema'
+import type {
+  PersistedResumeSnapshot,
+  ResumeAppearancePatch,
+} from '@/lib/schema'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { isResumeNotFoundError } from '@/lib/resume-id'
 import { getResumeById } from '@/lib/supabase/resume/form'
-import { getFormPayload, hasPersistedAppearance, mapSourceToPersistedSnapshot, mergeSnapshotAppearance } from '.'
+import {
+  getFormPayload,
+  hasPersistedAppearance,
+  mapSourceToPersistedSnapshot,
+  mergeSnapshotAppearance,
+} from '.'
 import useResumeConfigStore from '../config'
 import { ONLINE_SYNC_DELAY, SYNC_DELAY } from '../const'
 import useCurrentResumeStore from '../current'
@@ -38,9 +46,13 @@ export function scheduleOfflinePersist(flushFn: () => Promise<void>) {
   if (syncTimer) {
     clearTimeout(syncTimer)
   }
+
   syncTimer = setTimeout(() => {
     syncTimer = null
-    flushFn().catch(error => console.warn('Offline resume persistence failed:', error))
+
+    flushFn().catch((error) =>
+      console.warn('Offline resume persistence failed:', error),
+    )
   }, SYNC_DELAY)
 }
 
@@ -48,48 +60,69 @@ export function scheduleOnlinePersist(flushFn: () => Promise<void>) {
   if (onlineSyncTimer) {
     clearTimeout(onlineSyncTimer)
   }
+
   onlineSyncTimer = setTimeout(() => {
     onlineSyncTimer = null
-    flushFn().catch(error => console.warn('Online resume persistence failed:', error))
+
+    flushFn().catch((error) =>
+      console.warn('Online resume persistence failed:', error),
+    )
   }, ONLINE_SYNC_DELAY)
 }
 
-export function ensureSection<T extends keyof AutomergeResumeDocument>(doc: AutomergeResumeDocument, key: T) {
+export function ensureSection<T extends keyof AutomergeResumeDocument>(
+  doc: AutomergeResumeDocument,
+  key: T,
+) {
   if (!doc[key]) {
-    doc[key] = ({} as AutomergeResumeDocument[T])
+    doc[key] = {} as AutomergeResumeDocument[T]
   }
 }
 
 export function applyResumeChange(
   set: StoreApi<ResumeState>['setState'],
   get: StoreApi<ResumeState>['getState'],
-  stateUpdate: ((prev: ResumeState) => Partial<ResumeState>) | Partial<ResumeState>,
+  stateUpdate:
+    | ((prev: ResumeState) => Partial<ResumeState>)
+    | Partial<ResumeState>,
   docUpdate?: (doc: AutomergeResumeDocument) => void,
   onDocumentError?: (error: unknown) => never,
 ) {
   // 1. 应用本地状态更新 (Optimistic UI)
   set((prev: ResumeState) => {
     try {
-      const updates = typeof stateUpdate === 'function'
-        ? stateUpdate(prev)
-        : stateUpdate
-      return { ...updates, pendingChanges: true, syncError: null, documentChangeRevision: prev.documentChangeRevision + 1 }
-    }
-    catch (error) {
+      const updates =
+        typeof stateUpdate === 'function' ? stateUpdate(prev) : stateUpdate
+
+      return {
+        ...updates,
+        pendingChanges: true,
+        syncError: null,
+        documentChangeRevision: prev.documentChangeRevision + 1,
+      }
+    } catch (error) {
       console.error('State update failed:', error)
+
       return { syncError: '状态更新失败' }
     }
   })
 
   // set() 之后重新读取最新状态，避免使用过期快照
   const freshState = get()
-  const resumeId = freshState.currentResumeId ?? useCurrentResumeStore.getState().resumeId
+
+  const resumeId =
+    freshState.currentResumeId ?? useCurrentResumeStore.getState().resumeId
 
   // 2. 离线模式：触发延时保存
-  if (!resumeId || freshState.mode === 'offline' || isOfflineResumeId(resumeId)) {
+  if (
+    !resumeId ||
+    freshState.mode === 'offline' ||
+    isOfflineResumeId(resumeId)
+  ) {
     const persist = get().capturePersistRequest()
-    if (persist)
-      scheduleOfflinePersist(persist)
+
+    if (persist) scheduleOfflinePersist(persist)
+
     return
   }
 
@@ -99,8 +132,7 @@ export function applyResumeChange(
       freshState.docManager?.change((doc) => {
         docUpdate(doc)
       })
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Document update failed:', error)
       set({ syncError: '文档同步失败，请刷新重试' })
       onDocumentError?.(error)
@@ -109,8 +141,8 @@ export function applyResumeChange(
 
   // 4. 在线模式：调度延时自动保存
   const persist = get().capturePersistRequest()
-  if (persist)
-    scheduleOnlinePersist(persist)
+
+  if (persist) scheduleOnlinePersist(persist)
 }
 
 export async function getCloudAppearanceSource(resumeId: string): Promise<{
@@ -120,17 +152,20 @@ export async function getCloudAppearanceSource(resumeId: string): Promise<{
   displayName: string | null
 }> {
   try {
-    const { display_name, ...appearance } = await getResumeById<ResumeAppearancePatch & { display_name: string | null }>(resumeId, 'spacing,font,theme,display_name')
+    const { display_name, ...appearance } = await getResumeById<
+      ResumeAppearancePatch & { display_name: string | null }
+    >(resumeId, 'spacing,font,theme,display_name')
+
     return {
       status: hasPersistedAppearance(appearance) ? 'present' : 'missing',
       appearance,
       resumeExists: true,
       displayName: display_name,
     }
-  }
-  catch (error) {
+  } catch (error) {
     if (!isResumeNotFoundError(error))
       console.warn('Failed to read cloud appearance snapshot:', error)
+
     return {
       status: 'error',
       appearance: null,
@@ -140,8 +175,11 @@ export async function getCloudAppearanceSource(resumeId: string): Promise<{
   }
 }
 
-export function getPersistedSnapshot(state: PersistableResumeState): PersistedResumeSnapshot {
+export function getPersistedSnapshot(
+  state: PersistableResumeState,
+): PersistedResumeSnapshot {
   const { spacing, font, theme } = useResumeConfigStore.getState()
+
   return {
     ...getFormPayload(state),
     spacing,
@@ -151,18 +189,27 @@ export function getPersistedSnapshot(state: PersistableResumeState): PersistedRe
 }
 
 export function shouldPersistAppearance(
-  state: Pick<ResumeState, 'docHasPersistedAppearance' | 'appearanceDirty' | 'cloudAppearanceStatus'>,
+  state: Pick<
+    ResumeState,
+    'docHasPersistedAppearance' | 'appearanceDirty' | 'cloudAppearanceStatus'
+  >,
   source: Partial<AutomergeResumeDocument> | null | undefined,
 ) {
-  return hasPersistedAppearance(source)
-    || state.docHasPersistedAppearance
-    || state.appearanceDirty
-    || state.cloudAppearanceStatus === 'present'
-    || state.cloudAppearanceStatus === 'missing'
+  return (
+    hasPersistedAppearance(source) ||
+    state.docHasPersistedAppearance ||
+    state.appearanceDirty ||
+    state.cloudAppearanceStatus === 'present' ||
+    state.cloudAppearanceStatus === 'missing'
+  )
 }
 
 export function buildResumeConfigPayload(
-  state: PersistableResumeState & Pick<ResumeState, 'docHasPersistedAppearance' | 'appearanceDirty' | 'cloudAppearanceStatus'>,
+  state: PersistableResumeState &
+    Pick<
+      ResumeState,
+      'docHasPersistedAppearance' | 'appearanceDirty' | 'cloudAppearanceStatus'
+    >,
   source?: Partial<AutomergeResumeDocument> | null,
 ) {
   const baseSnapshot = source
@@ -183,6 +230,7 @@ export function buildResumeConfigPayload(
   }
 
   const { spacing, font, theme, ...payloadWithoutAppearance } = payload
+
   return {
     ...payloadWithoutAppearance,
     template_binding: templateBinding,

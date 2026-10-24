@@ -49,12 +49,12 @@ function SortableSectionRow({
 
   return (
     <Reorder.Item
-      as="div"
+      as='div'
       ref={itemRef}
       value={id}
       dragListener={false}
       dragControls={dragControls}
-      layout="position"
+      layout='position'
       onDragStart={() => {
         setIsDragging(true)
         onDragStart()
@@ -64,17 +64,23 @@ function SortableSectionRow({
         onDragEnd()
       }}
       onDrag={(_event, info) => {
-        autoScrollAtEdge(findScrollableAncestor(itemRef.current, 'y'), info.point, 'y')
+        autoScrollAtEdge(
+          findScrollableAncestor(itemRef.current, 'y'),
+          info.point,
+          'y',
+        )
       }}
-      whileDrag={reduceMotion
-        ? { zIndex: 10 }
-        : {
-            scale: 1.01,
-            boxShadow: '0 12px 28px rgb(0 0 0 / 0.14)',
-            zIndex: 10,
-          }}
+      whileDrag={
+        reduceMotion
+          ? { zIndex: 10 }
+          : {
+              scale: 1.01,
+              boxShadow: '0 12px 28px rgb(0 0 0 / 0.14)',
+              zIndex: 10,
+            }
+      }
       transition={reduceMotion ? { duration: 0 } : MOTION_REORDER_TRANSITION}
-      className="relative"
+      className='relative'
     >
       <SectionRow
         id={id}
@@ -83,8 +89,8 @@ function SortableSectionRow({
         content={content}
         visible={visible}
         isDragging={isDragging}
-        onDragHandlePointerDown={event => dragControls.start(event)}
-        onKeyboardMove={direction => onKeyboardMove(id, direction)}
+        onDragHandlePointerDown={(event) => dragControls.start(event)}
+        onKeyboardMove={(direction) => onKeyboardMove(id, direction)}
         onToggleVisibility={onToggleVisibility}
       />
     </Reorder.Item>
@@ -102,44 +108,44 @@ export function AccordionEditor({
   onUpdateOrder,
   onToggleVisibility,
 }: AccordionEditorProps) {
-  const sortableOrder = order.filter(id => id !== 'basics')
-  const basicsItem = ITEMS.find(item => item.id === 'basics')!
-  const openSections = useResumeStore(state => state.openSections)
-  const setSectionOpen = useResumeStore(state => state.setSectionOpen)
-  const {
-    draft,
-    setDraft,
-    startDragging,
-    finishDragging,
-    moveByKeyboard,
-  } = useMotionReorder({
-    values: sortableOrder,
-    axis: 'y',
-    onCommit: next => onUpdateOrder(['basics', ...next]),
-  })
+  const sortableOrder = order.filter((id) => id !== 'basics')
+  const basicsItem = ITEMS.find((item) => item.id === 'basics')!
+  const openSections = useResumeStore((state) => state.openSections)
+  const setSectionOpen = useResumeStore((state) => state.setSectionOpen)
 
-  const handleValueChange = useCallback((next: string) => {
-    const current = openSections[0]
-    if (next) {
-      const nextSection = next as ORDERType
-      setSectionOpen(nextSection, true)
-      onActivate(nextSection)
-    }
-    else if (current) {
-      setSectionOpen(current, false)
-    }
-  }, [openSections, setSectionOpen, onActivate])
+  const { draft, setDraft, startDragging, finishDragging, moveByKeyboard } =
+    useMotionReorder({
+      values: sortableOrder,
+      axis: 'y',
+      onCommit: (next) => onUpdateOrder(['basics', ...next]),
+    })
+
+  const handleValueChange = useCallback(
+    (next: string) => {
+      const current = openSections[0]
+
+      if (next) {
+        const nextSection = next as ORDERType
+
+        setSectionOpen(nextSection, true)
+        onActivate(nextSection)
+      } else if (current) {
+        setSectionOpen(current, false)
+      }
+    },
+    [openSections, setSectionOpen, onActivate],
+  )
 
   return (
     <Accordion
-      type="single"
+      type='single'
       collapsible
       value={openSections[0] ?? ''}
       onValueChange={handleValueChange}
-      className="flex flex-col gap-2"
+      className='flex flex-col gap-2'
     >
       <SectionRow
-        id="basics"
+        id='basics'
         label={basicsItem.label}
         icon={basicsItem.icon}
         content={basicsItem.content}
@@ -148,16 +154,17 @@ export function AccordionEditor({
       />
 
       <Reorder.Group
-        as="div"
-        axis="y"
+        as='div'
+        axis='y'
         values={draft}
         onReorder={setDraft}
         layoutScroll
-        className="flex flex-col gap-2"
+        className='flex flex-col gap-2'
       >
         {draft.map((id) => {
-          const item = ITEMS.find(it => it.id === id)!
+          const item = ITEMS.find((it) => it.id === id)!
           const visibilityKey = item.id as VisibilityItemsType
+
           return (
             <SortableSectionRow
               key={id}
@@ -170,7 +177,10 @@ export function AccordionEditor({
               onDragStart={startDragging}
               onDragEnd={finishDragging}
               onKeyboardMove={(itemId, direction) => {
-                moveByKeyboard(itemId as Exclude<ORDERType, 'basics'>, direction)
+                moveByKeyboard(
+                  itemId as Exclude<ORDERType, 'basics'>,
+                  direction,
+                )
               }}
             />
           )

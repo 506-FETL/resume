@@ -61,8 +61,8 @@ export function ListDropdownMenu({
   const { editor } = useTiptapEditor(providedEditor)
   const [isOpen, setIsOpen] = React.useState(false)
 
-  const { filteredLists, canToggle, isActive, isVisible, Icon }
-    = useListDropdownMenu({
+  const { filteredLists, canToggle, isActive, isVisible, Icon } =
+    useListDropdownMenu({
       editor,
       types,
       hideWhenUnavailable,
@@ -84,28 +84,28 @@ export function ListDropdownMenu({
     <DropdownMenu open={isOpen} onOpenChange={handleOnOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button
-          type="button"
-          data-style="ghost"
+          type='button'
+          data-style='ghost'
           data-active-state={isActive ? 'on' : 'off'}
-          role="button"
+          role='button'
           tabIndex={-1}
           disabled={!canToggle}
           data-disabled={!canToggle}
-          aria-label="List options"
-          tooltip="List"
+          aria-label='List options'
+          tooltip='List'
           {...props}
         >
-          <Icon className="tiptap-button-icon" />
-          <ChevronDownIcon className="tiptap-button-dropdown-small" />
+          <Icon className='tiptap-button-icon' />
+          <ChevronDownIcon className='tiptap-button-dropdown-small' />
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" portal={portal}>
+      <DropdownMenuContent align='start' portal={portal}>
         <Card>
           <CardBody>
             <DropdownMenuGroup>
               <ButtonGroup>
-                {filteredLists.map(option => (
+                {filteredLists.map((option) => (
                   <DropdownMenuItem key={option.type} asChild>
                     <ListButton
                       editor={editor}

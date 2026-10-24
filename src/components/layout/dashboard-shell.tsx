@@ -13,53 +13,95 @@ interface DashboardShellProps {
   fullBleed?: boolean
 }
 
-export function DashboardShell({ children, routeKey, fullBleed = false }: DashboardShellProps) {
+export function DashboardShell({
+  children,
+  routeKey,
+  fullBleed = false,
+}: DashboardShellProps) {
   const reduceMotion = useReducedMotion()
+
   // Only application pages opt in; resume document containers keep their own layout.
-  const usesPageLayout = ['/', '/resume', '/template', '/share', '/tracker', '/history', '/optimize', '/profile', '/changelog', '/login', '/sign-up', '/forgot-password', '/reset-password'].includes(routeKey.replace(/\/$/, '') || '/')
+  const usesPageLayout = [
+    '/',
+    '/resume',
+    '/template',
+    '/share',
+    '/tracker',
+    '/history',
+    '/optimize',
+    '/profile',
+    '/changelog',
+    '/login',
+    '/sign-up',
+    '/forgot-password',
+    '/reset-password',
+  ].includes(routeKey.replace(/\/$/, '') || '/')
+
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
       return localStorage.getItem('sidebarOpen') !== 'false'
-    }
-    catch {
+    } catch {
       return true
     }
   })
 
   return (
     <SidebarProvider
-      className="h-full min-h-0 overflow-hidden"
+      className='h-full min-h-0 overflow-hidden'
       defaultOpen={sidebarOpen}
       open={sidebarOpen}
       onOpenChange={(open) => {
         setSidebarOpen(open)
+
         try {
           localStorage.setItem('sidebarOpen', String(open))
-        }
-        catch {
+        } catch {
           // Keep the in-memory preference when storage is unavailable.
         }
       }}
     >
-      <AppSidebar variant="floating" />
-      <SidebarInset className="min-h-0 overflow-hidden">
+      <AppSidebar variant='floating' />
+      <SidebarInset className='min-h-0 overflow-hidden'>
         {!fullBleed && (
-          <header className="sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+          <header className='sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)'>
             <SiteHeader />
           </header>
         )}
         <div
-          className={cn('min-h-0 min-w-0 flex-1', fullBleed ? 'overflow-hidden' : 'overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]', !fullBleed && !usesPageLayout && 'p-4')}
-          style={usesPageLayout || fullBleed ? { fontFamily: '"Inter Variable", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif' } : undefined}
+          className={cn(
+            'min-h-0 min-w-0 flex-1',
+            fullBleed
+              ? 'overflow-hidden'
+              : 'overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]',
+            !fullBleed && !usesPageLayout && 'p-4',
+          )}
+          style={
+            usesPageLayout || fullBleed
+              ? {
+                  fontFamily:
+                    '"Inter Variable", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif',
+                }
+              : undefined
+          }
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode='wait'>
             <motion.div
               key={routeKey}
               initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: reduceMotion ? 0 : -8, transition: { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in } }}
-              transition={{ duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }}
-              className="h-full min-h-0 w-full"
+              exit={{
+                opacity: 0,
+                y: reduceMotion ? 0 : -8,
+                transition: {
+                  duration: reduceMotion ? 0 : DURATION.fast,
+                  ease: EASE.in,
+                },
+              }}
+              transition={{
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+              }}
+              className='h-full min-h-0 w-full'
             >
               {children}
             </motion.div>

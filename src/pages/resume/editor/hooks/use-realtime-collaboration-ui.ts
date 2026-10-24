@@ -49,7 +49,11 @@ export function useRealtimeCollaborationUI({
   throttleMs = 100,
 }: UseRealtimeCollaborationUIOptions): UseRealtimeCollaborationUIResult {
   const [connectionId] = useState(createRealtimeUserId)
-  const [remoteUsersById, setRemoteUsersById] = useState<Record<number, RemoteUserUIState>>({})
+
+  const [remoteUsersById, setRemoteUsersById] = useState<
+    Record<number, RemoteUserUIState>
+  >({})
+
   const channelRef = useRef<RealtimeChannel | null>(null)
   const drawerOpenRef = useRef(drawerOpen)
   const activeTabIdRef = useRef(activeTabId)
@@ -82,20 +86,23 @@ export function useRealtimeCollaborationUI({
     throttledBroadcastState()
   }, [drawerOpen, activeTabId, throttledBroadcastState])
 
-  const broadcastUIAction = useCallback((action: UIAction) => {
-    if (!actionBroadcastEnabled) {
-      return
-    }
+  const broadcastUIAction = useCallback(
+    (action: UIAction) => {
+      if (!actionBroadcastEnabled) {
+        return
+      }
 
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: COLLAB_UI_ACTION_EVENT,
-      payload: createUIActionPayload(
-        { userId: connectionId, userName, color },
-        action,
-      ),
-    })
-  }, [actionBroadcastEnabled, connectionId, userName, color])
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: COLLAB_UI_ACTION_EVENT,
+        payload: createUIActionPayload(
+          { userId: connectionId, userName, color },
+          action,
+        ),
+      })
+    },
+    [actionBroadcastEnabled, connectionId, userName, color],
+  )
 
   useEffect(() => {
     const channel = bindCollaborationUIChannel({
@@ -103,10 +110,10 @@ export function useRealtimeCollaborationUI({
       selfUserId: connectionId,
       onRemoteUserJoin: broadcastState,
       onRemoteUserLeave: (userId) => {
-        setRemoteUsersById(current => removeRemoteUIUser(current, userId))
+        setRemoteUsersById((current) => removeRemoteUIUser(current, userId))
       },
       onRemoteState: (payload) => {
-        setRemoteUsersById(current => mergeRemoteUIState(current, payload))
+        setRemoteUsersById((current) => mergeRemoteUIState(current, payload))
       },
       onRemoteAction: handleRemoteAction,
     })
@@ -117,10 +124,12 @@ export function useRealtimeCollaborationUI({
           channelRef.current = null
           setRemoteUsersById({})
         }
+
         return
       }
 
       channelRef.current = channel
+
       await trackCollaborationUIChannelPresence(channel, {
         userId: connectionId,
         userName,
@@ -134,9 +143,11 @@ export function useRealtimeCollaborationUI({
 
     return () => {
       channel.unsubscribe()
+
       if (channelRef.current === channel) {
         channelRef.current = null
       }
+
       setRemoteUsersById({})
     }
   }, [roomName, connectionId, userName, color, broadcastState])

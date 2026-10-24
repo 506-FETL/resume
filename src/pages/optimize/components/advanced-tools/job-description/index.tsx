@@ -8,26 +8,50 @@ import { JdVariantDialog } from '@/components/jd-variant/components/generator-di
 import { MIN_JD_CHARS } from '@/components/jd-variant/const'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { parseLlmJsonObject, runJobDescriptionStructured } from '@/lib/llm'
 import useJdVariantStore from '@/store/jd-variant'
 import useCurrentResumeStore from '@/store/resume/current'
-import { ToolEmptyState, ToolMetaBadge, ToolPanelBody, ToolPanelCard, ToolPanelHeader } from '../shared/primitives'
+import {
+  ToolEmptyState,
+  ToolMetaBadge,
+  ToolPanelBody,
+  ToolPanelCard,
+  ToolPanelHeader,
+} from '../shared/primitives'
 import AnalysisTrace from './analysis-trace'
 import ComparisonResultView from './comparison-result'
-import { createInitialJobDescriptionToolSession, getJobDescriptionSessionKey } from './const'
+import {
+  createInitialJobDescriptionToolSession,
+  getJobDescriptionSessionKey,
+} from './const'
 import useJobDescriptionToolStore from './store'
-import { hasJobDescriptionAnalysisFlow, normalizeJobDescriptionComparisonResult } from './utils'
+import {
+  hasJobDescriptionAnalysisFlow,
+  normalizeJobDescriptionComparisonResult,
+} from './utils'
 
 interface JobDescriptionToolProps {
   resumeContext: ResumeToolContext
 }
 
 function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
-  const sessionKey = useMemo(() => getJobDescriptionSessionKey(resumeContext), [resumeContext])
-  const session = useJobDescriptionToolStore(state => state.sessions[sessionKey]) ?? createInitialJobDescriptionToolSession()
+  const sessionKey = useMemo(
+    () => getJobDescriptionSessionKey(resumeContext),
+    [resumeContext],
+  )
+
+  const session =
+    useJobDescriptionToolStore((state) => state.sessions[sessionKey]) ??
+    createInitialJobDescriptionToolSession()
+
   const {
     setAnalysisError,
     setAnalysisOpen,
@@ -39,12 +63,22 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     updateAnalysisState,
   } = useJobDescriptionToolStore()
 
-  const { analysisError, analysisOpen, analysisState, analyzing, jobDescription, result } = session
+  const {
+    analysisError,
+    analysisOpen,
+    analysisState,
+    analyzing,
+    jobDescription,
+    result,
+  } = session
+
   const jobDescriptionLength = jobDescription.trim().length
+
   const hasAnalysisFlow = useMemo(
     () => hasJobDescriptionAnalysisFlow(analysisState, analysisError),
     [analysisError, analysisState],
   )
+
   const analysisDone = analysisState.status === 'complete' && Boolean(result)
   const canDerive = analysisDone && jobDescription.trim().length >= MIN_JD_CHARS
   const [deriveOpen, setDeriveOpen] = useState(false)
@@ -54,6 +88,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
 
   const handleCompare = async () => {
     const normalizedJobDescription = jobDescription.trim()
+
     if (!normalizedJobDescription) {
       return
     }
@@ -62,6 +97,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     setResult(sessionKey, null)
     setAnalysisError(sessionKey, null)
     setAnalysisOpen(sessionKey, true)
+
     setAnalysisState(sessionKey, {
       ...createInitialJobDescriptionToolSession().analysisState,
       status: 'sending',
@@ -82,15 +118,22 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               status: 'thinking',
               reasoning: streamReasoning,
             })
-            updateAnalysisLog(sessionKey, 'send', '已上传，开始推导岗位匹配关系...')
+
+            updateAnalysisLog(
+              sessionKey,
+              'send',
+              '已上传，开始推导岗位匹配关系...',
+            )
           }
 
           if (streamContent) {
             finalContent = streamContent
+
             updateAnalysisState(sessionKey, {
               status: 'generating',
               content: streamContent,
             })
+
             updateAnalysisLog(sessionKey, 'result', '正在生成结构化分析结果...')
           }
         },
@@ -103,99 +146,124 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
       updateAnalysisState(sessionKey, { status: 'received' })
       updateAnalysisLog(sessionKey, 'result', '已收到结构化结果')
 
-      const parsed = parseLlmJsonObject<Partial<JobDescriptionComparisonResult>>(finalContent)
-      setResult(sessionKey, normalizeJobDescriptionComparisonResult(parsed, resumeContext.resume))
+      const parsed =
+        parseLlmJsonObject<Partial<JobDescriptionComparisonResult>>(
+          finalContent,
+        )
+
+      setResult(
+        sessionKey,
+        normalizeJobDescriptionComparisonResult(parsed, resumeContext.resume),
+      )
 
       updateAnalysisState(sessionKey, { status: 'complete' })
       updateAnalysisLog(sessionKey, 'display', '已展示职位描述比对结果')
-    }
-    catch (error) {
-      const message = error instanceof Error ? error.message : '职位描述分析失败，请稍后重试'
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '职位描述分析失败，请稍后重试'
+
       setAnalysisError(sessionKey, message)
       toast.error(message)
-    }
-    finally {
+    } finally {
       setAnalyzing(sessionKey, false)
     }
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className='flex flex-col gap-4'>
       <ToolPanelCard>
         <ToolPanelHeader
-          title="岗位描述输入"
+          title='岗位描述输入'
           icon={Search}
-          badge={jobDescriptionLength > 0 ? <ToolMetaBadge tone="info">{`已输入 ${jobDescriptionLength} 字`}</ToolMetaBadge> : null}
+          badge={
+            jobDescriptionLength > 0 ? (
+              <ToolMetaBadge tone='info'>{`已输入 ${jobDescriptionLength} 字`}</ToolMetaBadge>
+            ) : null
+          }
         />
-        <ToolPanelBody className="flex flex-col gap-4">
+        <ToolPanelBody className='flex flex-col gap-4'>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor={jobDescriptionId}>职位描述</FieldLabel>
               <Textarea
                 id={jobDescriptionId}
                 value={jobDescription}
-                onChange={event => setJobDescription(sessionKey, event.target.value)}
-                className="min-h-40 resize-y border-border/60 bg-background sm:max-h-60 lg:max-h-80 xl:max-h-100"
-                placeholder="粘贴职位描述、岗位职责、任职要求或加分项。"
+                onChange={(event) =>
+                  setJobDescription(sessionKey, event.target.value)
+                }
+                className='min-h-40 resize-y border-border/60 bg-background sm:max-h-60 lg:max-h-80 xl:max-h-100'
+                placeholder='粘贴职位描述、岗位职责、任职要求或加分项。'
               />
               <FieldDescription>
-                派生针对性简历至少需要
-                {' '}
-                {MIN_JD_CHARS}
-                {' '}
-                字。
+                派生针对性简历至少需要 {MIN_JD_CHARS} 字。
               </FieldDescription>
             </Field>
           </FieldGroup>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-            <Button className="w-full sm:w-auto" onClick={handleCompare} disabled={analyzing || !jobDescription.trim()}>
-              {analyzing
-                ? <Spinner data-icon="inline-start" />
-                : <Target data-icon="inline-start" />}
+          <div className='flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3'>
+            <Button
+              className='w-full sm:w-auto'
+              onClick={handleCompare}
+              disabled={analyzing || !jobDescription.trim()}
+            >
+              {analyzing ? (
+                <Spinner data-icon='inline-start' />
+              ) : (
+                <Target data-icon='inline-start' />
+              )}
               {analyzing ? '分析中...' : '开始比对'}
             </Button>
             <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
+              type='button'
+              variant='outline'
+              className='w-full sm:w-auto'
               disabled={!canDerive}
               onClick={() => {
-                const task = useJdVariantStore.getState().tasks[resumeContext.resumeId]
-                if (task && (task.phase === 'success' || task.phase === 'error' || task.phase === 'aborted'))
+                const task =
+                  useJdVariantStore.getState().tasks[resumeContext.resumeId]
+
+                if (
+                  task &&
+                  (task.phase === 'success' ||
+                    task.phase === 'error' ||
+                    task.phase === 'aborted')
+                )
                   useJdVariantStore.getState().clearTask(resumeContext.resumeId)
+
                 setDeriveOpen(true)
               }}
             >
-              <GitBranch data-icon="inline-start" />
+              <GitBranch data-icon='inline-start' />
               派生针对性简历
             </Button>
           </div>
         </ToolPanelBody>
       </ToolPanelCard>
 
-      <AnimatedContent animationKey={hasAnalysisFlow ? 'analysis' : 'idle'} className="empty:hidden">
+      <AnimatedContent
+        animationKey={hasAnalysisFlow ? 'analysis' : 'idle'}
+        className='empty:hidden'
+      >
         {hasAnalysisFlow && (
           <AnalysisTrace
             analysisError={analysisError}
             analysisOpen={analysisOpen}
             analysisState={analysisState}
-            onAnalysisOpenChange={open => setAnalysisOpen(sessionKey, open)}
+            onAnalysisOpenChange={(open) => setAnalysisOpen(sessionKey, open)}
           />
         )}
       </AnimatedContent>
 
-      <AnimatedContent animationKey={result ? 'result' : !hasAnalysisFlow ? 'empty' : 'pending'} className="empty:hidden">
-        {result
-          ? (
-              <ComparisonResultView result={result} />
-            )
-          : !hasAnalysisFlow
-              ? (
-                  <ToolEmptyState
-                    title="还没有生成比对结果"
-                  />
-                )
-              : null}
+      <AnimatedContent
+        animationKey={
+          result ? 'result' : !hasAnalysisFlow ? 'empty' : 'pending'
+        }
+        className='empty:hidden'
+      >
+        {result ? (
+          <ComparisonResultView result={result} />
+        ) : !hasAnalysisFlow ? (
+          <ToolEmptyState title='还没有生成比对结果' />
+        ) : null}
       </AnimatedContent>
 
       <JdVariantDialog
@@ -206,7 +274,11 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
         skipInputStep
         recentJds={[]}
         onOpenResume={(draftId) => {
-          setCurrentResume(draftId, resumeContext.resumeType === 'offline' ? 'default' : 'default')
+          setCurrentResume(
+            draftId,
+            resumeContext.resumeType === 'offline' ? 'default' : 'default',
+          )
+
           navigate('/resume/editor')
         }}
       />

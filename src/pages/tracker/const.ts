@@ -2,7 +2,7 @@ import type { ApplicationStatus, StageStatus, TrackerSortBy } from './types'
 
 export const TRACKER_SEARCH_INPUT_ID = 'tracker-search'
 
-export const TRACKER_SORT_OPTIONS: { value: TrackerSortBy, label: string }[] = [
+export const TRACKER_SORT_OPTIONS: { value: TrackerSortBy; label: string }[] = [
   { value: 'updated', label: '最近更新' },
   { value: 'created', label: '创建时间' },
   { value: 'days', label: '停留天数' },
@@ -11,7 +11,10 @@ export const TRACKER_SORT_OPTIONS: { value: TrackerSortBy, label: string }[] = [
 ]
 
 // 下一步日期徽标配色（按 tone）
-export const NEXT_ACTION_TONE_CLASSES: Record<'overdue' | 'today' | 'upcoming', string> = {
+export const NEXT_ACTION_TONE_CLASSES: Record<
+  'overdue' | 'today' | 'upcoming',
+  string
+> = {
   overdue: 'bg-red-500/10 text-red-700 dark:text-red-400',
   today: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
   upcoming: 'bg-muted text-muted-foreground',
@@ -31,35 +34,86 @@ export const BOARD_COLUMNS = [
 
 // 阶段状态颜色配置（用于 drawer-stage-detail）
 // 语义统一：待处理=灰、进行中=蓝、已完成=绿、已拒绝=红（与 STAGE_STATUS_CONFIG 一致）
-export const STAGE_STATUS_COLORS: Record<StageStatus, { bg: string, text: string, border: string }> = {
-  待处理: { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' },
-  进行中: { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-200' },
-  已完成: { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-200' },
+export const STAGE_STATUS_COLORS: Record<
+  StageStatus,
+  { bg: string; text: string; border: string }
+> = {
+  待处理: {
+    bg: 'bg-gray-100',
+    text: 'text-gray-600',
+    border: 'border-gray-200',
+  },
+  进行中: {
+    bg: 'bg-blue-100',
+    text: 'text-blue-600',
+    border: 'border-blue-200',
+  },
+  已完成: {
+    bg: 'bg-green-100',
+    text: 'text-green-600',
+    border: 'border-green-200',
+  },
   已拒绝: { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-200' },
 }
 
 // 申请状态配置
-export const APPLICATION_STATUS_CONFIG: Record<ApplicationStatus, { label: string, color: string, bgColor: string }> = {
-  saved: { label: '已保存', color: 'text-slate-600 dark:text-slate-400', bgColor: 'bg-slate-500/10' },
-  applied: { label: '已投递', color: 'text-blue-700 dark:text-blue-400', bgColor: 'bg-blue-500/10' },
-  assessment: { label: '测评中', color: 'text-cyan-700 dark:text-cyan-400', bgColor: 'bg-cyan-500/10' },
-  screen: { label: '筛选中', color: 'text-amber-700 dark:text-amber-400', bgColor: 'bg-amber-500/10' },
-  written: { label: '笔试中', color: 'text-orange-700 dark:text-orange-400', bgColor: 'bg-orange-500/10' },
-  interview: { label: '面试中', color: 'text-violet-700 dark:text-violet-400', bgColor: 'bg-violet-500/10' },
-  offer: { label: '已录用', color: 'text-emerald-700 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
-  rejected: { label: '已结束', color: 'text-red-700 dark:text-red-400', bgColor: 'bg-red-500/10' },
+export const APPLICATION_STATUS_CONFIG: Record<
+  ApplicationStatus,
+  { label: string; color: string; bgColor: string }
+> = {
+  saved: {
+    label: '已保存',
+    color: 'text-slate-600 dark:text-slate-400',
+    bgColor: 'bg-slate-500/10',
+  },
+  applied: {
+    label: '已投递',
+    color: 'text-blue-700 dark:text-blue-400',
+    bgColor: 'bg-blue-500/10',
+  },
+  assessment: {
+    label: '测评中',
+    color: 'text-cyan-700 dark:text-cyan-400',
+    bgColor: 'bg-cyan-500/10',
+  },
+  screen: {
+    label: '筛选中',
+    color: 'text-amber-700 dark:text-amber-400',
+    bgColor: 'bg-amber-500/10',
+  },
+  written: {
+    label: '笔试中',
+    color: 'text-orange-700 dark:text-orange-400',
+    bgColor: 'bg-orange-500/10',
+  },
+  interview: {
+    label: '面试中',
+    color: 'text-violet-700 dark:text-violet-400',
+    bgColor: 'bg-violet-500/10',
+  },
+  offer: {
+    label: '已录用',
+    color: 'text-emerald-700 dark:text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
+  },
+  rejected: {
+    label: '已结束',
+    color: 'text-red-700 dark:text-red-400',
+    bgColor: 'bg-red-500/10',
+  },
 }
 
-export const APPLICATION_STATUS_DOT_CLASSES: Record<ApplicationStatus, string> = {
-  saved: 'bg-slate-400',
-  applied: 'bg-blue-500',
-  assessment: 'bg-cyan-500',
-  screen: 'bg-amber-500',
-  written: 'bg-orange-500',
-  interview: 'bg-violet-500',
-  offer: 'bg-emerald-500',
-  rejected: 'bg-red-500',
-}
+export const APPLICATION_STATUS_DOT_CLASSES: Record<ApplicationStatus, string> =
+  {
+    saved: 'bg-slate-400',
+    applied: 'bg-blue-500',
+    assessment: 'bg-cyan-500',
+    screen: 'bg-amber-500',
+    written: 'bg-orange-500',
+    interview: 'bg-violet-500',
+    offer: 'bg-emerald-500',
+    rejected: 'bg-red-500',
+  }
 
 export const TRACKER_METRIC_LABELS = {
   applied: '已投递',
@@ -80,7 +134,10 @@ export const ACTIVE_APPLICATION_STAGES = [
 export const TERMINAL_APPLICATION_STATUSES = ['offer', 'rejected'] as const
 
 // 保留历史漏斗与排序的正向顺序；流程图使用在办阶段与同级终态集合。
-export const APPLICATION_STATUS_ORDER: ApplicationStatus[] = [...ACTIVE_APPLICATION_STAGES, 'offer']
+export const APPLICATION_STATUS_ORDER: ApplicationStatus[] = [
+  ...ACTIVE_APPLICATION_STAGES,
+  'offer',
+]
 
 export const TRACKER_PRIMARY_ACTION_TEXT = '新增职位'
 
@@ -98,7 +155,10 @@ export const TRACKER_NEXT_ACTION_LABELS: Record<ApplicationStatus, string> = {
 }
 
 // 阶段状态配置
-export const STAGE_STATUS_CONFIG: Record<StageStatus, { label: string, color: string }> = {
+export const STAGE_STATUS_CONFIG: Record<
+  StageStatus,
+  { label: string; color: string }
+> = {
   待处理: { label: '待处理', color: 'text-gray-500' },
   进行中: { label: '进行中', color: 'text-blue-500' },
   已完成: { label: '已通过', color: 'text-green-500' },
@@ -106,7 +166,12 @@ export const STAGE_STATUS_CONFIG: Record<StageStatus, { label: string, color: st
 }
 
 // 阶段状态选项
-export const STAGE_STATUS_OPTIONS: StageStatus[] = ['待处理', '进行中', '已完成', '已拒绝']
+export const STAGE_STATUS_OPTIONS: StageStatus[] = [
+  '待处理',
+  '进行中',
+  '已完成',
+  '已拒绝',
+]
 
 // 视图模式标签
 export const VIEW_MODE_LABELS = {
@@ -115,10 +180,139 @@ export const VIEW_MODE_LABELS = {
 }
 
 // 默认面试子阶段模板
-export const DEFAULT_INTERVIEW_SUB_STAGES: string[] = ['一面', '二面', '三面', 'HR面']
+export const DEFAULT_INTERVIEW_SUB_STAGES: string[] = [
+  '一面',
+  '二面',
+  '三面',
+  'HR面',
+]
 
-export const COMMON_COMPANIES = ['腾讯', '阿里巴巴', '字节跳动', '美团', '京东', '网易', '百度', '华为', '小米', '拼多多', '快手', '哔哩哔哩', '滴滴出行', '蚂蚁集团', '携程', '微软中国', '谷歌中国', 'OPPO', 'vivo', '荣耀', '联想', '中兴', '大疆', '商汤科技', '旷视科技', '地平线', '蔚来', '理想汽车', '小鹏汽车', '比亚迪', '小红书', '知乎', '微博', '陌陌', '虎牙', '斗鱼', '去哪儿', '58同城', '贝壳找房', '作业帮', '猿辅导', '得物', '叮咚买菜', '饿了么', '货拉拉', '七牛云', 'UCloud', '金山办公', 'SHEIN', 'Shopee']
+export const COMMON_COMPANIES = [
+  '腾讯',
+  '阿里巴巴',
+  '字节跳动',
+  '美团',
+  '京东',
+  '网易',
+  '百度',
+  '华为',
+  '小米',
+  '拼多多',
+  '快手',
+  '哔哩哔哩',
+  '滴滴出行',
+  '蚂蚁集团',
+  '携程',
+  '微软中国',
+  '谷歌中国',
+  'OPPO',
+  'vivo',
+  '荣耀',
+  '联想',
+  '中兴',
+  '大疆',
+  '商汤科技',
+  '旷视科技',
+  '地平线',
+  '蔚来',
+  '理想汽车',
+  '小鹏汽车',
+  '比亚迪',
+  '小红书',
+  '知乎',
+  '微博',
+  '陌陌',
+  '虎牙',
+  '斗鱼',
+  '去哪儿',
+  '58同城',
+  '贝壳找房',
+  '作业帮',
+  '猿辅导',
+  '得物',
+  '叮咚买菜',
+  '饿了么',
+  '货拉拉',
+  '七牛云',
+  'UCloud',
+  '金山办公',
+  'SHEIN',
+  'Shopee',
+]
 
-export const COMMON_POSITIONS = ['前端开发工程师', '后端开发工程师', '全栈开发工程师', 'Java 开发工程师', 'Go 开发工程师', 'Python 开发工程师', 'C++ 开发工程师', 'iOS 开发工程师', 'Android 开发工程师', '大数据开发工程师', '数据分析师', '算法工程师', '机器学习工程师', 'NLP 工程师', 'CV 算法工程师', '推荐算法工程师', '运维工程师', 'DevOps 工程师', 'SRE 工程师', '云原生开发工程师', '嵌入式开发工程师', '安全工程师', '测试开发工程师', 'QA 工程师', '产品经理', 'UI 设计师', 'UX 设计师', '交互设计师', '项目经理', '技术经理', '架构师', 'DBA', '数据工程师', '游戏开发工程师', '音视频开发工程师', '区块链开发工程师']
+export const COMMON_POSITIONS = [
+  '前端开发工程师',
+  '后端开发工程师',
+  '全栈开发工程师',
+  'Java 开发工程师',
+  'Go 开发工程师',
+  'Python 开发工程师',
+  'C++ 开发工程师',
+  'iOS 开发工程师',
+  'Android 开发工程师',
+  '大数据开发工程师',
+  '数据分析师',
+  '算法工程师',
+  '机器学习工程师',
+  'NLP 工程师',
+  'CV 算法工程师',
+  '推荐算法工程师',
+  '运维工程师',
+  'DevOps 工程师',
+  'SRE 工程师',
+  '云原生开发工程师',
+  '嵌入式开发工程师',
+  '安全工程师',
+  '测试开发工程师',
+  'QA 工程师',
+  '产品经理',
+  'UI 设计师',
+  'UX 设计师',
+  '交互设计师',
+  '项目经理',
+  '技术经理',
+  '架构师',
+  'DBA',
+  '数据工程师',
+  '游戏开发工程师',
+  '音视频开发工程师',
+  '区块链开发工程师',
+]
 
-export const COMMON_CITIES = ['北京', '上海', '广州', '深圳', '杭州', '成都', '南京', '武汉', '西安', '苏州', '长沙', '重庆', '天津', '郑州', '合肥', '青岛', '厦门', '大连', '珠海', '东莞', '佛山', '无锡', '宁波', '福州', '昆明', '贵阳', '济南', '哈尔滨', '沈阳', '南昌', '海口', '太原', '石家庄', '兰州', '南宁']
+export const COMMON_CITIES = [
+  '北京',
+  '上海',
+  '广州',
+  '深圳',
+  '杭州',
+  '成都',
+  '南京',
+  '武汉',
+  '西安',
+  '苏州',
+  '长沙',
+  '重庆',
+  '天津',
+  '郑州',
+  '合肥',
+  '青岛',
+  '厦门',
+  '大连',
+  '珠海',
+  '东莞',
+  '佛山',
+  '无锡',
+  '宁波',
+  '福州',
+  '昆明',
+  '贵阳',
+  '济南',
+  '哈尔滨',
+  '沈阳',
+  '南昌',
+  '海口',
+  '太原',
+  '石家庄',
+  '兰州',
+  '南宁',
+]

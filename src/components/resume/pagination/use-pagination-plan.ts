@@ -33,8 +33,7 @@ export function usePaginationPlan({
   const generationRef = useRef(0)
 
   useEffect(() => {
-    if (!page || !viewport || !source)
-      return
+    if (!page || !viewport || !source) return
 
     const generation = ++generationRef.current
     let disposed = false
@@ -42,55 +41,65 @@ export function usePaginationPlan({
     let measurementId = 0
 
     const isCurrent = (requestId: number) =>
-      !disposed
-      && generationRef.current === generation
-      && measurementId === requestId
+      !disposed &&
+      generationRef.current === generation &&
+      measurementId === requestId
 
     const measure = async (requestId: number) => {
       setStatus('measuring')
       setError(null)
 
       try {
-        const gate = source.querySelector<HTMLElement>('[data-resume-runtime-ready="false"]')
+        const gate = source.querySelector<HTMLElement>(
+          '[data-resume-runtime-ready="false"]',
+        )
+
         if (gate) {
           if (gate.dataset.resumeRuntimeError)
             throw new Error(gate.dataset.resumeRuntimeError)
+
           return
         }
-        await Promise.all([waitForResumeFont(source.ownerDocument, familyName, weights), waitForResumeImages(source)])
+
+        await Promise.all([
+          waitForResumeFont(source.ownerDocument, familyName, weights),
+          waitForResumeImages(source),
+        ])
+
         let previous: PaginationSnapshot | null = null
 
         for (let frame = 0; frame < MAX_STABILITY_FRAMES; frame += 1) {
           await nextAnimationFrame()
-          if (!isCurrent(requestId))
-            return
+
+          if (!isCurrent(requestId)) return
 
           const current = measurePaginationSnapshot({
             page,
             viewport,
             source,
-            fontFamily: source.ownerDocument.defaultView
-              ?.getComputedStyle(source)
-              .fontFamily ?? familyName,
+            fontFamily:
+              source.ownerDocument.defaultView?.getComputedStyle(source)
+                .fontFamily ?? familyName,
           })
 
           if (
-            previous
-            && layoutSignaturesEqual(previous.signature, current.signature)
+            previous &&
+            layoutSignaturesEqual(previous.signature, current.signature)
           ) {
             setMeasuredVersion(contentVersion)
             setSnapshot(current)
             setStatus('ready')
+
             return
           }
+
           previous = current
         }
 
         throw new Error('简历布局在限定时间内未稳定')
-      }
-      catch (caught) {
-        if (!isCurrent(requestId))
-          return
+      } catch (caught) {
+        if (!isCurrent(requestId)) return
+
         setMeasuredVersion(contentVersion)
         setStatus('error')
         setError(caught instanceof Error ? caught.message : '简历分页失败')
@@ -99,8 +108,11 @@ export function usePaginationPlan({
 
     const schedule = () => {
       setStatus('measuring')
+
       const requestId = ++measurementId
+
       cancelAnimationFrame(scheduledFrame)
+
       scheduledFrame = requestAnimationFrame(() => {
         measure(requestId).catch(() => undefined)
       })
@@ -108,9 +120,24 @@ export function usePaginationPlan({
 
     const resizeObserver = new ResizeObserver(schedule)
     const mutationObserver = new MutationObserver(schedule)
-    mutationObserver.observe(source, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-resume-runtime-ready', 'data-resume-runtime-error', 'src'] })
+
+    mutationObserver.observe(source, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: [
+        'data-resume-runtime-ready',
+        'data-resume-runtime-error',
+        'src',
+      ],
+    })
+
     resizeObserver.observe(source)
-    source.querySelectorAll('[data-resume-region-source]').forEach(region => resizeObserver.observe(region))
+
+    source
+      .querySelectorAll('[data-resume-region-source]')
+      .forEach((region) => resizeObserver.observe(region))
+
     resizeObserver.observe(viewport)
     schedule()
 
@@ -122,15 +149,16 @@ export function usePaginationPlan({
       resizeObserver.disconnect()
       mutationObserver.disconnect()
     }
-  }, [
-    contentVersion,
-    familyName,
-    page,
-    source,
-    viewport,
-    weights,
-  ])
+  }, [contentVersion, familyName, page, source, viewport, weights])
 
   const current = measuredVersion === contentVersion
-  return { status: current ? status : 'measuring' as const, snapshot: current ? snapshot : null, error: current ? error : null }
+
+  return {
+    status: current ? status : ('measuring' as const),
+    snapshot: current ? snapshot : null,
+    // 重测期间保留展示页，避免文档暂时缩成一页后被浏览器钳制滚动位置。
+    // 旧结果仅用于展示；当前版本的签名仍由 snapshot 单独提供。
+    displaySnapshot: snapshot,
+    error: current ? error : null,
+  }
 }

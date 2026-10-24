@@ -11,10 +11,7 @@ import { AlignRightIcon } from '@/components/tiptap-icons/align-right-icon'
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 // --- Lib ---
-import {
-  isExtensionAvailable,
-  isNodeTypeSelected,
-} from '@/lib/tiptap-utils'
+import { isExtensionAvailable, isNodeTypeSelected } from '@/lib/tiptap-utils'
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 
@@ -69,11 +66,10 @@ export function canSetTextAlign(
   editor: Editor | null,
   align: TextAlign,
 ): boolean {
-  if (!editor || !editor.isEditable)
-    return false
+  if (!editor || !editor.isEditable) return false
   if (
-    !isExtensionAvailable(editor, 'textAlign')
-    || isNodeTypeSelected(editor, ['image', 'horizontalRule'])
+    !isExtensionAvailable(editor, 'textAlign') ||
+    isNodeTypeSelected(editor, ['image', 'horizontalRule'])
   ) {
     return false
   }
@@ -96,8 +92,8 @@ export function isTextAlignActive(
   editor: Editor | null,
   align: TextAlign,
 ): boolean {
-  if (!editor || !editor.isEditable)
-    return false
+  if (!editor || !editor.isEditable) return false
+
   return editor.isActive({ textAlign: align })
 }
 
@@ -105,12 +101,11 @@ export function isTextAlignActive(
  * Sets text alignment in the editor
  */
 export function setTextAlign(editor: Editor | null, align: TextAlign): boolean {
-  if (!editor || !editor.isEditable)
-    return false
-  if (!canSetTextAlign(editor, align))
-    return false
+  if (!editor || !editor.isEditable) return false
+  if (!canSetTextAlign(editor, align)) return false
 
   const chain = editor.chain().focus()
+
   if (hasSetTextAlign(chain)) {
     return chain.setTextAlign(align).run()
   }
@@ -128,10 +123,8 @@ export function shouldShowButton(props: {
 }): boolean {
   const { editor, hideWhenUnavailable, align } = props
 
-  if (!editor || !editor.isEditable)
-    return false
-  if (!isExtensionAvailable(editor, 'textAlign'))
-    return false
+  if (!editor || !editor.isEditable) return false
+  if (!isExtensionAvailable(editor, 'textAlign')) return false
 
   if (hideWhenUnavailable && !editor.isActive('code')) {
     return canSetTextAlign(editor, align)
@@ -191,8 +184,7 @@ export function useTextAlign(config: UseTextAlignConfig) {
   const isActive = isTextAlignActive(editor, align)
 
   React.useEffect(() => {
-    if (!editor)
-      return
+    if (!editor) return
 
     const handleSelectionUpdate = () => {
       setIsVisible(shouldShowButton({ editor, align, hideWhenUnavailable }))
@@ -208,13 +200,14 @@ export function useTextAlign(config: UseTextAlignConfig) {
   }, [editor, hideWhenUnavailable, align])
 
   const handleTextAlign = React.useCallback(() => {
-    if (!editor)
-      return false
+    if (!editor) return false
 
     const success = setTextAlign(editor, align)
+
     if (success) {
       onAligned?.()
     }
+
     return success
   }, [editor, align, onAligned])
 

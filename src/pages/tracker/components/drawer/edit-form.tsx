@@ -10,12 +10,13 @@ import useTrackerStore from '../../store'
 import { getTrackerErrorMessage } from '../../utils'
 import { TrackerCombobox } from './tracker-combobox'
 
-function parseSalaryRange(salary: string): { min: string, max: string } {
-  if (!salary)
-    return { min: '', max: '' }
+function parseSalaryRange(salary: string): { min: string; max: string } {
+  if (!salary) return { min: '', max: '' }
+
   const nums = salary.match(/\d+/g)
-  if (!nums)
-    return { min: '', max: '' }
+
+  if (!nums) return { min: '', max: '' }
+
   return { min: nums[0] || '', max: nums[1] || '' }
 }
 
@@ -24,8 +25,17 @@ interface DrawerEditFormProps {
   onCancel: () => void
 }
 
-export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProps) {
-  const { selectedJob, saveJobFields } = useTrackerStore(useShallow(state => ({ selectedJob: state.selectedJob, saveJobFields: state.saveJobFields })))
+export default function DrawerEditForm({
+  onSaved,
+  onCancel,
+}: DrawerEditFormProps) {
+  const { selectedJob, saveJobFields } = useTrackerStore(
+    useShallow((state) => ({
+      selectedJob: state.selectedJob,
+      saveJobFields: state.saveJobFields,
+    })),
+  )
+
   const [saving, setSaving] = useState(false)
 
   const parsedSalary = parseSalaryRange(selectedJob?.salary || '')
@@ -41,12 +51,11 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
   })
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   const handleSubmit = async () => {
-    if (!selectedJob)
-      return
+    if (!selectedJob) return
 
     setSaving(true)
 
@@ -55,22 +64,23 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
         company: formData.company,
         position: formData.position,
         location: formData.location,
-        salary: formData.salaryMin && formData.salaryMax
-          ? `${formData.salaryMin}K-${formData.salaryMax}K`
-          : formData.salaryMin ? `${formData.salaryMin}K` : null,
+        salary:
+          formData.salaryMin && formData.salaryMax
+            ? `${formData.salaryMin}K-${formData.salaryMax}K`
+            : formData.salaryMin
+              ? `${formData.salaryMin}K`
+              : null,
         job_url: formData.job_url || null,
         company_logo: formData.company_logo.trim() || null,
       })
 
       onSaved()
-    }
-    catch (error) {
-      if (isTrackerAccountScopeError(error))
-        return
+    } catch (error) {
+      if (isTrackerAccountScopeError(error)) return
+
       console.error('Failed to update job:', error)
       toast.error('更新失败', { description: getTrackerErrorMessage(error) })
-    }
-    finally {
+    } finally {
       setSaving(false)
     }
   }
@@ -78,89 +88,98 @@ export default function DrawerEditForm({ onSaved, onCancel }: DrawerEditFormProp
   const isActionDisabled = saving || !selectedJob
 
   return (
-    <div className="flex flex-col gap-4">
-      <FieldGroup className="gap-3">
+    <div className='flex flex-col gap-4'>
+      <FieldGroup className='gap-3'>
         <Field>
-          <FieldLabel htmlFor="company">公司名称</FieldLabel>
+          <FieldLabel htmlFor='company'>公司名称</FieldLabel>
           <TrackerCombobox
-            id="company"
+            id='company'
             value={formData.company}
-            onChange={value => handleChange('company', value)}
+            onChange={(value) => handleChange('company', value)}
             options={COMMON_COMPANIES}
-            placeholder="搜索或输入公司名称"
+            placeholder='搜索或输入公司名称'
           />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="position">职位名称</FieldLabel>
+          <FieldLabel htmlFor='position'>职位名称</FieldLabel>
           <TrackerCombobox
-            id="position"
+            id='position'
             value={formData.position}
-            onChange={value => handleChange('position', value)}
+            onChange={(value) => handleChange('position', value)}
             options={COMMON_POSITIONS}
-            placeholder="搜索或输入职位名称"
+            placeholder='搜索或输入职位名称'
           />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="location">工作地点</FieldLabel>
+          <FieldLabel htmlFor='location'>工作地点</FieldLabel>
           <TrackerCombobox
-            id="location"
+            id='location'
             value={formData.location}
-            onChange={value => handleChange('location', value)}
+            onChange={(value) => handleChange('location', value)}
             options={COMMON_CITIES}
-            placeholder="搜索或输入地点"
+            placeholder='搜索或输入地点'
           />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="salary-min">薪资范围</FieldLabel>
-          <div className="flex items-center gap-2">
+          <FieldLabel htmlFor='salary-min'>薪资范围</FieldLabel>
+          <div className='flex items-center gap-2'>
             <Input
-              id="salary-min"
-              type="number"
-              placeholder="最低"
+              id='salary-min'
+              type='number'
+              placeholder='最低'
               value={formData.salaryMin}
-              onChange={e => handleChange('salaryMin', e.target.value)}
+              onChange={(e) => handleChange('salaryMin', e.target.value)}
             />
-            <span className="text-sm text-muted-foreground shrink-0">K ~</span>
+            <span className='text-sm text-muted-foreground shrink-0'>K ~</span>
             <Input
-              id="salary-max"
-              type="number"
-              placeholder="最高"
+              id='salary-max'
+              type='number'
+              placeholder='最高'
               value={formData.salaryMax}
-              onChange={e => handleChange('salaryMax', e.target.value)}
+              onChange={(e) => handleChange('salaryMax', e.target.value)}
             />
-            <span className="text-sm text-muted-foreground shrink-0">K</span>
+            <span className='text-sm text-muted-foreground shrink-0'>K</span>
           </div>
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="job-url">JD 链接</FieldLabel>
+          <FieldLabel htmlFor='job-url'>JD 链接</FieldLabel>
           <Input
-            id="job-url"
-            placeholder="https://..."
+            id='job-url'
+            placeholder='https://...'
             value={formData.job_url}
-            onChange={e => handleChange('job_url', e.target.value)}
+            onChange={(e) => handleChange('job_url', e.target.value)}
           />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="company-logo">公司 Logo 链接</FieldLabel>
+          <FieldLabel htmlFor='company-logo'>公司 Logo 链接</FieldLabel>
           <Input
-            id="company-logo"
-            placeholder="https://... （可选，图片地址）"
+            id='company-logo'
+            placeholder='https://... （可选，图片地址）'
             value={formData.company_logo}
-            onChange={e => handleChange('company_logo', e.target.value)}
+            onChange={(e) => handleChange('company_logo', e.target.value)}
           />
         </Field>
       </FieldGroup>
 
-      <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row">
-        <Button className="flex-1" onClick={() => handleSubmit()} disabled={isActionDisabled}>
+      <div className='flex flex-col-reverse gap-2 pt-2 sm:flex-row'>
+        <Button
+          className='flex-1'
+          onClick={() => handleSubmit()}
+          disabled={isActionDisabled}
+        >
           保存
         </Button>
-        <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isActionDisabled}>
+        <Button
+          variant='outline'
+          className='flex-1'
+          onClick={onCancel}
+          disabled={isActionDisabled}
+        >
           取消
         </Button>
       </div>

@@ -7,7 +7,7 @@ let cached: string | null = null
  * schema 在进程内是静态的，第一次调用时构建，后续命中缓存。
  */
 export function getResumeSchemaDoc(): string {
-  if (cached == null)
-    cached = buildResumeSchemaDoc()
+  if (cached == null) cached = buildResumeSchemaDoc()
+
   return cached
 }

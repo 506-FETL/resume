@@ -1,9 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import type { BubbleRect } from './bubble-positioning'
-import {
-  combineRects,
-  getVisibleSelectionRects,
-} from './bubble-positioning'
+import { combineRects, getVisibleSelectionRects } from './bubble-positioning'
 
 function toBubbleRect(rect: DOMRect): BubbleRect {
   return {
@@ -17,12 +14,7 @@ function toBubbleRect(rect: DOMRect): BubbleRect {
 }
 
 function toDOMRect(rect: BubbleRect) {
-  return new DOMRect(
-    rect.left,
-    rect.top,
-    rect.width,
-    rect.height,
-  )
+  return new DOMRect(rect.left, rect.top, rect.width, rect.height)
 }
 
 export function createSelectionVirtualElement(
@@ -30,38 +22,40 @@ export function createSelectionVirtualElement(
   boundary: HTMLElement,
 ) {
   const { from, to } = editor.state.selection
-  if (from === to)
-    return null
+
+  if (from === to) return null
 
   try {
     const start = editor.view.domAtPos(from)
     const end = editor.view.domAtPos(to)
     const range = document.createRange()
+
     range.setStart(start.node, start.offset)
     range.setEnd(end.node, end.offset)
 
-    const getRawRects = () => Array.from(
-      range.getClientRects(),
-      toBubbleRect,
-    ).filter(rect => rect.width > 0 && rect.height > 0)
-    const getPositionRects = () => getVisibleSelectionRects(
-      getRawRects(),
-      toBubbleRect(boundary.getBoundingClientRect()),
-    )
+    const getRawRects = () =>
+      Array.from(range.getClientRects(), toBubbleRect).filter(
+        (rect) => rect.width > 0 && rect.height > 0,
+      )
 
-    if (getPositionRects().length === 0)
-      return null
+    const getPositionRects = () =>
+      getVisibleSelectionRects(
+        getRawRects(),
+        toBubbleRect(boundary.getBoundingClientRect()),
+      )
+
+    if (getPositionRects().length === 0) return null
 
     return {
       contextElement: editor.view.dom,
       getClientRects: () => getPositionRects().map(toDOMRect),
       getBoundingClientRect: () => {
         const combined = combineRects(getPositionRects())
+
         return combined ? toDOMRect(combined) : new DOMRect()
       },
     }
-  }
-  catch {
+  } catch {
     return null
   }
 }

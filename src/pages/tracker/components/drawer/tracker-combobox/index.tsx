@@ -26,7 +26,7 @@ export function TrackerCombobox({
       value={value || null}
       inputValue={value}
       onInputValueChange={onChange}
-      onValueChange={nextValue => onChange(nextValue ?? '')}
+      onValueChange={(nextValue) => onChange(nextValue ?? '')}
     >
       <ComboboxInput id={id} placeholder={placeholder} showClear />
       <ComboboxContent>

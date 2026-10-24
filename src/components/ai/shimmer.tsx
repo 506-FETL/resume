@@ -18,10 +18,20 @@ function ShimmerComponent({
   spread = 2,
 }: TextShimmerProps) {
   const reduceMotion = useReducedMotion()
-  const dynamicSpread = useMemo(() => (children?.length ?? 0) * spread, [children, spread])
+
+  const dynamicSpread = useMemo(
+    () => (children?.length ?? 0) * spread,
+    [children, spread],
+  )
 
   if (reduceMotion)
-    return <div className={cn('relative inline-block text-muted-foreground', className)}>{children}</div>
+    return (
+      <div
+        className={cn('relative inline-block text-muted-foreground', className)}
+      >
+        {children}
+      </div>
+    )
 
   return (
     <motion.div
@@ -35,7 +45,7 @@ function ShimmerComponent({
       style={
         {
           '--spread': `${dynamicSpread}px`,
-          'backgroundImage':
+          backgroundImage:
             'var(--bg), linear-gradient(var(--color-muted-foreground), var(--color-muted-foreground))',
         } as CSSProperties
       }

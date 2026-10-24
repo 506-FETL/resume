@@ -7,6 +7,7 @@ export function useHistoryMotion() {
   const enter = { duration: reduceMotion ? 0 : DURATION.base, ease: EASE.out }
   const exit = { duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.in }
   const layout = reduceMotion ? { duration: 0 } : SPRING.layout
+
   const style = {
     '--history-fast': `${reduceMotion ? 0 : DURATION.fast}s`,
     '--history-base': `${reduceMotion ? 0 : DURATION.base}s`,
@@ -19,6 +20,10 @@ export function useHistoryMotion() {
     enter,
     exit,
     layout,
-    surfaceProps: { 'className': 'history-motion-surface', style, 'data-reduced-motion': reduceMotion },
+    surfaceProps: {
+      className: 'history-motion-surface',
+      style,
+      'data-reduced-motion': reduceMotion,
+    },
   }
 }

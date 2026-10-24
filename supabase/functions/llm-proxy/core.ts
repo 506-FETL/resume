@@ -23,6 +23,7 @@ export function classifyUpstreamFailure(status: number): UpstreamFailure {
       failure: 'upstream_429',
     }
   }
+
   return {
     code: 'upstream_unavailable',
     status: 503,
@@ -31,5 +32,5 @@ export function classifyUpstreamFailure(status: number): UpstreamFailure {
 }
 
 export function streamFailureDeliveryState(deliveryStarted: boolean) {
-  return deliveryStarted ? 'partial' as const : 'none' as const
+  return deliveryStarted ? ('partial' as const) : ('none' as const)
 }

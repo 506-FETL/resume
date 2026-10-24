@@ -3,8 +3,17 @@ import type { CollaborationCallbacks } from '@/lib/automerge'
 import { toast } from 'sonner'
 import { addParticipant, createParticipant, removeParticipant } from './state'
 
-export function createSessionCallbacks(options: SessionCallbacksOptions): CollaborationCallbacks {
-  const { role, identity, getState, setState, adapterPeerIdRef, isCurrentSession } = options
+export function createSessionCallbacks(
+  options: SessionCallbacksOptions,
+): CollaborationCallbacks {
+  const {
+    role,
+    identity,
+    getState,
+    setState,
+    adapterPeerIdRef,
+    isCurrentSession,
+  } = options
 
   return {
     presenceMetadata: { ...identity, role },
@@ -12,9 +21,13 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
       if (isCurrentSession()) {
         if (role === 'guest') {
           getState().handleRemoteShareEnd()
-        }
-        else {
-          setState({ isSharing: false, isConnecting: false, phase: 'error', error: '协作连接已断开，请重新开启协作' })
+        } else {
+          setState({
+            isSharing: false,
+            isConnecting: false,
+            phase: 'error',
+            error: '协作连接已断开，请重新开启协作',
+          })
         }
       }
     },
@@ -24,7 +37,7 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
         return
       }
 
-      setState(state => ({
+      setState((state) => ({
         participants: isCurrentSession()
           ? addParticipant(
               state.participants,
@@ -33,22 +46,27 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
           : state.participants,
       }))
 
-      if (!isCurrentSession())
-        return
+      if (!isCurrentSession()) return
 
       const participantMetadata = getState().participants[peerId]?.metadata
-      const displayName = participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
-      toast.success(`${displayName} 加入协作`, { description: '已同步最新内容' })
+
+      const displayName =
+        participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
+
+      toast.success(`${displayName} 加入协作`, {
+        description: '已同步最新内容',
+      })
     },
 
     onPeerLeave: ({ peerId }) => {
-      if (!isCurrentSession())
-        return
+      if (!isCurrentSession()) return
 
       const participantMetadata = getState().participants[peerId]?.metadata
-      const displayName = participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
 
-      setState(state => ({
+      const displayName =
+        participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
+
+      setState((state) => ({
         participants: isCurrentSession()
           ? removeParticipant(state.participants, peerId)
           : state.participants,
@@ -61,9 +79,9 @@ export function createSessionCallbacks(options: SessionCallbacksOptions): Collab
 
     onControlMessage: ({ type }) => {
       if (
-        isCurrentSession()
-        && type === 'share-ended'
-        && getState().role !== 'host'
+        isCurrentSession() &&
+        type === 'share-ended' &&
+        getState().role !== 'host'
       ) {
         getState().handleRemoteShareEnd()
       }

@@ -1,6 +1,10 @@
 import type { SuggestionKind, ValueType } from '@/pages/optimize/types'
 import { detectValueType, getFieldLabel } from '@/pages/optimize/utils'
-import { COLLECTION_LABEL_MAP, ITEM_LABEL_PREFIX_MAP, SECTION_LABEL_MAP } from './const'
+import {
+  COLLECTION_LABEL_MAP,
+  ITEM_LABEL_PREFIX_MAP,
+  SECTION_LABEL_MAP,
+} from './const'
 import { isStructurallyEmpty } from './text'
 
 type PathSegment = string | number
@@ -18,25 +22,38 @@ function pathToString(path: PathSegment[]) {
 function getFieldLabelFromPath(path: PathSegment[]) {
   const pathString = pathToString(path)
   const collectionLabel = COLLECTION_LABEL_MAP[pathString]
+
   if (collectionLabel) {
     return collectionLabel
   }
 
-  const lastStringSegment = [...path].reverse().find(segment => typeof segment === 'string')
+  const lastStringSegment = [...path]
+    .reverse()
+    .find((segment) => typeof segment === 'string')
 
   if (!lastStringSegment || lastStringSegment === path[0]) {
     const sectionKey = String(path[0] ?? '')
-    return SECTION_LABEL_MAP[sectionKey as keyof import('@/lib/schema').ResumeSchema] ?? sectionKey
+
+    return (
+      SECTION_LABEL_MAP[
+        sectionKey as keyof import('@/lib/schema').ResumeSchema
+      ] ?? sectionKey
+    )
   }
 
   return getFieldLabel(String(lastStringSegment))
 }
 
 function getItemLabelFromPath(path: PathSegment[]) {
-  const itemIndex = path.findIndex(segment => segment === 'items')
+  const itemIndex = path.findIndex((segment) => segment === 'items')
+
   if (itemIndex >= 0 && typeof path[itemIndex + 1] === 'number') {
     const sectionKey = String(path[0] ?? '')
-    const prefix = ITEM_LABEL_PREFIX_MAP[`${sectionKey}.items`] ?? SECTION_LABEL_MAP[sectionKey as keyof import('@/lib/schema').ResumeSchema]
+
+    const prefix =
+      ITEM_LABEL_PREFIX_MAP[`${sectionKey}.items`] ??
+      SECTION_LABEL_MAP[sectionKey as keyof import('@/lib/schema').ResumeSchema]
+
     return `${prefix} ${Number(path[itemIndex + 1]) + 1}`
   }
 
@@ -59,22 +76,38 @@ function getItemLabelFromPath(path: PathSegment[]) {
 export function toSuggestionLocate(path: PathSegment[]) {
   return {
     path: pathToString(path),
-    sectionLabel: SECTION_LABEL_MAP[String(path[0]) as keyof import('@/lib/schema').ResumeSchema] ?? String(path[0]),
+    sectionLabel:
+      SECTION_LABEL_MAP[
+        String(path[0]) as keyof import('@/lib/schema').ResumeSchema
+      ] ?? String(path[0]),
     fieldLabel: getFieldLabelFromPath(path),
     itemLabel: getItemLabelFromPath(path),
   }
 }
 
-export function pickSuggestionKind(before: unknown, after: unknown, path: string): SuggestionKind {
+export function pickSuggestionKind(
+  before: unknown,
+  after: unknown,
+  path: string,
+): SuggestionKind {
   if (isStructurallyEmpty(before) && !isStructurallyEmpty(after)) {
     return 'fill_field'
   }
 
-  if (path.endsWith('Duration') || path.endsWith('.duration') || path.endsWith('birthMonth') || path.endsWith('dateEntry')) {
+  if (
+    path.endsWith('Duration') ||
+    path.endsWith('.duration') ||
+    path.endsWith('birthMonth') ||
+    path.endsWith('dateEntry')
+  ) {
     return 'normalize_date'
   }
 
-  if ((typeof before === 'string' || typeof after === 'string') && !Array.isArray(before) && !Array.isArray(after)) {
+  if (
+    (typeof before === 'string' || typeof after === 'string') &&
+    !Array.isArray(before) &&
+    !Array.isArray(after)
+  ) {
     return 'replace_text'
   }
 
@@ -83,6 +116,7 @@ export function pickSuggestionKind(before: unknown, after: unknown, path: string
 
 export function toSuggestionValueType(value: unknown): ValueType {
   const detected = detectValueType(value)
+
   return detected === 'empty' ? 'string' : detected
 }
 

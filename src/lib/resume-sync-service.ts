@@ -9,7 +9,10 @@
 
 import type { ResumeType } from '@/lib/schema'
 import { toast } from 'sonner'
-import { getAllOfflineResumes, migrateOfflineResumesToCloud } from './offline-resume-manager'
+import {
+  getAllOfflineResumes,
+  migrateOfflineResumesToCloud,
+} from './offline-resume-manager'
 import { uploadOfflineResumeToCloud } from './supabase/resume/form'
 import { getCurrentUser } from './supabase/user'
 
@@ -19,10 +22,11 @@ import { getCurrentUser } from './supabase/user'
 export async function hasOfflineResumesToSync() {
   try {
     const offlineResumes = await getAllOfflineResumes()
+
     return offlineResumes.length > 0
-  }
-  catch {
+  } catch {
     toast.error('检查本地简历失败，请稍后重试')
+
     return false
   }
 }
@@ -34,6 +38,7 @@ export async function hasOfflineResumesToSync() {
 export async function syncOfflineResumesToCloud(selectedIds?: string[]) {
   // 检查用户是否已登录
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登录，无法同步简历')
   }
@@ -63,8 +68,7 @@ export async function autoSyncOnLogin() {
   try {
     const hasOfflineResumes = await hasOfflineResumesToSync()
 
-    if (!hasOfflineResumes)
-      return
+    if (!hasOfflineResumes) return
 
     // 显示同步提示
     const syncPromise = syncOfflineResumesToCloud()
@@ -75,6 +79,7 @@ export async function autoSyncOnLogin() {
         if (result.failed > 0) {
           return `同步完成：成功 ${result.success} 个，失败 ${result.failed} 个`
         }
+
         return `成功同步 ${result.success} 个本地简历到云端`
       },
       error: '同步失败，请稍后重试',
@@ -87,8 +92,7 @@ export async function autoSyncOnLogin() {
       console.error('同步失败的简历:', result.errors)
       toast.error(`部分简历同步失败，详情请查看控制台`)
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('自动同步失败:', error)
     toast.error('同步本地简历失败，请稍后重试')
   }

@@ -12,11 +12,11 @@ interface ReadonlyFieldProps {
 export function ReadonlyField({ id, label, icon, value }: ReadonlyFieldProps) {
   return (
     <Field>
-      <FieldLabel htmlFor={id} className="items-center">
+      <FieldLabel htmlFor={id} className='items-center'>
         {icon}
         {label}
       </FieldLabel>
-      <Input id={id} value={value} disabled className="bg-muted" />
+      <Input id={id} value={value} disabled className='bg-muted' />
     </Field>
   )
 }

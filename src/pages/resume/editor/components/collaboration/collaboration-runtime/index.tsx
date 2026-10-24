@@ -19,9 +19,9 @@ export function CollaborationRuntime({
   updateActiveTabId,
   scrollContainerRef,
 }: CollaborationRuntimeProps) {
-  const roomName = useCollaborationStore(state => state.roomName)
-  const isSharing = useCollaborationStore(state => state.isSharing)
-  const self = useCollaborationStore(state => state.self)
+  const roomName = useCollaborationStore((state) => state.roomName)
+  const isSharing = useCollaborationStore((state) => state.isSharing)
+  const self = useCollaborationStore((state) => state.self)
 
   if (!roomName || !isSharing || !self) {
     return null

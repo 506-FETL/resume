@@ -12,23 +12,25 @@ interface RealtimeCursorsProps {
   identity: CollaborationIdentity
 }
 
-export const RealtimeCursors = memo(({ roomName, identity }: RealtimeCursorsProps) => {
-  const { cursors } = useRealtimeCursors({
-    roomName,
-    username: identity.userName,
-    color: identity.color,
-    throttleMs: THROTTLE_MS,
-  })
+export const RealtimeCursors = memo(
+  ({ roomName, identity }: RealtimeCursorsProps) => {
+    const { cursors } = useRealtimeCursors({
+      roomName,
+      username: identity.userName,
+      color: identity.color,
+      throttleMs: THROTTLE_MS,
+    })
 
-  return Object.values(cursors).map(cursor => (
-    <Cursor
-      key={cursor.user.id}
-      className="fixed z-1000 will-change-transform top-0 left-0"
-      point={cursor.position}
-      color={cursor.color}
-      name={cursor.user.name}
-    />
-  ))
-})
+    return Object.values(cursors).map((cursor) => (
+      <Cursor
+        key={cursor.user.id}
+        className='fixed z-1000 will-change-transform top-0 left-0'
+        point={cursor.position}
+        color={cursor.color}
+        name={cursor.user.name}
+      />
+    ))
+  },
+)
 
 RealtimeCursors.displayName = 'RealtimeCursors'

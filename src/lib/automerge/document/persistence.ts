@@ -1,5 +1,8 @@
 import type { AutomergeUrl, DocHandle, Repo } from '@automerge/automerge-repo'
-import type { DocumentInitializationSource, DocumentSaveResult } from '../shared'
+import type {
+  DocumentInitializationSource,
+  DocumentSaveResult,
+} from '../shared'
 import type { AutomergeResumeDocument } from './schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { next as Automerge } from '@automerge/automerge'
@@ -23,7 +26,11 @@ export class AutomergeDocumentPersistence {
   private readonly userId: string
   private readonly canPersistToSupabase: boolean
 
-  constructor(resumeId: string, userId: string, source: DocumentInitializationSource) {
+  constructor(
+    resumeId: string,
+    userId: string,
+    source: DocumentInitializationSource,
+  ) {
     this.resumeId = resumeId
     this.userId = userId
     this.canPersistToSupabase = source.kind === 'owner'
@@ -33,35 +40,43 @@ export class AutomergeDocumentPersistence {
     return this.canPersistToSupabase
   }
 
-  async loadPersistedHandle(repo: Repo): Promise<DocHandle<AutomergeResumeDocument> | null> {
+  async loadPersistedHandle(
+    repo: Repo,
+  ): Promise<DocHandle<AutomergeResumeDocument> | null> {
     const snapshot = await this.fetchSnapshotRow()
 
     if (!snapshot) {
       return null
     }
 
-    if (snapshot.document_data === null || snapshot.document_data === undefined) {
+    if (
+      snapshot.document_data === null ||
+      snapshot.document_data === undefined
+    ) {
       return null
     }
 
     let bytes: Uint8Array
+
     try {
       const decoded = decodeDocumentData(snapshot.document_data)
+
       if (!decoded?.length) {
         throw new Error('持久化简历文档内容为空或格式无效')
       }
+
       bytes = decoded
-    }
-    catch (error) {
+    } catch (error) {
       throw new Error('持久化简历文档解码失败', { cause: error })
     }
 
     try {
       const handle = repo.import<AutomergeResumeDocument>(bytes)
+
       await handle.whenReady()
+
       return handle
-    }
-    catch (error) {
+    } catch (error) {
       throw new Error('持久化简历文档导入失败', { cause: error })
     }
   }
@@ -74,20 +89,28 @@ export class AutomergeDocumentPersistence {
     try {
       const { documentId } = parseAutomergeUrl(documentUrl as AutomergeUrl)
       const bytes = decodeDocumentData(documentData)
+
       if (!bytes?.length) {
         throw new Error('共享快照为空')
       }
 
-      const handle = repo.import<AutomergeResumeDocument>(bytes, { docId: documentId })
+      const handle = repo.import<AutomergeResumeDocument>(bytes, {
+        docId: documentId,
+      })
+
       await handle.whenReady()
+
       const doc = handle.doc()
+
       if (!doc || doc._metadata?.resumeId !== this.resumeId) {
         throw new Error('共享快照与简历身份不匹配')
       }
+
       return handle
-    }
-    catch (error) {
-      throw new CollaborationDocumentLoadError('共享简历文档无效', { cause: error })
+    } catch (error) {
+      throw new CollaborationDocumentLoadError('共享简历文档无效', {
+        cause: error,
+      })
     }
   }
 
@@ -108,12 +131,22 @@ export class AutomergeDocumentPersistence {
     }
 
     const config = data as unknown as Record<string, unknown>
-    const templateBinding = await ensureCloudResumeTemplateBinding(this.resumeId, this.userId, config.template_binding)
+
+    const templateBinding = await ensureCloudResumeTemplateBinding(
+      this.resumeId,
+      this.userId,
+      config.template_binding,
+    )
+
     const { template_binding: _binding, ...snapshot } = config
+
     return { ...snapshot, templateBinding } as Partial<PersistedResumeSnapshot>
   }
 
-  async saveHandle(handle: DocHandle<AutomergeResumeDocument>, snapshot?: AutomergeResumeDocument): Promise<DocumentSaveResult> {
+  async saveHandle(
+    handle: DocHandle<AutomergeResumeDocument>,
+    snapshot?: AutomergeResumeDocument,
+  ): Promise<DocumentSaveResult> {
     const doc = snapshot ?? handle.doc()
 
     if (!doc) {
@@ -127,25 +160,23 @@ export class AutomergeDocumentPersistence {
     const binary = Automerge.save(doc)
     const heads = Automerge.getHeads(doc)
 
-    const { error } = await supabase
-      .from('automerge_documents')
-      .upsert(
-        {
-          resume_id: this.resumeId,
-          user_id: this.userId,
-          document_data: encodeBytesToBase64(binary),
-          heads,
-          document_version: doc._metadata?.version ?? 1,
-          change_count: 0,
-          updated_at: new Date().toISOString(),
-          metadata: {
-            ...(doc._metadata ? { docMetadata: doc._metadata } : {}),
-          },
+    const { error } = await supabase.from('automerge_documents').upsert(
+      {
+        resume_id: this.resumeId,
+        user_id: this.userId,
+        document_data: encodeBytesToBase64(binary),
+        heads,
+        document_version: doc._metadata?.version ?? 1,
+        change_count: 0,
+        updated_at: new Date().toISOString(),
+        metadata: {
+          ...(doc._metadata ? { docMetadata: doc._metadata } : {}),
         },
-        {
-          onConflict: 'resume_id',
-        },
-      )
+      },
+      {
+        onConflict: 'resume_id',
+      },
+    )
 
     if (error) {
       return {
