@@ -3,6 +3,7 @@ import { useHistoryMotion } from '../../../hooks/use-history-motion'
 
 export default function SelectionHighlight() {
   const { reduceMotion, layout } = useHistoryMotion()
+
   return (
     <motion.span
       aria-hidden

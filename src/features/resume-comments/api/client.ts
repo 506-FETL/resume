@@ -197,6 +197,7 @@ function asArray(value: unknown): unknown[] {
 
 function asNumber(value: unknown, fallback = 0) {
   const result = Number(value)
+
   return Number.isFinite(result) ? result : fallback
 }
 
@@ -207,10 +208,13 @@ function asNullableString(value: unknown) {
 function normalizeScope(value: unknown): CommentScopeSummary {
   const scope = asRecord(value)
   const anchorDocument = asRecord(scope.anchor_document)
+
   const nodeOrder = asArray(anchorDocument.nodes).flatMap((value) => {
     const node = asRecord(value)
+
     return typeof node.nodeKey === 'string' ? [node.nodeKey] : []
   })
+
   return {
     id: String(scope.id ?? ''),
     kind: 'version',
@@ -229,6 +233,7 @@ function normalizeAccessibleScope(
   value: unknown,
 ): AccessibleCommentScopeSummary {
   const scope = asRecord(value)
+
   return {
     id: String(scope.id ?? ''),
     kind: 'version',
@@ -244,6 +249,7 @@ function normalizeAccessibleScope(
 
 function normalizeVersion(value: unknown): CommentVersionReference {
   const version = asRecord(value)
+
   return {
     versionId: asNumber(version.id),
     versionNo: asNumber(version.version_no),
@@ -260,6 +266,7 @@ function normalizeVersion(value: unknown): CommentVersionReference {
 
 function normalizeCounts(value: unknown): CommentThreadCounts {
   const counts = asRecord(value)
+
   return {
     unresolved: asNumber(counts.unresolved),
     resolved: asNumber(counts.resolved),
@@ -271,6 +278,7 @@ function buildProfileMap(value: unknown) {
   return new Map(
     asArray(value).map((item) => {
       const profile = asRecord(item)
+
       return [
         String(profile.id ?? ''),
         {
@@ -292,9 +300,12 @@ function normalizeAuthor(
   if (deleted) {
     return { kind: 'deleted', displayName: '已删除用户' }
   }
+
   const userId = asNullableString(userIdValue)
+
   if (kindValue === 'user' && userId) {
     const profile = profiles.get(userId)
+
     return {
       kind: 'user',
       userId,
@@ -302,7 +313,9 @@ function normalizeAuthor(
       avatarUrl: profile?.avatarUrl ?? null,
     }
   }
+
   const anonymousId = asNullableString(anonymousIdValue)
+
   if (kindValue === 'anonymous' && anonymousId) {
     return {
       kind: 'anonymous',
@@ -311,6 +324,7 @@ function normalizeAuthor(
       avatarSeed: anonymousId,
     }
   }
+
   return { kind: 'deleted', displayName: '已删除用户' }
 }
 
@@ -320,6 +334,7 @@ function normalizeComment(
 ): ResumeComment {
   const comment = asRecord(value)
   const deletedAt = asNullableString(comment.deleted_at)
+
   return {
     id: String(comment.id ?? ''),
     threadId: String(comment.thread_id ?? ''),
@@ -344,9 +359,11 @@ function normalizeThreads(
   profilesValue: unknown,
 ): ResumeCommentThread[] {
   const profiles = buildProfileMap(profilesValue)
+
   return asArray(threadsValue).map((value) => {
     const thread = asRecord(value)
     const resolvedAt = asNullableString(thread.resolved_at)
+
     return {
       id: String(thread.id ?? ''),
       scopeId: String(thread.scope_id ?? ''),
@@ -385,7 +402,9 @@ function normalizeEvents(value: unknown): ResumeCommentEvent[] {
   return asArray(value).flatMap((item) => {
     const event = asRecord(item)
     const type = String(event.type ?? '') as ResumeCommentEventType
+
     if (!COMMENT_EVENT_TYPES.has(type)) return []
+
     return [
       {
         eventSeq: asNumber(event.event_seq),
@@ -405,6 +424,7 @@ function normalizeEvents(value: unknown): ResumeCommentEvent[] {
 
 function normalizeRealtimeAccess(value: unknown): CommentRealtimeAccess {
   const access = asRecord(value)
+
   return {
     topic: String(access.topic ?? ''),
     expiresAt: String(access.expiresAt ?? ''),
@@ -414,11 +434,13 @@ function normalizeRealtimeAccess(value: unknown): CommentRealtimeAccess {
 
 function normalizeThreadReadStates(value: unknown): CommentThreadReadState[] {
   const threadIds = new Set<string>()
+
   return asArray(value).map((item) => {
     const state = asRecord(item)
     const threadId = String(state.threadId ?? '')
     const latestCommentEventSeq = asNumber(state.latestCommentEventSeq)
     const lastReadEventSeq = asNumber(state.lastReadEventSeq)
+
     if (
       !threadId ||
       threadIds.has(threadId) ||
@@ -427,13 +449,16 @@ function normalizeThreadReadStates(value: unknown): CommentThreadReadState[] {
     ) {
       throw new ResumeCommentClientError('unexpected', '评论已读状态协议不兼容')
     }
+
     threadIds.add(threadId)
+
     return { threadId, latestCommentEventSeq, lastReadEventSeq }
   })
 }
 
 function normalizeBootstrap(value: unknown): CommentBootstrapResult {
   const data = asRecord(value)
+
   return {
     scope: normalizeScope(data.scope),
     version: normalizeVersion(data.version),
@@ -465,6 +490,7 @@ function readBootstrapTelemetry({
   requestId: string
 }): CommentResponseTelemetry {
   const meta = asRecord(result.meta)
+
   if (
     result.protocolVersion !== 1 ||
     !isCommentAuthMode(meta.authMode) ||
@@ -478,6 +504,7 @@ function readBootstrapTelemetry({
       requestId,
     )
   }
+
   return {
     protocolVersion: 1,
     authMode: meta.authMode,
@@ -491,11 +518,14 @@ function readBootstrapTelemetry({
 
 function normalizeMutation(value: unknown): CommentMutationResult {
   const data = asRecord(value)
+
   const normalizedThreads = data.thread
     ? normalizeThreads([data.thread], data.profiles)
     : []
+
   const thread = normalizedThreads[0] ?? null
   const commentId = asNullableString(data.commentId)
+
   const event = normalizeEvents([data.event])[0] ?? {
     eventSeq: asNumber(asRecord(data.event).event_seq, asNumber(data.eventSeq)),
     type: 'settings_changed',
@@ -503,6 +533,7 @@ function normalizeMutation(value: unknown): CommentMutationResult {
     createdAt: new Date().toISOString(),
     isOwn: true,
   }
+
   return {
     thread,
     comment: commentId
@@ -524,7 +555,9 @@ let authListenerStarted = false
 
 function startAuthTokenListener() {
   if (authListenerStarted) return
+
   authListenerStarted = true
+
   supabase.auth.onAuthStateChange((_event, session) => {
     cachedAuthToken = session?.access_token ?? null
     cachedAuthUserId = session?.user.id ?? null
@@ -534,12 +567,16 @@ function startAuthTokenListener() {
 
 export async function getCommentAuthToken() {
   startAuthTokenListener()
+
   if (cachedAuthToken !== undefined) return cachedAuthToken
+
   authTokenPromise ??= supabase.auth.getSession().then(({ data }) => {
     cachedAuthToken = data.session?.access_token ?? null
     cachedAuthUserId = data.session?.user.id ?? null
+
     return cachedAuthToken
   })
+
   return authTokenPromise
 }
 
@@ -557,6 +594,7 @@ export class ResumeCommentClient {
 
   setAccessContext(access: CommentAccessContext) {
     const previousAccess = this.access
+
     this.access =
       this.access.kind === 'share' &&
       access.kind === 'share' &&
@@ -564,6 +602,7 @@ export class ResumeCommentClient {
       access.anonymous === undefined
         ? { ...access, anonymous: this.access.anonymous }
         : access
+
     if (
       previousAccess.kind !== 'owner' ||
       this.access.kind !== 'owner' ||
@@ -575,6 +614,7 @@ export class ResumeCommentClient {
 
   setAnonymousCredential(credential: AnonymousCommentCredential | null) {
     if (this.access.kind !== 'share') return
+
     this.access = { ...this.access, anonymous: credential }
   }
 
@@ -584,6 +624,7 @@ export class ResumeCommentClient {
 
   async getAuthenticatedUserId() {
     await getCommentAuthToken()
+
     return cachedAuthUserId ?? null
   }
 
@@ -591,6 +632,7 @@ export class ResumeCommentClient {
     CommentApiSuccess<CommentBootstrapResult, CommentResponseTelemetry>
   > {
     const response = await this.request<unknown>('bootstrap_scope')
+
     if (!response.telemetry) {
       throw new ResumeCommentClientError(
         'unexpected',
@@ -599,10 +641,14 @@ export class ResumeCommentClient {
         response.requestId ?? undefined,
       )
     }
+
     const normalizeStartedAt = performance.now()
     const data = normalizeBootstrap(response.data)
+
     if (this.access.kind === 'owner') this.resolvedOwnerScopeId = data.scope.id
+
     const normalizeDuration = performance.now() - normalizeStartedAt
+
     return {
       ...response,
       data,
@@ -634,19 +680,24 @@ export class ResumeCommentClient {
   ): Promise<CommentApiSuccess<CommentThreadListResult>> {
     // 整轮分页固定访问上下文，避免切换版本时把两个作用域拼在一起。
     const reader = new ResumeCommentClient(this.access)
+
     reader.resolvedOwnerScopeId = this.resolvedOwnerScopeId
+
     const threads = new Map<string, ResumeCommentThread>()
     const events: ResumeCommentEvent[] = []
     let cursor = afterEventSeq
     let throughEventSeq: number | undefined
     let pageOp = op
+
     while (true) {
       const response = await reader.request<Record<string, unknown>>(pageOp, {
         afterEventSeq: cursor,
         ...(throughEventSeq === undefined ? {} : { throughEventSeq }),
       })
+
       const rawEvents = asArray(response.data.events)
       const paginated = typeof response.data.hasMore === 'boolean'
+
       // 兼容旧服务时，只信实际交付事件，不信其可能越过未读事件的顶层序号。
       const nextCursor = paginated
         ? response.eventSeq
@@ -654,9 +705,11 @@ export class ResumeCommentClient {
             cursor,
             ...rawEvents.map((event) => asNumber(asRecord(event).event_seq)),
           )
+
       const upperBound = paginated
         ? response.data.throughEventSeq
         : response.eventSeq
+
       if (
         !Number.isSafeInteger(nextCursor) ||
         nextCursor < cursor ||
@@ -669,10 +722,13 @@ export class ResumeCommentClient {
       ) {
         throw new ResumeCommentClientError('unexpected', '评论分页游标无效')
       }
+
       throughEventSeq ??= upperBound
+
       const hasMore = paginated
         ? response.data.hasMore === true
         : rawEvents.length >= 500 && nextCursor < throughEventSeq
+
       if (hasMore && nextCursor <= cursor)
         throw new ResumeCommentClientError('unexpected', '评论分页游标未推进')
 
@@ -681,13 +737,17 @@ export class ResumeCommentClient {
         response.data.profiles,
       ))
         threads.set(thread.id, thread)
+
       const pageEvents = normalizeEvents(rawEvents)
+
       for (const event of pageEvents) {
         if (event.type === 'thread_deleted' && event.threadId)
           threads.delete(event.threadId)
       }
+
       events.push(...pageEvents)
       cursor = nextCursor
+
       // 调用方仅在全部成功后提交游标；任一页失败都能从原位置安全重试。
       if (!hasMore) {
         return {
@@ -696,6 +756,7 @@ export class ResumeCommentClient {
           data: { threads: [...threads.values()], events },
         }
       }
+
       pageOp = 'list_events'
     }
   }
@@ -755,6 +816,7 @@ export class ResumeCommentClient {
     originalPageIndex: number | null
   }) {
     const { requestId, ...payload } = input
+
     return this.mutate('create_thread', payload, requestId)
   }
 
@@ -848,6 +910,7 @@ export class ResumeCommentClient {
     requestId: string = crypto.randomUUID(),
   ) {
     const response = await this.writeRaw(op, input, requestId)
+
     return { ...response, data: normalizeMutation(response.data) }
   }
 
@@ -882,6 +945,7 @@ export class ResumeCommentClient {
         versionId: access.versionId,
       }
     }
+
     return {
       accessKind: 'share',
       accessToken: access.accessToken,
@@ -904,22 +968,31 @@ export class ResumeCommentClient {
     // 请求入口同步冻结作用域；鉴权等待期间切换版本时，旧请求不能借用新 access。
     const access = this.access
     const accessBody = this.accessBody(access)
+
     const clientDurations: Partial<
       Record<CommentBootstrapClientStage, number>
     > = {}
+
     const authStartedAt = performance.now()
     const authToken = await getCommentAuthToken()
+
     clientDurations.auth_token = performance.now() - authStartedAt
+
     const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+
     const requestId = isUuid(input.requestId)
       ? input.requestId
       : crypto.randomUUID()
+
     const url = new URL(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-comments`,
     )
+
     const region =
       import.meta.env.VITE_RESUME_COMMENTS_FUNCTION_REGION ?? 'auto'
+
     if (region !== 'auto') url.searchParams.set('forceFunctionRegion', region)
+
     const requestHeaders = {
       'Content-Type': 'application/json',
       apikey: publishableKey,
@@ -927,6 +1000,7 @@ export class ResumeCommentClient {
       'x-client-info': 'resume-app/comments',
       'x-request-id': requestId,
     }
+
     const requestBody = JSON.stringify({
       op,
       ...accessBody,
@@ -935,7 +1009,9 @@ export class ResumeCommentClient {
         : {}),
       ...input,
     })
+
     const fetchStartedAt = performance.now()
+
     const response = await fetch(url, {
       method: 'POST',
       headers: requestHeaders,
@@ -948,25 +1024,34 @@ export class ResumeCommentClient {
         requestId,
       )
     })
+
     clientDurations.fetch_headers = performance.now() - fetchStartedAt
+
     const responseRequestIdHeader = response.headers.get('x-request-id')
+
     const responseRequestId = isUuid(responseRequestIdHeader)
       ? responseRequestIdHeader
       : requestId
+
     const responseBodyStartedAt = performance.now()
     let responseText = ''
     let payload: unknown = null
+
     try {
       responseText = await response.text()
       payload = JSON.parse(responseText)
     } catch {
       payload = null
     }
+
     clientDurations.response_body = performance.now() - responseBodyStartedAt
+
     const result = asRecord(payload)
+
     if (!response.ok || result.ok !== true) {
       const error = asRecord(result.error)
       const code = String(error.code ?? 'unexpected') as CommentErrorCode
+
       throw new ResumeCommentClientError(
         code,
         String(error.message ?? '评论服务暂时不可用'),
@@ -977,9 +1062,11 @@ export class ResumeCommentClient {
         error.details,
       )
     }
+
     const hasTelemetryEnvelope =
       result.protocolVersion === 1 &&
       Object.keys(asRecord(result.meta)).length > 0
+
     const telemetry =
       op === 'bootstrap_scope' || hasTelemetryEnvelope
         ? readBootstrapTelemetry({
@@ -991,6 +1078,7 @@ export class ResumeCommentClient {
             requestId: responseRequestId,
           })
         : null
+
     return {
       data: result.data as T,
       eventSeq: asNumber(result.eventSeq),

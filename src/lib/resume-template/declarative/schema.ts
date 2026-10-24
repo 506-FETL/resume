@@ -10,16 +10,19 @@ export const templateIdSchema = z
   .string()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   .max(80)
+
 export const templateRefSchema = z
   .object({
     templateId: templateIdSchema,
     templateVersion: z.number().int().positive(),
   })
   .strict()
+
 const identifier = z
   .string()
   .regex(/^[a-z][a-z0-9-]*$/i)
   .max(80)
+
 const numericTokens = [
   'pageMargin',
   'fontSize',
@@ -34,6 +37,7 @@ const numericTokens = [
   'mediumWeight',
   'boldWeight',
 ] as const
+
 const numeric = z.union([
   z.number().finite().min(0).max(4096),
   z
@@ -44,7 +48,9 @@ const numeric = z.union([
     })
     .strict(),
 ])
+
 const hex = z.string().regex(/^#[\da-f]{6}$/i) as z.ZodType<`#${string}`>
+
 export const colorSchema = z.union([
   hex,
   z
@@ -61,10 +67,12 @@ export const colorSchema = z.union([
     })
     .strict(),
 ])
+
 const marginNumeric = z.union([
   z.number().finite().min(-256).max(4096),
   numeric,
 ])
+
 const numericProperties = [
   'fontSize',
   'fontWeight',
@@ -99,6 +107,7 @@ const numericProperties = [
   'flexGrow',
   'flexShrink',
 ] as const
+
 export const templateStyleSchema = z
   .object({
     ...Object.fromEntries(
@@ -135,14 +144,17 @@ export const templateStyleSchema = z
     columns: z.array(z.number().positive().max(20)).min(1).max(6).optional(),
   })
   .strict() as z.ZodType<TemplateStyle>
+
 const coordinate = z.number().finite().min(-4096).max(4096)
 const dimension = z.number().finite().min(0).max(4096)
+
 const shapePaint = {
   opacity: z.number().finite().min(0).max(1).optional(),
   fill: colorSchema.optional(),
   stroke: colorSchema.optional(),
   strokeWidth: z.number().finite().min(0).max(24).optional(),
 }
+
 const shape = z.discriminatedUnion('kind', [
   z
     .object({
@@ -177,6 +189,7 @@ const shape = z.discriminatedUnion('kind', [
     })
     .strict(),
 ])
+
 const field = z.enum([
   'profile.name',
   'profile.workYears',
@@ -186,6 +199,7 @@ const field = z.enum([
   'item.subtitle',
   'item.duration',
 ])
+
 const text = z.enum([
   'section.key',
   'section.index',
@@ -198,7 +212,9 @@ const text = z.enum([
   'item.percentage',
   'item.proficiency',
 ])
+
 const richText = z.enum(['block.richText', 'item.description'])
+
 const list = z.enum([
   'profile.fields',
   'profile.jobIntent',
@@ -206,6 +222,7 @@ const list = z.enum([
   'profile.contact',
   'block.items',
 ])
+
 const condition = z
   .object({
     binding: z.union([
@@ -225,6 +242,7 @@ const condition = z
     value: z.string().max(160).optional(),
   })
   .strict()
+
 const base = {
   id: identifier,
   style: identifier.optional(),
@@ -233,14 +251,17 @@ const base = {
   keepWithNext: z.boolean().optional(),
   sectionTarget: z.literal('basics').optional(),
 }
+
 const projection = z.enum(['primary', 'display']).optional()
 const layout = z.enum(['stack', 'row', 'wrap', 'grid'])
+
 const viewBox = z.tuple([
   coordinate,
   coordinate,
   z.number().positive().max(4096),
   z.number().positive().max(4096),
 ])
+
 export const templateNodeSchema: z.ZodType<TemplateNode> = z.lazy(() =>
   z.discriminatedUnion('type', [
     z
@@ -364,6 +385,7 @@ export const templateNodeSchema: z.ZodType<TemplateNode> = z.lazy(() =>
       .strict(),
   ]),
 )
+
 export const templateDefinitionSchema: z.ZodType<TemplateDefinition> = z
   .object({
     schemaVersion: z.literal(3),

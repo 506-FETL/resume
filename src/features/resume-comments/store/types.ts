@@ -85,6 +85,7 @@ export type PendingCommentCreation =
   | PendingReplyCreation
 
 export type CommentConnectionState = 'idle' | 'connecting' | 'live' | 'offline'
+
 export type CommentAccessState = 'active' | 'read_only' | 'unavailable'
 
 export interface CommentMutationSnapshot {

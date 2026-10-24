@@ -32,6 +32,7 @@ function contactEqual(
   b: TrackerContact | undefined,
 ) {
   if (!a || !b) return false
+
   return (
     a.id === b.id &&
     a.name === b.name &&
@@ -53,6 +54,7 @@ export default function Contacts({ job }: ContactsProps) {
   const jobContactsRef = useRef(job.contacts)
   const jobIdRef = useRef(job.id)
   const requestGenerationRef = useRef(0)
+
   contactsRef.current = contacts
   baselineRef.current = baseline
   jobContactsRef.current = job.contacts
@@ -78,14 +80,18 @@ export default function Contacts({ job }: ContactsProps) {
   ) => {
     const requestJobId = job.id
     const requestGeneration = requestGenerationRef.current + 1
+
     requestGenerationRef.current = requestGeneration
+
     const isCurrentRequest = () =>
       jobIdRef.current === requestJobId &&
       requestGenerationRef.current === requestGeneration
 
     setSavingId(rowId)
+
     try {
       const edited = dbNext.find((contact) => contact.id === rowId)
+
       const savedJob = await saveJobFields(job.id, (current) => ({
         contacts: options.isDelete
           ? current.contacts.filter((contact) => contact.id !== rowId)
@@ -97,17 +103,23 @@ export default function Contacts({ job }: ContactsProps) {
               ? [...current.contacts, edited]
               : current.contacts,
       }))
+
       if (isCurrentRequest()) {
         setBaseline(savedJob.contacts)
+
         setContacts((prev) => {
           if (options.isDelete) return prev.filter((c) => c.id !== rowId)
+
           const savedRow = savedJob.contacts.find((c) => c.id === rowId)
+
           return prev.map((c) => (c.id === rowId ? (savedRow ?? c) : c))
         })
+
         toast.success(options.successText)
       }
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     } finally {
       if (isCurrentRequest()) setSavingId(null)
@@ -116,6 +128,7 @@ export default function Contacts({ job }: ContactsProps) {
 
   const handleAdd = () => {
     if (saving) return
+
     const contact: TrackerContact = {
       id: crypto.randomUUID(),
       name: '',
@@ -123,6 +136,7 @@ export default function Contacts({ job }: ContactsProps) {
       channel: '',
       note: '',
     }
+
     setContacts((prev) => [...prev, contact])
   }
 
@@ -134,21 +148,30 @@ export default function Contacts({ job }: ContactsProps) {
 
   const handleSaveRow = async (id: string) => {
     if (saving) return
+
     const edited = contactsRef.current.find((c) => c.id === id)
+
     if (!edited) return
+
     const base = baselineRef.current
     const exists = base.some((c) => c.id === id)
+
     const dbNext = exists
       ? base.map((c) => (c.id === id ? edited : c))
       : [...base, edited]
+
     await persistRow(id, dbNext, { successText: '已保存联系人' })
   }
 
   const handleDelete = async () => {
     const deleteId = pendingDeleteId
+
     if (!deleteId || saving) return
+
     setPendingDeleteId(null)
+
     const dbNext = baselineRef.current.filter((c) => c.id !== deleteId)
+
     await persistRow(deleteId, dbNext, {
       successText: '已删除联系人',
       isDelete: true,
@@ -195,6 +218,7 @@ export default function Contacts({ job }: ContactsProps) {
                 const baselineRow = baseline.find((c) => c.id === contact.id)
                 const isPersisted = Boolean(baselineRow)
                 const rowDirty = !contactEqual(contact, baselineRow)
+
                 return (
                   <PresenceListItem
                     key={contact.id}

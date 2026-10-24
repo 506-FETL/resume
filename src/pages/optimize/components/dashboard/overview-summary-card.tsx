@@ -58,6 +58,7 @@ export default function OverviewSummaryCard({
 
   const overallScore = summary?.overall_score ?? 0
   const readabilityScore = readabilityIndex?.score ?? 0
+
   const progressDescription =
     totalTasks === 0
       ? '当前未发现必须修改项'

@@ -22,6 +22,7 @@ export default function DetailDiscardDialog({
   onConfirm,
 }: DetailDiscardDialogProps) {
   const dialogMotion = useHistoryDialogMotion()
+
   return (
     <AlertDialog
       open={open}

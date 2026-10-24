@@ -51,6 +51,7 @@ export function Globe({
   const pointerInteractionMovement = useRef(0)
 
   const r = useMotionValue(0)
+
   const rs = useSpring(r, {
     mass: 1,
     damping: 30,
@@ -59,6 +60,7 @@ export function Globe({
 
   const updatePointerInteraction = (value: number | null) => {
     pointerInteracting.current = value
+
     if (canvasRef.current) {
       canvasRef.current.style.cursor = value !== null ? 'grabbing' : 'grab'
     }
@@ -67,6 +69,7 @@ export function Globe({
   const updateMovement = (clientX: number) => {
     if (pointerInteracting.current !== null) {
       const delta = clientX - pointerInteracting.current
+
       pointerInteractionMovement.current = delta
       r.set(r.get() + delta / MOVEMENT_DAMPING)
     }
@@ -87,8 +90,8 @@ export function Globe({
       width: width * 2,
       height: width * 2,
       onRender: (state) => {
-        if (!reduceMotion && pointerInteracting.current === null)
-          phi += 0.005
+        if (!reduceMotion && pointerInteracting.current === null) phi += 0.005
+
         state.phi = phi + (reduceMotion ? r.get() : rs.get())
         state.width = width * 2
         state.height = width * 2
@@ -96,9 +99,9 @@ export function Globe({
     })
 
     const frame = requestAnimationFrame(() => {
-      if (canvasRef.current)
-        canvasRef.current.style.opacity = '1'
+      if (canvasRef.current) canvasRef.current.style.opacity = '1'
     })
+
     return () => {
       globe.destroy()
       cancelAnimationFrame(frame)
@@ -118,16 +121,20 @@ export function Globe({
           'size-full opacity-0 transition-opacity [contain:layout_paint_size]',
         )}
         ref={canvasRef}
-        style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.slow}s`, transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})` }}
+        style={{
+          transitionDuration: `${reduceMotion ? 0 : DURATION.slow}s`,
+          transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+        }}
         onPointerDown={(e) => {
           pointerInteracting.current = e.clientX
           updatePointerInteraction(e.clientX)
         }}
         onPointerUp={() => updatePointerInteraction(null)}
         onPointerOut={() => updatePointerInteraction(null)}
-        onMouseMove={e => updateMovement(e.clientX)}
-        onTouchMove={e =>
-          e.touches[0] && updateMovement(e.touches[0].clientX)}
+        onMouseMove={(e) => updateMovement(e.clientX)}
+        onTouchMove={(e) =>
+          e.touches[0] && updateMovement(e.touches[0].clientX)
+        }
       />
     </div>
   )

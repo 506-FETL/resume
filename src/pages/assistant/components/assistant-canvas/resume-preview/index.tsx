@@ -15,6 +15,7 @@ import { useCanvasPreview } from '../../../hooks/use-canvas-preview'
 
 export default function ResumePreview() {
   const { snapshot, status, currentName } = useCanvasPreview()
+
   const previewData = useMemo(
     () => (snapshot ? buildTemplateResumeData(snapshot) : null),
     [snapshot],

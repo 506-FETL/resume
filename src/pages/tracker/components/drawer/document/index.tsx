@@ -38,6 +38,7 @@ function SharedResumePreview({ data }: { data: ResumePreviewData }) {
     () => buildTemplateResumeData(normalizeResumePreviewData(data)),
     [data],
   )
+
   return (
     <div className='scrollbar-gutter-stable scrollbar-thin-subtle h-full overflow-y-auto bg-muted/30 p-3 sm:p-4'>
       <ScaledReadonlyPreview data={normalizedData} appearance={data} />
@@ -60,26 +61,31 @@ export default function DrawerDocument({
       resumeId: state.selectedJob?.resume_id ?? null,
     })),
   )
+
   const navigate = useNavigate()
   const reduce = useReducedMotion()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+
   const {
     data: resumes,
     error: listError,
     retry: retryList,
     scope,
   } = useTrackerResumeOptions(open)
+
   const {
     data: currentPreview,
     error: currentPreviewError,
     retry: retryPreview,
   } = useTrackerResumePreview(resumeId, open)
+
   const [binding, setBinding] = useState(false)
   const bindingVersionRef = useRef(0)
 
   useEffect(() => {
     setBinding(false)
+
     return () => {
       bindingVersionRef.current += 1
     }
@@ -87,8 +93,11 @@ export default function DrawerDocument({
 
   const handleResumeChange = async (value: string) => {
     if (!jobId || binding) return
+
     const version = ++bindingVersionRef.current
+
     setBinding(true)
+
     try {
       await useTrackerStore
         .getState()
@@ -115,6 +124,7 @@ export default function DrawerDocument({
   const selectedResume = resumes?.find(
     (resume) => resume.resume_id === resumeId,
   )
+
   const transitionStyle = {
     transitionDuration: `${reduce ? 0 : DURATION.base}s`,
     transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
@@ -126,6 +136,7 @@ export default function DrawerDocument({
       onOpenChange={(next) => {
         if (!next && contentRef.current?.contains(document.activeElement))
           triggerRef.current?.focus()
+
         onOpenChange(next)
       }}
       className='overflow-hidden rounded-xl border bg-card'

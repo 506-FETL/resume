@@ -62,12 +62,14 @@ function readLegacyLocalConfig(): ResumeAppearanceConfig | null {
   }
 
   const raw = window.localStorage.getItem(LEGACY_RESUME_CONFIG_STORAGE_KEY)
+
   if (!raw) {
     return null
   }
 
   try {
     const parsed = JSON.parse(raw)
+
     return normalizeResumeAppearance(parsed?.state)
   } catch {
     return null
@@ -96,9 +98,11 @@ const useResumeConfigStore = create<ResumeConfigState>()((set, get) => ({
   },
   commitSpacingPreview: () => {
     const preview = get().spacingPreview
+
     if (!preview) return
 
     const spacing = { ...preview }
+
     set({ spacing, spacingPreview: null })
     persistResumeAppearance?.({ spacing })
   },

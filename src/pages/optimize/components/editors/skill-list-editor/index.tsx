@@ -55,7 +55,9 @@ function SkillListEditor({
 
   const addCustomSkill = () => {
     const trimmed = customInput.trim()
+
     if (!trimmed || isSkillAdded(trimmed)) return
+
     onChange([
       {
         entryId: createResumeEntryId(),
@@ -65,6 +67,7 @@ function SkillListEditor({
       },
       ...value,
     ])
+
     setCustomInput('')
   }
 
@@ -77,6 +80,7 @@ function SkillListEditor({
 
   const updateSkill = (index: number, updates: Partial<SkillItem>) => {
     const newValue = [...value]
+
     newValue[index] = { ...newValue[index], ...updates }
     onChange(newValue)
   }
@@ -153,6 +157,7 @@ function SkillListEditor({
                 {value.map((skill, index) => {
                   // 确保有默认值，防止空值导致 UI 异常
                   const safeLevel = skill.proficiencyLevel || '熟练'
+
                   const safePercentage =
                     PROFICIENCY_PERCENTAGE_MAP[
                       safeLevel as keyof typeof PROFICIENCY_PERCENTAGE_MAP

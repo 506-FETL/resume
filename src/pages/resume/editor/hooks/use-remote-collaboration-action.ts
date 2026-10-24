@@ -38,6 +38,7 @@ export function useRemoteCollaborationAction({
       switch (payload.action.kind) {
         case 'drawer-toggle':
           setDrawerOpen(payload.action.open)
+
           toast.info(
             `${payload.userName} ${payload.action.open ? '打开' : '关闭'}了编辑抽屉`,
             {
@@ -45,6 +46,7 @@ export function useRemoteCollaborationAction({
               position: 'bottom-left',
             },
           )
+
           break
 
         case 'tab-switch':
@@ -55,6 +57,7 @@ export function useRemoteCollaborationAction({
           useResumeStore
             .getState()
             .setSectionOpen(payload.action.tabId, payload.action.open)
+
           break
 
         case 'config-spacing':
@@ -67,10 +70,12 @@ export function useRemoteCollaborationAction({
 
         case 'config-theme':
           replaceConfig({ theme: payload.action.data })
+
           toast.info(`${payload.userName} 更改了主题`, {
             duration: 1500,
             position: 'bottom-left',
           })
+
           break
 
         case 'scroll':
@@ -82,6 +87,7 @@ export function useRemoteCollaborationAction({
       if (releaseApplyingFrameRef.current !== null) {
         cancelAnimationFrame(releaseApplyingFrameRef.current)
       }
+
       releaseApplyingFrameRef.current = requestAnimationFrame(() => {
         releaseApplyingFrameRef.current = null
         isApplyingRemote.current = false
@@ -103,6 +109,7 @@ export function useRemoteCollaborationAction({
       if (releaseApplyingFrameRef.current !== null) {
         cancelAnimationFrame(releaseApplyingFrameRef.current)
       }
+
       isApplyingRemote.current = false
     }
   }, [isApplyingRemote])

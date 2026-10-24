@@ -21,12 +21,16 @@ function mergeResults(
         `${result.matchType}:${result.conversationId}:${result.messageId ?? 'title'}`,
     ),
   )
+
   return [
     ...current,
     ...incoming.filter((result) => {
       const key = `${result.matchType}:${result.conversationId}:${result.messageId ?? 'title'}`
+
       if (seen.has(key)) return false
+
       seen.add(key)
+
       return true
     }),
   ]
@@ -44,8 +48,11 @@ export function useConversationSearch(open: boolean) {
   const runSearch = useCallback(
     async (searchQuery: string, offset = 0, append = false) => {
       const requestId = ++requestIdRef.current
+
       controllerRef.current?.abort()
+
       const controller = new AbortController()
+
       controllerRef.current = controller
 
       if (append) {
@@ -63,6 +70,7 @@ export function useConversationSearch(open: boolean) {
           offset,
           signal: controller.signal,
         })
+
         if (requestIdRef.current !== requestId) return
 
         setResults((current) => (append ? mergeResults(current, next) : next))
@@ -75,7 +83,9 @@ export function useConversationSearch(open: boolean) {
         setStatus(
           isConversationSearchUnavailable(error) ? 'unavailable' : 'error',
         )
+
         if (!append) setResults([])
+
         setHasMore(false)
       } finally {
         if (requestIdRef.current === requestId) setLoadingMore(false)
@@ -88,21 +98,25 @@ export function useConversationSearch(open: boolean) {
     if (!open) {
       controllerRef.current?.abort()
       requestIdRef.current += 1
+
       return
     }
 
     const normalized = query.trim()
+
     if (normalized.length < CONVERSATION_SEARCH_MIN_LENGTH) {
       controllerRef.current?.abort()
       requestIdRef.current += 1
       setResults([])
       setHasMore(false)
       setStatus('idle')
+
       return
     }
 
     controllerRef.current?.abort()
     requestIdRef.current += 1
+
     const timer = window.setTimeout(() => {
       runSearch(normalized)
     }, CONVERSATION_SEARCH_DEBOUNCE_MS)
@@ -115,13 +129,17 @@ export function useConversationSearch(open: boolean) {
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return
+
     const normalized = query.trim()
+
     if (normalized.length < CONVERSATION_SEARCH_MIN_LENGTH) return
+
     runSearch(normalized, results.length, true)
   }, [hasMore, loadingMore, query, results.length, runSearch])
 
   const retry = useCallback(() => {
     const normalized = query.trim()
+
     if (normalized.length >= CONVERSATION_SEARCH_MIN_LENGTH)
       runSearch(normalized)
   }, [query, runSearch])

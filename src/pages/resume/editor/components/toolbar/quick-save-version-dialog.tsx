@@ -34,6 +34,7 @@ export function QuickSaveVersionDialog({
 
   useEffect(() => {
     isMountedRef.current = true
+
     return () => {
       isMountedRef.current = false
     }
@@ -42,6 +43,7 @@ export function QuickSaveVersionDialog({
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && savingRef.current) return
     if (!nextOpen) setVersionName('')
+
     onOpenChange(nextOpen)
   }
 
@@ -51,27 +53,35 @@ export function QuickSaveVersionDialog({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
     if (savingRef.current) return
 
     savingRef.current = true
     setSaving(true)
+
     let completed = false
 
     try {
       const normalizedVersionName = versionName.trim()
       const resumeState = useResumeStore.getState()
+
       if (resumeState.pendingChanges) {
         await resumeState.manualSync()
+
         const synced = useResumeStore.getState()
+
         if (synced.pendingChanges || synced.syncError)
           throw new Error(synced.syncError ?? '简历尚未同步，无法创建新版本')
       }
+
       await createNextResumeVersion(resumeId, normalizedVersionName || null)
+
       window.dispatchEvent(
         new CustomEvent('resume-active-version-created', {
           detail: { resumeId },
         }),
       )
+
       notifyIfMounted(() => toast.success('新版本已创建'))
       completed = true
     } catch (error) {
@@ -80,8 +90,10 @@ export function QuickSaveVersionDialog({
       )
     } finally {
       savingRef.current = false
+
       if (isMountedRef.current) {
         setSaving(false)
+
         if (completed) {
           setVersionName('')
           onOpenChange(false)

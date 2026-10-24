@@ -41,11 +41,14 @@ export default function ScaledReadonlyPreview({
     definition,
     assetUrls: suppliedAssetUrls,
   })
+
   const effectiveAppearance = useMemo(
     () => normalizeResumeAppearance(appearance),
     [appearance],
   )
+
   const error = resource.status === 'error' ? resource.error.message : null
+
   useLayoutEffect(() => {
     if (resource.status !== 'ready') {
       onDocumentStateChange?.({
@@ -57,8 +60,10 @@ export default function ScaledReadonlyPreview({
       })
     }
   }, [resource.status, error, onDocumentStateChange])
+
   if (resource.status !== 'ready')
     return <TemplateResourceStatus error={error ?? undefined} onRetry={retry} />
+
   return (
     <ScaledResumeDocument
       definition={resource.data}

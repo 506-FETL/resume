@@ -6,6 +6,7 @@ import type {
 } from './types.ts'
 
 export const LOCAL_THREAD_ID_PREFIX = 'local-thread:'
+
 export const LOCAL_COMMENT_ID_PREFIX = 'local-comment:'
 
 const LOCAL_COMMENT_AUTHOR = {
@@ -80,6 +81,7 @@ export function appendPendingReply(
 ): ResumeCommentThread {
   if (thread.comments.some((comment) => comment.id === pending.commentId))
     return thread
+
   return {
     ...thread,
     lastActivityAt: pending.createdAt,
@@ -92,19 +94,24 @@ export function removePendingCreationFromThreads(
   pending: PendingCommentCreation,
 ): Record<string, ResumeCommentThread> {
   const next = { ...threadsById }
+
   if (pending.kind === 'thread') {
     delete next[pending.threadId]
+
     return next
   }
 
   const thread = next[pending.threadId]
+
   if (!thread) return next
+
   next[pending.threadId] = {
     ...thread,
     comments: thread.comments.filter(
       (comment) => comment.id !== pending.commentId,
     ),
   }
+
   return next
 }
 
@@ -115,7 +122,9 @@ export function updatePendingCreationDelivery(
   errorMessage: string | null,
 ): Record<string, ResumeCommentThread> {
   const thread = threadsById[pending.threadId]
+
   if (!thread) return threadsById
+
   return {
     ...threadsById,
     [pending.threadId]: {
@@ -140,19 +149,24 @@ export function mergePendingCreationsIntoThreads(
   const threadsById = Object.fromEntries(
     incomingThreads.map((thread) => [thread.id, thread]),
   )
+
   for (const pending of Object.values(pendingCreations)) {
     const currentThread = currentThreadsById[pending.threadId]
+
     if (!currentThread) continue
     if (pending.kind === 'thread') {
       threadsById[pending.threadId] = currentThread
       continue
     }
+
     const incomingThread = threadsById[pending.threadId]
+
     if (incomingThread)
       threadsById[pending.threadId] = appendPendingReply(
         incomingThread,
         pending,
       )
   }
+
   return threadsById
 }

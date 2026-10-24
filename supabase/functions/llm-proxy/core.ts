@@ -23,6 +23,7 @@ export function classifyUpstreamFailure(status: number): UpstreamFailure {
       failure: 'upstream_429',
     }
   }
+
   return {
     code: 'upstream_unavailable',
     status: 503,

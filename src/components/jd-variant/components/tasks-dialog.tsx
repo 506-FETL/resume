@@ -73,12 +73,17 @@ export function DerivedJobsDialog({
 
     const seen = new Set<string>()
     const dbRunning: RunningItem[] = []
+
     for (const r of resumes) {
       if (r.derived_status !== 'generating') continue
+
       const parentId = r.parent_resume_id ?? r.resume_id
+
       if (storeParentIds.has(r.parent_resume_id ?? '')) continue
       if (seen.has(parentId)) continue
+
       seen.add(parentId)
+
       dbRunning.push({
         parentResumeId: parentId,
         parentName:
@@ -108,8 +113,10 @@ export function DerivedJobsDialog({
   const discardRunning = (item: RunningItem) => {
     if (item.source === 'db') {
       discard(item.dbResumeId)
+
       return
     }
+
     // store 任务：discardTask 会中止生成并删除草稿，随后刷新列表清除陈旧的 generating 行
     discardTask(item.parentResumeId)
       .catch(() => undefined)
@@ -118,6 +125,7 @@ export function DerivedJobsDialog({
 
   const retry = (id: string, parentId: string | null | undefined) => {
     if (!parentId) return
+
     discard(id).finally(() => {
       openDeriveFor(parentId)
       onOpenChange(false)

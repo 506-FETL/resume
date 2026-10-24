@@ -47,15 +47,18 @@ export default function useCurrentUser() {
  */
 export function useCurrentUserImage() {
   const user = useCurrentUser()
+
   return user?.user_metadata?.avatar_url as string | undefined
 }
 
 /** 从已经加载的用户对象同步解析协作展示名，避免额外认证请求造成的昵称竞态。 */
 export function getUserDisplayName(user: User | null | undefined) {
   const fullName = user?.user_metadata?.full_name
+
   if (typeof fullName === 'string' && fullName.trim()) {
     return fullName.trim()
   }
+
   return user ? `用户-${user.id.slice(0, 6)}` : ''
 }
 
@@ -74,5 +77,6 @@ export function getUserDisplayName(user: User | null | undefined) {
  */
 export function useCurrentUserName() {
   const user = useCurrentUser()
+
   return (user?.user_metadata?.full_name as string | undefined) ?? ''
 }

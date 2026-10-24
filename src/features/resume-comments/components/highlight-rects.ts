@@ -40,6 +40,7 @@ function verticalOverlapRatio(left: RectBounds, right: RectBounds) {
     Math.min(left.y + left.height, right.y + right.height) -
       Math.max(left.y, right.y),
   )
+
   return overlap / Math.max(1, Math.min(left.height, right.height))
 }
 
@@ -50,6 +51,7 @@ function areLineCompatible(
   const heightSimilarity =
     Math.min(left.height, right.height) /
     Math.max(1, Math.max(left.height, right.height))
+
   return (
     left.pageIndex === right.pageIndex &&
     heightSimilarity >= 0.6 &&
@@ -66,6 +68,7 @@ function isSameVisualLine(line: VisualLine, rect: HighlightSourceRect) {
 
 function geometryKey(rect: Omit<HighlightVisualRect, 'key' | 'threadIds'>) {
   const normalize = (value: number) => Math.round(value * 100) / 100
+
   return [
     'visual',
     rect.pageIndex,
@@ -83,21 +86,26 @@ function mergeLineIntervals(line: VisualLine): HighlightVisualRect[] {
   for (const rect of ordered) {
     const previous = merged.at(-1)
     const rectRight = rect.x + rect.width
+
     if (previous && rect.x < previous.x + previous.width) {
       const x = Math.min(previous.x, rect.x)
       const y = Math.min(previous.y, rect.y)
       const right = Math.max(previous.x + previous.width, rectRight)
+
       const bottom = Math.max(
         previous.y + previous.height,
         rect.y + rect.height,
       )
+
       previous.x = x
       previous.y = y
       previous.width = right - x
       previous.height = bottom - y
+
       previous.threadIds = Array.from(
         new Set([...previous.threadIds, rect.threadId]),
       )
+
       previous.key = geometryKey(previous)
       continue
     }
@@ -110,6 +118,7 @@ function mergeLineIntervals(line: VisualLine): HighlightVisualRect[] {
       width: rect.width,
       height: rect.height,
     }
+
     merged.push({
       ...visual,
       key: geometryKey(visual),
@@ -126,22 +135,27 @@ export function mergeHighlightVisualRects(
     (left, right) =>
       left.pageIndex - right.pageIndex || left.y - right.y || left.x - right.x,
   )
+
   const lines: VisualLine[] = []
 
   for (const rect of ordered) {
     const matchingLines = lines.filter((candidate) =>
       isSameVisualLine(candidate, rect),
     )
+
     const line = matchingLines[0]
+
     if (line) {
       line.rects.push(
         ...matchingLines.slice(1).flatMap((candidate) => candidate.rects),
         rect,
       )
+
       for (const mergedLine of matchingLines.slice(1))
         lines.splice(lines.indexOf(mergedLine), 1)
       continue
     }
+
     lines.push({
       pageIndex: rect.pageIndex,
       rects: [rect],

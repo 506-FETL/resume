@@ -9,4 +9,5 @@ const useHistoryStore = create<HistoryStoreState>()((set, get) => ({
 }))
 
 export default useHistoryStore
+
 export type { HistoryStoreState } from './types'

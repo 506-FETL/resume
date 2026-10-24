@@ -77,6 +77,7 @@ export function normalizeResumeSection<K extends keyof ResumeSchema>(
     value,
     RESUME_FORM_DEFAULTS[key],
   ) as ResumeSchema[K]
+
   return ensureResumeSectionEntryIds(key, normalized)
 }
 

@@ -31,12 +31,14 @@ function HeadBars({
   const setDerivedJobsOpen = useResumeListStore((s) => s.setDerivedJobsOpen)
   const hasOfflineResumesToSync = isOnline && offlineCount > 0
   const tasks = useJdVariantStore((s) => s.tasks)
+
   // 与“派生任务”弹窗口径一致：store 仅计进行中（parsing/rewriting），失败/取消由 DB failed 行体现
   const activeParentIds = new Set(
     Object.values(tasks)
       .filter((t) => t.phase === 'parsing' || t.phase === 'rewriting')
       .map((t) => t.parentResumeId),
   )
+
   const dbPendingParentIds = new Set(
     resumes
       .filter(
@@ -46,17 +48,21 @@ function HeadBars({
       .map((r) => r.parent_resume_id ?? '')
       .filter((pid) => pid !== '' && !activeParentIds.has(pid)),
   )
+
   const pendingCount = activeParentIds.size + dbPendingParentIds.size
   // 与卡片视觉类型保持一致：派生优先，每份简历只计入一个类型。
   const counts = { cloud: 0, local: 0, variant: 0 }
+
   for (const resume of resumes) {
     const tone = resume.parent_resume_id
       ? 'variant'
       : resume.isOffline
         ? 'local'
         : 'cloud'
+
     counts[tone] += 1
   }
+
   const resumeTags = [
     { tone: 'cloud', label: '在线', icon: Cloud },
     { tone: 'local', label: '离线', icon: HardDrive },

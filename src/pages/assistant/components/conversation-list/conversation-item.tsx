@@ -31,7 +31,9 @@ export function ConversationItem({
 
   const commitRename = () => {
     const next = draft.trim()
+
     if (next && next !== conversation.title) onRename(conversation.id, next)
+
     setEditing(false)
   }
 

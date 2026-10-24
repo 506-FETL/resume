@@ -1,5 +1,6 @@
 import js from '@eslint/js'
 import react from '@eslint-react/eslint-plugin'
+import stylistic from '@stylistic/eslint-plugin'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import prettier from 'eslint-config-prettier/flat'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -11,15 +12,18 @@ import tseslint from 'typescript-eslint'
 const codeFiles = ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}']
 const typescriptFiles = ['**/*.{ts,mts,cts,tsx}']
 
+const generatedComponentFiles = [
+  'src/components/ui/**/*.{js,jsx,ts,tsx}',
+  'src/components/animate-ui/**/*.{js,jsx,ts,tsx}',
+  '**/tiptap-*/**/*.{js,jsx,ts,tsx}',
+]
+
 export default defineConfig([
   globalIgnores([
     '**/node_modules/**',
     '**/dist/**',
     '**/build/**',
     '**/coverage/**',
-    'src/components/ui/**',
-    'src/components/animate-ui/**',
-    '**/tiptap-*/**',
     '.trae/**',
     '.vscode/**',
     'skills/**',
@@ -35,6 +39,7 @@ export default defineConfig([
   ]),
   {
     files: codeFiles,
+    ignores: generatedComponentFiles,
     extends: [js.configs.recommended],
     plugins: { 'unused-imports': unusedImports },
     rules: {
@@ -64,6 +69,7 @@ export default defineConfig([
   },
   {
     files: typescriptFiles,
+    ignores: generatedComponentFiles,
     extends: [tseslint.configs.recommended],
     rules: {
       '@typescript-eslint/no-unused-vars': 'warn',
@@ -92,6 +98,7 @@ export default defineConfig([
   },
   {
     files: ['src/**/*.{js,jsx,ts,tsx}'],
+    ignores: generatedComponentFiles,
     extends: [react.configs.recommended],
     languageOptions: {
       globals: globals.browser,
@@ -125,5 +132,90 @@ export default defineConfig([
       globals: { ...globals.worker, Deno: 'readonly' },
     },
   },
+  {
+    // 生成组件保留质量检查豁免，但同样接受统一的段落排版。
+    files: generatedComponentFiles,
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    linterOptions: { reportUnusedDisableDirectives: 'off' },
+  },
   prettier,
+  {
+    files: codeFiles,
+    plugins: { '@stylistic': stylistic },
+    rules: {
+      // Prettier 保留空行；此规则负责在逻辑段落的边界补足空行。
+      '@stylistic/padding-line-between-statements': [
+        'error',
+        { blankLine: 'always', prev: 'import', next: '*' },
+        { blankLine: 'any', prev: 'import', next: 'import' },
+        { blankLine: 'always', prev: 'directive', next: '*' },
+        { blankLine: 'any', prev: 'directive', next: 'directive' },
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: ['export', 'function', 'class', 'interface', 'type'],
+        },
+        {
+          blankLine: 'always',
+          prev: ['export', 'function', 'class', 'interface', 'type'],
+          next: '*',
+        },
+        { blankLine: 'always', prev: ['const', 'let', 'var'], next: '*' },
+        { blankLine: 'always', prev: '*', next: ['const', 'let', 'var'] },
+        {
+          blankLine: 'any',
+          prev: ['const', 'let', 'var'],
+          next: ['const', 'let', 'var'],
+        },
+        {
+          blankLine: 'always',
+          prev: ['multiline-const', 'multiline-let', 'multiline-var'],
+          next: '*',
+        },
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: ['multiline-const', 'multiline-let', 'multiline-var'],
+        },
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: [
+            'if',
+            'for',
+            'while',
+            'do',
+            'switch',
+            'try',
+            'return',
+            'throw',
+          ],
+        },
+        { blankLine: 'always', prev: ['block-like', 'if'], next: '*' },
+        { blankLine: 'any', prev: 'if', next: 'if' },
+        { blankLine: 'always', prev: 'multiline-expression', next: '*' },
+        { blankLine: 'always', prev: '*', next: 'multiline-expression' },
+        // 连续属性赋值保留为一组，兼容 Prettier 插入的 ASI 防护分号。
+        {
+          blankLine: 'any',
+          prev: {
+            selector:
+              'ExpressionStatement[expression.type="AssignmentExpression"]',
+          },
+          next: {
+            selector:
+              'ExpressionStatement[expression.type="AssignmentExpression"]',
+          },
+        },
+      ],
+    },
+  },
 ])

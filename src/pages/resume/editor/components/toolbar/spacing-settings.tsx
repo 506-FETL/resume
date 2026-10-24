@@ -55,9 +55,13 @@ const FINE_SPACING_FIELDS = [
 ] as const
 
 type Spacing = ResumeAppearanceConfig['spacing']
+
 type FineSpacingKey = (typeof FINE_SPACING_FIELDS)[number]['key']
+
 type FineSpacingField = (typeof FINE_SPACING_FIELDS)[number]
+
 type FineSpacingDraft = Record<FineSpacingKey, string>
+
 type PendingExit = 'close' | 'coarse'
 
 interface SpacingSettingsProps {
@@ -93,11 +97,13 @@ function validateDraftValue(
   }
 
   const fractionDigits = value.split('.')[1]?.length ?? 0
+
   if (fractionDigits > field.decimals) {
     return { value: null, error: `最多保留 ${field.decimals} 位小数` }
   }
 
   const parsed = Number(value)
+
   if (parsed < field.min || parsed > field.max) {
     return { value: null, error: `请输入 ${field.min}–${field.max} 之间的数值` }
   }
@@ -114,11 +120,14 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
     commitSpacingPreview,
     discardSpacingPreview,
   } = useResumeConfigStore()
+
   const [open, setOpen] = useState(false)
   const [fineMode, setFineMode] = useState(false)
+
   const [draft, setDraft] = useState<FineSpacingDraft>(() =>
     createDraft(spacing),
   )
+
   const [baseline, setBaseline] = useState<Spacing | null>(null)
   const [pendingExit, setPendingExit] = useState<PendingExit | null>(null)
   const fineSessionActiveRef = useRef(false)
@@ -131,9 +140,11 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
       })),
     [draft],
   )
+
   const allFieldsValid = fieldStates.every(
     ({ validation }) => validation.error === null,
   )
+
   const isDirty =
     baseline !== null &&
     fieldStates.some(({ field, validation }) => {
@@ -155,6 +166,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
 
   function startFineSession() {
     const nextBaseline = { ...spacing }
+
     setBaseline(nextBaseline)
     setDraft(createDraft(nextBaseline))
     beginSpacingPreview()
@@ -166,11 +178,13 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
       discardSpacingPreview()
       fineSessionActiveRef.current = false
     }
+
     setBaseline(null)
     setPendingExit(null)
 
     if (action === 'close') {
       setOpen(false)
+
       return
     }
 
@@ -180,6 +194,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
   function requestExit(action: PendingExit) {
     if (fineMode && isDirty) {
       setPendingExit(action)
+
       return
     }
 
@@ -189,9 +204,11 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
       setOpen(true)
+
       if (fineMode) {
         startFineSession()
       }
+
       return
     }
 
@@ -202,6 +219,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
     if (nextFineMode) {
       setFineMode(true)
       startFineSession()
+
       return
     }
 
@@ -212,6 +230,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
     setDraft((current) => ({ ...current, [field.key]: value }))
 
     const validation = validateDraftValue(field, value)
+
     if (validation.value !== null) {
       updateSpacingPreview({ [field.key]: validation.value })
     }
@@ -223,6 +242,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
     }
 
     fineSessionActiveRef.current = false
+
     if (isDirty) {
       commitSpacingPreview()
     } else {
@@ -243,14 +263,17 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
         'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ),
     )
+
     if (focusableElements.length === 0) {
       return
     }
 
     event.preventDefault()
+
     const currentIndex = focusableElements.indexOf(
       document.activeElement as HTMLElement,
     )
+
     const nextIndex = event.shiftKey
       ? currentIndex <= 0
         ? focusableElements.length - 1
@@ -258,6 +281,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
       : currentIndex === focusableElements.length - 1
         ? 0
         : currentIndex + 1
+
     focusableElements[nextIndex]?.focus()
   }
 
@@ -267,6 +291,7 @@ export function SpacingSettings({ isMobile, disabled }: SpacingSettingsProps) {
     }
 
     event.preventDefault()
+
     if (pendingExit === null) {
       setPendingExit('close')
     }

@@ -24,8 +24,7 @@ import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 import { parseShortcutKeys } from '@/lib/tiptap-utils'
 
 export interface UndoRedoButtonProps
-  extends Omit<ButtonProps, 'type'>,
-  UseUndoRedoConfig {
+  extends Omit<ButtonProps, 'type'>, UseUndoRedoConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -52,10 +51,22 @@ export function HistoryShortcutBadge({
  *
  * For custom button implementations, use the `useHistory` hook instead.
  */
-export function UndoRedoButton({ ref, editor: providedEditor, action, text, hideWhenUnavailable = false, onExecuted, showShortcut = false, onClick, children, ...buttonProps }: UndoRedoButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function UndoRedoButton({
+  ref,
+  editor: providedEditor,
+  action,
+  text,
+  hideWhenUnavailable = false,
+  onExecuted,
+  showShortcut = false,
+  onClick,
+  children,
+  ...buttonProps
+}: UndoRedoButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
   const { editor } = useTiptapEditor(providedEditor)
-  const { isVisible, handleAction, label, canExecute, Icon, shortcutKeys }
-    = useUndoRedo({
+
+  const { isVisible, handleAction, label, canExecute, Icon, shortcutKeys } =
+    useUndoRedo({
       editor,
       action,
       hideWhenUnavailable,
@@ -65,8 +76,9 @@ export function UndoRedoButton({ ref, editor: providedEditor, action, text, hide
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
-      if (event.defaultPrevented)
-        return
+
+      if (event.defaultPrevented) return
+
       handleAction()
     },
     [handleAction, onClick],
@@ -78,11 +90,11 @@ export function UndoRedoButton({ ref, editor: providedEditor, action, text, hide
 
   return (
     <Button
-      type="button"
+      type='button'
       disabled={!canExecute}
-      data-style="ghost"
+      data-style='ghost'
       data-disabled={!canExecute}
-      role="button"
+      role='button'
       tabIndex={-1}
       aria-label={label}
       tooltip={label}
@@ -92,13 +104,10 @@ export function UndoRedoButton({ ref, editor: providedEditor, action, text, hide
     >
       {children ?? (
         <>
-          <Icon className="tiptap-button-icon" />
-          {text && <span className="tiptap-button-text">{text}</span>}
+          <Icon className='tiptap-button-icon' />
+          {text && <span className='tiptap-button-text'>{text}</span>}
           {showShortcut && (
-            <HistoryShortcutBadge
-              action={action}
-              shortcutKeys={shortcutKeys}
-            />
+            <HistoryShortcutBadge action={action} shortcutKeys={shortcutKeys} />
           )}
         </>
       )}

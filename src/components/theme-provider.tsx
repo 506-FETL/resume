@@ -8,6 +8,7 @@ import React, {
 } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
+
 type ResolvedTheme = Exclude<Theme, 'system'>
 
 interface ThemeProviderProps {
@@ -40,6 +41,7 @@ function getStoredTheme(storageKey: string, defaultTheme: Theme): Theme {
   if (typeof window === 'undefined') return defaultTheme
 
   const storedTheme = window.localStorage.getItem(storageKey)
+
   return THEME_STORAGE_VALUES.includes(storedTheme as Theme)
     ? (storedTheme as Theme)
     : defaultTheme
@@ -53,12 +55,14 @@ export function ThemeProvider({
   const [theme, setThemeState] = useState<Theme>(() =>
     getStoredTheme(storageKey, defaultTheme),
   )
+
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
     const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY)
+
     const handleChange = (event: MediaQueryListEvent) => {
       setSystemTheme(event.matches ? 'dark' : 'light')
     }
@@ -78,6 +82,7 @@ export function ThemeProvider({
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(storageKey, nextTheme)
       }
+
       setThemeState(nextTheme)
     },
     [storageKey],

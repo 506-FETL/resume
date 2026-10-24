@@ -37,7 +37,9 @@ function getCachedResource<T>(
 ): T | undefined {
   if (requestScope !== getTrackerAccountScope() || !requestScope.userId)
     return undefined
+
   const entry = cache.get(key)
+
   return entry && entry.expiresAt > Date.now() ? entry.data : undefined
 }
 
@@ -51,33 +53,41 @@ function readResource<T>(
     return Promise.reject(new Error('登录状态已变更，请重新加载'))
 
   const cached = cache.get(key)
+
   if (cached?.promise) return cached.promise
   if (cached?.data !== undefined && cached.expiresAt > Date.now())
     return Promise.resolve(cached.data)
 
   const entry: CacheEntry<T> = { expiresAt: 0 }
+
   cache.set(key, entry)
+
   entry.promise = Promise.resolve()
     .then(() => {
       if (requestScope !== getTrackerAccountScope())
         throw new Error('登录状态已变更，请重新加载')
+
       return load()
     })
     .then((data) => {
       if (requestScope !== getTrackerAccountScope())
         throw new Error('登录状态已变更，请重新加载')
+
       entry.data = data
       entry.expiresAt = Date.now() + CACHE_TTL
+
       return data
     })
     .catch((error: unknown) => {
       // 失败不缓存，也不清理切换身份后同一 key 的新请求。
       if (cache.get(key) === entry) cache.delete(key)
+
       throw error
     })
     .finally(() => {
       entry.promise = undefined
     })
+
   return entry.promise
 }
 
@@ -98,7 +108,9 @@ export function loadTrackerResumePreview(
 ) {
   return readResource(previewCache, resumeId, requestScope, async () => {
     const data = await getResumeById<ResumePreviewData>(resumeId, '*')
+
     if (!data) throw new Error('这份简历暂时无法查看')
+
     return data
   })
 }
@@ -121,17 +133,21 @@ function useResumeResource<T>(
     getTrackerResumeScope,
     getTrackerResumeScope,
   )
+
   const cached = getCachedResource(cache, key, currentScope)
+
   const [state, setState] = useState<ResourceState<T> | null>(() =>
     cached === undefined
       ? null
       : { scope: currentScope, key, data: cached, error: null },
   )
+
   const [attempt, setAttempt] = useState(0)
   const retry = useCallback(() => setAttempt((value) => value + 1), [])
 
   useEffect(() => {
     if (!enabled) return
+
     const publish = (data: T | null, error: string | null) => {
       setState((previous) =>
         previous?.scope === currentScope &&
@@ -142,13 +158,19 @@ function useResumeResource<T>(
           : { scope: currentScope, key, data, error },
       )
     }
+
     const cached = getCachedResource(cache, key, currentScope)
+
     if (cached !== undefined) {
       publish(cached, null)
+
       return
     }
+
     let active = true
+
     setState(null)
+
     load(currentScope, key)
       .then((data) => {
         if (active && currentScope === getTrackerResumeScope())
@@ -158,6 +180,7 @@ function useResumeResource<T>(
         if (active && currentScope === getTrackerResumeScope())
           publish(null, getTrackerErrorMessage(error))
       })
+
     return () => {
       active = false
     }
@@ -165,6 +188,7 @@ function useResumeResource<T>(
 
   const current =
     state?.scope === currentScope && state.key === key ? state : null
+
   // 缓存命中的首轮渲染直接复用原始数据，避免 Tab 重挂载时卸载预览、闪过加载态。
   return {
     data: cached ?? current?.data ?? null,

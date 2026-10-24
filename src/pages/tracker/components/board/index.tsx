@@ -98,6 +98,7 @@ function BoardColumnDropArea({
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const itemIds = useMemo(() => jobs.map((job) => job.id), [jobs])
+
   const { ref: registerContainerRef, active } = useCrossListContainer({
     id: status,
     label: APPLICATION_STATUS_CONFIG[status].label,
@@ -105,6 +106,7 @@ function BoardColumnDropArea({
     axis: 'y',
     scrollRef,
   })
+
   const setContainerRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {
       scrollRef.current = element
@@ -181,9 +183,11 @@ function BoardView() {
       toggleRejectedCollapsed: state.toggleRejectedCollapsed,
     })),
   )
+
   const reduceMotion = useReducedMotion()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const columnRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+
   const [pendingMove, setPendingMove] = useState<{
     jobId: string
     newStatus: ApplicationStatus
@@ -193,25 +197,31 @@ function BoardView() {
     const groups = Object.fromEntries(
       BOARD_COLUMNS.map((column) => [column.status, [] as JobApplication[]]),
     ) as Record<ApplicationStatus, JobApplication[]>
+
     for (const job of filterJobs(jobs, null, searchKeyword, showArchived, null))
       groups[job.status].push(job)
+
     return groups
   }, [jobs, searchKeyword, showArchived])
+
   const metricStatus = useMemo(
     () => resolveTrackerMetricStatus(jobs, metricFilter),
     [jobs, metricFilter],
   )
+
   const highlightedStatus = filterStatus ?? metricStatus
 
   const scrollToColumn = useCallback(
     (status: string) => {
       const container = scrollContainerRef.current
       const columnEl = columnRefs.current.get(status)
+
       if (!container || !columnEl) return
 
       // 使用布局尺寸，避免折叠展开的 Motion transform 影响定位范围。
       const columnLeft = columnEl.offsetLeft - container.offsetLeft
       const columnRight = columnLeft + columnEl.offsetWidth
+
       if (
         columnLeft < container.scrollLeft ||
         columnRight > container.scrollLeft + container.clientWidth
@@ -249,15 +259,19 @@ function BoardView() {
 
   const handleDrop = ({ itemId, destinationId }: CrossListDropResult) => {
     const newStatus = destinationId as ApplicationStatus
+
     const currentJob = useTrackerStore
       .getState()
       .jobs.find((job) => job.id === itemId)
+
     if (!currentJob || currentJob.status === newStatus) return
 
     if (newStatus === 'offer' || newStatus === 'rejected') {
       setPendingMove({ jobId: itemId, newStatus })
+
       return
     }
+
     commitMove(itemId, newStatus)
   }
 
@@ -269,6 +283,7 @@ function BoardView() {
       maxStep: 24,
     },
   ]
+
   const isColumnHighlighted = (status: ApplicationStatus) =>
     highlightedStatus === status
 
@@ -281,6 +296,7 @@ function BoardView() {
           const job = useTrackerStore
             .getState()
             .jobs.find((item) => item.id === jobId)
+
           return job ? <JobOverlay job={job} /> : null
         }}
       >
@@ -294,6 +310,7 @@ function BoardView() {
               const highlighted = isColumnHighlighted(column.status)
               const isRejectedColumn = column.status === 'rejected'
               const collapsed = isRejectedColumn && rejectedCollapsed
+
               return (
                 <motion.div
                   key={column.status}
@@ -438,6 +455,7 @@ function BoardView() {
               onClick={() => {
                 if (pendingMove)
                   commitMove(pendingMove.jobId, pendingMove.newStatus)
+
                 setPendingMove(null)
               }}
             >

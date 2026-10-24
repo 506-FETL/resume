@@ -13,9 +13,11 @@ export function readResumeListTemplateBinding(
     return null
   }
 }
+
 export function resolveTemplateReference(binding: unknown): TemplateRef {
   try {
     const value = resolveResumeTemplateBinding(binding)
+
     return templateRefSchema.parse({
       templateId: value.templateId,
       templateVersion: value.templateVersion,

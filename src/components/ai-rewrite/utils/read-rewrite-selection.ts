@@ -14,6 +14,7 @@ export function readRewriteSelection(editor: Editor): RewriteSelection | null {
 
   const slice = editor.state.doc.slice(from, to)
   const div = document.createElement('div')
+
   const fragment = DOMSerializer.fromSchema(editor.schema).serializeFragment(
     slice.content,
   )

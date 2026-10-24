@@ -28,6 +28,7 @@ export async function getCompanies(
   assertUser?: CompanyRequestGuard,
 ): Promise<JobApplication[]> {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
   if (!user) throw new Error('用户未登陆')
@@ -92,6 +93,7 @@ export async function createCompany(
   assertUser?: CompanyRequestGuard,
 ): Promise<JobApplication> {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
   if (!user) throw new Error('用户未登陆')
@@ -129,6 +131,7 @@ export async function updateCompany(
   assertUser?: CompanyRequestGuard,
 ): Promise<JobApplication> {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
   if (!user) throw new Error('用户未登陆')
@@ -207,6 +210,7 @@ export async function deleteCompany(
   assertUser?: CompanyRequestGuard,
 ) {
   const user = await getCurrentUser()
+
   assertUser?.(user?.id ?? null)
 
   if (!user) throw new Error('用户未登陆')

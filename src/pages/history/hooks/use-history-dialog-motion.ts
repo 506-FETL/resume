@@ -89,11 +89,14 @@ export function useHistoryDialogCloseReset(
     const content = elementRef.current?.closest(
       '[data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="drawer-popup"]',
     )
+
     let frame = 0
+
     const afterExit = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(reset)
     }
+
     const onAnimationEnd = (event: Event) => {
       if (
         event.target === content &&
@@ -101,6 +104,7 @@ export function useHistoryDialogCloseReset(
       )
         afterExit()
     }
+
     const onTransitionEnd = (event: Event) => {
       if (
         content?.getAttribute('data-slot') === 'drawer-popup' &&

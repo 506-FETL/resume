@@ -49,8 +49,10 @@ export function createSessionCallbacks(
       if (!isCurrentSession()) return
 
       const participantMetadata = getState().participants[peerId]?.metadata
+
       const displayName =
         participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
+
       toast.success(`${displayName} 加入协作`, {
         description: '已同步最新内容',
       })
@@ -60,6 +62,7 @@ export function createSessionCallbacks(
       if (!isCurrentSession()) return
 
       const participantMetadata = getState().participants[peerId]?.metadata
+
       const displayName =
         participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
 

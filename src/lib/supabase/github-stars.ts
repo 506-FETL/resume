@@ -27,6 +27,7 @@ export async function getGithubStars(): Promise<GithubStars | null> {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null
 
   const raw = data as Partial<RawGithubStars>
+
   if (
     raw.repo !== '506-fetl/resume' ||
     !Number.isSafeInteger(raw.stars) ||

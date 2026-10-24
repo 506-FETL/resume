@@ -25,12 +25,15 @@ function ExampleChoice({
   const selectedExample =
     useTemplatePageStore((state) => state.selectedExamples[item.templateId]) ??
     item.defaultExample
+
   const selectExample = useTemplatePageStore((state) => state.selectExample)
   const prefetchEvents = useTemplatePrefetch(item, example, disabled)
   const reduceMotion = useReducedMotion()
+
   const transitionStyle = {
     transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
   }
+
   const selected = exampleKey(selectedExample) === exampleKey(example)
 
   return (
@@ -90,6 +93,7 @@ export default function ExamplePicker({
   disabled?: boolean
 }) {
   const name = useId()
+
   return (
     <fieldset disabled={disabled} className='min-w-0 space-y-3'>
       <legend className='mb-3 text-sm font-medium'>选择示例内容</legend>

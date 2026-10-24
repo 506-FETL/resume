@@ -24,20 +24,24 @@ export function EmailRow({ initialEmail }: EmailRowProps) {
   const updateEmail = async () => {
     if (!email.trim()) {
       toast.error('邮箱地址不能为空')
+
       return
     }
 
     if (!/^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/.test(email)) {
       toast.error('请输入有效的邮箱地址')
+
       return
     }
 
     if (email === initialEmail) {
       setEditing(false)
+
       return
     }
 
     setSaving(true)
+
     try {
       await updateProfile({ email })
       toast.success('邮箱更新请求已发送，请查收验证邮件')

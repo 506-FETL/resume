@@ -25,6 +25,7 @@ export function useResolvedResumeTemplate({
   assetUrls?: ReadonlyMap<string, string>
 }) {
   const bindingKey = JSON.stringify(binding)
+
   const request = useMemo<{
     ref?: TemplateRef
     immediate?: ResourceState<TemplateDefinition>
@@ -37,6 +38,7 @@ export function useResolvedResumeTemplate({
             data: parseTemplateDefinition(definition),
           },
         }
+
       return {
         ref: resolveTemplateReference(
           bindingKey ? JSON.parse(bindingKey) : undefined,
@@ -46,25 +48,36 @@ export function useResolvedResumeTemplate({
       return { immediate: { status: 'error', error: asTemplateError(error) } }
     }
   }, [bindingKey, definition])
+
   const key = request.ref ? templateKey(request.ref) : ''
+
   const cached = useResumeTemplateStore(
     (state) => state.definitions[key] ?? IDLE_RESOURCE,
   )
+
   const loadDefinition = useResumeTemplateStore((state) => state.loadDefinition)
+
   const retainDefinition = useResumeTemplateStore(
     (state) => state.retainDefinition,
   )
+
   useEffect(() => {
     if (!enabled || !request.ref) return
+
     const release = retainDefinition(request.ref)
+
     loadDefinition(request.ref)
+
     return release
   }, [enabled, request, loadDefinition, retainDefinition])
+
   const definitionResource = enabled
     ? (request.immediate ?? cached)
     : IDLE_RESOURCE
+
   const readyDefinition =
     definitionResource.status === 'ready' ? definitionResource.data : null
+
   // 每份文档在进入分页之前加载一次；测量、展示与打印副本共用同一 URL 映射。
   const {
     status: assetStatus,
@@ -72,20 +85,25 @@ export function useResolvedResumeTemplate({
     retry: retryAssets,
     assetUrls: loadedAssetUrls,
   } = useTemplateAssets(suppliedAssetUrls ? null : readyDefinition)
+
   const resource = useMemo<ResourceState<TemplateDefinition>>(() => {
     if (definitionResource.status !== 'ready') return definitionResource
     if (assetStatus === 'error') return { status: 'error', error: assetError! }
     if (assetStatus !== 'ready') return { status: 'loading', requestId: 0 }
+
     return definitionResource
   }, [definitionResource, assetStatus, assetError])
+
   const retry = useCallback(async () => {
     if (readyDefinition && assetStatus === 'error') {
       retryAssets()
+
       return
     }
     if (request.ref) await loadDefinition(request.ref, true)
     else retryAssets()
   }, [readyDefinition, assetStatus, retryAssets, request, loadDefinition])
+
   return {
     resource,
     assetUrls: suppliedAssetUrls ?? loadedAssetUrls,

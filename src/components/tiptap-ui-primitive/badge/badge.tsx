@@ -10,7 +10,16 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   trimText?: boolean
 }
 
-export function Badge({ ref, variant, size = 'default', appearance = 'default', trimText = false, className, children, ...props }: BadgeProps & { ref?: React.RefObject<HTMLDivElement | null> }) {
+export function Badge({
+  ref,
+  variant,
+  size = 'default',
+  appearance = 'default',
+  trimText = false,
+  className,
+  children,
+  ...props
+}: BadgeProps & { ref?: React.RefObject<HTMLDivElement | null> }) {
   return (
     <div
       ref={ref}

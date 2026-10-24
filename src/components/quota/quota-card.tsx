@@ -62,6 +62,7 @@ export function QuotaCard() {
 
 function PlanPill({ plan }: { plan: string }) {
   const badge = getPlanBadge(plan)
+
   return (
     <span
       className={cn(

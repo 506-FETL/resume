@@ -28,6 +28,7 @@ function History() {
     reload,
     selectResume,
   } = useActiveHistoryResumeId()
+
   const reduceMotion = useReducedMotion()
   const { surfaceProps } = useHistoryMotion()
 

@@ -14,6 +14,7 @@ interface MessageActionsProps {
 
 function getPlainText(message: AiMessage): string {
   if (message.role === 'user') return getEditableMessageText(message.parts)
+
   return message.parts
     .filter((p) => p.type === 'text')
     .map((p) => (p as { text: string }).text)

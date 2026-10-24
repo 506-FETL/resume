@@ -36,6 +36,7 @@ function inferBenchmarkProfile(resume: ResumeSchema) {
   })).sort((a, b) => b.score - a.score)
 
   const winner = rankedProfiles[0]
+
   if (!winner || winner.score === 0) {
     return { confidence: 0, profile: GENERAL_BENCHMARK_PROFILE }
   }
@@ -58,10 +59,12 @@ function createBenchmarkMetric(config: {
   target: number | null
 }): BenchmarkMetric {
   const formatter = config.formatter ?? ((value) => `${value ?? 0}`)
+
   const ratio =
     config.target && config.target > 0 ? config.current / config.target : 1
 
   let status: BenchmarkMetricStatus = 'good'
+
   if (config.target !== null) {
     if (ratio < 0.5) status = 'missing'
     else if (ratio < 0.9) status = 'warn'
@@ -90,6 +93,7 @@ export function buildBenchmarkReport(
 ): BenchmarkResult {
   const { confidence, profile } = inferBenchmarkProfile(resume)
   const stats = getResumeEvidenceStats(resume)
+
   const metrics = [
     createBenchmarkMetric({
       key: 'evidenceCount',
@@ -158,6 +162,7 @@ export function buildBenchmarkReport(
         return '成果支撑偏弱，优先补充真实的交付结果、影响范围、问题解决情况或可验证数据。'
       if (metric.key === 'positioningConsistency')
         return '内容定位较分散，建议围绕目标方向统一岗位表述、能力关键词和经历重点。'
+
       return 'ATS 综合评分仍有提升空间，优先处理当前报告中有原文证据的问题。'
     })
 

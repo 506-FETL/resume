@@ -36,6 +36,7 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
 
     try {
       const user = await SignInWithEmailAndPassword(email, password)
+
       useUserStore.getState().setCurrentUser(user)
 
       navigate(redirect, { replace: true })

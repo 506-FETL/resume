@@ -32,6 +32,7 @@ export function AppSidebar({
   const { pathname } = useLocation()
   const reduceMotion = useReducedMotion()
   const authStatus = useUserStore((state) => state.authStatus)
+
   const isAssistantRoute =
     pathname === '/assistant' || pathname.startsWith('/assistant/')
 

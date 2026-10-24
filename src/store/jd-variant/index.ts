@@ -16,5 +16,7 @@ const useJdVariantStore = create<JdVariantStore>()((set, get) => ({
 }))
 
 export default useJdVariantStore
+
 export type { JdVariantStore, VariantTask } from './types'
+
 export { makeIdleTask } from './types'

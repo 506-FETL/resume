@@ -56,6 +56,7 @@ function HobbiesForm({ className }: { className?: string }) {
   // 切换预设爱好
   const togglePresetHobby = (hobby: string) => {
     const existingIndex = fields.findIndex((field) => field.name === hobby)
+
     if (existingIndex >= 0) {
       remove(existingIndex)
     } else {
@@ -66,8 +67,10 @@ function HobbiesForm({ className }: { className?: string }) {
   // 添加自定义爱好
   const addCustomHobby = () => {
     const trimmedValue = customHobbyInput.trim()
+
     if (!trimmedValue) {
       toast.warning('爱好名称不能为空')
+
       return
     }
 
@@ -76,6 +79,7 @@ function HobbiesForm({ className }: { className?: string }) {
       toast.error('爱好已存在', {
         description: `"${trimmedValue}" 已经添加过了`,
       })
+
       return
     }
 
@@ -168,6 +172,7 @@ function HobbiesForm({ className }: { className?: string }) {
                 {fields.map((item, index) => {
                   const hobbyValue = form.watch(`hobbies.${index}.name`)
                   const hidden = form.watch(`hobbies.${index}.hidden` as any)
+
                   return (
                     <motion.div
                       key={item.id}

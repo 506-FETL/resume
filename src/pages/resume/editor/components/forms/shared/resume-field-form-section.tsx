@@ -56,6 +56,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
       <form id={formId} className={cn('flex flex-col gap-6', className)}>
         {fields.map((item, index) => {
           const hidden = form.watch(`items.${index}.hidden` as any)
+
           return (
             <motion.div
               key={item.id}

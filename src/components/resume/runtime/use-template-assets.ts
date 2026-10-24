@@ -20,8 +20,10 @@ export function useTemplateAssets(
         ) ?? [],
     ),
   )
+
   const load = useTemplateImageStore((state) => state.load)
   const retain = useTemplateImageStore((state) => state.retain)
+
   const loadAssets = useCallback(
     (force = false) => {
       definition?.assets.forEach((asset) =>
@@ -39,30 +41,41 @@ export function useTemplateAssets(
     },
     [definition, load],
   )
+
   useEffect(() => {
     const releases =
       definition?.assets.map((asset) =>
         retain(asset.sha256, URL_RELEASE_DELAY_MS),
       ) ?? []
+
     loadAssets()
+
     return () => releases.forEach((release) => release())
   }, [definition, loadAssets, retain])
+
   const assetUrls = useMemo(() => {
     if (!definition?.assets.length) return EMPTY_ASSETS
+
     const urls = new Map<string, string>()
+
     definition.assets.forEach((asset, index) => {
       const image = images[index]
+
       if (image?.status === 'ready') urls.set(asset.id, image.url)
     })
+
     return urls
   }, [definition, images])
+
   const failure = images.find(
     (image, index) =>
       image.status === 'error' && definition?.assets[index]?.required,
   )
+
   const loading = images.some(
     (image) => image.status === 'idle' || image.status === 'loading',
   )
+
   return {
     status: failure
       ? ('error' as const)

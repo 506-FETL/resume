@@ -24,6 +24,7 @@ type AnyZod = z.ZodTypeAny
  */
 function unwrap(schema: AnyZod): AnyZod {
   let cur: any = schema
+
   while (
     cur instanceof z.ZodOptional ||
     cur instanceof z.ZodDefault ||
@@ -31,6 +32,7 @@ function unwrap(schema: AnyZod): AnyZod {
   ) {
     cur = cur._def.innerType
   }
+
   return cur as AnyZod
 }
 
@@ -41,12 +43,15 @@ function unwrap(schema: AnyZod): AnyZod {
 
 function getArrayExactLength(schema: any): number | undefined {
   const checks: any[] = schema._def.checks ?? []
+
   for (const check of checks) {
     const def = check._zod?.def
+
     if (def?.check === 'length_equals') {
       return def.length as number
     }
   }
+
   return undefined
 }
 
@@ -71,6 +76,7 @@ function describeField(schema: AnyZod): string {
     // Zod 4 公开 API：t.options 返回枚举值数组
 
     const values = (t as any).options as string[]
+
     return `enum(${values.map((v) => `"${v}"`).join(' | ')})`
   }
 
@@ -107,6 +113,7 @@ function describeField(schema: AnyZod): string {
 
 function describeObjectShape(objSchema: z.ZodObject<any>): string {
   const shape = objSchema.shape as Record<string, AnyZod>
+
   return Object.entries(shape)
     .filter(([key]) => key !== 'entryId' && key !== 'hidden' && key !== 'photo')
     .map(([key, field]) => `${key}: ${describeField(field)}`)
@@ -120,6 +127,7 @@ function describeObjectShape(objSchema: z.ZodObject<any>): string {
  */
 export function buildResumeSchemaDoc(): string {
   const shape = resumeSchema.shape
+
   const lines: string[] = [
     '【简历模块字段结构（写入 update_current_resume_field 的 value 必须严格匹配）】',
     '重要约束：',
@@ -131,6 +139,7 @@ export function buildResumeSchemaDoc(): string {
 
   for (const [key, sectionSchema] of Object.entries(shape)) {
     const label = SECTION_LABELS[key] ?? key
+
     lines.push(
       `- ${key}（${label}）：${describeField(sectionSchema as AnyZod)}`,
     )

@@ -27,9 +27,11 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function BoardSnapshot({ model }: { model: CanvasModel }) {
   const isMobile = useIsMobile()
+
   const canvasVisible = useAssistantStore((s) =>
     isMobile ? s.canvasMobileOpen : s.canvasOpen,
   )
+
   const [jobs, setJobs] = useState<JobApplication[] | null>(null)
 
   // 仅统计「已应用」的看板写操作：awaiting-confirm 阶段刷新会读到旧数据，
@@ -37,9 +39,12 @@ export default function BoardSnapshot({ model }: { model: CanvasModel }) {
   const boardWriteCount = model.writes.filter(
     (w) => w.category === 'board' && w.state === 'result',
   ).length
+
   useEffect(() => {
     if (!canvasVisible) return
+
     let cancelled = false
+
     getCompanies()
       .then((rows) => {
         if (!cancelled) setJobs(rows)
@@ -47,6 +52,7 @@ export default function BoardSnapshot({ model }: { model: CanvasModel }) {
       .catch(() => {
         if (!cancelled) setJobs((current) => current ?? [])
       })
+
     return () => {
       cancelled = true
     }

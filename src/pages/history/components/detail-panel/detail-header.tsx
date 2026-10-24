@@ -37,6 +37,7 @@ interface DetailHeaderProps {
 
 export default function DetailHeader({ state }: DetailHeaderProps) {
   const { surfaceProps } = useHistoryMotion()
+
   const {
     currentResume,
     versions,
@@ -44,6 +45,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
     restoreVersion,
     deleteVersion,
   } = useHistoryStore()
+
   const [restoreTargetId, setRestoreTargetId] = useState<number | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
@@ -57,8 +59,11 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
   const handleConfirmRestore = async (strategy: RestoreStrategy) => {
     if (!restoreTargetId) return
+
     const restoredVersion = await restoreVersion(restoreTargetId, strategy)
+
     if (!restoredVersion) return
+
     setRestoreTargetId(null)
     state.selectEntry(restoredVersion.id)
   }
@@ -70,6 +75,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
   if (selectedEntry === 'current' && currentResume) {
     const syncState = getCurrentSyncState(currentResume, versions)
+
     return (
       <div className='flex min-w-0 flex-col gap-1.5'>
         <div className='flex flex-wrap items-center gap-2'>
@@ -118,9 +124,11 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
   if (!selectedVersion) return null
 
   const sourceMeta = SOURCE_META[selectedVersion.source_type]
+
   const olderVersion = versions.find(
     (version) => version.version_no < selectedVersion.version_no,
   )
+
   const compareBaseId = olderVersion ? String(olderVersion.id) : 'current'
   const canCompare = versions.length >= 2 || Boolean(currentResume)
 

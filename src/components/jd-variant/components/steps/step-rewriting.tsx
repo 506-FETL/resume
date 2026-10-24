@@ -29,6 +29,7 @@ export function StepRewriting({
   reasoning,
 }: StepRewritingProps) {
   const total = Math.max(estimatedTotal, completedSections.length || 1)
+
   const pct = Math.min(
     100,
     Math.round((completedSections.length / total) * 100),

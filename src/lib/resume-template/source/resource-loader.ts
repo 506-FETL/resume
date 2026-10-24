@@ -26,12 +26,15 @@ export function createResourceLoader({
       (total, entry) => total + resourceBytes(entry.value),
       0,
     )
+
     for (const [key, entry] of memory) {
       if (memory.size <= MEMORY_LIMIT && bytes <= MAX_CACHE_BYTES) break
       if (retained.has(key)) continue
+
       memory.delete(key)
       bytes -= resourceBytes(entry.value)
     }
+
     // 消费者持有正在使用的数据；拒绝缓存无法容纳的新资源。
     if (memory.size > MEMORY_LIMIT || bytes > MAX_CACHE_BYTES)
       memory.delete(record.key)
@@ -48,6 +51,7 @@ export function createResourceLoader({
 
     if (!request || force) {
       const id = ++sequence
+
       const job = (async () => {
         const saved = memory.get(key) ?? (await cache.get(key))
         let fallback: T | undefined
@@ -58,6 +62,7 @@ export function createResourceLoader({
 
             if (!force && saved.expiresAt > now()) {
               if (pending.get(key)?.id === id) remember(saved)
+
               return fallback
             }
           } catch {
@@ -87,18 +92,23 @@ export function createResourceLoader({
 
           throw error
         }
+
         const result = await validate(value)
         const record = { key, value, savedAt: now(), expiresAt: now() + ttl }
 
         if (pending.get(key)?.id === id) {
           remember(record)
+
           const previous = writes.get(key) ?? Promise.resolve()
+
           const write = previous
             .catch(() => {})
             .then(async () => {
               if (pending.get(key)?.id === id) await cache.set(record)
             })
+
           writes.set(key, write)
+
           try {
             await write
           } finally {
@@ -126,15 +136,22 @@ export function createResourceLoader({
           'LOAD_FAILED',
           '同时使用的模板资源过多，请关闭部分预览后重试',
         )
+
       retained.set(key, (retained.get(key) ?? 0) + 1)
+
       const releaseCache = cache.retain?.(key)
       let released = false
+
       return () => {
         if (released) return
+
         released = true
+
         const count = (retained.get(key) ?? 1) - 1
+
         if (count > 0) retained.set(key, count)
         else retained.delete(key)
+
         releaseCache?.()
       }
     },

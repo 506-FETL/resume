@@ -59,6 +59,7 @@ function parseCollaborationRoute(params: URLSearchParams): CollaborationRoute {
 
   try {
     const { documentId } = parseAutomergeUrl(documentUrl as AutomergeUrl)
+
     return {
       kind: 'invite',
       resumeId,
@@ -78,6 +79,7 @@ function getCollaborationLoadKey(
   if (route.kind === 'invalid') return 'collab:invalid'
   if (route.kind === 'invite')
     return `collab:${route.resumeId}:${route.sessionId}:${route.documentId}`
+
   return activeResumeId ? `resume:${activeResumeId}` : 'empty'
 }
 
@@ -87,6 +89,7 @@ function hydrateLoadedAppearance(
 ) {
   const { snapshot, hasPersistedAppearance, cloudAppearanceStatus, mode } =
     result
+
   const configStore = useResumeConfigStore.getState()
 
   if (
@@ -96,6 +99,7 @@ function hydrateLoadedAppearance(
     cloudAppearanceStatus === 'error'
   ) {
     configStore.hydrateFromSnapshot(snapshot)
+
     return
   }
 
@@ -120,25 +124,31 @@ export function useResumeLoader() {
   const navigate = useNavigate()
   const loadGenerationRef = useRef(0)
   const locationHashRef = useRef(location.hash)
+
   locationHashRef.current = location.hash
+
   const terminalActionKeyRef = useRef<string | null>(null)
   const loadedDocumentIdentityRef = useRef<LoadedDocumentIdentity | null>(null)
 
   const { resumeId, setCurrentResume, clearCurrentResume } =
     useCurrentResumeStore()
+
   const loadResumeData = useResumeStore((state) => state.loadResumeData)
   const currentUser = useUserStore((state) => state.currentUser)
   const authStatus = useUserStore((state) => state.authStatus)
 
   const collaborationRoute = parseCollaborationRoute(searchParams)
   const queryResumeId = searchParams.get('resumeId')
+
   const routeResumeId =
     collaborationRoute.kind === 'invite' ||
     collaborationRoute.kind === 'host-recovery'
       ? collaborationRoute.resumeId
       : undefined
+
   const activeResumeId = routeResumeId ?? queryResumeId ?? resumeId ?? undefined
   const loadKey = getCollaborationLoadKey(collaborationRoute, activeResumeId)
+
   const collaborationAuthKey =
     collaborationRoute.kind === 'invite' ||
     collaborationRoute.kind === 'host-recovery'
@@ -149,6 +159,7 @@ export function useResumeLoader() {
   useEffect(() => {
     return () => {
       useResumeConfigStore.getState().discardSpacingPreview()
+
       useCollaborationStore
         .getState()
         .stopSharing({
@@ -156,6 +167,7 @@ export function useResumeLoader() {
           bestEffort: true,
         })
         .catch(() => undefined)
+
       useResumeStore.getState().cleanup()
     }
   }, [])
@@ -172,6 +184,7 @@ export function useResumeLoader() {
   useEffect(() => {
     let cancelled = false
     const generation = ++loadGenerationRef.current
+
     const isCurrentLoad = () =>
       !cancelled && generation === loadGenerationRef.current
 
@@ -187,6 +200,7 @@ export function useResumeLoader() {
     const authState = useUserStore.getState()
     const authenticatedUser = authState.currentUser
     const authenticatedUserId = authenticatedUser?.id ?? null
+
     const authenticatedUserName = authenticatedUser
       ? getUserDisplayName(authenticatedUser) ||
         `用户-${authenticatedUser.id.slice(0, 6)}`
@@ -194,18 +208,22 @@ export function useResumeLoader() {
 
     const runTerminalActionOnce = (key: string, action: () => void) => {
       const terminalKey = `${loadKey}:${key}`
+
       if (!isCurrentLoad() || terminalActionKeyRef.current === terminalKey)
         return
+
       terminalActionKeyRef.current = terminalKey
       action()
     }
 
     if (route.kind === 'invalid') {
       setLoading(false)
+
       runTerminalActionOnce('invalid', () => {
         toast.error('协作链接无效')
         navigate('/resume', { replace: true })
       })
+
       return () => {
         cancelled = true
       }
@@ -213,6 +231,7 @@ export function useResumeLoader() {
 
     if (!activeResumeId) {
       setLoading(false)
+
       return () => {
         cancelled = true
       }
@@ -220,8 +239,10 @@ export function useResumeLoader() {
 
     const expectedDocumentSource =
       route.kind === 'invite' ? 'collaboration' : 'owner'
+
     const loadedIdentity = loadedDocumentIdentityRef.current
     const resumeState = useResumeStore.getState()
+
     const hasReusableDocument =
       loadedIdentity?.resumeId === activeResumeId &&
       loadedIdentity.source === expectedDocumentSource &&
@@ -231,7 +252,9 @@ export function useResumeLoader() {
       resumeState.docManager !== null &&
       resumeState.docManager.canPersist() ===
         (expectedDocumentSource === 'owner')
+
     const collaborationState = useCollaborationStore.getState()
+
     const isCurrentHostUrlTransition =
       route.kind === 'host-recovery' &&
       collaborationState.role === 'host' &&
@@ -248,6 +271,7 @@ export function useResumeLoader() {
       (route.kind === 'none' || isCurrentHostUrlTransition)
     ) {
       setLoading(false)
+
       return () => {
         cancelled = true
       }
@@ -255,9 +279,11 @@ export function useResumeLoader() {
 
     const isCollaborationRoute =
       route.kind === 'invite' || route.kind === 'host-recovery'
+
     if (isCollaborationRoute && authState.authStatus === 'unknown') {
       setLoading(true)
       useCollaborationStore.getState().markInviteAuthenticating()
+
       return () => {
         cancelled = true
       }
@@ -265,14 +291,17 @@ export function useResumeLoader() {
 
     if (isCollaborationRoute && authState.authStatus === 'anonymous') {
       setLoading(true)
+
       runTerminalActionOnce('login', () => {
         const redirect = sanitizeAppRedirect(
           `${location.pathname}${location.search}${locationHashRef.current}`,
         )
+
         navigate(`/login?redirect=${encodeURIComponent(redirect)}`, {
           replace: true,
         })
       })
+
       return () => {
         cancelled = true
       }
@@ -284,6 +313,7 @@ export function useResumeLoader() {
     ) {
       setLoading(true)
       useCollaborationStore.getState().markInviteAuthenticating()
+
       return () => {
         cancelled = true
       }
@@ -305,6 +335,7 @@ export function useResumeLoader() {
     const loadOwnerResume = async (targetResumeId: string) => {
       const currentIdentity = loadedDocumentIdentityRef.current
       const currentResumeState = useResumeStore.getState()
+
       if (
         currentIdentity?.resumeId === targetResumeId &&
         currentIdentity.source === 'owner' &&
@@ -318,8 +349,10 @@ export function useResumeLoader() {
       const result = await loadResumeData(targetResumeId, {
         source: { kind: 'owner' },
       })
+
       assertCurrentLoad()
       hydrateLoadedAppearance(result, { collaborationSource: false })
+
       loadedDocumentIdentityRef.current = {
         resumeId: targetResumeId,
         source: 'owner',
@@ -338,8 +371,10 @@ export function useResumeLoader() {
       } catch (error) {
         // session store 会展示恢复 host 失败的唯一一条 toast。
         sessionActionReportedError = true
+
         throw error
       }
+
       assertCurrentLoad()
     }
 
@@ -347,16 +382,19 @@ export function useResumeLoader() {
       try {
         if (route.kind === 'none') {
           await loadOwnerResume(activeResumeId)
+
           return
         }
 
         const userId = authenticatedUserId!
+
         const params = {
           sessionId: route.sessionId,
           resumeId: route.resumeId,
           userId,
           userName: authenticatedUserName,
         }
+
         const storedRole = getStoredSessionRole(
           route.sessionId,
           route.resumeId,
@@ -367,6 +405,7 @@ export function useResumeLoader() {
           await loadOwnerResume(route.resumeId)
           assertCurrentLoad()
           await resumeHost(params)
+
           return
         }
 
@@ -381,6 +420,7 @@ export function useResumeLoader() {
           await loadOwnerResume(route.resumeId)
           assertCurrentLoad()
           await resumeHost(params)
+
           return
         }
 
@@ -388,7 +428,9 @@ export function useResumeLoader() {
           await useCollaborationStore
             .getState()
             .abortPreparedGuestSession(preparedGuest)
+
           preparedGuest = null
+
           return
         }
 
@@ -396,7 +438,9 @@ export function useResumeLoader() {
           await useCollaborationStore
             .getState()
             .abortPreparedGuestSession(preparedGuest)
+
           preparedGuest = null
+
           throw new CollaborationOperationError('协作链接缺少共享文档信息', {
             code: 'collaboration_document_missing',
           })
@@ -405,6 +449,7 @@ export function useResumeLoader() {
         useCollaborationStore
           .getState()
           .markGuestSessionHydrating(preparedGuest)
+
         const result = await loadResumeData(route.resumeId, {
           source: {
             kind: 'collaboration',
@@ -413,17 +458,22 @@ export function useResumeLoader() {
             sessionId: route.sessionId,
           },
         })
+
         assertCurrentLoad()
         hydrateLoadedAppearance(result, { collaborationSource: true })
+
         await useCollaborationStore
           .getState()
           .connectPreparedGuestSession(preparedGuest)
+
         assertCurrentLoad()
+
         loadedDocumentIdentityRef.current = {
           resumeId: route.resumeId,
           source: 'collaboration',
           loadKey,
         }
+
         preparedGuest = null
         toast.info('已加入实时协作', { description: '正在与发起者同步内容' })
       } catch (error) {
@@ -431,6 +481,7 @@ export function useResumeLoader() {
           await useCollaborationStore
             .getState()
             .abortPreparedGuestSession(preparedGuest)
+
           preparedGuest = null
         }
         if (!isCurrentLoad()) return
@@ -445,6 +496,7 @@ export function useResumeLoader() {
           if (!sessionActionReportedError) {
             toast.error(`加载简历失败, ${getErrorMessage(error, '未知错误')}`)
           }
+
           navigate('/resume', { replace: true })
         })
       } finally {
@@ -487,9 +539,11 @@ export function useResumeLoader() {
           if (payload.eventType !== 'DELETE') return
 
           const deletedResumeId = payload.old.resume_id
+
           if (deletedResumeId !== activeResumeId) return
 
           const resumeName = payload.old.display_name || '简历'
+
           toast.error(`简历 "${resumeName}" 已在其他窗口被删除`, {
             duration: 5000,
           })

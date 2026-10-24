@@ -14,6 +14,7 @@ function getThinkingMessage(isStreaming: boolean, duration?: number) {
   if (isStreaming || duration === 0)
     return <Shimmer duration={1}>正在思考…</Shimmer>
   if (duration === undefined) return <span>已完成思考</span>
+
   return (
     <span>
       思考了

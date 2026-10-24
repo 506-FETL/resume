@@ -63,6 +63,7 @@ export class SupabaseYjsProvider {
       if (origin === this) {
         return
       }
+
       this.broadcast('yjs-update', { update: encodeBytesToBase64(update) })
     }
 
@@ -70,7 +71,9 @@ export class SupabaseYjsProvider {
       if (origin === 'remote') {
         return
       }
+
       const changed = [...added, ...updated, ...removed]
+
       this.broadcast('yjs-awareness', {
         update: encodeBytesToBase64(
           encodeAwarenessUpdate(this.awareness, changed),
@@ -85,6 +88,7 @@ export class SupabaseYjsProvider {
     }
 
     const channel = supabase.channel(this.channelName)
+
     this.channel = channel
 
     channel.on(
@@ -92,6 +96,7 @@ export class SupabaseYjsProvider {
       { event: 'yjs-update' },
       (payload: YjsUpdateBroadcast) => {
         const b64 = payload?.payload?.update
+
         if (typeof b64 === 'string') {
           applyUpdate(this.doc, decodeBase64ToBytes(b64), this)
         }
@@ -103,6 +108,7 @@ export class SupabaseYjsProvider {
       { event: 'yjs-awareness' },
       (payload: YjsUpdateBroadcast) => {
         const b64 = payload?.payload?.update
+
         if (typeof b64 === 'string') {
           applyAwarenessUpdate(
             this.awareness,
@@ -126,6 +132,7 @@ export class SupabaseYjsProvider {
       const leftClientIds = (leftPresences ?? [])
         .map((presence) => (presence as YjsPresence).clientId)
         .filter((id: unknown): id is number => typeof id === 'number')
+
       if (leftClientIds.length > 0) {
         removeAwarenessStates(this.awareness, leftClientIds, 'remote')
       }
@@ -135,6 +142,7 @@ export class SupabaseYjsProvider {
       if (status !== 'SUBSCRIBED') {
         return
       }
+
       this.connected = true
       this.doc.on('update', this.onDocUpdate)
       this.awareness.on('update', this.onAwarenessUpdate)
@@ -158,9 +166,11 @@ export class SupabaseYjsProvider {
     if (!this.channel) {
       return 0
     }
+
     const state = this.channel.presenceState() as Record<string, unknown[]>
     // 每个 presence key 对应一个连接；扣除自己（本端 track 一次）
     const total = Object.keys(state).length
+
     return Math.max(0, total - 1)
   }
 
@@ -184,6 +194,7 @@ export class SupabaseYjsProvider {
       this.channel.unsubscribe()
       this.channel = null
     }
+
     this.connected = false
   }
 
@@ -191,6 +202,7 @@ export class SupabaseYjsProvider {
     if (!this.channel || !this.connected) {
       return
     }
+
     this.channel.send({ type: 'broadcast', event, payload })
   }
 }

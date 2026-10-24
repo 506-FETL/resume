@@ -17,7 +17,9 @@ export type BindingScope =
   | 'experience-item'
   | 'skills-item'
   | 'field-item'
+
 type AllowedScopes = 'any' | 'section' | readonly BindingScope[]
+
 interface BindingDescriptor<T> {
   scopes: AllowedScopes
   read: (scope: RenderScope) => T
@@ -53,6 +55,7 @@ const itemScopes = [
   'skills-item',
   'field-item',
 ] as const
+
 const fieldScopes = ['profile-fields', 'skills-item', 'field-item'] as const
 
 export const fieldBindings = {
@@ -161,6 +164,7 @@ export function isBindingAllowed(
   hasSection: boolean,
 ): boolean {
   const { scopes } = bindingRegistry[binding]
+
   return (
     scopes === 'any' ||
     (scopes === 'section' ? hasSection : scopes.includes(scope))

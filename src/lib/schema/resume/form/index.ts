@@ -32,20 +32,33 @@ export const resumeSchema = z.object({
 export type ResumeSchema = z.infer<typeof resumeSchema>
 
 export * from './applicationInfo'
+
 export * from './basic'
+
 export * from './campusExperience'
+
 export * from './eduBackground'
+
 export * from './hobbies'
+
 export * from './honorsCertificates'
+
 export * from './internshipExperience'
+
 export * from './jobIntent'
+
 export * from './projectExperience'
+
 export * from './selfEvaluation'
+
 export * from './skillSpecialty'
+
 export * from './workExperience'
 
 export type ORDERType = keyof ResumeSchema
+
 export type VisibilityItemsType = Exclude<ORDERType, 'basics'>
+
 export const DEFAULT_ORDER: ORDERType[] = [
   'basics',
   'job_intent',
@@ -92,9 +105,11 @@ export function migrateVisibility(
 
   for (const [key, value] of Object.entries(visibility)) {
     const normalizedKey = LEGACY_KEY_MAP[key] ?? key
+
     if (normalizedKey in result && typeof value === 'boolean') {
       result[normalizedKey as keyof VisibilityFormType] = value
     }
   }
+
   return result
 }

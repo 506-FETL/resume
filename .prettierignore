@@ -21,8 +21,3 @@ skills/
 .trae/
 .github/skills/
 .github/prompts/
-
-# 沿用共享 UI 和 Tiptap 生成组件的忽略范围
-src/components/ui/
-src/components/animate-ui/
-**/tiptap-*/**

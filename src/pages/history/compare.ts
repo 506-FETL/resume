@@ -85,6 +85,7 @@ function valueToText(value: unknown): string {
   if (isDateRange(value)) return `${value[0] || '未填'} 至 ${value[1] || '今'}`
   if (Array.isArray(value))
     return value.map(valueToText).filter(Boolean).join('、')
+
   return JSON.stringify(value)
 }
 
@@ -92,14 +93,17 @@ function valueToText(value: unknown): string {
 function unwrapItems(value: unknown): unknown {
   if (isRecord(value)) {
     const entries = Object.entries(value)
+
     if (entries.length === 1 && entries[0][0] === 'items') return entries[0][1]
   }
+
   return value
 }
 
 // 叶子：字符串/数字/布尔/时间段/字符串数组/空值
 function isLeaf(value: unknown): boolean {
   if (value == null || typeof value !== 'object') return true
+
   return isDateRange(value) || isStringArray(value)
 }
 
@@ -119,8 +123,10 @@ function diffValue(
     const bObj = isRecord(b) ? b : {}
     const aObj = isRecord(a) ? a : {}
     const keys = [...new Set([...Object.keys(bObj), ...Object.keys(aObj)])]
+
     for (const key of keys)
       diffValue(bObj[key], aObj[key], [...path, fieldLabel(key)], out)
+
     return
   }
 
@@ -129,16 +135,21 @@ function diffValue(
     const bArr = Array.isArray(b) ? b : []
     const aArr = Array.isArray(a) ? a : []
     const len = Math.max(bArr.length, aArr.length)
+
     for (let i = 0; i < len; i++)
       diffValue(bArr[i], aArr[i], [...path, `第 ${i + 1} 项`], out)
+
     return
   }
 
   // 叶子 → 文本比较
   const beforeText = valueToText(before)
   const afterText = valueToText(after)
+
   if (beforeText === afterText) return
+
   const lines = computeLineDiff(beforeText, afterText)
+
   out.push({
     key: path.join('/') || 'value',
     label: path.join(' · ') || '内容',
@@ -155,18 +166,23 @@ export function diffSnapshots(
   after: ResumeSnapshot,
 ): SectionDiff[] {
   const order = getOrderedSections(after)
+
   const extra = getOrderedSections(before).filter(
     (section) => !order.includes(section),
   )
+
   const sections = [...order, ...extra]
 
   const beforeRecord = before as unknown as Record<string, unknown>
   const afterRecord = after as unknown as Record<string, unknown>
 
   const result: SectionDiff[] = []
+
   for (const section of sections) {
     const fields: FieldDiff[] = []
+
     diffValue(beforeRecord[section], afterRecord[section], [], fields)
+
     if (fields.length > 0)
       result.push({
         sectionKey: section,
@@ -174,6 +190,7 @@ export function diffSnapshots(
         fields,
       })
   }
+
   return result
 }
 

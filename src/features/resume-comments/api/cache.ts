@@ -47,9 +47,12 @@ export function mergeCachedThreadReadStates(
       .filter((state) => liveThreadIds.has(state.threadId))
       .map((state) => [state.threadId, state]),
   )
+
   for (const state of incoming) {
     if (!liveThreadIds.has(state.threadId)) continue
+
     const existing = merged.get(state.threadId)
+
     merged.set(state.threadId, {
       threadId: state.threadId,
       latestCommentEventSeq: Math.max(
@@ -62,6 +65,7 @@ export function mergeCachedThreadReadStates(
       ),
     })
   }
+
   return [...merged.values()]
 }
 
@@ -75,6 +79,7 @@ interface ResumeCommentCacheSchema extends DBSchema {
 
 let databasePromise: Promise<IDBPDatabase<ResumeCommentCacheSchema>> | null =
   null
+
 let cacheMutationGeneration = 0
 const cacheOperationQueues = new Map<string, Promise<void>>()
 const READ_CURSOR_PREFIX = 'resume-comment-read-cursor:'
@@ -102,11 +107,14 @@ function enqueueCommentCacheOperation<T>(
 ): Promise<T> {
   const previous = cacheOperationQueues.get(serializedKey) ?? Promise.resolve()
   const result = previous.then(operation, operation)
+
   const settled = result.then(
     () => undefined,
     () => undefined,
   )
+
   cacheOperationQueues.set(serializedKey, settled)
+
   return result.finally(() => {
     if (cacheOperationQueues.get(serializedKey) === settled)
       cacheOperationQueues.delete(serializedKey)
@@ -115,6 +123,7 @@ function enqueueCommentCacheOperation<T>(
 
 function getDatabase() {
   if (typeof indexedDB === 'undefined') return null
+
   databasePromise ??= openDB<ResumeCommentCacheSchema>(
     'resume-comment-cache-v1',
     1,
@@ -123,10 +132,12 @@ function getDatabase() {
         const store = database.createObjectStore('bootstrap', {
           keyPath: 'key',
         })
+
         store.createIndex('principalKey', 'principalKey')
       },
     },
   )
+
   return databasePromise
 }
 
@@ -136,12 +147,14 @@ export function serializeCommentCacheKey(key: CommentCacheKey) {
 
 export function readCommentReadCursor(key: CommentCacheKey) {
   if (typeof localStorage === 'undefined') return 0
+
   try {
     const value = Number(
       localStorage.getItem(
         `${READ_CURSOR_PREFIX}${serializeCommentCacheKey(key)}`,
       ),
     )
+
     return Number.isSafeInteger(value) && value >= 0 ? value : 0
   } catch {
     return 0
@@ -150,10 +163,12 @@ export function readCommentReadCursor(key: CommentCacheKey) {
 
 function persistCommentReadCursor(key: CommentCacheKey, eventSeq: number) {
   if (typeof localStorage === 'undefined') return
+
   try {
     const storageKey = `${READ_CURSOR_PREFIX}${serializeCommentCacheKey(key)}`
     const current = Number(localStorage.getItem(storageKey))
     const next = Math.max(Number.isSafeInteger(current) ? current : 0, eventSeq)
+
     localStorage.setItem(storageKey, String(next))
   } catch {
     // 私密模式或存储额度不足时仍可依靠内存状态与服务端回执。
@@ -166,14 +181,18 @@ function threadReadCursorStorageKey(key: CommentCacheKey) {
 
 export function readCommentThreadReadCursors(key: CommentCacheKey) {
   if (typeof localStorage === 'undefined') return []
+
   try {
     const parsed = JSON.parse(
       localStorage.getItem(threadReadCursorStorageKey(key)) ?? '{}',
     )
+
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       return []
+
     return Object.entries(parsed).flatMap(([threadId, rawEventSeq]) => {
       const eventSeq = Number(rawEventSeq)
+
       return threadId && Number.isSafeInteger(eventSeq) && eventSeq >= 0
         ? [
             {
@@ -195,6 +214,7 @@ function persistCommentThreadReadCursor(
   eventSeq: number,
 ) {
   if (typeof localStorage === 'undefined') return
+
   try {
     const current = Object.fromEntries(
       readCommentThreadReadCursors(key).map((state) => [
@@ -202,7 +222,9 @@ function persistCommentThreadReadCursor(
         state.lastReadEventSeq,
       ]),
     )
+
     current[threadId] = Math.max(current[threadId] ?? 0, eventSeq)
+
     localStorage.setItem(
       threadReadCursorStorageKey(key),
       JSON.stringify(current),
@@ -217,13 +239,16 @@ export function pruneCommentThreadReadCursors(
   liveThreadIds: ReadonlySet<string>,
 ) {
   if (typeof localStorage === 'undefined') return
+
   try {
     const next = Object.fromEntries(
       readCommentThreadReadCursors(key)
         .filter((state) => liveThreadIds.has(state.threadId))
         .map((state) => [state.threadId, state.lastReadEventSeq]),
     )
+
     const storageKey = threadReadCursorStorageKey(key)
+
     if (Object.keys(next).length > 0)
       localStorage.setItem(storageKey, JSON.stringify(next))
     else localStorage.removeItem(storageKey)
@@ -241,6 +266,7 @@ export function deriveCommentCacheKey(
     'versionId' in access
       ? access.versionId
       : (resolvedVersionId ?? readCommentVersionHint(access))
+
   if (!versionId) return null
   if (access.kind === 'owner') {
     return authenticatedUserId
@@ -249,6 +275,7 @@ export function deriveCommentCacheKey(
   }
   if (access.kind === 'collaborator')
     return { versionId, principalKey: `user:${access.userId}` }
+
   return {
     versionId,
     principalKey: authenticatedUserId
@@ -273,6 +300,7 @@ export function rememberCommentVersionHint(
     typeof localStorage === 'undefined'
   )
     return
+
   try {
     localStorage.setItem(versionHintKey(access.resumeId), String(versionId))
   } catch {
@@ -287,8 +315,10 @@ export function readCommentVersionHint(access: CommentAccessContext) {
     typeof localStorage === 'undefined'
   )
     return undefined
+
   try {
     const value = Number(localStorage.getItem(versionHintKey(access.resumeId)))
+
     return Number.isSafeInteger(value) && value > 0 ? value : undefined
   } catch {
     return undefined
@@ -297,14 +327,20 @@ export function readCommentVersionHint(access: CommentAccessContext) {
 
 export async function readCommentCache(key: CommentCacheKey) {
   const database = getDatabase()
+
   if (!database) return null
+
   const serializedKey = serializeCommentCacheKey(key)
+
   return enqueueCommentCacheOperation(serializedKey, async () => {
     const entry = await (await database).get('bootstrap', serializedKey)
+
     if (!isCommentCacheEntryCompatible(entry)) return null
+
     const liveThreadIds = new Set(
       entry.value.threads.map((thread) => thread.id),
     )
+
     return {
       ...entry,
       value: advanceCommentReadCursor(
@@ -327,6 +363,7 @@ export function advanceCommentReadCursor(
   eventSeq: number,
 ): CachedCommentBootstrap {
   const lastReadEventSeq = Math.max(value.lastReadEventSeq, eventSeq)
+
   return {
     ...value,
     lastReadEventSeq,
@@ -350,20 +387,27 @@ export async function writeCommentCache(
   fence?: CommentCacheWriteFence,
 ) {
   if (fence && !isCommentCacheWriteFenceCurrent(fence)) return false
+
   const database = getDatabase()
+
   if (!database) return false
+
   const {
     scopeRealtime: _scopeRealtime,
     ownerRealtime: _ownerRealtime,
     ...cacheValue
   } = value
+
   const serializedKey = serializeCommentCacheKey(key)
+
   return enqueueCommentCacheOperation(serializedKey, async () => {
     if (fence && !isCommentCacheWriteFenceCurrent(fence)) return false
+
     const resolved = await database
     const transaction = resolved.transaction('bootstrap', 'readwrite')
     const current = await transaction.store.get(serializedKey)
     const persistedReadCursor = readCommentReadCursor(key)
+
     const nextValue = advanceCommentReadCursor(
       {
         ...cacheValue,
@@ -382,6 +426,7 @@ export async function writeCommentCache(
         persistedReadCursor,
       ),
     )
+
     await transaction.store.put({
       protocolVersion: 1,
       key: serializedKey,
@@ -390,7 +435,9 @@ export async function writeCommentCache(
       cachedAt: Date.now(),
       value: nextValue,
     })
+
     await transaction.done
+
     return true
   })
 }
@@ -401,13 +448,18 @@ export async function updateCommentCacheReadCursor(
 ) {
   // localStorage 先同步写入，确保用户查看后立即刷新也不会再次出现未读提示。
   persistCommentReadCursor(key, eventSeq)
+
   const database = getDatabase()
+
   if (!database) return
+
   const serializedKey = serializeCommentCacheKey(key)
+
   await enqueueCommentCacheOperation(serializedKey, async () => {
     const resolved = await database
     const transaction = resolved.transaction('bootstrap', 'readwrite')
     const current = await transaction.store.get(serializedKey)
+
     if (isCommentCacheEntryCompatible(current)) {
       await transaction.store.put({
         ...current,
@@ -415,6 +467,7 @@ export async function updateCommentCacheReadCursor(
         value: advanceCommentReadCursor(current.value, eventSeq),
       })
     }
+
     await transaction.done
   })
 }
@@ -427,16 +480,22 @@ export async function updateCommentCacheThreadReadCursor(
 ) {
   // 线程级游标独立于整份 bootstrap 缓存；缓存因 realtime 失效后仍能补偿上报。
   persistCommentThreadReadCursor(key, threadId, eventSeq)
+
   const database = getDatabase()
+
   if (!database) return
+
   const serializedKey = serializeCommentCacheKey(key)
+
   await enqueueCommentCacheOperation(serializedKey, async () => {
     const resolved = await database
     const transaction = resolved.transaction('bootstrap', 'readwrite')
     const current = await transaction.store.get(serializedKey)
+
     if (isCommentCacheEntryCompatible(current)) {
       const states = normalizeCachedThreadReadStates(current.value)
       const existing = states.find((state) => state.threadId === threadId)
+
       const nextState = {
         threadId,
         latestCommentEventSeq: Math.max(
@@ -445,6 +504,7 @@ export async function updateCommentCacheThreadReadCursor(
         ),
         lastReadEventSeq: Math.max(existing?.lastReadEventSeq ?? 0, eventSeq),
       }
+
       const value = {
         ...current.value,
         threadReadStates: [
@@ -452,6 +512,7 @@ export async function updateCommentCacheThreadReadCursor(
           nextState,
         ],
       }
+
       await transaction.store.put({
         ...current,
         cachedAt: Date.now(),
@@ -461,15 +522,20 @@ export async function updateCommentCacheThreadReadCursor(
             : advanceCommentReadCursor(value, scopeLastReadEventSeq),
       })
     }
+
     await transaction.done
   })
 }
 
 export async function deleteCommentCache(key: CommentCacheKey) {
   advanceCommentCacheMutationGeneration()
+
   const database = getDatabase()
+
   if (!database) return
+
   const serializedKey = serializeCommentCacheKey(key)
+
   await enqueueCommentCacheOperation(serializedKey, async () => {
     await (await database).delete('bootstrap', serializedKey)
   })
@@ -477,11 +543,14 @@ export async function deleteCommentCache(key: CommentCacheKey) {
 
 export async function deleteCommentCacheForPrincipal(principalKey: string) {
   advanceCommentCacheMutationGeneration()
+
   if (typeof localStorage !== 'undefined') {
     try {
       const principalSuffix = `:principal:${principalKey}`
+
       for (let index = localStorage.length - 1; index >= 0; index -= 1) {
         const storageKey = localStorage.key(index)
+
         if (
           storageKey?.startsWith(THREAD_READ_CURSOR_PREFIX) &&
           storageKey.endsWith(principalSuffix)
@@ -493,16 +562,22 @@ export async function deleteCommentCacheForPrincipal(principalKey: string) {
       // 登出清理失败不阻断主流程；缓存条目仍会按 principal 删除。
     }
   }
+
   const database = getDatabase()
+
   if (!database) return
+
   const resolved = await database
   const transaction = resolved.transaction('bootstrap', 'readwrite')
+
   let cursor = await transaction.store
     .index('principalKey')
     .openCursor(principalKey)
+
   while (cursor) {
     await cursor.delete()
     cursor = await cursor.continue()
   }
+
   await transaction.done
 }

@@ -42,7 +42,9 @@ export default function VersionCard({
 
   const handleConfirmRestore = async (strategy: RestoreStrategy) => {
     const restoredVersion = await restoreVersion(version.id, strategy)
+
     if (!restoredVersion) return
+
     setRestoreTargetId(null)
     onSelectEntry(restoredVersion.id)
   }

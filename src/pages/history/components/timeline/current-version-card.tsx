@@ -20,6 +20,7 @@ export default function CurrentVersionCard({
 }: CurrentVersionCardProps) {
   const { reduceMotion, enter } = useHistoryMotion()
   const { currentResume, versions } = useHistoryStore()
+
   const { latestVersionNo, synced } = getCurrentSyncState(
     currentResume,
     versions,

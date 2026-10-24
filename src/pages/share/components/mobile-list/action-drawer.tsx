@@ -34,13 +34,16 @@ export default function ActionDrawer({
     openVersionDialog,
     setActive,
   } = useShareStore()
+
   const reduceMotion = useReducedMotion()
   const busy = Boolean(share && pendingShareIds.includes(share.id))
 
   const handleDrawerOpenChange = (nextOpen: boolean) => {
     if (nextOpen && document.activeElement instanceof HTMLElement)
       document.activeElement.blur()
+
     onOpenChange(nextOpen)
+
     if (!nextOpen) {
       requestAnimationFrame(() => {
         if (restoreFocusTo?.isConnected) restoreFocusTo.focus()
@@ -50,24 +53,28 @@ export default function ActionDrawer({
 
   const handlePreview = () => {
     if (!share) return
+
     window.open(buildShareUrl(share.token), '_blank', 'noopener,noreferrer')
     handleDrawerOpenChange(false)
   }
 
   const handleSettings = () => {
     if (!share) return
+
     openSettingsDialog(share.id)
     handleDrawerOpenChange(false)
   }
 
   const handleVersion = () => {
     if (!share) return
+
     openVersionDialog(share.id)
     handleDrawerOpenChange(false)
   }
 
   const handleToggleActive = async () => {
     if (!share) return
+
     try {
       await setActive(share.id, !share.is_active)
       toast.success(share.is_active ? '链接已关闭' : '链接已启用')
@@ -79,12 +86,14 @@ export default function ActionDrawer({
 
   const handleDelete = () => {
     if (!share) return
+
     openDeleteDialog(share.id)
     handleDrawerOpenChange(false)
   }
 
   const handleArchive = () => {
     if (!share) return
+
     openArchiveDialog(share.id)
     handleDrawerOpenChange(false)
   }

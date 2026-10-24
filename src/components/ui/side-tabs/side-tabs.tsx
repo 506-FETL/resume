@@ -8,7 +8,10 @@ export function SideTabs({
   orientation = 'vertical',
   className,
   ...props
-}: PropsWithChildren<{ orientation?: 'horizontal' | 'vertical', className?: string }>) {
+}: PropsWithChildren<{
+  orientation?: 'horizontal' | 'vertical'
+  className?: string
+}>) {
   const { tabsRef } = useSideTabsContext()
 
   return (
@@ -16,10 +19,14 @@ export function SideTabs({
       ref={tabsRef}
       className={cn(
         'flex gap-3',
-        orientation === 'horizontal' ? 'flex-col pr-4' : 'flex-row overflow-x-auto pb-4',
+        orientation === 'horizontal'
+          ? 'flex-col pr-4'
+          : 'flex-row overflow-x-auto pb-4',
         className,
       )}
-      style={orientation === 'vertical' ? { scrollbarWidth: 'thin' } : undefined}
+      style={
+        orientation === 'vertical' ? { scrollbarWidth: 'thin' } : undefined
+      }
       {...props}
     />
   )

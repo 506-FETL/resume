@@ -50,6 +50,7 @@ const proficiencyLevels: ProficiencyLevel[] = [
   '擅长',
   '精通',
 ]
+
 const displayTypes: { value: DisplayType; label: string }[] = [
   { value: 'text', label: '文字' },
   { value: 'percentage', label: '百分比' },
@@ -87,6 +88,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
     const existingIndex = fields.findIndex(
       (field) => field.label === skillLabel,
     )
+
     if (existingIndex >= 0) {
       remove(existingIndex)
     } else {
@@ -102,8 +104,10 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
   // 添加自定义技能
   const addCustomSkill = () => {
     const trimmedLabel = customSkillInput.trim()
+
     if (!trimmedLabel) {
       toast.warning('技能名称不能为空')
+
       return
     }
 
@@ -112,6 +116,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
       toast.error('技能已存在', {
         description: `"${trimmedLabel}" 已经添加过了`,
       })
+
       return
     }
 
@@ -121,6 +126,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
       proficiencyLevel: '熟练',
       displayType: 'percentage',
     } as any)
+
     setCustomSkillInput('')
   }
 
@@ -210,6 +216,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
               <div className='grid min-w-0 grid-cols-1 gap-4 @2xl/panel:grid-cols-2 @5xl/panel:grid-cols-3'>
                 {fields.map((item, index) => {
                   const hidden = form.watch(`skills.${index}.hidden` as any)
+
                   return (
                     <motion.div
                       key={item.id}
@@ -348,9 +355,11 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
                             const proficiency = form.watch(
                               `skills.${index}.proficiencyLevel`,
                             )
+
                             const displayTypeValue = form.watch(
                               `skills.${index}.displayType`,
                             )
+
                             return displayTypeValue === 'percentage' &&
                               proficiency
                               ? `${PROFICIENCY_PERCENTAGE_MAP[proficiency]}%`

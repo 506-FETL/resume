@@ -11,9 +11,12 @@ export default function CollaborationPanelProvider({
   children: ReactNode
 }) {
   const currentUser = useUserStore((state) => state.currentUser)
+
   const activeResumeId =
     useCurrentResumeStore((state) => state.resumeId) ?? undefined
+
   const userDisplayName = getUserDisplayName(currentUser)
+
   const value = useCollaborationPanelValue({
     currentUser,
     activeResumeId,

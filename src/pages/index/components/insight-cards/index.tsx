@@ -45,6 +45,7 @@ import { NEXT_ACTION_TONE_CLASSES } from '@/pages/tracker/const'
 // 图表统一高度与内边距：left=0 避免 Y 轴刻度被推出容器左缘裁切
 const CHART_HEIGHT = 'h-[140px]'
 const CHART_MARGIN = { top: 4, right: 8, left: 0, bottom: 0 } as const
+
 // 数值型 X 轴（首尾刻度贴着绘图区边缘）需要更大的右侧留白，否则最后一个刻度文案会被卡片裁掉
 const NUMERIC_AXIS_CHART_MARGIN = {
   top: 4,
@@ -121,6 +122,7 @@ function followUpTone(daysUntil: number | null): {
     return { text: `逾期 ${Math.abs(daysUntil)} 天`, tone: 'overdue' }
   if (daysUntil === 0) return { text: '今天跟进', tone: 'today' }
   if (daysUntil === 1) return { text: '明天跟进', tone: 'upcoming' }
+
   return { text: `${daysUntil} 天后`, tone: 'upcoming' }
 }
 
@@ -151,6 +153,7 @@ export function FollowUpCard({
         <div className='flex flex-col gap-2'>
           {followUps.map((job) => {
             const badge = followUpTone(job.daysUntil)
+
             return (
               <button
                 type='button'

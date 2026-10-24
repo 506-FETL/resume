@@ -33,17 +33,23 @@ import { FieldDiffView } from '../../diff/field-diff-view'
 // 将撤销状态写回对应 tool-call part（内存态 + DB 持久化），刷新后仍显示「已撤销」
 async function markChangeUndone(toolCallId: string): Promise<void> {
   const { messages, replaceMessage } = useAssistantStore.getState()
+
   const owner = messages.find((m) =>
     m.parts.some((p) => p.type === 'tool-call' && p.toolCallId === toolCallId),
   )
+
   if (!owner) return
+
   const parts = owner.parts.map((p) =>
     p.type === 'tool-call' && p.toolCallId === toolCallId
       ? { ...p, undone: true }
       : p,
   )
+
   replaceMessage(owner.id, { ...owner, parts })
+
   if (owner.id.startsWith('local-') || owner.id === 'streaming') return
+
   try {
     await updateMessage(owner.id, { parts })
   } catch {
@@ -54,19 +60,27 @@ async function markChangeUndone(toolCallId: string): Promise<void> {
 // 将重做状态写回对应 tool-call part，清除 undone 标记（与 markChangeUndone 对称）
 async function markChangeRedone(toolCallId: string): Promise<void> {
   const { messages, replaceMessage } = useAssistantStore.getState()
+
   const owner = messages.find((m) =>
     m.parts.some((p) => p.type === 'tool-call' && p.toolCallId === toolCallId),
   )
+
   if (!owner) return
+
   const parts = owner.parts.map((p) => {
     if (p.type === 'tool-call' && p.toolCallId === toolCallId) {
       const { undone: _undone, ...rest } = p as typeof p & { undone?: boolean }
+
       return rest
     }
+
     return p
   })
+
   replaceMessage(owner.id, { ...owner, parts })
+
   if (owner.id.startsWith('local-') || owner.id === 'streaming') return
+
   try {
     await updateMessage(owner.id, { parts })
   } catch {
@@ -77,6 +91,7 @@ async function markChangeRedone(toolCallId: string): Promise<void> {
 function StateBadge({ state }: { state: CanvasChange['state'] }) {
   if (state === 'cancelled') return <Badge variant='outline'>已取消</Badge>
   if (state === 'error') return <Badge variant='destructive'>失败</Badge>
+
   return <Badge variant='secondary'>已应用</Badge>
 }
 
@@ -97,6 +112,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
     () => model.writes.filter((c) => c.detail).map((c) => c.id),
     [model.writes],
   )
+
   // 受控展开状态：默认展开 diff 类详情。新变更进来时补充其默认态（不覆盖用户手动折叠过的项）。
   const [openIds, setOpenIds] = useState<Set<string>>(
     () =>
@@ -104,32 +120,41 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
         model.writes.filter((c) => c.detail?.kind === 'diff').map((c) => c.id),
       ),
   )
+
   const [seenIds, setSeenIds] = useState<Set<string>>(
     () => new Set(model.writes.map((c) => c.id)),
   )
+
   useEffect(() => {
     const freshDiffIds = model.writes
       .filter((c) => c.detail?.kind === 'diff' && !seenIds.has(c.id))
       .map((c) => c.id)
+
     const unseen = model.writes
       .filter((c) => !seenIds.has(c.id))
       .map((c) => c.id)
+
     if (unseen.length === 0) return
     if (freshDiffIds.length > 0)
       setOpenIds((prev) => new Set([...prev, ...freshDiffIds]))
+
     setSeenIds((prev) => new Set([...prev, ...unseen]))
   }, [model.writes, seenIds])
 
   const setCollapsibleOpen = (id: string, open: boolean) => {
     setOpenIds((prev) => {
       const next = new Set(prev)
+
       if (open) next.add(id)
       else next.delete(id)
+
       return next
     })
   }
+
   const allExpanded =
     collapsibleIds.length > 0 && collapsibleIds.every((id) => openIds.has(id))
+
   const toggleAll = () => {
     setOpenIds(allExpanded ? new Set() : new Set(collapsibleIds))
   }
@@ -140,18 +165,24 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleUndo = async (change: CanvasChange) => {
     if (!change.undo) return
+
     const currentId = resolveActiveResumeId()
+
     if (!currentId) {
       toast.error('当前对话未绑定简历，无法撤销')
+
       return
     }
+
     setPendingId(change.id)
+
     try {
       await applyResumeFieldToDocument(
         currentId,
         change.undo.sectionKey as keyof FormDataMap,
         change.undo.before as Record<string, unknown>,
       )
+
       setUndoneIds((prev) => new Set(prev).add(change.id))
       await markChangeUndone(change.id)
       bumpCanvasRefresh()
@@ -167,19 +198,26 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleRedo = async (change: CanvasChange) => {
     const detail = change.detail
+
     if (!change.undo || detail?.kind !== 'diff') return
+
     const currentId = resolveActiveResumeId()
+
     if (!currentId) {
       toast.error('当前对话未绑定简历，无法重做')
+
       return
     }
+
     setPendingId(change.id)
+
     try {
       await applyResumeFieldToDocument(
         currentId,
         change.undo.sectionKey as keyof FormDataMap,
         detail.after as Record<string, unknown>,
       )
+
       setRedoneIds((prev) => new Set(prev).add(change.id))
       await markChangeRedone(change.id)
       bumpCanvasRefresh()
@@ -195,15 +233,21 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleUndoAll = async () => {
     const currentId = resolveActiveResumeId()
+
     if (!currentId) {
       toast.error('当前对话未绑定简历，无法撤销')
+
       return
     }
+
     setUndoAllPending(true)
+
     const targets = model.writes.filter(
       (c) => c.undo && c.state === 'result' && !isUndoneItem(c),
     )
+
     let successCount = 0
+
     try {
       for (const change of targets) {
         try {
@@ -212,6 +256,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
             change.undo!.sectionKey as keyof FormDataMap,
             change.undo!.before as Record<string, unknown>,
           )
+
           setUndoneIds((prev) => new Set(prev).add(change.id))
           await markChangeUndone(change.id)
           successCount++
@@ -219,6 +264,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
           // 跳过单条失败，继续其他
         }
       }
+
       if (successCount > 0) {
         bumpCanvasRefresh()
         toast.success(`已撤销 ${successCount} 项修改`)
@@ -230,25 +276,34 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleReapplyAll = async () => {
     const currentId = resolveActiveResumeId()
+
     if (!currentId) {
       toast.error('当前对话未绑定简历，无法重做')
+
       return
     }
+
     setReapplyPending(true)
+
     const targets = model.writes.filter(
       (c) => isUndoneItem(c) && c.undo && c.detail?.kind === 'diff',
     )
+
     let successCount = 0
+
     try {
       for (const change of targets) {
         const detail = change.detail
+
         if (detail?.kind !== 'diff') continue
+
         try {
           await applyResumeFieldToDocument(
             currentId,
             change.undo!.sectionKey as keyof FormDataMap,
             detail.after as Record<string, unknown>,
           )
+
           setRedoneIds((prev) => new Set(prev).add(change.id))
           await markChangeRedone(change.id)
           successCount++
@@ -256,6 +311,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
           // 跳过单条失败，继续其他
         }
       }
+
       if (successCount > 0) {
         bumpCanvasRefresh()
         toast.success(`已重新应用 ${successCount} 项修改`)
@@ -267,6 +323,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleRetry = async (change: CanvasChange) => {
     setPendingRetryId(change.id)
+
     try {
       await retryToolCall(change.id)
     } finally {
@@ -276,7 +333,9 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleRetryAll = async () => {
     setRetryAllPending(true)
+
     const targets = model.writes.filter((c) => c.state === 'error')
+
     try {
       for (const change of targets) {
         await retryToolCall(change.id)
@@ -288,29 +347,37 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleLocate = (sectionKey: string) => {
     requestCanvasTab('resume')
+
     const tryScroll = (attempt: number) => {
       const el = document.getElementById(`resume-section-${sectionKey}`)
+
       if (!el) {
         if (attempt < 3) {
           setTimeout(() => tryScroll(attempt + 1), 150)
         }
+
         return
       }
+
       // 用 nearest：仅当目标不在可视区时才滚动最小距离（配合 scroll-margin 让其落在 sticky 标题栏下方），
       // 已在可视区则完全不滚动，避免"移动窗口把内容顶出/遮挡"
       el.scrollIntoView({
         block: 'nearest',
         behavior: reduceMotion ? 'auto' : 'smooth',
       })
+
       // 与简历评论一致的黄色高亮，动画结束后自动移除
       el.classList.remove('resume-locate-highlight')
       // 强制 reflow 以便重复点击同一目标时能重新触发动画
       el.getBoundingClientRect()
       el.classList.add('resume-locate-highlight')
+
       const clear = () => el.classList.remove('resume-locate-highlight')
+
       el.addEventListener('animationend', clear, { once: true })
       setTimeout(clear, 2400)
     }
+
     requestAnimationFrame(() => tryScroll(0))
   }
 
@@ -328,11 +395,14 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
   const undoableChanges = model.writes.filter(
     (c) => c.undo && c.state === 'result' && !isUndoneItem(c),
   )
+
   const redoableChanges = model.writes.filter(
     (c) => isUndoneItem(c) && c.undo && c.detail?.kind === 'diff',
   )
+
   const errorChanges = model.writes.filter((c) => c.state === 'error')
   const canCollapseAll = collapsibleIds.length > 0
+
   const showTopBar =
     undoableChanges.length > 0 ||
     redoableChanges.length > 0 ||
@@ -413,13 +483,17 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
         {/* 变更列表 */}
         {model.writes.map((change, itemIndex) => {
           const isUndone = isUndoneItem(change)
+
           const canUndo =
             !!change.undo && change.state === 'result' && !isUndone
+
           const canRedo =
             isUndone && !!change.undo && change.detail?.kind === 'diff'
+
           const canRetry = change.state === 'error'
           const canLocate = !!change.undo?.sectionKey
           const showActionRow = canUndo || canRedo || canRetry || canLocate
+
           const stateBadge = isUndone ? (
             <Badge variant='outline'>已撤销</Badge>
           ) : (

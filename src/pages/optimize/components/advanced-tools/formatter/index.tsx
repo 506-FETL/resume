@@ -42,8 +42,10 @@ interface FormatterToolProps {
 
 function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
   const [applying, setApplying] = useState(false)
+
   const [editableFindings, setEditableFindings] =
     useState<FindingsGroup | null>(null)
+
   const actionButtonRef = useRef<HTMLButtonElement | null>(null)
   const { currentAtsConfig, update } = useAtsStore()
 
@@ -91,11 +93,13 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
   const handleApply = async () => {
     if (!activeAtsConfig) {
       toast.error('请先完成当前简历的问题分析')
+
       return
     }
 
     if (batchResult.pendingIssueCount === 0) {
       toast.success('当前没有待处理的自动修复建议')
+
       return
     }
 
@@ -105,14 +109,17 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
           ? '请先在下方补充真实信息，再一键应用'
           : '剩余问题存在同字段冲突，请逐条确认',
       )
+
       return
     }
 
     const findingsToApply = editableFindings ?? activeAtsConfig.findings
+
     const nextFindings = markAppliedSuggestionsAsFixed(
       findingsToApply,
       batchResult.appliedSuggestionIds,
     )
+
     const updatedResume = applySuggestionsToResume(
       resumeContext.resume,
       batchResult.suggestionsToApply,
@@ -139,11 +146,13 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
 
       update('findings', nextFindings)
       setEditableFindings(nextFindings)
+
       onResumeUpdated({
         ...resumeContext,
         atsConfig: nextAtsConfig,
         resume: updatedResume,
       })
+
       startConfetti(actionButtonRef)
 
       toast.success(

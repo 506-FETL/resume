@@ -52,6 +52,7 @@ import { buildJobPayload, validateAddJobForm } from './utils'
 
 export default function AddJobDrawer() {
   const scope = getTrackerAccountScope()
+
   const { addDrawerOpen, closeAddDrawer, prependJob } = useTrackerStore(
     useShallow((state) => ({
       addDrawerOpen: state.addDrawerOpen,
@@ -59,6 +60,7 @@ export default function AddJobDrawer() {
       prependJob: state.prependJob,
     })),
   )
+
   const isMobile = useIsMobile()
   const reduce = useReducedMotion()
   const [formData, setFormData] = useState<AddJobFormData>(INITIAL_FORM_DATA)
@@ -69,6 +71,7 @@ export default function AddJobDrawer() {
     error: resumesError,
     retry: retryResumes,
   } = useTrackerResumeOptions(addDrawerOpen)
+
   const [submitting, setSubmitting] = useState(false)
   const [pendingTerminal, setPendingTerminal] = useState(false)
   const createButtonRef = useRef<HTMLButtonElement>(null)
@@ -90,16 +93,19 @@ export default function AddJobDrawer() {
 
     try {
       assertTrackerAccountScope(scope)
+
       const newJob = await createCompany(
         buildJobPayload(formData),
         createTrackerAccountGuard(scope),
       )
+
       prependJob(newJob, scope)
       closeAddDrawer()
       toast.success('添加成功')
       resetForm()
     } catch (error) {
       if (!isTrackerAccountScopeCurrent(scope)) return
+
       console.error('Failed to add job:', error)
       toast.error('添加失败', { description: getTrackerErrorMessage(error) })
     } finally {
@@ -112,14 +118,18 @@ export default function AddJobDrawer() {
       const missingField = (['position', 'company', 'location'] as const).find(
         (field) => !formData[field].trim(),
       )
+
       if (missingField) document.getElementById(missingField)?.focus()
+
       return
     }
 
     if (formData.status === 'offer' || formData.status === 'rejected') {
       setPendingTerminal(true)
+
       return
     }
+
     await submitJob()
   }
 
@@ -145,6 +155,7 @@ export default function AddJobDrawer() {
           )))
     ) {
       details?.cancel()
+
       return
     }
     if (!open) handleCancel()
@@ -259,6 +270,7 @@ export default function AddJobDrawer() {
           size='sm'
           onCloseAutoFocus={(event) => {
             event.preventDefault()
+
             if (
               useTrackerStore.getState().addDrawerOpen &&
               !createButtonRef.current?.disabled

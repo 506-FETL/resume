@@ -39,8 +39,10 @@ function TrackerContent() {
       searchKeyword: state.searchKeyword,
     })),
   )
+
   const { reload } = useTrackerJobs()
   const busy = loading || (!isInitialized && !error)
+
   const visibleJobs = useMemo(
     () =>
       filterJobs(
@@ -52,10 +54,12 @@ function TrackerContent() {
       ),
     [jobs, viewMode, filterStatus, metricFilter, searchKeyword, showArchived],
   )
+
   const scopedJobs = useMemo(
     () => filterJobs(jobs, null, '', showArchived),
     [jobs, showArchived],
   )
+
   const state = busy
     ? 'loading'
     : error
@@ -104,6 +108,7 @@ function TrackerContent() {
 
 function Tracker() {
   const scope = useTrackerStore((state) => state.accountScope)
+
   // 账号切换时丢弃局部表单、确认框和退出动画中的旧内容。
   return <TrackerContent key={scope.generation} />
 }

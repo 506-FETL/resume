@@ -55,16 +55,20 @@ export function DeclarativeRenderer({
 }) {
   const regionId = use(TemplateRegionContext)
   let renderedNodes = 0
+
   const chargeNodes = (count: number) => {
     renderedNodes += count
+
     if (renderedNodes > TEMPLATE_LIMITS.renderedNodes)
       throw new TemplateResolutionError(
         'RESOURCE_LIMIT',
         '简历展开超过渲染预算，请减少内容或更换模板',
       )
   }
+
   const primaryFields = new Set<string>()
   const additionalProfileFields = completeProfileFields(definition, content)
+
   const claimProjection = (key: string, projection = 'primary') => {
     if (projection !== 'primary') return
     if (primaryFields.has(key))
@@ -72,25 +76,33 @@ export function DeclarativeRenderer({
         'INVALID_DEFINITION',
         '同一字段存在多个主评论投影，请联系模板维护者',
       )
+
     primaryFields.add(key)
   }
+
   function renderNodes(nodes: TemplateNode[], scope: RenderScope): ReactNode[] {
     return nodes.map((node) => {
       const rendered = renderNode(node, scope)
+
       const rotation = node.style
         ? definition.styles[node.style].rotate
         : undefined
+
       if (!rotation || rendered === null) return rendered
+
       const style = resolveTemplateStyle(
         definition.styles[node.style!],
         environment,
       )
+
       const width = Number.parseFloat(String(style.width))
       const height = Number.parseFloat(String(style.height))
       const radians = (Math.abs(rotation) * Math.PI) / 180
       const outerWidth = width * Math.cos(radians) + height * Math.sin(radians)
       const outerHeight = width * Math.sin(radians) + height * Math.cos(radians)
+
       chargeNodes(2)
+
       return (
         <div
           key={node.id}
@@ -123,13 +135,17 @@ export function DeclarativeRenderer({
       )
     })
   }
+
   function renderNode(node: TemplateNode, scope: RenderScope): ReactNode {
     if (!conditionMatches(node.when, scope)) return null
+
     chargeNodes(1)
+
     const style = resolveTemplateStyle(
       node.style ? definition.styles[node.style] : undefined,
       environment,
     )
+
     if (node.style && definition.styles[node.style].rotate) {
       style.marginTop =
         style.marginRight =
@@ -138,7 +154,9 @@ export function DeclarativeRenderer({
           0
     }
     if (style.backgroundColor) chargeNodes(2)
+
     const paint = <TemplatePaint style={style} />
+
     const common = {
       'data-pagination-keep-with-next': node.keepWithNext || undefined,
       id: node.sectionTarget
@@ -148,15 +166,18 @@ export function DeclarativeRenderer({
       'data-layout-node': node.id,
       'data-pagination-atomic': node.atomic || undefined,
     }
+
     switch (node.type) {
       case 'box': {
         const children = renderNodes(node.children, scope)
+
         if (
           !node.decoration?.length &&
           children.every((child) => child === null)
         )
           return null
         if (node.decoration?.length) chargeNodes(1 + node.decoration.length)
+
         return (
           <div
             key={node.id}
@@ -182,9 +203,12 @@ export function DeclarativeRenderer({
           </div>
         )
       }
+
       case 'text': {
         const text = resolveText(node, scope)
+
         if (!text) return null
+
         return (
           <span
             key={node.id}
@@ -201,22 +225,30 @@ export function DeclarativeRenderer({
           </span>
         )
       }
+
       case 'field': {
         const field = resolveField(node.binding, scope)
+
         if (!field?.text.trim()) return null
+
         claimProjection(field.nodeKey, node.projection)
+
         const label = field.label.trim()
         const text = field.text.trimStart()
+
         const hasLabelPrefix =
           label &&
           text.startsWith(label) &&
           /^[：:]/u.test(text.slice(label.length).trimStart())
+
         const showLabel =
           (node.showLabel ||
             (field.labelRequired && !scope.itemLabelVisible)) &&
           Boolean(label) &&
           !hasLabelPrefix
+
         chargeNodes(1 + (showLabel ? 1 : 0))
+
         return (
           <span
             key={node.id}
@@ -242,12 +274,16 @@ export function DeclarativeRenderer({
           </span>
         )
       }
+
       case 'richText': {
         const richText = resolveRichText(node.binding, scope)
+
         if (!richText?.field.text.trim()) return null
+
         claimProjection(richText.field.nodeKey, node.projection)
         // 富文本沿用净化与投影链路；预算按原始标签计数可安全高估，不静默截断正文。
         chargeNodes(1 + (richText.html.match(/<[a-z][^>]*>/gi)?.length ?? 0))
+
         return (
           <div
             key={node.id}
@@ -289,13 +325,16 @@ export function DeclarativeRenderer({
           </div>
         )
       }
+
       case 'repeat': {
         const items = [
           ...resolveList(node.source, scope, node.fieldOrder, node.fieldKeys),
           ...(additionalProfileFields.get(`${scope.region?.id}/${node.id}`) ??
             []),
         ]
+
         if (!items.length) return null
+
         const renderedItems = items
           .map((item, itemIndex) => {
             const itemScope = {
@@ -304,6 +343,7 @@ export function DeclarativeRenderer({
               itemIndex,
               itemCount: items.length,
             }
+
             return {
               identity: itemIdentity(item),
               children: renderNodes(node.children, {
@@ -313,9 +353,13 @@ export function DeclarativeRenderer({
             }
           })
           .filter((item) => item.children.some((child) => child !== null))
+
         if (!renderedItems.length) return null
+
         chargeNodes(renderedItems.length)
+
         if (node.separator) chargeNodes(Math.max(0, renderedItems.length - 1))
+
         return (
           <div
             key={node.id}
@@ -354,9 +398,12 @@ export function DeclarativeRenderer({
           </div>
         )
       }
+
       case 'sections':
         if (!(scope.sections ?? []).length) return null
+
         chargeNodes((scope.sections ?? []).length)
+
         return (
           <div
             key={node.id}
@@ -389,7 +436,9 @@ export function DeclarativeRenderer({
         )
       case 'blocks':
         if (!scope.section?.blocks.length) return null
+
         chargeNodes(scope.section?.blocks.length ?? 0)
+
         return (
           <div
             key={node.id}
@@ -422,12 +471,16 @@ export function DeclarativeRenderer({
         const variant = node.binding
           ? String(resolveBinding(node.binding, scope) ?? '')
           : ''
+
         const shapes =
           node.variants && Object.hasOwn(node.variants, variant)
             ? node.variants[variant]
             : node.shapes
+
         if (!shapes.length) return null
+
         chargeNodes(1 + shapes.length)
+
         return (
           <div
             key={node.id}
@@ -450,9 +503,12 @@ export function DeclarativeRenderer({
           </div>
         )
       }
+
       case 'meter': {
         chargeNodes(3)
+
         const value = Number(resolveBinding(node.binding, scope))
+
         return (
           <div
             key={node.id}
@@ -484,9 +540,12 @@ export function DeclarativeRenderer({
           </div>
         )
       }
+
       case 'photo': {
         const photo = scope.profile?.photo
+
         if (!photo) return null
+
         return (
           <img
             key={node.id}
@@ -506,17 +565,21 @@ export function DeclarativeRenderer({
           />
         )
       }
+
       case 'image': {
         const asset = definition.assets.find(
           (asset) => asset.id === node.asset,
         )!
+
         const url = assetUrls?.get(asset.id)
+
         if (!url) {
           if (asset.required)
             throw new TemplateResolutionError(
               'LOAD_FAILED',
               '模板必需素材尚未就绪',
             )
+
           return null
         }
         if (!url.startsWith('blob:'))
@@ -524,6 +587,7 @@ export function DeclarativeRenderer({
             'INVALID_DEFINITION',
             '模板素材必须由校验后的本地资源呈现',
           )
+
         return (
           <img
             key={node.id}
@@ -539,14 +603,17 @@ export function DeclarativeRenderer({
       }
     }
   }
+
   const regions = definition.page.regions.filter(
     (region) => regionId === null || region.id === regionId,
   )
+
   if (!regions.length)
     throw new TemplateResolutionError(
       'INVALID_DEFINITION',
       '请求的模板区域不存在',
     )
+
   // 先构造全部配方再选择输出，令字段主投影和展开预算的校验覆盖跨区域重复。
   const renderedRegions = definition.page.regions.map((region) => ({
     id: region.id,
@@ -564,6 +631,7 @@ export function DeclarativeRenderer({
       </div>
     ),
   }))
+
   return renderedRegions
     .filter((region) => regionId === null || region.id === regionId)
     .map((region) => region.node)

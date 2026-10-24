@@ -14,22 +14,28 @@ export default function TemplateBadge({
 }) {
   const reduceMotion = useReducedMotion()
   const templateId = binding?.templateId
+
   const resource = useResumeListStore((state) =>
     templateId ? state.templateNames[templateId] : undefined,
   )
+
   const loadName = useResumeListStore((state) => state.loadTemplateName)
+
   useEffect(() => {
     if (templateId) loadName(templateId)
   }, [templateId, loadName])
 
   const name = resource?.status === 'ready' ? resource.name : null
+
   const loading =
     Boolean(templateId) && (!resource || resource.status === 'loading')
+
   const label = !templateId
     ? '未设置模板'
     : loading
       ? '模板加载中…'
       : (name ?? templateId)
+
   const title = binding
     ? `当前模板：${name ?? templateId} · v${binding.templateVersion}`
     : '简历尚未绑定有效模板'

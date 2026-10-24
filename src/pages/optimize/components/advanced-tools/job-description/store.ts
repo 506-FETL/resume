@@ -197,6 +197,7 @@ const useJobDescriptionToolStore = create<JobDescriptionToolStore>()(
         const persistedSessions =
           (persistedState as Partial<JobDescriptionToolStore> | undefined)
             ?.sessions ?? {}
+
         const normalizedSessions = Object.fromEntries(
           Object.entries(persistedSessions).map(([sessionKey, session]) => [
             sessionKey,
@@ -230,9 +231,11 @@ export function resetJobDescriptionToolAnalysis(sessionKey: string) {
       send: '正在上传当前简历和岗位描述...',
     },
   })
+
   useJobDescriptionToolStore
     .getState()
     .setJobDescription(sessionKey, current.jobDescription)
+
   useJobDescriptionToolStore.getState().setResult(sessionKey, null)
   useJobDescriptionToolStore.getState().setAnalysisError(sessionKey, null)
   useJobDescriptionToolStore.getState().setAnalysisOpen(sessionKey, true)

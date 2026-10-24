@@ -12,11 +12,13 @@ function readMetadataString(
   key: string,
 ) {
   const value = metadata?.[key]
+
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
 function readParticipantRole(metadata: Record<string, unknown> | undefined) {
   const role = metadata?.role
+
   return role === 'host' || role === 'guest' ? role : null
 }
 
@@ -114,7 +116,9 @@ export function removeParticipant(
   }
 
   const next = { ...participants }
+
   delete next[peerId]
+
   return next
 }
 

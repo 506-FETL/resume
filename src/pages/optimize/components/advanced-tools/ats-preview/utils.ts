@@ -7,6 +7,7 @@ import { extractKeywords } from '../shared/text'
 export function buildAtsPreview(resume: ResumeSchema): AtsPreviewResult {
   const sections = getResumeSections(resume)
   const evidenceStats = getResumeEvidenceStats(resume)
+
   const plainText = sections
     .filter((section) => section.lines.length > 0)
     .map((section) => [`[${section.label}]`, ...section.lines].join('\n'))

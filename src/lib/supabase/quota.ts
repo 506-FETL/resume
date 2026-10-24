@@ -30,6 +30,7 @@ export async function getAiQuota(): Promise<AiQuota> {
   if (error) throw error
 
   const raw = (data ?? {}) as Partial<RawAiQuota>
+
   return {
     plan: raw.plan ?? 'free',
     dailyLimit: raw.daily_limit ?? 0,

@@ -8,6 +8,7 @@ export default function OptimizeDashboard() {
 
   const totalTasks = fixChecklist?.length || 0
   const completedTasks = fixChecklist?.filter((item) => item.isDone).length || 0
+
   const progress = !currentAtsConfig
     ? 0
     : totalTasks === 0

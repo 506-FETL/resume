@@ -52,6 +52,7 @@ export function AvatarCropDialog({
 }: AvatarCropDialogProps) {
   const [cropShape, setCropShape] = useState<AvatarCropShape>('circle')
   const [crop, setCrop] = useState<PercentCrop>()
+
   const [completedCrop, setCompletedCrop] = useState<AvatarPercentCrop | null>(
     null,
   )
@@ -67,6 +68,7 @@ export function AvatarCropDialog({
     const nextCrop = createCenteredSquareCrop(naturalWidth, naturalHeight)
 
     setCrop(nextCrop)
+
     setCompletedCrop({
       x: nextCrop.x,
       y: nextCrop.y,
@@ -127,6 +129,7 @@ export function AvatarCropDialog({
                 ruleOfThirds
                 onChange={(_, percentCrop) => {
                   setCrop(percentCrop)
+
                   setCompletedCrop({
                     x: percentCrop.x,
                     y: percentCrop.y,

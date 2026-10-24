@@ -12,6 +12,7 @@ export interface PublishedTemplateManifest {
   definition: TemplateDefinition
   assets: TemplateDefinition['assets']
 }
+
 const envelope = z
   .object({
     schemaVersion: z.literal(3),
@@ -26,9 +27,12 @@ export function parseSharedTemplateDefinition(
   input: unknown,
 ): TemplateDefinition {
   const parsed = envelope.safeParse(input)
+
   if (!parsed.success)
     throw new TemplateResolutionError('INVALID_DEFINITION', '分享模板快照无效')
+
   const definition = parseTemplateDefinition(parsed.data.definition)
+
   if (
     parsed.data.templateId !== definition.templateId ||
     parsed.data.templateVersion !== definition.version ||
@@ -39,6 +43,7 @@ export function parseSharedTemplateDefinition(
       '分享模板快照版本或素材清单不一致',
     )
   }
+
   return definition
 }
 
@@ -46,6 +51,7 @@ export function serializeTemplateForShare(
   input: TemplateDefinition,
 ): PublishedTemplateManifest {
   const definition = parseTemplateDefinition(input)
+
   return structuredClone({
     schemaVersion: 3,
     templateId: definition.templateId,

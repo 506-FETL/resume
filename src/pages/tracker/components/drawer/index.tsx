@@ -73,6 +73,7 @@ import ProgressTimeline from './progress-timeline/index'
 import DrawerStageDetail from './stage-detail/index'
 
 type ConfirmKind = 'reject' | 'delete' | 'jump-offer' | null
+
 const DRAWER_TAB_TRIGGER_CLASS =
   'h-10 flex-1 rounded-none border-x-0 border-t-0 border-b-2 border-transparent after:hidden data-[state=active]:border-foreground'
 
@@ -96,13 +97,16 @@ function JobDrawer() {
       flushWorkflow: state.flushWorkflow,
     })),
   )
+
   const isMobile = useIsMobile()
   const reduce = useReducedMotion()
   const [activeTab, setActiveTab] = useState<DrawerTab>('follow-up')
   const [isEditing, setIsEditing] = useState(false)
+
   const [viewingStage, setViewingStage] = useState<ApplicationStatus | null>(
     null,
   )
+
   const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null)
   const [resumeOpen, setResumeOpen] = useState(false)
   const confirmTriggerRef = useRef<HTMLElement | null>(null)
@@ -110,6 +114,7 @@ function JobDrawer() {
 
   useLayoutEffect(() => {
     if (!drawerOpen) return
+
     setActiveTab('follow-up')
     setIsEditing(false)
     setViewingStage(null)
@@ -133,6 +138,7 @@ function JobDrawer() {
       )
     ) {
       details.cancel()
+
       return
     }
     if (!newOpen) {
@@ -158,46 +164,58 @@ function JobDrawer() {
     if (!selectedJob || target === selectedJob.status) return
     if (target === 'offer') {
       setConfirmKind('jump-offer')
+
       return
     }
     if (target === 'rejected') {
       setConfirmKind('reject')
+
       return
     }
+
     handleProgressChange(target)
   }
 
   const handleStepBack = () => {
     if (!selectedJob) return
+
     const idx = APPLICATION_STATUS_ORDER.indexOf(selectedJob.status)
+
     if (idx > 0) handleProgressChange(APPLICATION_STATUS_ORDER[idx - 1])
   }
 
   const handleReject = () => {
     if (!selectedJob || selectedJob.status === 'rejected') return
+
     handleProgressChange('rejected')
     setConfirmKind(null)
   }
 
   const handleDelete = async () => {
     if (!selectedJob) return
+
     setConfirmKind(null)
+
     try {
       await deleteJob(selectedJob.id)
       toast.success('已删除该职位')
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
   }
 
   const handleArchive = async () => {
     if (!selectedJob) return
+
     const next = !selectedJob.archived
+
     try {
       await saveJobFields(selectedJob.id, { archived: next })
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
   }
@@ -217,6 +235,7 @@ function JobDrawer() {
 
   const statusConfig = APPLICATION_STATUS_CONFIG[selectedJob.status]
   const displayStage = viewingStage || selectedJob.status
+
   const canStepBack =
     APPLICATION_STATUS_ORDER.indexOf(selectedJob.status) > 0 &&
     selectedJob.status !== 'rejected'
@@ -342,6 +361,7 @@ function JobDrawer() {
   const handlePrimaryAction = () => {
     if (nextAction.targetStatus) {
       handleStageJump(nextAction.targetStatus)
+
       return
     }
 
@@ -371,6 +391,7 @@ function JobDrawer() {
   )
 
   const isFollowUp = !isEditing && activeTab === 'follow-up'
+
   const body = (
     <div
       className={cn(
@@ -488,6 +509,7 @@ function JobDrawer() {
                       value={displayStage}
                       onValueChange={(value) => {
                         flushWorkflow(selectedJob.id).catch(() => {})
+
                         setViewingStage(
                           value === selectedJob.status
                             ? null
@@ -556,8 +578,10 @@ function JobDrawer() {
         }}
         onCloseAutoFocus={(event) => {
           event.preventDefault()
+
           const trigger = confirmTriggerRef.current
           const target = trigger?.isConnected ? trigger : closeButtonRef.current
+
           target?.focus({ preventScroll: true })
         }}
       >

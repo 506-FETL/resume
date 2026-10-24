@@ -19,7 +19,9 @@ export default function ChatHeader() {
     layoutMode,
     canvasMobileOpen,
   } = useAssistantStore()
+
   const isMobile = layoutMode === 'drawer'
+
   const title =
     conversations.find(
       (conversation) => conversation.id === activeConversationId,

@@ -2,6 +2,7 @@ import type { ResumeSnapshot } from './types'
 
 function trimToNull(value: string | null | undefined) {
   const nextValue = value?.trim()
+
   return nextValue || null
 }
 
@@ -31,6 +32,7 @@ function sortSnapshotKeys(value: unknown): unknown {
       .sort()
       .reduce<Record<string, unknown>>((result, key) => {
         result[key] = sortSnapshotKeys((value as Record<string, unknown>)[key])
+
         return result
       }, {})
   }
@@ -51,6 +53,7 @@ export async function createResumeSnapshotHash(snapshot: ResumeSnapshot) {
 
   const encoded = new TextEncoder().encode(content)
   const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded)
+
   return Array.from(new Uint8Array(digest))
     .map((value) => value.toString(16).padStart(2, '0'))
     .join('')

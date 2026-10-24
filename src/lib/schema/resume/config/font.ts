@@ -47,9 +47,11 @@ const LEGACY_FONT_FAMILY_MAP: Record<string, ResumeFontFamily> = {
 
 export function normalizeResumeFontFamily(value: unknown): ResumeFontFamily {
   const parsed = fontFamilyEnum.safeParse(value)
+
   if (parsed.success) return parsed.data
   if (typeof value === 'string')
     return LEGACY_FONT_FAMILY_MAP[value] ?? RESUME_FONT_FAMILIES.sans
+
   return RESUME_FONT_FAMILIES.sans
 }
 
@@ -86,6 +88,7 @@ export function getFontFamilyName(fontFamily: ResumeFontFamily) {
 
 export function getFontFamilyCSS(fontFamily: ResumeFontFamily) {
   const familyName = getFontFamilyName(fontFamily)
+
   if (
     fontFamily === RESUME_FONT_FAMILIES.arimo ||
     fontFamily === RESUME_FONT_FAMILIES.tinos
@@ -93,8 +96,10 @@ export function getFontFamilyCSS(fontFamily: ResumeFontFamily) {
     return `'${familyName}', 'Noto Sans SC Variable', sans-serif`
   if (fontFamily === RESUME_FONT_FAMILIES.zcoolXiaowei)
     return `'${familyName}', 'Noto Serif SC Variable', serif`
+
   const generic =
     fontFamily === RESUME_FONT_FAMILIES.serif ? 'serif' : 'sans-serif'
+
   return `'${familyName}', ${generic}`
 }
 
@@ -103,6 +108,7 @@ export function getResumeFontWeights(fontFamily: ResumeFontFamily) {
     return { normal: 400, medium: 700, bold: 700 }
   if (fontFamily === RESUME_FONT_FAMILIES.zcoolXiaowei)
     return { normal: 400, medium: 400, bold: 400 }
+
   return fontFamily === RESUME_FONT_FAMILIES.wenkai
     ? { normal: 500, medium: 500, bold: 700 }
     : { normal: 400, medium: 600, bold: 700 }

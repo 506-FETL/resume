@@ -14,6 +14,7 @@ import { MetricCard } from './metric-card'
 
 function OverviewBar() {
   const jobs = useTrackerStore(selectTrackerListJobs)
+
   const {
     loading,
     error,
@@ -31,15 +32,19 @@ function OverviewBar() {
       setMetricFilter: state.setMetricFilter,
     })),
   )
+
   const isMobile = useIsMobile()
   const reduce = useReducedMotion()
   const stats = useMemo(() => getTrackerOverviewStats(jobs), [jobs])
+
   const rate = useCountUp(
     isMobile ? 0 : stats.responseRate,
     DURATION.slow * 1000,
   )
+
   const busy = loading || (!isInitialized && !error)
   const hasAppliedData = stats.applied > 0 && !error
+
   const metrics = [
     {
       key: 'applied',

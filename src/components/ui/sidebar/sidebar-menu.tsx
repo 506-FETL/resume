@@ -7,27 +7,37 @@ import { cva } from 'class-variance-authority'
 import * as React from 'react'
 
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 import { useSidebar } from './sidebar-context'
 
-export function SidebarMenu({ className, ...props }: React.ComponentProps<'ul'>) {
+export function SidebarMenu({
+  className,
+  ...props
+}: React.ComponentProps<'ul'>) {
   return (
     <ul
-      data-slot="sidebar-menu"
-      data-sidebar="menu"
+      data-slot='sidebar-menu'
+      data-sidebar='menu'
       className={cn('flex w-full min-w-0 flex-col gap-1', className)}
       {...props}
     />
   )
 }
 
-export function SidebarMenuItem({ className, ...props }: React.ComponentProps<'li'>) {
+export function SidebarMenuItem({
+  className,
+  ...props
+}: React.ComponentProps<'li'>) {
   return (
     <li
-      data-slot="sidebar-menu-item"
-      data-sidebar="menu-item"
+      data-slot='sidebar-menu-item'
+      data-sidebar='menu-item'
       className={cn('group/menu-item relative', className)}
       {...props}
     />
@@ -74,8 +84,8 @@ export function SidebarMenuButton({
 
   const button = (
     <Comp
-      data-slot="sidebar-menu-button"
-      data-sidebar="menu-button"
+      data-slot='sidebar-menu-button'
+      data-sidebar='menu-button'
       data-size={size}
       data-active={isActive}
       className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
@@ -96,7 +106,12 @@ export function SidebarMenuButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent side="right" align="center" hidden={state !== 'collapsed' || isMobile} {...tooltip} />
+      <TooltipContent
+        side='right'
+        align='center'
+        hidden={state !== 'collapsed' || isMobile}
+        {...tooltip}
+      />
     </Tooltip>
   )
 }
@@ -114,8 +129,8 @@ export function SidebarMenuAction({
 
   return (
     <Comp
-      data-slot="sidebar-menu-action"
-      data-sidebar="menu-action"
+      data-slot='sidebar-menu-action'
+      data-sidebar='menu-action'
       className={cn(
         'text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
         'after:absolute after:-inset-2 md:after:hidden',
@@ -123,8 +138,8 @@ export function SidebarMenuAction({
         'peer-data-[size=default]/menu-button:top-1.5',
         'peer-data-[size=lg]/menu-button:top-2.5',
         'group-data-[collapsible=icon]:hidden',
-        showOnHover
-        && 'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0',
+        showOnHover &&
+          'peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0',
         className,
       )}
       {...props}
@@ -132,11 +147,14 @@ export function SidebarMenuAction({
   )
 }
 
-export function SidebarMenuBadge({ className, ...props }: React.ComponentProps<'div'>) {
+export function SidebarMenuBadge({
+  className,
+  ...props
+}: React.ComponentProps<'div'>) {
   return (
     <div
-      data-slot="sidebar-menu-badge"
-      data-sidebar="menu-badge"
+      data-slot='sidebar-menu-badge'
+      data-sidebar='menu-badge'
       className={cn(
         'text-sidebar-foreground pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums select-none',
         'peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground',
@@ -164,15 +182,20 @@ export function SidebarMenuSkeleton({
 
   return (
     <div
-      data-slot="sidebar-menu-skeleton"
-      data-sidebar="menu-skeleton"
+      data-slot='sidebar-menu-skeleton'
+      data-sidebar='menu-skeleton'
       className={cn('flex h-8 items-center gap-2 rounded-md px-2', className)}
       {...props}
     >
-      {showIcon && <Skeleton className="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />}
+      {showIcon && (
+        <Skeleton
+          className='size-4 rounded-md'
+          data-sidebar='menu-skeleton-icon'
+        />
+      )}
       <Skeleton
-        className="h-4 max-w-(--skeleton-width) flex-1"
-        data-sidebar="menu-skeleton-text"
+        className='h-4 max-w-(--skeleton-width) flex-1'
+        data-sidebar='menu-skeleton-text'
         style={
           {
             '--skeleton-width': width,
@@ -183,11 +206,14 @@ export function SidebarMenuSkeleton({
   )
 }
 
-export function SidebarMenuSub({ className, ...props }: React.ComponentProps<'ul'>) {
+export function SidebarMenuSub({
+  className,
+  ...props
+}: React.ComponentProps<'ul'>) {
   return (
     <ul
-      data-slot="sidebar-menu-sub"
-      data-sidebar="menu-sub"
+      data-slot='sidebar-menu-sub'
+      data-sidebar='menu-sub'
       className={cn(
         'border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5',
         'group-data-[collapsible=icon]:hidden',
@@ -198,11 +224,14 @@ export function SidebarMenuSub({ className, ...props }: React.ComponentProps<'ul
   )
 }
 
-export function SidebarMenuSubItem({ className, ...props }: React.ComponentProps<'li'>) {
+export function SidebarMenuSubItem({
+  className,
+  ...props
+}: React.ComponentProps<'li'>) {
   return (
     <li
-      data-slot="sidebar-menu-sub-item"
-      data-sidebar="menu-sub-item"
+      data-slot='sidebar-menu-sub-item'
+      data-sidebar='menu-sub-item'
       className={cn('group/menu-sub-item relative', className)}
       {...props}
     />
@@ -224,8 +253,8 @@ export function SidebarMenuSubButton({
 
   return (
     <Comp
-      data-slot="sidebar-menu-sub-button"
-      data-sidebar="menu-sub-button"
+      data-slot='sidebar-menu-sub-button'
+      data-sidebar='menu-sub-button'
       data-size={size}
       data-active={isActive}
       className={cn(

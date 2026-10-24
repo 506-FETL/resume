@@ -109,6 +109,9 @@ export const FORM_DATA_KEYS = Object.keys(
 ) as (keyof FormDataMap)[]
 
 export const SYNC_DELAY = 3000
+
 export const ONLINE_SYNC_DELAY = 3000
+
 export const LEGACY_RESUME_CONFIG_STORAGE_KEY = 'resume-config-storage'
+
 export const PX_TO_MM = 25.4 / 96

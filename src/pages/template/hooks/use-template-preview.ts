@@ -7,30 +7,39 @@ export function useTemplatePreview(
   enabled: boolean,
 ) {
   const asset = preview?.asset
+
   const [retryTarget, setRetryTarget] = useState<{
     url: string
     attempt: number
   } | null>(null)
+
   const [result, setResult] = useState<{
     url: string
     status: 'ready' | 'error'
   } | null>(null)
+
   const canonicalUrl = asset ? getTemplatePreviewUrl(asset) : undefined
+
   const attempt =
     retryTarget?.url === canonicalUrl ? (retryTarget?.attempt ?? 0) : 0
+
   const url =
     canonicalUrl &&
     (attempt ? `${canonicalUrl}?retry=${attempt}` : canonicalUrl)
+
   const width = asset?.width
   const height = asset?.height
   const current = result?.url === url ? result : null
 
   useEffect(() => {
     if (!url || !enabled) return
+
     let active = true
     const image = new Image()
+
     image.decoding = 'async'
     image.src = url
+
     image.decode().then(
       () => {
         if (active)
@@ -46,6 +55,7 @@ export function useTemplatePreview(
         if (active) setResult({ url, status: 'error' })
       },
     )
+
     return () => {
       active = false
       image.removeAttribute('src')

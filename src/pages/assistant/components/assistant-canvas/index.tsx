@@ -87,15 +87,19 @@ export default function AssistantCanvas() {
     layoutMode,
     availableWidth,
   } = useAssistantStore()
+
   const isMobile = layoutMode === 'drawer'
+
   const effectiveWidth = Math.min(
     canvasWidth,
     Math.max(CANVAS_MIN_WIDTH, availableWidth - CHAT_MIN_WIDTH),
   )
+
   const maxWidth = Math.min(
     CANVAS_MAX_WIDTH,
     Math.max(CANVAS_MIN_WIDTH, availableWidth - CHAT_MIN_WIDTH),
   )
+
   const shouldReduceMotion = useReducedMotion()
   const [dragging, setDragging] = useState(false)
   // 首次打开后保留分页结果与滚动位置，关闭时由外层裁切并禁用交互。
@@ -112,16 +116,21 @@ export default function AssistantCanvas() {
     setDragging(true)
     e.currentTarget.setPointerCapture(e.pointerId)
   }
+
   const onHandlePointerMove = (e: ReactPointerEvent) => {
     if (!dragState.current) return
+
     // 右栏：向左拖变宽
     const next =
       dragState.current.startWidth + (dragState.current.startX - e.clientX)
+
     setCanvasWidth(Math.min(maxWidth, Math.max(CANVAS_MIN_WIDTH, next)))
   }
+
   const onHandlePointerUp = (e: ReactPointerEvent) => {
     dragState.current = null
     setDragging(false)
+
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId)
   }
@@ -222,6 +231,7 @@ export default function AssistantCanvas() {
                     aria-label='收起画布'
                     onClick={() => {
                       setCanvasOpen(false)
+
                       requestAnimationFrame(() =>
                         document
                           .getElementById('assistant-canvas-trigger')

@@ -53,6 +53,7 @@ export function readBackendOpsSnapshot(
 
   const alerts: BackendAlert[] = []
   const alertCodes = new Set<string>()
+
   for (const candidate of value.alerts) {
     if (
       !isRecord(candidate) ||
@@ -64,7 +65,9 @@ export function readBackendOpsSnapshot(
       return null
     }
     if (Object.keys(candidate).length > 34) return null
+
     const details: Record<string, number | boolean> = {}
+
     for (const [key, detail] of Object.entries(candidate)) {
       if (key === 'code' || key === 'severity') continue
       if (!/^[a-z][a-zA-Z0-9]{0,63}$/u.test(key)) return null
@@ -80,7 +83,9 @@ export function readBackendOpsSnapshot(
         return null
       }
     }
+
     alertCodes.add(candidate.code)
+
     alerts.push({
       code: candidate.code,
       severity: candidate.severity as BackendAlert['severity'],
@@ -89,6 +94,7 @@ export function readBackendOpsSnapshot(
   }
 
   const notificationCodes: string[] = []
+
   for (const code of value.notificationCodes) {
     if (
       typeof code !== 'string' ||
@@ -97,10 +103,12 @@ export function readBackendOpsSnapshot(
     ) {
       return null
     }
+
     notificationCodes.push(code)
   }
 
   const summary: Record<string, number> = {}
+
   for (const [key, metric] of Object.entries(value.summary)) {
     if (
       !/^[a-z][a-zA-Z0-9]{0,63}$/u.test(key) ||
@@ -110,6 +118,7 @@ export function readBackendOpsSnapshot(
     ) {
       return null
     }
+
     summary[key] = metric
   }
 
@@ -124,6 +133,7 @@ export function readBackendOpsSnapshot(
 
 export function buildBackendAlertWebhook(snapshot: BackendOpsSnapshot) {
   const due = new Set(snapshot.notificationCodes)
+
   return {
     event: 'resume_backend_alert',
     generatedAt: snapshot.generatedAt,
@@ -135,10 +145,13 @@ export function buildBackendAlertWebhook(snapshot: BackendOpsSnapshot) {
 
 export function readHttpsWebhookUrl(value: string | undefined) {
   if (!value) return null
+
   try {
     const url = new URL(value)
+
     if (url.protocol !== 'https:' || url.username || url.password || url.hash)
       return null
+
     return url.toString()
   } catch {
     return null

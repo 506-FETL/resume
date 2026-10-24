@@ -56,10 +56,12 @@ export function TemplateResumeDataProvider({
 
 export function useTemplateResumeData(): TemplateResumeData {
   const context = use(TemplateResumeDataContext)
+
   if (!context) {
     throw new Error(
       'useTemplateResumeData must be used within a TemplateResumeDataProvider',
     )
   }
+
   return context
 }

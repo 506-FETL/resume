@@ -20,6 +20,7 @@ export function readShareCommentAccess(
   ) {
     return null
   }
+
   return {
     context: {
       kind: 'share',

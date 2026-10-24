@@ -34,7 +34,9 @@ export const honorsCertificatesFormSchema = z.object({
 export type HonorsCertificatesFormType = z.infer<
   typeof honorsCertificatesFormSchema
 >
+
 export type CertificateItem = z.infer<typeof certificateItemSchema>
+
 export const DEFAULT_HONORS_CERTIFICATES: HonorsCertificatesFormType = {
   description: '',
   certificates: [],

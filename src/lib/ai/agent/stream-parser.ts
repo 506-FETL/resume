@@ -35,6 +35,7 @@ export class StreamParser {
   push(chunk: any): void {
     // usage 可能出现在最后一个（choices 为空的）chunk 上
     const u = chunk?.usage
+
     if (u) {
       this.usage = {
         input: Number(u.prompt_tokens ?? 0),
@@ -45,8 +46,11 @@ export class StreamParser {
         ),
       }
     }
+
     const choice = chunk?.choices?.[0]
+
     if (!choice) return
+
     const delta = choice.delta ?? {}
 
     if (typeof delta.content === 'string' && delta.content) {
@@ -64,10 +68,12 @@ export class StreamParser {
       for (const tc of delta.tool_calls) {
         const idx = tc.index ?? 0
         const cur = this.toolAcc.get(idx) ?? { id: '', name: '', argsText: '' }
+
         if (tc.id) cur.id = tc.id
         if (tc.function?.name) cur.name = tc.function.name
         if (typeof tc.function?.arguments === 'string')
           cur.argsText += tc.function.arguments
+
         this.toolAcc.set(idx, cur)
       }
     }
@@ -92,13 +98,16 @@ export class StreamParser {
       .sort((a, b) => a[0] - b[0])
       .map(([, v]) => {
         let args: Record<string, unknown> = {}
+
         try {
           args = v.argsText ? JSON.parse(v.argsText) : {}
         } catch {
           args = {}
         }
+
         return { id: v.id, name: v.name, args }
       })
+
     return {
       text: this.text,
       reasoning: this.reasoning,

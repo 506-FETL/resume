@@ -34,6 +34,7 @@ function SelfEvaluationForm({ className }: { className?: string }) {
     }),
     [selfEvaluation.content],
   )
+
   useResumeFormSync(form, 'self_evaluation', storeFormData)
 
   return (

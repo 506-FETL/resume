@@ -31,6 +31,8 @@ export function removeRemoteUIUser(
   }
 
   const next = { ...remoteUIStates }
+
   delete next[userId]
+
   return next
 }

@@ -43,10 +43,13 @@ function toElement(node: Node): Element | null {
 
 function readSelectionBoundary(node: Node) {
   const element = toElement(node)
+
   const blockElement =
     element?.closest<HTMLElement>('[data-comment-block-ordinal]') ?? null
+
   const nodeElement =
     element?.closest<HTMLElement>('[data-comment-node-key]') ?? null
+
   const blockOrdinal = Number(blockElement?.dataset.commentBlockOrdinal)
   const nodeKey = nodeElement?.dataset.commentNodeKey?.trim() ?? ''
 
@@ -59,13 +62,16 @@ function readSelectionBoundary(node: Node) {
   ) {
     return null
   }
+
   return { blockElement, nodeElement, blockOrdinal, nodeKey }
 }
 
 function normalizeSelectionRange(range: Range): Range | null {
   const root = range.commonAncestorContainer
   const document = root.ownerDocument
+
   if (!document) return null
+
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
   let node = root.nodeType === Node.TEXT_NODE ? root : walker.nextNode()
   let first: { node: Node; offset: number } | null = null
@@ -78,6 +84,7 @@ function normalizeSelectionRange(range: Range): Range | null {
       const text = node.nodeValue ?? ''
       const start = node === range.startContainer ? range.startOffset : 0
       const end = node === range.endContainer ? range.endOffset : text.length
+
       if (
         start < end &&
         normalizeCommentRichTextBlock(text.slice(start, end))
@@ -86,13 +93,17 @@ function normalizeSelectionRange(range: Range): Range | null {
         last = { node, offset: end }
       }
     }
+
     node = walker.nextNode()
   }
 
   if (!first || !last) return null
+
   const normalized = range.cloneRange()
+
   normalized.setStart(first.node, first.offset)
   normalized.setEnd(last.node, last.offset)
+
   return normalized
 }
 
@@ -103,13 +114,16 @@ export function resolveCommentSelection(
   if (inputRange.collapsed) {
     return null
   }
+
   const range = normalizeSelectionRange(inputRange)
+
   if (!range) {
     return null
   }
 
   const start = readSelectionBoundary(range.startContainer)
   const end = readSelectionBoundary(range.endContainer)
+
   if (
     !start ||
     !end ||
@@ -133,11 +147,14 @@ export function resolveCommentSelection(
   }
 
   const projection = projectCommentDomNode(start.nodeElement)
+
   const startBlock = findCommentDomBlockByOrdinal(
     projection,
     start.blockOrdinal,
   )
+
   const endBlock = findCommentDomBlockByOrdinal(projection, end.blockOrdinal)
+
   if (
     !startBlock ||
     !endBlock ||
@@ -146,26 +163,32 @@ export function resolveCommentSelection(
   ) {
     return null
   }
+
   const localStart = commentDomPointToGraphemeOffset(
     start.blockElement,
     range.startContainer,
     range.startOffset,
   )
+
   const localEnd = commentDomPointToGraphemeOffset(
     end.blockElement,
     range.endContainer,
     range.endOffset,
   )
+
   if (localStart === null || localEnd === null) {
     return null
   }
+
   const startOffset = startBlock.startGraphemeOffset + localStart
   const endOffset = endBlock.startGraphemeOffset + localEnd
+
   if (startOffset >= endOffset) {
     return null
   }
 
   const exactQuote = graphemeSlice(projection.text, startOffset, endOffset)
+
   if (!exactQuote) {
     return null
   }
@@ -229,5 +252,6 @@ export function compareAnchorOverlap(
   ) {
     return 'partial'
   }
+
   return 'none'
 }

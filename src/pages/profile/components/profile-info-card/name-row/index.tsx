@@ -26,15 +26,18 @@ export function NameRow({ initialFullName }: NameRowProps) {
   const updateFullName = async () => {
     if (!fullName.trim()) {
       toast.error('用户名不能为空')
+
       return
     }
 
     if (fullName === currentName) {
       setEditing(false)
+
       return
     }
 
     setSaving(true)
+
     try {
       await updateProfile({ data: { full_name: fullName } })
       toast.success('用户名更新成功')

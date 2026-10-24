@@ -6,7 +6,9 @@ import { createContext, use } from 'react'
 import { cn } from '@/lib/utils'
 
 type StepState = 'active' | 'completed' | 'inactive' | 'ended'
+
 const StepContext = createContext<StepState>('inactive')
+
 const transition =
   'transition-[color,background-color,border-color,box-shadow] duration-[var(--stepper-duration)] ease-[var(--stepper-ease)]'
 
@@ -49,13 +51,16 @@ export function StepperTrigger({
   ...props
 }: ComponentProps<'button'>) {
   const state = use(StepContext)
+
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     onKeyDown?.(event)
+
     if (
       event.defaultPrevented ||
       !['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)
     )
       return
+
     const triggers = Array.from(
       event.currentTarget
         .closest('[data-slot="stepper"]')
@@ -63,9 +68,13 @@ export function StepperTrigger({
           'button[data-slot="stepper-trigger"]:not(:disabled)',
         ) ?? [],
     )
+
     const current = triggers.indexOf(event.currentTarget)
+
     if (current < 0) return
+
     event.preventDefault()
+
     const next =
       event.key === 'Home'
         ? 0
@@ -75,8 +84,10 @@ export function StepperTrigger({
               (event.key === 'ArrowRight' ? 1 : -1) +
               triggers.length) %
             triggers.length
+
     triggers[next]?.focus()
   }
+
   return (
     <button
       type='button'
@@ -98,6 +109,7 @@ export function StepperIndicator({
   ...props
 }: ComponentProps<'span'>) {
   const state = use(StepContext)
+
   return (
     <span
       data-slot='stepper-indicator'
@@ -114,6 +126,7 @@ export function StepperIndicator({
 
 export function StepperTitle({ className, ...props }: ComponentProps<'span'>) {
   const state = use(StepContext)
+
   return (
     <span
       data-slot='stepper-title'

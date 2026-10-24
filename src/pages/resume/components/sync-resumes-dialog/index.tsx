@@ -71,6 +71,7 @@ export default function SyncResumesDialog() {
 
   const handleSync = async () => {
     if (selectedIds.length === 0) return
+
     await syncResumes(selectedIds)
   }
 
@@ -109,6 +110,7 @@ export default function SyncResumesDialog() {
             <div className='flex flex-col gap-3'>
               {offlineResumes.map((resume) => {
                 const isSelected = selectedIds.includes(resume.resume_id)
+
                 return (
                   <Card
                     key={resume.resume_id}

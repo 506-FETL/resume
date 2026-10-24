@@ -22,6 +22,7 @@ function pathToString(path: PathSegment[]) {
 function getFieldLabelFromPath(path: PathSegment[]) {
   const pathString = pathToString(path)
   const collectionLabel = COLLECTION_LABEL_MAP[pathString]
+
   if (collectionLabel) {
     return collectionLabel
   }
@@ -32,6 +33,7 @@ function getFieldLabelFromPath(path: PathSegment[]) {
 
   if (!lastStringSegment || lastStringSegment === path[0]) {
     const sectionKey = String(path[0] ?? '')
+
     return (
       SECTION_LABEL_MAP[
         sectionKey as keyof import('@/lib/schema').ResumeSchema
@@ -44,11 +46,14 @@ function getFieldLabelFromPath(path: PathSegment[]) {
 
 function getItemLabelFromPath(path: PathSegment[]) {
   const itemIndex = path.findIndex((segment) => segment === 'items')
+
   if (itemIndex >= 0 && typeof path[itemIndex + 1] === 'number') {
     const sectionKey = String(path[0] ?? '')
+
     const prefix =
       ITEM_LABEL_PREFIX_MAP[`${sectionKey}.items`] ??
       SECTION_LABEL_MAP[sectionKey as keyof import('@/lib/schema').ResumeSchema]
+
     return `${prefix} ${Number(path[itemIndex + 1]) + 1}`
   }
 
@@ -111,6 +116,7 @@ export function pickSuggestionKind(
 
 export function toSuggestionValueType(value: unknown): ValueType {
   const detected = detectValueType(value)
+
   return detected === 'empty' ? 'string' : detected
 }
 

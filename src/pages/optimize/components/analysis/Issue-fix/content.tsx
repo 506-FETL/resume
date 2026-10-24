@@ -35,6 +35,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
   if (!finding) return null
 
   const evidence = finding.why.evidence[0]
+
   const locationText =
     [
       evidence?.locate.sectionLabel,
@@ -46,6 +47,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
 
   const steps =
     finding.fix.steps.length > 0 ? finding.fix.steps : ['暂无步骤说明']
+
   const suggestions = finding.fix.suggestions || []
   const needsUserInput = hasUnresolvedSuggestionInput(suggestions)
 
@@ -54,6 +56,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
     null,
     2,
   )
+
   const afterCode = JSON.stringify(
     suggestions.map((s) => s.after ?? null),
     null,
@@ -67,8 +70,10 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
       if (f.id === id) {
         return { ...f, fix: { ...f.fix, suggestions: newSuggestions } }
       }
+
       return f
     })
+
     update('findings', {
       ...currentAtsConfig.findings,
       [severity]: updatedFinding,

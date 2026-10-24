@@ -62,6 +62,7 @@ function formatCommentField(nodeKey: string) {
   const [sectionKey = '', , fieldKey = ''] = nodeKey.split('/')
   const section = COMMENT_SECTION_LABELS[sectionKey] ?? sectionKey
   const field = COMMENT_FIELD_LABELS[fieldKey] ?? fieldKey
+
   return [section, field].filter(Boolean).join(' · ')
 }
 
@@ -82,34 +83,41 @@ export function ThreadDetail({
 }) {
   const actions = useCommentActions()
   const [confirmingThreadDelete, setConfirmingThreadDelete] = useState(false)
+
   const [replyTarget, setReplyTarget] = useState<{
     commentId: string
     displayName: string
   } | null>(null)
+
   const client = useResumeCommentClient()
   const relinkThreadId = useResumeCommentStore((state) => state.relinkThreadId)
   const relinkError = useResumeCommentStore((state) => state.relinkError)
   const cancelRelink = useResumeCommentStore((state) => state.cancelRelink)
   const accessState = useResumeCommentStore((state) => state.accessState)
+
   const hasPendingCreation = useResumeCommentStore((state) =>
     Object.values(state.pendingCreationsByRequestId).some(
       (pending) => pending.threadId === thread.id,
     ),
   )
+
   const root = thread.comments.find((comment) => comment.parentId === null)
   const access = client.getAccessContext()
+
   const effectivePermissions = {
     ...permissions,
     currentAnonymousId:
       permissions.currentAnonymousId ??
       (access.kind === 'share' ? access.anonymous?.id : null),
   }
+
   const canResolve =
     !thread.localOnly &&
     (permissions.canModerateAll ||
       Boolean(
         root && isCurrentCommentAuthor(root.author, effectivePermissions),
       ))
+
   const resolving = actions.pendingAction === `thread:${thread.id}:resolve`
   const reopening = actions.pendingAction === `thread:${thread.id}:reopen`
 
@@ -282,7 +290,9 @@ export function ThreadDetail({
                 value,
                 replyTarget?.commentId,
               )
+
               if (response) setReplyTarget(null)
+
               return Boolean(response)
             }}
           />

@@ -48,6 +48,7 @@ export default function SortMenu() {
         <DropdownMenuSeparator />
         {TRACKER_SORT_OPTIONS.map((option) => {
           const isActive = option.value === sortBy
+
           return (
             <DropdownMenuItem
               key={option.value}

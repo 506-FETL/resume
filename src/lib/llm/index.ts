@@ -36,6 +36,7 @@ async function streamStructuredJson(
     abortController,
     requireComplete = false,
   } = options || {}
+
   const stream = await callLLM(req, abortController)
 
   let fullContent = ''
@@ -51,15 +52,20 @@ async function streamStructuredJson(
   try {
     for await (const chunk of stream) {
       const choice = chunk.choices[0]
+
       const delta = choice?.delta as
         | { content?: string; reasoning_content?: string }
         | undefined
+
       // finish_reason 权威区分：'length'=被截断（超出 token 预算）、'stop'=正常结束、null=流被中断
       const chunkFinish = (
         choice as { finish_reason?: string | null } | undefined
       )?.finish_reason
+
       if (chunkFinish) finishReason = chunkFinish
+
       const content = typeof delta?.content === 'string' ? delta.content : ''
+
       const reasoning =
         typeof delta?.reasoning_content === 'string'
           ? delta.reasoning_content
@@ -118,8 +124,10 @@ function repairJsonText(text: string): string {
   const nextMeaningfulChar = (from: number): string => {
     for (let j = from; j < cleaned.length; j++) {
       const c = cleaned[j]
+
       if (c !== ' ' && c !== '\n' && c !== '\r' && c !== '\t') return c
     }
+
     return ''
   }
 
@@ -139,6 +147,7 @@ function repairJsonText(text: string): string {
       }
       if (ch === '"') {
         const next = nextMeaningfulChar(i + 1)
+
         if (
           next === '' ||
           next === ',' ||
@@ -152,6 +161,7 @@ function repairJsonText(text: string): string {
           // 字符串内的游离引号 → 补转义
           out.push('\\"')
         }
+
         continue
       }
       if (ch === '\n') {
@@ -170,6 +180,7 @@ function repairJsonText(text: string): string {
       if (ch.charCodeAt(0) < 0x20) {
         continue
       }
+
       out.push(ch)
       continue
     }
@@ -182,8 +193,10 @@ function repairJsonText(text: string): string {
     }
     if (ch === ',') {
       const next = nextMeaningfulChar(i + 1)
+
       if (next === '}' || next === ']') continue // 删除尾逗号
     }
+
     out.push(ch)
   }
 
@@ -208,11 +221,14 @@ export function parseLlmJsonObject<T>(value: string): T {
 
   // 先原样解析，失败再用状态机修复后重试。
   let lastError: unknown
+
   for (const candidate of [jsonText, repairJsonText(jsonText)]) {
     try {
       const parsed = JSON.parse(candidate)
+
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
         throw new Error('LLM 返回的 JSON 结构无效')
+
       return parsed as T
     } catch (error) {
       lastError = error
@@ -221,14 +237,17 @@ export function parseLlmJsonObject<T>(value: string): T {
 
   // 两次都失败：打印错误位置附近的原文窗口，便于定位是「游离引号」还是「被截断」。
   const posMatch = /position (\d+)/.exec(String((lastError as Error)?.message))
+
   if (posMatch) {
     const pos = Number(posMatch[1])
+
     console.error(
       '[ATS JSON parse] 解析失败，错误位置附近原文：',
       JSON.stringify(jsonText.slice(Math.max(0, pos - 100), pos + 100)),
       `｜总长度=${jsonText.length}`,
     )
   }
+
   throw lastError instanceof Error
     ? lastError
     : new Error('LLM 返回的 JSON 无法解析')
@@ -240,6 +259,7 @@ export async function runAtsStructured(
   options?: { throttleMs?: number },
 ) {
   const promptText = buildOptimizePrompt(assessmentInput)
+
   const req = {
     messages: [
       {
@@ -272,6 +292,7 @@ export async function runBulletRewrite(
   options?: { throttleMs?: number; abortController?: AbortController },
 ) {
   const promptText = buildRewritePrompt(args)
+
   const req = {
     messages: [
       {
@@ -298,6 +319,7 @@ export async function runJobDescriptionStructured(
     serializeAiToolValue(resumeConfig),
     jobDescription,
   )
+
   const req = {
     messages: [
       {
@@ -321,6 +343,7 @@ export async function runJdVariantParse(
   options?: { throttleMs?: number; abortController?: AbortController },
 ) {
   const { system, user } = buildJdParsePrompt(jdText)
+
   const req = {
     messages: [
       { role: 'system', content: system },
@@ -329,6 +352,7 @@ export async function runJdVariantParse(
     response_format: { type: 'json_object' },
     temperature: JD_VARIANT_PARSE_TEMPERATURE,
   } as ChatCompletionCreateParamsBase
+
   return await streamStructuredJson(req, onUpdate, {
     ...options,
     requireComplete: true,
@@ -345,6 +369,7 @@ export async function runJdVariantRewrite(
   options?: { throttleMs?: number; abortController?: AbortController },
 ) {
   const { system, user } = buildJdRewritePrompt(args)
+
   const req = {
     messages: [
       { role: 'system', content: system },
@@ -353,6 +378,7 @@ export async function runJdVariantRewrite(
     response_format: { type: 'json_object' },
     temperature: JD_VARIANT_REWRITE_TEMPERATURE,
   } as ChatCompletionCreateParamsBase
+
   return await streamStructuredJson(req, onUpdate, {
     ...options,
     requireComplete: true,

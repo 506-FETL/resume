@@ -25,12 +25,14 @@ import { ATS_SCORE_MAX } from './constants.ts'
 
 const SCORE_KEYS = Object.keys(ATS_SCORE_MAX) as ScoreKey[]
 const SEVERITIES: Severity[] = ['high', 'medium', 'low']
+
 const SUGGESTION_KINDS = new Set<SuggestionKind>([
   'replace_text',
   'replace_value',
   'fill_field',
   'normalize_date',
 ])
+
 const VALUE_TYPES = new Set<ValueType>([
   'string',
   'number',
@@ -39,6 +41,7 @@ const VALUE_TYPES = new Set<ValueType>([
   'string_array',
   'object_array',
 ])
+
 const PERSISTED_VALUE_TYPES = new Set<ValueType>([
   ...VALUE_TYPES,
   'object',
@@ -47,6 +50,7 @@ const PERSISTED_VALUE_TYPES = new Set<ValueType>([
   'skill_item',
   'certificate_list',
 ])
+
 const USER_INPUT_PLACEHOLDER_PATTERN = /待补充\s*[：:]/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -96,6 +100,7 @@ function buildFallbackSuggestion(
   )
     .replace(/[。；;]+$/g, '')
     .slice(0, 48)
+
   const placeholder = `（待补充：${instruction}）`
   const { rawValue } = field
   const normalizedPath = field.locate.path.toLowerCase()
@@ -156,6 +161,7 @@ function buildFallbackSuggestion(
     const isDateRange = /duration|dateRange|时间|日期/i.test(
       `${field.locate.path} ${field.locate.fieldLabel}`,
     )
+
     return {
       kind: isDateRange ? 'normalize_date' : 'replace_value',
       valueType: 'string_array',
@@ -223,6 +229,7 @@ function valueContainsUserInputPlaceholder(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(valueContainsUserInputPlaceholder)
   if (isRecord(value))
     return Object.values(value).some(valueContainsUserInputPlaceholder)
+
   return false
 }
 
@@ -233,8 +240,10 @@ function toInternalSuggestionValueType(
   if (valueType !== 'object_array') return valueType
 
   const normalizedPath = path.toLowerCase()
+
   if (/(?:^|\.)skills$/.test(normalizedPath)) return 'skill_list'
   if (/(?:^|\.)certificates$/.test(normalizedPath)) return 'certificate_list'
+
   return valueType
 }
 
@@ -282,6 +291,7 @@ export function ensureAtsFindingsHaveSuggestions(
       return null
 
     const locate = normalizeLocate(value.locate)
+
     if (!locate) return null
 
     return {
@@ -302,6 +312,7 @@ export function ensureAtsFindingsHaveSuggestions(
     const locate = normalizeLocate(value.locate)
     const kind = value.kind
     const valueType = value.valueType
+
     if (
       !locate ||
       !SUGGESTION_KINDS.has(kind as SuggestionKind) ||
@@ -337,22 +348,27 @@ export function ensureAtsFindingsHaveSuggestions(
     const locate = normalizeLocate(value.locate)
     const id = readString(value.id)
     const title = readString(value.title)
+
     if (!locate || !id || !title) return null
 
     const evidence = value.why.evidence
       .map(normalizeEvidenceEntry)
       .filter((entry): entry is Evidence => entry !== null)
+
     const suggestions = (
       Array.isArray(value.fix.suggestions) ? value.fix.suggestions : []
     )
       .map(normalizeSuggestionEntry)
       .filter((entry): entry is Suggestion => entry !== null)
+
     const fixSummary = readString(value.fix.summary, title)
+
     const steps = Array.isArray(value.fix.steps)
       ? value.fix.steps.filter(
           (step): step is string => typeof step === 'string',
         )
       : []
+
     const finding: Finding = {
       id,
       type: readString(value.type, 'content_issue'),
@@ -382,6 +398,7 @@ export function ensureAtsFindingsHaveSuggestions(
     const matchingEvidence = evidence.find(
       (item) => item.locate.path === locate.path,
     )
+
     if (!matchingEvidence) return null
 
     return {
@@ -429,14 +446,18 @@ function deepEqual(left: unknown, right: unknown): boolean {
       left.length !== right.length
     )
       return false
+
     return left.every((item, index) => deepEqual(item, right[index]))
   }
 
   if (isRecord(left) || isRecord(right)) {
     if (!isRecord(left) || !isRecord(right)) return false
+
     const leftKeys = Object.keys(left).sort()
     const rightKeys = Object.keys(right).sort()
+
     if (!deepEqual(leftKeys, rightKeys)) return false
+
     return leftKeys.every((key) => deepEqual(left[key], right[key]))
   }
 
@@ -447,6 +468,7 @@ function buildFieldCatalog(
   input: AtsAssessmentInput,
 ): Map<string, AtsAssessmentField> {
   const contactPaths = new Set(['basics.phone', 'basics.email'])
+
   const fields = flattenAssessmentFields(input).filter((field) => {
     if (!input.scope.hasContactMethod || !contactPaths.has(field.locate.path))
       return true
@@ -462,6 +484,7 @@ function resolveField(
   catalog: Map<string, AtsAssessmentField>,
 ): AtsAssessmentField | null {
   if (!isRecord(rawLocate) || typeof rawLocate.path !== 'string') return null
+
   return catalog.get(rawLocate.path) ?? null
 }
 
@@ -472,10 +495,12 @@ function normalizeScores(rawScores: unknown): Scores {
   return Object.fromEntries(
     SCORE_KEYS.map((key) => {
       const rawItem = rawScores[key]
+
       if (!isRecord(rawItem))
         throw new Error(`ATS 评估结果缺少“${key}”评分，请重新分析`)
 
       const rawScore = readFiniteNumber(rawItem.score)
+
       if (rawScore === null)
         throw new Error(`ATS 评估结果中的“${key}”评分无效，请重新分析`)
 
@@ -484,6 +509,7 @@ function normalizeScores(rawScores: unknown): Scores {
         max: ATS_SCORE_MAX[key],
         rationale: readString(rawItem.rationale),
       }
+
       return [key, item]
     }),
   ) as Scores
@@ -500,10 +526,12 @@ function isNonEmptyAfter(
 
   if (valueType === 'string' || valueType === 'html_string') {
     if (typeof value !== 'string') return false
+
     const plainText = value
       .replace(/<[^>]*>/g, ' ')
       .replace(/&nbsp;/gi, ' ')
       .trim()
+
     return plainText.length > 0
   }
 
@@ -528,6 +556,7 @@ function isNonEmptyAfter(
 
 function isNonEmptyPlainText(value: unknown): value is string {
   if (typeof value !== 'string') return false
+
   return (
     value
       .replace(/<[^>]*>/g, ' ')
@@ -542,6 +571,7 @@ function hasValidEntryId(value: Record<string, unknown>): boolean {
 
 function isSuggestionTypeCompatibleWithBefore(suggestion: Suggestion): boolean {
   const { before, locate, valueType } = suggestion
+
   if (before === null || before === undefined) return true
   if (typeof before === 'string')
     return valueType === 'string' || valueType === 'html_string'
@@ -549,10 +579,12 @@ function isSuggestionTypeCompatibleWithBefore(suggestion: Suggestion): boolean {
   if (typeof before === 'boolean') return valueType === 'boolean'
   if (Array.isArray(before) && before.length === 0) {
     const path = locate.path.toLowerCase()
+
     if (/(?:^|\.)skills$/.test(path)) return valueType === 'skill_list'
     if (/(?:^|\.)certificates$/.test(path))
       return valueType === 'certificate_list'
     if (/(?:^|\.)hobbies$/.test(path)) return valueType === 'object_array'
+
     return valueType === 'string_array' || valueType === 'date_range'
   }
   if (Array.isArray(before) && before.every((item) => typeof item === 'string'))
@@ -565,6 +597,7 @@ function isSuggestionTypeCompatibleWithBefore(suggestion: Suggestion): boolean {
     )
   if (isRecord(before))
     return valueType === 'object' || valueType === 'skill_item'
+
   return false
 }
 
@@ -576,6 +609,7 @@ export function isSuggestionReadyToApply(suggestion: Suggestion): boolean {
     return false
 
   const { after, kind, locate, valueType } = suggestion
+
   if (kind === 'replace_text' && valueType !== 'html_string') return false
   if (
     kind === 'normalize_date' &&
@@ -600,6 +634,7 @@ export function isSuggestionReadyToApply(suggestion: Suggestion): boolean {
   if (valueType === 'skill_list') {
     const levels = new Set(['一般', '良好', '熟练', '擅长', '精通'])
     const displayTypes = new Set(['text', 'percentage'])
+
     return (
       Array.isArray(after) &&
       after.length > 0 &&
@@ -637,6 +672,7 @@ export function isSuggestionReadyToApply(suggestion: Suggestion): boolean {
         (item) => hasValidEntryId(item) && isNonEmptyPlainText(item.name),
       )
     }
+
     return true
   }
   if (valueType === 'object' || valueType === 'skill_item')
@@ -650,6 +686,7 @@ function isValueTypeCompatibleWithField(
   field: AtsAssessmentField,
 ): boolean {
   const { rawValue } = field
+
   if (typeof rawValue === 'string')
     return valueType === 'string' || valueType === 'html_string'
   if (typeof rawValue === 'number') return valueType === 'number'
@@ -668,6 +705,7 @@ function isValueTypeCompatibleWithField(
     return valueType === 'string_array'
   if (Array.isArray(rawValue) && rawValue.every((item) => isRecord(item)))
     return valueType === 'object_array'
+
   return false
 }
 
@@ -678,10 +716,12 @@ function normalizeSuggestion(
   if (!isRecord(rawSuggestion)) return null
 
   const field = resolveField(rawSuggestion.locate, catalog)
+
   if (!field || !deepEqual(rawSuggestion.before, field.rawValue)) return null
 
   const kind = rawSuggestion.kind
   const valueType = rawSuggestion.valueType
+
   if (
     !SUGGESTION_KINDS.has(kind as SuggestionKind) ||
     !VALUE_TYPES.has(valueType as ValueType)
@@ -690,6 +730,7 @@ function normalizeSuggestion(
 
   const normalizedKind = kind as SuggestionKind
   const normalizedValueType = valueType as ValueType
+
   if (!isValueTypeCompatibleWithField(normalizedValueType, field)) return null
   if (!isNonEmptyAfter(rawSuggestion.after, normalizedValueType)) return null
 
@@ -729,6 +770,7 @@ function normalizeEvidence(
 
   const field = resolveField(rawEvidence.locate, catalog)
   const text = readString(rawEvidence.text)
+
   if (!field || !text || !deepEqual(rawEvidence.rawValue, field.rawValue))
     return null
 
@@ -749,6 +791,7 @@ function normalizeFinding(
   const title = readString(rawFinding.title)
   const rawWhy = isRecord(rawFinding.why) ? rawFinding.why : null
   const rawFix = isRecord(rawFinding.fix) ? rawFinding.fix : null
+
   if (!field || !title || !rawWhy || !rawFix) return null
 
   const evidence = Array.isArray(rawWhy.evidence)
@@ -756,6 +799,7 @@ function normalizeFinding(
         .map((item) => normalizeEvidence(item, catalog))
         .filter((item): item is Evidence => item !== null)
     : []
+
   if (
     evidence.length === 0 ||
     !evidence.some((item) => item.locate.path === field.locate.path)
@@ -767,6 +811,7 @@ function normalizeFinding(
         .map((item) => normalizeSuggestion(item, catalog))
         .filter((item): item is Suggestion => item !== null)
     : []
+
   const fixSummary = readString(rawFix.summary, title)
   const steps = readStringList(rawFix.steps, 4)
 
@@ -796,6 +841,7 @@ function normalizeFindings(
   catalog: Map<string, AtsAssessmentField>,
 ): FindingsGroup {
   const source = isRecord(rawFindings) ? rawFindings : {}
+
   const prefixes: Record<Severity, string> = {
     high: 'H',
     medium: 'M',
@@ -805,6 +851,7 @@ function normalizeFindings(
   const findings = Object.fromEntries(
     SEVERITIES.map((severity) => {
       const rawGroup = Array.isArray(source[severity]) ? source[severity] : []
+
       const normalized = rawGroup
         .map((item) => normalizeFinding(item, catalog))
         .filter((item): item is Omit<Finding, 'id'> => item !== null)
@@ -814,6 +861,7 @@ function normalizeFindings(
             id: `${prefixes[severity]}-${String(index + 1).padStart(3, '0')}`,
           }),
         )
+
       return [severity, normalized]
     }),
   ) as unknown as FindingsGroup
@@ -844,6 +892,7 @@ function buildNextActions(findings: FindingsGroup) {
     medium: 1,
     low: 2,
   }
+
   return flattenFindingsWithSeverity(findings)
     .slice(0, 4)
     .map(({ finding, severity }) => ({
@@ -859,6 +908,7 @@ function normalizeAssessmentMeta(
 ): AtsAssessmentMeta {
   const meta = isRecord(rawMeta) ? rawMeta : {}
   const assessment = isRecord(meta.assessment) ? meta.assessment : {}
+
   const fallbackSignals = input.scope.evaluatedSections
     .filter((section) => section !== '基本信息')
     .slice(0, 5)
@@ -886,6 +936,7 @@ export function getAtsGrade(score: number): string {
   if (score >= 80) return '优秀'
   if (score >= 60) return '良好'
   if (score >= 40) return '中等'
+
   return '较低'
 }
 
@@ -894,24 +945,29 @@ export function normalizeAtsEvaluationResult(
   input: AtsAssessmentInput,
 ): AtsWritableFields {
   const scores = normalizeScores(draft.scores)
+
   const overallScore = SCORE_KEYS.reduce(
     (sum, key) => sum + scores[key].score,
     0,
   )
+
   const catalog = buildFieldCatalog(input)
   const findings = normalizeFindings(draft.findings, catalog)
   const orderedFindings = flattenFindingsWithSeverity(findings)
+
   const rawReadability: Record<string, unknown> = isRecord(
     draft.readabilityIndex,
   )
     ? draft.readabilityIndex
     : {}
+
   const derivedReadability = Math.max(
     1,
     Math.round(
       (scores.format_readability.score / scores.format_readability.max) * 10,
     ),
   )
+
   const readabilityScore = readFiniteNumber(rawReadability.score)
 
   return {

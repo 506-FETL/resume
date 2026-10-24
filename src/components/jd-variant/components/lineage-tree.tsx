@@ -43,6 +43,7 @@ export function VariantLineageTree({
 }: VariantLineageTreeProps) {
   const isCurrent = node.resumeId === currentResumeId
   const status = node.derivedStatus
+
   const matchPct =
     node.matchRate == null ? null : `${Math.round(node.matchRate * 100)}%`
 
@@ -125,11 +126,15 @@ function findPath(
   acc: VariantTreeNode[] = [],
 ): VariantTreeNode[] | null {
   const next = [...acc, node]
+
   if (node.resumeId === targetId) return next
+
   for (const c of node.children) {
     const r = findPath(c, targetId, next)
+
     if (r) return r
   }
+
   return null
 }
 
@@ -146,6 +151,7 @@ export function VariantLineagePath({
     () => (tree ? (findPath(tree, currentResumeId) ?? []) : []),
     [tree, currentResumeId],
   )
+
   if (path.length === 0) {
     return <p className='text-xs text-muted-foreground'>暂无派生关系</p>
   }

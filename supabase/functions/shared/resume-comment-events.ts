@@ -18,7 +18,9 @@ export interface RealtimeAdminClient {
 
 function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = ''
+
   for (const byte of bytes) binary += String.fromCharCode(byte)
+
   return btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
@@ -33,7 +35,9 @@ async function topicDigest(value: string, secret: string): Promise<string> {
     false,
     ['sign'],
   )
+
   const digest = await crypto.subtle.sign('HMAC', key, encoder.encode(value))
+
   return bytesToBase64Url(new Uint8Array(digest))
 }
 
@@ -42,6 +46,7 @@ function currentBucket(nowSeconds: number): {
   expiresAt: number
 } {
   const bucket = Math.floor(nowSeconds / REALTIME_BUCKET_SECONDS)
+
   return {
     bucket,
     expiresAt: (bucket + 1) * REALTIME_BUCKET_SECONDS,
@@ -60,10 +65,12 @@ export async function deriveScopeRealtimeTopic({
   nowSeconds?: number
 }) {
   const { bucket, expiresAt } = currentBucket(nowSeconds)
+
   const digest = await topicDigest(
     `${scopeId}:version:${versionId}:${bucket}`,
     secret,
   )
+
   return { topic: `resume-comments:${digest}`, expiresAt }
 }
 
@@ -78,6 +85,7 @@ export async function deriveOwnerRealtimeTopic({
 }) {
   const { bucket, expiresAt } = currentBucket(nowSeconds)
   const digest = await topicDigest(`owner:${userId}:${bucket}`, secret)
+
   return { topic: `resume-comment-owner:${digest}`, expiresAt }
 }
 
@@ -95,6 +103,7 @@ export async function issueRealtimeAccess({
   tokenSecret: string
 }) {
   const issuedAt = Math.floor(Date.now() / 1_000)
+
   const payload: RealtimeCommentAccessToken = {
     version: 1,
     kind: 'realtime',
@@ -104,6 +113,7 @@ export async function issueRealtimeAccess({
     ...(scopeId ? { scopeId } : {}),
     ...(userId ? { userId } : {}),
   }
+
   return {
     topic,
     expiresAt: new Date(expiresAt * 1_000).toISOString(),
@@ -125,6 +135,7 @@ export async function broadcastCommentInvalidation({
   await Promise.allSettled(
     topics.map(async (topic) => {
       const channel = admin.channel(topic)
+
       try {
         await channel.httpSend('invalidate', { eventSeq, type })
       } finally {

@@ -18,6 +18,7 @@ interface ColumnCardProps {
 
 export const ColumnCard = memo(({ job }: ColumnCardProps) => {
   const reduceMotion = useReducedMotion()
+
   const { isSelectMode, isSelected, toggleSelect, openJobDrawer } =
     useTrackerStore(
       useShallow((state) => ({
@@ -27,6 +28,7 @@ export const ColumnCard = memo(({ job }: ColumnCardProps) => {
         openJobDrawer: state.openJobDrawer,
       })),
     )
+
   const nextActionBadge = getNextActionBadge(job)
 
   const handleClick = () => {

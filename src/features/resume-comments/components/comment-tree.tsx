@@ -38,13 +38,17 @@ function buildCommentTree(comments: ResumeComment[]) {
   const nodes = new Map<string, CommentTreeNode>(
     comments.map((comment) => [comment.id, { comment, children: [] }]),
   )
+
   const roots: CommentTreeNode[] = []
+
   for (const comment of comments) {
     const node = nodes.get(comment.id)!
     const parent = comment.parentId ? nodes.get(comment.parentId) : null
+
     if (parent) parent.children.push(node)
     else roots.push(node)
   }
+
   return { nodes, roots }
 }
 
@@ -57,6 +61,7 @@ function countDescendants(node: CommentTreeNode): number {
 
 function formatTime(value: string) {
   const timestamp = Date.parse(value)
+
   return Number.isFinite(timestamp)
     ? new Intl.DateTimeFormat('zh-CN', {
         dateStyle: 'medium',
@@ -70,29 +75,38 @@ function CommentBody({ body }: { body: string }) {
     const result: Array<{ key: number; text: string; link: boolean }> = []
     const pattern = /https?:\/\/\S+|mailto:\S+/giu
     let cursor = 0
+
     for (const match of body.matchAll(pattern)) {
       const index = match.index
+
       if (index > cursor)
         result.push({
           key: cursor,
           text: body.slice(cursor, index),
           link: false,
         })
+
       result.push({ key: index, text: match[0], link: true })
       cursor = index + match[0].length
     }
+
     if (cursor < body.length)
       result.push({ key: cursor, text: body.slice(cursor), link: false })
+
     return result
   }, [body])
+
   return (
     <p className='whitespace-pre-wrap wrap-break-word text-sm leading-6'>
       {parts.map((part) => {
         if (!part.link) return <span key={part.key}>{part.text}</span>
+
         try {
           const url = new URL(part.text)
+
           if (!['http:', 'https:', 'mailto:'].includes(url.protocol))
             return <span key={part.key}>{part.text}</span>
+
           return (
             <a
               key={part.key}
@@ -136,21 +150,27 @@ function CommentNode({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const comment = node.comment
   const delivery = comment.delivery
+
   const canManage =
     !delivery &&
     !comment.deletedAt &&
     isCurrentCommentAuthor(comment.author, permissions)
+
   const editKey = `comment:${comment.id}:edit`
   const deleteKey = `comment:${comment.id}:delete`
+
   const pending = useResumeCommentStore((state) =>
     Boolean(state.pendingEntities[editKey] || state.pendingEntities[deleteKey]),
   )
+
   const error = useResumeCommentStore(
     (state) => state.mutationErrors[editKey] ?? state.mutationErrors[deleteKey],
   )
+
   const image = comment.author.kind === 'user' ? comment.author.avatarUrl : null
   const visibleChildren = depth < 2 ? node.children : []
   const hiddenReplyCount = depth >= 2 ? countDescendants(node) : 0
+
   const hasVisibleContinuation =
     visibleChildren.length > 0 || hiddenReplyCount > 0
 
@@ -238,7 +258,9 @@ function CommentNode({
                     comment.id,
                     value,
                   )
+
                   if (response) setEditing(false)
+
                   return Boolean(response)
                 }}
               />
@@ -440,6 +462,7 @@ export function CommentTree({
   useEffect(() => {
     setDetailPath((current) => {
       const next = current.filter((id) => tree.nodes.has(id))
+
       return next.length === current.length ? current : next
     })
   }, [tree.nodes])

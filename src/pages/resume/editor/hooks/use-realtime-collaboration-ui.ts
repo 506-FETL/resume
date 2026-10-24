@@ -49,9 +49,11 @@ export function useRealtimeCollaborationUI({
   throttleMs = 100,
 }: UseRealtimeCollaborationUIOptions): UseRealtimeCollaborationUIResult {
   const [connectionId] = useState(createRealtimeUserId)
+
   const [remoteUsersById, setRemoteUsersById] = useState<
     Record<number, RemoteUserUIState>
   >({})
+
   const channelRef = useRef<RealtimeChannel | null>(null)
   const drawerOpenRef = useRef(drawerOpen)
   const activeTabIdRef = useRef(activeTabId)
@@ -122,10 +124,12 @@ export function useRealtimeCollaborationUI({
           channelRef.current = null
           setRemoteUsersById({})
         }
+
         return
       }
 
       channelRef.current = channel
+
       await trackCollaborationUIChannelPresence(channel, {
         userId: connectionId,
         userName,
@@ -139,9 +143,11 @@ export function useRealtimeCollaborationUI({
 
     return () => {
       channel.unsubscribe()
+
       if (channelRef.current === channel) {
         channelRef.current = null
       }
+
       setRemoteUsersById({})
     }
   }, [roomName, connectionId, userName, color, broadcastState])

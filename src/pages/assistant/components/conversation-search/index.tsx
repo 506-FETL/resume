@@ -21,6 +21,7 @@ import ConversationSearchResult from './search-result'
 export default function ConversationSearch() {
   const { searchOpen, setSearchOpen, conversations } = useAssistantStore()
   const { openConversation } = useAssistantNavigation()
+
   const {
     query,
     setQuery,
@@ -32,6 +33,7 @@ export default function ConversationSearch() {
     retry,
     reset,
   } = useConversationSearch(searchOpen)
+
   const normalizedQuery = query.trim()
   const showRecent = normalizedQuery.length < CONVERSATION_SEARCH_MIN_LENGTH
 
@@ -39,6 +41,7 @@ export default function ConversationSearch() {
     if (searchOpen) return
 
     const timer = window.setTimeout(reset, 200)
+
     return () => window.clearTimeout(timer)
   }, [reset, searchOpen])
 

@@ -8,5 +8,6 @@ let cached: string | null = null
  */
 export function getResumeSchemaDoc(): string {
   if (cached == null) cached = buildResumeSchemaDoc()
+
   return cached
 }

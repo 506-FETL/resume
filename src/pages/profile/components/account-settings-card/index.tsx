@@ -28,6 +28,7 @@ export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
 
         if (!user) {
           toast.error('无法获取用户信息')
+
           return
         }
 

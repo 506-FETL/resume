@@ -15,6 +15,7 @@ export function getErrorMessage(
 
   if (typeof error === 'object' && 'message' in error) {
     const msg = (error as { message?: unknown }).message
+
     if (typeof msg === 'string' && msg.length > 0) return msg
   }
 

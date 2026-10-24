@@ -39,6 +39,7 @@ export function ShapeView({
           opacity: shape.opacity,
           vectorEffect: 'non-scaling-stroke' as const,
         }
+
         if (shape.kind === 'path')
           return <path key={index} d={shape.d} {...paint} />
         if (shape.kind === 'circle')
@@ -51,6 +52,7 @@ export function ShapeView({
               {...paint}
             />
           )
+
         return (
           <rect
             key={index}
@@ -70,6 +72,7 @@ export function ShapeView({
 /** SVG 是打印正文图形；绝对定位确保开关背景图形不改变正文几何。 */
 export function TemplatePaint({ style }: { style: CSSProperties }) {
   if (!style.backgroundColor) return null
+
   return (
     <svg
       aria-hidden='true'

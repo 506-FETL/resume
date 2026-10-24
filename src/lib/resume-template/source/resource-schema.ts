@@ -9,11 +9,13 @@ import { CATALOG_PAGE_SIZE } from './types'
 export const exampleRefSchema = z
   .object({ exampleId: templateIdSchema, version: z.number().int().positive() })
   .strict()
+
 export const catalogQuerySchema = z.object({
   offset: z.number().int().min(0).max(100000).default(0),
   style: z.string().min(1).max(60).nullable().optional(),
   layout: z.string().min(1).max(60).nullable().optional(),
 })
+
 export const assetRefSchema = z
   .object({
     hash: z.string().regex(/^[a-f0-9]{64}$/),
@@ -23,6 +25,7 @@ export const assetRefSchema = z
     height: z.number().int().positive().max(4096),
   })
   .strict()
+
 export const previewSchema = z
   .object({
     templateId: templateIdSchema,
@@ -39,6 +42,7 @@ export const previewSchema = z
     asset: assetRefSchema,
   })
   .strict()
+
 export const catalogItemSchema = z
   .object({
     schemaVersion: z.literal(3),
@@ -112,18 +116,21 @@ export const catalogItemSchema = z
     (item) => item.previews.length === item.examples.length,
     '每个候选示例必须恰有一个目录预览',
   )
+
 export const catalogPageSchema = z
   .object({
     items: z.array(catalogItemSchema).max(CATALOG_PAGE_SIZE),
     nextOffset: z.number().int().nonnegative().nullable(),
   })
   .strict()
+
 export const catalogFacetsSchema = z
   .object({
     styles: z.array(z.string().max(60)).max(500),
     layouts: z.array(z.string().max(60)).max(500),
   })
   .strict()
+
 export const exampleSchema = z
   .object({
     exampleId: templateIdSchema,
@@ -141,6 +148,7 @@ export const exampleSchema = z
       .strict(),
   })
   .strict()
+
 export const resourceEnvelopeSchema = z
   .object({
     content: z.string().max(524288),
@@ -151,17 +159,23 @@ export const resourceEnvelopeSchema = z
 export async function decodeResource(input: unknown): Promise<unknown> {
   const { content, content_hash: expected } =
     resourceEnvelopeSchema.parse(input)
+
   const bytes = new TextEncoder().encode(content)
+
   if (bytes.byteLength > 524288)
     throw new TemplateResolutionError('RESOURCE_LIMIT', '模板资源超过字节预算')
+
   const digest = await crypto.subtle.digest('SHA-256', bytes)
+
   const actual = Array.from(new Uint8Array(digest), (byte) =>
     byte.toString(16).padStart(2, '0'),
   ).join('')
+
   if (actual !== expected)
     throw new TemplateResolutionError(
       'INVALID_DEFINITION',
       '模板资源完整性校验失败，请重试',
     )
+
   return JSON.parse(content)
 }

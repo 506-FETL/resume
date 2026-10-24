@@ -79,8 +79,8 @@ function MainToolbarContent({
       <Spacer />
 
       <ToolbarGroup>
-        <UndoRedoButton action="undo" />
-        <UndoRedoButton action="redo" />
+        <UndoRedoButton action='undo' />
+        <UndoRedoButton action='redo' />
       </ToolbarGroup>
 
       <ToolbarSeparator />
@@ -98,47 +98,44 @@ function MainToolbarContent({
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <MarkButton type="bold" />
-        <MarkButton type="italic" />
-        <MarkButton type="strike" />
-        <MarkButton type="code" />
-        <MarkButton type="underline" />
-        {!isMobile
-          ? (
-              <ColorHighlightPopover />
-            )
-          : (
-              <ColorHighlightPopoverButton onClick={onHighlighterClick} />
-            )}
+        <MarkButton type='bold' />
+        <MarkButton type='italic' />
+        <MarkButton type='strike' />
+        <MarkButton type='code' />
+        <MarkButton type='underline' />
+        {!isMobile ? (
+          <ColorHighlightPopover />
+        ) : (
+          <ColorHighlightPopoverButton onClick={onHighlighterClick} />
+        )}
         {!isMobile ? <LinkPopover /> : <LinkButton onClick={onLinkClick} />}
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <MarkButton type="superscript" />
-        <MarkButton type="subscript" />
+        <MarkButton type='superscript' />
+        <MarkButton type='subscript' />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <TextAlignButton align="left" />
-        <TextAlignButton align="center" />
-        <TextAlignButton align="right" />
-        <TextAlignButton align="justify" />
+        <TextAlignButton align='left' />
+        <TextAlignButton align='center' />
+        <TextAlignButton align='right' />
+        <TextAlignButton align='justify' />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <ImageUploadButton text="Add" />
+        <ImageUploadButton text='Add' />
       </ToolbarGroup>
 
       <Spacer />
 
       {isMobile && <ToolbarSeparator />}
-
     </>
   )
 }
@@ -153,32 +150,26 @@ function MobileToolbarContent({
   return (
     <>
       <ToolbarGroup>
-        <Button data-style="ghost" onClick={onBack}>
-          <ArrowLeftIcon className="tiptap-button-icon" />
-          {type === 'highlighter'
-            ? (
-                <HighlighterIcon className="tiptap-button-icon" />
-              )
-            : (
-                <LinkIcon className="tiptap-button-icon" />
-              )}
+        <Button data-style='ghost' onClick={onBack}>
+          <ArrowLeftIcon className='tiptap-button-icon' />
+          {type === 'highlighter' ? (
+            <HighlighterIcon className='tiptap-button-icon' />
+          ) : (
+            <LinkIcon className='tiptap-button-icon' />
+          )}
         </Button>
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
-      {type === 'highlighter'
-        ? (
-            <ColorHighlightPopoverContent />
-          )
-        : (
-            <LinkContent />
-          )}
+      {type === 'highlighter' ? (
+        <ColorHighlightPopoverContent />
+      ) : (
+        <LinkContent />
+      )}
     </>
   )
 }
-
-
 
 interface SimpleEditorProps {
   content?: string
@@ -194,36 +185,42 @@ export function SimpleEditor({
   collab,
 }: SimpleEditorProps) {
   const isMobile = useIsMobile()
+
   const [mobileView, setMobileView] = React.useState<
     'main' | 'highlighter' | 'link'
   >('main')
+
   const toolbarRef = React.useRef<HTMLDivElement>(null)
   const isCollab = Boolean(collab)
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    shouldRerenderOnTransaction: false,
-    editorProps: {
-      attributes: {
-        'autocomplete': 'off',
-        'autocorrect': 'off',
-        'autocapitalize': 'off',
-        'aria-label': 'Main content area, start typing to enter text.',
-        'class': 'simple-editor',
+  const editor = useEditor(
+    {
+      immediatelyRender: false,
+      shouldRerenderOnTransaction: false,
+      editorProps: {
+        attributes: {
+          autocomplete: 'off',
+          autocorrect: 'off',
+          autocapitalize: 'off',
+          'aria-label': 'Main content area, start typing to enter text.',
+          class: 'simple-editor',
+        },
       },
+      extensions: buildEditorExtensions({
+        collab,
+        onImageError: (message) => toast.error(`上传图片失败: ${message}`),
+      }),
+      // 协作模式下 Yjs 是内容真源，不能传初始 content（否则每个 peer 都注入导致重复）
+      ...(isCollab ? {} : { content }),
+      // 模式切换（standalone <-> collaborative）或 fragment 变化时重建编辑器实例，
+      // 因 useEditor 仅在创建时读取 extensions
     },
-    extensions: buildEditorExtensions({
-      collab,
-      onImageError: message => toast.error(`上传图片失败: ${message}`),
-    }),
-    // 协作模式下 Yjs 是内容真源，不能传初始 content（否则每个 peer 都注入导致重复）
-    ...(isCollab ? {} : { content }),
-    // 模式切换（standalone <-> collaborative）或 fragment 变化时重建编辑器实例，
-    // 因 useEditor 仅在创建时读取 extensions
-  }, [isCollab, collab?.fragment])
+    [isCollab, collab?.fragment],
+  )
 
   // 使用 ref 存储 onChange 回调，避免 useEffect 依赖变化导致重复注册
   const onChangeRef = React.useRef(onChange)
+
   onChangeRef.current = onChange
 
   // 跟踪是否由外部 setContent 触发的更新，避免循环
@@ -232,15 +229,20 @@ export function SimpleEditor({
   // 协作模式：把 onUpdate 产出的 HTML 去抖镜像给父组件（落 Automerge 供 preview/PDF/历史）。
   // 卸载时 flush，避免丢失最后 <300ms 的编辑。
   const mirrorRef = React.useRef<DebouncedMirror<Editor> | null>(null)
+
   React.useEffect(() => {
     if (!isCollab) {
       mirrorRef.current = null
+
       return
     }
+
     const mirror = createDebouncedMirror<Editor>((ed) => {
       onChangeRef.current(ed)
     }, 300)
+
     mirrorRef.current = mirror
+
     return () => {
       mirror.flush()
       mirrorRef.current = null
@@ -259,8 +261,7 @@ export function SimpleEditor({
       // 协作模式：去抖镜像；standalone：即时回调
       if (mirrorRef.current) {
         mirrorRef.current.run(editor)
-      }
-      else {
+      } else {
         onChangeRef.current(editor)
       }
     }
@@ -274,17 +275,20 @@ export function SimpleEditor({
 
   // 处理外部 content 变化（仅 standalone；协作模式 Yjs 是真源，忽略 content prop）
   const prevContentRef = React.useRef(content)
+
   React.useEffect(() => {
     if (!editor || isCollab) return
 
     // 只有当外部 content 真正变化时才设置
     // 比较 HTML 内容而不是引用
     const currentHtml = editor.getHTML()
+
     if (content !== prevContentRef.current && content !== currentHtml) {
       isSettingContent.current = true
       editor.commands.setContent(content)
       isSettingContent.current = false
     }
+
     prevContentRef.current = content
   }, [content, editor, isCollab])
 
@@ -301,10 +305,12 @@ export function SimpleEditor({
   const collabUserName = collab?.user.name
   const collabUserColor = collab?.user.color
   const collabUserId = collab?.user.id
+
   React.useEffect(() => {
     if (!collabAwareness || collabUserName == null) {
       return
     }
+
     collabAwareness.setLocalStateField('user', {
       name: collabUserName,
       color: collabUserColor,
@@ -315,29 +321,27 @@ export function SimpleEditor({
   const editorContextValue = React.useMemo(() => ({ editor }), [editor])
 
   return (
-    <div className="simple-editor-wrapper">
+    <div className='simple-editor-wrapper'>
       <EditorContext value={editorContextValue}>
         <Toolbar ref={toolbarRef}>
-          {mobileView === 'main'
-            ? (
-                <MainToolbarContent
-                  onHighlighterClick={() => setMobileView('highlighter')}
-                  onLinkClick={() => setMobileView('link')}
-                  isMobile={isMobile}
-                />
-              )
-            : (
-                <MobileToolbarContent
-                  type={mobileView === 'highlighter' ? 'highlighter' : 'link'}
-                  onBack={() => setMobileView('main')}
-                />
-              )}
+          {mobileView === 'main' ? (
+            <MainToolbarContent
+              onHighlighterClick={() => setMobileView('highlighter')}
+              onLinkClick={() => setMobileView('link')}
+              isMobile={isMobile}
+            />
+          ) : (
+            <MobileToolbarContent
+              type={mobileView === 'highlighter' ? 'highlighter' : 'link'}
+              onBack={() => setMobileView('main')}
+            />
+          )}
         </Toolbar>
 
         <EditorContent
           editor={editor}
-          role="presentation"
-          className="simple-editor-content"
+          role='presentation'
+          className='simple-editor-content'
         />
         {!isMobile && editor && fieldContext && (
           <AiRewriteBubble editor={editor} fieldContext={fieldContext} />

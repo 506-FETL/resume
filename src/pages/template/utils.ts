@@ -11,11 +11,14 @@ export function catalogTemplateRef(item: TemplateCatalogItem) {
 
 export function templateScrollRoot(element: HTMLElement): HTMLElement | null {
   let parent = element.parentElement
+
   while (parent) {
     if (/auto|scroll|overlay/.test(getComputedStyle(parent).overflowY))
       return parent
+
     parent = parent.parentElement
   }
+
   return null
 }
 
@@ -26,6 +29,7 @@ export async function prefetchTemplatePreview(
 ) {
   const resources = useResumeTemplateStore.getState()
   const ref = catalogTemplateRef(item)
+
   await Promise.all([
     resources.loadDefinition(ref),
     resources.loadExample(example),

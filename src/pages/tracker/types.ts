@@ -8,14 +8,18 @@ export type ApplicationStatus =
   | 'interview'
   | 'offer'
   | 'rejected'
+
 export type StageStatus = '待处理' | '进行中' | '已完成' | '已拒绝'
+
 export type ViewMode = 'list' | 'board'
+
 export type TrackerSortBy =
   | 'updated'
   | 'created'
   | 'days'
   | 'company'
   | 'status'
+
 export type TrackerSortDir = 'asc' | 'desc'
 
 export interface InterviewSubStage {

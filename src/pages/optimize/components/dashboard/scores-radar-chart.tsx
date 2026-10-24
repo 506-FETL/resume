@@ -32,6 +32,7 @@ export default function ScoresRadarChart({
   loading = false,
 }: ScoresRadarChartProps) {
   const reduceMotion = useReducedMotion()
+
   const chartData = useMemo(() => {
     if (!scores) return []
 

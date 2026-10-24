@@ -49,6 +49,7 @@ import {
 } from '../shared/supabase-auth.ts'
 
 type AdminClient = ReturnType<typeof createClient>
+
 let cachedAdminClient: AdminClient | null = null
 let cachedAdminClientKey: string | null = null
 
@@ -56,21 +57,27 @@ function createAdminClient(url: string, serviceRoleKey: string) {
   // 复用同一 isolate 内的 admin client：GoTrueClient 的 JWKS 校验缓存挂在实例上（TTL 10 分钟）。
   // 若每个请求都新建 client，该缓存永不命中，每个已登录请求都会额外拉一次 JWKS（多花数百毫秒）。
   const cacheKey = `${url}\u0000${serviceRoleKey}`
+
   if (cachedAdminClient && cachedAdminClientKey === cacheKey)
     return cachedAdminClient
+
   cachedAdminClient = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
   cachedAdminClientKey = cacheKey
+
   return cachedAdminClient
 }
 
 type ActorKind = 'user' | 'anonymous'
+
 type AccessKind = 'owner' | 'collaborator' | 'share'
+
 type SyncRelocation = ResumeCommentRelocationResult & { threadId: string }
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
+
 const COLLABORATION_SESSION_PATTERN = /^[\w-]{16,64}$/u
 
 let nextRequestIsColdStart = true
@@ -176,9 +183,11 @@ function projectCommentEventsForAccess(
 ) {
   return events.flatMap((value) => {
     if (!isRecord(value)) return []
+
     const sanitizedPayload = isRecord(value.sanitized_payload)
       ? value.sanitized_payload
       : {}
+
     return [
       {
         event_seq: value.event_seq,
@@ -360,6 +369,7 @@ async function hashNetworkKey(value: string, pepper: string) {
     'SHA-256',
     new TextEncoder().encode(`${pepper}:network:${value}`),
   )
+
   return Array.from(new Uint8Array(digest), (byte) =>
     byte.toString(16).padStart(2, '0'),
   ).join('')
@@ -376,17 +386,21 @@ async function getScope(
     )
     .eq('id', scopeId)
     .maybeSingle()
+
   if (error || !data) {
     throw new CommentApiError('not_found', '评论空间不存在', 404)
   }
+
   return data as ScopeRow
 }
 
 function readCollaborationSessionId(body: Record<string, unknown>) {
   const sessionId = readRequiredString(body, 'sessionId', 64)
+
   if (!/^[\w-]{16,64}$/u.test(sessionId)) {
     throw new CommentApiError('not_found', '协作会话标识无效', 400)
   }
+
   return sessionId
 }
 
@@ -409,7 +423,9 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
 function isDateOnly(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value))
     return false
+
   const parsed = new Date(`${value}T00:00:00Z`)
+
   return (
     !Number.isNaN(parsed.getTime()) &&
     parsed.toISOString().slice(0, 10) === value
@@ -434,6 +450,7 @@ function validateCollaboratorTokenClaims(
   role: 'editor' | 'viewer'
 } {
   const protocolVersion = isRecord(value) && value.protocolVersion === 2 ? 2 : 1
+
   if (
     !isRecord(value) ||
     value.kind !== 'collaborator' ||
@@ -453,6 +470,7 @@ function validateCollaboratorTokenClaims(
   ) {
     return invalidBootstrapCredential('协作评论凭证无效')
   }
+
   return {
     protocolVersion,
     scopeId: value.scopeId,
@@ -479,6 +497,7 @@ function validateShareTokenClaims(value: unknown) {
   ) {
     return invalidBootstrapCredential()
   }
+
   return {
     shareId: value.shareId,
     releaseId: value.releaseId,
@@ -512,6 +531,7 @@ async function assertCollaboratorBootstrapLease(
       .eq('protocol_version', lease.protocolVersion)
       .maybeSingle(),
   ])
+
   const session = sessionResult.data as Pick<
     CollaborationSessionRow,
     | 'session_id'
@@ -520,6 +540,7 @@ async function assertCollaboratorBootstrapLease(
     | 'expires_at'
     | 'revoked_at'
   > | null
+
   const member = memberResult.data as Pick<
     CollaborationMemberRow,
     | 'session_id'
@@ -560,6 +581,7 @@ async function buildBootstrapInput({
   anonymousPepper: string
 }): Promise<BootstrapInputContext> {
   const accessKind = readRequiredString(body, 'accessKind', 32)
+
   if (accessKind === 'owner') {
     if (!userId) return invalidBootstrapCredential('请先登录')
     if (
@@ -568,25 +590,32 @@ async function buildBootstrapInput({
     ) {
       throw new CommentApiError('not_found', '评论访问参数无效', 400)
     }
+
     const locatorKeys = ['scopeId', 'resumeId', 'versionId'].filter(
       (key) => body[key] !== undefined,
     )
+
     if (locatorKeys.length !== 1) {
       throw new CommentApiError('not_found', '评论访问参数无效', 400)
     }
+
     let scopeId: string | null = null
     let resumeId: string | null = null
     let versionId: number | null = null
+
     if (locatorKeys[0] === 'scopeId') {
       scopeId = readUuid(body, 'scopeId')
     } else if (locatorKeys[0] === 'resumeId') {
       resumeId = readUuid(body, 'resumeId')
     } else {
       const requestedVersionId = readNonNegativeInteger(body, 'versionId')
+
       if (!isPositiveSafeInteger(requestedVersionId))
         throw new CommentApiError('not_found', '简历版本不存在', 404)
+
       versionId = requestedVersionId
     }
+
     return {
       shareTokenSecret: null,
       collaboratorLease: null,
@@ -610,12 +639,15 @@ async function buildBootstrapInput({
 
   if (accessKind === 'collaborator') {
     if (!userId) return invalidBootstrapCredential('请先登录')
+
     const verifiedToken = await verifyCommentToken(
       readRequiredString(body, 'accessToken', 4_096),
       'collaborator',
       collaboratorSecret,
     )
+
     const token = validateCollaboratorTokenClaims(verifiedToken, userId)
+
     return {
       shareTokenSecret: null,
       collaboratorLease: {
@@ -645,28 +677,35 @@ async function buildBootstrapInput({
 
   if (accessKind !== 'share')
     return invalidBootstrapCredential('评论访问方式无效')
+
   const verifiedToken = await verifyCommentToken(
     readRequiredString(body, 'accessToken', 4_096),
     'share',
     tokenSecret,
   )
+
   const token = validateShareTokenClaims(verifiedToken)
   let anonymousId: string | null = null
   let anonymousSecretHash: string | null = null
+
   if (isRecord(body.anonymous)) {
     try {
       anonymousId = readUuid(body.anonymous, 'id')
+
       const anonymousSecret = readRequiredString(body.anonymous, 'secret', 128)
+
       anonymousSecretHash = await hashAnonymousSecret(
         anonymousSecret,
         anonymousPepper,
       )
     } catch {
       if (!userId) return invalidBootstrapCredential('匿名评论凭证无效')
+
       anonymousId = null
       anonymousSecretHash = null
     }
   }
+
   return {
     shareTokenSecret: tokenSecret,
     collaboratorLease: null,
@@ -699,6 +738,7 @@ function readProtocolNullableUuid(
   if (value[field] === null) return null
   if (!isUuidValue(value[field]))
     return bootstrapProtocolError('invalid_rpc_protocol')
+
   return value[field]
 }
 
@@ -709,6 +749,7 @@ function readProtocolNullableString(
   if (value[field] === null) return null
   if (typeof value[field] !== 'string')
     return bootstrapProtocolError('invalid_rpc_protocol')
+
   return value[field]
 }
 
@@ -717,15 +758,18 @@ function validateBootstrapAccess(
   input: BootstrapRpcInput,
 ): BootstrapAccessEnvelope {
   if (!isRecord(value)) return bootstrapProtocolError('invalid_rpc_protocol')
+
   const userId = readProtocolNullableUuid(value, 'userId')
   const actorId = readProtocolNullableUuid(value, 'actorId')
   const legacyAnonymousId = readProtocolNullableUuid(value, 'legacyAnonymousId')
   const shareId = readProtocolNullableUuid(value, 'shareId')
   const releaseId = readProtocolNullableUuid(value, 'releaseId')
+
   const sharePasswordHash = readProtocolNullableString(
     value,
     'sharePasswordHash',
   )
+
   if (
     value.kind !== input.p_access_kind ||
     userId !== input.p_user_id ||
@@ -839,9 +883,11 @@ function validateBootstrapPayload(
   eventSeq: number,
 ): BootstrapPayload {
   if (!isRecord(value)) return bootstrapProtocolError('invalid_rpc_protocol')
+
   const scopeValue = value.scope
   const versionValue = value.version
   const countsValue = value.counts
+
   if (
     !isRecord(scopeValue) ||
     !isRecord(versionValue) ||
@@ -854,7 +900,9 @@ function validateBootstrapPayload(
   ) {
     return bootstrapProtocolError('invalid_rpc_protocol')
   }
+
   const anchorDocument = scopeValue.anchor_document
+
   if (
     scopeValue.kind !== 'version' ||
     scopeValue.id !== access.scopeId ||
@@ -892,7 +940,9 @@ function validateBootstrapPayload(
   ) {
     return bootstrapProtocolError('invalid_rpc_protocol')
   }
+
   const accessibleScope = value.accessibleScopes[0]
+
   if (
     !isRecord(accessibleScope) ||
     accessibleScope.id !== access.scopeId ||
@@ -903,7 +953,9 @@ function validateBootstrapPayload(
   ) {
     return bootstrapProtocolError('invalid_rpc_protocol')
   }
+
   const threadIds = new Set<string>()
+
   const threadReadStates = value.threadReadStates.map((item) => {
     if (
       !isRecord(item) ||
@@ -918,7 +970,9 @@ function validateBootstrapPayload(
     ) {
       return bootstrapProtocolError('invalid_rpc_protocol')
     }
+
     threadIds.add(item.threadId)
+
     return {
       threadId: item.threadId,
       latestCommentEventSeq: item.latestCommentEventSeq,
@@ -926,24 +980,30 @@ function validateBootstrapPayload(
       unread: item.unread,
     }
   })
+
   const payloadThreadIds = new Set(
     value.threads.flatMap((thread) => {
       if (!isRecord(thread) || !isUuidValue(thread.id))
         return bootstrapProtocolError('invalid_rpc_protocol')
+
       return [thread.id]
     }),
   )
+
   if (
     payloadThreadIds.size !== threadIds.size ||
     [...payloadThreadIds].some((threadId) => !threadIds.has(threadId))
   ) {
     return bootstrapProtocolError('invalid_rpc_protocol')
   }
+
   const nodes = anchorDocument.nodes.map((node) => {
     if (!isRecord(node) || typeof node.nodeKey !== 'string')
       return bootstrapProtocolError('invalid_rpc_protocol')
+
     return { nodeKey: node.nodeKey }
   })
+
   const scope: BootstrapScope = {
     id: scopeValue.id,
     kind: 'version',
@@ -959,18 +1019,22 @@ function validateBootstrapPayload(
     next_event_seq: scopeValue.next_event_seq,
     archived_at: null,
   }
+
   const versionName =
     typeof versionValue.version_name === 'string'
       ? versionValue.version_name
       : null
+
   const milestoneName =
     typeof versionValue.milestone_name === 'string'
       ? versionValue.milestone_name
       : null
+
   const contentHash =
     typeof versionValue.content_hash === 'string'
       ? versionValue.content_hash
       : null
+
   return {
     scope,
     version: {
@@ -1038,6 +1102,7 @@ function validateBootstrapRpcResult(
     ) {
       return bootstrapProtocolError('invalid_rpc_protocol')
     }
+
     return {
       protocolVersion: 1,
       status: 'scope_missing',
@@ -1060,7 +1125,9 @@ function validateBootstrapRpcResult(
   }
   if (!isNonNegativeSafeInteger(value.eventSeq))
     return bootstrapProtocolError('invalid_rpc_protocol')
+
   const access = validateBootstrapAccess(value.access, input)
+
   return {
     protocolVersion: 1,
     status: 'ok',
@@ -1081,6 +1148,7 @@ function mapBootstrapRpcError(error: unknown): CommentApiError {
     typeof error.message !== 'string'
   )
     return bootstrapProtocolError('unexpected_rpc_error')
+
   const mapping: Record<string, CommentApiError> = {
     '42501:unauthorized': new CommentApiError(
       'unauthorized',
@@ -1104,6 +1172,7 @@ function mapBootstrapRpcError(error: unknown): CommentApiError {
       409,
     ),
   }
+
   return (
     mapping[`${error.code}:${error.message}`] ??
     bootstrapProtocolError('unexpected_rpc_error')
@@ -1122,6 +1191,7 @@ function mapBootstrapRepairError(error: unknown): CommentApiError {
       409,
     )
   }
+
   return bootstrapProtocolError('scope_repair_failed')
 }
 
@@ -1139,7 +1209,9 @@ async function bootstrapResumeComments(
       p_member_lease_id: collaboratorLease?.memberLeaseId ?? null,
     },
   )
+
   if (error) throw mapBootstrapRpcError(error)
+
   return validateBootstrapRpcResult(data, input)
 }
 
@@ -1155,10 +1227,12 @@ async function assertCurrentSharePasswordGeneration({
   if (input.p_access_kind !== 'share') return
   if (!tokenSecret || input.p_password_generation === null)
     return bootstrapProtocolError('invalid_share_password_context')
+
   const currentGeneration = await derivePasswordGeneration(
     result.access.sharePasswordHash,
     tokenSecret,
   )
+
   if (!timingSafeStringEqual(currentGeneration, input.p_password_generation)) {
     throw new CommentApiError(
       'share_unavailable',
@@ -1182,6 +1256,7 @@ async function resolveCommentAccessRpc(
       collaboratorLease?.protocolVersion ?? null,
     p_member_lease_id: collaboratorLease?.memberLeaseId ?? null,
   })
+
   if (error) throw mapBootstrapRpcError(error)
   if (
     !isRecord(data) ||
@@ -1194,6 +1269,7 @@ async function resolveCommentAccessRpc(
 
   const envelope = validateBootstrapAccess(data.access, input)
   const scopeValue = data.scope
+
   if (
     !isUuidValue(scopeValue.id) ||
     scopeValue.id !== envelope.scopeId ||
@@ -1212,6 +1288,7 @@ async function resolveCommentAccessRpc(
   }
 
   const scope = scopeValue as unknown as ScopeRow
+
   const share =
     envelope.kind === 'share'
       ? ({
@@ -1258,10 +1335,12 @@ async function assertResolvedSharePasswordGeneration({
   if (input.p_access_kind !== 'share') return
   if (!tokenSecret || input.p_password_generation === null)
     return bootstrapProtocolError('invalid_share_password_context')
+
   const currentGeneration = await derivePasswordGeneration(
     sharePasswordHash,
     tokenSecret,
   )
+
   if (!timingSafeStringEqual(currentGeneration, input.p_password_generation)) {
     throw new CommentApiError(
       'share_unavailable',
@@ -1280,6 +1359,7 @@ async function repairBootstrapScope(
       repair.snapshot,
       repair.projectionReferenceDate,
     )
+
     const { data, error } = await admin.rpc(
       'ensure_resume_version_comment_scope',
       {
@@ -1291,9 +1371,11 @@ async function repairBootstrapScope(
         p_expected_document_revision: repair.documentRevision,
       },
     )
+
     if (error) throw mapBootstrapRepairError(error)
     if (!isUuidValue(data))
       return bootstrapProtocolError('invalid_scope_repair_result')
+
     return data
   } catch (error) {
     if (
@@ -1301,6 +1383,7 @@ async function repairBootstrapScope(
       error instanceof CommentApiError
     )
       throw error
+
     return bootstrapProtocolError('scope_repair_failed')
   }
 }
@@ -1320,6 +1403,7 @@ async function ensureVersionScopeForOwner(
     .eq('owner_user_id', ownerUserId)
     .is('archived_at', null)
     .maybeSingle()
+
   if (existingError) throw existingError
   if (existing?.id) return existing as ScopeRow
 
@@ -1331,14 +1415,18 @@ async function ensureVersionScopeForOwner(
     .eq('id', versionId)
     .eq('user_id', ownerUserId)
     .maybeSingle()
+
   if (error || !version) {
     throw new CommentApiError('not_found', '简历版本不存在', 404)
   }
+
   const projectionReferenceDate = String(version.projection_reference_date)
+
   const projected = buildCommentAnchorDocument(
     version.snapshot,
     projectionReferenceDate,
   )
+
   const { data, error: ensureError } = await admin.rpc(
     'ensure_resume_version_comment_scope',
     {
@@ -1350,8 +1438,10 @@ async function ensureVersionScopeForOwner(
       p_expected_document_revision: version.document_revision,
     },
   )
+
   if (ensureError || typeof data !== 'string')
     throw ensureError ?? new Error('Unable to ensure version comment scope')
+
   return getScope(admin, data)
 }
 
@@ -1366,9 +1456,12 @@ async function resolveCurrentVersionId(
     .eq('resume_id', resumeId)
     .eq('user_id', ownerUserId)
     .maybeSingle()
+
   const versionId = Number(data?.current_version_id)
+
   if (error || !Number.isSafeInteger(versionId) || versionId <= 0)
     throw new CommentApiError('not_found', '简历当前版本不存在', 404)
+
   return versionId
 }
 
@@ -1385,7 +1478,9 @@ async function loadPersistedResumeSnapshot(
     .eq('resume_id', resumeId)
     .eq('user_id', ownerUserId)
     .maybeSingle()
+
   if (error || !data) throw new CommentApiError('not_found', '简历不存在', 404)
+
   return data
 }
 
@@ -1395,6 +1490,7 @@ async function getActiveCollaborationSession(
   resumeId: string,
 ) {
   const session = await getCollaborationSession(admin, sessionId, resumeId)
+
   if (
     !session ||
     session.revoked_at ||
@@ -1402,6 +1498,7 @@ async function getActiveCollaborationSession(
   ) {
     throw new CommentApiError('unauthorized', '协作会话已结束或不存在', 401)
   }
+
   return session
 }
 
@@ -1418,7 +1515,9 @@ async function getCollaborationSession(
     .eq('session_id', sessionId)
     .eq('resume_id', resumeId)
     .maybeSingle()
+
   if (error) throw error
+
   return data as CollaborationSessionRow | null
 }
 
@@ -1438,6 +1537,7 @@ async function loadCollaborationDocumentBootstrap(
   }
 
   const row = data as CollaborationDocumentRow | null
+
   if (
     !row ||
     typeof row.document_data !== 'string' ||
@@ -1474,14 +1574,17 @@ async function issueCollaboratorToken({
   const issuedAt = Math.floor(Date.now() / 1_000)
   const sessionExpiresAt = Math.floor(Date.parse(session.expires_at) / 1_000)
   const memberExpiresAt = Math.floor(Date.parse(member.expires_at) / 1_000)
+
   const expiresAt = Math.min(
     issuedAt + 15 * 60,
     sessionExpiresAt,
     memberExpiresAt,
   )
+
   if (expiresAt <= issuedAt) {
     throw new CommentApiError('unauthorized', '协作会话已失效', 401)
   }
+
   return {
     accessToken: await signCommentToken(
       {
@@ -1521,6 +1624,7 @@ function readCollaborationProtocolVersion(
   if (body.protocolVersion === undefined) return 1
   if (body.protocolVersion === 1 || body.protocolVersion === 2)
     return body.protocolVersion
+
   throw new CommentApiError('not_found', '协作协议版本无效', 400)
 }
 
@@ -1535,6 +1639,7 @@ function readSupportedCollaborationProtocolVersions(
   ) {
     throw new CommentApiError('not_found', '协作协议能力声明无效', 400)
   }
+
   return new Set(body.supportedProtocolVersions as Array<1 | 2>)
 }
 
@@ -1542,12 +1647,15 @@ function allowNewLegacyCollaborationSession() {
   const rawCutoff = Deno.env
     .get('COLLABORATION_LEGACY_REGISTER_CUTOFF_AT')
     ?.trim()
+
   if (!rawCutoff) return true
 
   const cutoffAt = Date.parse(rawCutoff)
+
   if (!Number.isFinite(cutoffAt)) {
     throw new CommentApiError('unexpected', '协作兼容截止时间配置无效', 500)
   }
+
   return Date.now() < cutoffAt
 }
 
@@ -1557,6 +1665,7 @@ function negotiateCollaborationProtocolVersion(
   existing: 1 | 2,
 ) {
   if (requested === existing || supported.has(existing)) return existing
+
   throw new CommentApiError('unauthorized', '协作协议版本不匹配', 401)
 }
 
@@ -1623,9 +1732,12 @@ function throwCollaborationRpcError(error: unknown): never {
         400,
       ),
     }
+
     const mapped = mapping[`${error.code}:${error.message}`]
+
     if (mapped) throw mapped
   }
+
   throw error
 }
 
@@ -1643,6 +1755,7 @@ function readClaimedMember(value: unknown): CollaborationMemberRow {
   ) {
     throw new Error('Invalid collaboration member claim response')
   }
+
   return {
     session_id: value.sessionId,
     user_id: value.userId,
@@ -1674,20 +1787,24 @@ async function handleCollaborationSessionOperation({
   if (!userId) {
     throw new CommentApiError('unauthorized', '请先登录', 401)
   }
+
   const sessionId = readCollaborationSessionId(body)
   const resumeId = readUuid(body, 'resumeId')
   const requestedProtocolVersion = readCollaborationProtocolVersion(body)
+
   const supportedProtocolVersions =
     readSupportedCollaborationProtocolVersions(body)
 
   if (op === 'register_collaboration_session') {
     const versionId = await resolveCurrentVersionId(admin, userId, resumeId)
     const scope = await ensureVersionScopeForOwner(admin, userId, versionId)
+
     const existingSession = await getCollaborationSession(
       admin,
       sessionId,
       resumeId,
     )
+
     const protocolVersion = existingSession
       ? negotiateCollaborationProtocolVersion(
           requestedProtocolVersion,
@@ -1695,11 +1812,14 @@ async function handleCollaborationSessionOperation({
           existingSession.protocol_version,
         )
       : requestedProtocolVersion
+
     const allowNewLegacySession =
       supportedProtocolVersions.size > 0 || allowNewLegacyCollaborationSession()
+
     const requestedExpiresAt = new Date(
       Date.now() + 8 * 60 * 60 * 1_000,
     ).toISOString()
+
     const { data, error } = await admin.rpc(
       'claim_resume_comment_collaboration_session_v2',
       {
@@ -1713,6 +1833,7 @@ async function handleCollaborationSessionOperation({
         p_allow_new_legacy_session: allowNewLegacySession,
       },
     )
+
     if (error) return throwCollaborationRpcError(error)
     if (
       !isRecord(data) ||
@@ -1724,6 +1845,7 @@ async function handleCollaborationSessionOperation({
     ) {
       throw new Error('Invalid collaboration session claim response')
     }
+
     return {
       sessionId,
       resumeId,
@@ -1735,6 +1857,7 @@ async function handleCollaborationSessionOperation({
 
   if (op === 'leave_collaboration_session') {
     const session = await getCollaborationSession(admin, sessionId, resumeId)
+
     if (!session) {
       return {
         sessionId,
@@ -1742,6 +1865,7 @@ async function handleCollaborationSessionOperation({
         protocolVersion: requestedProtocolVersion,
       }
     }
+
     const protocolVersion = negotiateCollaborationProtocolVersion(
       requestedProtocolVersion,
       supportedProtocolVersions,
@@ -1750,6 +1874,7 @@ async function handleCollaborationSessionOperation({
 
     if (session.owner_user_id === userId) {
       const hostLeaseId = readUuid(body, 'hostLeaseId')
+
       const { data, error } = await admin.rpc(
         'revoke_resume_comment_collaboration_session_v2',
         {
@@ -1760,12 +1885,15 @@ async function handleCollaborationSessionOperation({
           p_protocol_version: protocolVersion,
         },
       )
+
       if (error) return throwCollaborationRpcError(error)
+
       return { sessionId, revoked: data === true, protocolVersion }
     }
 
     const memberLeaseId =
       protocolVersion === 2 ? readUuid(body, 'memberLeaseId') : null
+
     const { data, error } = await admin.rpc(
       'release_resume_comment_collaboration_member_v2',
       {
@@ -1776,7 +1904,9 @@ async function handleCollaborationSessionOperation({
         p_protocol_version: protocolVersion,
       },
     )
+
     if (error) return throwCollaborationRpcError(error)
+
     return { sessionId, revoked: data === true, protocolVersion }
   }
 
@@ -1785,6 +1915,7 @@ async function handleCollaborationSessionOperation({
     sessionId,
     resumeId,
   )
+
   if (op === 'join_collaboration_session' && session.owner_user_id === userId) {
     throw new CommentApiError(
       'owner_must_host',
@@ -1792,6 +1923,7 @@ async function handleCollaborationSessionOperation({
       409,
     )
   }
+
   const protocolVersion = negotiateCollaborationProtocolVersion(
     requestedProtocolVersion,
     supportedProtocolVersions,
@@ -1799,9 +1931,11 @@ async function handleCollaborationSessionOperation({
   )
 
   let member: CollaborationMemberRow
+
   if (op === 'join_collaboration_session') {
     const memberLeaseId =
       protocolVersion === 2 ? readUuid(body, 'memberLeaseId') : null
+
     const { data, error } = await admin.rpc(
       'claim_resume_comment_collaboration_member_v2',
       {
@@ -1812,11 +1946,14 @@ async function handleCollaborationSessionOperation({
         p_protocol_version: protocolVersion,
       },
     )
+
     if (error) return throwCollaborationRpcError(error)
+
     member = readClaimedMember(data)
   } else {
     const memberLeaseId =
       protocolVersion === 2 ? readUuid(body, 'memberLeaseId') : null
+
     if (protocolVersion === 2) {
       const { data, error } = await admin.rpc(
         'renew_resume_comment_collaboration_member_v2',
@@ -1828,7 +1965,9 @@ async function handleCollaborationSessionOperation({
           p_protocol_version: protocolVersion,
         },
       )
+
       if (error) return throwCollaborationRpcError(error)
+
       member = readClaimedMember(data)
     } else {
       const { data, error } = await admin
@@ -1843,10 +1982,12 @@ async function handleCollaborationSessionOperation({
           'session_id,user_id,member_lease_id,protocol_version,role,expires_at,revoked_at',
         )
         .maybeSingle()
+
       if (error) throw error
       if (!data) {
         throw new CommentApiError('unauthorized', '协作者评论权限已失效', 401)
       }
+
       member = data as CollaborationMemberRow
     }
   }
@@ -1858,18 +1999,23 @@ async function handleCollaborationSessionOperation({
   ) {
     throw new CommentApiError('unauthorized', '协作者评论权限不存在', 401)
   }
+
   const scope = await getScope(admin, session.scope_id)
+
   if (scope.kind !== 'version' || scope.version_id == null)
     throw new CommentApiError('unauthorized', '协作评论版本无效', 401)
+
   const commentAccess = await issueCollaboratorToken({
     session,
     member,
     versionId: scope.version_id,
     collaboratorSecret,
   })
+
   if (op === 'renew_collaboration_session') {
     return commentAccess
   }
+
   const bootstrap = await loadCollaborationDocumentBootstrap(admin, session)
 
   return { ...commentAccess, bootstrap }
@@ -1889,20 +2035,25 @@ async function resolveAnonymousIdentity({
   required: boolean
 }): Promise<string | null> {
   const anonymous = body.anonymous
+
   if (!isRecord(anonymous)) {
     if (required) {
       throw new CommentApiError('unauthorized', '请先创建匿名评论身份', 401)
     }
+
     return null
   }
+
   const anonymousId = readUuid(anonymous, 'id')
   const secret = readRequiredString(anonymous, 'secret', 128)
   const expectedHash = await hashAnonymousSecret(secret, pepper)
+
   const { data, error } = await admin
     .from('resume_comment_anonymous_identities')
     .select('id,version_id,secret_hash,revoked_at')
     .eq('id', anonymousId)
     .maybeSingle()
+
   if (
     error ||
     !data ||
@@ -1913,12 +2064,15 @@ async function resolveAnonymousIdentity({
     if (required) {
       throw new CommentApiError('unauthorized', '匿名评论凭证无效', 401)
     }
+
     return null
   }
+
   await admin
     .from('resume_comment_anonymous_identities')
     .update({ last_seen_at: new Date().toISOString() })
     .eq('id', anonymousId)
+
   return anonymousId
 }
 
@@ -1945,7 +2099,9 @@ async function resolveAccess({
     if (!userId) {
       throw new CommentApiError('unauthorized', '请先登录', 401)
     }
+
     let scope: ScopeRow
+
     if (typeof body.scopeId === 'string') {
       scope = await getScope(admin, readUuid(body, 'scopeId'))
     } else if (
@@ -1956,35 +2112,45 @@ async function resolveAccess({
         body,
         body.versionId !== undefined ? 'versionId' : 'historyVersionId',
       )
+
       if (versionId <= 0)
         throw new CommentApiError('not_found', '简历版本不存在', 404)
+
       scope = await ensureVersionScopeForOwner(admin, userId, versionId)
     } else if (typeof body.shareReleaseId === 'string') {
       const shareReleaseId = readUuid(body, 'shareReleaseId')
+
       const { data: release, error: releaseError } = await admin
         .from('resume_share_releases')
         .select('id,share_id')
         .eq('id', shareReleaseId)
         .maybeSingle()
+
       if (releaseError || !release) {
         throw new CommentApiError('not_found', '分享反馈不存在', 404)
       }
+
       const { data: share, error: shareError } = await admin
         .from('resume_shares')
         .select('id,user_id,version_id')
         .eq('id', release.share_id)
         .eq('user_id', userId)
         .maybeSingle()
+
       if (shareError || !share) {
         throw new CommentApiError('not_found', '分享反馈不存在', 404)
       }
+
       const versionId = Number(share.version_id)
+
       if (!Number.isSafeInteger(versionId) || versionId <= 0)
         throw new CommentApiError('not_found', '分享版本不存在', 404)
+
       scope = await ensureVersionScopeForOwner(admin, userId, versionId)
     } else {
       const resumeId = readUuid(body, 'resumeId')
       const versionId = await resolveCurrentVersionId(admin, userId, resumeId)
+
       scope = await ensureVersionScopeForOwner(admin, userId, versionId)
     }
     if (
@@ -1994,6 +2160,7 @@ async function resolveAccess({
     ) {
       throw new CommentApiError('not_found', '评论空间不存在', 404)
     }
+
     return {
       kind: 'owner',
       scope,
@@ -2014,12 +2181,15 @@ async function resolveAccess({
     if (!userId) {
       throw new CommentApiError('unauthorized', '请先登录', 401)
     }
+
     const verifiedToken = await verifyCommentToken(
       readRequiredString(body, 'accessToken', 4_096),
       'collaborator',
       collaboratorSecret,
     )
+
     const token = validateCollaboratorTokenClaims(verifiedToken, userId)
+
     let memberQuery = admin
       .from('resume_comment_collaboration_members')
       .select(
@@ -2028,9 +2198,11 @@ async function resolveAccess({
       .eq('session_id', token.sessionId)
       .eq('user_id', userId)
       .eq('protocol_version', token.protocolVersion)
+
     if (token.protocolVersion === 2) {
       memberQuery = memberQuery.eq('member_lease_id', token.memberLeaseId)
     }
+
     const [scope, sessionResult, memberResult] = await Promise.all([
       getScope(admin, token.scopeId),
       admin
@@ -2043,8 +2215,10 @@ async function resolveAccess({
         .maybeSingle(),
       memberQuery.maybeSingle(),
     ])
+
     const session = sessionResult.data as CollaborationSessionRow | null
     const member = memberResult.data as CollaborationMemberRow | null
+
     if (
       sessionResult.error ||
       memberResult.error ||
@@ -2072,6 +2246,7 @@ async function resolveAccess({
     ) {
       throw new CommentApiError('unauthorized', '协作评论凭证无效', 401)
     }
+
     return {
       kind: 'collaborator',
       scope,
@@ -2091,11 +2266,13 @@ async function resolveAccess({
   if (accessKind !== 'share') {
     throw new CommentApiError('unauthorized', '评论访问方式无效', 401)
   }
+
   const token = await verifyCommentToken(
     readRequiredString(body, 'accessToken', 4_096),
     'share',
     tokenSecret,
   )
+
   const [scope, shareResult] = await Promise.all([
     getScope(admin, token.scopeId),
     admin
@@ -2106,7 +2283,9 @@ async function resolveAccess({
       .eq('id', token.shareId)
       .maybeSingle(),
   ])
+
   const share = shareResult.data as ShareRow | null
+
   if (
     shareResult.error ||
     !share ||
@@ -2129,10 +2308,12 @@ async function resolveAccess({
       409,
     )
   }
+
   const passwordGeneration = await derivePasswordGeneration(
     share.password_hash,
     tokenSecret,
   )
+
   if (passwordGeneration !== token.passwordGeneration) {
     throw new CommentApiError(
       'share_unavailable',
@@ -2142,6 +2323,7 @@ async function resolveAccess({
   }
 
   let anonymousId: string | null = null
+
   try {
     anonymousId = await resolveAnonymousIdentity({
       admin,
@@ -2155,6 +2337,7 @@ async function resolveAccess({
       throw error
     }
   }
+
   return {
     kind: 'share',
     scope,
@@ -2213,28 +2396,35 @@ async function loadThreads(
     )
     .eq('scope_id', scopeId)
     .is('deleted_at', null)
+
   if (threadIds)
     query =
       threadIds.length > 0
         ? query.in('id', threadIds)
         : query.in('id', ['00000000-0000-0000-0000-000000000000'])
+
   const { data, error } = await query.order('last_activity_at', {
     ascending: false,
   })
+
   if (error) {
     throw error
   }
+
   const threads = data ?? []
+
   const userIds = Array.from(
     new Set(
       threads.flatMap((thread) => {
         const comments = Array.isArray(thread.comments) ? thread.comments : []
+
         return comments.flatMap((comment) =>
           comment.author_user_id ? [comment.author_user_id] : [],
         )
       }),
     ),
   )
+
   const profiles =
     userIds.length > 0
       ? await admin
@@ -2242,9 +2432,11 @@ async function loadThreads(
           .select('id,full_name,avatar_url')
           .in('id', userIds)
       : { data: [], error: null }
+
   if (profiles.error) {
     throw profiles.error
   }
+
   return { threads, profiles: profiles.data ?? [] }
 }
 
@@ -2254,19 +2446,24 @@ async function loadReadState(admin: AdminClient, access: ResolvedAccess) {
   if (!access.actorKind || !access.actorId) {
     return 0
   }
+
   let query = admin
     .from('resume_comment_read_states')
     .select('last_read_event_seq')
     .eq('scope_id', access.scope.id)
     .eq('principal_kind', access.actorKind)
+
   query =
     access.actorKind === 'user'
       ? query.eq('principal_user_id', access.actorId)
       : query.eq('principal_anonymous_id', access.actorId)
+
   const { data, error } = await query.maybeSingle()
+
   if (error) {
     throw error
   }
+
   return Number(data?.last_read_event_seq ?? 0)
 }
 
@@ -2276,7 +2473,9 @@ async function loadThreadCounts(admin: AdminClient, scopeId: string) {
     .select('anchor_status,resolved_at')
     .eq('scope_id', scopeId)
     .is('deleted_at', null)
+
   if (error) throw error
+
   return countThreadRows(data ?? [])
 }
 
@@ -2288,6 +2487,7 @@ function countThreadRows(
       if (thread.anchor_status === 'detached') counts.detached += 1
       else if (thread.resolved_at) counts.resolved += 1
       else counts.unresolved += 1
+
       return counts
     },
     { unresolved: 0, resolved: 0, detached: 0 },
@@ -2311,8 +2511,10 @@ async function loadVersionReference(admin: AdminClient, versionId: number) {
       .eq('version_id', versionId)
       .is('archived_at', null),
   ])
+
   if (versionResult.error) throw versionResult.error
   if (shareCountResult.error) throw shareCountResult.error
+
   return {
     ...versionResult.data,
     shared_link_count: shareCountResult.count ?? 0,
@@ -2338,18 +2540,22 @@ async function issueTopics({
     versionId: access.versionId,
     secret: realtimeSecret,
   })
+
   const scopeRealtime = await issueRealtimeAccess({
     ...scopeTopic,
     scopeId: access.scope.id,
     tokenSecret,
   })
+
   if (access.kind !== 'owner' || !access.userId) {
     return { scopeRealtime, ownerRealtime: null }
   }
+
   const ownerTopic = await deriveOwnerRealtimeTopic({
     userId: access.userId,
     secret: realtimeSecret,
   })
+
   return {
     scopeRealtime,
     ownerRealtime: await issueRealtimeAccess({
@@ -2368,10 +2574,12 @@ function requireActor(access: ResolvedAccess) {
 
 function requireWrite(access: ResolvedAccess) {
   requireActor(access)
+
   if (!access.canWrite) {
     if (access.kind === 'share') {
       throw new CommentApiError('comments_disabled', '当前分享已关闭评论', 403)
     }
+
     throw new CommentApiError('unauthorized', '当前身份只有只读权限', 403)
   }
 }
@@ -2387,9 +2595,11 @@ async function readReplay(
     .eq('actor_key', actorKey)
     .eq('request_id', requestId)
     .maybeSingle()
+
   if (error) {
     throw error
   }
+
   return data?.response ?? null
 }
 
@@ -2407,17 +2617,22 @@ async function enforceRateLimit({
   pepper: string
 }) {
   requireActor(access)
+
   const networkKey = await hashNetworkKey(getClientAddress(req), pepper)
+
   const { data, error } = await admin.rpc('check_resume_comment_rate_limit', {
     p_actor_key: access.actorKey,
     p_network_key: networkKey,
     p_share_id: access.share?.id ?? null,
     p_thread_id: threadId,
   })
+
   if (error) {
     throw error
   }
+
   const retryAfter = Number(data ?? 0)
+
   if (retryAfter > 0) {
     throw new CommentApiError(
       'rate_limited',
@@ -2439,8 +2654,10 @@ function mapDatabaseError(error: unknown): CommentApiError {
       409,
     )
   }
+
   const message =
     isRecord(error) && typeof error.message === 'string' ? error.message : ''
+
   // 真正的瞬时序列化失败（含 request_in_progress）保留 40001，交由客户端幂等重试。
   if (isRecord(error) && error.code === '40001') {
     return new CommentApiError(
@@ -2449,6 +2666,7 @@ function mapDatabaseError(error: unknown): CommentApiError {
       409,
     )
   }
+
   const mappings: Array<[string, CommentApiError]> = [
     [
       'stale_release',
@@ -2484,6 +2702,7 @@ function mapDatabaseError(error: unknown): CommentApiError {
     ],
     ['not_found', new CommentApiError('not_found', '目标不存在', 404)],
   ]
+
   return (
     mappings.find(([needle]) => message.includes(needle))?.[1] ??
     new CommentApiError('unexpected', '评论服务暂时不可用', 500)
@@ -2495,9 +2714,11 @@ function writePayload(body: Record<string, unknown>, access: ResolvedAccess) {
     manageAll: access.canManageAll,
     legacyAnonymousId: access.legacyAnonymousId,
   }
+
   const copy = (field: string) => {
     if (body[field] !== undefined) payload[field] = body[field]
   }
+
   ;[
     'threadId',
     'commentId',
@@ -2507,6 +2728,7 @@ function writePayload(body: Record<string, unknown>, access: ResolvedAccess) {
     'originalPageIndex',
     'eventSeq',
   ].forEach(copy)
+
   return payload
 }
 
@@ -2514,7 +2736,9 @@ Deno.serve(async (req) => {
   const context = createRequestContext(req, 'resume-comments', 'allowlist')
   const requestStartedAt = performance.now()
   const coldStart = nextRequestIsColdStart
+
   nextRequestIsColdStart = false
+
   const requestId = context.requestId
   const operationDurations: Partial<Record<BootstrapTimingName, number>> = {}
   let operation = 'comment_request'
@@ -2522,38 +2746,48 @@ Deno.serve(async (req) => {
   let responseSqlState: string | undefined
   let adminForMetrics: AdminClient | null = null
   let metricRecorded = false
+
   const recordTiming = (name: BootstrapTimingName, duration: number) => {
     operationDurations[name] = (operationDurations[name] ?? 0) + duration
   }
+
   const timeOperation = async <T>(
     name: BootstrapTimingName,
     operation: () => Promise<T>,
   ) => {
     const startedAt = performance.now()
+
     try {
       return await operation()
     } finally {
       recordTiming(name, performance.now() - startedAt)
     }
   }
+
   const finalize = (response: Response) => {
     operationDurations.edge_total = performance.now() - requestStartedAt
+
     const sharedHeaders = context.responseHeaders()
+
     sharedHeaders.forEach((value, key) => response.headers.set(key, value))
+
     response.headers.set(
       'Server-Timing',
       Object.entries(operationDurations)
         .map(([name, duration]) => `${name};dur=${duration.toFixed(1)}`)
         .join(', '),
     )
+
     if (adminForMetrics && !metricRecorded) {
       metricRecorded = true
+
       const outcome =
         response.status >= 500
           ? ('server_error' as const)
           : response.status >= 400
             ? ('client_error' as const)
             : ('success' as const)
+
       scheduleBackground(
         recordOperationMetric(adminForMetrics, {
           requestId,
@@ -2567,6 +2801,7 @@ Deno.serve(async (req) => {
         }),
         'operation_metric_failed',
       )
+
       if (response.status >= 500 || responseErrorCode === 'database_deadlock') {
         context.log({
           level: responseErrorCode === 'database_deadlock' ? 'warn' : 'error',
@@ -2578,12 +2813,16 @@ Deno.serve(async (req) => {
         })
       }
     }
+
     return response
   }
+
   const json = (body: unknown, status = 200) => {
     const serializeStartedAt = performance.now()
     const serializedBody = JSON.stringify(body)
+
     recordTiming('serialize', performance.now() - serializeStartedAt)
+
     return new Response(serializedBody, {
       status,
       headers: context.responseHeaders({
@@ -2592,13 +2831,17 @@ Deno.serve(async (req) => {
       }),
     })
   }
+
   const success = (data: unknown, eventSeq: number) => {
     responseErrorCode = undefined
     responseSqlState = undefined
+
     return json({ ok: true, data, eventSeq })
   }
+
   const failure = (error: CommentApiError) => {
     responseErrorCode = error.code
+
     return json(
       {
         ok: false,
@@ -2613,9 +2856,12 @@ Deno.serve(async (req) => {
       error.status,
     )
   }
+
   if (req.method === 'OPTIONS') {
     const response = corsPreflightResponse(req, 'allowlist')
+
     response.headers.set('X-Request-Id', requestId)
+
     return response
   }
   if (!isOriginAllowed(req, 'allowlist')) {
@@ -2626,6 +2872,7 @@ Deno.serve(async (req) => {
       status: 403,
       errorCode: 'origin_forbidden',
     })
+
     return context.json({ error: 'origin_forbidden' }, 403)
   }
   if (req.method !== 'POST') {
@@ -2636,6 +2883,7 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
   if (!supabaseUrl || !serviceRoleKey) {
     context.log({
       level: 'error',
@@ -2644,42 +2892,56 @@ Deno.serve(async (req) => {
       status: 500,
       errorCode: 'service_not_configured',
     })
+
     return finalize(
       failure(new CommentApiError('unexpected', '评论服务暂时不可用', 500)),
     )
   }
+
   const tokenSecret =
     Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
+
   const collaboratorSecret =
     Deno.env.get('RESUME_COMMENT_COLLABORATOR_SECRET') ?? tokenSecret
+
   const anonymousPepper =
     Deno.env.get('RESUME_COMMENT_ANONYMOUS_PEPPER') ?? tokenSecret
+
   const realtimeSecret =
     Deno.env.get('RESUME_COMMENT_REALTIME_SECRET') ?? tokenSecret
+
   const admin = createAdminClient(supabaseUrl, serviceRoleKey)
+
   adminForMetrics = admin
 
   try {
     const value = await req.json().catch(() => null)
     const op = readCommentOp(value)
+
     operation = op
+
     if (!isRecord(value)) {
       throw new CommentApiError('not_found', '请求无效', 400)
     }
+
     const body = value
     const authStartedAt = performance.now()
+
     const { userId, authMode } = await authenticateSupabaseUser({
       request: req,
       client: admin,
       supabaseUrl,
     })
+
     const authTimingName: BootstrapTimingName =
       authMode === 'anonymous'
         ? 'auth_anonymous'
         : authMode === 'local_jwks'
           ? 'auth_local'
           : 'auth_legacy'
+
     recordTiming(authTimingName, performance.now() - authStartedAt)
+
     if (
       op === 'register_collaboration_session' ||
       op === 'join_collaboration_session' ||
@@ -2693,6 +2955,7 @@ Deno.serve(async (req) => {
         admin,
         collaboratorSecret,
       })
+
       return finalize(success(data, 0))
     }
 
@@ -2706,14 +2969,17 @@ Deno.serve(async (req) => {
           anonymousPepper,
         }),
       )
+
       await timeOperation('access_token', () =>
         assertCollaboratorBootstrapLease(
           admin,
           bootstrapInput.collaboratorLease,
         ),
       )
+
       let rpcInput = bootstrapInput.rpcInput
       let repaired = false
+
       let result = await timeOperation('rpc', () =>
         bootstrapResumeComments(
           admin,
@@ -2721,6 +2987,7 @@ Deno.serve(async (req) => {
           bootstrapInput.collaboratorLease,
         ),
       )
+
       await timeOperation('access_token', () =>
         assertCurrentSharePasswordGeneration({
           result,
@@ -2728,6 +2995,7 @@ Deno.serve(async (req) => {
           tokenSecret: bootstrapInput.shareTokenSecret,
         }),
       )
+
       if (
         result.status === 'scope_missing' &&
         !repaired &&
@@ -2735,13 +3003,17 @@ Deno.serve(async (req) => {
           rpcInput.p_access_kind === 'share')
       ) {
         const repairEnvelope = result.repair
+
         const canonicalScopeId = await timeOperation('repair', () =>
           repairBootstrapScope(admin, repairEnvelope),
         )
+
         repaired = true
+
         if (rpcInput.p_access_kind === 'share') {
           rpcInput = { ...rpcInput, p_scope_id: canonicalScopeId }
         }
+
         result = await timeOperation('rpc', () =>
           bootstrapResumeComments(
             admin,
@@ -2749,6 +3021,7 @@ Deno.serve(async (req) => {
             bootstrapInput.collaboratorLease,
           ),
         )
+
         await timeOperation('access_token', () =>
           assertCurrentSharePasswordGeneration({
             result,
@@ -2759,6 +3032,7 @@ Deno.serve(async (req) => {
       }
       if (result.status !== 'ok')
         return bootstrapProtocolError('scope_missing_after_repair')
+
       const realtime = await timeOperation('realtime_token', () =>
         issueTopics({
           access: {
@@ -2771,6 +3045,7 @@ Deno.serve(async (req) => {
           tokenSecret,
         }),
       )
+
       const bootstrapResponse = json({
         ok: true,
         protocolVersion: 1,
@@ -2778,8 +3053,10 @@ Deno.serve(async (req) => {
         data: { ...result.bootstrap, ...realtime },
         eventSeq: result.eventSeq,
       })
+
       bootstrapResponse.headers.set('X-Comment-Auth-Mode', authMode)
       bootstrapResponse.headers.set('X-Comment-Scope-Repair', String(repaired))
+
       return finalize(bootstrapResponse)
     }
 
@@ -2792,6 +3069,7 @@ Deno.serve(async (req) => {
         anonymousPepper,
       }),
     )
+
     const resolvedAccess = await timeOperation('access_rpc', () =>
       resolveCommentAccessRpc(
         admin,
@@ -2799,6 +3077,7 @@ Deno.serve(async (req) => {
         accessInput.collaboratorLease,
       ),
     )
+
     await timeOperation('access_token', () =>
       assertResolvedSharePasswordGeneration({
         input: accessInput.rpcInput,
@@ -2806,6 +3085,7 @@ Deno.serve(async (req) => {
         tokenSecret: accessInput.shareTokenSecret,
       }),
     )
+
     const access = resolvedAccess.access
 
     if (op === 'create_anonymous_identity') {
@@ -2823,11 +3103,13 @@ Deno.serve(async (req) => {
           403,
         )
       }
+
       const requestId = readRequestId(body)
       const secret = readRequiredString(body, 'anonymousSecret', 128)
       const secretHash = await hashAnonymousSecret(secret, anonymousPepper)
       const actorKey = `anonymous-new:${secretHash}`
       const replay = await readReplay(admin, actorKey, requestId)
+
       if (replay) {
         return finalize(
           success(
@@ -2836,12 +3118,14 @@ Deno.serve(async (req) => {
           ),
         )
       }
+
       const networkAccess: ResolvedAccess = {
         ...access,
         actorKind: 'anonymous',
         actorId: crypto.randomUUID(),
         actorKey,
       }
+
       await enforceRateLimit({
         req,
         admin,
@@ -2849,6 +3133,7 @@ Deno.serve(async (req) => {
         threadId: null,
         pepper: anonymousPepper,
       })
+
       const { data, error } = await admin.rpc(
         'create_resume_comment_anonymous_identity_v2',
         {
@@ -2860,29 +3145,35 @@ Deno.serve(async (req) => {
           p_request_id: requestId,
         },
       )
+
       if (error) {
         throw error
       }
+
       return finalize(success(data, Number(data.eventSeq)))
     }
 
     if (op === 'list_threads' || op === 'list_events') {
       const afterEventSeq = readNonNegativeInteger(body, 'afterEventSeq', 0)
+
       const requestedThroughEventSeq = readNonNegativeInteger(
         body,
         'throughEventSeq',
         access.scope.next_event_seq,
       )
+
       if (
         !Number.isSafeInteger(afterEventSeq) ||
         !Number.isSafeInteger(requestedThroughEventSeq)
       )
         throw new CommentApiError('not_found', '评论分页游标无效', 400)
+
       // 固定本轮扫描上界；后续新增留待下轮，避免持续写入时无法结束补齐。
       const throughEventSeq = Math.min(
         requestedThroughEventSeq,
         access.scope.next_event_seq,
       )
+
       const eventResult = await admin
         .from('resume_comment_events')
         .select(
@@ -2893,22 +3184,27 @@ Deno.serve(async (req) => {
         .lte('event_seq', throughEventSeq)
         .order('event_seq', { ascending: true })
         .limit(501)
+
       if (eventResult.error) throw eventResult.error
+
       const rows = eventResult.data ?? []
       const events = rows.slice(0, 500)
       // 过滤/投影前推进扫描游标，额外查询的第 501 条仅用于判断下一页。
       const scannedEventSeq = Number(events.at(-1)?.event_seq ?? afterEventSeq)
+
       const threadIds = Array.from(
         new Set(
           events.flatMap((event) => (event.thread_id ? [event.thread_id] : [])),
         ),
       )
+
       // 全量线程是当前快照，并不代表快照查询之后的事件已经消费。
       const { threads, profiles } = await loadThreads(
         admin,
         access.scope.id,
         op === 'list_threads' ? undefined : threadIds,
       )
+
       return finalize(
         success(
           {
@@ -2929,6 +3225,7 @@ Deno.serve(async (req) => {
         realtimeSecret,
         tokenSecret,
       })
+
       return finalize(success(realtime, access.scope.next_event_seq))
     }
 
@@ -2945,18 +3242,22 @@ Deno.serve(async (req) => {
           403,
         )
       }
+
       const requestId = readRequestId(body)
       const anchorDocument = body.anchorDocument
       const documentHash = readRequiredString(body, 'documentHash', 64)
+
       const projectionReferenceDate = readRequiredString(
         body,
         'projectionReferenceDate',
         10,
       )
+
       const expectedDocumentRevision = readNonNegativeInteger(
         body,
         'expectedDocumentRevision',
       )
+
       if (
         !isRecord(anchorDocument) ||
         !/^\d{4}-\d{2}-\d{2}$/u.test(projectionReferenceDate) ||
@@ -2966,15 +3267,20 @@ Deno.serve(async (req) => {
       ) {
         throw new CommentApiError('stale_document', '简历评论文档校验失败', 409)
       }
+
       const replay = await readReplay(admin, access.actorKey!, requestId)
+
       if (replay) {
         if (!isRecord(replay))
           throw new CommentApiError('unexpected', '评论文档同步响应无效', 500)
+
         const eventSeq = Number(replay.eventSeq)
+
         const [{ threads, profiles }, counts] = await Promise.all([
           loadThreads(admin, access.scope.id),
           loadThreadCounts(admin, access.scope.id),
         ])
+
         return finalize(
           success(
             {
@@ -2994,6 +3300,7 @@ Deno.serve(async (req) => {
           ),
         )
       }
+
       await enforceRateLimit({
         req,
         admin,
@@ -3001,6 +3308,7 @@ Deno.serve(async (req) => {
         threadId: null,
         pepper: anonymousPepper,
       })
+
       const { data: threadRows, error: threadError } = await admin
         .from('resume_comment_threads')
         .select('id,anchor')
@@ -3008,7 +3316,9 @@ Deno.serve(async (req) => {
         .eq('anchor_status', 'anchored')
         .is('deleted_at', null)
         .is('resolved_at', null)
+
       if (threadError) throw threadError
+
       const nodeMap = new Map<string, CommentAnchorDocumentNode>(
         (Array.isArray(anchorDocument.nodes) ? anchorDocument.nodes : [])
           .filter(isRecord)
@@ -3017,14 +3327,18 @@ Deno.serve(async (req) => {
             node as unknown as CommentAnchorDocumentNode,
           ]),
       )
+
       const relocations: SyncRelocation[] = []
+
       for (const thread of threadRows ?? []) {
         const anchor = thread.anchor as ResumeCommentAnchor
+
         const result = relocateResumeCommentAnchor(
           anchor,
           nodeMap.get(anchor.nodeKey),
           documentHash,
         )
+
         if (result.status === 'detached') {
           relocations.push({ threadId: thread.id, ...result })
           continue
@@ -3032,13 +3346,16 @@ Deno.serve(async (req) => {
         if (!result.moved && !result.contextChanged) {
           continue
         }
+
         relocations.push({ threadId: thread.id, ...result })
       }
+
       const snapshot = await loadPersistedResumeSnapshot(
         admin,
         access.userId,
         access.scope.resume_id,
       )
+
       const { data, error } = await admin.rpc(
         'sync_resume_version_comment_document_v3',
         {
@@ -3055,7 +3372,9 @@ Deno.serve(async (req) => {
           p_request_id: requestId,
         },
       )
+
       if (error) throw error
+
       scheduleBackground(
         notifyWrite({
           admin,
@@ -3065,7 +3384,9 @@ Deno.serve(async (req) => {
           type: resolveCommentEventType(op),
         }),
       )
+
       const eventSeq = Number(data.eventSeq)
+
       const [{ threads, profiles }, counts] = await Promise.all([
         loadThreads(
           admin,
@@ -3074,6 +3395,7 @@ Deno.serve(async (req) => {
         ),
         loadThreadCounts(admin, access.scope.id),
       ])
+
       return finalize(
         success(
           {
@@ -3095,10 +3417,13 @@ Deno.serve(async (req) => {
     }
 
     requireActor(access)
+
     const requestId = readRequestId(body)
+
     if (access.kind === 'share') {
       const expectedReleaseId = readUuid(body, 'releaseId')
       const expectedVersionId = readNonNegativeInteger(body, 'versionId')
+
       if (
         expectedReleaseId !== access.releaseId ||
         expectedVersionId !== access.versionId
@@ -3110,6 +3435,7 @@ Deno.serve(async (req) => {
         )
       }
     }
+
     const replay = ['mark_thread_read', 'mark_read'].includes(op)
       ? await readReplay(admin, access.actorKey!, requestId)
       : null
@@ -3118,10 +3444,13 @@ Deno.serve(async (req) => {
       if (replay) {
         if (!isRecord(replay))
           throw new CommentApiError('unexpected', '评论已读响应无效', 500)
+
         return finalize(success(replay, Number(replay.eventSeq)))
       }
+
       const threadId = readUuid(body, 'threadId')
       const eventSeq = readNonNegativeInteger(body, 'eventSeq')
+
       const { data, error } = await admin.rpc(
         'mark_resume_comment_thread_read_v1',
         {
@@ -3134,18 +3463,24 @@ Deno.serve(async (req) => {
           p_event_seq: eventSeq,
         },
       )
+
       if (error) throw error
+
       return finalize(success(data, Number(data.eventSeq)))
     }
 
     const payload = writePayload(body, access)
+
     if (op === 'mark_read') {
       if (replay) {
         if (!isRecord(replay))
           throw new CommentApiError('unexpected', '评论重试响应无效', 500)
+
         return finalize(success(replay, Number(replay.eventSeq)))
       }
+
       payload.eventSeq = readNonNegativeInteger(body, 'eventSeq')
+
       const result = await admin.rpc('execute_resume_version_comment_write', {
         p_op: op,
         p_scope_id: access.scope.id,
@@ -3155,9 +3490,11 @@ Deno.serve(async (req) => {
         p_request_id: requestId,
         p_payload: payload,
       })
+
       if (result.error) throw result.error
       if (!isRecord(result.data))
         throw new CommentApiError('unexpected', '评论已读响应无效', 500)
+
       return finalize(success(result.data, Number(result.data.eventSeq)))
     }
 
@@ -3171,6 +3508,7 @@ Deno.serve(async (req) => {
       payload.parentCommentId = readUuid(body, 'parentCommentId')
 
     requireWrite(access)
+
     if (op === 'delete_thread' && !access.canManageAll) {
       throw new CommentApiError(
         'unauthorized',
@@ -3202,6 +3540,7 @@ Deno.serve(async (req) => {
       getClientAddress(req),
       anonymousPepper,
     )
+
     const mutationResult = await timeOperation('mutation_rpc', () =>
       admin.rpc('execute_resume_comment_mutation_v1', {
         p_op: op,
@@ -3215,6 +3554,7 @@ Deno.serve(async (req) => {
         p_share_id: access.share?.id ?? null,
       }),
     )
+
     if (mutationResult.error) throw mutationResult.error
     if (!isRecord(mutationResult.data))
       throw new CommentApiError('unexpected', '评论响应无效', 500)
@@ -3222,6 +3562,7 @@ Deno.serve(async (req) => {
     const databaseTimings = isRecord(mutationResult.data.timings)
       ? mutationResult.data.timings
       : {}
+
     for (const timingName of [
       'replay',
       'rate_limit',
@@ -3229,9 +3570,11 @@ Deno.serve(async (req) => {
       'hydrate',
     ] as const) {
       const duration = Number(databaseTimings[timingName])
+
       if (Number.isFinite(duration) && duration >= 0)
         recordTiming(timingName, duration)
     }
+
     if (mutationResult.data.status === 'rate_limited') {
       throw new CommentApiError(
         'rate_limited',
@@ -3248,6 +3591,7 @@ Deno.serve(async (req) => {
 
     const data = mutationResult.data.data
     const eventSeq = Number(data.eventSeq)
+
     if (mutationResult.data.replayed !== true) {
       scheduleBackground(
         notifyWrite({
@@ -3259,6 +3603,7 @@ Deno.serve(async (req) => {
         }),
       )
     }
+
     return finalize(success(data, eventSeq))
   } catch (error) {
     if (error instanceof SupabaseAuthenticationError) {
@@ -3270,24 +3615,30 @@ Deno.serve(async (req) => {
       const response = failure(
         new CommentApiError('unexpected', '评论服务暂时不可用', 500),
       )
+
       responseErrorCode =
         error.category === 'scope_repair_failed'
           ? 'database_conflict'
           : 'database_unexpected'
+
       return finalize(response)
     }
+
     responseSqlState =
       isRecord(error) &&
       typeof error.code === 'string' &&
       /^[0-9A-Z]{5}$/u.test(error.code)
         ? error.code
         : undefined
+
     const mapped = mapDatabaseError(error)
     const response = failure(mapped)
+
     if (mapped.code === 'unexpected')
       responseErrorCode = responseSqlState
         ? 'database_unexpected'
         : 'unexpected'
+
     return finalize(response)
   }
 })
@@ -3312,12 +3663,14 @@ async function notifyWrite({
       secret: realtimeSecret,
     }),
   ]
+
   topics.push(
     await deriveOwnerRealtimeTopic({
       userId: access.scope.owner_user_id,
       secret: realtimeSecret,
     }),
   )
+
   await broadcastCommentInvalidation({
     admin,
     topics: topics.map((item) => item.topic),

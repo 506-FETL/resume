@@ -9,6 +9,7 @@ import {
 import { redactHiddenResumeSections } from '../shared/resume-share-redaction.ts'
 
 type AdminClient = SupabaseClient
+
 export interface SharedVersionRow {
   id: number
   resume_id: string
@@ -18,6 +19,7 @@ export interface SharedVersionRow {
   document_revision: number
   projection_reference_date: string
 }
+
 export interface ShareCommentScope {
   id: string
   projectionReferenceDate: string
@@ -26,6 +28,7 @@ export interface ShareCommentScope {
 // 只选取简历公开字段，禁止把 owner、协作状态等数据库元数据带入响应。
 const SNAPSHOT_FIELDS =
   'type,basics,job_intent,application_info,edu_background,work_experience,internship_experience,campus_experience,project_experience,skill_specialty,honors_certificates,self_evaluation,hobbies,order,visibility,spacing,font,theme,template_binding'
+
 const templateCache = new Map<string, Promise<Record<string, unknown>>>()
 
 function loadTemplateManifest(admin: AdminClient, binding: unknown) {
@@ -33,15 +36,19 @@ function loadTemplateManifest(admin: AdminClient, binding: unknown) {
     templateId?: unknown
     templateVersion?: unknown
   } | null
+
   if (
     typeof ref?.templateId !== 'string' ||
     !Number.isSafeInteger(ref.templateVersion) ||
     Number(ref.templateVersion) < 1
   )
     throw new Error('Invalid current template binding')
+
   const key = `${ref.templateId}@${ref.templateVersion}`
   const cached = templateCache.get(key)
+
   if (cached) return cached
+
   const pending = (async () => {
     const { data, error } = await admin
       .from('official_resume_template_versions')
@@ -50,6 +57,7 @@ function loadTemplateManifest(admin: AdminClient, binding: unknown) {
       .eq('version', ref.templateVersion)
       .not('published_at', 'is', null)
       .single()
+
     if (error || !data || typeof data.content !== 'string')
       throw error ?? new Error('Current template is unavailable')
     if (
@@ -57,7 +65,9 @@ function loadTemplateManifest(admin: AdminClient, binding: unknown) {
       sha256Hex(data.content) !== data.content_hash
     )
       throw new Error('Current template integrity check failed')
+
     const definition = JSON.parse(data.content)
+
     if (
       definition.schemaVersion !== 3 ||
       definition.renderContract !== 'declarative-page@1' ||
@@ -68,6 +78,7 @@ function loadTemplateManifest(admin: AdminClient, binding: unknown) {
     ) {
       throw new Error('Current template identity check failed')
     }
+
     return {
       schemaVersion: 3,
       templateId: ref.templateId,
@@ -76,12 +87,16 @@ function loadTemplateManifest(admin: AdminClient, binding: unknown) {
       assets: definition.assets,
     }
   })()
+
   templateCache.set(key, pending)
+
   if (templateCache.size > 32)
     templateCache.delete(templateCache.keys().next().value!)
+
   pending.catch(() => {
     if (templateCache.get(key) === pending) templateCache.delete(key)
   })
+
   return pending
 }
 
@@ -111,7 +126,9 @@ export async function loadLiveShareSource({
       .eq('resume_id', resumeId)
       .eq('user_id', ownerUserId)
       .single()
+
     if (error || !config) throw error ?? new Error('Current resume unavailable')
+
     const {
       display_name: displayName,
       updated_at: updatedAt,
@@ -119,9 +136,11 @@ export async function loadLiveShareSource({
       version: joinedVersion,
       ...snapshot
     } = config
+
     const version = (
       Array.isArray(joinedVersion) ? joinedVersion[0] : joinedVersion
     ) as SharedVersionRow | null
+
     if (
       !version ||
       version.id !== versionId ||
@@ -130,22 +149,28 @@ export async function loadLiveShareSource({
       version.resume_id !== resumeId
     )
       continue
+
     const manifest = await loadTemplateManifest(
       admin,
       snapshot.template_binding,
     )
+
     const commentScope = await ensureScope(admin, version)
+
     const { data: scope, error: scopeError } = await admin
       .from('resume_comment_scopes')
       .select('document_hash,document_revision')
       .eq('id', commentScope.id)
       .single()
+
     if (scopeError || !scope)
       throw scopeError ?? new Error('Comment scope unavailable')
+
     const { document, documentHash } = buildCommentAnchorDocument(
       snapshot,
       commentScope.projectionReferenceDate,
     )
+
     if (scope.document_revision !== version.document_revision) continue
     if (scope.document_hash !== documentHash) {
       const { data: threads, error: threadsError } = await admin
@@ -155,21 +180,27 @@ export async function loadLiveShareSource({
         .eq('anchor_status', 'anchored')
         .is('deleted_at', null)
         .is('resolved_at', null)
+
       if (threadsError) throw threadsError
+
       const nodes = new Map(document.nodes.map((node) => [node.nodeKey, node]))
+
       const relocations = (threads ?? []).flatMap((thread) => {
         const anchor = thread.anchor as ResumeCommentAnchor
+
         const result = relocateResumeCommentAnchor(
           anchor,
           nodes.get(anchor.nodeKey),
           documentHash,
         )
+
         return result.status === 'detached' ||
           result.moved ||
           result.contextChanged
           ? [{ threadId: thread.id, ...result }]
           : []
       })
+
       const { data: synced, error: syncError } = await admin.rpc(
         'sync_live_resume_share_document',
         {
@@ -188,14 +219,19 @@ export async function loadLiveShareSource({
           p_request_id: crypto.randomUUID(),
         },
       )
+
       if (syncError) {
         if (['P0409', 'P0002'].includes(syncError.code)) continue
+
         throw syncError
       }
+
       version.document_revision = Number(synced.documentRevision)
       onSync(commentScope.id, version.id, Number(synced.eventSeq))
     }
+
     const { template_binding: templateBinding, ...publicFields } = snapshot
+
     return {
       snapshot: redactHiddenResumeSections({
         ...publicFields,
@@ -207,6 +243,7 @@ export async function loadLiveShareSource({
       commentScope,
     }
   }
+
   throw new Error('Current resume changed during share read')
 }
 

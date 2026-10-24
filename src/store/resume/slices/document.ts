@@ -116,6 +116,7 @@ export function createDocumentSlice(
 
       const requestId = ++latestLoadRequestId
       const isCurrentRequest = () => requestId === latestLoadRequestId
+
       const assertCurrentRequest = () => {
         if (!isCurrentRequest()) throw new ResumeLoadSupersededError()
       }
@@ -125,20 +126,26 @@ export function createDocumentSlice(
       assertCurrentRequest()
       await get().waitForResumePersist(resumeId)
       assertCurrentRequest()
+
       // 等待目标旧保存期间，源文档仍会接收协作变更。最后一次稳定 flush
       // 必须紧邻销毁；await 返回的微任务间隙若又产生变更，则继续落盘。
       let hasPendingPersistableChanges: boolean
+
       do {
         await get().flushPendingChanges()
         assertCurrentRequest()
+
         const current = get()
+
         hasPendingPersistableChanges =
           current.isInitialized &&
           current.pendingChanges &&
           (current.mode === 'offline' ||
             current.docManager?.canPersist() === true)
       } while (hasPendingPersistableChanges)
+
       const { docManager, cleanupFns } = get()
+
       if (cleanupFns.length > 0) {
         cleanupFns.forEach((fn) => fn())
       }
@@ -166,12 +173,15 @@ export function createDocumentSlice(
 
       if (isOfflineResumeId(resumeId)) {
         const offlineResume = await getOfflineResumeById(resumeId)
+
         assertCurrentRequest()
+
         if (!offlineResume) {
           throw new Error('离线简历不存在')
         }
 
         const data = offlineResume.data || {}
+
         const snapshot = mapSourceToPersistedSnapshot(
           data as Partial<AutomergeResumeDocument>,
         )
@@ -193,6 +203,7 @@ export function createDocumentSlice(
           entryIdMigrationReady: false,
           documentChangeRevision: 0,
         })
+
         return {
           snapshot,
           hasPersistedAppearance: hasPersistedAppearance(data),
@@ -202,12 +213,15 @@ export function createDocumentSlice(
       }
 
       const user = await getCurrentUser()
+
       assertCurrentRequest()
+
       if (!user) {
         throw new Error('用户未登录')
       }
 
       let manager: DocumentManager | null = null
+
       try {
         // 自有云端简历先验证 resume_config 行存在，避免已删除的 UUID 被初始化成一份空白 Automerge 文档。
         // 协作来源已经由 Edge 返回的 bootstrap 鉴权，不得再读 owner-only 外观数据或回退 owner 文档。
@@ -215,17 +229,23 @@ export function createDocumentSlice(
           source.kind === 'owner'
             ? await getCloudAppearanceSource(resumeId)
             : null
+
         assertCurrentRequest()
+
         if (initialCloudAppearanceResult?.resumeExists === false)
           throw new ResumeNotFoundError()
 
         manager = new DocumentManager(resumeId, user.id, {
           source,
         })
+
         const handle = await manager.initialize()
+
         assertCurrentRequest()
+
         const sourceDoc = handle.doc()
         let docSnapshot = mapSourceToPersistedSnapshot(sourceDoc)
+
         const entryIdPatches = collectMissingResumeEntryIdPatches(
           sourceDoc,
           docSnapshot,
@@ -235,19 +255,25 @@ export function createDocumentSlice(
           manager.change((doc) => {
             applyResumeEntryIdPatches(doc, entryIdPatches)
           })
+
           docSnapshot = mapSourceToPersistedSnapshot(handle.doc())
         }
 
         const doc = handle.doc()
+
         const cloudAppearanceResult =
           source.kind === 'owner'
             ? (initialCloudAppearanceResult ??
               (await getCloudAppearanceSource(resumeId)))
             : null
+
         assertCurrentRequest()
+
         const cloudHasPersistedAppearance =
           cloudAppearanceResult?.status === 'present'
+
         const docHasPersistedAppearance = hasPersistedAppearance(doc)
+
         const snapshot =
           cloudHasPersistedAppearance && cloudAppearanceResult
             ? mergeSnapshotAppearance(
@@ -255,6 +281,7 @@ export function createDocumentSlice(
                 cloudAppearanceResult.appearance,
               )
             : docSnapshot
+
         const cloudAppearanceStatus =
           cloudAppearanceResult?.status ?? 'not_applicable'
 
@@ -274,6 +301,7 @@ export function createDocumentSlice(
 
           const nextSnapshot = mapSourceToPersistedSnapshot(doc)
           const canPersist = manager?.canPersist() === true
+
           // 合并后的 Automerge 文档是 owner 与 guest 的共同外观真源。
           // replaceConfig 仅更新本地 store，不会触发反向写入。
           useResumeConfigStore.getState().replaceConfig(nextSnapshot)
@@ -292,14 +320,17 @@ export function createDocumentSlice(
 
           if (canPersist) {
             const persist = get().capturePersistRequest()
+
             if (persist) scheduleOnlinePersist(persist)
           }
         }
 
         handle.on('change', changeHandler)
+
         const offChange = () => handle.off('change', changeHandler)
 
         assertCurrentRequest()
+
         set({
           ...mapSnapshotToState(snapshot),
           docManager: manager,
@@ -334,10 +365,12 @@ export function createDocumentSlice(
       } catch (error) {
         if (!isCurrentRequest()) {
           manager?.destroy()
+
           throw new ResumeLoadSupersededError()
         }
 
         manager?.destroy()
+
         set({
           isSyncing: false,
           syncError: error instanceof Error ? error.message : '初始化失败',
@@ -346,12 +379,14 @@ export function createDocumentSlice(
             source.kind === 'collaboration' ? 'not_applicable' : 'error',
           entryIdMigrationReady: false,
         })
+
         throw error
       }
     },
 
     cleanup: () => {
       latestLoadRequestId += 1
+
       get()
         .flushPendingChanges()
         .catch((error) =>
@@ -359,9 +394,12 @@ export function createDocumentSlice(
             `离开前保存失败：${error instanceof Error ? error.message : '同步失败'}`,
           ),
         )
+
       const { cleanupFns, docManager } = get()
+
       cleanupFns.forEach((fn) => fn())
       docManager?.destroy()
+
       set({
         cleanupFns: [],
         docManager: null,

@@ -7,6 +7,7 @@ import type {
 import { ACTIVE_APPLICATION_STAGES, APPLICATION_STATUS_CONFIG } from './const'
 
 export type ActiveApplicationStage = (typeof ACTIVE_APPLICATION_STAGES)[number]
+
 export type JobWorkflow = Pick<
   JobApplication,
   'status' | 'stage_details' | 'interview_sub_stages'
@@ -30,8 +31,10 @@ function getLastActiveActivityStage(
 ): ActiveApplicationStage | null {
   for (const activity of [...(job.activities ?? [])].reverse()) {
     if (activity.type !== 'status_change') continue
+
     for (const stage of ACTIVE_APPLICATION_STAGES) {
       const label = APPLICATION_STATUS_CONFIG[stage].label
+
       if (
         activity.note === `结束于：${label}` ||
         activity.note === `录用于：${label}` ||
@@ -40,6 +43,7 @@ function getLastActiveActivityStage(
         return stage
     }
   }
+
   return null
 }
 
@@ -47,12 +51,16 @@ function getRecordedOfferSourceStage(
   job: JobWorkflow,
 ): ActiveApplicationStage | null {
   const terminal = job.stage_details.find((detail) => detail.stage === 'offer')
+
   if (terminal?.source_stage !== undefined) return terminal.source_stage
+
   const latest = [...(job.activities ?? [])]
     .reverse()
     .find((activity) => activity.type === 'status_change')
+
   if (!latest?.label.endsWith(`「${APPLICATION_STATUS_CONFIG.offer.label}」`))
     return null
+
   return (
     ACTIVE_APPLICATION_STAGES.find(
       (stage) =>
@@ -71,19 +79,23 @@ export function getEndedApplicationStage(
   const terminal = job.stage_details.find(
     (detail) => detail.stage === 'rejected',
   )
+
   if (terminal?.source_stage !== undefined) return terminal.source_stage
 
   const ended = job.stage_details.filter(
     (detail) => stageIndex(detail.stage) >= 0 && detail.status === '已拒绝',
   )
+
   if (ended.length === 1) return ended[0].stage as ActiveApplicationStage
 
   const activityStage = getLastActiveActivityStage(job)
+
   if (activityStage) return activityStage
 
   const current = job.stage_details.filter(
     (detail) => stageIndex(detail.stage) >= 0 && detail.status === '进行中',
   )
+
   return current.length === 1
     ? (current[0].stage as ActiveApplicationStage)
     : null
@@ -95,6 +107,7 @@ export function normalizeInterviewSubStages(
 ): InterviewSubStage[] {
   // ECMAScript 的稳定排序保证相同 order 保持原始顺序；日期不会改变当前轮次。
   const ordered = [...rounds].sort((a, b) => a.order - b.order)
+
   return ordered.map((round, index) => ({
     ...round,
     status:
@@ -115,14 +128,17 @@ export function normalizeJobWorkflow<T extends JobWorkflow>(job: T): T {
   const endedAt = getEndedApplicationStage(job)
   const endIndex = endedAt === null ? -1 : stageIndex(endedAt)
   const stages: ApplicationStatus[] = [...ACTIVE_APPLICATION_STAGES, 'offer']
+
   if (job.stage_details.some((detail) => detail.stage === 'rejected'))
     stages.push('rejected')
 
   const stageDetails = stages.map((stage): StageDetail => {
     const existing = job.stage_details.find((detail) => detail.stage === stage)
+
     const detail: StageDetail = existing
       ? { ...existing }
       : { stage, status: '待处理', start_date: null, notes: '' }
+
     const index = stageIndex(stage)
 
     if (index >= 0) {
@@ -152,6 +168,7 @@ export function normalizeJobWorkflow<T extends JobWorkflow>(job: T): T {
             : '已拒绝'
           : '待处理'
     }
+
     return detail
   })
 
@@ -171,6 +188,7 @@ export function transitionJobWorkflow<T extends JobWorkflow>(
   date = new Date().toISOString().slice(0, 10),
 ): T {
   const normalized = normalizeJobWorkflow(job)
+
   if (job.status === target) return normalized
 
   const source =
@@ -179,6 +197,7 @@ export function transitionJobWorkflow<T extends JobWorkflow>(
       : job.status === 'rejected'
         ? getEndedApplicationStage(normalized)
         : getRecordedOfferSourceStage(normalized)
+
   // 进入终态不填前序日期；跨过未记录阶段也不创造其完成经历。
   const stageDetails = normalized.stage_details.map((detail): StageDetail => {
     if (
@@ -202,8 +221,10 @@ export function transitionJobWorkflow<T extends JobWorkflow>(
       (target === 'offer' || stageIndex(target) > stageIndex(detail.stage))
     )
       return { ...detail, status: '已完成' }
+
     return detail
   })
+
   if (
     target === 'rejected' &&
     !stageDetails.some((detail) => detail.stage === 'rejected')

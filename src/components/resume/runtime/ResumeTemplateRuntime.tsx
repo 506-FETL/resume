@@ -27,14 +27,17 @@ function ResumeContent({
   assetUrls?: ReadonlyMap<string, string>
 }) {
   const { commentNodesByKey } = useResumeContext()
+
   const content = useMemo(
     () => adaptResumeContent(data, commentNodesByKey),
     [data, commentNodesByKey],
   )
+
   const environment = useMemo(
     () => createTemplateStyleEnvironment(definition, appearance),
     [definition, appearance],
   )
+
   return (
     <DeclarativeRenderer
       definition={definition}
@@ -44,6 +47,7 @@ function ResumeContent({
     />
   )
 }
+
 function ValidatedTemplateRuntime({
   data,
   definition: definitionInput,
@@ -61,10 +65,12 @@ function ValidatedTemplateRuntime({
     () => parseTemplateDefinition(definitionInput),
     [definitionInput],
   )
+
   const effectiveAppearance = useMemo(
     () => normalizeResumeAppearance(appearance),
     [appearance],
   )
+
   return (
     <TemplateRuntimeProviders
       data={data}

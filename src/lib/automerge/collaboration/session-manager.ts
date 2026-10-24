@@ -30,15 +30,18 @@ export class CollaborationSessionManager {
     callbacks: CollaborationCallbacks = {},
   ): Promise<CollaborationSessionActivation> {
     const handle = this.options.getHandle()
+
     if (!handle) {
       throw new Error('Automerge 文档尚未初始化')
     }
+
     const activationId = ++this.activationSequence
 
     if (this.adapter?.isReady() && this.currentSessionId === sessionId) {
       this.adapter.setCallbacks(callbacks)
       this.currentActivationId = activationId
       this.syncHandle(handle)
+
       return { adapter: this.adapter, activationId }
     }
 
@@ -49,6 +52,7 @@ export class CollaborationSessionManager {
       sessionId,
       callbacks,
     )
+
     this.options.repo.networkSubsystem.addNetworkAdapter(adapter)
 
     this.adapter = adapter
@@ -70,6 +74,7 @@ export class CollaborationSessionManager {
     if (!this.adapter) {
       this.currentSessionId = null
       this.currentActivationId = null
+
       return true
     }
 
@@ -83,6 +88,7 @@ export class CollaborationSessionManager {
     this.adapter = null
     this.currentSessionId = null
     this.currentActivationId = null
+
     return true
   }
 

@@ -91,4 +91,5 @@ export interface ShareUiSlice {
 }
 
 export type ShareStoreState = ShareDataSlice & ShareUiSlice
+
 export type ShareSlice<T> = StateCreator<ShareStoreState, [], [], T>

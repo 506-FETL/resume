@@ -19,7 +19,9 @@ const useLineageCache = create<CacheState>((set) => ({
   invalidate: (id) =>
     set((s) => {
       const next = { ...s.byId }
+
       delete next[id]
+
       return { byId: next }
     }),
 }))
@@ -35,11 +37,14 @@ export function useVariantLineage(rootId: string | null | undefined) {
     async (id: string) => {
       setLoading(true)
       setError(null)
+
       try {
         const fetcher = isOfflineResumeId(id)
           ? fetchOfflineVariantTree
           : fetchVariantTree
+
         const lineage = await fetcher(id)
+
         setCache(id, lineage)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'lineage fetch failed')
@@ -54,6 +59,7 @@ export function useVariantLineage(rootId: string | null | undefined) {
     if (!rootId || cached) {
       return
     }
+
     load(rootId)
   }, [rootId, cached, load])
 
@@ -61,6 +67,7 @@ export function useVariantLineage(rootId: string | null | undefined) {
     if (!rootId) {
       return
     }
+
     invalidate(rootId)
     await load(rootId)
   }, [rootId, invalidate, load])

@@ -29,6 +29,7 @@ import { ToolCard } from './shared/tool-card'
 function AdvancedTools() {
   const { currentAtsConfig, selectedResumeId, selectedResumeType } =
     useAtsStore()
+
   const isMobile = useIsMobile()
 
   const activeTool = useAtsStore((s) => s.advancedToolActiveTool)
@@ -93,6 +94,7 @@ function AdvancedTools() {
   async function handleOpenTool(tool: AdvancedToolKey) {
     if (!hasSelectedResume) {
       toast.error('请先在上方选择要分析的简历')
+
       return
     }
 
@@ -101,10 +103,12 @@ function AdvancedTools() {
 
     if (canReuseResumeContext) {
       setLoadingContext(false)
+
       return
     }
 
     const requestId = ++requestIdRef.current
+
     setLoadingContext(true)
 
     try {
@@ -132,6 +136,7 @@ function AdvancedTools() {
     }
 
     const requestId = ++requestIdRef.current
+
     setLoadingContext(true)
 
     try {

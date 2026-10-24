@@ -26,12 +26,16 @@ export default function DeleteDialog() {
     closeDeleteDialog,
     remove,
   } = useShareStore()
+
   const share = findShareById(allShares, shares, deleteShareId)
+
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
   )
+
   const renderedShare =
     share ?? (retainedShare?.id === deleteShareId ? retainedShare : null)
+
   const busy = Boolean(deleteShareId && pendingShareIds.includes(deleteShareId))
 
   useEffect(() => {
@@ -40,6 +44,7 @@ export default function DeleteDialog() {
 
   const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
+
     if (!deleteShareId) return
 
     try {

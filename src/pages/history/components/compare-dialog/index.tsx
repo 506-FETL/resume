@@ -83,6 +83,7 @@ export default function CompareDialog({
   const resolveSnap = useCallback(
     async (id: string): Promise<ResumeSnapshot | null> => {
       if (id === CURRENT) return currentResume?.snapshot ?? null
+
       return await loadVersionSnapshot(Number(id))
     },
     [currentResume, loadVersionSnapshot],
@@ -92,7 +93,9 @@ export default function CompareDialog({
 
   useEffect(() => {
     if (!open) return
+
     let cancelled = false
+
     Promise.all([resolveSnap(base), resolveSnap(target)])
       .then(([before, after]) => {
         if (!cancelled) setResult({ key: requestKey, before, after })
@@ -101,6 +104,7 @@ export default function CompareDialog({
         if (!cancelled)
           setResult({ key: requestKey, before: null, after: null })
       })
+
     return () => {
       cancelled = true
     }
@@ -108,6 +112,7 @@ export default function CompareDialog({
 
   const loading = result?.key !== requestKey
   const failed = !loading && (!result?.before || !result.after)
+
   const diffs = useMemo(
     () =>
       !loading && result?.before && result.after
@@ -115,7 +120,9 @@ export default function CompareDialog({
         : [],
     [loading, result],
   )
+
   const changed = totalChangedFields(diffs)
+
   const resultState = loading
     ? 'loading'
     : failed

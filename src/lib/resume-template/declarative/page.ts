@@ -10,7 +10,9 @@ import {
 
 // CSS px 换算保持与 @page A4 以及 210mm × 297mm 的打印容器一致。
 export const TEMPLATE_PAGE_WIDTH = (210 * 96) / 25.4
+
 export const TEMPLATE_PAGE_HEIGHT = (297 * 96) / 25.4
+
 export interface ResolvedTemplateRegion {
   id: string
   left: number
@@ -23,28 +25,36 @@ export interface ResolvedTemplateRegion {
   outerHeight: number
   background?: string
 }
+
 export function resolveTemplatePage(
   definition: TemplateDefinition,
   appearance: ResumeAppearanceConfig,
 ) {
   const environment = createTemplateStyleEnvironment(definition, appearance)
   const margin = definition.page.fullBleed ? 0 : appearance.spacing.pageMargin
+
   const innerWidth =
     TEMPLATE_PAGE_WIDTH -
     2 * margin -
     definition.page.gap * (definition.page.regions.length - 1)
+
   const innerHeight = TEMPLATE_PAGE_HEIGHT - 2 * margin
+
   const totalWeight = definition.page.regions.reduce(
     (sum, region) => sum + region.width,
     0,
   )
+
   let left = margin
+
   const regions: ResolvedTemplateRegion[] = definition.page.regions.map(
     (region) => {
       const width = (innerWidth * region.width) / totalWeight
+
       const [topPad, rightPad, bottomPad, leftPad] = (
         region.padding ?? [0, 0, 0, 0]
       ).map((value) => Math.max(0, resolveNumeric(value, environment)))
+
       const geometry = {
         id: region.id,
         left: left + leftPad,
@@ -59,15 +69,19 @@ export function resolveTemplatePage(
           ? resolveColor(region.background, environment)
           : undefined,
       }
+
       if (geometry.width < 1 || geometry.height < 1)
         throw new TemplateResolutionError(
           'INVALID_DEFINITION',
           '模板区域内边距超出可用纸张尺寸',
         )
+
       left += width + definition.page.gap
+
       return geometry
     },
   )
+
   return {
     regions,
     fullBleed: definition.page.fullBleed,
@@ -88,6 +102,7 @@ export function routeTemplateSections(
       item.sections === 'remaining' ? [] : item.sections,
     ),
   )
+
   return sections.filter((section) =>
     region.sections === 'remaining'
       ? !assigned.has(section.key)

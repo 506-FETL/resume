@@ -22,6 +22,7 @@ function StringArrayEditor({
 
   const handleAdd = () => {
     const trimmed = inputValue.trim()
+
     if (trimmed && !value.includes(trimmed)) {
       onChange([...value, trimmed])
       setInputValue('')

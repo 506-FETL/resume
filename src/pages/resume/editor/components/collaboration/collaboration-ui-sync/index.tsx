@@ -95,6 +95,7 @@ export function CollaborationUISync({
 
   const toggleFollowMode = useCallback(() => {
     setFollowMode(!followMode)
+
     toast.info(followMode ? '已关闭跟随模式' : '已开启跟随模式', {
       description: followMode
         ? '各自浏览，界面操作互不同步'

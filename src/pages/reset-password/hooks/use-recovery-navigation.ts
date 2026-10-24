@@ -14,12 +14,14 @@ export function useRecoveryNavigation() {
   useEffect(() => {
     initialize()
   }, [initialize])
+
   useEffect(() => {
     if (shouldRedirect) {
       navigate(RESET_PASSWORD_PATH, { replace: true })
       finishNavigation()
     }
   }, [finishNavigation, navigate, pathname, shouldRedirect])
+
   return (
     status === 'checking' ||
     (shouldRedirect && pathname !== RESET_PASSWORD_PATH)

@@ -26,6 +26,7 @@ export function mapCaretByDiff(
 
   // 最长公共前缀
   let pre = 0
+
   while (pre < maxPrefix && oldStr[pre] === newStr[pre]) {
     pre += 1
   }
@@ -33,6 +34,7 @@ export function mapCaretByDiff(
   // 最长公共后缀（不与前缀在任一串上重叠）
   const maxSuffix = Math.min(oldLen - pre, newLen - pre)
   let suf = 0
+
   while (
     suf < maxSuffix &&
     oldStr[oldLen - 1 - suf] === newStr[newLen - 1 - suf]
@@ -55,6 +57,7 @@ export function mapCaretByDiff(
   // 光标落在被替换区间内：钳到新串被替换区间边界
   const replacedEnd = newLen - suf
   const mapped = Math.min(caret, pre + Math.max(0, newLen - pre - suf))
+
   return clamp(mapped, pre, replacedEnd)
 }
 

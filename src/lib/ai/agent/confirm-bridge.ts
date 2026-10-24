@@ -52,7 +52,9 @@ export async function requestConfirm(
   if (!handler) return signal?.aborted ? { cancelled: true } : req.apply()
 
   const { confirmed } = await handler(req, signal)
+
   if (!confirmed) return { cancelled: true }
   if (signal?.aborted) return { cancelled: true }
+
   return req.apply()
 }

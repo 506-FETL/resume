@@ -17,6 +17,7 @@ interface ProfileInfoCardProps {
 
 function formatRegistrationDate(dateString?: string) {
   if (!dateString) return '未知'
+
   return new Date(dateString).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',

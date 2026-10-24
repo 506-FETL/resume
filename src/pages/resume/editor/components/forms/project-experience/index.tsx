@@ -29,6 +29,7 @@ import { ResumeFieldFormSection } from '../shared/resume-field-form-section'
 function ProjectExperienceForm({ className }: { className?: string }) {
   const projectExperience = useResumeStore((state) => state.project_experience)
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
+
   const [isUptoNow, setIsUptoNow] = useState(
     () =>
       projectExperience.items?.some(
@@ -156,6 +157,7 @@ function ProjectExperienceForm({ className }: { className?: string }) {
                           checked={isUptoNow}
                           onCheckedChange={(checked) => {
                             setIsUptoNow(!!checked)
+
                             if (checked) {
                               field.onChange([start.format('YYYY-MM'), '至今'])
                             } else {

@@ -112,6 +112,7 @@ export function AccordionEditor({
   const basicsItem = ITEMS.find((item) => item.id === 'basics')!
   const openSections = useResumeStore((state) => state.openSections)
   const setSectionOpen = useResumeStore((state) => state.setSectionOpen)
+
   const { draft, setDraft, startDragging, finishDragging, moveByKeyboard } =
     useMotionReorder({
       values: sortableOrder,
@@ -122,8 +123,10 @@ export function AccordionEditor({
   const handleValueChange = useCallback(
     (next: string) => {
       const current = openSections[0]
+
       if (next) {
         const nextSection = next as ORDERType
+
         setSectionOpen(nextSection, true)
         onActivate(nextSection)
       } else if (current) {
@@ -161,6 +164,7 @@ export function AccordionEditor({
         {draft.map((id) => {
           const item = ITEMS.find((it) => it.id === id)!
           const visibilityKey = item.id as VisibilityItemsType
+
           return (
             <SortableSectionRow
               key={id}

@@ -63,6 +63,7 @@ export function CollaborationControls({
   const { openDialog: openQuickDialog } = useShareStore()
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
   const canShare = Boolean(resumeId) && !isOffline
+
   const shareDisabledReason = !resumeId
     ? '当前未选择简历'
     : isOffline
@@ -71,6 +72,7 @@ export function CollaborationControls({
 
   const HeaderTag = plain ? 'div' : DrawerHeader
   const TitleTag = plain ? 'h2' : DrawerTitle
+
   const syncStatusKey = isSyncing
     ? 'syncing'
     : syncError

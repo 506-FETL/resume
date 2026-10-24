@@ -202,6 +202,7 @@ export function resolveCommentPermissions(
           canCreate: false,
         }
   }
+
   return access.commentsEnabled
     ? {
         kind: 'share_writer',

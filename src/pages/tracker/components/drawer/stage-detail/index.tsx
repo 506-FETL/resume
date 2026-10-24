@@ -27,6 +27,7 @@ export default function DrawerStageDetail({
     removeRound,
     updateRound,
   } = useStageDetail({ displayStage })
+
   if (!job) return null
 
   const saveFeedback = (
@@ -36,6 +37,7 @@ export default function DrawerStageDetail({
       onRetry={retry}
     />
   )
+
   if (displayStage === 'interview') {
     return (
       <InterviewSubStages
@@ -53,6 +55,7 @@ export default function DrawerStageDetail({
   }
 
   const label = APPLICATION_STATUS_CONFIG[displayStage].label
+
   const stateLabel =
     currentStatus === '进行中'
       ? '进行中'
@@ -61,6 +64,7 @@ export default function DrawerStageDetail({
         : currentStatus === '已拒绝'
           ? '已结束'
           : '未记录'
+
   const endedAt = getEndedApplicationStage(job)
 
   return (

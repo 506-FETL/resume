@@ -25,7 +25,9 @@ export function useSectionToggleBroadcast({
 
   useEffect(() => {
     const prev = previousRef.current
+
     if (prev === openSections) return
+
     previousRef.current = openSections
 
     if (isApplyingRemote.current) return
@@ -34,6 +36,7 @@ export function useSectionToggleBroadcast({
       if (!prev.includes(id))
         broadcastUIAction({ kind: 'section-toggle', tabId: id, open: true })
     }
+
     for (const id of prev) {
       if (!openSections.includes(id))
         broadcastUIAction({ kind: 'section-toggle', tabId: id, open: false })

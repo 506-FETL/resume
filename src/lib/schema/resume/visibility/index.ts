@@ -3,6 +3,7 @@ import type { ORDERType } from '../form'
 import { z } from 'zod'
 
 type VisibilityKey = Exclude<ORDERType, 'basics'>
+
 type VisibilityForms = Record<VisibilityKey, ZodBoolean>
 
 export const visibilityFormsSchema = z.object<VisibilityForms>({

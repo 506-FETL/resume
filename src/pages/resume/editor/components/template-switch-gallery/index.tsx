@@ -44,27 +44,34 @@ function TemplateCard({
   const photo = useResumeStore((state) => state.basics.photo)
   const selected = useTemplateSwitchStore((state) => state.selectedBinding)
   const select = useTemplateSwitchStore((state) => state.selectTemplate)
+
   const definition = useResumeTemplateStore(
     (state) => state.definitions[templateKey(binding)],
   )
+
   const current = sameTemplateBinding(binding, currentBinding)
   const active = sameTemplateBinding(binding, selected)
   const { ref, inRange } = useTemplateIntersection('160px', true)
+
   const preview = item?.previews.find(
     (preview) =>
       preview.templateVersion === binding.templateVersion &&
       preview.example.exampleId === item.defaultExample.exampleId &&
       preview.example.version === item.defaultExample.version,
   )
+
   const { url, status, retry } = useTemplatePreview(preview, inRange)
   const name = item?.name ?? '当前模板'
+
   const noPhoto =
     !!photo &&
     definition?.status === 'ready' &&
     !templateHasPhoto(definition.data)
+
   const newer =
     currentBinding?.templateId === binding.templateId &&
     binding.templateVersion > currentBinding.templateVersion
+
   return (
     <motion.div
       ref={ref}
@@ -171,26 +178,33 @@ export default function TemplateSwitchGallery() {
   const reduceMotion = useReducedMotion()
   const { loadMore, loadMoreError, nextOffset } = state
   const { ref, inRange } = useTemplateIntersection('160px', false, nextOffset)
+
   useEffect(() => {
     const catalog = useTemplateSwitchCatalog.getState()
+
     catalog.loadCatalog(catalog.catalogQuery)
     catalog.loadFacets()
     // 打开弹窗时恢复原有筛选，加载函数自身负责缓存和请求去重。
   }, [])
+
   useEffect(() => {
     if (inRange && !loadMoreError) loadMore()
   }, [inRange, nextOffset, loadMoreError, loadMore])
+
   const query = state.catalogQuery
   const items = state.catalog.status === 'ready' ? state.catalog.data : []
+
   const facets =
     state.facets.status === 'ready'
       ? state.facets.data
       : { styles: ['简约', '创意'], layouts: ['单栏', '双栏'] }
+
   const currentMatches =
     (!query.style && !query.layout) ||
     (!!current.item &&
       (!query.style || current.item.category.style === query.style) &&
       (!query.layout || current.item.category.layout === query.layout))
+
   const entries = items.map((item) => ({
     item,
     binding: toTemplateBinding({
@@ -198,12 +212,15 @@ export default function TemplateSwitchGallery() {
       templateVersion: item.currentVersion,
     }),
   }))
+
   if (currentBinding && currentMatches) {
     const duplicate = entries.findIndex((entry) =>
       sameTemplateBinding(entry.binding, currentBinding),
     )
+
     if (duplicate !== -1) entries.splice(duplicate, 1)
   }
+
   return (
     <div
       className='flex min-h-0 flex-1 flex-col'

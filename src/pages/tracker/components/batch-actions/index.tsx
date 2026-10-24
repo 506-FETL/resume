@@ -64,10 +64,14 @@ export default function BatchActions() {
       viewMode: state.viewMode,
     })),
   )
+
   const reduce = useReducedMotion()
+
   const [pendingBatchStatus, setPendingBatchStatus] =
     useState<ApplicationStatus | null>(null)
+
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
+
   const selectableCount = filterJobs(
     jobs,
     viewMode === 'list' ? filterStatus : null,
@@ -75,10 +79,12 @@ export default function BatchActions() {
     showArchived,
     viewMode === 'list' ? metricFilter : null,
   ).length
+
   const selectedCount = selectedIds.size
 
   const handleDeleteSelectedJobs = async () => {
     const { selectedIds: currentSelectedIds } = useTrackerStore.getState()
+
     if (currentSelectedIds.size === 0) return
 
     const ids = new Set(currentSelectedIds)
@@ -88,6 +94,7 @@ export default function BatchActions() {
       toast.success(`已删除 ${ids.size} 个职位`)
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       console.error('Failed to delete jobs:', error)
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
@@ -95,18 +102,22 @@ export default function BatchActions() {
 
   const runBatchStatusChange = async (newStatus: ApplicationStatus) => {
     const state = useTrackerStore.getState()
+
     const targets = state.jobs.filter(
       (job) => state.selectedIds.has(job.id) && job.status !== newStatus,
     )
+
     if (targets.length === 0) return
 
     try {
       await Promise.all(
         targets.map((job) => changeJobStatus(job.id, newStatus)),
       )
+
       exitSelectMode()
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('批量更新失败', {
         description: getTrackerErrorMessage(error),
       })
@@ -117,25 +128,31 @@ export default function BatchActions() {
   const handleBatchStatusChange = (newStatus: ApplicationStatus) => {
     if (newStatus === 'rejected' || newStatus === 'offer') {
       setPendingBatchStatus(newStatus)
+
       return
     }
+
     runBatchStatusChange(newStatus)
   }
 
   const handleBatchArchive = async () => {
     const state = useTrackerStore.getState()
+
     const targets = state.jobs.filter(
       (job) => state.selectedIds.has(job.id) && !job.archived,
     )
+
     if (targets.length === 0) return
 
     try {
       await Promise.all(
         targets.map((job) => saveJobFields(job.id, { archived: true })),
       )
+
       exitSelectMode()
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('批量归档失败', {
         description: getTrackerErrorMessage(error),
       })
@@ -265,6 +282,7 @@ export default function BatchActions() {
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
                 setPendingBatchStatus(null)
+
                 if (pendingBatchStatus) runBatchStatusChange(pendingBatchStatus)
               }}
             >

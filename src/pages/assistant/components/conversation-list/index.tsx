@@ -36,6 +36,7 @@ function groupConversations(list: AiConversation[]): ConversationGroup[] {
 
   for (const conv of list) {
     const updated = dayjs(conv.updatedAt)
+
     if (!updated.isValid() || !updated.isBefore(startOfToday))
       groups[0].items.push(conv)
     else if (!updated.isBefore(startOfYesterday)) groups[1].items.push(conv)
@@ -59,6 +60,7 @@ export default function ConversationList({
     loadingConversations: loading,
     pendingConversationId,
   } = useAssistantStore()
+
   const { openConversation, deleteAndSelectConversation } =
     useAssistantNavigation()
 
@@ -70,15 +72,19 @@ export default function ConversationList({
   const handleSelect = async (id: string) => {
     if (id === activeId && !pendingConversationId) {
       onNavigate?.()
+
       return
     }
+
     const opened = await openConversation(id)
+
     if (opened) onNavigate?.()
   }
 
   const handleRename = async (id: string, title: string) => {
     try {
       const updated = await updateConversation(id, { title })
+
       useAssistantStore.getState().upsertConversation(updated)
     } catch (error) {
       toast.error('重命名失败', { description: getErrorMessage(error) })

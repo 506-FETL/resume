@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { getVariantFieldMapping } from './fields'
 
 export * from './fields'
+
 export * from './types'
 
 const RESUME_SECTION_KEYS = [
@@ -30,6 +31,7 @@ type _SectionKeysCoverAll =
   > extends never
     ? true
     : false
+
 type _SectionKeysNoExtra =
   Exclude<
     (typeof RESUME_SECTION_KEYS)[number],
@@ -37,8 +39,10 @@ type _SectionKeysNoExtra =
   > extends never
     ? true
     : false
+
 const _coversAll: _SectionKeysCoverAll = true
 const _noExtra: _SectionKeysNoExtra = true
+
 // eslint-disable-next-line no-void
 void _coversAll
 // eslint-disable-next-line no-void
@@ -57,6 +61,7 @@ export const variantChangeSchema = z
   .refine(
     (change) => {
       const mapping = getVariantFieldMapping(change.section, change.fieldPath)
+
       return (
         mapping !== undefined &&
         (mapping.collection || change.itemId === 'whole')

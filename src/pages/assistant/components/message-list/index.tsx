@@ -31,6 +31,7 @@ const LIST_SKELETON_KEYS = [
 
 export default function MessageList() {
   const snapshot = useAssistantStore()
+
   const {
     initializing,
     loadingMessages,
@@ -38,6 +39,7 @@ export default function MessageList() {
     streaming,
     conversationViewVersion,
   } = snapshot
+
   const viewState =
     initializing || loadingMessages
       ? 'loading'
@@ -69,6 +71,7 @@ export default function MessageList() {
 
 function isCurrentMessageView(version: number, conversationId: string | null) {
   const current = useAssistantStore.getState()
+
   return (
     current.conversationViewVersion === version &&
     current.activeConversationId === conversationId &&
@@ -97,6 +100,7 @@ function LoadedMessages({
     hasMoreMessages,
     loadingOlder,
   } = snapshot
+
   const { regenerateFrom, editUserMessageAndRerun } = useChatStream()
   const { loadOlderMessages } = useAssistantNavigation()
   const isPresent = useIsPresent()
@@ -112,6 +116,7 @@ function LoadedMessages({
     const ownsTarget = () =>
       isCurrentMessageView(conversationViewVersion, activeConversationId) &&
       useAssistantStore.getState().targetMessageId === targetMessageId
+
     if (!ownsTarget()) return
 
     if (targetMessageId === CONVERSATION_BOTTOM_TARGET) {
@@ -119,14 +124,17 @@ function LoadedMessages({
         bottomRef.current.scrollIntoView({ block: 'end', behavior: 'auto' })
         setTargetMessageId(null)
       }
+
       return
     }
 
     const element = contentRef.current?.querySelector<HTMLElement>(
       `#${CSS.escape(`assistant-message-${targetMessageId}`)}`,
     )
+
     if (!element) {
       setTargetMessageId(null)
+
       return
     }
 
@@ -135,6 +143,7 @@ function LoadedMessages({
 
     const frame = window.requestAnimationFrame(() => {
       if (!ownsTarget()) return
+
       element.scrollIntoView({
         block: 'center',
         behavior: shouldReduceMotion ? 'auto' : 'smooth',
@@ -144,6 +153,7 @@ function LoadedMessages({
     const timer = window.setTimeout(() => {
       if (ownsTarget()) setTargetMessageId(null)
     }, MESSAGE_HIGHLIGHT_DURATION_MS)
+
     return () => {
       window.cancelAnimationFrame(frame)
       window.clearTimeout(timer)
@@ -161,13 +171,17 @@ function LoadedMessages({
   // 顶部哨兵：进入视口时加载更早消息，并补偿 scrollTop 避免视口跳动
   useEffect(() => {
     const sentinel = topSentinelRef.current
+
     if (!sentinel || !isPresent) return
+
     const root = sentinel.closest('.overflow-auto') as HTMLElement | null
     let cancelled = false
     let compensationFrame: number | undefined
+
     const io = new IntersectionObserver(
       async (entries) => {
         const current = useAssistantStore.getState()
+
         if (
           cancelled ||
           !entries[0]?.isIntersecting ||
@@ -177,13 +191,17 @@ function LoadedMessages({
         ) {
           return
         }
+
         const before = root?.scrollHeight ?? 0
+
         await loadOlderMessages()
+
         if (
           cancelled ||
           !isCurrentMessageView(conversationViewVersion, activeConversationId)
         )
           return
+
         compensationFrame = requestAnimationFrame(() => {
           if (
             root?.isConnected &&
@@ -191,6 +209,7 @@ function LoadedMessages({
             isCurrentMessageView(conversationViewVersion, activeConversationId)
           ) {
             const after = root.scrollHeight
+
             root.scrollTop += after - before
             // 补偿后重新测量：内容仍未填满视口时，保留原有的连续向前加载行为。
             io.unobserve(sentinel)
@@ -200,10 +219,13 @@ function LoadedMessages({
       },
       { root, threshold: 0.1 },
     )
+
     io.observe(sentinel)
+
     return () => {
       cancelled = true
       io.disconnect()
+
       if (compensationFrame !== undefined)
         cancelAnimationFrame(compensationFrame)
     }

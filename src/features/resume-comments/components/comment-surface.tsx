@@ -39,40 +39,52 @@ export function CommentSurface({
   const client = useResumeCommentClient()
   const { store } = useResumeCommentContext()
   const [internalOpen, setInternalOpen] = useState(false)
+
   const [creationSnapshot, setCreationSnapshot] =
     useState<PendingCommentCreationSnapshot | null>(null)
+
   const [picker, setPicker] = useState<{
     threadIds: string[]
     point: { x: number; y: number }
   } | null>(null)
+
   const open = controlledOpen ?? internalOpen
   const scope = useResumeCommentStore((state) => state.scope)
   const scopeEpoch = useResumeCommentStore((state) => state.scopeEpoch)
   const selection = useResumeCommentStore((state) => state.selection)
+
   const threads = useResumeCommentStore(
     useShallow((state) =>
       state.orderedThreadIds.map((id) => state.threadsById[id]).filter(Boolean),
     ),
   )
+
   const activeThreadId = useResumeCommentStore((state) => state.activeThreadId)
+
   const hoveredThreadId = useResumeCommentStore(
     (state) => state.hoveredThreadId,
   )
+
   const relinkThreadId = useResumeCommentStore((state) => state.relinkThreadId)
   const cancelRelink = useResumeCommentStore((state) => state.cancelRelink)
   const setRelinkError = useResumeCommentStore((state) => state.setRelinkError)
+
   const setActiveThread = useResumeCommentStore(
     (state) => state.setActiveThread,
   )
+
   const setHoveredThread = useResumeCommentStore(
     (state) => state.setHoveredThread,
   )
+
   const highlightsHidden = useResumeCommentStore(
     (state) => state.highlightsHidden,
   )
+
   const accessState = useResumeCommentStore((state) => state.accessState)
   const access = client.getAccessContext()
   const actions = useCommentActions()
+
   const resolvedPermissions = permissions ?? {
     canCreate:
       access.kind === 'owner' ||
@@ -80,15 +92,19 @@ export function CommentSurface({
     canModerateAll: access.kind === 'owner',
     currentAnonymousId: access.kind === 'share' ? access.anonymous?.id : null,
   }
+
   const { clearSelection } = useCommentSelection({
     rootRef,
     documentHash: scope?.documentHash ?? '',
     enabled: enabled && accessState !== 'unavailable',
   })
+
   const setOpen = useCallback(
     (value: boolean) => {
       if (controlledOpen === undefined) setInternalOpen(value)
+
       onOpenChange?.(value)
+
       if (!value) {
         clearSelection()
         setCreationSnapshot(null)
@@ -98,6 +114,7 @@ export function CommentSurface({
     },
     [clearSelection, controlledOpen, onOpenChange, store],
   )
+
   const { geometry } = useHighlightGeometry({
     rootRef,
     threads,
@@ -108,6 +125,7 @@ export function CommentSurface({
   const handleHighlightHover = useCallback(
     (threadId: string | null) => {
       if (!open) return
+
       setHoveredThread(threadId)
     },
     [open, setHoveredThread],
@@ -127,22 +145,30 @@ export function CommentSurface({
     if (!selection || !scope) return
     if (relinkThreadId) {
       const thread = threads.find((item) => item.id === relinkThreadId)
+
       if (!thread) {
         setRelinkError('待关联的评论已不存在')
+
         return
       }
+
       const response = await actions.relinkThread(thread)
+
       if (!response) {
         setRelinkError('重新关联失败，请重新选择文字后再试')
         setActiveThread(thread.id)
         setOpen(true)
+
         return
       }
+
       clearSelection()
       cancelRelink()
       openThread(thread.id)
+
       return
     }
+
     const matching = threads.filter(
       (thread) =>
         !thread.resolvedAt &&
@@ -153,24 +179,31 @@ export function CommentSurface({
           selection.anchor,
         ) !== 'none',
     )
+
     if (matching.length === 1) {
       openThread(matching[0]!.id)
+
       return
     }
     if (matching.length > 1) {
       const rect = selection.clientRects.at(-1)
+
       setPicker({
         threadIds: matching.map((thread) => thread.id),
         point: { x: rect?.right ?? 12, y: rect?.bottom ?? 12 },
       })
+
       return
     }
+
     setActiveThread(null)
+
     setCreationSnapshot({
       selection,
       scopeId: scope.id,
       scopeEpoch,
     })
+
     setOpen(true)
   }, [
     actions,
@@ -196,6 +229,7 @@ export function CommentSurface({
     ) {
       return
     }
+
     setCreationSnapshot(null)
   }, [creationSnapshot, scope?.id, scopeEpoch])
 
@@ -205,23 +239,29 @@ export function CommentSurface({
       if (relinkThreadId) {
         clearSelection()
         cancelRelink()
+
         return
       }
       if (selection) {
         clearSelection()
+
         return
       }
       if (picker) {
         setPicker(null)
+
         return
       }
       if (activeThreadId) {
         setActiveThread(null)
+
         return
       }
       if (open) setOpen(false)
     }
+
     window.addEventListener('keydown', handleEscape)
+
     return () => window.removeEventListener('keydown', handleEscape)
   }, [
     activeThreadId,
@@ -240,6 +280,7 @@ export function CommentSurface({
       picker
         ? picker.threadIds.flatMap((id) => {
             const thread = threads.find((item) => item.id === id)
+
             return thread ? [thread] : []
           })
         : [],

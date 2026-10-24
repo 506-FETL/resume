@@ -45,5 +45,7 @@ export const REWRITE_ACTION_META: Record<RewriteAction, ActionMeta> = {
 }
 
 export const SELECTION_MIN_CHARS = 10
+
 export const JD_MIN_CHARS = 10
+
 export const REWRITE_TEMPERATURE = 0.6

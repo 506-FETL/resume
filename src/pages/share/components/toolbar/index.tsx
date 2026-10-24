@@ -38,10 +38,12 @@ export default function Toolbar() {
     setResumeFilters,
     setStatusFilter,
   } = useShareStore()
+
   const { resetFilters, clearSearch } = useShareFilterActions()
   const [resumeOpen, setResumeOpen] = useState(false)
   const reduceMotion = useReducedMotion()
   const indicatorId = useId()
+
   const resumes = useMemo(
     () =>
       Object.values(resumeMap).sort((a, b) =>
@@ -49,6 +51,7 @@ export default function Toolbar() {
       ),
     [resumeMap],
   )
+
   const selectedLabel =
     resumeFilters.length === 0
       ? '全部简历'
@@ -56,6 +59,7 @@ export default function Toolbar() {
         ? (resumes.find((resume) => resume.resumeId === resumeFilters[0])
             ?.displayName ?? '已选 1 项')
         : `已选 ${resumeFilters.length} 份简历`
+
   const filteredShares = useMemo(
     () =>
       filterShares(allShares, {
@@ -65,6 +69,7 @@ export default function Toolbar() {
       }),
     [allShares, searchKeyword, resumeFilters],
   )
+
   const hasFilter =
     Boolean(searchKeyword) || resumeFilters.length > 0 || statusFilter !== 'all'
 
@@ -87,6 +92,7 @@ export default function Toolbar() {
                   : filteredShares.filter(
                       (share) => deriveShareStatus(share) === value,
                     ).length
+
               return (
                 <TabsTrigger
                   key={value}

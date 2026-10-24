@@ -26,6 +26,7 @@ export function filterCommentThreads(
       (thread) =>
         Boolean(thread.resolvedAt) && thread.anchorStatus !== 'detached',
     )
+
   return threads.filter(
     (thread) => !thread.resolvedAt && thread.anchorStatus === 'anchored',
   )
@@ -33,7 +34,9 @@ export function filterCommentThreads(
 
 function formatActivity(value: string) {
   const timestamp = Date.parse(value)
+
   if (!Number.isFinite(timestamp)) return ''
+
   return new Intl.DateTimeFormat('zh-CN', {
     month: 'numeric',
     day: 'numeric',
@@ -46,8 +49,10 @@ function ThreadAuthor({ thread }: { thread: ResumeCommentThread }) {
   const author = thread.comments.find(
     (comment) => comment.parentId === null,
   )?.author
+
   const image = author?.kind === 'user' ? author.avatarUrl : null
   const name = author?.displayName ?? '已删除用户'
+
   return (
     <span className='flex min-w-0 items-center gap-2 text-xs text-muted-foreground'>
       <Avatar className='size-5'>
@@ -78,11 +83,14 @@ export function ThreadList({
 }) {
   const actions = useCommentActions()
   const reduceMotion = useReducedMotion()
+
   const pendingEntities = useResumeCommentStore(
     (state) => state.pendingEntities,
   )
+
   const mutationErrors = useResumeCommentStore((state) => state.mutationErrors)
   const filtered = filterCommentThreads(threads, filter)
+
   if (filtered.length === 0) {
     return (
       <div className='flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center text-sm text-muted-foreground'>
@@ -97,6 +105,7 @@ export function ThreadList({
       </div>
     )
   }
+
   return (
     <div className='w-full min-w-0 space-y-2 p-3'>
       <AnimatePresence initial={false} mode='popLayout'>
@@ -104,18 +113,22 @@ export function ThreadList({
           const root = thread.comments.find(
             (comment) => comment.parentId === null,
           )
+
           const replies = thread.comments.filter(
             (comment) => comment.parentId !== null,
           ).length
+
           const resolveKey = `thread:${thread.id}:resolve`
           const resolving = pendingEntities[resolveKey] === true
           const resolveError = mutationErrors[resolveKey]
           const unread = unreadThreadIds.includes(thread.id)
+
           const canResolve =
             !thread.localOnly &&
             !thread.resolvedAt &&
             (permissions.canModerateAll ||
               Boolean(root && isCurrentCommentAuthor(root.author, permissions)))
+
           return (
             <motion.div
               key={thread.id}

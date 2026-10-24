@@ -28,6 +28,7 @@ export function TemplatePageBackground({
   const page = resolveTemplatePage(definition, appearance)
   const environment = createTemplateStyleEnvironment(definition, appearance)
   const pattern = definition.page.pattern
+
   return (
     <div
       aria-hidden='true'

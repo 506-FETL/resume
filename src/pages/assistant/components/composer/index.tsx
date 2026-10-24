@@ -27,6 +27,7 @@ export default function Composer() {
     deepThinking,
     setDeepThinking,
   } = useAssistantStore()
+
   const { sendMessage, stopStreaming } = useChatStream()
   const { resumes, jobs } = useComposerContext()
   const disabled = streaming || initializing || loadingMessages
@@ -35,11 +36,13 @@ export default function Composer() {
   const appendDraft = (text: string) => {
     const cur = useAssistantStore.getState().composerDraft
     const next = cur ? `${cur.replace(/\s*$/, '')} ${text} ` : `${text} `
+
     useAssistantStore.getState().setComposerDraft(next)
   }
 
   const contextOptions = useMemo<ComposerContextOption[]>(() => {
     const opts: ComposerContextOption[] = []
+
     resumes.forEach((r) =>
       opts.push({
         id: `resume-${r.resumeId}`,
@@ -49,6 +52,7 @@ export default function Composer() {
           appendDraft(`【参考简历：${r.name}(resumeId=${r.resumeId})】`),
       }),
     )
+
     jobs.forEach((j) =>
       opts.push({
         id: `job-${j.id}`,
@@ -57,33 +61,44 @@ export default function Composer() {
         onClick: () => appendDraft(`【参考职位：${j.company}·${j.position}】`),
       }),
     )
+
     return opts
   }, [resumes, jobs])
 
   const handleToolSelect = (tool: Tool) => {
     if (tool.skillId) {
       const state = useAssistantStore.getState()
+
       state.setComposerSkillIds([...state.composerSkillIds, tool.skillId])
+
       if (/^[$/]\S*$/.test(state.composerDraft.trim()))
         state.setComposerDraft('')
+
       return
     }
+
     const template = TEMPLATE_PROMPTS[tool.name] ?? ''
+
     if (!template) return
+
     const cur = useAssistantStore.getState().composerDraft
+
     // 通过 "/" 触发时替换掉查询串；否则追加到已有内容
     const merged = cur.startsWith('/')
       ? template
       : cur
         ? `${cur}\n${template}`
         : template
+
     // 去掉模板末尾多余的换行，避免插入后留下一个空行（光标随后聚焦到末尾）
     const next = merged.replace(/\n+$/, '')
+
     useAssistantStore.getState().setComposerDraft(next)
   }
 
   const submit = (message: string) => {
     const text = message.trim()
+
     if (disabled || (!text && composerSkillIds.length === 0)) return
     if (sendMessage(text, composerSkillIds)) {
       useAssistantStore.setState({ composerDraft: '', composerSkillIds: [] })
@@ -94,6 +109,7 @@ export default function Composer() {
     () =>
       composerSkillIds.flatMap((id) => {
         const skill = BUILTIN_SKILLS.find((item) => item.id === id)
+
         return skill ? [{ id: skill.id, displayName: skill.displayName }] : []
       }),
     [composerSkillIds],

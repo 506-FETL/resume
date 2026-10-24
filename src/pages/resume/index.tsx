@@ -31,10 +31,12 @@ export default function ResumePage() {
   const user = useCurrentUser()
   const [createOpen, setCreateOpen] = useState(false)
   const createTriggerRef = useRef<HTMLElement | null>(null)
+
   function openCreate(event: MouseEvent<HTMLButtonElement>) {
     createTriggerRef.current = event.currentTarget
     setCreateOpen(true)
   }
+
   const {
     accountId,
     loadError: storeError,
@@ -51,6 +53,7 @@ export default function ResumePage() {
     derivedJobsOpen,
     setDerivedJobsOpen,
   } = useResumeListStore()
+
   const accountMatches = accountId === (user?.id ?? null)
   const resumes = accountMatches ? rawResumes : EMPTY_RESUMES
   const loading = !accountMatches || storeLoading
@@ -61,14 +64,17 @@ export default function ResumePage() {
   const navigate = useNavigate()
   const shouldReduceMotion = useReducedMotion()
   const retainedDeriveParentId = useRef<string | null>(derivePendingFor)
+
   if (derivePendingFor) {
     retainedDeriveParentId.current = derivePendingFor
   }
+
   const deriveDialogParentId =
     derivePendingFor ?? retainedDeriveParentId.current
 
   useEffect(() => {
     loadResumes()
+
     return () => useResumeListStore.getState().cancelLoad()
   }, [loadResumes, user?.id])
 
@@ -85,6 +91,7 @@ export default function ResumePage() {
       return resumes.filter(
         (r) => r.parent_resume_id && r.derived_status === 'ready',
       )
+
     return resumes
   }, [resumes, filterMode])
 
@@ -142,6 +149,7 @@ export default function ResumePage() {
             <AnimatePresence mode='popLayout' initial={false}>
               {visibleItems.map((resume, index) => {
                 const isSyncingThis = syncingIds.has(resume.resume_id)
+
                 return (
                   <PresenceDiv
                     key={resume.resume_id}
@@ -227,6 +235,7 @@ export default function ResumePage() {
           <QuickDialog
             getSnapshot={async () => {
               if (!shareOpenForResumeId) throw new Error('未选择简历')
+
               return getResumeSnapshotById(shareOpenForResumeId)
             }}
           />
@@ -248,6 +257,7 @@ export default function ResumePage() {
               initialJd={pendingResume?.linked_jd_text ?? ''}
               onOpenResume={(draftId) => {
                 const target = resumes.find((r) => r.resume_id === draftId)
+
                 setCurrentResume(draftId, target?.type ?? 'default')
                 navigate('/resume/editor')
               }}

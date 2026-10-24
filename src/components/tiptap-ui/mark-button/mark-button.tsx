@@ -18,8 +18,7 @@ import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 import { parseShortcutKeys } from '@/lib/tiptap-utils'
 
 export interface MarkButtonProps
-  extends Omit<ButtonProps, 'type'>,
-  UseMarkConfig {
+  extends Omit<ButtonProps, 'type'>, UseMarkConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -46,8 +45,20 @@ export function MarkShortcutBadge({
  *
  * For custom button implementations, use the `useMark` hook instead.
  */
-export function MarkButton({ ref, editor: providedEditor, type, text, hideWhenUnavailable = false, onToggled, showShortcut = false, onClick, children, ...buttonProps }: MarkButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function MarkButton({
+  ref,
+  editor: providedEditor,
+  type,
+  text,
+  hideWhenUnavailable = false,
+  onToggled,
+  showShortcut = false,
+  onClick,
+  children,
+  ...buttonProps
+}: MarkButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
   const { editor } = useTiptapEditor(providedEditor)
+
   const {
     isVisible,
     handleMark,
@@ -66,8 +77,9 @@ export function MarkButton({ ref, editor: providedEditor, type, text, hideWhenUn
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
-      if (event.defaultPrevented)
-        return
+
+      if (event.defaultPrevented) return
+
       handleMark()
     },
     [handleMark, onClick],
@@ -79,12 +91,12 @@ export function MarkButton({ ref, editor: providedEditor, type, text, hideWhenUn
 
   return (
     <Button
-      type="button"
+      type='button'
       disabled={!canToggle}
-      data-style="ghost"
+      data-style='ghost'
       data-active-state={isActive ? 'on' : 'off'}
       data-disabled={!canToggle}
-      role="button"
+      role='button'
       tabIndex={-1}
       aria-label={label}
       aria-pressed={isActive}
@@ -95,8 +107,8 @@ export function MarkButton({ ref, editor: providedEditor, type, text, hideWhenUn
     >
       {children ?? (
         <>
-          <Icon className="tiptap-button-icon" />
-          {text && <span className="tiptap-button-text">{text}</span>}
+          <Icon className='tiptap-button-icon' />
+          {text && <span className='tiptap-button-text'>{text}</span>}
           {showShortcut && (
             <MarkShortcutBadge type={type} shortcutKeys={shortcutKeys} />
           )}

@@ -23,8 +23,10 @@ function statOf(
   part: ToolCallPart,
 ): { additions: number; deletions: number } | null {
   const result = part.result
+
   const sectionKey = (part.args as { sectionKey?: string } | undefined)
     ?.sectionKey
+
   if (
     !sectionKey ||
     !result ||
@@ -33,7 +35,9 @@ function statOf(
     !('after' in result)
   )
     return null
+
   const r = result as { before: unknown; after: unknown }
+
   return fieldDiffStat(sectionKey, r.before, r.after)
 }
 
@@ -42,6 +46,7 @@ export function ToolCallPartGroup({
   streaming = false,
 }: ToolCallPartProps) {
   const reduced = useReducedMotion()
+
   const targetTab = calls
     .map((c) => TOOL_CANVAS_META[c.toolName]?.targetTab)
     .find(Boolean)
@@ -52,8 +57,10 @@ export function ToolCallPartGroup({
       <div className='flex flex-col gap-0.5 border-l-2 border-border/70 pl-3'>
         {calls.map((c) => {
           const meta = TOOL_CANVAS_META[c.toolName]
+
           const label =
             getSkillToolLabel(c.toolName, c.args) ?? meta?.label ?? c.toolName
+
           const skillError =
             isSkillTool(c.toolName) &&
             c.state === 'error' &&
@@ -62,8 +69,10 @@ export function ToolCallPartGroup({
             'error' in c.result
               ? String(c.result.error)
               : null
+
           const pending = c.state === 'call' || c.state === 'awaiting-confirm'
           const stat = statOf(c)
+
           return (
             <motion.div
               key={c.toolCallId}
@@ -137,6 +146,7 @@ export function ToolCallPartGroup({
               canvasOpen: true,
               canvasMobileOpen: true,
             })
+
             useAssistantStore.getState().requestCanvasTab(targetTab)
           }}
         >

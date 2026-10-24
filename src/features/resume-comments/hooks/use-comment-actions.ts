@@ -34,12 +34,14 @@ function countsAfterThreadRemoval(
     return { ...counts, detached: Math.max(0, counts.detached - 1) }
   if (thread.resolvedAt)
     return { ...counts, resolved: Math.max(0, counts.resolved - 1) }
+
   return { ...counts, unresolved: Math.max(0, counts.unresolved - 1) }
 }
 
 export function useCommentActions() {
   const { beforeWrite, client, invalidateAccess, store } =
     useResumeCommentContext()
+
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -50,6 +52,7 @@ export function useCommentActions() {
     const scopeId = state.scope?.id ?? null
     const scopeEpoch = state.scopeEpoch
     const authenticatedUserId = await client.getAuthenticatedUserId()
+
     return {
       access,
       authenticatedUserId,
@@ -83,18 +86,23 @@ export function useCommentActions() {
       const initialState = store.getState()
       const scopeId = initialState.scope?.id ?? null
       const scopeEpoch = initialState.scopeEpoch
+
       const isScopeCurrent = () => {
         const current = store.getState()
+
         return (
           (current.scope?.id ?? null) === scopeId &&
           current.scopeEpoch === scopeEpoch
         )
       }
+
       const lastEventSeq = initialState.lastEventSeq
+
       const [response, readContext] = await Promise.all([
         client.listEvents(lastEventSeq),
         resolveReadContext().catch(() => null),
       ])
+
       if (!isScopeCurrent()) return
 
       store.getState().applyRealtimePatch({
@@ -133,16 +141,20 @@ export function useCommentActions() {
       const initialState = store.getState()
       const mutationScopeId = initialState.scope?.id ?? null
       const mutationScopeEpoch = initialState.scopeEpoch
+
       const isMutationScopeCurrent = () => {
         const currentState = store.getState()
+
         return (
           currentState.scope?.id === mutationScopeId &&
           currentState.scopeEpoch === mutationScopeEpoch
         )
       }
+
       const assertMutationScopeCurrent = () => {
         if (!isMutationScopeCurrent()) throw new CommentScopeChangedError()
       }
+
       setPendingAction(entityKey)
       setErrorMessage(null)
 
@@ -150,6 +162,7 @@ export function useCommentActions() {
         entityKey,
         ...optimistic,
       })
+
       const marker = beginCommentPerformance('mutation')
 
       try {
@@ -160,7 +173,9 @@ export function useCommentActions() {
         assertMutationScopeCurrent()
 
         marker.countRequest()
+
         const response = await operation()
+
         assertMutationScopeCurrent()
 
         store.getState().commitMutation(entityKey, {
@@ -170,6 +185,7 @@ export function useCommentActions() {
           event: response.data.event,
           eventSeq: response.eventSeq,
         })
+
         if (
           response.data.event.threadId &&
           (response.data.event.type === 'thread_created' ||
@@ -182,6 +198,7 @@ export function useCommentActions() {
               response.eventSeq,
             )
         }
+
         marker.end({
           requestId: response.requestId,
           serverTiming: response.serverTiming,
@@ -200,6 +217,7 @@ export function useCommentActions() {
           store.getState().finishPending(entityKey)
           onIdempotentNotFound()
           marker.end({ detail: { status: 'already_deleted' } })
+
           return null
         }
         if (
@@ -211,9 +229,12 @@ export function useCommentActions() {
 
         const message =
           error instanceof Error ? error.message : '评论操作失败，请稍后重试'
+
         if (isMutationScopeCurrent())
           store.getState().rollbackMutation(entityKey, snapshot, message)
+
         setErrorMessage(message)
+
         return null
       } finally {
         setPendingAction(null)
@@ -226,6 +247,7 @@ export function useCommentActions() {
     async (threadId: string) => {
       const state = store.getState()
       const readState = state.threadReadStateById[threadId]
+
       if (!readState) return
       if (
         readState.latestCommentEventSeq <=
@@ -233,31 +255,46 @@ export function useCommentActions() {
       ) {
         return
       }
+
       const eventSeq = readState.latestCommentEventSeq
+
       store.getState().markThreadReadLocally(threadId, eventSeq)
+
       const entityKey = `thread:${threadId}:read`
+
       setPendingAction(entityKey)
       setErrorMessage(null)
+
       try {
         const readContext = await resolveReadContext()
+
         const isReadContextCurrent = () => {
           const current = store.getState()
+
           return (
             current.scope?.id === readContext.scopeId &&
             current.scopeEpoch === readContext.scopeEpoch
           )
         }
+
         if (!isReadContextCurrent()) throw new CommentScopeChangedError()
+
         const { cacheKey, hasServerPrincipal } = readContext
+
         if (cacheKey) {
           await updateCommentCacheThreadReadCursor(cacheKey, threadId, eventSeq)
         }
         if (!isReadContextCurrent()) throw new CommentScopeChangedError()
+
         let scopeLastReadEventSeq: number | undefined
+
         if (hasServerPrincipal) {
           const response = await client.markThreadRead(threadId, eventSeq)
+
           if (!isReadContextCurrent()) return
+
           const value = Number(response.data.scopeLastReadEventSeq)
+
           if (Number.isSafeInteger(value) && value >= 0) {
             scopeLastReadEventSeq = value
             store.getState().markReadLocally(value)
@@ -284,20 +321,27 @@ export function useCommentActions() {
 
   const markAllRead = useCallback(async () => {
     const eventSeq = store.getState().lastEventSeq
+
     store.getState().markAllReadLocally(eventSeq)
     setPendingAction('comments:mark-all-read')
     setErrorMessage(null)
+
     try {
       const readContext = await resolveReadContext()
+
       const isReadContextCurrent = () => {
         const current = store.getState()
+
         return (
           current.scope?.id === readContext.scopeId &&
           current.scopeEpoch === readContext.scopeEpoch
         )
       }
+
       if (!isReadContextCurrent()) throw new CommentScopeChangedError()
+
       const { cacheKey, hasServerPrincipal } = readContext
+
       if (cacheKey) await updateCommentCacheReadCursor(cacheKey, eventSeq)
       if (!isReadContextCurrent()) throw new CommentScopeChangedError()
       if (hasServerPrincipal) await client.markRead(eventSeq)
@@ -313,31 +357,38 @@ export function useCommentActions() {
   const sendPendingCreation = useCallback(
     async (requestId: string) => {
       const pending = store.getState().markPendingCreationSending(requestId)
+
       if (!pending) return
 
       const isPendingScopeCurrent = (creation: PendingCommentCreation) => {
         const state = store.getState()
+
         return (
           state.scope?.id === creation.scopeId &&
           state.scopeEpoch === creation.scopeEpoch
         )
       }
+
       const marker = beginCommentPerformance('mutation')
 
       try {
         if (pending.kind === 'thread') await beforeWrite?.()
         if (!isPendingScopeCurrent(pending)) {
           marker.end({ detail: { status: 'superseded' } })
+
           return
         }
 
         await prepareActor()
+
         if (!isPendingScopeCurrent(pending)) {
           marker.end({ detail: { status: 'superseded' } })
+
           return
         }
 
         marker.countRequest()
+
         const response =
           pending.kind === 'thread'
             ? await client.createThread({
@@ -359,14 +410,17 @@ export function useCommentActions() {
 
         if (!isPendingScopeCurrent(pending)) {
           marker.end({ detail: { status: 'superseded' } })
+
           return
         }
+
         store.getState().settlePendingCreation(requestId, {
           thread: response.data.thread,
           counts: response.data.counts,
           event: response.data.event,
           eventSeq: response.eventSeq,
         })
+
         if (response.data.event.threadId) {
           store
             .getState()
@@ -375,6 +429,7 @@ export function useCommentActions() {
               response.eventSeq,
             )
         }
+
         marker.end({
           requestId: response.requestId,
           serverTiming: response.serverTiming,
@@ -387,10 +442,13 @@ export function useCommentActions() {
         ) {
           invalidateAccess?.(error.code)
         }
+
         const message =
           error instanceof Error ? error.message : '评论发送失败，请稍后重试'
+
         if (isPendingScopeCurrent(pending))
           store.getState().failPendingCreation(requestId, message)
+
         marker.end({ detail: { status: 'failed' } })
       }
     },
@@ -409,10 +467,12 @@ export function useCommentActions() {
           creationSnapshot.scopeEpoch !== state.scopeEpoch)
       ) {
         setErrorMessage('评论来源已切换，请在当前版本重新划词后评论')
+
         return null
       }
 
       const requestId = crypto.randomUUID()
+
       const pending = store.getState().enqueuePendingThread({
         requestId,
         scopeId: state.scope.id,
@@ -426,10 +486,12 @@ export function useCommentActions() {
         originalPageIndex: selection.originalPageIndex,
         createdAt: new Date().toISOString(),
       })
+
       setErrorMessage(null)
       store.getState().setSelection(null)
       store.getState().clearDraft('new-thread')
       sendPendingCreation(requestId).catch(() => undefined)
+
       return pending
     },
     [sendPendingCreation, store],
@@ -442,6 +504,7 @@ export function useCommentActions() {
       parentCommentId?: string,
     ) => {
       const state = store.getState()
+
       if (!state.scope || thread.localOnly) return null
       if (
         Object.values(state.pendingCreationsByRequestId).some(
@@ -450,17 +513,21 @@ export function useCommentActions() {
       ) {
         return null
       }
+
       const resolvedParentCommentId =
         parentCommentId ??
         thread.comments.find(
           (comment) => comment.parentId === null && !comment.delivery,
         )?.id
+
       if (!resolvedParentCommentId) {
         setErrorMessage('回复目标不存在')
+
         return null
       }
 
       const requestId = crypto.randomUUID()
+
       const pending = store.getState().enqueuePendingReply({
         requestId,
         scopeId: state.scope.id,
@@ -472,12 +539,17 @@ export function useCommentActions() {
         body,
         createdAt: new Date().toISOString(),
       })
+
       if (!pending) return null
+
       setErrorMessage(null)
+
       store
         .getState()
         .clearDraft(`reply:${thread.id}:${parentCommentId ?? 'root'}`)
+
       sendPendingCreation(requestId).catch(() => undefined)
+
       return pending
     },
     [sendPendingCreation, store],
@@ -511,9 +583,11 @@ export function useCommentActions() {
   const deleteComment = useCallback(
     async (thread: ResumeCommentThread, commentId: string) => {
       let alreadyDeleted = false
+
       const cacheKeyPromise = resolveReadContext()
         .then((context) => context.cacheKey)
         .catch(() => null)
+
       const response = await execute(
         `comment:${commentId}:delete`,
         () => client.deleteComment(thread, commentId),
@@ -532,8 +606,11 @@ export function useCommentActions() {
           alreadyDeleted = true
         },
       )
+
       const cacheKey = await cacheKeyPromise
+
       if (cacheKey) await deleteCommentCache(cacheKey).catch(() => undefined)
+
       return response ?? (alreadyDeleted ? true : null)
     },
     [client, execute, resolveReadContext],
@@ -542,9 +619,11 @@ export function useCommentActions() {
   const deleteThread = useCallback(
     async (thread: ResumeCommentThread) => {
       let alreadyDeleted = false
+
       const cacheKeyPromise = resolveReadContext()
         .then((context) => context.cacheKey)
         .catch(() => null)
+
       const response = await execute(
         `thread:${thread.id}:delete`,
         () => client.deleteThread(thread),
@@ -557,8 +636,11 @@ export function useCommentActions() {
           alreadyDeleted = true
         },
       )
+
       const cacheKey = await cacheKeyPromise
+
       if (cacheKey) await deleteCommentCache(cacheKey).catch(() => undefined)
+
       return response ?? (alreadyDeleted ? true : null)
     },
     [client, execute, resolveReadContext, store],
@@ -590,8 +672,11 @@ export function useCommentActions() {
       execute(`thread:${thread.id}:reopen`, () => client.reopenThread(thread)),
     relinkThread: (thread: ResumeCommentThread) => {
       const state = store.getState()
+
       if (!state.selection || !state.scope) return Promise.resolve(null)
+
       const selection = state.selection
+
       // 不做乐观更新：重新关联期间保持 pending（提示栏 + 按钮 loading），
       // 待服务端确认后由 commitMutation 应用新锚点，避免界面无反馈或提前改状态。
       return execute(
@@ -608,6 +693,7 @@ export function useCommentActions() {
         true,
       ).then((response) => {
         if (response) store.getState().setSelection(null)
+
         return response
       })
     },

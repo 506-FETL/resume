@@ -31,6 +31,7 @@ import VisibilityIcon from '../visibility-icon'
 
 export default function SettingsDialog() {
   const reduceMotion = useReducedMotion()
+
   const {
     allShares,
     shares,
@@ -40,30 +41,39 @@ export default function SettingsDialog() {
     closeSettingsDialog,
     updateSettings,
   } = useShareStore()
+
   const share = findShareById(allShares, shares, settingsShareId)
+
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
   )
+
   const renderedShare =
     retainedShare?.id === settingsShareId ? retainedShare : share
+
   const initializedShareIdRef = useRef<string | null>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+
   const busy = Boolean(
     settingsShareId && pendingShareIds.includes(settingsShareId),
   )
+
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [passwordEnabled, setPasswordEnabled] = useState(false)
   const [allowComments, setAllowComments] = useState(true)
   const [password, setPassword] = useState('')
+
   const [showCurrentPasswordState, setShowCurrentPasswordState] =
     useState(false)
+
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
 
   useLayoutEffect(() => {
     if (!settingsDialogOpen) {
       initializedShareIdRef.current = null
+
       return
     }
     if (!share || initializedShareIdRef.current === share.id) return
@@ -84,12 +94,15 @@ export default function SettingsDialog() {
     if (!share) return
 
     const nextPassword = password.trim()
+
     if (passwordEnabled && !share.has_password && !nextPassword) {
       setValidationError('开启密码访问时，请输入一个访问密码。')
+
       return
     }
 
     setValidationError(null)
+
     try {
       await updateSettings(share.id, {
         label: label.trim() || null,
@@ -97,6 +110,7 @@ export default function SettingsDialog() {
         password: passwordEnabled ? nextPassword || undefined : null,
         allowComments,
       })
+
       toast.success('分享设置已更新')
       closeSettingsDialog()
     } catch {

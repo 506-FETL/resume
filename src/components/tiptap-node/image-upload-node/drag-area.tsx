@@ -21,6 +21,7 @@ export const ImageUploadDragArea: React.FC<ImageUploadDragAreaProps> = ({
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragActive(false)
       setIsDragOver(false)
@@ -40,6 +41,7 @@ export const ImageUploadDragArea: React.FC<ImageUploadDragAreaProps> = ({
     setIsDragOver(false)
 
     const files = Array.from(e.dataTransfer.files)
+
     if (files.length > 0) {
       onFile(files)
     }

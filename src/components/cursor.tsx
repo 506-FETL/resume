@@ -22,6 +22,7 @@ export const Cursor = memo(
 
     const animateCursor = useCallback((nextPoint: number[]) => {
       const element = cursorRef.current
+
       if (!element) return
 
       element.style.setProperty(
@@ -53,4 +54,5 @@ export const Cursor = memo(
     )
   },
 )
+
 Cursor.displayName = 'Cursor'

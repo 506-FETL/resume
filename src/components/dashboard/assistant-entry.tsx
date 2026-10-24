@@ -18,6 +18,7 @@ export function AssistantEntry() {
   const location = useLocation()
   const reduceMotion = useReducedMotion()
   const from = serializeInternalLocation(location)
+
   const isActive =
     location.pathname === '/assistant' ||
     location.pathname.startsWith('/assistant/')

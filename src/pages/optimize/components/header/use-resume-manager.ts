@@ -40,6 +40,7 @@ interface UseResumeManagerReturn {
 export function useResumeManager(): UseResumeManagerReturn {
   const { atsConfigs, currentAtsConfig, selectedResumeId, setSelectedResume } =
     useAtsStore()
+
   const {
     resumes: storedResumes,
     accountId,
@@ -48,6 +49,7 @@ export function useResumeManager(): UseResumeManagerReturn {
     loadResumes,
     cancelLoad,
   } = useResumeListStore()
+
   const userId = useUserStore((state) => state.currentUser?.id ?? null)
   const authStatus = useUserStore((state) => state.authStatus)
   const accountMatches = authStatus !== 'unknown' && accountId === userId
@@ -58,16 +60,20 @@ export function useResumeManager(): UseResumeManagerReturn {
 
   useEffect(() => {
     if (authStatus === 'unknown') return
+
     loadResumes()
+
     return cancelLoad
   }, [authStatus, userId, loadResumes, cancelLoad])
 
   const resumes = useMemo<ResumeConfig[]>(() => {
     if (!accountMatches) return []
+
     return storedResumes.map((resume) => {
       const resumeAts = atsConfigs?.find(
         (ats) => ats.resume_id === resume.resume_id,
       )
+
       return {
         id: resume.resume_id,
         resume_id: resume.resume_id,
@@ -85,6 +91,7 @@ export function useResumeManager(): UseResumeManagerReturn {
       const found = resumes.find(
         (r) => r.resume_id === currentAtsConfig.resume_id,
       )
+
       if (found)
         setSelectedResume(
           found.resume_id,
@@ -103,6 +110,7 @@ export function useResumeManager(): UseResumeManagerReturn {
         resume.resume_id,
         resume.isOffline ? 'offline' : 'online',
       )
+
       setOpen(false)
     },
     [setSelectedResume],
@@ -121,7 +129,9 @@ export function useResumeManager(): UseResumeManagerReturn {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
+
     const files = e.dataTransfer.files
+
     if (files.length > 0) {
       // TODO: 处理文件上传
     }
@@ -129,14 +139,18 @@ export function useResumeManager(): UseResumeManagerReturn {
 
   const handleFileSelect = useCallback(() => {
     const input = document.createElement('input')
+
     input.type = 'file'
     input.accept = '.pdf,.doc,.docx'
+
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files
+
       if (files && files.length > 0) {
         // TODO: 处理文件选择逻辑
       }
     }
+
     input.click()
   }, [])
 
@@ -159,6 +173,7 @@ export function useResumeManager(): UseResumeManagerReturn {
   const iconColorClass = useMemo(() => {
     if (!currentResume) return 'text-muted-foreground'
     if (currentResume.isScored) return 'text-green-600'
+
     return currentResume.isOffline ? 'text-amber-600' : 'text-blue-600'
   }, [currentResume])
 

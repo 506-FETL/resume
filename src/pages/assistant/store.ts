@@ -26,18 +26,22 @@ export interface TokenUsage {
 function readStoredCanvasWidth(): number {
   try {
     const raw = Number(localStorage.getItem(ASSISTANT_CANVAS_WIDTH_STORAGE_KEY))
+
     if (Number.isFinite(raw) && raw > 0)
       return Math.min(CANVAS_MAX_WIDTH, Math.max(CANVAS_MIN_WIDTH, raw))
   } catch {}
+
   return CANVAS_DEFAULT_WIDTH
 }
 
 function readStoredCanvasTab(): CanvasTabKey {
   try {
     const raw = localStorage.getItem(ASSISTANT_CANVAS_TAB_STORAGE_KEY)
+
     if (raw && (CANVAS_TABS as readonly string[]).includes(raw))
       return raw as CanvasTabKey
   } catch {}
+
   return 'resume'
 }
 
@@ -175,14 +179,17 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   upsertConversation: (conv) =>
     set((state) => {
       const exists = state.conversations.some((c) => c.id === conv.id)
+
       const conversations = exists
         ? state.conversations.map((c) => (c.id === conv.id ? conv : c))
         : [conv, ...state.conversations]
+
       // 按 updatedAt desc 维持列表顺序
       conversations.sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       )
+
       return { conversations }
     }),
   removeConversationLocal: (id) =>
@@ -258,9 +265,11 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
       CANVAS_MAX_WIDTH,
       Math.max(CANVAS_MIN_WIDTH, Math.round(px)),
     )
+
     try {
       localStorage.setItem(ASSISTANT_CANVAS_WIDTH_STORAGE_KEY, String(clamped))
     } catch {}
+
     set({ canvasWidth: clamped })
   },
   setCanvasMobileOpen: (v) => set({ canvasMobileOpen: v }),
@@ -268,15 +277,18 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
     try {
       localStorage.setItem(ASSISTANT_CANVAS_TAB_STORAGE_KEY, tab)
     } catch {}
+
     set({ canvasActiveTab: tab })
   },
   // 自动切换请求：tab 被固定时忽略，避免切换会话/新消息时自动跳走
   requestCanvasTab: (tab) =>
     set((state) => {
       if (state.canvasTabPinned) return {}
+
       try {
         localStorage.setItem(ASSISTANT_CANVAS_TAB_STORAGE_KEY, tab)
       } catch {}
+
       return { canvasActiveTab: tab }
     }),
   setCanvasTabPinned: (v) => {
@@ -303,8 +315,10 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   finishConversationRun: (conversationId) =>
     set((state) => {
       if (!state.inFlightConversationIds[conversationId]) return {}
+
       const { [conversationId]: _, ...inFlightConversationIds } =
         state.inFlightConversationIds
+
       return { inFlightConversationIds }
     }),
   reset: () =>
@@ -327,8 +341,10 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
 
 export function cancelActiveAssistantRun(): void {
   const state = useAssistantStore.getState()
+
   state.pendingConfirm?.resolve(false)
   state.abortController?.abort()
+
   useAssistantStore.setState({
     streaming: false,
     streamingText: '',

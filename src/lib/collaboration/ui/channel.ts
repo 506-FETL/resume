@@ -71,6 +71,7 @@ export function bindCollaborationUIChannel(options: {
   channel.on('presence', { event: 'join' }, ({ newPresences }) => {
     const hasRemoteUser = newPresences.some((presence) => {
       const joinedUserId = getPresenceUserId(presence)
+
       return joinedUserId !== null && joinedUserId !== selfUserId
     })
 

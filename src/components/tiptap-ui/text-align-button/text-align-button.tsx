@@ -24,11 +24,11 @@ import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 import { parseShortcutKeys } from '@/lib/tiptap-utils'
 
 type IconProps = React.SVGProps<SVGSVGElement>
+
 type IconComponent = ({ className, ...props }: IconProps) => React.ReactElement
 
 export interface TextAlignButtonProps
-  extends Omit<ButtonProps, 'type'>,
-  UseTextAlignConfig {
+  extends Omit<ButtonProps, 'type'>, UseTextAlignConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -59,8 +59,21 @@ export function TextAlignShortcutBadge({
  *
  * For custom button implementations, use the `useTextAlign` hook instead.
  */
-export function TextAlignButton({ ref, editor: providedEditor, align, text, hideWhenUnavailable = false, onAligned, showShortcut = false, onClick, icon: CustomIcon, children, ...buttonProps }: TextAlignButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function TextAlignButton({
+  ref,
+  editor: providedEditor,
+  align,
+  text,
+  hideWhenUnavailable = false,
+  onAligned,
+  showShortcut = false,
+  onClick,
+  icon: CustomIcon,
+  children,
+  ...buttonProps
+}: TextAlignButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
   const { editor } = useTiptapEditor(providedEditor)
+
   const {
     isVisible,
     handleTextAlign,
@@ -79,8 +92,9 @@ export function TextAlignButton({ ref, editor: providedEditor, align, text, hide
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
-      if (event.defaultPrevented)
-        return
+
+      if (event.defaultPrevented) return
+
       handleTextAlign()
     },
     [handleTextAlign, onClick],
@@ -94,12 +108,12 @@ export function TextAlignButton({ ref, editor: providedEditor, align, text, hide
 
   return (
     <Button
-      type="button"
+      type='button'
       disabled={!canAlign}
-      data-style="ghost"
+      data-style='ghost'
       data-active-state={isActive ? 'on' : 'off'}
       data-disabled={!canAlign}
-      role="button"
+      role='button'
       tabIndex={-1}
       aria-label={label}
       aria-pressed={isActive}
@@ -110,13 +124,10 @@ export function TextAlignButton({ ref, editor: providedEditor, align, text, hide
     >
       {children ?? (
         <>
-          <RenderIcon className="tiptap-button-icon" />
-          {text && <span className="tiptap-button-text">{text}</span>}
+          <RenderIcon className='tiptap-button-icon' />
+          {text && <span className='tiptap-button-text'>{text}</span>}
           {showShortcut && (
-            <TextAlignShortcutBadge
-              align={align}
-              shortcutKeys={shortcutKeys}
-            />
+            <TextAlignShortcutBadge align={align} shortcutKeys={shortcutKeys} />
           )}
         </>
       )}

@@ -44,7 +44,9 @@ export default function TemplateSettings({
   const undoRecord = useTemplateSwitchStore((state) => state.undoRecord)
   const [menuOpen, setMenuOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
+
   useTemplateSwitchSession()
+
   return (
     <>
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>

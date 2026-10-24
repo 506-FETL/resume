@@ -12,8 +12,11 @@ import { TrackerCombobox } from './tracker-combobox'
 
 function parseSalaryRange(salary: string): { min: string; max: string } {
   if (!salary) return { min: '', max: '' }
+
   const nums = salary.match(/\d+/g)
+
   if (!nums) return { min: '', max: '' }
+
   return { min: nums[0] || '', max: nums[1] || '' }
 }
 
@@ -32,6 +35,7 @@ export default function DrawerEditForm({
       saveJobFields: state.saveJobFields,
     })),
   )
+
   const [saving, setSaving] = useState(false)
 
   const parsedSalary = parseSalaryRange(selectedJob?.salary || '')
@@ -73,6 +77,7 @@ export default function DrawerEditForm({
       onSaved()
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       console.error('Failed to update job:', error)
       toast.error('更新失败', { description: getTrackerErrorMessage(error) })
     } finally {

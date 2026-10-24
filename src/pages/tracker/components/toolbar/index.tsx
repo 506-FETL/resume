@@ -60,13 +60,16 @@ export default function TrackerToolbar() {
       exitSelectMode: state.exitSelectMode,
     })),
   )
+
   const {
     clearFilters,
     clearSearch,
     setShowArchived: setShowArchivedWithFocus,
   } = useTrackerFilterActions()
+
   const reduce = useReducedMotion()
   const isMobile = useIsMobile(640)
+
   const count = filterJobs(
     jobs,
     viewMode === 'list' ? filterStatus : null,
@@ -74,12 +77,15 @@ export default function TrackerToolbar() {
     showArchived,
     viewMode === 'list' ? metricFilter : null,
   ).length
+
   const archivedCount = jobs.filter((job) => job.archived).length
+
   const activeLabel = filterStatus
     ? APPLICATION_STATUS_CONFIG[filterStatus].label
     : metricFilter
       ? TRACKER_METRIC_LABELS[metricFilter]
       : null
+
   const busy = loading || (!isInitialized && !error)
 
   return (

@@ -36,6 +36,7 @@ function getConnectionPhaseLabel(phase: CollaborationPhase): string | null {
       return null
     default: {
       const exhaustivePhase: never = phase
+
       return exhaustivePhase
     }
   }
@@ -103,31 +104,38 @@ export function useCollaborationPanelValue({
     if (mode !== 'online') return '离线简历暂不支持实时协作'
     if (!currentUser) return '请先登录以启用实时协作'
     if (!isDocumentInitialized) return '数据加载中，请稍候'
+
     return null
   }, [mode, currentUser, isDocumentInitialized])
 
   const collaborationConnectionLabel = getConnectionPhaseLabel(
     collaborationConnectionPhase,
   )
+
   const shareButtonTooltip =
     collabDisabledReason ??
     collaborationConnectionLabel ??
     (isSharing ? '查看协作信息' : '开启实时协作')
+
   const canCopyLink = typeof navigator !== 'undefined' && !!navigator.clipboard
 
   const handleManualSync = useCallback(() => manualSync(), [manualSync])
 
   const handleStartSharing = useCallback(async () => {
     if (!activeResumeId || !currentUser) return
+
     try {
       await startSharing({
         resumeId: activeResumeId,
         userId: currentUser.id,
         userName: userDisplayName || `用户-${currentUser.id.slice(0, 6)}`,
       })
+
       const newSessionId = useCollaborationStore.getState().sessionId
+
       if (newSessionId) {
         const params = new URLSearchParams(window.location.search)
+
         params.set('resumeId', activeResumeId)
         params.set('collabSession', newSessionId)
         params.delete('docUrl')
@@ -135,6 +143,7 @@ export function useCollaborationPanelValue({
       }
     } catch (error: unknown) {
       const msg = getErrorMessage(error, '')
+
       toast.error(`开启实时协作失败，请稍后重试${msg ? `: ${msg}` : ''}`)
     }
   }, [
@@ -152,13 +161,17 @@ export function useCollaborationPanelValue({
       if (collaborationRole === 'guest') {
         setCollabDialogOpen(false)
         navigate('/resume', { replace: true })
+
         return
       }
 
       const params = new URLSearchParams(window.location.search)
+
       params.delete('collabSession')
       params.delete('docUrl')
+
       if (activeResumeId) params.set('resumeId', activeResumeId)
+
       setSearchParams(params, { replace: true })
       setCollabDialogOpen(false)
     } catch (error: unknown) {
@@ -178,8 +191,10 @@ export function useCollaborationPanelValue({
     if (!shareUrl) return
     if (!canCopyLink) {
       toast.info('请手动复制链接')
+
       return
     }
+
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => toast.success('已复制分享链接'))
@@ -195,6 +210,7 @@ export function useCollaborationPanelValue({
 
   useEffect(() => {
     if (!shareEndedByRemote) return
+
     acknowledgeRemoteShareEnd()
     navigate('/resume', { replace: true })
   }, [acknowledgeRemoteShareEnd, navigate, shareEndedByRemote])
@@ -203,12 +219,15 @@ export function useCollaborationPanelValue({
     () => setCollabDialogOpen(true),
     [],
   )
+
   const closeCollaborationDialog = useCallback(() => {
     if (!useCollaborationStore.getState().isConnecting)
       setCollabDialogOpen(false)
   }, [])
+
   const setCollaborationDialogOpen = useCallback((open: boolean) => {
     if (!open && useCollaborationStore.getState().isConnecting) return
+
     setCollabDialogOpen(open)
   }, [])
 

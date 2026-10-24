@@ -43,6 +43,7 @@ export function ResumeManager() {
     handleFileSelect,
     resumes,
   } = useResumeManager()
+
   const initialLoading = loading && resumes.length === 0
 
   return (

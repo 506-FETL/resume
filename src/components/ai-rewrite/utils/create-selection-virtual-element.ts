@@ -22,12 +22,14 @@ export function createSelectionVirtualElement(
   boundary: HTMLElement,
 ) {
   const { from, to } = editor.state.selection
+
   if (from === to) return null
 
   try {
     const start = editor.view.domAtPos(from)
     const end = editor.view.domAtPos(to)
     const range = document.createRange()
+
     range.setStart(start.node, start.offset)
     range.setEnd(end.node, end.offset)
 
@@ -35,6 +37,7 @@ export function createSelectionVirtualElement(
       Array.from(range.getClientRects(), toBubbleRect).filter(
         (rect) => rect.width > 0 && rect.height > 0,
       )
+
     const getPositionRects = () =>
       getVisibleSelectionRects(
         getRawRects(),
@@ -48,6 +51,7 @@ export function createSelectionVirtualElement(
       getClientRects: () => getPositionRects().map(toDOMRect),
       getBoundingClientRect: () => {
         const combined = combineRects(getPositionRects())
+
         return combined ? toDOMRect(combined) : new DOMRect()
       },
     }

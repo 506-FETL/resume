@@ -34,11 +34,14 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [createOpen, setCreateOpen] = useState(false)
   const createTriggerRef = useRef<HTMLElement | null>(null)
+
   function openCreate(event: MouseEvent<HTMLButtonElement>) {
     createTriggerRef.current = event.currentTarget
     setCreateOpen(true)
   }
+
   const reduceMotion = useReducedMotion()
+
   const container = {
     hidden: { opacity: 1 },
     show: {
@@ -46,6 +49,7 @@ export default function DashboardPage() {
       transition: { staggerChildren: reduceMotion ? 0 : 0.03 },
     },
   }
+
   const item = {
     hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 8 },
     show: {
@@ -57,6 +61,7 @@ export default function DashboardPage() {
       },
     },
   }
+
   const loadData = useIndexStore((s) => s.loadData)
   const rawResumes = useIndexStore((s) => s.resumes)
   const accountId = useIndexStore((s) => s.accountId)
@@ -70,15 +75,19 @@ export default function DashboardPage() {
   const cloudState = useIndexStore((s) => s.cloud)
   const localState = useIndexStore((s) => s.local)
   const cloudHasLoaded = accountMatches && cloudState.hasLoaded
+
   const cloudUnavailable =
     accountMatches && Boolean(cloudState.error) && !cloudHasLoaded
+
   const cloudPending =
     !accountMatches || (cloudState.loading && !cloudHasLoaded)
+
   const resources = useDashboardResources(
     !resumesLoading || isOnline,
     isOnline,
     user?.id,
   )
+
   // 云端派生模块只等待云端列表，本地失败或慢请求不会阻塞其可用数据。
   const insights = useDashboardInsights(resumes, cloudPending, resources)
   const extras = useDashboardExtras(resumes, cloudPending, resources)
@@ -86,6 +95,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData()
+
     return () => useIndexStore.getState().cancelLoad()
   }, [loadData, user?.id])
 
@@ -159,6 +169,7 @@ export default function DashboardPage() {
                         useCurrentResumeStore
                           .getState()
                           .setCurrentResume(resume.resume_id, resume.type)
+
                         navigate('/resume/editor')
                       }}
                     >

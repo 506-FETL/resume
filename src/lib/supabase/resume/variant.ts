@@ -32,6 +32,7 @@ export async function cloneResumeAsDraft(args: {
   summary?: string
 }): Promise<string> {
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登陆')
   }
@@ -82,6 +83,7 @@ export async function cloneResumeAsDraft(args: {
   if (error) {
     throw error
   }
+
   return (data as { resume_id: string }).resume_id
 }
 
@@ -91,19 +93,23 @@ export async function applyVariantChanges(
   changes: VariantChange[],
 ): Promise<PersistedResumeSnapshot> {
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登陆')
   }
 
   let next = snapshot
+
   for (const change of changes) {
     next = applyVariantChange(next, change)
   }
+
   if (next === snapshot) {
     return snapshot
   }
 
   const updates: Record<string, unknown> = {}
+
   for (const sec of new Set(changes.map((c) => c.section))) {
     updates[sec as string] = (next as unknown as Record<string, unknown>)[
       sec as string
@@ -119,6 +125,7 @@ export async function applyVariantChanges(
   if (error) {
     throw error
   }
+
   return next
 }
 
@@ -132,6 +139,7 @@ export async function markVariantReady(
   },
 ): Promise<void> {
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登陆')
   }
@@ -142,12 +150,15 @@ export async function markVariantReady(
     .eq('resume_id', draftResumeId)
     .eq('user_id', user.id)
     .single()
+
   if (selectError) {
     throw selectError
   }
+
   const prior =
     (existing as { derived_metadata: VariantMetadata | null } | null)
       ?.derived_metadata ?? null
+
   const next: VariantMetadata = {
     keywords: args.keywords ?? prior?.keywords ?? [],
     changes: args.changes ?? prior?.changes ?? [],
@@ -163,6 +174,7 @@ export async function markVariantReady(
     })
     .eq('resume_id', draftResumeId)
     .eq('user_id', user.id)
+
   if (error) {
     throw error
   }
@@ -173,9 +185,11 @@ export async function markVariantFailed(
   errorMessage: string,
 ): Promise<void> {
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登陆')
   }
+
   const { error } = await supabase
     .from('resume_config')
     .update({
@@ -184,6 +198,7 @@ export async function markVariantFailed(
     })
     .eq('resume_id', draftResumeId)
     .eq('user_id', user.id)
+
   if (error) {
     throw error
   }
@@ -191,14 +206,17 @@ export async function markVariantFailed(
 
 export async function deleteDraftVariant(draftResumeId: string): Promise<void> {
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登陆')
   }
+
   const { error } = await supabase
     .from('resume_config')
     .delete()
     .eq('resume_id', draftResumeId)
     .eq('user_id', user.id)
+
   if (error) {
     throw error
   }
@@ -229,6 +247,7 @@ export async function fetchVariantTree(
   currentResumeId: string,
 ): Promise<VariantLineage> {
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登陆')
   }
@@ -239,6 +258,7 @@ export async function fetchVariantTree(
 
   while (walker && !visited.has(walker)) {
     visited.add(walker)
+
     const { data, error } = await supabase
       .from('resume_config')
       .select(
@@ -247,6 +267,7 @@ export async function fetchVariantTree(
       .eq('user_id', user.id)
       .eq('resume_id', walker)
       .maybeSingle()
+
     if (error) {
       throw error
     }
@@ -255,12 +276,16 @@ export async function fetchVariantTree(
     if (!data) {
       break
     }
+
     rootRow = data as RawNode
+
     if (!rootRow.parent_resume_id) {
       break
     }
+
     walker = rootRow.parent_resume_id
   }
+
   if (!rootRow) {
     return {
       root: {
@@ -283,6 +308,7 @@ export async function fetchVariantTree(
 
   while (queue.length > 0 && bfsDepth < MAX_VARIANT_TREE_DEPTH) {
     const layerIds = queue.map((n) => n.resumeId)
+
     const { data, error } = await supabase
       .from('resume_config')
       .select(
@@ -290,19 +316,26 @@ export async function fetchVariantTree(
       )
       .eq('user_id', user.id)
       .in('parent_resume_id', layerIds)
+
     if (error) {
       throw error
     }
+
     const rows = (data ?? []) as RawNode[]
     const nextLayer: VariantTreeNode[] = []
+
     for (const row of rows) {
       if (seen.has(row.resume_id)) continue
+
       seen.add(row.resume_id)
+
       const child = toTreeNode(row)
       const parent = queue.find((p) => p.resumeId === row.parent_resume_id)
+
       parent?.children.push(child)
       nextLayer.push(child)
     }
+
     queue = nextLayer
     bfsDepth += 1
   }

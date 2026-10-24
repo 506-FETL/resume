@@ -45,10 +45,12 @@ export default function ResumePreview({
     order,
     visibility,
   } = useResumeStore()
+
   const spacing = useResumeConfigStore((state) => state.spacing)
   const spacingPreview = useResumeConfigStore((state) => state.spacingPreview)
   const font = useResumeConfigStore((state) => state.font)
   const theme = useResumeConfigStore((state) => state.theme)
+
   const editorAppearance = useMemo(
     () =>
       snapshotOverride

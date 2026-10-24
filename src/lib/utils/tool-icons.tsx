@@ -40,6 +40,7 @@ export interface IconConfig {
  */
 function normalizeCategoryName(name: string): string {
   if (!name) return 'general'
+
   return name
     .toLowerCase()
     .trim()
@@ -289,9 +290,11 @@ export function getToolCategoryIcon(
   // Fallback search
   if (!config) {
     const normalizedConfigs = Object.entries(iconConfigs)
+
     const matchingConfig = normalizedConfigs.find(
       ([key]) => normalizeCategoryName(key) === finalCategory,
     )
+
     if (matchingConfig) {
       config = matchingConfig[1]
     }
@@ -309,6 +312,7 @@ export function getToolCategoryIcon(
           src={iconUrl}
         />
       )
+
       return showBackground ? (
         <div className='rounded-lg p-1 bg-zinc-700 dark:bg-zinc-700'>
           {iconElement}
@@ -317,6 +321,7 @@ export function getToolCategoryIcon(
         iconElement
       )
     }
+
     return null
   }
 

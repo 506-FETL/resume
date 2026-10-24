@@ -25,6 +25,7 @@ function sameDisplay(a: JobApplication, b: JobApplication) {
 
 let listSource: JobApplication[] | undefined
 let listSnapshot: JobApplication[] = []
+
 let rows = new Map<
   string,
   { source: JobApplication; snapshot: JobApplication; depth: number }
@@ -39,29 +40,39 @@ export function selectTrackerListJobs({
   if (jobs === listSource) return listSnapshot
 
   const nextRows: typeof rows = new Map()
+
   const next = jobs.map((job) => {
     const previous = rows.get(job.id)
+
     if (previous?.source === job) {
       nextRows.set(job.id, previous)
+
       return previous.snapshot
     }
+
     const depth = getFurthestStageIndex(job)
+
     const snapshot =
       previous &&
       sameDisplay(previous.snapshot, job) &&
       previous.depth === depth
         ? previous.snapshot
         : job
+
     nextRows.set(job.id, { source: job, snapshot, depth })
+
     return snapshot
   })
+
   if (
     next.length !== listSnapshot.length ||
     next.some((job, index) => job !== listSnapshot[index])
   )
     listSnapshot = next
+
   listSource = jobs
   rows = nextRows
+
   return listSnapshot
 }
 
@@ -75,13 +86,16 @@ export function selectTrackerDrawerJob({
   selectedJob: JobApplication | null
 }) {
   if (job === drawerSource) return drawerSnapshot
+
   const previous = drawerSnapshot
+
   const sameStages =
     previous &&
     job &&
     previous.stage_details.length === job.stage_details.length &&
     previous.stage_details.every((stage, index) => {
       const next = job.stage_details[index]
+
       return (
         stage.stage === next.stage &&
         stage.status === next.status &&
@@ -89,6 +103,7 @@ export function selectTrackerDrawerJob({
         stage.source_stage === next.source_stage
       )
     })
+
   if (
     !previous ||
     !job ||
@@ -98,6 +113,8 @@ export function selectTrackerDrawerJob({
     previous.activities !== job.activities
   )
     drawerSnapshot = job
+
   drawerSource = job
+
   return drawerSnapshot
 }

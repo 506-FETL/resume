@@ -39,16 +39,19 @@ function clampRatio(ratio: number): number {
 function readStoredRatio(): number {
   try {
     const raw = Number(localStorage.getItem(RATIO_KEY))
+
     if (raw >= MIN_RATIO && raw <= MAX_RATIO) return raw
   } catch {
     // 存储不可用时用默认比例
   }
+
   return DEFAULT_RATIO
 }
 
 // 比例 → 实际像素宽度（带像素兜底）
 function ratioToWidth(ratio: number): number {
   const vw = typeof window === 'undefined' ? 1280 : window.innerWidth
+
   return Math.min(MAX_PX, Math.max(MIN_PX, Math.round(vw * ratio)))
 }
 
@@ -80,7 +83,9 @@ export default function EditPanel({
   // 屏幕尺寸变化时按比例重算像素宽度
   useEffect(() => {
     const onResize = () => setWidth(ratioToWidth(ratio))
+
     window.addEventListener('resize', onResize)
+
     return () => window.removeEventListener('resize', onResize)
   }, [ratio])
 
@@ -94,15 +99,18 @@ export default function EditPanel({
 
   const onHandlePointerMove = (event: ReactPointerEvent) => {
     if (!draggingRef.current) return
+
     // 侧栏在右侧：宽度 = 窗口右边缘 - 指针 X，向左拖变宽；换算成比例存储
     const nextWidth = window.innerWidth - event.clientX
     const nextRatio = clampRatio(nextWidth / window.innerWidth)
+
     setRatio(nextRatio)
     setWidth(ratioToWidth(nextRatio))
   }
 
   const onHandlePointerUp = (event: ReactPointerEvent) => {
     if (!draggingRef.current) return
+
     draggingRef.current = false
     setIsResizing(false)
     event.currentTarget.releasePointerCapture(event.pointerId)

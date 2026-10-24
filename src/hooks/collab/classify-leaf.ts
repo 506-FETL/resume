@@ -55,12 +55,15 @@ const FREE_TEXT: Record<string, ReadonlySet<string>> = {
  */
 function leafFieldName(relativePath: string): string {
   const segments = relativePath.split('.')
+
   for (let i = segments.length - 1; i >= 0; i -= 1) {
     const seg = segments[i]
+
     if (!/^\d+$/.test(seg)) {
       return seg
     }
   }
+
   return segments[segments.length - 1] ?? relativePath
 }
 
@@ -76,5 +79,6 @@ export function classifyLeaf(
   if (FREE_TEXT[sectionKey]?.has(field)) {
     return 'freeText'
   }
+
   return 'atomic'
 }

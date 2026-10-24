@@ -10,13 +10,17 @@ export async function ensureCloudResumeTemplateBinding(
   value: unknown,
 ) {
   const existing = readResumeListTemplateBinding(value)
+
   if (existing) return existing
+
   const binding = await resolveDefaultTemplateBinding(value)
+
   const query = supabase
     .from('resume_config')
     .update({ template_binding: binding })
     .eq('resume_id', resumeId)
     .eq('user_id', userId)
+
   const { data, error } = await (
     value == null
       ? query.or('template_binding.is.null,template_binding.eq.null')
@@ -24,6 +28,7 @@ export async function ensureCloudResumeTemplateBinding(
   )
     .select('template_binding')
     .maybeSingle()
+
   if (error) throw error
   if (data) return binding
 
@@ -33,9 +38,13 @@ export async function ensureCloudResumeTemplateBinding(
     .eq('resume_id', resumeId)
     .eq('user_id', userId)
     .maybeSingle()
+
   if (latest.error) throw latest.error
   if (!latest.data) throw new ResumeNotFoundError()
+
   const current = readResumeListTemplateBinding(latest.data.template_binding)
+
   if (!current) throw new Error('简历模板发生变动，请重新加载后重试')
+
   return current
 }

@@ -2,8 +2,11 @@
 // ATS Evaluation Types
 // =====================
 export type ChecklistOption = 'required' | 'optional'
+
 export type Priority = 0 | 1 | 2
+
 export type Mode = 'general_ats_check' | 'optimize_resume'
+
 export type Severity = 'high' | 'medium' | 'low'
 
 export type ScoreKey =

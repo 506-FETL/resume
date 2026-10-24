@@ -12,14 +12,17 @@ export function useScrollToSection(
   scrollContainerRef: RefObject<HTMLElement | null>,
 ) {
   const reduceMotion = useReducedMotion()
+
   return useCallback(
     (sectionKey: ORDERType) => {
       const container = scrollContainerRef.current
+
       if (!container) return
 
       // 多页克隆：优先在首页内容容器内查找，避免命中后续页的重复锚点
       const scope =
         container.querySelector('[data-resume-content]') ?? container
+
       const target = scope.querySelector(
         `[data-section="${sectionKey}"]`,
       ) as HTMLElement | null
@@ -30,13 +33,16 @@ export function useScrollToSection(
           top: 0,
           behavior: reduceMotion ? 'auto' : 'smooth',
         })
+
         return
       }
 
       const containerRect = container.getBoundingClientRect()
       const targetRect = target.getBoundingClientRect()
+
       const nextTop =
         container.scrollTop + (targetRect.top - containerRect.top) - 16 // 顶部留 16px 余量
+
       container.scrollTo({
         top: Math.max(0, nextTop),
         behavior: reduceMotion ? 'auto' : 'smooth',

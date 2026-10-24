@@ -27,6 +27,7 @@ export default function VersionTagInput({
 
     if (value.includes(nextValue)) {
       setInputValue('')
+
       return
     }
 

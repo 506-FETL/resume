@@ -52,6 +52,7 @@ export function hasPersistedAppearance(
   source: unknown,
 ): source is ResumeAppearancePatch {
   const record = source as Record<string, unknown> | null | undefined
+
   return (
     record != null &&
     (record.spacing !== undefined ||
@@ -76,14 +77,17 @@ export function mapSourceToPersistedSnapshot(
   const source = doc as Record<string, any> | undefined
   const formData = {} as FormDataMap
   const type = normalizeResumeType(get(source, 'type', 'default'))
+
   const templateBinding = sanitizeDeep(
     get(source, 'templateBinding', get(source, 'template_binding')),
   )
 
   for (const key of FORM_DATA_KEYS) {
     const { legacyKey } = FORM_FIELD_DEFAULTS[key]
+
     const value =
       get(source, key) ?? (legacyKey ? get(source, legacyKey) : undefined)
+
     setFormDataField(
       formData,
       key,

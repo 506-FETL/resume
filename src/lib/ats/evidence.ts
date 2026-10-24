@@ -14,6 +14,7 @@ interface EvidenceEntry {
 
 const IMPACT_PATTERN =
   /\d|%|百分|上线|落地|交付|推动|支撑|解决|优化|提升|增长|降低|节省|覆盖|转化|复用|稳定|性能|效率|规模|用户|业务/
+
 const ACTION_PATTERN =
   /负责|主导|参与|设计|开发|实现|搭建|建设|推动|协调|交付|研究|分析|运营|管理|优化|解决|支撑/
 
@@ -30,7 +31,9 @@ function normalizeText(value: unknown): string {
 function isMeaningful(value: unknown): boolean {
   if (Array.isArray(value)) return value.some((item) => isMeaningful(item))
   if (typeof value === 'number') return Number.isFinite(value) && value !== 0
+
   const normalized = normalizeText(value)
+
   return normalized !== '' && normalized !== '不填'
 }
 
@@ -142,9 +145,11 @@ function extractPositioningTokens(value: string): Set<string> {
   normalized.match(/[a-z][a-z0-9+#.-]+/g)?.forEach((token) => tokens.add(token))
 
   const chineseGroups = normalized.match(/[\u3400-\u9FFF]{2,}/g) ?? []
+
   chineseGroups.forEach((group) => {
     if (group.length <= 3) {
       tokens.add(group)
+
       return
     }
 
@@ -158,6 +163,7 @@ function extractPositioningTokens(value: string): Set<string> {
 
 function calculatePositioningConsistency(resume: ResumeSchema): number {
   const target = normalizeText(resume.job_intent.jobIntent)
+
   const supportingSources = [
     ...resume.work_experience.items.map((item) => item.position),
     ...resume.internship_experience.items.map((item) => item.position),
@@ -170,14 +176,17 @@ function calculatePositioningConsistency(resume: ResumeSchema): number {
 
   if (target) {
     const targetTokens = extractPositioningTokens(target)
+
     if (targetTokens.size === 0) return supportingSources.length > 0 ? 1 : 0
 
     const supportingTokens = extractPositioningTokens(
       supportingSources.join(' '),
     )
+
     const matchedCount = [...targetTokens].filter((token) =>
       supportingTokens.has(token),
     ).length
+
     return Math.min(1, matchedCount / targetTokens.size)
   }
 
@@ -187,15 +196,19 @@ function calculatePositioningConsistency(resume: ResumeSchema): number {
   const tokenSets = supportingSources
     .map(extractPositioningTokens)
     .filter((tokens) => tokens.size > 0)
+
   if (tokenSets.length === 0) return 0
 
   const frequencies = new Map<string, number>()
+
   tokenSets.forEach((tokens) => {
     tokens.forEach((token) =>
       frequencies.set(token, (frequencies.get(token) ?? 0) + 1),
     )
   })
+
   const dominantFrequency = Math.max(0, ...frequencies.values())
+
   return Math.min(1, dominantFrequency / tokenSets.length)
 }
 
@@ -204,9 +217,11 @@ export function getResumeEvidenceStats(
 ): ResumeEvidenceStats {
   const evidenceEntries = buildEvidenceEntries(resume)
   const experienceDescriptions = buildExperienceDescriptions(resume)
+
   const substantiveCount = experienceDescriptions.filter(
     (text) => text.length >= 24 && ACTION_PATTERN.test(text),
   ).length
+
   const impactEvidenceCount = experienceDescriptions.filter((text) =>
     IMPACT_PATTERN.test(text),
   ).length

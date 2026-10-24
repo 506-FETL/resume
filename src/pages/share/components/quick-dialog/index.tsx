@@ -50,6 +50,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
     loadVersionOptions,
     versionOptionsByResumeId,
   } = useShareStore()
+
   const navigate = useNavigate()
   const isMobile = useIsMobile()
 
@@ -64,6 +65,7 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
     options: CreateShareOptions,
   ) => {
     if (!openForResumeId) return false
+
     try {
       const release = await resolveResumeShareRelease({
         resumeId: openForResumeId,
@@ -71,11 +73,14 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
         selection,
         getCurrentSource: async () => getSnapshot(),
       })
+
       await createRelease(openForResumeId, release, options)
       toast.success('分享链接已生成')
+
       return true
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '生成失败，请重试')
+
       return false
     }
   }
@@ -90,7 +95,9 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       {openForResumeName || '简历'}」
     </>
   )
+
   const description = '创建和管理这份简历的分享链接。'
+
   const body = (
     <>
       <CreateForm

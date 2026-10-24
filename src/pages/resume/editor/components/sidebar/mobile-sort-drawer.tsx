@@ -103,6 +103,7 @@ export function MobileSortDrawer({
   const initialDraft = order.filter((id) => id !== 'basics')
   const listRef = useRef<HTMLUListElement | null>(null)
   const wasOpenRef = useRef(false)
+
   const { draft, setDraft, startDragging, finishDragging, moveByKeyboard } =
     useMotionReorder({
       values: initialDraft,
@@ -115,6 +116,7 @@ export function MobileSortDrawer({
   useEffect(() => {
     if (open && !wasOpenRef.current)
       setDraft(order.filter((id) => id !== 'basics'))
+
     wasOpenRef.current = open
   }, [open, order, setDraft])
 
@@ -152,7 +154,9 @@ export function MobileSortDrawer({
         >
           {draft.map((id) => {
             const item = ITEMS.find((it) => it.id === id)
+
             if (!item) return null
+
             return (
               <MobileSortItem
                 key={id}

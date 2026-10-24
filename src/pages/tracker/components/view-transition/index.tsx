@@ -17,6 +17,7 @@ function Panel({
 }) {
   const present = useIsPresent()
   const reduce = useReducedMotion()
+
   return (
     <motion.div
       ref={ref}

@@ -59,7 +59,9 @@ interface JobTableProps {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—'
+
   const d = new Date(dateStr)
+
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
@@ -81,6 +83,7 @@ function SortableHead({
   const isActive = sortBy === field
   const isDaysActive = field === 'status' && sortBy === 'days'
   const reduceMotion = useReducedMotion()
+
   return (
     <th
       aria-sort={
@@ -168,17 +171,20 @@ const JobTableRow = memo(
           openJobDrawer: state.openJobDrawer,
         })),
       )
+
     const reduce = useReducedMotion()
     const isPresent = useIsPresent()
     const statusConfig = APPLICATION_STATUS_CONFIG[job.status]
     const nextAction = getTrackerNextAction(job)
     const nextActionBadge = getNextActionBadge(job)
     const daysInStage = getDaysInStage(job)
+
     const handleRowClick = () => {
       if (!isPresent) return
       if (isSelectMode) toggleSelect(job.id)
       else openJobDrawer(job)
     }
+
     return (
       <PresenceTableRow
         key={job.id}
@@ -416,8 +422,10 @@ export function JobTable({ jobs }: JobTableProps) {
       setSort: state.setSort,
     })),
   )
+
   const [pendingDeleteJob, setPendingDeleteJob] =
     useState<JobApplication | null>(null)
+
   const [pendingStatus, setPendingStatus] = useState<{
     job: JobApplication
     status: JobApplication['status']
@@ -425,6 +433,7 @@ export function JobTable({ jobs }: JobTableProps) {
 
   const allSelected =
     jobs.length > 0 && jobs.every((job) => selectedIds.has(job.id))
+
   const layoutKey = useMemo(
     () => ({ jobs, isSelectMode }),
     [jobs, isSelectMode],
@@ -436,6 +445,7 @@ export function JobTable({ jobs }: JobTableProps) {
         await changeJobStatus(id, newStatus)
       } catch (error) {
         if (isTrackerAccountScopeError(error)) return
+
         toast.error('更新状态失败', {
           description: getTrackerErrorMessage(error),
         })
@@ -449,8 +459,10 @@ export function JobTable({ jobs }: JobTableProps) {
       if (job.status === newStatus) return
       if (newStatus === 'offer' || newStatus === 'rejected') {
         setPendingStatus({ job, status: newStatus })
+
         return
       }
+
       await commitStatus(job.id, newStatus)
     },
     [commitStatus],
@@ -462,6 +474,7 @@ export function JobTable({ jobs }: JobTableProps) {
       toast.success('已删除')
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       console.error('Failed to delete job:', error)
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
@@ -470,10 +483,12 @@ export function JobTable({ jobs }: JobTableProps) {
   const handleArchive = useCallback(
     async (job: JobApplication) => {
       const next = !job.archived
+
       try {
         await saveJobFields(job.id, { archived: next })
       } catch (error) {
         if (isTrackerAccountScopeError(error)) return
+
         toast.error('操作失败', { description: getTrackerErrorMessage(error) })
       }
     },
@@ -564,6 +579,7 @@ export function JobTable({ jobs }: JobTableProps) {
             <AlertDialogAction
               onClick={() => {
                 if (!pendingStatus) return
+
                 commitStatus(pendingStatus.job.id, pendingStatus.status)
                 setPendingStatus(null)
               }}
@@ -592,7 +608,9 @@ export function JobTable({ jobs }: JobTableProps) {
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
                 if (!pendingDeleteJob) return
+
                 const job = pendingDeleteJob
+
                 setPendingDeleteJob(null)
                 handleDelete(job)
               }}

@@ -43,9 +43,11 @@ export function buildRewritePrompt(args: BuildArgs): string {
   sections.push(
     `你是一个简历内容改写专家。当前用户正在编辑「${fieldContext.fieldLabel}」字段。`,
   )
+
   if (fieldContext.jobIntent?.trim()) {
     sections.push(`用户的求职意向：${fieldContext.jobIntent.trim()}`)
   }
+
   sections.push(`你的任务：\n${ACTION_INSTRUCTIONS[action]}`)
 
   if (action === 'align_jd' && jdDraft?.trim()) {

@@ -50,6 +50,7 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
       viewMode: state.viewMode,
     })),
   )
+
   const { sortBy, sortDir, setSort } = useTrackerStore(
     useShallow((state) => ({
       sortBy: state.sortBy,
@@ -59,21 +60,28 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
   )
 
   const current = filterStatus ?? ALL_VALUE
+
   const activeLabel = filterStatus
     ? APPLICATION_STATUS_CONFIG[filterStatus].label
     : '全部阶段'
+
   const sortLabel = TRACKER_SORT_OPTIONS.find(
     (option) => option.value === sortBy,
   )?.label
+
   const directionLabel = sortDir === 'asc' ? '升序' : '降序'
+
   const scopedJobs = useMemo(
     () => filterJobs(jobs, null, searchKeyword, showArchived),
     [jobs, searchKeyword, showArchived],
   )
+
   const counts = useMemo(() => {
     const result = new Map<ApplicationStatus, number>()
+
     for (const job of scopedJobs)
       result.set(job.status, (result.get(job.status) ?? 0) + 1)
+
     return result
   }, [scopedJobs])
 
@@ -135,8 +143,10 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
         >
           {ALL_FILTER_STATUSES.map((status) => {
             const value = status ?? ALL_VALUE
+
             const label =
               status === null ? '全部' : APPLICATION_STATUS_CONFIG[status].label
+
             return (
               <DropdownMenuRadioItem
                 key={value}

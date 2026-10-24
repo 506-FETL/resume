@@ -31,6 +31,7 @@ function buildExperienceBlock(
   const lines = entries.flatMap((entry, index) => {
     const metaParts = [...entry.subheading, ...entry.duration.filter(Boolean)]
     const metaLine = metaParts.filter(Boolean).join(' | ')
+
     const descriptionLines = normalizeMultilineText(entry.description)
       .split('\n')
       .filter(Boolean)
@@ -52,6 +53,7 @@ function buildExperienceBlock(
 
 export function getResumeSections(resume: ResumeSchema): ResumeSection[] {
   const candidateName = normalizeInlineText(resume.basics.name)
+
   const basicsLines = [
     [
       '姓名',
@@ -307,6 +309,7 @@ export function getResumeSections(resume: ResumeSchema): ResumeSection[] {
 
 export function getAdvancedToolResumeSummary(resume: ResumeSchema) {
   const evidenceStats = getResumeEvidenceStats(resume)
+
   return {
     title: normalizeInlineText(resume.basics.name) || '未命名简历',
     jobIntent:

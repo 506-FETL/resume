@@ -30,7 +30,9 @@ function InternshipExperienceForm({ className }: { className?: string }) {
   const internshipExperience = useResumeStore(
     (state) => state.internship_experience,
   )
+
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
+
   const [isUptoNow, setIsUptoNow] = useState(
     () =>
       internshipExperience.items?.some(
@@ -158,6 +160,7 @@ function InternshipExperienceForm({ className }: { className?: string }) {
                           checked={isUptoNow}
                           onCheckedChange={(checked) => {
                             setIsUptoNow(!!checked)
+
                             if (checked) {
                               field.onChange([start.format('YYYY-MM'), '至今'])
                             } else {

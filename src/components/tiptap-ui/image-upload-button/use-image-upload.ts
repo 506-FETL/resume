@@ -12,10 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
 // --- Lib ---
-import {
-  isExtensionAvailable,
-  isNodeTypeSelected,
-} from '@/lib/tiptap-utils'
+import { isExtensionAvailable, isNodeTypeSelected } from '@/lib/tiptap-utils'
 
 export const IMAGE_UPLOAD_SHORTCUT_KEY = 'mod+shift+i'
 
@@ -42,11 +39,10 @@ export interface UseImageUploadConfig {
  * Checks if image can be inserted in the current editor state
  */
 export function canInsertImage(editor: Editor | null): boolean {
-  if (!editor || !editor.isEditable)
-    return false
+  if (!editor || !editor.isEditable) return false
   if (
-    !isExtensionAvailable(editor, 'imageUpload')
-    || isNodeTypeSelected(editor, ['image'])
+    !isExtensionAvailable(editor, 'imageUpload') ||
+    isNodeTypeSelected(editor, ['image'])
   ) {
     return false
   }
@@ -58,8 +54,8 @@ export function canInsertImage(editor: Editor | null): boolean {
  * Checks if image is currently active
  */
 export function isImageActive(editor: Editor | null): boolean {
-  if (!editor || !editor.isEditable)
-    return false
+  if (!editor || !editor.isEditable) return false
+
   return editor.isActive('imageUpload')
 }
 
@@ -67,10 +63,8 @@ export function isImageActive(editor: Editor | null): boolean {
  * Inserts an image in the editor
  */
 export function insertImage(editor: Editor | null): boolean {
-  if (!editor || !editor.isEditable)
-    return false
-  if (!canInsertImage(editor))
-    return false
+  if (!editor || !editor.isEditable) return false
+  if (!canInsertImage(editor)) return false
 
   try {
     return editor
@@ -80,8 +74,7 @@ export function insertImage(editor: Editor | null): boolean {
         type: 'imageUpload',
       })
       .run()
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -95,10 +88,8 @@ export function shouldShowButton(props: {
 }): boolean {
   const { editor, hideWhenUnavailable } = props
 
-  if (!editor || !editor.isEditable)
-    return false
-  if (!isExtensionAvailable(editor, 'imageUpload'))
-    return false
+  if (!editor || !editor.isEditable) return false
+  if (!isExtensionAvailable(editor, 'imageUpload')) return false
 
   if (hideWhenUnavailable && !editor.isActive('code')) {
     return canInsertImage(editor)
@@ -157,8 +148,7 @@ export function useImageUpload(config?: UseImageUploadConfig) {
   const isActive = isImageActive(editor)
 
   React.useEffect(() => {
-    if (!editor)
-      return
+    if (!editor) return
 
     const handleSelectionUpdate = () => {
       setIsVisible(shouldShowButton({ editor, hideWhenUnavailable }))
@@ -174,13 +164,14 @@ export function useImageUpload(config?: UseImageUploadConfig) {
   }, [editor, hideWhenUnavailable])
 
   const handleImage = React.useCallback(() => {
-    if (!editor)
-      return false
+    if (!editor) return false
 
     const success = insertImage(editor)
+
     if (success) {
       onInserted?.()
     }
+
     return success
   }, [editor, onInserted])
 

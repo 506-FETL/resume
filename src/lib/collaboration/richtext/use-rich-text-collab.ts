@@ -28,6 +28,7 @@ export function useRichTextCollab(
     if (!ready || !session || !provider || !self) {
       return undefined
     }
+
     return {
       fragment: session.getFieldFragment(key),
       provider,

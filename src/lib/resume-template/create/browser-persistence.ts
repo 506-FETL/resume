@@ -15,6 +15,7 @@ export const browserResumePersistence: ResumeCreationPersistence = {
       prepared.mode === 'local'
         ? await getOfflineResumeById(prepared.resumeId)
         : await findPreparedCloudResume(prepared)
+
     return record ? createdResumeResult(prepared, record) : null
   },
   async insert(prepared) {
@@ -22,6 +23,7 @@ export const browserResumePersistence: ResumeCreationPersistence = {
       prepared.mode === 'local'
         ? await createOfflineResumeFromSnapshot(prepared)
         : await createResumeFromSnapshot(prepared)
+
     return createdResumeResult(prepared, record)
   },
 }

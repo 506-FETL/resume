@@ -19,6 +19,7 @@ function WorkflowNotesEditor({
       state.selectedJob?.id === jobId
         ? state.selectedJob
         : state.jobs.find((item) => item.id === jobId)
+
     return (
       (kind === 'stage'
         ? job?.stage_details.find((stage) => stage.stage === targetId)?.notes
@@ -26,9 +27,11 @@ function WorkflowNotesEditor({
             ?.notes) ?? ''
     )
   })
+
   const handleChange = useCallback(
     (editor: Editor) => {
       const notes = editor.getHTML()
+
       if (kind === 'stage')
         useTrackerStore.getState().editStageContent(jobId, targetId, { notes })
       else

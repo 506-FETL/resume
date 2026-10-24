@@ -17,6 +17,7 @@ function CustomEditor({
 }: SuggestionEditorProps) {
   const [currentSuggestions, setCurrentSuggestions] =
     useState(initialSuggestions)
+
   const [originalSuggestions, setOriginalSuggestions] =
     useState(initialSuggestions)
 
@@ -28,6 +29,7 @@ function CustomEditor({
   const handleSuggestionChange = useCallback(
     (index: number, updatedSuggestion: Suggestion) => {
       const newSuggestions = [...currentSuggestions]
+
       newSuggestions[index] = updatedSuggestion
 
       setCurrentSuggestions(newSuggestions)
@@ -39,6 +41,7 @@ function CustomEditor({
   const handleReset = useCallback(
     (index: number) => {
       const newSuggestions = [...currentSuggestions]
+
       newSuggestions[index] = originalSuggestions[index]
       setCurrentSuggestions(newSuggestions)
       onChange?.(newSuggestions)

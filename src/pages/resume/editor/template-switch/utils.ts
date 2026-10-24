@@ -30,6 +30,7 @@ export function createTemplateSwitchContentKey(
   referenceDate = templateSwitchReferenceDate(),
 ): string {
   const { templateBinding: _binding, ...content } = snapshot
+
   return JSON.stringify([templateBindingKey(binding), referenceDate, content])
 }
 
@@ -38,9 +39,12 @@ export function templateHasPhoto(definition: TemplateDefinition): boolean {
   function containsPhoto(value: unknown): boolean {
     if (!value || typeof value !== 'object') return false
     if (Array.isArray(value)) return value.some(containsPhoto)
+
     const node = value as Record<string, unknown>
+
     return node.type === 'photo' || Object.values(node).some(containsPhoto)
   }
+
   return definition.page.regions.some((region) =>
     [
       region.document ?? definition.document,

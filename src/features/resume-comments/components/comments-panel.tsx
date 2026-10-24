@@ -41,17 +41,22 @@ function PanelBody({
   const [filter, setFilter] = useState<CommentThreadFilter>('open')
   const { panelHeaderContent } = useResumeCommentContext()
   const actions = useCommentActions()
+
   const threads = useResumeCommentStore(
     useShallow((state) =>
       state.orderedThreadIds.map((id) => state.threadsById[id]).filter(Boolean),
     ),
   )
+
   const activeThreadId = useResumeCommentStore((state) => state.activeThreadId)
+
   const setActiveThread = useResumeCommentStore(
     (state) => state.setActiveThread,
   )
+
   const hidden = useResumeCommentStore((state) => state.highlightsHidden)
   const setHidden = useResumeCommentStore((state) => state.setHighlightsHidden)
+
   const unreadThreadIds = useResumeCommentStore(
     useShallow((state) =>
       getUnreadCommentThreadIds(
@@ -60,14 +65,18 @@ function PanelBody({
       ),
     ),
   )
+
   const accessState = useResumeCommentStore((state) => state.accessState)
   const contentNotice = useResumeCommentStore((state) => state.contentNotice)
+
   const setContentNotice = useResumeCommentStore(
     (state) => state.setContentNotice,
   )
+
   const activeThread = activeThreadId
     ? threads.find((thread) => thread.id === activeThreadId)
     : null
+
   const selectThread = (threadId: string) => {
     setActiveThread(threadId)
     actions.markThreadRead(threadId).catch(() => undefined)
@@ -160,8 +169,11 @@ function PanelBody({
                 value,
                 creationSnapshot,
               )
+
               if (!pending) return false
+
               onFinishCreating()
+
               return true
             }}
           />
@@ -228,9 +240,11 @@ export function CommentsPanel({
 }) {
   const isMobile = useCommentMobileLayout()
   const beginRelink = useResumeCommentStore((state) => state.beginRelink)
+
   const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen)
   }
+
   const body = (
     <PanelBody
       sourceLabel={sourceLabel}
@@ -245,6 +259,7 @@ export function CommentsPanel({
       }}
     />
   )
+
   const content = (
     <DrawerContent
       data-resume-comment-ui
@@ -261,6 +276,7 @@ export function CommentsPanel({
       {body}
     </DrawerContent>
   )
+
   if (isMobile) {
     return (
       <Drawer
@@ -274,6 +290,7 @@ export function CommentsPanel({
       </Drawer>
     )
   }
+
   return (
     <Drawer
       key='resume-comments-desktop'

@@ -36,8 +36,10 @@ function findVisibleNodes(root: HTMLElement, nodeKey: string) {
 
 function anchorToRange(node: HTMLElement, thread: ResumeCommentThread) {
   const projection = projectCommentDomNode(node)
+
   const [sectionKey = '', entryId = '', fieldKey = ''] =
     thread.anchor.nodeKey.split('/')
+
   // 已解决期间正文可能发生过变化；重开后按当前 DOM 重定位，不能只沿用旧偏移。
   const relocated = relocateAnchor(thread.anchor, {
     nodeKey: thread.anchor.nodeKey,
@@ -48,25 +50,33 @@ function anchorToRange(node: HTMLElement, thread: ResumeCommentThread) {
     blocks: projection.blocks,
     nodeTextHash: sha256Hex(projection.text),
   })
+
   if (relocated.status !== 'anchored') return null
+
   const anchor = relocated.anchor
+
   const ordinalStartBlock = findCommentDomBlockByOrdinal(
     projection,
     anchor.blockOrdinal,
   )
+
   const startBlock =
     ordinalStartBlock &&
     anchor.startGraphemeOffset >= ordinalStartBlock.startGraphemeOffset &&
     anchor.startGraphemeOffset <= ordinalStartBlock.endGraphemeOffset
       ? ordinalStartBlock
       : findCommentDomBlockAtOffset(projection, anchor.startGraphemeOffset)
+
   const endBlock = findCommentDomBlockAtOffset(
     projection,
     anchor.endGraphemeOffset,
   )
+
   if (!startBlock || !endBlock) return null
+
   const localStart = anchor.startGraphemeOffset - startBlock.startGraphemeOffset
   const localEnd = anchor.endGraphemeOffset - endBlock.startGraphemeOffset
+
   if (
     localStart < 0 ||
     localEnd < 0 ||
@@ -75,16 +85,22 @@ function anchorToRange(node: HTMLElement, thread: ResumeCommentThread) {
   ) {
     return null
   }
+
   const start = commentDomGraphemeOffsetToPoint(
     startBlock.element,
     localStart,
     'start',
   )
+
   const end = commentDomGraphemeOffsetToPoint(endBlock.element, localEnd, 'end')
+
   if (!start || !end) return null
+
   const range = node.ownerDocument.createRange()
+
   range.setStart(start.container, start.offset)
   range.setEnd(end.container, end.offset)
+
   return range.collapsed ? null : { range, anchor }
 }
 
@@ -103,10 +119,13 @@ export function useHighlightGeometry({
 
   const recompute = useCallback(() => {
     const root = rootRef.current
+
     if (!enabled || !root) {
       setGeometry([])
+
       return
     }
+
     setGeometry(
       threads.flatMap((thread) => {
         if (
@@ -115,15 +134,19 @@ export function useHighlightGeometry({
           thread.anchorStatus === 'detached'
         )
           return []
+
         const ranges = findVisibleNodes(root, thread.anchor.nodeKey).flatMap(
           (node) => {
             const resolved = anchorToRange(node, thread)
+
             return resolved ? [resolved] : []
           },
         )
+
         const rects = ranges.flatMap(({ range }) =>
           rangeToVisiblePageRects(range),
         )
+
         return rects.length > 0
           ? [{ threadId: thread.id, anchor: ranges[0]!.anchor, rects }]
           : []
@@ -133,21 +156,29 @@ export function useHighlightGeometry({
 
   useEffect(() => {
     const root = rootRef.current
+
     if (!enabled || !root) return
+
     let frame = 0
+
     const schedule = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(recompute)
     }
+
     const observer = new ResizeObserver(schedule)
+
     observer.observe(root)
+
     root
       .querySelectorAll<HTMLElement>('[data-resume-page-index]')
       .forEach((page) => observer.observe(page))
+
     window.addEventListener('resize', schedule)
     window.addEventListener('resume:pagination-complete', schedule)
     document.fonts?.ready.then(schedule).catch(() => undefined)
     schedule()
+
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()

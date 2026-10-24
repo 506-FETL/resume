@@ -34,6 +34,7 @@ export class DocumentManager {
     this.resumeId = resumeId
     this.userId = userId
     this.source = options.source ?? { kind: 'owner' }
+
     this.persistence = new AutomergeDocumentPersistence(
       resumeId,
       userId,
@@ -47,6 +48,7 @@ export class DocumentManager {
     }
 
     const repo = getAutomergeRepo(this.resumeId)
+
     this.repo = repo
     this.collaboration ??= this.createCollaborationSession(repo)
 
@@ -56,6 +58,7 @@ export class DocumentManager {
         this.source.documentUrl,
         this.source.documentData,
       )
+
       return this.attachHandle(handle)
     }
 
@@ -63,14 +66,18 @@ export class DocumentManager {
 
     if (existingHandle) {
       const doc = existingHandle.doc()
+
       if (!readResumeListTemplateBinding(doc?.templateBinding)) {
         const storedBinding = readResumeListTemplateBinding(
           (doc as unknown as Record<string, unknown>)?.template_binding,
         )
+
         const binding =
           storedBinding ??
           (await this.persistence.loadResumeConfig()).templateBinding
+
         if (!binding) throw new Error('简历模板尚未完成初始化，请重试')
+
         existingHandle.change((current) => {
           if (!readResumeListTemplateBinding(current.templateBinding))
             current.templateBinding = {
@@ -80,12 +87,15 @@ export class DocumentManager {
               ) ?? binding),
             }
         })
+
         await this.saveToSupabase(existingHandle)
       }
+
       return this.attachHandle(existingHandle)
     }
 
     const seedData = await this.persistence.loadResumeConfig()
+
     const handle = await createResumeDocument({
       repo,
       resumeId: this.resumeId,
@@ -117,6 +127,7 @@ export class DocumentManager {
     }
 
     const result = await this.persistence.saveHandle(handle, snapshot)
+
     this.notifySaveListeners(result)
 
     if (!result.success) {
@@ -133,6 +144,7 @@ export class DocumentManager {
     }
 
     this.collaboration ??= this.createCollaborationSession(this.repo)
+
     return this.collaboration.enable(sessionId, callbacks)
   }
 
@@ -198,6 +210,7 @@ export class DocumentManager {
 
     this.handle.change((doc) => {
       changeFn(doc)
+
       touchDocumentMetadata(doc, {
         resumeId: this.resumeId,
         userId: this.userId,
@@ -225,6 +238,7 @@ export class DocumentManager {
   private attachHandle(handle: DocHandle<AutomergeResumeDocument>) {
     this.handle = handle
     this.collaboration?.syncHandle(handle)
+
     return handle
   }
 

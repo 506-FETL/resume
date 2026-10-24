@@ -52,8 +52,10 @@ export function formatShareUrlForDisplay(url: string) {
   try {
     const parsed = new URL(url)
     const token = parsed.pathname.split('/').at(-1) ?? ''
+
     const shortToken =
       token.length > 18 ? `${token.slice(0, 8)}…${token.slice(-7)}` : token
+
     return `${parsed.host}/share/view/${shortToken}`
   } catch {
     return url
@@ -62,8 +64,11 @@ export function formatShareUrlForDisplay(url: string) {
 
 export function dateToExpiryIso(date: Date | undefined) {
   if (!date) return null
+
   const next = new Date(date)
+
   next.setHours(23, 59, 59, 999)
+
   return next.toISOString()
 }
 
@@ -77,6 +82,7 @@ export function deriveShareStatus(
   if (share.archivedAt) return 'archived'
   if (share.expires_at && new Date(share.expires_at).getTime() < Date.now())
     return 'expired'
+
   return share.is_active ? 'active' : 'inactive'
 }
 
@@ -112,6 +118,7 @@ export function findShareById(
   shareId: string | null,
 ) {
   if (!shareId) return null
+
   return (
     allShares.find((share) => share.id === shareId) ??
     dialogShares.find((share) => share.id === shareId) ??

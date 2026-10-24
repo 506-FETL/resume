@@ -22,9 +22,11 @@ import { getCurrentUser } from './supabase/user'
 export async function hasOfflineResumesToSync() {
   try {
     const offlineResumes = await getAllOfflineResumes()
+
     return offlineResumes.length > 0
   } catch {
     toast.error('检查本地简历失败，请稍后重试')
+
     return false
   }
 }
@@ -36,6 +38,7 @@ export async function hasOfflineResumesToSync() {
 export async function syncOfflineResumesToCloud(selectedIds?: string[]) {
   // 检查用户是否已登录
   const user = await getCurrentUser()
+
   if (!user) {
     throw new Error('用户未登录，无法同步简历')
   }
@@ -76,6 +79,7 @@ export async function autoSyncOnLogin() {
         if (result.failed > 0) {
           return `同步完成：成功 ${result.success} 个，失败 ${result.failed} 个`
         }
+
         return `成功同步 ${result.success} 个本地简历到云端`
       },
       error: '同步失败，请稍后重试',

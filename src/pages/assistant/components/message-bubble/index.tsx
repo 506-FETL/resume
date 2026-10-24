@@ -37,6 +37,7 @@ function renderAssistantParts(
 ) {
   const nodes: ReactNode[] = []
   let buffer: ToolCallPart[] = []
+
   const flush = () => {
     if (buffer.length) {
       // 工具组从流式尾部变为中间部件时仍复用同一节点，避免状态与动效重播。
@@ -47,18 +48,25 @@ function renderAssistantParts(
           streaming={isStreamingMessage}
         />,
       )
+
       buffer = []
     }
   }
+
   const lastIndex = parts.length - 1
+
   parts.forEach((p, index) => {
     if (p.type === 'tool-call') {
       buffer.push(p)
+
       return
     }
+
     // 用「部件在数组中的位置」作为稳定 key，避免内容增量导致整块卸载重挂、重解析 markdown（长文本卡顿主因）
     flush()
+
     const streaming = isStreamingMessage && index === lastIndex
+
     if (p.type === 'reasoning') {
       // eslint-disable-next-line @eslint-react/no-array-index-key -- 流式中部件位置稳定，用索引 key 才能避免重挂载
       nodes.push(
@@ -77,7 +85,9 @@ function renderAssistantParts(
       nodes.push(<SkillActivity key={p.id} activity={p} />)
     }
   })
+
   flush()
+
   return nodes
 }
 
@@ -92,6 +102,7 @@ function UserMessageEditor({
   onCancel: () => void
 }) {
   const [value, setValue] = useState(initial)
+
   return (
     <div className='flex w-full max-w-[80%] flex-col gap-2'>
       <textarea
@@ -131,6 +142,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   const [editing, setEditing] = useState(false)
+
   // 本地临时行 / 进行中行不显示操作栏
   const hideActions =
     message.id.startsWith('local-') || message.id === 'streaming'
@@ -150,6 +162,7 @@ export function MessageBubble({
         </div>
       )
     }
+
     return (
       <div className='group flex flex-col items-end gap-1.5'>
         {getSkillReferences(message.parts).map((reference) => (

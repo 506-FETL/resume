@@ -32,9 +32,11 @@ const ReasoningContext = createContext<ReasoningContextValue | null>(null)
 
 export function useReasoning() {
   const context = use(ReasoningContext)
+
   if (!context) {
     throw new Error('Reasoning components must be used within Reasoning')
   }
+
   return context
 }
 
@@ -65,6 +67,7 @@ export const Reasoning = memo(
       defaultProp: defaultOpen,
       onChange: onOpenChange,
     })
+
     const [duration, setDuration] = useControllableState({
       prop: durationProp,
       defaultProp: undefined,
@@ -80,6 +83,7 @@ export const Reasoning = memo(
     useEffect(() => {
       if (isStreaming) {
         hasStreamedRef.current = true
+
         if (startTime === null) {
           setStartTime(Date.now())
         }
@@ -145,6 +149,7 @@ function defaultGetThinkingMessage(isStreaming: boolean, duration?: number) {
   if (duration === undefined) {
     return <p>Thought for a few seconds</p>
   }
+
   return (
     <p>
       Thought for

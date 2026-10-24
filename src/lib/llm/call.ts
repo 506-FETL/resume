@@ -52,6 +52,7 @@ export async function callLLM(
   const {
     data: { session },
   } = await supabase.auth.getSession()
+
   const token = session?.access_token
 
   if (!token) {
@@ -107,6 +108,7 @@ export async function callLLM(
 
   if (!response.ok) {
     const errorText = await response.text()
+
     // 额度超限：抛出可识别的 QuotaExceededError，供上层兜底处理（本阶段不做专门 UI）
     if (response.status === 403) {
       try {
@@ -116,6 +118,7 @@ export async function callLLM(
           daily_limit?: number
           reset_at?: string
         }
+
         if (parsed?.error === 'quota_exceeded') {
           throw new QuotaExceededError({
             remaining: parsed.remaining,
@@ -128,6 +131,7 @@ export async function callLLM(
         // JSON 解析失败则回退到通用错误
       }
     }
+
     throw new Error(`LLM request failed: ${response.status} ${errorText}`)
   }
 

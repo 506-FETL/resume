@@ -1,6 +1,9 @@
 export const A4_PAGE_WIDTH = '210mm'
+
 export const A4_PAGE_HEIGHT = '297mm'
+
 export const BOUNDARY_EPSILON = 0.5
+
 export const MAX_STABILITY_FRAMES = 8
 
 export const RESUME_PRINT_PAGE_STYLE = `

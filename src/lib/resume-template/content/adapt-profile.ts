@@ -23,6 +23,7 @@ export function adaptProfile(
   const photo = data.basics.photo
     ? resumePhotoSchema.parse(data.basics.photo)
     : null
+
   const customFields = fields(
     'basics',
     data.basics.customFields.map((field, index) => [
@@ -30,6 +31,7 @@ export function adaptProfile(
       field?.label.trim() ?? '',
     ]),
   ).map((field) => ({ ...field, labelRequired: true }))
+
   const profile = {
     photo,
     name: fields('basics', [['name', '姓名']])[0],
@@ -60,6 +62,7 @@ export function adaptProfile(
       ['email', '邮箱'],
     ]),
   }
+
   const allFields = [
     profile.name,
     profile.workYears,
@@ -69,6 +72,7 @@ export function adaptProfile(
   ].filter((field): field is NonNullable<typeof field> =>
     Boolean(field?.text.trim()),
   )
+
   return allFields.length || photo
     ? {
         ...profile,

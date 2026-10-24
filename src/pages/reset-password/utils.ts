@@ -10,6 +10,7 @@ export function validateRecoveryPassword(
   if (!password) return '请输入新密码'
   if (password.length < 6) return '新密码至少需要 6 个字符'
   if (password !== confirmation) return '两次输入的新密码不一致'
+
   return null
 }
 
@@ -18,11 +19,15 @@ export async function verifyRecoveryIdentity(): Promise<RecoveryIdentity> {
     data: { session },
     error,
   } = await supabase.auth.getSession()
+
   if (error || !session) throw new Error(INVALID_RECOVERY_MESSAGE)
+
   const { data, error: claimsError } = await supabase.auth.getClaims(
     session.access_token,
   )
+
   const claims = data?.claims
+
   if (
     claimsError ||
     !claims ||
@@ -34,9 +39,12 @@ export async function verifyRecoveryIdentity(): Promise<RecoveryIdentity> {
   ) {
     throw new Error(INVALID_RECOVERY_MESSAGE)
   }
+
   const { data: latest, error: latestError } = await supabase.auth.getSession()
+
   if (latestError || latest.session?.access_token !== session.access_token)
     throw new Error(INVALID_RECOVERY_MESSAGE)
+
   return { userId: claims.sub, sessionId: claims.session_id, session }
 }
 
@@ -65,11 +73,15 @@ export async function updateRecoveryPassword(
       },
     },
   )
+
   try {
     const { data, error } = await client.auth.setSession(identity.session)
+
     if (error || data.user?.id !== identity.userId)
       throw new Error(INVALID_RECOVERY_MESSAGE)
+
     const { error: updateError } = await client.auth.updateUser({ password })
+
     if (updateError) throw updateError
   } finally {
     await client.auth.stopAutoRefresh()

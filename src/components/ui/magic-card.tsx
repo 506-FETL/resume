@@ -1,5 +1,11 @@
 import type { PointerEvent, ReactNode } from 'react'
-import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring } from 'motion/react'
+import {
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+} from 'motion/react'
 import { useCallback, useEffect } from 'react'
 import { useTheme } from '@/components/theme-provider'
 import { SPRING } from '@/lib/motion'
@@ -75,6 +81,7 @@ export function MagicCard({
     radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px,
       ${gradientFrom}, ${gradientTo}, ${borderColor} 100%) border-box
   `
+
   const gradientBackground = useMotionTemplate`
     radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px,
       ${gradientColor}, transparent 100%)
@@ -85,9 +92,10 @@ export function MagicCard({
   }, [visibility])
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
-    if (reduceMotion || event.pointerType === 'touch')
-      return
+    if (reduceMotion || event.pointerType === 'touch') return
+
     const rect = event.currentTarget.getBoundingClientRect()
+
     mouseX.set(event.clientX - rect.left)
     mouseY.set(event.clientY - rect.top)
     visibility.set(mode === 'orb' ? glowOpacity : gradientOpacity)
@@ -99,19 +107,22 @@ export function MagicCard({
       orbVisible.jump(0)
       orbX.jump(-gradientSize)
       orbY.jump(-gradientSize)
+
       return
     }
+
     const handlePointerOut = (event: globalThis.PointerEvent) => {
-      if (!event.relatedTarget)
-        reset()
+      if (!event.relatedTarget) reset()
     }
+
     const handleVisibility = () => {
-      if (document.visibilityState !== 'visible')
-        reset()
+      if (document.visibilityState !== 'visible') reset()
     }
+
     window.addEventListener('pointerout', handlePointerOut)
     window.addEventListener('blur', reset)
     document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
       window.removeEventListener('pointerout', handlePointerOut)
       window.removeEventListener('blur', reset)
@@ -121,41 +132,48 @@ export function MagicCard({
 
   return (
     <motion.div
-      data-slot="magic-card"
+      data-slot='magic-card'
       data-mode={mode}
-      className={cn('relative isolate overflow-hidden rounded-xl border border-transparent bg-card text-card-foreground', className)}
+      className={cn(
+        'relative isolate overflow-hidden rounded-xl border border-transparent bg-card text-card-foreground',
+        className,
+      )}
       onPointerMove={handlePointerMove}
       onPointerLeave={reset}
       onFocusCapture={(event) => {
         if (reduceMotion || event.currentTarget.contains(event.relatedTarget))
           return
+
         const rect = event.currentTarget.getBoundingClientRect()
+
         mouseX.set(rect.width / 2)
         mouseY.set(rect.height / 2)
         visibility.set(mode === 'orb' ? glowOpacity : gradientOpacity)
       }}
       onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget))
-          reset()
+        if (!event.currentTarget.contains(event.relatedTarget)) reset()
       }}
       style={{
         background: reduceMotion ? undefined : borderBackground,
         borderColor: reduceMotion ? borderColor : undefined,
       }}
     >
-      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] bg-card" />
+      <div
+        aria-hidden
+        className='pointer-events-none absolute inset-0 rounded-[inherit] bg-card'
+      />
       {!reduceMotion && mode === 'gradient' && (
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute inset-px rounded-[inherit]"
+          className='pointer-events-none absolute inset-px rounded-[inherit]'
           style={{ background: gradientBackground, opacity: orbVisible }}
         />
       )}
       {!reduceMotion && mode === 'orb' && (
         <motion.div
           aria-hidden
-          data-slot="magic-card-orb"
-          className="pointer-events-none absolute rounded-full"
+          data-slot='magic-card-orb'
+          className='pointer-events-none absolute rounded-full'
           style={{
             width: glowSize,
             height: glowSize,

@@ -51,6 +51,7 @@ export function formatShortcutKey(
 ) {
   if (isMac) {
     const lowerKey = key.toLowerCase()
+
     return MAC_SYMBOLS[lowerKey] || (capitalize ? key.toUpperCase() : key)
   }
 
@@ -90,6 +91,7 @@ export function isMarkInSchema(
   editor: Editor | null,
 ): boolean {
   if (!editor?.schema) return false
+
   return editor.schema.spec.marks.get(markName) !== undefined
 }
 
@@ -104,6 +106,7 @@ export function isNodeInSchema(
   editor: Editor | null,
 ): boolean {
   if (!editor?.schema) return false
+
   return editor.schema.spec.nodes.get(nodeName) !== undefined
 }
 
@@ -117,14 +120,18 @@ export function focusNextNode(editor: Editor) {
   const { doc, selection } = state
 
   const nextSel = Selection.findFrom(selection.$to, 1, true)
+
   if (nextSel) {
     view.dispatch(state.tr.setSelection(nextSel).scrollIntoView())
+
     return true
   }
 
   const paragraphType = state.schema.nodes.paragraph
+
   if (!paragraphType) {
     console.warn('No paragraph node type found in schema.')
+
     return false
   }
 
@@ -134,8 +141,10 @@ export function focusNextNode(editor: Editor) {
 
   // Place the selection inside the new paragraph
   const $inside = tr.doc.resolve(end + 1)
+
   tr = tr.setSelection(TextSelection.near($inside)).scrollIntoView()
   view.dispatch(tr)
+
   return true
 }
 
@@ -186,13 +195,17 @@ export function isExtensionAvailable(
 export function findNodeAtPosition(editor: Editor, position: number) {
   try {
     const node = editor.state.doc.nodeAt(position)
+
     if (!node) {
       console.warn(`No node found at position ${position}`)
+
       return null
     }
+
     return node
   } catch (error) {
     console.error(`Error getting node at position ${position}:`, error)
+
     return null
   }
 }
@@ -233,8 +246,10 @@ export function findNodePosition(props: {
       if (currentNode === node) {
         foundPos = pos
         foundNode = currentNode
+
         return false
       }
+
       return true
     })
 
@@ -246,6 +261,7 @@ export function findNodePosition(props: {
   // If we have a valid position, use findNodeAtPosition
   if (hasValidPos) {
     const nodeAtPos = findNodeAtPosition(editor, nodePos!)
+
     if (nodeAtPos) {
       return { pos: nodePos!, node: nodeAtPos }
     }
@@ -273,6 +289,7 @@ export function isNodeTypeSelected(
 
   if (selection instanceof NodeSelection) {
     const node = selection.node
+
     return node ? types.includes(node.type.name) : false
   }
 
@@ -318,13 +335,17 @@ export async function handleImageUpload(
 
   // Step 1: Get current user (5% -> 10%)
   checkAborted(abortSignal)
+
   const user = await getCurrentUser()
+
   if (!user) throw new Error('未登陆用户')
+
   onProgress?.({ progress: 10 })
 
   // Step 2: Upload file to storage (10% -> 70%)
   // Using XMLHttpRequest for real progress tracking
   checkAborted(abortSignal)
+
   const path = `${user.id}/${Date.now()}-${file.name}`
 
   await uploadWithProgress(
@@ -333,6 +354,7 @@ export async function handleImageUpload(
     (uploadProgress) => {
       // Map upload progress (0-100) to our range (10-70)
       const mappedProgress = 10 + uploadProgress * 0.6
+
       onProgress?.({ progress: Math.round(mappedProgress) })
     },
     abortSignal,
@@ -342,17 +364,21 @@ export async function handleImageUpload(
 
   // Step 3: Get public URL (70% -> 80%)
   checkAborted(abortSignal)
+
   const { data } = supabase.storage.from('avatar').getPublicUrl(path)
   const avatarUrl = data.publicUrl
+
   onProgress?.({ progress: 80 })
 
   // Step 4: Update user profile (80% -> 95%)
   checkAborted(abortSignal)
+
   const { error } = await supabase.auth.updateUser({
     data: { avatar_url: avatarUrl },
   })
 
   if (error) throw error
+
   onProgress?.({ progress: 95 })
 
   // Complete
@@ -376,10 +402,12 @@ async function uploadWithProgress(
 
   // Get the session token for authenticated upload
   let authToken: string
+
   try {
     const {
       data: { session },
     } = await supabase.auth.getSession()
+
     if (session?.access_token) {
       authToken = session.access_token
     } else {
@@ -411,17 +439,20 @@ async function uploadWithProgress(
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable) {
         const progress = (event.loaded / event.total) * 100
+
         onProgress(progress)
       }
     })
 
     xhr.addEventListener('load', () => {
       abortSignal?.removeEventListener('abort', abortHandler)
+
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve(path)
       } else {
         try {
           const errorData = JSON.parse(xhr.responseText)
+
           reject(
             new Error(errorData.message || `上传失败，状态码 ${xhr.status}`),
           )
@@ -529,5 +560,6 @@ export function sanitizeUrl(
   } catch {
     // If URL creation fails, it's considered invalid
   }
+
   return '#'
 }

@@ -32,6 +32,7 @@ export default function IssueAnalysis() {
       accumulator[severity] = (findings?.[severity] ?? []).filter(
         isAtsFindingPending,
       ).length
+
       return accumulator
     },
     { high: 0, medium: 0, low: 0 },
@@ -39,6 +40,7 @@ export default function IssueAnalysis() {
 
   const totalPendingIssues =
     pendingCounts.high + pendingCounts.medium + pendingCounts.low
+
   const totalFindings = countAllFindings(findings)
 
   return (
@@ -107,6 +109,7 @@ export default function IssueAnalysis() {
           ) : (
             severityOrder.map((severity) => {
               const issues = findings[severity]
+
               if (!issues || issues.length === 0) return null
 
               const config = severityConfig[severity]

@@ -47,9 +47,11 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     () => getJobDescriptionSessionKey(resumeContext),
     [resumeContext],
   )
+
   const session =
     useJobDescriptionToolStore((state) => state.sessions[sessionKey]) ??
     createInitialJobDescriptionToolSession()
+
   const {
     setAnalysisError,
     setAnalysisOpen,
@@ -69,11 +71,14 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     jobDescription,
     result,
   } = session
+
   const jobDescriptionLength = jobDescription.trim().length
+
   const hasAnalysisFlow = useMemo(
     () => hasJobDescriptionAnalysisFlow(analysisState, analysisError),
     [analysisError, analysisState],
   )
+
   const analysisDone = analysisState.status === 'complete' && Boolean(result)
   const canDerive = analysisDone && jobDescription.trim().length >= MIN_JD_CHARS
   const [deriveOpen, setDeriveOpen] = useState(false)
@@ -83,6 +88,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
 
   const handleCompare = async () => {
     const normalizedJobDescription = jobDescription.trim()
+
     if (!normalizedJobDescription) {
       return
     }
@@ -91,6 +97,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     setResult(sessionKey, null)
     setAnalysisError(sessionKey, null)
     setAnalysisOpen(sessionKey, true)
+
     setAnalysisState(sessionKey, {
       ...createInitialJobDescriptionToolSession().analysisState,
       status: 'sending',
@@ -111,6 +118,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               status: 'thinking',
               reasoning: streamReasoning,
             })
+
             updateAnalysisLog(
               sessionKey,
               'send',
@@ -120,10 +128,12 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
 
           if (streamContent) {
             finalContent = streamContent
+
             updateAnalysisState(sessionKey, {
               status: 'generating',
               content: streamContent,
             })
+
             updateAnalysisLog(sessionKey, 'result', '正在生成结构化分析结果...')
           }
         },
@@ -140,6 +150,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
         parseLlmJsonObject<Partial<JobDescriptionComparisonResult>>(
           finalContent,
         )
+
       setResult(
         sessionKey,
         normalizeJobDescriptionComparisonResult(parsed, resumeContext.resume),
@@ -150,6 +161,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : '职位描述分析失败，请稍后重试'
+
       setAnalysisError(sessionKey, message)
       toast.error(message)
     } finally {
@@ -208,6 +220,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               onClick={() => {
                 const task =
                   useJdVariantStore.getState().tasks[resumeContext.resumeId]
+
                 if (
                   task &&
                   (task.phase === 'success' ||
@@ -215,6 +228,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
                     task.phase === 'aborted')
                 )
                   useJdVariantStore.getState().clearTask(resumeContext.resumeId)
+
                 setDeriveOpen(true)
               }}
             >
@@ -264,6 +278,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
             draftId,
             resumeContext.resumeType === 'offline' ? 'default' : 'default',
           )
+
           navigate('/resume/editor')
         }}
       />

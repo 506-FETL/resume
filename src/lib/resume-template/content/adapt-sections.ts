@@ -38,9 +38,12 @@ function experienceBlock(
     .map((item) => {
       const read = (key: string, label: string) => {
         const field = contentField(nodes, section, item.entryId, key, label)
+
         return nodes.has(field.nodeKey) && field.text.trim() ? field : undefined
       }
+
       const description = read('content', fields.descriptionLabel)
+
       return {
         entryId: item.entryId,
         title: read(fields.title.key, fields.title.label),
@@ -52,6 +55,7 @@ function experienceBlock(
             : undefined,
       }
     })
+
   return {
     kind: 'experience',
     items: items.filter(
@@ -64,6 +68,7 @@ function experienceBlock(
 type BlockByKind = {
   [Kind in ContentBlock['kind']]: Extract<ContentBlock, { kind: Kind }>
 }
+
 const blockCleaners: {
   [Kind in ContentBlock['kind']]: (block: BlockByKind[Kind]) => ContentBlock[]
 } = {
@@ -71,6 +76,7 @@ const blockCleaners: {
   experience: (block) => (block.items.length ? [block] : []),
   skills: (block) => {
     const items = block.items.filter((item) => item.field.text.trim())
+
     return items.length ? [{ ...block, items }] : []
   },
   fieldList: cleanFieldList,
@@ -81,6 +87,7 @@ function cleanFieldList(
   block: BlockByKind['fieldList' | 'tagList'],
 ): ContentBlock[] {
   const items = block.items.filter((item) => item.text.trim())
+
   return items.length ? [{ ...block, items }] : []
 }
 
@@ -109,6 +116,7 @@ export function adaptSections(
           },
         ]
       : []
+
   const sections: ContentSection[] = [
     {
       key: 'application_info',
@@ -338,11 +346,16 @@ export function adaptSections(
       ],
     },
   ]
+
   const byKey = new Map(sections.map((section) => [section.key, section]))
+
   return data.order.flatMap((key) => {
     const section = byKey.get(key)
+
     if (!section || key === 'basics' || !data.getVisibility(key)) return []
+
     const blocks = section.blocks.flatMap(cleanBlock)
+
     return blocks.length ? [{ ...section, blocks }] : []
   })
 }

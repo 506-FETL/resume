@@ -29,6 +29,7 @@ export function useScrollSync({
   const isAnimatingRemoteScroll = useRef(false)
   const suppressScrollSyncUntilRef = useRef(0)
   const remoteScrollAnimationFrameRef = useRef<number | null>(null)
+
   const remoteScrollTargetRef = useRef<{
     target: ScrollTarget
     position: number
@@ -44,21 +45,25 @@ export function useScrollSync({
 
   const getScrollPosition = useCallback(() => {
     const previewScrollTop = scrollContainerRef.current?.scrollTop ?? 0
+
     const windowScrollTop =
       window.scrollY ||
       document.documentElement.scrollTop ||
       document.body.scrollTop ||
       0
+
     return previewScrollTop > 0 ? previewScrollTop : windowScrollTop
   }, [scrollContainerRef])
 
   const getScrollTarget = useCallback((): ScrollTarget => {
     const previewElement = scrollContainerRef.current
+
     if (
       previewElement &&
       previewElement.scrollHeight > previewElement.clientHeight
     )
       return 'preview'
+
     return 'window'
   }, [scrollContainerRef])
 
@@ -66,6 +71,7 @@ export function useScrollSync({
     (target: ScrollTarget) => {
       if (target === 'preview')
         return scrollContainerRef.current?.scrollTop ?? 0
+
       return (
         window.scrollY ||
         document.documentElement.scrollTop ||
@@ -80,9 +86,12 @@ export function useScrollSync({
     (target: ScrollTarget, position: number) => {
       if (target === 'preview') {
         const previewElement = scrollContainerRef.current
+
         if (previewElement) previewElement.scrollTop = position
+
         return
       }
+
       window.scrollTo({ top: position, left: window.scrollX, behavior: 'auto' })
     },
     [scrollContainerRef],
@@ -93,14 +102,17 @@ export function useScrollSync({
       cancelAnimationFrame(remoteScrollAnimationFrameRef.current)
       remoteScrollAnimationFrameRef.current = null
     }
+
     remoteScrollTargetRef.current = null
     isAnimatingRemoteScroll.current = false
   }, [])
 
   const stepRemoteScroll = useCallback(() => {
     const nextTarget = remoteScrollTargetRef.current
+
     if (!nextTarget) {
       cancelRemoteScrollAnimation()
+
       return
     }
 
@@ -110,17 +122,20 @@ export function useScrollSync({
     if (Math.abs(delta) <= 1) {
       setScrollPositionByTarget(nextTarget.target, nextTarget.position)
       cancelRemoteScrollAnimation()
+
       return
     }
 
     const step =
       Math.sign(delta) * Math.min(Math.max(Math.abs(delta) * 0.24, 6), 120)
+
     const nextPosition =
       Math.abs(step) >= Math.abs(delta)
         ? nextTarget.position
         : currentPosition + step
 
     setScrollPositionByTarget(nextTarget.target, nextPosition)
+
     remoteScrollAnimationFrameRef.current =
       requestAnimationFrame(stepRemoteScroll)
   }, [
@@ -178,6 +193,7 @@ export function useScrollSync({
     }
 
     window.addEventListener('scroll', handleWindowScroll, { passive: true })
+
     previewElement?.addEventListener('scroll', handlePreviewScroll, {
       passive: true,
     })
@@ -191,6 +207,7 @@ export function useScrollSync({
 
   useEffect(() => {
     if (followMode) return
+
     cancelRemoteScrollAnimation()
   }, [followMode, cancelRemoteScrollAnimation])
 

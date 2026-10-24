@@ -37,7 +37,9 @@ function matchesKeyword(
   keyword: string,
 ): boolean {
   const q = keyword.trim().toLowerCase()
+
   if (!q) return true
+
   const haystack = [
     getVersionTitle(version),
     version.description ?? '',
@@ -46,6 +48,7 @@ function matchesKeyword(
   ]
     .join('\n')
     .toLowerCase()
+
   return haystack.includes(q)
 }
 
@@ -58,6 +61,7 @@ export function filterVersions(
     if (criteria.source !== 'all' && version.source_type !== criteria.source)
       return false
     if (criteria.milestoneOnly && !version.milestone_name?.trim()) return false
+
     return matchesKeyword(version, criteria.keyword)
   })
 

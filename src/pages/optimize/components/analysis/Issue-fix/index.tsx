@@ -53,9 +53,11 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
   const finding = currentAtsConfig?.findings?.[severity]?.find(
     (f) => f.id === id,
   )
+
   const allFixed = finding?.fix.suggestions?.length
     ? finding.fix.suggestions.every((s) => s.fixed)
     : false
+
   const needsUserInput = hasUnresolvedSuggestionInput(
     finding?.fix.suggestions ?? [],
   )
@@ -71,11 +73,13 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
 
     if (updatedSuggestions.length === 0) {
       toast.error('当前修复建议不完整，请重新运行 ATS 检测')
+
       return
     }
 
     if (hasUnresolvedSuggestionInput(updatedSuggestions)) {
       toast.info('请先在“自定义”中填写真实信息，再确认应用')
+
       return
     }
 
@@ -94,6 +98,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
           },
         }
       }
+
       return f
     })
 
@@ -112,6 +117,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
         ...currentAtsConfig.findings,
         [severity]: updatedFinding,
       })
+
       startConfetti(triger)
     } catch (error) {
       toast.error('修复除了点问题, 请稍后重试')

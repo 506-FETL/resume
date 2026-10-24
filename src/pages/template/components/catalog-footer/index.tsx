@@ -17,6 +17,7 @@ import { templateScrollRoot } from '../../utils'
 
 export default function CatalogFooter() {
   const reduceMotion = useReducedMotion()
+
   const {
     catalog,
     catalogQuery,
@@ -34,21 +35,25 @@ export default function CatalogFooter() {
       loadMore: state.loadMore,
     })),
   )
+
   // 每次追加后重新观察新位置，快速连续滚动时也不会沿用上一批的相交状态。
   const { ref, inRange } = useTemplateIntersection(
     TEMPLATE_LOAD_MORE_ROOT_MARGIN,
     false,
     nextOffset,
   )
+
   const { styleFilter, layoutFilter } = useTemplatePageStore(
     useShallow((state) => ({
       styleFilter: state.styleFilter,
       layoutFilter: state.layoutFilter,
     })),
   )
+
   const matchesFilter =
     (catalogQuery.style || null) === styleFilter &&
     (catalogQuery.layout || null) === layoutFilter
+
   useEffect(() => {
     if (
       !inRange ||
@@ -60,9 +65,11 @@ export default function CatalogFooter() {
       !ref.current
     )
       return
+
     // 追加后的 observer 通知可能尚未到达；复查实际位置，防止旧 inRange 连续拉完整个目录。
     const bounds = ref.current.getBoundingClientRect()
     const root = templateScrollRoot(ref.current)?.getBoundingClientRect()
+
     if (
       bounds.top <=
         (root?.bottom ?? window.innerHeight) + TEMPLATE_LOAD_MORE_DISTANCE &&
@@ -79,6 +86,7 @@ export default function CatalogFooter() {
     loadMore,
     ref,
   ])
+
   const status = loadMoreError
     ? 'error'
     : loadingMore
@@ -86,6 +94,7 @@ export default function CatalogFooter() {
       : nextOffset === null
         ? 'end'
         : 'more'
+
   return (
     <div
       ref={ref}

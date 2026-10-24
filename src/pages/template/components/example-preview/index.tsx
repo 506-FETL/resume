@@ -21,9 +21,11 @@ export default function ExamplePreview({
   example: ExampleRef
 }) {
   const { resource, retry } = useTemplateExample(example)
+
   const template = useResolvedResumeTemplate({
     binding: toTemplateBinding(catalogTemplateRef(item)),
   })
+
   const data = useMemo(
     () =>
       resource?.status === 'ready'
@@ -31,15 +33,18 @@ export default function ExamplePreview({
         : null,
     [resource],
   )
+
   const preview = item.previews.find(
     (candidate) =>
       candidate.templateVersion === item.currentVersion &&
       candidate.example.exampleId === example.exampleId &&
       candidate.example.version === example.version,
   )
+
   const thumbnail = useTemplatePreview(preview, true)
   const contentKey = `${item.templateId}@${item.currentVersion}:${example.exampleId}@${example.version}`
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
+
   const onDocumentStateChange = useCallback<ResumeDocumentStateChange>(
     (state) => {
       if (state.status === 'ready' || state.status === 'error')
@@ -47,6 +52,7 @@ export default function ExamplePreview({
     },
     [contentKey],
   )
+
   // 冷启动完整排版时复用已展示的首页；失败仍展示真实错误和重试入口。
   if (
     thumbnail.url &&
@@ -83,7 +89,9 @@ export default function ExamplePreview({
         onRetry={template.retry}
       />
     )
+
   const showThumbnail = Boolean(thumbnail.url && revealedKey !== contentKey)
+
   return (
     <div className='relative'>
       {showThumbnail && (

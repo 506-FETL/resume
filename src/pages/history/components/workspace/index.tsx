@@ -27,6 +27,7 @@ export default function HistoryWorkspace({
   onReloadResumeOptions,
 }: HistoryWorkspaceProps) {
   const detailPanelState = useHistoryDetailPanelState(activeResumeId)
+
   const {
     init,
     reload,
@@ -37,6 +38,7 @@ export default function HistoryWorkspace({
     timelineFocusTarget,
     clearTimelineFocus,
   } = useHistoryStore()
+
   const reduceMotion = useReducedMotion()
   const workspaceRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
@@ -48,11 +50,15 @@ export default function HistoryWorkspace({
 
   useLayoutEffect(() => {
     const element = workspaceRef.current
+
     if (!element) return
+
     const observer = new ResizeObserver(([entry]) =>
       setNarrow(entry.contentRect.width < 900),
     )
+
     observer.observe(element)
+
     return () => observer.disconnect()
   }, [hasWorkspace])
 
@@ -71,16 +77,20 @@ export default function HistoryWorkspace({
       ) {
         const target =
           timelineFocusTarget ?? detailPanelState.selectedEntry ?? 'current'
+
         const button = timelineRef.current?.querySelector<HTMLButtonElement>(
           `[data-history-entry="${target}"]`,
         )
+
         if (button) button.focus({ preventScroll: true })
         else timelineRef.current?.focus({ preventScroll: true })
       }
     } else if (document.activeElement === backRef.current) {
       detailRef.current?.focus({ preventScroll: true })
     }
+
     previousPanel.current = mobilePanel
+
     if (timelineFocusTarget !== null) clearTimelineFocus()
   }, [
     clearTimelineFocus,

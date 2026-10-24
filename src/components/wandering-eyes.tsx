@@ -28,6 +28,7 @@ function WanderingEyes({
   const safePupilScale = clamp(pupilScale, 0.12, 0.45)
   const safeBlinkScale = clamp(blinkScale, 0.15, 1)
   const safeTravelScale = clamp(travelScale, 0.08, 0.5)
+
   const eyesStyle = {
     ...style,
     '--loading-ui-wandering-eyes-eye': `${(safeEyeScale * 100).toFixed(2)}cqmin`,

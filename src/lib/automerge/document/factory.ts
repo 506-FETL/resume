@@ -37,6 +37,7 @@ export function ensureDocumentMetadata(
   identity: DocumentIdentity,
 ) {
   doc._metadata = buildMetadata(doc._metadata, identity)
+
   return doc._metadata
 }
 
@@ -47,6 +48,7 @@ export function touchDocumentMetadata(
   const metadata = ensureDocumentMetadata(doc, identity)
 
   metadata.updatedAt = new Date().toISOString()
+
   metadata.version =
     typeof metadata.version === 'number' ? metadata.version + 1 : 1
 }
@@ -61,6 +63,7 @@ export async function createResumeDocument({
 
   handle.change((doc) => {
     doc._metadata = buildMetadata(undefined, { resumeId, userId })
+
     const appearance = normalizeResumeAppearance(seedData)
 
     if (seedData) {
@@ -80,6 +83,7 @@ export async function createResumeDocument({
     doc.spacing = {
       ...appearance.spacing,
     } as AutomergeResumeDocument['spacing']
+
     doc.font = { ...appearance.font } as AutomergeResumeDocument['font']
     doc.theme = { ...appearance.theme } as AutomergeResumeDocument['theme']
   })

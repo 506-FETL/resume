@@ -46,6 +46,7 @@ registerTool({
   mode: 'read',
   execute: async (args) => {
     const resumeId = typeof args.resumeId === 'string' ? args.resumeId : null
+
     if (resumeId && isOfflineResumeId(resumeId))
       return { error: '本地简历暂不支持 ATS 评估记录，请先同步到云端。' }
 
@@ -53,11 +54,14 @@ registerTool({
       const all = (await getAtsFromUserId()) as unknown as Array<
         Record<string, unknown>
       >
+
       const filtered = resumeId
         ? all.filter((a) => a.resume_id === resumeId)
         : all
+
       if (!filtered || filtered.length === 0)
         return { message: '该简历还没有 ATS 评估记录' }
+
       return { count: filtered.length, records: filtered }
     } catch (error) {
       return { error: error instanceof Error ? error.message : '读取 ATS 失败' }
@@ -78,6 +82,7 @@ registerTool({
   mode: 'read',
   execute: async (args) => {
     const resumeId = String(args.resumeId)
+
     if (isOfflineResumeId(resumeId))
       return { error: '本地简历暂不支持派生血缘，请先同步到云端。' }
 
@@ -112,7 +117,9 @@ registerTool({
       const page = await resumeTemplateSource.listTemplatePage({
         offset: typeof args.offset === 'number' ? args.offset : 0,
       })
+
       const list = page.items
+
       return {
         count: list.length,
         nextOffset: page.nextOffset,
@@ -143,6 +150,7 @@ registerTool({
   mode: 'read',
   execute: async (args) => {
     const resumeId = typeof args.resumeId === 'string' ? args.resumeId : null
+
     if (resumeId && isOfflineResumeId(resumeId))
       return { error: '本地简历暂不支持历史版本，请先同步到云端。' }
 
@@ -151,9 +159,11 @@ registerTool({
         (await listResumeHistoryVersionSummaries()) as unknown as Array<
           Record<string, unknown>
         >
+
       const filtered = resumeId
         ? all.filter((v) => v.resume_id === resumeId)
         : all
+
       return { count: filtered.length, versions: filtered }
     } catch (error) {
       return {

@@ -22,8 +22,10 @@ function usePresenceGuard<Element extends HTMLElement>(
       if (!isPresent) {
         event.preventDefault()
         event.stopPropagation()
+
         return
       }
+
       handler?.(event)
     }
 
@@ -43,6 +45,7 @@ export function PresenceDiv(
   props: HTMLMotionProps<'div'> & { ref?: Ref<HTMLDivElement> },
 ) {
   const guard = usePresenceGuard(props)
+
   return <motion.div {...props} {...guard} />
 }
 
@@ -50,6 +53,7 @@ export function PresenceListItem(
   props: HTMLMotionProps<'li'> & { ref?: Ref<HTMLLIElement> },
 ) {
   const guard = usePresenceGuard(props)
+
   return <motion.li {...props} {...guard} />
 }
 
@@ -57,5 +61,6 @@ export function PresenceTableRow(
   props: HTMLMotionProps<'tr'> & { ref?: Ref<HTMLTableRowElement> },
 ) {
   const guard = usePresenceGuard(props)
+
   return <motion.tr {...props} {...guard} />
 }

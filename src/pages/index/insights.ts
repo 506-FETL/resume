@@ -45,7 +45,9 @@ export interface DashboardInsights {
 }
 
 type JobSummaries = Awaited<ReturnType<typeof listJobApplicationSummaries>>
+
 type AtsSummaries = Awaited<ReturnType<typeof listAtsSummaries>>
+
 type VersionSummaries = Awaited<
   ReturnType<typeof listResumeHistoryVersionSummaries>
 >
@@ -68,7 +70,9 @@ function compareAtsSummaryChronologically<
   T extends { id: string | number; created_at: string },
 >(left: T, right: T) {
   const dateDifference = diffDates(left.created_at, right.created_at)
+
   if (dateDifference !== 0) return dateDifference
+
   return String(left.id).localeCompare(String(right.id), undefined, {
     numeric: true,
   })
@@ -82,6 +86,7 @@ function useDashboardResource<T>(
   accountId: string | undefined,
 ): DashboardResource<T> {
   const [attempt, setAttempt] = useState(0)
+
   const [state, setState] = useState({
     data: empty,
     loading: true,
@@ -89,10 +94,14 @@ function useDashboardResource<T>(
     hasLoaded: false,
     accountId,
   })
+
   const retry = useCallback(() => setAttempt((value) => value + 1), [])
+
   useEffect(() => {
     let cancelled = false
+
     if (!ready) return
+
     setState((previous) => ({
       ...previous,
       ...(previous.accountId !== accountId
@@ -102,6 +111,7 @@ function useDashboardResource<T>(
       loading: enabled,
       error: null,
     }))
+
     if (!enabled) {
       setState({
         data: empty,
@@ -110,8 +120,10 @@ function useDashboardResource<T>(
         hasLoaded: true,
         accountId,
       })
+
       return
     }
+
     fetcher()
       .then((data) => {
         if (!cancelled)
@@ -132,10 +144,12 @@ function useDashboardResource<T>(
             accountId,
           }))
       })
+
     return () => {
       cancelled = true
     }
   }, [fetcher, ready, enabled, accountId, attempt, empty])
+
   return state.accountId === accountId
     ? { ...state, retry }
     : { data: empty, loading: true, error: null, hasLoaded: false, retry }
@@ -158,6 +172,7 @@ export function useDashboardResources(
     enabled,
     accountId,
   )
+
   const ats = useDashboardResource(
     listAtsSummaries,
     EMPTY_ATS,
@@ -165,6 +180,7 @@ export function useDashboardResources(
     enabled,
     accountId,
   )
+
   const versions = useDashboardResource(
     listResumeHistoryVersionSummaries,
     EMPTY_VERSIONS,
@@ -172,6 +188,7 @@ export function useDashboardResources(
     enabled,
     accountId,
   )
+
   return { jobs, ats, versions }
 }
 
@@ -185,6 +202,7 @@ export function useDashboardInsights(
     () => resumes.filter((resume) => !resume.isOffline),
     [resumes],
   )
+
   const { data: jobSummaries, loading: jobsResourceLoading } = resources.jobs
   const { data: atsSummaries, loading: atsResourceLoading } = resources.ats
 
@@ -195,26 +213,33 @@ export function useDashboardInsights(
 
     // 求职漏斗：越过 saved 即视为已投递；面试/Offer 仅统计未归档的在办岗位
     const applied = jobSummaries.filter((job) => job.status !== 'saved').length
+
     const interview = jobSummaries.filter(
       (job) => !job.archived && job.status === 'interview',
     ).length
+
     const offer = jobSummaries.filter(
       (job) => !job.archived && job.status === 'offer',
     ).length
+
     const pending = jobSummaries.filter(isJobPendingFollowUp).length
+
     const savedToApply = jobSummaries.filter(
       (job) => !job.archived && job.status === 'saved',
     ).length
 
     // 每份简历取最近一次 ATS 检测
     const atsMap = new Map<string, AtsSummaries[number]>()
+
     for (const summary of atsSummaries) {
       const existing = atsMap.get(summary.resume_id)
+
       if (!existing || compareAtsSummaryChronologically(summary, existing) > 0)
         atsMap.set(summary.resume_id, summary)
     }
 
     const onlineIds = new Set(onlineResumes.map((resume) => resume.resume_id))
+
     const latestAtsList = [...atsMap.entries()]
       .filter(([resumeId]) => onlineIds.has(resumeId))
       .map(([, summary]) => summary)
@@ -222,6 +247,7 @@ export function useDashboardInsights(
     const scored = latestAtsList
       .map((summary) => summary.summary?.overall_score)
       .filter((score): score is number => typeof score === 'number')
+
     const avgAtsScore =
       scored.length > 0
         ? Math.round(
@@ -233,11 +259,13 @@ export function useDashboardInsights(
       (sum, summary) => sum + countPendingAtsFindings(summary.findings),
       0,
     )
+
     const resumesWithoutAts = onlineResumes.filter(
       (resume) => !atsMap.has(resume.resume_id),
     ).length
 
     const actions: DashboardAction[] = []
+
     if (pending > 0) {
       actions.push({
         id: 'pending',
@@ -339,23 +367,30 @@ export function useDashboardTimeline(
 ): DashboardTimeline {
   const { data: versionSummaries, loading: versionsLoading } =
     resources.versions
+
   const { data: jobSummaries, loading: jobsLoading } = resources.jobs
 
   return useMemo(() => {
     const hasCloudResume = resumes.some((resume) => !resume.isOffline)
+
     if (resumesLoading || jobsLoading || (hasCloudResume && versionsLoading))
       return { events: [], loading: true }
 
     const nameMap = new Map<string, string>()
+
     for (const resume of resumes)
       nameMap.set(resume.resume_id, resume.display_name || '未命名简历')
 
     const events: TimelineEvent[] = []
+
     for (const version of versionSummaries) {
       const resumeName = nameMap.get(version.resume_id)
+
       // 只展示当前存在的简历，避免出现已删除简历的孤儿事件
       if (!resumeName) continue
+
       const isAi = version.source_type === 'ai_optimize'
+
       events.push({
         id: `version-${version.resume_id}-${version.version_no}`,
         type: isAi ? 'ai' : 'edit',
@@ -370,8 +405,10 @@ export function useDashboardTimeline(
 
     for (const job of jobSummaries) {
       const verb = APPLY_STATUS_VERB[job.status] ?? '更新了'
+
       const target =
         [job.company, job.position].filter(Boolean).join(' · ') || '一个岗位'
+
       events.push({
         id: `job-${job.id}`,
         type: 'apply',
@@ -383,6 +420,7 @@ export function useDashboardTimeline(
     }
 
     events.sort((a, b) => b.timestamp - a.timestamp)
+
     return { events: events.slice(0, 5), loading: false }
   }, [
     jobSummaries,
@@ -464,8 +502,10 @@ export function useDashboardExtras(
     () => resumes.filter((resume) => !resume.isOffline),
     [resumes],
   )
+
   const { data: jobSummaries, loading: jobsResourceLoading } = resources.jobs
   const { data: atsSummaries, loading: atsResourceLoading } = resources.ats
+
   const { data: versionSummaries, loading: versionsResourceLoading } =
     resources.versions
 
@@ -473,16 +513,20 @@ export function useDashboardExtras(
     const hasCloudResume = onlineResumes.length > 0
     const jobsLoading = jobsResourceLoading
     const atsLoading = resumesLoading || (hasCloudResume && atsResourceLoading)
+
     const versionsLoading =
       resumesLoading || (hasCloudResume && versionsResourceLoading)
 
     // —— 待跟进 Top3：逾期优先，其次今天/临期，最后陈旧项 ——
     const pendingJobs = jobSummaries.filter(isJobPendingFollowUp)
+
     const rankFollowUp = (job: JobSummaries[number]) => {
       const days = getDaysUntil(job.next_action_date)
+
       // 有明确日期的按天数升序（逾期最靠前）；无日期的排在有日期之后
       return days ?? Number.MAX_SAFE_INTEGER
     }
+
     const followUps: FollowUpJob[] = [...pendingJobs]
       .sort((a, b) => rankFollowUp(a) - rankFollowUp(b))
       .slice(0, 3)
@@ -497,6 +541,7 @@ export function useDashboardExtras(
 
     // —— 求职漏斗：按当前状态分布（未归档）——
     const activeJobs = jobSummaries.filter((job) => !job.archived)
+
     const funnel: FunnelStage[] = APPLICATION_STATUS_ORDER.map((status) => ({
       status,
       label: APPLICATION_STATUS_CONFIG[status]?.label ?? status,
@@ -505,6 +550,7 @@ export function useDashboardExtras(
 
     // —— ATS 趋势：所有在线简历最近 8 次检测，按时间稳定正序 ——
     const onlineIds = new Set(onlineResumes.map((resume) => resume.resume_id))
+
     const orderedAtsSummaries = atsSummaries
       .filter((summary) => onlineIds.has(summary.resume_id))
       .filter((summary) => typeof summary.summary?.overall_score === 'number')
@@ -519,6 +565,7 @@ export function useDashboardExtras(
       if (days < 1) return hours < 1 ? '刚刚' : `${hours}小时前`
       if (days < 7) return `${days}天前`
       if (days < 30) return `${Math.floor(days / 7)}周前`
+
       return `${Math.floor(days / 30)}月前`
     }
 
@@ -537,19 +584,27 @@ export function useDashboardExtras(
       const y = d.getFullYear()
       const m = String(d.getMonth() + 1).padStart(2, '0')
       const day = String(d.getDate()).padStart(2, '0')
+
       return `${y}-${m}-${day}`
     }
+
     const activity: ActivityDay[] = []
     const dayKeyToIdx = new Map<string, number>()
     // 定位本周一：getDay() 0=周日..6=周六，(getDay()+6)%7 即回退到本周一的天数
     const monday = new Date()
+
     monday.setHours(0, 0, 0, 0)
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+
     for (let i = 0; i < 7; i += 1) {
       const d = new Date(monday)
+
       d.setDate(monday.getDate() + i)
+
       const key = toLocalKey(d)
+
       dayKeyToIdx.set(key, activity.length)
+
       activity.push({
         label: WEEKDAY_LABELS[d.getDay()],
         date: key,
@@ -558,16 +613,21 @@ export function useDashboardExtras(
         total: 0,
       })
     }
+
     const bump = (iso: string, field: 'edits' | 'applies') => {
       const key = toLocalKey(new Date(iso))
       const idx = dayKeyToIdx.get(key)
+
       if (idx === undefined) return
+
       activity[idx][field] += 1
       activity[idx].total += 1
     }
+
     for (const version of versionSummaries) {
       if (onlineIds.has(version.resume_id)) bump(version.created_at, 'edits')
     }
+
     for (const job of jobSummaries) {
       if (job.status !== 'saved') bump(job.updated_at, 'applies')
     }

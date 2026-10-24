@@ -14,6 +14,7 @@ interface TextPartProps {
 // 从 markdown 的 <pre><code class="language-xxx">...</code></pre> 结构里取出语言与源码
 function extractCode(children: ReactNode): { code: string; language: string } {
   const codeEl = Array.isArray(children) ? children[0] : children
+
   if (!isValidElement(codeEl)) return { code: '', language: 'plaintext' }
 
   const props = codeEl.props as { className?: string; children?: ReactNode }
@@ -21,6 +22,7 @@ function extractCode(children: ReactNode): { code: string; language: string } {
   const language = match?.[1] ?? 'plaintext'
 
   const raw = props.children
+
   const code =
     typeof raw === 'string'
       ? raw
@@ -33,6 +35,7 @@ function extractCode(children: ReactNode): { code: string; language: string } {
 
 function CodeBlockPre({ children }: ComponentProps<'pre'>) {
   const { code, language } = extractCode(children)
+
   return (
     <CodeBlock language={language} showLineNumbers>
       {code}
@@ -49,6 +52,7 @@ const MARKDOWN_COMPONENTS = { pre: CodeBlockPre } as ComponentProps<
 // 代码块改用仓库 CodeBlock：带语言图标、语法高亮与复制/下载。
 export function TextPart({ text, animate = false }: TextPartProps) {
   const reduceMotion = useReducedMotion()
+
   return (
     <div
       className={cn(

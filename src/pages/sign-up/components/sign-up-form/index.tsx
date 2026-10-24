@@ -39,8 +39,10 @@ export function SignUpForm({
 
     if (password !== repeatPassword) {
       setError('两次输入的密码不匹配')
+
       return
     }
+
     setIsLoading(true)
 
     try {

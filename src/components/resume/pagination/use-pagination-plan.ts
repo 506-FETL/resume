@@ -53,19 +53,24 @@ export function usePaginationPlan({
         const gate = source.querySelector<HTMLElement>(
           '[data-resume-runtime-ready="false"]',
         )
+
         if (gate) {
           if (gate.dataset.resumeRuntimeError)
             throw new Error(gate.dataset.resumeRuntimeError)
+
           return
         }
+
         await Promise.all([
           waitForResumeFont(source.ownerDocument, familyName, weights),
           waitForResumeImages(source),
         ])
+
         let previous: PaginationSnapshot | null = null
 
         for (let frame = 0; frame < MAX_STABILITY_FRAMES; frame += 1) {
           await nextAnimationFrame()
+
           if (!isCurrent(requestId)) return
 
           const current = measurePaginationSnapshot({
@@ -84,14 +89,17 @@ export function usePaginationPlan({
             setMeasuredVersion(contentVersion)
             setSnapshot(current)
             setStatus('ready')
+
             return
           }
+
           previous = current
         }
 
         throw new Error('简历布局在限定时间内未稳定')
       } catch (caught) {
         if (!isCurrent(requestId)) return
+
         setMeasuredVersion(contentVersion)
         setStatus('error')
         setError(caught instanceof Error ? caught.message : '简历分页失败')
@@ -100,8 +108,11 @@ export function usePaginationPlan({
 
     const schedule = () => {
       setStatus('measuring')
+
       const requestId = ++measurementId
+
       cancelAnimationFrame(scheduledFrame)
+
       scheduledFrame = requestAnimationFrame(() => {
         measure(requestId).catch(() => undefined)
       })
@@ -109,6 +120,7 @@ export function usePaginationPlan({
 
     const resizeObserver = new ResizeObserver(schedule)
     const mutationObserver = new MutationObserver(schedule)
+
     mutationObserver.observe(source, {
       childList: true,
       subtree: true,
@@ -119,10 +131,13 @@ export function usePaginationPlan({
         'src',
       ],
     })
+
     resizeObserver.observe(source)
+
     source
       .querySelectorAll('[data-resume-region-source]')
       .forEach((region) => resizeObserver.observe(region))
+
     resizeObserver.observe(viewport)
     schedule()
 
@@ -137,6 +152,7 @@ export function usePaginationPlan({
   }, [contentVersion, familyName, page, source, viewport, weights])
 
   const current = measuredVersion === contentVersion
+
   return {
     status: current ? status : ('measuring' as const),
     snapshot: current ? snapshot : null,

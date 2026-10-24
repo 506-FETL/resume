@@ -4,6 +4,7 @@ import type { DerivedStatus, VariantMetadata } from './variant'
 import { z } from 'zod'
 
 export * from './config'
+
 export {
   DEFAULT_ORDER,
   LEGACY_KEY_MAP,
@@ -11,10 +12,12 @@ export {
   migrateVisibility,
   resumeSchema,
 } from './form'
+
 export type { ORDERType, ResumeSchema, VisibilityItemsType } from './form'
 
 // 模板类型
 export const resumeTypeEnum = z.enum(['default', 'simple', 'modern'])
+
 export type ResumeType = z.infer<typeof resumeTypeEnum>
 
 export function normalizeResumeType(value: unknown): ResumeType {
@@ -46,8 +49,13 @@ export interface ResumeListItem {
 }
 
 export * from './form'
+
 export * from './normalize'
+
 export * from './persisted'
+
 export type { ResumeTemplateBinding } from './persisted'
+
 export * from './variant'
+
 export * from './visibility'

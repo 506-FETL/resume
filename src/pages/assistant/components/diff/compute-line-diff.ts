@@ -11,9 +11,12 @@ export interface DiffStatValue {
 // 把任意值规范为文本行
 export function toLines(value: unknown): string[] {
   if (value == null) return ['（空）']
+
   const text =
     typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+
   if (text === '') return ['（空）']
+
   return text.split('\n')
 }
 
@@ -23,10 +26,12 @@ export function computeLineDiff(before: unknown, after: unknown): DiffLine[] {
   const b = toLines(after)
   const m = a.length
   const n = b.length
+
   // dp[i][j] = LCS(a[i:], b[j:]) 长度
   const dp: number[][] = Array.from({ length: m + 1 }, () =>
     Array.from({ length: n + 1 }, () => 0),
   )
+
   for (let i = m - 1; i >= 0; i--) {
     for (let j = n - 1; j >= 0; j--) {
       dp[i][j] =
@@ -35,9 +40,11 @@ export function computeLineDiff(before: unknown, after: unknown): DiffLine[] {
           : Math.max(dp[i + 1][j], dp[i][j + 1])
     }
   }
+
   const lines: DiffLine[] = []
   let i = 0
   let j = 0
+
   while (i < m && j < n) {
     if (a[i] === b[j]) {
       lines.push({ type: 'context', text: a[i] })
@@ -51,14 +58,17 @@ export function computeLineDiff(before: unknown, after: unknown): DiffLine[] {
       j++
     }
   }
+
   while (i < m) {
     lines.push({ type: 'remove', text: a[i] })
     i++
   }
+
   while (j < n) {
     lines.push({ type: 'add', text: b[j] })
     j++
   }
+
   return lines
 }
 

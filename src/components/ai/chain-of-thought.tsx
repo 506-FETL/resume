@@ -32,11 +32,13 @@ const ChainOfThoughtContext = createContext<ChainOfThoughtContextValue | null>(
 
 function useChainOfThought() {
   const context = use(ChainOfThoughtContext)
+
   if (!context) {
     throw new Error(
       'ChainOfThought components must be used within ChainOfThought',
     )
   }
+
   return context
 }
 

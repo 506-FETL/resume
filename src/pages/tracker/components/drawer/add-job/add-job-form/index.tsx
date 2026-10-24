@@ -26,6 +26,7 @@ interface AddJobFormProps {
 
 export function AddJobForm({ formData, onChange, children }: AddJobFormProps) {
   const reduceMotion = useReducedMotion()
+
   const motionStyle = {
     animationDuration: `${reduceMotion ? 0 : DURATION.base}s`,
     animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,

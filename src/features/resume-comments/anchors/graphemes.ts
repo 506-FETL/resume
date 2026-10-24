@@ -23,6 +23,7 @@ function clampOffset(value: number, max: number): number {
   if (!Number.isFinite(value)) {
     return 0
   }
+
   return Math.min(Math.max(Math.trunc(value), 0), max)
 }
 
@@ -43,9 +44,11 @@ export function utf16OffsetToGraphemeOffset(
 
   for (const segment of graphemeSegmenter.segment(value)) {
     const segmentEnd = segment.index + segment.segment.length
+
     if (offset < segmentEnd) {
       return graphemeOffset
     }
+
     graphemeOffset += 1
   }
 
@@ -63,6 +66,7 @@ export function graphemeOffsetToUtf16Offset(
     if (index === target) {
       return segment.index
     }
+
     index += 1
   }
 
@@ -75,6 +79,7 @@ export function textPointToGraphemeOffset<TText extends TextLike>(
   utf16Offset: number,
 ): number {
   const targetIndex = textNodes.indexOf(textNode)
+
   if (targetIndex < 0) {
     throw new Error('Text node is outside the comment block')
   }
@@ -82,7 +87,9 @@ export function textPointToGraphemeOffset<TText extends TextLike>(
   const precedingLength = textNodes
     .slice(0, targetIndex)
     .reduce((total, node) => total + node.data.length, 0)
+
   const fullText = textNodes.map((node) => node.data).join('')
+
   return utf16OffsetToGraphemeOffset(
     fullText,
     precedingLength + clampOffset(utf16Offset, textNode.data.length),
@@ -104,9 +111,11 @@ export function graphemeOffsetToTextPoint<TText extends TextLike>(
     if (remainingUtf16 <= textNode.data.length) {
       return { textNode, utf16Offset: remainingUtf16 }
     }
+
     remainingUtf16 -= textNode.data.length
   }
 
   const last = textNodes.at(-1)!
+
   return { textNode: last, utf16Offset: last.data.length }
 }

@@ -37,6 +37,7 @@ export default function SidebarEditor({
 }: SidebarEditorProps) {
   const sortableOrder = order.filter((id) => id !== 'basics')
   const basicsItem = ITEMS.find((item) => item.id === 'basics')!
+
   const { draft, setDraft, startDragging, finishDragging, moveByKeyboard } =
     useMotionReorder({
       values: sortableOrder,
@@ -68,6 +69,7 @@ export default function SidebarEditor({
           {sortableOrder.map((id) => {
             const item = ITEMS.find((it) => it.id === id)!
             const visibilityKey = item.id as VisibilityItemsType
+
             return (
               <StaticTab
                 key={id}
@@ -97,6 +99,7 @@ export default function SidebarEditor({
             {draft.map((id) => {
               const item = ITEMS.find((it) => it.id === id)!
               const visibilityKey = item.id as VisibilityItemsType
+
               return (
                 <SortableTab
                   key={id}

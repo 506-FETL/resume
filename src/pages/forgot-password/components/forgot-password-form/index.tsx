@@ -40,7 +40,9 @@ export function ForgotPasswordForm({
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: new URL('/reset-password', window.location.origin).href,
       })
+
       if (error) throw error
+
       setSuccess(true)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : '发生错误, 请稍后再试')

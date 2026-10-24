@@ -24,11 +24,14 @@ export function TemplateRuntimeProviders({
   const { font, spacing, theme } = useMemo(() => {
     const normalized = normalizeResumeAppearance(appearance)
     const styles = resolveResumeAppearanceStyles(normalized)
+
     if (!tokens) return styles
+
     const primaryColor =
       normalized.theme.theme === 'default'
         ? tokens.primary
         : styles.theme.primaryColor
+
     return {
       ...styles,
       theme: {
@@ -39,13 +42,16 @@ export function TemplateRuntimeProviders({
       },
     }
   }, [appearance, tokens])
+
   const commentNodesByKey = useMemo(() => {
     const { document } = buildCommentAnchorDocument(
       data,
       projectionReferenceDate,
     )
+
     return new Map(document.nodes.map((node) => [node.nodeKey, node]))
   }, [data, projectionReferenceDate])
+
   const resumeContext = useMemo(
     () => ({
       theme,

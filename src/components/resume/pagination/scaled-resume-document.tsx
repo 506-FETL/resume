@@ -29,6 +29,7 @@ export default function ScaledResumeDocument({
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const [canvas, setCanvas] = useState<HTMLDivElement | null>(null)
   const [scale, setScale] = useState(1)
+
   const [scaledSize, setScaledSize] = useState<{
     width: number
     height: number
@@ -38,22 +39,27 @@ export default function ScaledResumeDocument({
     if (!viewport || !canvas) return
 
     let frame = 0
+
     const measure = () => {
       cancelAnimationFrame(frame)
+
       frame = requestAnimationFrame(() => {
         const width = canvas.offsetWidth
         const height = canvas.offsetHeight
+
         const nextScale =
           width > 0 ? Math.min(1, viewport.clientWidth / width) : 1
 
         setScale((current) =>
           Math.abs(current - nextScale) < 0.001 ? current : nextScale,
         )
+
         setScaledSize((current) => {
           const next = {
             width: width * nextScale,
             height: height * nextScale,
           }
+
           if (
             current &&
             Math.abs(current.width - next.width) < 1 &&
@@ -61,12 +67,14 @@ export default function ScaledResumeDocument({
           ) {
             return current
           }
+
           return next
         })
       })
     }
 
     const observer = new ResizeObserver(measure)
+
     observer.observe(viewport)
     observer.observe(canvas)
     measure()

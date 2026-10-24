@@ -51,17 +51,20 @@ function Editor() {
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
   const restoreEditPanelRef = useRef(false)
+
   const reviewUiRef = useRef<{
     activeTabId: ORDERType
     panelOpen: boolean
     scrollTop: number
   } | null>(null)
+
   const { theme } = useTheme()
   const { currentUser, loading } = useResumeLoader()
 
   const documentRef = useRef<HTMLDivElement | null>(null)
   const sourceRef = useRef<HTMLDivElement | null>(null)
   const previewScrollRef = useRef<HTMLDivElement | null>(null)
+
   const [documentState, setDocumentState] = useState<ResumeDocumentState>({
     status: 'measuring',
     signature: null,
@@ -74,15 +77,19 @@ function Editor() {
   const currentResumeId = useCurrentResumeStore((state) => state.resumeId)
   const editorMode = useResumeStore((state) => state.mode)
   const collaborationRole = useCollaborationStore((state) => state.role)
+
   const collaborationCommentAccess = useCollaborationStore(
     (state) => state.commentAccess,
   )
+
   const collaborationRequested =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('collabSession')
+
   const collaboratorMode =
     collaborationRole === 'guest' ||
     (collaborationRequested && collaborationRole !== 'host')
+
   const collaboratorCommentContext = useMemo(
     () =>
       collaborationCommentAccess
@@ -93,16 +100,21 @@ function Editor() {
         : null,
     [collaborationCommentAccess],
   )
+
   const refreshCollaboratorCommentAccess = useCallback(async () => {
     const access = await useCollaborationStore.getState().refreshCommentAccess()
+
     return { kind: 'collaborator' as const, ...access }
   }, [])
+
   const currentDisplayName = useResumeDisplayName()
   const setSourceRef = useResumeExportStore((state) => state.setSourceRef)
   const setHandlePrint = useResumeExportStore((state) => state.setHandlePrint)
+
   const setExportDocumentState = useResumeExportStore(
     (state) => state.setDocumentState,
   )
+
   const handlePrint = useResumePrint({
     contentRef: documentRef,
     documentState,
@@ -119,6 +131,7 @@ function Editor() {
 
   useEffect(() => {
     setHandlePrint(handlePrint)
+
     return () => setHandlePrint(null)
   }, [setHandlePrint, handlePrint])
 
@@ -135,6 +148,7 @@ function Editor() {
   // 桌面编辑面板开关 + 左导航自动让位（桌面恒为右侧常驻侧栏）
   const { open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
   const prepareCommentWrite = usePrepareWorkingCommentWrite(currentResumeId)
+
   const commentReview = useCommentReviewMode({
     resumeId: currentResumeId,
     workingLabel: currentDisplayName,
@@ -142,36 +156,48 @@ function Editor() {
     collaboratorMode,
     collaboratorAccess: collaboratorCommentContext,
   })
+
   const setReviewActive = useResumeReviewStore((state) => state.setActive)
+
   useEffect(() => {
     setReviewActive(!commentReview.isWorking)
+
     return () => setReviewActive(false)
   }, [commentReview.isWorking, setReviewActive])
+
   const handleCommentsOpenChange = useCallback(
     (nextOpen: boolean) => {
       setCommentsOpen(nextOpen)
+
       if (nextOpen) {
         restoreEditPanelRef.current = panelOpen
         setPanelOpen(false)
+
         if (open) setOpen(false)
+
         return
       }
       if (restoreEditPanelRef.current && !isMobile && commentReview.isWorking)
         setPanelOpen(true)
+
       restoreEditPanelRef.current = false
     },
     [commentReview.isWorking, isMobile, open, panelOpen, setPanelOpen],
   )
+
   const handleMobileEditOpenChange = useCallback(
     (nextOpen: boolean) => {
       setOpen(nextOpen)
+
       if (nextOpen && commentsOpen) handleCommentsOpenChange(false)
     },
     [commentsOpen, handleCommentsOpenChange],
   )
+
   const scrollToSection = useScrollToSection(previewScrollRef)
   // 桌面：点 tab 既切换又滚动渲染区到对应章节；移动端走底部抽屉
   const useSidebarMode = !isMobile
+
   const handleActivateWithScroll = useCallback(
     (id: typeof activeTabId) => {
       updateActiveTabId(id)
@@ -179,34 +205,43 @@ function Editor() {
     },
     [updateActiveTabId, scrollToSection],
   )
+
   const handleCommentSourceChange = useCallback(
     async (key: Parameters<typeof commentReview.selectSource>[0]) => {
       const enteringReview = commentReview.isWorking && key !== 'working'
       const leavingReview = !commentReview.isWorking && key === 'working'
+
       if (enteringReview) {
         reviewUiRef.current = {
           activeTabId,
           panelOpen,
           scrollTop: previewScrollRef.current?.scrollTop ?? 0,
         }
+
         restoreEditPanelRef.current = panelOpen
       }
+
       const changed = await commentReview.selectSource(key)
+
       if (!changed) return
       if (key !== 'working') {
         setPanelOpen(false)
         setOpen(false)
+
         return
       }
       if (leavingReview && reviewUiRef.current) {
         const saved = reviewUiRef.current
+
         updateActiveTabId(saved.activeTabId)
         restoreEditPanelRef.current = saved.panelOpen
+
         requestAnimationFrame(() =>
           requestAnimationFrame(() => {
             previewScrollRef.current?.scrollTo({ top: saved.scrollTop })
           }),
         )
+
         reviewUiRef.current = null
       }
     },
@@ -434,6 +469,7 @@ function Editor() {
       <QuickDialog
         getSnapshot={async () => {
           const before = useResumeStore.getState()
+
           if (
             before.currentResumeId !== currentResumeId ||
             before.mode !== 'online'
@@ -441,7 +477,9 @@ function Editor() {
             throw new Error('简历已切换，请重新打开分享')
           if (before.pendingChanges || before.isSyncing)
             await before.manualSync()
+
           const current = useResumeStore.getState()
+
           if (
             current.currentResumeId !== currentResumeId ||
             current.mode !== 'online'
@@ -451,6 +489,7 @@ function Editor() {
             throw new Error(
               current.syncError ?? '简历尚未保存，请保存完成后再分享',
             )
+
           return buildResumeShareSnapshotSource(
             current.getPersistedSnapshot(),
             currentDisplayName,
@@ -487,6 +526,7 @@ function WorkingResumeComments({
   layoutRevision: string
 }) {
   useWorkingDocumentCommentSync(resumeId, syncWorkingDocument)
+
   const hasUnread = useResumeCommentStore((state) =>
     Object.values(state.threadReadStateById).some(
       (thread) =>
@@ -494,6 +534,7 @@ function WorkingResumeComments({
         Math.max(thread.lastReadEventSeq, state.lastReadEventSeq),
     ),
   )
+
   return (
     <>
       {!open && bookmarkVisible ? (

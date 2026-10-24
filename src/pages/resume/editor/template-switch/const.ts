@@ -13,21 +13,28 @@ interface CatalogDetail {
   listed: boolean
   savedAt: number
 }
+
 interface CatalogDetails {
   entries: Record<string, CatalogDetail>
   errors: Record<string, string | undefined>
   load: (id: string, force?: boolean) => Promise<void>
 }
+
 const pending = new Map<string, Promise<void>>()
+
 export const useTemplateCatalogDetails = create<CatalogDetails>((set, get) => ({
   entries: {},
   errors: {},
   load(id, force = false) {
     const cached = get().entries[id]
+
     if (!force && cached && Date.now() - cached.savedAt < CATALOG_TTL_MS)
       return Promise.resolve()
+
     const existing = pending.get(id)
+
     if (existing) return existing
+
     const promise = resumeTemplateSource
       .getTemplateCatalogEntry(id, { force })
       .then(
@@ -41,12 +48,15 @@ export const useTemplateCatalogDetails = create<CatalogDetails>((set, get) => ({
                 savedAt: Date.now(),
               },
             }
+
             const keys = Object.keys(entries).sort(
               (a, b) => entries[a].savedAt - entries[b].savedAt,
             )
+
             keys
               .slice(0, Math.max(0, keys.length - 96))
               .forEach((key) => delete entries[key])
+
             return { entries, errors: { ...state.errors, [id]: undefined } }
           })
         },
@@ -57,7 +67,9 @@ export const useTemplateCatalogDetails = create<CatalogDetails>((set, get) => ({
         },
       )
       .finally(() => pending.delete(id))
+
     pending.set(id, promise)
+
     return promise
   },
 }))
@@ -65,9 +77,12 @@ export const useTemplateCatalogDetails = create<CatalogDetails>((set, get) => ({
 useTemplateSwitchCatalog.subscribe((state, previous) => {
   if (state.catalog === previous.catalog || state.catalog.status !== 'ready')
     return
+
   const items = state.catalog.data
+
   useTemplateCatalogDetails.setState((details) => {
     const entries = { ...details.entries }
+
     items.forEach(
       (item) =>
         (entries[item.templateId] = {
@@ -76,6 +91,7 @@ useTemplateSwitchCatalog.subscribe((state, previous) => {
           savedAt: Date.now(),
         }),
     )
+
     return { entries }
   })
 })

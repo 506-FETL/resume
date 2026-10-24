@@ -14,18 +14,24 @@ export function findScrollableAncestor(
   axis: DragAxis,
 ): HTMLElement | null {
   let current = element?.parentElement ?? null
+
   while (current) {
     const style = window.getComputedStyle(current)
     const overflow = axis === 'x' ? style.overflowX : style.overflowY
-    if (overflow === 'auto' || overflow === 'scroll')
-      return current
+
+    if (overflow === 'auto' || overflow === 'scroll') return current
+
     current = current.parentElement
   }
+
   return null
 }
 
 function arraysEqual<T>(left: T[], right: T[]): boolean {
-  return left.length === right.length && left.every((value, index) => Object.is(value, right[index]))
+  return (
+    left.length === right.length &&
+    left.every((value, index) => Object.is(value, right[index]))
+  )
 }
 
 export function autoScrollAtEdge(
@@ -35,17 +41,21 @@ export function autoScrollAtEdge(
   threshold = 56,
   maxStep = 18,
 ): boolean {
-  if (!container)
-    return false
+  if (!container) return false
 
-  const delta = getEdgeScrollDelta(point, container.getBoundingClientRect(), axis, threshold, maxStep)
-  if (delta === 0)
-    return false
+  const delta = getEdgeScrollDelta(
+    point,
+    container.getBoundingClientRect(),
+    axis,
+    threshold,
+    maxStep,
+  )
 
-  if (axis === 'x')
-    container.scrollBy({ left: delta })
-  else
-    container.scrollBy({ top: delta })
+  if (delta === 0) return false
+
+  if (axis === 'x') container.scrollBy({ left: delta })
+  else container.scrollBy({ top: delta })
+
   return true
 }
 
@@ -79,12 +89,13 @@ export function useMotionReorder<T>({
 
   const setDraft = useCallback<Dispatch<SetStateAction<T[]>>>((nextValue) => {
     setDraftState((current) => {
-      if (cancelledRef.current)
-        return startSnapshotRef.current
-      const next = typeof nextValue === 'function'
-        ? nextValue(current)
-        : nextValue
+      if (cancelledRef.current) return startSnapshotRef.current
+
+      const next =
+        typeof nextValue === 'function' ? nextValue(current) : nextValue
+
       draftRef.current = next
+
       return next
     })
   }, [])
@@ -98,7 +109,11 @@ export function useMotionReorder<T>({
   }, [onCommit])
 
   useEffect(() => {
-    if (syncValuesWhileIdle && !dragging && !arraysEqual(draftRef.current, values)) {
+    if (
+      syncValuesWhileIdle &&
+      !dragging &&
+      !arraysEqual(draftRef.current, values)
+    ) {
       setDraftState(values)
       draftRef.current = values
     }
@@ -113,12 +128,15 @@ export function useMotionReorder<T>({
   const finishDragging = useCallback(() => {
     if (cancelledRef.current) {
       setDragging(false)
+
       return
     }
+
     const next = draftRef.current
+
     setDragging(false)
-    if (!arraysEqual(startSnapshotRef.current, next))
-      onCommitRef.current(next)
+
+    if (!arraysEqual(startSnapshotRef.current, next)) onCommitRef.current(next)
   }, [])
 
   const cancelDragging = useCallback(() => {
@@ -129,30 +147,40 @@ export function useMotionReorder<T>({
   }, [])
 
   useEffect(() => {
-    if (!dragging)
-      return
+    if (!dragging) return
+
     window.addEventListener('pointercancel', cancelDragging, true)
     window.addEventListener('blur', cancelDragging)
+
     return () => {
       window.removeEventListener('pointercancel', cancelDragging, true)
       window.removeEventListener('blur', cancelDragging)
     }
   }, [cancelDragging, dragging])
 
-  const moveByKeyboard = useCallback((value: T, direction: -1 | 1) => {
-    const current = draftRef.current
-    const sourceIndex = current.findIndex(item => Object.is(item, value))
-    const destinationIndex = sourceIndex + direction
-    if (sourceIndex < 0 || destinationIndex < 0 || destinationIndex >= current.length)
-      return
+  const moveByKeyboard = useCallback(
+    (value: T, direction: -1 | 1) => {
+      const current = draftRef.current
+      const sourceIndex = current.findIndex((item) => Object.is(item, value))
+      const destinationIndex = sourceIndex + direction
 
-    const next = moveArrayItem(current, sourceIndex, destinationIndex)
-    draftRef.current = next
-    startSnapshotRef.current = next
-    setDraftState(next)
-    if (commitOnKeyboard)
-      onCommitRef.current(next)
-  }, [commitOnKeyboard])
+      if (
+        sourceIndex < 0 ||
+        destinationIndex < 0 ||
+        destinationIndex >= current.length
+      )
+        return
+
+      const next = moveArrayItem(current, sourceIndex, destinationIndex)
+
+      draftRef.current = next
+      startSnapshotRef.current = next
+      setDraftState(next)
+
+      if (commitOnKeyboard) onCommitRef.current(next)
+    },
+    [commitOnKeyboard],
+  )
 
   return {
     draft,

@@ -43,8 +43,10 @@ export default function HistoryTimeline({
     () => filterVersions(versions, filter),
     [versions, filter],
   )
+
   const groups = groupVersionsByDay(filteredVersions)
   const hasFilter = filter.keyword.trim().length > 0 || isFilterActive(filter)
+
   const itemMotion = {
     initial: { opacity: 0, y: reduceMotion ? 0 : 8 },
     animate: { opacity: 1, y: 0 },

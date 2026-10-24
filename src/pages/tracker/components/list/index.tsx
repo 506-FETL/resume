@@ -13,6 +13,7 @@ import { JobTable } from './job-table'
 function ListView() {
   const reduceMotion = useReducedMotion()
   const isMobile = useIsMobile()
+
   const {
     jobs,
     filterStatus,
@@ -32,6 +33,7 @@ function ListView() {
       sortDir: state.sortDir,
     })),
   )
+
   const filteredJobs = useMemo(
     () =>
       sortJobs(

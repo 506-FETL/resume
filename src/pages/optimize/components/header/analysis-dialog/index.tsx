@@ -32,6 +32,7 @@ export function AnalysisDialog({ open, onOpenChange }: AnalysisDialogProps) {
       if (step.showCondition) {
         return step.showCondition(analysisState, selectedResumeType)
       }
+
       return true
     })
   }, [analysisState, selectedResumeType])

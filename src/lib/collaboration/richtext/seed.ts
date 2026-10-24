@@ -24,6 +24,7 @@ export function seedFragmentFromHtml(
   }
 
   const trimmed = (html ?? '').trim()
+
   if (!trimmed) {
     return false
   }

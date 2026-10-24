@@ -36,11 +36,13 @@ function findScope(
     return scopes.find(
       (scope) => !option.versionId || scope.versionId === option.versionId,
     )
+
   return scopes.find((scope) => scope.versionId === option.historyVersionId)
 }
 
 function SourceLabel({ option }: { option: CommentSourceOption }) {
   const Icon = option.kind === 'working' ? FilePenLine : FileClock
+
   return (
     <span className='flex min-w-0 items-center gap-2'>
       <Icon className='size-4 shrink-0' />
@@ -104,6 +106,7 @@ export function CommentSourceSelector({
                     <SourceLabel option={option} />
                     {(() => {
                       const scope = findScope(option, scopes)
+
                       return scope &&
                         scope.nextEventSeq > scope.lastReadEventSeq ? (
                         <Badge variant='destructive'>新</Badge>

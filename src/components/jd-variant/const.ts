@@ -11,11 +11,17 @@ import {
 import { VARIANT_FIELD_MAPPINGS } from '@/lib/schema'
 
 export const MIN_JD_CHARS = 30
+
 export const MIN_KEYWORDS = 3
+
 export const MAX_KEYWORDS = 30
+
 export const MIN_CHANGES = 3
+
 export const MAX_CHANGES = 15
+
 export const MAX_VARIANT_DEPTH = 5
+
 export const REWRITE_AFTER_LENGTH_RATIO = 1.5
 
 /** 可改写字段白名单，与视图、解析和持久化映射共用同一契约。 */

@@ -10,6 +10,7 @@ export function buildCollaborationShareUrl(
   documentUrl?: string,
 ) {
   const url = new URL(`${window.location.origin}/resume/editor`)
+
   url.searchParams.set('resumeId', resumeId)
   url.searchParams.set('collabSession', sessionId)
 

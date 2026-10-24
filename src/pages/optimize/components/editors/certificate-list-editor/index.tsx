@@ -34,7 +34,9 @@ function CertificateListEditor({
 
   const addCustomCert = () => {
     const trimmed = customInput.trim()
+
     if (!trimmed || isCertAdded(trimmed)) return
+
     onChange([{ entryId: createResumeEntryId(), name: trimmed }, ...value])
     setCustomInput('')
   }

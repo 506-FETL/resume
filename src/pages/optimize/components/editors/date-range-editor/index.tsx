@@ -23,12 +23,15 @@ function DateRangeEditor({
 
   const parseDate = (dateStr: string | undefined): Date | undefined => {
     if (!dateStr || dateStr === '至今') return undefined
+
     const d = dayjs(dateStr)
+
     return d.isValid() ? d.toDate() : undefined
   }
 
   const formatDate = (date: Date | undefined): string => {
     if (!date) return ''
+
     return dayjs(date).format('YYYY-MM-DD')
   }
 

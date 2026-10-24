@@ -69,5 +69,6 @@ export function getBubbleDisplayMode({
   compactWidth: number
 }): BubbleDisplayMode {
   if (availableWidth < compactWidth) return 'hidden'
+
   return fullWidth <= availableWidth ? 'full' : 'compact'
 }

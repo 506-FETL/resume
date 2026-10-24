@@ -34,18 +34,21 @@ export default function VersionPdfExportButton({
   const loadVersionSnapshot = useHistoryStore(
     (state) => state.loadVersionSnapshot,
   )
+
   const projectionReferenceDate =
     useHistoryStore(
       (state) =>
         state.versions.find((version) => version.id === versionId)
           ?.projection_reference_date,
     ) ?? new Date().toISOString().slice(0, 10)
+
   const reduceMotion = useReducedMotion()
   const printRef = useRef<HTMLDivElement>(null)
   // 仅点击导出后挂载打印文档；命中快照缓存不代表需要提前渲染、测量 PDF。
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(null)
   const [loading, setLoading] = useState(false)
   const shouldPrintRef = useRef(false)
+
   const [documentState, setDocumentState] = useState<ResumeDocumentState>({
     status: 'measuring',
     signature: null,
@@ -58,11 +61,14 @@ export default function VersionPdfExportButton({
     () => (snapshot ? buildTemplateResumeData(snapshot) : null),
     [snapshot],
   )
+
   const { resource, retry, assetUrls } = useResolvedResumeTemplate({
     binding: previewData?.templateBinding,
     enabled: Boolean(snapshot),
   })
+
   const definition = resource.status === 'ready' ? resource.data : null
+
   useEffect(() => {
     if (snapshot && resource.status !== 'ready') {
       setDocumentState({
@@ -103,20 +109,26 @@ export default function VersionPdfExportButton({
     if (snapshot && previewData && definition) {
       if (documentState.status !== 'measuring') await handlePrint()
       else shouldPrintRef.current = true
+
       return
     }
 
     shouldPrintRef.current = true
+
     if (snapshot) {
       await retry?.()
+
       return
     }
 
     setLoading(true)
+
     const snap = await loadVersionSnapshot(versionId).finally(() =>
       setLoading(false),
     )
+
     if (!snap) return
+
     shouldPrintRef.current = true
     setSnapshot(snap)
   }

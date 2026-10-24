@@ -20,8 +20,10 @@ export interface StepResultProps {
 export function StepResult({ matchRate, changes }: StepResultProps) {
   const grouped = changes.reduce<Record<string, VariantChange[]>>((acc, c) => {
     ;(acc[c.section] ??= []).push(c)
+
     return acc
   }, {})
+
   const pct = matchRate == null ? '—' : `${Math.round(matchRate * 100)}%`
 
   return (

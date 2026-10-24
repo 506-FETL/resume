@@ -27,6 +27,7 @@ export default function Content() {
     statusFilter,
     reloadPage,
   } = useShareStore()
+
   const filteredShares = useMemo(
     () =>
       filterShares(allShares, {
@@ -36,6 +37,7 @@ export default function Content() {
       }),
     [allShares, resumeFilters, searchKeyword, statusFilter],
   )
+
   const hasFilter =
     Boolean(searchKeyword.trim()) ||
     resumeFilters.length > 0 ||

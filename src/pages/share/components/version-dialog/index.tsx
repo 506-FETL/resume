@@ -43,6 +43,7 @@ function getDeletedSelection(
   share: ResumeShareRecord,
 ): VersionDialogSelection | null {
   const version = versions.find((item) => item.id === versionId)
+
   if (version) {
     return {
       kind: 'deleted-history',
@@ -79,20 +80,27 @@ export default function VersionDialog({
     publishRelease,
     closeVersionDialog,
   } = useShareStore()
+
   const share = findShareById(allShares, shares, versionShareId)
+
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
   )
+
   const renderedShare =
     share ?? (retainedShare?.id === versionShareId ? retainedShare : null)
+
   const [selection, setSelection] = useState<VersionDialogSelection>({
     kind: 'current',
   })
+
   const [submitting, setSubmitting] = useState(false)
   const initializedShareIdRef = useRef<string | null>(null)
+
   const busy =
     submitting ||
     Boolean(renderedShare && pendingShareIds.includes(renderedShare.id))
+
   const versionEntry = renderedShare
     ? versionOptionsByResumeId[renderedShare.resume_id]
     : undefined
@@ -107,6 +115,7 @@ export default function VersionDialog({
 
     initializedShareIdRef.current = renderedShare.id
     setSelection(toVersionDialogSelection(renderedShare.source))
+
     loadVersionOptions(renderedShare.resume_id, { force: true }).catch(
       () => undefined,
     )
@@ -114,6 +123,7 @@ export default function VersionDialog({
 
   useEffect(() => {
     if (versionDialogOpen) return
+
     initializedShareIdRef.current = null
   }, [versionDialogOpen])
 
@@ -137,6 +147,7 @@ export default function VersionDialog({
       versionEntry.items,
       renderedShare,
     )
+
     if (deleted) setSelection(deleted)
   }, [renderedShare, selection, versionDialogOpen, versionEntry])
 
@@ -146,7 +157,9 @@ export default function VersionDialog({
 
     const submittedSelection = selection
     const versionsBeforePublish = versionEntry?.items ?? []
+
     setSubmitting(true)
+
     try {
       const release = await resolveResumeShareRelease({
         resumeId: renderedShare.resume_id,
@@ -156,6 +169,7 @@ export default function VersionDialog({
         selection: submittedSelection,
         getCurrentSource: getCurrentSnapshot,
       })
+
       await publishRelease(renderedShare.id, release)
       toast.success('已发布所选版本')
       closeVersionDialog()
@@ -166,11 +180,14 @@ export default function VersionDialog({
           versionsBeforePublish,
           renderedShare,
         )
+
         await loadVersionOptions(renderedShare.resume_id, { force: true })
+
         const refreshed =
           useShareStore.getState().versionOptionsByResumeId[
             renderedShare.resume_id
           ]
+
         if (
           deleted &&
           refreshed?.loaded &&
@@ -181,9 +198,11 @@ export default function VersionDialog({
         ) {
           setSelection(deleted)
           toast.error('所选历史版本已删除，请重新选择')
+
           return
         }
       }
+
       toast.error(error instanceof Error ? error.message : '发布失败，请重试')
     } finally {
       setSubmitting(false)

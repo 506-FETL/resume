@@ -110,6 +110,7 @@ function assertPreparedSession(
   get: () => CollaborationSessionStore,
 ) {
   const state = get()
+
   if (
     prepared.generation !== generation ||
     state.sessionId !== prepared.sessionId ||
@@ -163,8 +164,10 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
   ) => {
     if (isSamePendingGuestMembership(pendingGuestMembership, identity)) {
       pendingGuestMembership = null
+
       return true
     }
+
     return false
   }
 
@@ -173,6 +176,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     state: Pick<CollaborationSessionStore, 'sessionId' | 'resumeId' | 'role'>,
   ) => {
     const pending = pendingGuestMembership
+
     if (
       pending?.generation === generation &&
       pending.sessionId === state.sessionId &&
@@ -181,6 +185,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     ) {
       return pending
     }
+
     return null
   }
 
@@ -199,7 +204,9 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       if (!options.bestEffort) {
         throw error
       }
+
       console.warn('[collaboration] failed to release guest membership:', error)
+
       return null
     }
   }
@@ -210,6 +217,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     releaseGuestMembership(membership, { bestEffort: true }).catch(
       () => undefined,
     )
+
     clearPendingGuestMembership(membership)
   }
 
@@ -230,18 +238,22 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     }
 
     const state = get()
+
     const pendingMembership = getCurrentPendingGuestMembership(
       generation,
       state,
     )
+
     if (pendingMembership) {
       retirePendingGuestMembership(pendingMembership)
     }
+
     activeGeneration += 1
     stopLeaseMonitor?.()
     stopLeaseMonitor = null
 
     const docManager = useResumeStore.getState().docManager
+
     if (
       docManager &&
       (!state.sessionId ||
@@ -301,6 +313,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     if (pendingGuestMembership) {
       retirePendingGuestMembership(pendingGuestMembership)
     }
+
     const generation = ++activeGeneration
     let hostLeaseId: string | null = null
     let hostProtocolVersion: CollaborationProtocolVersion | null = null
@@ -314,6 +327,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           code: 'session_changed',
         })
       }
+
       pendingHostAttempt = {
         ...options.pendingAttempt,
         ownerGeneration: generation,
@@ -325,6 +339,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       !options.pendingAttempt ||
       (isSamePendingHostAttempt(pendingHostAttempt, options.pendingAttempt) &&
         pendingHostAttempt?.ownerGeneration === generation)
+
     const isCurrentHostOperation = () =>
       generation === activeGeneration && ownsPendingAttempt()
 
@@ -347,6 +362,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
 
       if (options.saveSnapshot) {
         await useResumeStore.getState().syncToSupabase()
+
         if (generation !== activeGeneration) {
           throw new CollaborationOperationError('协作会话已切换', {
             code: 'session_changed',
@@ -354,6 +370,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         }
 
         const resumeState = useResumeStore.getState()
+
         if (
           resumeState.docManager !== docManager ||
           resumeState.currentResumeId !== params.resumeId
@@ -365,6 +382,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         if (resumeState.syncError) {
           throw new Error(`共享前保存简历失败：${resumeState.syncError}`)
         }
+
         setPhase('authorizing')
       }
 
@@ -372,6 +390,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         sessionId: params.sessionId,
         resumeId: params.resumeId,
       })
+
       hostLeaseId = registration.hostLeaseId
       hostProtocolVersion = registration.protocolVersion
 
@@ -385,6 +404,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         commentHostLeaseId: hostLeaseId,
         commentProtocolVersion: hostProtocolVersion,
       })
+
       const result = await connectDocumentSession({
         ...params,
         role: 'host',
@@ -394,6 +414,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         getDocumentManager: () => useResumeStore.getState().docManager,
         isCurrentSession: () => {
           const state = get()
+
           return (
             activeGeneration === generation &&
             state.sessionId === params.sessionId &&
@@ -405,6 +426,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
 
       if (generation !== activeGeneration) {
         docManager.disableCollaboration(result.activationId)
+
         throw new CollaborationOperationError('协作会话已切换', {
           code: 'session_changed',
         })
@@ -417,18 +439,22 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           commentProtocolVersion: hostProtocolVersion,
         }),
       )
+
       rememberSessionRole({
         sessionId: result.sessionId,
         resumeId: result.resumeId,
         userId: result.self.userId,
         role: 'host',
       })
+
       startRichTextSession(result, options.seedRichText)
+
       if (options.pendingAttempt && ownsPendingAttempt()) {
         pendingHostAttempt = null
       }
     } catch (error) {
       let rollbackRevoked = false
+
       if (hostLeaseId && hostProtocolVersion && isCurrentHostOperation()) {
         if (options.pendingAttempt && ownsPendingAttempt()) {
           pendingHostAttempt = {
@@ -436,6 +462,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
             status: 'rolling_back',
           }
         }
+
         try {
           const rollback = await leaveCollaborationCommentSession({
             sessionId: params.sessionId,
@@ -443,6 +470,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
             protocolVersion: hostProtocolVersion,
             hostLeaseId,
           })
+
           rollbackRevoked = rollback.revoked === true
         } catch (revokeError) {
           console.warn(
@@ -455,6 +483,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       const sessionRetired =
         error instanceof CollaborationOperationError &&
         error.code === 'session_id_retired'
+
       if (options.pendingAttempt && ownsPendingAttempt()) {
         if (rollbackRevoked || sessionRetired) {
           pendingHostAttempt = null
@@ -473,12 +502,14 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           error: getErrorMessage(error, '建立协作会话失败'),
         })
       }
+
       throw error
     }
   }
 
   const startGuestLease = (prepared: PreparedGuestSession) => {
     stopLeaseMonitor?.()
+
     stopLeaseMonitor = startCollaborationLeaseMonitor({
       renew: async () => {
         const commentAccess = await renewCollaborationCommentSession({
@@ -499,6 +530,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       },
       onRevoked: (error) => {
         console.warn('[collaboration] guest lease revoked:', error)
+
         cleanupSession({
           generation: prepared.generation,
           remote: true,
@@ -532,6 +564,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       pendingHostAttempt.status === 'retryable'
         ? pendingHostAttempt
         : null
+
     const attempt: PendingHostAttempt = retryableAttempt
       ? { ...retryableAttempt, status: 'active' }
       : {
@@ -541,6 +574,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           ownerGeneration: activeGeneration,
           status: 'active',
         }
+
     pendingHostAttempt = attempt
 
     try {
@@ -561,17 +595,20 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           },
         },
       )
+
       toast.success('已开启实时协作', {
         description: '现在可以将链接分享给他人了',
       })
     } catch (error) {
       toast.error(getErrorMessage(error, '开启协作失败'))
+
       throw error
     }
   }
 
   const runSerializedHostStart = (params: StartShareParams): Promise<void> => {
     const activeOperation = activeHostStartOperation
+
     if (activeOperation) {
       if (
         activeOperation.resumeId === params.resumeId &&
@@ -579,23 +616,28 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       ) {
         return activeOperation.promise
       }
+
       return activeOperation.promise
         .catch(() => undefined)
         .then(() => runSerializedHostStart(params))
     }
 
     let operation: ActiveHostStartOperation
+
     const promise = executeStartSharing(params).finally(() => {
       if (activeHostStartOperation === operation) {
         activeHostStartOperation = null
       }
     })
+
     operation = {
       resumeId: params.resumeId,
       userId: params.userId,
       promise,
     }
+
     activeHostStartOperation = operation
+
     return promise
   }
 
@@ -610,20 +652,25 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       if (pendingGuestMembership) {
         retirePendingGuestMembership(pendingGuestMembership)
       }
+
       const generation = ++activeGeneration
       const memberLeaseId = crypto.randomUUID()
+
       const membership: PendingGuestMembership = {
         generation,
         sessionId: params.sessionId,
         resumeId: params.resumeId,
         memberLeaseId,
       }
+
       let joinAttempted = false
+
       stopLeaseMonitor?.()
       stopLeaseMonitor = null
       // join 发出前先暴露 generation-bound token，使 authorizing 阶段卸载
       // 也能发送 release-before-claim tombstone。
       pendingGuestMembership = membership
+
       setPhase('authorizing', {
         role: 'guest',
         sessionId: params.sessionId,
@@ -637,11 +684,13 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
 
       try {
         joinAttempted = true
+
         const authorization = await joinCollaborationCommentSession({
           sessionId: params.sessionId,
           resumeId: params.resumeId,
           memberLeaseId,
         })
+
         if (generation !== activeGeneration) {
           throw new CollaborationOperationError('协作会话已切换', {
             code: 'session_changed',
@@ -653,6 +702,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         const ownerMustHost =
           error instanceof CollaborationOperationError &&
           error.code === 'owner_must_host'
+
         try {
           if (joinAttempted && !ownerMustHost) {
             // stop/unmount 可能已经用同 token 写入 tombstone；迟到 join
@@ -662,28 +712,34 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         } finally {
           clearPendingGuestMembership(membership)
         }
+
         if (generation === activeGeneration) {
           setPhase('error', {
             error: getErrorMessage(error, '协作邀请鉴权失败'),
           })
         }
+
         throw error
       }
     },
 
     markGuestSessionHydrating: (prepared) => {
       assertPreparedSession(prepared, activeGeneration, get)
+
       setPhase('hydrating', {
         commentAccess: prepared.authorization.commentAccess,
         error: null,
       })
+
       // commentAccess 已原子接管同一 token；pending 只在 authorizing 窗口存在。
       clearPendingGuestMembership(prepared)
     },
 
     connectPreparedGuestSession: async (prepared) => {
       assertPreparedSession(prepared, activeGeneration, get)
+
       const docManager = useResumeStore.getState().docManager
+
       if (!docManager?.getHandle() || docManager.canPersist()) {
         throw new CollaborationOperationError(
           '共享简历尚未通过鉴权快照完成加载',
@@ -707,6 +763,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         getDocumentManager: () => useResumeStore.getState().docManager,
         isCurrentSession: () => {
           const state = get()
+
           return (
             activeGeneration === prepared.generation &&
             state.sessionId === prepared.sessionId &&
@@ -720,6 +777,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         assertPreparedSession(prepared, activeGeneration, get)
       } catch (error) {
         docManager.disableCollaboration(result.activationId)
+
         throw error
       }
 
@@ -731,13 +789,16 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
             prepared.authorization.commentAccess.protocolVersion,
         }),
       )
+
       clearPendingGuestMembership(prepared)
+
       rememberSessionRole({
         sessionId: result.sessionId,
         resumeId: result.resumeId,
         userId: result.self.userId,
         role: 'guest',
       })
+
       startRichTextSession(result, false)
       startGuestLease(prepared)
     },
@@ -754,6 +815,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           error: '共享简历加载或连接失败',
         })
       }
+
       await releaseGuestMembership(
         {
           sessionId: prepared.sessionId,
@@ -770,6 +832,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     // collaboration source，因此不会把 owner 文档误当作 guest 文档连接。
     joinSession: async (params) => {
       let prepared: PreparedGuestSession | null = null
+
       try {
         prepared = await get().prepareGuestSession(params)
         get().markGuestSessionHydrating(prepared)
@@ -779,6 +842,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         if (prepared) {
           await get().abortPreparedGuestSession(prepared)
         }
+
         throw error
       }
     },
@@ -795,25 +859,30 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           saveSnapshot: false,
           seedRichText: false,
         })
+
         toast.success('已恢复实时协作', { description: '协作者可以继续编辑' })
       } catch (error) {
         toast.error(getErrorMessage(error, '恢复协作失败'))
+
         throw error
       }
     },
 
     stopSharing: async ({ silent, bestEffort } = {}) => {
       const state = get()
+
       if (!state.role || !state.sessionId || !state.resumeId) {
         // 邀请在鉴权未完成时离开编辑器，不应把全局 store
         // 永久留在 authenticating，否则后续普通简历会被误禁用协作入口。
         if (state.phase === 'authenticating') {
           set(createStoppedSessionState())
         }
+
         return
       }
 
       const generation = activeGeneration
+
       if (
         activeStopOperation?.generation === generation &&
         activeStopOperation.sessionId === state.sessionId
@@ -822,14 +891,18 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       }
 
       const sessionId = state.sessionId
+
       const isCurrentStop = () => {
         const current = get()
+
         return (
           activeGeneration === generation && current.sessionId === sessionId
         )
       }
+
       const stopPromise = (async () => {
         const docManager = useResumeStore.getState().docManager
+
         setPhase('stopping', { error: null })
 
         if (bestEffort) {
@@ -838,6 +911,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
               generation,
               state,
             )
+
             if (state.commentAccess) {
               releaseGuestMembership(
                 {
@@ -863,25 +937,32 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
               console.warn('[collaboration] best-effort leave failed:', error)
             })
           }
+
           cleanupSession({ generation, remote: false })
+
           return
         }
 
         try {
           let result
+
           if (state.role === 'guest') {
             const commentAccess = state.commentAccess
+
             if (!commentAccess) {
               const pendingMembership = getCurrentPendingGuestMembership(
                 generation,
                 state,
               )
+
               if (!pendingMembership) {
                 throw new Error('协作者评论权限缺失，请重新加载邀请')
               }
+
               result = await releaseGuestMembership(pendingMembership, {
                 bestEffort: false,
               })
+
               clearPendingGuestMembership(pendingMembership)
             } else if (
               commentAccess.protocolVersion === 2 &&
@@ -903,6 +984,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
             if (!state.commentProtocolVersion) {
               throw new Error('协作协议版本缺失，请重新开启协作')
             }
+
             result = await leaveCollaborationCommentSession({
               sessionId: state.sessionId!,
               resumeId: state.resumeId!,
@@ -923,8 +1005,10 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
             setPhase('connected', {
               error: getErrorMessage(error, '关闭协作失败'),
             })
+
             throw error
           }
+
           return
         }
 
@@ -932,6 +1016,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
           if (!isCurrentStop()) {
             return
           }
+
           try {
             await broadcastShareEnded(docManager)
           } catch (error) {
@@ -956,7 +1041,9 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       })()
 
       const operation = { generation, sessionId, promise: stopPromise }
+
       activeStopOperation = operation
+
       try {
         await stopPromise
       } finally {
@@ -969,6 +1056,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     refreshCommentAccess: async () => {
       const state = get()
       const generation = activeGeneration
+
       if (state.role !== 'guest' || !state.sessionId || !state.resumeId) {
         throw new Error('当前不处于协作者评论会话')
       }
@@ -988,6 +1076,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         protocolVersion: state.commentAccess.protocolVersion,
         memberLeaseId: state.commentAccess.memberLeaseId ?? undefined,
       })
+
       if (
         generation !== activeGeneration ||
         get().sessionId !== state.sessionId ||
@@ -995,15 +1084,19 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       ) {
         throw new Error('协作会话已切换')
       }
+
       set({ commentAccess })
+
       return commentAccess
     },
 
     handleRemoteShareEnd: () => {
       const state = get()
+
       if (state.role !== 'guest') {
         return
       }
+
       cleanupSession({ generation: activeGeneration, remote: true })
     },
 

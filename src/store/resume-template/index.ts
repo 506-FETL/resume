@@ -33,6 +33,7 @@ export type ResourceState<T> =
   | { status: 'error'; error: TemplateResolutionError }
 
 export const IDLE_RESOURCE = { status: 'idle' } as const
+
 export interface TemplateResources {
   catalog: ResourceState<TemplateCatalogItem[]>
   catalogQuery: CatalogQuery
@@ -58,6 +59,7 @@ export function createTemplateResourceStore(source: TemplateSource) {
   const retained = new Map<string, number>()
   const sourceReleases = new Map<string, () => void>()
   const pending = new Map<string, { id: number; promise: Promise<void> }>()
+
   return create<TemplateResources>((set, get) => {
     function retain(key: string, sourceKey: string) {
       if (!retained.has(key) && retained.size >= 64)
@@ -67,12 +69,18 @@ export function createTemplateResourceStore(source: TemplateSource) {
         )
       if (!sourceReleases.has(key))
         sourceReleases.set(key, source.retainResource(sourceKey))
+
       retained.set(key, (retained.get(key) ?? 0) + 1)
+
       let released = false
+
       return () => {
         if (released) return
+
         released = true
+
         const count = (retained.get(key) ?? 1) - 1
+
         if (count > 0) {
           retained.set(key, count)
         } else {
@@ -82,6 +90,7 @@ export function createTemplateResourceStore(source: TemplateSource) {
         }
       }
     }
+
     function update<T>(
       resources: Record<string, ResourceState<T>>,
       key: string,
@@ -89,18 +98,24 @@ export function createTemplateResourceStore(source: TemplateSource) {
       kind: string,
     ) {
       const next = { ...resources }
+
       delete next[key]
       next[key] = value
+
       let bytes = resourceBytes(next)
+
       for (const candidate of Object.keys(next)) {
         if (Object.keys(next).length <= 96 && bytes <= MAX_CACHE_BYTES) break
         if (retained.has(`${kind}:${candidate}`)) continue
+
         bytes -= resourceBytes(next[candidate])
         delete next[candidate]
       }
+
       // 活动资源上限 64；加载与非活动资源在预算内按最近写入顺序回收。
       return next
     }
+
     function load<T>(
       key: string,
       current: ResourceState<T> | undefined,
@@ -109,10 +124,15 @@ export function createTemplateResourceStore(source: TemplateSource) {
       force = false,
     ): Promise<void> {
       if (!force && current?.status === 'ready') return Promise.resolve()
+
       const existing = pending.get(key)
+
       if (!force && existing) return existing.promise
+
       const id = ++sequence
+
       write({ status: 'loading', requestId: id })
+
       const promise = Promise.resolve()
         .then(read)
         .then(
@@ -127,9 +147,12 @@ export function createTemplateResourceStore(source: TemplateSource) {
         .finally(() => {
           if (pending.get(key)?.id === id) pending.delete(key)
         })
+
       pending.set(key, { id, promise })
+
       return promise
     }
+
     return {
       ...createCatalogActions(source, set, get),
       definitions: {},
@@ -143,6 +166,7 @@ export function createTemplateResourceStore(source: TemplateSource) {
         retain(`example:${exampleKey(ref)}`, `example:${exampleKey(ref)}`),
       loadDefinition: (ref, force) => {
         const key = templateKey(ref)
+
         return load(
           `definition:${key}`,
           get().definitions[key],
@@ -156,6 +180,7 @@ export function createTemplateResourceStore(source: TemplateSource) {
       },
       loadExample: (ref, force) => {
         const key = exampleKey(ref)
+
         return load(
           `example:${key}`,
           get().examples[key],

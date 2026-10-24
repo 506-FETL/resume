@@ -45,6 +45,7 @@ export default function RestoreVersionDialog({
   const dialogMotion = useHistoryDialogMotion()
   const resetConfirmation = useCallback(() => setConfirmingDirect(false), [])
   const confirmationRef = useRef<HTMLDivElement>(null)
+
   useHistoryDialogCloseReset(
     Boolean(targetVersion),
     resetConfirmation,
@@ -54,6 +55,7 @@ export default function RestoreVersionDialog({
   useLayoutEffect(() => {
     if (targetVersion) {
       if (retainedTarget?.id !== targetVersion.id) setConfirmingDirect(false)
+
       setRetainedTarget(targetVersion)
     }
   }, [targetVersion, retainedTarget?.id])

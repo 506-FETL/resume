@@ -9,11 +9,18 @@ export interface SeparatorProps extends React.HTMLAttributes<HTMLDivElement> {
   decorative?: boolean
 }
 
-export function Separator({ ref, decorative, orientation = 'vertical', className, ...divProps }: SeparatorProps & { ref?: React.RefObject<HTMLDivElement | null> }) {
+export function Separator({
+  ref,
+  decorative,
+  orientation = 'vertical',
+  className,
+  ...divProps
+}: SeparatorProps & { ref?: React.RefObject<HTMLDivElement | null> }) {
   const ariaOrientation = orientation === 'vertical' ? orientation : undefined
+
   const semanticProps = decorative
     ? { role: 'none' }
-    : { 'aria-orientation': ariaOrientation, 'role': 'separator' }
+    : { 'aria-orientation': ariaOrientation, role: 'separator' }
 
   return (
     <div

@@ -28,9 +28,11 @@ import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 
 function HonorsCertificatesForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
+
   const honorsCertificates = useResumeStore(
     (state) => state.honors_certificates,
   )
+
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
   const isMobile = useIsMobile()
   const [customCertificateInput, setCustomCertificateInput] = useState('')
@@ -60,6 +62,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
     const existingIndex = fields.findIndex(
       (field) => field.name === certificate,
     )
+
     if (existingIndex >= 0) {
       remove(existingIndex)
     } else {
@@ -70,8 +73,10 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
   // 添加自定义证书
   const addCustomCertificate = () => {
     const trimmedValue = customCertificateInput.trim()
+
     if (!trimmedValue) {
       toast.warning('证书名称不能为空')
+
       return
     }
 
@@ -80,6 +85,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
       toast.error('证书已存在', {
         description: `"${trimmedValue}" 已经添加过了`,
       })
+
       return
     }
 
@@ -178,9 +184,11 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
                   const certificateValue = form.watch(
                     `certificates.${index}.name`,
                   )
+
                   const hidden = form.watch(
                     `certificates.${index}.hidden` as any,
                   )
+
                   return (
                     <motion.div
                       key={item.id}

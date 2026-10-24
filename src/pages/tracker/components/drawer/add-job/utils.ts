@@ -10,16 +10,20 @@ import { normalizeJobWorkflow } from '../../../workflow'
 export function validateAddJobForm(formData: AddJobFormData): boolean {
   if (!formData.position.trim()) {
     toast.error('请填写职位名称')
+
     return false
   }
   if (!formData.company.trim()) {
     toast.error('请填写公司名称')
+
     return false
   }
   if (!formData.location.trim()) {
     toast.error('请填写工作地点')
+
     return false
   }
+
   return true
 }
 

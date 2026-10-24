@@ -7,6 +7,7 @@ export const TEMPLATE_LIMITS = {
   depth: 16,
   renderedNodes: 30000,
 } as const
+
 export const SUPPORTED_TEMPLATE_CAPABILITIES = [
   'flow',
   'local-grid',
@@ -20,6 +21,7 @@ export const SUPPORTED_TEMPLATE_CAPABILITIES = [
   'item-parity',
   'rich-text-styles',
 ] as const
+
 export class TemplateValidationError extends Error {
   readonly reason: 'capability' | 'limit' | 'definition'
   constructor(reason: 'capability' | 'limit' | 'definition', message: string) {
@@ -27,6 +29,7 @@ export class TemplateValidationError extends Error {
     this.reason = reason
   }
 }
+
 export function fail(message: string): never {
   throw new TemplateValidationError('definition', message)
 }

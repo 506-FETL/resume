@@ -82,12 +82,15 @@ function createAdminClient(url: string, serviceRoleKey: string) {
   // 复用同一 isolate 内的 admin client，使 GoTrueClient 的 JWKS 校验缓存跨请求命中，
   // 避免每个已登录请求都重复拉取 JWKS 端点。
   const cacheKey = `${url}\u0000${serviceRoleKey}`
+
   if (cachedAdminClient && cachedAdminClientKey === cacheKey)
     return cachedAdminClient
+
   cachedAdminClient = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
   cachedAdminClientKey = cacheKey
+
   return cachedAdminClient
 }
 
@@ -101,6 +104,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function messagesContainAtsMarker(messages: unknown[]) {
   return messages.some((raw) => {
     if (!isRecord(raw) || raw.role !== 'system') return false
+
     return (
       typeof raw.content === 'string' && raw.content.includes(ATS_SYSTEM_MARKER)
     )
@@ -111,15 +115,19 @@ function computeCost(messages: unknown[]): { cost: 1 | 3; action: string } {
   if (messagesContainAtsMarker(messages)) return { cost: 3, action: 'ats' }
 
   let lastUserIndex = -1
+
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index]
+
     if (isRecord(message) && message.role === 'user') {
       lastUserIndex = index
       break
     }
   }
+
   const currentTurn =
     lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
+
   const heavy = currentTurn.some((message) => {
     if (
       !isRecord(message) ||
@@ -127,20 +135,24 @@ function computeCost(messages: unknown[]): { cost: 1 | 3; action: string } {
       !Array.isArray(message.tool_calls)
     )
       return false
+
     return message.tool_calls.some((toolCall) => {
       if (!isRecord(toolCall) || !isRecord(toolCall.function)) return false
+
       return (
         typeof toolCall.function.name === 'string' &&
         HEAVY_RESUME_WRITE_TOOLS.has(toolCall.function.name)
       )
     })
   })
+
   return heavy ? { cost: 3, action: 'resume_op' } : { cost: 1, action: 'chat' }
 }
 
 function validateMessages(value: unknown): value is unknown[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 128)
     return false
+
   return value.every(
     (message) =>
       isRecord(message) &&
@@ -153,10 +165,13 @@ function validateMessages(value: unknown): value is unknown[] {
 function validateTools(value: unknown) {
   if (value === undefined) return true
   if (!Array.isArray(value) || value.length > 64) return false
+
   return value.every((tool) => {
     if (!isRecord(tool) || tool.type !== 'function' || !isRecord(tool.function))
       return false
+
     const name = tool.function.name
+
     return (
       typeof name === 'string' &&
       /^\w[\w-]{0,63}$/u.test(name) &&
@@ -167,8 +182,10 @@ function validateTools(value: unknown) {
 
 function validateRequest(value: unknown) {
   if (!isRecord(value)) return { ok: false as const, code: 'invalid_request' }
+
   const request = value as LLMProxyRequest
   const model = request.model ?? 'deepseek-v4-pro'
+
   if (typeof model !== 'string' || !ALLOWED_MODELS.has(model))
     return { ok: false as const, code: 'unsupported_model' }
   if (!validateMessages(request.messages))
@@ -208,6 +225,7 @@ function validateRequest(value: unknown) {
   ) {
     return { ok: false as const, code: 'invalid_request' }
   }
+
   return {
     ok: true as const,
     request,
@@ -220,13 +238,16 @@ function validateRequest(value: unknown) {
 
 function quotaHeaders(reservation: ReservationResult) {
   const headers = new Headers()
+
   if (typeof reservation.remaining === 'number')
     headers.set('X-AI-Quota-Remaining', String(reservation.remaining))
   if (typeof reservation.daily_limit === 'number')
     headers.set('X-AI-Quota-Daily-Limit', String(reservation.daily_limit))
   if (typeof reservation.reset_at === 'string')
     headers.set('X-AI-Quota-Reset-At', reservation.reset_at)
+
   headers.set('X-AI-Quota-Unlimited', String(Boolean(reservation.unlimited)))
+
   return headers
 }
 
@@ -246,6 +267,7 @@ function inspectSseEvent(rawEvent: string): InspectedEvent {
     .map((line) => line.slice('data:'.length).trimStart())
     .join('\n')
     .trim()
+
   if (!data) {
     return {
       done: false,
@@ -270,16 +292,20 @@ function inspectSseEvent(rawEvent: string): InspectedEvent {
     const choices = Array.isArray(payload.choices) ? payload.choices : []
     let meaningful = false
     let finishReason: string | null = null
+
     for (const rawChoice of choices) {
       if (!isRecord(rawChoice)) continue
       if (typeof rawChoice.finish_reason === 'string')
         finishReason = rawChoice.finish_reason
+
       const contentEnvelope = isRecord(rawChoice.delta)
         ? rawChoice.delta
         : isRecord(rawChoice.message)
           ? rawChoice.message
           : null
+
       if (!contentEnvelope) continue
+
       meaningful ||=
         (typeof contentEnvelope.content === 'string' &&
           contentEnvelope.content.length > 0) ||
@@ -288,7 +314,9 @@ function inspectSseEvent(rawEvent: string): InspectedEvent {
         (Array.isArray(contentEnvelope.tool_calls) &&
           contentEnvelope.tool_calls.length > 0)
     }
+
     const rawUsage = isRecord(payload.usage) ? payload.usage : null
+
     const usage = rawUsage
       ? {
           promptTokens: Number.isInteger(rawUsage.prompt_tokens)
@@ -302,6 +330,7 @@ function inspectSseEvent(rawEvent: string): InspectedEvent {
             : null,
         }
       : null
+
     return {
       done: false,
       meaningful,
@@ -324,8 +353,10 @@ function inspectSseEvent(rawEvent: string): InspectedEvent {
 function nextEventBoundary(buffer: string) {
   const lf = buffer.indexOf('\n\n')
   const crlf = buffer.indexOf('\r\n\r\n')
+
   if (lf < 0) return crlf < 0 ? null : { index: crlf, length: 4 }
   if (crlf < 0 || lf < crlf) return { index: lf, length: 2 }
+
   return { index: crlf, length: 4 }
 }
 
@@ -333,12 +364,14 @@ function buildUpstreamBody(
   validated: ReturnType<typeof validateRequest> & { ok: true },
 ) {
   const request = validated.request
+
   const body: Record<string, unknown> = {
     model: validated.model,
     messages: validated.messages,
     temperature: validated.temperature,
     stream: validated.stream,
   }
+
   if (validated.stream) body.stream_options = { include_usage: true }
   if (request.response_format !== undefined)
     body.response_format = request.response_format
@@ -348,14 +381,18 @@ function buildUpstreamBody(
   if (request.thinking !== undefined) body.thinking = request.thinking
   if (request.reasoning_effort !== undefined)
     body.reasoning_effort = request.reasoning_effort
+
   return body
 }
 
 Deno.serve(async (request) => {
   const context = createRequestContext(request, FUNCTION_NAME, 'allowlist')
+
   if (request.method === 'OPTIONS') {
     const response = corsPreflightResponse(request, 'allowlist')
+
     response.headers.set('X-Request-Id', context.requestId)
+
     return response
   }
   if (!isOriginAllowed(request, 'allowlist')) {
@@ -366,6 +403,7 @@ Deno.serve(async (request) => {
       status: 403,
       errorCode: 'origin_forbidden',
     })
+
     return context.json({ error: 'origin_forbidden' }, 403)
   }
   if (request.method !== 'POST')
@@ -374,6 +412,7 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   const apiKey = Deno.env.get('OPENAI_API_KEY')
+
   if (!supabaseUrl || !serviceRoleKey || !apiKey) {
     context.log({
       level: 'error',
@@ -382,10 +421,12 @@ Deno.serve(async (request) => {
       status: 500,
       errorCode: 'service_not_configured',
     })
+
     return context.json({ error: 'service_not_configured' }, 500)
   }
 
   const admin = createAdminClient(supabaseUrl, serviceRoleKey)
+
   const record = (
     outcome: 'success' | 'client_error' | 'server_error',
     status: number,
@@ -415,6 +456,7 @@ Deno.serve(async (request) => {
       errorCode: 'quota_finalization_failed',
       sqlState,
     })
+
     scheduleBackground(
       recordOperationMetric(admin, {
         requestId: context.requestId,
@@ -436,13 +478,17 @@ Deno.serve(async (request) => {
 
   const release = async (failureCode: string) => {
     if (!userId) return false
+
     const { data, error } = await admin.rpc('release_ai_credit_request', {
       p_request_id: context.requestId,
       p_user_id: userId,
       p_failure_code: failureCode,
     })
+
     const ok = !error && Boolean((data as LedgerResult | null)?.ok)
+
     if (!ok) recordFinalizationFailure(readSqlState(error))
+
     return ok
   }
 
@@ -454,6 +500,7 @@ Deno.serve(async (request) => {
     failureCode?: string
   }) => {
     if (!userId) return false
+
     const { data, error } = await admin.rpc('settle_ai_credit_request', {
       p_request_id: context.requestId,
       p_user_id: userId,
@@ -465,8 +512,11 @@ Deno.serve(async (request) => {
       p_upstream_request_id: params.upstreamRequestId,
       p_failure_code: params.failureCode ?? null,
     })
+
     const ok = !error && Boolean((data as LedgerResult | null)?.ok)
+
     if (!ok) recordFinalizationFailure(readSqlState(error))
+
     return ok
   }
 
@@ -476,36 +526,49 @@ Deno.serve(async (request) => {
       client: admin,
       supabaseUrl,
     })
+
     userId = identity.userId
+
     if (!userId) throw new SupabaseAuthenticationError()
 
     const rawBody = await request.text()
+
     if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
       record('client_error', 413, 'payload_too_large')
+
       return context.json({ error: 'payload_too_large' }, 413)
     }
+
     let value: unknown
+
     try {
       value = JSON.parse(rawBody)
     } catch {
       record('client_error', 400, 'invalid_request')
+
       return context.json({ error: 'invalid_request' }, 400)
     }
+
     const validated = validateRequest(value)
+
     if (!validated.ok) {
       record('client_error', 400, validated.code)
+
       return context.json({ error: validated.code }, 400)
     }
 
     const { cost, action } = computeCost(validated.messages)
+
     const reserveResult = await admin.rpc('reserve_ai_credits', {
       p_user_id: userId,
       p_request_id: context.requestId,
       p_weight: cost,
       p_action: action,
     })
+
     if (reserveResult.error) {
       const sqlState = readSqlState(reserveResult.error)
+
       context.log({
         level: 'error',
         event: 'quota_reservation_failed',
@@ -515,15 +578,22 @@ Deno.serve(async (request) => {
         sqlState,
         authMode: identity.authMode,
       })
+
       record('server_error', 503, 'quota_reservation_failed', sqlState)
+
       return context.json({ error: 'quota_reservation_failed' }, 503)
     }
+
     reservation = (reserveResult.data ?? {}) as ReservationResult
+
     const reservationHeaders = quotaHeaders(reservation)
+
     if (!reservation.ok) {
       const errorCode = reservation.error ?? 'quota_reservation_failed'
       const status = errorCode === 'quota_exceeded' ? 403 : 409
+
       record('client_error', status, errorCode)
+
       return context.json(
         {
           error: errorCode,
@@ -537,14 +607,20 @@ Deno.serve(async (request) => {
     }
 
     upstreamController = new AbortController()
+
     const abortUpstream = () => upstreamController?.abort()
+
     request.signal.addEventListener('abort', abortUpstream, { once: true })
+
     let upstreamTimedOut = false
+
     const timeoutId = setTimeout(() => {
       upstreamTimedOut = true
       upstreamController?.abort()
     }, UPSTREAM_TIMEOUT_MS)
+
     let upstream: Response
+
     try {
       upstream = await fetch(DEEPSEEK_URL, {
         method: 'POST',
@@ -559,10 +635,13 @@ Deno.serve(async (request) => {
     } catch {
       clearTimeout(timeoutId)
       request.signal.removeEventListener('abort', abortUpstream)
+
       await release(
         upstreamTimedOut ? 'upstream_timeout' : 'upstream_fetch_failed',
       )
+
       record('server_error', 503, 'upstream_unavailable')
+
       return context.json(
         { error: 'upstream_unavailable' },
         503,
@@ -573,8 +652,11 @@ Deno.serve(async (request) => {
     if (!upstream.ok) {
       clearTimeout(timeoutId)
       request.signal.removeEventListener('abort', abortUpstream)
+
       const mapped = classifyUpstreamFailure(upstream.status)
+
       await release(mapped.failure)
+
       context.log({
         level:
           upstream.status >= 500 || upstream.status === 402 ? 'error' : 'warn',
@@ -585,11 +667,13 @@ Deno.serve(async (request) => {
         upstreamStatus: upstream.status,
         authMode: identity.authMode,
       })
+
       record(
         mapped.status >= 500 ? 'server_error' : 'client_error',
         mapped.status,
         mapped.code,
       )
+
       return context.json(
         { error: mapped.code },
         mapped.status,
@@ -602,6 +686,7 @@ Deno.serve(async (request) => {
       request.signal.removeEventListener('abort', abortUpstream)
       await release('upstream_empty_body')
       record('server_error', 503, 'upstream_unavailable')
+
       return context.json(
         { error: 'upstream_unavailable' },
         503,
@@ -611,11 +696,13 @@ Deno.serve(async (request) => {
 
     if (!validated.stream) {
       let payload: unknown
+
       try {
         payload = await upstream.json()
       } catch {
         await release('upstream_invalid_response')
         record('server_error', 502, 'upstream_unavailable')
+
         return context.json(
           { error: 'upstream_unavailable' },
           502,
@@ -625,38 +712,47 @@ Deno.serve(async (request) => {
         clearTimeout(timeoutId)
         request.signal.removeEventListener('abort', abortUpstream)
       }
+
       const event = inspectSseEvent(`data: ${JSON.stringify(payload)}\n\n`)
+
       if (!event.meaningful) {
         await release('upstream_empty_response')
         record('server_error', 502, 'upstream_unavailable')
+
         return context.json(
           { error: 'upstream_unavailable' },
           502,
           reservationHeaders,
         )
       }
+
       const markResult = await admin.rpc('mark_ai_request_delivery_started', {
         p_request_id: context.requestId,
         p_user_id: userId,
         p_upstream_request_id: event.upstreamRequestId,
       })
+
       if (markResult.error || !(markResult.data as LedgerResult | null)?.ok) {
         recordFinalizationFailure(readSqlState(markResult.error))
         await release('delivery_mark_failed')
         record('server_error', 503, 'quota_finalization_failed')
+
         return context.json(
           { error: 'quota_finalization_failed' },
           503,
           reservationHeaders,
         )
       }
+
       await settle({
         deliveryState: 'completed',
         usage: event.usage,
         finishReason: event.finishReason,
         upstreamRequestId: event.upstreamRequestId,
       })
+
       record('success', 200)
+
       return context.json(payload, 200, reservationHeaders)
     }
 
@@ -675,7 +771,9 @@ Deno.serve(async (request) => {
       failureCode?: string,
     ) => {
       if (ledgerFinalized) return true
+
       ledgerFinalized = true
+
       const ok =
         deliveryState === 'none'
           ? await release(failureCode ?? 'upstream_stream_failed')
@@ -686,8 +784,10 @@ Deno.serve(async (request) => {
               upstreamRequestId,
               failureCode,
             })
+
       clearTimeout(timeoutId)
       request.signal.removeEventListener('abort', abortUpstream)
+
       return ok
     }
 
@@ -695,8 +795,11 @@ Deno.serve(async (request) => {
       async start(controller) {
         const failStream = async (code: string) => {
           upstreamController?.abort()
+
           const finalState = streamFailureDeliveryState(deliveryStarted)
+
           await finishLedger(finalState, code)
+
           context.log({
             level: 'error',
             event: 'stream_failed',
@@ -704,6 +807,7 @@ Deno.serve(async (request) => {
             status: 502,
             errorCode: code,
           })
+
           record('server_error', 502, code)
           controller.error(new Error(code))
         }
@@ -711,18 +815,27 @@ Deno.serve(async (request) => {
         try {
           while (true) {
             const result = await reader.read()
+
             if (result.done) {
               buffer += decoder.decode()
+
               if (!ledgerFinalized) await failStream('upstream_stream_failed')
+
               return
             }
+
             buffer += decoder.decode(result.value, { stream: true })
+
             let boundary = nextEventBoundary(buffer)
+
             while (boundary) {
               const end = boundary.index + boundary.length
               const rawEvent = buffer.slice(0, end)
+
               buffer = buffer.slice(end)
+
               const inspected = inspectSseEvent(rawEvent)
+
               upstreamRequestId =
                 inspected.upstreamRequestId ?? upstreamRequestId
               finishReason = inspected.finishReason ?? finishReason
@@ -737,14 +850,17 @@ Deno.serve(async (request) => {
                     p_upstream_request_id: upstreamRequestId,
                   },
                 )
+
                 if (
                   markResult.error ||
                   !(markResult.data as LedgerResult | null)?.ok
                 ) {
                   recordFinalizationFailure(readSqlState(markResult.error))
                   await failStream('quota_finalization_failed')
+
                   return
                 }
+
                 deliveryStarted = true
               }
 
@@ -753,10 +869,12 @@ Deno.serve(async (request) => {
                   deliveryStarted ? 'completed' : 'none',
                   deliveryStarted ? undefined : 'upstream_empty_response',
                 )
+
                 record('success', 200)
                 controller.enqueue(encoder.encode(rawEvent))
                 controller.close()
                 await reader.cancel()
+
                 return
               }
 
@@ -771,8 +889,10 @@ Deno.serve(async (request) => {
       async cancel() {
         upstreamController?.abort()
         await reader.cancel().catch(() => undefined)
+
         if (!ledgerFinalized) {
           const finalState = streamFailureDeliveryState(deliveryStarted)
+
           await finishLedger(finalState, 'client_cancelled')
           record('client_error', 499, 'client_cancelled')
         }
@@ -780,12 +900,15 @@ Deno.serve(async (request) => {
     })
 
     const headers = context.responseHeaders(reservationHeaders)
+
     headers.set('Content-Type', 'text/event-stream')
     headers.set('Cache-Control', 'no-cache, no-transform')
     headers.set('Connection', 'keep-alive')
+
     return new Response(stream, { status: 200, headers })
   } catch (error) {
     upstreamController?.abort()
+
     if (error instanceof SupabaseAuthenticationError) {
       context.log({
         level: 'warn',
@@ -794,12 +917,16 @@ Deno.serve(async (request) => {
         status: 401,
         errorCode: 'auth_invalid',
       })
+
       record('client_error', 401, 'auth_invalid')
+
       return context.json({ error: 'auth_invalid' }, 401)
     }
 
     if (reservation.ok) await release('unexpected')
+
     const sqlState = readSqlState(error)
+
     context.log({
       level: 'error',
       event: 'request_failed',
@@ -808,7 +935,9 @@ Deno.serve(async (request) => {
       errorCode: 'unexpected',
       sqlState,
     })
+
     record('server_error', 500, 'unexpected', sqlState)
+
     return context.json({ error: 'unexpected' }, 500, quotaHeaders(reservation))
   }
 })

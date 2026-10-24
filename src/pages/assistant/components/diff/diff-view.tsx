@@ -11,6 +11,7 @@ export function DiffStat({
   className?: string
 }) {
   if (additions === 0 && deletions === 0) return null
+
   return (
     <span
       className={cn(
@@ -40,6 +41,7 @@ export function DiffView({
   className?: string
 }) {
   const lines = computeLineDiff(before, after)
+
   return (
     // 原生 max-h + overflow-auto：Radix ScrollArea 的 Viewport 用 display:table，
     // 仅设 max-height 时不会裁剪/滚动，会把内容整体撑开导致溢出，故改用原生滚动容器。

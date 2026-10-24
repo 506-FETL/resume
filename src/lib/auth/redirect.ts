@@ -4,6 +4,7 @@ const MAX_PATH_DECODE_DEPTH = 4
 function hasControlCharacter(value: string) {
   return Array.from(value).some((character) => {
     const codePoint = character.codePointAt(0) ?? 0
+
     return codePoint <= 0x1f || codePoint === 0x7f
   })
 }
@@ -12,8 +13,10 @@ function getRawPathname(value: string) {
   const queryIndex = value.indexOf('?')
   const hashIndex = value.indexOf('#')
   const endIndexes = [queryIndex, hashIndex].filter((index) => index >= 0)
+
   const endIndex =
     endIndexes.length > 0 ? Math.min(...endIndexes) : value.length
+
   return value.slice(0, endIndex)
 }
 
@@ -32,6 +35,7 @@ function hasSafeDecodedPathname(pathname: string) {
     if (isUnsafePathname(current)) return false
 
     let decoded: string
+
     try {
       decoded = decodeURIComponent(current)
     } catch {
@@ -63,6 +67,7 @@ export function sanitizeAppRedirect(
 
   try {
     const parsed = new URL(value, REDIRECT_BASE)
+
     if (
       parsed.origin !== REDIRECT_BASE ||
       !hasSafeDecodedPathname(parsed.pathname)

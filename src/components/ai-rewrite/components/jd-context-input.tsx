@@ -10,6 +10,7 @@ interface Props {
 export function JdContextInput({ value, onChange }: Props) {
   const len = value.trim().length
   const valid = len >= JD_MIN_CHARS
+
   return (
     <div className='flex flex-col gap-1'>
       <div className='flex items-center justify-between'>

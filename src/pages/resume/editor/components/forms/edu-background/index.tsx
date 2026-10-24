@@ -50,6 +50,7 @@ const degreeOptions: Degree[] = [
 function EduBackgroundForm({ className }: { className?: string }) {
   const eduBackground = useResumeStore((state) => state.edu_background)
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
+
   const [isUptoNow, setIsUptoNow] = useState(
     () =>
       eduBackground.items?.some((item) => item.duration?.[1] === '至今') ||
@@ -175,6 +176,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
                           checked={isUptoNow}
                           onCheckedChange={(checked) => {
                             setIsUptoNow(!!checked)
+
                             if (checked) {
                               field.onChange([start.format('YYYY-MM'), '至今'])
                             } else {

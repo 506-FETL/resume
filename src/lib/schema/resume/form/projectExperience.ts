@@ -2,15 +2,19 @@ import { z } from 'zod'
 import { createExperienceSchema, durationField } from './shared'
 
 const projectName = z.string().trim()
+
 export type ProjectName = z.infer<typeof projectName>
 
 const participantRole = z.string().trim()
+
 export type ParticipantRole = z.infer<typeof participantRole>
 
 const projectDuration = durationField
+
 export type ProjectDuration = z.infer<typeof projectDuration>
 
 const projectInfo = z.string().trim()
+
 export type ProjectInfo = z.infer<typeof projectInfo>
 
 const projectExperienceFields = {
@@ -27,6 +31,7 @@ export const projectExperienceFormSchema = createExperienceSchema(
 export type ProjectExperienceFormType = z.infer<
   typeof projectExperienceFormSchema
 >
+
 export type ProjectExperienceItem = ProjectExperienceFormType['items'][number]
 
 export const DEFAULT_PROJECT_EXPERIENCE: ProjectExperienceFormType = {

@@ -45,6 +45,7 @@ export function ResetPasswordForm() {
               <form
                 onSubmit={async (event) => {
                   event.preventDefault()
+
                   if (await submit(password, confirmation)) {
                     setPassword('')
                     setConfirmation('')

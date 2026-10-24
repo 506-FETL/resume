@@ -24,6 +24,7 @@ export function VariantBadge({
 }: VariantBadgeProps) {
   const pct = matchRate == null ? null : `${Math.round(matchRate * 100)}%`
   const displayParent = parentName ?? '原简历已删除'
+
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>

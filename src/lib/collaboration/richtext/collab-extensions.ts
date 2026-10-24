@@ -49,6 +49,7 @@ interface BuildExtensionsOptions {
 const DedupeCollaborationCaret = CollaborationCaret.extend({
   addProseMirrorPlugins() {
     const awareness = this.options.provider.awareness as Awareness
+
     const awarenessStatesToArray = (states: Map<number, AwarenessLikeState>) =>
       Array.from(states.entries()).map(([clientId, value]) => ({
         clientId,
@@ -59,14 +60,17 @@ const DedupeCollaborationCaret = CollaborationCaret.extend({
       yCursorPlugin(
         (() => {
           awareness.setLocalStateField('user', this.options.user)
+
           this.storage.users = awarenessStatesToArray(
             awareness.states as Map<number, AwarenessLikeState>,
           )
+
           awareness.on('update', () => {
             this.storage.users = awarenessStatesToArray(
               awareness.states as Map<number, AwarenessLikeState>,
             )
           })
+
           return awareness
         })(),
         {

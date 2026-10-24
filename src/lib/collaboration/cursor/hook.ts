@@ -31,14 +31,18 @@ export function useRealtimeCursors({
   throttleMs,
 }: UseRealtimeCursorsOptions): UseRealtimeCursorsReturn {
   const [userId] = useState(createRealtimeUserId)
+
   const [cursors, setCursors] = useState<UseRealtimeCursorsReturn['cursors']>(
     {},
   )
+
   const cursorPayloadRef = useRef<CursorEventPayload | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
+
   const latestPointerPositionRef = useRef<
     CursorEventPayload['position'] | null
   >(null)
+
   const sendFrameRef = useRef<number | null>(null)
   const lastSentAtRef = useRef(0)
   const pendingRemoteCursorsRef = useRef<Record<number, CursorEventPayload>>({})
@@ -49,6 +53,7 @@ export function useRealtimeCursors({
     flushRemoteFrameRef.current = null
 
     const batch = Object.values(pendingRemoteCursorsRef.current)
+
     pendingRemoteCursorsRef.current = {}
 
     if (batch.length === 0) {
@@ -71,6 +76,7 @@ export function useRealtimeCursors({
       sendFrameRef.current = null
 
       const latestPosition = latestPointerPositionRef.current
+
       if (!latestPosition) {
         return
       }
@@ -79,6 +85,7 @@ export function useRealtimeCursors({
         sendFrameRef.current = requestAnimationFrame((nextFrameTime) => {
           flushOutgoingCursorRef.current(nextFrameTime)
         })
+
         return
       }
 
@@ -137,6 +144,7 @@ export function useRealtimeCursors({
           projectRealtimeCursor(payload, (point, viewport) =>
             projectPointToViewport(point, viewport),
           )
+
         scheduleRemoteCursorFlush()
       },
       onPeerJoin: () => {

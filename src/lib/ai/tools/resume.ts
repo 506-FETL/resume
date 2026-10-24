@@ -18,7 +18,9 @@ registerTool({
   execute: async () => {
     try {
       const rows = await listAccessibleResumes()
+
       if (rows.length === 0) return { count: 0, message: '用户还没有任何简历' }
+
       return {
         count: rows.length,
         resumes: rows.map((r) => ({
@@ -104,6 +106,7 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const currentId = resolveActiveResumeId()
+
     if (!currentId)
       return {
         error:
@@ -113,11 +116,13 @@ registerTool({
     const sectionKey = String(
       args.sectionKey,
     ) as (typeof FORM_DATA_KEYS)[number]
+
     if (!FORM_DATA_KEYS.includes(sectionKey))
       return { error: `无效的模块键：${sectionKey}` }
 
     // 助手页未必挂载编辑器，必须直接读取目标数据源，不能用共享 store 的默认表单作为修改基线。
     let current: Record<string, unknown>
+
     try {
       current = await getAccessibleResumeById(currentId)
     } catch (error) {
@@ -125,11 +130,13 @@ registerTool({
         error: error instanceof Error ? error.message : '读取当前简历失败',
       }
     }
+
     const before = current[sectionKey]
 
     // value 必须是对象；以完整模块内容为基线合并本次改动，再按该模块的字段结构（zod schema）校验，
     // 拒绝结构错误的写入（如把技能写成空对象/字符串数组），避免简历渲染成一排空标签。
     const rawValue = args.value
+
     if (!rawValue || typeof rawValue !== 'object' || Array.isArray(rawValue))
       return {
         error: `value 必须是【${SECTION_LABELS[sectionKey] ?? sectionKey}】模块的内容对象`,
@@ -142,13 +149,16 @@ registerTool({
       ...((before as Record<string, unknown> | null) ?? {}),
       ...(rawValue as Record<string, unknown>),
     }
+
     const normalized = normalizeResumeSection(sectionKey, merged)
     const parsed = resumeSchema.shape[sectionKey].safeParse(normalized)
+
     if (!parsed.success) {
       return {
         error: `写入【${SECTION_LABELS[sectionKey] ?? sectionKey}】的数据不符合该模块的字段结构约束，已拒绝写入：${formatSectionIssues(parsed.error)}。请先用 get_resume_detail 查看该模块的现有结构，再严格按相同结构重新提供 value。`,
       }
     }
+
     // 使用校验并规范化（去空格、补默认值）后的完整模块内容
     const after = parsed.data
 
@@ -170,6 +180,7 @@ registerTool({
             sectionKey,
             after as Record<string, unknown>,
           )
+
           return { ok: true, resumeId: currentId, sectionKey, before, after }
         },
       },

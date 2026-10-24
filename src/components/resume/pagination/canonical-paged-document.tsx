@@ -39,10 +39,12 @@ export default function CanonicalPagedDocument({
   commentOverlayRoot = false,
 }: PropsWithChildren<CanonicalPagedDocumentProps>) {
   const { appearance: resolvedAppearance, font } = useResumeStyles(appearance)
+
   const plan = useMemo(
     () => resolveTemplatePage(definition, resolvedAppearance),
     [definition, resolvedAppearance],
   )
+
   const fontWeights = useMemo(
     () =>
       Array.from(
@@ -50,9 +52,11 @@ export default function CanonicalPagedDocument({
       ),
     [font.boldWeight, font.mediumWeight, font.normalWeight],
   )
+
   const [page, setPage] = useState<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const [source, setSource] = useState<HTMLDivElement | null>(null)
+
   const { status, snapshot, error } = usePaginationPlan({
     page,
     viewport,
@@ -61,6 +65,7 @@ export default function CanonicalPagedDocument({
     familyName: font.familyName,
     weights: fontWeights,
   })
+
   const handleSourceRef = useCallback(
     (element: HTMLDivElement | null) => {
       setSource(element)
@@ -68,6 +73,7 @@ export default function CanonicalPagedDocument({
     },
     [sourceRef],
   )
+
   const handleDocumentRef = useCallback(
     (element: HTMLDivElement | null) => assignRef(documentRef, element),
     [documentRef],
@@ -94,12 +100,15 @@ export default function CanonicalPagedDocument({
     fontFamily: font.fontFamily,
     fontSynthesis: 'none' as const,
   }
+
   const paperStyle = {
     position: 'relative' as const,
     width: A4_PAGE_WIDTH,
     height: A4_PAGE_HEIGHT,
   }
+
   const pageCount = snapshot?.signature.pages.length ?? 1
+
   const renderRegions = (pageIndex: number | null) =>
     plan.regions.map((region) => {
       const segment =
@@ -108,7 +117,9 @@ export default function CanonicalPagedDocument({
           : snapshot?.regions.find((item) => item.id === region.id)?.segments[
               pageIndex
             ]
+
       const empty = pageIndex !== null && snapshot && !segment
+
       return (
         <div
           key={region.id}
@@ -160,6 +171,7 @@ export default function CanonicalPagedDocument({
         </div>
       )
     })
+
   const measurementSource = (
     // WebKit 在极远的离屏坐标会损失文字矩形精度；原点裁切保持测量与打印的几何一致。
     <div
@@ -181,6 +193,7 @@ export default function CanonicalPagedDocument({
       </div>
     </div>
   )
+
   return (
     <>
       {createPortal(measurementSource, document.body)}

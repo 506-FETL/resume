@@ -29,6 +29,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
           iconColor: 'text-green-600',
         }
       }
+
       return {
         Icon: HardDrive,
         bgColor: 'bg-amber-500/10',
@@ -42,6 +43,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
           iconColor: 'text-green-600',
         }
       }
+
       return {
         Icon: Cloud,
         bgColor: 'bg-blue-500/10',

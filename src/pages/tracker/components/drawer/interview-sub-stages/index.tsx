@@ -26,6 +26,7 @@ import WorkflowNotesEditor from '../workflow-notes-editor'
 type RoundContent = Partial<
   Pick<InterviewSubStage, 'label' | 'start_date' | 'notes'>
 >
+
 interface InterviewSubStagesProps {
   jobId: string
   subStages: InterviewSubStage[]
@@ -64,12 +65,16 @@ export function InterviewSubStages({
   const reduce = useReducedMotion()
   const [selectedId, setSelectedId] = useState(subStages.at(-1)?.id ?? '')
   const [deleting, setDeleting] = useState<string | null>(null)
+
   const selectedRound =
     subStages.find((round) => round.id === selectedId) ?? subStages.at(-1)
+
   const activeRoundId = selectedRound?.id
+
   const selectedIndex = subStages.findIndex(
     (round) => round.id === selectedRound?.id,
   )
+
   const selectedLabel = selectedRound?.label || `第 ${selectedIndex + 1} 轮面试`
   const focusNewRound = useRef<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -85,10 +90,13 @@ export function InterviewSubStages({
   useEffect(() => {
     const viewport = scrollRef.current
     const trigger = activeRoundId && triggerRefs.current.get(activeRoundId)
+
     const revealSelectedRound = () => {
       if (!viewport || !trigger) return
+
       const viewportBox = viewport.getBoundingClientRect()
       const triggerBox = trigger.getBoundingClientRect()
+
       if (
         triggerBox.left < viewportBox.left ||
         triggerBox.right > viewportBox.right
@@ -103,8 +111,11 @@ export function InterviewSubStages({
         })
       }
     }
+
     revealSelectedRound()
+
     const observer = new ResizeObserver(revealSelectedRound)
+
     if (viewport) observer.observe(viewport)
 
     const frame =
@@ -117,8 +128,10 @@ export function InterviewSubStages({
             }
           })
         : null
+
     return () => {
       observer.disconnect()
+
       if (frame !== null) cancelAnimationFrame(frame)
     }
   }, [activeRoundId, subStages.length, reduce])
@@ -127,13 +140,16 @@ export function InterviewSubStages({
     if (id === selectedRound?.id) return
     if (panelRef.current?.contains(document.activeElement))
       triggerRefs.current.get(id)?.focus({ preventScroll: true })
+
     onFlush()
     setSelectedId(id)
   }
 
   const handleAdd = () => {
     onFlush()
+
     const id = onAddSubStage()
+
     if (id) {
       focusNewRound.current = id
       setSelectedId(id)
@@ -207,6 +223,7 @@ export function InterviewSubStages({
                     const current = round.status === '进行中'
                     const passed = round.status === '已完成'
                     const label = round.label || `第 ${index + 1} 轮面试`
+
                     return (
                       <motion.div
                         key={round.id}
@@ -403,11 +420,13 @@ export function InterviewSubStages({
         <AlertDialogContent
           onCloseAutoFocus={(event) => {
             event.preventDefault()
+
             if (deletedRef.current) {
               const target =
                 (selectedRound && triggerRefs.current.get(selectedRound.id)) ||
                 addRef.current ||
                 headingRef.current
+
               target?.focus({ preventScroll: true })
             } else {
               deleteTriggerRef.current?.focus({ preventScroll: true })
@@ -427,12 +446,16 @@ export function InterviewSubStages({
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
                 if (!deleting) return
+
                 deletedRef.current = true
+
                 if (selectedRound?.id === deleting) {
                   const next =
                     subStages[selectedIndex + 1] ?? subStages[selectedIndex - 1]
+
                   setSelectedId(next?.id ?? '')
                 }
+
                 onDeleteSubStage(deleting)
               }}
             >

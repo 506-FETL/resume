@@ -31,9 +31,12 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
       jobs: selectTrackerListJobs(state),
     })),
   )
+
   const { focusSearchInput, clearSearchAndFilters, setShowArchived } =
     useTrackerFilterActions()
+
   const hasArchived = jobs.some((job) => job.archived)
+
   const content = {
     empty: { icon: BriefcaseBusiness, title: '暂无职位', description: null },
     archived: { icon: Archive, title: '暂无归档职位', description: null },
@@ -44,6 +47,7 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
       description: error || '请稍后重试。',
     },
   }[mode]
+
   const Icon = content.icon
 
   return (

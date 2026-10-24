@@ -6,6 +6,7 @@ export type RecoveryStatus =
   | 'ready'
   | 'invalid'
   | 'success'
+
 export interface RecoveryIdentity {
   userId: string
   sessionId: string

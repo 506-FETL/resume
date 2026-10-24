@@ -73,7 +73,9 @@ export async function runAgent(
     context,
     callbacks = {},
   } = options
+
   const finalParts: AiMessagePart[] = []
+
   const skillRuntime = createSkillRuntime({
     signal,
     loaders: dependencies.skillLoaders,
@@ -81,30 +83,39 @@ export async function runAgent(
       const index = finalParts.findIndex(
         (part) => part.type === 'skill-activity' && part.id === activity.id,
       )
+
       if (index < 0) finalParts.push(activity)
       else finalParts[index] = activity
+
       callbacks.onSkillActivity?.(activity)
     },
   })
+
   const lastUser = [...history]
     .reverse()
     .find((message) => message.role === 'user')
+
   const skillContext = await skillRuntime.loadExplicit(
     lastUser ? getSkillReferences(lastUser.parts) : [],
   )
+
   const apiMessages = toApiMessages(
     history,
     [context, buildSkillCatalogContext(), skillContext]
       .filter(Boolean)
       .join('\n\n'),
   )
+
   const tools = [...(dependencies.tools ?? getTools()), ...skillRuntime.tools]
+
   const requestLLM =
     dependencies.request ??
     (async (request, controller) => {
       const { callLLM } = await import('../../llm/call.ts')
+
       return callLLM(request as any, controller)
     })
+
   const cumulativeUsage: StreamUsage = { input: 0, output: 0, total: 0 }
 
   for (let step = 0; step < maxSteps; step++) {
@@ -122,18 +133,24 @@ export async function runAgent(
       tools: toApiToolDefs(tools),
       thinking: thinking ? { type: 'enabled' } : { type: 'disabled' },
     }
+
     const requestController = new AbortController()
     const abortRequest = () => requestController.abort()
+
     signal.addEventListener('abort', abortRequest, { once: true })
+
     if (signal.aborted) requestController.abort()
 
     try {
       const stream = await requestLLM(req, requestController)
 
       const seenPendingTools = new Set<string>()
+
       for await (const chunk of stream) {
         if (signal.aborted) throw new DOMException('aborted', 'AbortError')
+
         parser.push(chunk)
+
         // 仅在 id 已就绪时上屏（避免 idx-N 兜底 key 与 onToolCallStart 真实 id 不匹配产生重复行）
         for (const p of parser.pendingToolCalls()) {
           if (p.name && p.id && !seenPendingTools.has(p.id)) {
@@ -172,34 +189,44 @@ export async function runAgent(
           function: { name: tc.name, arguments: serializeAiToolValue(tc.args) },
         })),
       } as any)
+
       if (text) finalParts.push({ type: 'text', text })
 
       for (const tc of toolCalls) {
         if (signal.aborted) throw new DOMException('aborted', 'AbortError')
+
         const tool = tools.find((tool) => tool.name === tc.name)
         const isWrite = tool?.mode === 'write'
+
         callbacks.onToolCallStart?.({ ...tc, awaitingConfirm: isWrite, step })
+
         let result: unknown
         let isError = false
         let cancelled = false
+
         if (!tool) {
           result = { error: `工具不存在: ${tc.name}` }
           isError = true
         } else {
           try {
             result = await tool.execute(tc.args, { signal })
+
             if (result && typeof result === 'object') {
               const obj = result as Record<string, unknown>
+
               if ('error' in obj) isError = true
               if ('cancelled' in obj && obj.cancelled) cancelled = true
             }
           } catch (e) {
             if (signal.aborted) throw e
+
             result = { error: e instanceof Error ? e.message : '工具执行失败' }
             isError = true
           }
         }
+
         callbacks.onToolResult?.(tc.id, result, isError, cancelled)
+
         finalParts.push({
           type: 'tool-call',
           toolCallId: tc.id,
@@ -209,18 +236,21 @@ export async function runAgent(
           result,
           state: isError ? 'error' : cancelled ? 'cancelled' : 'result',
         })
+
         apiMessages.push({
           role: 'tool',
           content: serializeAiToolValue(result),
           tool_call_id: tc.id,
         } as any)
       }
+
       // 继续下一轮
       continue
     }
 
     // 正常结束
     if (text) finalParts.push({ type: 'text', text })
+
     return finalParts
   }
 
@@ -229,5 +259,6 @@ export async function runAgent(
     type: 'text',
     text: '（已达到工具调用步数上限，以上为当前进展）',
   })
+
   return finalParts
 }

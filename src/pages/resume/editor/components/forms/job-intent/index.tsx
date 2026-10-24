@@ -99,9 +99,11 @@ function JobIntentForm({ className }: { className?: string }) {
                     value={field.value ?? ''}
                     onChange={(e) => {
                       const v = e.target.value
+
                       if (Number(v) < 0) {
                         toast.error('倒贴上班吗，有点意思')
                       }
+
                       field.onChange(v && Number(v))
                     }}
                   />

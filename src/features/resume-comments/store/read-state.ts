@@ -11,8 +11,10 @@ export function mergeCommentThreadReadStateMaps(
   incoming: Record<string, CommentThreadReadState>,
 ) {
   const merged = { ...current }
+
   for (const [threadId, state] of Object.entries(incoming)) {
     const existing = merged[threadId]
+
     merged[threadId] = {
       threadId,
       latestCommentEventSeq: Math.max(
@@ -25,6 +27,7 @@ export function mergeCommentThreadReadStateMaps(
       ),
     }
   }
+
   return merged
 }
 
@@ -33,6 +36,7 @@ export function applyCommentEventsToThreadReadStates(
   events: ResumeCommentEvent[],
 ) {
   const next = { ...current }
+
   for (const event of events) {
     if (!event.threadId) continue
     if (event.type === 'thread_deleted') {
@@ -41,11 +45,14 @@ export function applyCommentEventsToThreadReadStates(
     }
     if (event.type !== 'thread_created' && event.type !== 'comment_replied')
       continue
+
     const existing = next[event.threadId]
+
     const latestCommentEventSeq = Math.max(
       existing?.latestCommentEventSeq ?? 0,
       event.eventSeq,
     )
+
     next[event.threadId] = {
       threadId: event.threadId,
       latestCommentEventSeq,
@@ -54,6 +61,7 @@ export function applyCommentEventsToThreadReadStates(
         : (existing?.lastReadEventSeq ?? 0),
     }
   }
+
   return next
 }
 

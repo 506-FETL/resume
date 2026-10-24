@@ -29,31 +29,39 @@ export function invalidateCanvasSnapshot(resumeId?: string): void {
 
 export function useCanvasPreview() {
   const isMobile = useIsMobile()
+
   const canvasVisible = useAssistantStore((s) =>
     isMobile ? s.canvasMobileOpen : s.canvasOpen,
   )
+
   const {
     previewResumeId,
     setPreviewResumeId,
     canvasRefreshTick,
     canvasActiveTab,
   } = useAssistantStore()
+
   const activeConversationId = useAssistantStore((s) => s.activeConversationId)
   const conversations = useAssistantStore((s) => s.conversations)
   const currentResumeId = useCurrentResumeStore((s) => s.resumeId)
   const clearCurrentResume = useCurrentResumeStore((s) => s.clearCurrentResume)
   const { writes } = useCanvasModel()
   const [options, setOptions] = useState<ResumeOption[]>([])
+
   const [optionsStatus, setOptionsStatus] = useState<
     'loading' | 'ready' | 'error'
   >('loading')
+
   const optionsLoadingRef = useRef(false)
+
   const [optionsLoadedForCurrentId, setOptionsLoadedForCurrentId] = useState<
     string | null | undefined
   >(undefined)
+
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(() =>
     previewResumeId ? (snapshotCache.get(previewResumeId) ?? null) : null,
   )
+
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'empty'>(
     snapshot ? 'idle' : 'loading',
   )
@@ -78,19 +86,26 @@ export function useCanvasPreview() {
   // 下拉选项
   useEffect(() => {
     if (!canvasVisible) return
+
     let cancelled = false
+
     optionsLoadingRef.current = true
     setOptionsStatus('loading')
     setOptionsLoadedForCurrentId(undefined)
+
     const currentIdAtLoad = currentResumeId
+
     listAccessibleResumes()
       .then((rows) => {
         if (cancelled) return
+
         optionsLoadingRef.current = false
+
         const list = rows.map((r) => ({
           resumeId: String(r.resume_id),
           name: String(r.display_name ?? '未命名'),
         }))
+
         setOptions(list)
         setOptionsLoadedForCurrentId(currentIdAtLoad)
         setOptionsStatus('ready')
@@ -118,9 +133,11 @@ export function useCanvasPreview() {
       return
 
     const availableIds = new Set(options.map((option) => option.resumeId))
+
     const hasCurrentResume = Boolean(
       currentResumeId && availableIds.has(currentResumeId),
     )
+
     if (currentResumeId && !hasCurrentResume) clearCurrentResume()
 
     // 优先级：当前会话绑定的简历 > 全局当前简历 > 上次预览 > 列表首个。
@@ -128,6 +145,7 @@ export function useCanvasPreview() {
     const hasBoundResume = Boolean(
       boundResumeId && availableIds.has(boundResumeId),
     )
+
     const nextPreviewResumeId = hasBoundResume
       ? boundResumeId
       : hasCurrentResume
@@ -161,24 +179,30 @@ export function useCanvasPreview() {
     if (!previewResumeId) {
       setSnapshot(null)
       setStatus('empty')
+
       return
     }
     if (!options.some((option) => option.resumeId === previewResumeId)) return
     // 预览保留挂载；重新打开画布或切回简历标签时静默刷新。
     if (!canvasVisible || canvasActiveTab !== 'resume') return
+
     let cancelled = false
     // 命中缓存则直接展示（无骨架），后台静默 revalidate
     const cached = snapshotCache.get(previewResumeId)
+
     if (cached) {
       setSnapshot(cached)
       setStatus('idle')
     } else {
       setStatus('loading')
     }
+
     getAccessibleResumeById(previewResumeId)
       .then((data) => {
         if (cancelled) return
+
         const next = buildResumeSnapshot(data)
+
         snapshotCache.set(previewResumeId, next)
         setSnapshot(next)
         setStatus('idle')
@@ -187,10 +211,13 @@ export function useCanvasPreview() {
         if (cancelled) return
         if (isResumeNotFoundError(error)) {
           snapshotCache.delete(previewResumeId)
+
           setOptions((current) =>
             current.filter((option) => option.resumeId !== previewResumeId),
           )
+
           if (currentResumeId === previewResumeId) clearCurrentResume()
+
           setPreviewResumeId(null)
         }
         if (!snapshotCache.has(previewResumeId)) {
@@ -198,6 +225,7 @@ export function useCanvasPreview() {
           setStatus(isResumeNotFoundError(error) ? 'empty' : 'error')
         }
       })
+
     return () => {
       cancelled = true
     }

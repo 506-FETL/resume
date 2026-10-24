@@ -24,11 +24,14 @@ export function useAssistantBootstrap() {
 
       try {
         const conversations = await listConversations()
+
         if (cancelled) return
 
         useAssistantStore.getState().setConversations(conversations)
+
         const currentActiveId =
           useAssistantStore.getState().activeConversationId
+
         const restored = chooseRestoredConversation(
           conversations,
           currentActiveId,
@@ -40,22 +43,27 @@ export function useAssistantBootstrap() {
             initializing: false,
             loadingConversations: false,
           })
+
           useAssistantStore.getState().setConversationView(null, [], {})
+
           return
         }
 
         const { messages, hasMore } = await listMessages(restored.id, {
           limit: 30,
         })
+
         if (cancelled) return
 
         useAssistantStore.setState({
           initializing: false,
           loadingConversations: false,
         })
+
         useAssistantStore
           .getState()
           .setConversationView(restored.id, messages, { hasMore })
+
         writeLastConversationId(restored.id)
       } catch (error) {
         if (cancelled) return
@@ -63,6 +71,7 @@ export function useAssistantBootstrap() {
           useAssistantStore.getState().setConversations([])
           useAssistantStore.getState().setConversationView(null, [], {})
         }
+
         useAssistantStore.setState({
           initializing: false,
           loadingConversations: false,
@@ -70,6 +79,7 @@ export function useAssistantBootstrap() {
           pendingConversationId: null,
           conversationLoadRequestId: null,
         })
+
         toast.error('加载会话失败', { description: getErrorMessage(error) })
       }
     }

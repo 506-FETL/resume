@@ -40,7 +40,9 @@ async function recordFailure(
   errorCode: GithubRefreshErrorCode,
 ) {
   if (!current) return
+
   const attemptedAt = new Date().toISOString()
+
   const { error } = await admin
     .from('github_stars')
     .update(
@@ -51,6 +53,7 @@ async function recordFailure(
       ),
     )
     .eq('repo', APP_GITHUB_REPOSITORY_KEY)
+
   if (error) throw new Error('github cache failure state write failed')
 }
 
@@ -60,6 +63,7 @@ Deno.serve(async (request) => {
     'github-stars-refresh',
     'allowlist',
   )
+
   let admin: AdminClient | null = null
 
   const respond = (
@@ -80,6 +84,7 @@ Deno.serve(async (request) => {
       status,
       errorCode,
     })
+
     if (admin) {
       scheduleBackground(
         recordOperationMetric(admin, {
@@ -93,6 +98,7 @@ Deno.serve(async (request) => {
         }),
       )
     }
+
     return context.json(body, status)
   }
 
@@ -111,6 +117,7 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   const maintenanceToken = Deno.env.get('BACKEND_MAINTENANCE_TOKEN')
+
   if (
     !supabaseUrl ||
     !serviceRoleKey ||
@@ -135,6 +142,7 @@ Deno.serve(async (request) => {
 
   const rawBody = await request.text()
   let body: unknown = {}
+
   try {
     body = rawBody.trim() ? JSON.parse(rawBody) : {}
   } catch {
@@ -145,6 +153,7 @@ Deno.serve(async (request) => {
       'unsupported_payload',
     )
   }
+
   if (
     !body ||
     typeof body !== 'object' ||
@@ -160,11 +169,13 @@ Deno.serve(async (request) => {
   }
 
   admin = createAdminClient(supabaseUrl, serviceRoleKey)
+
   const { data: currentValue, error: readError } = await admin
     .from('github_stars')
     .select('repo,stars,fetched_at,etag,consecutive_failures')
     .eq('repo', APP_GITHUB_REPOSITORY_KEY)
     .maybeSingle()
+
   if (readError)
     return respond(
       { error: 'github_cache_read_failed' },
@@ -172,6 +183,7 @@ Deno.serve(async (request) => {
       'server_error',
       'github_cache_read_failed',
     )
+
   const current = currentValue as GithubCacheRow | null
 
   const headers = new Headers({
@@ -179,11 +191,15 @@ Deno.serve(async (request) => {
     'User-Agent': '506-resume-stars-refresh',
     'X-GitHub-Api-Version': '2022-11-28',
   })
+
   if (current?.etag) headers.set('If-None-Match', current.etag)
+
   const githubToken = Deno.env.get('GITHUB_TOKEN')?.trim()
+
   if (githubToken) headers.set('Authorization', `Bearer ${githubToken}`)
 
   let upstream: Response
+
   try {
     upstream = await fetch(APP_GITHUB_API_URL, {
       method: 'GET',
@@ -195,6 +211,7 @@ Deno.serve(async (request) => {
       error instanceof DOMException && error.name === 'TimeoutError'
         ? 'github_timeout'
         : 'github_upstream_error'
+
     try {
       await recordFailure(admin, current, errorCode)
     } catch {
@@ -205,10 +222,12 @@ Deno.serve(async (request) => {
         'github_cache_write_failed',
       )
     }
+
     return respond({ error: errorCode }, 503, 'server_error', errorCode)
   }
 
   const attemptedAt = new Date().toISOString()
+
   if (upstream.status === 304) {
     if (!current) {
       return respond(
@@ -218,6 +237,7 @@ Deno.serve(async (request) => {
         'github_unexpected_status',
       )
     }
+
     const { error } = await admin
       .from('github_stars')
       .update({
@@ -228,6 +248,7 @@ Deno.serve(async (request) => {
         last_error_code: null,
       })
       .eq('repo', APP_GITHUB_REPOSITORY_KEY)
+
     if (error)
       return respond(
         { error: 'github_cache_write_failed' },
@@ -235,11 +256,13 @@ Deno.serve(async (request) => {
         'server_error',
         'github_cache_write_failed',
       )
+
     return respond({ ok: true, status: 'not_modified' }, 200, 'success')
   }
 
   if (upstream.status !== 200) {
     const errorCode = classifyGithubStatus(upstream.status)
+
     try {
       await recordFailure(admin, current, errorCode)
     } catch {
@@ -250,11 +273,13 @@ Deno.serve(async (request) => {
         'github_cache_write_failed',
       )
     }
+
     return respond({ error: errorCode }, 503, 'server_error', errorCode)
   }
 
   const payload = await upstream.json().catch(() => null)
   const stars = readGithubStars(payload)
+
   if (stars === null) {
     try {
       await recordFailure(admin, current, 'github_invalid_response')
@@ -266,6 +291,7 @@ Deno.serve(async (request) => {
         'github_cache_write_failed',
       )
     }
+
     return respond(
       { error: 'github_invalid_response' },
       502,
@@ -287,6 +313,7 @@ Deno.serve(async (request) => {
     },
     { onConflict: 'repo' },
   )
+
   if (writeError)
     return respond(
       { error: 'github_cache_write_failed' },

@@ -15,14 +15,17 @@ export function useJdVariantGenerator(parentResumeId: string) {
     (args: GenerateVariantArgs) => startGenerate(args),
     [startGenerate],
   )
+
   const abort = useCallback(
     () => abortTask(parentResumeId),
     [abortTask, parentResumeId],
   )
+
   const discardDraft = useCallback(
     () => discardTask(parentResumeId),
     [discardTask, parentResumeId],
   )
+
   const reset = useCallback(
     () => clearTask(parentResumeId),
     [clearTask, parentResumeId],

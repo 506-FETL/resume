@@ -37,12 +37,16 @@ function sanitizeDeep<T>(value: T): T {
   }
   if (value && typeof value === 'object') {
     const result: Record<string, unknown> = {}
+
     Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
       if (val === undefined) return
+
       result[key] = sanitizeDeep(val)
     })
+
     return result as T
   }
+
   return value
 }
 
@@ -56,6 +60,7 @@ function mapDocToResumeSchema(
       source?.[key] ??
       (legacyKey ? source?.[legacyKey] : undefined) ??
       defaultVal
+
     return sanitizeDeep(val as T)
   }
 
@@ -117,18 +122,22 @@ export async function fetchResumeDataForAnalysis(
 ): Promise<ResumeSchema> {
   if (isOffline) {
     const offlineResume = await getOfflineResumeById(id)
+
     if (!offlineResume) {
       throw new Error('离线简历不存在')
     }
+
     return mapDocToResumeSchema(
       offlineResume.data as Partial<AutomergeResumeDocument>,
     )
   }
 
   const onlineResume = await getResumeById(id)
+
   if (!onlineResume) {
     throw new Error('在线简历不存在')
   }
+
   return mapDocToResumeSchema(
     onlineResume as unknown as Partial<AutomergeResumeDocument>,
   )
@@ -148,6 +157,7 @@ export function calculateReadabilityRating(score: number) {
   if (score >= 7) return 'text-emerald-600'
   if (score >= 5) return 'text-yellow-600'
   if (score >= 3) return 'text-orange-600'
+
   return 'text-red-600'
 }
 
@@ -161,6 +171,7 @@ export function isEmptyValue(value: unknown): boolean {
   if (Array.isArray(value) && value.length === 0) return true
   if (Array.isArray(value) && value.every((v) => v === '' || v === null))
     return true
+
   return false
 }
 
@@ -195,21 +206,25 @@ export function detectValueType(
     typeof value[0] === 'object'
   ) {
     const first = value[0] as Record<string, unknown>
+
     if ('label' in first && 'proficiencyLevel' in first) {
       return 'skill_list'
     }
     if ('name' in first && Object.keys(first).length === 1) {
       return 'certificate_list'
     }
+
     return 'object_array'
   }
 
   // 检测技能项
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>
+
     if ('label' in obj && 'proficiencyLevel' in obj) {
       return 'skill_item'
     }
+
     return 'object'
   }
 
@@ -227,6 +242,7 @@ export function renderValue(value: unknown): string {
   if (typeof value === 'number') return value.toString()
   if (typeof value === 'string') return value || '-'
   if (Array.isArray(value)) return value.join(', ') || '-'
+
   return JSON.stringify(value)
 }
 
@@ -236,6 +252,7 @@ export function renderPreview(value: unknown, valueType: ValueType): string {
 
   if (valueType === 'html_string') {
     const text = (value as string).replace(/<[^>]*>/g, ' ').trim()
+
     return text.slice(0, 150) + (text.length > 150 ? '...' : '')
   }
 
@@ -260,27 +277,35 @@ export function setLeaf(root: any, path: Array<string | number>, value: any) {
   }
 
   let cur = root
+
   for (let i = 0; i < path.length - 1; i++) {
     const key = path[i]
     const nextKey = path[i + 1]
+
     // 将字符串形式的数字转换为数字（Automerge 数组索引必须是数字）
     const normalizedKey =
       typeof key === 'string' && /^\d+$/.test(key) ? Number(key) : key
+
     if (cur[normalizedKey] == null) {
       // 根据下一个 key 的类型决定创建对象还是数组
       const isNextKeyNumeric =
         typeof nextKey === 'number' ||
         (typeof nextKey === 'string' && /^\d+$/.test(nextKey))
+
       cur[normalizedKey] = isNextKeyNumeric ? [] : {}
     }
+
     cur = cur[normalizedKey]
   }
+
   // 最后一个 key 也需要处理
   const lastKey = path[path.length - 1]
+
   const normalizedLastKey =
     typeof lastKey === 'string' && /^\d+$/.test(lastKey)
       ? Number(lastKey)
       : lastKey
+
   cur[normalizedLastKey] = value
 }
 
@@ -296,6 +321,7 @@ export function analysisReducer(
       return { ...state, status: action.payload }
     case 'UPDATE_LOG': {
       const { key, value, append } = action.payload
+
       return {
         ...state,
         logs: {
@@ -304,6 +330,7 @@ export function analysisReducer(
         },
       }
     }
+
     case 'SET_REASONING':
       return { ...state, reasoning: action.payload }
     case 'SET_CONTENT':
@@ -344,6 +371,7 @@ export function getStepStatus(
   const maxActiveStatusOrder = Math.max(
     ...activeStatuses.map((s) => ANALYSIS_STATUS_ORDER[s]),
   )
+
   if (
     ANALYSIS_STATUS_ORDER[currentStatus] > maxActiveStatusOrder ||
     logs[stepConfig.id]
@@ -387,6 +415,7 @@ export function shouldShowContent(
     reasoning,
     content,
   )
+
   // 只有当步骤是 active 或 complete 时才显示内容
   return stepStatus === 'active' || stepStatus === 'complete'
 }

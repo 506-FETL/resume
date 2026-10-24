@@ -41,15 +41,20 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
   isOnline: false,
   async loadData() {
     const requestId = ++loadRequestId
+
     set((state) => ({
       error: null,
       cloud: { ...state.cloud, loading: true, error: null },
       local: { ...state.local, loading: true, error: null },
     }))
+
     if (!get().initialized && !get().loading) set({ loading: true })
+
     try {
       const user = await getCurrentUser()
+
       if (requestId !== loadRequestId) return
+
       let onlineResumes: Resume[] = []
       const isOnline = Boolean(user)
 
@@ -72,11 +77,13 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
         (async () => {
           try {
             const rawOnlineResumes = user ? await getAllResumesFromUser() : []
+
             onlineResumes = rawOnlineResumes.map((r) => ({
               ...r,
               type: normalizeResumeType(r.type),
               isOffline: false,
             }))
+
             if (requestId === loadRequestId)
               set((state) => ({
                 resumes: [
@@ -94,17 +101,20 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
                   error: '云端简历加载失败',
                 },
               }))
+
             throw error
           }
         })(),
         (async () => {
           try {
             const localResumes = await getAllOfflineResumes()
+
             const offlineResumes: Resume[] = localResumes.map((r) => ({
               ...r,
               type: normalizeResumeType(r.type),
               isOffline: true,
             }))
+
             if (requestId === loadRequestId)
               set((state) => ({
                 resumes: [
@@ -122,11 +132,14 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
                   error: '本地简历加载失败',
                 },
               }))
+
             throw error
           }
         })(),
       ])
+
       if (requestId !== loadRequestId) return
+
       const failed = outcomes.some((outcome) => outcome.status === 'rejected')
 
       set({
@@ -142,6 +155,7 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
           cloud: { ...state.cloud, loading: false, error: '无法确认云端简历' },
           local: { ...state.local, loading: false },
         }))
+
       console.error('加载简历列表失败:', error)
     } finally {
       if (requestId === loadRequestId && get().loading) set({ loading: false })
@@ -158,7 +172,9 @@ export function selectStats(state: { resumes: Resume[] }): ResumeStats {
   const offline = resumes.filter((r) => r.isOffline).length
 
   const sevenDaysAgo = new Date()
+
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
   const recentCount = resumes.filter(
     (r) => new Date(r.created_at) > sevenDaysAgo,
   ).length
@@ -166,6 +182,7 @@ export function selectStats(state: { resumes: Resume[] }): ResumeStats {
   const sortedByDate = [...resumes].sort((a, b) =>
     diffDates(b.updated_at, a.updated_at),
   )
+
   const latestResume = sortedByDate[0]
 
   return { total, online, offline, recentCount, latestResume }

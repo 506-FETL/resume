@@ -42,14 +42,17 @@ export async function authenticateSupabaseUser(params: {
   supabaseUrl: string
 }): Promise<SupabaseAuthIdentity> {
   const authorization = params.request.headers.get('Authorization')?.trim()
+
   if (!authorization || !/^Bearer(?:\s|$)/iu.test(authorization)) {
     return { userId: null, authMode: 'anonymous' }
   }
 
   const jwt = authorization.slice('Bearer'.length).trim()
+
   if (!jwt) return unauthorized()
 
   const apikey = params.request.headers.get('apikey')?.trim()
+
   if (jwt === apikey && jwt.startsWith('sb_publishable_')) {
     return { userId: null, authMode: 'anonymous' }
   }
@@ -57,18 +60,22 @@ export async function authenticateSupabaseUser(params: {
     return unauthorized()
 
   let result: SupabaseClaimsResult
+
   try {
     result = await params.client.auth.getClaims(jwt)
   } catch {
     return unauthorized()
   }
+
   if (result.error || !result.data) return unauthorized()
 
   const { claims, header } = result.data
   const expectedIssuer = `${params.supabaseUrl.replace(/\/$/u, '')}/auth/v1`
+
   const hasAuthenticatedAudience =
     claims.aud === 'authenticated' ||
     (Array.isArray(claims.aud) && claims.aud.includes('authenticated'))
+
   if (
     claims.iss !== expectedIssuer ||
     !hasAuthenticatedAudience ||
@@ -89,5 +96,6 @@ export async function authenticateSupabaseUser(params: {
   if (header.alg === 'ES256' || header.alg === 'RS256') {
     return { userId: claims.sub, authMode: 'local_jwks' }
   }
+
   return unauthorized()
 }

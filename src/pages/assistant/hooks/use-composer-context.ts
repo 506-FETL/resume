@@ -20,9 +20,11 @@ export function useComposerContext() {
 
   useEffect(() => {
     let alive = true
+
     ;(async () => {
       try {
         const rows = await listAccessibleResumes()
+
         if (alive) {
           setResumes(
             rows.slice(0, 20).map((r) => ({
@@ -34,8 +36,10 @@ export function useComposerContext() {
       } catch {
         // 概况拉取失败时静默降级
       }
+
       try {
         const companies = await getCompanies()
+
         if (alive) {
           setJobs(
             companies.slice(0, 20).map((j) => ({
@@ -49,6 +53,7 @@ export function useComposerContext() {
         // 概况拉取失败时静默降级
       }
     })()
+
     return () => {
       alive = false
     }

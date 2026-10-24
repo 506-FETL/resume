@@ -41,6 +41,7 @@ function normalizeStringList(value: unknown, limit: number) {
     }
 
     const key = normalized.toLowerCase()
+
     if (deduped.has(key)) {
       return
     }
@@ -83,6 +84,7 @@ export function normalizeJobDescriptionComparisonResult(
     payload.extractedKeywords,
     MAX_KEYWORD_COUNT,
   )
+
   const extractedKeywordSet = new Set(
     extractedKeywords.map((keyword) => keyword.toLowerCase()),
   )
@@ -91,6 +93,7 @@ export function normalizeJobDescriptionComparisonResult(
     payload.matchedKeywords,
     MAX_KEYWORD_COUNT,
   ).filter((keyword) => extractedKeywordSet.has(keyword.toLowerCase()))
+
   const matchedKeywordSet = new Set(
     matchedKeywords.map((keyword) => keyword.toLowerCase()),
   )
@@ -108,6 +111,7 @@ export function normalizeJobDescriptionComparisonResult(
     keyof ResumeSchema,
     Record<string, unknown>
   >()
+
   if (Array.isArray(payload.sectionMatches)) {
     payload.sectionMatches.forEach((section) => {
       if (!isPlainObject(section) || !isResumeSectionKey(section.sectionKey)) {
@@ -121,16 +125,20 @@ export function normalizeJobDescriptionComparisonResult(
   const sectionMatches = resumeSections
     .map((section) => {
       const rawSection = rawSectionMatches.get(section.key)
+
       const sectionMatchedKeywords = normalizeStringList(
         rawSection?.matchedKeywords,
         MAX_KEYWORD_COUNT,
       ).filter((keyword) => extractedKeywordSet.has(keyword.toLowerCase()))
+
       const matchedCount = sectionMatchedKeywords.length
+
       const coverage = rawSection
         ? clampPercentage(rawSection.coverage)
         : extractedKeywords.length > 0
           ? Math.round((matchedCount / extractedKeywords.length) * 100)
           : 0
+
       const analysis =
         normalizeMultilineText(
           typeof rawSection?.analysis === 'string' ? rawSection.analysis : '',
@@ -163,6 +171,7 @@ export function normalizeJobDescriptionComparisonResult(
 
   const strengths = normalizeStringList(payload.strengths, MAX_INSIGHT_COUNT)
   const risks = normalizeStringList(payload.risks, MAX_INSIGHT_COUNT)
+
   const recommendations = normalizeStringList(
     payload.recommendations,
     MAX_INSIGHT_COUNT,

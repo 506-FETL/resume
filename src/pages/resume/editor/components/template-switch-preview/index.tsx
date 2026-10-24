@@ -17,6 +17,7 @@ export interface TemplateSwitchPreviewState {
   contentKey: string
   document: ResumeDocumentState
 }
+
 interface PreviewFrame {
   contentKey: string
   snapshot: PersistedResumeSnapshot
@@ -36,6 +37,7 @@ function Frame({
   onShown: (frame: PreviewFrame) => void
 }) {
   const reduceMotion = useReducedMotion()
+
   const data = useMemo(
     () =>
       buildTemplateResumeData({
@@ -44,10 +46,12 @@ function Frame({
       }),
     [frame],
   )
+
   const onDocumentStateChange = useCallback(
     (state: ResumeDocumentState) => onState(frame, state),
     [frame, onState],
   )
+
   return (
     <motion.div
       data-template-switch-frame={frame.binding.templateId}
@@ -89,6 +93,7 @@ export default function TemplateSwitchPreview({
   onStateChange: (state: TemplateSwitchPreviewState) => void
 }) {
   const serializedSnapshot = JSON.stringify(snapshot)
+
   const frame = useMemo<PreviewFrame>(
     () => ({
       contentKey,
@@ -98,35 +103,46 @@ export default function TemplateSwitchPreview({
     }),
     [contentKey, serializedSnapshot, binding, referenceDate],
   )
+
   const [previous, setPrevious] = useState<PreviewFrame | null>(null)
+
   const [prepared, setPrepared] = useState<TemplateSwitchPreviewState | null>(
     null,
   )
+
   const [retryCount, setRetryCount] = useState(0)
   const { retry } = useResolvedResumeTemplate({ binding })
+
   const ready =
     prepared?.contentKey === contentKey && prepared.document.status === 'ready'
+
   const error =
     prepared?.contentKey === contentKey ? prepared.document.error : null
+
   const onState = useCallback(
     (reported: PreviewFrame, document: ResumeDocumentState) => {
       if (reported.contentKey !== contentKey) return
+
       const state = { contentKey, document }
+
       setPrepared(state)
       onStateChange(state)
     },
     [contentKey, onStateChange],
   )
+
   const onShown = useCallback(
     (shown: PreviewFrame) => {
       if (shown.contentKey === contentKey) setPrevious(shown)
     },
     [contentKey],
   )
+
   const frames =
     previous && previous.contentKey !== frame.contentKey
       ? [previous, frame]
       : [frame]
+
   return (
     <div
       className='relative min-h-full'

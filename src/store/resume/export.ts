@@ -51,6 +51,7 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
 
     if (documentState.status !== 'ready' || !handlePrint) {
       toast.warning(documentState.error || '简历分页准备中')
+
       return
     }
 
@@ -69,6 +70,7 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
 
     if (!sourceRef?.current) {
       toast.warning('简历加载中')
+
       return
     }
 

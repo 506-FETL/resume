@@ -16,6 +16,7 @@ export default function WorkflowSaveFeedback({
   onRetry,
 }: WorkflowSaveFeedbackProps) {
   const reduce = useReducedMotion()
+
   const label = {
     idle: '自动保存',
     pending: '等待保存',
@@ -23,8 +24,10 @@ export default function WorkflowSaveFeedback({
     saved: '已保存',
     error: '保存失败，草稿已保留',
   }[status]
+
   const Icon =
     status === 'saving' ? Loader2 : status === 'saved' ? Check : Cloud
+
   return (
     <div
       className={cn(

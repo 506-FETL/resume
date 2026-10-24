@@ -25,7 +25,9 @@ export function useAiRewrite({ fieldContext }: Args) {
 
   async function run(action: RewriteAction, selection: RewriteSelection) {
     cancel()
+
     const controller = new AbortController()
+
     abortRef.current = controller
 
     session.startStreaming(action)
@@ -46,12 +48,14 @@ export function useAiRewrite({ fieldContext }: Args) {
       if (controller.signal.aborted) return
 
       const candidates = parseRewriteResponse(content, action)
+
       session.succeed(candidates)
     } catch (err) {
       if (controller.signal.aborted) return
 
       const message = err instanceof Error ? err.message : 'AI 改写失败'
       const isAuth = message.includes('用户未登录')
+
       session.fail(isAuth ? '请先登录后再使用 AI 改写' : message)
     } finally {
       if (abortRef.current === controller) abortRef.current = null

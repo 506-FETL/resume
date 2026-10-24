@@ -17,6 +17,7 @@ export interface ResumeSyncSlice {
 }
 
 type SetState = StoreApi<ResumeListState>['setState']
+
 type GetState = StoreApi<ResumeListState>['getState']
 
 export function createResumeSyncSlice(
@@ -39,10 +40,12 @@ export function createResumeSyncSlice(
 
         if (result.success > 0) {
           const successIds = new Set(result.successIds)
+
           set((state) => {
             const remaining = state.offlineResumes.filter(
               (r) => !successIds.has(r.resume_id),
             )
+
             return {
               resumes: state.resumes.filter(
                 (r) => !r.isOffline || !successIds.has(r.resume_id),
@@ -61,10 +64,12 @@ export function createResumeSyncSlice(
         if (result.success > 0) {
           try {
             const onlineResumes = await getAllResumesFromUser()
+
             const newOnlineResumes = onlineResumes.map((r) => ({
               ...r,
               isOffline: false,
             }))
+
             set((state) => ({
               resumes: [
                 ...newOnlineResumes,
@@ -103,13 +108,17 @@ export function createResumeSyncSlice(
                 payload.new.template_binding,
               ),
             }
+
             set((state) => {
               if (state.resumes.some((r) => r.resume_id === resume.resume_id))
                 return state
+
               return { resumes: [resume, ...state.resumes] }
             })
+
             break
           }
+
           case 'UPDATE': {
             set((state) => ({
               resumes: state.resumes.map((r) =>
@@ -126,11 +135,14 @@ export function createResumeSyncSlice(
                   : r,
               ),
             }))
+
             break
           }
+
           case 'DELETE': {
             const deletedResumeId = payload.old.resume_id
             const { _localDeletingIds, resumes } = get()
+
             const existsLocally = resumes.some(
               (resume) => resume.resume_id === deletedResumeId,
             )
@@ -138,15 +150,20 @@ export function createResumeSyncSlice(
             if (_localDeletingIds.has(deletedResumeId) || !existsLocally) {
               set((state) => {
                 const newSet = new Set(state._localDeletingIds)
+
                 newSet.delete(deletedResumeId)
+
                 return { _localDeletingIds: newSet }
               })
+
               break
             }
 
             const syncPromise = async () => {
               const onlineResumes = await getAllResumesFromUser()
+
               if (cancelled) return
+
               const formattedOnlineResumes = onlineResumes.map((r) => ({
                 ...r,
                 isOffline: false,
@@ -154,6 +171,7 @@ export function createResumeSyncSlice(
 
               set((state) => {
                 const offlineOnly = state.resumes.filter((r) => r.isOffline)
+
                 return { resumes: [...formattedOnlineResumes, ...offlineOnly] }
               })
             }
@@ -163,6 +181,7 @@ export function createResumeSyncSlice(
               success: '简历已同步删除',
               error: '同步失败，请重试',
             })
+
             break
           }
         }

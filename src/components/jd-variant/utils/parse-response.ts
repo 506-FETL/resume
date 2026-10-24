@@ -20,19 +20,25 @@ export function parseVariantResponse(
   const changes = options.strict
     ? parseLlmJsonObject<RawShape>(raw).changes
     : parseCompletedJsonArrayItems(raw, 'changes')
+
   const list = Array.isArray(changes) ? changes : []
   const valid: VariantChange[] = []
+
   for (const item of list) {
     const parsed = variantChangeSchema.safeParse(item)
+
     if (!parsed.success) {
       if (options.strict) {
         throw new Error(
           `AI 改写格式或路径无效：${parsed.error.issues[0]?.message ?? '未知错误'}`,
         )
       }
+
       continue
     }
+
     const c = parsed.data
+
     if (options.strict && options.snapshot) {
       // 过滤无变化/长度超限之前验证目标和原文，避免把失配输出当作成功过滤掉。
       applyVariantChange(options.snapshot, { ...c, after: c.before })
@@ -50,8 +56,10 @@ export function parseVariantResponse(
       valid.push(c)
     }
   }
+
   if (options.strict && valid.length < MIN_CHANGES) {
     throw new Error('AI 改写无效，请重试')
   }
+
   return { changes: valid }
 }

@@ -18,6 +18,7 @@ export function SessionInfo({
     if (typeof navigator === 'undefined') return '浏览器'
 
     const ua = navigator.userAgent
+
     const os = ua.includes('Mac')
       ? 'macOS'
       : ua.includes('Windows')
@@ -25,6 +26,7 @@ export function SessionInfo({
         : ua.includes('Linux')
           ? 'Linux'
           : '未知系统'
+
     const browser = ua.includes('Chrome')
       ? 'Chrome'
       : ua.includes('Firefox')

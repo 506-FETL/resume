@@ -12,6 +12,7 @@ import { ASSISTANT_LAST_CONVERSATION_STORAGE_KEY } from './const'
 export function readStoredBoolean(key: string, fallback: boolean): boolean {
   try {
     const value = localStorage.getItem(key)
+
     return value === null ? fallback : value === 'true'
   } catch {
     return fallback
@@ -50,6 +51,7 @@ export function clearLastConversationId(expectedId?: string): void {
         expectedId
     )
       return
+
     localStorage.removeItem(ASSISTANT_LAST_CONVERSATION_STORAGE_KEY)
   } catch {
     // Storage may be unavailable in private or restricted browser contexts.
@@ -249,15 +251,18 @@ function summarizeChange(
     'after' in result
   ) {
     const r = result as { before: unknown; after: unknown }
+
     return { kind: 'diff', before: r.before, after: r.after }
   }
   if (toolName === 'update_current_resume_field') {
     const sectionKey = String(args.sectionKey ?? '')
+
     return {
       kind: 'summary',
       text: `修改了简历模块「${sectionKey || '未知'}」`,
     }
   }
+
   // 其它没有 before/after 的写操作（保存/恢复/删除历史版本等）：
   // 不再回退成原始 JSON，交由标题 + 状态徽标表达，保持变更记录统一整洁。
   return undefined
@@ -269,11 +274,13 @@ function buildTitle(
 ): string {
   if (meta.label === '新增职位' && args.data && typeof args.data === 'object') {
     const d = args.data as Record<string, unknown>
+
     if (d.company || d.position)
       return `新增职位 ${d.company ?? ''} · ${d.position ?? ''}`.trim()
   }
   if (meta.label === '新建简历' && args.display_name)
     return `新建简历「${String(args.display_name)}」`
+
   return meta.label
 }
 
@@ -286,9 +293,11 @@ function resolveChangeResumeId(
 ): string | undefined {
   if (result && typeof result === 'object') {
     const r = result as Record<string, unknown>
+
     if (typeof r.resumeId === 'string' && r.resumeId) return r.resumeId
   }
   if (typeof args.resumeId === 'string' && args.resumeId) return args.resumeId
+
   return undefined
 }
 
@@ -301,30 +310,38 @@ export function deriveCanvasModel(
     ...messages.flatMap((m) => m.parts),
     ...streamingParts,
   ]
+
   const changes: CanvasChange[] = []
 
   for (const part of allParts) {
     if (part.type !== 'tool-call') continue
+
     const meta = TOOL_CANVAS_META[part.toolName] ?? {
       category: 'read' as const,
       action: 'read' as const,
       iconCategory: 'general',
       label: part.toolName,
     }
+
     const args = (part.args ?? {}) as Record<string, unknown>
+
     const detail =
       meta.category === 'read'
         ? undefined
         : summarizeChange(part.toolName, args, part.result)
+
     // 徽标增删统计与对话流工具行统一走字段级口径（避免同一改动两处数字不一致）
     const sectionKey =
       typeof args.sectionKey === 'string' ? args.sectionKey : undefined
+
     const stat =
       detail?.kind === 'diff' && sectionKey
         ? (fieldDiffStat(sectionKey, detail.before, detail.after) ?? undefined)
         : undefined
+
     // 「修改当前简历字段」成功后可撤销：把该模块写回 before
     let undo: CanvasChange['undo']
+
     if (
       part.toolName === 'update_current_resume_field' &&
       part.state === 'result' &&
@@ -332,9 +349,11 @@ export function deriveCanvasModel(
       typeof part.result === 'object'
     ) {
       const r = part.result as Record<string, unknown>
+
       if (typeof r.sectionKey === 'string' && 'before' in r)
         undo = { sectionKey: r.sectionKey, before: r.before }
     }
+
     changes.push({
       id: part.toolCallId,
       toolName: part.toolName,
@@ -358,11 +377,13 @@ export function deriveCanvasModel(
   const scopedChanges = scopeResumeId
     ? changes.filter((c) => {
         if (c.category === 'board' || c.category === 'read') return true
+
         return !c.resumeId || c.resumeId === scopeResumeId
       })
     : changes
 
   const writes = scopedChanges.filter((c) => c.category !== 'read')
+
   return {
     changes: scopedChanges,
     writes,

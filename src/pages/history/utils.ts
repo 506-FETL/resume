@@ -134,22 +134,28 @@ function getSnapshotSectionValue<K extends SnapshotSectionKey>(
   sourceRecord?: Record<string, unknown>,
 ): ResumeSnapshot[K] {
   const { default: defaultValue, legacyKey } = SNAPSHOT_FIELD_DEFAULTS[key]
+
   const nextValue =
     sourceRecord?.[key] ??
     (legacyKey ? sourceRecord?.[legacyKey] : undefined) ??
     defaultValue
+
   return sanitizeDeep(nextValue) as ResumeSnapshot[K]
 }
 
 export function buildResumeSnapshot(source: unknown): ResumeSnapshot {
   const sourceRecord = isRecord(source) ? source : undefined
+
   const orderValue = Array.isArray(sourceRecord?.order)
     ? sourceRecord.order
     : DEFAULT_ORDER
+
   const visibilityValue = isRecord(sourceRecord?.visibility)
     ? (sourceRecord.visibility as Record<string, boolean>)
     : DEFAULT_VISIBILITY
+
   const type = normalizeResumeType(sourceRecord?.type)
+
   const templateBinding = resolveResumeTemplateBinding(
     sourceRecord?.templateBinding ?? sourceRecord?.template_binding,
   )
@@ -207,6 +213,7 @@ export async function buildCurrentResume(
   record: ResumeHistoryResumeRecord,
 ): Promise<HistoryCurrentResume> {
   const snapshot = buildResumeSnapshot(record)
+
   return {
     resumeId: record.resume_id,
     displayName: record.display_name?.trim() || '未命名简历',
@@ -283,6 +290,7 @@ export function isMetadataDraftDirty(
 ) {
   const left = JSON.stringify(normalizeDraft(draft))
   const right = JSON.stringify(normalizeDraft(createMetadataDraft(version)))
+
   return left !== right
 }
 
@@ -294,6 +302,7 @@ export function groupVersionsByDay(
   versions.forEach((version) => {
     const key = dayjs(version.created_at).format('YYYY-MM-DD')
     const current = groups.get(key) ?? []
+
     current.push(version)
     groups.set(key, current)
   })
@@ -306,6 +315,7 @@ export function groupVersionsByDay(
 
 export function trimToNull(value: string | null | undefined) {
   const nextValue = value?.trim()
+
   return nextValue || null
 }
 
@@ -339,6 +349,7 @@ export function getCurrentSyncState(
   }
 
   const latest = versions[0]
+
   // content_hash 为 null（迁移前旧数据）→ 保守显示「有未保存的更新」，不误报已同步
   const synced =
     Boolean(latest?.content_hash) &&
@@ -354,6 +365,7 @@ export function getOrderedSections(
   snapshot: ResumeSnapshot,
 ): SnapshotSectionKey[] {
   const merged = ['basics', ...snapshot.order] as SnapshotSectionKey[]
+
   return Array.from(new Set(merged))
 }
 
@@ -367,6 +379,7 @@ export function sortObjectKeys(value: unknown): unknown {
       .sort()
       .reduce<Record<string, unknown>>((result, key) => {
         result[key] = sortObjectKeys((value as Record<string, unknown>)[key])
+
         return result
       }, {})
   }

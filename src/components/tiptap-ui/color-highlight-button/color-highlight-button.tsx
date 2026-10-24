@@ -22,8 +22,7 @@ import { parseShortcutKeys } from '@/lib/tiptap-utils'
 import '@/components/tiptap-ui/color-highlight-button/color-highlight-button.scss'
 
 export interface ColorHighlightButtonProps
-  extends Omit<ButtonProps, 'type'>,
-  UseColorHighlightConfig {
+  extends Omit<ButtonProps, 'type'>, UseColorHighlightConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -48,8 +47,23 @@ export function ColorHighlightShortcutBadge({
  *
  * For custom button implementations, use the `useColorHighlight` hook instead.
  */
-export function ColorHighlightButton({ ref, editor: providedEditor, highlightColor, text, hideWhenUnavailable = false, onApplied, showShortcut = false, onClick, children, style, ...buttonProps }: ColorHighlightButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function ColorHighlightButton({
+  ref,
+  editor: providedEditor,
+  highlightColor,
+  text,
+  hideWhenUnavailable = false,
+  onApplied,
+  showShortcut = false,
+  onClick,
+  children,
+  style,
+  ...buttonProps
+}: ColorHighlightButtonProps & {
+  ref?: React.RefObject<HTMLButtonElement | null>
+}) {
   const { editor } = useTiptapEditor(providedEditor)
+
   const {
     isVisible,
     canColorHighlight,
@@ -68,8 +82,9 @@ export function ColorHighlightButton({ ref, editor: providedEditor, highlightCol
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
-      if (event.defaultPrevented)
-        return
+
+      if (event.defaultPrevented) return
+
       handleColorHighlight()
     },
     [handleColorHighlight, onClick],
@@ -90,10 +105,10 @@ export function ColorHighlightButton({ ref, editor: providedEditor, highlightCol
 
   return (
     <Button
-      type="button"
-      data-style="ghost"
+      type='button'
+      data-style='ghost'
       data-active-state={isActive ? 'on' : 'off'}
-      role="button"
+      role='button'
       tabIndex={-1}
       disabled={!canColorHighlight}
       data-disabled={!canColorHighlight}
@@ -108,12 +123,12 @@ export function ColorHighlightButton({ ref, editor: providedEditor, highlightCol
       {children ?? (
         <>
           <span
-            className="tiptap-button-highlight"
+            className='tiptap-button-highlight'
             style={
               { '--highlight-color': highlightColor } as React.CSSProperties
             }
           />
-          {text && <span className="tiptap-button-text">{text}</span>}
+          {text && <span className='tiptap-button-text'>{text}</span>}
           {showShortcut && (
             <ColorHighlightShortcutBadge shortcutKeys={shortcutKeys} />
           )}

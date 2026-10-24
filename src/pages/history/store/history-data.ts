@@ -55,19 +55,24 @@ export interface HistoryDataSlice {
 }
 
 type Set = StoreApi<HistoryStoreState>['setState']
+
 type Get = StoreApi<HistoryStoreState>['getState']
 
 export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
   let requestId = 0
+
   const hydrate = async (resumeId: string, activeRequestId?: number) => {
     if (get().resumeId !== resumeId) return
+
     const hydrationId = activeRequestId ?? ++requestId
+
     const [resume, versions] = await Promise.all([
       getResumeHistoryResume(resumeId),
       listResumeHistoryVersions(resumeId),
     ])
 
     const currentResume = await buildCurrentResume(resume)
+
     if (get().resumeId !== resumeId || hydrationId !== requestId) return
 
     set({
@@ -88,22 +93,28 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
     async loadVersionSnapshot(id) {
       const cached = get().snapshotCache[id]
+
       if (cached) return cached
+
       try {
         const raw = await getResumeHistoryVersionSnapshot(id)
         const snapshot = buildResumeSnapshot(raw)
+
         set((state) => ({
           snapshotCache: { ...state.snapshotCache, [id]: snapshot },
         }))
+
         return snapshot
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '加载版本内容失败')
+
         return null
       }
     },
 
     async init(resumeId) {
       const activeRequestId = ++requestId
+
       if (!resumeId) {
         set({
           resumeId: null,
@@ -113,6 +124,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
           loading: false,
           error: null,
         })
+
         return
       }
 
@@ -125,11 +137,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
           loading: false,
           error: '当前仅支持查看云端简历的版本记录，请先同步到云端。',
         })
+
         return
       }
 
       const keepData =
         get().resumeId === resumeId && get().currentResume !== null
+
       set({
         resumeId,
         ...(!keepData && {
@@ -145,29 +159,36 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         await hydrate(resumeId, activeRequestId)
       } catch (error) {
         if (get().resumeId !== resumeId || activeRequestId !== requestId) return
+
         const message =
           error instanceof Error ? error.message : '版本记录加载失败'
+
         set({
           loading: false,
           error: message,
         })
+
         toast.error(message)
       }
     },
 
     async reload() {
       const resumeId = get().resumeId
+
       if (!resumeId) return
 
       const activeRequestId = ++requestId
+
       set({ loading: get().currentResume === null, error: null })
 
       try {
         await hydrate(resumeId, activeRequestId)
       } catch (error) {
         if (get().resumeId !== resumeId || activeRequestId !== requestId) return
+
         const message =
           error instanceof Error ? error.message : '版本记录刷新失败'
+
         set({ loading: false, error: message })
         toast.error(message)
       }
@@ -175,6 +196,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
     async saveCurrentVersion(draft) {
       const { resumeId, currentResume, versions } = get()
+
       if (!resumeId || !currentResume) return null
 
       set({ savingCurrent: true })
@@ -182,9 +204,11 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       try {
         const nextHash = await createResumeSnapshotHash(currentResume.snapshot)
         const latest = versions[0]
+
         // 内容与最新版本完全一致 → 不重复保存
         if (latest?.content_hash && latest.content_hash === nextHash) {
           toast.info('内容没有变化，已是最新版本')
+
           return null
         }
 
@@ -201,6 +225,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
         // 列表存轻量项，snapshot 进缓存（避免刚保存又要重新拉一次）
         const { snapshot: createdSnapshot, ...createdListItem } = created
+
         set((state) => ({
           versions: [createdListItem, ...state.versions],
           snapshotCache: {
@@ -208,10 +233,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
             [created.id]: createdSnapshot,
           },
         }))
+
         toast.success('当前版本已保存')
+
         return created
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '保存版本失败')
+
         return null
       } finally {
         set({ savingCurrent: false })
@@ -221,6 +249,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
     async updateVersionMetadata(versionId, draft) {
       const versions = get().versions
       const targetVersion = versions.find((version) => version.id === versionId)
+
       if (!targetVersion) return null
 
       set({ savingMetadata: true })
@@ -235,6 +264,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
         // 列表存轻量项，snapshot 同步进缓存
         const { snapshot: updatedSnapshot, ...updatedListItem } = updated
+
         set((state) => ({
           versions: state.versions.map((version) =>
             version.id === updated.id ? updatedListItem : version,
@@ -244,10 +274,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
             [updated.id]: updatedSnapshot,
           },
         }))
+
         toast.success('版本信息已更新')
+
         return updated
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '更新版本信息失败')
+
         return null
       } finally {
         set({ savingMetadata: false })
@@ -264,6 +297,7 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
       try {
         const targetSnapshot = await get().loadVersionSnapshot(versionId)
+
         if (!targetSnapshot) return null
 
         const restoredVersion = normalizeHistoryVersion(
@@ -279,9 +313,11 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
         await hydrate(resumeId)
         toast.success('已恢复至所选版本')
+
         return restoredVersion
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '恢复版本失败')
+
         return null
       } finally {
         set({ restoring: false })
@@ -291,19 +327,24 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
     async deleteVersion(versionId) {
       const versions = get().versions
       const targetVersion = versions.find((version) => version.id === versionId)
+
       if (!targetVersion) return false
 
       set({ deletingVersionId: versionId })
 
       try {
         await deleteResumeHistoryVersion(versionId)
+
         set({
           versions: versions.filter((version) => version.id !== versionId),
         })
+
         toast.success(`已删除 V${targetVersion.version_no}`)
+
         return true
       } catch (error) {
         toast.error(error instanceof Error ? error.message : '删除版本失败')
+
         return false
       } finally {
         set({ deletingVersionId: null })

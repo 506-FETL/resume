@@ -52,15 +52,19 @@ export function createRemoteTemplateSource({
           limit: '1',
         }),
       )
+
     if (!rows.length)
       throw new TemplateResolutionError(
         'VERSION_NOT_FOUND',
         '未找到已发布的指定资源版本，请联系维护者',
       )
+
     return rows[0]
   }
+
   const page = (query: CatalogQuery = {}, options: ResourceOptions = {}) => {
     const normalized = catalogQuerySchema.parse(query)
+
     return read(
       `catalog:${catalogQueryKey(normalized)}`,
       async () => {
@@ -71,12 +75,15 @@ export function createRemoteTemplateSource({
           offset: String(normalized.offset),
           limit: String(CATALOG_PAGE_SIZE + 1),
         }
+
         if (normalized.style) params.style = `eq.${normalized.style}`
         if (normalized.layout) params.layout = `eq.${normalized.layout}`
+
         const rows = z
           .array(z.object({ metadata: catalogItemSchema }))
           .max(CATALOG_PAGE_SIZE + 1)
           .parse(await transport('official_resume_template_catalog', params))
+
         return {
           items: rows.slice(0, CATALOG_PAGE_SIZE).map((row) => row.metadata),
           nextOffset:
@@ -90,12 +97,15 @@ export function createRemoteTemplateSource({
       options.force,
     )
   }
+
   return {
     getTemplateCatalogEntry(templateId, options) {
       const id = templateIdSchema.parse(templateId)
+
       const entrySchema = z
         .object({ item: catalogItemSchema, listed: z.boolean() })
         .nullable()
+
       return read(
         `catalog-entry:${id}`,
         async () => {
@@ -112,6 +122,7 @@ export function createRemoteTemplateSource({
                 limit: '1',
               }),
             )
+
           return rows[0]
             ? { item: rows[0].metadata, listed: rows[0].listed }
             : null
@@ -123,6 +134,7 @@ export function createRemoteTemplateSource({
     },
     getTemplateName(templateId, options) {
       const id = templateIdSchema.parse(templateId)
+
       return read(
         `template-name:${id}`,
         async () => {
@@ -136,6 +148,7 @@ export function createRemoteTemplateSource({
                 limit: '1',
               }),
             )
+
           return rows[0]?.name ?? null
         },
         (input) => z.string().min(1).max(100).nullable().parse(input),
@@ -146,6 +159,7 @@ export function createRemoteTemplateSource({
     retainResource,
     getAsset(ref, options) {
       const parsed = assetRefSchema.parse(ref)
+
       return read(
         `asset:${parsed.hash}`,
         async () => {
@@ -160,11 +174,13 @@ export function createRemoteTemplateSource({
                 limit: '1',
               }),
             )
+
           if (!rows.length)
             throw new TemplateResolutionError(
               'VERSION_NOT_FOUND',
               '未找到已发布的指定模板素材',
             )
+
           return rows[0]
         },
         (input) => decodeAsset(input, parsed),
@@ -177,16 +193,21 @@ export function createRemoteTemplateSource({
       // 维护调用也受目录预算保护，页面使用有界分页接口。
       const items = []
       let offset: number | null = 0
+
       do {
         const result = await page({ offset })
+
         items.push(...result.items)
+
         if (items.length > 1200)
           throw new TemplateResolutionError(
             'LOAD_FAILED',
             '目录条目超出单次读取预算，请使用分页接口',
           )
+
         offset = result.nextOffset
       } while (offset !== null)
+
       return items
     },
     getCatalogFacets: (options) =>
@@ -199,6 +220,7 @@ export function createRemoteTemplateSource({
       ),
     getTemplateVersion: (ref, options) => {
       const parsed = templateRefSchema.parse(ref)
+
       return read(
         `template:${templateKey(parsed)}`,
         () =>
@@ -210,6 +232,7 @@ export function createRemoteTemplateSource({
           const definition = parseTemplateDefinition(
             await decodeResource(input),
           )
+
           if (
             definition.templateId !== parsed.templateId ||
             definition.version !== parsed.templateVersion
@@ -218,6 +241,7 @@ export function createRemoteTemplateSource({
               'REFERENCE_MISMATCH',
               '模板版本与请求不一致',
             )
+
           return definition
         },
         Infinity,
@@ -229,6 +253,7 @@ export function createRemoteTemplateSource({
         exampleId: ref.exampleId,
         version: ref.version,
       })
+
       return read(
         `example:${exampleKey(parsed)}`,
         () =>
@@ -238,6 +263,7 @@ export function createRemoteTemplateSource({
           }),
         async (input) => {
           const example = exampleSchema.parse(await decodeResource(input))
+
           if (
             example.exampleId !== parsed.exampleId ||
             example.version !== parsed.version
@@ -246,6 +272,7 @@ export function createRemoteTemplateSource({
               'REFERENCE_MISMATCH',
               '示例版本与请求不一致',
             )
+
           return example
         },
         Infinity,

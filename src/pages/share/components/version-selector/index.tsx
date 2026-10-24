@@ -51,6 +51,7 @@ function getSelectedLabel(
     return `V${value.versionNo} · ${value.versionLabel}`
 
   const version = versions.find((item) => item.id === value.versionId)
+
   return version
     ? `V${version.version_no} · ${getVersionLabel(version)}`
     : '所选历史版本'
@@ -68,6 +69,7 @@ export default function VersionSelector({
   const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
   const popoverOpen = open && !disabled
+
   const selectedLabel = useMemo(
     () => getSelectedLabel(value, versions),
     [value, versions],
@@ -201,8 +203,10 @@ export default function VersionSelector({
 
               {versions.map((version) => {
                 const label = getVersionLabel(version)
+
                 const selected =
                   value.kind === 'history' && value.versionId === version.id
+
                 return (
                   <CommandItem
                     key={version.id}

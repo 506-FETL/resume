@@ -5,10 +5,12 @@ export interface ExampleRef {
   exampleId: string
   version: number
 }
+
 export interface ExampleOption extends ExampleRef {
   name: string
   description: string
 }
+
 export interface ResumeExample {
   exampleId: string
   version: number
@@ -19,6 +21,7 @@ export interface ResumeExample {
     keyof ResumeSchema | 'order' | 'visibility'
   >
 }
+
 export interface TemplateAssetRef {
   hash: string
   mimeType: 'image/png' | 'image/webp' | 'image/jpeg'
@@ -26,6 +29,7 @@ export interface TemplateAssetRef {
   width: number
   height: number
 }
+
 export interface TemplatePreview {
   templateId: string
   templateVersion: number
@@ -34,6 +38,7 @@ export interface TemplatePreview {
   projectionReferenceDate: string
   asset: TemplateAssetRef
 }
+
 export interface TemplateCatalogItem {
   schemaVersion: 3
   renderContract: 'declarative-page@1'
@@ -46,22 +51,27 @@ export interface TemplateCatalogItem {
   defaultExample: ExampleRef
   examples: ExampleOption[]
 }
+
 export interface CatalogQuery {
   offset?: number
   style?: string | null
   layout?: string | null
 }
+
 export interface CatalogPage {
   items: TemplateCatalogItem[]
   nextOffset: number | null
 }
+
 export interface CatalogFacets {
   styles: string[]
   layouts: string[]
 }
+
 export interface ResourceOptions {
   force?: boolean
 }
+
 export interface TemplateSource {
   getTemplateCatalogEntry: (
     templateId: string,
@@ -88,13 +98,17 @@ export interface TemplateSource {
     options?: ResourceOptions,
   ) => Promise<ResumeExample>
 }
+
 export const CATALOG_PAGE_SIZE = 12
+
 export function templateKey(ref: TemplateRef): string {
   return `${ref.templateId}@${ref.templateVersion}`
 }
+
 export function exampleKey(ref: ExampleRef): string {
   return `${ref.exampleId}@${ref.version}`
 }
+
 export function catalogQueryKey(query: CatalogQuery = {}): string {
   return JSON.stringify([
     query.style || null,

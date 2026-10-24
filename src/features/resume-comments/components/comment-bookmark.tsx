@@ -21,6 +21,7 @@ export function CommentBookmark({
   onOpen: () => void
 }) {
   const reduceMotion = useReducedMotion()
+
   return (
     <motion.div
       data-resume-comment-ui

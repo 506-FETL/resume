@@ -14,7 +14,9 @@ export function useJobSummaries() {
 
   useEffect(() => {
     let cancelled = false
+
     setLoading(true)
+
     listJobApplicationSummaries()
       .then((rows) => {
         if (!cancelled) setJobs(rows)
@@ -25,6 +27,7 @@ export function useJobSummaries() {
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
+
     return () => {
       cancelled = true
     }
@@ -38,6 +41,7 @@ export function useJobSummaries() {
 
   const getLabel = (companyId: string | null | undefined): string | null => {
     if (!companyId) return null
+
     return options.find((option) => option.id === companyId)?.label ?? null
   }
 

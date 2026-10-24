@@ -42,10 +42,14 @@ const RESUME_TYPES: ResumeType[] = ['default', 'modern', 'simple']
 function bindResumeToActiveConversation(resumeId: string): void {
   const { activeConversationId, conversations, upsertConversation } =
     useAssistantStore.getState()
+
   if (!activeConversationId) return
+
   const conversation = conversations.find((c) => c.id === activeConversationId)
+
   if (conversation && conversation.resumeId !== resumeId)
     upsertConversation({ ...conversation, resumeId })
+
   updateConversationResumeBinding(activeConversationId, resumeId).catch(() => {
     // 持久化失败静默：内存态已更新，切设备时回退到全局当前简历
   })
@@ -61,11 +65,15 @@ function normalizeResumeType(value: unknown): ResumeType {
 // 简历正文首次打开时会以 resume_config 行的这些列 seed 到 Automerge 文档，因此可直接落库。
 function pickSectionColumns(sections: unknown): Record<string, unknown> {
   const out: Record<string, unknown> = {}
+
   if (!sections || typeof sections !== 'object') return out
+
   for (const key of FORM_DATA_KEYS) {
     const value = (sections as Record<string, unknown>)[key]
+
     if (value !== undefined && value !== null) out[key] = value
   }
+
   return out
 }
 
@@ -93,11 +101,13 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const displayName = String(args.display_name ?? '').trim()
+
     if (!displayName) return { error: '新建简历需要 display_name（简历名称）' }
 
     const type = normalizeResumeType(args.type)
     const sectionColumns = pickSectionColumns(args.sections)
     const filledKeys = Object.keys(sectionColumns)
+
     const summary = filledKeys.length
       ? `「${displayName}」（${type}），预填模块：${filledKeys.join('、')}`
       : `「${displayName}」（${type}），空白简历`
@@ -121,19 +131,25 @@ registerTool({
             },
             type,
           )
+
           const resumeId = (created as { resume_id: string }).resume_id
+
           // 有初始内容时写入 section 列，首次打开会 seed 进正文文档
           if (filledKeys.length)
             await updateResumeConfig(resumeId, sectionColumns)
+
           // 自动在编辑器打开新简历
           useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
           bindResumeToActiveConversation(resumeId)
+
           // 统一红绿 diff：新建 → before 为空，after 为简历名称/描述
           const afterLines = [`名称：${displayName}`]
+
           if (args.description)
             afterLines.push(`描述：${String(args.description)}`)
           if (filledKeys.length)
             afterLines.push(`预填模块：${filledKeys.join('、')}`)
+
           return {
             ok: true,
             resumeId,
@@ -165,9 +181,11 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const resumeId = String(args.resumeId ?? '')
+
     if (!resumeId) return { error: '缺少 resumeId' }
 
     const patch: Record<string, unknown> = {}
+
     if (typeof args.display_name === 'string')
       patch.display_name = args.display_name.trim()
     if (typeof args.description === 'string')
@@ -176,6 +194,7 @@ registerTool({
       return { error: '没有需要更新的字段（display_name / description）' }
 
     let current: Awaited<ReturnType<typeof getAccessibleResumeById>>
+
     try {
       current = await getAccessibleResumeById(resumeId)
     } catch (error) {
@@ -186,6 +205,7 @@ registerTool({
 
     const beforeParts: string[] = []
     const afterParts: string[] = []
+
     if (patch.display_name !== undefined) {
       beforeParts.push(`名称：${current.display_name || '（空）'}`)
       afterParts.push(`名称：${(patch.display_name as string) || '（空）'}`)
@@ -194,6 +214,7 @@ registerTool({
       beforeParts.push(`描述：${current.description || '（空）'}`)
       afterParts.push(`描述：${(patch.description as string) || '（空）'}`)
     }
+
     const before = beforeParts.join('\n')
     const after = afterParts.join('\n')
 
@@ -209,6 +230,7 @@ registerTool({
         },
         apply: async () => {
           await updateAccessibleResumeMeta(resumeId, patch)
+
           return { ok: true, resumeId, before, after }
         },
       },
@@ -230,9 +252,11 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const resumeId = String(args.resumeId ?? '')
+
     if (!resumeId) return { error: '缺少 resumeId' }
 
     let current: Awaited<ReturnType<typeof getAccessibleResumeById>>
+
     try {
       current = await getAccessibleResumeById(resumeId)
     } catch (error) {
@@ -254,9 +278,11 @@ registerTool({
         },
         apply: async () => {
           await deleteAccessibleResume(resumeId)
+
           // 若删除的是当前打开的简历，清空当前编辑态
           if (useCurrentResumeStore.getState().resumeId === resumeId)
             useCurrentResumeStore.getState().clearCurrentResume()
+
           return {
             ok: true,
             resumeId,
@@ -290,13 +316,16 @@ registerTool({
   mode: 'read',
   execute: async (args) => {
     const resumeId = String(args.resumeId ?? '')
+
     if (!resumeId) return { error: '缺少 resumeId' }
 
     try {
       const resume = await getAccessibleResumeById(resumeId)
       const type = normalizeResumeType(resume.type ?? args.type)
+
       useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
       bindResumeToActiveConversation(resumeId)
+
       return { ok: true, resumeId, type, storage: resume.storage }
     } catch (error) {
       return { error: error instanceof Error ? error.message : '打开简历失败' }
@@ -319,6 +348,7 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const resumeId = resolveActiveResumeId()
+
     if (!resumeId)
       return {
         error:
@@ -341,6 +371,7 @@ registerTool({
         apply: async () => {
           const record = await getResumeHistoryResume(resumeId)
           const snapshot = buildResumeSnapshot(record)
+
           const created = await createResumeHistoryVersion({
             resume_id: resumeId,
             version_name: args.versionName ? String(args.versionName) : null,
@@ -350,6 +381,7 @@ registerTool({
             content_hash: await createResumeSnapshotHash(snapshot),
             base_updated_at: record.updated_at,
           })
+
           return { ok: true, resumeId, versionNo: created.version_no }
         },
       },
@@ -377,6 +409,7 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const resumeId = resolveActiveResumeId()
+
     if (!resumeId)
       return {
         error:
@@ -386,11 +419,14 @@ registerTool({
       return { error: '本地简历暂不支持历史版本，请先同步到云端。' }
 
     const versionId = Number(args.versionId)
+
     if (!Number.isFinite(versionId)) return { error: 'versionId 必须是数字' }
 
     const versions = await listResumeHistoryVersions(resumeId).catch(() => [])
     const rawTarget = versions.find((v) => v.id === versionId)
+
     if (!rawTarget) return { error: '未在当前简历下找到该版本' }
+
     const target = normalizeHistoryVersionListItem(rawTarget)
 
     const strategy = args.backup === false ? 'without_backup' : 'with_backup'
@@ -407,9 +443,11 @@ registerTool({
         apply: async () => {
           const record = await getResumeHistoryResume(resumeId)
           const currentSnapshot = buildResumeSnapshot(record)
+
           const targetSnapshot = buildResumeSnapshot(
             await getResumeHistoryVersionSnapshot(versionId),
           )
+
           await restoreResumeHistoryVersion({
             resumeId,
             targetVersion: target,
@@ -418,6 +456,7 @@ registerTool({
             currentUpdatedAt: record.updated_at,
             strategy,
           })
+
           return { ok: true, resumeId, restoredFrom: target.version_no }
         },
       },
@@ -439,6 +478,7 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const versionId = Number(args.versionId)
+
     if (!Number.isFinite(versionId)) return { error: 'versionId 必须是数字' }
 
     // 尽力把这次删除归属到本对话绑定的简历，供画布按简历隔离变更记录
@@ -455,6 +495,7 @@ registerTool({
         },
         apply: async () => {
           await deleteResumeHistoryVersion(versionId)
+
           return { ok: true, resumeId: resumeId ?? undefined, versionId }
         },
       },
@@ -477,13 +518,17 @@ registerTool({
   execute: async (args, context) => {
     const jobId = String(args.jobId ?? '')
     const scope = getTrackerAccountScope()
+
     if (!jobId) return { error: '缺少 jobId' }
 
     const jobs = await getCompanies(createTrackerAccountGuard(scope)).catch(
       () => [],
     )
+
     assertTrackerAccountScope(scope)
+
     const job = jobs.find((j) => j.id === jobId)
+
     if (!job) return { error: '未找到该职位' }
 
     return requestConfirm(
@@ -497,15 +542,20 @@ registerTool({
         },
         apply: async () => {
           assertTrackerAccountScope(scope)
+
           if (
             !useTrackerStore.getState().jobs.some((item) => item.id === jobId)
           )
             await useTrackerStore.getState().reloadJobs()
+
           assertTrackerAccountScope(scope)
           await useTrackerStore.getState().deleteJob(jobId)
+
           // 统一红绿 diff：删除 → before 为职位信息，after 为空（整体删除为红色）
           const beforeLines = [`公司：${job.company}`, `岗位：${job.position}`]
+
           if (job.location) beforeLines.push(`城市：${job.location}`)
+
           return { ok: true, jobId, before: beforeLines.join('\n'), after: '' }
         },
       },

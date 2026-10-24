@@ -20,7 +20,9 @@ export default function CopyLinkButton({ url }: { url: string }) {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url)
+
       if (timerRef.current) clearTimeout(timerRef.current)
+
       setCopied(true)
       timerRef.current = setTimeout(() => setCopied(false), 1800)
     } catch {

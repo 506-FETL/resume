@@ -25,6 +25,7 @@ export function createDebouncedMirror<T>(
       clearTimeout(timer)
       timer = null
     }
+
     hasPending = false
   }
 
@@ -32,9 +33,11 @@ export function createDebouncedMirror<T>(
     run(arg: T) {
       lastArg = arg
       hasPending = true
+
       if (timer !== null) {
         clearTimeout(timer)
       }
+
       timer = setTimeout(() => {
         timer = null
         hasPending = false
@@ -44,6 +47,7 @@ export function createDebouncedMirror<T>(
     flush() {
       if (hasPending) {
         const arg = lastArg
+
         clear()
         fn(arg)
       }

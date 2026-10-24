@@ -25,8 +25,7 @@ interface LightRay {
 }
 
 function createRays(count: number, cycle: number): LightRay[] {
-  if (count <= 0)
-    return []
+  if (count <= 0) return []
 
   return Array.from({ length: count }, (_, index) => {
     const left = 8 + Math.random() * 84
@@ -61,7 +60,7 @@ function Ray({
 }: LightRay) {
   return (
     <motion.div
-      className="pointer-events-none absolute -top-[12%] left-[var(--ray-left)] h-[var(--light-rays-length)] w-[var(--ray-width)] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-[color-mix(in_srgb,var(--light-rays-color)_70%,transparent)] to-transparent opacity-0 mix-blend-screen blur-[var(--light-rays-blur)]"
+      className='pointer-events-none absolute -top-[12%] left-[var(--ray-left)] h-[var(--light-rays-length)] w-[var(--ray-width)] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-[color-mix(in_srgb,var(--light-rays-color)_70%,transparent)] to-transparent opacity-0 mix-blend-screen blur-[var(--light-rays-blur)]'
       style={
         {
           '--ray-left': `${left}%`,
@@ -120,10 +119,10 @@ export function LightRays({
       }
       {...props}
     >
-      <div className="absolute inset-0 overflow-hidden">
+      <div className='absolute inset-0 overflow-hidden'>
         <div
           aria-hidden
-          className="absolute inset-0 opacity-60"
+          className='absolute inset-0 opacity-60'
           style={
             {
               background:
@@ -133,7 +132,7 @@ export function LightRays({
         />
         <div
           aria-hidden
-          className="absolute inset-0 opacity-60"
+          className='absolute inset-0 opacity-60'
           style={
             {
               background:
@@ -141,9 +140,7 @@ export function LightRays({
             } as CSSProperties
           }
         />
-        {!reduceMotion && rays.map(ray => (
-          <Ray key={ray.id} {...ray} />
-        ))}
+        {!reduceMotion && rays.map((ray) => <Ray key={ray.id} {...ray} />)}
       </div>
     </div>
   )

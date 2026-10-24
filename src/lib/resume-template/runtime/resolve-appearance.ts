@@ -14,8 +14,10 @@ export function resolveResumeAppearanceStyles(
     spacing: spacingConfig,
     theme: themeConfig,
   } = appearance
+
   const fontSize = fontConfig.fontSize
   const weights = getResumeFontWeights(fontConfig.fontFamily)
+
   return {
     appearance,
     font: {

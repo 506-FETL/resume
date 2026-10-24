@@ -4,6 +4,7 @@ export function parseCompletedJsonArrayItems(
   property: string,
 ): unknown[] {
   const start = value.indexOf('{')
+
   if (start < 0) return []
 
   const stack: string[] = []
@@ -14,6 +15,7 @@ export function parseCompletedJsonArrayItems(
 
   for (let i = start; i < value.length; i++) {
     const char = value[i]
+
     if (inString) {
       if (escaped) {
         escaped = false
@@ -22,6 +24,7 @@ export function parseCompletedJsonArrayItems(
       } else if (char === '"') {
         inString = false
       }
+
       continue
     }
     if (char === '"') {
@@ -52,8 +55,10 @@ export function parseCompletedJsonArrayItems(
   const candidate = rootEnd
     ? value.slice(start, rootEnd)
     : `${value.slice(start, itemEnd)}]}`
+
   try {
     const parsed = JSON.parse(candidate) as Record<string, unknown>
+
     return Array.isArray(parsed[property]) ? parsed[property] : []
   } catch {
     // 分片不是完整 JSON 属于正常传输状态，不记录解析错误。

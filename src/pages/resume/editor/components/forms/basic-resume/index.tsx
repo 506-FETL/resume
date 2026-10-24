@@ -31,6 +31,7 @@ function BasicResumeForm({ className }: { className?: string }) {
     control: form.control,
     name: 'customFields',
   })
+
   const remoteFieldArrays = useMemo<RemoteFieldArrayAdapters>(
     () => ({
       customFields: {
@@ -40,6 +41,7 @@ function BasicResumeForm({ className }: { className?: string }) {
     }),
     [append, remove],
   )
+
   useResumeFormSync(form, 'basics', basics, remoteFieldArrays)
 
   return (

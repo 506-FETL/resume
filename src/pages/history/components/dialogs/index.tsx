@@ -36,11 +36,14 @@ export default function HistoryDialogs({
 }: HistoryDialogsProps) {
   const { versions, restoring, deletingVersionId } = useHistoryStore()
   const dialogMotion = useHistoryDialogMotion()
+
   const [restoreStrategy, setRestoreStrategy] =
     useState<RestoreStrategy | null>(null)
+
   const restoreTarget = versions.find(
     (version) => version.id === restoreTargetId,
   )
+
   const deleteTarget = versions.find((version) => version.id === deleteTargetId)
   const [retainedDeleteTarget, setRetainedDeleteTarget] = useState(deleteTarget)
   const displayedDeleteTarget = deleteTarget ?? retainedDeleteTarget

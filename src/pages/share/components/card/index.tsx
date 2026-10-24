@@ -51,6 +51,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
     openVersionDialog,
     setActive,
   } = useShareStore()
+
   const reduceMotion = useReducedMotion()
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const openSettingsAfterClose = useRef(false)
@@ -60,6 +61,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
   const busy = pendingShareIds.includes(share.id)
   const archived = Boolean(share.archivedAt)
   const title = share.label || `${share.display_name || '简历'}的分享`
+
   const expiry = share.expires_at
     ? new Date(share.expires_at).toLocaleDateString('zh-CN', {
         month: 'short',
@@ -156,6 +158,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
                   className='w-48'
                   onCloseAutoFocus={(event) => {
                     if (!openSettingsAfterClose.current) return
+
                     event.preventDefault()
                     openSettingsAfterClose.current = false
                     menuTriggerRef.current?.focus({ preventScroll: true })

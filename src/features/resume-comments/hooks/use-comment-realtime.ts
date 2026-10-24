@@ -77,11 +77,13 @@ export function useCommentRealtime({
     let requestLiveRecovery: () => void
     const realtime = new ResumeCommentRealtimeSubscription(client)
     let realtimeLive = false
+
     let recoveryStopReason:
       | 'unauthorized'
       | 'comments_disabled'
       | 'terminal'
       | null = null
+
     let recoveryQueued = false
     let recoveryAgain = false
     let recoveryAttempts = 0
@@ -98,9 +100,11 @@ export function useCommentRealtime({
       reason: 'unauthorized' | 'comments_disabled' | 'terminal' = 'terminal',
     ) => {
       if (recoveryStopReason !== 'terminal') recoveryStopReason = reason
+
       recoveryAgain = false
       clearRecoveryTimer()
     }
+
     const isRecoveryTerminal = () => recoveryStopReason === 'terminal'
 
     const handleError = (error: unknown) => {
@@ -114,18 +118,22 @@ export function useCommentRealtime({
           store.getState().setAccessState('unavailable', error.code)
           onAccessInvalidated?.(error.code)
           realtime.disconnect()
+
           return
         }
         if (error.code === 'comments_disabled') {
           stopRecovery('comments_disabled')
           store.getState().setAccessState('read_only', error.code)
+
           return
         }
         if (error.code === 'unauthorized') stopRecovery('unauthorized')
+
         store
           .getState()
           .setAccessState(store.getState().accessState, error.code)
       }
+
       store.getState().setConnection('offline')
     }
 
@@ -136,20 +144,26 @@ export function useCommentRealtime({
     const refreshCurrentAccess = async () => {
       if (cancelled || isRecoveryTerminal()) return false
       if (!refreshAccess) return true
+
       const previous = client.getAccessContext()
       const next = await refreshAccess()
+
       if (cancelled || isRecoveryTerminal()) return false
       if (accessChangedVersion(previous, next)) {
         stopRecovery()
         store.getState().setAccessState('unavailable', 'stale_release')
         onAccessInvalidated?.('stale_release')
         realtime.disconnect()
+
         return false
       }
+
       client.setAccessContext(next)
+
       store
         .getState()
         .setAccessState(isReadOnlyAccess(next) ? 'read_only' : 'active')
+
       if (
         recoveryStopReason === 'unauthorized' ||
         (recoveryStopReason === 'comments_disabled' &&
@@ -160,6 +174,7 @@ export function useCommentRealtime({
         recoveryAttempts = 0
         requestLiveRecovery()
       }
+
       return true
     }
 
@@ -167,27 +182,36 @@ export function useCommentRealtime({
       const access = client.getAccessContext()
       const versionId = store.getState().version?.versionId
       const authenticatedUserId = await client.getAuthenticatedUserId()
+
       return deriveCommentCacheKey(access, versionId, authenticatedUserId)
     }
 
     const recoverIncrementally = async () => {
       if (cancelled || recoveryStopReason) return
+
       const marker = beginCommentPerformance('realtime_recovery')
+
       marker.countRequest()
+
       const lastEventSeq = store.getState().lastEventSeq
+
       const [list, cacheKey] = await Promise.all([
         client.listEvents(lastEventSeq),
         resolveCurrentCacheKey().catch(() => null),
       ])
+
       if (cancelled || recoveryStopReason) return
+
       store.getState().applyRealtimePatch({
         threads: list.data.threads,
         events: list.data.events,
         eventSeq: list.eventSeq,
       })
+
       if (list.data.events.length > 0) {
         if (!cancelled && cacheKey) await deleteCommentCache(cacheKey)
       }
+
       marker.end({
         requestId: list.requestId,
         serverTiming: list.serverTiming,
@@ -198,31 +222,43 @@ export function useCommentRealtime({
       if (cancelled || recoveryStopReason || !realtimeLive) return
       if (recoveryQueued) {
         recoveryAgain = true
+
         return
       }
       if (recoveryTimer !== null) return
+
       recoveryQueued = true
+
       enqueue(async () => {
         recoveryAgain = false
+
         try {
           if (cancelled || recoveryStopReason || !realtimeLive) return
+
           await recoverIncrementally()
+
           if (cancelled || recoveryStopReason) return
+
           recoveryAttempts = 0
+
           if (realtimeLive) store.getState().setConnection('live')
         } catch (error) {
           handleError(error)
+
           if (cancelled || recoveryStopReason || !realtimeLive) return
+
           const delay = Math.min(
             1_000 * 2 ** Math.min(recoveryAttempts++, 5),
             30_000,
           )
+
           recoveryTimer = setTimeout(() => {
             recoveryTimer = null
             requestLiveRecovery()
           }, delay)
         } finally {
           recoveryQueued = false
+
           if (recoveryAgain && recoveryTimer === null) requestLiveRecovery()
         }
       })
@@ -232,6 +268,7 @@ export function useCommentRealtime({
       scopeRealtime: Parameters<typeof realtime.connect>[0],
     ) => {
       if (cancelled || isRecoveryTerminal()) return
+
       realtime.connect(scopeRealtime, {
         onInvalidation: (event) => {
           enqueue(async () => {
@@ -240,22 +277,30 @@ export function useCommentRealtime({
               !(await refreshCurrentAccess())
             )
               return
+
             const lastEventSeq = store.getState().lastEventSeq
+
             const recovery = decideCommentRealtimeRecovery(
               lastEventSeq,
               event.eventSeq,
             )
+
             if (recovery === 'ignore') return
+
             await recoverIncrementally()
           })
         },
         onProtocolMismatch: () => enqueue(bootstrap),
         onStatusChange: (status) => {
           if (cancelled) return
+
           realtimeLive = status === 'live'
+
           if (!realtimeLive) clearRecoveryTimer()
           if (recoveryStopReason) return
+
           store.getState().setConnection(status)
+
           // 首次订阅、重连和切桶均补齐快照/旧频道与新订阅之间的事件。
           if (status === 'live') requestLiveRecovery()
         },
@@ -264,32 +309,48 @@ export function useCommentRealtime({
 
     bootstrap = async () => {
       if (cancelled || isRecoveryTerminal()) return
+
       store.getState().setConnection('connecting')
+
       const marker = beginCommentPerformance('bootstrap')
+
       marker.countRequest()
+
       const cacheWriteFence = captureCommentCacheWriteFence()
       const responsePromise = client.bootstrapScope()
       const authenticatedUserIdPromise = client.getAuthenticatedUserId()
       const response = await responsePromise
+
       if (cancelled || isRecoveryTerminal()) return
+
       marker.mergeClientDurations(response.telemetry.clientDurations)
+
       const authenticatedUserId = await authenticatedUserIdPromise
+
       if (cancelled || isRecoveryTerminal()) return
+
       const access = client.getAccessContext()
+
       rememberCommentVersionHint(access, response.data.version.versionId)
+
       const cacheKey = deriveCommentCacheKey(
         access,
         response.data.version.versionId,
         authenticatedUserId,
       )
+
       const persistedReadEventSeq = cacheKey
         ? readCommentReadCursor(cacheKey)
         : 0
+
       const cached = cacheKey ? await readCommentCache(cacheKey) : null
+
       if (cancelled || isRecoveryTerminal()) return
+
       const liveThreadIds = new Set(
         response.data.threads.map((thread) => thread.id),
       )
+
       const cachedThreadReadStates = cacheKey
         ? mergeCachedThreadReadStates(
             cached?.value.threadReadStates ?? [],
@@ -297,14 +358,17 @@ export function useCommentRealtime({
             liveThreadIds,
           )
         : []
+
       const serverThreadReadStateById = new Map(
         response.data.threadReadStates.map((state) => [state.threadId, state]),
       )
+
       const mergedThreadReadStates = response.data.threadReadStates.map(
         (state) => {
           const cachedState = cachedThreadReadStates.find(
             (item) => item.threadId === state.threadId,
           )
+
           return {
             ...state,
             latestCommentEventSeq: Math.max(
@@ -318,11 +382,14 @@ export function useCommentRealtime({
           }
         },
       )
+
       const currentState = store.getState()
       const sameScope = currentState.scope?.id === response.data.scope.id
+
       const hasPendingMutation =
         Object.keys(currentState.pendingEntities).length > 0 ||
         Object.keys(currentState.pendingCreationsByRequestId).length > 0
+
       if (
         currentState.scope &&
         (!sameScope ||
@@ -334,15 +401,18 @@ export function useCommentRealtime({
             connectRealtime(response.data.scopeRealtime),
           )
         }
+
         marker.end({
           requestId: response.requestId,
           serverTiming: response.serverTiming,
           telemetry: response.telemetry,
           detail: { status: 'superseded' },
         })
+
         return
       }
       if (cacheKey) pruneCommentThreadReadCursors(cacheKey, liveThreadIds)
+
       marker.measureSync('store_commit', () => {
         store.getState().replaceScope({
           scope: response.data.scope,
@@ -357,19 +427,23 @@ export function useCommentRealtime({
           ),
           threadReadStates: mergedThreadReadStates,
         })
+
         store
           .getState()
           .setAccessState(isReadOnlyAccess(access) ? 'read_only' : 'active')
       })
+
       marker.measureSync('realtime_connect', () =>
         connectRealtime(response.data.scopeRealtime),
       )
+
       marker.end({
         requestId: response.requestId,
         serverTiming: response.serverTiming,
         telemetry: response.telemetry,
         detail: { threadCount: response.data.threads.length },
       })
+
       if (cacheKey) {
         // eslint-disable-next-line no-void
         void writeCommentCache(
@@ -394,6 +468,7 @@ export function useCommentRealtime({
           const serverState = serverThreadReadStateById.get(
             cachedState.threadId,
           )
+
           if (!serverState) continue
           if (
             cachedState.lastReadEventSeq > (serverState?.lastReadEventSeq ?? 0)
@@ -411,19 +486,26 @@ export function useCommentRealtime({
 
     const hydrateCache = async () => {
       if (cancelled || isRecoveryTerminal()) return
+
       const cacheKey = deriveCommentCacheKey(
         client.getAccessContext(),
         undefined,
         await client.getAuthenticatedUserId(),
       )
+
       if (!cacheKey || cancelled || isRecoveryTerminal()) return
+
       const marker = beginCommentPerformance('cache')
       const cached = await readCommentCache(cacheKey)
+
       if (!cached || cancelled || isRecoveryTerminal()) {
         marker.end({ detail: { status: cached ? 'superseded' : 'miss' } })
+
         return
       }
+
       const currentState = store.getState()
+
       if (
         currentState.scope?.id === cached.value.scope.id &&
         (currentState.lastEventSeq > cached.value.scope.nextEventSeq ||
@@ -431,8 +513,10 @@ export function useCommentRealtime({
           Object.keys(currentState.pendingCreationsByRequestId).length > 0)
       ) {
         marker.end({ detail: { status: 'superseded' } })
+
         return
       }
+
       store.getState().replaceScope({
         scope: cached.value.scope,
         version: cached.value.version,
@@ -443,6 +527,7 @@ export function useCommentRealtime({
         lastReadEventSeq: cached.value.lastReadEventSeq,
         threadReadStates: cached.value.threadReadStates,
       })
+
       marker.end({
         detail: {
           status: 'hit',
@@ -454,21 +539,25 @@ export function useCommentRealtime({
 
     const handleOffline = () => {
       if (cancelled || isRecoveryTerminal()) return
+
       realtimeLive = false
       clearRecoveryTimer()
       realtime.disconnect()
       store.getState().setConnection('offline')
     }
+
     const handleOnline = () => enqueue(bootstrap)
 
     window.addEventListener('offline', handleOffline)
     window.addEventListener('online', handleOnline)
+
     enqueue(async () => {
       if (navigator.onLine) {
         try {
           await bootstrap()
         } catch (error) {
           await hydrateCache().catch(() => undefined)
+
           throw error
         }
       } else {
@@ -495,9 +584,11 @@ export function useCommentRealtime({
               (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN')
             )
               return
+
             // 只入队，避免在 Auth 回调内调用 SDK；也覆盖旧请求在凭据刷新后才拒绝。
             enqueue(async () => {
               if (cancelled || recoveryStopReason !== 'unauthorized') return
+
               recoveryStopReason = null
               recoveryAttempts = 0
               store.getState().setAccessState('active')
@@ -513,6 +604,7 @@ export function useCommentRealtime({
       realtime.disconnect()
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('online', handleOnline)
+
       if (refreshTimer) window.clearInterval(refreshTimer)
     }
   }, [

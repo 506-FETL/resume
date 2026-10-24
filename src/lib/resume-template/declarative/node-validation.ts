@@ -25,10 +25,12 @@ export function validateCommonNode(
   context: NodeValidationContext,
 ): void {
   const { definition } = context
+
   if (node.style && !Object.hasOwn(definition.styles, node.style))
     fail(`缺少命名样式 ${node.style}`)
   if (node.when) {
     checkBinding(node.when.binding, context)
+
     if (node.when.operator === 'equals' && node.when.value === undefined)
       fail('相等条件需要 value')
     if (node.when.binding === 'item.parity') {
@@ -42,7 +44,9 @@ export function validateCommonNode(
     }
   }
   if ('binding' in node && node.binding) checkBinding(node.binding, context)
+
   const style = node.style ? definition.styles[node.style] : undefined
+
   if (style?.height !== undefined && !fixedSizeNodes.has(node.type))
     fail('正文节点不得使用固定高度')
   if (
@@ -67,10 +71,13 @@ function validateRichText(
   if (!node.elementStyles) return
   if (!definition.capabilities.includes('rich-text-styles'))
     fail('富文本元素样式需要声明 rich-text-styles 能力')
+
   for (const styleId of Object.values(node.elementStyles)) {
     if (!Object.hasOwn(definition.styles, styleId))
       fail(`缺少富文本命名样式 ${styleId}`)
+
     const style = definition.styles[styleId]
+
     if (style.height !== undefined || style.rotate)
       fail('富文本元素不得使用固定高度或旋转')
   }
@@ -95,11 +102,13 @@ const profileKeys = {
   ],
   'profile.contact': ['phone', 'email'],
 }
+
 const listFieldKeys: Record<ListBinding, readonly string[]> = {
   ...profileKeys,
   'profile.fields': ['name', 'workYears', ...Object.values(profileKeys).flat()],
   'block.items': [],
 }
+
 const blockItemScopes: Partial<Record<BindingScope, BindingScope>> = {
   experience: 'experience-item',
   skills: 'skills-item',
@@ -110,13 +119,16 @@ function validateRepeat(
   context: NodeValidationContext,
 ): BindingScope {
   checkBinding(node.source, context)
+
   const isProfile = node.source.startsWith('profile.')
+
   if ((node.fieldOrder || node.fieldKeys) && !isProfile)
     fail('字段排序仅用于个人信息集合')
   if (node.fieldKeys?.some((key) => !listFieldKeys[node.source].includes(key)))
     fail('字段选择包含当前集合未知的字段')
   if (node.fieldKeys && new Set(node.fieldKeys).size !== node.fieldKeys.length)
     fail('字段选择不可重复')
+
   return isProfile
     ? 'profile-fields'
     : (blockItemScopes[context.scope] ?? 'field-item')
@@ -130,27 +142,34 @@ export function validateSpecificNode(
   switch (node.type) {
     case 'text':
       validateText(node)
+
       return
     case 'richText':
       validateRichText(node, context)
+
       return
     case 'repeat':
       return validateRepeat(node, context)
     case 'box':
       if (node.decoration?.length && !node.viewBox) fail('装饰必须声明 viewBox')
+
       return
     case 'shape':
       if (Boolean(node.variants) !== Boolean(node.binding))
         fail('图形映射必须同时声明 binding 和 variants')
+
       return
     case 'image':
       if (!context.assets.has(node.asset)) fail(`缺少素材 ${node.asset}`)
+
       return
     case 'sections':
       if (context.scope !== 'document') fail('sections 仅允许在文档配方中使用')
+
       return
     case 'blocks':
       if (context.scope !== 'section') fail('blocks 仅允许在模块配方中使用')
+
       return
     case 'field':
     case 'meter':
@@ -158,6 +177,7 @@ export function validateSpecificNode(
       return
     default: {
       const unhandled: never = node
+
       return unhandled
     }
   }

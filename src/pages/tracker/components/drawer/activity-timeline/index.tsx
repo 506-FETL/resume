@@ -70,6 +70,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
       ),
     [job.activities],
   )
+
   const layoutKey = useMemo(
     () =>
       sorted
@@ -86,13 +87,16 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
     successText: string,
   ) => {
     setSaving(true)
+
     try {
       await saveJobFields(job.id, (current) => ({
         activities: update(current.activities),
       }))
+
       toast.success(successText)
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     } finally {
       setSaving(false)
@@ -101,23 +105,29 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
 
   const handleAdd = async () => {
     const text = draft.trim()
+
     if (!text) return
+
     const activity: TrackerActivity = {
       id: crypto.randomUUID(),
       type: 'note',
       label: text,
       at: new Date().toISOString(),
     }
+
     await persist((current) => [...current, activity], '已添加记录')
     setDraft('')
   }
 
   const handleDelete = async () => {
     const deleteId = pendingDeleteId
+
     if (!deleteId || saving) return
 
     setPendingDeleteId(null)
+
     if (editingId === deleteId) setEditingId(null)
+
     await persist(
       (current) => current.filter((activity) => activity.id !== deleteId),
       '已删除记录',
@@ -136,20 +146,27 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
 
   const handleEditSave = async () => {
     const text = editDraft.trim()
+
     if (!editingId || saving) return
     if (!text) {
       toast.error('内容不能为空')
+
       return
     }
+
     const target = job.activities.find((activity) => activity.id === editingId)
+
     if (target && target.label === text) {
       cancelEdit()
+
       return
     }
+
     const update = (current: TrackerActivity[]) =>
       current.map((activity) =>
         activity.id === editingId ? { ...activity, label: text } : activity,
       )
+
     await persist(update, '已更新记录')
     cancelEdit()
   }
@@ -172,8 +189,10 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
+
       if (next.has(id)) next.delete(id)
       else next.add(id)
+
       return next
     })
   }
@@ -190,12 +209,16 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
 
   const handleBatchDelete = async () => {
     if (saving || selectedIds.size === 0) return
+
     setPendingBatchDelete(false)
+
     const removed = selectedIds.size
+
     await persist(
       (current) => current.filter((activity) => !selectedIds.has(activity.id)),
       `已删除 ${removed} 条记录`,
     )
+
     exitSelectMode()
   }
 
@@ -293,6 +316,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                   const Icon = TYPE_ICON[activity.type] ?? CircleDot
                   const isAuto = activity.type === 'status_change'
                   const isChecked = selectedIds.has(activity.id)
+
                   return (
                     <PresenceListItem
                       key={activity.id}

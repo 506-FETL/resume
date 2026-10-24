@@ -59,6 +59,7 @@ export function buildBatchOptimizationResult(
         ) {
           fixedIssueCount += 1
         }
+
         return
       }
 
@@ -77,6 +78,7 @@ export function buildBatchOptimizationResult(
         if (!isSuggestionReadyToApply(suggestion)) {
           requiresInputSuggestionCount += 1
           requiresInputInFinding += 1
+
           return
         }
 
@@ -86,6 +88,7 @@ export function buildBatchOptimizationResult(
           appliedAfterByPath.set(suggestion.locate.path, nextAfterKey)
           autoApplicableSuggestionCount += 1
           autoApplicableInFinding += 1
+
           return
         }
 
@@ -93,6 +96,7 @@ export function buildBatchOptimizationResult(
           appliedSuggestionIds.push(id)
           autoApplicableSuggestionCount += 1
           autoApplicableInFinding += 1
+
           return
         }
 
@@ -222,7 +226,9 @@ export function updateFindingPendingSuggestions(
             }
 
             const nextSuggestion = nextPendingSuggestions[pendingIndex]
+
             pendingIndex += 1
+
             return nextSuggestion ?? suggestion
           }),
         },
@@ -245,7 +251,9 @@ export function updateFindingPendingSuggestions(
             }
 
             const nextSuggestion = nextPendingSuggestions[pendingIndex]
+
             pendingIndex += 1
+
             return nextSuggestion ?? suggestion
           }),
         },
@@ -268,7 +276,9 @@ export function updateFindingPendingSuggestions(
             }
 
             const nextSuggestion = nextPendingSuggestions[pendingIndex]
+
             pendingIndex += 1
+
             return nextSuggestion ?? suggestion
           }),
         },

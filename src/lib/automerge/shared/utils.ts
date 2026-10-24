@@ -7,6 +7,7 @@ export function encodeBytesToBase64(bytes: Uint8Array): string {
 
   for (let i = 0; i < bytes.length; i += BASE64_CHUNK_SIZE) {
     const chunk = bytes.subarray(i, i + BASE64_CHUNK_SIZE)
+
     binary += String.fromCharCode.apply(null, chunk as unknown as number[])
   }
 
@@ -38,8 +39,10 @@ function decodeByteaPayload(bytes: Uint8Array): Uint8Array {
   }
 
   let ascii = ''
+
   for (let index = 0; index < bytes.length; index += BASE64_CHUNK_SIZE) {
     const chunk = bytes.subarray(index, index + BASE64_CHUNK_SIZE)
+
     ascii += String.fromCharCode.apply(null, chunk as unknown as number[])
   }
 
@@ -49,6 +52,7 @@ function decodeByteaPayload(bytes: Uint8Array): Uint8Array {
 
   try {
     const decoded = decodeBase64ToBytes(ascii)
+
     return hasAutomergeMagic(decoded) ? decoded : bytes
   } catch {
     return bytes
@@ -74,6 +78,7 @@ export function decodeDocumentData(raw: unknown): Uint8Array | null {
   if (typeof raw === 'string') {
     if (raw.startsWith('\\x')) {
       const hex = raw.slice(2)
+
       if (
         hex.length === 0 ||
         hex.length % 2 !== 0 ||
@@ -81,12 +86,16 @@ export function decodeDocumentData(raw: unknown): Uint8Array | null {
       ) {
         return null
       }
+
       const bytes = new Uint8Array(hex.length / 2)
+
       for (let index = 0; index < bytes.length; index += 1) {
         bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16)
       }
+
       return decodeByteaPayload(bytes)
     }
+
     return decodeBase64ToBytes(raw)
   }
 

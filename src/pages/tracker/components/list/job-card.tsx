@@ -50,6 +50,7 @@ interface JobCardProps {
 function JobCardComponent({ job }: JobCardProps) {
   const isPresent = useIsPresent()
   const reduceMotion = useReducedMotion()
+
   const {
     isSelectMode,
     isSelected,
@@ -69,10 +70,13 @@ function JobCardComponent({ job }: JobCardProps) {
       deleteJob: state.deleteJob,
     })),
   )
+
   const [pendingDelete, setPendingDelete] = useState(false)
+
   const [pendingStatus, setPendingStatus] = useState<
     JobApplication['status'] | null
   >(null)
+
   const statusConfig = APPLICATION_STATUS_CONFIG[job.status]
   const nextActionBadge = getNextActionBadge(job)
   const dueBadge = nextActionBadge?.tone === 'upcoming' ? null : nextActionBadge
@@ -85,11 +89,13 @@ function JobCardComponent({ job }: JobCardProps) {
 
   const handleDelete = async () => {
     if (!isPresent) return
+
     try {
       await deleteJob(job.id)
       toast.success('已删除')
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       console.error('Failed to delete job:', error)
       toast.error('删除失败', { description: getTrackerErrorMessage(error) })
     }
@@ -97,12 +103,14 @@ function JobCardComponent({ job }: JobCardProps) {
 
   const handleArchive = async () => {
     if (!isPresent) return
+
     try {
       await saveJobFields(job.id, (current) => ({
         archived: !current.archived,
       }))
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     }
   }
@@ -112,6 +120,7 @@ function JobCardComponent({ job }: JobCardProps) {
       await changeJobStatus(job.id, newStatus)
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('更新状态失败', {
         description: getTrackerErrorMessage(error),
       })
@@ -122,8 +131,10 @@ function JobCardComponent({ job }: JobCardProps) {
     if (job.status === newStatus || !isPresent) return
     if (newStatus === 'offer' || newStatus === 'rejected') {
       setPendingStatus(newStatus)
+
       return
     }
+
     await commitStatus(newStatus)
   }
 
@@ -309,6 +320,7 @@ function JobCardComponent({ job }: JobCardProps) {
             <AlertDialogAction
               onClick={() => {
                 if (!pendingStatus) return
+
                 commitStatus(pendingStatus)
                 setPendingStatus(null)
               }}

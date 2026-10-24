@@ -94,6 +94,7 @@ export function isMeaningfulAtsValue(value: unknown): boolean {
 
   if (typeof value === 'string') {
     const normalized = normalizePlainText(value)
+
     return normalized !== '' && normalized !== '不填'
   }
 
@@ -232,8 +233,10 @@ function createJobIntentSection(
     'expectedSalary',
     'dateEntry',
   ] as const
+
   const fields = fieldKeys.flatMap((fieldKey) => {
     const rawValue = resume.job_intent[fieldKey]
+
     if (!isMeaningfulAtsValue(rawValue)) return []
 
     return [
@@ -257,14 +260,17 @@ function createRepeatedSection(
   const section = resume[config.key] as {
     items: Array<Record<string, unknown> & { entryId: string }>
   }
+
   const items = section.items.flatMap<AtsAssessmentItem>(
     (item, sourceIndex) => {
       const active = config.fields.some((field) =>
         isMeaningfulAtsValue(item[field.key]),
       )
+
       if (!active) return []
 
       const itemLabel = `${config.itemPrefix} ${sourceIndex + 1}`
+
       return [
         {
           entryId: item.entryId,
@@ -318,6 +324,7 @@ function createSkillSection(resume: ResumeSchema): AtsAssessmentSection | null {
     if (!isMeaningfulAtsValue(skill.label)) return
 
     const itemLabel = `技能 ${sourceIndex + 1}`
+
     items.push({
       entryId: skill.entryId,
       itemLabel,
@@ -381,6 +388,7 @@ function createNamedListSection(config: {
     if (!isMeaningfulAtsValue(item.name)) return
 
     const itemLabel = `${config.itemPrefix} ${sourceIndex + 1}`
+
     items.push({
       entryId: item.entryId,
       itemLabel,
@@ -442,10 +450,13 @@ export function buildAtsAssessmentInput(
       itemPrefix: '兴趣',
     }),
   ]
+
   const sections = candidateSections.filter(
     (section): section is AtsAssessmentSection => section !== null,
   )
+
   const evaluatedSectionKeys = new Set(sections.map((section) => section.key))
+
   const optionalSectionKeys = Object.keys(ATS_SECTION_LABELS).filter(
     (key) => key !== 'basics',
   ) as AtsSectionKey[]

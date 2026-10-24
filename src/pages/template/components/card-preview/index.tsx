@@ -23,7 +23,9 @@ export default function CardPreview({
     TEMPLATE_PREVIEW_ROOT_MARGIN,
     true,
   )
+
   const reduceMotion = useReducedMotion()
+
   const preview = item.previews.find(
     (candidate) =>
       candidate.templateId === item.templateId &&
@@ -31,7 +33,9 @@ export default function CardPreview({
       candidate.example.exampleId === example.exampleId &&
       candidate.example.version === example.version,
   )
+
   const { url, status, retry } = useTemplatePreview(preview, inRange)
+
   return (
     <div
       ref={ref}

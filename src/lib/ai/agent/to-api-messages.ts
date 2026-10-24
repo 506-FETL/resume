@@ -27,6 +27,7 @@ export function toApiMessages(
   const systemContent = context
     ? `${SYSTEM_PROMPT}\n\n${context}`
     : SYSTEM_PROMPT
+
   const out: ApiMessage[] = [{ role: 'system', content: systemContent }]
 
   for (const m of messages) {
@@ -36,10 +37,12 @@ export function toApiMessages(
           if (part.type === 'text') return part.text
           if (part.type === 'skill-reference')
             return `[该消息明确引用技能：${part.skillId}@${part.version}（${part.displayName}）]`
+
           return ''
         })
         .filter(Boolean)
         .join('\n')
+
       out.push({ role: m.role, content })
       continue
     }
@@ -49,8 +52,10 @@ export function toApiMessages(
     let texts: string[] = []
     let reasoning: string[] = []
     let calls: Extract<AiMessagePart, { type: 'tool-call' }>[] = []
+
     const flush = () => {
       if (!calls.length && !texts.length) return
+
       out.push({
         role: 'assistant',
         content: texts.join('\n') || null,
@@ -70,12 +75,14 @@ export function toApiMessages(
             }
           : {}),
       })
+
       for (const call of calls) {
         const result =
           call.result ??
           (call.state === 'cancelled'
             ? { cancelled: true }
             : { error: '该工具调用未完成' })
+
         out.push({
           role: 'tool',
           content: serializeAiToolValue(
@@ -84,10 +91,12 @@ export function toApiMessages(
           tool_call_id: call.toolCallId,
         })
       }
+
       texts = []
       reasoning = []
       calls = []
     }
+
     for (const part of m.parts) {
       if (part.type === 'tool-call') {
         if (
@@ -97,6 +106,7 @@ export function toApiMessages(
           part.step !== calls[0].step
         )
           flush()
+
         calls.push(part)
         continue
       }
@@ -108,6 +118,7 @@ export function toApiMessages(
           `[历史技能加载：${part.skillId}@${part.version}，${part.state === 'ready' ? '成功' : (part.error ?? '未完成')}；本轮是否加载以当前运行结果为准。]`,
         )
     }
+
     flush()
   }
 

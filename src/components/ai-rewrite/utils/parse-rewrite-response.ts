@@ -51,6 +51,7 @@ export function parseRewriteResponse(
     if (seenTitles.has(title)) {
       title = `${title} #${index + 1}`
     }
+
     seenTitles.add(title)
 
     const notes =

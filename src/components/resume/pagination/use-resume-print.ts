@@ -15,13 +15,17 @@ import { validatePrintRegions } from './validate-print'
 function getPrintElements(printDocument: Document) {
   const firstPage =
     printDocument.querySelector<HTMLElement>('[data-resume-page]')
+
   const viewport = printDocument.querySelector<HTMLElement>(
     '[data-resume-page-viewport]',
   )
+
   const source = printDocument.querySelector<HTMLElement>(
     '[data-resume-page-content]',
   )
+
   if (!firstPage || !viewport || !source) throw new Error('打印文档结构不完整')
+
   return { firstPage, viewport, source }
 }
 
@@ -43,6 +47,7 @@ export function useResumePrint({
 
       const printDocument = iframe.contentDocument
       const printWindow = iframe.contentWindow
+
       if (!printDocument || !printWindow)
         throw new Error('当前浏览器无法创建打印窗口')
       if (typeof printWindow.print !== 'function')
@@ -61,13 +66,16 @@ export function useResumePrint({
       )
 
       await waitForResumeImages(printDocument)
+
       const { firstPage, viewport, source } = getPrintElements(printDocument)
+
       const clone = measurePaginationSnapshot({
         page: firstPage,
         viewport,
         source,
         fontFamily: printWindow.getComputedStyle(source).fontFamily,
       })
+
       if (!layoutSignaturesEqual(documentState.signature, clone.signature))
         throw new Error('打印布局尚未稳定，请重试')
 
@@ -84,13 +92,17 @@ export function useResumePrint({
   return useCallback(async () => {
     if (documentState.status === 'measuring') {
       toast.info('简历分页准备中')
+
       return false
     }
     if (documentState.status === 'error') {
       toast.error(documentState.error || '简历分页失败')
+
       return false
     }
+
     await handlePrint()
+
     return true
   }, [documentState, handlePrint])
 }

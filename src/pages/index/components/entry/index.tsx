@@ -249,6 +249,7 @@ function TimelineItem({
   onClick?: () => void
 }) {
   const style = TIMELINE_STYLES[event.type]
+
   return (
     <li className='group flex gap-3'>
       {/* 图标 + 连接线 */}

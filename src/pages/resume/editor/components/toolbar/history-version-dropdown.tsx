@@ -29,16 +29,21 @@ export function ResumeHistoryVersionDropdown({
   const resumeId = useCurrentResumeStore((state) => state.resumeId)
   const isInitialized = useResumeStore((state) => state.isInitialized)
   const [menuOpen, setMenuOpen] = useState(false)
+
   const [quickSaveResumeId, setQuickSaveResumeId] = useState<string | null>(
     null,
   )
+
   const pendingQuickSaveResumeIdRef = useRef<string | null>(null)
 
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
+
   const canUseHistory =
     Boolean(resumeId) && !isOffline && isInitialized && !reviewActive
+
   const activeResumeIdRef = useRef(resumeId)
   const canUseHistoryRef = useRef(canUseHistory)
+
   activeResumeIdRef.current = resumeId
   canUseHistoryRef.current = canUseHistory
 
@@ -52,6 +57,7 @@ export function ResumeHistoryVersionDropdown({
 
   const openHistory = () => {
     if (!canUseHistory || !resumeId) return
+
     navigate(`/history?resumeId=${resumeId}`)
   }
 
@@ -70,6 +76,7 @@ export function ResumeHistoryVersionDropdown({
     if (!canUseHistory || !resumeId) return
 
     const capturedResumeId = resumeId
+
     pendingQuickSaveResumeIdRef.current = capturedResumeId
     setMenuOpen(false)
   }
@@ -96,10 +103,12 @@ export function ResumeHistoryVersionDropdown({
           className='w-44'
           onCloseAutoFocus={(event) => {
             const pendingResumeId = pendingQuickSaveResumeIdRef.current
+
             if (!pendingResumeId) return
 
             event.preventDefault()
             pendingQuickSaveResumeIdRef.current = null
+
             if (
               activeResumeIdRef.current === pendingResumeId &&
               canUseHistoryRef.current

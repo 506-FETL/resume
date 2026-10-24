@@ -25,6 +25,7 @@ export default function WorkflowDateField({
 }: WorkflowDateFieldProps) {
   const [open, setOpen] = useState(false)
   const reduce = useReducedMotion()
+
   return (
     <div className='space-y-2'>
       <div className='text-xs font-medium text-muted-foreground'>{label}</div>

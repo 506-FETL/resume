@@ -15,6 +15,7 @@ function MdxPre({ children }: { children?: ReactNode }) {
 
   const className = (children.props.className as string) ?? ''
   const language = className.replace('language-', '') || 'plaintext'
+
   const code =
     typeof children.props.children === 'string'
       ? children.props.children.trim()

@@ -16,6 +16,7 @@ function numeric(
       minimum,
       Math.min(resolveNumeric(value, environment), 4096),
     )
+
     return { [property]: unit === 'number' ? bounded : `${bounded}px` }
   }
 }

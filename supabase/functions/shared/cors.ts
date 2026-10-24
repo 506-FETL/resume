@@ -2,6 +2,7 @@ export type CorsMode = 'public' | 'allowlist'
 
 const ALLOW_HEADERS =
   'authorization, x-client-info, x-request-id, apikey, content-type'
+
 const EXPOSE_HEADERS = [
   'Server-Timing',
   'X-Request-Id',
@@ -26,6 +27,7 @@ export function buildCorsHeaders(_request: Request, _mode: CorsMode) {
     'Access-Control-Max-Age': '86400',
     'Access-Control-Expose-Headers': EXPOSE_HEADERS,
   })
+
   return headers
 }
 

@@ -48,15 +48,21 @@ export function useFormRemoteSync<T extends FieldValues>(
 ) {
   const isResettingRef = useRef(false)
   const fieldArraysRef = useRef(fieldArrays)
+
   fieldArraysRef.current = fieldArrays
+
   const caretRef = useRef(caret)
+
   caretRef.current = caret
+
   const atomicPathsRef = useRef(atomicPaths)
+
   atomicPathsRef.current = atomicPaths
 
   useEffect(() => {
     const currentFormValues = form.getValues()
     const adapters = fieldArraysRef.current
+
     const plan = planRemoteFormSync(
       currentFormValues,
       storeData,
@@ -69,6 +75,7 @@ export function useFormRemoteSync<T extends FieldValues>(
       plan.fieldArrayOperations.length === 0
     ) {
       isResettingRef.current = false
+
       return
     }
 
@@ -76,6 +83,7 @@ export function useFormRemoteSync<T extends FieldValues>(
     const caretRestore = captureCaretRestore(plan, caretRef.current)
 
     isResettingRef.current = true
+
     applyRemoteFormSyncPlan(
       plan,
       {
@@ -94,15 +102,18 @@ export function useFormRemoteSync<T extends FieldValues>(
     }, 0)
 
     let caretFrame = 0
+
     if (caretRestore) {
       caretFrame = requestAnimationFrame(() => restoreCaret(caretRestore))
     }
 
     return () => {
       clearTimeout(cleanup)
+
       if (caretFrame) {
         cancelAnimationFrame(caretFrame)
       }
+
       isResettingRef.current = false
     }
   }, [storeData, form])
@@ -127,6 +138,7 @@ function captureCaretRestore(
   }
 
   const active = caret.getActiveField()
+
   if (!active) {
     return null
   }

@@ -58,6 +58,7 @@ function getAccessIdentityKey(access: CommentAccessContext) {
   }
   if (access.kind === 'collaborator')
     return `collaborator:${access.sessionId}:${access.resumeId}:${access.userId}`
+
   // 15 分钟访问令牌只是同一发布批次的凭据轮换，不能被当成 scope 切换，
   // 否则每次心跳刷新都会清空本地草稿和当前线程。
   return `share-version:${access.versionId}`
@@ -73,11 +74,15 @@ export function ResumeCommentProvider({
   panelHeaderContent,
 }: ResumeCommentProviderProps) {
   const [store] = useState(createResumeCommentStore)
+
   const [client] = useState(() => {
     const value = new ResumeCommentClient(access)
+
     attachVersionAnonymousCredential(value, access)
+
     return value
   })
+
   const accessIdentityKey = getAccessIdentityKey(access)
   const previousAccessIdentityKey = useRef(accessIdentityKey)
 
@@ -86,6 +91,7 @@ export function ResumeCommentProvider({
       store.getState().beginScopeSwitch()
       previousAccessIdentityKey.current = accessIdentityKey
     }
+
     client.setAccessContext(access)
     attachVersionAnonymousCredential(client, access)
   }, [access, accessIdentityKey, client, store])
@@ -93,8 +99,10 @@ export function ResumeCommentProvider({
   const handleAccessInvalidated = useCallback(
     (reason: 'stale_release' | 'share_unavailable') => {
       store.getState().setAccessState('unavailable', reason)
+
       if (reason === 'stale_release')
         store.getState().preserveDraftsForNextScope()
+
       onAccessInvalidated?.(reason)
     },
     [onAccessInvalidated, store],
@@ -108,6 +116,7 @@ export function ResumeCommentProvider({
     refreshAccess,
     onAccessInvalidated: handleAccessInvalidated,
   })
+
   const value = useMemo(
     () => ({
       beforeWrite,
@@ -118,15 +127,18 @@ export function ResumeCommentProvider({
     }),
     [beforeWrite, client, handleAccessInvalidated, panelHeaderContent, store],
   )
+
   return <ResumeCommentContext value={value}>{children}</ResumeCommentContext>
 }
 
 export function useResumeCommentContext() {
   const context = use(ResumeCommentContext)
+
   if (!context)
     throw new Error(
       'useResumeCommentContext 必须在 ResumeCommentProvider 内使用',
     )
+
   return context
 }
 
@@ -134,6 +146,7 @@ export function useResumeCommentStore<T>(
   selector: (state: ResumeCommentStoreState) => T,
 ) {
   const { store } = useResumeCommentContext()
+
   return useStore(store, selector)
 }
 

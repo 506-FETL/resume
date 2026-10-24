@@ -13,6 +13,7 @@ export async function getUserProfile() {
     .single()
 
   if (error) throw error
+
   return data
 }
 
@@ -35,11 +36,13 @@ export async function changeAvatar(file: File) {
     .select('avatar_url')
     .eq('id', user.id)
     .maybeSingle()
+
   if (readErr) throw readErr
 
   const storage = supabase.storage.from('avatar')
   const baseUrl = new URL(storage.getPublicUrl('').data.publicUrl)
   const oldPaths = new Set<string>()
+
   for (const oldAvatarUrl of [
     user.user_metadata?.avatar_url,
     oldProfile?.avatar_url,
@@ -48,6 +51,7 @@ export async function changeAvatar(file: File) {
 
     try {
       const url = new URL(oldAvatarUrl)
+
       if (
         url.origin !== baseUrl.origin ||
         !url.pathname.startsWith(baseUrl.pathname)
@@ -57,6 +61,7 @@ export async function changeAvatar(file: File) {
       const oldPath = decodeURIComponent(
         url.pathname.slice(baseUrl.pathname.length),
       )
+
       if (!oldPath.startsWith(`${user.id}/`) || oldPath.includes('\\')) continue
       if (
         oldPath
@@ -73,6 +78,7 @@ export async function changeAvatar(file: File) {
 
   // 每次上传使用独立路径，禁止覆盖仍被任一引用使用的旧对象。
   let path: string
+
   do {
     path = `${user.id}/${crypto.randomUUID()}`
   } while (oldPaths.has(path))
@@ -80,6 +86,7 @@ export async function changeAvatar(file: File) {
   const { error: upErr } = await storage.upload(path, file, {
     upsert: false,
   })
+
   if (upErr) throw upErr
 
   const { data } = storage.getPublicUrl(path)
@@ -89,6 +96,7 @@ export async function changeAvatar(file: File) {
   const { data: authData, error } = await supabase.auth.updateUser({
     data: { avatar_url: avatarUrl },
   })
+
   if (error) throw error
   if (
     authData.user?.id !== user.id ||
@@ -108,6 +116,7 @@ export async function changeAvatar(file: File) {
     )
     .select('avatar_url')
     .single()
+
   if (profileErr) throw profileErr
   if (profile.avatar_url !== avatarUrl)
     throw new Error('头像用户资料更新未确认，请重试')
@@ -133,8 +142,10 @@ export async function updateProfile(attributes: UserAttributes) {
   const meta = attributes.data as
     | { full_name?: string; avatar_url?: string }
     | undefined
+
   if (meta && (meta.full_name !== undefined || meta.avatar_url !== undefined)) {
     const user = await getCurrentUser()
+
     if (user) {
       const patch: {
         id: string
@@ -142,12 +153,14 @@ export async function updateProfile(attributes: UserAttributes) {
         full_name?: string
         avatar_url?: string
       } = { id: user.id, updated_at: new Date().toISOString() }
+
       if (meta.full_name !== undefined) patch.full_name = meta.full_name
       if (meta.avatar_url !== undefined) patch.avatar_url = meta.avatar_url
 
       const { error: profileErr } = await supabase
         .from('profiles')
         .upsert(patch, { onConflict: 'id' })
+
       if (profileErr) throw profileErr
     }
   }

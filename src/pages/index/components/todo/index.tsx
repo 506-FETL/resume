@@ -66,6 +66,7 @@ export function TodoCard({
       : !hasCloudResume
         ? '创建云端简历后可查看优化待办'
         : '今日待办已完成'
+
     return (
       <div className='flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground'>
         <CircleCheckBig className='size-4 shrink-0' aria-hidden />
@@ -120,6 +121,7 @@ export function TodoCard({
               {actions.map((action) => {
                 const tone = TONE_STYLES[action.tone]
                 const Icon = tone.icon
+
                 return (
                   <button
                     type='button'

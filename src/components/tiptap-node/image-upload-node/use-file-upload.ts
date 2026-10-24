@@ -10,7 +10,9 @@ export function useFileUpload(options: UploadOptions) {
       const error = new Error(
         `File size exceeds maximum allowed (${options.maxSize / 1024 / 1024}MB)`,
       )
+
       options.onError?.(error)
+
       return null
     }
 
@@ -25,7 +27,7 @@ export function useFileUpload(options: UploadOptions) {
       abortController,
     }
 
-    setFileItems(prev => [...prev, newFileItem])
+    setFileItems((prev) => [...prev, newFileItem])
 
     try {
       if (!options.upload) {
@@ -35,8 +37,8 @@ export function useFileUpload(options: UploadOptions) {
       const url = await options.upload(
         file,
         (event: { progress: number }) => {
-          setFileItems(prev =>
-            prev.map(item =>
+          setFileItems((prev) =>
+            prev.map((item) =>
               item.id === fileId ? { ...item, progress: event.progress } : item,
             ),
           )
@@ -44,36 +46,38 @@ export function useFileUpload(options: UploadOptions) {
         abortController.signal,
       )
 
-      if (!url)
-        throw new Error('Upload failed: No URL returned')
+      if (!url) throw new Error('Upload failed: No URL returned')
 
       if (!abortController.signal.aborted) {
-        setFileItems(prev =>
-          prev.map(item =>
+        setFileItems((prev) =>
+          prev.map((item) =>
             item.id === fileId
               ? { ...item, status: 'success', url, progress: 100 }
               : item,
           ),
         )
+
         options.onSuccess?.(url)
+
         return url
       }
 
       return null
-    }
-    catch (error) {
+    } catch (error) {
       if (!abortController.signal.aborted) {
-        setFileItems(prev =>
-          prev.map(item =>
+        setFileItems((prev) =>
+          prev.map((item) =>
             item.id === fileId
               ? { ...item, status: 'error', progress: 0 }
               : item,
           ),
         )
+
         options.onError?.(
           error instanceof Error ? error : new Error('Upload failed'),
         )
       }
+
       return null
     }
   }
@@ -81,6 +85,7 @@ export function useFileUpload(options: UploadOptions) {
   const uploadFiles = async (files: File[]): Promise<string[]> => {
     if (!files || files.length === 0) {
       options.onError?.(new Error('No files to upload'))
+
       return []
     }
 
@@ -90,10 +95,11 @@ export function useFileUpload(options: UploadOptions) {
           `Maximum ${options.limit} file${options.limit === 1 ? '' : 's'} allowed`,
         ),
       )
+
       return []
     }
 
-    const uploadPromises = files.map(file => uploadFile(file))
+    const uploadPromises = files.map((file) => uploadFile(file))
     const results = await Promise.all(uploadPromises)
 
     return results.filter((url): url is string => url !== null)
@@ -101,14 +107,16 @@ export function useFileUpload(options: UploadOptions) {
 
   const removeFileItem = (fileId: string) => {
     setFileItems((prev) => {
-      const fileToRemove = prev.find(item => item.id === fileId)
+      const fileToRemove = prev.find((item) => item.id === fileId)
+
       if (fileToRemove?.abortController) {
         fileToRemove.abortController.abort()
       }
       if (fileToRemove?.url) {
         URL.revokeObjectURL(fileToRemove.url)
       }
-      return prev.filter(item => item.id !== fileId)
+
+      return prev.filter((item) => item.id !== fileId)
     })
   }
 
@@ -121,6 +129,7 @@ export function useFileUpload(options: UploadOptions) {
         URL.revokeObjectURL(item.url)
       }
     })
+
     setFileItems([])
   }
 

@@ -26,12 +26,16 @@ export default function ArchiveDialog() {
     closeArchiveDialog,
     archive,
   } = useShareStore()
+
   const share = findShareById(allShares, shares, archiveShareId)
+
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
   )
+
   const renderedShare =
     share ?? (retainedShare?.id === archiveShareId ? retainedShare : null)
+
   const busy = Boolean(
     archiveShareId && pendingShareIds.includes(archiveShareId),
   )
@@ -42,7 +46,9 @@ export default function ArchiveDialog() {
 
   const handleArchive = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
+
     if (!archiveShareId) return
+
     try {
       await archive(archiveShareId)
       toast.success('分享已归档')

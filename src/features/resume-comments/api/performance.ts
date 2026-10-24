@@ -17,8 +17,11 @@ export type CommentPerformanceAuthMode =
   | CommentAuthMode
   | 'unknown'
   | 'not_applicable'
+
 export type CommentPerformanceBoolean = boolean | 'unknown'
+
 export type CommentPerformanceProtocolVersion = 1 | 'unknown'
+
 export type CommentPerformanceEdgeRegion =
   | 'unknown'
   | 'us-east-1'
@@ -84,6 +87,7 @@ interface CommentPerformanceEndOptions {
 }
 
 const COMMENT_PERFORMANCE_WINDOW_SIZE = 50 as const
+
 const COMMENT_SERVER_TIMING_NAMES = new Set<CommentServerTimingName>([
   'auth_anonymous',
   'auth_local',
@@ -102,6 +106,7 @@ const COMMENT_SERVER_TIMING_NAMES = new Set<CommentServerTimingName>([
   'edge_total',
   'total',
 ])
+
 const COMMENT_PERFORMANCE_STAGES = new Set<CommentPerformanceStage>([
   'cache',
   'bootstrap',
@@ -116,6 +121,7 @@ const COMMENT_PERFORMANCE_STAGES = new Set<CommentPerformanceStage>([
   'realtime_connect',
   'transport_overhead',
 ])
+
 const COMMENT_BOOTSTRAP_CLIENT_STAGES = new Set<CommentBootstrapClientStage>([
   'auth_token',
   'fetch_headers',
@@ -124,6 +130,7 @@ const COMMENT_BOOTSTRAP_CLIENT_STAGES = new Set<CommentBootstrapClientStage>([
   'store_commit',
   'realtime_connect',
 ])
+
 const COMMENT_AUTH_MODES = new Set<CommentPerformanceAuthMode>([
   'anonymous',
   'local_jwks',
@@ -131,6 +138,7 @@ const COMMENT_AUTH_MODES = new Set<CommentPerformanceAuthMode>([
   'unknown',
   'not_applicable',
 ])
+
 const COMMENT_EDGE_REGIONS = new Set<CommentPerformanceEdgeRegion>([
   'unknown',
   'us-east-1',
@@ -151,6 +159,7 @@ function normalizeEdgeRegion(
 ): CommentPerformanceEdgeRegion {
   if (!value) return 'unknown'
   if (value === 'us-east-1' || value === 'ap-northeast-2') return value
+
   return 'other'
 }
 
@@ -160,9 +169,11 @@ function normalizeDimensions(
   const authMode = COMMENT_AUTH_MODES.has(value.authMode ?? 'not_applicable')
     ? (value.authMode ?? 'not_applicable')
     : 'unknown'
+
   const edgeRegion = COMMENT_EDGE_REGIONS.has(value.edgeRegion ?? 'unknown')
     ? (value.edgeRegion ?? 'unknown')
     : 'other'
+
   return {
     authMode,
     coldStart:
@@ -177,6 +188,7 @@ function dimensionsFromTelemetry(
   telemetry?: CommentResponseTelemetry | null,
 ): CommentPerformanceDimensions {
   if (!telemetry) return normalizeDimensions()
+
   return normalizeDimensions({
     authMode: telemetry.authMode,
     coldStart: telemetry.coldStart,
@@ -208,21 +220,31 @@ export function parseCommentServerTiming(
   value?: string | null,
 ): CommentServerDurations {
   if (!value) return {}
+
   const durations: CommentServerDurations = {}
+
   for (const entry of value.split(',')) {
     const [rawName, ...parameters] = entry.trim().split(';')
     const name = rawName?.trim() as CommentServerTimingName
+
     if (!COMMENT_SERVER_TIMING_NAMES.has(name) || durations[name] !== undefined)
       continue
+
     const durationParameter = parameters.find((parameter) =>
       parameter.trim().startsWith('dur='),
     )
+
     const durationText = durationParameter?.trim().slice(4).trim() ?? ''
+
     if (!durationText) continue
+
     const duration = Number(durationText)
+
     if (!Number.isFinite(duration) || duration < 0) continue
+
     durations[name] = duration
   }
+
   return durations
 }
 
@@ -252,19 +274,24 @@ export function recordCommentPerformanceSample({
     duration < 0
   )
     return
+
   const normalizedDimensions = normalizeDimensions(dimensions)
   const key = bucketKey(stage, normalizedDimensions)
+
   const bucket = buckets.get(key) ?? {
     stage,
     dimensions: normalizedDimensions,
     durations: [],
   }
+
   bucket.durations.push(duration)
+
   if (bucket.durations.length > COMMENT_PERFORMANCE_WINDOW_SIZE)
     bucket.durations.splice(
       0,
       bucket.durations.length - COMMENT_PERFORMANCE_WINDOW_SIZE,
     )
+
   buckets.set(key, bucket)
 }
 
@@ -275,6 +302,7 @@ export function resetCommentPerformanceSamples() {
 export function getCommentPerformanceSnapshot(): CommentPerformanceSnapshotEntry[] {
   return Array.from(buckets.values(), (bucket) => {
     const sorted = [...bucket.durations].sort((left, right) => left - right)
+
     return {
       stage: bucket.stage,
       ...bucket.dimensions,
@@ -292,8 +320,10 @@ export function getCommentPerformanceSnapshot(): CommentPerformanceSnapshotEntry
 export function beginCommentPerformance(stage: CommentPerformanceStage) {
   const startedAt = performance.now()
   let requestCount = 0
+
   const clientDurations: Partial<Record<CommentBootstrapClientStage, number>> =
     {}
+
   const mergeClientDurations = (
     durations: Partial<Record<CommentBootstrapClientStage, number>>,
   ) => {
@@ -309,6 +339,7 @@ export function beginCommentPerformance(stage: CommentPerformanceStage) {
       }
     }
   }
+
   return {
     countRequest() {
       requestCount += 1
@@ -316,6 +347,7 @@ export function beginCommentPerformance(stage: CommentPerformanceStage) {
     mergeClientDurations,
     measureSync<T>(name: CommentBootstrapClientStage, operation: () => T): T {
       const operationStartedAt = performance.now()
+
       try {
         return operation()
       } finally {
@@ -324,15 +356,19 @@ export function beginCommentPerformance(stage: CommentPerformanceStage) {
     },
     end(options: CommentPerformanceEndOptions = {}): CommentPerformanceSample {
       mergeClientDurations(options.telemetry?.clientDurations ?? {})
+
       const endedAt = performance.now()
       const duration = endedAt - startedAt
       const dimensions = dimensionsFromTelemetry(options.telemetry)
       const serverDurations = parseCommentServerTiming(options.serverTiming)
+
       const transportOverhead =
         clientDurations.fetch_headers === undefined
           ? null
           : calculateCommentTransportOverhead(clientDurations, serverDurations)
+
       recordCommentPerformanceSample({ stage, duration, dimensions })
+
       for (const [clientStage, clientDuration] of Object.entries(
         clientDurations,
       )) {
@@ -342,6 +378,7 @@ export function beginCommentPerformance(stage: CommentPerformanceStage) {
           dimensions,
         })
       }
+
       if (transportOverhead !== null) {
         recordCommentPerformanceSample({
           stage: 'transport_overhead',
@@ -349,6 +386,7 @@ export function beginCommentPerformance(stage: CommentPerformanceStage) {
           dimensions,
         })
       }
+
       const sample: CommentPerformanceSample = {
         stage,
         duration,
@@ -360,6 +398,7 @@ export function beginCommentPerformance(stage: CommentPerformanceStage) {
         dimensions,
         detail: options.detail,
       }
+
       if (import.meta.env.DEV) {
         performance.measure(`resume-comments:${stage}`, {
           start: startedAt,
@@ -367,6 +406,7 @@ export function beginCommentPerformance(stage: CommentPerformanceStage) {
           detail: sample,
         })
       }
+
       return sample
     },
   }

@@ -201,17 +201,19 @@ VITE_BASE_URL=http://localhost:5173
 
 ## 开发与贡献
 
-| 命令                | 用途                     |
-| ------------------- | ------------------------ |
-| `pnpm dev`          | 本地开发                 |
-| `pnpm lint`         | ESLint 代码质量检查      |
-| `pnpm lint:fix`     | 自动修复 ESLint 问题     |
-| `pnpm format`       | 使用 Prettier 格式化文件 |
-| `pnpm format:check` | 检查文件格式             |
-| `pnpm build`        | 生产构建，输出到 `dist/` |
-| `pnpm preview`      | 预览构建产物             |
+| 命令                | 用途                         |
+| ------------------- | ---------------------------- |
+| `pnpm dev`          | 本地开发                     |
+| `pnpm lint`         | ESLint 代码质量检查          |
+| `pnpm lint:fix`     | 自动修复 ESLint 问题         |
+| `pnpm format`       | 补齐逻辑段落空行并格式化文件 |
+| `pnpm format:check` | 检查代码规范、段落与格式     |
+| `pnpm build`        | 生产构建，输出到 `dist/`     |
+| `pnpm preview`      | 预览构建产物                 |
 
 ESLint 负责 JavaScript、TypeScript 和 React 代码检查，Prettier 负责格式化，`eslint-config-prettier` 关闭冲突的格式规则。格式沿用 `.prettierrc` 中的约定，忽略范围见 `.prettierignore`。VS Code 安装工作区推荐的 ESLint 和 Prettier 扩展后，保存时会自动修复并格式化。
+
+代码按逻辑分段：变量准备、条件判断、处理逻辑和最终返回之间留一个空行，函数和类型声明也单独分段；同一组简短变量与连续 guard 可以保持紧凑。ESLint 的 `@stylistic/padding-line-between-statements` 自动补齐段落空行，Prettier 负责缩进、折行与合并多余空行。`pnpm format` 先运行 Prettier，再只执行 ESLint 的 layout 修复；需要修复其他代码质量问题时使用 `pnpm lint:fix`。完整约定见 [AGENTS.md](./AGENTS.md)。
 
 提交 [Issue](https://github.com/506-FETL/resume/issues) 时请附复现步骤，移除真实简历和令牌。PR 请说明改动与验证结果，界面修改附截图，数据库或协议修改说明兼容性影响。安全问题通过[维护者主页](https://github.com/506-FETL)的联系方式私下沟通。
 

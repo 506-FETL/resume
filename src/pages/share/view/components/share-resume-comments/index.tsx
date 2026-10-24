@@ -30,21 +30,30 @@ export default function ShareResumeComments({
         Math.max(thread.lastReadEventSeq, state.lastReadEventSeq),
     ),
   )
+
   const selection = useResumeCommentStore((state) => state.selection)
   const setSelection = useResumeCommentStore((state) => state.setSelection)
+
   const setContentNotice = useResumeCommentStore(
     (state) => state.setContentNotice,
   )
+
   const previousRevision = useRef(documentRevision)
+
   useEffect(() => {
     if (previousRevision.current === documentRevision) return
+
     previousRevision.current = documentRevision
+
     if (!selection) return
+
     setSelection(null)
+
     setContentNotice(
       '简历内容已更新，请重新选择文字后发送。已输入的评论草稿仍然保留。',
     )
   }, [documentRevision, selection, setContentNotice, setSelection])
+
   return (
     <>
       {!open ? (

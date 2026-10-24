@@ -10,8 +10,11 @@ export async function collectPages<T>(
 
   while (true) {
     const page = await fetchPage(from, from + pageSize - 1)
+
     items.push(...page)
+
     if (page.length < pageSize) return items
+
     from += pageSize
   }
 }

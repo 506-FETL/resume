@@ -19,6 +19,7 @@ export default function VersionTimeline({
 }) {
   const previewResumeId = useAssistantStore((s) => s.previewResumeId)
   const navigate = useNavigate()
+
   const isOfflineResume = Boolean(
     previewResumeId && isOfflineResumeId(previewResumeId),
   )

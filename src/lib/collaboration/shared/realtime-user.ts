@@ -27,6 +27,7 @@ export function getPresenceUserId(presence: PresenceLike): number | null {
 
   if (typeof rawUserId === 'string') {
     const parsedUserId = Number(rawUserId)
+
     return Number.isFinite(parsedUserId) ? parsedUserId : null
   }
 

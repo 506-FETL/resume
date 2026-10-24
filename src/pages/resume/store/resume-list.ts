@@ -36,12 +36,14 @@ type SetState = StoreApi<ResumeListState>['setState']
 
 function clearDeletedCurrentResume(resumeId: string) {
   const currentResume = useCurrentResumeStore.getState()
+
   if (currentResume.resumeId === resumeId) currentResume.clearCurrentResume()
 }
 
 export function createResumeListSlice(set: SetState): ResumeListSlice {
   let requestId = 0
   let accountId: string | null | undefined
+
   return {
     resumes: [],
     loading: true,
@@ -54,13 +56,19 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
 
     loadResumes: async () => {
       const request = ++requestId
+
       set({ loadError: null })
+
       try {
         const user = await getCurrentUser()
+
         if (request !== requestId) return
+
         const nextAccountId = user?.id ?? null
+
         if (accountId !== nextAccountId) {
           accountId = nextAccountId
+
           set({
             resumes: [],
             offlineResumes: [],
@@ -68,10 +76,13 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
             accountId: nextAccountId,
           })
         }
+
         set({ isOnline: Boolean(user) })
+
         const outcomes = await Promise.allSettled([
           (async () => {
             const onlineResumes = user ? await getAllResumesFromUser() : []
+
             if (request === requestId)
               set((state) => ({
                 resumes: [
@@ -82,6 +93,7 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
           })(),
           (async () => {
             const localResumes = await getAllOfflineResumes()
+
             const offlineResumes = localResumes.map((r) => ({
               ...r,
               isOffline: true,
@@ -89,6 +101,7 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
                 r.data.templateBinding,
               ),
             }))
+
             if (request === requestId)
               set((state) => ({
                 resumes: [
@@ -99,8 +112,11 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
               }))
           })(),
         ])
+
         if (request !== requestId) return
+
         const failed = outcomes.find((outcome) => outcome.status === 'rejected')
+
         if (failed?.status === 'rejected')
           set({ loadError: getErrorMessage(failed.reason) })
       } catch (error) {
@@ -116,7 +132,9 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
       if (!isOffline) {
         set((state) => {
           const newSet = new Set(state._localDeletingIds)
+
           newSet.add(id)
+
           return { _localDeletingIds: newSet }
         })
       }
@@ -129,12 +147,14 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
                 (r) => r.resume_id !== id,
               ),
             }))
+
             clearDeletedCurrentResume(id)
           })
         : deleteResumeApi(id).then(() => {
             set((state) => ({
               resumes: state.resumes.filter((r) => r.resume_id !== id),
             }))
+
             clearDeletedCurrentResume(id)
           })
 
@@ -145,10 +165,13 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
           if (!isOffline) {
             set((state) => {
               const newSet = new Set(state._localDeletingIds)
+
               newSet.delete(id)
+
               return { _localDeletingIds: newSet }
             })
           }
+
           return '删除失败，请重试'
         },
       })

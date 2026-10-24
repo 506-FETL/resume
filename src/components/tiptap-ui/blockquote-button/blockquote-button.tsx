@@ -19,8 +19,7 @@ import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 import { parseShortcutKeys } from '@/lib/tiptap-utils'
 
 export interface BlockquoteButtonProps
-  extends Omit<ButtonProps, 'type'>,
-  UseBlockquoteConfig {
+  extends Omit<ButtonProps, 'type'>, UseBlockquoteConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -45,8 +44,21 @@ export function BlockquoteShortcutBadge({
  *
  * For custom button implementations, use the `useBlockquote` hook instead.
  */
-export function BlockquoteButton({ ref, editor: providedEditor, text, hideWhenUnavailable = false, onToggled, showShortcut = false, onClick, children, ...buttonProps }: BlockquoteButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
+export function BlockquoteButton({
+  ref,
+  editor: providedEditor,
+  text,
+  hideWhenUnavailable = false,
+  onToggled,
+  showShortcut = false,
+  onClick,
+  children,
+  ...buttonProps
+}: BlockquoteButtonProps & {
+  ref?: React.RefObject<HTMLButtonElement | null>
+}) {
   const { editor } = useTiptapEditor(providedEditor)
+
   const {
     isVisible,
     canToggle,
@@ -64,8 +76,9 @@ export function BlockquoteButton({ ref, editor: providedEditor, text, hideWhenUn
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
-      if (event.defaultPrevented)
-        return
+
+      if (event.defaultPrevented) return
+
       handleToggle()
     },
     [handleToggle, onClick],
@@ -77,24 +90,24 @@ export function BlockquoteButton({ ref, editor: providedEditor, text, hideWhenUn
 
   return (
     <Button
-      type="button"
-      data-style="ghost"
+      type='button'
+      data-style='ghost'
       data-active-state={isActive ? 'on' : 'off'}
-      role="button"
+      role='button'
       tabIndex={-1}
       disabled={!canToggle}
       data-disabled={!canToggle}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip="Blockquote"
+      tooltip='Blockquote'
       onClick={handleClick}
       {...buttonProps}
       ref={ref}
     >
       {children ?? (
         <>
-          <Icon className="tiptap-button-icon" />
-          {text && <span className="tiptap-button-text">{text}</span>}
+          <Icon className='tiptap-button-icon' />
+          {text && <span className='tiptap-button-text'>{text}</span>}
           {showShortcut && (
             <BlockquoteShortcutBadge shortcutKeys={shortcutKeys} />
           )}

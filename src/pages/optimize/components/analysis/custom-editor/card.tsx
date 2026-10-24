@@ -69,6 +69,7 @@ const EDITOR_MAP: Record<
           value={item}
           onChange={(newItem) => {
             const newArray = [...(value as Array<Record<string, unknown>>)]
+
             newArray[index] = newItem
             onChange(newArray)
           }}
@@ -105,11 +106,13 @@ function SuggestionEditCard({
   const handleValueChange = useCallback(
     (updatedValue: AfterValue) => {
       setInternalValue(updatedValue)
+
       const candidate = {
         ...suggestion,
         after: updatedValue,
         requiresUserInput: false,
       }
+
       onChange({
         ...candidate,
         requiresUserInput: !isSuggestionReadyToApply(candidate),
@@ -315,6 +318,7 @@ function ValueEditor({
         value={typeof value === 'number' ? value : ''}
         onChange={(event) => {
           const nextValue = event.currentTarget.valueAsNumber
+
           if (Number.isFinite(nextValue)) onChange(nextValue)
         }}
       />

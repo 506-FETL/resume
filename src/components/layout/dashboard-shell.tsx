@@ -19,6 +19,7 @@ export function DashboardShell({
   fullBleed = false,
 }: DashboardShellProps) {
   const reduceMotion = useReducedMotion()
+
   // Only application pages opt in; resume document containers keep their own layout.
   const usesPageLayout = [
     '/',
@@ -35,6 +36,7 @@ export function DashboardShell({
     '/forgot-password',
     '/reset-password',
   ].includes(routeKey.replace(/\/$/, '') || '/')
+
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
       return localStorage.getItem('sidebarOpen') !== 'false'
@@ -50,6 +52,7 @@ export function DashboardShell({
       open={sidebarOpen}
       onOpenChange={(open) => {
         setSidebarOpen(open)
+
         try {
           localStorage.setItem('sidebarOpen', String(open))
         } catch {

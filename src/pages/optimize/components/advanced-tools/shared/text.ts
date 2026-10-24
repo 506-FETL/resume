@@ -30,6 +30,7 @@ export function normalizeMultilineText(value: string | null | undefined) {
       if (compacted.length > 0 && compacted[compacted.length - 1] !== '') {
         compacted.push('')
       }
+
       return
     }
 
@@ -55,21 +56,25 @@ export function normalizeDateToken(value: string | null | undefined) {
   }
 
   const fullDate = dayjs(normalized, [...DAYJS_FULL_DATE_FORMATS], true)
+
   if (fullDate.isValid()) {
     return fullDate.format('YYYY.MM.DD')
   }
 
   const yearMonth = dayjs(normalized, [...DAYJS_YEAR_MONTH_FORMATS], true)
+
   if (yearMonth.isValid()) {
     return yearMonth.format('YYYY.MM')
   }
 
   const fallback = dayjs(normalized)
+
   return fallback.isValid() ? fallback.format('YYYY.MM.DD') : normalized
 }
 
 export function normalizeDateRange(value: string[] | null | undefined) {
   const range = Array.isArray(value) ? value.slice(0, 2) : ['', '']
+
   while (range.length < 2) {
     range.push('')
   }
@@ -121,6 +126,7 @@ export function extractKeywords(input: string) {
   const phraseTokens = normalized.split(/[\s,，。；;、|/()（）:：]+/g)
 
   const deduped = new Set<string>()
+
   const keywords: string[] = []
 
   ;[...phraseTokens, ...englishTokens, ...chineseTokens].forEach((token) => {

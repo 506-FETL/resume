@@ -40,6 +40,7 @@ export const RESUME_PERSISTED_SELECTOR = RESUME_PERSISTED_FIELDS.join(',')
 
 async function assertCreationOwner(prepared: PreparedResumeCreation) {
   const user = await getCurrentUser()
+
   if (!user || user.id !== prepared.ownerId)
     throw new Error('登录状态已改变，请使用发起创建时的账号重试')
   if (
@@ -48,6 +49,7 @@ async function assertCreationOwner(prepared: PreparedResumeCreation) {
     !isCloudResumeId(prepared.resumeId)
   )
     throw new Error('云端创建操作无效')
+
   return user
 }
 
@@ -55,13 +57,16 @@ export async function findPreparedCloudResume(
   prepared: PreparedResumeCreation,
 ) {
   const user = await assertCreationOwner(prepared)
+
   const { data, error } = await supabase
     .from('resume_config')
     .select('resume_id,display_name,description,created_at,updated_at')
     .eq('user_id', user.id)
     .eq('resume_id', prepared.resumeId)
     .maybeSingle()
+
   if (error) throw error
+
   return data
 }
 
@@ -69,16 +74,19 @@ export async function createResumeFromSnapshot(
   prepared: PreparedResumeCreation,
 ) {
   const user = await assertCreationOwner(prepared)
+
   const source: Record<string, unknown> = {
     ...prepared.snapshot,
     template_binding: prepared.snapshot.templateBinding,
   }
+
   const fields = Object.fromEntries(
     RESUME_PERSISTED_FIELDS.filter((key) => key in source).map((key) => [
       key,
       source[key],
     ]),
   )
+
   const { data, error } = await supabase
     .from('resume_config')
     .insert({
@@ -91,7 +99,9 @@ export async function createResumeFromSnapshot(
     })
     .select('resume_id,display_name,description,created_at,updated_at')
     .single()
+
   if (error) throw error
+
   return data
 }
 
@@ -119,6 +129,7 @@ export async function getAllResumesFromUser() {
         user.id,
         resume.template_binding,
       )
+
       return { ...resume, template_binding: templateBinding, templateBinding }
     }),
   )
@@ -153,6 +164,7 @@ export async function getResumeById<T = Record<string, unknown>>(
       user.id,
       data.template_binding,
     )
+
   return data as T
 }
 
@@ -168,11 +180,13 @@ export async function uploadOfflineResumeToCloud(
   // 安全字段白名单，避免覆盖 user_id 等安全字段
   const ALLOWED_FIELDS = [...RESUME_PERSISTED_FIELDS]
   const safeData: Record<string, unknown> = {}
+
   for (const key of ALLOWED_FIELDS) {
     if (key in resumeData) {
       safeData[key] = resumeData[key]
     }
   }
+
   if (!('template_binding' in safeData) && 'templateBinding' in resumeData) {
     safeData.template_binding = resumeData.templateBinding
   }
@@ -211,7 +225,9 @@ export async function createNewResume(
   const binding =
     options?.templateBinding ??
     toTemplateBinding((await getDefaultTemplateSelection()).template)
+
   const definition = await resolveTemplate(resumeTemplateSource, binding)
+
   const { data, error } = await supabase
     .from('resume_config')
     .insert({

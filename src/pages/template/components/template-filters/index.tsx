@@ -15,6 +15,7 @@ import { useTemplatePageStore } from '../../store.ts'
 export default function TemplateFilters() {
   const facets = useResumeTemplateStore((state) => state.facets)
   const loadFacets = useResumeTemplateStore((state) => state.loadFacets)
+
   const {
     styleFilter,
     layoutFilter,
@@ -22,18 +23,22 @@ export default function TemplateFilters() {
     setLayoutFilter,
     resetFilters,
   } = useTemplatePageStore()
+
   const [open, setOpen] = useState(true)
   const [openGroups, setOpenGroups] = useState({ style: true, layout: true })
   const reduceMotion = useReducedMotion()
+
   const transitionStyle = {
     transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
   }
+
   const collapseStyle = (expanded: boolean) => ({
     animationDuration: reduceMotion
       ? '0s'
       : `${expanded ? DURATION.base : DURATION.fast}s`,
     animationTimingFunction: `cubic-bezier(${(expanded ? EASE.out : EASE.in).join(',')})`,
   })
+
   const groups = [
     {
       key: 'style' as const,
@@ -116,10 +121,12 @@ export default function TemplateFilters() {
           <div className='grid grid-cols-2 gap-4 border-t p-3 lg:grid-cols-1 lg:gap-5 lg:py-4'>
             {groups.map(({ key, title, all, icon: Icon, value, onChange }) => {
               const expanded = openGroups[key]
+
               const options =
                 facets.status === 'ready'
                   ? facets.data[key === 'style' ? 'styles' : 'layouts']
                   : []
+
               return (
                 <Collapsible
                   key={key}

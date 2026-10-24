@@ -27,6 +27,7 @@ function elementHasNestedCommentBlock(element: Element): boolean {
     if (!(child instanceof Element)) {
       return false
     }
+
     return (
       COMMENT_RICH_TEXT_BLOCK_TAGS.has(child.name) ||
       elementHasNestedCommentBlock(child)
@@ -44,6 +45,7 @@ function domNodeText(node: Element['childNodes'][number]): string {
   if (node.name === 'br') {
     return '\n'
   }
+
   return node.childNodes.map(domNodeText).join('')
 }
 
@@ -71,12 +73,15 @@ export function CommentableRichText({
 
   const projectedBlocks = projectCommentRichTextBlocks(html)
   let blockOrdinal = 0
+
   const content = parseSanitizedHtml(html, undefined, {
     transform(reactNode, domNode) {
       if (typeof reactNode === 'string') return reactNode
       if (!isValidElement<{ style?: CSSProperties }>(reactNode)) return null
       if (!(domNode instanceof Element)) return reactNode
+
       const elementStyle = elementStyles?.[domNode.name as RichTextStyleElement]
+
       if (elementStyle) {
         // 只补充净化后元素的样式，保留解析器生成的子节点、key 和评论锚点。
         // eslint-disable-next-line @eslint-react/no-clone-element
@@ -84,6 +89,7 @@ export function CommentableRichText({
           style: { ...elementStyle, ...reactNode.props.style },
         })
       }
+
       return reactNode
     },
     replace(domNode) {
@@ -98,17 +104,22 @@ export function CommentableRichText({
       const blockText = normalizeCommentRichTextBlock(
         domNode.childNodes.map(domNodeText).join(''),
       )
+
       const projectedBlock = projectedBlocks[blockOrdinal]
+
       if (!blockText || !projectedBlock || blockText !== projectedBlock.text) {
         return
       }
 
       if (projection === 'primary')
         domNode.attribs['data-comment-block-ordinal'] = String(blockOrdinal)
+
       blockOrdinal += 1
     },
   })
+
   const canUseParsedContent = blockOrdinal === projectedBlocks.length
+
   const useContainerAsOnlyBlock =
     projectedBlocks.length === 1 && blockOrdinal === 0
 

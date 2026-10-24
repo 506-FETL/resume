@@ -32,15 +32,21 @@ export function VariantLineageButton({
   const current = resumeId
     ? (resumes.find((r) => r.resume_id === resumeId) ?? null)
     : null
+
   const parentId = current?.parent_resume_id ?? null
+
   // 沿父链找根：当前列表里查找祖先
   const findRoot = (id: string | null | undefined): string | null => {
     if (!id) return null
+
     const item = resumes.find((r) => r.resume_id === id)
+
     if (!item) return id
     if (!item.parent_resume_id) return item.resume_id
+
     return findRoot(item.parent_resume_id)
   }
+
   const rootId = findRoot(resumeId)
   const disabled = reviewActive || !resumeId || !parentId
 
@@ -48,6 +54,7 @@ export function VariantLineageButton({
 
   const handleOpen = (id: string) => {
     const target = resumes.find((r) => r.resume_id === id)
+
     setCurrentResume(id, target?.type ?? 'default')
     navigate('/resume/editor')
   }

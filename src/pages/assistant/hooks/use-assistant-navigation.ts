@@ -14,6 +14,7 @@ import { clearLastConversationId, writeLastConversationId } from '../utils'
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
+
   return target.matches('input, textarea, [contenteditable="true"]')
 }
 
@@ -21,6 +22,7 @@ function isPageReload(): boolean {
   const navigation = performance.getEntriesByType('navigation')[0] as
     | PerformanceNavigationTiming
     | undefined
+
   return navigation?.type === 'reload'
 }
 
@@ -33,11 +35,13 @@ export function useAssistantNavigation(bindShortcuts = false) {
     if (!bindShortcuts) return
 
     const routeState = location.state as AssistantRouteState | null
+
     if (!routeState?.from && !isPageReload()) forgetAssistantReturnPath()
   }, [bindShortcuts, location.state])
 
   const closeOverlays = useCallback(() => {
     setOpenMobile(false)
+
     useAssistantStore.setState({
       searchOpen: false,
     })
@@ -54,21 +58,27 @@ export function useAssistantNavigation(bindShortcuts = false) {
       options: OpenConversationOptions = {},
     ): Promise<boolean> => {
       const state = useAssistantStore.getState()
+
       const hasPositionTarget = Object.prototype.hasOwnProperty.call(
         options,
         'targetMessageId',
       )
+
       if (state.activeConversationId === id && !hasPositionTarget) {
         if (options.closeOverlays !== false) closeOverlays()
+
         return true
       }
       if (state.inFlightConversationIds[id]) {
         toast.info('正在保存该会话的进展，请稍后打开')
+
         return false
       }
 
       cancelActiveAssistantRun()
+
       const requestId = crypto.randomUUID()
+
       useAssistantStore.setState({
         streaming: false,
         streamingText: '',
@@ -82,6 +92,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
       try {
         const { messages, hasMore } = await listMessages(id, { limit: 30 })
+
         if (
           useAssistantStore.getState().conversationLoadRequestId !== requestId
         )
@@ -91,8 +102,11 @@ export function useAssistantNavigation(bindShortcuts = false) {
           targetMessageId: options.targetMessageId,
           hasMore,
         })
+
         writeLastConversationId(id)
+
         if (options.closeOverlays !== false) closeOverlays()
+
         return true
       } catch (error) {
         if (
@@ -103,8 +117,10 @@ export function useAssistantNavigation(bindShortcuts = false) {
             conversationLoadRequestId: null,
             loadingMessages: false,
           })
+
           toast.error('加载消息失败', { description: getErrorMessage(error) })
         }
+
         return false
       }
     },
@@ -118,6 +134,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
     clearLastConversationId()
     // 新会话也是一次视图切换，统一重置分页状态并使旧分页请求失效。
     useAssistantStore.getState().setConversationView(null, [], {})
+
     useAssistantStore.setState({
       streaming: false,
       streamingText: '',
@@ -125,6 +142,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
       abortController: null,
       searchOpen: false,
     })
+
     closeOverlays()
   }, [closeOverlays])
 
@@ -132,9 +150,11 @@ export function useAssistantNavigation(bindShortcuts = false) {
     async (id: string) => {
       const { conversations, activeConversationId } =
         useAssistantStore.getState()
+
       const deletedIndex = conversations.findIndex(
         (conversation) => conversation.id === id,
       )
+
       const candidate =
         conversations[deletedIndex + 1] ??
         conversations[deletedIndex - 1] ??
@@ -142,6 +162,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
       try {
         if (activeConversationId === id) cancelActiveAssistantRun()
+
         await deleteConversation(id)
         useAssistantStore.getState().removeConversationLocal(id)
         toast.success('已删除会话')
@@ -149,6 +170,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
         if (activeConversationId !== id) return
 
         clearLastConversationId(id)
+
         if (candidate) await openConversation(candidate.id)
         else useAssistantStore.getState().setConversationView(null, [], {})
       } catch (error) {
@@ -161,12 +183,15 @@ export function useAssistantNavigation(bindShortcuts = false) {
   const returnToWorkspace = useCallback(() => {
     cancelActiveAssistantRun()
     closeOverlays()
+
     const routeState = location.state as AssistantRouteState | null
+
     navigate(resolveAssistantReturnPath(routeState?.from, isPageReload()))
   }, [closeOverlays, location.state, navigate])
 
   const loadOlderMessages = useCallback(async () => {
     const s = useAssistantStore.getState()
+
     if (
       s.loadingOlder ||
       !s.hasMoreMessages ||
@@ -175,21 +200,28 @@ export function useAssistantNavigation(bindShortcuts = false) {
       s.inFlightConversationIds[s.activeConversationId]
     )
       return
+
     useAssistantStore.getState().setLoadingOlder(true)
+
     const convId = s.activeConversationId
+
     const ownsView = () => {
       const current = useAssistantStore.getState()
+
       return (
         current.activeConversationId === convId &&
         current.conversationViewVersion === s.conversationViewVersion
       )
     }
+
     try {
       const { messages, hasMore } = await listMessages(convId, {
         limit: 30,
         before: s.oldestMessageCursor,
       })
+
       if (!ownsView()) return
+
       useAssistantStore.getState().prependOlderMessages(messages, hasMore)
     } catch {
     } finally {
@@ -204,9 +236,11 @@ export function useAssistantNavigation(bindShortcuts = false) {
       if (event.isComposing || event.defaultPrevented) return
 
       const modifier = event.metaKey || event.ctrlKey
+
       if (modifier && event.key.toLowerCase() === 'k') {
         event.preventDefault()
         openSearch()
+
         return
       }
 
@@ -222,6 +256,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
     }
 
     window.addEventListener('keydown', handleKeyDown)
+
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [bindShortcuts, openSearch, startNewConversation])
 

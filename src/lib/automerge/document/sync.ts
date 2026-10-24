@@ -44,6 +44,7 @@ export async function syncAutomergeDocument(
     })
 
     const normalized = normalizeResumeFormData(doc)
+
     applyResumeEntryIdPatches(
       doc,
       collectMissingResumeEntryIdPatches(doc, normalized),
@@ -64,6 +65,7 @@ export async function syncAutomergeDocument(
     })
 
     const normalized = normalizeResumeFormData(resumeConfig)
+
     applyResumeEntryIdPatches(
       resumeConfig,
       collectMissingResumeEntryIdPatches(resumeConfig, normalized),
@@ -99,6 +101,7 @@ export async function replaceAutomergeDocumentSnapshot(
     const resolvedDoc = handle.doc()
     const payload = pickResumePayload(resolvedDoc ?? snapshot, snapshot)
     const { templateBinding, ...resumeConfig } = payload
+
     await updateResumeConfig(resumeId, {
       ...resumeConfig,
       template_binding: templateBinding,
@@ -118,32 +121,46 @@ function applySnapshotToDocument(
 
   doc.basics = payload.basics as AutomergeResumeDocument['basics']
   doc.job_intent = payload.job_intent as AutomergeResumeDocument['job_intent']
+
   doc.application_info =
     payload.application_info as AutomergeResumeDocument['application_info']
+
   doc.edu_background =
     payload.edu_background as AutomergeResumeDocument['edu_background']
+
   doc.work_experience =
     payload.work_experience as AutomergeResumeDocument['work_experience']
+
   doc.internship_experience =
     payload.internship_experience as AutomergeResumeDocument['internship_experience']
+
   doc.campus_experience =
     payload.campus_experience as AutomergeResumeDocument['campus_experience']
+
   doc.project_experience =
     payload.project_experience as AutomergeResumeDocument['project_experience']
+
   doc.skill_specialty =
     payload.skill_specialty as AutomergeResumeDocument['skill_specialty']
+
   doc.honors_certificates =
     payload.honors_certificates as AutomergeResumeDocument['honors_certificates']
+
   doc.self_evaluation =
     payload.self_evaluation as AutomergeResumeDocument['self_evaluation']
+
   doc.hobbies = payload.hobbies as AutomergeResumeDocument['hobbies']
   doc.order = [...payload.order] as AutomergeResumeDocument['order']
+
   doc.visibility = {
     ...payload.visibility,
   } as AutomergeResumeDocument['visibility']
+
   doc.type = payload.type as AutomergeResumeDocument['type']
+
   doc.templateBinding =
     payload.templateBinding as AutomergeResumeDocument['templateBinding']
+
   doc.spacing = { ...payload.spacing } as AutomergeResumeDocument['spacing']
   doc.font = { ...payload.font } as AutomergeResumeDocument['font']
   doc.theme = { ...payload.theme } as AutomergeResumeDocument['theme']

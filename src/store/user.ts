@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import supabase from '@/lib/supabase/client'
 
 export type SupabaseUser = Awaited<ReturnType<typeof getCurrentUser>> | null
+
 export type AuthStatus = 'unknown' | 'authenticated' | 'anonymous'
 
 interface UserStore {

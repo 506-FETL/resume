@@ -27,15 +27,19 @@ export default function ResumeSharePage() {
   const [readingZoom, setReadingZoom] = useState<ReadingZoom>('fit')
   const documentRef = useRef<HTMLDivElement>(null)
   const currentUser = useCurrentUser()
+
   const [documentState, setDocumentState] = useState<ResumeDocumentState>(
     INITIAL_DOCUMENT_STATE,
   )
+
   const snapshot = state.phase === 'ready' ? state.snapshot : null
   const definition = state.phase === 'ready' ? state.templateDefinition : null
+
   const measuredContent = useRef<{
     snapshot: typeof snapshot
     definition: typeof definition
   } | null>(null)
+
   const handleDocumentStateChange = useCallback(
     (next: ResumeDocumentState) => {
       measuredContent.current = { snapshot, definition }
@@ -43,21 +47,26 @@ export default function ResumeSharePage() {
     },
     [snapshot, definition],
   )
+
   const exportDocumentState =
     measuredContent.current?.snapshot === snapshot &&
     measuredContent.current?.definition === definition
       ? documentState
       : INITIAL_DOCUMENT_STATE
+
   useEffect(() => {
     setPassword('')
     setCommentsOpen(false)
     measuredContent.current = null
   }, [token])
+
   const handleCommentAccessInvalidated = useCallback(() => {
     load(undefined, true).catch(() => undefined)
   }, [load])
+
   const handleSubmitPassword = async () => {
     setSubmitting(true)
+
     try {
       await load(password.trim()).catch(() => undefined)
     } finally {

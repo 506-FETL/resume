@@ -15,11 +15,13 @@ export function createResumeDocHtml(
   options: DocHtmlOptions,
 ) {
   const document = new DOMParser().parseFromString(contentHtml, 'text/html')
+
   document
     .querySelectorAll(
       'script, style, iframe, object, embed, button, [data-resume-decoration], svg',
     )
     .forEach((node) => node.remove())
+
   for (const element of document.body.querySelectorAll<HTMLElement>('*')) {
     for (const attribute of Array.from(element.attributes)) {
       if (
@@ -29,13 +31,17 @@ export function createResumeDocHtml(
       )
         element.removeAttribute(attribute.name)
     }
+
     const style = element.style
+
     if (style.display === 'grid' || style.display === 'flex') {
       style.display = 'block'
+
       for (const child of Array.from(element.children)) {
         if (child instanceof HTMLElement) child.style.marginBottom ||= '4px'
       }
     }
+
     style.removeProperty('grid-template-columns')
     style.removeProperty('position')
     style.removeProperty('top')
@@ -47,11 +53,14 @@ export function createResumeDocHtml(
     style.removeProperty('overflow')
     style.removeProperty('width')
     style.removeProperty('max-width')
+
     // 矢量色带已移除；其上的白字转换为正文颜色，避免丢失标题。
     if (['rgb(255, 255, 255)', '#ffffff', 'white'].includes(style.color))
       style.color = options.textPrimary
   }
+
   const margin = (options.pageMargin * PX_TO_MM).toFixed(2)
+
   return `<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>Resume</title>
 <style>

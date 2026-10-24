@@ -16,11 +16,14 @@ export function ThreadPicker({
   onClose: () => void
 }) {
   const reduceMotion = useReducedMotion()
+
   const left = Math.min(
     Math.max(point.x + 8, 12),
     Math.max(12, window.innerWidth - 332),
   )
+
   const top = Math.min(Math.max(point.y + 8, 12), window.innerHeight - 260)
+
   return (
     <motion.div
       data-resume-comment-ui
@@ -68,6 +71,7 @@ export function ThreadPicker({
             const root = thread.comments.find(
               (comment) => comment.parentId === null,
             )
+
             return (
               <Button
                 key={thread.id}

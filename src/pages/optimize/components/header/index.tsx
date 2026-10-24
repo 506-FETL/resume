@@ -39,11 +39,13 @@ function Header() {
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
+
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isProcessing])
 
   const handleStartAnalysis = useCallback(() => {
     setIsOpen(true)
+
     startAnalysis({
       onComplete: () => {
         if (!reduceMotion) celebrate()

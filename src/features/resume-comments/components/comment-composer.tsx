@@ -35,6 +35,7 @@ export function CommentComposer({
   const value = useResumeCommentStore(
     (state) => state.draftsByThreadKey[draftKey] ?? initialValue ?? '',
   )
+
   const setDraft = useResumeCommentStore((state) => state.setDraft)
   const count = useMemo(() => countCommentGraphemes(value), [value])
   const valid = value.trim().length > 0 && count <= COMMENT_BODY_MAX_GRAPHEMES
@@ -44,7 +45,9 @@ export function CommentComposer({
       className='space-y-2'
       onSubmit={(event) => {
         event.preventDefault()
+
         if (!valid || disabled || submitDisabled || pending) return
+
         onSubmit(value.trim()).catch(() => undefined)
       }}
     >

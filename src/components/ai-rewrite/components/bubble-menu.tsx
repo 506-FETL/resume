@@ -39,12 +39,15 @@ export function RewriteBubbleMenu({
 
   useEffect(() => {
     const element = measureRef.current
+
     if (!measuring || !element || !onFullWidthChange) return
 
     const reportWidth = () => {
       onFullWidthChange(element.getBoundingClientRect().width)
     }
+
     const observer = new ResizeObserver(reportWidth)
+
     observer.observe(element)
     reportWidth()
 
@@ -96,10 +99,13 @@ export function RewriteBubbleMenu({
       },
     },
   }
+
   const animationState = visible ? 'visible' : 'hidden'
+
   const handleAnimationComplete = (definition: AnimationDefinition) => {
     if (definition === 'hidden') onHidden?.()
   }
+
   if (measuring) {
     return (
       <div

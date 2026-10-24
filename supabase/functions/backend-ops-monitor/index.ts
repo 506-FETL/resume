@@ -28,6 +28,7 @@ Deno.serve(async (request) => {
     'backend-ops-monitor',
     'allowlist',
   )
+
   let admin: AdminClient | null = null
 
   const respond = (
@@ -48,6 +49,7 @@ Deno.serve(async (request) => {
       status,
       errorCode,
     })
+
     if (admin) {
       scheduleBackground(
         recordOperationMetric(admin, {
@@ -61,6 +63,7 @@ Deno.serve(async (request) => {
         }),
       )
     }
+
     return context.json(body, status)
   }
 
@@ -80,6 +83,7 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   const maintenanceToken = Deno.env.get('BACKEND_MAINTENANCE_TOKEN')
+
   if (
     !supabaseUrl ||
     !serviceRoleKey ||
@@ -104,6 +108,7 @@ Deno.serve(async (request) => {
 
   const rawBody = await request.text()
   let body: unknown = {}
+
   try {
     body = rawBody.trim() ? JSON.parse(rawBody) : {}
   } catch {
@@ -114,6 +119,7 @@ Deno.serve(async (request) => {
       'unsupported_payload',
     )
   }
+
   if (
     !body ||
     typeof body !== 'object' ||
@@ -129,9 +135,11 @@ Deno.serve(async (request) => {
   }
 
   admin = createAdminClient(supabaseUrl, serviceRoleKey)
+
   const { data, error } = await admin.rpc('evaluate_backend_ops_alerts_v1', {
     p_window_minutes: 15,
   })
+
   if (error) {
     return respond(
       { error: 'ops_snapshot_failed' },
@@ -140,7 +148,9 @@ Deno.serve(async (request) => {
       'ops_snapshot_failed',
     )
   }
+
   const snapshot = readBackendOpsSnapshot(data)
+
   if (!snapshot) {
     return respond(
       { error: 'ops_snapshot_invalid' },
@@ -149,6 +159,7 @@ Deno.serve(async (request) => {
       'ops_snapshot_invalid',
     )
   }
+
   const webhookUrl = readHttpsWebhookUrl(Deno.env.get('OPS_ALERT_WEBHOOK_URL'))
 
   if (snapshot.notificationCodes.length === 0) {
@@ -175,6 +186,7 @@ Deno.serve(async (request) => {
         alertCount: snapshot.notificationCodes.length,
       }),
     )
+
     return respond(
       {
         ok: true,
@@ -188,6 +200,7 @@ Deno.serve(async (request) => {
   }
 
   let webhookResponse: Response
+
   try {
     webhookResponse = await fetch(webhookUrl, {
       method: 'POST',
@@ -206,6 +219,7 @@ Deno.serve(async (request) => {
       'alert_delivery_failed',
     )
   }
+
   if (!webhookResponse.ok) {
     return respond(
       { error: 'alert_delivery_failed' },
@@ -218,6 +232,7 @@ Deno.serve(async (request) => {
   const { error: ackError } = await admin.rpc('ack_backend_alert_delivery_v1', {
     p_alert_codes: snapshot.notificationCodes,
   })
+
   if (ackError) {
     return respond(
       { error: 'alert_ack_failed' },

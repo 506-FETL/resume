@@ -164,6 +164,7 @@ export async function listResumeVersions(
   resumeId: string,
 ): Promise<ResumeVersionListItem[]> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登陆')
 
   const [versions, shares] = await Promise.all([
@@ -176,7 +177,9 @@ export async function listResumeVersions(
         .order('status', { ascending: true })
         .order('version_no', { ascending: false })
         .range(from, to)
+
       if (error) throw error
+
       return (data ?? []) as ResumeHistoryVersionListRow[]
     }),
     collectPages(async (from, to) => {
@@ -187,18 +190,24 @@ export async function listResumeVersions(
         .eq('user_id', user.id)
         .is('archived_at', null)
         .range(from, to)
+
       if (error) throw error
+
       return (data ?? []) as Array<{ version_id: number | null }>
     }),
   ])
+
   const sharedCounts = new Map<number, number>()
+
   for (const share of shares) {
     if (share.version_id == null) continue
+
     sharedCounts.set(
       share.version_id,
       (sharedCounts.get(share.version_id) ?? 0) + 1,
     )
   }
+
   return versions.map((version) => ({
     ...version,
     shared_link_count: sharedCounts.get(version.id) ?? 0,
@@ -207,6 +216,7 @@ export async function listResumeVersions(
 
 export async function getCurrentResumeVersion(resumeId: string) {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登陆')
 
   const { data, error } = await supabase
@@ -216,7 +226,9 @@ export async function getCurrentResumeVersion(resumeId: string) {
     .eq('user_id', user.id)
     .eq('status', 'active')
     .single()
+
   if (error) throw error
+
   return data as ResumeHistoryVersionRow
 }
 
@@ -225,15 +237,21 @@ export async function createNextResumeVersion(
   versionName: string | null,
 ) {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登陆')
+
   const { data, error } = await supabase.rpc('create_next_resume_version', {
     p_resume_id: resumeId,
     p_version_name: versionName?.trim() || null,
   })
+
   if (error) throw error
+
   const versionId = Number(data)
+
   if (!Number.isSafeInteger(versionId) || versionId <= 0)
     throw new Error('新版本创建结果无效')
+
   return versionId
 }
 
@@ -402,10 +420,12 @@ export async function deleteResumeHistoryVersion(id: number) {
   }
   if (typeof BroadcastChannel !== 'undefined') {
     const channel = new BroadcastChannel('resume-history-events')
+
     channel.postMessage({
       type: 'history-version-deleted',
       historyVersionId: id,
     })
+
     channel.close()
   }
 }

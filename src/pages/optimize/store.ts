@@ -67,26 +67,34 @@ interface AtsStore {
 
 const useAtsStore = create<AtsStore>()((set, get) => {
   let initRequestId = 0
+
   const init = async () => {
     const requestId = ++initRequestId
+
     set({ loadError: null })
+
     try {
       // 已有报告（包括已加载的空列表）时静默刷新，避免重新挂载整页内容。
       if (get().atsConfigs === null && !get().loading) set({ loading: true })
 
       const rawData = await getAtsFromUserId()
+
       if (requestId !== initRequestId) return
+
       const latestByResume = new Map<string, AtsEvaluationResult>()
+
       for (const config of rawData ?? []) {
         if (!latestByResume.has(config.resume_id))
           latestByResume.set(config.resume_id, config)
       }
+
       const data = [...latestByResume.values()].map((config) => ({
         ...config,
         findings: ensureAtsFindingsHaveSuggestions(config.findings),
       }))
 
       const { selectedResumeId } = get()
+
       set({
         atsConfigs: data,
         currentAtsConfig: selectedResumeId
@@ -96,10 +104,14 @@ const useAtsStore = create<AtsStore>()((set, get) => {
       })
     } catch (error: unknown) {
       const user = await getCurrentUser()
+
       if (requestId !== initRequestId) return
+
       const current = get().currentAtsConfig
+
       if (!user || (current && current.user_id !== user.id))
         set({ atsConfigs: null, currentAtsConfig: null })
+
       toast.error(getErrorMessage(error, '加载失败'))
       set({ loadError: getErrorMessage(error, '加载失败') })
       // 刷新失败保留当前报告；首次加载仍可重试。
@@ -113,8 +125,10 @@ const useAtsStore = create<AtsStore>()((set, get) => {
 
     // 尝试切换到对应的 ATS Config
     const { atsConfigs } = get()
+
     if (atsConfigs) {
       const config = atsConfigs.find((c) => c.resume_id === id)
+
       set({ currentAtsConfig: config || null })
     }
   }
@@ -158,6 +172,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
     if (!currentAtsConfig) return
 
     const nextCurrentAtsConfig = { ...currentAtsConfig, [key]: value }
+
     const nextAtsConfigs =
       atsConfigs?.map((config) =>
         config.id === currentAtsConfig.id ? nextCurrentAtsConfig : config,
@@ -187,6 +202,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
           fixChecklist: updatedFixCheckList,
         },
       }))
+
       await updateFixChecklist(updatedFixCheckList, currentAtsConfig.id)
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, '操作失败'))
@@ -199,10 +215,12 @@ const useAtsStore = create<AtsStore>()((set, get) => {
 
     if (!selectedResumeId) {
       toast.error('请先选择一份简历')
+
       return
     }
 
     resetAnalysisState()
+
     toast.info(
       '分析开始，可能需要一些时间，在此期间你可以随意切换页面，但请不要刷新或关闭浏览器',
     )
@@ -216,6 +234,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
         updateLog('upload', '检测到本地简历，上传至云端...')
 
         const offlineResume = await getOfflineResumeById(selectedResumeId)
+
         if (!offlineResume) {
           throw new Error('本地简历不存在')
         }
@@ -239,11 +258,14 @@ const useAtsStore = create<AtsStore>()((set, get) => {
 
       setAnalysisState({ status: 'fetching' })
       updateLog('fetch', '正在获取简历...')
+
       const resumeData = await fetchResumeDataForAnalysis(
         currentResumeId,
         false,
       )
+
       const assessmentInput = buildAtsAssessmentInput(resumeData)
+
       updateLog('fetch', '准备上传至LLM', true)
 
       setAnalysisState({ status: 'sending' })
@@ -276,6 +298,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
             'AI 只返回了思考过程，未生成评估结果（模型输出可能超时或被截断），请重新发起分析',
           )
         }
+
         throw new Error('AI 未返回任何内容，请检查网络后重新发起分析')
       }
 
@@ -288,6 +311,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
       updateLog('result', '已收到结果')
 
       const result = parseLlmJsonObject<AtsLlmDraft>(finalContent)
+
       const normalizedResult = normalizeAtsEvaluationResult(
         result,
         assessmentInput,
@@ -300,6 +324,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
         normalizedResult,
         currentResumeId,
       )
+
       await createAtsConfig(payload)
       updateLog('save', '报告已生成', true)
       toast.success('ATS 分析报告已生成')

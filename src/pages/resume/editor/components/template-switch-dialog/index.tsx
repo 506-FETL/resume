@@ -33,49 +33,67 @@ import TemplateSwitchPreview from '../template-switch-preview'
 
 function DialogBody() {
   const live = useResumeStore()
+
   // 外观单独存储；协作/本地外观变化也必须使预览就绪证据失效。
   useResumeConfigStore()
+
   const state = useTemplateSwitchStore()
   const binding = state.selectedBinding ?? live.templateBinding
   const current = useTemplateCatalogEntry(live.templateBinding?.templateId)
   const selected = useTemplateCatalogEntry(binding?.templateId)
+
   const definition = useResumeTemplateStore((store) =>
     binding ? store.definitions[templateKey(binding)] : undefined,
   )
+
   const reduceMotion = useReducedMotion()
   const isMobile = useIsMobile()
   const [mobileTab, setMobileTab] = useState<'list' | 'preview'>('list')
+
   const [prepared, setPrepared] = useState<TemplateSwitchPreviewState | null>(
     null,
   )
+
   const snapshot = live.getPersistedSnapshot()
   const referenceDate = templateSwitchReferenceDate()
+
   const contentKey = binding
     ? createTemplateSwitchContentKey(snapshot, binding, referenceDate)
     : ''
+
   const ready =
     prepared?.contentKey === contentKey &&
     prepared.document.status === 'ready' &&
     !!prepared.document.signature
+
   const previewError =
     prepared?.contentKey === contentKey && prepared.document.status === 'error'
+
   const same = sameTemplateBinding(binding, live.templateBinding)
+
   const pageCount = ready
     ? prepared.document.signature?.pages.length
     : undefined
+
   const name = selected.item?.name ?? '所选模板'
+
   const noPhoto =
     !!snapshot.basics.photo &&
     definition?.status === 'ready' &&
     !templateHasPhoto(definition.data)
+
   const currentName = current.item?.name ?? '当前模板'
+
   const apply = () => {
     if (!ready || !binding) return
     if (!state.applyTemplate({ binding, contentKey })) {
       toast.error('暂未更换模板，请等待最新预览就绪后重试')
+
       return
     }
+
     const record = useTemplateSwitchStore.getState().undoRecord
+
     toast.success(`已更换为${name}`, {
       description: '简历内容与外观设置已保留',
       actionButtonStyle: {
@@ -98,6 +116,7 @@ function DialogBody() {
         : undefined,
     })
   }
+
   return (
     <>
       <DialogHeader className='shrink-0 border-b p-5 pr-14 md:px-6'>
@@ -272,6 +291,7 @@ export default function TemplateSwitchDialog({
   const open = useTemplateSwitchStore((state) => state.open)
   const close = useTemplateSwitchStore((state) => state.closeDialog)
   const reduceMotion = useReducedMotion()
+
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
       <DialogContent

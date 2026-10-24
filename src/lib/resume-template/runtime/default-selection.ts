@@ -10,11 +10,15 @@ export async function resolveDefaultTemplateBinding(
   source: TemplateSource = resumeTemplateSource,
 ) {
   const existing = readResumeListTemplateBinding(binding)
+
   if (existing) return existing
+
   const resolved = toTemplateBinding(
     (await getDefaultTemplateSelection(source)).template,
   )
+
   await resolveTemplate(source, resolved)
+
   return resolved
 }
 
@@ -23,9 +27,11 @@ export async function getDefaultTemplateSelection(
   source: TemplateSource = resumeTemplateSource,
 ) {
   let offset: number | null = 0
+
   do {
     const page = await source.listTemplatePage({ offset })
     const item = page.items.find((item) => item.templateId === 'default')
+
     if (item)
       return {
         template: {
@@ -34,8 +40,10 @@ export async function getDefaultTemplateSelection(
         },
         example: item.defaultExample,
       }
+
     offset = page.nextOffset
   } while (offset !== null)
+
   throw new TemplateResolutionError(
     'VERSION_NOT_FOUND',
     '默认模板尚未发布，请稍后重试',

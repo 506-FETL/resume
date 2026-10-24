@@ -27,26 +27,31 @@ export function UpdatePasswordDialog() {
   const validatePassword = useCallback(() => {
     if (!oldPassword) {
       toast.error('请输入旧密码')
+
       return false
     }
 
     if (!newPassword) {
       toast.error('请输入新密码')
+
       return false
     }
 
     if (newPassword.length < 6) {
       toast.error('新密码至少需要 6 个字符')
+
       return false
     }
 
     if (newPassword === oldPassword) {
       toast.error('新密码不能与旧密码相同')
+
       return false
     }
 
     if (newPassword !== confirmPassword) {
       toast.error('两次输入的新密码不一致')
+
       return false
     }
 
@@ -57,6 +62,7 @@ export function UpdatePasswordDialog() {
     if (!validatePassword()) return
 
     setLoading(true)
+
     try {
       // 先验证旧密码
       const {
@@ -66,6 +72,7 @@ export function UpdatePasswordDialog() {
       if (!user?.email) {
         toast.error('无法获取用户信息')
         setLoading(false)
+
         return
       }
 
@@ -78,6 +85,7 @@ export function UpdatePasswordDialog() {
       if (signInError) {
         toast.error('旧密码错误')
         setLoading(false)
+
         return
       }
 

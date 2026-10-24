@@ -60,10 +60,14 @@ const useAiQuotaStore = create<AiQuotaStore>((set, get) => ({
   currentUserId: undefined,
   fetchQuota: () => {
     const userId = get().currentUserId
+
     if (!userId) return Promise.resolve()
     if (inflight) return inflight
+
     const identity = captureAiQuotaIdentity(userId)
+
     set({ loading: true, error: null })
+
     const request: Promise<void> = (async () => {
       try {
         // 直接查额度：supabase-js 会自动带上 storage 中「当前」的 access_token，
@@ -71,6 +75,7 @@ const useAiQuotaStore = create<AiQuotaStore>((set, get) => ({
         // 刻意不调用 auth.getUser()：它会发网络请求且存在已知的 hang/死锁问题，
         // 一旦卡住会让 inflight 永不 resolve，导致必须刷新页面才恢复。
         const quota = await getAiQuota()
+
         if (isCurrentIdentity(identity, get().currentUserId))
           set({ quota, loading: false, error: null, hasFetched: true })
       } catch (e) {
@@ -80,13 +85,18 @@ const useAiQuotaStore = create<AiQuotaStore>((set, get) => ({
     })().finally(() => {
       if (inflight === request) inflight = null
     })
+
     inflight = request
+
     return request
   },
   applyReservation: (reservation, identity) => {
     if (!isCurrentIdentity(identity, get().currentUserId)) return
+
     const { quota } = get()
+
     if (!quota) return
+
     set({
       quota: {
         ...quota,
@@ -132,7 +142,9 @@ supabase.auth.onAuthStateChange((_event, session) => {
 
   // 身份变化（首屏 / 登录 / 登出 / 切换账号）：丢弃旧身份可能残留的 in-flight，清空旧额度
   const generation = ++identityGeneration
+
   inflight = null
+
   useAiQuotaStore.setState({
     currentUserId: uid,
     quota: null,

@@ -79,5 +79,6 @@ function toFullPath(
   const segments = relativePath
     .split('.')
     .map((seg) => (/^\d+$/.test(seg) ? Number(seg) : seg))
+
   return [sectionKey, ...segments]
 }

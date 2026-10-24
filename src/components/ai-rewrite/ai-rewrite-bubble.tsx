@@ -35,16 +35,20 @@ const COMPACT_BUBBLE_WIDTH = 42
 export function AiRewriteBubble({ editor, fieldContext }: Props) {
   const { state, run, setJdDraft, reset, retry, cancel, waitForJd } =
     useAiRewrite({ fieldContext })
+
   const [bubbleEl, setBubbleEl] = useState<HTMLDivElement | null>(null)
   const [bubbleVisible, setBubbleVisible] = useState(false)
   const [measureEl, setMeasureEl] = useState<HTMLDivElement | null>(null)
   const [boundaryEl, setBoundaryEl] = useState<HTMLElement | null>(null)
   const [fullMenuWidth, setFullMenuWidth] = useState(0)
   const [availableWidth, setAvailableWidth] = useState(0)
+
   const [savedSelection, setSavedSelection] = useState<RewriteSelection | null>(
     null,
   )
+
   const bubbleVisibleRef = useRef(false)
+
   const bubbleMode =
     fullMenuWidth > 0
       ? getBubbleDisplayMode({
@@ -86,7 +90,9 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     const boundary =
       editor.view.dom.closest<HTMLElement>('.simple-editor-content') ??
       editor.view.dom.parentElement
+
     setBoundaryEl(boundary)
+
     if (!boundary) return
 
     const updateAvailableWidth = () => {
@@ -97,7 +103,9 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
         ),
       )
     }
+
     const observer = new ResizeObserver(updateAvailableWidth)
+
     observer.observe(boundary)
     updateAvailableWidth()
 
@@ -125,6 +133,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     if (!bubbleEl || !boundaryEl || bubbleMode === 'hidden') return
 
     let disposed = false
+
     const plugin = BubbleMenuPlugin({
       editor,
       element: bubbleEl,
@@ -132,7 +141,9 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       appendTo: () => document.body,
       getReferencedVirtualElement: () => {
         const reference = createSelectionVirtualElement(editor, boundaryEl)
+
         bubbleEl.style.visibility = reference ? 'visible' : 'hidden'
+
         return reference
       },
       options: {
@@ -205,6 +216,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     if (bubbleMode === 'hidden') return
 
     const frame = requestAnimationFrame(updateBubblePosition)
+
     return () => cancelAnimationFrame(frame)
   }, [availableWidth, bubbleMode, fullMenuWidth, updateBubblePosition])
 
@@ -212,10 +224,12 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     if (!boundaryEl || bubbleMode === 'hidden') return
 
     let frame = 0
+
     const schedulePositionUpdate = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(updateBubblePosition)
     }
+
     window.addEventListener('scroll', schedulePositionUpdate, true)
 
     return () => {
@@ -242,6 +256,7 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       state.jdDraft.trim().length < JD_MIN_CHARS
     ) {
       waitForJd()
+
       return
     }
 

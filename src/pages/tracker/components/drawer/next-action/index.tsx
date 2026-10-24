@@ -41,9 +41,11 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
   const isDirty =
     action.trim() !== (job.next_action ?? '').trim() ||
     date !== (job.next_action_date ?? null)
+
   const badge = getNextActionBadge(job)
   const selectedDate = date ? dayjs(date).toDate() : undefined
   const hasSavedAction = Boolean(job.next_action || job.next_action_date)
+
   const chooseDate = (value: string | null) => {
     setDate(value)
     setDateOpen(false)
@@ -51,8 +53,11 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
 
   const handleSave = async () => {
     if (!isDirty || saving) return
+
     setSaving(true)
+
     const trimmed = action.trim()
+
     try {
       await saveJobFields(job.id, {
         next_action: trimmed || null,
@@ -60,6 +65,7 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
       })
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('保存失败', { description: getTrackerErrorMessage(error) })
     } finally {
       setSaving(false)
@@ -68,12 +74,14 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
 
   const handleClear = async () => {
     setSaving(true)
+
     try {
       await saveJobFields(job.id, { next_action: null, next_action_date: null })
       setAction('')
       setDate(null)
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
+
       toast.error('操作失败', { description: getTrackerErrorMessage(error) })
     } finally {
       setSaving(false)

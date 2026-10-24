@@ -13,4 +13,5 @@ const useResumeListStore = create<ResumeListState>()((set, get) => ({
 }))
 
 export default useResumeListStore
+
 export type { ResumeListState } from './types'

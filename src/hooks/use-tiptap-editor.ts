@@ -22,6 +22,7 @@ export function useTiptapEditor(providedEditor?: Editor | null): {
   canCommand?: Editor['can']
 } {
   const { editor: coreEditor } = useCurrentEditor()
+
   const mainEditor = React.useMemo(
     () => providedEditor || coreEditor,
     [providedEditor, coreEditor],

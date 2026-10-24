@@ -43,15 +43,19 @@ export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
     selectedExamples,
     selectExample,
   } = useTemplatePageStore()
+
   const selectedExample =
     selectedExamples[item.templateId] ?? item.defaultExample
+
   const category = item.category
   const creation = useTemplateCreation(item)
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
+
   const transitionStyle = {
     transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
   }
+
   function renderContent(mobile: boolean) {
     const Header = mobile ? DrawerHeader : DialogHeader
     const Title = mobile ? DrawerTitle : DialogTitle
@@ -85,6 +89,7 @@ export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
                 const ref = item.examples.find(
                   (example) => example.exampleId === id,
                 )
+
                 if (ref) selectExample(item.templateId, ref)
               }}
               disabled={creation.loading}
@@ -212,6 +217,7 @@ export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
           onCloseAutoFocus={(event) => {
             if (isMobile) {
               event.preventDefault()
+
               return
             }
             if (previewTrigger?.isConnected) {

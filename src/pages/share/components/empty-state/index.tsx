@@ -20,10 +20,13 @@ interface EmptyStateProps {
 
 export default function EmptyState({ filtered }: EmptyStateProps) {
   const { resetFilters } = useShareFilterActions()
+
   const canCreate = useShareStore(
     (state) => Object.keys(state.resumeMap).length > 0,
   )
+
   const [createOpen, setCreateOpen] = useState(false)
+
   return (
     <>
       <Empty className='min-h-80 rounded-2xl border border-dashed bg-muted/15'>

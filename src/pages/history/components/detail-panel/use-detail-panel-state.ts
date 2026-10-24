@@ -40,19 +40,24 @@ export function useHistoryDetailPanelState(
   activeResumeId: string | null,
 ): HistoryDetailPanelState {
   const versions = useHistoryStore((state) => state.versions)
+
   const updateVersionMetadata = useHistoryStore(
     (state) => state.updateVersionMetadata,
   )
+
   const showDetail = useHistoryStore((state) => state.showDetail)
   const showTimeline = useHistoryStore((state) => state.showTimeline)
 
   const [selectedEntry, setSelectedEntry] =
     useState<HistorySelection>('current')
+
   const [editing, setEditing] = useState(false)
   const [editDraft, setEditDraft] = useState<VersionMetadataDraft>(EMPTY_DRAFT)
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
+
   const [pendingDiscardAction, setPendingDiscardAction] =
     useState<PendingDiscardAction>(null)
+
   const [activeTab, setActiveTab] = useState<HistoryDetailTab>('resume')
 
   const selectedVersion = useMemo(
@@ -78,6 +83,7 @@ export function useHistoryDetailPanelState(
       setSelectedEntry(target)
       resetEditingState()
       clearPendingDiscard()
+
       if (target !== null) showDetail()
     },
     [clearPendingDiscard, resetEditingState, showDetail],
@@ -112,6 +118,7 @@ export function useHistoryDetailPanelState(
 
       setPendingDiscardAction(action)
       setDiscardDialogOpen(true)
+
       return true
     },
     [hasDirtyEditDraft],
@@ -121,6 +128,7 @@ export function useHistoryDetailPanelState(
     (target: HistorySelection) => {
       if (selectedEntry === target) {
         if (target !== null) showDetail()
+
         return
       }
 
@@ -188,10 +196,12 @@ export function useHistoryDetailPanelState(
   const confirmDiscardChanges = useCallback(() => {
     if (pendingDiscardAction?.type === 'back') {
       backToTimeline()
+
       return
     }
     if (pendingDiscardAction?.type === 'select') {
       selectEntry(pendingDiscardAction.target)
+
       return
     }
 

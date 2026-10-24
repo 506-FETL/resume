@@ -33,23 +33,30 @@ interface SkillRuntimeOptions {
 export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, readSkillResource } }: SkillRuntimeOptions) {
   const activated = new Map<string, Awaited<ReturnType<typeof loadSkill>>>()
   const resources = new Set<string>()
+
   const checkAborted = () => {
     if (signal.aborted)
       throw new DOMException('aborted', 'AbortError')
   }
+
   const requireString = (value: unknown, field: string): string => {
     if (typeof value !== 'string' || !value)
       throw new Error(`${field} 必须是非空字符串`)
+
     return value
   }
+
   const optionalVersion = (value: unknown) => value === undefined ? undefined : requireString(value, 'version')
 
   async function activate(id: string, version?: string) {
     checkAborted()
+
     const existing = activated.get(id)
+
     if (existing) {
       if (version && version !== existing.version)
         throw new Error(`技能「${id}」的版本 ${version} 不可用，请重新选择技能。`)
+
       return {
         skillId: id,
         version: existing.version,
@@ -59,9 +66,12 @@ export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, 
         message: '本轮已经加载该技能，请使用已有规则继续，不必重复加载。',
       }
     }
+
     const loaded = await loaders.loadSkill(id, version)
+
     checkAborted()
     activated.set(id, loaded)
+
     return {
       skillId: id,
       version: loaded.version,
@@ -104,23 +114,32 @@ export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, 
       },
       execute: async (args) => {
         checkAborted()
+
         const id = requireString(args.skillId, 'skillId')
         const path = requireString(args.path, 'path')
         const version = optionalVersion(args.version)
         const skill = activated.get(id)
+
         if (!skill)
           throw new Error('请先调用 activate_skill 加载该技能，再读取参考资料。')
         if (version && version !== skill.version)
           throw new Error('参考资料版本与本轮加载的技能不一致。')
+
         const resource = skill.resources.find(item => item.path === path)
+
         if (!resource)
           throw new Error('参考资料不在该技能的可读清单中。')
+
         const key = `${id}@${skill.version}:${path}`
+
         if (resources.has(key))
           return { skillId: id, version: skill.version, path, title: resource.title, alreadyLoaded: true, message: '本轮已读取该资料，请使用已有内容。' }
+
         const loaded = await loaders.readSkillResource(id, path, skill.version)
+
         checkAborted()
         resources.add(key)
+
         return { skillId: id, version: skill.version, ...loaded }
       },
     },
@@ -128,8 +147,10 @@ export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, 
 
   async function loadExplicit(references: readonly AiSkillReference[]): Promise<string> {
     const contexts: string[] = []
+
     for (const reference of references) {
       checkAborted()
+
       const activity: AiSkillActivity = {
         type: 'skill-activity',
         id: crypto.randomUUID(),
@@ -138,19 +159,25 @@ export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, 
         displayName: getSkillDefinition(reference.skillId)?.displayName ?? reference.displayName,
         state: 'loading',
       }
+
       onActivity?.(activity)
+
       try {
         const result = await activate(reference.skillId, reference.version)
+
         if ('instructions' in result) {
           contexts.push(`### ${result.displayName}（${result.skillId}@${result.version}）\n${result.instructions}\n可用参考资料：${JSON.stringify(result.resources)}`)
         }
+
         onActivity?.({ ...activity, state: 'ready' })
       }
       catch (error) {
         onActivity?.({ ...activity, state: 'error', error: signal.aborted ? '加载已停止' : error instanceof Error ? error.message : '技能加载失败' })
+
         throw error
       }
     }
+
     return contexts.length ? `## 本轮已加载技能\n以下工作说明仅用于用户当前任务。\n${contexts.join('\n\n')}` : ''
   }
 
@@ -161,6 +188,8 @@ export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, 
 export function summarizeSkillToolResult(toolName: string, result: unknown): unknown {
   if (!isSkillTool(toolName) || !result || typeof result !== 'object')
     return result
+
   const { instructions: _instructions, content: _content, ...summary } = result as Record<string, unknown>
+
   return { ...summary, historyOnly: true, message: '这是历史技能调用记录。继续该任务时请重新激活相同版本，按需读取资料。' }
 }

@@ -21,6 +21,7 @@ export function ProfileAvatar() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [cropOpen, setCropOpen] = useState(false)
+
   const [pendingAvatar, setPendingAvatar] =
     useState<PendingAvatarSelection | null>(null)
 
@@ -38,8 +39,10 @@ export function ProfileAvatar() {
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+
     if (!file) {
       e.target.value = ''
+
       return
     }
 
@@ -47,6 +50,7 @@ export function ProfileAvatar() {
     if (!file.type.startsWith('image/')) {
       toast.error('请选择图片文件')
       e.target.value = ''
+
       return
     }
 
@@ -54,15 +58,18 @@ export function ProfileAvatar() {
     if (file.size > 5 * 1024 * 1024) {
       toast.error('图片大小不能超过 5MB')
       e.target.value = ''
+
       return
     }
 
     clearPendingAvatar()
+
     setPendingAvatar({
       name: file.name,
       src: URL.createObjectURL(file),
       type: file.type,
     })
+
     setCropOpen(true)
     e.target.value = ''
   }
@@ -85,6 +92,7 @@ export function ProfileAvatar() {
     if (!pendingAvatar) return
 
     setUploading(true)
+
     try {
       const croppedFile = await createCroppedImageFile({
         imageSrc: pendingAvatar.src,
@@ -99,6 +107,7 @@ export function ProfileAvatar() {
       setCropOpen(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误'
+
       toast.error(`头像上传失败，请稍后重试：${message}`)
     } finally {
       setUploading(false)

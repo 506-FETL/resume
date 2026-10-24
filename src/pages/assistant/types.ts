@@ -24,6 +24,7 @@ export type AssistantLayoutMode = 'split' | 'drawer'
 export type CanvasTabKey = 'resume' | 'board' | 'version' | 'changes'
 
 export type CanvasChangeCategory = 'resume' | 'board' | 'version' | 'read'
+
 export type CanvasChangeAction =
   | 'read'
   | 'create'

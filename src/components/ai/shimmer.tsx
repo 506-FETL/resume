@@ -18,6 +18,7 @@ function ShimmerComponent({
   spread = 2,
 }: TextShimmerProps) {
   const reduceMotion = useReducedMotion()
+
   const dynamicSpread = useMemo(
     () => (children?.length ?? 0) * spread,
     [children, spread],

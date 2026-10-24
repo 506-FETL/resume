@@ -40,6 +40,7 @@ function serializeCommentDom(node: Node): string {
   ) {
     return '\n'
   }
+
   return Array.from(node.childNodes).map(serializeCommentDom).join('')
 }
 
@@ -49,10 +50,12 @@ function serializedCommentDomAroundPoint(
   offset: number,
 ) {
   const before = block.ownerDocument.createRange()
+
   before.selectNodeContents(block)
   before.setEnd(container, offset)
 
   const after = block.ownerDocument.createRange()
+
   after.selectNodeContents(block)
   after.setStart(container, offset)
 
@@ -67,9 +70,11 @@ function countCommonPrefixGraphemes(left: string, right: string) {
   const rightGraphemes = splitCommentGraphemes(right)
   const length = Math.min(leftGraphemes.length, rightGraphemes.length)
   let index = 0
+
   while (index < length && leftGraphemes[index] === rightGraphemes[index]) {
     index += 1
   }
+
   return index
 }
 
@@ -83,18 +88,24 @@ export function commentDomPointToGraphemeOffset(
     container,
     offset,
   )
+
   const marker = COMMENT_POINT_MARKERS.find(
     (value) => !before.includes(value) && !after.includes(value),
   )
+
   if (!marker) {
     return null
   }
+
   const markedText = normalizeCommentRichTextBlock(`${before}${marker}${after}`)
   const markerIndex = markedText.indexOf(marker)
+
   if (markerIndex < 0) {
     return null
   }
+
   const normalizedBlock = normalizeCommentRichTextBlock(`${before}${after}`)
+
   return countCommonPrefixGraphemes(
     markedText.slice(0, markerIndex),
     normalizedBlock,
@@ -108,12 +119,14 @@ function collectCommentDomPointCandidates(block: HTMLElement) {
     if (node.nodeType === node.TEXT_NODE) {
       const value = node.nodeValue ?? ''
       const graphemeCount = countCommentGraphemes(value)
+
       for (let index = 0; index <= graphemeCount; index += 1) {
         points.push({
           container: node,
           offset: graphemeOffsetToUtf16Offset(value, index),
         })
       }
+
       return
     }
     if (
@@ -121,15 +134,20 @@ function collectCommentDomPointCandidates(block: HTMLElement) {
       (node as Element).tagName === 'BR'
     ) {
       const parent = node.parentNode
+
       if (!parent) return
+
       const childIndex = Array.prototype.indexOf.call(
         parent.childNodes,
         node,
       ) as number
+
       points.push({ container: parent, offset: childIndex })
       points.push({ container: parent, offset: childIndex + 1 })
+
       return
     }
+
     node.childNodes.forEach(visit)
   }
 
@@ -154,15 +172,18 @@ export function commentDomGraphemeOffsetToPoint(
   }
 
   let match: CommentDomPoint | null = null
+
   for (const point of collectCommentDomPointCandidates(block)) {
     const offset = commentDomPointToGraphemeOffset(
       block,
       point.container,
       point.offset,
     )
+
     if (offset === null) return null
     if (offset === targetOffset) {
       if (affinity === 'end') return point
+
       match = point
       continue
     }
@@ -170,6 +191,7 @@ export function commentDomGraphemeOffsetToPoint(
       break
     }
   }
+
   return match
 }
 
@@ -208,10 +230,14 @@ export function projectCommentDomNode(
   }
 
   let cursor = 0
+
   const blocks = ordered.map((item, index) => {
     if (index > 0) cursor += 1
+
     const startGraphemeOffset = cursor
+
     cursor += countCommentGraphemes(item.text)
+
     return {
       ...item,
       startGraphemeOffset,

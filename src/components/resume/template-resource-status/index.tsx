@@ -11,6 +11,7 @@ export default function TemplateResourceStatus({
   onRetry?: () => void
 }) {
   const reduced = useReducedMotion()
+
   return (
     <motion.div
       key={error ? 'error' : 'loading'}

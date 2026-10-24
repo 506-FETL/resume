@@ -52,13 +52,16 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
   bootstrapPage: async () => {
     const requestId = get().pageRequestId + 1
+
     set({
       pageRequestId: requestId,
       pageLoading: get().ownerUserId === null,
       pageError: null,
     })
+
     try {
       const user = await getCurrentUser()
+
       if (!user) throw new Error('用户未登录')
 
       if (get().pageRequestId !== requestId) return
@@ -82,11 +85,15 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         listAllResumeShares(),
         getAllResumesFromUser(),
       ])
+
       if (get().pageRequestId !== requestId) return
+
       const currentUser = await getCurrentUser()
+
       if (get().pageRequestId !== requestId) return
       if (!currentUser || currentUser.id !== user.id)
         throw new Error('登录状态已变更，请重新加载')
+
       const resumeMap = Object.fromEntries(
         resumes.map((resume) => [
           resume.resume_id,
@@ -97,6 +104,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
           },
         ]),
       )
+
       set({
         ownerUserId: user.id,
         allShares,
@@ -105,12 +113,18 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       })
     } catch (error) {
       if (get().pageRequestId !== requestId) return
+
       const currentUser = await getCurrentUser()
+
       if (get().pageRequestId !== requestId) return
+
       const keepData = currentUser && currentUser.id === get().ownerUserId
+
       const message =
         error instanceof Error ? error.message : '加载分享链接失败'
+
       if (keepData && get().allShares.length > 0) toast.error(message)
+
       set({
         ...(!keepData && {
           ownerUserId: null,
@@ -128,12 +142,15 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
   loadDialogShares: async (resumeId) => {
     const requestId = get().dialogRequestId
+
     set({
       dialogLoading: true,
       dialogError: null,
     })
+
     try {
       const shares = await listResumeShares(resumeId)
+
       if (
         get().dialogRequestId === requestId &&
         get().openForResumeId === resumeId
@@ -158,12 +175,15 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
   loadVersionOptions: async (resumeId, options) => {
     const activeRequest = versionOptionRequests.get(resumeId)
+
     if (activeRequest) return activeRequest
 
     const current = get().versionOptionsByResumeId[resumeId]
+
     if (current?.loaded && !options?.force) return
 
     const requestId = (current?.requestId ?? 0) + 1
+
     set((state) => ({
       versionOptionsByResumeId: {
         ...state.versionOptionsByResumeId,
@@ -180,8 +200,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     const request = (async () => {
       try {
         const items = await listResumeHistoryVersions(resumeId)
+
         if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
           return
+
         set((state) => ({
           versionOptionsByResumeId: {
             ...state.versionOptionsByResumeId,
@@ -197,6 +219,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       } catch (error) {
         if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
           return
+
         set((state) => ({
           versionOptionsByResumeId: {
             ...state.versionOptionsByResumeId,
@@ -214,6 +237,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     })()
 
     versionOptionRequests.set(resumeId, request)
+
     try {
       await request
     } finally {
@@ -224,6 +248,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
   createRelease: async (resumeId, release, options) => {
     const record = await createResumeShareRelease(resumeId, release, options)
+
     set((state) => ({
       shares:
         state.openForResumeId === resumeId
@@ -240,8 +265,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
+
     try {
       await setResumeShareActive(shareId, isActive)
+
       set((state) => ({
         ...mapShareLists(state, (share) =>
           share.id === shareId ? { ...share, is_active: isActive } : share,
@@ -261,8 +288,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
+
     try {
       await updateResumeShareSettings(shareId, settings)
+
       set((state) => ({
         ...mapShareLists(state, (share) =>
           share.id === shareId
@@ -293,8 +322,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
+
     try {
       const record = await publishResumeShareRelease(shareId, release)
+
       set((state) => ({
         ...mapShareLists(state, (share) =>
           share.id === shareId ? record : share,
@@ -314,9 +345,12 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
+
     try {
       await archiveResumeShare(shareId)
+
       const archivedAt = new Date().toISOString()
+
       set((state) => ({
         ...mapShareLists(state, (share) =>
           share.id === shareId
@@ -340,8 +374,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
+
     try {
       await deleteResumeShare(shareId)
+
       set((state) => ({
         shares: state.shares.filter((share) => share.id !== shareId),
         allShares: state.allShares.filter((share) => share.id !== shareId),

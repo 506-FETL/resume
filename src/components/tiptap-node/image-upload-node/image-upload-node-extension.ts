@@ -5,7 +5,7 @@ import { ImageUploadNode as ImageUploadNodeComponent } from '@/components/tiptap
 export type UploadFunction = (
   file: File,
   onProgress?: (event: { progress: number }) => void,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
 ) => Promise<string>
 
 export interface ImageUploadNodeOptions {
@@ -118,13 +118,13 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
   addCommands() {
     return {
       setImageUploadNode:
-        options =>
-          ({ commands }) => {
-            return commands.insertContent({
-              type: this.name,
-              attrs: options,
-            })
-          },
+        (options) =>
+        ({ commands }) => {
+          return commands.insertContent({
+            type: this.name,
+            attrs: options,
+          })
+        },
     }
   },
 
@@ -138,20 +138,24 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
         const { nodeAfter } = selection.$from
 
         if (
-          nodeAfter
-          && nodeAfter.type.name === 'imageUpload'
-          && editor.isActive('imageUpload')
+          nodeAfter &&
+          nodeAfter.type.name === 'imageUpload' &&
+          editor.isActive('imageUpload')
         ) {
           const nodeEl = editor.view.nodeDOM(selection.$from.pos)
+
           if (nodeEl && nodeEl instanceof HTMLElement) {
             // Since NodeViewWrapper is wrapped with a div, we need to click the first child
             const firstChild = nodeEl.firstChild
+
             if (firstChild && firstChild instanceof HTMLElement) {
               firstChild.click()
+
               return true
             }
           }
         }
+
         return false
       },
     }

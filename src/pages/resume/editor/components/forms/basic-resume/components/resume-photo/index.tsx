@@ -36,29 +36,39 @@ export function ResumePhotoField({
   const requestRef = useRef(0)
   const mountedRef = useRef(true)
   const reduceMotion = useReducedMotion()
+
   useEffect(
     () => () => {
       if (source) URL.revokeObjectURL(source)
     },
     [source],
   )
+
   useEffect(() => {
     mountedRef.current = true
+
     return () => {
       mountedRef.current = false
     }
   }, [])
+
   const choose = async (file?: File) => {
     if (!file) return
+
     const request = ++requestRef.current
+
     setBusy(true)
     setError('')
+
     try {
       const url = await readPhotoFile(file)
+
       if (!mountedRef.current || requestRef.current !== request) {
         URL.revokeObjectURL(url)
+
         return
       }
+
       setCrop(undefined)
       setSource(url)
       setOpen(true)
@@ -71,14 +81,20 @@ export function ResumePhotoField({
       if (mountedRef.current && requestRef.current === request) setBusy(false)
     }
   }
+
   const save = async () => {
     if (!imageRef.current || !crop) return
+
     const request = ++requestRef.current
+
     setBusy(true)
     setError('')
+
     try {
       const next = await cropResumePhoto(imageRef.current, crop)
+
       if (!mountedRef.current || requestRef.current !== request) return
+
       form.setValue('photo', next, { shouldDirty: true, shouldValidate: true })
       setOpen(false)
     } catch (caught) {
@@ -90,13 +106,16 @@ export function ResumePhotoField({
       if (mountedRef.current && requestRef.current === request) setBusy(false)
     }
   }
+
   const close = (next: boolean) => {
     if (!next) {
       requestRef.current++
       setBusy(false)
     }
+
     setOpen(next)
   }
+
   return (
     <div className='mb-6 flex items-start gap-4' data-resume-photo-editor>
       <div className='flex h-24 w-18 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted/40'>
@@ -206,6 +225,7 @@ export function ResumePhotoField({
                   className='max-h-[50vh] max-w-full'
                   onLoad={(event) => {
                     const { width, height } = event.currentTarget
+
                     setCrop(
                       centerCrop(
                         makeAspectCrop(

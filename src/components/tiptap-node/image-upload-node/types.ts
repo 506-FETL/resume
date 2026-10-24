@@ -14,7 +14,7 @@ export interface UploadOptions {
   upload: (
     file: File,
     onProgress: (event: { progress: number }) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ) => Promise<string>
   onSuccess?: (url: string) => void
   onError?: (error: Error) => void

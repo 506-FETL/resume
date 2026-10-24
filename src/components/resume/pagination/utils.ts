@@ -8,17 +8,22 @@ import { BOUNDARY_EPSILON } from './const'
 
 function hash(value: string) {
   let result = 2166136261
+
   for (let index = 0; index < value.length; index += 1) {
     result ^= value.charCodeAt(index)
     result = Math.imul(result, 16777619)
   }
+
   return (result >>> 0).toString(36)
 }
 
 function isVisible(element: Element) {
   const targetWindow = element.ownerDocument.defaultView
+
   if (!targetWindow) return false
+
   const style = targetWindow.getComputedStyle(element)
+
   return (
     style.display !== 'none' &&
     style.visibility !== 'hidden' &&
@@ -28,12 +33,16 @@ function isVisible(element: Element) {
 
 export function collectPageBoundaries(root: HTMLElement) {
   const nodePaths = new WeakMap<Node, string>()
+
   const pendingPaths: Array<{ node: Node; path: string }> = [
     { node: root, path: '' },
   ]
+
   while (pendingPaths.length) {
     const { node, path } = pendingPaths.pop()!
+
     nodePaths.set(node, path)
+
     node.childNodes.forEach((child, index) =>
       pendingPaths.push({
         node: child,
@@ -41,6 +50,7 @@ export function collectPageBoundaries(root: HTMLElement) {
       }),
     )
   }
+
   const targetDocument = root.ownerDocument
   const targetNodeFilter = targetDocument.defaultView?.NodeFilter
   const rootRect = root.getBoundingClientRect()
@@ -50,26 +60,34 @@ export function collectPageBoundaries(root: HTMLElement) {
   const lineRanges: Array<{ top: number; bottom: number }> = []
   const geometry: string[] = []
   let visibleContentBottom = 0
+
   const walker = targetDocument.createTreeWalker(
     root,
     targetNodeFilter?.SHOW_TEXT ?? 4,
   )
 
   let current = walker.nextNode()
+
   while (current) {
     const text = current.textContent ?? ''
     const parent = current.parentElement
+
     if (text.trim() && parent && isVisible(parent)) {
       const range = targetDocument.createRange()
+
       range.selectNodeContents(current)
+
       Array.from(range.getClientRects()).forEach((rect, lineIndex) => {
         const top = rect.top - rootRect.top
         const bottom = rect.bottom - rootRect.top
+
         if (rect.width > 0 && rect.height > 0) {
           lineRanges.push({ top, bottom })
+
           geometry.push(
             `${roundMetric(top)},${roundMetric(bottom)},${roundMetric(rect.left - rootRect.left)},${roundMetric(rect.width)}`,
           )
+
           visibleContentBottom = Math.max(visibleContentBottom, bottom)
 
           if (top > BOUNDARY_EPSILON) {
@@ -85,8 +103,10 @@ export function collectPageBoundaries(root: HTMLElement) {
           })
         }
       })
+
       range.detach()
     }
+
     current = walker.nextNode()
   }
 
@@ -100,9 +120,11 @@ export function collectPageBoundaries(root: HTMLElement) {
         !element.matches('[data-pagination-atomic], img')
       )
         return
+
       const rect = element.getBoundingClientRect()
       const top = rect.top - rootRect.top
       const bottom = rect.bottom - rootRect.top
+
       if (rect.width > 0 && rect.height > 0) {
         atomicRanges.push({ top, bottom })
         visibleContentBottom = Math.max(visibleContentBottom, bottom)
@@ -126,16 +148,20 @@ export function collectPageBoundaries(root: HTMLElement) {
     .querySelectorAll('[data-pagination-keep-with-next]')
     .forEach((element) => {
       if (!isVisible(element)) return
+
       const rect = element.getBoundingClientRect()
       const top = rect.top - rootRect.top
       const bottom = rect.bottom - rootRect.top
+
       const nextLine = lineRanges
         .filter((line) => line.top >= bottom - BOUNDARY_EPSILON)
         .sort((a, b) => a.top - b.top)[0]
+
       if (nextLine) atomicRanges.push({ top, bottom: nextLine.bottom })
     })
 
   const contentHeight = Math.max(layoutHeight, visibleContentBottom)
+
   candidates.push({ offset: contentHeight, key: 'end' })
   candidates.sort((left, right) => left.offset - right.offset)
 
@@ -147,26 +173,35 @@ export function collectPageBoundaries(root: HTMLElement) {
     }))
     .filter((range) => range.top < range.bottom)
     .sort((left, right) => left.top - right.top)
+
   const merged: Array<{ top: number; bottom: number }> = []
+
   for (const range of forbidden) {
     const previous = merged.at(-1)
+
     if (previous && range.top < previous.bottom)
       previous.bottom = Math.max(previous.bottom, range.bottom)
     else merged.push({ ...range })
   }
+
   const boundaries: PageBoundary[] = []
   let rangeIndex = 0
+
   for (const candidate of candidates) {
     while (merged[rangeIndex] && merged[rangeIndex].bottom <= candidate.offset)
       rangeIndex += 1
+
     const range = merged[rangeIndex]
+
     if (
       range &&
       candidate.offset > range.top &&
       candidate.offset < range.bottom
     )
       continue
+
     const previous = boundaries.at(-1)
+
     if (!previous || candidate.offset - previous.offset > BOUNDARY_EPSILON)
       boundaries.push(candidate)
   }
@@ -195,11 +230,13 @@ export function buildPageSegments(
   while (contentHeight - start > viewportHeight + BOUNDARY_EPSILON) {
     const limit = start + viewportHeight
     let endBoundary: PageBoundary | undefined
+
     while (
       boundaryIndex < boundaries.length &&
       boundaries[boundaryIndex].offset <= limit + BOUNDARY_EPSILON
     ) {
       const boundary = boundaries[boundaryIndex++]
+
       if (boundary.offset > start + BOUNDARY_EPSILON) endBoundary = boundary
     }
 
@@ -211,6 +248,7 @@ export function buildPageSegments(
       startKey,
       endKey: endBoundary.key,
     })
+
     start = endBoundary.offset
     startKey = endBoundary.key
   }
@@ -253,9 +291,11 @@ export function createLayoutSignature({
   fontFamily: string
 }): ResumeLayoutSignature {
   const pageRect = page.getBoundingClientRect()
+
   const contentHeight =
     segments.at(-1)?.end ??
     Math.max(source.scrollHeight, source.getBoundingClientRect().height)
+
   return {
     pageWidth: roundMetric(pageRect.width),
     pageHeight: roundMetric(pageRect.height),
@@ -298,6 +338,7 @@ export function measurePaginationSnapshot({
   const regionSources = Array.from(
     source.querySelectorAll<HTMLElement>('[data-resume-region-source]'),
   )
+
   if (regionSources.length)
     return measureRegionSnapshot({
       page,
@@ -306,16 +347,21 @@ export function measurePaginationSnapshot({
       fontFamily,
       regionSources,
     })
+
   const { boundaries, contentHeight, atomicRanges, geometry } =
     collectPageBoundaries(source)
+
   const viewportHeight = viewport.getBoundingClientRect().height
+
   if (
     atomicRanges.some(
       (range) => range.bottom - range.top > viewportHeight + BOUNDARY_EPSILON,
     )
   )
     throw new Error('存在高于一页的不可拆分内容，请缩短该内容或调整字号与边距')
+
   const segments = buildPageSegments(boundaries, contentHeight, viewportHeight)
+
   return {
     segments,
     regions: [{ id: 'main', segments }],
@@ -345,19 +391,28 @@ function measureRegionSnapshot({
 }): PaginationSnapshot {
   const pageRect = page.getBoundingClientRect()
   const ids = new Set<string>()
+
   const measured = regionSources.map((regionSource) => {
     const id = regionSource.dataset.resumeRegionSource!
+
     if (!id || ids.has(id)) throw new Error('简历区域标识缺失或重复')
+
     ids.add(id)
+
     const regionViewport = regionSource.closest<HTMLElement>(
       '[data-resume-region-viewport]',
     )
+
     if (!regionViewport) throw new Error('简历区域缺少测量视口')
+
     const rect = regionViewport.getBoundingClientRect()
+
     if (rect.width <= 0 || rect.height <= 0)
       throw new Error('简历区域没有可用空间，请减小边距')
+
     const { boundaries, contentHeight, atomicRanges, geometry } =
       collectPageBoundaries(regionSource)
+
     if (
       atomicRanges.some(
         (range) => range.bottom - range.top > rect.height + BOUNDARY_EPSILON,
@@ -366,10 +421,12 @@ function measureRegionSnapshot({
       throw new Error(
         '存在高于一页的不可拆分内容，请缩短该内容或调整字号与边距',
       )
+
     const segments =
       contentHeight > BOUNDARY_EPSILON
         ? buildPageSegments(boundaries, contentHeight, rect.height)
         : []
+
     return {
       id,
       segments,
@@ -387,16 +444,19 @@ function measureRegionSnapshot({
       },
     }
   })
+
   const pageCount = Math.max(
     1,
     ...measured.map((region) => region.segments.length),
   )
+
   const pages = Array.from({ length: pageCount }, (_, index) => {
     const regions = measured.flatMap((region) =>
       region.segments[index]
         ? [{ id: region.id, ...region.segments[index] }]
         : [],
     )
+
     return {
       startKey: hash(
         regions.map((region) => `${region.id}:${region.startKey}`).join('|'),
@@ -407,6 +467,7 @@ function measureRegionSnapshot({
       regions,
     }
   })
+
   const signature: ResumeLayoutSignature = {
     pageWidth: roundMetric(pageRect.width),
     pageHeight: roundMetric(pageRect.height),
@@ -425,6 +486,7 @@ function measureRegionSnapshot({
     regions: measured.map((region) => region.signature),
     pages,
   }
+
   // segments 仅提供总页数和稳定的页面 key；正文裁切必须使用 regions 中的区间。
   const segments = pages.map((entry, index) => ({
     start: index,
@@ -432,7 +494,9 @@ function measureRegionSnapshot({
     startKey: entry.startKey,
     endKey: entry.endKey,
   }))
+
   if (!source.isConnected) throw new Error('简历测量文档已被替换')
+
   return {
     segments,
     regions: measured.map(({ id, segments }) => ({ id, segments })),
@@ -466,6 +530,7 @@ export async function waitForResumeFont(
       targetDocument.fonts.load(`${weight} 16px "${familyName}"`),
     ),
   )
+
   if (loadedFaces.some((faces) => faces.length === 0))
     throw new Error(`字体 ${familyName} 未注册`)
 
@@ -474,6 +539,7 @@ export async function waitForResumeFont(
   const ready = weights.every((weight) =>
     targetDocument.fonts.check(`${weight} 16px "${familyName}"`),
   )
+
   if (!ready) throw new Error(`字体 ${familyName} 加载失败`)
 }
 
@@ -488,6 +554,7 @@ export async function waitForResumeImages(root: HTMLElement | Document) {
   await Promise.all(
     Array.from(root.querySelectorAll('img')).map(async (image) => {
       let timer: ReturnType<typeof setTimeout> | undefined
+
       try {
         await Promise.race([
           image.decode(),
@@ -498,6 +565,7 @@ export async function waitForResumeImages(root: HTMLElement | Document) {
             )
           }),
         ])
+
         if (!image.naturalWidth || !image.naturalHeight)
           throw new Error('简历图片加载失败')
       } finally {

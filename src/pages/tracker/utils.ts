@@ -178,6 +178,7 @@ export function getTrackerProgressHint(job: JobApplication) {
     const activeSubStage = job.interview_sub_stages.find(
       (stage) => stage.status === '进行中',
     )
+
     if (activeSubStage) {
       return `面试中：正在进行${activeSubStage.label}`
     }
@@ -185,6 +186,7 @@ export function getTrackerProgressHint(job: JobApplication) {
     const completedSubStageCount = job.interview_sub_stages.filter(
       (stage) => stage.status === '已完成',
     ).length
+
     if (completedSubStageCount > 0) {
       return `面试中：已完成 ${completedSubStageCount} 轮，等待下一轮安排`
     }
@@ -197,6 +199,7 @@ export function getTrackerProgressHint(job: JobApplication) {
 
   if (job.status === 'rejected') {
     const endedAt = getEndedApplicationStage(job)
+
     return endedAt
       ? `结束于：${APPLICATION_STATUS_CONFIG[endedAt].label}`
       : '流程已结束，建议补充原因或记录复盘信息'
@@ -205,6 +208,7 @@ export function getTrackerProgressHint(job: JobApplication) {
   const currentStage = job.stage_details.find(
     (stage) => stage.stage === job.status,
   )
+
   const stageDate = currentStage?.start_date
 
   switch (job.status) {
@@ -310,12 +314,14 @@ export function filterJobs(
   metricFilter: TrackerMetricKey | null = null,
 ): JobApplication[] {
   const trimmed = keyword.trim().toLowerCase()
+
   return jobs.filter((job) => {
     // showArchived 打开 = 「已归档视图」，只看已归档；关闭 = 常规视图，隐藏已归档
     if (showArchived ? !job.archived : job.archived) return false
     if (filterStatus && job.status !== filterStatus) return false
     if (metricFilter && !matchesMetric(job, metricFilter)) return false
     if (!trimmed) return true
+
     return [job.company, job.position, job.location, job.salary ?? ''].some(
       (field) => field.toLowerCase().includes(trimmed),
     )
@@ -336,17 +342,24 @@ export interface TrackerOverviewStats {
 // 停留天数：距上次更新的自然天数
 export function getDaysInStage(job: { updated_at: string }): number {
   const last = new Date(job.updated_at).getTime()
+
   if (Number.isNaN(last)) return 0
+
   return Math.max(0, Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24)))
 }
 
 // 距今天的自然天数：负=已逾期，0=今天，正=未来。无效日期返回 null。
 export function getDaysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null
+
   const target = new Date(`${dateStr}T00:00:00`).getTime()
+
   if (Number.isNaN(target)) return null
+
   const startOfToday = new Date()
+
   startOfToday.setHours(0, 0, 0, 0)
+
   return Math.round((target - startOfToday.getTime()) / (1000 * 60 * 60 * 24))
 }
 
@@ -365,6 +378,7 @@ export function isJobPendingFollowUp(job: PendingFollowUpJob): boolean {
     return false
 
   const daysUntil = getDaysUntil(job.next_action_date)
+
   if (daysUntil !== null) return daysUntil <= 0
 
   return getDaysInStage(job) >= TRACKER_FOLLOW_UP_STALE_DAYS
@@ -376,19 +390,23 @@ function comparePendingFollowUpUrgency(
 ) {
   const leftHasDate = getDaysUntil(left.next_action_date) !== null
   const rightHasDate = getDaysUntil(right.next_action_date) !== null
+
   if (leftHasDate !== rightHasDate) return leftHasDate ? -1 : 1
 
   if (leftHasDate && rightHasDate) {
     const dateDifference = left.next_action_date!.localeCompare(
       right.next_action_date!,
     )
+
     if (dateDifference !== 0) return dateDifference
   }
 
   const updatedDifference =
     Date.parse(left.updated_at) - Date.parse(right.updated_at)
+
   if (Number.isFinite(updatedDifference) && updatedDifference !== 0)
     return updatedDifference
+
   return left.id.localeCompare(right.id)
 }
 
@@ -402,6 +420,7 @@ export function resolveTrackerMetricStatus(
   const [pendingJob] = [...jobs]
     .filter(isJobPendingFollowUp)
     .sort(comparePendingFollowUpUrgency)
+
   return pendingJob?.status ?? null
 }
 
@@ -421,12 +440,14 @@ export function getNextActionBadge(
     return null
 
   const daysUntil = getDaysUntil(job.next_action_date)
+
   if (daysUntil === null) return null
 
   if (daysUntil < 0)
     return { label: `逾期 ${Math.abs(daysUntil)} 天`, tone: 'overdue' }
   if (daysUntil === 0) return { label: '今天', tone: 'today' }
   if (daysUntil === 1) return { label: '明天', tone: 'upcoming' }
+
   return { label: `${daysUntil} 天后`, tone: 'upcoming' }
 }
 
@@ -435,6 +456,7 @@ export function getNextActionBadge(
 export function getFurthestStageIndex(job: JobApplication): number {
   const endedAt = getEndedApplicationStage(job)
   let furthest = APPLICATION_STATUS_ORDER.indexOf(endedAt ?? job.status)
+
   for (const detail of job.stage_details) {
     if (
       detail.status === '已完成' ||
@@ -442,14 +464,18 @@ export function getFurthestStageIndex(job: JobApplication): number {
       detail.start_date
     ) {
       const idx = APPLICATION_STATUS_ORDER.indexOf(detail.stage)
+
       if (idx > furthest) furthest = idx
     }
   }
+
   // 活动记录与当前可见阶段状态分离：回退会重算状态，但不抹去真实到达经历。
   for (const activity of job.activities) {
     if (activity.type !== 'status_change') continue
+
     for (const [index, stage] of APPLICATION_STATUS_ORDER.entries()) {
       const label = APPLICATION_STATUS_CONFIG[stage].label
+
       if (
         (activity.label === `推进到「${label}」` ||
           activity.label === `回退到「${label}」` ||
@@ -461,6 +487,7 @@ export function getFurthestStageIndex(job: JobApplication): number {
       }
     }
   }
+
   return furthest
 }
 
@@ -470,20 +497,25 @@ export function getTrackerOverviewStats(
   const total = jobs.length
   const appliedIdx = APPLICATION_STATUS_ORDER.indexOf('applied')
   const responseIdx = APPLICATION_STATUS_ORDER.indexOf('assessment')
+
   // 历史漏斗口径：投过就算（含已结束/已归档的），据 stage_details 还原漏斗深度
   const appliedPlus = jobs.filter(
     (j) => getFurthestStageIndex(j) >= appliedIdx,
   ).length
+
   const responsePlus = jobs.filter(
     (j) => getFurthestStageIndex(j) >= responseIdx,
   ).length
+
   // 在办口径：已归档 = 停止跟进，从活跃计数中排除
   const active = jobs.filter((j) => !j.archived)
   const interview = active.filter((j) => j.status === 'interview').length
   const offer = active.filter((j) => j.status === 'offer').length
   const pending = jobs.filter(isJobPendingFollowUp).length
+
   const responseRate =
     appliedPlus === 0 ? 0 : Math.round((responsePlus / appliedPlus) * 100)
+
   return {
     total,
     applied: appliedPlus,
@@ -501,13 +533,17 @@ export function sortJobs(
   sortDir: TrackerSortDir,
 ): JobApplication[] {
   const dir = sortDir === 'asc' ? 1 : -1
+
   const time = (value: string) => {
     const t = new Date(value).getTime()
+
     return Number.isNaN(t) ? 0 : t
   }
+
   // rejected 不在 APPLICATION_STATUS_ORDER 中，按“走完全部阶段之后”排到末尾
   const statusRank = (status: ApplicationStatus) => {
     const idx = APPLICATION_STATUS_ORDER.indexOf(status)
+
     return idx === -1 ? APPLICATION_STATUS_ORDER.length : idx
   }
 
@@ -537,6 +573,7 @@ export function buildStatusChangeActivity(
   const toLabel = APPLICATION_STATUS_CONFIG[toStatus].label
   const fromIdx = APPLICATION_STATUS_ORDER.indexOf(fromStatus)
   const toIdx = APPLICATION_STATUS_ORDER.indexOf(toStatus)
+
   // rejected 不在历史漏斗顺序中；终态返回在办阶段也属于纠正进度。
   const verb =
     toStatus === 'rejected'

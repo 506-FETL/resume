@@ -48,6 +48,7 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
     get().stop()
 
     const session = new RichTextCollabSession()
+
     const provider = new SupabaseYjsProvider(
       resumeId,
       sessionId,
@@ -70,6 +71,7 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
     if (role === 'host') {
       seedTimer = setTimeout(() => {
         seedTimer = null
+
         // 会话可能已被销毁
         if (get().session !== session) {
           return
@@ -78,6 +80,7 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
         if (!seed && provider.getRemotePeerCount() > 0) {
           return
         }
+
         const data = useResumeStore.getState().getResumeFormData()
         const extensions = seedExtensions()
 
@@ -88,7 +91,9 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
                 entry.sectionKey as string,
                 relativePath,
               )
+
               const fragment = session.getFieldFragment(key)
+
               seedFragmentFromHtml(fragment, html, extensions)
             } catch (error) {
               console.warn('[richtext-collab] seed failed:', error)
@@ -104,9 +109,12 @@ const useRichTextCollabStore = create<RichTextCollabStore>()((set, get) => ({
       clearTimeout(seedTimer)
       seedTimer = null
     }
+
     const { session, provider } = get()
+
     provider?.destroy()
     session?.destroy()
+
     if (session || provider) {
       set({ session: null, provider: null, ready: false })
     }

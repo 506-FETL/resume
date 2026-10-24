@@ -27,9 +27,11 @@ export async function listMessages(
   options: { limit?: number; before?: MessageCursor } = {},
 ): Promise<ListMessagesResult> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登录')
 
   const limit = options.limit ?? 30
+
   let query = supabase
     .from('ai_messages')
     .select('*')
@@ -41,12 +43,14 @@ export async function listMessages(
 
   if (options.before) {
     const { createdAt, id } = options.before
+
     query = query.or(
       `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`,
     )
   }
 
   const { data, error } = await query
+
   if (error) throw error
 
   const rows = data || []
@@ -54,6 +58,7 @@ export async function listMessages(
   const page = hasMore ? rows.slice(0, limit) : rows
   // 倒序取回后 reverse 成升序（旧 → 新）
   const messages = page.map(mapMessage).reverse()
+
   return { messages, hasMore }
 }
 
@@ -68,6 +73,7 @@ export async function truncateMessages(
     p_message_id: messageId,
     p_user_id: expectedUserId,
   })
+
   if (error) throw error
 }
 
@@ -76,6 +82,7 @@ export async function insertMessage(
   msg: { role: AiMessageRole; parts: AiMessagePart[] },
 ): Promise<AiMessage> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登录')
 
   const { data, error } = await supabase
@@ -90,6 +97,7 @@ export async function insertMessage(
     .single()
 
   if (error) throw error
+
   return mapMessage(data)
 }
 
@@ -99,6 +107,7 @@ export async function updateMessage(
   patch: { parts: AiMessagePart[] },
 ): Promise<AiMessage> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登录')
 
   const { data, error } = await supabase
@@ -110,5 +119,6 @@ export async function updateMessage(
     .single()
 
   if (error) throw error
+
   return mapMessage(data)
 }

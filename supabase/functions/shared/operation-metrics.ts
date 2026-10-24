@@ -31,11 +31,13 @@ export function scheduleBackground(
       }),
     )
   })
+
   const edgeRuntime = (
     globalThis as typeof globalThis & {
       EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void }
     }
   ).EdgeRuntime
+
   if (edgeRuntime?.waitUntil) edgeRuntime.waitUntil(guarded)
   else guarded.catch(() => undefined)
 }
@@ -54,5 +56,6 @@ export async function recordOperationMetric(
     p_status: metric.status,
     p_duration_ms: Math.max(0, Math.round(metric.durationMs)),
   })
+
   if (error) throw new Error('operation metric write failed')
 }

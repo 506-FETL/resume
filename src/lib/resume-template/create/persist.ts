@@ -11,6 +11,7 @@ export async function persistPreparedResume(
   persistence: ResumeCreationPersistence,
 ): Promise<CreatedTemplateResume> {
   const existing = await persistence.find(prepared)
+
   if (existing) return existing
 
   try {

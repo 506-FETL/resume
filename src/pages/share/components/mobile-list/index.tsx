@@ -10,17 +10,21 @@ interface MobileListProps {
 
 export default function MobileList({ shares }: MobileListProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+
   const [selectedShare, setSelectedShare] = useState<ResumeShareRecord | null>(
     null,
   )
+
   const [restoreFocusTo, setRestoreFocusTo] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
     if (!selectedShare) return
 
     const currentShare = shares.find((share) => share.id === selectedShare.id)
+
     if (!currentShare) {
       setDrawerOpen(false)
+
       return
     }
     if (currentShare !== selectedShare) setSelectedShare(currentShare)

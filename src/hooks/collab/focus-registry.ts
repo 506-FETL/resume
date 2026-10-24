@@ -34,6 +34,7 @@ function isEditableTextInput(
     // `type` 为空时浏览器默认 text；显式非文本类型（checkbox/radio/date 等）排除
     return TEXT_INPUT_TYPES.has(el.type)
   }
+
   return false
 }
 
@@ -43,6 +44,7 @@ export function getActiveTextField(): ActiveTextField | null {
   }
 
   const el = document.activeElement
+
   if (!isEditableTextInput(el) || !el.name) {
     return null
   }

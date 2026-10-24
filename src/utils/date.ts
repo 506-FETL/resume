@@ -47,6 +47,7 @@ export function formatRelativeTime(
     if (diffInDays < 30) {
       return `${Math.floor(diffInDays / 7)} 周前`
     }
+
     return date.format('YYYY年M月D日')
   }
 
@@ -64,7 +65,9 @@ export function formatDate(
   template: string = 'YYYY年M月D日',
 ): string {
   if (!dateString) return '未知'
+
   const date = dayjs(dateString)
+
   return date.isValid() ? date.format(template) : '无效日期'
 }
 
@@ -75,7 +78,9 @@ export function formatDate(
  */
 export function formatDateTime(dateString: string | Date | number): string {
   if (!dateString) return '未知'
+
   const date = dayjs(dateString)
+
   return date.isValid() ? date.format('YYYY年M月D日 HH:mm') : '无效日期'
 }
 
@@ -88,7 +93,9 @@ export function formatTime(
   dateString: string | Date | number | null | undefined,
 ): string {
   if (!dateString) return '未知'
+
   const date = dayjs(dateString)
+
   return date.isValid() ? date.format('HH:mm:ss') : '无效日期'
 }
 
@@ -103,6 +110,7 @@ export function getAge(
   if (!birthDateString) return ''
 
   const birthDate = dayjs(birthDateString)
+
   if (!birthDate.isValid()) return ''
 
   return dayjs().diff(birthDate, 'year')

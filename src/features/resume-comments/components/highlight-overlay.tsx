@@ -47,6 +47,7 @@ function orderHighlightRects(
   geometry: CommentThreadGeometry[],
 ): TimedHighlightRect[] {
   const ordered = mergeHighlightVisualRects(flattenHighlightRects(geometry))
+
   const stagger =
     ordered.length <= 1
       ? 0
@@ -81,12 +82,15 @@ export function HighlightOverlay({
 }) {
   const reduceMotion = useReducedMotion()
   const root = rootRef.current
+
   if (!root) return null
+
   const pages = new Map(
     Array.from(
       root.querySelectorAll<HTMLElement>('[data-resume-page-index]'),
     ).map((page) => [Number(page.dataset.resumePageIndex), page]),
   )
+
   const orderedGeometry = orderHighlightRects(geometry)
   const hitGeometry = flattenHighlightRects(geometry)
 
@@ -94,14 +98,19 @@ export function HighlightOverlay({
     const overlayRoot = page.querySelector<HTMLElement>(
       '[data-comment-overlay-root]',
     )
+
     if (!overlayRoot) return []
+
     const pageGeometry = orderedGeometry.filter(
       (rect) => rect.pageIndex === pageIndex,
     )
+
     const visibleGeometry = hidden ? [] : pageGeometry
+
     const pageHitGeometry = hitGeometry.filter(
       (rect) => rect.pageIndex === pageIndex,
     )
+
     const visibleHitGeometry = hidden ? [] : pageHitGeometry
 
     const visuals = createPortal(
@@ -145,6 +154,7 @@ export function HighlightOverlay({
       </AnimatePresence>,
       overlayRoot,
     )
+
     const hits = createPortal(
       <div
         data-resume-comment-ui
@@ -170,6 +180,7 @@ export function HighlightOverlay({
                     .map((candidate) => candidate.threadId),
                 ),
               )
+
               onPick(ids, { x: event.clientX, y: event.clientY })
             }}
             onPointerEnter={() => onHover(rect.threadId)}
@@ -181,6 +192,7 @@ export function HighlightOverlay({
       </div>,
       page,
     )
+
     return [visuals, hits]
   })
 }

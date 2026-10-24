@@ -43,8 +43,10 @@ export function JdVariantDialog({
   skipInputStep = false,
 }: JdVariantDialogProps) {
   const [jd, setJd] = useState(initialJd)
+
   const { state, generate, abort, reset, discardDraft } =
     useJdVariantGenerator(parentResumeId)
+
   const shouldReduceMotion = useReducedMotion()
 
   const startGenerate = useCallback(() => {
@@ -72,6 +74,7 @@ export function JdVariantDialog({
       reset()
       setJd('')
     }
+
     onOpenChange(next)
   }
 
@@ -83,6 +86,7 @@ export function JdVariantDialog({
         : state.phase === 'rewriting'
           ? 3
           : 4
+
   const total = 4
   const canStart = jd.trim().length >= MIN_JD_CHARS
 
@@ -95,6 +99,7 @@ export function JdVariantDialog({
     if (state.draftResumeId) {
       onOpenResume(state.draftResumeId)
     }
+
     onOpenChange(false)
     reset()
   }

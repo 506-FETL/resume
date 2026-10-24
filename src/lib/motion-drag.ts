@@ -24,7 +24,9 @@ export function moveArrayItem<T>(items: T[], from: number, to: number): T[] {
   const next = [...items]
   const [moved] = next.splice(from, 1)
   const destination = Math.max(0, Math.min(to, next.length))
+
   next.splice(destination, 0, moved)
+
   return next
 }
 
@@ -47,6 +49,7 @@ export function findDropContainer(
       (a.right - a.left) * (a.bottom - a.top) -
       (b.right - b.left) * (b.bottom - b.top),
   )
+
   return matches[0].id
 }
 
@@ -56,6 +59,7 @@ export function findDropIndex(
   axis: DragAxis,
 ): number {
   const coordinate = axis === 'x' ? point.x : point.y
+
   const sorted = [...items].sort((a, b) =>
     axis === 'x' ? a.left - b.left : a.top - b.top,
   )
@@ -65,6 +69,7 @@ export function findDropIndex(
       axis === 'x'
         ? rect.left + (rect.right - rect.left) / 2
         : rect.top + (rect.bottom - rect.top) / 2
+
     return coordinate < center
   })
 
@@ -91,6 +96,7 @@ export function getEdgeScrollDelta(
         (start + effectiveThreshold - coordinate) / effectiveThreshold,
       ),
     )
+
     return -Math.max(1, Math.round(maxStep * intensity))
   }
 
@@ -102,6 +108,7 @@ export function getEdgeScrollDelta(
         (coordinate - (end - effectiveThreshold)) / effectiveThreshold,
       ),
     )
+
     return Math.max(1, Math.round(maxStep * intensity))
   }
 

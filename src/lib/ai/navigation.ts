@@ -25,7 +25,9 @@ export function isSafeWorkspacePath(value: unknown): value is string {
       typeof window === 'undefined'
         ? 'http://localhost'
         : window.location.origin
+
     const url = new URL(value, origin)
+
     return url.origin === origin && !url.pathname.startsWith('/assistant')
   } catch {
     return false
@@ -60,6 +62,7 @@ export function resolveAssistantReturnPath(
 
   try {
     const stored = sessionStorage.getItem(ASSISTANT_RETURN_TO_STORAGE_KEY)
+
     return isSafeWorkspacePath(stored) ? stored : '/'
   } catch {
     return '/'

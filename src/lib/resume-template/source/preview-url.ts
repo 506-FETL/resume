@@ -7,6 +7,7 @@ export function templatePreviewUrl(
   asset: TemplateAssetRef,
 ): string {
   const { hash } = assetRefSchema.parse(asset)
+
   return new URL(
     `/storage/v1/object/public/resume-template-previews/${hash}`,
     projectUrl,

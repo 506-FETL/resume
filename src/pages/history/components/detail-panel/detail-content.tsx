@@ -23,12 +23,15 @@ export default function HistoryDetailContent({
   const resumeScrollRef = useRef<HTMLDivElement>(null)
   const overviewScrollRef = useRef<HTMLDivElement>(null)
   const currentResume = useHistoryStore((state) => state.currentResume)
+
   const loadVersionSnapshot = useHistoryStore(
     (state) => state.loadVersionSnapshot,
   )
+
   const { activeTab, setActiveTab } = state
 
   const isCurrent = state.selectedEntry === 'current'
+
   const selectedVersionId = isCurrent
     ? null
     : (state.selectedVersion?.id ?? null)

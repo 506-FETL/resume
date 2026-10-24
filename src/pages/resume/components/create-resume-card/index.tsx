@@ -46,6 +46,7 @@ export default function CreateResumeCard({
   const [description, setDescription] = useState('')
   const [selecting, setSelecting] = useState(false)
   const [selectionError, setSelectionError] = useState<string | null>(null)
+
   const {
     createResume,
     loading: creating,
@@ -57,11 +58,15 @@ export default function CreateResumeCard({
 
   async function handleCreateResume(e: FormEvent) {
     e.preventDefault()
+
     if (loading) return
+
     setSelecting(true)
     setSelectionError(null)
+
     try {
       const selection = await getDefaultTemplateSelection()
+
       const ok = await createResume(
         {
           ...selection,
@@ -71,6 +76,7 @@ export default function CreateResumeCard({
         },
         onCreated,
       )
+
       if (ok) handleCancel()
     } catch (caught) {
       setSelectionError(

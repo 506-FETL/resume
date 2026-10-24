@@ -55,7 +55,9 @@ export function getVariantFieldMapping(
   if (!Object.hasOwn(VARIANT_FIELD_MAPPINGS, section)) {
     return undefined
   }
+
   const mapping =
     VARIANT_FIELD_MAPPINGS[section as keyof typeof VARIANT_FIELD_MAPPINGS]
+
   return mapping.fieldPath === fieldPath ? mapping : undefined
 }

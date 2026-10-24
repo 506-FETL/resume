@@ -13,6 +13,7 @@ export type ResumeVersionSourceType =
   | 'import'
 
 export type RestoreStrategy = 'with_backup' | 'without_backup'
+
 export type ResumeVersionStatus = 'active' | 'frozen'
 
 export type ResumeSnapshot = PersistedResumeSnapshot
@@ -41,6 +42,7 @@ export interface ResumeHistoryVersionMeta {
 
 // 轻量列表行（DB 返回，无 snapshot）与归一后的列表项
 export type ResumeHistoryVersionListRow = ResumeHistoryVersionMeta
+
 export type ResumeHistoryVersionListItem = ResumeHistoryVersionMeta
 
 export interface ResumeVersionListItem extends ResumeHistoryVersionMeta {

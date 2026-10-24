@@ -8,12 +8,15 @@ import CardPreview from '../card-preview'
 
 export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
   const showPreview = useTemplatePageStore((state) => state.showPreview)
+
   const selectedExample =
     useTemplatePageStore((state) => state.selectedExamples[item.templateId]) ??
     item.defaultExample
+
   const prefetchEvents = useTemplatePrefetch(item, selectedExample)
   const category = item.category
   const reduceMotion = useReducedMotion()
+
   const transitionStyle = {
     transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
   }

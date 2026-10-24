@@ -30,6 +30,7 @@ interface ProgressTimelineProps {
 }
 
 const terminalWidth = 140
+
 const curve = linkHorizontal<
   { source: [number, number]; target: [number, number] },
   [number, number]
@@ -49,11 +50,15 @@ export default function ProgressTimeline({
   useEffect(() => {
     const viewport = scrollRef.current
     const active = activeRef.current
+
     if (!viewport || !active) return
+
     const viewportBox = viewport.getBoundingClientRect()
     const activeBox = active.getBoundingClientRect()
+
     const outside =
       activeBox.left < viewportBox.left || activeBox.right > viewportBox.right
+
     if (outside)
       viewport.scrollTo({
         left:
@@ -72,14 +77,17 @@ export default function ProgressTimeline({
   const mainWidth = width - terminalWidth
   const source: [number, number] = [mainWidth * (5.5 / 6) + 14, 64]
   const endedAt = getEndedApplicationStage(job)
+
   const currentIndex = ACTIVE_APPLICATION_STAGES.findIndex(
     (stage) => stage === job.status,
   )
+
   const terminalSource =
     job.status === 'rejected'
       ? endedAt
       : job.stage_details.find((detail) => detail.stage === 'offer')
           ?.source_stage
+
   const progressIndex =
     currentIndex >= 0
       ? currentIndex
@@ -95,6 +103,7 @@ export default function ProgressTimeline({
                 : furthest,
             -1,
           )
+
   const activate = (status: ApplicationStatus) =>
     status === job.status ? onStageClick(status) : onStageJump(status)
 
@@ -171,15 +180,18 @@ export default function ProgressTimeline({
               const detail = job.stage_details.find(
                 (item) => item.stage === status,
               )
+
               const current = job.status === status
               const ended = job.status === 'rejected' && status === endedAt
               const completed = detail?.status === '已完成' || ended
               const unrecorded = index < progressIndex && !completed
+
               const stepState = current
                 ? 'active'
                 : completed
                   ? 'completed'
                   : 'inactive'
+
               return (
                 <StepperItem key={status} state={stepState}>
                   {index < ACTIVE_APPLICATION_STAGES.length - 1 && (
@@ -236,6 +248,7 @@ export default function ProgressTimeline({
             {(['offer', 'rejected'] as const).map((status, index) => {
               const current = job.status === status
               const Icon = status === 'offer' ? CircleCheck : CircleMinus
+
               return (
                 <button
                   key={status}

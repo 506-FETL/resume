@@ -14,18 +14,23 @@ export function useTemplatePrefetch(
   disabled = false,
 ) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const cancel = useCallback(() => {
     if (timer.current !== null) {
       clearTimeout(timer.current)
       timer.current = null
     }
   }, [])
+
   const prefetch = useCallback(() => {
     cancel()
+
     if (!disabled) prefetchTemplatePreview(item, example)
   }, [cancel, disabled, item, example])
+
   const schedule = useCallback(() => {
     cancel()
+
     if (!disabled)
       timer.current = setTimeout(prefetch, TEMPLATE_PREFETCH_DELAY_MS)
   }, [cancel, disabled, prefetch])

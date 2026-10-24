@@ -42,11 +42,14 @@ function App() {
   const reduceMotion = useReducedMotion()
   const recoveryPending = useRecoveryNavigation()
   const authStatus = useUserStore((state) => state.authStatus)
+
   const isAssistantRoute =
     location.pathname === '/assistant' ||
     location.pathname.startsWith('/assistant/')
+
   const isShareViewRoute = location.pathname.startsWith('/share/view/')
   const accountPage = ACCOUNT_PAGES[location.pathname.replace(/\/+$/, '')]
+
   const page = accountPage ? (
     <AuthRequired {...accountPage}>{element}</AuthRequired>
   ) : (

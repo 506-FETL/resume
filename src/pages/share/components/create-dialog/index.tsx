@@ -52,12 +52,14 @@ export default function CreateDialog({
 }: CreateDialogProps) {
   const reduceMotion = useReducedMotion()
   const returnFocusRef = useRef<HTMLElement | null>(null)
+
   const {
     resumeMap,
     createRelease,
     loadVersionOptions,
     versionOptionsByResumeId,
   } = useShareStore()
+
   const [resumeId, setResumeId] = useState('')
   const [resumeOpen, setResumeOpen] = useState(false)
   const [label, setLabel] = useState('')
@@ -66,9 +68,11 @@ export default function CreateDialog({
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [allowComments, setAllowComments] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+
   const [selection, setSelection] = useState<ShareVersionSelection>({
     kind: 'current',
   })
+
   const resumes = useMemo(
     () =>
       Object.values(resumeMap).sort((left, right) =>
@@ -76,10 +80,12 @@ export default function CreateDialog({
       ),
     [resumeMap],
   )
+
   const selectedResume = useMemo(
     () => resumes.find((resume) => resume.resumeId === resumeId) ?? null,
     [resumeId, resumes],
   )
+
   const versionEntry = resumeId ? versionOptionsByResumeId[resumeId] : undefined
 
   useLayoutEffect(() => {
@@ -97,7 +103,9 @@ export default function CreateDialog({
 
   const handleCreate = async () => {
     if (!resumeId) return
+
     setSubmitting(true)
+
     try {
       const release = await resolveResumeShareRelease({
         resumeId,
@@ -105,12 +113,14 @@ export default function CreateDialog({
         selection,
         getCurrentSource: getResumeSnapshotById,
       })
+
       await createRelease(resumeId, release, {
         label: label.trim() || null,
         password: password.trim() || null,
         expiresAt: dateToExpiryIso(expiresAt),
         allowComments,
       })
+
       toast.success('分享链接已生成')
       onOpenChange(false)
     } catch (error) {
@@ -125,6 +135,7 @@ export default function CreateDialog({
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen && submitting) return
+
         onOpenChange(nextOpen)
       }}
     >
@@ -138,6 +149,7 @@ export default function CreateDialog({
         }}
         onCloseAutoFocus={(event) => {
           if (!returnFocusRef.current?.isConnected) return
+
           event.preventDefault()
           returnFocusRef.current.focus({ preventScroll: true })
         }}
@@ -201,9 +213,11 @@ export default function CreateDialog({
                           onSelect={() => {
                             setResumeId(resume.resumeId)
                             setSelection({ kind: 'current' })
+
                             loadVersionOptions(resume.resumeId, {
                               force: true,
                             }).catch(() => undefined)
+
                             setResumeOpen(false)
                           }}
                         >

@@ -36,8 +36,10 @@ export function startCollaborationLeaseMonitor(options: {
     if (stopped || running) {
       return
     }
+
     timer = null
     running = true
+
     try {
       await options.renew()
     } catch (error) {
@@ -58,6 +60,7 @@ export function startCollaborationLeaseMonitor(options: {
       if (timer) {
         clearTimeout(timer)
       }
+
       timer = null
       tick().catch(options.onTransientError)
     }
@@ -68,10 +71,12 @@ export function startCollaborationLeaseMonitor(options: {
 
   return () => {
     stopped = true
+
     if (timer) {
       clearTimeout(timer)
       timer = null
     }
+
     document.removeEventListener('visibilitychange', onVisibilityChange)
   }
 }

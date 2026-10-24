@@ -10,6 +10,7 @@ import { useWriteConfirmBridge } from './hooks/use-write-confirm-bridge'
 
 export default function Assistant() {
   const rootRef = useAssistantLayout()
+
   useWriteConfirmBridge()
   useAssistantBootstrap()
   useAssistantNavigation(true)

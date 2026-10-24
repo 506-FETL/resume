@@ -35,7 +35,9 @@ export function resolveResumeTemplateBinding(
 ): ResumeTemplateBinding {
   if (!binding || typeof binding !== 'object' || Array.isArray(binding))
     throw new Error('简历缺少有效模板引用，请从模板库新建简历')
+
   const value = binding as Record<string, unknown>
+
   if (
     value.source !== 'official' ||
     typeof value.templateId !== 'string' ||
@@ -49,6 +51,7 @@ export function resolveResumeTemplateBinding(
   ) {
     throw new Error('简历模板引用无效，请从模板库新建简历')
   }
+
   return {
     source: 'official',
     templateId: value.templateId,
@@ -64,22 +67,26 @@ export const DEFAULT_RESUME_APPEARANCE: ResumeAppearanceConfig = {
 
 export function normalizeSpacingConfig(value: unknown): SpacingConfigType {
   const parsed = spacingConfigSchema.safeParse(value)
+
   return parsed.success ? parsed.data : DEFAULT_SPACING_CONFIG
 }
 
 export function normalizeFontConfig(value: unknown): FontConfigType {
   const input =
     value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+
   const parsed = fontConfigSchema.safeParse({
     ...DEFAULT_FONT_CONFIG,
     ...input,
     fontFamily: normalizeResumeFontFamily(input.fontFamily),
   })
+
   return parsed.success ? parsed.data : DEFAULT_FONT_CONFIG
 }
 
 export function normalizeThemeConfig(value: unknown): ThemeConfigType {
   const parsed = themeConfigSchema.safeParse(value)
+
   return parsed.success ? parsed.data : DEFAULT_THEME_CONFIG
 }
 

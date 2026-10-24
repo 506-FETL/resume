@@ -12,6 +12,7 @@ function normalizeStableValue(value: unknown): unknown {
 
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>
+
     return Object.fromEntries(
       Object.keys(record)
         .filter((key) => record[key] !== undefined)
@@ -58,6 +59,7 @@ export function createLegacyResumeEntryId({
     sectionKey,
     value,
   })
+
   const first = fnv1a32(payload, 0x811c9dc5)
   const second = fnv1a32(payload, 0x9e3779b9)
 
@@ -193,6 +195,7 @@ export function normalizeCommentText(value: string): string {
 
 export function splitCommentGraphemes(value: string): string[] {
   const normalized = normalizeCommentText(value)
+
   return Array.from(
     new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
       normalized,
@@ -214,9 +217,12 @@ export function sha256Hex(value: string): string {
   const bitLength = input.length * 8
   const paddedLength = Math.ceil((input.length + 9) / 64) * 64
   const bytes = new Uint8Array(paddedLength)
+
   bytes.set(input)
   bytes[input.length] = 0x80
+
   const view = new DataView(bytes.buffer)
+
   view.setUint32(paddedLength - 8, Math.floor(bitLength / 0x100000000), false)
   view.setUint32(paddedLength - 4, bitLength >>> 0, false)
 
@@ -224,23 +230,28 @@ export function sha256Hex(value: string): string {
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
     0x1f83d9ab, 0x5be0cd19,
   ])
+
   const words = new Uint32Array(64)
 
   for (let offset = 0; offset < paddedLength; offset += 64) {
     for (let index = 0; index < 16; index += 1) {
       words[index] = view.getUint32(offset + index * 4, false)
     }
+
     for (let index = 16; index < 64; index += 1) {
       const previous15 = words[index - 15]
       const previous2 = words[index - 2]
+
       const sigma0 =
         rotateRight(previous15, 7) ^
         rotateRight(previous15, 18) ^
         (previous15 >>> 3)
+
       const sigma1 =
         rotateRight(previous2, 17) ^
         rotateRight(previous2, 19) ^
         (previous2 >>> 10)
+
       words[index] =
         (words[index - 16] + sigma0 + words[index - 7] + sigma1) >>> 0
     }
@@ -257,8 +268,10 @@ export function sha256Hex(value: string): string {
     for (let index = 0; index < 64; index += 1) {
       const sigma1 = rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25)
       const choice = (e & f) ^ (~e & g)
+
       const temp1 =
         (h + sigma1 + choice + SHA256_CONSTANTS[index] + words[index]) >>> 0
+
       const sigma0 = rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22)
       const majority = (a & b) ^ (a & c) ^ (b & c)
       const temp2 = (sigma0 + majority) >>> 0
@@ -288,6 +301,7 @@ export function sha256Hex(value: string): string {
 
 function decodeHtmlEntity(entity: string): string {
   const normalized = entity.toLowerCase()
+
   const named: Record<string, string> = {
     '&amp;': '&',
     '&apos;': "'",
@@ -296,20 +310,24 @@ function decodeHtmlEntity(entity: string): string {
     '&nbsp;': ' ',
     '&quot;': '"',
   }
+
   if (named[normalized] !== undefined) {
     return named[normalized]
   }
 
   const decimal = /^&#(\d+);$/.exec(normalized)
   const hexadecimal = /^&#x([0-9a-f]+);$/.exec(normalized)
+
   const codePoint = decimal
     ? Number.parseInt(decimal[1], 10)
     : hexadecimal
       ? Number.parseInt(hexadecimal[1], 16)
       : Number.NaN
+
   if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
     return entity
   }
+
   return String.fromCodePoint(codePoint)
 }
 
@@ -334,6 +352,7 @@ export function projectCommentRichTextBlocks(
     /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/giu,
     '',
   )
+
   const tokens = source.match(/<[^>]*>|[^<]+/gu) ?? []
   const blocks: CommentProjectedBlock[] = []
   let activeBlockTag: string | null = null
@@ -341,9 +360,11 @@ export function projectCommentRichTextBlocks(
 
   const flush = () => {
     const text = normalizeCommentRichTextBlock(buffer)
+
     if (text) {
       blocks.push({ text })
     }
+
     buffer = ''
   }
 
@@ -354,9 +375,11 @@ export function projectCommentRichTextBlocks(
     }
 
     const match = /^<\s*(?:(\/)\s*)?([a-z0-9]+)/iu.exec(token)
+
     if (!match) {
       continue
     }
+
     const closing = Boolean(match[1])
     const tag = match[2].toLowerCase()
 
@@ -372,16 +395,19 @@ export function projectCommentRichTextBlocks(
         flush()
         activeBlockTag = null
       }
+
       continue
     }
 
     if (buffer) {
       flush()
     }
+
     activeBlockTag = tag
   }
 
   flush()
+
   return blocks
 }
 
@@ -390,27 +416,33 @@ function normalizeProjectionReferenceDate(value: string | Date): string {
     if (Number.isNaN(value.getTime())) {
       throw new TypeError('Invalid projection reference date')
     }
+
     return value.toISOString().slice(0, 10)
   }
 
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+
   if (!match) {
     throw new Error('Invalid projection reference date')
   }
+
   const normalized = `${match[1]}-${match[2]}-${match[3]}`
   const date = new Date(`${normalized}T00:00:00Z`)
+
   if (
     Number.isNaN(date.getTime()) ||
     date.toISOString().slice(0, 10) !== normalized
   ) {
     throw new Error('Invalid projection reference date')
   }
+
   return normalized
 }
 
 function calculateAge(birthValue: unknown, referenceDate: string): string {
   const birth = readString(birthValue).trim()
   const match = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?/.exec(birth)
+
   if (!match) {
     return ''
   }
@@ -418,33 +450,43 @@ function calculateAge(birthValue: unknown, referenceDate: string): string {
   const [referenceYear, referenceMonth, referenceDay] = referenceDate
     .split('-')
     .map(Number)
+
   const birthYear = Number(match[1])
   const birthMonth = Number(match[2])
   const birthDay = Number(match[3] ?? 1)
+
   if (birthMonth < 1 || birthMonth > 12 || birthDay < 1 || birthDay > 31) {
     return ''
   }
+
   let age = referenceYear - birthYear
+
   if (
     referenceMonth < birthMonth ||
     (referenceMonth === birthMonth && referenceDay < birthDay)
   ) {
     age -= 1
   }
+
   return age >= 0 && age <= 150 ? `${age}岁` : ''
 }
 
 function formatCommentDuration(value: unknown): string {
   const range = readArray(value)
   const startValue = readString(range[0]).trim()
+
   if (!startValue) {
     return ''
   }
+
   const normalizeYearMonth = (item: string) => {
     const match = /^(\d{4})[-/](\d{1,2})[-/]\d{1,2}$/.exec(item.trim())
+
     return match ? `${match[1]}-${match[2].padStart(2, '0')}` : item
   }
+
   const endValue = readString(range[1]).trim()
+
   return `${normalizeYearMonth(startValue)} - ${endValue ? normalizeYearMonth(endValue) : '至今'}`
 }
 
@@ -457,24 +499,32 @@ function buildEntryId(
 ): string {
   const record = readRecord(value)
   const entryId = readString(record.entryId).trim()
+
   if (entryId && entryId.length <= 128 && !usedIds.has(entryId)) {
     usedIds.add(entryId)
+
     return entryId
   }
+
   const { entryId: _entryId, ...valueWithoutEntryId } = record
+
   const base = createLegacyResumeEntryId({
     sectionKey,
     collectionKey,
     index,
     value: valueWithoutEntryId,
   })
+
   let candidate = base
   let suffix = 1
+
   while (usedIds.has(candidate)) {
     candidate = `${base}_${suffix}`
     suffix += 1
   }
+
   usedIds.add(candidate)
+
   return candidate
 }
 
@@ -487,6 +537,7 @@ function pushTextNode(
   fallback = '',
 ) {
   const text = normalizeCommentText(readString(value).trim() || fallback)
+
   if (text) {
     target.push({ sectionKey, entryId, fieldKey, blocks: [{ text }] })
   }
@@ -500,6 +551,7 @@ function pushRichTextNode(
   value: unknown,
 ) {
   const blocks = projectCommentRichTextBlocks(readString(value))
+
   if (blocks.length > 0) {
     target.push({ sectionKey, entryId, fieldKey, blocks })
   }
@@ -515,7 +567,9 @@ function projectSingletonSections(
       [] as ProjectedNodeInput[],
     ]),
   ) as Record<string, ProjectedNodeInput[]>
+
   const basics = readRecord(resume.basics)
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -524,8 +578,10 @@ function projectSingletonSections(
     basics.name,
     '姓名',
   )
+
   pushTextNode(sections.basics, 'basics', 'singleton', 'phone', basics.phone)
   pushTextNode(sections.basics, 'basics', 'singleton', 'email', basics.email)
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -533,6 +589,7 @@ function projectSingletonSections(
     'age',
     calculateAge(basics.birthMonth, referenceDate),
   )
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -540,6 +597,7 @@ function projectSingletonSections(
     'gender',
     basics.gender === '不填' ? '' : basics.gender,
   )
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -547,7 +605,9 @@ function projectSingletonSections(
     'workYears',
     basics.workYears === '不填' ? '' : basics.workYears,
   )
+
   pushTextNode(sections.basics, 'basics', 'singleton', 'nation', basics.nation)
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -555,6 +615,7 @@ function projectSingletonSections(
     'height',
     readNumber(basics.heightCm) > 0 ? `${readNumber(basics.heightCm)}cm` : '',
   )
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -562,6 +623,7 @@ function projectSingletonSections(
     'weight',
     readNumber(basics.weightKg) > 0 ? `${readNumber(basics.weightKg)}kg` : '',
   )
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -569,6 +631,7 @@ function projectSingletonSections(
     'nativePlace',
     basics.nativePlace,
   )
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -576,6 +639,7 @@ function projectSingletonSections(
     'maritalStatus',
     basics.maritalStatus === '不填' ? '' : basics.maritalStatus,
   )
+
   pushTextNode(
     sections.basics,
     'basics',
@@ -583,9 +647,11 @@ function projectSingletonSections(
     'politicalStatus',
     basics.politicalStatus === '不填' ? '' : basics.politicalStatus,
   )
+
   readArray(basics.customFields).forEach((item, index) => {
     const field = readRecord(item)
     const value = readString(field.value).trim()
+
     if (value) {
       pushTextNode(
         sections.basics,
@@ -598,6 +664,7 @@ function projectSingletonSections(
   })
 
   const jobIntent = readRecord(resume.job_intent)
+
   pushTextNode(
     sections.job_intent,
     'job_intent',
@@ -605,6 +672,7 @@ function projectSingletonSections(
     'jobIntent',
     jobIntent.jobIntent,
   )
+
   pushTextNode(
     sections.job_intent,
     'job_intent',
@@ -612,6 +680,7 @@ function projectSingletonSections(
     'intentionalCity',
     jobIntent.intentionalCity,
   )
+
   pushTextNode(
     sections.job_intent,
     'job_intent',
@@ -621,6 +690,7 @@ function projectSingletonSections(
       ? `${readNumber(jobIntent.expectedSalary)}K`
       : '',
   )
+
   pushTextNode(
     sections.job_intent,
     'job_intent',
@@ -630,6 +700,7 @@ function projectSingletonSections(
   )
 
   const applicationInfo = readRecord(resume.application_info)
+
   pushTextNode(
     sections.application_info,
     'application_info',
@@ -639,6 +710,7 @@ function projectSingletonSections(
       ? `申请院校：${readString(applicationInfo.applicationSchool)}`
       : '',
   )
+
   pushTextNode(
     sections.application_info,
     'application_info',
@@ -650,6 +722,7 @@ function projectSingletonSections(
   )
 
   const selfEvaluation = readRecord(resume.self_evaluation)
+
   pushRichTextNode(
     sections.self_evaluation,
     'self_evaluation',
@@ -657,6 +730,7 @@ function projectSingletonSections(
     'content',
     selfEvaluation.content,
   )
+
   return sections
 }
 
@@ -676,11 +750,14 @@ function projectExperienceCollection(
   },
 ) {
   const usedIds = new Set<string>()
+
   readArray(entries).forEach((value, index) => {
     const entry = readRecord(value)
+
     if (entry.hidden === true) {
       return
     }
+
     const entryId = buildEntryId(
       sectionKey,
       collectionKey,
@@ -688,17 +765,21 @@ function projectExperienceCollection(
       entry,
       usedIds,
     )
+
     const subtitle = fields.subtitleProject
       ? fields.subtitleProject(entry)
       : fields.subtitle
         ? readString(entry[fields.subtitle])
         : ''
+
     const duration = formatCommentDuration(entry[fields.duration])
+
     const visibilityFields = fields.visibilityFields ?? [
       fields.title,
       ...(fields.subtitle ? [fields.subtitle] : []),
       fields.content,
     ]
+
     if (
       !visibilityFields.some((field) => Boolean(readString(entry[field]))) &&
       !duration
@@ -714,6 +795,7 @@ function projectExperienceCollection(
       entry[fields.title],
       fields.titleFallback,
     )
+
     pushTextNode(
       target,
       sectionKey,
@@ -721,7 +803,9 @@ function projectExperienceCollection(
       fields.subtitle ?? 'subtitle',
       subtitle,
     )
+
     pushTextNode(target, sectionKey, entryId, 'duration', duration)
+
     pushRichTextNode(
       target,
       sectionKey,
@@ -757,6 +841,7 @@ function projectCollectionSections(
       visibilityFields: ['schoolName', 'professional', 'eduInfo'],
     },
   )
+
   projectExperienceCollection(
     sections.work_experience,
     'work_experience',
@@ -770,6 +855,7 @@ function projectCollectionSections(
       content: 'workInfo',
     },
   )
+
   projectExperienceCollection(
     sections.internship_experience,
     'internship_experience',
@@ -783,6 +869,7 @@ function projectCollectionSections(
       content: 'internshipInfo',
     },
   )
+
   projectExperienceCollection(
     sections.campus_experience,
     'campus_experience',
@@ -796,6 +883,7 @@ function projectCollectionSections(
       content: 'campusInfo',
     },
   )
+
   projectExperienceCollection(
     sections.project_experience,
     'project_experience',
@@ -811,6 +899,7 @@ function projectCollectionSections(
   )
 
   const skillSection = readRecord(resume.skill_specialty)
+
   pushRichTextNode(
     sections.skill_specialty,
     'skill_specialty',
@@ -818,12 +907,16 @@ function projectCollectionSections(
     'description',
     skillSection.description,
   )
+
   const usedSkillIds = new Set<string>()
+
   readArray(skillSection.skills).forEach((value, index) => {
     const entry = readRecord(value)
+
     if (entry.hidden === true) {
       return
     }
+
     const entryId = buildEntryId(
       'skill_specialty',
       'skills',
@@ -831,8 +924,10 @@ function projectCollectionSections(
       entry,
       usedSkillIds,
     )
+
     const label = readString(entry.label).trim()
     const proficiency = readString(entry.proficiencyLevel).trim()
+
     pushTextNode(
       sections.skill_specialty,
       'skill_specialty',
@@ -843,6 +938,7 @@ function projectCollectionSections(
   })
 
   const certificateSection = readRecord(resume.honors_certificates)
+
   pushRichTextNode(
     sections.honors_certificates,
     'honors_certificates',
@@ -850,12 +946,16 @@ function projectCollectionSections(
     'description',
     certificateSection.description,
   )
+
   const usedCertificateIds = new Set<string>()
+
   readArray(certificateSection.certificates).forEach((value, index) => {
     const entry = readRecord(value)
+
     if (entry.hidden === true) {
       return
     }
+
     pushTextNode(
       sections.honors_certificates,
       'honors_certificates',
@@ -872,6 +972,7 @@ function projectCollectionSections(
   })
 
   const hobbySection = readRecord(resume.hobbies)
+
   pushRichTextNode(
     sections.hobbies,
     'hobbies',
@@ -879,12 +980,16 @@ function projectCollectionSections(
     'description',
     hobbySection.description,
   )
+
   const usedHobbyIds = new Set<string>()
+
   readArray(hobbySection.hobbies).forEach((value, index) => {
     const entry = readRecord(value)
+
     if (entry.hidden === true) {
       return
     }
+
     pushTextNode(
       sections.hobbies,
       'hobbies',
@@ -901,19 +1006,26 @@ function toAnchorDocumentNode(
   const normalizedBlocks = input.blocks
     .map((block) => normalizeCommentText(block.text))
     .filter(Boolean)
+
   const text = normalizedBlocks.join('\n')
   let cursor = 0
+
   const blocks = normalizedBlocks.map((blockText, ordinal) => {
     const startGraphemeOffset = cursor
+
     cursor += countCommentGraphemes(blockText)
+
     const block = {
       ordinal,
       startGraphemeOffset,
       endGraphemeOffset: cursor,
     }
+
     cursor += 1
+
     return block
   })
+
   return {
     nodeKey: `${input.sectionKey}/${input.entryId}/${input.fieldKey}`,
     sectionKey: input.sectionKey,
@@ -930,13 +1042,18 @@ export function buildCommentAnchorDocument(
   projectionReferenceDateValue: string | Date,
 ): CommentAnchorDocumentResult {
   const resume = readRecord(resumeValue)
+
   const projectionReferenceDate = normalizeProjectionReferenceDate(
     projectionReferenceDateValue,
   )
+
   const sections = projectSingletonSections(resume, projectionReferenceDate)
+
   projectCollectionSections(resume, sections)
+
   const visibility = readRecord(resume.visibility)
   const requestedOrder = readArray(resume.order).map(readString)
+
   const orderedSections = [
     ...requestedOrder.filter((key) =>
       COMMENT_SECTION_ORDER.includes(
@@ -950,13 +1067,16 @@ export function buildCommentAnchorDocument(
     if (sectionKey !== 'basics' && visibility[sectionKey] === true) {
       return []
     }
+
     return sections[sectionKey].map(toAnchorDocumentNode)
   })
+
   const document: CommentAnchorDocument = {
     version: 1,
     projectionReferenceDate,
     nodes,
   }
+
   return {
     document,
     documentHash: sha256Hex(stableStringify(document)),
@@ -974,10 +1094,13 @@ function commentGraphemeSlice(
 function findCommentQuoteOffsets(text: string, quote: string): number[] {
   const haystack = splitCommentGraphemes(text)
   const needle = splitCommentGraphemes(quote)
+
   if (needle.length === 0 || needle.length > haystack.length) {
     return []
   }
+
   const matches: number[] = []
+
   for (let start = 0; start <= haystack.length - needle.length; start += 1) {
     if (
       needle.every((grapheme, index) => haystack[start + index] === grapheme)
@@ -985,6 +1108,7 @@ function findCommentQuoteOffsets(text: string, quote: string): number[] {
       matches.push(start)
     }
   }
+
   return matches
 }
 
@@ -1002,6 +1126,7 @@ function commentAnchorContextMatches(
   end: number,
 ): boolean {
   const context = readCommentAnchorContext(text, start, end)
+
   return (
     context.prefix.endsWith(anchor.prefix) &&
     context.suffix.startsWith(anchor.suffix)
@@ -1015,17 +1140,22 @@ function moveResumeCommentAnchor(
   nextDocumentHash?: string,
 ): ResumeCommentAnchor | null {
   const end = start + countCommentGraphemes(anchor.exactQuote)
+
   const startBlock = node.blocks.find(
     (item) =>
       start >= item.startGraphemeOffset && start <= item.endGraphemeOffset,
   )
+
   const endBlock = node.blocks.find(
     (item) => end >= item.startGraphemeOffset && end <= item.endGraphemeOffset,
   )
+
   if (!startBlock || !endBlock) {
     return null
   }
+
   const context = readCommentAnchorContext(node.text, start, end)
+
   return {
     ...anchor,
     startGraphemeOffset: start,
@@ -1046,11 +1176,13 @@ export function relocateResumeCommentAnchor(
   if (!nextNode || nextNode.nodeKey !== anchor.nodeKey) {
     return { status: 'detached', reason: 'node_missing' }
   }
+
   const originalQuote = commentGraphemeSlice(
     nextNode.text,
     anchor.startGraphemeOffset,
     anchor.endGraphemeOffset,
   )
+
   if (originalQuote === anchor.exactQuote) {
     const nextAnchor = moveResumeCommentAnchor(
       anchor,
@@ -1058,9 +1190,11 @@ export function relocateResumeCommentAnchor(
       anchor.startGraphemeOffset,
       nextDocumentHash,
     )
+
     if (!nextAnchor) {
       return { status: 'detached', reason: 'quote_missing' }
     }
+
     return {
       status: 'anchored',
       anchor: nextAnchor,
@@ -1075,10 +1209,13 @@ export function relocateResumeCommentAnchor(
   }
 
   const offsets = findCommentQuoteOffsets(nextNode.text, anchor.exactQuote)
+
   if (offsets.length === 0) {
     return { status: 'detached', reason: 'quote_missing' }
   }
+
   const quoteLength = countCommentGraphemes(anchor.exactQuote)
+
   const matchingOffsets = offsets.filter((start) =>
     commentAnchorContextMatches(
       anchor,
@@ -1087,24 +1224,29 @@ export function relocateResumeCommentAnchor(
       start + quoteLength,
     ),
   )
+
   const selectedOffset =
     matchingOffsets.length === 1
       ? matchingOffsets[0]
       : offsets.length === 1
         ? offsets[0]
         : null
+
   if (selectedOffset === null) {
     return { status: 'detached', reason: 'ambiguous' }
   }
+
   const nextAnchor = moveResumeCommentAnchor(
     anchor,
     nextNode,
     selectedOffset,
     nextDocumentHash,
   )
+
   if (!nextAnchor) {
     return { status: 'detached', reason: 'quote_missing' }
   }
+
   return {
     status: 'anchored',
     anchor: nextAnchor,

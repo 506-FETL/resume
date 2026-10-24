@@ -19,9 +19,12 @@ registerTool({
   mode: 'read',
   execute: async () => {
     const scope = getTrackerAccountScope()
+
     try {
       const jobs = await getCompanies(createTrackerAccountGuard(scope))
+
       assertTrackerAccountScope(scope)
+
       return {
         count: jobs.length,
         jobs: jobs.map((j) => ({
@@ -54,10 +57,14 @@ registerTool({
   mode: 'read',
   execute: async (args) => {
     const scope = getTrackerAccountScope()
+
     try {
       const jobs = await getCompanies(createTrackerAccountGuard(scope))
+
       assertTrackerAccountScope(scope)
+
       const job = jobs.find((j) => j.id === String(args.jobId))
+
       return job ?? { error: '未找到该职位' }
     } catch (error) {
       return { error: error instanceof Error ? error.message : '读取职位失败' }
@@ -86,6 +93,7 @@ const JOB_FIELD_LABELS: Record<string, string> = {
 function formatJobField(key: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return ''
   if (key === 'status') return STATUS_LABELS[String(value)] ?? String(value)
+
   return String(value)
 }
 
@@ -111,22 +119,29 @@ registerTool({
     const scope = getTrackerAccountScope()
     const jobId = String(args.jobId)
     const patch = (args.patch ?? {}) as Record<string, unknown>
+
     const jobs = await getCompanies(createTrackerAccountGuard(scope)).catch(
       () => [],
     )
+
     assertTrackerAccountScope(scope)
+
     const job = jobs.find((j) => j.id === jobId)
+
     if (!job) return { error: '未找到该职位' }
 
     const summaryParts: string[] = []
+
     if (patch.status)
       summaryParts.push(
         `状态 → ${STATUS_LABELS[String(patch.status)] ?? patch.status}`,
       )
     if (patch.next_action) summaryParts.push(`下一步 → ${patch.next_action}`)
+
     const otherKeys = Object.keys(patch).filter(
       (k) => k !== 'status' && k !== 'next_action',
     )
+
     if (otherKeys.length) summaryParts.push(`更新字段：${otherKeys.join(', ')}`)
 
     return requestConfirm(
@@ -140,7 +155,9 @@ registerTool({
         },
         apply: async () => {
           assertTrackerAccountScope(scope)
+
           const { status, ...fields } = patch
+
           if ('stage_details' in fields || 'interview_sub_stages' in fields)
             throw new Error(
               '阶段内容和面试轮次请通过求职跟进页面编辑，不能手动改流程状态',
@@ -155,7 +172,9 @@ registerTool({
             !useTrackerStore.getState().jobs.some((item) => item.id === jobId)
           )
             await useTrackerStore.getState().reloadJobs()
+
           assertTrackerAccountScope(scope)
+
           if (status !== undefined)
             await useTrackerStore
               .getState()
@@ -168,14 +187,18 @@ registerTool({
             await useTrackerStore
               .getState()
               .saveJobFields(jobId, fields as JobFieldsPatch)
+
           // 生成统一的红绿 diff：逐字段对比旧值 → 新值
           const keys = Object.keys(patch)
+
           const before = keys
             .map((k) =>
               jobFieldLine(k, (job as unknown as Record<string, unknown>)[k]),
             )
             .join('\n')
+
           const after = keys.map((k) => jobFieldLine(k, patch[k])).join('\n')
+
           return { ok: true, jobId, before, after }
         },
       },
@@ -204,6 +227,7 @@ registerTool({
   execute: async (args, context) => {
     const scope = getTrackerAccountScope()
     const data = (args.data ?? {}) as Record<string, unknown>
+
     if (!data.company || !data.position)
       return { error: '新增职位至少需要 company（公司）和 position（岗位）' }
 
@@ -218,7 +242,9 @@ registerTool({
         },
         apply: async () => {
           assertTrackerAccountScope(scope)
+
           const status = data.status ?? 'saved'
+
           if (
             typeof status !== 'string' ||
             !Object.hasOwn(APPLICATION_STATUS_CONFIG, status)
@@ -226,6 +252,7 @@ registerTool({
             throw new Error('无效的职位状态')
           if ('stage_details' in data || 'interview_sub_stages' in data)
             throw new Error('新增职位时不能手动指定阶段和轮次状态')
+
           const created = await createCompany(
             {
               ...data,
@@ -245,12 +272,15 @@ registerTool({
             } as never,
             createTrackerAccountGuard(scope),
           )
+
           useTrackerStore.getState().prependJob(created, scope)
+
           // 新增：before 为空，after 为新职位内容，统一走红绿 diff（整体新增为绿色）
           const after = Object.keys(data)
             .filter((k) => k in JOB_FIELD_LABELS && formatJobField(k, data[k]))
             .map((k) => jobFieldLine(k, data[k]))
             .join('\n')
+
           return { ok: true, id: created.id, before: '', after }
         },
       },

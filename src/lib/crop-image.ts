@@ -71,12 +71,14 @@ export async function createCroppedImageFile({
 
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
+
   if (shape === 'circle') {
     context.beginPath()
     context.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2)
     context.closePath()
     context.clip()
   }
+
   context.drawImage(
     image,
     sourceX,
@@ -94,6 +96,7 @@ export async function createCroppedImageFile({
       (result) => {
         if (!result) {
           reject(new Error('头像裁剪失败，请稍后重试'))
+
           return
         }
 

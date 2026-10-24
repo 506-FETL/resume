@@ -41,6 +41,7 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
     openArchiveDialog,
     openDeleteDialog,
   } = useShareStore()
+
   const reduceMotion = useReducedMotion()
   const [copied, setCopied] = useState(false)
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -51,7 +52,9 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
       await navigator.clipboard.writeText(url)
       setCopied(true)
       toast.success('链接已复制')
+
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+
       resetTimerRef.current = setTimeout(() => setCopied(false), 1500)
     } catch {
       toast.error('复制失败，请手动复制链接')

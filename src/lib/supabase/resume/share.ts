@@ -76,6 +76,7 @@ function toReleaseSummary(value: unknown): ResumeShareReleaseSummary {
     string,
     any
   > | null
+
   if (!row?.id || !Number.isInteger(row.release_no)) {
     throw new Error('分享链接缺少当前发布批次')
   }
@@ -105,10 +106,13 @@ function toRecord(row: Record<string, any>): ResumeShareRecord {
     version,
     ...record
   } = row
+
   const currentRelease = toReleaseSummary(current_release)
+
   const currentVersion = (
     Array.isArray(version) ? version[0] : version
   ) as Record<string, any> | null
+
   if (current_release_id !== currentRelease.id) {
     throw new Error('分享链接当前发布批次不一致')
   }
@@ -141,11 +145,13 @@ async function getResumeShareRecord(
     .from('resume_shares')
     .select(SHARE_SELECT)
     .eq('id', shareId)
+
   const { data, error } = await (
     signal ? query.abortSignal(signal) : query
   ).single()
 
   if (error) throw error
+
   return toRecord(data)
 }
 
@@ -160,6 +166,7 @@ export async function buildResumeShareSnapshotSource(
   displayName: string | null,
 ): Promise<ResumeShareSnapshotSource> {
   const publicSnapshot = redactHiddenResumeSections(snapshot)
+
   const definition = await resolveTemplate(
     resumeTemplateSource,
     snapshot.templateBinding,
@@ -179,9 +186,12 @@ export async function getResumeSnapshotById(
     resumeId,
     `${RESUME_PERSISTED_SELECTOR},display_name`,
   )
+
   const snapshot = mapSourceToPersistedSnapshot(source ?? {})
+
   const displayName =
     (source as { display_name?: string | null } | null)?.display_name ?? null
+
   return buildResumeShareSnapshotSource(snapshot, displayName)
 }
 
@@ -195,16 +205,20 @@ export async function resolveResumeShareRelease(input: {
     // 当前快照提供者会先完成编辑器保存；工作版本只负责评论身份，
     // 其正文哈希不包含模板、字体和配色，不能用它还原当前外观。
     const source = await input.getCurrentSource(input.resumeId)
+
     for (let attempt = 0; attempt < 3; attempt++) {
       const version = await getCurrentResumeVersion(input.resumeId)
+
       const commentAnchor = buildCommentAnchorDocument(
         source.snapshot,
         version.projection_reference_date,
       )
+
       const versionAnchor = buildCommentAnchorDocument(
         mapSourceToPersistedSnapshot(version.snapshot),
         version.projection_reference_date,
       )
+
       if (commentAnchor.documentHash === versionAnchor.documentHash) {
         return {
           ...source,
@@ -217,11 +231,13 @@ export async function resolveResumeShareRelease(input: {
         }
       }
       if (attempt === 2) break
+
       // 列表和分享管理没有编辑器监听者，必要时补齐已保存正文的评论版本。
       const client = new ResumeCommentClient({
         kind: 'owner',
         resumeId: input.resumeId,
       })
+
       try {
         await client.syncWorkingDocument({
           anchorDocument: commentAnchor.document,
@@ -237,6 +253,7 @@ export async function resolveResumeShareRelease(input: {
           throw error
       }
     }
+
     throw new Error('简历内容正在变化，请保存完成后重新发布分享')
   }
 
@@ -244,11 +261,14 @@ export async function resolveResumeShareRelease(input: {
     input.resumeId,
     input.selection.versionId,
   )
+
   const snapshot = mapSourceToPersistedSnapshot(version.snapshot)
+
   const source = await buildResumeShareSnapshotSource(
     snapshot,
     input.displayName,
   )
+
   const commentAnchor = buildCommentAnchorDocument(
     snapshot,
     version.projection_reference_date,
@@ -279,6 +299,7 @@ export async function listResumeShares(
   resumeId: string,
 ): Promise<ResumeShareRecord[]> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登陆')
 
   const { data, error } = await supabase
@@ -290,11 +311,13 @@ export async function listResumeShares(
     .order('created_at', { ascending: false })
 
   if (error) throw error
+
   return (data ?? []).map(toRecord)
 }
 
 export async function listAllResumeShares(): Promise<ResumeShareRecord[]> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登录')
 
   const { data, error } = await supabase
@@ -305,6 +328,7 @@ export async function listAllResumeShares(): Promise<ResumeShareRecord[]> {
     .order('created_at', { ascending: false })
 
   if (error) throw error
+
   return (data ?? []).map(toRecord)
 }
 
@@ -315,10 +339,12 @@ export async function createResumeShareRelease(
   options: CreateShareOptions = {},
 ): Promise<ResumeShareRecord> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登录')
 
   const token = generateToken()
   const hasPassword = Boolean(options.password)
+
   const { data, error } = await supabase
     .from('resume_shares')
     .insert({
@@ -343,6 +369,7 @@ export async function createResumeShareRelease(
 
   try {
     await publishResumeShareRelease(data.id, release)
+
     if (hasPassword) {
       await updateResumeShareSettings(data.id, {
         label: options.label ?? null,
@@ -353,9 +380,11 @@ export async function createResumeShareRelease(
     }
 
     await setResumeShareActive(data.id, true)
+
     return getResumeShareRecord(data.id)
   } catch (error) {
     await deleteResumeShare(data.id).catch(() => undefined)
+
     throw error
   }
 }
@@ -369,6 +398,7 @@ export async function setResumeShareActive(
     .from('resume_shares')
     .update({ is_active: isActive })
     .eq('id', shareId)
+
   if (error) throw error
 }
 
@@ -384,7 +414,9 @@ export async function updateResumeShareSettings(
   const {
     data: { session },
   } = await supabase.auth.getSession()
+
   const token = session?.access_token
+
   if (!token) throw new Error('用户未登录')
 
   const response = await fetch(
@@ -407,8 +439,10 @@ export async function updateResumeShareSettings(
       }),
     },
   )
+
   if (!response.ok) {
     const text = await response.text().catch(() => '')
+
     throw new Error(`更新分享设置失败: ${text}`)
   }
 }
@@ -417,6 +451,7 @@ export async function listResumeShareReviewReleases(
   resumeId: string,
 ): Promise<ResumeShareReviewRelease[]> {
   const user = await getCurrentUser()
+
   if (!user) throw new Error('用户未登录')
 
   const { data, error } = await supabase
@@ -443,10 +478,12 @@ export async function listResumeShareReviewReleases(
     .order('created_at', { ascending: false })
 
   if (error) throw error
+
   return (data ?? []).map((row: Record<string, any>) => {
     const share = (
       Array.isArray(row.share) ? row.share[0] : row.share
     ) as Record<string, any>
+
     return {
       id: row.id,
       shareId: row.share_id,
@@ -468,7 +505,9 @@ export async function getResumeShareReleaseForReview(
     .select('snapshot,template_manifest,display_name')
     .eq('id', releaseId)
     .single()
+
   if (error) throw error
+
   return {
     snapshot: data.snapshot as PersistedResumeSnapshot,
     templateDefinition: parseSharedTemplateDefinition(data.template_manifest),
@@ -480,6 +519,7 @@ export async function archiveResumeShare(shareId: string): Promise<void> {
   const { error } = await supabase.rpc('archive_resume_share', {
     p_share_id: shareId,
   })
+
   if (error) throw error
 }
 
@@ -487,10 +527,12 @@ function toPublishError(error: unknown, timedOut: boolean): Error {
   if (timedOut) return new Error('发布超时，请稍后重试')
 
   const value = error as { code?: string; message?: string } | null
+
   if (value?.code === '55P03') return new Error('分享链接正在发布，请稍后重试')
   if (value?.message?.includes('upstream request timeout'))
     return new Error('发布超时，请稍后重试')
   if (error instanceof Error) return error
+
   return new Error('发布失败，请稍后重试')
 }
 
@@ -501,6 +543,7 @@ async function performResumeShareReleasePublish(
   const source = toShareVersionSourcePatch(release.source)
   const controller = new AbortController()
   let timedOut = false
+
   const timeoutId = globalThis.setTimeout(() => {
     timedOut = true
     controller.abort()
@@ -527,6 +570,7 @@ async function performResumeShareReleasePublish(
       .abortSignal(controller.signal)
 
     if (error) throw error
+
     return await getResumeShareRecord(shareId, controller.signal)
   } catch (error) {
     throw toPublishError(error, timedOut)
@@ -541,6 +585,7 @@ export function publishResumeShareRelease(
   release: ResolvedResumeShareRelease,
 ): Promise<ResumeShareRecord> {
   const pending = sharePublishRequests.get(shareId)
+
   if (pending) return pending
 
   const request = performResumeShareReleasePublish(shareId, release).finally(
@@ -549,7 +594,9 @@ export function publishResumeShareRelease(
         sharePublishRequests.delete(shareId)
     },
   )
+
   sharePublishRequests.set(shareId, request)
+
   return request
 }
 
@@ -557,6 +604,7 @@ export async function deleteResumeShare(shareId: string): Promise<void> {
   const { error } = await supabase.rpc('delete_resume_share_permanently', {
     p_share_id: shareId,
   })
+
   if (error) throw error
 }
 

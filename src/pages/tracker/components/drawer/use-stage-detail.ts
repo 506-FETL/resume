@@ -8,12 +8,15 @@ interface UseStageDetailProps {
 /** 草稿与保存队列由页面 store 持有；这里只适配当前查看的阶段。 */
 export function useStageDetail({ displayStage }: UseStageDetailProps) {
   const job = useTrackerStore((state) => state.selectedJob)
+
   const saveState = useTrackerStore((state) =>
     job ? state.saveStates[job.id] : undefined,
   )
+
   const currentStageDetail = job?.stage_details.find(
     (stage) => stage.stage === displayStage,
   )
+
   const flush = () => {
     if (job)
       useTrackerStore
@@ -21,6 +24,7 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
         .flushWorkflow(job.id)
         .catch(() => {})
   }
+
   const retry = () => {
     if (job)
       useTrackerStore
@@ -28,6 +32,7 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
         .retryWorkflow(job.id)
         .catch(() => {})
   }
+
   const updateStage = (
     patch: { start_date?: string | null; notes?: string },
     immediate = false,
@@ -37,6 +42,7 @@ export function useStageDetail({ displayStage }: UseStageDetailProps) {
         .getState()
         .editStageContent(job.id, displayStage, patch, immediate)
   }
+
   return {
     job,
     currentStageDetail,

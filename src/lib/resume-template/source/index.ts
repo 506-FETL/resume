@@ -6,8 +6,10 @@ import { createTemplateTransport } from './transport'
 
 // 唯一装配入口。运行时仅从官方远程资源读取已发布的精确版本。
 const projectUrl = import.meta.env.VITE_SUPABASE_URL
+
 export const getTemplatePreviewUrl = (asset: TemplateAssetRef) =>
   templatePreviewUrl(projectUrl, asset)
+
 export const resumeTemplateSource = createRemoteTemplateSource({
   transport: createTemplateTransport(
     projectUrl,
@@ -15,6 +17,7 @@ export const resumeTemplateSource = createRemoteTemplateSource({
   ),
   cache: createTemplateCache(projectUrl),
 })
+
 export type {
   CatalogFacets,
   CatalogPage,

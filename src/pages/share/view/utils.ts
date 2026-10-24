@@ -8,6 +8,7 @@ export function refreshDelay(state: ViewState, failures: number): number {
     state.phase === 'ready' && state.sourceKind === 'current'
       ? CURRENT_REFRESH_MS
       : HISTORY_REFRESH_MS
+
   return Math.min(MAX_RETRY_MS, base * 2 ** Math.min(failures, 4))
 }
 
@@ -22,16 +23,21 @@ export function applyShareResult(
       wrong: Boolean(result.wrongPassword),
       rateLimited: Boolean(result.rateLimited),
     }
+
   const sameContent =
     previous.phase === 'ready' &&
     (result.notModified ||
       (Boolean(result.contentRevision) &&
         result.contentRevision === previous.contentRevision))
+
   const snapshot = sameContent ? previous.snapshot : result.snapshot
+
   const templateDefinition = sameContent
     ? previous.templateDefinition
     : result.templateDefinition
+
   if (!snapshot || !templateDefinition) return { phase: 'unavailable' }
+
   return {
     phase: 'ready',
     snapshot,

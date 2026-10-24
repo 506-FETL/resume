@@ -18,6 +18,7 @@ import { useTemplatePageStore } from './store.ts'
 
 export default function Template() {
   const catalog = useResumeTemplateStore((state) => state.catalog)
+
   const { selectedTemplateId, styleFilter, layoutFilter, resetFilters } =
     useTemplatePageStore()
 
@@ -27,6 +28,7 @@ export default function Template() {
       ? (catalog.data.find((item) => item.templateId === selectedTemplateId) ??
         catalog.data[0])
       : undefined
+
   const items = catalog.status === 'ready' ? catalog.data : []
 
   const { nextOffset, loadFacets, refreshingCatalog, catalogRefreshError } =

@@ -14,6 +14,7 @@ import { useSharePageBootstrap } from './hooks/use-share-page-bootstrap'
 
 export default function Management() {
   useSharePageBootstrap()
+
   const reduceMotion = useReducedMotion()
 
   return (

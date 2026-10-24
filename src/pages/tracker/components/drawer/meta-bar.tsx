@@ -18,14 +18,17 @@ export default function DrawerMetaBar() {
     muted?: boolean
     href?: string
   }[] = []
+
   if (selectedJob.location)
     items.push({ icon: MapPin, label: selectedJob.location })
   if (selectedJob.salary) items.push({ icon: Coins, label: selectedJob.salary })
+
   items.push({
     icon: FileText,
     label: selectedJob.resume_id ? '已绑定简历' : '未绑定简历',
     muted: !selectedJob.resume_id,
   })
+
   if (selectedJob.job_url) {
     items.push({
       icon: ExternalLink,
@@ -38,6 +41,7 @@ export default function DrawerMetaBar() {
     <div className='flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs'>
       {items.map((item) => {
         const Icon = item.icon
+
         if (item.href) {
           return (
             <a
@@ -52,6 +56,7 @@ export default function DrawerMetaBar() {
             </a>
           )
         }
+
         return (
           <span
             key={item.label}

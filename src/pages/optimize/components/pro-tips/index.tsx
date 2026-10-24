@@ -16,6 +16,7 @@ const tips = [
 
 export default function ProTips() {
   const reduceMotion = useReducedMotion()
+
   return (
     <Collapsible className='rounded-xl border bg-muted/20'>
       <CollapsibleTrigger className='group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'>

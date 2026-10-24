@@ -20,8 +20,10 @@ const useHistoryResumeOptionsStore = create<HistoryResumeOptionsStore>()(
     hydrated: false,
     reload: async () => {
       set({ loading: true })
+
       try {
         const options = await listResumeHistoryOptions()
+
         set({
           resumeOptions: options.map(buildHistoryResumeOption),
           error: null,
@@ -30,6 +32,7 @@ const useHistoryResumeOptionsStore = create<HistoryResumeOptionsStore>()(
       } catch (loadError) {
         const message =
           loadError instanceof Error ? loadError.message : '简历列表加载失败'
+
         set({ resumeOptions: [], error: message, hydrated: true })
       } finally {
         set({ loading: false })

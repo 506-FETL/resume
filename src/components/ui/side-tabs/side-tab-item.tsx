@@ -9,7 +9,7 @@ import { useSideTabsContext } from './side-tabs-provider'
 
 function callAll(...fns: Array<(() => void) | undefined>) {
   return () => {
-    fns.forEach(fn => fn && fn())
+    fns.forEach((fn) => fn && fn())
   }
 }
 
@@ -38,7 +38,10 @@ export function Tab({
         btnRefs.current[id] = el
       }}
       variant={active === id ? 'default' : 'secondary'}
-      className={cn('justify-center transition-all duration-200 ease-in-out shrink-0', className)}
+      className={cn(
+        'justify-center transition-all duration-200 ease-in-out shrink-0',
+        className,
+      )}
       onClick={callAll(() => {
         setActive(id)
         requestAnimationFrame(recomputeGeometry)

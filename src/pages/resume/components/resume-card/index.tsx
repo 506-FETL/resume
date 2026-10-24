@@ -40,6 +40,7 @@ interface ResumeCardProps {
 export default function ResumeCard({ resume }: ResumeCardProps) {
   const { deleteResume, updateResume, openDeriveFor, resumes } =
     useResumeListStore()
+
   const { setCurrentResume } = useCurrentResumeStore()
   const { openDialog: openQuickDialog } = useShareStore()
 
@@ -49,6 +50,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
 
   const parent = useMemo(() => {
     if (!resume.parent_resume_id) return null
+
     return resumes.find((r) => r.resume_id === resume.parent_resume_id) ?? null
   }, [resume.parent_resume_id, resumes])
 
@@ -81,7 +83,9 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
 
   const handleDeriveClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
+
     const task = useJdVariantStore.getState().tasks[resume.resume_id]
+
     if (
       task &&
       (task.phase === 'success' ||
@@ -89,19 +93,24 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
         task.phase === 'aborted')
     )
       useJdVariantStore.getState().clearTask(resume.resume_id)
+
     openDeriveFor(resume.resume_id)
   }
 
   const handleParentClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
+
     if (!parent) return
+
     setCurrentResume(parent.resume_id, parent.type)
     navigate('/resume/editor')
   }
 
   const handleShareClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
+
     if (resume.isOffline) return
+
     openQuickDialog(resume.resume_id, resume.display_name || '未命名简历')
   }
 

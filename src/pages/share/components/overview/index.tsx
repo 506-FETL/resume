@@ -8,6 +8,7 @@ import { deriveShareStatus } from '../../utils'
 export default function Overview() {
   const reduceMotion = useReducedMotion()
   const { allShares, pageLoading, pageError } = useShareStore()
+
   const metrics = [
     { label: '分享链接', value: allShares.length, icon: Link2 },
     {

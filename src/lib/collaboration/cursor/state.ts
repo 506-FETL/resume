@@ -36,7 +36,9 @@ export function removeRealtimeCursor(
   }
 
   const next = { ...cursors }
+
   delete next[userId]
+
   return next
 }
 

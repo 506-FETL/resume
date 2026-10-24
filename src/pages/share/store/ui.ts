@@ -17,6 +17,7 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
 
   openDialog: (resumeId, resumeName) => {
     const requestId = get().dialogRequestId + 1
+
     set({
       openForResumeId: resumeId,
       openForResumeName: resumeName,
@@ -25,9 +26,11 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
       dialogLoading: true,
       dialogError: null,
     })
+
     get()
       .loadDialogShares(resumeId)
       .catch(() => undefined)
+
     get()
       .loadVersionOptions(resumeId, { force: true })
       .catch(() => undefined)

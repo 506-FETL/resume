@@ -72,6 +72,7 @@ let pendingDrawerOpenFrame: number | null = null
 
 function cancelPendingDrawerOpen() {
   if (pendingDrawerOpenFrame === null) return
+
   cancelAnimationFrame(pendingDrawerOpenFrame)
   pendingDrawerOpenFrame = null
 }
@@ -134,11 +135,13 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     toggleSelect: (id) => {
       set((state) => {
         const nextSelectedIds = new Set(state.selectedIds)
+
         if (nextSelectedIds.has(id)) {
           nextSelectedIds.delete(id)
         } else {
           nextSelectedIds.add(id)
         }
+
         return { selectedIds: nextSelectedIds }
       })
     },
@@ -165,17 +168,24 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         (row) =>
           row.id === job.id && row.user_id === getTrackerAccountScope().userId,
       )
+
       if (!current) return
+
       cancelPendingDrawerOpen()
+
       const previousId = get().selectedJob?.id
+
       if (previousId && previousId !== job.id)
         get()
           .flushWorkflow(previousId)
           .catch(() => {})
+
       set({ selectedJob: current, drawerOpen: false })
+
       // Base UI 需要先渲染一次关闭态的 Popup，下一帧切换 open 才能应用 starting-style。
       pendingDrawerOpenFrame = requestAnimationFrame(() => {
         pendingDrawerOpenFrame = null
+
         set((state) =>
           state.selectedJob?.id === job.id ? { drawerOpen: true } : {},
         )
@@ -183,11 +193,14 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     },
     closeJobDrawer: () => {
       cancelPendingDrawerOpen()
+
       const id = get().selectedJob?.id
+
       if (id)
         get()
           .flushWorkflow(id)
           .catch(() => {})
+
       set({ drawerOpen: false })
     },
     openAddDrawer: () => set({ addDrawerOpen: true }),
@@ -196,10 +209,12 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
       const idsSet = ids instanceof Set ? ids : new Set(ids)
 
       get().invalidateJobs(idsSet)
+
       set((state) => {
         const deletingSelectedJob = state.selectedJob
           ? idsSet.has(state.selectedJob.id)
           : false
+
         const nextSelectedIds = new Set(
           Array.from(state.selectedIds).filter((id) => !idsSet.has(id)),
         )
@@ -218,7 +233,9 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     },
     prependJob: (job, scope) => {
       assertTrackerAccountScope(scope)
+
       if (job.user_id !== scope.userId) throw new Error('职位不属于当前账号')
+
       set((state) => ({
         jobs: [
           get().acceptNewJob(job),
@@ -237,6 +254,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
 subscribeTrackerAccountScope(() => {
   cancelPendingDrawerOpen()
   useTrackerStore.getState().resetPersistence()
+
   useTrackerStore.setState({
     accountScope: getTrackerAccountScope(),
     jobs: [],

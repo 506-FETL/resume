@@ -3,9 +3,11 @@ import { resumeEntryIdSchema } from '../entry-id'
 import { hiddenField } from './shared'
 
 const proficiencyLevelEnum = z.enum(['一般', '良好', '熟练', '擅长', '精通'])
+
 export type ProficiencyLevel = z.infer<typeof proficiencyLevelEnum>
 
 const displayTypeEnum = z.enum(['text', 'percentage'])
+
 export type DisplayType = z.infer<typeof displayTypeEnum>
 
 export const PROFICIENCY_PERCENTAGE_MAP: Record<ProficiencyLevel, number> = {
@@ -43,6 +45,7 @@ export const skillItemSchema = z.object({
   proficiencyLevel: proficiencyLevelEnum,
   displayType: displayTypeEnum,
 })
+
 export type SkillItem = z.infer<typeof skillItemSchema>
 
 const skillListSchema = z.array(skillItemSchema)

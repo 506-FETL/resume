@@ -70,9 +70,11 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
   const goodMetricCount = benchmarkResult.metrics.filter(
     (metric) => metric.target !== null && metric.status === 'good',
   ).length
+
   const pendingMetricCount = benchmarkResult.metrics.filter(
     (metric) => metric.target !== null && metric.status !== 'good',
   ).length
+
   const atsMetric = benchmarkResult.metrics.find(
     (metric) => metric.key === 'atsScore',
   )
@@ -185,6 +187,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                   Math.round((metric.current / metric.target) * 100),
                 )
               : 100
+
           const Icon = getMetricIcon(metric.key)
           const tone = getMetricTone(metric)
 

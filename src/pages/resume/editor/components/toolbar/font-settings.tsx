@@ -62,6 +62,7 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
               disabled={disabled}
               onValueChange={(value) => {
                 const parsed = fontFamilyEnum.safeParse(value)
+
                 if (parsed.success) {
                   updateFont({ fontFamily: parsed.data })
                 }

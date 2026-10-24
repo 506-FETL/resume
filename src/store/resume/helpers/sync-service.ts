@@ -46,8 +46,10 @@ export function scheduleOfflinePersist(flushFn: () => Promise<void>) {
   if (syncTimer) {
     clearTimeout(syncTimer)
   }
+
   syncTimer = setTimeout(() => {
     syncTimer = null
+
     flushFn().catch((error) =>
       console.warn('Offline resume persistence failed:', error),
     )
@@ -58,8 +60,10 @@ export function scheduleOnlinePersist(flushFn: () => Promise<void>) {
   if (onlineSyncTimer) {
     clearTimeout(onlineSyncTimer)
   }
+
   onlineSyncTimer = setTimeout(() => {
     onlineSyncTimer = null
+
     flushFn().catch((error) =>
       console.warn('Online resume persistence failed:', error),
     )
@@ -89,6 +93,7 @@ export function applyResumeChange(
     try {
       const updates =
         typeof stateUpdate === 'function' ? stateUpdate(prev) : stateUpdate
+
       return {
         ...updates,
         pendingChanges: true,
@@ -97,12 +102,14 @@ export function applyResumeChange(
       }
     } catch (error) {
       console.error('State update failed:', error)
+
       return { syncError: '状态更新失败' }
     }
   })
 
   // set() 之后重新读取最新状态，避免使用过期快照
   const freshState = get()
+
   const resumeId =
     freshState.currentResumeId ?? useCurrentResumeStore.getState().resumeId
 
@@ -113,7 +120,9 @@ export function applyResumeChange(
     isOfflineResumeId(resumeId)
   ) {
     const persist = get().capturePersistRequest()
+
     if (persist) scheduleOfflinePersist(persist)
+
     return
   }
 
@@ -132,6 +141,7 @@ export function applyResumeChange(
 
   // 4. 在线模式：调度延时自动保存
   const persist = get().capturePersistRequest()
+
   if (persist) scheduleOnlinePersist(persist)
 }
 
@@ -145,6 +155,7 @@ export async function getCloudAppearanceSource(resumeId: string): Promise<{
     const { display_name, ...appearance } = await getResumeById<
       ResumeAppearancePatch & { display_name: string | null }
     >(resumeId, 'spacing,font,theme,display_name')
+
     return {
       status: hasPersistedAppearance(appearance) ? 'present' : 'missing',
       appearance,
@@ -154,6 +165,7 @@ export async function getCloudAppearanceSource(resumeId: string): Promise<{
   } catch (error) {
     if (!isResumeNotFoundError(error))
       console.warn('Failed to read cloud appearance snapshot:', error)
+
     return {
       status: 'error',
       appearance: null,
@@ -167,6 +179,7 @@ export function getPersistedSnapshot(
   state: PersistableResumeState,
 ): PersistedResumeSnapshot {
   const { spacing, font, theme } = useResumeConfigStore.getState()
+
   return {
     ...getFormPayload(state),
     spacing,
@@ -217,6 +230,7 @@ export function buildResumeConfigPayload(
   }
 
   const { spacing, font, theme, ...payloadWithoutAppearance } = payload
+
   return {
     ...payloadWithoutAppearance,
     template_binding: templateBinding,

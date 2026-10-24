@@ -45,7 +45,9 @@ export default function SaveVersionDialog({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
     const created = await saveCurrentVersion(draft)
+
     if (!created) return
 
     onSaved?.(created.id)

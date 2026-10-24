@@ -30,8 +30,8 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
     onError: extension.options.onError,
   }
 
-  const { fileItems, uploadFiles, removeFileItem, clearAllFiles }
-    = useFileUpload(uploadOptions)
+  const { fileItems, uploadFiles, removeFileItem, clearAllFiles } =
+    useFileUpload(uploadOptions)
 
   const handleUpload = async (files: File[]) => {
     const urls = await uploadFiles(files)
@@ -41,8 +41,9 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
 
       if (isValidPosition(pos)) {
         const imageNodes = urls.map((url, index) => {
-          const filename
-            = files[index]?.name.replace(/\.[^/.]+$/, '') || 'unknown'
+          const filename =
+            files[index]?.name.replace(/\.[^/.]+$/, '') || 'unknown'
+
           return {
             type: extension.options.type,
             attrs: {
@@ -68,10 +69,13 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
+
     if (!files || files.length === 0) {
       extension.options.onError?.(new Error('No file selected'))
+
       return
     }
+
     handleUpload(Array.from(files))
   }
 
@@ -86,7 +90,7 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
 
   return (
     <NodeViewWrapper
-      className="tiptap-image-upload"
+      className='tiptap-image-upload'
       tabIndex={0}
       onClick={handleClick}
     >
@@ -97,18 +101,16 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
       )}
 
       {hasFiles && (
-        <div className="tiptap-image-upload-previews">
+        <div className='tiptap-image-upload-previews'>
           {fileItems.length > 1 && (
-            <div className="tiptap-image-upload-header">
+            <div className='tiptap-image-upload-header'>
               <span>
                 Uploading
-                {fileItems.length}
-                {' '}
-                files
+                {fileItems.length} files
               </span>
               <Button
-                type="button"
-                data-style="ghost"
+                type='button'
+                data-style='ghost'
                 onClick={(e) => {
                   e.stopPropagation()
                   clearAllFiles()
@@ -118,7 +120,7 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
               </Button>
             </div>
           )}
-          {fileItems.map(fileItem => (
+          {fileItems.map((fileItem) => (
             <ImageUploadPreview
               key={fileItem.id}
               fileItem={fileItem}
@@ -130,9 +132,9 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
 
       <input
         ref={inputRef}
-        name="file"
+        name='file'
         accept={accept}
-        type="file"
+        type='file'
         multiple={limit > 1}
         onChange={handleChange}
         onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}

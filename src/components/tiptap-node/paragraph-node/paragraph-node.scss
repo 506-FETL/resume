@@ -216,16 +216,22 @@
 /* =====================
      PLACEHOLDER
      ===================== */
-.is-empty:not(.with-slash)[data-placeholder]:has(> .ProseMirror-trailingBreak:only-child)::before {
+.is-empty:not(.with-slash)[data-placeholder]:has(
+    > .ProseMirror-trailingBreak:only-child
+  )::before {
   content: attr(data-placeholder);
 }
 
-.is-empty.with-slash[data-placeholder]:has(> .ProseMirror-trailingBreak:only-child)::before {
+.is-empty.with-slash[data-placeholder]:has(
+    > .ProseMirror-trailingBreak:only-child
+  )::before {
   content: "Write, type '/' for commands…";
   font-style: italic;
 }
 
-.is-empty[data-placeholder]:has(> .ProseMirror-trailingBreak:only-child):before {
+.is-empty[data-placeholder]:has(
+    > .ProseMirror-trailingBreak:only-child
+  ):before {
   pointer-events: none;
   height: 0;
   position: absolute;

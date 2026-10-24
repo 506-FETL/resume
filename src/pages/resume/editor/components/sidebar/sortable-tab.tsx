@@ -73,6 +73,7 @@ export function SortableTab({
       transition={reduceMotion ? { duration: 0 } : MOTION_REORDER_TRANSITION}
       onDrag={(_event, info) => {
         const scrollContainer = itemRef.current?.parentElement?.parentElement
+
         autoScrollAtEdge(scrollContainer ?? null, info.point, 'x')
       }}
       className='relative flex flex-col items-center justify-end gap-2 select-none'

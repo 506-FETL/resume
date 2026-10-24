@@ -158,6 +158,7 @@ export const PROFICIENCY_LEVELS = [
   '擅长',
   '精通',
 ] as const
+
 export const DISPLAY_TYPES = [
   { value: 'text', label: '文字' },
   { value: 'percentage', label: '百分比' },
@@ -208,15 +209,18 @@ export const PREVIEW_RENDERER_MAP: Record<string, (value: any) => string> = {
     value.map((cert) => cert.name).join('、'),
   date_range: (value: string[]) => {
     const [start, end] = value
+
     return `${start || '未填'} 至 ${end || '至今'}`
   },
   string_array: (value: string[]) => value.join('、'),
   object: (value: any) => {
     const str = JSON.stringify(value)
+
     return str.slice(0, 100) + (str.length > 100 ? '...' : '')
   },
   object_array: (value: any) => {
     const str = JSON.stringify(value)
+
     return str.slice(0, 100) + (str.length > 100 ? '...' : '')
   },
 }

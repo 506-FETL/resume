@@ -7,6 +7,7 @@ export interface JdPromptPair {
 }
 
 export const JD_VARIANT_PARSE_TEMPERATURE = 0.2
+
 export const JD_VARIANT_REWRITE_TEMPERATURE = 0.6
 
 export function buildJdParsePrompt(jdText: string): JdPromptPair {
@@ -25,6 +26,7 @@ export function buildJdParsePrompt(jdText: string): JdPromptPair {
 }`
 
   const user = `JD 文本如下：\n"""\n${jdText}\n"""\n\n请只输出 JSON 对象。`
+
   return { system, user }
 }
 
@@ -43,6 +45,7 @@ export function buildJdRewritePrompt(
         `- ${section}${mapping.collection ? '.*' : ''}.${mapping.fieldPath}`,
     )
     .join('\n')
+
   const system = `你是资深简历优化顾问，擅长把现有简历针对特定岗位做"局部精修"。
 
 【可改写字段白名单（严格遵守）】
@@ -68,5 +71,6 @@ ${whitelist}
   "before": "...", "after": "...", "matchedKeywords": ["..."], "reason": "..." }] }`
 
   const user = `候选简历（JSON，仅含可改写字段，请按 itemId 索引）：\n${JSON.stringify(args.resumeJson, null, 2)}\n\nJD 关键词（按重要度降序）：${args.keywords.join('、')}\n\nJD 原文：\n"""\n${args.jdText}\n"""\n\n请只输出 JSON 对象。`
+
   return { system, user }
 }

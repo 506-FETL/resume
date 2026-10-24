@@ -22,6 +22,7 @@ export function useBreadcrumbs(): Breadcrumb[] {
 
   return useMemo(() => {
     const segments = pathname.split('/').filter(Boolean)
+
     const labels: Record<string, string> = {
       resume: '我的简历',
       template: '简历模板',
@@ -38,12 +39,14 @@ export function useBreadcrumbs(): Breadcrumb[] {
       'forgot-password': '找回密码',
       'reset-password': '重置密码',
     }
+
     const result: Breadcrumb[] = [{ href: '/', label: '首页' }]
 
     result.push(
       ...segments
         .map((seg, i) => {
           const href = `/${segments.slice(0, i + 1).join('/')}`
+
           return { href, label: labels[seg] }
         })
         .filter((crumb): crumb is Breadcrumb => !!crumb.label),

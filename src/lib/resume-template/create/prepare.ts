@@ -21,10 +21,12 @@ export async function prepareTemplateResume(
     throw new Error('创建操作标识无效')
   if (input.mode === 'cloud' && !identity.ownerId)
     throw new Error('请先登录后创建云端简历')
+
   const [definition, example] = await Promise.all([
     resolveTemplate(source, toTemplateBinding(input.template)),
     source.getExample(input.example),
   ])
+
   if (
     example.exampleId !== input.example.exampleId ||
     example.version !== input.example.version
@@ -33,6 +35,7 @@ export async function prepareTemplateResume(
       'REFERENCE_MISMATCH',
       '示例版本与请求不一致',
     )
+
   return {
     ...identity,
     resumeId:

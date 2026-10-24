@@ -111,8 +111,10 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
   // --- Form actions ---
   getResumeFormData: () => {
     const state = get()
+
     return FORM_DATA_KEYS.reduce((acc, key) => {
       ;(acc[key] as any) = state[key]
+
       return acc
     }, {} as FormDataMap)
   },
@@ -121,6 +123,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
 
   getHistoryRestoreSource: () => {
     const state = get()
+
     return {
       snapshot: sanitizeDeep(getPersistedSnapshot(state)),
       updatedAt: state.docHandle?.doc()?._metadata?.updatedAt ?? null,
@@ -135,14 +138,17 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
       if (open) {
         if (state.openSections.length === 1 && state.openSections[0] === id)
           return {}
+
         return { openSections: [id], activeTabId: id }
       }
       if (!state.openSections.includes(id)) return {}
+
       return { openSections: [] }
     }),
 
   updateForm: (key, data) => {
     const sanitized = sanitizeDeep(data)
+
     applyResumeChange(
       set,
       get,
@@ -176,6 +182,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
 
   updateAppearanceConfig: (appearance) => {
     const sanitized = sanitizeDeep(appearance)
+
     if (Object.keys(sanitized).length === 0) {
       return
     }
@@ -201,6 +208,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
 
   setTemplateBinding: (templateBinding) => {
     const previousBinding = get().templateBinding
+
     applyResumeChange(
       set,
       get,
@@ -210,6 +218,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
       },
       (error) => {
         set({ templateBinding: previousBinding })
+
         throw error
       },
     )
@@ -217,6 +226,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
 
   toggleVisibility: (id) => {
     const nextValue = !get().visibility[id]
+
     applyResumeChange(
       set,
       get,
@@ -244,6 +254,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
 
   resetToDefaults: () => {
     useResumeConfigStore.getState().resetConfig()
+
     const defaultState = {
       ...Object.fromEntries(
         FORM_DATA_KEYS.map((key) => [key, FORM_FIELD_DEFAULTS[key].default]),

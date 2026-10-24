@@ -13,5 +13,6 @@ export function useCommentProjectionNode(
   nodeKey: string,
 ): CommentAnchorDocumentNode | null {
   const { commentNodesByKey } = useResumeContext()
+
   return commentNodesByKey.get(nodeKey) ?? null
 }

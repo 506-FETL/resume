@@ -58,6 +58,7 @@ function writeStore(entries: StoredSession[]) {
 
 export function rememberSessionRole(entry: StoredSession) {
   const entries = readStore()
+
   const filtered = entries.filter(
     (item) =>
       item.sessionId !== entry.sessionId ||
@@ -75,6 +76,7 @@ export function getStoredSessionRole(
   userId: string,
 ): StoredRole | null {
   const entries = readStore()
+
   const matched = entries.find(
     (item) =>
       item.sessionId === sessionId &&
@@ -91,6 +93,7 @@ export function clearStoredSession(
   userId: string,
 ) {
   const entries = readStore()
+
   const filtered = entries.filter(
     (item) =>
       item.sessionId !== sessionId ||

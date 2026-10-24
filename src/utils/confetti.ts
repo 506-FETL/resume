@@ -12,6 +12,7 @@ export async function startConfetti(
     const rect = ref.current.getBoundingClientRect()
     const x = rect.left + rect.width / 2
     const y = rect.top + rect.height / 2
+
     await confetti({
       ...options,
       origin: {

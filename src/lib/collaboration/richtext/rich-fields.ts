@@ -21,6 +21,7 @@ function sectionLevel(
     list: (data) => {
       const section = data[sectionKey] as Record<string, unknown> | undefined
       const html = (section?.[field] as string | undefined) ?? ''
+
       return [{ relativePath: field, html }]
     },
   }
@@ -35,8 +36,10 @@ function arrayLevel(
     sectionKey,
     list: (data) => {
       const section = data[sectionKey] as Record<string, unknown> | undefined
+
       const items =
         (section?.[itemKey] as Array<Record<string, unknown>> | undefined) ?? []
+
       return items.map((item, index) => ({
         relativePath: `${itemKey}.${index}.${field}`,
         html: (item?.[field] as string | undefined) ?? '',

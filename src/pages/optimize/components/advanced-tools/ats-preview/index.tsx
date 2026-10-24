@@ -31,12 +31,14 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
     () => buildAtsPreview(resumeContext.resume),
     [resumeContext],
   )
+
   const hasWarnings = preview.warnings.length > 0
   const RiskIcon = hasWarnings ? ShieldAlert : ShieldCheck
 
   const handleCopy = async () => {
     if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
       toast.error('当前环境不支持复制到剪贴板')
+
       return
     }
 

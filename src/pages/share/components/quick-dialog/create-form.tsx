@@ -36,6 +36,7 @@ export function CreateForm({
   const [selection, setSelection] = useState<ShareVersionSelection>({
     kind: 'current',
   })
+
   const [label, setLabel] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -45,6 +46,7 @@ export function CreateForm({
 
   const handleCreate = async () => {
     setSubmitting(true)
+
     try {
       const created = await onCreate(selection, {
         label: label.trim() || null,
@@ -52,7 +54,9 @@ export function CreateForm({
         expiresAt: dateToExpiryIso(expiresAt),
         allowComments,
       })
+
       if (!created) return
+
       setLabel('')
       setPassword('')
       setShowPassword(false)
