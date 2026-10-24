@@ -1,26 +1,45 @@
 import type { TemplatePreview } from '@/lib/resume-template/source/types'
-import { useEffect } from 'react'
-import { IDLE_IMAGE, useTemplateImageStore } from '@/store/resume-template/images'
+import { useEffect, useState } from 'react'
+import { getTemplatePreviewUrl } from '@/lib/resume-template/source'
 
 export function useTemplatePreview(preview: TemplatePreview | undefined, enabled: boolean) {
   const asset = preview?.asset
-  const image = useTemplateImageStore(state => asset ? state.images[asset.hash] ?? IDLE_IMAGE : IDLE_IMAGE)
-  const load = useTemplateImageStore(state => state.load)
-  const retain = useTemplateImageStore(state => state.retain)
+  const [retryTarget, setRetryTarget] = useState<{ url: string, attempt: number } | null>(null)
+  const [result, setResult] = useState<{ url: string, status: 'ready' | 'error' } | null>(null)
+  const canonicalUrl = asset ? getTemplatePreviewUrl(asset) : undefined
+  const attempt = retryTarget?.url === canonicalUrl ? retryTarget?.attempt ?? 0 : 0
+  const url = canonicalUrl && (attempt ? `${canonicalUrl}?retry=${attempt}` : canonicalUrl)
+  const width = asset?.width
+  const height = asset?.height
+  const current = result?.url === url ? result : null
+
   useEffect(() => {
-    if (!asset)
+    if (!url || !enabled)
       return
-    const release = retain(asset.hash)
-    if (enabled)
-      load(asset)
-    return release
-  }, [asset, enabled, load, retain])
+    let active = true
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = url
+    image.decode().then(() => {
+      if (active)
+        setResult({ url, status: image.naturalWidth === width && image.naturalHeight === height ? 'ready' : 'error' })
+    }, () => {
+      if (active)
+        setResult({ url, status: 'error' })
+    })
+    return () => {
+      active = false
+      image.removeAttribute('src')
+    }
+  }, [url, enabled, width, height])
+
+  // 浏览器按内容哈希 URL 共享请求与缓存，不再下载 Base64 或创建 Blob URL。
   return {
-    status: !asset ? 'missing' : image.status,
-    url: image.status === 'ready' ? image.url : undefined,
+    status: !asset ? 'missing' : current?.status ?? (enabled ? 'loading' : 'idle'),
+    url: current?.status === 'ready' ? current.url : undefined,
     retry: () => {
-      if (asset)
-        load(asset, true)
+      if (canonicalUrl)
+        setRetryTarget(previous => ({ url: canonicalUrl, attempt: previous?.url === canonicalUrl ? previous.attempt + 1 : 1 }))
     },
   }
 }

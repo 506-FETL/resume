@@ -2,13 +2,14 @@ import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import { ArrowRight, ScanSearch } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { DURATION } from '@/lib/motion'
+import { useTemplatePrefetch } from '../../hooks/use-template-prefetch'
 import { useTemplatePageStore } from '../../store.ts'
-import { prefetchTemplatePreview } from '../../utils'
 import CardPreview from '../card-preview'
 
 export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
   const showPreview = useTemplatePageStore(state => state.showPreview)
   const selectedExample = useTemplatePageStore(state => state.selectedExamples[item.templateId]) ?? item.defaultExample
+  const prefetchEvents = useTemplatePrefetch(item, selectedExample)
   const category = item.category
   const reduceMotion = useReducedMotion()
   const transitionStyle = { transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s` }
@@ -20,9 +21,7 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
         type="button"
         aria-label={`预览${item.name}`}
         data-template-preview-trigger={item.templateId}
-        onPointerEnter={() => prefetchTemplatePreview(item, selectedExample)}
-        onFocus={() => prefetchTemplatePreview(item, selectedExample)}
-        onPointerDown={() => prefetchTemplatePreview(item, selectedExample)}
+        {...prefetchEvents}
         onClick={event => showPreview(item.templateId, selectedExample, event.currentTarget)}
         className="group/preview absolute inset-0 cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
