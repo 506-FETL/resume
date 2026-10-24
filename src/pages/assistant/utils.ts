@@ -8,6 +8,7 @@ import type { AiConversation, AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { getSkillToolLabel } from '@/lib/ai/skills/presentation'
 import { fieldDiffStat } from './components/diff/compute-field-diff'
 import { ASSISTANT_LAST_CONVERSATION_STORAGE_KEY } from './const'
+import { toast } from 'sonner'
 
 export function readStoredBoolean(key: string, fallback: boolean): boolean {
   try {
@@ -23,7 +24,8 @@ export function writeStoredBoolean(key: string, value: boolean): void {
   try {
     localStorage.setItem(key, String(value))
   } catch {
-    // Storage may be unavailable in private or restricted browser contexts.
+    // 在隐私或受限的浏览器环境中，存储功能可能无法使用。
+    toast.error('浏览器环境可能受限,存储功能无法使用')
   }
 }
 

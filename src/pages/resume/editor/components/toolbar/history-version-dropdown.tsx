@@ -58,7 +58,7 @@ export function ResumeHistoryVersionDropdown({
   const openHistory = () => {
     if (!canUseHistory || !resumeId) return
 
-    navigate(`/history?resumeId=${resumeId}`)
+    navigate('/history')
   }
 
   useEffect(() => {
