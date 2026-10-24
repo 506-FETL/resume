@@ -57,7 +57,7 @@ export default function CanonicalPagedDocument({
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const [source, setSource] = useState<HTMLDivElement | null>(null)
 
-  const { status, snapshot, error } = usePaginationPlan({
+  const { status, snapshot, displaySnapshot, error } = usePaginationPlan({
     page,
     viewport,
     source,
@@ -107,18 +107,17 @@ export default function CanonicalPagedDocument({
     height: A4_PAGE_HEIGHT,
   }
 
-  const pageCount = snapshot?.signature.pages.length ?? 1
+  const pageCount = displaySnapshot?.signature.pages.length ?? 1
 
   const renderRegions = (pageIndex: number | null) =>
     plan.regions.map((region) => {
       const segment =
         pageIndex === null
           ? null
-          : snapshot?.regions.find((item) => item.id === region.id)?.segments[
-              pageIndex
-            ]
+          : displaySnapshot?.regions.find((item) => item.id === region.id)
+              ?.segments[pageIndex]
 
-      const empty = pageIndex !== null && snapshot && !segment
+      const empty = pageIndex !== null && displaySnapshot && !segment
 
       return (
         <div

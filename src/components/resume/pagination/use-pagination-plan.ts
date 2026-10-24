@@ -156,6 +156,9 @@ export function usePaginationPlan({
   return {
     status: current ? status : ('measuring' as const),
     snapshot: current ? snapshot : null,
+    // 重测期间保留展示页，避免文档暂时缩成一页后被浏览器钳制滚动位置。
+    // 旧结果仅用于展示；当前版本的签名仍由 snapshot 单独提供。
+    displaySnapshot: snapshot,
     error: current ? error : null,
   }
 }
