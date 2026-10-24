@@ -31,8 +31,8 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
   const Icon = content.icon
 
   return (
-    <div className="flex min-h-44 flex-1 items-center justify-center px-4 py-4 sm:min-h-80 sm:px-5 sm:py-12" role={mode === 'error' ? 'alert' : 'status'}>
-      <div className="flex max-w-sm flex-col items-center text-center">
+    <div className="flex min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5" role={mode === 'error' ? 'alert' : 'status'}>
+      <div className="m-auto flex max-w-sm shrink-0 flex-col items-center text-center">
         <div className="mb-3 flex size-10 items-center justify-center rounded-xl border bg-background text-muted-foreground shadow-xs sm:mb-5 sm:size-14 sm:rounded-2xl"><Icon className="size-5 sm:size-6" /></div>
         <h3 className="text-base font-semibold tracking-tight">{content.title}</h3>
         {content.description && <p className="mt-2 text-xs leading-5 text-muted-foreground sm:text-sm sm:leading-6">{content.description}</p>}
@@ -88,7 +88,7 @@ export function TrackerSkeleton() {
   const still = reduce ? 'animate-none' : ''
 
   return (
-    <div role="status" aria-label="正在加载职位" className="flex min-h-80 min-w-0 flex-1 overflow-hidden">
+    <div role="status" aria-label="正在加载职位" className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
       {viewMode === 'board'
         ? (
             <div className="flex w-full gap-3">

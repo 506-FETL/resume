@@ -19,15 +19,15 @@ export default function HistoryResumeSelector({ value, options, loading, error, 
   const selectedResume = options.find(option => option.resumeId === value)
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-1">
+    <div className="flex w-full min-w-0 flex-col gap-2">
       <div className="flex min-w-0 items-center gap-3">
-        <label htmlFor="history-resume-selector" className="hidden shrink-0 text-sm text-muted-foreground sm:block">选择简历</label>
+        <label htmlFor="history-resume-selector" className="sr-only">选择简历</label>
         <Select value={value ?? ''} onValueChange={onChange} disabled={loading || options.length === 0}>
           <SelectTrigger
             id="history-resume-selector"
             aria-label="选择简历"
             aria-invalid={Boolean(error)}
-            className="w-full min-w-0 bg-background text-left shadow-none sm:max-w-sm"
+            className="w-full min-w-0 bg-background text-left shadow-none"
           >
             <SelectValue placeholder={loading ? '正在加载简历…' : '选择一份云端简历'}>
               {selectedResume && (

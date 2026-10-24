@@ -68,7 +68,7 @@ export default function HistoryWorkspace({ activeResumeId, onReloadResumeOptions
 
   if (error && !loading && !currentResume) {
     return (
-      <Empty className="min-h-[420px] border border-dashed bg-muted/20">
+      <Empty className="min-h-0 flex-1 overflow-y-auto border border-dashed bg-muted/20">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <HistoryIcon />
@@ -87,7 +87,7 @@ export default function HistoryWorkspace({ activeResumeId, onReloadResumeOptions
   }
 
   return (
-    <div ref={workspaceRef} className={cn('relative grid min-w-0 items-start gap-4', !narrow && 'grid-cols-[300px_minmax(0,1fr)]')}>
+    <div ref={workspaceRef} className={cn('relative grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] gap-3', !narrow && 'grid-cols-[clamp(16rem,23%,20rem)_minmax(0,1fr)]')}>
       <motion.div
         ref={timelineRef}
         tabIndex={-1}
@@ -96,7 +96,7 @@ export default function HistoryWorkspace({ activeResumeId, onReloadResumeOptions
         initial={false}
         animate={{ opacity: narrow && mobilePanel !== 'timeline' ? 0 : 1 }}
         transition={{ duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
-        className={cn('min-w-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring', narrow && 'col-start-1 row-start-1', narrow && mobilePanel !== 'timeline' && 'pointer-events-none absolute inset-x-0 top-0 max-h-full overflow-hidden')}
+        className={cn('flex h-full min-h-0 min-w-0 flex-col rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring', narrow && 'col-start-1 row-start-1', narrow && mobilePanel !== 'timeline' && 'pointer-events-none absolute inset-0 overflow-hidden')}
       >
         <HistoryTimeline selectedEntry={detailPanelState.selectedEntry} onSelectEntry={detailPanelState.requestSelectEntry} />
       </motion.div>
@@ -107,9 +107,9 @@ export default function HistoryWorkspace({ activeResumeId, onReloadResumeOptions
         initial={false}
         animate={{ opacity: narrow && mobilePanel !== 'detail' ? 0 : 1 }}
         transition={{ duration: reduceMotion ? 0 : DURATION.fast, ease: EASE.out }}
-        className={cn('min-w-0 space-y-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring', narrow && 'col-start-1 row-start-1', narrow && mobilePanel !== 'detail' && 'pointer-events-none absolute inset-x-0 top-0 max-h-full overflow-hidden')}
+        className={cn('flex h-full min-h-0 min-w-0 flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring', narrow && 'col-start-1 row-start-1', narrow && mobilePanel !== 'detail' && 'pointer-events-none absolute inset-0 overflow-hidden')}
       >
-        <Button ref={backRef} variant="outline" className={cn('h-11', !narrow && 'hidden')} onClick={detailPanelState.requestBackToTimeline}>
+        <Button ref={backRef} variant="outline" className={cn('h-9 shrink-0 self-start', !narrow && 'hidden')} onClick={detailPanelState.requestBackToTimeline}>
           <ArrowLeft data-icon="inline-start" />
           返回版本列表
         </Button>

@@ -7,9 +7,21 @@ const widths = {
   narrow: 'max-w-4xl',
 }
 
-/** Opt-in application layout. Resume documents keep their own typography. */
-export function PageLayout({ width = 'default', className, ...props }: ComponentProps<'div'> & { width?: keyof typeof widths }) {
-  return <div className={cn('mx-auto flex w-full min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8', widths[width], className)} {...props} />
+/** Workspaces own their panel scrolling; short viewports scroll the page as a fallback. */
+export function PageLayout({ width = 'default', workspace = false, className, ...props }: ComponentProps<'div'> & { width?: keyof typeof widths, workspace?: boolean }) {
+  return (
+    <div
+      className={cn(
+        'mx-auto flex w-full min-w-0 flex-col',
+        workspace
+          ? '@container/workspace h-full min-h-[30rem] gap-3 p-3 sm:p-4 lg:px-6'
+          : 'gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8',
+        !workspace && widths[width],
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
 export function PageHeader({ title, description, actions, children }: { title: string, description?: ReactNode, actions?: ReactNode, children?: ReactNode }) {

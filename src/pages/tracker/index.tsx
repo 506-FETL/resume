@@ -35,12 +35,12 @@ function TrackerContent() {
 
   return (
     <>
-      <PageLayout width="wide" className="h-full min-h-[560px] gap-4">
+      <PageLayout workspace>
         <TrackerHeader />
         <OverviewBar />
-        <main aria-label="职位工作区" className="flex min-h-64 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
+        <main aria-label="职位工作区" className="@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
           <TrackerToolbar />
-          <ViewTransition animationKey={state} className="flex min-h-0 min-w-0 flex-1 flex-col p-2 sm:p-4">
+          <ViewTransition animationKey={state} className="flex min-h-0 min-w-0 flex-1 flex-col p-2 sm:p-3">
             {state === 'loading'
               ? <TrackerSkeleton />
               : state === 'board'

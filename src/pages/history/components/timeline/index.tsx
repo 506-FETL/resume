@@ -44,7 +44,7 @@ export default function HistoryTimeline({ selectedEntry, onSelectEntry }: Histor
 
   return (
     <LayoutGroup id={layoutId}>
-      <Card className="flex min-h-0 min-w-0 flex-col gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-none">
+      <Card className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-none">
         <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3.5">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <History className="size-4 text-muted-foreground" />
@@ -102,7 +102,7 @@ export default function HistoryTimeline({ selectedEntry, onSelectEntry }: Histor
           )}
         </AnimatePresence>
 
-        <motion.div layoutScroll className="scrollbar-thin-subtle min-h-32 max-h-[max(240px,calc(100dvh-30rem))] overflow-y-auto overscroll-contain p-3">
+        <motion.div layoutScroll className="scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
           <motion.div layout={reduceMotion ? false : 'size'} transition={layout} className="relative flex flex-col gap-2">
             <AnimatePresence initial={false} mode="popLayout">
               {loading

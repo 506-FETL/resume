@@ -57,13 +57,13 @@ export default function HistoryDetailContent({ state,
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="shrink-0 px-4 py-4 sm:px-5">
+      <div className="shrink-0 px-3 py-3 sm:px-4">
         <DetailHeader state={state} />
       </div>
       <Separator />
 
       <Tabs value={activeTab} onValueChange={value => setActiveTab(value as typeof activeTab)} className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
-        <div className="shrink-0 px-4 py-2.5 sm:px-5">
+        <div className="shrink-0 px-3 py-2 sm:px-4">
           <TabsList className="h-8 justify-start">
             {([{ value: 'resume', label: '简历预览' }, { value: 'overview', label: '版本信息' }] as const).map(tab => (
               <TabsTrigger key={tab.value} value={tab.value} className="isolate px-3 text-xs transition-none data-[state=active]:text-foreground after:transition-none">
@@ -86,7 +86,7 @@ export default function HistoryDetailContent({ state,
           </motion.div>
         </TabsContent>
         <TabsContent ref={resumeScrollRef} forceMount value="resume" hidden={activeTab !== 'resume'} inert={activeTab !== 'resume'} className={cn('scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain', activeTab !== 'resume' && 'hidden')}>
-          <motion.div animate={{ opacity: activeTab === 'resume' ? 1 : 0 }} transition={enter} className="min-h-full bg-muted/35 p-3 sm:p-5">
+          <motion.div animate={{ opacity: activeTab === 'resume' ? 1 : 0 }} transition={enter} className="min-h-full bg-muted/35 p-2 sm:p-4">
             {resumeSnapshot
               ? <HistoryResumePreview snapshot={resumeSnapshot} projectionReferenceDate={isCurrent ? undefined : state.selectedVersion?.projection_reference_date} />
               : <Skeleton className={cn('h-96 w-full', reduceMotion && 'animate-none')} />}
