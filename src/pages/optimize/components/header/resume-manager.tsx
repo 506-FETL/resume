@@ -6,13 +6,14 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import useAtsStore from '../../store'
 import { ResumeItem } from './resume-item'
 import { useResumeManager } from './use-resume-manager'
 
 export function ResumeManager() {
-  const { loading } = useAtsStore()
   const {
+    loading,
+    loadError,
+    retry,
     open,
     setOpen,
     isDragging,
@@ -29,6 +30,7 @@ export function ResumeManager() {
     handleFileSelect,
     resumes,
   } = useResumeManager()
+  const initialLoading = loading && resumes.length === 0
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -36,12 +38,12 @@ export function ResumeManager() {
         <Button
           variant="outline"
           size="sm"
-          disabled={loading}
+          disabled={initialLoading}
         >
-          {loading
+          {initialLoading
             ? <Spinner />
             : <ButtonIcon className={cn(iconColorClass)} />}
-          <span className="truncate text-xs">{loading ? '加载中...' : selectedResumeName}</span>
+          <span className="truncate text-xs">{initialLoading ? '加载中...' : selectedResumeName}</span>
           <ChevronDown className="shrink-0 opacity-50" />
         </Button>
       </DialogTrigger>
@@ -71,8 +73,8 @@ export function ResumeManager() {
 
           <TabsContent value="select" className="mt-0 px-4 pb-4 sm:px-6 sm:pb-6">
             <ScrollArea className="h-[300px] sm:h-[350px] -mx-4 px-4 sm:-mx-6 sm:px-6">
-              <AnimatedContent animationKey={loading ? 'loading' : resumes.length === 0 ? 'empty' : 'resumes'}>
-                {loading
+              <AnimatedContent animationKey={resumes.length ? 'resumes' : initialLoading ? 'loading' : loadError ? 'error' : 'empty'}>
+                {initialLoading
                   ? (
                       <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
                         <Spinner className="size-8 mb-3" />
@@ -81,6 +83,14 @@ export function ResumeManager() {
                     )
                   : (
                       <>
+                        <AnimatedContent animationKey={loadError ? 'error' : 'ready'}>
+                          {loadError && (
+                            <div role="alert" className="flex items-center justify-between gap-3 pt-3 text-sm text-muted-foreground">
+                              <p>{resumes.length ? '部分简历加载失败，已显示可用简历。' : '简历列表加载失败，请重试。'}</p>
+                              <Button size="sm" variant="outline" disabled={loading} onClick={() => { retry() }}>重试</Button>
+                            </div>
+                          )}
+                        </AnimatedContent>
                         {/* 在线简历 */}
                         {onlineResumes.length > 0 && (
                           <div className="space-y-2 pt-3">
@@ -117,11 +127,11 @@ export function ResumeManager() {
                           </div>
                         )}
 
-                        {resumes.length === 0 && (
+                        {resumes.length === 0 && !loadError && (
                           <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
                             <FileText className="size-10 mb-3 opacity-40" />
                             <p className="text-sm">暂无简历</p>
-                            <p className="text-xs mt-1">请先上传简历文件</p>
+                            <p className="text-xs mt-1">请先在“我的简历”中创建简历</p>
                           </div>
                         )}
                       </>

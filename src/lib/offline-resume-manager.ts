@@ -131,7 +131,7 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
   if (dbInstance)
     return dbInstance
 
-  dbInstance = await openDB<ResumeDB>(DB_NAME, DB_VERSION, {
+  const connection = await openDB<ResumeDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         const resumeStore = db.createObjectStore('resumes', { keyPath: 'resume_id' })
@@ -144,20 +144,42 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
         store.createIndex('derived_status', 'derived_status')
       }
     },
+  }).catch(async (error: unknown) => {
+    if (!(error instanceof DOMException) || error.name !== 'VersionError')
+      throw error
+
+    // 旧版本曾在同一数据库中新增其他存储表；保留已有版本和全部数据。
+    const existing = await openDB<ResumeDB>(DB_NAME)
+    try {
+      const transaction = existing.transaction('resumes', 'readonly')
+      const store = transaction.store
+      const indexes = ['created_at', 'updated_at', 'parent_resume_id', 'derived_status'] as const
+      if (store.keyPath !== 'resume_id' || indexes.some(name => !store.indexNames.contains(name) || store.index(name).keyPath !== name || store.index(name).unique))
+        throw new Error('本地简历数据库结构不兼容，已有数据已保留')
+      await transaction.done
+      return existing
+    }
+    catch (error) {
+      existing.close()
+      throw error
+    }
   })
+  dbInstance = connection
 
   // 当其他标签页升级数据库版本时，关闭当前连接以避免阻塞
-  dbInstance.onversionchange = () => {
-    dbInstance?.close()
-    dbInstance = null
+  connection.onversionchange = () => {
+    connection.close()
+    if (dbInstance === connection)
+      dbInstance = null
   }
 
   // 异常关闭时清除缓存引用，下次访问会重新打开
-  dbInstance.onclose = () => {
-    dbInstance = null
+  connection.onclose = () => {
+    if (dbInstance === connection)
+      dbInstance = null
   }
 
-  return dbInstance
+  return connection
 }
 
 /**
