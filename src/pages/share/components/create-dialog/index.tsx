@@ -92,8 +92,8 @@ export default function CreateDialog({
       toast.success('分享链接已生成')
       onOpenChange(false)
     }
-    catch {
-      toast.error('创建失败')
+    catch (error) {
+      toast.error(error instanceof Error ? error.message : '创建失败，请重试')
     }
     finally {
       setSubmitting(false)

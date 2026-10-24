@@ -1,6 +1,7 @@
 import type { CreateShareOptions, CurrentResumeShareSnapshotProvider, ResolvedResumeShareRelease, ResumeShareRecord, ResumeShareReleaseSummary, ResumeShareReviewPayload, ResumeShareReviewRelease, ResumeShareSnapshotSource, ShareVersionSelection, ShareViewResult } from './share.types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
+import { isResumeCommentClientError, ResumeCommentClient } from '@/features/resume-comments/api/client.ts'
 import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
 import { parseSharedTemplateDefinition, serializeTemplateForShare } from '@/lib/resume-template/share'
 import { resumeTemplateSource } from '@/lib/resume-template/source'
@@ -152,24 +153,45 @@ export async function resolveResumeShareRelease(input: {
   getCurrentSource: CurrentResumeShareSnapshotProvider
 }): Promise<ResolvedResumeShareRelease> {
   if (input.selection.kind === 'current') {
-    const version = await getCurrentResumeVersion(input.resumeId)
-    const snapshot = mapSourceToPersistedSnapshot(version.snapshot)
-    const commentAnchor = buildCommentAnchorDocument(
-      snapshot,
-      version.projection_reference_date,
-    )
-    return {
-      ...await buildResumeShareSnapshotSource(
-        snapshot,
-        input.displayName,
-      ),
-      source: { kind: 'current' },
-      versionId: version.id,
-      documentRevision: version.document_revision,
-      projectionReferenceDate: version.projection_reference_date,
-      commentAnchorDocument: commentAnchor.document,
-      commentDocumentHash: commentAnchor.documentHash,
+    // 当前快照提供者会先完成编辑器保存；工作版本只负责评论身份，
+    // 其正文哈希不包含模板、字体和配色，不能用它还原当前外观。
+    const source = await input.getCurrentSource(input.resumeId)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const version = await getCurrentResumeVersion(input.resumeId)
+      const commentAnchor = buildCommentAnchorDocument(source.snapshot, version.projection_reference_date)
+      const versionAnchor = buildCommentAnchorDocument(
+        mapSourceToPersistedSnapshot(version.snapshot),
+        version.projection_reference_date,
+      )
+      if (commentAnchor.documentHash === versionAnchor.documentHash) {
+        return {
+          ...source,
+          source: { kind: 'current' },
+          versionId: version.id,
+          documentRevision: version.document_revision,
+          projectionReferenceDate: version.projection_reference_date,
+          commentAnchorDocument: commentAnchor.document,
+          commentDocumentHash: commentAnchor.documentHash,
+        }
+      }
+      if (attempt === 2)
+        break
+      // 列表和分享管理没有编辑器监听者，必要时补齐已保存正文的评论版本。
+      const client = new ResumeCommentClient({ kind: 'owner', resumeId: input.resumeId })
+      try {
+        await client.syncWorkingDocument({
+          anchorDocument: commentAnchor.document,
+          documentHash: commentAnchor.documentHash,
+          projectionReferenceDate: version.projection_reference_date,
+          expectedDocumentRevision: version.document_revision,
+        })
+      }
+      catch (error) {
+        if (!isResumeCommentClientError(error) || error.code !== 'stale_document')
+          throw error
+      }
     }
+    throw new Error('简历内容正在变化，请保存完成后重新发布分享')
   }
 
   const version = await getResumeVersionForShare(
@@ -496,19 +518,26 @@ export async function deleteResumeShare(shareId: string): Promise<void> {
 export async function fetchSharedResume(
   token: string,
   password?: string,
-  options: { refresh?: boolean } = {},
+  options: { refresh?: boolean, knownContentRevision?: string, accessToken?: string, signal?: AbortSignal } = {},
 ): Promise<ShareViewResult> {
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-share`, {
     method: 'POST',
+    signal: options.signal,
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       token,
+      knownContentRevision: options.knownContentRevision,
+      accessToken: options.accessToken,
       ...(password ? { password } : {}),
       ...(options.refresh ? { refresh: true } : {}),
     }),
   })
 
   const body = await res.json().catch(() => null) as {
+    source_kind?: 'current' | 'history'
+    content_revision?: string
+    not_modified?: boolean
     needPassword?: boolean
     error?: string
     snapshot?: PersistedResumeSnapshot
@@ -527,7 +556,7 @@ export async function fetchSharedResume(
   } | null
 
   if (!body)
-    return { unavailable: true }
+    throw new Error('Invalid share response')
 
   if (body.needPassword) {
     return {
@@ -537,15 +566,21 @@ export async function fetchSharedResume(
     }
   }
 
+  if (res.status >= 500 || res.status === 429)
+    throw new Error('Share temporarily unavailable')
+
   if (!res.ok)
     return { unavailable: true }
 
-  if (!body.snapshot || !body.template_manifest)
-    return { unavailable: true }
+  if (!body.not_modified && (!body.snapshot || !body.template_manifest))
+    throw new Error('Incomplete share response')
 
   return {
+    sourceKind: body.source_kind,
+    contentRevision: body.content_revision,
+    notModified: body.not_modified === true,
     snapshot: body.snapshot,
-    templateDefinition: parseSharedTemplateDefinition(body.template_manifest),
+    templateDefinition: body.template_manifest ? parseSharedTemplateDefinition(body.template_manifest) : undefined,
     displayName: body.display_name ?? null,
     shareId: body.share_id,
     releaseId: body.release_id,

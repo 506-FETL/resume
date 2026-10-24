@@ -370,10 +370,19 @@ function Editor() {
         : null}
       <CollaborationDialog />
       <QuickDialog
-        getSnapshot={() => buildResumeShareSnapshotSource(
-          useResumeStore.getState().getPersistedSnapshot(),
-          currentDisplayName,
-        )}
+        getSnapshot={async () => {
+          const before = useResumeStore.getState()
+          if (before.currentResumeId !== currentResumeId || before.mode !== 'online')
+            throw new Error('简历已切换，请重新打开分享')
+          if (before.pendingChanges || before.isSyncing)
+            await before.manualSync()
+          const current = useResumeStore.getState()
+          if (current.currentResumeId !== currentResumeId || current.mode !== 'online')
+            throw new Error('简历已切换，请重新打开分享')
+          if (current.pendingChanges || current.syncError)
+            throw new Error(current.syncError ?? '简历尚未保存，请保存完成后再分享')
+          return buildResumeShareSnapshotSource(current.getPersistedSnapshot(), currentDisplayName)
+        }}
       />
     </CollaborationPanelProvider>
   )

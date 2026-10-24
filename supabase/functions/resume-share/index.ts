@@ -1,5 +1,7 @@
 /* global Deno */
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
+import type { SharedVersionRow } from './live-source.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsPreflightResponse } from '../shared/cors.ts'
 import { recordOperationMetric, scheduleBackground } from '../shared/operation-metrics.ts'
@@ -7,6 +9,7 @@ import { createRequestContext } from '../shared/request-context.ts'
 import {
   derivePasswordGeneration,
   signCommentToken,
+  verifyCommentToken,
 } from '../shared/resume-comment-auth.ts'
 import { buildCommentAnchorDocument } from '../shared/resume-comment-core.ts'
 import {
@@ -15,10 +18,12 @@ import {
   deriveScopeRealtimeTopic,
 } from '../shared/resume-comment-events.ts'
 import { redactHiddenResumeSections } from '../shared/resume-share-redaction.ts'
+
 import {
   authenticateSupabaseUser,
   SupabaseAuthenticationError,
 } from '../shared/supabase-auth.ts'
+import { loadLiveShareSource, shareContentRevision } from './live-source.ts'
 
 const PASSWORD_ALGORITHM = 'pbkdf2-sha256'
 const PASSWORD_ITERATIONS = 310_000
@@ -27,6 +32,9 @@ const PASSWORD_SALT_LENGTH = 16
 
 interface GetResult {
   needPassword?: boolean
+  source_kind?: 'current' | 'history'
+  content_revision?: string
+  not_modified?: boolean
   snapshot?: unknown
   template_manifest?: unknown
   display_name?: string | null
@@ -52,17 +60,7 @@ interface CurrentReleaseRow {
   created_at: string
 }
 
-interface SharedVersionRow {
-  id: number
-  resume_id: string
-  user_id: string
-  snapshot: unknown
-  status: 'active' | 'frozen'
-  document_revision: number
-  projection_reference_date: string
-}
-
-type AdminClient = ReturnType<typeof createClient>
+type AdminClient = SupabaseClient
 let cachedAdminClient: AdminClient | null = null
 let cachedAdminClientKey: string | null = null
 
@@ -363,6 +361,7 @@ Deno.serve(async (req) => {
     }
     return context.json(body, status, {
       'Server-Timing': `edge_total;dur=${context.durationMs().toFixed(1)}`,
+      'Cache-Control': 'no-store',
     })
   }
   // 统一「不可用」文案：不区分不存在、关闭或过期，降低探测。
@@ -381,6 +380,8 @@ Deno.serve(async (req) => {
     let expiresAt: string | null = null
     let allowComments: boolean | undefined
     let refreshOnly = false
+    let accessToken: string | null = null
+    let knownContentRevision: string | null = null
 
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({})) as Record<string, unknown>
@@ -404,6 +405,8 @@ Deno.serve(async (req) => {
       if (typeof body.allowComments === 'boolean')
         allowComments = body.allowComments
       refreshOnly = body.refresh === true
+      accessToken = typeof body.accessToken === 'string' && body.accessToken.length <= 4096 ? body.accessToken : null
+      knownContentRevision = typeof body.knownContentRevision === 'string' ? body.knownContentRevision : null
     }
 
     // ============ owner 密码写入分支 ============
@@ -555,6 +558,9 @@ Deno.serve(async (req) => {
       .from('resume_shares')
       .select(`
         id,
+        resume_id,
+        user_id,
+        source_kind,
         is_active,
         password_hash,
         expires_at,
@@ -583,7 +589,9 @@ Deno.serve(async (req) => {
       .eq('token', token)
       .maybeSingle()
 
-    if (error || !data)
+    if (error)
+      throw error
+    if (!data)
       return unavailable()
     if (!data.is_active || data.archived_at)
       return unavailable()
@@ -593,11 +601,22 @@ Deno.serve(async (req) => {
     const currentRelease = readCurrentRelease(data.current_release)
     if (!currentRelease || currentRelease.id !== data.current_release_id)
       return unavailable()
-    const version = (Array.isArray(data.version) ? data.version[0] : data.version) as SharedVersionRow | null
+    let version = (Array.isArray(data.version) ? data.version[0] : data.version) as SharedVersionRow | null
     if (!version || version.id !== data.version_id)
       return unavailable()
 
-    if (data.password_hash) {
+    const commentTokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
+    const passwordGeneration = await derivePasswordGeneration(data.password_hash, commentTokenSecret)
+    let passwordVerified = false
+    if (accessToken && data.password_hash) {
+      try {
+        const credential = await verifyCommentToken(accessToken, 'share', commentTokenSecret)
+        // 仅复用密码验证结果；版本、权限与新评论令牌仍按本次读取重新计算。
+        passwordVerified = credential.shareId === data.id && credential.passwordGeneration === passwordGeneration
+      }
+      catch { /* 无效或过期凭据回到常规密码校验。 */ }
+    }
+    if (data.password_hash && !passwordVerified) {
       if (!password)
         return json({ needPassword: true } satisfies GetResult)
       if (password.length > 128)
@@ -679,14 +698,61 @@ Deno.serve(async (req) => {
       }
     }
 
-    const commentTokenSecret = Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ?? serviceRoleKey
-    const commentScope = await ensureShareCommentScope(admin, version)
+    const sourceKind = data.source_kind === 'current' ? 'current' : 'history'
+    const source = sourceKind === 'current'
+      ? await loadLiveShareSource({
+          admin,
+          resumeId: data.resume_id,
+          ownerUserId: data.user_id,
+          ensureScope: ensureShareCommentScope,
+          onSync: (scopeId, versionId, eventSeq) => {
+            scheduleBackground((async () => {
+              const secret = Deno.env.get('RESUME_COMMENT_REALTIME_SECRET') ?? commentTokenSecret
+              const topics = await Promise.all([
+                deriveScopeRealtimeTopic({ scopeId, versionId, secret }),
+                deriveOwnerRealtimeTopic({ userId: data.user_id, secret }),
+              ])
+              await broadcastCommentInvalidation({ admin, topics: topics.map(item => item.topic), eventSeq, type: 'document_synced' })
+            })(), 'live_share_comment_notification_failed')
+          },
+        })
+      : {
+          snapshot: redactHiddenResumeSections(currentRelease.snapshot),
+          templateManifest: currentRelease.template_manifest,
+          displayName: currentRelease.display_name,
+          version,
+          commentScope: await ensureShareCommentScope(admin, version),
+        }
+    version = source.version
+    const commentScope = source.commentScope
+    // 读取过程中可能发生换版、关分享或改密码；不得签发跨身份的访问凭据。
+    const { data: authorizedShare, error: authorizationError } = await admin.from('resume_shares')
+      .select('version_id,current_release_id,source_kind,is_active,archived_at,expires_at,password_hash,allow_comments')
+      .eq('id', data.id)
+      .single()
+    if (authorizationError)
+      throw authorizationError
+    if (!authorizedShare || !authorizedShare.is_active || authorizedShare.archived_at
+      || (authorizedShare.expires_at && new Date(authorizedShare.expires_at).getTime() <= Date.now())) {
+      return unavailable()
+    }
+    if (authorizedShare.password_hash !== data.password_hash)
+      return json({ needPassword: true } satisfies GetResult)
+    if (authorizedShare.version_id !== version.id || authorizedShare.current_release_id !== currentRelease.id
+      || authorizedShare.source_kind !== sourceKind) {
+      return json({ error: 'temporarily_unavailable' }, 503)
+    }
+    const contentRevision = shareContentRevision({
+      snapshot: source.snapshot,
+      templateManifest: source.templateManifest,
+      displayName: source.displayName,
+      sourceKind,
+      versionId: version.id,
+      documentRevision: version.document_revision,
+    })
+    const notModified = knownContentRevision === contentRevision
     const issuedAt = Math.floor(Date.now() / 1_000)
     const expiresAtSeconds = issuedAt + 15 * 60
-    const passwordGeneration = await derivePasswordGeneration(
-      data.password_hash,
-      commentTokenSecret,
-    )
     const commentAccessToken = await signCommentToken({
       version: 1,
       kind: 'share',
@@ -699,17 +765,19 @@ Deno.serve(async (req) => {
       passwordGeneration,
     }, commentTokenSecret)
 
-    // 匿名读取只返回固化快照、模板与标题，绝不返回 password_hash / user_id 等敏感字段。
+    // 当前链接解析已保存配置；历史链接保留发布快照。相同内容不重复传输大对象。
     return json({
-      snapshot: redactHiddenResumeSections(currentRelease.snapshot),
-      template_manifest: currentRelease.template_manifest,
-      display_name: currentRelease.display_name,
+      source_kind: sourceKind,
+      content_revision: contentRevision,
+      not_modified: notModified,
+      ...(notModified ? {} : { snapshot: source.snapshot, template_manifest: source.templateManifest }),
+      display_name: source.displayName,
       share_id: data.id,
       release_id: currentRelease.id,
       release_no: currentRelease.release_no,
       version_id: version.id,
       document_revision: version.document_revision,
-      allow_comments: data.allow_comments,
+      allow_comments: authorizedShare.allow_comments,
       projection_reference_date: commentScope.projectionReferenceDate,
       comment_scope_id: commentScope.id,
       comment_access_token: commentAccessToken,

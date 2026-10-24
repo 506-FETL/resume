@@ -1,13 +1,13 @@
 import type { CSSProperties } from 'react'
-import type { ColorToken, ColorValue, NumericToken, StyleValue, TemplateDefinition, TemplateStyle } from './types'
+import type { TemplateStyleEnvironment } from './style-values'
+import type { TemplateDefinition, TemplateStyle } from './types'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { getFontFamilyCSS, getResumeFontWeights, themeColorMap } from '@/lib/schema'
+import { resolveStyleProperty } from './style-properties'
 
-export interface TemplateStyleEnvironment {
-  numbers: Record<NumericToken, number>
-  colors: Record<ColorToken, string>
-  fontFamily: string
-}
+export type { TemplateStyleEnvironment } from './style-values'
+export { resolveColor, resolveNumeric } from './style-values'
+
 export function createTemplateStyleEnvironment(definition: TemplateDefinition, appearance: ResumeAppearanceConfig): TemplateStyleEnvironment {
   const size = appearance.font.fontSize
   const weights = getResumeFontWeights(appearance.font.fontFamily)
@@ -18,46 +18,16 @@ export function createTemplateStyleEnvironment(definition: TemplateDefinition, a
     fontFamily: getFontFamilyCSS(appearance.font.fontFamily),
   }
 }
-export function resolveNumeric(value: StyleValue, environment: TemplateStyleEnvironment): number {
-  return typeof value === 'number' ? value : environment.numbers[value.token] * (value.factor ?? 1) + (value.add ?? 0)
-}
-export function resolveColor(value: ColorValue, environment: TemplateStyleEnvironment): string {
-  return typeof value === 'string' ? value : environment.colors[value.token]
-}
-const unitless = new Set(['fontWeight', 'lineHeight', 'flexGrow', 'flexShrink', 'opacity'])
 export function resolveTemplateStyle(style: TemplateStyle | undefined, environment: TemplateStyleEnvironment): CSSProperties {
-  const resolved: Record<string, string | number> = {}
-  Object.entries(style ?? {}).forEach(([property, value]) => {
-    if (value === undefined)
-      return
-    if (property === 'rotate') {
-      // 几何外接框由渲染器处理，禁止把旋转藏进普通 CSS 布局。
-      return
-    }
-    if (property === 'boxShadow') {
-      const shadow = value as NonNullable<TemplateStyle['boxShadow']>
-      const color = resolveColor(shadow.color, environment)
-      resolved.boxShadow = `${shadow.x}px ${shadow.y}px ${shadow.blur}px ${shadow.spread}px ${color}${Math.round(shadow.opacity * 255).toString(16).padStart(2, '0')}`
-    }
-    else if (property === 'columns') {
-      resolved.gridTemplateColumns = (value as number[]).map(column => `minmax(0, ${column}fr)`).join(' ')
-    }
-    else if (['color', 'backgroundColor', 'borderColor'].includes(property)) {
-      resolved[property] = resolveColor(value as ColorValue, environment)
-    }
-    else if (['textAlign', 'alignItems', 'justifyContent', 'whiteSpace', 'borderStyle'].includes(property)) {
-      resolved[property] = value as string
-    }
-    else {
-      const number = resolveNumeric(value as StyleValue, environment)
-      // margins 允许折角标题的局部偏移；其他尺寸不能产生负几何。
-      const bounded = Math.max(property.startsWith('margin') ? -256 : 0, Math.min(number, 4096))
-      resolved[property] = unitless.has(property) ? bounded : `${bounded}px`
-    }
-  })
+  const resolved: CSSProperties = {}
+  for (const property of Object.keys(style ?? {}) as (keyof TemplateStyle)[]) {
+    const value = style![property]
+    if (value !== undefined)
+      Object.assign(resolved, resolveStyleProperty(property, value, environment))
+  }
   if (Object.keys(resolved).some(property => property.startsWith('border') && property.endsWith('Width')))
     resolved.borderStyle ??= 'solid'
-  return resolved as CSSProperties
+  return resolved
 }
 export function resolveLayoutStyle(layout: 'stack' | 'row' | 'wrap' | 'grid'): CSSProperties {
   return layout === 'grid'

@@ -140,7 +140,7 @@ export default function VersionSelector({
                 <Clock3 className="size-4" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate">当前版本</p>
-                  <p className="truncate text-xs text-muted-foreground">发布此刻内容，之后不会自动更新</p>
+                  <p className="truncate text-xs text-muted-foreground">保存后自动同步到分享链接</p>
                 </div>
                 <Check className={cn('size-4', value.kind === 'current' ? 'opacity-100' : 'opacity-0')} />
               </CommandItem>

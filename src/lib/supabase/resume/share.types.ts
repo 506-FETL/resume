@@ -113,6 +113,9 @@ export interface CreateShareOptions {
 
 /** 匿名访问分享页的读取结果 */
 export interface ShareViewResult {
+  sourceKind?: 'current' | 'history'
+  contentRevision?: string
+  notModified?: boolean
   needPassword?: boolean
   wrongPassword?: boolean
   rateLimited?: boolean

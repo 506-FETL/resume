@@ -67,8 +67,8 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
       toast.success('分享链接已生成')
       return true
     }
-    catch {
-      toast.error('生成失败，请重试')
+    catch (error) {
+      toast.error(error instanceof Error ? error.message : '生成失败，请重试')
       return false
     }
   }

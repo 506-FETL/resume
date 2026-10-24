@@ -6,9 +6,11 @@ import { contentField } from './types'
 export function adaptProfile(data: TemplateResumeData, nodes: CommentNodes): ProfileContent | null {
   if (!data.order.includes('basics'))
     return null
+
   const fields = (section: 'basics' | 'job_intent', entries: Array<[string, string]>) => entries
     .map(([key, label]) => contentField(nodes, section, 'singleton', key, label))
     .filter(field => nodes.has(field.nodeKey) && field.text.trim())
+
   // 远端快照与直接预览也经过同一格式检查，不能以任意 URL 冒充照片。
   const photo = data.basics.photo ? resumePhotoSchema.parse(data.basics.photo) : null
   const customFields = fields('basics', data.basics.customFields.map((field, index) => [`customFields.${index}`, field?.label.trim() ?? '']))

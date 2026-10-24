@@ -12,7 +12,13 @@ interface ExperienceInput {
   html: string
 }
 
-function experienceBlock(nodes: CommentNodes, section: keyof ResumeSchema, entries: ExperienceInput[], titleKey: string, titleLabel: string, subtitleKey: string, subtitleLabel: string, descriptionLabel: string): ContentBlock {
+interface ExperienceFields {
+  title: { key: string, label: string }
+  subtitle: { key: string, label: string }
+  descriptionLabel: string
+}
+
+function experienceBlock(nodes: CommentNodes, section: keyof ResumeSchema, entries: ExperienceInput[], fields: ExperienceFields): ContentBlock {
   const items: ExperienceContent[] = entries
     .filter(item => !item.hidden && (item.title || item.subtitle || item.html || item.range?.some(Boolean)))
     .map((item) => {
@@ -20,16 +26,37 @@ function experienceBlock(nodes: CommentNodes, section: keyof ResumeSchema, entri
         const field = contentField(nodes, section, item.entryId, key, label)
         return nodes.has(field.nodeKey) && field.text.trim() ? field : undefined
       }
-      const description = read('content', descriptionLabel)
+      const description = read('content', fields.descriptionLabel)
       return {
         entryId: item.entryId,
-        title: read(titleKey, titleLabel),
-        subtitle: read(subtitleKey, subtitleLabel),
+        title: read(fields.title.key, fields.title.label),
+        subtitle: read(fields.subtitle.key, fields.subtitle.label),
         duration: read('duration', '时间'),
         description: description && item.html ? { field: description, html: item.html } : undefined,
       }
     })
   return { kind: 'experience', items: items.filter(item => item.title || item.subtitle || item.duration || item.description) }
+}
+
+type BlockByKind = { [Kind in ContentBlock['kind']]: Extract<ContentBlock, { kind: Kind }> }
+const blockCleaners: { [Kind in ContentBlock['kind']]: (block: BlockByKind[Kind]) => ContentBlock[] } = {
+  richText: block => block.field.text.trim() ? [block] : [],
+  experience: block => block.items.length ? [block] : [],
+  skills: (block) => {
+    const items = block.items.filter(item => item.field.text.trim())
+    return items.length ? [{ ...block, items }] : []
+  },
+  fieldList: cleanFieldList,
+  tagList: cleanFieldList,
+}
+
+function cleanFieldList(block: BlockByKind['fieldList' | 'tagList']): ContentBlock[] {
+  const items = block.items.filter(item => item.text.trim())
+  return items.length ? [{ ...block, items }] : []
+}
+
+function cleanBlock<Kind extends ContentBlock['kind']>(block: BlockByKind[Kind]): ContentBlock[] {
+  return blockCleaners[block.kind](block)
 }
 
 export function adaptSections(data: TemplateResumeData, nodes: CommentNodes): ContentSection[] {
@@ -48,27 +75,27 @@ export function adaptSections(data: TemplateResumeData, nodes: CommentNodes): Co
     {
       key: 'edu_background',
       title: '教育经历',
-      blocks: [experienceBlock(nodes, 'edu_background', data.edu_background.items.map(i => ({ ...i, title: i.schoolName, subtitle: i.professional, range: i.duration, html: i.eduInfo })), 'schoolName', '学校名称', 'professionalDegree', '专业与学历', '教育经历描述')],
+      blocks: [experienceBlock(nodes, 'edu_background', data.edu_background.items.map(i => ({ ...i, title: i.schoolName, subtitle: i.professional, range: i.duration, html: i.eduInfo })), { title: { key: 'schoolName', label: '学校名称' }, subtitle: { key: 'professionalDegree', label: '专业与学历' }, descriptionLabel: '教育经历描述' })],
     },
     {
       key: 'work_experience',
       title: '工作经历',
-      blocks: [experienceBlock(nodes, 'work_experience', data.work_experience.items.map(i => ({ ...i, title: i.companyName, subtitle: i.position, range: i.workDuration, html: i.workInfo })), 'companyName', '公司名称', 'position', '职位', '工作经历描述')],
+      blocks: [experienceBlock(nodes, 'work_experience', data.work_experience.items.map(i => ({ ...i, title: i.companyName, subtitle: i.position, range: i.workDuration, html: i.workInfo })), { title: { key: 'companyName', label: '公司名称' }, subtitle: { key: 'position', label: '职位' }, descriptionLabel: '工作经历描述' })],
     },
     {
       key: 'internship_experience',
       title: '实习经历',
-      blocks: [experienceBlock(nodes, 'internship_experience', data.internship_experience.items.map(i => ({ ...i, title: i.companyName, subtitle: i.position, range: i.internshipDuration, html: i.internshipInfo })), 'companyName', '公司名称', 'position', '实习职位', '实习经历描述')],
+      blocks: [experienceBlock(nodes, 'internship_experience', data.internship_experience.items.map(i => ({ ...i, title: i.companyName, subtitle: i.position, range: i.internshipDuration, html: i.internshipInfo })), { title: { key: 'companyName', label: '公司名称' }, subtitle: { key: 'position', label: '实习职位' }, descriptionLabel: '实习经历描述' })],
     },
     {
       key: 'campus_experience',
       title: '校园经历',
-      blocks: [experienceBlock(nodes, 'campus_experience', data.campus_experience.items.map(i => ({ ...i, title: i.experienceName, subtitle: i.role, range: i.duration, html: i.campusInfo })), 'experienceName', '经历名称', 'role', '担任角色', '校园经历描述')],
+      blocks: [experienceBlock(nodes, 'campus_experience', data.campus_experience.items.map(i => ({ ...i, title: i.experienceName, subtitle: i.role, range: i.duration, html: i.campusInfo })), { title: { key: 'experienceName', label: '经历名称' }, subtitle: { key: 'role', label: '担任角色' }, descriptionLabel: '校园经历描述' })],
     },
     {
       key: 'project_experience',
       title: '项目经历',
-      blocks: [experienceBlock(nodes, 'project_experience', data.project_experience.items.map(i => ({ ...i, title: i.projectName, subtitle: i.participantRole, range: i.projectDuration, html: i.projectInfo })), 'projectName', '项目名称', 'participantRole', '项目角色', '项目经历描述')],
+      blocks: [experienceBlock(nodes, 'project_experience', data.project_experience.items.map(i => ({ ...i, title: i.projectName, subtitle: i.participantRole, range: i.projectDuration, html: i.projectInfo })), { title: { key: 'projectName', label: '项目名称' }, subtitle: { key: 'participantRole', label: '项目角色' }, descriptionLabel: '项目经历描述' })],
     },
     {
       key: 'skill_specialty',
@@ -101,18 +128,7 @@ export function adaptSections(data: TemplateResumeData, nodes: CommentNodes): Co
     const section = byKey.get(key)
     if (!section || key === 'basics' || !data.getVisibility(key))
       return []
-    const blocks = section.blocks.flatMap((block): ContentBlock[] => {
-      if (block.kind === 'richText')
-        return block.field.text.trim() ? [block] : []
-      if (block.kind === 'experience')
-        return block.items.length ? [block] : []
-      if (block.kind === 'skills') {
-        const items = block.items.filter(item => item.field.text.trim())
-        return items.length ? [{ ...block, items }] : []
-      }
-      const items = block.items.filter(item => item.text.trim())
-      return items.length ? [{ ...block, items }] : []
-    })
+    const blocks = section.blocks.flatMap(cleanBlock)
     return blocks.length ? [{ ...section, blocks }] : []
   })
 }

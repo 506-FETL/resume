@@ -207,7 +207,7 @@ export default function VersionDialog({
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            当前简历后续编辑不会自动同步到这个链接。
+            {selection.kind === 'current' ? '当前简历保存后自动同步到这个链接。' : '历史版本分享为固定内容，不随当前简历编辑变化。'}
           </p>
         </div>
 
