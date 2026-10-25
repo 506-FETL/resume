@@ -28,6 +28,7 @@ import {
   APPLICATION_STATUS_CONFIG,
   APPLICATION_STATUS_DOT_CLASSES,
   BOARD_COLUMNS,
+  TRACKER_SEARCH_INPUT_ID,
 } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
@@ -122,7 +123,7 @@ function BoardColumnDropArea({
       aria-label={`${APPLICATION_STATUS_CONFIG[status].label}职位`}
       data-motion-drop-container={status}
       className={cn(
-        'flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-xl px-3 pt-1 pb-3 transition-colors [scrollbar-width:thin]',
+        'flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg px-2 pt-1 pb-2 transition-colors [scrollbar-width:thin]',
         active && 'bg-primary/5 ring-1 ring-primary/30',
         highlighted && !active && 'bg-primary/5',
       )}
@@ -146,7 +147,7 @@ function BoardColumnDropArea({
             active && 'border-primary/50 bg-primary/5 text-primary',
           )}
         >
-          拖拽职位至此
+          拖入此列
         </div>
       )}
     </div>
@@ -186,27 +187,37 @@ function BoardView() {
 
   const reduceMotion = useReducedMotion()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const columnRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const columnElementsRef = useRef<Map<string, HTMLDivElement>>(new Map())
+  const pendingMoveJobIdRef = useRef<string | null>(null)
+
+  const focusCancel = useCallback<RefCallback<HTMLButtonElement>>((element) => {
+    // ref 在隐藏背景的副作用前挂载，确保焦点先进入确认框。
+    element?.focus({ preventScroll: true })
+  }, [])
 
   const [pendingMove, setPendingMove] = useState<{
     jobId: string
     newStatus: ApplicationStatus
   } | null>(null)
 
+  const scopedJobs = useMemo(
+    () => filterJobs(jobs, null, searchKeyword, showArchived, null),
+    [jobs, searchKeyword, showArchived],
+  )
+
   const groupedJobs = useMemo(() => {
     const groups = Object.fromEntries(
       BOARD_COLUMNS.map((column) => [column.status, [] as JobApplication[]]),
     ) as Record<ApplicationStatus, JobApplication[]>
 
-    for (const job of filterJobs(jobs, null, searchKeyword, showArchived, null))
-      groups[job.status].push(job)
+    for (const job of scopedJobs) groups[job.status].push(job)
 
     return groups
-  }, [jobs, searchKeyword, showArchived])
+  }, [scopedJobs])
 
   const metricStatus = useMemo(
-    () => resolveTrackerMetricStatus(jobs, metricFilter),
-    [jobs, metricFilter],
+    () => resolveTrackerMetricStatus(scopedJobs, metricFilter),
+    [scopedJobs, metricFilter],
   )
 
   const highlightedStatus = filterStatus ?? metricStatus
@@ -214,7 +225,7 @@ function BoardView() {
   const scrollToColumn = useCallback(
     (status: string) => {
       const container = scrollContainerRef.current
-      const columnEl = columnRefs.current.get(status)
+      const columnEl = columnElementsRef.current.get(status)
 
       if (!container || !columnEl) return
 
@@ -241,12 +252,15 @@ function BoardView() {
       useTrackerStore.getState().rejectedCollapsed
     )
       useTrackerStore.getState().toggleRejectedCollapsed()
+  }, [highlightedStatus])
+
+  useEffect(() => {
     if (
       highlightedStatus &&
       BOARD_COLUMNS.some((column) => column.status === highlightedStatus)
     )
       requestAnimationFrame(() => scrollToColumn(highlightedStatus))
-  }, [highlightedStatus, scrollToColumn])
+  }, [highlightedStatus, scrollToColumn, rejectedCollapsed])
 
   const commitMove = (jobId: string, newStatus: ApplicationStatus) => {
     changeJobStatus(jobId, newStatus).catch((error) => {
@@ -267,6 +281,7 @@ function BoardView() {
     if (!currentJob || currentJob.status === newStatus) return
 
     if (newStatus === 'offer' || newStatus === 'rejected') {
+      pendingMoveJobIdRef.current = itemId
       setPendingMove({ jobId: itemId, newStatus })
 
       return
@@ -304,7 +319,7 @@ function BoardView() {
           ref={scrollContainerRef}
           className='scrollbar-thin-subtle flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-auto overflow-y-hidden overscroll-x-contain'
         >
-          <div className='flex min-h-0 flex-1 items-stretch gap-3 pb-2'>
+          <div className='flex min-h-0 flex-1 items-stretch gap-2 pb-2'>
             {BOARD_COLUMNS.map((column) => {
               const columnJobs = groupedJobs[column.status]
               const highlighted = isColumnHighlighted(column.status)
@@ -318,15 +333,14 @@ function BoardView() {
                   layoutDependency={rejectedCollapsed}
                   transition={reduceMotion ? { duration: 0 } : SPRING.layout}
                   ref={(element) => {
-                    if (element) columnRefs.current.set(column.status, element)
-                    else columnRefs.current.delete(column.status)
+                    if (element)
+                      columnElementsRef.current.set(column.status, element)
+                    else columnElementsRef.current.delete(column.status)
                   }}
                   className={cn(
-                    'flex min-h-0 flex-col rounded-xl border border-border/60 bg-muted/35 transition-colors',
+                    'flex min-h-0 flex-col rounded-lg border border-transparent bg-muted/35 transition-colors',
                     highlighted && 'border-primary/40 bg-primary/5',
-                    collapsed
-                      ? 'w-[44px] shrink-0'
-                      : 'min-w-[232px] flex-1 basis-0',
+                    collapsed ? 'w-[44px] shrink-0' : 'w-64 shrink-0',
                   )}
                   style={{
                     transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`,
@@ -369,8 +383,8 @@ function BoardView() {
                       </button>
                     ) : (
                       <>
-                        <div className='px-3 pt-3 pb-2'>
-                          <div className='flex items-center justify-between gap-2'>
+                        <div className='px-2 pt-2.5 pb-2'>
+                          <div className='flex items-center justify-between gap-1'>
                             {isRejectedColumn ? (
                               <button
                                 type='button'
@@ -434,7 +448,20 @@ function BoardView() {
         open={pendingMove !== null}
         onOpenChange={(open) => !open && setPendingMove(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+
+            const card = scrollContainerRef.current?.querySelector<HTMLElement>(
+              `[data-motion-drag-item="${CSS.escape(pendingMoveJobIdRef.current ?? '')}"]`,
+            )
+
+            const fallback = document.getElementById(TRACKER_SEARCH_INPUT_ID)
+            const target = card ?? fallback
+
+            target?.focus({ preventScroll: true })
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>
               {pendingMove?.newStatus === 'offer'
@@ -448,7 +475,10 @@ function BoardView() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingMove(null)}>
+            <AlertDialogCancel
+              ref={focusCancel}
+              onClick={() => setPendingMove(null)}
+            >
               取消
             </AlertDialogCancel>
             <AlertDialogAction

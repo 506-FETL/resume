@@ -1,6 +1,7 @@
 import { Archive, CheckSquare, MoreHorizontal, Search, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useShallow } from 'zustand/react/shallow'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -89,8 +90,8 @@ export default function TrackerToolbar() {
   const busy = loading || (!isInitialized && !error)
 
   return (
-    <div className='shrink-0 border-b p-3'>
-      <div className='flex flex-col gap-2 @min-[1050px]/tracker:flex-row @min-[1050px]/tracker:items-center @min-[1050px]/tracker:gap-4'>
+    <div className='shrink-0 border-b px-3 py-2'>
+      <div className='flex flex-col gap-2 @min-[980px]/tracker:flex-row @min-[980px]/tracker:items-center @min-[980px]/tracker:gap-3'>
         <div className='flex shrink-0 items-center justify-between gap-3'>
           <div className='flex min-w-0 items-center gap-2.5'>
             <h2 className='text-sm font-semibold sm:text-base'>
@@ -102,8 +103,8 @@ export default function TrackerToolbar() {
           </div>
           <ViewToggle />
         </div>
-        <div className='flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2'>
-          <div className='relative min-w-0 flex-1'>
+        <div className='flex min-w-0 flex-1 flex-wrap items-center gap-1.5 sm:gap-2'>
+          <div className='relative min-w-12 flex-1 @min-[980px]/tracker:max-w-sm'>
             <Search className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
             <Input
               id={TRACKER_SEARCH_INPUT_ID}
@@ -111,7 +112,7 @@ export default function TrackerToolbar() {
               aria-label='搜索职位'
               value={searchKeyword}
               placeholder='搜索职位…'
-              className='h-9 rounded-lg pl-9 pr-9 shadow-none [&::-webkit-search-cancel-button]:appearance-none'
+              className='rounded-lg pl-9 pr-9 shadow-none [&::-webkit-search-cancel-button]:appearance-none'
               onChange={(event) => setSearchKeyword(event.target.value)}
             />
             <AnimatePresence initial={false}>
@@ -136,6 +137,75 @@ export default function TrackerToolbar() {
             </AnimatePresence>
           </div>
           <FilterMenu mobile={isMobile} />
+          <AnimatePresence initial={false}>
+            {activeLabel && (
+              <PresenceDiv
+                key='active-filter'
+                initial={reduce ? false : { opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{
+                  opacity: 0,
+                  width: 0,
+                  transition: {
+                    duration: reduce ? 0 : DURATION.fast,
+                    ease: EASE.in,
+                  },
+                }}
+                transition={{
+                  duration: reduce ? 0 : DURATION.base,
+                  ease: EASE.out,
+                }}
+                className='shrink-0 overflow-hidden'
+              >
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  className='h-8 gap-1.5 whitespace-nowrap text-xs'
+                  onClick={clearFilters}
+                  aria-label={`清除${viewMode === 'board' ? '定位' : '筛选'}：${activeLabel}`}
+                >
+                  <span className='hidden sm:inline'>
+                    {viewMode === 'board' ? '定位' : '筛选'}：
+                  </span>
+                  {activeLabel}
+                  <X className='size-3' />
+                </Button>
+              </PresenceDiv>
+            )}
+            {showArchived && (
+              <PresenceDiv
+                key='archive-filter'
+                initial={reduce ? false : { opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{
+                  opacity: 0,
+                  width: 0,
+                  transition: {
+                    duration: reduce ? 0 : DURATION.fast,
+                    ease: EASE.in,
+                  },
+                }}
+                transition={{
+                  duration: reduce ? 0 : DURATION.base,
+                  ease: EASE.out,
+                }}
+                className='shrink-0 overflow-hidden'
+              >
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  className='h-8 gap-1.5 whitespace-nowrap text-xs'
+                  aria-label='退出归档视图'
+                  onClick={() => setShowArchivedWithFocus(false)}
+                >
+                  <Archive className='size-3' />
+                  <span className='hidden sm:inline'>正在查看归档</span>
+                  <span className='sm:hidden'>已归档</span>
+                  <X className='size-3' />
+                </Button>
+              </PresenceDiv>
+            )}
+          </AnimatePresence>
           <AnimatePresence initial={false}>
             {!isMobile && viewMode === 'list' && (
               <motion.div
@@ -223,56 +293,6 @@ export default function TrackerToolbar() {
           </div>
         </div>
       </div>
-      <AnimatePresence initial={false}>
-        {(showArchived || activeLabel) && (
-          <motion.div
-            key='filter-summary'
-            initial={reduce ? false : { opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{
-              opacity: 0,
-              height: 0,
-              transition: {
-                duration: reduce ? 0 : DURATION.fast,
-                ease: EASE.in,
-              },
-            }}
-            transition={{
-              duration: reduce ? 0 : DURATION.base,
-              ease: EASE.out,
-            }}
-            className='overflow-hidden'
-          >
-            <div className='flex flex-wrap items-center gap-2 pt-3 text-xs text-muted-foreground'>
-              {showArchived && (
-                <Button
-                  variant='secondary'
-                  size='sm'
-                  className='h-7 gap-1.5 text-xs'
-                  onClick={() => setShowArchivedWithFocus(false)}
-                >
-                  <Archive className='size-3' />
-                  正在查看归档
-                  <X className='size-3' />
-                  <span className='sr-only'>退出归档</span>
-                </Button>
-              )}
-              {activeLabel && (
-                <Button
-                  variant='secondary'
-                  size='sm'
-                  className='h-7 gap-1.5 text-xs'
-                  onClick={clearFilters}
-                >
-                  {viewMode === 'board' ? '定位' : '筛选'}：{activeLabel}
-                  <X className='size-3' />
-                  <span className='sr-only'>清除条件</span>
-                </Button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       <BatchActions />
     </div>
   )

@@ -11,8 +11,15 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
-import { memo, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import {
+  memo,
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -49,13 +56,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { DURATION } from '@/lib/motion'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import {
   APPLICATION_STATUS_CONFIG,
   APPLICATION_STATUS_ORDER,
+  TRACKER_SEARCH_INPUT_ID,
 } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
@@ -71,11 +79,15 @@ import DrawerMetaBar from './meta-bar'
 import NextActionSection from './next-action'
 import ProgressTimeline from './progress-timeline/index'
 import DrawerStageDetail from './stage-detail/index'
+import DrawerTabPanel from './tab-panel'
 
 type ConfirmKind = 'reject' | 'delete' | 'jump-offer' | null
 
-const DRAWER_TAB_TRIGGER_CLASS =
-  'h-10 flex-1 rounded-none border-x-0 border-t-0 border-b-2 border-transparent after:hidden data-[state=active]:border-foreground'
+const DRAWER_TABS: { value: DrawerTab; label: string }[] = [
+  { value: 'follow-up', label: '跟进' },
+  { value: 'interview', label: '阶段详情' },
+  { value: 'documents', label: '联系人与简历' },
+]
 
 function JobDrawer() {
   const {
@@ -100,6 +112,7 @@ function JobDrawer() {
 
   const isMobile = useIsMobile()
   const reduce = useReducedMotion()
+  const underlineId = useId()
   const [activeTab, setActiveTab] = useState<DrawerTab>('follow-up')
   const [isEditing, setIsEditing] = useState(false)
 
@@ -111,6 +124,29 @@ function JobDrawer() {
   const [resumeOpen, setResumeOpen] = useState(false)
   const confirmTriggerRef = useRef<HTMLElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const drawerTriggerRef = useRef<HTMLElement | null>(null)
+  const tabElementsRef = useRef(new Map<DrawerTab, HTMLButtonElement>())
+
+  const setCloseButtonRef = useCallback(
+    (element: HTMLButtonElement | null) => {
+      closeButtonRef.current = element
+
+      if (!element || !drawerOpen) return
+
+      const focused = document.activeElement
+      const popup = element.closest('[data-slot="drawer-popup"]')
+
+      if (focused instanceof HTMLElement && !popup?.contains(focused))
+        drawerTriggerRef.current =
+          focused === document.body || focused === document.documentElement
+            ? null
+            : focused
+
+      // Portal 可能晚于父组件 effect 挂载，在节点就绪时先交接焦点再隐藏背景。
+      element.focus({ preventScroll: true })
+    },
+    [drawerOpen],
+  )
 
   useLayoutEffect(() => {
     if (!drawerOpen) return
@@ -358,6 +394,15 @@ function JobDrawer() {
     </div>
   )
 
+  const handleTabChange = (value: DrawerTab) => {
+    if (value === activeTab) return
+
+    // Radix 在 pointer down 时切换值，早于浏览器默认聚焦，先移出退出面板。
+    tabElementsRef.current.get(value)?.focus({ preventScroll: true })
+    flushWorkflow(selectedJob.id).catch(() => {})
+    setActiveTab(value)
+  }
+
   const handlePrimaryAction = () => {
     if (nextAction.targetStatus) {
       handleStageJump(nextAction.targetStatus)
@@ -366,7 +411,10 @@ function JobDrawer() {
     }
 
     setIsEditing(false)
-    setActiveTab(selectedJob.status === 'interview' ? 'interview' : 'follow-up')
+
+    handleTabChange(
+      selectedJob.status === 'interview' ? 'interview' : 'follow-up',
+    )
   }
 
   const headerContent = (
@@ -376,7 +424,7 @@ function JobDrawer() {
         <div className='flex shrink-0 items-center gap-1'>
           {!isMobile && desktopToolbar}
           <Button
-            ref={closeButtonRef}
+            ref={setCloseButtonRef}
             variant='ghost'
             size='icon-sm'
             aria-label='关闭详情'
@@ -390,13 +438,11 @@ function JobDrawer() {
     </div>
   )
 
-  const isFollowUp = !isEditing && activeTab === 'follow-up'
-
   const body = (
     <div
       className={cn(
         'scrollbar-thin-subtle min-h-0 flex-1 overscroll-contain',
-        isFollowUp
+        !isEditing
           ? 'flex flex-col overflow-hidden [@media(max-height:640px)]:block [@media(max-height:640px)]:overflow-y-auto'
           : 'scrollbar-gutter-stable overflow-y-auto',
       )}
@@ -404,7 +450,7 @@ function JobDrawer() {
       <div
         className={cn(
           isMobile ? 'px-4 py-2' : 'px-5 py-5 lg:px-6',
-          isFollowUp && 'flex min-h-0 flex-1 flex-col',
+          !isEditing && 'flex min-h-0 flex-1 flex-col',
         )}
       >
         {isEditing ? (
@@ -427,136 +473,130 @@ function JobDrawer() {
             />
           </div>
         ) : (
-          <div
-            className={cn(
-              'flex flex-col gap-2 md:gap-4',
-              isFollowUp && 'min-h-0 flex-1',
-            )}
-          >
+          <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-4'>
             <div className='shrink-0'>
               <ProgressTimeline
                 viewingStage={viewingStage}
                 onStageClick={(stage) => {
                   setViewingStage(stage === selectedJob.status ? null : stage)
-                  setActiveTab('interview')
+                  handleTabChange('interview')
                 }}
                 onStageJump={handleStageJump}
               />
             </div>
             <Tabs
-              className={cn(isFollowUp && 'min-h-0 flex-1')}
+              className='min-h-0 flex-1'
               value={activeTab}
-              onValueChange={(v) => {
-                flushWorkflow(selectedJob.id).catch(() => {})
-                setActiveTab(v as DrawerTab)
-              }}
+              onValueChange={(value) => handleTabChange(value as DrawerTab)}
             >
               <TabsList
                 variant='line'
-                className='sticky top-0 z-20 w-full shrink-0 rounded-none border-b bg-popover p-0 shadow-[0_6px_10px_-10px_rgba(0,0,0,0.45)]'
+                className='relative z-20 min-h-10 w-full shrink-0 rounded-none border-b bg-popover p-0 shadow-[0_6px_10px_-10px_rgba(0,0,0,0.45)]'
               >
-                <TabsTrigger
-                  value='follow-up'
-                  className={DRAWER_TAB_TRIGGER_CLASS}
-                >
-                  跟进
-                </TabsTrigger>
-                <TabsTrigger
-                  value='interview'
-                  className={DRAWER_TAB_TRIGGER_CLASS}
-                >
-                  阶段详情
-                </TabsTrigger>
-                <TabsTrigger
-                  value='documents'
-                  className={DRAWER_TAB_TRIGGER_CLASS}
-                >
-                  联系人与简历
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent
-                value='follow-up'
-                className='flex min-h-0 flex-col overflow-hidden data-[state=inactive]:hidden md:mt-4 [@media(max-height:640px)]:overflow-visible'
-                style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-              >
-                <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-4'>
-                  {selectedJob.status !== 'rejected' && (
-                    <NextActionSection
-                      key={`next-action-${selectedJob.id}`}
-                      job={selectedJob}
-                    />
-                  )}
-                  <Separator className='shrink-0' />
-                  <ActivityTimeline
-                    key={`activity-${selectedJob.id}`}
-                    job={selectedJob}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent
-                value='interview'
-                className='mt-4'
-                style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-              >
-                <div className='space-y-6'>
-                  <div className='flex items-center justify-between gap-3 rounded-lg bg-muted/35 px-3 py-2'>
-                    <span className='text-xs text-muted-foreground'>
-                      查看阶段记录
-                    </span>
-                    <Select
-                      value={displayStage}
-                      onValueChange={(value) => {
-                        flushWorkflow(selectedJob.id).catch(() => {})
-
-                        setViewingStage(
-                          value === selectedJob.status
-                            ? null
-                            : (value as ApplicationStatus),
-                        )
-                      }}
-                    >
-                      <SelectTrigger
-                        aria-label='查看阶段记录'
-                        className='h-8 w-40 bg-background text-xs'
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(APPLICATION_STATUS_CONFIG).map(
-                          ([value, config]) => (
-                            <SelectItem key={value} value={value}>
-                              {config.label}
-                              {value === selectedJob.status && '（当前）'}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <ViewTransition
-                    animationKey={`${selectedJob.id}-${displayStage}`}
+                {DRAWER_TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    ref={(element) => {
+                      if (element)
+                        tabElementsRef.current.set(tab.value, element)
+                      else tabElementsRef.current.delete(tab.value)
+                    }}
+                    value={tab.value}
+                    className='h-10 flex-1 rounded-none border-0 transition-colors after:hidden'
+                    style={{
+                      transitionDuration: `${reduce ? 0 : DURATION.base}s`,
+                      transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+                    }}
                   >
-                    <DrawerStageDetail displayStage={displayStage} />
-                  </ViewTransition>
-                </div>
-              </TabsContent>
+                    {tab.label}
+                    {activeTab === tab.value && (
+                      <motion.span
+                        aria-hidden
+                        layoutId={reduce ? undefined : underlineId}
+                        className='pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-foreground'
+                        transition={{
+                          duration: reduce ? 0 : DURATION.base,
+                          ease: EASE.out,
+                        }}
+                      />
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <div className='relative flex min-h-0 flex-1 flex-col md:mt-4'>
+                <AnimatePresence initial={false} mode='popLayout'>
+                  <DrawerTabPanel key={activeTab} value={activeTab}>
+                    {activeTab === 'follow-up' && (
+                      <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-4'>
+                        {selectedJob.status !== 'rejected' && (
+                          <NextActionSection
+                            key={`next-action-${selectedJob.id}`}
+                            job={selectedJob}
+                          />
+                        )}
+                        <Separator className='shrink-0' />
+                        <ActivityTimeline
+                          key={`activity-${selectedJob.id}`}
+                          job={selectedJob}
+                        />
+                      </div>
+                    )}
+                    {activeTab === 'interview' && (
+                      <div className='space-y-6'>
+                        <div className='flex items-center justify-between gap-3 rounded-lg bg-muted/35 px-3 py-2'>
+                          <span className='text-xs text-muted-foreground'>
+                            查看阶段记录
+                          </span>
+                          <Select
+                            value={displayStage}
+                            onValueChange={(value) => {
+                              flushWorkflow(selectedJob.id).catch(() => {})
 
-              <TabsContent
-                value='documents'
-                className='mt-4'
-                style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-              >
-                <div className='space-y-6'>
-                  <Contacts job={selectedJob} />
-                  <DrawerDocument
-                    key={selectedJob.id}
-                    open={resumeOpen}
-                    onOpenChange={setResumeOpen}
-                  />
-                </div>
-              </TabsContent>
+                              setViewingStage(
+                                value === selectedJob.status
+                                  ? null
+                                  : (value as ApplicationStatus),
+                              )
+                            }}
+                          >
+                            <SelectTrigger
+                              aria-label='查看阶段记录'
+                              className='h-8 w-40 bg-background text-xs'
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(APPLICATION_STATUS_CONFIG).map(
+                                ([value, config]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {config.label}
+                                    {value === selectedJob.status && '（当前）'}
+                                  </SelectItem>
+                                ),
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <ViewTransition
+                          animationKey={`${selectedJob.id}-${displayStage}`}
+                        >
+                          <DrawerStageDetail displayStage={displayStage} />
+                        </ViewTransition>
+                      </div>
+                    )}
+                    {activeTab === 'documents' && (
+                      <div className='space-y-6'>
+                        <Contacts job={selectedJob} />
+                        <DrawerDocument
+                          key={selectedJob.id}
+                          open={resumeOpen}
+                          onOpenChange={setResumeOpen}
+                        />
+                      </div>
+                    )}
+                  </DrawerTabPanel>
+                </AnimatePresence>
+              </div>
             </Tabs>
           </div>
         )}
@@ -645,6 +685,12 @@ function JobDrawer() {
         showSwipeHandle={isMobile}
       >
         <DrawerContent
+          initialFocus={closeButtonRef}
+          finalFocus={() =>
+            drawerTriggerRef.current?.isConnected
+              ? drawerTriggerRef.current
+              : document.getElementById(TRACKER_SEARCH_INPUT_ID)
+          }
           className='flex min-h-0 flex-col gap-0 overflow-clip p-0'
           style={
             isMobile

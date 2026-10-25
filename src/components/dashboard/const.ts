@@ -28,7 +28,7 @@ export const Data = {
       icon: Share2,
     },
     {
-      title: '求职看板',
+      title: '求职跟进',
       url: '/tracker',
       icon: FolderKanban,
     },
