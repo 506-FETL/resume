@@ -1,4 +1,3 @@
-import type React from 'react'
 import { Cloud, FileCheck, FileText, HardDrive } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import useResumeListStore from '@/pages/resume/store'
@@ -22,7 +21,6 @@ interface UseResumeManagerReturn {
   retry: () => Promise<void>
   open: boolean
   setOpen: (open: boolean) => void
-  isDragging: boolean
   selectedResumeName: string
   selectedResumeId: string | null
   onlineResumes: ResumeConfig[]
@@ -31,10 +29,6 @@ interface UseResumeManagerReturn {
   ButtonIcon: any
   iconColorClass: string
   handleSelect: (resume: ResumeConfig) => void
-  handleDragOver: (e: React.DragEvent) => void
-  handleDragLeave: (e: React.DragEvent) => void
-  handleDrop: (e: React.DragEvent) => void
-  handleFileSelect: () => void
 }
 
 export function useResumeManager(): UseResumeManagerReturn {
@@ -56,7 +50,6 @@ export function useResumeManager(): UseResumeManagerReturn {
   const loading = !accountMatches || listLoading
   const loadError = accountMatches ? listError : null
   const [open, setOpen] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
     if (authStatus === 'unknown') return
@@ -116,44 +109,6 @@ export function useResumeManager(): UseResumeManagerReturn {
     [setSelectedResume],
   )
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    const files = e.dataTransfer.files
-
-    if (files.length > 0) {
-      // TODO: 处理文件上传
-    }
-  }, [])
-
-  const handleFileSelect = useCallback(() => {
-    const input = document.createElement('input')
-
-    input.type = 'file'
-    input.accept = '.pdf,.doc,.docx'
-
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files
-
-      if (files && files.length > 0) {
-        // TODO: 处理文件选择逻辑
-      }
-    }
-
-    input.click()
-  }, [])
-
   const onlineResumes = resumes.filter((r) => !r.isOffline)
   const offlineResumes = resumes.filter((r) => r.isOffline)
 
@@ -184,7 +139,6 @@ export function useResumeManager(): UseResumeManagerReturn {
     retry: loadResumes,
     open,
     setOpen,
-    isDragging,
     selectedResumeName,
     selectedResumeId,
     onlineResumes,
@@ -193,9 +147,5 @@ export function useResumeManager(): UseResumeManagerReturn {
     ButtonIcon,
     iconColorClass,
     handleSelect,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    handleFileSelect,
   }
 }

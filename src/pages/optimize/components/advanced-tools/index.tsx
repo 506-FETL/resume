@@ -303,7 +303,7 @@ function AdvancedTools() {
               <span>{resumeSummary.jobIntent}</span>
               <span>
                 {resumeSummary.evidenceCount}
-                {' 条有效证据'}
+                {' 条经历'}
               </span>
               <span>
                 {resumeContext?.resumeType === 'offline'
