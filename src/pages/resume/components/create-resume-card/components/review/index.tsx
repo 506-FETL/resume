@@ -5,7 +5,6 @@ import { useReducedMotion } from 'motion/react'
 import { Plus, Trash2 } from 'lucide-react'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Collapsible,
   CollapsibleContent,
@@ -152,16 +151,8 @@ export default function ImportReview() {
 
   return (
     <div className='flex min-h-0 flex-col gap-4'>
-      {draft.warnings.length > 0 && (
-        <p className='text-xs text-muted-foreground'>
-          {draft.warnings.join('；')}
-        </p>
-      )}
       <div className='grid min-h-0 gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]'>
-        <Collapsible
-          className='min-w-0 rounded-lg border p-3 md:sticky md:top-0 md:self-start'
-          defaultOpen
-        >
+        <Collapsible className='min-w-0 rounded-lg border p-3 md:sticky md:top-0 md:self-start'>
           <CollapsibleTrigger className='cursor-pointer text-sm font-medium'>
             原文 · {draft.sourceName}
           </CollapsibleTrigger>
@@ -174,7 +165,7 @@ export default function ImportReview() {
           </CollapsibleContent>
         </Collapsible>
         <div className='min-w-0 space-y-4'>
-          <div className='flex flex-wrap gap-1.5' aria-label='核对模块'>
+          <div className='flex flex-wrap gap-1.5' aria-label='编辑模块'>
             {REVIEW_MODULES.map(({ section: key }) => (
               <Button
                 variant={activeSection === key ? 'default' : 'secondary'}
@@ -194,11 +185,7 @@ export default function ImportReview() {
                 )}
               >
                 {SECTION_LABELS[key]}
-                {draft.reviewedSections.includes(key)
-                  ? ' ✓'
-                  : populated.includes(key)
-                    ? ' ·'
-                    : ''}
+                {populated.includes(key) ? ' ·' : ''}
               </Button>
             ))}
           </div>
@@ -322,22 +309,6 @@ export default function ImportReview() {
                   添加一条
                 </Button>
               )}
-              <label className='flex items-start gap-2 rounded-lg bg-muted/40 p-3 text-sm'>
-                <Checkbox
-                  checked={draft.reviewedSections.includes(activeSection)}
-                  onCheckedChange={(checked) =>
-                    patch({
-                      reviewedSections:
-                        checked === true
-                          ? [...draft.reviewedSections, activeSection]
-                          : draft.reviewedSections.filter(
-                              (key) => key !== activeSection,
-                            ),
-                    })
-                  }
-                />
-                已核对{SECTION_LABELS[activeSection]}
-              </label>
             </fieldset>
           </AnimatedContent>
         </div>
@@ -389,18 +360,11 @@ export default function ImportReview() {
               加入这个模块
             </Button>
           </div>
-          <label className='flex items-start gap-2 text-xs text-muted-foreground'>
-            <Checkbox
-              checked={draft.unassignedReviewed}
-              onCheckedChange={(value) =>
-                patch({ unassignedReviewed: value === true })
-              }
-            />
-            仅保留在原文中，不放进简历正文
-          </label>
+          <p className='text-xs text-muted-foreground'>
+            未加入的内容会继续保留在原文中。
+          </p>
         </fieldset>
       )}
-      <p className='text-xs text-muted-foreground'>逐项核对后，再选择模板。</p>
     </div>
   )
 }

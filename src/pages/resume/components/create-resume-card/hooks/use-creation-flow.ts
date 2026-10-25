@@ -2,7 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { extractResumeFile } from '@/lib/resume-import/extract'
-import { parseResumeText } from '@/lib/resume-import/parse'
+import {
+  organizeResumeText,
+  type ImportStage,
+} from '@/lib/resume-import/organize'
 import { DEFAULT_ORDER, DEFAULT_VISIBILITY } from '@/lib/schema'
 import {
   collectSectionEvidence,
@@ -37,7 +40,8 @@ export function useCreationFlow({
   const scope = preparationScope(userId)
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
-  const [reading, setReading] = useState(false)
+  const [importStage, setImportStage] = useState<ImportStage | null>(null)
+  const reading = importStage !== null
   const [creating, setCreating] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const mountedRef = useRef(true)
@@ -65,7 +69,7 @@ export function useCreationFlow({
   useLayoutEffect(() => {
     sessionRef.current += 1
     abortRef.current?.abort()
-    setReading(false)
+    setImportStage(null)
     setError(null)
 
     if (open) {
@@ -74,14 +78,55 @@ export function useCreationFlow({
     }
   }, [open, scope])
 
-  function parseText() {
+  async function importSource(file?: File) {
     const state = useCreationDraftStore.getState()
 
+    if (state.draft.creation || state.scope !== scope) return
+
+    abortRef.current?.abort()
+
+    const controller = new AbortController()
+    const session = sessionRef.current
+    const originalText = state.draft.sourceText
+
+    abortRef.current = controller
+    setImportStage(file ? 'reading' : 'organizing')
+    setError(null)
+
+    const isCurrent = () =>
+      mountedRef.current &&
+      !controller.signal.aborted &&
+      abortRef.current === controller &&
+      session === sessionRef.current &&
+      useCreationDraftStore.getState().scope === scope &&
+      (useUserStore.getState().currentUser?.id ?? null) === userId &&
+      useCreationDraftStore.getState().draft.sourceText === originalText
+
     try {
-      const result = parseResumeText(state.draft.sourceText)
+      const source = file
+        ? await extractResumeFile(file, controller.signal)
+        : {
+            text: originalText,
+            sourceName: state.draft.sourceName || '粘贴内容',
+          }
+
+      if (!isCurrent()) return
+
+      const result = await organizeResumeText(source.text, {
+        signal: controller.signal,
+        ownerId: userId,
+        onStage: (stage) => {
+          if (isCurrent()) setImportStage(stage)
+        },
+      })
+
+      if (!isCurrent()) return
 
       state.patch({
         ...result,
+        sourceText: source.text,
+        sourceName: source.sourceName,
+        selectedTemplate: undefined,
         contentSource: 'import',
         content: {
           ...result.content,
@@ -104,56 +149,25 @@ export function useCreationFlow({
       })
 
       state.setStep('review')
-      setError(null)
     } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : '这段内容暂时无法整理，请检查原文。',
-      )
-    }
-  }
-
-  async function readFile(file: File) {
-    abortRef.current?.abort()
-
-    const controller = new AbortController()
-    const session = sessionRef.current
-
-    abortRef.current = controller
-    setReading(true)
-    setError(null)
-
-    try {
-      const result = await extractResumeFile(file, controller.signal)
-
-      if (
-        controller.signal.aborted ||
-        session !== sessionRef.current ||
-        useCreationDraftStore.getState().scope !== scope
-      )
-        return
-
-      useCreationDraftStore.getState().patch({
-        sourceText: result.text,
-        sourceName: result.sourceName,
-        content: null,
-        contentSource: 'import',
-        selectedTemplate: undefined,
-        reviewedSections: [],
-        unassignedReviewed: false,
-      })
-    } catch (reason) {
-      if (!controller.signal.aborted)
+      if (isCurrent())
         setError(
           reason instanceof Error
             ? reason.message
-            : '文件读取失败，可以改用粘贴。',
+            : '导入未完成，可以换一个文件或粘贴文字。',
         )
     } finally {
       if (abortRef.current === controller && mountedRef.current)
-        setReading(false)
+        setImportStage(null)
     }
+  }
+
+  function parseText() {
+    return importSource()
+  }
+
+  function readFile(file: File) {
+    return importSource(file)
   }
 
   function prepareProfile() {
@@ -211,7 +225,7 @@ export function useCreationFlow({
         state.draft.contentSource !== 'profile' &&
         !importReady(state.draft)
       )
-        throw new Error('请先核对导入内容')
+        throw new Error('尚未识别到可填充的内容，请补充内容或重新导入')
 
       const selection =
         state.draft.creation?.selection ??
@@ -364,6 +378,7 @@ export function useCreationFlow({
     scope,
     error,
     reading,
+    importStage,
     creating,
     parseText,
     readFile,
@@ -372,7 +387,7 @@ export function useCreationFlow({
     clearError: () => setError(null),
     cancelRead: () => {
       abortRef.current?.abort()
-      setReading(false)
+      setImportStage(null)
     },
   }
 }
