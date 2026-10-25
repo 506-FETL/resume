@@ -7,6 +7,7 @@ import type {
 } from '@/lib/resume-template/create/types'
 import type { TemplateSource } from '@/lib/resume-template/source/types'
 import { create } from 'zustand'
+import { isEqual } from 'lodash'
 import { persistPreparedResume } from '@/lib/resume-template/create/persist'
 import { prepareTemplateResume } from '@/lib/resume-template/create/prepare'
 import { CreationOutcomeUnknownError } from '@/lib/resume-template/create/types'
@@ -100,14 +101,30 @@ export function createResumeCreationStore(dependencies: {
       prepared: null,
       result: null,
       start: (input) => {
-        if (pending) return pending
-        if (get().status === 'error' || get().status === 'uncertain')
+        const sameOwner =
+          request?.identity.ownerId === dependencies.getOwnerId()
+
+        const sameOperation = input.operationId
+          ? request?.identity.operationId === input.operationId
+          : isEqual(input, request?.input)
+
+        if (pending) {
+          if (!sameOwner || !sameOperation)
+            return Promise.reject(new Error('上一份简历仍在保存，请稍后重试'))
+
+          return pending
+        }
+        if (
+          sameOwner &&
+          sameOperation &&
+          (get().status === 'error' || get().status === 'uncertain')
+        )
           return execute()
 
         request = {
           input: structuredClone(input),
           identity: {
-            operationId: crypto.randomUUID(),
+            operationId: input.operationId ?? crypto.randomUUID(),
             ownerId: dependencies.getOwnerId(),
           },
         }

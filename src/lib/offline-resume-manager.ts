@@ -21,6 +21,15 @@ import type {
   VariantLineage,
   VariantTreeNode,
 } from '@/lib/supabase/resume/variant'
+import {
+  prepareOfflineTransfer,
+  updatePreparation,
+} from '@/lib/resume-preparation/storage'
+import {
+  derivedEvidence,
+  flushPendingEvidence,
+} from '@/lib/resume-preparation/evidence'
+import { getCurrentUser } from '@/lib/supabase/user'
 import dayjs from 'dayjs'
 import { openDB } from 'idb'
 import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
@@ -352,10 +361,29 @@ export async function updateOfflineResumeMeta(
 /**
  * 删除离线简历
  */
-export async function deleteOfflineResume(resumeId: string) {
+export async function deleteOfflineResume(
+  resumeId: string,
+  beforeDelete?: () => void | Promise<void>,
+  expectedSnapshot?: string,
+) {
   const db = await getDB()
 
-  await db.delete('resumes', resumeId)
+  await beforeDelete?.()
+
+  const tx = db.transaction('resumes', 'readwrite')
+  const current = await tx.store.get(resumeId)
+
+  if (expectedSnapshot && JSON.stringify(current) !== expectedSnapshot) {
+    tx.abort()
+    await tx.done.catch(() => undefined)
+
+    throw new Error(
+      '同步期间本地简历有新修改，已保留本地内容。请核对云端副本后再处理。',
+    )
+  }
+
+  await tx.store.delete(resumeId)
+  await tx.done
 }
 
 /**
@@ -379,19 +407,33 @@ export async function clearAllOfflineResumes() {
  * 用于登录后同步本地数据
  */
 export async function migrateOfflineResumesToCloud(
-  uploadFn: (resume: {
-    display_name: string
-    description?: string
-    type: ResumeType
-    data: Partial<PersistedResumeSnapshot>
-  }) => Promise<string>,
+  uploadFn: (
+    resume: {
+      display_name: string
+      description?: string
+      type: ResumeType
+      data: Partial<PersistedResumeSnapshot>
+    },
+    targetId: string,
+    ownerId: string,
+  ) => Promise<string>,
   selectedIds?: string[],
+  expectedOwner?: string,
 ): Promise<{
   success: number
   failed: number
   errors: string[]
   successIds: string[]
 }> {
+  const ownerId = expectedOwner ?? (await getCurrentUser())?.id
+
+  const assertOwner = async () => {
+    if (!ownerId || (await getCurrentUser())?.id !== ownerId)
+      throw new Error('登录状态已改变，请使用发起同步时的账号重试')
+  }
+
+  await assertOwner()
+
   let offlineResumes = await getAllOfflineResumes()
 
   // 如果指定了选择的ID，只迁移这些简历
@@ -411,17 +453,61 @@ export async function migrateOfflineResumesToCloud(
   const successIds: string[] = []
 
   for (const resume of offlineResumes) {
+    const snapshotSignature = JSON.stringify(resume)
+
     try {
-      // 上传简历到云端
-      await uploadFn({
-        display_name: resume.display_name,
-        description: resume.description,
-        type: resume.type,
-        data: resume.data,
-      })
+      await assertOwner()
+      await flushPendingEvidence(resume.resume_id, ownerId!)
+      await flushPendingEvidence(resume.resume_id, null)
+
+      const inheritedAi = derivedEvidence(
+        resume.derived_metadata,
+        resume.data as PersistedResumeSnapshot,
+      )
+
+      if (inheritedAi.length)
+        await updatePreparation(resume.resume_id, ownerId!, (record) => ({
+          ...record,
+          evidence: [
+            ...new Map(
+              [...record.evidence, ...inheritedAi].map((item) => [
+                item.id,
+                item,
+              ]),
+            ).values(),
+          ],
+        }))
+
+      const targetId = await prepareOfflineTransfer(
+        resume.resume_id,
+        ownerId!,
+        snapshotSignature,
+      )
+
+      await assertOwner()
+
+      const uploadedId = await uploadFn(
+        {
+          display_name: resume.display_name,
+          description: resume.description,
+          type: resume.type,
+          data: resume.data,
+        },
+        targetId,
+        ownerId!,
+      )
+
+      if (uploadedId !== targetId) throw new Error('同步目标不一致，请重试')
+
+      await assertOwner()
 
       // 上传成功后删除本地简历
-      await deleteOfflineResume(resume.resume_id)
+      await deleteOfflineResume(
+        resume.resume_id,
+        assertOwner,
+        snapshotSignature,
+      )
+
       success++
       successIds.push(resume.resume_id)
     } catch (error) {
@@ -505,6 +591,7 @@ export async function cloneOfflineResumeAsDraft(args: {
   jdText: string
   keywords: string[]
   summary?: string
+  draftId?: string
 }): Promise<string> {
   const db = await getDB()
   const parent = await db.get('resumes', args.parentResumeId)
@@ -513,7 +600,14 @@ export async function cloneOfflineResumeAsDraft(args: {
     throw new Error('源简历不存在')
   }
 
-  const draftId = generateResumeId()
+  const draftId = args.draftId ?? generateResumeId()
+  const existing = await db.get('resumes', draftId)
+
+  if (existing) {
+    if (existing.parent_resume_id !== args.parentResumeId)
+      throw new Error('派生目标不一致')
+  }
+
   const cloneTitle = args.summary?.slice(0, 16) || args.keywords[0] || 'JD 变体'
 
   const initialMetadata: VariantMetadata = {
@@ -523,7 +617,7 @@ export async function cloneOfflineResumeAsDraft(args: {
     matchRate: 0,
   }
 
-  await db.add('resumes', {
+  await db.put('resumes', {
     resume_id: draftId,
     display_name: `${parent.display_name} - ${cloneTitle}`,
     description: `JD 变体 · ${new Date().toLocaleDateString()}`,

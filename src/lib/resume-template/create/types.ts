@@ -3,6 +3,9 @@ import type { ExampleRef } from '../source/types'
 import type {
   PersistedResumeSnapshot,
   ResumeTemplateBinding,
+  ResumeSchema,
+  ORDERType,
+  VisibilityFormType,
 } from '@/lib/schema'
 
 export interface CreateTemplateResumeInput {
@@ -11,6 +14,13 @@ export interface CreateTemplateResumeInput {
   mode: 'local' | 'cloud'
   displayName: string
   description: string
+  /** 核对完成的正文；省略时沿用模板库的示例创建方式。 */
+  content?: ResumeSchema & {
+    order?: ORDERType[]
+    visibility?: VisibilityFormType
+  }
+  /** 导入草稿保存操作身份，刷新后仍能确认同一次创建。 */
+  operationId?: string
 }
 
 export interface CreationIdentity {

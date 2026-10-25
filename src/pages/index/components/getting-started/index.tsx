@@ -31,7 +31,7 @@ export default function GettingStarted({
           <p className='mt-3 max-w-lg text-sm leading-6 text-muted-foreground'>
             {hasResume
               ? '最近编辑的简历'
-              : '填写教育背景、工作或项目经历，随意更换模板。'}
+              : '可以导入旧简历，也可以选择示例开始写。'}
           </p>
           <div className='mt-5 flex flex-wrap gap-2'>
             {hasResume ? (

@@ -1,4 +1,6 @@
 import type { z } from 'zod'
+import { recordAppliedAiEvidence } from '@/lib/resume-preparation/evidence'
+import useUserStore from '@/store/user'
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import {
   getAccessibleResumeById,
@@ -106,6 +108,7 @@ registerTool({
   mode: 'write',
   execute: async (args, context) => {
     const currentId = resolveActiveResumeId()
+    const ownerId = useUserStore.getState().currentUser?.id ?? null
 
     if (!currentId)
       return {
@@ -174,11 +177,22 @@ registerTool({
           after,
         },
         apply: async () => {
+          if ((useUserStore.getState().currentUser?.id ?? null) !== ownerId)
+            throw new Error('登录账号已改变，请重新确认修改')
+
           // 经编辑器 store 写入 Automerge 文档并落库，保证编辑器与画布一致
           await applyResumeFieldToDocument(
             currentId,
             sectionKey,
             after as Record<string, unknown>,
+          )
+
+          await recordAppliedAiEvidence(
+            currentId,
+            ownerId,
+            sectionKey,
+            after,
+            before,
           )
 
           return { ok: true, resumeId: currentId, sectionKey, before, after }

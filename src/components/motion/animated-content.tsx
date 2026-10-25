@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import {
   AnimatePresence,
   motion,
@@ -12,19 +12,24 @@ interface AnimatedContentProps {
   children: ReactNode
   className?: string
   as?: 'div' | 'span'
+  mode?: 'wait' | 'popLayout'
 }
 
 function Content({
   children,
   className,
   as = 'div',
-}: Omit<AnimatedContentProps, 'animationKey'>) {
+  ref,
+}: Omit<AnimatedContentProps, 'animationKey' | 'mode'> & {
+  ref?: Ref<HTMLDivElement & HTMLSpanElement>
+}) {
   const reduceMotion = useReducedMotion()
   const isPresent = useIsPresent()
   const Component = as === 'span' ? motion.span : motion.div
 
   return (
     <Component
+      ref={ref}
       className={className}
       inert={!isPresent}
       aria-hidden={!isPresent || undefined}
@@ -54,9 +59,10 @@ export function AnimatedContent({
   children,
   className,
   as,
+  mode = 'wait',
 }: AnimatedContentProps) {
   return (
-    <AnimatePresence initial={false} mode='wait'>
+    <AnimatePresence initial={false} mode={mode}>
       <Content key={animationKey} className={className} as={as}>
         {children}
       </Content>

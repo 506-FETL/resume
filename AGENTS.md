@@ -43,6 +43,9 @@ Always respond in Chinese-simplified.
 
 # UI 组件兼容性与加载状态
 
+- 组件选用是硬性约束：先检查项目已有的 shadcn/ui、Magic UI 及其封装；缺少时查官方组件、registry 或成熟的 shadcn 风格实现，确认确实不适用后才自行实现。不得跳过检索，直接用原生控件或自定义样式重造已有的 Select、Dialog、Popover、Tabs、Button、表单等组件。
+- 业务组件应组合已有组件。确需自建时，在相关计划中记录检索结果和不适用原因，并沿用当前 shadcn 的颜色、字号、圆角、间距、焦点、禁用态及键盘交互；动效继续遵守本仓库规范。普通布局和隐藏的文件输入不必为了形式额外封装，不能把“使用组件”理解为禁止原生语义标签。
+- 交付前检查本次新增/修改界面中的原生表单控件与自定义交互，核对是否已有可复用组件；验收实际样式、键盘操作、焦点恢复和减少动效，不能只检查 import。
 - 从 shadcn/ui 文档或 registry 同步样式前，必须先确认底层 primitive。Radix 使用 `data-state="open|closed"`，Tailwind 选择器应写为 `data-[state=open]` / `data-[state=closed]`；Base UI 使用 `data-open` / `data-closed`。禁止在两套 primitive 之间直接照搬状态选择器。
 - 每个 `DialogContent` 都必须关联 `DialogDescription`；没有可见说明时使用 `className="sr-only"` 提供简短描述，避免无障碍警告。
 - 修改共享 Dialog 动画时，必须同时验证遮罩和内容的进入、退出动画，并至少抽查创建简历、创建分享以及简历优化弹窗等代表性调用点。

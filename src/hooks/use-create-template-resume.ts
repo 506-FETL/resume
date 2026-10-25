@@ -1,6 +1,12 @@
 import type { CreateTemplateResumeInput } from '@/lib/resume-template/create/types'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import {
+  collectSectionEvidence,
+  recordPreparationEvidence,
+} from '@/lib/resume-preparation/evidence'
+import { DEFAULT_ORDER } from '@/lib/schema'
+import useUserStore from '@/store/user'
 import useResumeListStore from '@/pages/resume/store'
 import { useResumeCreationStore } from '@/store/resume-creation'
 import useCurrentResumeStore from '@/store/resume/current'
@@ -16,6 +22,34 @@ export function useCreateTemplateResume() {
   ) => {
     try {
       const result = await useResumeCreationStore.getState().start(input)
+
+      const prepared = useResumeCreationStore.getState().prepared
+
+      if (!input.content && prepared?.resumeId === result.resumeId) {
+        const evidence = DEFAULT_ORDER.flatMap((section) =>
+          collectSectionEvidence(
+            section,
+            prepared.snapshot[section],
+            'example',
+          ),
+        )
+
+        await recordPreparationEvidence(
+          result.resumeId,
+          prepared.ownerId,
+          evidence,
+          '简历已创建，但示例来源记录保存失败，请在导出检查中重试',
+        )
+      }
+
+      if (
+        prepared &&
+        (useUserStore.getState().currentUser?.id ?? null) !== prepared.ownerId
+      ) {
+        toast.error('简历已创建，请切回原账号查看')
+
+        return true
+      }
 
       useResumeListStore.getState().addResume({
         resume_id: result.resumeId,

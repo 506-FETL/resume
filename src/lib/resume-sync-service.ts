@@ -44,18 +44,23 @@ export async function syncOfflineResumesToCloud(selectedIds?: string[]) {
   }
 
   // 执行迁移
-  const result = await migrateOfflineResumesToCloud(async (resume) => {
-    const onlineResume = await uploadOfflineResumeToCloud(
-      resume.data,
-      {
-        display_name: resume.display_name,
-        description: resume.description,
-      },
-      resume.type as ResumeType,
-    )
+  const result = await migrateOfflineResumesToCloud(
+    async (resume, targetId, ownerId) => {
+      const onlineResume = await uploadOfflineResumeToCloud(
+        resume.data,
+        {
+          display_name: resume.display_name,
+          description: resume.description,
+        },
+        resume.type as ResumeType,
+        { resumeId: targetId, expectedOwner: ownerId },
+      )
 
-    return onlineResume.resume_id
-  }, selectedIds)
+      return onlineResume.resume_id
+    },
+    selectedIds,
+    user.id,
+  )
 
   return result
 }

@@ -97,15 +97,16 @@ export function createResumeEntryId(): string {
   return crypto.randomUUID()
 }
 
-/** 仅供示例新建：重新打开、上传、恢复历史不能调用此函数。 */
+/** 新建独立简历时分配条目身份；同一创建重试可传入稳定生成器。重新打开、上传和历史恢复不能调用。 */
 export function cloneResumeWithFreshEntryIds(
   resume: ResumeSchema,
+  createId: () => string = createResumeEntryId,
 ): ResumeSchema {
   const clone = structuredClone(resume)
 
   for (const collection of RESUME_ENTRY_COLLECTIONS) {
     for (const entry of readCollection(clone, collection)) {
-      if (isRecord(entry)) entry.entryId = createResumeEntryId()
+      if (isRecord(entry)) entry.entryId = createId()
     }
   }
 
