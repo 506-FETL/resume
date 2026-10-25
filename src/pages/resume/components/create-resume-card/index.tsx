@@ -1,24 +1,40 @@
-import type { FormEvent, ReactNode, RefObject } from 'react'
-import { Plus } from 'lucide-react'
+import type { ReactNode, RefObject } from 'react'
+import type { CreationStep } from './types'
+import type { ResumeProfile } from '@/lib/resume-preparation/types'
+import {
+  ArrowLeft,
+  ArrowRight,
+  FileText,
+  Plus,
+  Target,
+  Upload,
+  X,
+} from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import useMeasure from 'react-use-measure'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateTemplateResume } from '@/hooks/use-create-template-resume'
-import { getDefaultTemplateSelection } from '@/lib/resume-template/runtime/default-selection'
+import { DURATION, EASE } from '@/lib/motion'
+import { PROFILE_GUIDES } from '@/lib/resume-preparation/const'
+import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
-import { useResumeCreationStore } from '@/store/resume-creation'
+import useUserStore from '@/store/user'
+import ImportReview from './components/review'
+import { useCreationFlow } from './hooks/use-creation-flow'
+import { useCreationDraftStore } from './store'
+import { importReady, populatedSections } from './utils'
+import TemplatePicker from './components/template-picker'
 
 export default function CreateResumeCard({
   trigger,
@@ -38,157 +54,583 @@ export default function CreateResumeCard({
   returnFocusRef?: RefObject<HTMLElement | null>
 }) {
   const reduceMotion = useReducedMotion()
-  const isOnline = useResumeListStore((state) => state.isOnline)
+  const [measureRef, bounds] = useMeasure({ offsetSize: true })
+  const navigate = useNavigate()
+  const user = useUserStore((state) => state.currentUser)
+  const isOnline = Boolean(user) && (online ?? true)
   const [localOpen, setLocalOpen] = useState(false)
-  const isCreating = open ?? localOpen
-  const setIsCreating = onOpenChange ?? setLocalOpen
-  const [displayName, setDisplayName] = useState('')
-  const [description, setDescription] = useState('')
-  const [selecting, setSelecting] = useState(false)
-  const [selectionError, setSelectionError] = useState<string | null>(null)
+  const isOpen = open ?? localOpen
+  const setIsOpen = onOpenChange ?? setLocalOpen
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const step = useCreationDraftStore((state) => state.step)
+  const setStep = useCreationDraftStore((state) => state.setStep)
+  const headingRef = useRef<HTMLHeadingElement | null>(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const draft = useCreationDraftStore((state) => state.draft)
+  const loadedScope = useCreationDraftStore((state) => state.scope)
+  const ready = useCreationDraftStore((state) => state.ready)
+  const saveError = useCreationDraftStore((state) => state.saveError)
+  const saving = useCreationDraftStore((state) => state.saving)
+  const patch = useCreationDraftStore((state) => state.patch)
 
-  const {
-    createResume,
-    loading: creating,
-    error,
-    retrying,
-  } = useCreateTemplateResume()
+  const flow = useCreationFlow({
+    open: isOpen,
+    online: isOnline,
+    onCreated,
+    onClose: () => setIsOpen(false),
+  })
 
-  const loading = selecting || creating
+  const accountId = useResumeListStore((state) => state.accountId)
+  const cloudResumes = useResumeListStore((state) => state.resumes)
+  const offlineResumes = useResumeListStore((state) => state.offlineResumes)
+  const listLoading = useResumeListStore((state) => state.loading)
+  const listError = useResumeListStore((state) => state.loadError)
 
-  async function handleCreateResume(e: FormEvent) {
-    e.preventDefault()
+  useEffect(() => {
+    if (isOpen && step === 'job') useResumeListStore.getState().loadResumes()
+  }, [isOpen, step, user?.id])
 
-    if (loading) return
+  const resumes = user && accountId === user.id ? cloudResumes : offlineResumes
 
-    setSelecting(true)
-    setSelectionError(null)
+  useEffect(() => {
+    if (isOpen) scrollRef.current?.scrollTo({ top: 0 })
+  }, [step, isOpen])
 
-    try {
-      const selection = await getDefaultTemplateSelection()
+  const title =
+    step === 'review'
+      ? '核对导入内容'
+      : step === 'template'
+        ? '选择模板'
+        : step === 'import'
+          ? '导入旧简历'
+          : step === 'profile'
+            ? '从哪里开始写'
+            : step === 'job'
+              ? '选择用于岗位定制的简历'
+              : '创建简历'
 
-      const ok = await createResume(
-        {
-          ...selection,
-          mode: (online ?? isOnline) ? 'cloud' : 'local',
-          displayName,
-          description,
-        },
-        onCreated,
-      )
+  const busy = flow.creating || flow.reading
 
-      if (ok) handleCancel()
-    } catch (caught) {
-      setSelectionError(
-        caught instanceof Error ? caught.message : '模板加载失败，请重试',
-      )
-    } finally {
-      setSelecting(false)
-    }
+  function go(next: CreationStep) {
+    headingRef.current?.focus()
+    flow.clearError()
+    setStep(next)
   }
 
-  function handleCancel() {
-    setSelectionError(null)
-    setDisplayName('')
-    setDescription('')
-    useResumeCreationStore.getState().reset()
-    setIsCreating(false)
+  function close(next: boolean) {
+    if (flow.creating) return
+    if (!next) flow.cancelRead()
+
+    setIsOpen(next)
   }
 
   return (
-    <Dialog open={isCreating} onOpenChange={setIsCreating}>
+    <Dialog open={isOpen} onOpenChange={close}>
       {!hideTrigger &&
         (trigger ? (
           <DialogTrigger asChild>{trigger}</DialogTrigger>
         ) : (
-          <button
-            type='button'
-            onClick={() => setIsCreating(true)}
-            className='flex min-h-48 h-full w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed bg-card p-6 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-accent/40 motion-reduce:transition-none'
-          >
-            <Plus className='size-6' aria-hidden />
-            创建新简历
-          </button>
+          <DialogTrigger asChild>
+            <Button
+              variant='outline'
+              type='button'
+              className='h-full min-h-48 w-full flex-col gap-3 rounded-xl border-2 border-dashed bg-card p-6 transition-colors hover:border-primary/50 hover:bg-accent/40 motion-reduce:transition-none'
+            >
+              <Plus className='size-6' />
+              创建新简历
+            </Button>
+          </DialogTrigger>
         ))}
-
       <DialogContent
-        className='sm:max-w-135'
-        style={reduceMotion ? { animationDuration: '0s' } : undefined}
+        showCloseButton={false}
+        className='block overflow-hidden p-0 transition-[width,height] sm:max-w-none'
+        style={{
+          width: bounds.width || 'min(600px, calc(100vw - 2rem))',
+          height: bounds.height || undefined,
+          transitionDuration: `${reduceMotion ? 0 : DURATION.slow}s`,
+          transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+          animationDuration: `${reduceMotion ? 0 : DURATION.base}s`,
+        }}
         overlayClassName={reduceMotion ? 'animate-none!' : undefined}
+        onInteractOutside={(event) => {
+          if (flow.creating) event.preventDefault()
+        }}
+        onEscapeKeyDown={(event) => {
+          if (flow.creating) event.preventDefault()
+        }}
         onCloseAutoFocus={(event) => {
-          if (returnFocusRef?.current?.isConnected) {
+          const target = returnFocusRef?.current ?? previousFocusRef.current
+
+          if (target?.isConnected) {
             event.preventDefault()
-            returnFocusRef.current.focus()
+            target.focus()
           }
         }}
       >
-        <DialogHeader>
-          <DialogTitle className='text-2xl font-bold'>创建新简历</DialogTitle>
-          <DialogDescription className='sr-only'>
-            填写简历名称和描述，将使用默认模板与完整应届生示例。
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleCreateResume}>
-          <FieldGroup className='gap-6 py-6'>
-            {/* 简历名称 */}
-            <Field>
-              <FieldLabel htmlFor='display_name'>
-                简历名称（
-                {displayName.length}
-                /50）
-              </FieldLabel>
-              <Input
-                id='display_name'
-                placeholder='例如：前端开发简历'
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                maxLength={50}
-                className='h-11'
-              />
-            </Field>
+        <div
+          ref={measureRef}
+          data-creation-layout
+          className={cn(
+            'relative flex max-h-[90dvh] w-[min(600px,calc(100vw-2rem))] flex-col gap-4 p-5',
+            (step === 'review' || step === 'template') &&
+              'h-[min(88dvh,48rem)] w-[min(960px,calc(100vw-2rem))]',
+          )}
+        >
+          <DialogHeader className='shrink-0 pr-8'>
+            <DialogTitle
+              ref={(node) => {
+                headingRef.current = node
 
-            {/* 简历描述 */}
-            <Field>
-              <FieldLabel htmlFor='description'>
-                简历描述（
-                {description.length}
-                /200）
-              </FieldLabel>
-              <Textarea
-                id='description'
-                placeholder='例如：前端岗位投递'
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                maxLength={200}
-                className='resize-none'
-              />
-            </Field>
+                if (node && isOpen) {
+                  const focused = document.activeElement
 
-            <p className='text-sm text-muted-foreground'>
-              默认模板 · 应届生示例。创建后可逐项替换。
-            </p>
-            {(selectionError || error) && (
-              <p role='alert' className='text-sm text-destructive'>
-                {selectionError || error}
-              </p>
-            )}
-          </FieldGroup>
-
-          <DialogFooter>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={handleCancel}
-              disabled={loading}
+                  if (
+                    focused instanceof HTMLElement &&
+                    focused !== document.body &&
+                    !node.closest('[role=dialog]')?.contains(focused)
+                  )
+                    previousFocusRef.current = focused
+                  if (!node.closest('[role=dialog]')?.contains(focused))
+                    node.focus()
+                }
+              }}
+              tabIndex={-1}
+              className='text-lg outline-none'
             >
-              取消
-            </Button>
-            <Button type='submit' disabled={loading}>
-              {loading ? '创建中...' : retrying ? '重试创建' : '创建简历'}
-            </Button>
-          </DialogFooter>
-        </form>
+              {title}
+            </DialogTitle>
+            <DialogDescription
+              className={step === 'profile' ? undefined : 'sr-only'}
+            >
+              {step === 'profile'
+                ? '将填入对应示例，创建后可修改。'
+                : step === 'review'
+                  ? '核对联系方式、时间和经历。'
+                  : step === 'template'
+                    ? '选择简历排版。'
+                    : '选择创建简历的方式。'}
+            </DialogDescription>
+          </DialogHeader>
+          <Button
+            variant='ghost'
+            size='icon-sm'
+            className='absolute top-4 right-4'
+            disabled={flow.creating}
+            onClick={() => close(false)}
+            aria-label='关闭创建简历'
+          >
+            <X />
+          </Button>
+          {!ready || loadedScope !== flow.scope ? (
+            <p role='status'>正在读取草稿…</p>
+          ) : (
+            <>
+              <div
+                ref={scrollRef}
+                data-creation-scroll
+                className='relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-1 -m-1'
+              >
+                <AnimatedContent animationKey={step} mode='popLayout'>
+                  {step === 'choose' && (
+                    <div className='space-y-3 py-1'>
+                      {(draft.sourceText || draft.creation) && (
+                        <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/50 p-3'>
+                          <p className='text-sm'>
+                            {draft.creation
+                              ? '上次创建尚未确认'
+                              : '有一份导入草稿'}
+                          </p>
+                          <div className='flex items-center gap-1'>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() =>
+                                go(
+                                  draft.creation
+                                    ? 'template'
+                                    : draft.content
+                                      ? 'review'
+                                      : 'import',
+                                )
+                              }
+                            >
+                              {draft.creation ? '继续创建' : '继续核对'}
+                            </Button>
+                            {draft.sourceText && !draft.creation && (
+                              <Button
+                                variant='ghost'
+                                size='icon-sm'
+                                aria-label='清除导入草稿'
+                                onClick={() => {
+                                  headingRef.current?.focus()
+
+                                  useCreationDraftStore
+                                    .getState()
+                                    .discard()
+                                    .catch(() => undefined)
+                                }}
+                              >
+                                <X className='size-4' />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {[
+                        {
+                          step: 'import' as const,
+                          title: '我有旧简历',
+                          description: '导入 PDF、DOCX，或粘贴文字',
+                          icon: FileText,
+                        },
+                        {
+                          step: 'profile' as const,
+                          title: '从零整理经历',
+                          description: '选一份示例，改成自己的经历',
+                          icon: Plus,
+                        },
+                        {
+                          step: 'job' as const,
+                          title: '我有目标岗位',
+                          description: '选一份简历，按岗位要求调整',
+                          icon: Target,
+                        },
+                      ].map((item) => (
+                        <Button
+                          variant='outline'
+                          key={item.step}
+                          type='button'
+                          disabled={Boolean(draft.creation)}
+                          onClick={() => go(item.step)}
+                          className='h-auto w-full justify-start gap-3 rounded-lg p-4 text-left whitespace-normal shadow-none transition-colors hover:bg-accent/50 motion-reduce:transition-none'
+                        >
+                          <item.icon className='size-5 shrink-0 text-muted-foreground' />
+                          <span className='min-w-0 flex-1'>
+                            <span className='block font-medium'>
+                              {item.title}
+                            </span>
+                            <span className='mt-1 block text-xs text-muted-foreground'>
+                              {item.description}
+                            </span>
+                          </span>
+                          <ArrowRight className='size-4 text-muted-foreground' />
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  {step === 'profile' && (
+                    <div className='space-y-3'>
+                      {(
+                        Object.entries(PROFILE_GUIDES) as [
+                          ResumeProfile,
+                          (typeof PROFILE_GUIDES)[ResumeProfile],
+                        ][]
+                      ).map(([key, guide]) => (
+                        <Button
+                          variant='outline'
+                          type='button'
+                          key={key}
+                          disabled={Boolean(draft.creation)}
+                          aria-pressed={draft.profile === key}
+                          onClick={() => patch({ profile: key })}
+                          className={cn(
+                            'block h-auto w-full rounded-lg p-4 text-left whitespace-normal shadow-none transition-colors motion-reduce:transition-none',
+                            draft.profile === key
+                              ? 'border-primary bg-muted/50'
+                              : 'hover:bg-muted/30',
+                          )}
+                        >
+                          <span className='block text-sm font-medium'>
+                            {guide.label}
+                          </span>
+                          <span className='mt-1 block text-xs leading-5 text-muted-foreground'>
+                            {key === 'graduate'
+                              ? '教育、实习与项目'
+                              : key === 'experienced'
+                                ? '工作职责与项目成果'
+                                : '相关经历与可迁移技能'}
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  {step === 'import' && (
+                    <div className='space-y-4'>
+                      <p className='text-xs leading-5 text-muted-foreground'>
+                        原文件不上传，草稿和原文留在本设备。
+                      </p>
+                      <div className='rounded-lg border border-dashed p-4'>
+                        <div className='flex flex-wrap items-center gap-2'>
+                          <Button
+                            variant='outline'
+                            disabled={flow.creating || Boolean(draft.creation)}
+                            onClick={() => fileRef.current?.click()}
+                          >
+                            <Upload className='size-4' />
+                            {flow.reading ? '换一个文件' : '选择文件'}
+                          </Button>
+                          {flow.reading && (
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              onClick={flow.cancelRead}
+                            >
+                              取消读取
+                            </Button>
+                          )}
+                        </div>
+                        <p className='mt-2 text-xs leading-5 text-muted-foreground'>
+                          PDF / DOCX · 最大 10 MB · PDF 最多 30 页
+                        </p>
+                        <p className='text-xs leading-5 text-muted-foreground'>
+                          不支持扫描件、加密文件及 DOC
+                        </p>
+                        <input
+                          ref={fileRef}
+                          type='file'
+                          accept='.pdf,.docx'
+                          className='sr-only'
+                          tabIndex={-1}
+                          aria-label='选择旧简历文件'
+                          onChange={(event) => {
+                            const file = event.target.files?.[0]
+
+                            event.target.value = ''
+
+                            if (file) flow.readFile(file)
+                          }}
+                        />
+                      </div>
+                      <label className='block space-y-2'>
+                        <span className='text-sm font-medium'>简历内容</span>
+                        <Textarea
+                          className='min-h-36 resize-none overflow-hidden'
+                          disabled={Boolean(draft.creation)}
+                          aria-label='简历内容'
+                          rows={10}
+                          placeholder='粘贴姓名、联系方式和经历…'
+                          value={draft.sourceText}
+                          onChange={(event) => {
+                            flow.cancelRead()
+
+                            patch({
+                              sourceText: event.target.value,
+                              sourceName: '粘贴内容',
+                              content: null,
+                              reviewedSections: [],
+                            })
+                          }}
+                        />
+                      </label>
+                      <p className='text-right text-xs text-muted-foreground'>
+                        {draft.sourceText.length.toLocaleString()} / 60,000 字符
+                      </p>
+                    </div>
+                  )}
+                  {step === 'review' && <ImportReview />}
+                  {step === 'template' && <TemplatePicker />}
+                  {step === 'job' && (
+                    <div className='space-y-3'>
+                      <p className='text-sm text-muted-foreground'>
+                        选择原简历，生成岗位定制版本。
+                      </p>
+                      {listLoading ? (
+                        <p
+                          role='status'
+                          className='text-sm text-muted-foreground'
+                        >
+                          正在读取简历…
+                        </p>
+                      ) : listError ? (
+                        <div role='alert' className='space-y-2 text-sm'>
+                          <p>简历列表暂时没有加载成功。</p>
+                          <Button
+                            variant='outline'
+                            onClick={() =>
+                              useResumeListStore.getState().loadResumes()
+                            }
+                          >
+                            重新加载
+                          </Button>
+                        </div>
+                      ) : (
+                        resumes
+                          .filter(
+                            (resume) => resume.derived_status !== 'generating',
+                          )
+                          .map((resume) => (
+                            <Button
+                              key={resume.resume_id}
+                              variant='outline'
+                              className='w-full justify-between'
+                              onClick={() => {
+                                useResumeListStore
+                                  .getState()
+                                  .openDeriveFor(resume.resume_id)
+
+                                setIsOpen(false)
+                                navigate('/resume')
+                              }}
+                            >
+                              <span className='truncate'>
+                                {resume.display_name || '未命名简历'}
+                              </span>
+                              <ArrowRight className='size-4 shrink-0' />
+                            </Button>
+                          ))
+                      )}
+                      {!listLoading && !listError && resumes.length === 0 && (
+                        <>
+                          <p className='text-sm'>
+                            先准备一份简历，再带入目标岗位。
+                          </p>
+                          <Button
+                            variant='outline'
+                            onClick={() => go('import')}
+                          >
+                            导入旧简历
+                          </Button>
+                          <Button variant='ghost' onClick={() => go('profile')}>
+                            从零开始
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </AnimatedContent>
+              </div>
+              {(flow.error || saveError) && (
+                <div role='alert' className='shrink-0 text-sm text-destructive'>
+                  {flow.error || saveError}
+                  {saveError && (
+                    <Button
+                      variant='link'
+                      size='sm'
+                      onClick={() =>
+                        useCreationDraftStore
+                          .getState()
+                          .persist()
+                          .catch(() => undefined)
+                      }
+                    >
+                      重试保存草稿
+                    </Button>
+                  )}
+                </div>
+              )}
+              {draft.creation && !flow.creating && (
+                <p className='text-xs text-muted-foreground'>
+                  创建尚未确认，重试不会重复保存。
+                </p>
+              )}
+              {step !== 'choose' && (
+                <div className='flex shrink-0 flex-wrap items-center justify-between gap-2 border-t pt-3'>
+                  <Button
+                    size='sm'
+                    variant='ghost'
+                    disabled={busy}
+                    onClick={() =>
+                      go(
+                        draft.creation
+                          ? 'choose'
+                          : step === 'template'
+                            ? draft.contentSource === 'profile'
+                              ? 'profile'
+                              : 'review'
+                            : step === 'review'
+                              ? 'import'
+                              : 'choose',
+                      )
+                    }
+                  >
+                    <ArrowLeft className='size-4' />
+                    返回
+                  </Button>
+                  <div className='flex flex-wrap items-center justify-end gap-3'>
+                    {step === 'template' && (
+                      <span className='max-w-44 truncate text-xs text-muted-foreground'>
+                        {draft.selectedTemplate?.name ??
+                          draft.creation?.selection?.name ??
+                          '请选择模板'}{' '}
+                        · {isOnline ? '云端' : '本地'}
+                      </span>
+                    )}
+                    {step === 'import' && (
+                      <Button
+                        disabled={busy || !draft.sourceText.trim()}
+                        onClick={() => {
+                          headingRef.current?.focus()
+                          flow.parseText()
+                        }}
+                      >
+                        核对内容
+                        <ArrowRight className='size-4' />
+                      </Button>
+                    )}
+                    {step === 'review' && (
+                      <>
+                        <span className='text-xs text-muted-foreground'>
+                          已核对{' '}
+                          {draft.content
+                            ? populatedSections(draft.content).filter((key) =>
+                                draft.reviewedSections.includes(key),
+                              ).length
+                            : 0}
+                          /
+                          {draft.content
+                            ? populatedSections(draft.content).length
+                            : 0}
+                        </span>
+                        <Button
+                          disabled={busy || !importReady(draft)}
+                          onClick={() => go('template')}
+                        >
+                          选择模板
+                          <ArrowRight className='size-4' />
+                        </Button>
+                      </>
+                    )}
+                    {step === 'profile' && (
+                      <Button
+                        disabled={busy || Boolean(draft.creation)}
+                        onClick={() => {
+                          headingRef.current?.focus()
+                          flow.prepareProfile()
+                        }}
+                      >
+                        选择模板
+                        <ArrowRight className='size-4' />
+                      </Button>
+                    )}
+                    {step === 'template' && (
+                      <Button
+                        disabled={
+                          busy || (!draft.selectedTemplate && !draft.creation)
+                        }
+                        onClick={() => flow.create()}
+                      >
+                        {flow.creating
+                          ? '正在创建…'
+                          : draft.creation
+                            ? '重试创建'
+                            : '创建简历'}
+                      </Button>
+                    )}
+                    {step === 'import' && saving && (
+                      <span
+                        role='status'
+                        className='text-xs text-muted-foreground'
+                      >
+                        保存中…
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

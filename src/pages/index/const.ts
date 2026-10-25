@@ -1,8 +1,11 @@
 export const GETTING_STARTED_STEPS = [
-  { title: '填写经历', description: '填写教育背景、工作和项目经历。' },
   {
-    title: '检查内容',
-    description: '看看联系方式、时间和经历有没有遗漏。',
+    title: '带入简历内容',
+    description: '导入 PDF、DOCX，或选择示例开始写。',
   },
-  { title: '导出简历', description: '预览排版，确认后导出文件。' },
+  {
+    title: '补充关键经历',
+    description: '核对联系方式和时间，写清你负责的工作。',
+  },
+  { title: '检查并导出', description: '处理遗漏和示例内容，预览后导出文件。' },
 ] as const

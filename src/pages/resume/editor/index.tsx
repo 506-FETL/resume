@@ -4,6 +4,7 @@ import type { ORDERType } from '@/lib/schema'
 import { Edit } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PageLoading } from '@/components/page-loading'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
@@ -43,8 +44,10 @@ import { useResumeDisplayName } from './hooks/use-resume-display-name'
 import { useResumeLoader } from './hooks/use-resume-loader'
 import { useScrollToSection } from './hooks/use-scroll-to-section'
 import { useResumeReviewStore } from './review-store'
+import { usePreparationUiStore } from './preparation-store'
 
 function Editor() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
@@ -251,6 +254,48 @@ function Editor() {
   const handleOpenSortDialog = useCallback(() => {
     setSortDialogOpen(true)
   }, [])
+
+  const editRequest = usePreparationUiStore((state) => state.editRequest)
+
+  useEffect(() => {
+    if (loading || !currentResumeId || searchParams.get('prepare') !== '1')
+      return
+
+    usePreparationUiStore.getState().requestEdit(currentResumeId, 'basics')
+
+    const next = new URLSearchParams(searchParams)
+
+    next.delete('prepare')
+    setSearchParams(next, { replace: true })
+  }, [loading, currentResumeId, searchParams, setSearchParams])
+
+  useEffect(() => {
+    if (!editRequest || loading) return
+
+    usePreparationUiStore.getState().clearEditRequest()
+
+    if (editRequest.resumeId !== currentResumeId || !commentReview.isWorking)
+      return
+
+    handleCommentsOpenChange(false)
+    updateActiveTabId(editRequest.section)
+    useResumeStore.getState().setSectionOpen(editRequest.section, true)
+
+    if (isMobile) setOpen(true)
+    else setPanelOpen(true)
+
+    scrollToSection(editRequest.section)
+  }, [
+    editRequest,
+    loading,
+    currentResumeId,
+    commentReview.isWorking,
+    handleCommentsOpenChange,
+    updateActiveTabId,
+    isMobile,
+    setPanelOpen,
+    scrollToSection,
+  ])
 
   if (loading) {
     return (

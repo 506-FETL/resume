@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import useResumeStore from '@/store/resume/form'
 import { useResumeReviewStore } from '../../review-store'
 import ExportDialog from '../export'
+import Preparation from '../preparation'
 import { FontSettings } from './font-settings'
 import { ResumeHistoryVersionDropdown } from './history-version-dropdown'
 import { SpacingSettings } from './spacing-settings'
@@ -47,12 +48,14 @@ export default function ResumeConfigToolbar() {
 
         <VariantLineageButton reviewActive={reviewActive} />
       </div>
+      <Preparation />
       <ExportDialog
         trigger={
           <Button
             aria-label='导出简历'
             size={isMobile ? 'icon' : 'sm'}
-            disabled={isToolbarLoading}
+            disabled={isToolbarLoading || reviewActive}
+            title={reviewActive ? '请先回到当前简历再检查导出' : undefined}
           >
             <FileDown data-icon='inline-start' />
             {!isMobile && <span>导出</span>}

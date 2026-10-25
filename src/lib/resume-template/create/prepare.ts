@@ -6,7 +6,7 @@ import type {
   PreparedResumeCreation,
 } from './types'
 import { isCloudResumeId } from '@/lib/resume-id'
-import { resumeSchema } from '@/lib/schema'
+import { DEFAULT_ORDER, DEFAULT_VISIBILITY, resumeSchema } from '@/lib/schema'
 import { cloneResumeWithFreshEntryIds } from '@/lib/schema/resume/entry-id'
 import { toTemplateBinding } from '../binding'
 import { TemplateResolutionError } from '../definition-schema'
@@ -24,18 +24,22 @@ export async function prepareTemplateResume(
 
   const [definition, example] = await Promise.all([
     resolveTemplate(source, toTemplateBinding(input.template)),
-    source.getExample(input.example),
+    input.content ? Promise.resolve(null) : source.getExample(input.example),
   ])
 
   if (
-    example.exampleId !== input.example.exampleId ||
-    example.version !== input.example.version
+    example &&
+    (example.exampleId !== input.example.exampleId ||
+      example.version !== input.example.version)
   )
     throw new TemplateResolutionError(
       'REFERENCE_MISMATCH',
       '示例版本与请求不一致',
     )
 
+  let entryIndex = 0
+
+  // 同一操作刷新后也必须保留条目身份，否则示例检查记录无法对应已保存正文。
   return {
     ...identity,
     resumeId:
@@ -46,9 +50,18 @@ export async function prepareTemplateResume(
     displayName: input.displayName.trim() || '我的简历',
     description: input.description.trim(),
     snapshot: {
-      ...cloneResumeWithFreshEntryIds(resumeSchema.parse(example.content)),
-      order: structuredClone(example.content.order),
-      visibility: structuredClone(example.content.visibility),
+      ...cloneResumeWithFreshEntryIds(
+        resumeSchema.parse(input.content ?? example?.content),
+        () => `${identity.operationId}:${entryIndex++}`,
+      ),
+      order: structuredClone(
+        input.content?.order ?? example?.content.order ?? DEFAULT_ORDER,
+      ),
+      visibility: structuredClone(
+        input.content?.visibility ??
+          example?.content.visibility ??
+          DEFAULT_VISIBILITY,
+      ),
       type: 'default',
       templateBinding: toTemplateBinding(input.template),
       ...structuredClone(definition.appearanceDefaults),

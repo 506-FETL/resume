@@ -1,3 +1,5 @@
+import { recordAppliedAiEvidence } from '@/lib/resume-preparation/evidence'
+import useUserStore from '@/store/user'
 import type { CanvasChange, CanvasModel } from '../../../types'
 import type { FormDataMap } from '@/store/resume'
 import {
@@ -198,6 +200,7 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
   const handleRedo = async (change: CanvasChange) => {
     const detail = change.detail
+    const ownerId = useUserStore.getState().currentUser?.id ?? null
 
     if (!change.undo || detail?.kind !== 'diff') return
 
@@ -212,10 +215,21 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
     setPendingId(change.id)
 
     try {
+      if ((useUserStore.getState().currentUser?.id ?? null) !== ownerId)
+        throw new Error('登录账号已改变，请重新确认修改')
+
       await applyResumeFieldToDocument(
         currentId,
         change.undo.sectionKey as keyof FormDataMap,
         detail.after as Record<string, unknown>,
+      )
+
+      await recordAppliedAiEvidence(
+        currentId,
+        ownerId,
+        change.undo.sectionKey as keyof FormDataMap,
+        detail.after,
+        detail.before,
       )
 
       setRedoneIds((prev) => new Set(prev).add(change.id))
@@ -285,6 +299,8 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
 
     setReapplyPending(true)
 
+    const ownerId = useUserStore.getState().currentUser?.id ?? null
+
     const targets = model.writes.filter(
       (c) => isUndoneItem(c) && c.undo && c.detail?.kind === 'diff',
     )
@@ -298,10 +314,21 @@ export default function ChangeLog({ model }: { model: CanvasModel }) {
         if (detail?.kind !== 'diff') continue
 
         try {
+          if ((useUserStore.getState().currentUser?.id ?? null) !== ownerId)
+            throw new Error('登录账号已改变，请重新确认修改')
+
           await applyResumeFieldToDocument(
             currentId,
             change.undo!.sectionKey as keyof FormDataMap,
             detail.after as Record<string, unknown>,
+          )
+
+          await recordAppliedAiEvidence(
+            currentId,
+            ownerId,
+            change.undo!.sectionKey as keyof FormDataMap,
+            detail.after,
+            detail.before,
           )
 
           setRedoneIds((prev) => new Set(prev).add(change.id))

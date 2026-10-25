@@ -13,6 +13,7 @@ import useCurrentResumeStore from '@/store/resume/current'
 import Entry from './components/entry'
 import Header from './components/header'
 import GettingStarted from './components/getting-started'
+import ImportDraftNotice from './components/import-draft'
 import { useDashboardMode } from './hooks/use-dashboard-mode'
 import {
   ActivityCard,
@@ -157,6 +158,7 @@ export default function DashboardPage() {
             animate='show'
             className='flex flex-col gap-6'
           >
+            <ImportDraftNotice onResume={openCreate} />
             {isGettingStarted && (
               <GettingStarted
                 isAuthenticated={isOnline}
@@ -207,7 +209,7 @@ export default function DashboardPage() {
                       .map((resume) => (
                         <div
                           key={resume.resume_id}
-                          className='flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-4'
+                          className='flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4'
                         >
                           <div className='min-w-0'>
                             <h3 className='truncate text-sm font-medium'>
@@ -220,18 +222,39 @@ export default function DashboardPage() {
                               ).toLocaleDateString()}
                             </p>
                           </div>
-                          <Button
-                            size='sm'
-                            onClick={() => {
-                              useCurrentResumeStore
-                                .getState()
-                                .setCurrentResume(resume.resume_id, resume.type)
+                          <div className='flex shrink-0 flex-wrap gap-1'>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              onClick={() => {
+                                useCurrentResumeStore
+                                  .getState()
+                                  .setCurrentResume(
+                                    resume.resume_id,
+                                    resume.type,
+                                  )
 
-                              navigate('/resume/editor')
-                            }}
-                          >
-                            继续编辑
-                          </Button>
+                                navigate('/resume/editor?check=1')
+                              }}
+                            >
+                              检查并导出
+                            </Button>
+                            <Button
+                              size='sm'
+                              onClick={() => {
+                                useCurrentResumeStore
+                                  .getState()
+                                  .setCurrentResume(
+                                    resume.resume_id,
+                                    resume.type,
+                                  )
+
+                                navigate('/resume/editor')
+                              }}
+                            >
+                              继续编辑
+                            </Button>
+                          </div>
                         </div>
                       ))}
                   </div>

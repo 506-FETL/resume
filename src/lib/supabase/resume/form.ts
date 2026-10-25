@@ -172,10 +172,26 @@ export async function uploadOfflineResumeToCloud(
   resumeData: Record<string, unknown>,
   info: { display_name: string; description?: string },
   type: ResumeType = 'default',
+  options?: { resumeId: string; expectedOwner: string },
 ) {
   const user = await getCurrentUser()
 
   if (!user) throw new Error('用户未登陆')
+  if (options && user.id !== options.expectedOwner)
+    throw new Error('登录状态已改变，请使用发起同步时的账号重试')
+
+  const findExisting = async () => {
+    const { data, error } = await supabase
+      .from('resume_config')
+      .select()
+      .eq('user_id', user.id)
+      .eq('resume_id', options!.resumeId)
+      .maybeSingle()
+
+    if (error) throw error
+
+    return data
+  }
 
   // 安全字段白名单，避免覆盖 user_id 等安全字段
   const ALLOWED_FIELDS = [...RESUME_PERSISTED_FIELDS]
@@ -191,19 +207,63 @@ export async function uploadOfflineResumeToCloud(
     safeData.template_binding = resumeData.templateBinding
   }
 
+  const payload = {
+    ...(options ? { resume_id: options.resumeId } : {}),
+    user_id: user.id,
+    type,
+    ...DEFAULT_RESUME_APPEARANCE,
+    ...info,
+    ...safeData,
+  }
+
+  const canonical = (value: unknown): string => {
+    if (value == null) return 'null'
+    if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`
+    if (typeof value === 'object')
+      return `{${Object.entries(value)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, child]) => `${JSON.stringify(key)}:${canonical(child)}`)
+        .join(',')}}`
+
+    return JSON.stringify(value)
+  }
+
+  const verifyExisting = (existing: Record<string, unknown>) => {
+    if (
+      [...new Set([...Object.keys(payload), ...RESUME_PERSISTED_FIELDS])].some(
+        (key) =>
+          canonical(existing[key]) !==
+          canonical((payload as Record<string, unknown>)[key]),
+      )
+    )
+      throw new Error(
+        '本地与已同步的云端内容不同，已保留本地简历。请核对两份内容后再处理。',
+      )
+
+    return existing
+  }
+
+  if (options) {
+    const existing = await findExisting()
+
+    if (existing) return verifyExisting(existing)
+    if ((await getCurrentUser())?.id !== user.id)
+      throw new Error('登录状态已改变')
+  }
+
   const { data, error } = await supabase
     .from('resume_config')
-    .insert({
-      user_id: user.id,
-      type,
-      ...DEFAULT_RESUME_APPEARANCE,
-      ...info,
-      ...safeData,
-    })
+    .insert(payload)
     .select()
     .single()
 
   if (error) {
+    if (options) {
+      const existing = await findExisting()
+
+      if (existing) return verifyExisting(existing)
+    }
+
     throw error
   }
 
