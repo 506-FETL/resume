@@ -1,9 +1,20 @@
 import type { ResumeSchema } from '../schema/resume'
+import type { EntrySection } from '../../../supabase/functions/shared/resume-import-contract'
+
+export interface ImportEntrySource {
+  section: EntrySection
+  start: number
+  end: number
+  headerLine: number
+  bodyLines: number[]
+  continuationLines: number[]
+}
 
 export interface ResumeParseResult {
   content: ResumeSchema
   unassignedText: string
   warnings: string[]
+  sources?: { entries: Record<string, ImportEntrySource> }
 }
 
 export interface ExtractedResumeFile {

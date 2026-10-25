@@ -1,6 +1,7 @@
 import type { ORDERType, ResumeSchema } from '@/lib/schema'
 import type { ImportDraft } from '@/lib/resume-preparation/types'
 import { resumeHtmlToText } from '@/lib/resume-import/text'
+import { hasResumeContent } from '@/lib/resume-import/mapping'
 import { REVIEW_MODULES } from './const'
 
 export function emptyDraft(): ImportDraft {
@@ -47,11 +48,5 @@ export function populatedSections(content: ResumeSchema): ORDERType[] {
 }
 
 export function importReady(draft: ImportDraft) {
-  return Boolean(
-    draft.content &&
-    populatedSections(draft.content).every((section) =>
-      draft.reviewedSections.includes(section),
-    ) &&
-    (!draft.unassignedText.trim() || draft.unassignedReviewed),
-  )
+  return Boolean(draft.content && hasResumeContent(draft.content))
 }

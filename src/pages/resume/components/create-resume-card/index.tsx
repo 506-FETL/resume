@@ -1,15 +1,7 @@
 import type { ReactNode, RefObject } from 'react'
 import type { CreationStep } from './types'
 import type { ResumeProfile } from '@/lib/resume-preparation/types'
-import {
-  ArrowLeft,
-  ArrowRight,
-  FileText,
-  Plus,
-  Target,
-  Upload,
-  X,
-} from 'lucide-react'
+import { ArrowLeft, ArrowRight, FileText, Plus, Target, X } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -24,16 +16,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
 import { DURATION, EASE } from '@/lib/motion'
 import { PROFILE_GUIDES } from '@/lib/resume-preparation/const'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useUserStore from '@/store/user'
-import ImportReview from './components/review'
+import ImportPreview from './components/import-preview'
+import ImportSource from './components/import-source'
 import { useCreationFlow } from './hooks/use-creation-flow'
 import { useCreationDraftStore } from './store'
-import { importReady, populatedSections } from './utils'
+import { importReady } from './utils'
 import TemplatePicker from './components/template-picker'
 
 export default function CreateResumeCard({
@@ -65,7 +57,6 @@ export default function CreateResumeCard({
   const step = useCreationDraftStore((state) => state.step)
   const setStep = useCreationDraftStore((state) => state.setStep)
   const headingRef = useRef<HTMLHeadingElement | null>(null)
-  const fileRef = useRef<HTMLInputElement | null>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const draft = useCreationDraftStore((state) => state.draft)
   const loadedScope = useCreationDraftStore((state) => state.scope)
@@ -94,12 +85,16 @@ export default function CreateResumeCard({
   const resumes = user && accountId === user.id ? cloudResumes : offlineResumes
 
   useEffect(() => {
-    if (isOpen) scrollRef.current?.scrollTo({ top: 0 })
+    if (isOpen) {
+      scrollRef.current?.scrollTo({ top: 0 })
+
+      if (step === 'review') headingRef.current?.focus()
+    }
   }, [step, isOpen])
 
   const title =
     step === 'review'
-      ? '核对导入内容'
+      ? '导入结果'
       : step === 'template'
         ? '选择模板'
         : step === 'import'
@@ -206,7 +201,7 @@ export default function CreateResumeCard({
               {step === 'profile'
                 ? '将填入对应示例，创建后可修改。'
                 : step === 'review'
-                  ? '核对联系方式、时间和经历。'
+                  ? '查看自动填充的简历，选择模板或按需修改。'
                   : step === 'template'
                     ? '选择简历排版。'
                     : '选择创建简历的方式。'}
@@ -255,7 +250,7 @@ export default function CreateResumeCard({
                                 )
                               }
                             >
-                              {draft.creation ? '继续创建' : '继续核对'}
+                              {draft.creation ? '继续创建' : '继续导入'}
                             </Button>
                             {draft.sourceText && !draft.creation && (
                               <Button
@@ -356,79 +351,14 @@ export default function CreateResumeCard({
                     </div>
                   )}
                   {step === 'import' && (
-                    <div className='space-y-4'>
-                      <p className='text-xs leading-5 text-muted-foreground'>
-                        原文件不上传，草稿和原文留在本设备。
-                      </p>
-                      <div className='rounded-lg border border-dashed p-4'>
-                        <div className='flex flex-wrap items-center gap-2'>
-                          <Button
-                            variant='outline'
-                            disabled={flow.creating || Boolean(draft.creation)}
-                            onClick={() => fileRef.current?.click()}
-                          >
-                            <Upload className='size-4' />
-                            {flow.reading ? '换一个文件' : '选择文件'}
-                          </Button>
-                          {flow.reading && (
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={flow.cancelRead}
-                            >
-                              取消读取
-                            </Button>
-                          )}
-                        </div>
-                        <p className='mt-2 text-xs leading-5 text-muted-foreground'>
-                          PDF / DOCX · 最大 10 MB · PDF 最多 30 页
-                        </p>
-                        <p className='text-xs leading-5 text-muted-foreground'>
-                          不支持扫描件、加密文件及 DOC
-                        </p>
-                        <input
-                          ref={fileRef}
-                          type='file'
-                          accept='.pdf,.docx'
-                          className='sr-only'
-                          tabIndex={-1}
-                          aria-label='选择旧简历文件'
-                          onChange={(event) => {
-                            const file = event.target.files?.[0]
-
-                            event.target.value = ''
-
-                            if (file) flow.readFile(file)
-                          }}
-                        />
-                      </div>
-                      <label className='block space-y-2'>
-                        <span className='text-sm font-medium'>简历内容</span>
-                        <Textarea
-                          className='min-h-36 resize-none overflow-hidden'
-                          disabled={Boolean(draft.creation)}
-                          aria-label='简历内容'
-                          rows={10}
-                          placeholder='粘贴姓名、联系方式和经历…'
-                          value={draft.sourceText}
-                          onChange={(event) => {
-                            flow.cancelRead()
-
-                            patch({
-                              sourceText: event.target.value,
-                              sourceName: '粘贴内容',
-                              content: null,
-                              reviewedSections: [],
-                            })
-                          }}
-                        />
-                      </label>
-                      <p className='text-right text-xs text-muted-foreground'>
-                        {draft.sourceText.length.toLocaleString()} / 60,000 字符
-                      </p>
-                    </div>
+                    <ImportSource
+                      onFile={flow.readFile}
+                      onParse={flow.parseText}
+                      onCancel={flow.cancelRead}
+                      stage={flow.importStage}
+                    />
                   )}
-                  {step === 'review' && <ImportReview />}
+                  {step === 'review' && <ImportPreview />}
                   {step === 'template' && <TemplatePicker />}
                   {step === 'job' && (
                     <div className='space-y-3'>
@@ -556,40 +486,14 @@ export default function CreateResumeCard({
                         · {isOnline ? '云端' : '本地'}
                       </span>
                     )}
-                    {step === 'import' && (
+                    {step === 'review' && (
                       <Button
-                        disabled={busy || !draft.sourceText.trim()}
-                        onClick={() => {
-                          headingRef.current?.focus()
-                          flow.parseText()
-                        }}
+                        disabled={busy || !importReady(draft)}
+                        onClick={() => go('template')}
                       >
-                        核对内容
+                        选择模板
                         <ArrowRight className='size-4' />
                       </Button>
-                    )}
-                    {step === 'review' && (
-                      <>
-                        <span className='text-xs text-muted-foreground'>
-                          已核对{' '}
-                          {draft.content
-                            ? populatedSections(draft.content).filter((key) =>
-                                draft.reviewedSections.includes(key),
-                              ).length
-                            : 0}
-                          /
-                          {draft.content
-                            ? populatedSections(draft.content).length
-                            : 0}
-                        </span>
-                        <Button
-                          disabled={busy || !importReady(draft)}
-                          onClick={() => go('template')}
-                        >
-                          选择模板
-                          <ArrowRight className='size-4' />
-                        </Button>
-                      </>
                     )}
                     {step === 'profile' && (
                       <Button

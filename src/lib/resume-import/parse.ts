@@ -1,9 +1,11 @@
 import type { ResumeSchema } from '../schema/resume'
 import type { ResumeParseResult } from './types'
+import type { EntrySection } from '../../../supabase/functions/shared/resume-import-contract'
 import { DEFAULT_BASICS, DEFAULT_JOB_INTENT } from '../schema/resume/form'
 import { MAX_RESUME_TEXT_LENGTH } from './const'
 import { textToResumeHtml } from './text'
 import { ResumeImportError } from './types'
+import { readSectionHeading, type Section } from './sections'
 
 export function createBlankResume(): ResumeSchema {
   return {
@@ -21,37 +23,6 @@ export function createBlankResume(): ResumeSchema {
     hobbies: { description: '', hobbies: [] },
   }
 }
-
-type Section = Exclude<keyof ResumeSchema, 'application_info'>
-
-const headings: [Section, RegExp][] = [
-  [
-    'basics',
-    /^(基本信息|个人信息|联系方式|基本资料|个人资料|contact|personal information)$/i,
-  ],
-  [
-    'job_intent',
-    /^(求职意向|求职目标|意向岗位|职业目标|job objective|objective)$/i,
-  ],
-  ['edu_background', /^(教育背景|教育经历|学习经历|education)$/i],
-  [
-    'work_experience',
-    /^(工作经历|工作经验|职业经历|work experience|employment)$/i,
-  ],
-  ['internship_experience', /^(实习经历|实习经验|internships?)$/i],
-  ['project_experience', /^(项目经历|项目经验|项目实践|projects?)$/i],
-  ['campus_experience', /^(校园经历|校园实践|在校经历|社团经历|学生工作)$/],
-  ['skill_specialty', /^(技能特长|专业技能|个人技能|技能|skills)$/i],
-  [
-    'honors_certificates',
-    /^(荣誉证书|荣誉奖励|获奖经历|荣誉|证书|certificates|awards)$/i,
-  ],
-  [
-    'self_evaluation',
-    /^(自我评价|个人总结|个人优势|自我介绍|summary|profile)$/i,
-  ],
-  ['hobbies', /^(兴趣爱好|爱好|hobbies|interests)$/i],
-]
 
 const dateToken =
   '(?:19|20)\\d{2}(?:(?:[年./-])(?:1[0-2]|0?[1-9])(?!\\d)月?|年)?(?![\\d./])'
@@ -96,7 +67,11 @@ function isExperienceHeader(
     return (
       /^(?:公司(?:名称)?[:：]\s*)?[^|｜\t]+?(?:公司|研究院|事务所|集团|银行|医院)(?=$|[\s|｜\t])/.test(
         title,
-      ) || /^(?:公司名称|公司|单位名称|单位|company)[:：]\s*\S/i.test(title)
+      ) ||
+      /^(?:公司名称|公司|单位名称|单位|company)[:：]\s*\S/i.test(title) ||
+      // Explicit column boundaries plus dates also support short company names.
+      (dateRange.test(line) &&
+        title.split(/\s*[|｜\t]\s*|\s{2,}/).filter(Boolean).length >= 2)
     )
   }
 
@@ -119,6 +94,9 @@ function parseExperience(
   section: Section,
   lines: string[],
   unknown: string[],
+  lineNumbers: number[],
+  sourceEntries: NonNullable<ResumeParseResult['sources']>['entries'],
+  continuationLines: number[],
 ) {
   const headerIndexes = Array.from(lines.keys()).filter((index) =>
     isExperienceHeader(lines, index, section),
@@ -199,8 +177,8 @@ function parseExperience(
         /^(?:公司名称|公司|单位名称|单位|company|项目名称|项目名|活动名称|社团名称)[:：]\s*/i,
         '',
       )
-      .split(/\s*[|｜\t]\s*|\s{2,}/)
-      .filter(Boolean)
+      .split(/\s*[|｜\t]\s*|\s+·\s+|\s{2,}/)
+      .filter((part) => Boolean(part) && !/^[·|｜]+$/.test(part))
 
     if (
       parts.length === 1 &&
@@ -215,7 +193,11 @@ function parseExperience(
 
     const details = textToResumeHtml(
       group
-        .filter((_, lineIndex) => lineIndex !== headerIndex)
+        .filter(
+          (_, lineIndex) =>
+            lineIndex !== headerIndex &&
+            !claimedDates.has(anchor.start + lineIndex),
+        )
         .filter(Boolean)
         .join('\n'),
     )
@@ -223,6 +205,26 @@ function parseExperience(
     if (!title || (!range && parts.length < 2)) {
       unknown.push(...group)
       continue
+    }
+
+    const bodyLines = group
+      .map((_, offset) => lineNumbers[anchor.start + offset])
+      .filter(
+        (_, offset) =>
+          offset !== headerIndex && !claimedDates.has(anchor.start + offset),
+      )
+
+    sourceEntries[entryId] = {
+      section: section as EntrySection,
+      start: lineNumbers[anchor.start],
+      end: lineNumbers[anchor.start + group.length - 1],
+      headerLine: lineNumbers[anchor.headerIndex],
+      bodyLines,
+      continuationLines: continuationLines.filter(
+        (line) =>
+          line > lineNumbers[anchor.start] &&
+          line <= lineNumbers[anchor.start + group.length - 1],
+      ),
     }
 
     if (section === 'edu_background') {
@@ -240,7 +242,7 @@ function parseExperience(
       const remainder = title
         .replace(school, '')
         .replace(degree ?? /$^/, '')
-        .replace(/^[\s|｜]+|[\s|｜]+$/g, '')
+        .replace(/^[\s|｜·]+|[\s|｜·]+$/g, '')
 
       content.edu_background.items.push({
         entryId,
@@ -308,42 +310,50 @@ export function parseResumeText(text: string): ResumeParseResult {
   const firstLine = text.trim().split(/\r?\n/)[0]?.trim()
   const hasContact = /@|1[3-9]\d{9}/.test(text)
 
-  const sections: { key: Section | null; lines: string[] }[] = [
-    { key: null, lines: [] },
-  ]
+  const sourceEntries: NonNullable<ResumeParseResult['sources']>['entries'] = {}
+  const continuationLines: number[] = []
+  let lineNumber = -1
+
+  const sections: {
+    key: Section | null
+    lines: string[]
+    lineNumbers: number[]
+  }[] = [{ key: null, lines: [], lineNumbers: [] }]
 
   for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
     const line = raw.trim()
 
     if (!line) continue
 
-    const title = line
-      .replace(/^[#【[\s]+|[】\]:：\s]+$/g, '')
-      .normalize('NFKC')
-      .replace(/(?<=[\u3400-\u9fff]) (?=[\u3400-\u9fff])/g, '')
-      .trim()
+    lineNumber++
 
-    const separator = line.search(/[:：]/)
-    const inlineTitle = separator >= 0 ? line.slice(0, separator).trim() : ''
+    const heading = readSectionHeading(line)
 
-    const heading = headings.find(
-      ([, pattern]) =>
-        pattern.test(title) || (inlineTitle && pattern.test(inlineTitle)),
-    )
+    if (heading?.continuation && sections.at(-1)?.key === heading.section) {
+      continuationLines.push(lineNumber)
 
-    const inlineText = separator >= 0 ? line.slice(separator + 1).trim() : ''
+      if (heading.inlineText) {
+        sections.at(-1)!.lines.push(heading.inlineText)
+        sections.at(-1)!.lineNumbers.push(lineNumber)
+      }
 
+      continue
+    }
     if (heading)
       sections.push({
-        key: heading[0],
-        lines: inlineText
-          ? [heading[0] === 'job_intent' ? line : inlineText]
+        key: heading.section,
+        lines: heading.inlineText
+          ? [heading.section === 'job_intent' ? line : heading.inlineText]
           : [],
+        lineNumbers: heading.inlineText ? [lineNumber] : [],
       })
-    else sections.at(-1)!.lines.push(line)
+    else {
+      sections.at(-1)!.lines.push(line)
+      sections.at(-1)!.lineNumbers.push(lineNumber)
+    }
   }
 
-  for (const { key, lines } of sections) {
+  for (const { key, lines, lineNumbers } of sections) {
     if (
       key &&
       [
@@ -354,7 +364,16 @@ export function parseResumeText(text: string): ResumeParseResult {
         'campus_experience',
       ].includes(key)
     ) {
-      parseExperience(content, key, lines, unassigned)
+      parseExperience(
+        content,
+        key,
+        lines,
+        unassigned,
+        lineNumbers,
+        sourceEntries,
+        continuationLines,
+      )
+
       continue
     }
 
@@ -407,6 +426,21 @@ export function parseResumeText(text: string): ResumeParseResult {
         content.basics.name = name
         continue
       }
+      if (
+        (!key || key === 'basics') &&
+        line === lines[1] &&
+        content.basics.name &&
+        line.length <= 120 &&
+        /前端|后端|全栈|研发|工程师|设计师|产品经理|运营|developer|engineer|designer/i.test(
+          line,
+        ) &&
+        !email &&
+        !phone &&
+        !dateRange.test(line)
+      ) {
+        content.job_intent.jobIntent = line
+        continue
+      }
       if (intent && !content.job_intent.jobIntent) {
         content.job_intent.jobIntent = intent
         continue
@@ -436,6 +470,46 @@ export function parseResumeText(text: string): ResumeParseResult {
           .replace(/(?:联系)?(?:电话|手机)\s*[:：]?|phone\s*[:：]?/gi, '')
       }
 
+      if (!key || key === 'basics') {
+        const addField = (label: string, value: string) => {
+          if (
+            !content.basics.customFields.some(
+              (field) => field?.label === label && field.value === value,
+            )
+          )
+            content.basics.customFields.push({ label, value })
+        }
+
+        const age = remainder.match(/(?<!\d)(?:[1-9]\d?|100)\s*岁(?!\d)/)?.[0]
+
+        const gender = remainder.match(
+          /(?:^|[\s|｜·])([男女])(?=$|[\s|｜·])/,
+        )?.[1]
+
+        const enrollment = remainder.match(/(?:本科|硕士|博士|研究生)在读/)?.[0]
+        const url = remainder.match(/https?:\/\/[^\s|｜]+/i)?.[0]
+
+        if (age) {
+          addField('年龄', age)
+          remainder = remainder.replace(age, '')
+        }
+        if (gender) {
+          content.basics.gender = gender as '男' | '女'
+          remainder = remainder.replace(
+            /(^|[\s|｜·])([男女])(?=$|[\s|｜·])/,
+            '$1',
+          )
+        }
+        if (enrollment) {
+          addField('在读情况', enrollment)
+          remainder = remainder.replace(enrollment, '')
+        }
+        if (url) {
+          addField('个人主页', url)
+          remainder = remainder.replace(url, '')
+        }
+      }
+
       remainder = remainder.replace(/^[\s|｜·,，;；]+|[\s|｜·,，;；]+$/g, '')
 
       if (remainder) unassigned.push(remainder)
@@ -446,5 +520,6 @@ export function parseResumeText(text: string): ResumeParseResult {
     content,
     unassignedText: unassigned.join('\n'),
     warnings: unassigned.length ? ['部分内容尚未归类，请对照原文补充。'] : [],
+    sources: { entries: sourceEntries },
   }
 }
