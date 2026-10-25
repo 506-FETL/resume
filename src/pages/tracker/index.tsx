@@ -74,17 +74,17 @@ function TrackerContent() {
 
   return (
     <>
-      <PageLayout workspace>
+      <PageLayout workspace className='gap-2'>
         <TrackerHeader />
-        <OverviewBar />
         <main
           aria-label='职位工作区'
           className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card'
         >
+          <OverviewBar />
           <TrackerToolbar />
           <ViewTransition
             animationKey={state}
-            className='flex min-h-0 min-w-0 flex-1 flex-col p-2 sm:p-3'
+            className='flex min-h-0 min-w-0 flex-1 flex-col p-2'
           >
             {state === 'loading' ? (
               <TrackerSkeleton />

@@ -283,22 +283,18 @@ export function getTrackerErrorMessage(error: unknown, fallback = '未知错误'
   return error instanceof Error ? error.message : fallback
 }
 
-// 概览聚合指标谓词。口径必须与 getTrackerOverviewStats 同源：
-// applied=历史漏斗(投过就算)、interview/offer=未归档+当前状态、pending=待跟进口径
+// 计数和列表筛选共用当前阶段谓词；搜索与归档范围由 filterJobs 统一处理。
 export function matchesMetric(
   job: JobApplication,
   key: TrackerMetricKey,
 ): boolean {
   switch (key) {
     case 'applied':
-      return (
-        getFurthestStageIndex(job) >=
-        APPLICATION_STATUS_ORDER.indexOf('applied')
-      )
+      return job.status === 'applied'
     case 'interview':
-      return !job.archived && job.status === 'interview'
+      return job.status === 'interview'
     case 'offer':
-      return !job.archived && job.status === 'offer'
+      return job.status === 'offer'
     case 'pending':
       return isJobPendingFollowUp(job)
     default:
@@ -332,11 +328,13 @@ export const TRACKER_FOLLOW_UP_STALE_DAYS = 7
 
 export interface TrackerOverviewStats {
   total: number
-  applied: number // 历史投递总数：曾到达 applied 及以后的岗位（含已结束/已归档，历史漏斗口径）
-  interview: number // 在办：面试中且未归档
-  offer: number // 在办：已录用且未归档
-  pending: number // 待跟进：未归档、非终态、超过陈旧阈值（P3 接入 next_action_date）
-  responseRate: number // 曾进入 assessment 及以后 / 历史投递总数
+  applied: number // 当前搜索与归档范围内，处于已投递阶段的职位
+  interview: number
+  offer: number
+  pending: number
+  historicalApplied: number // 全部记录中曾进入已投递或后续阶段的职位，含已归档
+  responded: number // 全部记录中曾进入测评或后续阶段的职位
+  responseRate: number // responded / historicalApplied，不使用当前已投递数作分母
 }
 
 // 停留天数：距上次更新的自然天数
@@ -493,8 +491,10 @@ export function getFurthestStageIndex(job: JobApplication): number {
 
 export function getTrackerOverviewStats(
   jobs: JobApplication[],
+  showArchived = false,
+  keyword = '',
 ): TrackerOverviewStats {
-  const total = jobs.length
+  const scopedJobs = filterJobs(jobs, null, keyword, showArchived)
   const appliedIdx = APPLICATION_STATUS_ORDER.indexOf('applied')
   const responseIdx = APPLICATION_STATUS_ORDER.indexOf('assessment')
 
@@ -507,21 +507,20 @@ export function getTrackerOverviewStats(
     (j) => getFurthestStageIndex(j) >= responseIdx,
   ).length
 
-  // 在办口径：已归档 = 停止跟进，从活跃计数中排除
-  const active = jobs.filter((j) => !j.archived)
-  const interview = active.filter((j) => j.status === 'interview').length
-  const offer = active.filter((j) => j.status === 'offer').length
-  const pending = jobs.filter(isJobPendingFollowUp).length
+  const countMetric = (key: TrackerMetricKey) =>
+    scopedJobs.filter((job) => matchesMetric(job, key)).length
 
   const responseRate =
     appliedPlus === 0 ? 0 : Math.round((responsePlus / appliedPlus) * 100)
 
   return {
-    total,
-    applied: appliedPlus,
-    interview,
-    offer,
-    pending,
+    total: scopedJobs.length,
+    applied: countMetric('applied'),
+    interview: countMetric('interview'),
+    offer: countMetric('offer'),
+    pending: countMetric('pending'),
+    historicalApplied: appliedPlus,
+    responded: responsePlus,
     responseRate,
   }
 }
