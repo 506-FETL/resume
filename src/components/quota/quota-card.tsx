@@ -1,4 +1,4 @@
-import { Infinity as InfinityIcon, Sparkles } from 'lucide-react'
+import { CircleHelp, Infinity as InfinityIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -15,35 +15,34 @@ import { cn } from '@/lib/utils'
 import useUpgradeDialogStore from '@/store/upgrade-dialog'
 import {
   getPlanBadge,
+  formatResetTime,
   getQuotaTone,
   getUsedPercent,
-  normalizePlan,
 } from './utils'
 
 /**
  * 用户中心的额度卡片：展示 plan、今日已用/剩余、进度条、重置文案，
- * 并提供「升级」按钮（复用全局 UpgradeDialog）。root/max 为顶配，隐藏升级入口。
+ * 并提供当前账户的额度说明。
  */
 export function QuotaCard() {
   const { quota, loading, error } = useAiQuota()
   const openDialog = useUpgradeDialogStore((s) => s.openDialog)
 
-  const tier = quota ? normalizePlan(quota.plan) : 'free'
-  const showUpgrade = quota ? tier === 'free' || tier === 'pro' : false
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>AI 每日额度</CardTitle>
-        <CardDescription>每日 0 点重置，免费版每日 20 次</CardDescription>
-        {showUpgrade && (
-          <CardAction>
-            <Button size='sm' onClick={() => openDialog({ reason: 'manual' })}>
-              <Sparkles />
-              升级
-            </Button>
-          </CardAction>
-        )}
+        <CardDescription>每次使用 AI 消耗的点数可能不同</CardDescription>
+        <CardAction>
+          <Button
+            size='sm'
+            variant='outline'
+            onClick={() => openDialog({ reason: 'manual' })}
+          >
+            <CircleHelp />
+            额度说明
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -80,7 +79,7 @@ function QuotaCardBody({
 }: {
   quota: NonNullable<ReturnType<typeof useAiQuota>['quota']>
 }) {
-  const { plan, remaining, dailyLimit, usedToday, unlimited } = quota
+  const { plan, remaining, dailyLimit, usedToday, unlimited, resetAt } = quota
   const tone = getQuotaTone(remaining)
   const percent = getUsedPercent(usedToday, dailyLimit)
 
@@ -94,7 +93,7 @@ function QuotaCardBody({
             无限额度
           </span>
         </div>
-        <p className='text-sm text-muted-foreground'>管理员账户</p>
+        <p className='text-sm text-muted-foreground'>你的账户不限每日额度</p>
       </div>
     )
   }
@@ -110,13 +109,12 @@ function QuotaCardBody({
             tone === 'empty' && 'text-destructive',
           )}
         >
-          今日剩余 {remaining}/{dailyLimit}
+          今日剩余 {remaining}/{dailyLimit} 点
         </span>
       </div>
       <Progress value={percent} />
       <p className='text-sm text-muted-foreground'>
-        今日已用 {usedToday} 次，
-        {tone === 'empty' ? '额度已用完，明日 0 点恢复' : '每日 0 点重置'}
+        今日已用 {usedToday} 点，{formatResetTime(resetAt)}
       </p>
     </div>
   )

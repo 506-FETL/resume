@@ -2,16 +2,17 @@ import type { MouseEventHandler } from 'react'
 import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
-import useCurrentUser from '@/hooks/use-current-user'
+import useUserStore from '@/store/user'
 
 interface HeaderProps {
   focus?: string
+  isGettingStarted?: boolean
   onCreate: MouseEventHandler<HTMLButtonElement>
 }
 
-function Header({ focus, onCreate }: HeaderProps) {
+function Header({ focus, onCreate, isGettingStarted }: HeaderProps) {
   const [greeting, setGreeting] = useState('')
-  const auth = useCurrentUser()
+  const auth = useUserStore((state) => state.currentUser)
 
   useEffect(() => {
     const hour = new Date().getHours()
@@ -25,8 +26,14 @@ function Header({ focus, onCreate }: HeaderProps) {
 
   return (
     <PageHeader
-      title={`欢迎回来${auth?.user_metadata.full_name ? `，${auth.user_metadata.full_name}` : ''}`}
-      description={focus || greeting}
+      title={
+        isGettingStarted
+          ? '欢迎使用 GResume'
+          : `欢迎回来${auth?.user_metadata.full_name ? `，${auth.user_metadata.full_name}` : ''}`
+      }
+      description={
+        focus || (isGettingStarted ? '在这里编辑和导出你的简历。' : greeting)
+      }
       actions={
         <Button aria-label='打开创建简历表单' onClick={onCreate}>
           创建简历

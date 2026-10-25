@@ -29,7 +29,7 @@ export interface BenchmarkMetric {
 export interface BenchmarkResult {
   profileKey: string
   profileLabel: string
-  profileConfidence: number
+  keywordCoverage: number
   summary: string
   metrics: BenchmarkMetric[]
   strengths: string[]

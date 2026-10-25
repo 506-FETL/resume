@@ -1,5 +1,5 @@
-import { Sparkles } from 'lucide-react'
-import { toast } from 'sonner'
+import { useReducedMotion } from 'motion/react'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,41 +10,79 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useAiQuota } from '@/hooks/use-ai-quota'
 import useUpgradeDialogStore from '@/store/upgrade-dialog'
 import { formatResetTime } from './utils'
 
 /**
- * 超额升级占位 Dialog。全局挂载（App.tsx），由 `useUpgradeDialogStore` 控制开关。
- * 触发来源：AI 超额自动弹出、用户中心「升级」按钮。
+ * 额度说明。保留原调用入口，供超额提示与用户中心共用。
  */
 export function UpgradeDialog() {
   const open = useUpgradeDialogStore((s) => s.open)
   const reason = useUpgradeDialogStore((s) => s.reason)
-  const resetAt = useUpgradeDialogStore((s) => s.resetAt)
   const setOpen = useUpgradeDialogStore((s) => s.setOpen)
+  const { quota, loading, error, refetch } = useAiQuota()
+  const reduceMotion = useReducedMotion()
 
-  const title = reason === 'quota_exceeded' ? '今日 AI 额度已用完' : '升级 Pro'
+  const title =
+    reason === 'quota_exceeded' ? '剩余额度不够完成这次操作' : 'AI 额度说明'
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent
+        className='sm:max-w-md'
+        style={reduceMotion ? { animationDuration: '0s' } : undefined}
+        overlayClassName={reduceMotion ? 'animate-none!' : undefined}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            免费版每日 20 次 AI 额度，
-            {formatResetTime(resetAt)}
-            。Pro 升级暂未开放。
+            使用 AI 会消耗额度，编辑和导出简历不受影响。
           </DialogDescription>
         </DialogHeader>
 
+        <AnimatedContent
+          animationKey={
+            loading ? 'loading' : error || !quota ? 'unavailable' : 'ready'
+          }
+        >
+          <div className='rounded-lg border bg-muted/30 p-4 text-sm leading-6'>
+            {loading ? (
+              <p role='status' className='text-muted-foreground'>
+                正在查询额度…
+              </p>
+            ) : error || !quota ? (
+              <p role='status' className='text-muted-foreground'>
+                没能加载额度，请重试。
+              </p>
+            ) : quota.unlimited ? (
+              <p>你的账户不限每日额度。</p>
+            ) : (
+              <>
+                <p className='font-medium'>
+                  今日剩余 {quota.remaining} / {quota.dailyLimit} 点额度
+                </p>
+                <p className='mt-1 text-muted-foreground'>
+                  {formatResetTime(quota.resetAt)}
+                </p>
+              </>
+            )}
+          </div>
+        </AnimatedContent>
+        <p className='text-xs text-muted-foreground'>暂时不能购买额外额度。</p>
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant='outline'>我知道了</Button>
-          </DialogClose>
-          <Button onClick={() => toast('Pro 升级暂未开放')}>
-            <Sparkles />
-            升级 Pro（暂未开放）
+          <Button
+            variant='outline'
+            disabled={loading}
+            onClick={() => {
+              refetch()
+            }}
+          >
+            {loading ? '查询中…' : '刷新额度'}
           </Button>
+          <DialogClose asChild>
+            <Button>我知道了</Button>
+          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>

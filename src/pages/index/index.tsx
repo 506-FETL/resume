@@ -3,14 +3,17 @@ import type { Resume } from './types'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import AnimatedContent from '@/components/motion/animated-content'
 import { PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
-import useCurrentUser from '@/hooks/use-current-user'
+import useUserStore from '@/store/user'
 import { DURATION, EASE } from '@/lib/motion'
 import CreateResumeCard from '@/pages/resume/components/create-resume-card'
 import useCurrentResumeStore from '@/store/resume/current'
 import Entry from './components/entry'
 import Header from './components/header'
+import GettingStarted from './components/getting-started'
+import { useDashboardMode } from './hooks/use-dashboard-mode'
 import {
   ActivityCard,
   AtsTrendCard,
@@ -30,7 +33,8 @@ import useIndexStore from './store'
 const EMPTY_RESUMES: Resume[] = []
 
 export default function DashboardPage() {
-  const user = useCurrentUser()
+  const user = useUserStore((state) => state.currentUser)
+  const authStatus = useUserStore((state) => state.authStatus)
   const navigate = useNavigate()
   const [createOpen, setCreateOpen] = useState(false)
   const createTriggerRef = useRef<HTMLElement | null>(null)
@@ -65,15 +69,21 @@ export default function DashboardPage() {
   const loadData = useIndexStore((s) => s.loadData)
   const rawResumes = useIndexStore((s) => s.resumes)
   const accountId = useIndexStore((s) => s.accountId)
-  const accountMatches = accountId === (user?.id ?? null)
+
+  const accountMatches =
+    authStatus !== 'unknown' && accountId === (user?.id ?? null)
+
   const resumes = accountMatches ? rawResumes : EMPTY_RESUMES
   const storeLoading = useIndexStore((s) => s.loading)
-  const resumesLoading = !accountMatches || storeLoading
   const storeError = useIndexStore((s) => s.error)
   const resumeError = accountMatches ? storeError : null
   const isOnline = Boolean(user)
   const cloudState = useIndexStore((s) => s.cloud)
   const localState = useIndexStore((s) => s.local)
+
+  const resumesLoading =
+    !accountMatches || storeLoading || cloudState.loading || localState.loading
+
   const cloudHasLoaded = accountMatches && cloudState.hasLoaded
 
   const cloudUnavailable =
@@ -93,11 +103,40 @@ export default function DashboardPage() {
   const extras = useDashboardExtras(resumes, cloudPending, resources)
   const timeline = useDashboardTimeline(resumes, cloudPending, resources)
 
+  const mode = useDashboardMode({
+    accountMatches,
+    resumeCount: resumes.length,
+    resumesConfirmedEmpty:
+      cloudState.hasLoaded &&
+      localState.hasLoaded &&
+      !cloudState.loading &&
+      !localState.loading &&
+      !resumesLoading &&
+      !resumeError &&
+      !cloudState.error &&
+      !localState.error,
+    jobsCount: resources.jobs.data.length,
+    jobsConfirmedEmpty:
+      resources.jobs.hasLoaded &&
+      !resources.jobs.loading &&
+      !resources.jobs.error,
+  })
+
+  const isGettingStarted = mode === 'guest' || mode === 'onboarding'
+
+  const showRecentResumes =
+    !isGettingStarted ||
+    resumes.length > 0 ||
+    resumesLoading ||
+    Boolean(resumeError)
+
   useEffect(() => {
+    if (authStatus === 'unknown') return
+
     loadData()
 
     return () => useIndexStore.getState().cancelLoad()
-  }, [loadData, user?.id])
+  }, [loadData, user?.id, authStatus])
 
   return (
     <PageLayout>
@@ -108,224 +147,256 @@ export default function DashboardPage() {
         className='flex flex-col gap-6'
       >
         <motion.div variants={item}>
-          <Header onCreate={openCreate} />
+          <Header onCreate={openCreate} isGettingStarted={isGettingStarted} />
         </motion.div>
 
-        <motion.section
-          variants={item}
-          className='flex flex-col gap-3'
-          aria-labelledby='recent-resumes-title'
-        >
-          <div className='flex items-center justify-between gap-3'>
-            <h2 id='recent-resumes-title' className='text-base font-semibold'>
-              最近简历
-            </h2>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => navigate('/resume')}
-            >
-              查看全部
-            </Button>
-          </div>
-          {resumesLoading && resumes.length === 0 ? (
-            <p className='text-sm text-muted-foreground' role='status'>
-              正在加载简历…
-            </p>
-          ) : resumes.length === 0 ? (
-            <p className='rounded-xl border p-4 text-sm text-muted-foreground'>
-              {resumeError
-                ? '— 暂时无法加载简历'
-                : '从第一份简历开始，整理你的下一次机会。'}
-            </p>
-          ) : (
-            <div className='grid gap-3 md:grid-cols-2'>
-              {[...resumes]
-                .sort(
-                  (a, b) =>
-                    new Date(b.updated_at || b.created_at).getTime() -
-                    new Date(a.updated_at || a.created_at).getTime(),
-                )
-                .slice(0, 2)
-                .map((resume) => (
-                  <div
-                    key={resume.resume_id}
-                    className='flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-4'
+        <AnimatedContent key={user?.id ?? 'guest'} animationKey={mode}>
+          <motion.div
+            variants={container}
+            initial='hidden'
+            animate='show'
+            className='flex flex-col gap-6'
+          >
+            {isGettingStarted && (
+              <GettingStarted
+                isAuthenticated={isOnline}
+                hasResume={resumes.length > 0}
+                onCreate={openCreate}
+              />
+            )}
+            {showRecentResumes && (
+              <motion.section
+                variants={item}
+                className='flex flex-col gap-3'
+                aria-labelledby='recent-resumes-title'
+              >
+                <div className='flex items-center justify-between gap-3'>
+                  <h2
+                    id='recent-resumes-title'
+                    className='text-base font-semibold'
                   >
-                    <div className='min-w-0'>
-                      <h3 className='truncate text-sm font-medium'>
-                        {resume.display_name || '未命名简历'}
-                      </h3>
-                      <p className='mt-1 text-xs text-muted-foreground'>
-                        {resume.isOffline ? '本地' : '云端'} ·{' '}
-                        {new Date(
-                          resume.updated_at || resume.created_at,
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Button
-                      size='sm'
-                      onClick={() => {
-                        useCurrentResumeStore
-                          .getState()
-                          .setCurrentResume(resume.resume_id, resume.type)
+                    最近简历
+                  </h2>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => navigate('/resume')}
+                  >
+                    查看全部
+                  </Button>
+                </div>
+                {resumesLoading && resumes.length === 0 ? (
+                  <p className='text-sm text-muted-foreground' role='status'>
+                    正在加载简历…
+                  </p>
+                ) : resumes.length === 0 ? (
+                  <p className='rounded-xl border p-4 text-sm text-muted-foreground'>
+                    {resumeError
+                      ? '— 暂时无法加载简历'
+                      : '还没有简历，点击“创建简历”开始填写。'}
+                  </p>
+                ) : (
+                  <div className='grid gap-3 md:grid-cols-2'>
+                    {[...resumes]
+                      .sort(
+                        (a, b) =>
+                          new Date(b.updated_at || b.created_at).getTime() -
+                          new Date(a.updated_at || a.created_at).getTime(),
+                      )
+                      .slice(0, 2)
+                      .map((resume) => (
+                        <div
+                          key={resume.resume_id}
+                          className='flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-4'
+                        >
+                          <div className='min-w-0'>
+                            <h3 className='truncate text-sm font-medium'>
+                              {resume.display_name || '未命名简历'}
+                            </h3>
+                            <p className='mt-1 text-xs text-muted-foreground'>
+                              {resume.isOffline ? '本地' : '云端'} ·{' '}
+                              {new Date(
+                                resume.updated_at || resume.created_at,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Button
+                            size='sm'
+                            onClick={() => {
+                              useCurrentResumeStore
+                                .getState()
+                                .setCurrentResume(resume.resume_id, resume.type)
 
-                        navigate('/resume/editor')
-                      }}
-                    >
-                      继续编辑
-                    </Button>
+                              navigate('/resume/editor')
+                            }}
+                          >
+                            继续编辑
+                          </Button>
+                        </div>
+                      ))}
                   </div>
-                ))}
-            </div>
-          )}
-          {accountMatches && cloudState.error && (
-            <ResourceError
-              label='云端简历'
-              hasLoaded={cloudState.hasLoaded}
-              retry={loadData}
-            />
-          )}
-          {accountMatches && localState.error && (
-            <ResourceError
-              label='本地简历'
-              hasLoaded={localState.hasLoaded}
-              retry={loadData}
-            />
-          )}
-          {resumeError && !cloudState.error && !localState.error && (
-            <ResourceError
-              label='简历'
-              hasLoaded={resumes.length > 0}
-              retry={loadData}
-            />
-          )}
-        </motion.section>
-        <div className='flex flex-col gap-2 empty:hidden'>
-          {Object.entries(resources).map(
-            ([key, resource]) =>
-              resource.error && (
-                <ResourceError
-                  key={key}
-                  label={
-                    { jobs: '岗位', ats: 'ATS 检测', versions: '版本动态' }[
-                      key
-                    ] ?? key
-                  }
-                  hasLoaded={resource.hasLoaded}
-                  retry={resource.retry}
-                />
-              ),
-          )}
-        </div>
-        <motion.div variants={item}>
-          <TodoCard
-            unavailable={
-              cloudUnavailable ||
-              Boolean(
-                (resources.jobs.error && !resources.jobs.hasLoaded) ||
-                (resources.ats.error && !resources.ats.hasLoaded),
-              )
-            }
-            actions={insights.actions}
-            loading={insights.loading}
-            isAuthenticated={isOnline}
-            hasCloudResume={insights.hasCloudResume}
-          />
-        </motion.div>
-
-        <AnimatePresence initial={false}>
-          {!extras.followUpsLoading && extras.followUps.length > 0 && (
-            <motion.div
-              key='follow-ups'
-              initial={{
-                opacity: reduceMotion ? 1 : 0,
-                height: reduceMotion ? 'auto' : 0,
-              }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{
-                opacity: 0,
-                height: 0,
-                transition: {
-                  duration: reduceMotion ? 0 : DURATION.fast,
-                  ease: EASE.in,
-                },
-              }}
-              transition={{
-                duration: reduceMotion ? 0 : DURATION.base,
-                ease: EASE.out,
-              }}
-              className='overflow-hidden'
-            >
-              <FollowUpCard
-                followUps={extras.followUps}
-                total={extras.followUpTotal}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <motion.div variants={item}>
-          <StatisticalCard
-            funnel={insights.funnel}
-            jobsLoading={insights.jobsLoading}
-            atsLoading={insights.atsLoading}
-            jobsUnavailable={Boolean(
-              resources.jobs.error && !resources.jobs.hasLoaded,
+                )}
+                {accountMatches && cloudState.error && (
+                  <ResourceError
+                    label='云端简历'
+                    hasLoaded={cloudState.hasLoaded}
+                    retry={loadData}
+                  />
+                )}
+                {accountMatches && localState.error && (
+                  <ResourceError
+                    label='本地简历'
+                    hasLoaded={localState.hasLoaded}
+                    retry={loadData}
+                  />
+                )}
+                {resumeError && !cloudState.error && !localState.error && (
+                  <ResourceError
+                    label='简历'
+                    hasLoaded={resumes.length > 0}
+                    retry={loadData}
+                  />
+                )}
+              </motion.section>
             )}
-            atsUnavailable={
-              cloudUnavailable ||
-              Boolean(resources.ats.error && !resources.ats.hasLoaded)
-            }
-          />
-        </motion.div>
+            {mode === 'workspace' && (
+              <>
+                <div className='flex flex-col gap-2 empty:hidden'>
+                  {Object.entries(resources).map(
+                    ([key, resource]) =>
+                      resource.error && (
+                        <ResourceError
+                          key={key}
+                          label={
+                            {
+                              jobs: '岗位',
+                              ats: 'ATS 检测',
+                              versions: '版本动态',
+                            }[key] ?? key
+                          }
+                          hasLoaded={resource.hasLoaded}
+                          retry={resource.retry}
+                        />
+                      ),
+                  )}
+                </div>
+                <motion.div variants={item}>
+                  <TodoCard
+                    unavailable={
+                      cloudUnavailable ||
+                      Boolean(
+                        (resources.jobs.error && !resources.jobs.hasLoaded) ||
+                        (resources.ats.error && !resources.ats.hasLoaded),
+                      )
+                    }
+                    actions={insights.actions}
+                    loading={insights.loading}
+                    isAuthenticated={isOnline}
+                    hasCloudResume={insights.hasCloudResume}
+                  />
+                </motion.div>
 
-        <motion.div
-          variants={item}
-          className='grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2'
-        >
-          {(!resources.jobs.error || resources.jobs.hasLoaded) && (
-            <FunnelCard funnel={extras.funnel} loading={extras.funnelLoading} />
-          )}
-          {!cloudUnavailable &&
-            (!resources.ats.error || resources.ats.hasLoaded) && (
-              <AtsTrendCard
-                trend={extras.atsTrend}
-                loading={extras.atsTrendLoading}
-              />
+                <AnimatePresence initial={false}>
+                  {!extras.followUpsLoading && extras.followUps.length > 0 && (
+                    <motion.div
+                      key='follow-ups'
+                      initial={{
+                        opacity: reduceMotion ? 1 : 0,
+                        height: reduceMotion ? 'auto' : 0,
+                      }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{
+                        opacity: 0,
+                        height: 0,
+                        transition: {
+                          duration: reduceMotion ? 0 : DURATION.fast,
+                          ease: EASE.in,
+                        },
+                      }}
+                      transition={{
+                        duration: reduceMotion ? 0 : DURATION.base,
+                        ease: EASE.out,
+                      }}
+                      className='overflow-hidden'
+                    >
+                      <FollowUpCard
+                        followUps={extras.followUps}
+                        total={extras.followUpTotal}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <motion.div variants={item}>
+                  <StatisticalCard
+                    funnel={insights.funnel}
+                    jobsLoading={insights.jobsLoading}
+                    atsLoading={insights.atsLoading}
+                    jobsUnavailable={Boolean(
+                      resources.jobs.error && !resources.jobs.hasLoaded,
+                    )}
+                    atsUnavailable={
+                      cloudUnavailable ||
+                      Boolean(resources.ats.error && !resources.ats.hasLoaded)
+                    }
+                  />
+                </motion.div>
+
+                <motion.div
+                  variants={item}
+                  className='grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2'
+                >
+                  {(!resources.jobs.error || resources.jobs.hasLoaded) && (
+                    <FunnelCard
+                      funnel={extras.funnel}
+                      loading={extras.funnelLoading}
+                    />
+                  )}
+                  {!cloudUnavailable &&
+                    (!resources.ats.error || resources.ats.hasLoaded) && (
+                      <AtsTrendCard
+                        trend={extras.atsTrend}
+                        loading={extras.atsTrendLoading}
+                      />
+                    )}
+                </motion.div>
+
+                <motion.div variants={item}>
+                  {!cloudUnavailable &&
+                    (!resources.jobs.error || resources.jobs.hasLoaded) &&
+                    (!resources.versions.error ||
+                      resources.versions.hasLoaded) && (
+                      <ActivityCard
+                        activity={extras.activity}
+                        loading={extras.activityLoading}
+                      />
+                    )}
+                </motion.div>
+
+                <motion.div variants={item}>
+                  <Entry
+                    unavailable={
+                      cloudUnavailable ||
+                      Boolean(
+                        (resources.jobs.error && !resources.jobs.hasLoaded) ||
+                        (resources.versions.error &&
+                          !resources.versions.hasLoaded),
+                      )
+                    }
+                    onCreate={openCreate}
+                    events={timeline.events}
+                    timelineLoading={timeline.loading}
+                    resumeCount={
+                      cloudHasLoaded && localState.hasLoaded
+                        ? resumes.length
+                        : undefined
+                    }
+                  />
+                </motion.div>
+              </>
             )}
-        </motion.div>
-
-        <motion.div variants={item}>
-          {!cloudUnavailable &&
-            (!resources.jobs.error || resources.jobs.hasLoaded) &&
-            (!resources.versions.error || resources.versions.hasLoaded) && (
-              <ActivityCard
-                activity={extras.activity}
-                loading={extras.activityLoading}
-              />
-            )}
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Entry
-            unavailable={
-              cloudUnavailable ||
-              Boolean(
-                (resources.jobs.error && !resources.jobs.hasLoaded) ||
-                (resources.versions.error && !resources.versions.hasLoaded),
-              )
-            }
-            onCreate={openCreate}
-            events={timeline.events}
-            timelineLoading={timeline.loading}
-            resumeCount={
-              cloudHasLoaded && localState.hasLoaded
-                ? resumes.length
-                : undefined
-            }
-          />
-        </motion.div>
+          </motion.div>
+        </AnimatedContent>
       </motion.div>
       <CreateResumeCard
         returnFocusRef={createTriggerRef}

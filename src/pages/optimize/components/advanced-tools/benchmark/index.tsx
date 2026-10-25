@@ -29,11 +29,13 @@ interface BenchmarkToolProps {
 }
 
 function getMetricTone(metric: BenchmarkMetric) {
-  if (metric.status === 'good') {
+  if (metric.target === null) return 'default'
+
+  if (metric.current >= metric.target) {
     return 'success'
   }
 
-  if (metric.status === 'warn') {
+  if (metric.status !== 'missing') {
     return 'warning'
   }
 
@@ -68,11 +70,11 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
   )
 
   const goodMetricCount = benchmarkResult.metrics.filter(
-    (metric) => metric.target !== null && metric.status === 'good',
+    (metric) => metric.target !== null && metric.current >= metric.target,
   ).length
 
   const pendingMetricCount = benchmarkResult.metrics.filter(
-    (metric) => metric.target !== null && metric.status !== 'good',
+    (metric) => metric.target !== null && metric.current < metric.target,
   ).length
 
   const atsMetric = benchmarkResult.metrics.find(
@@ -82,8 +84,8 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
   return (
     <div className='space-y-4'>
       <div className='rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground'>
-        以下指标用于观察现有内容的证据结构，不要求固定模块组合，也不直接参与 ATS
-        总分。
+        这些参考值是我们预设的，用来提醒你检查简历内容，不是招聘要求或行业统计。
+        你不需要填满所有模块，这些指标也不会改变 ATS 总分或预测筛选结果。
       </div>
       <ToolPanelCard>
         <ToolPanelHeader
@@ -92,42 +94,30 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
           icon={Gauge}
           badge={
             <ToolMetaBadge
-              tone={
-                benchmarkResult.profileConfidence >= 60 ? 'primary' : 'warning'
-              }
-            >{`置信度 ${benchmarkResult.profileConfidence}%`}</ToolMetaBadge>
+              tone={'default'}
+            >{`关键词覆盖 ${benchmarkResult.keywordCoverage}%`}</ToolMetaBadge>
           }
         />
         <ToolPanelBody className='space-y-4'>
           <ToolStatsGrid>
             <ToolStatCard
-              label='画像置信度'
-              value={`${benchmarkResult.profileConfidence}%`}
+              label='关键词覆盖率'
+              value={`${benchmarkResult.keywordCoverage}%`}
               icon={Gauge}
-              tone={
-                benchmarkResult.profileConfidence >= 60 ? 'primary' : 'warning'
-              }
+              tone={'default'}
               badge={
-                <ToolMetaBadge
-                  tone={
-                    benchmarkResult.profileConfidence >= 60
-                      ? 'primary'
-                      : 'warning'
-                  }
-                >
-                  当前画像
-                </ToolMetaBadge>
+                <ToolMetaBadge tone={'default'}>用于识别岗位</ToolMetaBadge>
               }
             />
             <ToolStatCard
-              label='达标指标'
+              label='达到参考值'
               value={goodMetricCount}
               icon={Trophy}
               tone='success'
-              badge={<ToolMetaBadge tone='success'>优势项</ToolMetaBadge>}
+              badge={<ToolMetaBadge tone='success'>已达到</ToolMetaBadge>}
             />
             <ToolStatCard
-              label='待补指标'
+              label='低于参考值'
               value={pendingMetricCount}
               icon={TriangleAlert}
               tone={pendingMetricCount > 0 ? 'warning' : 'success'}
@@ -135,7 +125,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                 <ToolMetaBadge
                   tone={pendingMetricCount > 0 ? 'warning' : 'success'}
                 >
-                  {pendingMetricCount > 0 ? '优先补强' : '已达标'}
+                  {pendingMetricCount > 0 ? '建议检查' : '达到参考值'}
                 </ToolMetaBadge>
               }
             />
@@ -156,23 +146,17 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
 
           <div className='space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4'>
             <div className='flex items-center justify-between gap-3'>
-              <p className='text-sm font-medium'>画像置信度</p>
-              <ToolMetaBadge
-                tone={
-                  benchmarkResult.profileConfidence >= 60
-                    ? 'primary'
-                    : 'warning'
-                }
-              >
-                {benchmarkResult.profileConfidence}%
+              <p className='text-sm font-medium'>关键词覆盖率</p>
+              <ToolMetaBadge tone={'default'}>
+                {benchmarkResult.keywordCoverage}%
               </ToolMetaBadge>
             </div>
             <Progress
-              value={benchmarkResult.profileConfidence}
+              value={benchmarkResult.keywordCoverage}
               className='h-2 bg-muted'
             />
             <p className='text-xs leading-5 text-muted-foreground'>
-              岗位方向根据求职意向、技能和经历中的关键词推断，仅供参考。
+              我们为每类岗位列了一组关键词。这个比例表示你的简历出现了其中多少词，只用来判断参考哪个岗位，不代表你的能力高低。
             </p>
           </div>
         </ToolPanelBody>
@@ -186,20 +170,27 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                   100,
                   Math.round((metric.current / metric.target) * 100),
                 )
-              : 100
+              : 0
 
           const Icon = getMetricIcon(metric.key)
           const tone = getMetricTone(metric)
+
+          const status =
+            metric.target === null
+              ? null
+              : metric.current >= metric.target
+                ? 'good'
+                : metric.status === 'missing'
+                  ? 'missing'
+                  : 'warn'
 
           return (
             <ToolPanelCard
               key={metric.key}
               className={cn(
-                metric.status === 'good' &&
-                  'border-green-500/15 bg-green-500/5',
-                metric.status === 'warn' &&
-                  'border-amber-500/15 bg-amber-500/5',
-                metric.status === 'missing' &&
+                status === 'good' && 'border-green-500/15 bg-green-500/5',
+                status === 'warn' && 'border-amber-500/15 bg-amber-500/5',
+                status === 'missing' &&
                   'border-destructive/15 bg-destructive/5',
               )}
             >
@@ -223,14 +214,18 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                   <span
                     className={cn(
                       'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium',
-                      getMetricStatusClassName(metric.status),
+                      status
+                        ? getMetricStatusClassName(status)
+                        : 'text-muted-foreground',
                     )}
                   >
-                    {metric.status === 'good'
-                      ? '已达标'
-                      : metric.status === 'warn'
-                        ? '接近目标'
-                        : '明显不足'}
+                    {status === null
+                      ? '尚未评估'
+                      : status === 'good'
+                        ? '达到参考值'
+                        : status === 'warn'
+                          ? '建议检查'
+                          : '低于参考值'}
                   </span>
                 </div>
               </ToolPanelBody>
@@ -242,10 +237,10 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
       <div className='grid gap-4 lg:grid-cols-2'>
         <ToolPanelCard>
           <ToolPanelHeader
-            title='当前优势'
+            title='已达到参考值'
             icon={Trophy}
             badge={
-              <ToolMetaBadge tone='success'>{`${benchmarkResult.strengths.length || 1} 条亮点`}</ToolMetaBadge>
+              <ToolMetaBadge tone='success'>{`${benchmarkResult.strengths.length} 项`}</ToolMetaBadge>
             }
           />
           <ToolPanelBody>
@@ -264,7 +259,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                 <div className='flex items-start gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm leading-6 text-green-800 dark:text-green-200'>
                   <Sparkles className='mt-0.5 size-4 shrink-0' />
                   <span>
-                    当前优势证据还不够集中，可以优先强化最能证明目标能力的真实内容。
+                    暂时没有达到参考值的项目。可以先检查经历是否写完整，不必为了凑数添加内容。
                   </span>
                 </div>
               )}
@@ -274,7 +269,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
 
         <ToolPanelCard>
           <ToolPanelHeader
-            title='优先补强'
+            title='修改建议'
             icon={TriangleAlert}
             badge={
               <ToolMetaBadge tone='warning'>{`${benchmarkResult.recommendations.length || 1} 条建议`}</ToolMetaBadge>
@@ -296,7 +291,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                 <div className='flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200'>
                   <TriangleAlert className='mt-0.5 size-4 shrink-0' />
                   <span>
-                    当前内容证据与参考指标已经比较接近，可以继续打磨定位一致性和表达细节。
+                    这些项目都已达到参考值。接下来可以通读一遍，检查内容是否准确、好读。
                   </span>
                 </div>
               )}

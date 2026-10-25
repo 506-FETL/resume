@@ -38,11 +38,11 @@ function inferBenchmarkProfile(resume: ResumeSchema) {
   const winner = rankedProfiles[0]
 
   if (!winner || winner.score === 0) {
-    return { confidence: 0, profile: GENERAL_BENCHMARK_PROFILE }
+    return { coverage: 0, profile: GENERAL_BENCHMARK_PROFILE }
   }
 
   return {
-    confidence: Math.min(
+    coverage: Math.min(
       100,
       Math.round((winner.score / winner.profile.keywords.length) * 100),
     ),
@@ -67,7 +67,7 @@ function createBenchmarkMetric(config: {
 
   if (config.target !== null) {
     if (ratio < 0.5) status = 'missing'
-    else if (ratio < 0.9) status = 'warn'
+    else if (ratio < 1) status = 'warn'
   }
 
   return {
@@ -91,42 +91,44 @@ export function buildBenchmarkReport(
   resume: ResumeSchema,
   overallScore: number | null,
 ): BenchmarkResult {
-  const { confidence, profile } = inferBenchmarkProfile(resume)
+  const { coverage, profile } = inferBenchmarkProfile(resume)
   const stats = getResumeEvidenceStats(resume)
 
   const metrics = [
     createBenchmarkMetric({
       key: 'evidenceCount',
-      label: '有效能力证据',
+      label: '已填写的经历',
       current: stats.evidenceCount,
       target: profile.targets.evidenceCount,
       description:
-        '汇总教育、工作、实习、校园和项目中真实存在的有效内容，不要求固定模块组合。',
+        '统计填写过内容的教育、工作、实习、校园和项目经历，不要求每个模块都填写。',
     }),
     createBenchmarkMetric({
       key: 'substantiveRatio',
-      label: '实质描述比例',
+      label: '具体描述占比',
       current: stats.substantiveRatio,
       target: profile.targets.substantiveRatio,
       formatter: formatPercent,
-      description: '现有经历中包含具体职责、行动或范围描述的比例。',
+      description:
+        '有多少经历写出了你具体做过什么、负责什么。此项按描述长度和行动用词估算。',
     }),
     createBenchmarkMetric({
       key: 'impactEvidenceRatio',
-      label: '成果或影响证据',
+      label: '成果描述占比',
       current: stats.impactEvidenceRatio,
       target: profile.targets.impactEvidenceRatio,
       formatter: formatPercent,
       description:
-        '现有经历中包含交付、结果、影响、规模或数据证据的比例；数字不是唯一证据。',
+        '有多少经历提到了完成的工作、带来的变化或相关数据。此项按用词识别，没有数字也可以写成果。',
     }),
     createBenchmarkMetric({
       key: 'positioningConsistency',
-      label: '内容定位一致性',
+      label: '求职方向一致性',
       current: stats.positioningConsistency,
       target: profile.targets.positioningConsistency,
       formatter: formatPercent,
-      description: '求职方向、岗位角色、项目职责和技能关键词是否形成一致定位。',
+      description:
+        '检查求职意向与岗位名称、项目角色、技能是否有相同用词；没填求职意向时，比较这些内容之间的共同用词。',
     }),
     createBenchmarkMetric({
       key: 'atsScore',
@@ -137,8 +139,8 @@ export function buildBenchmarkReport(
         overallScore === null ? '未生成' : `${value ?? 0}`,
       description:
         overallScore === null
-          ? '尚未生成 ATS 报告，此项暂不参与基准判断。'
-          : '当前内容自适应 ATS 报告的综合评分。',
+          ? '还没有 ATS 报告，暂时无法比较这一项。'
+          : '这里显示你已有 ATS 报告中的总分。',
     }),
   ]
 
@@ -147,7 +149,7 @@ export function buildBenchmarkReport(
     .slice(0, 3)
     .map(
       (metric) =>
-        `${metric.label}达到${profile.label}的内容参考水平，当前为 ${metric.displayCurrent}。`,
+        `${metric.label}为 ${metric.displayCurrent}，已达到参考值 ${metric.displayTarget}。`,
     )
 
   const recommendations = metrics
@@ -155,15 +157,15 @@ export function buildBenchmarkReport(
     .slice(0, 4)
     .map((metric) => {
       if (metric.key === 'evidenceCount')
-        return '现有能力证据偏少，可以在最能证明目标能力的真实经历中补充职责、交付物或作品证据。'
+        return '写出的经历较少。如果还有相关的工作、项目或校园经历，可以补充进去。'
       if (metric.key === 'substantiveRatio')
-        return '部分现有经历表达偏薄，优先说明你做了什么、负责到什么范围以及采用了什么方法。'
+        return '有些经历写得比较笼统。可以补充你负责哪部分、具体做了什么、用了什么方法。'
       if (metric.key === 'impactEvidenceRatio')
-        return '成果支撑偏弱，优先补充真实的交付结果、影响范围、问题解决情况或可验证数据。'
+        return '可以再写写工作的结果：完成了什么，解决了什么问题。有数据就写数据，没有也不用硬凑。'
       if (metric.key === 'positioningConsistency')
-        return '内容定位较分散，建议围绕目标方向统一岗位表述、能力关键词和经历重点。'
+        return '求职意向和经历中的相关用词较少。检查是否漏写了相关经验和技能，不必为了匹配改动事实。'
 
-      return 'ATS 综合评分仍有提升空间，优先处理当前报告中有原文证据的问题。'
+      return '可以打开 ATS 报告，对照原文看看哪些问题需要修改。'
     })
 
   const pendingLabels = metrics
@@ -174,11 +176,11 @@ export function buildBenchmarkReport(
   return {
     profileKey: profile.key,
     profileLabel: profile.label,
-    profileConfidence: confidence,
+    keywordCoverage: coverage,
     summary:
       pendingLabels.length > 0
-        ? `${profile.label}内容画像下，当前更值得加强的是${pendingLabels.join('、')}。`
-        : `${profile.label}内容画像下，现有证据结构较完整，可以继续打磨表达细节。`,
+        ? `可以先检查${pendingLabels.join('、')}，看看有没有遗漏的内容。`
+        : '这些项目已达到参考值，可以再检查一下内容是否准确、好读。',
     metrics,
     strengths,
     recommendations,

@@ -83,14 +83,14 @@ export function getPlanBadge(plan?: string | null): PlanBadge {
  * - 今日：`今日 HH:mm 恢复`
  * - 明日：`明日 HH:mm 恢复`
  * - 更远：`MM/DD HH:mm 恢复`
- * - 无 resetAt：兜底 `每日 0 点重置`
+ * - 无效或缺少 resetAt：明确表示恢复时间未知
  */
 export function formatResetTime(resetAt?: string | null): string {
-  if (!resetAt) return '每日 0 点重置'
+  if (!resetAt) return '暂时查不到恢复时间'
 
   const target = new Date(resetAt)
 
-  if (Number.isNaN(target.getTime())) return '每日 0 点重置'
+  if (Number.isNaN(target.getTime())) return '暂时查不到恢复时间'
 
   const now = new Date()
 
