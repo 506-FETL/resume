@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   Form,
@@ -8,14 +8,17 @@ import {
   FormItem,
   FormLabel,
 } from '@/components/ui/form'
-import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { ResumeFormSync } from '../shared/resume-form-sync'
 import { selfEvaluationFormSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import { RichTextFieldEditor } from '@/pages/resume/editor/components/forms/shared/rich-text-field-editor'
 import useResumeStore from '@/store/resume/form'
 
 function SelfEvaluationForm({ className }: { className?: string }) {
-  const selfEvaluation = useResumeStore((state) => state.self_evaluation)
+  const [selfEvaluation] = useState(
+    () => useResumeStore.getState().self_evaluation,
+  )
+
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
 
   const form = useForm({
@@ -27,18 +30,9 @@ function SelfEvaluationForm({ className }: { className?: string }) {
     reValidateMode: 'onChange',
   })
 
-  // 远程协作字段级双向同步（富文本 content 走整段 LWW）
-  const storeFormData = useMemo(
-    () => ({
-      content: selfEvaluation.content || '',
-    }),
-    [selfEvaluation.content],
-  )
-
-  useResumeFormSync(form, 'self_evaluation', storeFormData)
-
   return (
     <Form {...form}>
+      <ResumeFormSync form={form} section='self_evaluation' />
       <form id='self-evaluation-form'>
         <div className={cn('space-y-6', className)}>
           <FormField

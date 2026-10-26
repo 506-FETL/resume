@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { RichTextStyleElement } from '@/lib/resume-template/declarative/types'
 import { Element } from 'html-react-parser'
-import { cloneElement, isValidElement } from 'react'
+import { cloneElement, isValidElement, useMemo } from 'react'
 import { useResumeContext } from '@/components/resume/runtime/context/resume-context'
 import {
   normalizeCommentRichTextBlock,
@@ -67,56 +67,71 @@ export function CommentableRichText({
   const node = useCommentProjectionNode(nodeKey)
   const { font, spacing, theme } = useResumeContext()
 
-  if (!node) {
-    return null
-  }
+  // 渲染器每次生成样式对象，但相同样式不应使未编辑的 HTML 重复净化解析。
+  const stylesKey = JSON.stringify(elementStyles ?? null)
 
-  const projectedBlocks = projectCommentRichTextBlocks(html)
-  let blockOrdinal = 0
+  const parsedStyles = useMemo(
+    () => JSON.parse(stylesKey) as typeof elementStyles,
+    [stylesKey],
+  )
 
-  const content = parseSanitizedHtml(html, undefined, {
-    transform(reactNode, domNode) {
-      if (typeof reactNode === 'string') return reactNode
-      if (!isValidElement<{ style?: CSSProperties }>(reactNode)) return null
-      if (!(domNode instanceof Element)) return reactNode
+  const { content, projectedBlocks, blockOrdinal } = useMemo(() => {
+    const projectedBlocks = projectCommentRichTextBlocks(html)
+    let blockOrdinal = 0
 
-      const elementStyle = elementStyles?.[domNode.name as RichTextStyleElement]
+    const content = parseSanitizedHtml(html, undefined, {
+      transform(reactNode, domNode) {
+        if (typeof reactNode === 'string') return reactNode
+        if (!isValidElement<{ style?: CSSProperties }>(reactNode)) return null
+        if (!(domNode instanceof Element)) return reactNode
 
-      if (elementStyle) {
-        // 只补充净化后元素的样式，保留解析器生成的子节点、key 和评论锚点。
-        // eslint-disable-next-line @eslint-react/no-clone-element
-        return cloneElement(reactNode, {
-          style: { ...elementStyle, ...reactNode.props.style },
-        })
-      }
+        const elementStyle =
+          parsedStyles?.[domNode.name as RichTextStyleElement]
 
-      return reactNode
-    },
-    replace(domNode) {
-      if (
-        !(domNode instanceof Element) ||
-        !COMMENT_RICH_TEXT_BLOCK_TAGS.has(domNode.name) ||
-        elementHasNestedCommentBlock(domNode)
-      ) {
-        return
-      }
+        if (elementStyle) {
+          // 只补充净化后元素的样式，保留解析器生成的子节点、key 和评论锚点。
+          // eslint-disable-next-line @eslint-react/no-clone-element
+          return cloneElement(reactNode, {
+            style: { ...elementStyle, ...reactNode.props.style },
+          })
+        }
 
-      const blockText = normalizeCommentRichTextBlock(
-        domNode.childNodes.map(domNodeText).join(''),
-      )
+        return reactNode
+      },
+      replace(domNode) {
+        if (
+          !(domNode instanceof Element) ||
+          !COMMENT_RICH_TEXT_BLOCK_TAGS.has(domNode.name) ||
+          elementHasNestedCommentBlock(domNode)
+        ) {
+          return
+        }
 
-      const projectedBlock = projectedBlocks[blockOrdinal]
+        const blockText = normalizeCommentRichTextBlock(
+          domNode.childNodes.map(domNodeText).join(''),
+        )
 
-      if (!blockText || !projectedBlock || blockText !== projectedBlock.text) {
-        return
-      }
+        const projectedBlock = projectedBlocks[blockOrdinal]
 
-      if (projection === 'primary')
-        domNode.attribs['data-comment-block-ordinal'] = String(blockOrdinal)
+        if (
+          !blockText ||
+          !projectedBlock ||
+          blockText !== projectedBlock.text
+        ) {
+          return
+        }
 
-      blockOrdinal += 1
-    },
-  })
+        if (projection === 'primary')
+          domNode.attribs['data-comment-block-ordinal'] = String(blockOrdinal)
+
+        blockOrdinal += 1
+      },
+    })
+
+    return { content, projectedBlocks, blockOrdinal }
+  }, [html, projection, parsedStyles])
+
+  if (!node) return null
 
   const canUseParsedContent = blockOrdinal === projectedBlocks.length
 

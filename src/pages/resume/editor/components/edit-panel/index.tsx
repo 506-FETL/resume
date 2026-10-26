@@ -2,7 +2,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { ORDERType, VisibilityItemsType } from '@/lib/schema'
 import { ArrowRightToLine } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -13,6 +13,8 @@ import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { CollaborationControls } from '../collaboration/collaboration-controls'
 import { AccordionEditor } from './accordion-editor'
+import CheckWorkspace from '../check-workspace'
+import { CheckModeToggle } from '../check-workspace/mode-toggle'
 
 interface EditPanelProps {
   open: boolean
@@ -64,7 +66,7 @@ function ratioToWidth(ratio: number): number {
  * 渲染区 flex-1，动 width 时渲染区靠 flex 自然平滑跟随移动。内层用固定宽度承载内容并由外层 overflow-hidden
  * 裁剪，避免动画期间 @container 断点抖动导致栅格列数跳变；拖拽调宽时过渡时长置 0 保证跟手。
  */
-export default function EditPanel({
+function EditPanel({
   open,
   order,
   visibilityState,
@@ -177,41 +179,48 @@ export default function EditPanel({
               )}
             />
 
-            {/* 顶部：协作控制条 + 收起入口 */}
-            <div className='flex shrink-0 items-start justify-between gap-2 border-b pr-2'>
-              <div className='min-w-0 flex-1'>
-                <CollaborationControls plain />
+            <CheckWorkspace
+              header={
+                <div className='shrink-0 border-b'>
+                  <CollaborationControls
+                    plain
+                    actions={<CheckModeToggle />}
+                    headingAction={
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            aria-label='收起编辑栏'
+                            onClick={onClose}
+                          >
+                            <ArrowRightToLine className='size-4' />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side='bottom'>
+                          收起编辑栏
+                        </TooltipContent>
+                      </Tooltip>
+                    }
+                  />
+                </div>
+              }
+            >
+              <div className='@container/panel min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4'>
+                <AccordionEditor
+                  order={order}
+                  visibilityState={visibilityState}
+                  onActivate={onActivate}
+                  onUpdateOrder={onUpdateOrder}
+                  onToggleVisibility={onToggleVisibility}
+                />
               </div>
-              <div className='flex shrink-0 items-center gap-1 pt-4'>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon-sm'
-                      aria-label='收起编辑栏'
-                      onClick={onClose}
-                    >
-                      <ArrowRightToLine className='size-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side='bottom'>收起编辑栏</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-
-            {/* 仅此区域滚动，编辑栏整体固定；@container/panel 让内部表单按面板宽度自适应列数 */}
-            <div className='@container/panel min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4'>
-              <AccordionEditor
-                order={order}
-                visibilityState={visibilityState}
-                onActivate={onActivate}
-                onUpdateOrder={onUpdateOrder}
-                onToggleVisibility={onToggleVisibility}
-              />
-            </div>
+            </CheckWorkspace>
           </div>
         </motion.aside>
       )}
     </AnimatePresence>
   )
 }
+
+export default memo(EditPanel)

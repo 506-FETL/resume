@@ -1,15 +1,13 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import * as React from 'react'
-
 // --- Icons ---
 import { CodeBlockIcon } from '@/components/tiptap-icons/code-block-icon'
-
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
-
 // --- Lib ---
 import {
   findNodePosition,
@@ -209,8 +207,17 @@ export function useCodeBlock(config?: UseCodeBlockConfig) {
 
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canToggleState = canToggle(editor)
-  const isActive = editor?.isActive('codeBlock') || false
+
+  const { canToggleState, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canToggleState: canToggle(editor),
+      isActive: editor?.isActive('codeBlock') || false,
+    }),
+  }) ?? {
+    canToggleState: canToggle(null),
+    isActive: false,
+  }
 
   React.useEffect(() => {
     if (!editor) return

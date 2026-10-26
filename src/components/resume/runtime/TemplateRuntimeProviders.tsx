@@ -5,7 +5,7 @@ import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { useMemo } from 'react'
 import { ResumeContextProvider } from '@/components/resume/runtime/context/resume-context'
 import { TemplateResumeDataProvider } from '@/components/resume/runtime/context/resume-data-context'
-import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
+import { getTemplateProjection } from './template-projection'
 import { resolveResumeAppearanceStyles } from '@/lib/resume-template/runtime/resolve-appearance'
 import { normalizeResumeAppearance } from '@/lib/schema'
 
@@ -43,14 +43,10 @@ export function TemplateRuntimeProviders({
     }
   }, [appearance, tokens])
 
-  const commentNodesByKey = useMemo(() => {
-    const { document } = buildCommentAnchorDocument(
-      data,
-      projectionReferenceDate,
-    )
-
-    return new Map(document.nodes.map((node) => [node.nodeKey, node]))
-  }, [data, projectionReferenceDate])
+  const commentNodesByKey = useMemo(
+    () => getTemplateProjection(data, projectionReferenceDate).nodes,
+    [data, projectionReferenceDate],
+  )
 
   const resumeContext = useMemo(
     () => ({

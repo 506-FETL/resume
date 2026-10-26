@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { DateEntry } from '@/lib/schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { ResumeFormSync } from '../shared/resume-form-sync'
 import { SPRING } from '@/lib/motion'
 import { jobIntentFormSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
@@ -38,7 +39,7 @@ const dateEntryOptions: DateEntry[] = [
 
 function JobIntentForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
-  const jobIntent = useResumeStore((state) => state.job_intent)
+  const [jobIntent] = useState(() => useResumeStore.getState().job_intent)
 
   const form = useForm({
     resolver: zodResolver(jobIntentFormSchema),
@@ -47,11 +48,9 @@ function JobIntentForm({ className }: { className?: string }) {
     reValidateMode: 'onChange',
   })
 
-  // 远程协作字段级双向同步（含同字段并发的光标保持）
-  useResumeFormSync(form, 'job_intent', jobIntent)
-
   return (
     <Form {...form}>
+      <ResumeFormSync form={form} section='job_intent' />
       <form id='job-intent-form' className={cn(className)}>
         <motion.div
           layout={!reduceMotion}

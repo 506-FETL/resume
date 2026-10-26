@@ -1,16 +1,14 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
-
 // --- Icons ---
 import { HighlighterIcon } from '@/components/tiptap-icons/highlighter-icon'
 import { useIsMobile } from '@/hooks/use-mobile'
-
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
-
 // --- Lib ---
 import { isMarkInSchema, isNodeTypeSelected } from '@/lib/tiptap-utils'
 
@@ -166,8 +164,17 @@ export function useColorHighlight(config: UseColorHighlightConfig) {
   const { editor } = useTiptapEditor(providedEditor)
   const isMobile = useIsMobile()
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canColorHighlightState = canColorHighlight(editor)
-  const isActive = isColorHighlightActive(editor, highlightColor)
+
+  const { canColorHighlightState, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canColorHighlightState: canColorHighlight(editor),
+      isActive: isColorHighlightActive(editor, highlightColor),
+    }),
+  }) ?? {
+    canColorHighlightState: canColorHighlight(null),
+    isActive: isColorHighlightActive(null, highlightColor),
+  }
 
   React.useEffect(() => {
     if (!editor) return

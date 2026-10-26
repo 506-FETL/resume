@@ -1,10 +1,9 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import type { ListType } from '@/components/tiptap-ui/list-button'
-
 import * as React from 'react'
-
 // --- Icons ---
 import { ListIcon } from '@/components/tiptap-icons/list-icon'
 import { ListOrderedIcon } from '@/components/tiptap-icons/list-ordered-icon'
@@ -15,10 +14,8 @@ import {
   isListActive,
   listIcons,
 } from '@/components/tiptap-ui/list-button'
-
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
-
 // --- Lib ---
 import { isNodeInSchema } from '@/lib/tiptap-utils'
 
@@ -180,9 +177,19 @@ export function useListDropdownMenu(config?: UseListDropdownMenuConfig) {
     [types],
   )
 
-  const canToggleAny = canToggleAnyList(editor, types)
-  const isAnyActive = isAnyListActive(editor, types)
-  const activeType = getActiveListType(editor, types)
+  const { canToggleAny, isAnyActive, activeType } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canToggleAny: canToggleAnyList(editor, types),
+      isAnyActive: isAnyListActive(editor, types),
+      activeType: getActiveListType(editor, types),
+    }),
+  }) ?? {
+    canToggleAny: canToggleAnyList(null, types),
+    isAnyActive: isAnyListActive(null, types),
+    activeType: getActiveListType(null, types),
+  }
+
   const activeList = filteredLists.find((option) => option.type === activeType)
 
   React.useEffect(() => {

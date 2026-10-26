@@ -1,11 +1,9 @@
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import * as React from 'react'
-
 // --- Icons ---
 import { BoldIcon } from '@/components/tiptap-icons/bold-icon'
-
 import { Code2Icon } from '@/components/tiptap-icons/code2-icon'
-
 import { ItalicIcon } from '@/components/tiptap-icons/italic-icon'
 import { StrikeIcon } from '@/components/tiptap-icons/strike-icon'
 import { SubscriptIcon } from '@/components/tiptap-icons/subscript-icon'
@@ -172,8 +170,17 @@ export function useMark(config: UseMarkConfig) {
 
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canToggle = canToggleMark(editor, type)
-  const isActive = isMarkActive(editor, type)
+
+  const { canToggle, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canToggle: canToggleMark(editor, type),
+      isActive: isMarkActive(editor, type),
+    }),
+  }) ?? {
+    canToggle: canToggleMark(null, type),
+    isActive: isMarkActive(null, type),
+  }
 
   React.useEffect(() => {
     if (!editor) return

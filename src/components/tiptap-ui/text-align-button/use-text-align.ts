@@ -1,11 +1,9 @@
+import { useEditorState } from '@tiptap/react'
 import type { ChainedCommands, Editor } from '@tiptap/react'
 import * as React from 'react'
-
 // --- Icons ---
 import { AlignCenterIcon } from '@/components/tiptap-icons/align-center-icon'
-
 import { AlignJustifyIcon } from '@/components/tiptap-icons/align-justify-icon'
-
 import { AlignLeftIcon } from '@/components/tiptap-icons/align-left-icon'
 import { AlignRightIcon } from '@/components/tiptap-icons/align-right-icon'
 // --- Hooks ---
@@ -180,8 +178,17 @@ export function useTextAlign(config: UseTextAlignConfig) {
 
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canAlign = canSetTextAlign(editor, align)
-  const isActive = isTextAlignActive(editor, align)
+
+  const { canAlign, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canAlign: canSetTextAlign(editor, align),
+      isActive: isTextAlignActive(editor, align),
+    }),
+  }) ?? {
+    canAlign: canSetTextAlign(null, align),
+    isActive: isTextAlignActive(null, align),
+  }
 
   React.useEffect(() => {
     if (!editor) return

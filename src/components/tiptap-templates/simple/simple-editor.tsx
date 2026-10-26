@@ -7,12 +7,10 @@ import type { DebouncedMirror } from '@/lib/collaboration/richtext/mirror-deboun
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import * as React from 'react'
 import { AiRewriteBubble } from '@/components/ai-rewrite'
-
 // --- Icons ---
 import { ArrowLeftIcon } from '@/components/tiptap-icons/arrow-left-icon'
 import { HighlighterIcon } from '@/components/tiptap-icons/highlighter-icon'
 import { LinkIcon } from '@/components/tiptap-icons/link-icon'
-
 // --- Components ---
 // --- UI Primitives ---
 import { Button } from '@/components/tiptap-ui-primitive/button'
@@ -24,7 +22,6 @@ import {
 } from '@/components/tiptap-ui-primitive/toolbar'
 import { BlockquoteButton } from '@/components/tiptap-ui/blockquote-button'
 import { CodeBlockButton } from '@/components/tiptap-ui/code-block-button'
-
 import {
   ColorHighlightPopover,
   ColorHighlightPopoverButton,
@@ -44,28 +41,22 @@ import { TextAlignButton } from '@/components/tiptap-ui/text-align-button'
 import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button'
 // --- Hooks ---
 import { useIsMobile } from '@/hooks/use-mobile'
-
 // --- Collab rich-text ---
 import { buildEditorExtensions } from '@/lib/collaboration/richtext/collab-extensions'
 import { createDebouncedMirror } from '@/lib/collaboration/richtext/mirror-debounce'
-
 // --- Lib ---
 import '@/components/tiptap-node/blockquote-node/blockquote-node.scss'
 import '@/components/tiptap-node/code-block-node/code-block-node.scss'
 import '@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss'
-
 import '@/components/tiptap-node/list-node/list-node.scss'
-
 import '@/components/tiptap-node/image-node/image-node.scss'
-
 import '@/components/tiptap-node/heading-node/heading-node.scss'
-
 import '@/components/tiptap-node/paragraph-node/paragraph-node.scss'
 // --- Styles ---
 import '@/components/tiptap-templates/simple/simple-editor.scss'
 import { toast } from 'sonner'
 
-function MainToolbarContent({
+const MainToolbarContent = React.memo(function MainToolbarContent({
   onHighlighterClick,
   onLinkClick,
   isMobile,
@@ -138,7 +129,7 @@ function MainToolbarContent({
       {isMobile && <ToolbarSeparator />}
     </>
   )
-}
+})
 
 function MobileToolbarContent({
   type,
@@ -189,6 +180,13 @@ export function SimpleEditor({
   const [mobileView, setMobileView] = React.useState<
     'main' | 'highlighter' | 'link'
   >('main')
+
+  const showHighlighter = React.useCallback(
+    () => setMobileView('highlighter'),
+    [],
+  )
+
+  const showLink = React.useCallback(() => setMobileView('link'), [])
 
   const toolbarRef = React.useRef<HTMLDivElement>(null)
   const isCollab = Boolean(collab)
@@ -318,6 +316,18 @@ export function SimpleEditor({
     })
   }, [collabAwareness, collabUserName, collabUserColor, collabUserId])
 
+  const fieldSection = fieldContext?.sectionKey
+  const fieldLabel = fieldContext?.fieldLabel
+  const jobIntent = fieldContext?.jobIntent
+
+  const stableFieldContext = React.useMemo(
+    () =>
+      fieldSection && fieldLabel
+        ? { sectionKey: fieldSection, fieldLabel, jobIntent }
+        : undefined,
+    [fieldSection, fieldLabel, jobIntent],
+  )
+
   const editorContextValue = React.useMemo(() => ({ editor }), [editor])
 
   return (
@@ -326,8 +336,8 @@ export function SimpleEditor({
         <Toolbar ref={toolbarRef}>
           {mobileView === 'main' ? (
             <MainToolbarContent
-              onHighlighterClick={() => setMobileView('highlighter')}
-              onLinkClick={() => setMobileView('link')}
+              onHighlighterClick={showHighlighter}
+              onLinkClick={showLink}
               isMobile={isMobile}
             />
           ) : (
@@ -343,8 +353,8 @@ export function SimpleEditor({
           role='presentation'
           className='simple-editor-content'
         />
-        {!isMobile && editor && fieldContext && (
-          <AiRewriteBubble editor={editor} fieldContext={fieldContext} />
+        {!isMobile && editor && stableFieldContext && (
+          <AiRewriteBubble editor={editor} fieldContext={stableFieldContext} />
         )}
       </EditorContext>
     </div>

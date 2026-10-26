@@ -3,9 +3,9 @@ import type { ZodType } from 'zod'
 import type { RemoteFieldArrayAdapters } from '@/hooks/form-remote-sync'
 import type { FormDataMap } from '@/store/resume/const'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMemo } from 'react'
+import { createElement, useMemo } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
-import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { ResumeFormSync } from '../shared/resume-form-sync'
 import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
 
 interface UseResumeFieldFormOptions<
@@ -51,7 +51,15 @@ export function useResumeFieldForm<
     [append, arrayFieldName, remove],
   )
 
-  useResumeFormSync(form, fieldName, storeFormData, remoteFieldArrays)
+  const sync = useMemo(
+    () =>
+      createElement(ResumeFormSync<TFieldValues>, {
+        form,
+        section: fieldName,
+        fieldArrays: remoteFieldArrays,
+      }),
+    [form, fieldName, remoteFieldArrays],
+  )
 
   function onAddItem() {
     if (defaultItem) {
@@ -62,5 +70,5 @@ export function useResumeFieldForm<
     }
   }
 
-  return { form, fields, append, remove, move, onAddItem }
+  return { form, fields, append, remove, move, onAddItem, sync }
 }

@@ -1,17 +1,15 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import * as React from 'react'
-
 // --- Icons ---
 import { ListIcon } from '@/components/tiptap-icons/list-icon'
-
 import { ListOrderedIcon } from '@/components/tiptap-icons/list-ordered-icon'
 import { ListTodoIcon } from '@/components/tiptap-icons/list-todo-icon'
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
-
 // --- Lib ---
 import {
   findNodePosition,
@@ -270,8 +268,17 @@ export function useList(config: UseListConfig) {
 
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canToggle = canToggleList(editor, type)
-  const isActive = isListActive(editor, type)
+
+  const { canToggle, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canToggle: canToggleList(editor, type),
+      isActive: isListActive(editor, type),
+    }),
+  }) ?? {
+    canToggle: canToggleList(null, type),
+    isActive: isListActive(null, type),
+  }
 
   React.useEffect(() => {
     if (!editor) return

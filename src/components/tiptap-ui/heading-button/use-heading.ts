@@ -1,13 +1,11 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import * as React from 'react'
-
 import { HeadingFiveIcon } from '@/components/tiptap-icons/heading-five-icon'
-
 import { HeadingFourIcon } from '@/components/tiptap-icons/heading-four-icon'
-
 // --- Icons ---
 import { HeadingOneIcon } from '@/components/tiptap-icons/heading-one-icon'
 import { HeadingSixIcon } from '@/components/tiptap-icons/heading-six-icon'
@@ -276,8 +274,17 @@ export function useHeading(config: UseHeadingConfig) {
 
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canToggleState = canToggle(editor, level)
-  const isActive = isHeadingActive(editor, level)
+
+  const { canToggleState, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canToggleState: canToggle(editor, level),
+      isActive: isHeadingActive(editor, level),
+    }),
+  }) ?? {
+    canToggleState: canToggle(null, level),
+    isActive: isHeadingActive(null, level),
+  }
 
   React.useEffect(() => {
     if (!editor) return

@@ -2,7 +2,6 @@
 'use client'
 
 import * as React from 'react'
-
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
@@ -107,7 +106,7 @@ export function SidebarProvider({
             } as React.CSSProperties
           }
           className={cn(
-            'group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full',
+            'group/sidebar-wrapper flex min-h-svh w-full has-[>[data-variant=inset]]:bg-sidebar',
             className,
           )}
           {...props}

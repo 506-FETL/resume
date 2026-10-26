@@ -1,9 +1,16 @@
-import { FileDown } from 'lucide-react'
+import { FileDown, ListChecks } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { DURATION } from '@/lib/motion'
 import useResumeStore from '@/store/resume/form'
 import { useResumeReviewStore } from '../../review-store'
+import { useResumeCheckStore } from '../../store/checks'
+import {
+  CHECK_LEVELS,
+  highestCheckSeverity,
+} from '../../utils/check-presentation'
 import ExportDialog from '../export'
 import Preparation from '../preparation'
 import { FontSettings } from './font-settings'
@@ -14,15 +21,21 @@ import { VariantLineageButton } from './variant-lineage-button'
 
 export default function ResumeConfigToolbar() {
   const isMobile = useIsMobile()
+  const reduced = useReducedMotion()
   const isToolbarLoading = useResumeStore((state) => !state.isInitialized)
   const reviewActive = useResumeReviewStore((state) => state.active)
   const editingDisabled = isToolbarLoading || reviewActive
+  const requestChecks = useResumeCheckStore((state) => state.requestChecks)
+
+  const issues = useResumeCheckStore((state) => state.issues)
+  const count = issues.filter((issue) => !issue.resolved).length
+  const severity = highestCheckSeverity(issues)
 
   return (
     <div
       role='group'
       aria-label='简历工具栏'
-      className='flex min-w-0 flex-wrap items-center justify-center gap-1.5 sm:gap-2'
+      className='flex min-w-0 flex-wrap items-center justify-center gap-1 sm:gap-2 @max-[46rem]/editor-toolbar:[&_button]:size-8 @max-[46rem]/editor-toolbar:[&_button]:p-0 @max-[46rem]/editor-toolbar:[&_button>span]:hidden'
     >
       <div
         role='group'
@@ -37,7 +50,7 @@ export default function ResumeConfigToolbar() {
       </div>
       <Separator
         orientation='vertical'
-        className='mx-0.5 hidden h-5 sm:block'
+        className='mx-0.5 hidden h-5 sm:block @max-[46rem]/editor-toolbar:hidden'
       />
       <div
         role='group'
@@ -48,7 +61,20 @@ export default function ResumeConfigToolbar() {
 
         <VariantLineageButton reviewActive={reviewActive} />
       </div>
-      <Preparation />
+      <Preparation isMobile={isMobile} />
+      <Button
+        variant='outline'
+        size={isMobile ? 'icon' : 'sm'}
+        disabled={editingDisabled}
+        data-severity={severity}
+        className={severity ? CHECK_LEVELS[severity].control : undefined}
+        style={{ transitionDuration: `${reduced ? 0 : DURATION.fast}s` }}
+        aria-label={`检查简历${count ? `，${count}项待查看` : ''}${severity ? `，包含${CHECK_LEVELS[severity].label}` : ''}`}
+        onClick={() => requestChecks()}
+      >
+        <ListChecks data-icon='inline-start' />
+        {!isMobile && <span>检查{count ? ` ${count}` : ''}</span>}
+      </Button>
       <ExportDialog
         trigger={
           <Button

@@ -63,7 +63,15 @@ export function DashboardShell({
       <AppSidebar variant='floating' />
       <SidebarInset className='min-h-0 overflow-hidden'>
         {!fullBleed && (
-          <header className='sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)'>
+          <header
+            className={cn(
+              'sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60',
+              !sidebarOpen &&
+                (routeKey.startsWith('/resume/editor')
+                  ? 'md:h-auto'
+                  : 'md:h-(--header-height)'),
+            )}
+          >
             <SiteHeader />
           </header>
         )}

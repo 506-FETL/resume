@@ -20,6 +20,8 @@ interface HighlighterProps {
   color?: string
   strokeWidth?: number
   animationDuration?: number
+  /** 显式指定时覆盖系统动效偏好；未指定时遵循减少动效设置。 */
+  animate?: boolean
   iterations?: number
   padding?: number
   multiline?: boolean
@@ -32,12 +34,14 @@ export function Highlighter({
   color = '#ffd1dc',
   strokeWidth = 1.5,
   animationDuration = DURATION.slow * 1000,
+  animate,
   iterations = 2,
   padding = 2,
   multiline = true,
   isView = false,
 }: HighlighterProps) {
   const reduceMotion = useReducedMotion()
+  const shouldAnimate = animate ?? !reduceMotion
   const elementRef = useRef<HTMLSpanElement>(null)
   const annotationRef = useRef<RoughAnnotation | null>(null)
 
@@ -60,8 +64,8 @@ export function Highlighter({
       type: action,
       color,
       strokeWidth,
-      animationDuration: reduceMotion ? 0 : animationDuration,
-      animate: !reduceMotion,
+      animationDuration: shouldAnimate ? animationDuration : 0,
+      animate: shouldAnimate,
       iterations,
       padding,
       multiline,
@@ -104,7 +108,7 @@ export function Highlighter({
     iterations,
     padding,
     multiline,
-    reduceMotion,
+    shouldAnimate,
   ])
 
   return (

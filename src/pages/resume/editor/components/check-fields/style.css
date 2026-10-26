@@ -1,0 +1,41 @@
+.resume-check-fields [data-feedback='error'] {
+  --field-check-color: var(--color-red-400);
+}
+
+.resume-check-fields [data-feedback='warning'] {
+  --field-check-color: var(--color-amber-400);
+}
+
+.resume-check-fields [data-feedback='suggestion'] {
+  --field-check-color: var(--color-blue-400);
+}
+
+.resume-check-fields [data-slot='form-label'] {
+  transition: color var(--field-check-duration) var(--field-check-ease);
+}
+
+.resume-check-fields
+  [data-form-field]
+  :is(
+    input,
+    textarea,
+    [role='combobox'],
+    button[aria-haspopup='dialog'],
+    .simple-editor-wrapper
+  ) {
+  transition:
+    border-color var(--field-check-duration) var(--field-check-ease),
+    box-shadow var(--field-check-duration) var(--field-check-ease);
+}
+
+.resume-check-fields
+  [data-feedback]
+  :is(
+    input:not([type='hidden']),
+    textarea,
+    [role='combobox'],
+    button[aria-haspopup='dialog'],
+    .simple-editor-wrapper
+  ) {
+  border-color: var(--field-check-color);
+}

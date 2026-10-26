@@ -28,7 +28,7 @@ import { RichTextFieldEditor } from '../shared/rich-text-field-editor'
 
 function HobbiesForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
-  const hobbies = useResumeStore((state) => state.hobbies)
+  const [hobbies] = useState(() => useResumeStore.getState().hobbies)
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
   const isMobile = useIsMobile()
   const [customHobbyInput, setCustomHobbyInput] = useState('')
@@ -41,7 +41,7 @@ function HobbiesForm({ className }: { className?: string }) {
     [hobbies.description, hobbies.hobbies],
   )
 
-  const { form, fields, append, remove } = useResumeFieldForm({
+  const { form, fields, append, remove, sync } = useResumeFieldForm({
     fieldName: 'hobbies',
     schema: hobbiesFormSchema,
     storeFormData,
@@ -89,6 +89,7 @@ function HobbiesForm({ className }: { className?: string }) {
 
   return (
     <Form {...form}>
+      {sync}
       <form id='hobbies-form'>
         <div className={cn('space-y-6', className)}>
           <FormField

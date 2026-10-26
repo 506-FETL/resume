@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import {
   ArrowUpDown,
   Clock,
@@ -35,11 +36,15 @@ interface CollaborationControlsProps {
   onOpenSortDialog?: () => void
   /** 侧栏形态：不使用 Drawer 原语，改用普通元素 */
   plain?: boolean
+  actions?: ReactNode
+  headingAction?: ReactNode
 }
 
 export function CollaborationControls({
   onOpenSortDialog,
   plain = false,
+  actions,
+  headingAction,
 }: CollaborationControlsProps = {}) {
   const {
     isMobile,
@@ -84,13 +89,14 @@ export function CollaborationControls({
           : 'idle'
 
   const body = (
-    <div className='text-sm text-muted-foreground flex flex-wrap items-center gap-3'>
-      <div className='flex items-center gap-2 mt-4'>
+    <div className='text-sm text-muted-foreground flex flex-wrap items-center gap-2'>
+      <div className='flex flex-wrap items-center gap-2'>
         <Button
           size={isMobile ? 'icon' : 'sm'}
           variant='outline'
           onClick={onManualSync}
           disabled={isSyncing || !pendingChanges}
+          aria-label='手动保存'
         >
           <Save className='size-4' />
           {!isMobile && '手动保存'}
@@ -103,6 +109,10 @@ export function CollaborationControls({
                 variant={isSharing ? 'default' : 'outline'}
                 onClick={openCollaborationDialog}
                 disabled={Boolean(collabDisabledReason) || isCollabConnecting}
+                aria-label={
+                  collaborationConnectionLabel ??
+                  (isSharing ? '协作中' : '开启协作')
+                }
                 className={cn(
                   'transition-colors',
                   isSharing &&
@@ -133,6 +143,7 @@ export function CollaborationControls({
           onClick={() => resumeId && openQuickDialog(resumeId, resumeName)}
           disabled={!canShare}
           title={shareDisabledReason}
+          aria-label='分享简历'
         >
           <Link2 className='size-4' />
           {!isMobile && '分享'}
@@ -154,11 +165,12 @@ export function CollaborationControls({
           </Button>
         )}
       </div>
+      {actions}
     </div>
   )
 
   return (
-    <HeaderTag className={cn('relative', plain && 'flex flex-col gap-1.5 p-4')}>
+    <HeaderTag className={cn('relative gap-3', plain && 'flex flex-col p-4')}>
       <div className='flex min-w-0 items-center gap-3'>
         <TitleTag className='flex min-w-0 items-center gap-2 font-semibold'>
           {isOffline ? (
@@ -191,6 +203,9 @@ export function CollaborationControls({
             })}
           </AnimatedContent>
         </span>
+        {headingAction && (
+          <div className='ml-auto shrink-0'>{headingAction}</div>
+        )}
       </div>
       {plain ? body : <DrawerDescription render={body} />}
     </HeaderTag>

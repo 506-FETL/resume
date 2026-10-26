@@ -16,6 +16,7 @@ interface ResumeExportState {
   sourceRef: RefObject<HTMLDivElement | null> | null
   handlePrint: (() => Promise<boolean>) | null
   documentState: ResumeDocumentState
+  isSourceCurrent: (() => boolean) | null
   setSourceRef: (ref: RefObject<HTMLDivElement | null>) => void
   setHandlePrint: (handlePrint: (() => Promise<boolean>) | null) => void
   setDocumentState: (state: ResumeDocumentState) => void
@@ -25,6 +26,7 @@ interface ResumeExportState {
 
 const useResumeExportStore = create<ResumeExportState>((set, get) => ({
   sourceRef: null,
+  isSourceCurrent: null,
   handlePrint: null,
   documentState: {
     status: 'measuring',
@@ -47,9 +49,13 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
   },
 
   exportToPdf: async () => {
-    const { documentState, handlePrint } = get()
+    const { documentState, handlePrint, isSourceCurrent } = get()
 
-    if (documentState.status !== 'ready' || !handlePrint) {
+    if (
+      documentState.status !== 'ready' ||
+      !handlePrint ||
+      !isSourceCurrent?.()
+    ) {
       toast.warning(documentState.error || '简历分页准备中')
 
       return
@@ -65,11 +71,17 @@ const useResumeExportStore = create<ResumeExportState>((set, get) => ({
   },
 
   exportToDoc: () => {
-    const { sourceRef } = get()
+    const { sourceRef, documentState, isSourceCurrent } = get()
     const resumeName = useResumeStore.getState().basics.name
 
     if (!sourceRef?.current) {
       toast.warning('简历加载中')
+
+      return
+    }
+
+    if (documentState.status !== 'ready' || !isSourceCurrent?.()) {
+      toast.warning(documentState.error || '简历分页准备中')
 
       return
     }

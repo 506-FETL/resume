@@ -48,7 +48,10 @@ const degreeOptions: Degree[] = [
 ]
 
 function EduBackgroundForm({ className }: { className?: string }) {
-  const eduBackground = useResumeStore((state) => state.edu_background)
+  const [eduBackground] = useState(
+    () => useResumeStore.getState().edu_background,
+  )
+
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
 
   const [isUptoNow, setIsUptoNow] = useState(
@@ -64,7 +67,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
     [eduBackground.items],
   )
 
-  const { form, fields, remove, move, onAddItem } = useResumeFieldForm({
+  const { form, fields, remove, move, onAddItem, sync } = useResumeFieldForm({
     fieldName: 'edu_background',
     schema: eduBackgroundFormSchema,
     storeFormData,
@@ -74,6 +77,7 @@ function EduBackgroundForm({ className }: { className?: string }) {
 
   return (
     <ResumeFieldFormSection
+      sync={sync}
       form={form}
       fields={fields}
       remove={remove}

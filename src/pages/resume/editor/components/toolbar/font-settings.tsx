@@ -32,7 +32,7 @@ export function FontSettings({ isMobile, disabled }: FontSettingsProps) {
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          aria-label={isMobile ? '字体设置' : undefined}
+          aria-label='字体设置'
           variant='outline'
           size={isMobile ? 'icon' : 'sm'}
           className={cn(isMobile && 'size-9')}

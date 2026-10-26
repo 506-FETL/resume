@@ -19,6 +19,7 @@ import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 interface ResumeFieldFormSectionProps<TFieldValues extends FieldValues> {
+  sync: ReactNode
   form: UseFormReturn<TFieldValues>
   fields: FieldArrayWithId<TFieldValues>[]
   remove: (index: number) => void
@@ -36,6 +37,7 @@ interface ResumeFieldFormSectionProps<TFieldValues extends FieldValues> {
 }
 
 export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
+  sync,
   form,
   fields,
   remove,
@@ -53,6 +55,7 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
 
   return (
     <Form {...form}>
+      {sync}
       <form id={formId} className={cn('flex flex-col gap-6', className)}>
         {fields.map((item, index) => {
           const hidden = form.watch(`items.${index}.hidden` as any)
