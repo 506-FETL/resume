@@ -3,8 +3,9 @@ import type { ResumeCheckResult } from '@/lib/resume-checks/types'
 import { useEffect, useRef } from 'react'
 import { useDebouncedValue } from '@/hooks/use-debounce'
 import { checkResume } from '@/lib/resume-checks/rules'
+import { derivedEvidence } from '@/lib/resume-preparation/evidence'
 import {
-  useDerivedEvidence,
+  useDerivedMetadata,
   usePreparationRecord,
 } from '@/lib/resume-preparation/hooks'
 import useResumeConfigStore from '@/store/resume/config'
@@ -27,7 +28,7 @@ export function useResumeChecks() {
   const resumeId = form.currentResumeId
   const identity = `${ownerId ?? 'guest'}:${resumeId}`
   const preparation = usePreparationRecord(resumeId, form.isInitialized)
-  const derived = useDerivedEvidence(resumeId, form, form.isInitialized)
+  const derived = useDerivedMetadata(resumeId, form.isInitialized)
   const revision = useResumeCheckStore((state) => state.revision)
   const proofreadIssues = useResumeCheckStore((state) => state.proofreadIssues)
   const layoutIssues = useResumeCheckStore((state) => state.layoutIssues)
@@ -41,7 +42,6 @@ export function useResumeChecks() {
   const snapshot = form.isInitialized ? form.getPersistedSnapshot() : null
 
   const snapshotSignature = snapshot ? JSON.stringify(snapshot) : ''
-  const evidenceSignature = JSON.stringify(derived.evidence)
   const inputKey = JSON.stringify([identity, snapshotSignature])
   const settledInput = useDebouncedValue(inputKey, INPUT_CHECK_DELAY)
 
@@ -114,10 +114,10 @@ export function useResumeChecks() {
       ...base,
       evidence: [
         ...new Map(
-          [...derived.evidence, ...base.evidence].map((item) => [
-            item.id,
-            item,
-          ]),
+          [
+            ...derivedEvidence(derived.metadata, snapshot),
+            ...base.evidence,
+          ].map((item) => [item.id, item]),
         ).values(),
       ],
     }
@@ -229,7 +229,7 @@ export function useResumeChecks() {
     snapshotSignature,
     inputKey,
     settledInput,
-    evidenceSignature,
+    derived.metadata,
     preparation.record,
     preparation.loading,
     preparation.refreshing,

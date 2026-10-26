@@ -1,10 +1,9 @@
 import type { PreparationRecord } from './types'
-import type { ResumeSchema, VariantMetadata } from '@/lib/schema'
+import type { VariantMetadata } from '@/lib/schema'
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { getAccessibleResumeById } from '@/lib/resume-access'
 import useUserStore from '@/store/user'
 import {
-  derivedEvidence,
   flushPendingEvidence,
   getEvidenceRevision,
   subscribeEvidence,
@@ -125,11 +124,7 @@ export function usePreparationRecord(resumeId: string | null, enabled = true) {
 }
 
 /** JD 派生证据从当前可访问的真实记录读取，读取失败时不把未知当作没有 AI。 */
-export function useDerivedEvidence(
-  resumeId: string | null,
-  content: ResumeSchema,
-  enabled: boolean,
-) {
+export function useDerivedMetadata(resumeId: string | null, enabled: boolean) {
   const ownerId = useUserStore((state) => state.currentUser?.id ?? null)
   const [attempt, setAttempt] = useState(0)
   const key = `${ownerId ?? 'guest'}:${resumeId}:${enabled}`
@@ -175,7 +170,7 @@ export function useDerivedEvidence(
   }, [enabled, resumeId, ownerId, key, attempt])
 
   return {
-    evidence: state.key === key ? derivedEvidence(state.metadata, content) : [],
+    metadata: state.key === key ? state.metadata : null,
     loading: state.key !== key || state.loading,
     error: state.key === key ? state.error : null,
     retry: () => setAttempt((value) => value + 1),

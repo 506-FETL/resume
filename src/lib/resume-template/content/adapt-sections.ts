@@ -356,6 +356,6 @@ export function adaptSections(
 
     const blocks = section.blocks.flatMap(cleanBlock)
 
-    return blocks.length ? [{ ...section, blocks }] : []
+    return [{ ...section, blocks }]
   })
 }
