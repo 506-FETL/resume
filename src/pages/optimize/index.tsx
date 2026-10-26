@@ -1,3 +1,5 @@
+import { useJobContextStore } from '@/lib/job-context'
+import { JobContextBar } from '@/components/job-context'
 import { useEffect } from 'react'
 import { PageLayout } from '@/components/layout/page-layout'
 import AdvancedTools from './components/advanced-tools'
@@ -11,16 +13,24 @@ import RepairChecklist from './components/repair-checklist'
 import useAtsStore from './store'
 
 function Optimize() {
+  const jobContext = useJobContextStore((state) => state.context)
   const init = useAtsStore((state) => state.init)
   const scores = useAtsStore((state) => state.currentAtsConfig?.scores)
   const loading = useAtsStore((state) => state.loading)
 
   useEffect(() => {
+    if (jobContext?.resumeId) {
+      useAtsStore.getState().setAdvancedToolOpen(false)
+      useAtsStore.getState().setAdvancedToolResumeContext(null)
+      useAtsStore.getState().setSelectedResume(jobContext.resumeId, 'online')
+    }
+
     init()
-  }, [init])
+  }, [init, jobContext])
 
   return (
     <PageLayout>
+      <JobContextBar />
       <Header />
       <OptimizeDashboard />
 

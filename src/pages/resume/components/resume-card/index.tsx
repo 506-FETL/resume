@@ -1,3 +1,9 @@
+import {
+  bindJobResume,
+  jobContextUrl,
+  useJobContextStore,
+} from '@/lib/job-context'
+import { toast } from 'sonner'
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from '../../types'
 import {
@@ -11,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,9 +41,13 @@ import { VariantBadge } from './variant-badge'
 
 interface ResumeCardProps {
   resume: ResumeItem
+  onPrepareForJob?: () => Promise<void>
 }
 
-export default function ResumeCard({ resume }: ResumeCardProps) {
+export default function ResumeCard({
+  resume,
+  onPrepareForJob,
+}: ResumeCardProps) {
   const { deleteResume, updateResume, openDeriveFor, resumes } =
     useResumeListStore()
 
@@ -45,6 +55,7 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
   const { openDialog: openQuickDialog } = useShareStore()
 
   const navigate = useNavigate()
+  const [routeParams] = useSearchParams()
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
@@ -71,9 +82,32 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
     updateResume(resume.resume_id, updates)
   }
 
-  const handleCardClick = () => {
-    setCurrentResume(resume.resume_id, resume.type)
-    navigate('/resume/editor')
+  const handleCardClick = async () => {
+    const jobId = routeParams.get('jobId')
+
+    try {
+      if (jobId) {
+        if (resume.isOffline) {
+          toast.info('请先将这份简历同步到云端，再用于岗位准备')
+
+          return
+        }
+
+        const context = await bindJobResume(jobId, resume.resume_id)
+
+        if (useJobContextStore.getState().context?.id !== jobId) return
+
+        useJobContextStore.getState().setContext(context)
+      }
+
+      setCurrentResume(resume.resume_id, resume.type)
+
+      navigate(
+        jobId ? jobContextUrl('/resume/editor', jobId) : '/resume/editor',
+      )
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '关联失败，请重试')
+    }
   }
 
   const handleDeleteConfirm = () => {
@@ -129,6 +163,16 @@ export default function ResumeCard({ resume }: ResumeCardProps) {
         className={cn('group h-full shadow-xs', appearance.border)}
         contentClassName='flex h-full min-h-56 flex-col p-4'
       >
+        {onPrepareForJob && (
+          <Button
+            size='sm'
+            variant='outline'
+            className='relative z-1 mb-3'
+            onClick={onPrepareForJob}
+          >
+            设为此岗位准备中的简历
+          </Button>
+        )}
         <button
           type='button'
           aria-label={`编辑${resume.display_name || '未命名简历'}`}

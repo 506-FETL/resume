@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react'
 import type { Resume } from './types'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
@@ -18,9 +18,9 @@ import { useDashboardMode } from './hooks/use-dashboard-mode'
 import {
   ActivityCard,
   AtsTrendCard,
-  FollowUpCard,
   FunnelCard,
 } from './components/insight-cards'
+import JobPriorities from './components/job-priorities'
 import StatisticalCard from './components/statistical-card'
 import { TodoCard } from './components/todo'
 import {
@@ -284,10 +284,14 @@ export default function DashboardPage() {
             )}
             {mode === 'workspace' && (
               <>
+                <motion.div variants={item}>
+                  <JobPriorities resources={resources} />
+                </motion.div>
                 <div className='flex flex-col gap-2 empty:hidden'>
                   {Object.entries(resources).map(
                     ([key, resource]) =>
-                      resource.error && (
+                      resource.error &&
+                      key !== 'pendingMaterials' && (
                         <ResourceError
                           key={key}
                           label={
@@ -318,37 +322,6 @@ export default function DashboardPage() {
                     hasCloudResume={insights.hasCloudResume}
                   />
                 </motion.div>
-
-                <AnimatePresence initial={false}>
-                  {!extras.followUpsLoading && extras.followUps.length > 0 && (
-                    <motion.div
-                      key='follow-ups'
-                      initial={{
-                        opacity: reduceMotion ? 1 : 0,
-                        height: reduceMotion ? 'auto' : 0,
-                      }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{
-                        opacity: 0,
-                        height: 0,
-                        transition: {
-                          duration: reduceMotion ? 0 : DURATION.fast,
-                          ease: EASE.in,
-                        },
-                      }}
-                      transition={{
-                        duration: reduceMotion ? 0 : DURATION.base,
-                        ease: EASE.out,
-                      }}
-                      className='overflow-hidden'
-                    >
-                      <FollowUpCard
-                        followUps={extras.followUps}
-                        total={extras.followUpTotal}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 <motion.div variants={item}>
                   <StatisticalCard

@@ -155,6 +155,15 @@ export default function VersionDialog({
     if (busy || !renderedShare || !isPublishableVersionSelection(selection))
       return
 
+    if (
+      renderedShare.purpose === 'application' &&
+      selection.kind === 'current'
+    ) {
+      toast.error('正式投递链接需要固定版本，请选择历史版本')
+
+      return
+    }
+
     const submittedSelection = selection
     const versionsBeforePublish = versionEntry?.items ?? []
 
@@ -227,6 +236,11 @@ export default function VersionDialog({
         <div className='min-w-0 space-y-2'>
           <VersionSelector
             value={selection}
+            currentDisabled={renderedShare?.purpose === 'application'}
+            historyDisabled={
+              renderedShare?.purpose === 'review' ||
+              renderedShare?.purpose === 'showcase'
+            }
             versions={versionEntry?.items ?? []}
             loading={versionEntry?.loading ?? false}
             error={versionEntry?.error ?? null}
@@ -242,6 +256,11 @@ export default function VersionDialog({
           {selection.kind === 'deleted-history' && (
             <p className='rounded-md bg-destructive/8 px-3 py-2 text-sm text-destructive'>
               原历史版本已删除，当前链接仍保留发布时的快照。请选择新的版本后再发布。
+            </p>
+          )}
+          {renderedShare?.purpose === 'application' && (
+            <p className='text-xs text-muted-foreground'>
+              正式投递只允许发布固定的历史版本。
             </p>
           )}
           <p className='text-xs text-muted-foreground'>

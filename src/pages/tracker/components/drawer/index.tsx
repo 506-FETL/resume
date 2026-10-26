@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import type { ComponentProps, CSSProperties } from 'react'
 import type { ApplicationStatus, DrawerTab } from '../../types'
 import {
@@ -74,6 +75,7 @@ import ViewTransition from '../view-transition'
 import ActivityTimeline from './activity-timeline'
 import Contacts from './contacts'
 import DrawerDocument from './document/index'
+import SubmissionList from './submission-list'
 import DrawerEditForm from './edit-form'
 import DrawerMetaBar from './meta-bar'
 import NextActionSection from './next-action'
@@ -113,6 +115,9 @@ function JobDrawer() {
   const isMobile = useIsMobile()
   const reduce = useReducedMotion()
   const underlineId = useId()
+  const [routeParams] = useSearchParams()
+  const routeTab = routeParams.get('tab')
+  const routeJobId = routeParams.get('jobId')
   const [activeTab, setActiveTab] = useState<DrawerTab>('follow-up')
   const [isEditing, setIsEditing] = useState(false)
 
@@ -151,12 +156,18 @@ function JobDrawer() {
   useLayoutEffect(() => {
     if (!drawerOpen) return
 
-    setActiveTab('follow-up')
+    setActiveTab(
+      selectedJob?.id === routeJobId &&
+        (routeTab === 'documents' || routeTab === 'interview')
+        ? routeTab
+        : 'follow-up',
+    )
+
     setIsEditing(false)
     setViewingStage(null)
     setResumeOpen(false)
     setConfirmKind(null)
-  }, [selectedJob?.id, drawerOpen])
+  }, [selectedJob?.id, drawerOpen, routeJobId, routeTab])
 
   const handleOpenChange = (
     newOpen: boolean,
@@ -164,14 +175,19 @@ function JobDrawer() {
       NonNullable<ComponentProps<typeof Drawer>['onOpenChange']>
     >[1],
   ) => {
-    // Radix 浮层独立于 Base UI 的浮层树，Esc 只关闭当前确认框、选择器或日历。
+    // Radix 可能先卸载日历节点，用原始事件路径识别浮层，Esc 只关闭当前层。
     if (
       !newOpen &&
       details?.reason === 'escape-key' &&
-      details.event.target instanceof Element &&
-      details.event.target.closest(
-        '[role="alertdialog"], [role="listbox"], [role="menu"], [data-slot="popover-content"]',
-      )
+      details.event
+        .composedPath()
+        .some(
+          (node) =>
+            node instanceof Element &&
+            node.matches(
+              '[data-slot="dialog-content"], [role="alertdialog"], [role="listbox"], [role="menu"], [data-slot="popover-content"]',
+            ),
+        )
     ) {
       details.cancel()
 
@@ -591,6 +607,10 @@ function JobDrawer() {
                           key={selectedJob.id}
                           open={resumeOpen}
                           onOpenChange={setResumeOpen}
+                        />
+                        <SubmissionList
+                          key={selectedJob.id}
+                          jobId={selectedJob.id}
                         />
                       </div>
                     )}

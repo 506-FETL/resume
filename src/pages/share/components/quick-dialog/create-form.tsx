@@ -1,3 +1,6 @@
+import type { SharePurpose } from '@/lib/supabase/resume/share.types'
+import { sharePurposeDefaults } from '@/lib/share-purpose'
+import PurposeFields from '../purpose-fields'
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import type {
   CreateShareOptions,
@@ -37,6 +40,20 @@ export function CreateForm({
     kind: 'current',
   })
 
+  const [purpose, setPurpose] = useState<SharePurpose>('review')
+  const [showPhone, setShowPhone] = useState(true)
+  const [showEmail, setShowEmail] = useState(true)
+
+  const changePurpose = (value: SharePurpose) => {
+    const defaults = sharePurposeDefaults(value)
+
+    setPurpose(value)
+    setShowPhone(defaults.showPhone)
+    setShowEmail(defaults.showEmail)
+    setAllowComments(defaults.allowComments)
+    setSelection({ kind: 'current' })
+  }
+
   const [label, setLabel] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -52,7 +69,13 @@ export function CreateForm({
         label: label.trim() || null,
         password: password.trim() || null,
         expiresAt: dateToExpiryIso(expiresAt),
-        allowComments,
+        purpose,
+        showPhone,
+        showEmail,
+        allowComments:
+          purpose === 'showcase' || !showPhone || !showEmail
+            ? false
+            : allowComments,
       })
 
       if (!created) return
@@ -61,6 +84,7 @@ export function CreateForm({
       setPassword('')
       setShowPassword(false)
       setExpiresAt(undefined)
+      changePurpose('review')
       setAllowComments(true)
       setSelection({ kind: 'current' })
     } finally {
@@ -71,14 +95,24 @@ export function CreateForm({
   return (
     <div className='min-w-0 flex flex-col gap-3 rounded-lg border p-4'>
       <FieldGroup className='grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2'>
+        <PurposeFields
+          purpose={purpose}
+          showPhone={showPhone}
+          showEmail={showEmail}
+          onPurposeChange={changePurpose}
+          onShowPhoneChange={setShowPhone}
+          onShowEmailChange={setShowEmail}
+          disabled={submitting}
+        />
         <Field className='min-w-0 sm:col-span-2'>
           <FieldLabel>分享版本</FieldLabel>
           <VersionSelector
             value={selection}
+            freezeCurrent={purpose === 'application'}
             versions={versions}
             loading={versionsLoading}
             error={versionsError}
-            disabled={submitting}
+            disabled={submitting || purpose !== 'application'}
             onChange={setSelection}
             onRetry={onRetryVersions}
           />
@@ -128,8 +162,12 @@ export function CreateForm({
           <FieldLabel htmlFor='quick-share-comments'>允许访问者评论</FieldLabel>
           <Switch
             id='quick-share-comments'
-            checked={allowComments}
-            disabled={submitting}
+            checked={
+              purpose !== 'showcase' && showPhone && showEmail && allowComments
+            }
+            disabled={
+              submitting || purpose === 'showcase' || !showPhone || !showEmail
+            }
             onCheckedChange={setAllowComments}
           />
         </Field>

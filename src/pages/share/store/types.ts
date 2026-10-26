@@ -9,6 +9,8 @@ import type {
 } from '@/lib/supabase/resume/share.types'
 
 export interface SettingsPayload {
+  showPhone?: boolean
+  showEmail?: boolean
   label: string | null
   expiresAt: string | null
   password: string | null | undefined

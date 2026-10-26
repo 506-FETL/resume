@@ -4,6 +4,7 @@ import { useReducedMotion } from 'motion/react'
 import { memo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -39,7 +40,7 @@ export const ColumnCard = memo(({ job }: ColumnCardProps) => {
   return (
     <Card
       className={cn(
-        'group gap-0 cursor-pointer rounded-lg border border-border/70 bg-card p-0 shadow-none ring-0 transition-[background-color,border-color,box-shadow] hover:border-foreground/20 hover:bg-accent/20 hover:shadow-sm',
+        'group gap-0 cursor-grab rounded-lg border border-border/70 bg-card p-0 shadow-none ring-0 transition-[background-color,border-color,box-shadow] select-none hover:border-foreground/20 hover:bg-accent/20 hover:shadow-sm active:cursor-grabbing',
         isSelected && 'border-primary bg-primary/5',
         job.archived && 'opacity-60',
       )}
@@ -50,7 +51,7 @@ export const ColumnCard = memo(({ job }: ColumnCardProps) => {
       onClick={handleClick}
     >
       <div className='flex items-start gap-2 p-2.5'>
-        <div className='mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground'>
+        <div className='pointer-events-none mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground'>
           <CompanyLogo
             logo={job.company_logo}
             company={job.company}
@@ -58,13 +59,15 @@ export const ColumnCard = memo(({ job }: ColumnCardProps) => {
           />
         </div>
         <div className='min-w-0 flex-1'>
-          <button
+          <Button
             type='button'
+            variant='ghost'
             onClick={(event) => {
               event.stopPropagation()
               handleClick()
             }}
-            className='block w-full rounded-sm text-left text-sm font-semibold leading-5 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            // 指针交给整张卡片开始拖动；按钮仍接收 Tab、Enter 和空格。
+            className='pointer-events-none block h-auto w-full rounded-sm border-0 p-0 text-left text-sm leading-5 font-semibold whitespace-normal text-foreground hover:bg-transparent'
             aria-label={
               isSelectMode
                 ? `选择 ${job.position}`
@@ -72,7 +75,7 @@ export const ColumnCard = memo(({ job }: ColumnCardProps) => {
             }
           >
             <span className='line-clamp-2 break-words'>{job.position}</span>
-          </button>
+          </Button>
           <div className='mt-1 flex min-w-0 items-center gap-1 text-xs leading-4 text-muted-foreground'>
             <span className='min-w-12 flex-1 truncate' title={job.company}>
               {job.company}

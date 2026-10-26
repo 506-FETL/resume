@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { COMMON_CITIES, COMMON_COMPANIES, COMMON_POSITIONS } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
@@ -48,6 +49,8 @@ export default function DrawerEditForm({
     salaryMax: parsedSalary.max,
     job_url: selectedJob?.job_url || '',
     company_logo: selectedJob?.company_logo || '',
+    jd_text: selectedJob?.jd_text || '',
+    source: selectedJob?.source || '',
   })
 
   const handleChange = (field: string, value: string) => {
@@ -55,7 +58,8 @@ export default function DrawerEditForm({
   }
 
   const handleSubmit = async () => {
-    if (!selectedJob) return
+    if (!selectedJob || !formData.company.trim() || !formData.position.trim())
+      return
 
     setSaving(true)
 
@@ -71,6 +75,8 @@ export default function DrawerEditForm({
               ? `${formData.salaryMin}K`
               : null,
         job_url: formData.job_url || null,
+        jd_text: formData.jd_text.trim() || null,
+        source: formData.source.trim() || null,
         company_logo: formData.company_logo.trim() || null,
       })
 
@@ -156,12 +162,20 @@ export default function DrawerEditForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor='company-logo'>公司 Logo 链接</FieldLabel>
+          <FieldLabel htmlFor='edit-job-source'>岗位来源</FieldLabel>
           <Input
-            id='company-logo'
-            placeholder='https://... （可选，图片地址）'
-            value={formData.company_logo}
-            onChange={(e) => handleChange('company_logo', e.target.value)}
+            id='edit-job-source'
+            value={formData.source}
+            onChange={(event) => handleChange('source', event.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor='edit-job-jd'>JD 原文</FieldLabel>
+          <Textarea
+            id='edit-job-jd'
+            maxLength={30000}
+            value={formData.jd_text}
+            onChange={(event) => handleChange('jd_text', event.target.value)}
           />
         </Field>
       </FieldGroup>

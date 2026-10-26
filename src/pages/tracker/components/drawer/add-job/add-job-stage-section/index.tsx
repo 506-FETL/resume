@@ -58,7 +58,7 @@ export function AddJobStageSection({
         </Select>
       </Field>
       <Field>
-        <FieldLabel htmlFor='resume-id'>投递简历</FieldLabel>
+        <FieldLabel htmlFor='resume-id'>准备中的简历</FieldLabel>
         <Select
           value={formData.resume_id || ''}
           onValueChange={(v) => onResumeChange(v || null)}

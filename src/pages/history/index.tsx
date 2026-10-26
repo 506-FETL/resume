@@ -1,3 +1,4 @@
+import { JobContextBar } from '@/components/job-context'
 import { History as HistoryIcon, RefreshCcw } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Link } from 'react-router-dom'
@@ -34,6 +35,7 @@ function History() {
 
   return (
     <PageLayout workspace {...surfaceProps}>
+      <JobContextBar />
       <HistoryHeader
         activeResumeId={activeResumeId}
         resumeOptions={resumeOptions}

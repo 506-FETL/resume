@@ -1,3 +1,4 @@
+import { readJobContext } from '@/lib/job-context'
 import type {
   CreateShareOptions,
   CurrentResumeShareSnapshotProvider,
@@ -11,6 +12,8 @@ import type {
   ShareViewResult,
 } from './share.types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
+import { sharePurposeDefaults } from '@/lib/share-purpose'
+import { createResumeHistoryVersion } from './history'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
 import {
   isResumeCommentClientError,
@@ -48,6 +51,9 @@ const SHARE_SELECT = `
   updated_at,
   current_release_id,
   allow_comments,
+  purpose,
+  show_phone,
+  show_email,
   archived_at,
   version_id,
   version:resume_config_versions!resume_shares_version_id_fkey(
@@ -101,6 +107,9 @@ function toRecord(row: Record<string, any>): ResumeShareRecord {
     current_release_id,
     current_release,
     allow_comments,
+    purpose,
+    show_phone,
+    show_email,
     archived_at,
     version_id,
     version,
@@ -132,6 +141,9 @@ function toRecord(row: Record<string, any>): ResumeShareRecord {
     versionId: version_id,
     documentRevision: Number(currentVersion.document_revision ?? 1),
     allowComments: allow_comments,
+    purpose: purpose ?? null,
+    showPhone: show_phone !== false,
+    showEmail: show_email !== false,
     archivedAt: archived_at ?? null,
     source: currentRelease.source,
   } as ResumeShareRecord
@@ -342,6 +354,44 @@ export async function createResumeShareRelease(
 
   if (!user) throw new Error('用户未登录')
 
+  const policy = {
+    ...sharePurposeDefaults(options.purpose ?? 'review'),
+    ...options,
+  }
+
+  const job = options.jobId ? await readJobContext(options.jobId) : null
+
+  if (job && job.resumeId !== resumeId)
+    throw new Error('岗位准备中的简历已更换，请重新打开分享')
+
+  if (policy.purpose === 'application' && release.source.kind === 'current') {
+    const savedRow = await getResumeById<Record<string, unknown>>(
+      resumeId,
+      `${RESUME_PERSISTED_SELECTOR},display_name`,
+    )
+
+    const savedSnapshot = mapSourceToPersistedSnapshot(savedRow ?? {})
+
+    const savedDisplayName =
+      typeof savedRow?.display_name === 'string' ? savedRow.display_name : null
+
+    const version = await createResumeHistoryVersion({
+      resume_id: resumeId,
+      version_name: job
+        ? `用于投递${job.company}的版本`
+        : options.label?.trim() || '用于正式投递的版本',
+      company_id: job?.id ?? null,
+      snapshot: savedSnapshot,
+    })
+
+    release = await resolveResumeShareRelease({
+      resumeId,
+      displayName: savedDisplayName,
+      selection: { kind: 'history', versionId: version.id },
+      getCurrentSource: getResumeSnapshotById,
+    })
+  }
+
   const token = generateToken()
   const hasPassword = Boolean(options.password)
 
@@ -356,7 +406,13 @@ export async function createResumeShareRelease(
       snapshot: release.snapshot,
       template_manifest: release.templateManifest,
       expires_at: options.expiresAt ?? null,
-      allow_comments: options.allowComments ?? true,
+      purpose: policy.purpose,
+      show_phone: policy.showPhone,
+      show_email: policy.showEmail,
+      allow_comments:
+        policy.purpose === 'showcase' || !policy.showPhone || !policy.showEmail
+          ? false
+          : policy.allowComments,
       version_id: release.versionId,
       ...toShareVersionSourcePatch(release.source),
       // 发布批次和密码都就绪前保持关闭，避免公开读取到半初始化记录。
@@ -375,7 +431,12 @@ export async function createResumeShareRelease(
         label: options.label ?? null,
         expiresAt: options.expiresAt ?? null,
         password: options.password!,
-        allowComments: options.allowComments ?? true,
+        allowComments:
+          policy.purpose === 'showcase' ||
+          !policy.showPhone ||
+          !policy.showEmail
+            ? false
+            : policy.allowComments,
       })
     }
 
@@ -409,6 +470,8 @@ export async function updateResumeShareSettings(
     expiresAt: string | null
     password: string | null | undefined
     allowComments: boolean
+    showPhone?: boolean
+    showEmail?: boolean
   },
 ): Promise<void> {
   const {
@@ -433,6 +496,8 @@ export async function updateResumeShareSettings(
         label: settings.label,
         expiresAt: settings.expiresAt,
         allowComments: settings.allowComments,
+        showPhone: settings.showPhone,
+        showEmail: settings.showEmail,
         ...(settings.password !== undefined
           ? { password: settings.password }
           : {}),

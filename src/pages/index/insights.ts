@@ -1,6 +1,8 @@
 import type { Resume } from './types'
 import type { ApplicationStatus } from '@/pages/tracker/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { jobContextUrl } from '@/lib/job-context'
+import { listPendingSubmissionSummaries } from '@/lib/supabase/resume/submissions'
 import { countPendingAtsFindings } from '@/lib/ats'
 import {
   listAtsSummaries,
@@ -63,6 +65,9 @@ interface DashboardResource<T> {
 export interface DashboardResources {
   jobs: DashboardResource<JobSummaries>
   ats: DashboardResource<AtsSummaries>
+  pendingMaterials: DashboardResource<
+    Awaited<ReturnType<typeof listPendingSubmissionSummaries>>
+  >
   versions: DashboardResource<VersionSummaries>
 }
 
@@ -155,6 +160,10 @@ function useDashboardResource<T>(
     : { data: empty, loading: true, error: null, hasLoaded: false, retry }
 }
 
+const EMPTY_PENDING_MATERIALS: Awaited<
+  ReturnType<typeof listPendingSubmissionSummaries>
+> = []
+
 const EMPTY_JOBS: JobSummaries = []
 const EMPTY_ATS: AtsSummaries = []
 const EMPTY_VERSIONS: VersionSummaries = []
@@ -189,7 +198,15 @@ export function useDashboardResources(
     accountId,
   )
 
-  return { jobs, ats, versions }
+  const pendingMaterials = useDashboardResource(
+    listPendingSubmissionSummaries,
+    EMPTY_PENDING_MATERIALS,
+    ready,
+    enabled,
+    accountId,
+  )
+
+  return { jobs, ats, versions, pendingMaterials }
 }
 
 // 聚合 job / ats 概览，供统计卡与今日待办共用。
@@ -273,7 +290,11 @@ export function useDashboardInsights(
         label: '个岗位待跟进',
         hint: '有岗位到期或长时间未推进',
         tone: 'urgent',
-        to: '/tracker',
+        to: jobContextUrl(
+          '/tracker',
+          jobSummaries.find(isJobPendingFollowUp)!.id,
+          { tab: 'follow-up' },
+        ),
       })
     }
     if (atsTodoTotal > 0) {

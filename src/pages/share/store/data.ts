@@ -303,7 +303,14 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
                   settings.password === undefined
                     ? share.has_password
                     : Boolean(settings.password),
-                allowComments: settings.allowComments,
+                allowComments:
+                  share.purpose === 'showcase' ||
+                  settings.showPhone === false ||
+                  settings.showEmail === false
+                    ? false
+                    : settings.allowComments,
+                showPhone: settings.showPhone ?? share.showPhone,
+                showEmail: settings.showEmail ?? share.showEmail,
               }
             : share,
         ),

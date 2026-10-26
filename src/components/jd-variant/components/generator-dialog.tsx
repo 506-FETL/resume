@@ -1,3 +1,4 @@
+import { bindJobResume, useJobContextStore } from '@/lib/job-context'
 import type { RecentJd } from './steps/step-input'
 import { AlertCircle } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -29,6 +30,7 @@ export interface JdVariantDialogProps {
   parentResumeId: string
   onOpenResume: (draftId: string) => void
   recentJds: RecentJd[]
+  jobId?: string
   initialJd?: string
   skipInputStep?: boolean
 }
@@ -39,10 +41,12 @@ export function JdVariantDialog({
   parentResumeId,
   onOpenResume,
   recentJds,
+  jobId,
   initialJd = '',
   skipInputStep = false,
 }: JdVariantDialogProps) {
   const [jd, setJd] = useState(initialJd)
+  const [opening, setOpening] = useState(false)
 
   const { state, generate, abort, reset, discardDraft } =
     useJdVariantGenerator(parentResumeId)
@@ -95,13 +99,29 @@ export function JdVariantDialog({
     onOpenChange(false)
   }
 
-  const handleOpenResult = () => {
-    if (state.draftResumeId) {
-      onOpenResume(state.draftResumeId)
-    }
+  const handleOpenResult = async () => {
+    if (!state.draftResumeId || opening) return
 
-    onOpenChange(false)
-    reset()
+    setOpening(true)
+
+    try {
+      if (jobId) {
+        const context = await bindJobResume(jobId, state.draftResumeId)
+
+        if (useJobContextStore.getState().context?.id !== jobId) return
+
+        useJobContextStore.getState().setContext(context)
+        toast.success('已设为这个岗位准备中的简历')
+      }
+
+      onOpenResume(state.draftResumeId)
+      onOpenChange(false)
+      reset()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '关联失败，请重试')
+    } finally {
+      setOpening(false)
+    }
   }
 
   const handleDiscardResult = () => {
@@ -160,10 +180,10 @@ export function JdVariantDialog({
         </Button>
         <Button
           type='button'
-          disabled={!state.draftResumeId}
+          disabled={!state.draftResumeId || opening}
           onClick={handleOpenResult}
         >
-          打开新简历
+          {jobId ? '设为准备中的简历并打开' : '打开新简历'}
         </Button>
       </>
     )
@@ -173,7 +193,7 @@ export function JdVariantDialog({
     <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
       <ResponsiveDialogContent className='min-h-0 sm:max-h-[82vh] sm:max-w-2xl'>
         <ResponsiveDialogHeader className='shrink-0 gap-3 border-b px-6 pb-5 pt-6 text-left'>
-          <ResponsiveDialogTitle>JD 驱动派生简历</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>岗位定制</ResponsiveDialogTitle>
           <ResponsiveDialogDescription aria-live='polite'>
             <span className='sr-only'>{`当前第 ${stepIndex} / ${total} 步`}</span>
           </ResponsiveDialogDescription>

@@ -1,7 +1,7 @@
 import dayjs from 'dayjs'
 import { CalendarIcon, X } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -24,15 +24,26 @@ export default function WorkflowDateField({
   onChange,
 }: WorkflowDateFieldProps) {
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && contentRef.current?.contains(document.activeElement))
+      triggerRef.current?.focus({ preventScroll: true })
+
+    setOpen(nextOpen)
+  }
 
   return (
     <div className='space-y-2'>
       <div className='text-xs font-medium text-muted-foreground'>{label}</div>
       <div className='flex items-center gap-1'>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={handleOpenChange}>
           <PopoverTrigger asChild>
             <Button
+              ref={triggerRef}
+              type='button'
               variant='outline'
               aria-label={`${label}：${value || '未设置'}`}
               className={cn(
@@ -45,11 +56,13 @@ export default function WorkflowDateField({
             </Button>
           </PopoverTrigger>
           <PopoverContent
+            ref={contentRef}
+            inert={!open}
             className='w-auto p-0'
             align='start'
             style={{
-              animationDuration: `${reduce ? 0 : DURATION.base}s`,
-              animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+              animationDuration: `${reduce ? 0 : open ? DURATION.base : DURATION.fast}s`,
+              animationTimingFunction: `cubic-bezier(${(open ? EASE.out : EASE.in).join(',')})`,
             }}
           >
             <Calendar
@@ -57,7 +70,7 @@ export default function WorkflowDateField({
               selected={value ? dayjs(value).toDate() : undefined}
               onSelect={(date) => {
                 onChange(date ? dayjs(date).format('YYYY-MM-DD') : null)
-                setOpen(false)
+                handleOpenChange(false)
               }}
             />
           </PopoverContent>

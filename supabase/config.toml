@@ -21,6 +21,12 @@ verify_jwt = false
 [functions.resume-import]
 verify_jwt = false
 
+[functions.job-profile]
+verify_jwt = false
+
+[functions.job-submissions]
+verify_jwt = false
+
 [functions.github-stars-refresh]
 verify_jwt = false
 

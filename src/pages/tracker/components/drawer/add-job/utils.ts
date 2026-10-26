@@ -18,11 +18,6 @@ export function validateAddJobForm(formData: AddJobFormData): boolean {
 
     return false
   }
-  if (!formData.location.trim()) {
-    toast.error('请填写工作地点')
-
-    return false
-  }
 
   return true
 }
@@ -43,6 +38,8 @@ export function buildJobPayload(
           ? `${formData.salaryMin}K`
           : null,
     job_url: formData.job_url || null,
+    jd_text: formData.jd_text.trim() || null,
+    source: formData.source.trim() || null,
     status: formData.status,
     stage_details: [
       {

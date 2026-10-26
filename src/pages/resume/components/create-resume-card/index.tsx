@@ -1,3 +1,5 @@
+import { jobContextUrl, useJobContextStore } from '@/lib/job-context'
+import { toast } from 'sonner'
 import type { ReactNode, RefObject } from 'react'
 import type { CreationStep } from './types'
 import type { ResumeProfile } from '@/lib/resume-preparation/types'
@@ -45,6 +47,7 @@ export default function CreateResumeCard({
   hideTrigger?: boolean
   returnFocusRef?: RefObject<HTMLElement | null>
 }) {
+  const jobContext = useJobContextStore((state) => state.context)
   const reduceMotion = useReducedMotion()
   const [measureRef, bounds] = useMeasure({ offsetSize: true })
   const navigate = useNavigate()
@@ -395,12 +398,23 @@ export default function CreateResumeCard({
                               variant='outline'
                               className='w-full justify-between'
                               onClick={() => {
+                                if (jobContext && !jobContext.jdText.trim()) {
+                                  toast.info('请先返回岗位补充 JD 原文')
+
+                                  return
+                                }
+
                                 useResumeListStore
                                   .getState()
                                   .openDeriveFor(resume.resume_id)
 
                                 setIsOpen(false)
-                                navigate('/resume')
+
+                                navigate(
+                                  jobContext
+                                    ? jobContextUrl('/resume', jobContext.id)
+                                    : '/resume',
+                                )
                               }}
                             >
                               <span className='truncate'>

@@ -3,6 +3,8 @@ import type { TemplateDefinition } from '@/lib/resume-template/definition-schema
 import type { PublishedTemplateManifest } from '@/lib/resume-template/share'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 
+export type SharePurpose = 'review' | 'application' | 'showcase'
+
 export interface ResumeShareSnapshotSource {
   snapshot: PersistedResumeSnapshot
   templateManifest: PublishedTemplateManifest
@@ -81,6 +83,9 @@ export interface ResumeShareVersionSourceColumns {
 
 /** resume_shares 表行（owner 侧可见字段，不包含 password_hash） */
 export interface ResumeShareRecord {
+  purpose: SharePurpose | null
+  showPhone: boolean
+  showEmail: boolean
   id: string
   resume_id: string
   user_id: string
@@ -106,6 +111,10 @@ export interface ResumeShareRecord {
 
 /** 新建分享链接的可选项 */
 export interface CreateShareOptions {
+  jobId?: string
+  purpose?: SharePurpose
+  showPhone?: boolean
+  showEmail?: boolean
   label?: string | null
   password?: string | null
   expiresAt?: string | null

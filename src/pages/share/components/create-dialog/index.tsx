@@ -1,3 +1,7 @@
+import { useJobContextStore } from '@/lib/job-context'
+import type { SharePurpose } from '@/lib/supabase/resume/share.types'
+import { sharePurposeDefaults } from '@/lib/share-purpose'
+import PurposeFields from '../purpose-fields'
 import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
@@ -50,6 +54,7 @@ export default function CreateDialog({
   open,
   onOpenChange,
 }: CreateDialogProps) {
+  const jobContext = useJobContextStore((state) => state.context)
   const reduceMotion = useReducedMotion()
   const returnFocusRef = useRef<HTMLElement | null>(null)
 
@@ -62,6 +67,20 @@ export default function CreateDialog({
 
   const [resumeId, setResumeId] = useState('')
   const [resumeOpen, setResumeOpen] = useState(false)
+  const [purpose, setPurpose] = useState<SharePurpose>('review')
+  const [showPhone, setShowPhone] = useState(true)
+  const [showEmail, setShowEmail] = useState(true)
+
+  const changePurpose = (value: SharePurpose) => {
+    const defaults = sharePurposeDefaults(value)
+
+    setPurpose(value)
+    setShowPhone(defaults.showPhone)
+    setShowEmail(defaults.showEmail)
+    setAllowComments(defaults.allowComments)
+    setSelection({ kind: 'current' })
+  }
+
   const [label, setLabel] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -91,15 +110,22 @@ export default function CreateDialog({
   useLayoutEffect(() => {
     if (!open) return
 
-    setResumeId('')
+    setResumeId(jobContext?.resumeId ?? '')
+
+    if (jobContext?.resumeId)
+      loadVersionOptions(jobContext.resumeId, { force: true }).catch(
+        () => undefined,
+      )
+
     setResumeOpen(false)
     setLabel('')
     setPassword('')
     setShowPassword(false)
     setExpiresAt(undefined)
+    changePurpose('review')
     setAllowComments(true)
     setSelection({ kind: 'current' })
-  }, [open])
+  }, [open, jobContext, loadVersionOptions])
 
   const handleCreate = async () => {
     if (!resumeId) return
@@ -118,7 +144,14 @@ export default function CreateDialog({
         label: label.trim() || null,
         password: password.trim() || null,
         expiresAt: dateToExpiryIso(expiresAt),
-        allowComments,
+        purpose,
+        jobId: jobContext?.resumeId === resumeId ? jobContext.id : undefined,
+        showPhone,
+        showEmail,
+        allowComments:
+          purpose === 'showcase' || !showPhone || !showEmail
+            ? false
+            : allowComments,
       })
 
       toast.success('分享链接已生成')
@@ -172,6 +205,15 @@ export default function CreateDialog({
         </DialogHeader>
 
         <FieldGroup className='grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2'>
+          <PurposeFields
+            purpose={purpose}
+            showPhone={showPhone}
+            showEmail={showEmail}
+            onPurposeChange={changePurpose}
+            onShowPhoneChange={setShowPhone}
+            onShowEmailChange={setShowEmail}
+            disabled={submitting}
+          />
           <Field className='min-w-0 sm:col-span-2'>
             <FieldLabel>选择简历</FieldLabel>
             <Popover open={open && resumeOpen} onOpenChange={setResumeOpen}>
@@ -245,10 +287,13 @@ export default function CreateDialog({
             <FieldLabel>分享版本</FieldLabel>
             <VersionSelector
               value={selection}
+              freezeCurrent={purpose === 'application'}
               versions={versionEntry?.items ?? []}
               loading={versionEntry?.loading ?? false}
               error={versionEntry?.error ?? null}
-              disabled={!open || !resumeId || submitting}
+              disabled={
+                !open || !resumeId || submitting || purpose !== 'application'
+              }
               onChange={setSelection}
               onRetry={() => {
                 if (resumeId)
@@ -304,8 +349,15 @@ export default function CreateDialog({
             <FieldLabel htmlFor='new-share-comments'>允许访问者评论</FieldLabel>
             <Switch
               id='new-share-comments'
-              checked={allowComments}
-              disabled={submitting}
+              checked={
+                purpose !== 'showcase' &&
+                showPhone &&
+                showEmail &&
+                allowComments
+              }
+              disabled={
+                submitting || purpose === 'showcase' || !showPhone || !showEmail
+              }
               onCheckedChange={setAllowComments}
             />
           </Field>

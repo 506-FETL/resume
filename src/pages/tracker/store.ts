@@ -17,6 +17,13 @@ import { createTrackerPersistence } from './store/workflow-save'
 import { filterJobs } from './utils'
 
 interface TrackerStore extends ReturnType<typeof createTrackerPersistence> {
+  submissionQueue: { id: string; jobId: string; resolve: () => void }[]
+  requestSubmission: (jobId: string) => Promise<void>
+  finishSubmission: () => void
+  submissionRevision: number
+  correctJobStatus: ReturnType<
+    typeof createTrackerPersistence
+  >['changeJobStatus']
   // 数据
   jobs: JobApplication[]
   accountScope: TrackerAccountScope
@@ -78,8 +85,47 @@ function cancelPendingDrawerOpen() {
 }
 
 const useTrackerStore = create<TrackerStore>()((set, get) => {
+  const persistence = createTrackerPersistence(get, set)
+
   return {
-    ...createTrackerPersistence(get, set),
+    ...persistence,
+    correctJobStatus: persistence.changeJobStatus,
+    submissionQueue: [],
+    submissionRevision: 0,
+    requestSubmission: (jobId) =>
+      new Promise<void>((resolve) => {
+        const job = get().jobs.find((row) => row.id === jobId)
+
+        if (!job || job.user_id !== getTrackerAccountScope().userId)
+          return resolve()
+        if (get().submissionQueue.some((request) => request.jobId === jobId))
+          return resolve()
+
+        set((state) => ({
+          submissionQueue: [
+            ...state.submissionQueue,
+            { id: crypto.randomUUID(), jobId, resolve },
+          ],
+        }))
+      }),
+    finishSubmission: () => {
+      const current = get().submissionQueue[0]
+
+      set((state) => ({
+        submissionQueue: state.submissionQueue.slice(1),
+        submissionRevision: state.submissionRevision + 1,
+      }))
+
+      current?.resolve()
+    },
+    changeJobStatus: (id, target, fields = {}) => {
+      const job = get().jobs.find((row) => row.id === id)
+
+      if (target === 'applied' && job?.status === 'saved')
+        return get().requestSubmission(id)
+
+      return persistence.changeJobStatus(id, target, fields)
+    },
     // 初始状态
     jobs: [],
     accountScope: getTrackerAccountScope(),
@@ -252,11 +298,16 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
 
 // 即使页面已卸载，身份变化也必须同步终止旧队列；这里不发起网络请求。
 subscribeTrackerAccountScope(() => {
+  useTrackerStore
+    .getState()
+    .submissionQueue.forEach((request) => request.resolve())
+
   cancelPendingDrawerOpen()
   useTrackerStore.getState().resetPersistence()
 
   useTrackerStore.setState({
     accountScope: getTrackerAccountScope(),
+    submissionQueue: [],
     jobs: [],
     selectedJob: null,
     selectedIds: new Set(),
