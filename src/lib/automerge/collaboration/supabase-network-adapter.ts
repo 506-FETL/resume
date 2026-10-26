@@ -1,6 +1,6 @@
 import type { Message, PeerId, PeerMetadata } from '@automerge/automerge-repo'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import type { CollaborationCallbacks } from '../shared'
+import type { CollaborationCallbacks, CollaborationPeer } from '../shared'
 import { NetworkAdapter } from '@automerge/automerge-repo'
 import supabase from '@/lib/supabase/client'
 import {
@@ -30,7 +30,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   private channelName = ''
   private inboxId: string | null = null
   private heartbeat: ReturnType<typeof setTimeout> | null = null
-  private peers = new Set<string>()
+  private peers = new Map<string, Record<string, unknown>>()
   private sendQueue: Promise<void> = Promise.resolve()
   private presenceMetadata: Record<string, unknown> = {}
   private ready = false
@@ -66,6 +66,13 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
 
   isReady(): boolean {
     return this.ready
+  }
+
+  getPeers(): CollaborationPeer[] {
+    return Array.from(this.peers, ([peerId, metadata]) => ({
+      peerId,
+      metadata: { ...metadata },
+    }))
   }
 
   whenReady() {
@@ -151,7 +158,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       this.heartbeat = null
     }
 
-    for (const peerId of this.peers) {
+    for (const peerId of this.peers.keys()) {
       this.emit('peer-disconnected', { peerId: peerId as PeerId })
     }
 
@@ -261,7 +268,10 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
         return
       }
 
-      this.rememberPeer(incoming.senderId, incoming.metadata || {})
+      this.rememberPeer(incoming.senderId, {
+        ...incoming.metadata,
+        userId: incoming.userId,
+      })
 
       if (incoming.targetId && incoming.targetId !== this.peerId) {
         return
@@ -311,7 +321,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       return
     }
 
-    this.peers.add(peerId)
+    this.peers.set(peerId, metadata)
 
     this.emit('peer-candidate', {
       peerId: peerId as PeerId,
@@ -348,7 +358,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       this.rememberPeer(peer.peerId, peer.metadata)
     }
 
-    for (const peerId of this.peers) {
+    for (const peerId of this.peers.keys()) {
       if (!activePeers.has(peerId)) {
         this.peers.delete(peerId)
         this.emit('peer-disconnected', { peerId: peerId as PeerId })

@@ -122,6 +122,25 @@ export function removeParticipant(
   return next
 }
 
+export function hasParticipantUser(
+  participants: Record<string, CollaborationParticipant>,
+  userId: string,
+) {
+  return Object.values(participants).some(
+    (participant) => participant.metadata.userId === userId,
+  )
+}
+
+export function getParticipantCount(
+  participants: Record<string, CollaborationParticipant>,
+) {
+  return new Set(
+    Object.values(participants).map(
+      (participant) => participant.metadata.userId,
+    ),
+  ).size
+}
+
 export function createConnectedSessionState(
   result: CollaborationActivationResult,
   commentAuthorization: Pick<
@@ -133,6 +152,14 @@ export function createConnectedSessionState(
     commentProtocolVersion: null,
   },
 ): Partial<CollaborationSessionState> {
+  // 首轮发现早于连接完成，保留 adapter 已确认的成员，不能只留下自己。
+  const participants = Object.fromEntries(
+    result.peers.map(({ peerId, metadata }) => [
+      peerId,
+      createParticipant(peerId, metadata),
+    ]),
+  )
+
   const selfParticipant = result.self.peerId
     ? createParticipant(result.self.peerId, {
         userId: result.self.userId,
@@ -149,8 +176,8 @@ export function createConnectedSessionState(
     resumeId: result.resumeId,
     roomName: result.roomName,
     participants: selfParticipant
-      ? { [selfParticipant.peerId]: selfParticipant }
-      : {},
+      ? addParticipant(participants, selfParticipant)
+      : participants,
     self: result.self,
     ...commentAuthorization,
     error: null,

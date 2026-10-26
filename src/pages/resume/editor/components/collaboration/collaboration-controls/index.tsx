@@ -148,12 +148,6 @@ export function CollaborationControls({
           <Link2 className='size-4' />
           {!isMobile && '分享'}
         </Button>
-        {isSharing && (
-          <span className='text-xs font-medium text-emerald-600'>
-            协作人数
-            {participantCount}
-          </span>
-        )}
         {isMobile && onOpenSortDialog && (
           <Button
             size='icon'
@@ -166,6 +160,12 @@ export function CollaborationControls({
         )}
       </div>
       {actions}
+      {isSharing && (
+        <span className='text-xs font-medium text-emerald-600'>
+          协作人数
+          {participantCount}
+        </span>
+      )}
     </div>
   )
 
