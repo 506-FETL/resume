@@ -93,6 +93,9 @@ export function evidencePath(evidence: ContentEvidence) {
   }
 }
 
+// 表单按模块替换引用；同一模块的改写记录与无关字段更新复用解析结果。
+const derivedFieldsCache = new WeakMap<object, EvidenceField[]>()
+
 export function derivedEvidence(
   metadata: VariantMetadata | null | undefined,
   content: ResumeSchema,
@@ -102,13 +105,22 @@ export function derivedEvidence(
   return metadata.changes.flatMap((change) => {
     if (!(change.section in content)) return []
 
-    const fields = sectionFields(content[change.section], '', true)
+    const section = content[change.section]
+
+    if (!section) return []
+
+    let fields = derivedFieldsCache.get(section)
+
+    if (!fields) {
+      fields = sectionFields(section, '', true)
+      derivedFieldsCache.set(section, fields)
+    }
+
+    const fieldName =
+      getVariantFieldMapping(change.section, change.fieldPath)?.snapshotField ??
+      change.fieldPath.split('.').at(-1)
 
     const field = fields.find((candidate) => {
-      const fieldName =
-        getVariantFieldMapping(change.section, change.fieldPath)
-          ?.snapshotField ?? change.fieldPath.split('.').at(-1)
-
       const matchesItem =
         change.itemId === 'whole' ||
         candidate.path.includes(`/@${change.itemId}/`)
@@ -116,14 +128,18 @@ export function derivedEvidence(
       return matchesItem && candidate.path.endsWith(`/${fieldName}`)
     })
 
-    if (!field || !plainText(change.after)) return []
+    if (!field) return []
+
+    const text = plainText(change.after)
+
+    if (!text) return []
 
     return [
       {
         id: `ai:${change.section}:${encodeURIComponent(field.path)}`,
         kind: 'ai' as const,
         section: change.section,
-        text: plainText(change.after),
+        text,
       },
     ]
   })

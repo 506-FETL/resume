@@ -97,31 +97,18 @@ export async function updatePreparation(
 export async function prepareOfflineTransfer(
   resumeId: string,
   ownerId: string,
-  snapshotSignature?: string,
 ) {
   const db = await database()
   const tx = db.transaction(['drafts', 'records'], 'readwrite')
   const mappingKey = `migration:${preparationScope(ownerId)}:${resumeId}`
 
-  const stored:
-    | string
-    | { targetId: string; snapshotSignature?: string }
-    | undefined = await tx.objectStore('drafts').get(mappingKey)
+  const stored: string | { targetId: string } | undefined = await tx
+    .objectStore('drafts')
+    .get(mappingKey)
 
   const previous = typeof stored === 'string' ? { targetId: stored } : stored
 
-  if (
-    previous?.snapshotSignature &&
-    snapshotSignature !== previous.snapshotSignature
-  ) {
-    tx.abort()
-    await tx.done.catch(() => undefined)
-
-    throw new Error(
-      '本地简历已不同于上次同步的内容，已保留本地简历。请核对云端副本后再处理。',
-    )
-  }
-
+  // 映射只固定目标身份；内容冲突由上传时的云端副本校验判断。
   const targetId = previous?.targetId ?? crypto.randomUUID()
 
   const records = tx.objectStore('records')
@@ -159,9 +146,7 @@ export async function prepareOfflineTransfer(
 
   await records.put(merged, recordKey(targetId, ownerId))
 
-  await tx
-    .objectStore('drafts')
-    .put({ targetId, snapshotSignature }, mappingKey)
+  await tx.objectStore('drafts').put({ targetId }, mappingKey)
 
   await tx.done
   notify()

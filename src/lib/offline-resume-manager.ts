@@ -478,11 +478,7 @@ export async function migrateOfflineResumesToCloud(
           ],
         }))
 
-      const targetId = await prepareOfflineTransfer(
-        resume.resume_id,
-        ownerId!,
-        snapshotSignature,
-      )
+      const targetId = await prepareOfflineTransfer(resume.resume_id, ownerId!)
 
       await assertOwner()
 
