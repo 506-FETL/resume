@@ -1,7 +1,12 @@
 import type { SessionCallbacksOptions } from './types'
 import type { CollaborationCallbacks } from '@/lib/automerge'
 import { toast } from 'sonner'
-import { addParticipant, createParticipant, removeParticipant } from './state'
+import {
+  addParticipant,
+  createParticipant,
+  hasParticipantUser,
+  removeParticipant,
+} from './state'
 
 export function createSessionCallbacks(
   options: SessionCallbacksOptions,
@@ -37,34 +42,32 @@ export function createSessionCallbacks(
         return
       }
 
+      const participant = createParticipant(peerId, metadata)
+      const { userId, userName } = participant.metadata
+      const wasPresent = hasParticipantUser(getState().participants, userId)
+
       setState((state) => ({
         participants: isCurrentSession()
-          ? addParticipant(
-              state.participants,
-              createParticipant(peerId, metadata),
-            )
+          ? addParticipant(state.participants, participant)
           : state.participants,
       }))
 
-      if (!isCurrentSession()) return
+      if (!isCurrentSession() || wasPresent || userId === identity.userId)
+        return
 
-      const participantMetadata = getState().participants[peerId]?.metadata
-
-      const displayName =
-        participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
-
-      toast.success(`${displayName} 加入协作`, {
+      toast.success(`${userName} 加入协作`, {
         description: '已同步最新内容',
       })
     },
 
     onPeerLeave: ({ peerId }) => {
-      if (!isCurrentSession()) return
+      if (!isCurrentSession() || peerId === adapterPeerIdRef.current) return
 
-      const participantMetadata = getState().participants[peerId]?.metadata
+      const participant = getState().participants[peerId]
 
-      const displayName =
-        participantMetadata?.userName ?? `协作者 ${peerId.slice(-4)}`
+      if (!participant) return
+
+      const { userId, userName } = participant.metadata
 
       setState((state) => ({
         participants: isCurrentSession()
@@ -72,8 +75,13 @@ export function createSessionCallbacks(
           : state.participants,
       }))
 
-      if (isCurrentSession() && peerId !== adapterPeerIdRef.current) {
-        toast.info(`${displayName} 退出协作`)
+      // 一个用户可能有多个标签页，旧连接离开不代表这个人已经离开。
+      if (
+        isCurrentSession() &&
+        userId !== identity.userId &&
+        !hasParticipantUser(getState().participants, userId)
+      ) {
+        toast.info(`${userName} 退出协作`)
       }
     },
 

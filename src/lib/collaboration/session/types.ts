@@ -1,5 +1,5 @@
 import type { CollaborationRole } from '../shared'
-import type { CollaborationCallbacks } from '@/lib/automerge'
+import type { CollaborationCallbacks, CollaborationPeer } from '@/lib/automerge'
 
 export interface CollaborationIdentity {
   userId: string
@@ -154,6 +154,7 @@ export interface CollaborationActivationResult {
   resumeId: string
   role: CollaborationRole
   self: CollaborationSelf
+  peers: CollaborationPeer[]
   shareUrl: string
   roomName: string
 }

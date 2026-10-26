@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useCollaborationStore } from '@/lib/collaboration'
+import { getParticipantCount, useCollaborationStore } from '@/lib/collaboration'
 import useResumeStore from '@/store/resume/form'
 import { getErrorMessage } from '@/utils'
 
@@ -98,7 +98,7 @@ export function useCollaborationPanelValue({
     })),
   )
 
-  const participantCount = Object.keys(participants).length
+  const participantCount = getParticipantCount(participants)
 
   const collabDisabledReason = useMemo(() => {
     if (mode !== 'online') return '离线简历暂不支持实时协作'

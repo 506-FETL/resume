@@ -51,8 +51,9 @@
 - 隐藏模块与条目在服务端公开投影中也要过滤。分享权限、有效期和密码变更应真实生效。
 - 协作需要有效授权；评论绑定真实文段和版本。无法唯一重连时保留待处理状态，不错误附到另一段原文。
 - 评论分页按实际返回事件推进游标；通知只是提示，断线要补齐。订阅销毁后不复活，不对同 topic 重复断连。
+- 协作人数按服务端校验的 userId 去重，不能直接统计 peerId；底层仍保留各标签页的连接用于同步。连接初始化必须保留首次发现的成员，退出提示只在该用户最后一条有效连接离开时显示；未知连接、自身与过期回调不提示。验收覆盖双页面重入、多标签页、旧连接过期和同步消息传递。
 
-来源：[当前分享约定](superpowers/specs/2026-10-24-live-current-share-design.md)、[业务复盘](superpowers/specs/2026-10-13-business-review-fixes-design.md)。
+来源：[当前分享约定](superpowers/specs/2026-10-24-live-current-share-design.md)、[业务复盘](superpowers/specs/2026-10-13-business-review-fixes-design.md)、[协作人数修复](superpowers/specs/2026-10-26-collaboration-members-design.md)。
 
 ## 6. 性能与模板资源
 

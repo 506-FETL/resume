@@ -119,6 +119,7 @@ export async function connectDocumentSession(options: EnableSessionOptions) {
         peerId: adapterPeerIdRef.current,
         ...identity,
       },
+      peers: adapter.getPeers(),
       shareUrl: buildCollaborationShareUrl(
         resumeId,
         sessionId,
