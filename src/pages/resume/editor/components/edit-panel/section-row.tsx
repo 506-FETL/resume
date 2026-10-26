@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import CheckFields from '../check-fields'
 
 interface SectionRowProps {
   id: ORDERType
@@ -46,6 +47,7 @@ export function SectionRow({
 }: SectionRowProps) {
   return (
     <div
+      data-editor-section={id}
       className={cn(
         'rounded-lg border bg-card transition-shadow',
         isDragging && 'shadow-lg ring-1 ring-primary/20',
@@ -116,8 +118,8 @@ export function SectionRow({
         {/* 拖拽时省略内容，仅拖动紧凑表头；落下后表单从 store 重新填充 */}
         {!isDragging && (
           <AccordionContent className='h-auto p-0'>
-            <div className='max-h-[min(60dvh,42rem)] overflow-y-auto overscroll-contain px-3 pb-4 [scrollbar-gutter:stable]'>
-              {content}
+            <div className='max-h-[min(60dvh,42rem)] overflow-y-auto px-3 pb-4 [scrollbar-gutter:stable]'>
+              <CheckFields section={id}>{content}</CheckFields>
             </div>
           </AccordionContent>
         )}

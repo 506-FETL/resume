@@ -1,11 +1,11 @@
 import type { RemoteFieldArrayAdapters } from '@/hooks/form-remote-sync'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion, useReducedMotion } from 'motion/react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
-import { useResumeFormSync } from '@/hooks/collab/use-resume-form-sync'
+import { ResumeFormSync } from '../shared/resume-form-sync'
 import { SPRING } from '@/lib/motion'
 import { resumeSchema } from '@/lib/schema'
 import { cn } from '@/lib/utils'
@@ -18,7 +18,7 @@ import { ResumePhotoField } from './components/resume-photo'
 
 function BasicResumeForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
-  const basics = useResumeStore((state) => state.basics)
+  const [basics] = useState(() => useResumeStore.getState().basics)
 
   const form = useForm({
     resolver: zodResolver(resumeSchema.shape.basics),
@@ -42,10 +42,13 @@ function BasicResumeForm({ className }: { className?: string }) {
     [append, remove],
   )
 
-  useResumeFormSync(form, 'basics', basics, remoteFieldArrays)
-
   return (
     <Form {...form}>
+      <ResumeFormSync
+        form={form}
+        section='basics'
+        fieldArrays={remoteFieldArrays}
+      />
       <form id='basic-resume-form' className={cn(className)}>
         <ResumePhotoField form={form} />
         <motion.div

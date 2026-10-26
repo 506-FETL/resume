@@ -1,12 +1,10 @@
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import * as React from 'react'
-
 // --- Icons ---
 import { LinkIcon } from '@/components/tiptap-icons/link-icon'
-
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
-
 // --- Lib ---
 import { isMarkInSchema, sanitizeUrl } from '@/lib/tiptap-utils'
 
@@ -183,8 +181,16 @@ export function useLinkState(props: {
 }) {
   const { editor, hideWhenUnavailable = false } = props
 
-  const canSet = canSetLink(editor)
-  const isActive = isLinkActive(editor)
+  const { canSet, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canSet: canSetLink(editor),
+      isActive: isLinkActive(editor),
+    }),
+  }) ?? {
+    canSet: canSetLink(null),
+    isActive: isLinkActive(null),
+  }
 
   const [isVisible, setIsVisible] = React.useState(false)
 

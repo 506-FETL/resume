@@ -46,7 +46,11 @@ import useUserStore from '@/store/user'
 import { useResumeReviewStore } from '../../review-store'
 import { usePreparationUiStore } from '../../preparation-store'
 
-export default function Preparation() {
+export default function Preparation({
+  isMobile = false,
+}: {
+  isMobile?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<ResumeProfile | null>(null)
   const [busy, setBusy] = useState(false)
@@ -178,11 +182,13 @@ export default function Preparation() {
       <DialogTrigger asChild>
         <Button
           variant='outline'
-          size='sm'
+          size={isMobile ? 'icon' : 'sm'}
+          aria-label='填写建议'
+          title='填写建议'
           disabled={!initialized || reviewActive}
         >
           <Lightbulb />
-          填写建议
+          {!isMobile && <span>填写建议</span>}
         </Button>
       </DialogTrigger>
       <DialogContent

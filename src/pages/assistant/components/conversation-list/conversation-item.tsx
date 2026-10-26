@@ -91,13 +91,8 @@ export function ConversationItem({
           <span className='min-w-0 flex-1 truncate'>{conversation.title}</span>
         </button>
 
-        {/* hover 时右侧渐隐遮罩，避免标题与操作按钮重叠 */}
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-y-0 right-0 w-16 rounded-r-lg bg-gradient-to-l to-transparent opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100',
-            active ? 'from-accent' : 'from-accent/60',
-          )}
-        />
+        {/* 模糊遮罩覆盖完整操作区，左侧渐隐，避免长标题穿过图标。 */}
+        <div className='pointer-events-none absolute inset-y-0 right-0 w-20 rounded-r-lg bg-accent/85 opacity-0 backdrop-blur-sm transition-opacity [mask-image:linear-gradient(to_left,black_75%,transparent)] group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none' />
 
         <div className='absolute inset-y-0 right-1 flex items-center'>
           {pending ? (

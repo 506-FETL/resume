@@ -3,6 +3,7 @@ import type {
   CreateShareOptions,
   ShareVersionSelection,
 } from '@/lib/supabase/resume/share.types'
+import { memo } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -37,7 +38,7 @@ interface QuickDialogProps {
   getSnapshot: SnapshotProvider
 }
 
-export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
+function QuickDialog({ getSnapshot }: QuickDialogProps) {
   const {
     openForResumeId,
     openForResumeName,
@@ -213,3 +214,5 @@ export default function QuickDialog({ getSnapshot }: QuickDialogProps) {
     </>
   )
 }
+
+export default memo(QuickDialog)

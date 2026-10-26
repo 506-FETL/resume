@@ -29,8 +29,8 @@ import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 function HonorsCertificatesForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
 
-  const honorsCertificates = useResumeStore(
-    (state) => state.honors_certificates,
+  const [honorsCertificates] = useState(
+    () => useResumeStore.getState().honors_certificates,
   )
 
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
@@ -45,7 +45,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
     [honorsCertificates.description, honorsCertificates.certificates],
   )
 
-  const { form, fields, append, remove } = useResumeFieldForm({
+  const { form, fields, append, remove, sync } = useResumeFieldForm({
     fieldName: 'honors_certificates',
     schema: honorsCertificatesFormSchema,
     storeFormData,
@@ -95,6 +95,7 @@ function HonorsCertificatesForm({ className }: { className?: string }) {
 
   return (
     <Form {...form}>
+      {sync}
       <form id='honors-certificates-form'>
         <div className={cn('space-y-6', className)}>
           <FormField

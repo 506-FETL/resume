@@ -31,43 +31,55 @@ export function SiteHeader() {
   const isResumeEditor = location.pathname.startsWith('/resume/editor')
 
   return (
-    <div className='relative flex w-full min-w-0 items-center gap-1 px-2 sm:px-4 lg:gap-2'>
-      <SidebarTrigger className='-ml-1 shrink-0' aria-label='切换导航栏' />
-      <Separator
-        orientation='vertical'
-        className='mx-2 data-[orientation=vertical]:h-4'
+    <div
+      className={cn(
+        'relative w-full min-w-0 items-center gap-1 px-2 sm:px-4 lg:gap-2',
+        isResumeEditor
+          ? 'grid grid-cols-[2rem_minmax(0,1fr)_2rem] gap-0 px-0 sm:gap-1 sm:px-4'
+          : 'flex',
+      )}
+    >
+      <SidebarTrigger
+        className={cn('shrink-0', !isResumeEditor && '-ml-1')}
+        aria-label='切换导航栏'
       />
-      <Breadcrumb
-        className={cn('min-w-0', isResumeEditor && 'hidden xl:block')}
-      >
-        <BreadcrumbList className='flex-nowrap'>
-          {crumbs.map((crumb, idx) => (
-            <Fragment key={crumb.href}>
-              <BreadcrumbItem
-                className={cn(
-                  'min-w-0',
-                  idx < crumbs.length - 1 && 'hidden md:block',
-                )}
-              >
-                {idx === crumbs.length - 1 ? (
-                  <BreadcrumbPage className='truncate'>
-                    {crumb.label}
-                  </BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link to={crumb.href} className='whitespace-nowrap'>
+      {!isResumeEditor && (
+        <Separator
+          orientation='vertical'
+          className='mx-2 data-[orientation=vertical]:h-4'
+        />
+      )}
+      {!isResumeEditor && (
+        <Breadcrumb className='min-w-0'>
+          <BreadcrumbList className='flex-nowrap'>
+            {crumbs.map((crumb, idx) => (
+              <Fragment key={crumb.href}>
+                <BreadcrumbItem
+                  className={cn(
+                    'min-w-0',
+                    idx < crumbs.length - 1 && 'hidden md:block',
+                  )}
+                >
+                  {idx === crumbs.length - 1 ? (
+                    <BreadcrumbPage className='truncate'>
                       {crumb.label}
-                    </Link>
-                  </BreadcrumbLink>
+                    </BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild>
+                      <Link to={crumb.href} className='whitespace-nowrap'>
+                        {crumb.label}
+                      </Link>
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+                {idx < crumbs.length - 1 && (
+                  <BreadcrumbSeparator className='hidden md:block' />
                 )}
-              </BreadcrumbItem>
-              {idx < crumbs.length - 1 && (
-                <BreadcrumbSeparator className='hidden md:block' />
-              )}
-            </Fragment>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
+              </Fragment>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+      )}
 
       <AnimatePresence mode='wait'>
         {location.pathname.includes('/editor') && (
@@ -87,7 +99,7 @@ export function SiteHeader() {
               duration: reduceMotion ? 0 : DURATION.base,
               ease: EASE.out,
             }}
-            className='flex flex-1 justify-center'
+            className='@container/editor-toolbar flex min-w-0 flex-1 justify-center'
           >
             <ResumeConfigToolbar />
           </motion.div>

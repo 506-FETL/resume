@@ -8,7 +8,7 @@ import type {
   RewriteSelection,
 } from './types'
 import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { AiRewritePanel } from './ai-rewrite-panel'
@@ -32,7 +32,10 @@ const BUBBLE_MENU_PLUGIN_KEY = 'aiRewriteBubbleMenu'
 const BUBBLE_BOUNDARY_PADDING = 8
 const COMPACT_BUBBLE_WIDTH = 42
 
-export function AiRewriteBubble({ editor, fieldContext }: Props) {
+export const AiRewriteBubble = memo(function AiRewriteBubble({
+  editor,
+  fieldContext,
+}: Props) {
   const { state, run, setJdDraft, reset, retry, cancel, waitForJd } =
     useAiRewrite({ fieldContext })
 
@@ -121,7 +124,8 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
   }, [])
 
   const updateBubblePosition = useCallback(() => {
-    if (editor.isDestroyed) return
+    if (editor.isDestroyed || !editor.isFocused || editor.state.selection.empty)
+      return
 
     editor.view.dispatch(
       editor.state.tr.setMeta(BUBBLE_MENU_PLUGIN_KEY, 'updatePosition'),
@@ -226,6 +230,9 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
     let frame = 0
 
     const schedulePositionUpdate = () => {
+      // 普通输入导致滚动时，不向所有隐藏的编辑器发送定位事务。
+      if (!bubbleVisibleRef.current) return
+
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(updateBubblePosition)
     }
@@ -331,4 +338,4 @@ export function AiRewriteBubble({ editor, fieldContext }: Props) {
       </RewriteDialogShell>
     </>
   )
-}
+})

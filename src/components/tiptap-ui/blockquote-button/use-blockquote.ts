@@ -1,15 +1,13 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import * as React from 'react'
-
 // --- Icons ---
 import { BlockquoteIcon } from '@/components/tiptap-icons/blockquote-icon'
-
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
-
 // --- UI Utils ---
 import {
   findNodePosition,
@@ -202,8 +200,17 @@ export function useBlockquote(config?: UseBlockquoteConfig) {
 
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canToggle = canToggleBlockquote(editor)
-  const isActive = editor?.isActive('blockquote') || false
+
+  const { canToggle, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canToggle: canToggleBlockquote(editor),
+      isActive: editor?.isActive('blockquote') || false,
+    }),
+  }) ?? {
+    canToggle: canToggleBlockquote(null),
+    isActive: false,
+  }
 
   React.useEffect(() => {
     if (!editor) return

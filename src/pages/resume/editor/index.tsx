@@ -32,6 +32,11 @@ import { CollaborationDialog } from './components/collaboration/collaboration-di
 import { CollaborationRuntime } from './components/collaboration/collaboration-runtime'
 import { CommentReviewBanner } from './components/comment-review-banner'
 import EditPanel from './components/edit-panel'
+import CheckWorkspace from './components/check-workspace'
+import { CheckModeToggle } from './components/check-workspace/mode-toggle'
+import CheckRuntime from './components/check-runtime'
+import { useResumeCheckStore } from './store/checks'
+import { focusCheckField } from './utils/check-focus'
 import ResumePreview from './components/preview'
 import SidebarEditor from './components/sidebar'
 import {
@@ -145,11 +150,35 @@ function Editor() {
   const toggleVisibility = useResumeStore((state) => state.toggleVisibility)
   const visibilityState = useResumeStore((state) => state.visibility)
 
+  const getShareSnapshot = useCallback(async () => {
+    const before = useResumeStore.getState()
+
+    if (before.currentResumeId !== currentResumeId || before.mode !== 'online')
+      throw new Error('简历已切换，请重新打开分享')
+    if (before.pendingChanges || before.isSyncing) await before.manualSync()
+
+    const current = useResumeStore.getState()
+
+    if (
+      current.currentResumeId !== currentResumeId ||
+      current.mode !== 'online'
+    )
+      throw new Error('简历已切换，请重新打开分享')
+    if (current.pendingChanges || current.syncError)
+      throw new Error(current.syncError ?? '简历尚未保存，请保存完成后再分享')
+
+    return buildResumeShareSnapshotSource(
+      current.getPersistedSnapshot(),
+      currentDisplayName,
+    )
+  }, [currentResumeId, currentDisplayName])
+
   const fill = theme === 'dark' ? '#0c0a09' : '#fafaf9'
   const stroke = theme === 'dark' ? '#3d3b3b' : '#e7e5e4'
 
   // 桌面编辑面板开关 + 左导航自动让位（桌面恒为右侧常驻侧栏）
   const { open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
+  const closeEditPanel = useCallback(() => setPanelOpen(false), [setPanelOpen])
   const prepareCommentWrite = usePrepareWorkingCommentWrite(currentResumeId)
 
   const commentReview = useCommentReviewMode({
@@ -256,6 +285,37 @@ function Editor() {
   }, [])
 
   const editRequest = usePreparationUiStore((state) => state.editRequest)
+  const checkRequest = useResumeCheckStore((state) => state.requestVersion)
+  const handledCheckRequestRef = useRef('')
+  const cancelFieldFocusRef = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    if (
+      !checkRequest ||
+      `${currentResumeId}:${checkRequest}` === handledCheckRequestRef.current ||
+      loading
+    )
+      return
+
+    handledCheckRequestRef.current = `${currentResumeId}:${checkRequest}`
+
+    if (!commentReview.isWorking) return
+
+    handleCommentsOpenChange(false)
+
+    if (isMobile) setOpen(true)
+    else setPanelOpen(true)
+  }, [
+    checkRequest,
+    currentResumeId,
+    loading,
+    commentReview.isWorking,
+    handleCommentsOpenChange,
+    isMobile,
+    setPanelOpen,
+  ])
+
+  useEffect(() => () => cancelFieldFocusRef.current?.(), [])
 
   useEffect(() => {
     if (loading || !currentResumeId || searchParams.get('prepare') !== '1')
@@ -280,11 +340,23 @@ function Editor() {
     handleCommentsOpenChange(false)
     updateActiveTabId(editRequest.section)
     useResumeStore.getState().setSectionOpen(editRequest.section, true)
+    useResumeCheckStore.getState().setTab('edit')
+
+    if (!editRequest.target)
+      useResumeCheckStore.setState({ editingIssueId: null })
 
     if (isMobile) setOpen(true)
     else setPanelOpen(true)
 
     scrollToSection(editRequest.section)
+    cancelFieldFocusRef.current?.()
+
+    if (editRequest.target) {
+      cancelFieldFocusRef.current = focusCheckField(
+        editRequest.target,
+        !!reduceMotion,
+      )
+    }
   }, [
     editRequest,
     loading,
@@ -295,6 +367,7 @@ function Editor() {
     isMobile,
     setPanelOpen,
     scrollToSection,
+    reduceMotion,
   ])
 
   if (loading) {
@@ -307,6 +380,11 @@ function Editor() {
 
   return (
     <CollaborationPanelProvider>
+      <CheckRuntime
+        rootRef={documentRef}
+        documentState={documentState}
+        review={!commentReview.isWorking}
+      />
       <CollaborationRuntime
         drawerOpen={useSidebarMode ? false : open}
         setDrawerOpen={useSidebarMode ? () => {} : handleMobileEditOpenChange}
@@ -338,6 +416,7 @@ function Editor() {
                 ) : null}
               </AnimatePresence>
               <ResumePreview
+                checksVisible={panelOpen && commentReview.isWorking}
                 resumeRef={documentRef}
                 sourceRef={sourceRef}
                 onDocumentStateChange={setDocumentState}
@@ -354,7 +433,7 @@ function Editor() {
               onActivate={handleActivateWithScroll}
               onUpdateOrder={updateOrder}
               onToggleVisibility={toggleVisibility}
-              onClose={() => setPanelOpen(false)}
+              onClose={closeEditPanel}
             />
             <AnimatePresence>
               {!panelOpen && !commentsOpen && commentReview.isWorking && (
@@ -413,24 +492,32 @@ function Editor() {
                 <Edit />
               </DrawerTrigger>
               <DrawerContent>
-                <CollaborationControls
-                  onOpenSortDialog={handleOpenSortDialog}
-                />
-                <div className='@container/panel flex min-h-0 flex-1 flex-col overflow-hidden p-4'>
-                  <SidebarEditor
-                    activeTabId={activeTabId}
-                    order={order}
-                    visibilityState={visibilityState}
-                    fill={fill}
-                    stroke={stroke}
-                    isMobile={isMobile}
-                    sortDialogOpen={sortDialogOpen}
-                    onSortDialogOpenChange={setSortDialogOpen}
-                    onUpdateActiveTabId={updateActiveTabId}
-                    onUpdateOrder={updateOrder}
-                    onToggleVisibility={toggleVisibility}
-                  />
-                </div>
+                <CheckWorkspace
+                  header={
+                    <div className='shrink-0 border-b'>
+                      <CollaborationControls
+                        onOpenSortDialog={handleOpenSortDialog}
+                        actions={<CheckModeToggle />}
+                      />
+                    </div>
+                  }
+                >
+                  <div className='@container/panel flex min-h-0 flex-1 flex-col overflow-hidden p-4'>
+                    <SidebarEditor
+                      activeTabId={activeTabId}
+                      order={order}
+                      visibilityState={visibilityState}
+                      fill={fill}
+                      stroke={stroke}
+                      isMobile={isMobile}
+                      sortDialogOpen={sortDialogOpen}
+                      onSortDialogOpenChange={setSortDialogOpen}
+                      onUpdateActiveTabId={updateActiveTabId}
+                      onUpdateOrder={updateOrder}
+                      onToggleVisibility={toggleVisibility}
+                    />
+                  </div>
+                </CheckWorkspace>
               </DrawerContent>
             </Drawer>
           )}
@@ -447,6 +534,7 @@ function Editor() {
               ) : null}
             </AnimatePresence>
             <ResumePreview
+              checksVisible={open && commentReview.isWorking}
               resumeRef={documentRef}
               sourceRef={sourceRef}
               onDocumentStateChange={setDocumentState}
@@ -511,36 +599,7 @@ function Editor() {
         </ResumeCommentProvider>
       ) : null}
       <CollaborationDialog />
-      <QuickDialog
-        getSnapshot={async () => {
-          const before = useResumeStore.getState()
-
-          if (
-            before.currentResumeId !== currentResumeId ||
-            before.mode !== 'online'
-          )
-            throw new Error('简历已切换，请重新打开分享')
-          if (before.pendingChanges || before.isSyncing)
-            await before.manualSync()
-
-          const current = useResumeStore.getState()
-
-          if (
-            current.currentResumeId !== currentResumeId ||
-            current.mode !== 'online'
-          )
-            throw new Error('简历已切换，请重新打开分享')
-          if (current.pendingChanges || current.syncError)
-            throw new Error(
-              current.syncError ?? '简历尚未保存，请保存完成后再分享',
-            )
-
-          return buildResumeShareSnapshotSource(
-            current.getPersistedSnapshot(),
-            currentDisplayName,
-          )
-        }}
-      />
+      <QuickDialog getSnapshot={getShareSnapshot} />
     </CollaborationPanelProvider>
   )
 }

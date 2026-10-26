@@ -1,16 +1,14 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import * as React from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
-
 // --- Icons ---
 import { ImagePlusIcon } from '@/components/tiptap-icons/image-plus-icon'
 import { useIsMobile } from '@/hooks/use-mobile'
-
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
-
 // --- Lib ---
 import { isExtensionAvailable, isNodeTypeSelected } from '@/lib/tiptap-utils'
 
@@ -144,8 +142,17 @@ export function useImageUpload(config?: UseImageUploadConfig) {
   const { editor } = useTiptapEditor(providedEditor)
   const isMobile = useIsMobile()
   const [isVisible, setIsVisible] = React.useState<boolean>(true)
-  const canInsert = canInsertImage(editor)
-  const isActive = isImageActive(editor)
+
+  const { canInsert, isActive } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canInsert: canInsertImage(editor),
+      isActive: isImageActive(editor),
+    }),
+  }) ?? {
+    canInsert: canInsertImage(null),
+    isActive: isImageActive(null),
+  }
 
   React.useEffect(() => {
     if (!editor) return

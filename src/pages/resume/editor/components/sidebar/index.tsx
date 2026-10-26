@@ -3,10 +3,16 @@ import { Reorder } from 'motion/react'
 import { useMotionReorder } from '@/components/ui/motion-reorder'
 import { SideTabs, SideTabsWrapper, ViewPort } from '@/components/ui/side-tabs'
 import { ITEMS } from '../../const'
+import CheckFields from '../check-fields'
 import { FixedTab } from './fixed-tab'
 import { MobileSortDrawer } from './mobile-sort-drawer'
 import { SortableTab } from './sortable-tab'
 import { StaticTab } from './static-tab'
+
+const FIELD_ITEMS = ITEMS.map((item) => ({
+  ...item,
+  content: <CheckFields section={item.id}>{item.content}</CheckFields>,
+}))
 
 interface SidebarEditorProps {
   activeTabId: ORDERType
@@ -121,7 +127,7 @@ export default function SidebarEditor({
       )}
 
       <ViewPort
-        items={ITEMS}
+        items={FIELD_ITEMS}
         fill={fill}
         stroke={stroke}
         scrollable={isMobile}

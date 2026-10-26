@@ -58,7 +58,11 @@ const displayTypes: { value: DisplayType; label: string }[] = [
 
 function SkillSpecialtyForm({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion()
-  const skillSpecialty = useResumeStore((state) => state.skill_specialty)
+
+  const [skillSpecialty] = useState(
+    () => useResumeStore.getState().skill_specialty,
+  )
+
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
   const isMobile = useIsMobile()
   const [customSkillInput, setCustomSkillInput] = useState('')
@@ -71,7 +75,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
     [skillSpecialty.description, skillSpecialty.skills],
   )
 
-  const { form, fields, append, remove } = useResumeFieldForm({
+  const { form, fields, append, remove, sync } = useResumeFieldForm({
     fieldName: 'skill_specialty',
     schema: skillSpecialtyFormSchema,
     storeFormData,
@@ -132,6 +136,7 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
 
   return (
     <Form {...form}>
+      {sync}
       <form id='skill-specialty-form'>
         <div className={cn('flex flex-col gap-6', className)}>
           <FormField

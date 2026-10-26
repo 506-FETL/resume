@@ -1,10 +1,9 @@
 'use client'
 
+import { useEditorState } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import type { Level } from '@/components/tiptap-ui/heading-button'
-
 import * as React from 'react'
-
 // --- Icons ---
 import { HeadingIcon } from '@/components/tiptap-icons/heading-icon'
 // --- Tiptap UI ---
@@ -14,7 +13,6 @@ import {
   isHeadingActive,
   shouldShowButton,
 } from '@/components/tiptap-ui/heading-button'
-
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
@@ -99,9 +97,18 @@ export function useHeadingDropdownMenu(config?: UseHeadingDropdownMenuConfig) {
   const { editor } = useTiptapEditor(providedEditor)
   const [isVisible, setIsVisible] = React.useState(true)
 
-  const activeLevel = getActiveHeadingLevel(editor, levels)
-  const isActive = isHeadingActive(editor)
-  const canToggleState = canToggle(editor)
+  const { activeLevel, isActive, canToggleState } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      activeLevel: getActiveHeadingLevel(editor, levels),
+      isActive: isHeadingActive(editor),
+      canToggleState: canToggle(editor),
+    }),
+  }) ?? {
+    activeLevel: getActiveHeadingLevel(null, levels),
+    isActive: isHeadingActive(null),
+    canToggleState: canToggle(null),
+  }
 
   React.useEffect(() => {
     if (!editor) return

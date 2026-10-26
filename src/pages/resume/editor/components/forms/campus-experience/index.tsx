@@ -27,7 +27,10 @@ import { useResumeFieldForm } from '../hooks/use-resume-field-form'
 import { ResumeFieldFormSection } from '../shared/resume-field-form-section'
 
 function CampusExperienceForm({ className }: { className?: string }) {
-  const campusExperience = useResumeStore((state) => state.campus_experience)
+  const [campusExperience] = useState(
+    () => useResumeStore.getState().campus_experience,
+  )
+
   const jobIntentText = useResumeStore((state) => state.job_intent.jobIntent)
 
   const [isUptoNow, setIsUptoNow] = useState(
@@ -43,7 +46,7 @@ function CampusExperienceForm({ className }: { className?: string }) {
     [campusExperience.items],
   )
 
-  const { form, fields, remove, move, onAddItem } = useResumeFieldForm({
+  const { form, fields, remove, move, onAddItem, sync } = useResumeFieldForm({
     fieldName: 'campus_experience',
     schema: campusExperienceFormSchema,
     storeFormData,
@@ -53,6 +56,7 @@ function CampusExperienceForm({ className }: { className?: string }) {
 
   return (
     <ResumeFieldFormSection
+      sync={sync}
       form={form}
       fields={fields}
       remove={remove}

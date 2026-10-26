@@ -3,7 +3,7 @@ import type { ResumeDocumentStateChange } from './pagination/types'
 import type { TemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { ResumeAppearanceConfig } from '@/lib/schema'
-import { useLayoutEffect, useMemo } from 'react'
+import { memo, useLayoutEffect, useMemo } from 'react'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
 import {
@@ -25,7 +25,7 @@ interface ScaledReadonlyPreviewProps {
   projectionReferenceDate?: string
 }
 
-export default function ScaledReadonlyPreview({
+function ScaledReadonlyPreview({
   data,
   appearance,
   definition,
@@ -89,3 +89,5 @@ export default function ScaledReadonlyPreview({
     </ScaledResumeDocument>
   )
 }
+
+export default memo(ScaledReadonlyPreview)

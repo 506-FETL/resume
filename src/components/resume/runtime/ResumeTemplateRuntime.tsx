@@ -4,7 +4,7 @@ import type { ResumeAppearanceConfig } from '@/lib/schema'
 import { useMemo } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import TemplateResourceStatus from '@/components/resume/template-resource-status'
-import { adaptResumeContent } from '@/lib/resume-template/content/adapt-resume'
+import { getTemplateProjection } from './template-projection'
 import { createTemplateStyleEnvironment } from '@/lib/resume-template/declarative/styles'
 import {
   asTemplateError,
@@ -26,12 +26,8 @@ function ResumeContent({
   appearance: ResumeAppearanceConfig
   assetUrls?: ReadonlyMap<string, string>
 }) {
-  const { commentNodesByKey } = useResumeContext()
-
-  const content = useMemo(
-    () => adaptResumeContent(data, commentNodesByKey),
-    [data, commentNodesByKey],
-  )
+  const { projectionReferenceDate } = useResumeContext()
+  const { content } = getTemplateProjection(data, projectionReferenceDate)
 
   const environment = useMemo(
     () => createTemplateStyleEnvironment(definition, appearance),
