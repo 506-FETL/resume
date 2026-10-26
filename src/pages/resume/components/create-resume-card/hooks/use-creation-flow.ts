@@ -1,5 +1,10 @@
+import {
+  bindJobResume,
+  jobContextUrl,
+  useJobContextStore,
+} from '@/lib/job-context'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { extractResumeFile } from '@/lib/resume-import/extract'
 import {
@@ -39,6 +44,8 @@ export function useCreationFlow({
   const userId = useUserStore((state) => state.currentUser?.id ?? null)
   const scope = preparationScope(userId)
   const navigate = useNavigate()
+  const [routeParams] = useSearchParams()
+  const routeJobId = routeParams.get('jobId')
   const [error, setError] = useState<string | null>(null)
   const [importStage, setImportStage] = useState<ImportStage | null>(null)
   const reading = importStage !== null
@@ -192,6 +199,7 @@ export function useCreationFlow({
 
     const state = useCreationDraftStore.getState()
     const capturedOwner = userId
+    const capturedJobId = routeJobId
     const previouslySubmitted = Boolean(state.draft.creation?.submitted)
     let submitted = previouslySubmitted
 
@@ -333,6 +341,18 @@ export function useCreationFlow({
         .getState()
         .setCurrentResume(result.resumeId, result.type)
 
+      if (capturedJobId && result.mode !== 'local') {
+        const context = await bindJobResume(capturedJobId, result.resumeId)
+
+        if (
+          !mountedRef.current ||
+          (useUserStore.getState().currentUser?.id ?? null) !== capturedOwner
+        )
+          return
+
+        useJobContextStore.getState().setContext(context)
+      }
+
       await useCreationDraftStore.getState().discard()
       useResumeCreationStore.getState().reset()
 
@@ -350,7 +370,12 @@ export function useCreationFlow({
 
       onClose()
       onCreated?.()
-      navigate('/resume/editor?prepare=1')
+
+      navigate(
+        capturedJobId
+          ? jobContextUrl('/resume/editor', capturedJobId, { prepare: '1' })
+          : '/resume/editor?prepare=1',
+      )
     } catch (reason) {
       const latest = useCreationDraftStore.getState()
       const prepared = useResumeCreationStore.getState().prepared

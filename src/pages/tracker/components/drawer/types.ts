@@ -17,7 +17,7 @@ export interface ResumeOption {
 export type ResumePreviewData = Partial<ResumeSchema> &
   Pick<Partial<PersistedResumeSnapshot>, 'spacing' | 'font' | 'theme'> & {
     type?: ResumeType
-    templateBinding?: ResumeTemplateBinding
+    template_binding?: ResumeTemplateBinding
     order?: ORDERType[]
     visibility?: Partial<VisibilityFormType> | Record<string, boolean>
   }

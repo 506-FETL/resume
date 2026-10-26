@@ -74,6 +74,9 @@ export interface JobApplication {
   location: string
   salary: string | null
   job_url: string | null
+  jd_text?: string | null
+  jd_updated_at?: string | null
+  source?: string | null
   status: ApplicationStatus
   stage_details: StageDetail[]
   interview_sub_stages: InterviewSubStage[]

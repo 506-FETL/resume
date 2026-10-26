@@ -1,3 +1,4 @@
+import PurposeFields from '../purpose-fields'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { useReducedMotion } from 'motion/react'
 import { useLayoutEffect, useRef, useState } from 'react'
@@ -58,6 +59,8 @@ export default function SettingsDialog() {
     settingsShareId && pendingShareIds.includes(settingsShareId),
   )
 
+  const [showPhone, setShowPhone] = useState(true)
+  const [showEmail, setShowEmail] = useState(true)
   const [label, setLabel] = useState('')
   const [expiresAt, setExpiresAt] = useState<Date | undefined>()
   const [passwordEnabled, setPasswordEnabled] = useState(false)
@@ -80,6 +83,8 @@ export default function SettingsDialog() {
 
     initializedShareIdRef.current = share.id
     setRetainedShare(share)
+    setShowPhone(share.showPhone)
+    setShowEmail(share.showEmail)
     setLabel(share?.label ?? '')
     setExpiresAt(expiryIsoToDate(share?.expires_at ?? null))
     setPasswordEnabled(Boolean(share?.has_password))
@@ -108,7 +113,12 @@ export default function SettingsDialog() {
         label: label.trim() || null,
         expiresAt: dateToExpiryIso(expiresAt),
         password: passwordEnabled ? nextPassword || undefined : null,
-        allowComments,
+        allowComments:
+          share.purpose === 'showcase' || !showPhone || !showEmail
+            ? false
+            : allowComments,
+        showPhone,
+        showEmail,
       })
 
       toast.success('分享设置已更新')
@@ -158,6 +168,25 @@ export default function SettingsDialog() {
         </DialogHeader>
 
         <FieldGroup className='gap-4'>
+          {renderedShare?.purpose ? (
+            <PurposeFields
+              purpose={renderedShare.purpose}
+              showPhone={showPhone}
+              showEmail={showEmail}
+              onShowPhoneChange={setShowPhone}
+              onShowEmailChange={setShowEmail}
+              disabled={busy}
+            />
+          ) : (
+            <p className='text-sm text-muted-foreground'>
+              原有分享 · 保持原来的用途与联系方式设置
+            </p>
+          )}
+          <p className='text-xs text-muted-foreground'>
+            {renderedShare?.source.kind === 'history'
+              ? '当前链接固定为发布时的版本。'
+              : '当前链接随云端保存更新。'}
+          </p>
           <Field>
             <FieldLabel htmlFor='edit-share-label'>链接名称</FieldLabel>
             <Input
@@ -185,8 +214,18 @@ export default function SettingsDialog() {
             </FieldContent>
             <Switch
               id='edit-share-comments-enabled'
-              checked={allowComments}
-              disabled={busy}
+              checked={
+                renderedShare?.purpose !== 'showcase' &&
+                showPhone &&
+                showEmail &&
+                allowComments
+              }
+              disabled={
+                busy ||
+                renderedShare?.purpose === 'showcase' ||
+                !showPhone ||
+                !showEmail
+              }
               onCheckedChange={setAllowComments}
             />
           </Field>

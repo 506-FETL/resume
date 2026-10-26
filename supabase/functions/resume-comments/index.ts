@@ -1,3 +1,4 @@
+import { canReadShareComments } from '../shared/resume-share-privacy.ts'
 /* global Deno */
 
 import type {
@@ -2925,6 +2926,29 @@ Deno.serve(async (req) => {
     }
 
     const body = value
+
+    if (body.accessKind === 'share') {
+      const shareToken = await verifyCommentToken(
+        readRequiredString(body, 'accessToken', 4_096),
+        'share',
+        tokenSecret,
+      )
+
+      const { data: privacy, error: privacyError } = await admin
+        .from('resume_shares')
+        .select('purpose,show_phone,show_email')
+        .eq('id', shareToken.shareId)
+        .maybeSingle()
+
+      if (privacyError) throw privacyError
+      if (!privacy || !canReadShareComments(privacy))
+        throw new CommentApiError(
+          'share_unavailable',
+          '此分享不公开评论和附件',
+          404,
+        )
+    }
+
     const authStartedAt = performance.now()
 
     const { userId, authMode } = await authenticateSupabaseUser({

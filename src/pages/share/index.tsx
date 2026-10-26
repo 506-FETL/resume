@@ -1,3 +1,4 @@
+import { JobContextBar } from '@/components/job-context'
 import { motion, useReducedMotion } from 'motion/react'
 import { PageLayout } from '@/components/layout/page-layout'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
@@ -28,6 +29,7 @@ export default function Management() {
         }}
         className='flex min-w-0 flex-col gap-6'
       >
+        <JobContextBar />
         <Header />
         <Overview />
         <section aria-label='分享链接' className='min-w-0 space-y-5'>

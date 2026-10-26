@@ -1,7 +1,8 @@
+import { jobContextUrl, useJobContextStore } from '@/lib/job-context'
 import type { ResumeToolContext } from '../shared/types'
 import type { JobDescriptionComparisonResult } from './types'
 import { GitBranch, Search, Target } from 'lucide-react'
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
@@ -43,9 +44,12 @@ interface JobDescriptionToolProps {
 }
 
 function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
+  const jobContext = useJobContextStore((state) => state.context)
+
   const sessionKey = useMemo(
-    () => getJobDescriptionSessionKey(resumeContext),
-    [resumeContext],
+    () =>
+      `${jobContext ? `${jobContext.userId}:${jobContext.id}:` : ''}${getJobDescriptionSessionKey(resumeContext)}`,
+    [resumeContext, jobContext],
   )
 
   const session =
@@ -71,6 +75,11 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     jobDescription,
     result,
   } = session
+
+  useEffect(() => {
+    if (jobContext && jobContext.resumeId === resumeContext.resumeId)
+      setJobDescription(sessionKey, jobContext.jdText)
+  }, [jobContext, resumeContext.resumeId, sessionKey, setJobDescription])
 
   const jobDescriptionLength = jobDescription.trim().length
 
@@ -270,6 +279,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
         open={deriveOpen}
         onOpenChange={setDeriveOpen}
         parentResumeId={resumeContext.resumeId}
+        jobId={jobContext?.id}
         initialJd={jobDescription.trim()}
         skipInputStep
         recentJds={[]}
@@ -279,7 +289,11 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
             resumeContext.resumeType === 'offline' ? 'default' : 'default',
           )
 
-          navigate('/resume/editor')
+          navigate(
+            jobContext
+              ? jobContextUrl('/resume/editor', jobContext.id)
+              : '/resume/editor',
+          )
         }}
       />
     </div>

@@ -1,5 +1,7 @@
+import PreparationActions from './preparation-actions'
+import { jobContextUrl } from '@/lib/job-context'
 import type { ResumePreviewData } from '../types'
-import { ChevronDown, FileText, Loader2, RotateCcw } from 'lucide-react'
+import { ChevronDown, FileText, RotateCcw } from 'lucide-react'
 import { useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -8,6 +10,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Collapsible,
   CollapsibleContent,
@@ -150,7 +154,7 @@ export default function DrawerDocument({
           <FileText className='size-5 text-muted-foreground' />
         </span>
         <span className='min-w-0 flex-1 space-y-1'>
-          <span className='block text-sm font-medium'>投递简历</span>
+          <span className='block text-sm font-medium'>准备中的简历</span>
           <span className='block truncate text-xs text-muted-foreground'>
             {resumeId
               ? selectedResume?.display_name || '已绑定简历'
@@ -173,6 +177,7 @@ export default function DrawerDocument({
         }}
       >
         <div className='space-y-4 border-t p-4'>
+          <PreparationActions />
           {listError ? (
             <div
               role='alert'
@@ -192,7 +197,7 @@ export default function DrawerDocument({
               role='status'
               className='flex items-center gap-2 py-2 text-sm text-muted-foreground'
             >
-              <Loader2 className={cn('size-4', !reduce && 'animate-spin')} />
+              <Spinner aria-hidden className='motion-reduce:animate-none' />
               正在加载简历列表
             </div>
           ) : resumes.length === 0 ? (
@@ -203,19 +208,19 @@ export default function DrawerDocument({
               <Button
                 variant='outline'
                 size='sm'
-                onClick={() => navigate('/resume')}
+                onClick={() => navigate(jobContextUrl('/resume', jobId))}
               >
                 前往我的简历
               </Button>
             </div>
           ) : (
             <div className='space-y-2'>
-              <label
+              <Label
                 htmlFor='tracker-resume-select'
                 className='text-xs font-medium text-muted-foreground'
               >
                 绑定简历
-              </label>
+              </Label>
               <Select
                 value={resumeId || ''}
                 onValueChange={handleResumeChange}
@@ -227,7 +232,13 @@ export default function DrawerDocument({
                 >
                   <SelectValue placeholder='选择一份简历' />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  style={
+                    reduce
+                      ? { animation: 'none', transform: 'none' }
+                      : undefined
+                  }
+                >
                   {resumes.map((resume) => (
                     <SelectItem key={resume.resume_id} value={resume.resume_id}>
                       {resume.display_name}
@@ -272,9 +283,7 @@ export default function DrawerDocument({
                   role='status'
                   className='flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground'
                 >
-                  <Loader2
-                    className={cn('size-4', !reduce && 'animate-spin')}
-                  />
+                  <Spinner aria-hidden className='motion-reduce:animate-none' />
                   正在加载简历预览
                 </div>
               )}

@@ -1,3 +1,4 @@
+import { JobContextBar } from '@/components/job-context'
 import type { RefObject } from 'react'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ORDERType } from '@/lib/schema'
@@ -318,14 +319,27 @@ function Editor() {
   useEffect(() => () => cancelFieldFocusRef.current?.(), [])
 
   useEffect(() => {
-    if (loading || !currentResumeId || searchParams.get('prepare') !== '1')
+    if (
+      loading ||
+      !currentResumeId ||
+      (searchParams.get('prepare') !== '1' &&
+        searchParams.get('action') !== 'experience')
+    )
       return
 
-    usePreparationUiStore.getState().requestEdit(currentResumeId, 'basics')
+    usePreparationUiStore
+      .getState()
+      .requestEdit(
+        currentResumeId,
+        searchParams.get('action') === 'experience'
+          ? 'work_experience'
+          : 'basics',
+      )
 
     const next = new URLSearchParams(searchParams)
 
     next.delete('prepare')
+    next.delete('action')
     setSearchParams(next, { replace: true })
   }, [loading, currentResumeId, searchParams, setSearchParams])
 
@@ -402,6 +416,7 @@ function Editor() {
         <div className='relative h-full min-h-0 w-full'>
           <div className='absolute inset-0 flex min-h-0 overflow-hidden'>
             <div className='relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
+              <JobContextBar />
               <AnimatePresence>
                 {!commentReview.isWorking ? (
                   <CommentReviewBanner
@@ -522,6 +537,7 @@ function Editor() {
             </Drawer>
           )}
           <div className='relative flex min-h-full flex-col overflow-auto md:flex-row'>
+            <JobContextBar />
             <AnimatePresence>
               {!commentReview.isWorking ? (
                 <CommentReviewBanner

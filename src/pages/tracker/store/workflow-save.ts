@@ -9,6 +9,11 @@ import {
   getCompanies,
   updateCompany,
 } from '@/lib/supabase/resume'
+import type { SubmissionInput } from '../submission-types'
+import {
+  recordJobSubmission,
+  SubmissionSaveError,
+} from '@/lib/supabase/resume/submissions'
 import {
   assertTrackerAccountScope,
   createTrackerAccountGuard,
@@ -528,6 +533,64 @@ export function createTrackerPersistence(
   }
 
   return {
+    recordSubmission: (input: SubmissionInput) =>
+      enqueue(input.jobId, async (runtime) => {
+        const scope = getTrackerAccountScope()
+
+        requestFlush(runtime)
+
+        try {
+          await persistDirty(input.jobId, runtime)
+        } catch {
+          assertTrackerAccountScope(scope)
+
+          throw new SubmissionSaveError(
+            '流程内容保存失败，尚未发送投递记录，请重试',
+            'rejected',
+          )
+        }
+
+        const versions = { ...runtime.versions }
+
+        const result = await recordJobSubmission(
+          input,
+          createTrackerAccountGuard(scope),
+        )
+
+        const rows = await getCompanies(createTrackerAccountGuard(scope))
+        const saved = rows.find((row) => row.id === input.jobId)
+
+        assertTrackerAccountScope(scope)
+
+        if (!saved || !isLive(input.jobId, runtime))
+          throw new Error('投递已记录，请重新加载职位确认进度')
+
+        const accepted: JobFieldsPatch = {}
+
+        for (const field of [
+          'status',
+          'stage_details',
+          'interview_sub_stages',
+          'activities',
+          'updated_at',
+        ] as const) {
+          runtime.baseline = { ...runtime.baseline, [field]: saved[field] }
+
+          if (runtime.versions[field] === versions[field])
+            Object.assign(accepted, { [field]: saved[field] })
+        }
+
+        merge(input.jobId, accepted)
+
+        const latest = normalizeJobWorkflow(find(input.jobId)!)
+
+        merge(input.jobId, {
+          stage_details: latest.stage_details,
+          interview_sub_stages: latest.interview_sub_stages,
+        })
+
+        return result
+      }),
     saveStates: {} as Record<string, WorkflowSaveState>,
     resetPersistence: () => {
       runtimes.forEach(clearTimer)

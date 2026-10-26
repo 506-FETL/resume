@@ -1,3 +1,4 @@
+import { useJobContextStore } from '@/lib/job-context'
 import type { SnapshotProvider } from '../../types'
 import type {
   CreateShareOptions,
@@ -75,7 +76,13 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
         getCurrentSource: async () => getSnapshot(),
       })
 
-      await createRelease(openForResumeId, release, options)
+      const job = useJobContextStore.getState().context
+
+      await createRelease(openForResumeId, release, {
+        ...options,
+        jobId: job?.resumeId === openForResumeId ? job.id : undefined,
+      })
+
       toast.success('分享链接已生成')
 
       return true
@@ -102,6 +109,7 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
   const body = (
     <>
       <CreateForm
+        key={openForResumeId}
         versions={versionEntry?.items ?? []}
         versionsLoading={versionEntry?.loading ?? false}
         versionsError={versionEntry?.error ?? null}

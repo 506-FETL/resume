@@ -1,3 +1,7 @@
+import {
+  canReadShareComments,
+  redactShareContacts,
+} from '../shared/resume-share-privacy.ts'
 /* global Deno */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
@@ -441,6 +445,7 @@ Deno.serve(async (req) => {
     let refreshOnly = false
     let accessToken: string | null = null
     let knownContentRevision: string | null = null
+    let settingsBody: Record<string, unknown> = {}
 
     if (req.method === 'POST') {
       const body = (await req.json().catch(() => ({}))) as Record<
@@ -448,6 +453,7 @@ Deno.serve(async (req) => {
         unknown
       >
 
+      settingsBody = body
       op = typeof body.op === 'string' ? body.op : null
       operation =
         op === 'set_password' || op === 'update_settings'
@@ -555,7 +561,21 @@ Deno.serve(async (req) => {
       if (!(await consumeOwnerWriteLimit(admin, userId)))
         return json({ error: 'rate_limited' }, 429)
 
+      for (const key of ['showPhone', 'showEmail']) {
+        if (
+          settingsBody[key] !== undefined &&
+          typeof settingsBody[key] !== 'boolean'
+        )
+          return json({ error: 'invalid_contact_policy' }, 400)
+      }
+
       const patch: Record<string, unknown> = {
+        ...(typeof settingsBody.showPhone === 'boolean'
+          ? { show_phone: settingsBody.showPhone }
+          : {}),
+        ...(typeof settingsBody.showEmail === 'boolean'
+          ? { show_email: settingsBody.showEmail }
+          : {}),
         label,
         expires_at: expiresAt,
         ...(allowComments === undefined
@@ -642,6 +662,9 @@ Deno.serve(async (req) => {
         expires_at,
         archived_at,
         allow_comments,
+        purpose,
+        show_phone,
+        show_email,
         version_id,
         current_release_id,
         version:resume_config_versions!resume_shares_version_id_fkey(
@@ -856,7 +879,7 @@ Deno.serve(async (req) => {
     const { data: authorizedShare, error: authorizationError } = await admin
       .from('resume_shares')
       .select(
-        'version_id,current_release_id,source_kind,is_active,archived_at,expires_at,password_hash,allow_comments',
+        'version_id,current_release_id,source_kind,is_active,archived_at,expires_at,password_hash,allow_comments,purpose,show_phone,show_email',
       )
       .eq('id', data.id)
       .single()
@@ -881,16 +904,29 @@ Deno.serve(async (req) => {
       return json({ error: 'temporarily_unavailable' }, 503)
     }
 
+    const publicSnapshot = redactShareContacts(source.snapshot, authorizedShare)
+
+    const publicDisplayName = redactShareContacts(
+      {
+        basics: (source.snapshot as Record<string, unknown> | null)?.basics,
+        displayName: source.displayName,
+      },
+      authorizedShare,
+    ).displayName
+
+    const commentsVisible = canReadShareComments(authorizedShare)
+
     const contentRevision = shareContentRevision({
-      snapshot: source.snapshot,
+      snapshot: publicSnapshot,
       templateManifest: source.templateManifest,
-      displayName: source.displayName,
+      displayName: publicDisplayName,
       sourceKind,
       versionId: version.id,
       documentRevision: version.document_revision,
     })
 
-    const notModified = knownContentRevision === contentRevision
+    const privacyRevision = `${contentRevision}:${authorizedShare.purpose ?? 'legacy'}:${authorizedShare.show_phone}:${authorizedShare.show_email}`
+    const notModified = knownContentRevision === privacyRevision
     const issuedAt = Math.floor(Date.now() / 1_000)
     const expiresAtSeconds = issuedAt + 15 * 60
 
@@ -912,24 +948,24 @@ Deno.serve(async (req) => {
     // 当前链接解析已保存配置；历史链接保留发布快照。相同内容不重复传输大对象。
     return json({
       source_kind: sourceKind,
-      content_revision: contentRevision,
+      content_revision: privacyRevision,
       not_modified: notModified,
       ...(notModified
         ? {}
         : {
-            snapshot: source.snapshot,
+            snapshot: publicSnapshot,
             template_manifest: source.templateManifest,
           }),
-      display_name: source.displayName,
+      display_name: publicDisplayName,
       share_id: data.id,
       release_id: currentRelease.id,
       release_no: currentRelease.release_no,
       version_id: version.id,
       document_revision: version.document_revision,
-      allow_comments: authorizedShare.allow_comments,
+      allow_comments: commentsVisible && authorizedShare.allow_comments,
       projection_reference_date: commentScope.projectionReferenceDate,
       comment_scope_id: commentScope.id,
-      comment_access_token: commentAccessToken,
+      ...(commentsVisible ? { comment_access_token: commentAccessToken } : {}),
       comment_access_expires_at: new Date(
         expiresAtSeconds * 1_000,
       ).toISOString(),

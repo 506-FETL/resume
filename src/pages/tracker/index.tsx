@@ -1,9 +1,11 @@
-import { memo, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { PageLayout } from '@/components/layout/page-layout'
 import BoardView from './components/board'
 import JobDrawer from './components/drawer'
 import AddJobDrawer from './components/drawer/add-job'
+import SubmissionDialog from './components/drawer/submission-dialog'
 import TrackerHeader from './components/header'
 import ListView from './components/list'
 import OverviewBar from './components/overview-bar'
@@ -39,6 +41,28 @@ function TrackerContent() {
       searchKeyword: state.searchKeyword,
     })),
   )
+
+  const [routeParams] = useSearchParams()
+  const routeJobId = routeParams.get('jobId')
+  const routeTab = routeParams.get('tab')
+  const openedRouteRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!routeJobId || !isInitialized || loading) return
+
+    const job = useTrackerStore
+      .getState()
+      .jobs.find((row) => row.id === routeJobId)
+
+    const scope = useTrackerStore.getState().accountScope
+    const key = `${scope.generation}:${routeJobId}:${routeTab}`
+
+    if (!job || job.user_id !== scope.userId || openedRouteRef.current === key)
+      return
+
+    openedRouteRef.current = key
+    useTrackerStore.getState().openJobDrawer(job)
+  }, [routeJobId, routeTab, isInitialized, loading, jobs])
 
   const { reload } = useTrackerJobs()
   const busy = loading || (!isInitialized && !error)
@@ -102,6 +126,7 @@ function TrackerContent() {
       </PageLayout>
       <JobDrawer />
       <AddJobDrawer />
+      <SubmissionDialog />
     </>
   )
 }

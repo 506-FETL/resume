@@ -27,7 +27,11 @@ import {
   APPLICATION_STATUS_CONFIG,
   APPLICATION_STATUS_ORDER,
 } from '../../const'
-import { isTrackerAccountScopeError } from '../../lib/account-scope'
+import {
+  getTrackerAccountScope,
+  isTrackerAccountScopeCurrent,
+  isTrackerAccountScopeError,
+} from '../../lib/account-scope'
 import useTrackerStore from '../../store'
 import { selectTrackerListJobs } from '../../store/selectors'
 import { filterJobs, getTrackerErrorMessage } from '../../utils'
@@ -102,6 +106,7 @@ export default function BatchActions() {
 
   const runBatchStatusChange = async (newStatus: ApplicationStatus) => {
     const state = useTrackerStore.getState()
+    const scope = getTrackerAccountScope()
 
     const targets = state.jobs.filter(
       (job) => state.selectedIds.has(job.id) && job.status !== newStatus,
@@ -114,7 +119,20 @@ export default function BatchActions() {
         targets.map((job) => changeJobStatus(job.id, newStatus)),
       )
 
-      exitSelectMode()
+      if (!isTrackerAccountScopeCurrent(scope)) return
+
+      const latest = useTrackerStore.getState()
+
+      const remaining = targets.filter(
+        (job) =>
+          latest.jobs.find((row) => row.id === job.id)?.status !== newStatus,
+      )
+
+      if (remaining.length)
+        useTrackerStore.setState({
+          selectedIds: new Set(remaining.map((job) => job.id)),
+        })
+      else exitSelectMode()
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
 

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/collapsible'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { DURATION, EASE } from '@/lib/motion'
 import {
   COMMON_CITIES,
@@ -62,10 +63,7 @@ export function AddJobForm({ formData, onChange, children }: AddJobFormProps) {
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor='location'>
-            工作地点
-            <span className='text-destructive'>*</span>
-          </FieldLabel>
+          <FieldLabel htmlFor='location'>工作地点</FieldLabel>
           <TrackerCombobox
             id='location'
             placeholder='搜索或输入城市'
@@ -75,6 +73,16 @@ export function AddJobForm({ formData, onChange, children }: AddJobFormProps) {
           />
         </Field>
       </FieldGroup>
+      <Field>
+        <FieldLabel htmlFor='new-job-jd'>JD 原文（选填）</FieldLabel>
+        <Textarea
+          id='new-job-jd'
+          value={formData.jd_text}
+          maxLength={30000}
+          onChange={(event) => onChange('jd_text', event.target.value)}
+          placeholder='粘贴岗位描述，可免费提取基本字段，也可以直接手填'
+        />
+      </Field>
       {children}
       <Collapsible>
         <CollapsibleTrigger asChild>
@@ -104,12 +112,12 @@ export function AddJobForm({ formData, onChange, children }: AddJobFormProps) {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor='company-logo'>公司 Logo 链接</FieldLabel>
+              <FieldLabel htmlFor='job-source'>岗位来源</FieldLabel>
               <Input
-                id='company-logo'
-                placeholder='https://...'
-                value={formData.company_logo}
-                onChange={(e) => onChange('company_logo', e.target.value)}
+                id='job-source'
+                placeholder='招聘网站、内推等'
+                value={formData.source}
+                onChange={(e) => onChange('source', e.target.value)}
               />
             </Field>
             <Field>

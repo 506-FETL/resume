@@ -3,7 +3,8 @@ import type { InterviewSubStage } from '../../../types'
 import dayjs from 'dayjs'
 import { CalendarIcon, Check, MessageSquare, Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import WorkflowDateField from '../workflow-date-field'
@@ -63,6 +65,9 @@ export function InterviewSubStages({
   onFlush,
 }: InterviewSubStagesProps) {
   const reduce = useReducedMotion()
+  const isNarrow = useIsMobile(640)
+  const cardWidth = isNarrow ? 9 : 10
+  const connectorWidth = isNarrow ? 1.25 : 1.5
   const [selectedId, setSelectedId] = useState(subStages.at(-1)?.id ?? '')
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -84,37 +89,46 @@ export function InterviewSubStages({
   const addRef = useRef<HTMLButtonElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const deletedRef = useRef(false)
+  const exitInProgressRef = useRef(false)
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null)
   const deletedRound = subStages.find((round) => round.id === deleting)
 
-  useEffect(() => {
+  const revealSelectedRound = useCallback(() => {
     const viewport = scrollRef.current
     const trigger = activeRoundId && triggerRefs.current.get(activeRoundId)
 
-    const revealSelectedRound = () => {
-      if (!viewport || !trigger) return
+    if (!viewport || !trigger || exitInProgressRef.current) return
 
-      const viewportBox = viewport.getBoundingClientRect()
-      const triggerBox = trigger.getBoundingClientRect()
+    const viewportBox = viewport.getBoundingClientRect()
+    const triggerBox = trigger.getBoundingClientRect()
 
-      if (
-        triggerBox.left < viewportBox.left ||
-        triggerBox.right > viewportBox.right
-      ) {
-        viewport.scrollTo({
-          left:
-            viewport.scrollLeft +
-            triggerBox.left -
-            viewportBox.left -
-            (viewport.clientWidth - triggerBox.width) / 2,
-          behavior: reduce ? 'instant' : 'smooth',
-        })
-      }
+    if (
+      triggerBox.left < viewportBox.left ||
+      triggerBox.right > viewportBox.right
+    ) {
+      viewport.scrollTo({
+        left:
+          viewport.scrollLeft +
+          triggerBox.left -
+          viewportBox.left -
+          (viewport.clientWidth - triggerBox.width) / 2,
+        behavior: reduce ? 'instant' : 'smooth',
+      })
     }
+  }, [activeRoundId, reduce])
+
+  useEffect(() => {
+    const viewport = scrollRef.current
+    let viewportWidth = viewport?.clientWidth
 
     revealSelectedRound()
 
-    const observer = new ResizeObserver(revealSelectedRound)
+    const observer = new ResizeObserver(() => {
+      if (viewport?.clientWidth === viewportWidth) return
+
+      viewportWidth = viewport?.clientWidth
+      revealSelectedRound()
+    })
 
     if (viewport) observer.observe(viewport)
 
@@ -134,7 +148,7 @@ export function InterviewSubStages({
 
       if (frame !== null) cancelAnimationFrame(frame)
     }
-  }, [activeRoundId, subStages.length, reduce])
+  }, [activeRoundId, subStages.length, revealSelectedRound])
 
   const handleSelect = (id: string) => {
     if (id === selectedRound?.id) return
@@ -211,26 +225,54 @@ export function InterviewSubStages({
         >
           <div
             ref={scrollRef}
-            className='scrollbar-thin-subtle -mx-1 overflow-x-auto overscroll-x-contain px-1 pb-1'
+            className='scrollbar-thin-subtle -mx-1 overflow-x-auto overscroll-x-contain px-1 pb-1 [overflow-anchor:none]'
           >
             <div className='flex w-max min-w-full items-stretch p-1'>
               <TabsList
                 aria-label='选择面试轮次'
                 className='relative w-max justify-start rounded-none bg-transparent p-0 group-data-[orientation=horizontal]/tabs:h-auto'
               >
-                <AnimatePresence initial={false}>
+                <AnimatePresence
+                  initial={false}
+                  onExitComplete={() => {
+                    exitInProgressRef.current = false
+                    revealSelectedRound()
+                  }}
+                >
                   {subStages.map((round, index) => {
                     const current = round.status === '进行中'
                     const passed = round.status === '已完成'
                     const label = round.label || `第 ${index + 1} 轮面试`
 
+                    const lineWidth =
+                      index < subStages.length - 1 ? connectorWidth : 0
+
                     return (
-                      <motion.div
+                      <PresenceDiv
                         key={round.id}
-                        className='flex shrink-0 items-center'
-                        initial={reduce ? false : { opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
+                        className='flex shrink-0 items-center [&[inert]]:overflow-hidden'
+                        initial={
+                          reduce ? false : { opacity: 0, y: 8, width: 0 }
+                        }
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                          width: `${cardWidth + lineWidth}rem`,
+                        }}
+                        exit={{
+                          opacity: 0,
+                          width: 0,
+                          transition: {
+                            width: {
+                              duration: reduce ? 0 : DURATION.base,
+                              ease: EASE.out,
+                            },
+                            opacity: {
+                              duration: reduce ? 0 : DURATION.fast,
+                              ease: EASE.in,
+                            },
+                          },
+                        }}
                         transition={{
                           duration: reduce ? 0 : DURATION.base,
                           ease: EASE.out,
@@ -280,16 +322,20 @@ export function InterviewSubStages({
                             </span>
                           </span>
                         </TabsTrigger>
-                        {index < subStages.length - 1 && (
-                          <span
-                            aria-hidden='true'
-                            className={cn(
-                              'h-px w-5 shrink-0 sm:w-6',
-                              passed ? 'bg-primary/30' : 'bg-border',
-                            )}
-                          />
-                        )}
-                      </motion.div>
+                        <motion.span
+                          aria-hidden='true'
+                          initial={false}
+                          animate={{ width: `${lineWidth}rem` }}
+                          transition={{
+                            duration: reduce ? 0 : DURATION.base,
+                            ease: EASE.out,
+                          }}
+                          className={cn(
+                            'h-px shrink-0',
+                            passed ? 'bg-primary/30' : 'bg-border',
+                          )}
+                        />
+                      </PresenceDiv>
                     )
                   })}
                 </AnimatePresence>
@@ -448,6 +494,7 @@ export function InterviewSubStages({
                 if (!deleting) return
 
                 deletedRef.current = true
+                exitInProgressRef.current = subStages.length > 1
 
                 if (selectedRound?.id === deleting) {
                   const next =

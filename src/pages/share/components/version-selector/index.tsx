@@ -29,6 +29,9 @@ interface VersionSelectorProps {
   versions: ResumeHistoryVersionListItem[]
   loading: boolean
   error: string | null
+  freezeCurrent?: boolean
+  currentDisabled?: boolean
+  historyDisabled?: boolean
   disabled?: boolean
   onChange: (value: ShareVersionSelection) => void
   onRetry: () => void
@@ -63,6 +66,9 @@ export default function VersionSelector({
   loading,
   error,
   disabled,
+  currentDisabled,
+  freezeCurrent,
+  historyDisabled,
   onChange,
   onRetry,
 }: VersionSelectorProps) {
@@ -71,8 +77,11 @@ export default function VersionSelector({
   const popoverOpen = open && !disabled
 
   const selectedLabel = useMemo(
-    () => getSelectedLabel(value, versions),
-    [value, versions],
+    () =>
+      value.kind === 'current' && freezeCurrent
+        ? '云端已保存的当前内容（生成后固定）'
+        : getSelectedLabel(value, versions),
+    [value, versions, freezeCurrent],
   )
 
   useEffect(() => {
@@ -161,6 +170,7 @@ export default function VersionSelector({
             <CommandGroup heading='发布内容'>
               <CommandItem
                 value='当前版本 current'
+                disabled={currentDisabled}
                 onSelect={() => {
                   onChange({ kind: 'current' })
                   setOpen(false)
@@ -168,9 +178,13 @@ export default function VersionSelector({
               >
                 <Clock3 className='size-4' />
                 <div className='min-w-0 flex-1'>
-                  <p className='truncate'>当前版本</p>
+                  <p className='truncate'>
+                    {freezeCurrent ? '云端已保存的当前内容' : '当前版本'}
+                  </p>
                   <p className='truncate text-xs text-muted-foreground'>
-                    保存后自动同步到分享链接
+                    {freezeCurrent
+                      ? '生成链接时固定，后续保存不会改变'
+                      : '保存后自动同步到分享链接'}
                   </p>
                 </div>
                 <Check
@@ -210,6 +224,7 @@ export default function VersionSelector({
                 return (
                   <CommandItem
                     key={version.id}
+                    disabled={historyDisabled}
                     value={`V${version.version_no} ${label} ${version.version_name ?? ''} ${version.milestone_name ?? ''}`}
                     onSelect={() => {
                       onChange({ kind: 'history', versionId: version.id })

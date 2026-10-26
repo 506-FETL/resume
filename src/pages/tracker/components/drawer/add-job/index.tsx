@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react'
 import type { AddJobFormData } from './types'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -34,6 +34,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { createCompany } from '@/lib/supabase/resume'
+import { extractJobProfile } from '@/lib/supabase/resume/job-profile'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG } from '../../../const'
 import {
@@ -74,10 +75,92 @@ export default function AddJobDrawer() {
 
   const [submitting, setSubmitting] = useState(false)
   const [pendingTerminal, setPendingTerminal] = useState(false)
+  const [duplicateId, setDuplicateId] = useState<string | null>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [extractError, setExtractError] = useState<string | null>(null)
+  const extractRef = useRef<AbortController | null>(null)
+  const fieldVersionsRef = useRef<Record<string, number>>({})
   const createButtonRef = useRef<HTMLButtonElement>(null)
 
+  useEffect(() => {
+    if (!addDrawerOpen) {
+      extractRef.current?.abort()
+      setExtracting(false)
+    }
+
+    return () => extractRef.current?.abort()
+  }, [addDrawerOpen, scope])
+
   const handleChange = (field: keyof AddJobFormData, value: string) => {
+    fieldVersionsRef.current[field] = (fieldVersionsRef.current[field] ?? 0) + 1
+
+    if (field === 'jd_text') {
+      extractRef.current?.abort()
+      setExtracting(false)
+    }
+
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const extract = async () => {
+    extractRef.current?.abort()
+
+    const controller = new AbortController()
+    const versions = { ...fieldVersionsRef.current }
+
+    extractRef.current = controller
+    setExtracting(true)
+    setExtractError(null)
+
+    try {
+      const profile = await extractJobProfile(
+        formData.jd_text,
+        controller.signal,
+      )
+
+      if (controller.signal.aborted || !isTrackerAccountScopeCurrent(scope))
+        return
+
+      setFormData((current) => {
+        const next = { ...current }
+
+        for (const field of [
+          'company',
+          'position',
+          'location',
+          'source',
+        ] as const) {
+          if (
+            profile[field] &&
+            fieldVersionsRef.current[field] === versions[field]
+          )
+            next[field] = profile[field]
+        }
+
+        const salary = profile.salary?.match(
+          /^(\d+(?:\.\d+)?)\s*[kK](?:\s*[-~～至]\s*(\d+(?:\.\d+)?)\s*[kK])?/,
+        )
+
+        if (salary && fieldVersionsRef.current.salaryMin === versions.salaryMin)
+          next.salaryMin = salary[1]
+        if (
+          salary?.[2] &&
+          fieldVersionsRef.current.salaryMax === versions.salaryMax
+        )
+          next.salaryMax = salary[2]
+
+        return next
+      })
+    } catch (error) {
+      if (!controller.signal.aborted && isTrackerAccountScopeCurrent(scope))
+        setExtractError(getTrackerErrorMessage(error))
+    } finally {
+      if (
+        extractRef.current === controller &&
+        isTrackerAccountScopeCurrent(scope)
+      )
+        setExtracting(false)
+    }
   }
 
   const handleResumeChange = (resumeId: string | null) => {
@@ -95,7 +178,10 @@ export default function AddJobDrawer() {
       assertTrackerAccountScope(scope)
 
       const newJob = await createCompany(
-        buildJobPayload(formData),
+        buildJobPayload({
+          ...formData,
+          status: formData.status === 'applied' ? 'saved' : formData.status,
+        }),
         createTrackerAccountGuard(scope),
       )
 
@@ -103,6 +189,11 @@ export default function AddJobDrawer() {
       closeAddDrawer()
       toast.success('添加成功')
       resetForm()
+
+      if (formData.status === 'applied') {
+        useTrackerStore.getState().openJobDrawer(newJob)
+        useTrackerStore.getState().requestSubmission(newJob.id)
+      }
     } catch (error) {
       if (!isTrackerAccountScopeCurrent(scope)) return
 
@@ -115,11 +206,27 @@ export default function AddJobDrawer() {
 
   const handleSubmit = async () => {
     if (!validateAddJobForm(formData)) {
-      const missingField = (['position', 'company', 'location'] as const).find(
+      const missingField = (['position', 'company'] as const).find(
         (field) => !formData[field].trim(),
       )
 
       if (missingField) document.getElementById(missingField)?.focus()
+
+      return
+    }
+
+    const duplicate = useTrackerStore
+      .getState()
+      .jobs.find(
+        (job) =>
+          job.company.trim().toLocaleLowerCase() ===
+            formData.company.trim().toLocaleLowerCase() &&
+          job.position.trim().toLocaleLowerCase() ===
+            formData.position.trim().toLocaleLowerCase(),
+      )
+
+    if (duplicate) {
+      setDuplicateId(duplicate.id)
 
       return
     }
@@ -148,6 +255,7 @@ export default function AddJobDrawer() {
     if (
       !open &&
       (pendingTerminal ||
+        duplicateId !== null ||
         (details?.reason === 'escape-key' &&
           details.event.target instanceof Element &&
           details.event.target.closest(
@@ -163,6 +271,24 @@ export default function AddJobDrawer() {
 
   const fields = (
     <AddJobForm formData={formData} onChange={handleChange}>
+      <div className='space-y-2'>
+        <p className='text-xs text-muted-foreground'>
+          免费提取会将 JD 发送到服务端识别，不消耗积分。识别后仍可修改。
+        </p>
+        <Button
+          type='button'
+          variant='outline'
+          disabled={extracting || !formData.jd_text.trim()}
+          onClick={extract}
+        >
+          {extracting ? '正在提取…' : '免费提取岗位字段'}
+        </Button>
+        {extractError && (
+          <p role='alert' className='text-sm text-destructive'>
+            {extractError}
+          </p>
+        )}
+      </div>
       <AddJobStageSection
         formData={formData}
         onChange={handleChange}
@@ -295,6 +421,53 @@ export default function AddJobDrawer() {
               }}
             >
               确认
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={duplicateId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDuplicateId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>已有同名岗位</AlertDialogTitle>
+            <AlertDialogDescription>
+              同一公司和职位已存在。可以继续跟进已有岗位，或明确创建新的招聘批次。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>返回修改</AlertDialogCancel>
+            <Button
+              variant='outline'
+              onClick={() => {
+                const existing = useTrackerStore
+                  .getState()
+                  .jobs.find((job) => job.id === duplicateId)
+
+                setDuplicateId(null)
+                closeAddDrawer()
+
+                if (existing) useTrackerStore.getState().openJobDrawer(existing)
+              }}
+            >
+              打开已有岗位
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                setDuplicateId(null)
+
+                if (
+                  formData.status === 'offer' ||
+                  formData.status === 'rejected'
+                )
+                  setPendingTerminal(true)
+                else submitJob()
+              }}
+            >
+              继续新建批次
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

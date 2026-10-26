@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Suspense } from 'react'
 import { useLocation, useRoutes } from 'react-router-dom'
 import routes from '~react-pages'
+import { JobContextGate } from '@/components/job-context'
 import { AuthRequired } from '@/components/auth-required'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { MotionProvider } from '@/components/motion/motion-provider'
@@ -50,10 +51,19 @@ function App() {
   const isShareViewRoute = location.pathname.startsWith('/share/view/')
   const accountPage = ACCOUNT_PAGES[location.pathname.replace(/\/+$/, '')]
 
+  const contextualElement =
+    ['/resume', '/resume/editor', '/optimize', '/history', '/share'].includes(
+      location.pathname.replace(/\/+$/, ''),
+    ) && new URLSearchParams(location.search).has('jobId') ? (
+      <JobContextGate>{element}</JobContextGate>
+    ) : (
+      element
+    )
+
   const page = accountPage ? (
-    <AuthRequired {...accountPage}>{element}</AuthRequired>
+    <AuthRequired {...accountPage}>{contextualElement}</AuthRequired>
   ) : (
-    element
+    contextualElement
   )
 
   return (

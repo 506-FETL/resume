@@ -2,6 +2,7 @@ import { Coins, ExternalLink, FileText, MapPin } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import useTrackerStore from '../../store'
 import { selectTrackerDrawerJob } from '../../store/selectors'
+import JobDescription from './job-description'
 
 export default function DrawerMetaBar() {
   const { selectedJob } = useTrackerStore(
@@ -39,6 +40,7 @@ export default function DrawerMetaBar() {
 
   return (
     <div className='flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs'>
+      <JobDescription key={selectedJob.id} />
       {items.map((item) => {
         const Icon = item.icon
 

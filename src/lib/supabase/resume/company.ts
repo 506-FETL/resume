@@ -19,6 +19,8 @@ export interface JobApplicationSummary {
   position: string
   archived: boolean
   next_action_date: string | null
+  next_action: string | null
+  interview_sub_stages: InterviewSubStage[]
 }
 
 // 获取用户所有公司/职位
@@ -51,6 +53,9 @@ export async function getCompanies(
       interview_sub_stages: (item.interview_sub_stages ||
         []) as InterviewSubStage[],
       archived: item.archived ?? false,
+      jd_text: item.jd_text ?? null,
+      jd_updated_at: item.jd_updated_at ?? null,
+      source: item.source ?? null,
       next_action: item.next_action ?? null,
       next_action_date: item.next_action_date ?? null,
       activities: (item.activities || []) as TrackerActivity[],
@@ -71,7 +76,7 @@ export async function listJobApplicationSummaries(): Promise<
   const { data, error } = await supabase
     .from('company')
     .select(
-      'id,resume_id,status,updated_at,company,position,archived,next_action_date',
+      'id,resume_id,status,updated_at,company,position,archived,next_action_date,next_action,interview_sub_stages',
     )
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
@@ -84,6 +89,8 @@ export async function listJobApplicationSummaries(): Promise<
     ...item,
     archived: item.archived ?? false,
     next_action_date: item.next_action_date ?? null,
+    next_action: item.next_action ?? null,
+    interview_sub_stages: item.interview_sub_stages ?? [],
   })) as JobApplicationSummary[]
 }
 
@@ -117,6 +124,9 @@ export async function createCompany(
     interview_sub_stages: (data.interview_sub_stages ||
       []) as InterviewSubStage[],
     archived: data.archived ?? false,
+    jd_text: data.jd_text ?? null,
+    jd_updated_at: data.jd_updated_at ?? null,
+    source: data.source ?? null,
     next_action: data.next_action ?? null,
     next_action_date: data.next_action_date ?? null,
     activities: (data.activities || []) as TrackerActivity[],
@@ -157,6 +167,9 @@ export async function updateCompany(
     interview_sub_stages: (data.interview_sub_stages ||
       []) as InterviewSubStage[],
     archived: data.archived ?? false,
+    jd_text: data.jd_text ?? null,
+    jd_updated_at: data.jd_updated_at ?? null,
+    source: data.source ?? null,
     next_action: data.next_action ?? null,
     next_action_date: data.next_action_date ?? null,
     activities: (data.activities || []) as TrackerActivity[],

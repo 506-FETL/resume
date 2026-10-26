@@ -1,9 +1,16 @@
+import {
+  bindJobResume,
+  jobContextUrl,
+  useJobContextStore,
+} from '@/lib/job-context'
+import { toast } from 'sonner'
+import { JobContextBar } from '@/components/job-context'
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from './types'
 import { Plus } from 'lucide-react'
 import { AnimatePresence, useReducedMotion } from 'motion/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
 import { DerivedJobsDialog } from '@/components/jd-variant/components/tasks-dialog'
 import { PageLayout } from '@/components/layout/page-layout'
@@ -14,6 +21,10 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useCurrentUser from '@/hooks/use-current-user'
+import {
+  getTrackerAccountScope,
+  isTrackerAccountScopeCurrent,
+} from '@/pages/tracker/lib/account-scope'
 import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
@@ -29,6 +40,13 @@ const EMPTY_RESUMES: ResumeItem[] = []
 
 export default function ResumePage() {
   const user = useCurrentUser()
+  const jobContext = useJobContextStore((state) => state.context)
+  const [routeParams] = useSearchParams()
+  const routeJobId = routeParams.get('jobId')
+  const routeAction = routeParams.get('action')
+  const prepareOperationRef = useRef(0)
+  const prepareQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const handledJobActionRef = useRef<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const createTriggerRef = useRef<HTMLElement | null>(null)
 
@@ -84,6 +102,71 @@ export default function ResumePage() {
     return setupRealtimeSubscription()
   }, [isOnline, setupRealtimeSubscription, user?.id])
 
+  useEffect(() => {
+    if (
+      !jobContext ||
+      jobContext.id !== routeJobId ||
+      !jobContext.resumeId ||
+      loading
+    )
+      return
+
+    const key = `${user?.id}:${jobContext.id}:${jobContext.resumeId}:${routeAction}`
+
+    if (handledJobActionRef.current === key) return
+
+    handledJobActionRef.current = key
+
+    if (routeAction === 'customize') {
+      if (!jobContext.jdText.trim()) toast.info('请先返回岗位补充 JD 原文')
+      else openDeriveFor(jobContext.resumeId)
+    }
+    if (routeAction === 'share')
+      useShareStore
+        .getState()
+        .openDialog(jobContext.resumeId, jobContext.resumeName)
+  }, [jobContext, routeJobId, routeAction, loading, openDeriveFor, user?.id])
+
+  useLayoutEffect(() => {
+    return () => {
+      prepareOperationRef.current += 1
+    }
+  }, [routeJobId, user?.id])
+
+  async function prepareForJob(resumeId: string) {
+    if (!jobContext || jobContext.id !== routeJobId) return
+
+    const jobId = jobContext.id
+    const scope = getTrackerAccountScope()
+    const operation = ++prepareOperationRef.current
+
+    const isCurrent = () =>
+      operation === prepareOperationRef.current &&
+      isTrackerAccountScopeCurrent(scope) &&
+      useJobContextStore.getState().context?.id === jobId &&
+      useJobContextStore.getState().context?.userId === scope.userId
+
+    // 顺序写入，防止较早的绑定请求最后落库，覆盖用户的最新选择。
+    prepareQueueRef.current = prepareQueueRef.current.then(async () => {
+      if (!isCurrent()) return
+
+      try {
+        const context = await bindJobResume(jobId, resumeId)
+
+        if (!isCurrent()) return
+
+        useJobContextStore.getState().setContext(context)
+        toast.success('已设为准备中的简历')
+      } catch (error) {
+        if (!isCurrent()) return
+
+        toast.error(error instanceof Error ? error.message : '关联失败，请重试')
+      }
+    })
+
+    return prepareQueueRef.current
+  }
+
   const visibleItems = useMemo(() => {
     if (filterMode === 'roots')
       return resumes.filter((r) => !r.parent_resume_id)
@@ -112,6 +195,7 @@ export default function ResumePage() {
         <ResumePageSkeleton />
       ) : (
         <PageLayout>
+          <JobContextBar />
           <HeadBars
             resumes={resumes}
             isOnline={isOnline}
@@ -183,7 +267,14 @@ export default function ResumePage() {
                         : SPRING.layout,
                     }}
                   >
-                    <ResumeCard resume={resume} />
+                    <ResumeCard
+                      resume={resume}
+                      onPrepareForJob={
+                        jobContext?.id === routeJobId && !resume.isOffline
+                          ? () => prepareForJob(resume.resume_id)
+                          : undefined
+                      }
+                    />
                   </PresenceDiv>
                 )
               })}
@@ -254,12 +345,22 @@ export default function ResumePage() {
               }}
               parentResumeId={deriveDialogParentId}
               recentJds={[]}
-              initialJd={pendingResume?.linked_jd_text ?? ''}
+              initialJd={
+                jobContext?.id === routeJobId
+                  ? jobContext.jdText
+                  : (pendingResume?.linked_jd_text ?? '')
+              }
+              jobId={jobContext?.id === routeJobId ? jobContext.id : undefined}
               onOpenResume={(draftId) => {
                 const target = resumes.find((r) => r.resume_id === draftId)
 
                 setCurrentResume(draftId, target?.type ?? 'default')
-                navigate('/resume/editor')
+
+                navigate(
+                  jobContext?.id === routeJobId
+                    ? jobContextUrl('/resume/editor', jobContext.id)
+                    : '/resume/editor',
+                )
               }}
             />
           )}
