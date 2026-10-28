@@ -14,6 +14,7 @@ Always respond in Chinese-simplified.
 # 通用规则
 
 **编写代码的时候必须严格遵守这几条有关防御性编码的规则**
+
 - 不要为猜测出来、几乎不会发生的竞态或安全边界情况加复杂度。真觉得要加,先说清楚具体会怎么出错、概率多大、要多写多少代码,我同意了再做。不要悄悄扩大改动范围。
 - 外部传进来的数据,只在入口那一层校验一次。往里传已经确定类型的值,内部不要反复做防御性检查。
 - 不要提前抽只用一次的函数。只有会复用、包住了确实复杂的逻辑,或者它代表一个能起清楚名字的概念时才抽。
@@ -76,6 +77,13 @@ Always respond in Chinese-simplified.
 - **所有动效都必须接入 `useReducedMotion()` 降级**（开启减少动效时归零 duration 或去掉位移/缩放）——这是本仓库最强的硬性约定。
 - 折叠内容用 `tw-animate-css` 的 `data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up`（外层需 `overflow-hidden`），与 accordion 折叠动画保持一致。
 - 弹窗动画沿用「UI 组件兼容性与加载状态」中的验收要求（至少两轮完整开关 + 反向切换）。
+
+## 动画实现与检查工作流
+
+- 常见微交互直接使用 transitions.dev 的 [`transitions-dev`](.agents/skills/transitions-dev/SKILL.md) 技能，例如悬停反馈、弹窗开关、页签切换、折叠展开和状态切换。
+- 复杂时间轴、多元素编排或滚动驱动动画，启用 GSAP Skills。
+- 每完成一轮动画实现，使用 Emil 的 [`review-animations`](.agents/skills/review-animations/SKILL.md)，或依次使用 [Impeccable](.agents/skills/impeccable/SKILL.md) 的 `critique` 和 `polish` 做最终检查与打磨。
+- 技能中的通用建议以本仓库已确认的动效约束为准，继续复用公共动效预设、接入减少动效，并完成实际页面的进入、退出、重复操作与快速反向切换验收。
 
 # 提交信息生成规则
 

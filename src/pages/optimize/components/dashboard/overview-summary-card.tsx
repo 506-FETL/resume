@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 import { calculateRating, calculateReadabilityRating } from '../../utils'
+import '@fontsource/racing-sans-one/latin-400.css'
 
 interface OverviewSummaryCardProps {
   completedTasks: number
@@ -57,6 +58,7 @@ export default function OverviewSummaryCard({
   }
 
   const overallScore = summary?.overall_score ?? 0
+  const scoreAccent = calculateRating(overallScore)
   const readabilityScore = readabilityIndex?.score ?? 0
 
   const progressDescription =
@@ -67,7 +69,25 @@ export default function OverviewSummaryCard({
         : `${completedTasks}/${totalTasks} 项已完成`
 
   return (
-    <Card className='relative min-w-0 overflow-hidden shadow-none'>
+    <Card className='relative isolate min-w-0 overflow-hidden shadow-none'>
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute inset-0 -z-1 select-none',
+          scoreAccent,
+        )}
+      >
+        <div
+          className='absolute inset-0 opacity-[0.14] dark:opacity-[0.12]'
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse 400px 240px at top left, currentColor, transparent 72%)',
+          }}
+        />
+        <span className="absolute -top-5 -left-1 -rotate-6 font-['Racing_Sans_One',sans-serif] text-[9rem] leading-none font-normal tracking-tighter tabular-nums opacity-[0.08] sm:text-[10rem] dark:opacity-[0.12]">
+          {overallScore}
+        </span>
+      </div>
       <CardContent className='relative isolate min-w-0 p-5 md:p-6'>
         <div className='relative z-10 min-w-0 pb-2'>
           <div className='flex flex-wrap items-start justify-between gap-2'>
@@ -92,7 +112,7 @@ export default function OverviewSummaryCard({
               <span
                 className={cn(
                   'text-3xl font-semibold tracking-tight tabular-nums',
-                  calculateRating(overallScore),
+                  scoreAccent,
                 )}
               >
                 {overallScore} / 100
