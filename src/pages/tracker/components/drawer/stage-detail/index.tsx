@@ -7,6 +7,7 @@ import { useStageDetail } from '../use-stage-detail'
 import WorkflowDateField from '../workflow-date-field'
 import WorkflowNotesEditor from '../workflow-notes-editor'
 import WorkflowSaveFeedback from '../workflow-save-feedback'
+import SubmissionList from '../submission-list'
 
 interface DrawerStageDetailProps {
   displayStage: ApplicationStatus
@@ -29,6 +30,7 @@ export default function DrawerStageDetail({
   } = useStageDetail({ displayStage })
 
   if (!job) return null
+  if (displayStage === 'applied') return <SubmissionList jobId={job.id} />
 
   const saveFeedback = (
     <WorkflowSaveFeedback

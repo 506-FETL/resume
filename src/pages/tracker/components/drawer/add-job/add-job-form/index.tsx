@@ -12,21 +12,29 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { DURATION, EASE } from '@/lib/motion'
-import {
-  COMMON_CITIES,
-  COMMON_COMPANIES,
-  COMMON_POSITIONS,
-} from '../../../../const'
+import { COMMON_CITIES, COMMON_POSITIONS } from '../../../../const'
 import { TrackerCombobox } from '../../tracker-combobox'
+import { CompanyPicker } from '../../company-picker'
+import useTrackerStore from '../../../../store'
 
 interface AddJobFormProps {
   formData: AddJobFormData
   onChange: (field: keyof AddJobFormData, value: string) => void
+  onCompanyChange: (id: string | null, name: string) => void
   children?: ReactNode
 }
 
-export function AddJobForm({ formData, onChange, children }: AddJobFormProps) {
+export function AddJobForm({
+  formData,
+  onChange,
+  onCompanyChange,
+  children,
+}: AddJobFormProps) {
   const reduceMotion = useReducedMotion()
+
+  const sourceJob = useTrackerStore((state) =>
+    state.jobs.find((job) => job.id === formData.referred_from_job_id),
+  )
 
   const motionStyle = {
     animationDuration: `${reduceMotion ? 0 : DURATION.base}s`,
@@ -54,12 +62,13 @@ export function AddJobForm({ formData, onChange, children }: AddJobFormProps) {
             公司名称
             <span className='text-destructive'>*</span>
           </FieldLabel>
-          <TrackerCombobox
+          <CompanyPicker
             id='company'
-            placeholder='搜索或输入公司名称'
-            value={formData.company}
-            onChange={(value) => onChange('company', value)}
-            options={COMMON_COMPANIES}
+            value={formData.tracker_company_id}
+            name={formData.company}
+            onChange={onCompanyChange}
+            disabled={Boolean(formData.referred_from_job_id)}
+            allowCreate
           />
         </Field>
         <Field>
@@ -73,6 +82,23 @@ export function AddJobForm({ formData, onChange, children }: AddJobFormProps) {
           />
         </Field>
       </FieldGroup>
+      <Field>
+        <FieldLabel htmlFor='recruitment-batch'>招聘批次（选填）</FieldLabel>
+        <Input
+          id='recruitment-batch'
+          value={formData.recruitment_batch}
+          onChange={(event) =>
+            onChange('recruitment_batch', event.target.value)
+          }
+          placeholder='例如：2027 届秋招、研发二部'
+        />
+      </Field>
+      {formData.referred_from_job_id && (
+        <p className='text-sm text-muted-foreground'>
+          由「{sourceJob?.position ?? '原岗位'}」转岗 /
+          推荐，原岗位流程继续保留。
+        </p>
+      )}
       <Field>
         <FieldLabel htmlFor='new-job-jd'>JD 原文（选填）</FieldLabel>
         <Textarea

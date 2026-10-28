@@ -290,8 +290,7 @@ export default function DashboardPage() {
                 <div className='flex flex-col gap-2 empty:hidden'>
                   {Object.entries(resources).map(
                     ([key, resource]) =>
-                      resource.error &&
-                      key !== 'pendingMaterials' && (
+                      resource.error && (
                         <ResourceError
                           key={key}
                           label={

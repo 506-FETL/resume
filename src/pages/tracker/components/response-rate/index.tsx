@@ -53,16 +53,22 @@ function ResponseRate() {
         ) : error ? (
           <p>职位记录加载失败，暂时无法计算。</p>
         ) : stats.historicalApplied === 0 ? (
-          <p>还没有记录投递或后续进展，暂时无法计算。</p>
+          <p>还没有确认的投递留档，暂时无法计算。</p>
         ) : (
           <p>
-            曾进入测评或后续阶段的职位有 {stats.responded}{' '}
-            个，曾进入已投递或后续阶段的职位共有 {stats.historicalApplied} 个。
+            已留档的投递中，进入测评或后续阶段的岗位有 {stats.responded}{' '}
+            个，确认投递的岗位共有 {stats.historicalApplied} 个。
           </p>
         )}
         <p className='text-muted-foreground'>
-          按你记录过的阶段估算，包含已结束和已归档职位，不随当前搜索变化。这个比例不能反映实际收到回复的次数。
+          包含已结束和已归档岗位，不随搜索或公司筛选变化。后续进展按阶段记录计算，不代表实际回复次数。
         </p>
+        {stats.unresolvedSubmissions > 0 && (
+          <p className='text-muted-foreground'>
+            还有 {stats.unresolvedSubmissions}{' '}
+            个岗位的历史投递待确认，暂未计入。
+          </p>
+        )}
       </PopoverContent>
     </Popover>
   )

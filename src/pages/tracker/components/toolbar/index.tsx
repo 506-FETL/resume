@@ -1,15 +1,14 @@
-import { Archive, CheckSquare, MoreHorizontal, Search, X } from 'lucide-react'
+import { Archive, CheckSquare, Flag, Search, X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useShallow } from 'zustand/react/shallow'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -24,6 +23,7 @@ import { selectTrackerListJobs } from '../../store/selectors'
 import { filterJobs } from '../../utils'
 import BatchActions from '../batch-actions'
 import { ViewToggle } from '../header/view-toggle'
+import { CompanyPicker } from '../drawer/company-picker'
 import FilterMenu from './filter-menu'
 import SortMenu from './sort-menu'
 
@@ -43,6 +43,11 @@ export default function TrackerToolbar() {
     isSelectMode,
     enterSelectMode,
     exitSelectMode,
+    filterCompanyId,
+    focusedOnly,
+    setFilterCompanyId,
+    groupByCompany,
+    setGroupByCompany,
   } = useTrackerStore(
     useShallow((state) => ({
       jobs: selectTrackerListJobs(state),
@@ -59,6 +64,11 @@ export default function TrackerToolbar() {
       isSelectMode: state.isSelectMode,
       enterSelectMode: state.enterSelectMode,
       exitSelectMode: state.exitSelectMode,
+      filterCompanyId: state.filterCompanyId,
+      focusedOnly: state.focusedOnly,
+      setFilterCompanyId: state.setFilterCompanyId,
+      groupByCompany: state.groupByCompany,
+      setGroupByCompany: state.setGroupByCompany,
     })),
   )
 
@@ -72,11 +82,14 @@ export default function TrackerToolbar() {
   const isMobile = useIsMobile(640)
 
   const count = filterJobs(
-    jobs,
+    filterCompanyId
+      ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
+      : jobs,
     viewMode === 'list' ? filterStatus : null,
     searchKeyword,
     showArchived,
     viewMode === 'list' ? metricFilter : null,
+    focusedOnly,
   ).length
 
   const archivedCount = jobs.filter((job) => job.archived).length
@@ -88,6 +101,16 @@ export default function TrackerToolbar() {
       : null
 
   const busy = loading || (!isInitialized && !error)
+
+  const actionTransition = {
+    transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
+    transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+  }
+
+  const tooltipAnimation = {
+    animationDuration: `${reduce ? 0 : DURATION.fast}s`,
+    animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+  }
 
   return (
     <div className='shrink-0 border-b px-3 py-2'>
@@ -104,192 +127,234 @@ export default function TrackerToolbar() {
           <ViewToggle />
         </div>
         <div className='flex min-w-0 flex-1 flex-wrap items-center gap-1.5 sm:gap-2'>
-          <div className='relative min-w-12 flex-1 @min-[980px]/tracker:max-w-sm'>
-            <Search className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
-            <Input
-              id={TRACKER_SEARCH_INPUT_ID}
-              type='search'
-              aria-label='搜索职位'
-              value={searchKeyword}
-              placeholder='搜索职位…'
-              className='rounded-lg pl-9 pr-9 shadow-none [&::-webkit-search-cancel-button]:appearance-none'
-              onChange={(event) => setSearchKeyword(event.target.value)}
+          <div className='flex min-w-0 basis-full items-center gap-2 @min-[620px]/tracker:flex-1 @min-[620px]/tracker:basis-72 @min-[980px]/tracker:max-w-lg'>
+            <div className='relative min-w-0 flex-1'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                id={TRACKER_SEARCH_INPUT_ID}
+                type='search'
+                aria-label='搜索职位'
+                value={searchKeyword}
+                placeholder='搜索职位…'
+                className='rounded-lg pl-9 pr-9 shadow-none [&::-webkit-search-cancel-button]:appearance-none'
+                onChange={(event) => setSearchKeyword(event.target.value)}
+              />
+              <AnimatePresence initial={false}>
+                {searchKeyword && (
+                  <motion.div
+                    className='absolute right-1 top-0.5'
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: reduce ? 0 : DURATION.fast }}
+                  >
+                    <Button
+                      size='icon-sm'
+                      variant='ghost'
+                      aria-label='清空搜索'
+                      onClick={clearSearch}
+                    >
+                      <X className='size-3.5' />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <FilterMenu mobile={isMobile} />
+          </div>
+          <div className='min-w-0 flex-1 @min-[620px]/tracker:w-40 @min-[620px]/tracker:flex-none'>
+            <label htmlFor='tracker-company-filter' className='sr-only'>
+              按公司筛选
+            </label>
+            <CompanyPicker
+              id='tracker-company-filter'
+              value={filterCompanyId}
+              onChange={setFilterCompanyId}
+              allLabel='全部公司'
             />
+          </div>
+          <div className='order-1 flex basis-full flex-wrap items-center gap-1.5 empty:hidden @min-[620px]/tracker:order-none @min-[620px]/tracker:basis-auto'>
             <AnimatePresence initial={false}>
-              {searchKeyword && (
+              {viewMode === 'list' && (
                 <motion.div
-                  className='absolute right-1 top-0.5'
+                  key='company-group-toggle'
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: reduce ? 0 : DURATION.fast }}
                 >
                   <Button
-                    size='icon-sm'
-                    variant='ghost'
-                    aria-label='清空搜索'
-                    onClick={clearSearch}
+                    variant={groupByCompany ? 'secondary' : 'outline'}
+                    size='sm'
+                    className='h-9 whitespace-nowrap text-xs'
+                    aria-pressed={groupByCompany}
+                    onClick={() => setGroupByCompany(!groupByCompany)}
                   >
-                    <X className='size-3.5' />
+                    按公司分组
                   </Button>
                 </motion.div>
               )}
             </AnimatePresence>
+            <AnimatePresence initial={false}>
+              {activeLabel && (
+                <PresenceDiv
+                  key='active-filter'
+                  initial={reduce ? false : { opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{
+                    opacity: 0,
+                    width: 0,
+                    transition: {
+                      duration: reduce ? 0 : DURATION.fast,
+                      ease: EASE.in,
+                    },
+                  }}
+                  transition={{
+                    duration: reduce ? 0 : DURATION.base,
+                    ease: EASE.out,
+                  }}
+                  className='shrink-0 overflow-hidden'
+                >
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    className='h-8 gap-1.5 whitespace-nowrap text-xs'
+                    onClick={clearFilters}
+                    aria-label={`清除${viewMode === 'board' ? '定位' : '筛选'}：${activeLabel}`}
+                  >
+                    <span className='hidden sm:inline'>
+                      {viewMode === 'board' ? '定位' : '筛选'}：
+                    </span>
+                    {activeLabel}
+                    <X className='size-3' />
+                  </Button>
+                </PresenceDiv>
+              )}
+              {showArchived && (
+                <PresenceDiv
+                  key='archive-filter'
+                  initial={reduce ? false : { opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{
+                    opacity: 0,
+                    width: 0,
+                    transition: {
+                      duration: reduce ? 0 : DURATION.fast,
+                      ease: EASE.in,
+                    },
+                  }}
+                  transition={{
+                    duration: reduce ? 0 : DURATION.base,
+                    ease: EASE.out,
+                  }}
+                  className='shrink-0 overflow-hidden'
+                >
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    className='h-8 gap-1.5 whitespace-nowrap text-xs'
+                    aria-label='退出归档视图'
+                    onClick={() => setShowArchivedWithFocus(false)}
+                  >
+                    <Archive className='size-3' />
+                    <span className='hidden sm:inline'>正在查看归档</span>
+                    <span className='sm:hidden'>已归档</span>
+                    <X className='size-3' />
+                  </Button>
+                </PresenceDiv>
+              )}
+            </AnimatePresence>
+            <AnimatePresence initial={false}>
+              {!isMobile && viewMode === 'list' && (
+                <motion.div
+                  key='sort-menu'
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduce ? 0 : DURATION.fast }}
+                >
+                  <SortMenu />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <FilterMenu mobile={isMobile} />
-          <AnimatePresence initial={false}>
-            {activeLabel && (
-              <PresenceDiv
-                key='active-filter'
-                initial={reduce ? false : { opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{
-                  opacity: 0,
-                  width: 0,
-                  transition: {
-                    duration: reduce ? 0 : DURATION.fast,
-                    ease: EASE.in,
-                  },
-                }}
-                transition={{
-                  duration: reduce ? 0 : DURATION.base,
-                  ease: EASE.out,
-                }}
-                className='shrink-0 overflow-hidden'
-              >
+          <div
+            role='group'
+            aria-label='职位工具'
+            className='ml-auto flex shrink-0 items-center gap-1'
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button
-                  variant='secondary'
-                  size='sm'
-                  className='h-8 gap-1.5 whitespace-nowrap text-xs'
-                  onClick={clearFilters}
-                  aria-label={`清除${viewMode === 'board' ? '定位' : '筛选'}：${activeLabel}`}
-                >
-                  <span className='hidden sm:inline'>
-                    {viewMode === 'board' ? '定位' : '筛选'}：
-                  </span>
-                  {activeLabel}
-                  <X className='size-3' />
-                </Button>
-              </PresenceDiv>
-            )}
-            {showArchived && (
-              <PresenceDiv
-                key='archive-filter'
-                initial={reduce ? false : { opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{
-                  opacity: 0,
-                  width: 0,
-                  transition: {
-                    duration: reduce ? 0 : DURATION.fast,
-                    ease: EASE.in,
-                  },
-                }}
-                transition={{
-                  duration: reduce ? 0 : DURATION.base,
-                  ease: EASE.out,
-                }}
-                className='shrink-0 overflow-hidden'
-              >
-                <Button
-                  variant='secondary'
-                  size='sm'
-                  className='h-8 gap-1.5 whitespace-nowrap text-xs'
-                  aria-label='退出归档视图'
-                  onClick={() => setShowArchivedWithFocus(false)}
-                >
-                  <Archive className='size-3' />
-                  <span className='hidden sm:inline'>正在查看归档</span>
-                  <span className='sm:hidden'>已归档</span>
-                  <X className='size-3' />
-                </Button>
-              </PresenceDiv>
-            )}
-          </AnimatePresence>
-          <AnimatePresence initial={false}>
-            {!isMobile && viewMode === 'list' && (
-              <motion.div
-                key='sort-menu'
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduce ? 0 : DURATION.fast }}
-              >
-                <SortMenu />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div className='ml-auto shrink-0 @min-[620px]/tracker:hidden'>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant='ghost'
+                  id='tracker-focus-filter'
+                  variant={focusedOnly ? 'secondary' : 'ghost'}
                   size='icon'
-                  aria-label='职位工具'
+                  aria-label='重点关注'
+                  aria-pressed={focusedOnly}
                   className={cn(
-                    'size-9',
-                    (showArchived || isSelectMode) && 'bg-muted',
+                    'size-10 rounded-lg @min-[620px]/tracker:size-9 [@media(pointer:coarse)]:size-11',
+                    focusedOnly
+                      ? 'text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400'
+                      : 'text-muted-foreground',
                   )}
+                  style={actionTransition}
+                  onClick={() =>
+                    useTrackerStore.getState().setFocusedOnly(!focusedOnly)
+                  }
                 >
-                  <MoreHorizontal className='size-4' />
+                  <Flag
+                    className='size-4'
+                    fill={focusedOnly ? 'currentColor' : 'none'}
+                    aria-hidden
+                  />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align='end'
-                style={{
-                  animationDuration: `${reduce ? 0 : DURATION.base}s`,
-                  animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
-                }}
-              >
-                <DropdownMenuItem
-                  onSelect={() => setShowArchived(!showArchived)}
+              </TooltipTrigger>
+              <TooltipContent style={tooltipAnimation}>
+                {focusedOnly ? '显示全部职位' : '只看重点关注'}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={showArchived ? 'secondary' : 'ghost'}
+                  size='icon'
+                  className={cn(
+                    'size-10 rounded-lg @min-[620px]/tracker:size-9 [@media(pointer:coarse)]:size-11',
+                    !showArchived && 'text-muted-foreground',
+                  )}
+                  style={actionTransition}
+                  aria-label='已归档'
+                  aria-pressed={showArchived}
+                  onClick={() => setShowArchived(!showArchived)}
                 >
-                  <Archive className='size-4' />
-                  {showArchived ? '返回在办职位' : `已归档（${archivedCount}）`}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={isSelectMode ? exitSelectMode : enterSelectMode}
+                  <Archive className='size-4' aria-hidden />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent style={tooltipAnimation}>
+                {showArchived ? '返回在办职位' : `已归档（${archivedCount}）`}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isSelectMode ? 'secondary' : 'ghost'}
+                  size='icon'
+                  className={cn(
+                    'size-10 rounded-lg @min-[620px]/tracker:size-9 [@media(pointer:coarse)]:size-11',
+                    !isSelectMode && 'text-muted-foreground',
+                  )}
+                  style={actionTransition}
+                  aria-pressed={isSelectMode}
+                  aria-label={isSelectMode ? '退出批量管理' : '批量管理'}
+                  onClick={isSelectMode ? exitSelectMode : enterSelectMode}
                 >
-                  <CheckSquare className='size-4' />
-                  {isSelectMode ? '退出批量管理' : '批量管理'}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <div className='ml-auto hidden shrink-0 items-center gap-1 @min-[620px]/tracker:flex'>
-            <Button
-              variant='ghost'
-              size='sm'
-              className={cn(
-                'h-9 gap-1.5 rounded-lg px-2 text-muted-foreground sm:px-3',
-                showArchived && 'bg-muted text-foreground',
-              )}
-              aria-pressed={showArchived}
-              onClick={() => setShowArchived(!showArchived)}
-            >
-              <Archive className='size-4' />
-              <span className='hidden sm:inline'>已归档</span>
-              <span className='sr-only sm:hidden'>已归档</span>
-              {archivedCount > 0 && (
-                <span className='hidden text-xs tabular-nums sm:inline'>
-                  {archivedCount}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant='ghost'
-              size='sm'
-              className={cn(
-                'h-9 gap-1.5 rounded-lg px-2 text-muted-foreground sm:px-3',
-                isSelectMode && 'bg-muted text-foreground',
-              )}
-              aria-pressed={isSelectMode}
-              aria-label={isSelectMode ? '退出批量管理' : '批量管理'}
-              onClick={isSelectMode ? exitSelectMode : enterSelectMode}
-            >
-              <CheckSquare className='size-4' />
-              <span className='hidden sm:inline'>批量管理</span>
-            </Button>
+                  <CheckSquare className='size-4' aria-hidden />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent style={tooltipAnimation}>
+                {isSelectMode ? '退出批量管理' : '批量管理'}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>

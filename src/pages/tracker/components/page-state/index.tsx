@@ -93,7 +93,7 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
             </Button>
           )}
           {mode === 'empty' && (
-            <Button onClick={openAddDrawer}>
+            <Button onClick={() => openAddDrawer()}>
               <Plus />
               新增职位
             </Button>

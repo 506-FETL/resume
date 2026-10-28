@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { DashboardResources } from '../../insights'
 import type { JobPriorityItem } from '../../job-priorities'
-import { ArrowRight, BellRing, Files, MessagesSquare } from 'lucide-react'
+import { ArrowRight, BellRing, Flag, MessagesSquare } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -15,9 +15,8 @@ export default function JobPriorities({
 }: {
   resources: DashboardResources
 }) {
-  const { interviews, followUps, materials } = buildJobPriorities(
+  const { interviews, followUps, focused } = buildJobPriorities(
     resources.jobs.data,
-    resources.pendingMaterials.data,
   )
 
   return (
@@ -41,13 +40,14 @@ export default function JobPriorities({
         empty='暂无到期或久未推进的岗位'
       />
       <PriorityCard
-        title='待补材料'
-        icon={Files}
-        accent='text-sky-500 dark:text-sky-400'
-        badgeAccent='bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
-        items={materials}
-        resource={resources.pendingMaterials}
-        empty='暂无待补材料'
+        title='重点关注'
+        icon={Flag}
+        accent='text-red-500 dark:text-red-400'
+        badgeAccent='bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+        items={focused}
+        resource={resources.jobs}
+        empty='还没有重点关注的职位'
+        allHref='/tracker?focus=1'
       />
     </div>
   )
@@ -61,6 +61,8 @@ function PriorityCard({
   items,
   resource,
   empty,
+  emptyHint,
+  allHref,
 }: {
   title: string
   icon: LucideIcon
@@ -72,6 +74,8 @@ function PriorityCard({
     'loading' | 'error' | 'hasLoaded' | 'retry'
   >
   empty: string
+  emptyHint?: string
+  allHref?: string
 }) {
   const pending = resource.loading && !resource.hasLoaded
   const unavailable = Boolean(resource.error) && !resource.hasLoaded
@@ -132,10 +136,13 @@ function PriorityCard({
               暂时无法读取{title}
             </p>
           ) : items.length === 0 ? (
-            <p className='py-2 text-sm text-muted-foreground'>{empty}</p>
+            <div className='py-2 text-muted-foreground'>
+              <p className='text-sm'>{empty}</p>
+              {emptyHint && <p className='mt-1 text-xs'>{emptyHint}</p>}
+            </div>
           ) : (
             <div className='flex flex-col gap-2'>
-              {items.slice(0, 3).map((item) => (
+              {items.slice(0, 2).map((item) => (
                 <Button
                   key={item.id}
                   variant='ghost'
@@ -155,11 +162,6 @@ function PriorityCard({
                   </Link>
                 </Button>
               ))}
-              {items.length > 3 && (
-                <p className='text-xs text-muted-foreground'>
-                  另有 {items.length - 3} 项，请在求职跟进中查看
-                </p>
-              )}
             </div>
           )}
         </AnimatedContent>

@@ -34,9 +34,25 @@ export interface JobSubmission {
   file_name: string | null
   file_mime: string | null
   file_size: number | null
+  is_primary: boolean
+}
+
+export type JobSubmissionState =
+  | { kind: 'none' }
+  | { kind: 'ready'; primary: JobSubmission; legacy: JobSubmission[] }
+  | { kind: 'needs-resolution'; legacy: JobSubmission[] }
+
+export interface SubmissionRevision {
+  id: string
+  submission_id: string
+  created_at: string
+  reason: string
 }
 
 export type JobSubmissionMaterial = {
+  submittedOn: string | null
+  channel: string | null
+  note: string | null
   jdText: string | null
   jdUpdatedAt: string | null
 } & (

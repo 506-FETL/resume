@@ -50,6 +50,8 @@ export default function BatchActions() {
     metricFilter,
     searchKeyword,
     showArchived,
+    focusedOnly,
+    filterCompanyId,
     viewMode,
   } = useTrackerStore(
     useShallow((state) => ({
@@ -65,6 +67,8 @@ export default function BatchActions() {
       metricFilter: state.metricFilter,
       searchKeyword: state.searchKeyword,
       showArchived: state.showArchived,
+      focusedOnly: state.focusedOnly,
+      filterCompanyId: state.filterCompanyId,
       viewMode: state.viewMode,
     })),
   )
@@ -77,11 +81,14 @@ export default function BatchActions() {
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
 
   const selectableCount = filterJobs(
-    jobs,
+    filterCompanyId
+      ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
+      : jobs,
     viewMode === 'list' ? filterStatus : null,
     searchKeyword,
     showArchived,
     viewMode === 'list' ? metricFilter : null,
+    focusedOnly,
   ).length
 
   const selectedCount = selectedIds.size

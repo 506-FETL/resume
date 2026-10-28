@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { COMMON_CITIES, COMMON_COMPANIES, COMMON_POSITIONS } from '../../const'
+import { COMMON_CITIES, COMMON_POSITIONS } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
-import useTrackerStore from '../../store'
+import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import { getTrackerErrorMessage } from '../../utils'
 import { TrackerCombobox } from './tracker-combobox'
+import { CompanyPicker } from './company-picker'
 
 function parseSalaryRange(salary: string): { min: string; max: string } {
   if (!salary) return { min: '', max: '' }
@@ -30,25 +31,30 @@ export default function DrawerEditForm({
   onSaved,
   onCancel,
 }: DrawerEditFormProps) {
-  const { selectedJob, saveJobFields } = useTrackerStore(
-    useShallow((state) => ({
-      selectedJob: state.selectedJob,
-      saveJobFields: state.saveJobFields,
-    })),
-  )
+  const { selectedJob, saveJobFields, reassignCompany, referralSource } =
+    useTrackerStore(
+      useShallow((state) => ({
+        selectedJob: state.selectedJob,
+        saveJobFields: state.saveJobFields,
+        reassignCompany: state.reassignCompany,
+        referralSource: state.jobs.find(
+          (job) => job.id === state.selectedJob?.referred_from_job_id,
+        ),
+      })),
+    )
 
   const [saving, setSaving] = useState(false)
 
   const parsedSalary = parseSalaryRange(selectedJob?.salary || '')
 
   const [formData, setFormData] = useState({
-    company: selectedJob?.company || '',
+    tracker_company_id: selectedJob?.tracker_company_id ?? null,
+    recruitment_batch: selectedJob?.recruitment_batch ?? '',
     position: selectedJob?.position || '',
     location: selectedJob?.location || '',
     salaryMin: parsedSalary.min,
     salaryMax: parsedSalary.max,
     job_url: selectedJob?.job_url || '',
-    company_logo: selectedJob?.company_logo || '',
     jd_text: selectedJob?.jd_text || '',
     source: selectedJob?.source || '',
   })
@@ -58,14 +64,21 @@ export default function DrawerEditForm({
   }
 
   const handleSubmit = async () => {
-    if (!selectedJob || !formData.company.trim() || !formData.position.trim())
+    if (
+      !selectedJob ||
+      !formData.tracker_company_id ||
+      !formData.position.trim()
+    )
       return
 
     setSaving(true)
 
     try {
+      if (formData.tracker_company_id !== selectedJob.tracker_company_id)
+        await reassignCompany(selectedJob.id, formData.tracker_company_id)
+
       await saveJobFields(selectedJob.id, {
-        company: formData.company,
+        recruitment_batch: formData.recruitment_batch.trim() || null,
         position: formData.position,
         location: formData.location,
         salary:
@@ -77,7 +90,6 @@ export default function DrawerEditForm({
         job_url: formData.job_url || null,
         jd_text: formData.jd_text.trim() || null,
         source: formData.source.trim() || null,
-        company_logo: formData.company_logo.trim() || null,
       })
 
       onSaved()
@@ -85,7 +97,11 @@ export default function DrawerEditForm({
       if (isTrackerAccountScopeError(error)) return
 
       console.error('Failed to update job:', error)
-      toast.error('更新失败', { description: getTrackerErrorMessage(error) })
+
+      toast.error('更新失败', {
+        description: getTrackerErrorMessage(error),
+        action: getTrackerConflictAction(error, onCancel),
+      })
     } finally {
       setSaving(false)
     }
@@ -98,14 +114,32 @@ export default function DrawerEditForm({
       <FieldGroup className='gap-3'>
         <Field>
           <FieldLabel htmlFor='company'>公司名称</FieldLabel>
-          <TrackerCombobox
+          <CompanyPicker
             id='company'
-            value={formData.company}
-            onChange={(value) => handleChange('company', value)}
-            options={COMMON_COMPANIES}
-            placeholder='搜索或输入公司名称'
+            value={formData.tracker_company_id}
+            onChange={(id) =>
+              setFormData((current) => ({ ...current, tracker_company_id: id }))
+            }
+            disabled={saving}
           />
         </Field>
+        <Field>
+          <FieldLabel htmlFor='edit-recruitment-batch'>
+            招聘批次（选填）
+          </FieldLabel>
+          <Input
+            id='edit-recruitment-batch'
+            value={formData.recruitment_batch}
+            onChange={(event) =>
+              handleChange('recruitment_batch', event.target.value)
+            }
+          />
+        </Field>
+        {selectedJob?.referred_from_job_id && (
+          <p className='text-xs text-muted-foreground'>
+            来自「{referralSource?.position ?? '原岗位'}」的转岗 / 推荐。
+          </p>
+        )}
 
         <Field>
           <FieldLabel htmlFor='position'>职位名称</FieldLabel>

@@ -1,3 +1,4 @@
+import { FocusButton } from '../focus-button'
 import { useSearchParams } from 'react-router-dom'
 import type { ComponentProps, CSSProperties } from 'react'
 import type { ApplicationStatus, DrawerTab } from '../../types'
@@ -67,7 +68,7 @@ import {
   TRACKER_SEARCH_INPUT_ID,
 } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
-import useTrackerStore from '../../store'
+import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import { selectTrackerDrawerJob } from '../../store/selectors'
 import { getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
 import { CompanyLogo } from '../company-logo'
@@ -205,7 +206,10 @@ function JobDrawer() {
 
     changeJobStatus(selectedJob.id, newStatus).catch((error) => {
       if (!isTrackerAccountScopeError(error))
-        toast.error('更新失败', { description: getTrackerErrorMessage(error) })
+        toast.error('更新失败', {
+          description: getTrackerErrorMessage(error),
+          action: getTrackerConflictAction(error),
+        })
     })
 
     setViewingStage(null)
@@ -349,6 +353,22 @@ function JobDrawer() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='w-44'>
+        {selectedJob.status === 'rejected' && (
+          <DropdownMenuItem
+            onClick={() => {
+              useTrackerStore.getState().requestReopen(selectedJob.id)
+            }}
+          >
+            <ArrowRight className='size-4' />
+            恢复流程
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          onClick={() => useTrackerStore.getState().openAddDrawer(selectedJob)}
+        >
+          <BriefcaseBusiness className='size-4' />
+          转到同公司其他岗位
+        </DropdownMenuItem>
         {includeEdit && (
           <DropdownMenuItem onClick={() => setIsEditing(true)}>
             <Pencil className='size-4' />
@@ -406,6 +426,7 @@ function JobDrawer() {
         <Pencil className='size-3.5' />
         <span className='hidden sm:inline'>编辑信息</span>
       </Button>
+      <FocusButton job={selectedJob} />
       {actionMenu(false)}
     </div>
   )
@@ -611,6 +632,10 @@ function JobDrawer() {
                         <SubmissionList
                           key={selectedJob.id}
                           jobId={selectedJob.id}
+                          onViewDetails={() => {
+                            handleTabChange('interview')
+                            setViewingStage('applied')
+                          }}
                         />
                       </div>
                     )}
@@ -688,6 +713,7 @@ function JobDrawer() {
 
   const mobileFooter = isMobile && !isEditing && (
     <div className='flex shrink-0 items-center gap-2 border-t bg-popover px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]'>
+      <FocusButton job={selectedJob} />
       {actionMenu(true)}
       <Button className='min-w-0 flex-1' onClick={handlePrimaryAction}>
         <span className='truncate'>{nextAction.label}</span>

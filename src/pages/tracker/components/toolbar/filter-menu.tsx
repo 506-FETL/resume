@@ -38,6 +38,8 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
     filterStatus,
     setFilterStatus,
     showArchived,
+    focusedOnly,
+    filterCompanyId,
     searchKeyword,
     viewMode,
   } = useTrackerStore(
@@ -46,6 +48,8 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
       filterStatus: state.filterStatus,
       setFilterStatus: state.setFilterStatus,
       showArchived: state.showArchived,
+      focusedOnly: state.focusedOnly,
+      filterCompanyId: state.filterCompanyId,
       searchKeyword: state.searchKeyword,
       viewMode: state.viewMode,
     })),
@@ -72,8 +76,18 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
   const directionLabel = sortDir === 'asc' ? '升序' : '降序'
 
   const scopedJobs = useMemo(
-    () => filterJobs(jobs, null, searchKeyword, showArchived),
-    [jobs, searchKeyword, showArchived],
+    () =>
+      filterJobs(
+        filterCompanyId
+          ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
+          : jobs,
+        null,
+        searchKeyword,
+        showArchived,
+        null,
+        focusedOnly,
+      ),
+    [jobs, searchKeyword, showArchived, filterCompanyId, focusedOnly],
   )
 
   const counts = useMemo(() => {

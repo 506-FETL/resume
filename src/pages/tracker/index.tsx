@@ -6,6 +6,7 @@ import BoardView from './components/board'
 import JobDrawer from './components/drawer'
 import AddJobDrawer from './components/drawer/add-job'
 import SubmissionDialog from './components/drawer/submission-dialog'
+import ReopenProcessDialog from './components/drawer/reopen-process'
 import TrackerHeader from './components/header'
 import ListView from './components/list'
 import OverviewBar from './components/overview-bar'
@@ -28,6 +29,8 @@ function TrackerContent() {
     filterStatus,
     metricFilter,
     searchKeyword,
+    filterCompanyId,
+    focusedOnly,
   } = useTrackerStore(
     useShallow((state) => ({
       jobs: selectTrackerListJobs(state),
@@ -39,12 +42,27 @@ function TrackerContent() {
       filterStatus: state.filterStatus,
       metricFilter: state.metricFilter,
       searchKeyword: state.searchKeyword,
+      filterCompanyId: state.filterCompanyId,
+      focusedOnly: state.focusedOnly,
     })),
   )
 
   const [routeParams] = useSearchParams()
   const routeJobId = routeParams.get('jobId')
   const routeTab = routeParams.get('tab')
+  const routeFocus = routeParams.get('focus')
+
+  useEffect(() => {
+    if (routeFocus !== '1') return
+
+    const store = useTrackerStore.getState()
+
+    store.clearFilters()
+    store.setSearchKeyword('')
+    store.setShowArchived(false)
+    store.setFocusedOnly(true)
+  }, [routeFocus])
+
   const openedRouteRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -70,13 +88,25 @@ function TrackerContent() {
   const visibleJobs = useMemo(
     () =>
       filterJobs(
-        jobs,
+        filterCompanyId
+          ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
+          : jobs,
         viewMode === 'list' ? filterStatus : null,
         searchKeyword,
         showArchived,
         viewMode === 'list' ? metricFilter : null,
+        focusedOnly,
       ),
-    [jobs, viewMode, filterStatus, metricFilter, searchKeyword, showArchived],
+    [
+      jobs,
+      viewMode,
+      filterStatus,
+      metricFilter,
+      searchKeyword,
+      showArchived,
+      filterCompanyId,
+      focusedOnly,
+    ],
   )
 
   const scopedJobs = useMemo(
@@ -127,6 +157,7 @@ function TrackerContent() {
       <JobDrawer />
       <AddJobDrawer />
       <SubmissionDialog />
+      <ReopenProcessDialog />
     </>
   )
 }

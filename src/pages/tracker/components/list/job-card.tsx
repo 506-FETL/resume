@@ -1,3 +1,4 @@
+import { FocusButton } from '../focus-button'
 import type { JobApplication } from '../../types'
 import { Archive, Bell, Building2, MoreVertical, Trash2 } from 'lucide-react'
 import {
@@ -39,7 +40,7 @@ import {
   NEXT_ACTION_TONE_CLASSES,
 } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
-import useTrackerStore from '../../store'
+import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import { getNextActionBadge, getTrackerErrorMessage } from '../../utils'
 import { CompanyLogo } from '../company-logo'
 
@@ -123,6 +124,7 @@ function JobCardComponent({ job }: JobCardProps) {
 
       toast.error('更新状态失败', {
         description: getTrackerErrorMessage(error),
+        action: getTrackerConflictAction(error),
       })
     }
   }
@@ -160,9 +162,10 @@ function JobCardComponent({ job }: JobCardProps) {
               icon={Building2}
             />
           </div>
-          <button
+          <Button
+            variant='ghost'
             type='button'
-            className='min-h-11 min-w-0 flex-1 self-stretch rounded-sm py-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            className='block h-auto min-h-11 min-w-0 flex-1 self-stretch rounded-sm px-0 py-0.5 text-left whitespace-normal hover:bg-transparent'
             aria-label={
               isSelectMode
                 ? `选择 ${job.company} ${job.position}`
@@ -188,9 +191,15 @@ function JobCardComponent({ job }: JobCardProps) {
                 {job.location || '地点未填写'}
               </span>
             </span>
-          </button>
+            {job.recruitment_batch && (
+              <span className='mt-1 block truncate text-xs text-muted-foreground'>
+                {job.recruitment_batch}
+              </span>
+            )}
+          </Button>
           <div className='flex shrink-0 flex-col items-end gap-0.5'>
             <div className='-mt-1 -mr-1 flex items-center gap-0.5'>
+              <FocusButton job={job} />
               <span className='inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground'>
                 <span
                   aria-hidden='true'

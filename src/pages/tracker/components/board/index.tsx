@@ -31,7 +31,7 @@ import {
   TRACKER_SEARCH_INPUT_ID,
 } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
-import useTrackerStore from '../../store'
+import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import { selectTrackerListJobs } from '../../store/selectors'
 import {
   filterJobs,
@@ -169,6 +169,8 @@ function BoardView() {
     metricFilter,
     searchKeyword,
     showArchived,
+    filterCompanyId,
+    focusedOnly,
     changeJobStatus,
     rejectedCollapsed,
     toggleRejectedCollapsed,
@@ -179,6 +181,8 @@ function BoardView() {
       metricFilter: state.metricFilter,
       searchKeyword: state.searchKeyword,
       showArchived: state.showArchived,
+      filterCompanyId: state.filterCompanyId,
+      focusedOnly: state.focusedOnly,
       changeJobStatus: state.changeJobStatus,
       rejectedCollapsed: state.rejectedCollapsed,
       toggleRejectedCollapsed: state.toggleRejectedCollapsed,
@@ -201,8 +205,18 @@ function BoardView() {
   } | null>(null)
 
   const scopedJobs = useMemo(
-    () => filterJobs(jobs, null, searchKeyword, showArchived, null),
-    [jobs, searchKeyword, showArchived],
+    () =>
+      filterJobs(
+        filterCompanyId
+          ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
+          : jobs,
+        null,
+        searchKeyword,
+        showArchived,
+        null,
+        focusedOnly,
+      ),
+    [jobs, searchKeyword, showArchived, filterCompanyId, focusedOnly],
   )
 
   const groupedJobs = useMemo(() => {
@@ -267,6 +281,7 @@ function BoardView() {
       if (!isTrackerAccountScopeError(error))
         toast.error('更新状态失败', {
           description: getTrackerErrorMessage(error),
+          action: getTrackerConflictAction(error),
         })
     })
   }
@@ -340,7 +355,7 @@ function BoardView() {
                   className={cn(
                     'flex min-h-0 flex-col rounded-lg border border-transparent bg-muted/35 transition-colors',
                     highlighted && 'border-primary/40 bg-primary/5',
-                    collapsed ? 'w-[44px] shrink-0' : 'w-64 shrink-0',
+                    collapsed ? 'w-[44px] shrink-0' : 'min-w-64 flex-1',
                   )}
                   style={{
                     transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`,

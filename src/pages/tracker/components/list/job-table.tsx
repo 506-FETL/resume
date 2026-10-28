@@ -1,3 +1,4 @@
+import { FocusButton } from '../focus-button'
 import type { JobApplication, TrackerSortBy } from '../../types'
 import {
   Archive,
@@ -44,7 +45,7 @@ import {
   NEXT_ACTION_TONE_CLASSES,
 } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
-import useTrackerStore from '../../store'
+import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import {
   getDaysInStage,
   getNextActionBadge,
@@ -52,9 +53,53 @@ import {
   getTrackerNextAction,
 } from '../../utils'
 import { CompanyLogo } from '../company-logo'
+import { COMPANY_POLICY_LABELS } from '../../store/companies'
 
 interface JobTableProps {
   jobs: JobApplication[]
+  groupByCompany?: boolean
+}
+
+export function CompanyGroupTitle({ job }: { job: JobApplication }) {
+  const { company, activeCount, companiesError, companiesLoading } =
+    useTrackerStore(
+      useShallow((state) => ({
+        company: state.companies.find(
+          (row) => row.id === job.tracker_company_id,
+        ),
+        activeCount: state.jobs.filter(
+          (row) =>
+            row.tracker_company_id === job.tracker_company_id &&
+            [
+              'applied',
+              'assessment',
+              'screen',
+              'written',
+              'interview',
+            ].includes(row.status),
+        ).length,
+        companiesError: state.companiesError,
+        companiesLoading: state.companiesLoading,
+      })),
+    )
+
+  return (
+    <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1'>
+      <span className='min-w-0 break-words text-sm font-semibold'>
+        {company?.name ?? job.company}
+      </span>
+      <span className='text-xs font-normal text-muted-foreground'>
+        {activeCount} 个进行中 ·{' '}
+        {company
+          ? COMPANY_POLICY_LABELS[company.process_policy]
+          : companiesLoading
+            ? '正在加载规则'
+            : companiesError
+              ? '规则加载失败'
+              : '规则未加载'}
+      </span>
+    </div>
+  )
 }
 
 function formatDate(dateStr: string | null): string {
@@ -246,9 +291,10 @@ const JobTableRow = memo(
                   </span>
                 )}
               </div>
-              <button
+              <Button
+                variant='ghost'
                 type='button'
-                className='mt-1 block w-full rounded-sm text-left font-semibold leading-5 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                className='mt-1 block h-auto w-full rounded-sm p-0 text-left font-semibold leading-5 text-foreground whitespace-normal hover:bg-transparent'
                 aria-label={
                   isSelectMode
                     ? `选择 ${job.position}`
@@ -260,8 +306,14 @@ const JobTableRow = memo(
                 }}
               >
                 <span className='line-clamp-2 break-words'>{job.position}</span>
-              </button>
+              </Button>
+              {job.recruitment_batch && (
+                <p className='mt-1 truncate text-xs text-muted-foreground'>
+                  {job.recruitment_batch}
+                </p>
+              )}
             </div>
+            <FocusButton job={job} />
           </div>
         </td>
         <td className='hidden px-3 py-3 text-xs @min-[880px]/jobs:table-cell'>
@@ -398,7 +450,9 @@ const JobTableRow = memo(
   },
 )
 
-export function JobTable({ jobs }: JobTableProps) {
+export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
+  const reduceMotion = useReducedMotion()
+
   const {
     isSelectMode,
     selectedIds,
@@ -448,6 +502,7 @@ export function JobTable({ jobs }: JobTableProps) {
 
         toast.error('更新状态失败', {
           description: getTrackerErrorMessage(error),
+          action: getTrackerConflictAction(error),
         })
       }
     },
@@ -544,7 +599,30 @@ export function JobTable({ jobs }: JobTableProps) {
           </thead>
           <tbody>
             <AnimatePresence initial={false}>
-              {jobs.map((job, index) => (
+              {jobs.flatMap((job, index) => [
+                ...(groupByCompany &&
+                jobs[index - 1]?.tracker_company_id !== job.tracker_company_id
+                  ? [
+                      <PresenceTableRow
+                        key={`company-${job.tracker_company_id}`}
+                        initial={reduceMotion ? false : { opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{
+                          duration: reduceMotion ? 0 : DURATION.base,
+                          ease: EASE.out,
+                        }}
+                        className='border-t bg-muted/40'
+                      >
+                        <td
+                          colSpan={isSelectMode ? 7 : 6}
+                          className='px-4 py-3'
+                        >
+                          <CompanyGroupTitle job={job} />
+                        </td>
+                      </PresenceTableRow>,
+                    ]
+                  : []),
                 <JobTableRow
                   key={job.id}
                   job={job}
@@ -553,8 +631,8 @@ export function JobTable({ jobs }: JobTableProps) {
                   onStatusChange={handleStatusChange}
                   onArchive={handleArchive}
                   onDelete={setPendingDeleteJob}
-                />
-              ))}
+                />,
+              ])}
             </AnimatePresence>
           </tbody>
         </table>
