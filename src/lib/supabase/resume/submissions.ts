@@ -4,7 +4,6 @@ import type {
   SubmissionInput,
   SubmissionMaterialInput,
 } from '@/pages/tracker/submission-types'
-import type { PublishedTemplateManifest } from '@/lib/resume-template/share'
 import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import supabase from '../client'
@@ -131,13 +130,13 @@ export async function getJobSubmissionMaterial(
   const common = { jdText: data.jdText, jdUpdatedAt: data.jdUpdatedAt }
 
   if (data.kind === 'platform') {
-    parseSharedTemplateDefinition(data.templateManifest)
+    const definition = parseSharedTemplateDefinition(data.templateManifest)
 
     return {
       ...common,
       kind: 'platform',
       snapshot: mapSourceToPersistedSnapshot(data.snapshot),
-      templateManifest: data.templateManifest as PublishedTemplateManifest,
+      definition,
       projectionReferenceDate: data.projectionReferenceDate,
     }
   }

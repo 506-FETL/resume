@@ -1,4 +1,4 @@
-import type { ORDERType, ResumeSchema } from '@/lib/schema'
+import type { ORDERType } from '@/lib/schema'
 import type { ReviewField, ReviewModule } from '../../types'
 import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
@@ -63,15 +63,6 @@ export default function ImportReview() {
   const populated = populatedSections(content)
   const locked = Boolean(draft.creation)
 
-  function replaceContent(next: ResumeSchema, changed: ORDERType[]) {
-    patch({
-      content: next,
-      reviewedSections: draft.reviewedSections.filter(
-        (key) => !changed.includes(key),
-      ),
-    })
-  }
-
   function updateRow(index: number, key: string, value: unknown) {
     const next = structuredClone(content!)
     const target = next[activeSection] as unknown as Record<string, unknown>
@@ -80,7 +71,7 @@ export default function ImportReview() {
       (target[active.arrayKey] as Record<string, unknown>[])[index][key] = value
     else target[key] = value
 
-    replaceContent(next, [activeSection])
+    patch({ content: next })
   }
 
   function moveRow(index: number, targetSection: ORDERType) {
@@ -118,7 +109,7 @@ export default function ImportReview() {
 
     from.items.splice(index, 1)
     to.items.push(converted)
-    replaceContent(next, [activeSection, targetSection])
+    patch({ content: next })
   }
 
   function assignUnmatched() {
@@ -145,8 +136,7 @@ export default function ImportReview() {
       targetRows.push(row)
     } else target[field.key] = `${target[field.key] ?? ''}${html}`
 
-    replaceContent(next, [destination])
-    patch({ unassignedText: '', unassignedReviewed: false })
+    patch({ content: next, unassignedText: '' })
   }
 
   return (
@@ -269,7 +259,7 @@ export default function ImportReview() {
                             }
 
                             target.items.splice(index, 1)
-                            replaceContent(next, [activeSection])
+                            patch({ content: next })
                           }}
                         >
                           <Trash2 className='size-3.5' />
@@ -302,7 +292,7 @@ export default function ImportReview() {
                     }
 
                     target.items.push(blankRow(active))
-                    replaceContent(next, [activeSection])
+                    patch({ content: next })
                   }}
                 >
                   <Plus className='size-3.5' />
@@ -322,7 +312,6 @@ export default function ImportReview() {
             onChange={(event) =>
               patch({
                 unassignedText: event.target.value,
-                unassignedReviewed: false,
               })
             }
             rows={4}

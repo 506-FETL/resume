@@ -1,4 +1,4 @@
-import type { PublishedTemplateManifest } from '@/lib/resume-template/share'
+import type { TemplateDefinition } from '@/lib/resume-template/definition-schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 
 export type SubmissionMaterialKind = 'pending' | 'platform' | 'file'
@@ -44,7 +44,7 @@ export type JobSubmissionMaterial = {
   | {
       kind: 'platform'
       snapshot: PersistedResumeSnapshot
-      templateManifest: PublishedTemplateManifest
+      definition: TemplateDefinition
       projectionReferenceDate: string
     }
   | {

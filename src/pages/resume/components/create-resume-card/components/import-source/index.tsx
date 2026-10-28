@@ -144,7 +144,6 @@ export default function ImportSource({
                   sourceName: '粘贴内容',
                   content: null,
                   selectedTemplate: undefined,
-                  reviewedSections: [],
                 })
               }}
             />

@@ -10,11 +10,15 @@
     <script type="module">
       if (new URLSearchParams(location.search).has('reduce')) {
         const original = window.matchMedia.bind(window)
-        window.matchMedia = (query) =>
-          query === '(prefers-reduced-motion)' ||
-          query === '(prefers-reduced-motion: reduce)'
-            ? Object.assign(original(query), { matches: true })
-            : original(query)
+        window.matchMedia = (query) => {
+          const media = original(query)
+          if (
+            query === '(prefers-reduced-motion)' ||
+            query === '(prefers-reduced-motion: reduce)'
+          )
+            Object.defineProperty(media, 'matches', { value: true })
+          return media
+        }
       }
       import('/tests/round-delete-motion/main.tsx')
     </script>

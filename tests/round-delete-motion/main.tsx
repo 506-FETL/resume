@@ -20,6 +20,7 @@ function Harness() {
   const [rounds, setRounds] = useState(() => makeRounds(3))
   const [run, setRun] = useState(0)
   const [result, setResult] = useState('尚未删除')
+  const [restore, setRestore] = useState(false)
   const sequence = useRef(10)
 
   const record = () => {
@@ -73,6 +74,12 @@ function Harness() {
           <Button onClick={() => reset(5)}>重置五轮</Button>
           <Button onClick={() => reset(1)}>重置一轮</Button>
           <Button
+            aria-pressed={restore}
+            onClick={() => setRestore((value) => !value)}
+          >
+            删除后恢复
+          </Button>
+          <Button
             onClick={() => {
               const removed = rounds.at(-1)
 
@@ -117,6 +124,19 @@ function Harness() {
           onDeleteSubStage={(id) => {
             record()
             setRounds((items) => items.filter((item) => item.id !== id))
+
+            if (restore) {
+              const removed = rounds.find((item) => item.id === id)
+
+              if (removed)
+                setTimeout(
+                  () =>
+                    setRounds((items) =>
+                      [...items, removed].sort((a, b) => a.order - b.order),
+                    ),
+                  70,
+                )
+            }
           }}
           onUpdateSubStage={(id, updates) =>
             setRounds((items) =>

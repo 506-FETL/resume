@@ -25,7 +25,6 @@ interface ResumeCheckState {
   layoutIssues: ResumeCheckIssue[]
   layoutSnapshotSignature: string
   canUndo: boolean
-  checkedAt: number | null
   busy: boolean
   revision: number
   tab: 'edit' | 'checks'
@@ -34,14 +33,12 @@ interface ResumeCheckState {
   selectedTargetIndex: number
   locationMessage: string | null
   locationVersion: number
-  editingIssueId: string | null
   requestVersion: number
   reset: (identity: string, resumeId: string, ownerId: string | null) => void
   requestChecks: (filter?: CheckFilter, issueId?: string) => void
   setTab: (tab: 'edit' | 'checks') => void
   setFilter: (filter: CheckFilter) => void
   locate: (issueId: string, targetIndex?: number) => void
-  beginEdit: (issueId: string) => void
 }
 
 const initial = {
@@ -63,7 +60,6 @@ const initial = {
   layoutIssues: [],
   layoutSnapshotSignature: '',
   canUndo: false,
-  checkedAt: null,
   busy: false,
   revision: 0,
   tab: 'edit' as const,
@@ -72,7 +68,6 @@ const initial = {
   selectedTargetIndex: 0,
   locationMessage: null,
   locationVersion: 0,
-  editingIssueId: null,
   requestVersion: 0,
 }
 
@@ -101,7 +96,6 @@ export const useResumeCheckStore = create<ResumeCheckState>((set) => ({
       locationVersion: issueId
         ? state.locationVersion + 1
         : state.locationVersion,
-      editingIssueId: null,
       requestVersion: state.requestVersion + 1,
     }))
   },
@@ -117,8 +111,4 @@ export const useResumeCheckStore = create<ResumeCheckState>((set) => ({
       locationMessage: null,
       locationVersion: state.locationVersion + 1,
     })),
-  beginEdit: (editingIssueId) => {
-    focusTab('edit')
-    set({ editingIssueId, tab: 'edit' })
-  },
 }))

@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/dialog'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
-import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
 import {
   getJobSubmissionMaterial,
   listJobSubmissions,
@@ -151,9 +150,7 @@ function MaterialPreview({
                   data={buildTemplateResumeData(material.snapshot)}
                   appearance={material.snapshot}
                   projectionReferenceDate={material.projectionReferenceDate}
-                  definition={parseSharedTemplateDefinition(
-                    material.templateManifest,
-                  )}
+                  definition={material.definition}
                 />
               </div>
             )}

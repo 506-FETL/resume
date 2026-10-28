@@ -72,9 +72,7 @@ export const useCreationDraftStore = create<CreationDraftState>((set, get) => ({
 
     set({ saving: true })
 
-    const pending = saveQueue
-      .catch(() => undefined)
-      .then(() => saveImportDraft(scope, draft))
+    const pending = saveQueue.then(() => saveImportDraft(scope, draft))
 
     saveQueue = pending.catch(() => undefined)
 
@@ -103,9 +101,7 @@ export const useCreationDraftStore = create<CreationDraftState>((set, get) => ({
 
     set({ draft: emptyDraft(), step: 'choose', saving: true })
 
-    const pending = saveQueue
-      .catch(() => undefined)
-      .then(() => saveImportDraft(scope, null))
+    const pending = saveQueue.then(() => saveImportDraft(scope, null))
 
     saveQueue = pending.catch(() => undefined)
 

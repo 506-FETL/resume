@@ -151,8 +151,6 @@ export function useCreationFlow({
           result.content.work_experience.items.length > 0
             ? 'experienced'
             : state.draft.profile,
-        reviewedSections: [],
-        unassignedReviewed: false,
       })
 
       state.setStep('review')
@@ -187,7 +185,6 @@ export function useCreationFlow({
       sourceName: '',
       unassignedText: '',
       warnings: [],
-      reviewedSections: [],
     })
 
     state.setStep('template')

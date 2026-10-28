@@ -146,11 +146,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
       exporter.documentState.status !== 'ready'
     )
       return
-    if (
-      format === 'pdf' &&
-      (exporter.documentState.status !== 'ready' || !exporter.handlePrint)
-    )
-      return
+    if (format === 'pdf' && !exporter.handlePrint) return
     if (format === 'word' && !exporter.sourceRef?.current) return
 
     const latestSnapshot = current.getPersistedSnapshot()

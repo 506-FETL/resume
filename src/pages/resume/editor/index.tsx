@@ -356,9 +356,6 @@ function Editor() {
     useResumeStore.getState().setSectionOpen(editRequest.section, true)
     useResumeCheckStore.getState().setTab('edit')
 
-    if (!editRequest.target)
-      useResumeCheckStore.setState({ editingIssueId: null })
-
     if (isMobile) setOpen(true)
     else setPanelOpen(true)
 

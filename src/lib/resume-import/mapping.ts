@@ -2,7 +2,6 @@ import type { ResumeSchema } from '../schema/resume'
 import type { ResumeParseResult } from './types'
 import {
   normalizeImportLines,
-  validateImportMapping,
   type ImportMapping,
   type EntrySection,
   type SourceSpan,
@@ -108,16 +107,13 @@ export function hasResumeContent(content: ResumeSchema): boolean {
   )
 }
 
-/** Keep reliable local fields; a partial AI mapping must never erase them. */
+/** 合并入口已按原文验证的映射；不完整的 AI 结果不能清空本地字段。 */
 export function mergeImportMapping(
   text: string,
   local: ResumeParseResult,
   mapping: ImportMapping,
 ): ResumeParseResult {
   const lines = normalizeImportLines(text)
-
-  if (!validateImportMapping(mapping, lines))
-    throw new Error('识别结果无法对应原文')
 
   const content = structuredClone(local.content)
   const sources = structuredClone(local.sources ?? { entries: {} })

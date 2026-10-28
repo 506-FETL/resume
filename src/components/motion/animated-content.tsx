@@ -13,12 +13,14 @@ interface AnimatedContentProps {
   className?: string
   as?: 'div' | 'span'
   mode?: 'wait' | 'popLayout'
+  enterDelay?: number
 }
 
 function Content({
   children,
   className,
   as = 'div',
+  enterDelay = 0,
   ref,
 }: Omit<AnimatedContentProps, 'animationKey' | 'mode'> & {
   ref?: Ref<HTMLDivElement & HTMLSpanElement>
@@ -41,11 +43,13 @@ function Content({
         transition: {
           duration: reduceMotion ? 0 : DURATION.fast,
           ease: EASE.in,
+          delay: 0,
         },
       }}
       transition={{
         duration: reduceMotion ? 0 : DURATION.base,
         ease: EASE.out,
+        delay: reduceMotion ? 0 : enterDelay,
       }}
     >
       {children}
@@ -60,10 +64,16 @@ export function AnimatedContent({
   className,
   as,
   mode = 'wait',
+  enterDelay,
 }: AnimatedContentProps) {
   return (
     <AnimatePresence initial={false} mode={mode}>
-      <Content key={animationKey} className={className} as={as}>
+      <Content
+        key={animationKey}
+        className={className}
+        as={as}
+        enterDelay={enterDelay}
+      >
         {children}
       </Content>
     </AnimatePresence>

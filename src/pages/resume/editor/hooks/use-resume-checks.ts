@@ -200,7 +200,6 @@ export function useResumeChecks() {
         sourceError,
         ruleStatus: 'ready',
         ruleError: null,
-        checkedAt: Date.now(),
         ...(outdated && state.proofreadStatus !== 'idle'
           ? { proofreadStatus: 'stale' as const }
           : {}),

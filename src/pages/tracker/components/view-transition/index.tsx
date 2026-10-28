@@ -29,16 +29,24 @@ function Panel({
       exit={{
         opacity: 0,
         y: 0,
-        transition: { duration: reduce ? 0 : DURATION.fast, ease: EASE.in },
+        transition: {
+          duration: reduce ? 0 : DURATION.fast,
+          ease: EASE.in,
+          delay: 0,
+        },
       }}
-      transition={{ duration: reduce ? 0 : DURATION.base, ease: EASE.out }}
+      transition={{
+        duration: reduce ? 0 : DURATION.base,
+        ease: EASE.out,
+        delay: reduce ? 0 : DURATION.fast,
+      }}
     >
       {children}
     </motion.div>
   )
 }
 
-/** 新面板立即挂载；退出面板脱离文档流，避免等待退出后才初始化编辑器或列表。 */
+/** 新面板立即初始化与占位，旧文字退出后再显示，避免内容叠在一起。 */
 export default function ViewTransition({
   animationKey,
   className,

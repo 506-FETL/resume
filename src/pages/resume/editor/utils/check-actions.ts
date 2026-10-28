@@ -203,7 +203,7 @@ export function editCheckIssue(issue: ResumeCheckIssue, targetIndex = 0) {
   const target = issue.targets[targetIndex]
 
   state.locate(issue.id, targetIndex)
-  state.beginEdit(issue.id)
+  state.setTab('edit')
 
   usePreparationUiStore
     .getState()

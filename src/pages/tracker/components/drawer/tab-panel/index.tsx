@@ -32,9 +32,17 @@ export default function DrawerTabPanel({
         exit={{
           opacity: 0,
           y: 0,
-          transition: { duration: reduce ? 0 : DURATION.fast, ease: EASE.in },
+          transition: {
+            duration: reduce ? 0 : DURATION.fast,
+            ease: EASE.in,
+            delay: 0,
+          },
         }}
-        transition={{ duration: reduce ? 0 : DURATION.base, ease: EASE.out }}
+        transition={{
+          duration: reduce ? 0 : DURATION.base,
+          ease: EASE.out,
+          delay: reduce ? 0 : DURATION.fast,
+        }}
       >
         {children}
       </PresenceDiv>

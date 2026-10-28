@@ -3,7 +3,7 @@ import type {
   ExampleRef,
   TemplateCatalogItem,
 } from '@/lib/resume-template/source/types'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import TemplateResourceStatus from '@/components/resume/template-resource-status'
@@ -11,6 +11,7 @@ import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
 import { toTemplateBinding } from '@/lib/resume-template/binding'
 import { useTemplateExample } from '../../hooks/use-template-example'
 import { useTemplatePreview } from '../../hooks/use-template-preview'
+import { usePreviewReady } from '../../hooks/use-preview-ready'
 import { catalogTemplateRef } from '../../utils.ts'
 
 export default function ExamplePreview({
@@ -20,6 +21,25 @@ export default function ExamplePreview({
   item: TemplateCatalogItem
   example: ExampleRef
 }) {
+  const previewRef = useRef<HTMLDivElement>(null)
+  const ready = usePreviewReady(previewRef)
+
+  return (
+    <div ref={previewRef}>
+      <PreviewDocument item={item} example={example} renderDocument={ready} />
+    </div>
+  )
+}
+
+function PreviewDocument({
+  item,
+  example,
+  renderDocument,
+}: {
+  item: TemplateCatalogItem
+  example: ExampleRef
+  renderDocument: boolean
+}) {
   const { resource, retry } = useTemplateExample(example)
 
   const template = useResolvedResumeTemplate({
@@ -28,10 +48,10 @@ export default function ExamplePreview({
 
   const data = useMemo(
     () =>
-      resource?.status === 'ready'
+      renderDocument && resource?.status === 'ready'
         ? buildTemplateResumeData({ ...resource.data.content, type: 'default' })
         : null,
-    [resource],
+    [resource, renderDocument],
   )
 
   const preview = item.previews.find(
@@ -58,7 +78,9 @@ export default function ExamplePreview({
     thumbnail.url &&
     resource?.status !== 'error' &&
     template.resource.status !== 'error' &&
-    (resource?.status !== 'ready' || template.resource.status !== 'ready')
+    (!renderDocument ||
+      resource?.status !== 'ready' ||
+      template.resource.status !== 'ready')
   )
     return (
       <img

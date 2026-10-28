@@ -343,6 +343,7 @@ function readModelIssue(value: unknown): ModelIssue {
 /** 严格解析模型返回，不修复畸形 JSON，也不把不可信输出转换成“没有问题”。 */
 export function validateProofreadResponse(
   snapshot: CheckSnapshot,
+  fields: CheckTarget[],
   content: string,
 ): ResumeCheckIssue[] {
   if (!content.trim() || content.length > MAX_OUTPUT_LENGTH) invalidResult()
@@ -364,7 +365,6 @@ export function validateProofreadResponse(
     invalidResult()
   }
 
-  const fields = buildProofreadFields(snapshot)
   const groups = new Map<string, ResumeCheckIssue>()
   let targetCount = 0
 
@@ -560,7 +560,7 @@ export async function proofreadResume(
     if (finishReason === 'length') throw new Error('AI 校对结果被截断，请重试')
     if (finishReason !== 'stop') throw new Error('AI 校对中断，请重试')
 
-    return validateProofreadResponse(snapshot, content)
+    return validateProofreadResponse(snapshot, fields, content)
   }
 
   try {

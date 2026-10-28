@@ -229,7 +229,11 @@ export default function CreateResumeCard({
                 data-creation-scroll
                 className='relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-1 -m-1'
               >
-                <AnimatedContent animationKey={step} mode='popLayout'>
+                <AnimatedContent
+                  animationKey={step}
+                  mode='popLayout'
+                  enterDelay={DURATION.fast}
+                >
                   {step === 'choose' && (
                     <div className='space-y-3 py-1'>
                       {(draft.sourceText || draft.creation) && (
