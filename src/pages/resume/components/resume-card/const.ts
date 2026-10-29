@@ -23,7 +23,7 @@ export const RESUME_BADGE_COLORS: Record<ResumeBadgeTone, string> = {
 
 export const RESUME_CARD_APPEARANCE = {
   cloud: {
-    label: '在线简历',
+    label: '云端简历',
     text: 'text-blue-700 dark:text-blue-300',
     icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300',
     border:
@@ -32,7 +32,7 @@ export const RESUME_CARD_APPEARANCE = {
     glowTo: '#67e8f9',
   },
   local: {
-    label: '离线简历',
+    label: '本地简历',
     text: 'text-slate-600 dark:text-slate-300',
     icon: 'bg-slate-100 text-slate-600 dark:bg-slate-400/15 dark:text-slate-300',
     border:
@@ -41,7 +41,7 @@ export const RESUME_CARD_APPEARANCE = {
     glowTo: '#94a3b8',
   },
   variant: {
-    label: '派生简历',
+    label: '岗位版本',
     text: 'text-violet-700 dark:text-violet-300',
     icon: 'bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300',
     border:

@@ -1,7 +1,8 @@
 import type { KeyboardEvent } from 'react'
 import { Plus, X } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useRef, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ function StringArrayEditor({
   onChange: (val: string[]) => void
   placeholder?: string
 }) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const reduceMotion = useReducedMotion()
   const [inputValue, setInputValue] = useState('')
 
@@ -75,13 +77,19 @@ function StringArrayEditor({
                     className='text-sm px-3 py-1 gap-1.5 pr-1.5 hover:bg-secondary/80 transition-colors'
                   >
                     {item}
-                    <button
+                    <Button
                       type='button'
-                      className='size-4 rounded-full hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors'
-                      onClick={() => onChange(value.filter((v) => v !== item))}
+                      variant='ghost'
+                      size='icon-xs'
+                      aria-label={`移除 ${item}`}
+                      className='size-4 rounded-full hover:bg-destructive/20 hover:text-destructive'
+                      onClick={() => {
+                        inputRef.current?.focus()
+                        onChange(value.filter((v) => v !== item))
+                      }}
                     >
                       <X className='size-3' />
-                    </button>
+                    </Button>
                   </Badge>
                 </PresenceDiv>
               ))}
@@ -93,6 +101,7 @@ function StringArrayEditor({
       {/* 输入框 */}
       <div className='flex gap-2'>
         <Input
+          ref={inputRef}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -104,6 +113,7 @@ function StringArrayEditor({
           size='sm'
           className='h-9'
           onClick={handleAdd}
+          aria-label='添加一项'
           disabled={!inputValue.trim()}
         >
           <Plus className='size-4' />

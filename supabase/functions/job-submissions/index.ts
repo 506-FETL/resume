@@ -103,7 +103,7 @@ Deno.serve(async (request: Request) => {
     if (!UUID.test(id)) return respond({ error: '记录编号无效' }, 400)
 
     if (action === 'material' || action === 'download') {
-      const { data: row, error } = await admin
+      const { data: current, error } = await admin
         .from('job_submissions')
         .select('*')
         .eq('id', id)
@@ -111,7 +111,27 @@ Deno.serve(async (request: Request) => {
         .maybeSingle()
 
       if (error) throw error
-      if (!row) return respond({ error: '投递记录不存在' }, 404)
+      if (!current) return respond({ error: '投递记录不存在' }, 404)
+
+      let row = current
+
+      if (input.revisionId != null) {
+        if (!UUID.test(String(input.revisionId)))
+          return respond({ error: '历史编号无效' }, 400)
+
+        const { data: revision, error: revisionError } = await admin
+          .from('job_submission_revisions')
+          .select('before_snapshot')
+          .eq('id', input.revisionId)
+          .eq('submission_id', id)
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (revisionError) throw revisionError
+        if (!revision) return respond({ error: '更正历史不存在' }, 404)
+
+        row = revision.before_snapshot
+      }
 
       const { data: job, error: jobError } = await admin
         .from('company')
@@ -145,6 +165,9 @@ Deno.serve(async (request: Request) => {
       }
 
       return respond({
+        submittedOn: row.submitted_on,
+        channel: row.channel,
+        note: row.note,
         kind: row.material_kind,
         snapshot: row.snapshot,
         templateManifest: row.template_manifest,
@@ -157,19 +180,49 @@ Deno.serve(async (request: Request) => {
       })
     }
 
-    if (action !== 'record' && action !== 'supplement')
+    if (
+      !['record', 'correct-material', 'update-details', 'resolve'].includes(
+        String(action),
+      )
+    )
       return respond({ error: '操作无效' }, 400)
 
     const jobId = String(input.jobId ?? '')
     const kind = input.materialKind
 
+    if (action === 'resolve') {
+      if (!UUID.test(jobId)) return respond({ error: '岗位编号无效' }, 400)
+
+      const { data, error } = await admin.rpc('resolve_job_submission', {
+        p_user_id: userId,
+        p_job_id: jobId,
+        p_id: id,
+      })
+
+      if (error) throw error
+
+      return respond(data)
+    }
+
+    const isCorrection =
+      action === 'correct-material' || action === 'update-details'
+
     if (
-      !UUID.test(jobId) ||
-      !['pending', 'platform', 'file'].includes(String(kind))
+      isCorrection &&
+      (typeof input.reason !== 'string' ||
+        !input.reason.trim() ||
+        input.reason.length > 1000)
+    )
+      return respond({ error: '请填写 1000 字以内的更正原因' }, 400)
+
+    if (
+      action !== 'update-details' &&
+      (!UUID.test(jobId) ||
+        !['pending', 'platform', 'file'].includes(String(kind)))
     )
       return respond({ error: '岗位或材料来源无效' }, 400)
-    if (action === 'supplement' && kind === 'pending')
-      return respond({ error: '请选择补充材料' }, 400)
+    if (action === 'correct-material' && kind === 'pending')
+      return respond({ error: '请选择更正后的原件' }, 400)
     if (
       input.submittedOn != null &&
       (typeof input.submittedOn !== 'string' ||
@@ -195,6 +248,23 @@ Deno.serve(async (request: Request) => {
     )
       return respond({ error: '简历版本无效' }, 400)
 
+    if (action === 'update-details') {
+      const { data, error } = await admin.rpc('update_job_submission_details', {
+        p_user_id: userId,
+        p_id: id,
+        p_input: {
+          submittedOn: input.submittedOn ?? null,
+          channel: input.channel ?? null,
+          note: input.note ?? null,
+        },
+        p_reason: String(input.reason).trim(),
+      })
+
+      if (error) throw error
+
+      return respond(data)
+    }
+
     // Ownership before accepting/uploading bytes. The RPC checks again under lock.
     const { data: job, error: ownershipError } = await admin
       .from('company')
@@ -205,6 +275,21 @@ Deno.serve(async (request: Request) => {
 
     if (ownershipError) throw ownershipError
     if (!job) return respond({ error: '岗位不存在' }, 404)
+
+    if (action === 'correct-material') {
+      const { data: original, error: originalError } = await admin
+        .from('job_submissions')
+        .select('material_kind')
+        .eq('id', id)
+        .eq('job_id', jobId)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (originalError) throw originalError
+      if (!original) return respond({ error: '投递记录不存在' }, 404)
+      if (original.material_kind === 'pending')
+        return respond({ error: '这条投递没有原件可更正' }, 409)
+    }
 
     let material: Record<string, unknown> = { kind }
 
@@ -243,12 +328,12 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    const { data, error } = await admin.rpc('save_job_submission', {
+    const { data, error } = await admin.rpc('save_job_submission_material', {
       p_user_id: userId,
       p_id: id,
       p_job_id: jobId,
       p_input:
-        action === 'supplement'
+        action !== 'record'
           ? {}
           : {
               submittedOn: input.submittedOn ?? null,
@@ -256,7 +341,10 @@ Deno.serve(async (request: Request) => {
               note: input.note ?? null,
             },
       p_material: material,
-      p_supplement: action === 'supplement',
+      p_supplement: action !== 'record',
+      p_replace: action === 'correct-material',
+      p_reason:
+        action === 'correct-material' ? String(input.reason).trim() : '',
     })
 
     if (error) throw error
@@ -304,6 +392,29 @@ Deno.serve(async (request: Request) => {
       error instanceof Error
         ? error.message
         : String((error as { message?: string })?.message ?? '')
+
+    const known: Record<string, string> = {
+      active_process_conflict:
+        '这家公司已有进行中的岗位，请先结束该流程，或修改公司的并行规则。',
+      submission_already_recorded:
+        '这个岗位已经记录过投递，请刷新后查看或更正原记录。',
+      submission_needs_resolution: '请先从历史记录中选择本岗位的投递留档。',
+      submission_already_selected: '已经选定其他投递留档，请刷新后查看。',
+      material_original_missing: '这条投递没有原件可更正。',
+    }
+
+    if (known[message])
+      return respond(
+        {
+          error: known[message],
+          code: message,
+          conflictJobId:
+            message === 'active_process_conflict'
+              ? (error as { details?: string }).details
+              : undefined,
+        },
+        409,
+      )
 
     const conflict = /conflict|already_saved/.test(message)
     const denied = /not_found|unauthorized/.test(message)

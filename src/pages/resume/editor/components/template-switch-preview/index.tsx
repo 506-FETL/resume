@@ -4,7 +4,8 @@ import type {
   ResumeTemplateBinding,
 } from '@/lib/schema'
 import { RefreshCw } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useMemo, useState } from 'react'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'

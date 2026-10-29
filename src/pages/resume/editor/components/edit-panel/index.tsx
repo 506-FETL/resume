@@ -1,9 +1,11 @@
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import type { PointerEvent as ReactPointerEvent, Ref } from 'react'
 import type { ORDERType, VisibilityItemsType } from '@/lib/schema'
 import { ArrowRightToLine } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import {
   Tooltip,
   TooltipContent,
@@ -17,6 +19,7 @@ import CheckWorkspace from '../check-workspace'
 import { CheckModeToggle } from '../check-workspace/mode-toggle'
 
 interface EditPanelProps {
+  panelRef?: Ref<HTMLDivElement>
   open: boolean
   order: ORDERType[]
   visibilityState: Record<string, boolean>
@@ -67,6 +70,7 @@ function ratioToWidth(ratio: number): number {
  * 裁剪，避免动画期间 @container 断点抖动导致栅格列数跳变；拖拽调宽时过渡时长置 0 保证跟手。
  */
 function EditPanel({
+  panelRef,
   open,
   order,
   visibilityState,
@@ -141,8 +145,11 @@ function EditPanel({
   return (
     <AnimatePresence initial={false}>
       {open && (
-        <motion.aside
+        <PresenceDiv
+          ref={panelRef}
           key='edit-panel'
+          role='complementary'
+          aria-label='简历编辑栏'
           initial={reduceMotion ? false : { width: 0, opacity: 0 }}
           animate={{ width, opacity: 1 }}
           exit={{
@@ -217,7 +224,7 @@ function EditPanel({
               </div>
             </CheckWorkspace>
           </div>
-        </motion.aside>
+        </PresenceDiv>
       )}
     </AnimatePresence>
   )

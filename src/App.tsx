@@ -1,10 +1,12 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Suspense } from 'react'
 import { useLocation, useRoutes } from 'react-router-dom'
 import routes from '~react-pages'
 import { JobContextGate } from '@/components/job-context'
 import { AuthRequired } from '@/components/auth-required'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
+import { PresencePage } from '@/components/motion/presence-item'
 import { MotionProvider } from '@/components/motion/motion-provider'
 import { PageLoading } from '@/components/page-loading'
 import { UpgradeDialog } from '@/components/quota/upgrade-dialog'
@@ -69,41 +71,42 @@ function App() {
   return (
     <ThemeProvider defaultTheme='system' storageKey='vite-ui-theme'>
       <MotionProvider>
-        <AnimatePresence mode='wait'>
-          <motion.div
-            key={isShareViewRoute ? 'share' : 'dashboard'}
-            initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{
-              opacity: 0,
-              scale: reduceMotion ? 1 : 0.98,
-              transition: {
-                duration: reduceMotion ? 0 : DURATION.fast,
-                ease: EASE.in,
-              },
-            }}
-            transition={{
-              duration: reduceMotion ? 0 : DURATION.base,
-              ease: EASE.out,
-            }}
-            className='h-dvh w-full'
-          >
-            {isShareViewRoute ? (
-              <Suspense fallback={<PageLoading />}>
-                {recoveryPending ? <PageLoading /> : element}
-              </Suspense>
-            ) : (
-              <DashboardShell
-                routeKey={location.pathname}
-                fullBleed={isAssistantRoute && authStatus === 'authenticated'}
-              >
+        <div tabIndex={-1} className='h-dvh w-full outline-none'>
+          <AnimatePresence mode='wait' initial={false}>
+            <PresencePage
+              key={isShareViewRoute ? 'share' : 'dashboard'}
+              initial={{ opacity: reduceMotion ? 1 : 0 }}
+              animate={{ opacity: 1 }}
+              exit={{
+                opacity: 0,
+                transition: {
+                  duration: reduceMotion ? 0 : DURATION.fast,
+                  ease: EASE.in,
+                },
+              }}
+              transition={{
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+              }}
+              className='h-dvh w-full'
+            >
+              {isShareViewRoute ? (
                 <Suspense fallback={<PageLoading />}>
-                  {recoveryPending ? <PageLoading /> : page}
+                  {recoveryPending ? <PageLoading /> : element}
                 </Suspense>
-              </DashboardShell>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              ) : (
+                <DashboardShell
+                  routeKey={location.pathname}
+                  fullBleed={isAssistantRoute && authStatus === 'authenticated'}
+                >
+                  <Suspense fallback={<PageLoading />}>
+                    {recoveryPending ? <PageLoading /> : page}
+                  </Suspense>
+                </DashboardShell>
+              )}
+            </PresencePage>
+          </AnimatePresence>
+        </div>
         <Toaster position='top-right' richColors />
         <UpgradeDialog />
       </MotionProvider>

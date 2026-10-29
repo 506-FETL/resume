@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import type { VisibilityItemsType } from '@/lib/schema'
 import { GripVertical } from 'lucide-react'
-import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
+import { Reorder, useDragControls } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useRef, useState } from 'react'
 import {
   autoScrollAtEdge,

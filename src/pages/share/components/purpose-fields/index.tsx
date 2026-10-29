@@ -1,7 +1,7 @@
 import AnimatedContent from '@/components/motion/animated-content'
 import type { SharePurpose } from '@/lib/supabase/resume/share.types'
 import { useId } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Field, FieldLabel } from '@/components/ui/field'
 import {
   Select,

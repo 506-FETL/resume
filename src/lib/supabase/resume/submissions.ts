@@ -3,27 +3,33 @@ import type {
   JobSubmissionMaterial,
   SubmissionInput,
   SubmissionMaterialInput,
+  SubmissionRevision,
+  JobSubmissionState,
 } from '@/pages/tracker/submission-types'
-import type { PublishedTemplateManifest } from '@/lib/resume-template/share'
 import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
+import { TrackerProcessError } from './tracker-companies'
 
 type SubmissionRequestGuard = (userId: string | null) => void
 
-export class SubmissionSaveError extends Error {
+export class SubmissionSaveError extends TrackerProcessError {
   readonly outcome: 'rejected' | 'unknown'
 
-  constructor(message: string, outcome: 'rejected' | 'unknown') {
-    super(message)
+  constructor(
+    message: string,
+    outcome: 'rejected' | 'unknown',
+    conflictJobId: string | null = null,
+  ) {
+    super(message, conflictJobId)
     this.name = 'SubmissionSaveError'
     this.outcome = outcome
   }
 }
 
 const SUMMARY_FIELDS =
-  'id,user_id,job_id,submitted_on,channel,note,created_at,supplemented_at,jd_updated_at,material_kind,resume_id,version_id,file_name,file_mime,file_size'
+  'id,user_id,job_id,is_primary,submitted_on,channel,note,created_at,supplemented_at,jd_updated_at,material_kind,resume_id,version_id,file_name,file_mime,file_size'
 
 async function invokeSubmission(
   input: Record<string, unknown>,
@@ -53,11 +59,12 @@ async function invokeSubmission(
     const detail = await error.context?.json?.().catch(() => null)
 
     const rejected =
-      status >= 400 && status < 500 && ![408, 409, 499].includes(status)
+      status >= 400 && status < 500 && ![408, 499].includes(status)
 
     throw new SubmissionSaveError(
       detail?.error ?? '保存未能确认，请保留本次操作编号后重试',
       rejected ? 'rejected' : 'unknown',
+      detail?.conflictJobId ?? null,
     )
   }
 
@@ -104,46 +111,58 @@ export async function recordJobSubmission(
   return invokeSubmission({ ...fields, action: 'record' }, file, assertUser)
 }
 
-export async function supplementJobSubmission(
-  id: string,
-  material: SubmissionMaterialInput & { jobId: string },
+export async function getJobSubmissionState(
+  jobId: string,
   assertUser?: SubmissionRequestGuard,
-): Promise<JobSubmission> {
-  const { file, ...fields } = material
+): Promise<JobSubmissionState> {
+  const rows = await listJobSubmissions(jobId, assertUser)
+  const primary = rows.find((row) => row.is_primary)
 
-  return invokeSubmission(
-    { ...fields, id, action: 'supplement' },
-    file,
-    assertUser,
-  )
+  if (primary)
+    return {
+      kind: 'ready',
+      primary,
+      legacy: rows.filter((row) => !row.is_primary),
+    }
+
+  return rows.length
+    ? { kind: 'needs-resolution', legacy: rows }
+    : { kind: 'none' }
 }
 
 export async function getJobSubmissionMaterial(
   id: string,
   assertUser?: SubmissionRequestGuard,
+  revisionId?: string,
 ): Promise<JobSubmissionMaterial> {
   const data = await invokeSubmission(
-    { id, action: 'material' },
+    { id, revisionId, action: 'material' },
     undefined,
     assertUser,
   )
 
-  const common = { jdText: data.jdText, jdUpdatedAt: data.jdUpdatedAt }
+  const common = {
+    jdText: data.jdText,
+    jdUpdatedAt: data.jdUpdatedAt,
+    submittedOn: data.submittedOn,
+    channel: data.channel,
+    note: data.note,
+  }
 
   if (data.kind === 'platform') {
-    parseSharedTemplateDefinition(data.templateManifest)
+    const definition = parseSharedTemplateDefinition(data.templateManifest)
 
     return {
       ...common,
       kind: 'platform',
       snapshot: mapSourceToPersistedSnapshot(data.snapshot),
-      templateManifest: data.templateManifest as PublishedTemplateManifest,
+      definition,
       projectionReferenceDate: data.projectionReferenceDate,
     }
   }
   if (data.kind === 'file') {
     const file = await invokeSubmission(
-      { id, action: 'download' },
+      { id, revisionId, action: 'download' },
       undefined,
       assertUser,
     )
@@ -161,31 +180,82 @@ export async function getJobSubmissionMaterial(
   return { ...common, kind: 'pending' }
 }
 
-export interface PendingSubmissionSummary {
-  id: string
-  job_id: string
-  created_at: string
-  company: { company: string; position: string }
+export async function getJobSubmissionJd(
+  id: string,
+  assertUser?: SubmissionRequestGuard,
+): Promise<Pick<JobSubmissionMaterial, 'jdText' | 'jdUpdatedAt'>> {
+  const data = await invokeSubmission(
+    { id, action: 'material' },
+    undefined,
+    assertUser,
+  )
+
+  return { jdText: data.jdText, jdUpdatedAt: data.jdUpdatedAt }
 }
 
-export async function listPendingSubmissionSummaries(): Promise<
-  PendingSubmissionSummary[]
-> {
+export async function resolveJobSubmission(
+  jobId: string,
+  id: string,
+  assertUser?: SubmissionRequestGuard,
+): Promise<JobSubmission> {
+  return invokeSubmission(
+    { action: 'resolve', jobId, id },
+    undefined,
+    assertUser,
+  )
+}
+
+export async function updateJobSubmissionDetails(
+  id: string,
+  fields: {
+    submittedOn: string | null
+    channel: string | null
+    note: string | null
+    reason: string
+  },
+  assertUser?: SubmissionRequestGuard,
+): Promise<JobSubmission> {
+  return invokeSubmission(
+    { action: 'update-details', id, ...fields },
+    undefined,
+    assertUser,
+  )
+}
+
+export async function correctJobSubmissionMaterial(
+  id: string,
+  material: SubmissionMaterialInput & { jobId: string; reason: string },
+  assertUser?: SubmissionRequestGuard,
+): Promise<JobSubmission> {
+  const { file, ...fields } = material
+
+  return invokeSubmission(
+    { ...fields, id, action: 'correct-material' },
+    file,
+    assertUser,
+  )
+}
+
+export async function listJobSubmissionRevisions(
+  id: string,
+  assertUser?: SubmissionRequestGuard,
+): Promise<SubmissionRevision[]> {
   const user = await getCurrentUser()
+
+  assertUser?.(user?.id ?? null)
 
   if (!user) throw new Error('请先登录')
 
   const { data, error } = await supabase
-    .from('job_submissions')
-    .select('id,job_id,created_at,company!inner(company,position,archived)')
+    .from('job_submission_revisions')
+    .select('id,submission_id,created_at,reason')
+    .eq('submission_id', id)
     .eq('user_id', user.id)
-    .eq('material_kind', 'pending')
-    .eq('company.archived', false)
-    .order('created_at', { ascending: true })
-    .returns<PendingSubmissionSummary[]>()
+    .order('created_at', { ascending: false })
 
-  if (error)
-    throw new Error('暂时无法读取待补材料，请稍后重试', { cause: error })
+  assertUser?.(user.id)
+
+  if (error) throw new Error('无法读取更正历史，请重试', { cause: error })
 
   return data ?? []
 }

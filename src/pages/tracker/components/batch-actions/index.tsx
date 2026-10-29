@@ -1,6 +1,7 @@
 import type { ApplicationStatus } from '../../types'
 import { Archive, ArrowRightLeft, Trash2, X } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -50,6 +52,8 @@ export default function BatchActions() {
     metricFilter,
     searchKeyword,
     showArchived,
+    focusedOnly,
+    filterCompanyId,
     viewMode,
   } = useTrackerStore(
     useShallow((state) => ({
@@ -65,6 +69,8 @@ export default function BatchActions() {
       metricFilter: state.metricFilter,
       searchKeyword: state.searchKeyword,
       showArchived: state.showArchived,
+      focusedOnly: state.focusedOnly,
+      filterCompanyId: state.filterCompanyId,
       viewMode: state.viewMode,
     })),
   )
@@ -77,14 +83,25 @@ export default function BatchActions() {
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
 
   const selectableCount = filterJobs(
-    jobs,
+    filterCompanyId
+      ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
+      : jobs,
     viewMode === 'list' ? filterStatus : null,
     searchKeyword,
     showArchived,
     viewMode === 'list' ? metricFilter : null,
+    focusedOnly,
   ).length
 
   const selectedCount = selectedIds.size
+
+  const handleExitSelectMode = () => {
+    document
+      .getElementById('tracker-batch-toggle')
+      ?.focus({ preventScroll: true })
+
+    exitSelectMode()
+  }
 
   const handleDeleteSelectedJobs = async () => {
     const { selectedIds: currentSelectedIds } = useTrackerStore.getState()
@@ -132,7 +149,7 @@ export default function BatchActions() {
         useTrackerStore.setState({
           selectedIds: new Set(remaining.map((job) => job.id)),
         })
-      else exitSelectMode()
+      else handleExitSelectMode()
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
 
@@ -167,7 +184,7 @@ export default function BatchActions() {
         targets.map((job) => saveJobFields(job.id, { archived: true })),
       )
 
-      exitSelectMode()
+      handleExitSelectMode()
     } catch (error) {
       if (isTrackerAccountScopeError(error)) return
 
@@ -181,7 +198,7 @@ export default function BatchActions() {
     <>
       <AnimatePresence initial={false}>
         {isSelectMode && (
-          <motion.div
+          <PresenceDiv
             key='batch-actions'
             initial={reduce ? false : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -268,13 +285,13 @@ export default function BatchActions() {
                 variant='ghost'
                 size='sm'
                 className={cn('h-7', selectedCount > 0 ? '' : 'ml-auto')}
-                onClick={exitSelectMode}
+                onClick={handleExitSelectMode}
               >
                 <X />
                 退出
               </Button>
             </div>
-          </motion.div>
+          </PresenceDiv>
         )}
       </AnimatePresence>
       <AlertDialog

@@ -194,7 +194,7 @@ function QuickAction({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'group flex flex-col items-start gap-2.5 rounded-lg border p-3 text-left transition-all duration-200',
+        'group flex flex-col items-start gap-2.5 rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow,color,transform] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
         'motion-safe:hover:-translate-y-0.5 hover:shadow-sm hover:bg-accent/50 hover:border-border/80 motion-safe:active:scale-[0.98] motion-reduce:transition-none',
         highlight &&
           'bg-primary/3 border-primary/20 hover:border-primary/40 hover:bg-primary/6 hover:shadow-primary/10',
@@ -204,7 +204,7 @@ function QuickAction({
     >
       <div
         className={cn(
-          'flex size-8 items-center justify-center rounded-md transition-transform duration-200',
+          'flex size-8 items-center justify-center rounded-md transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
           'motion-safe:group-hover:scale-110 motion-safe:group-hover:-rotate-3 motion-reduce:transition-none',
           disabled && 'group-hover:scale-100 group-hover:rotate-0',
           iconBg,
@@ -256,7 +256,7 @@ function TimelineItem({
       <div className='flex flex-col items-center'>
         <div
           className={cn(
-            'flex size-7 items-center justify-center rounded-full ring-1 shrink-0 transition-colors duration-150',
+            'flex size-7 items-center justify-center rounded-full ring-1 shrink-0 transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
             style.dot,
             style.ring,
           )}
@@ -271,11 +271,11 @@ function TimelineItem({
         onClick={onClick}
         className={cn(
           'flex flex-1 items-start justify-between gap-2 rounded-md px-2 py-1.5 -mx-2 text-left',
-          'transition-colors duration-150 hover:bg-muted/50',
+          'transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) hover:bg-muted/50',
           isLast ? '' : 'mb-1',
         )}
       >
-        <p className='text-sm truncate group-hover:text-foreground transition-colors duration-150'>
+        <p className='text-sm truncate group-hover:text-foreground transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)'>
           {event.title}
         </p>
         <span className='text-xs text-muted-foreground/70 whitespace-nowrap pt-0.5'>

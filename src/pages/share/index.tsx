@@ -1,5 +1,6 @@
 import { JobContextBar } from '@/components/job-context'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { PageLayout } from '@/components/layout/page-layout'
 import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import ArchiveDialog from './components/archive-dialog'

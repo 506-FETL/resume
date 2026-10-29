@@ -1,6 +1,7 @@
 import type React from 'react'
 import type { RoughAnnotation } from 'rough-notation/lib/model'
-import { useInView, useReducedMotion } from 'motion/react'
+import { useInView } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef } from 'react'
 import { annotate } from 'rough-notation'
 import { DURATION } from '@/lib/motion'

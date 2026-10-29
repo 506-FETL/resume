@@ -1,9 +1,9 @@
 import type { MDXComponents } from 'mdx/types'
 import type { ReactNode } from 'react'
 import type { ChangelogEntry as ChangelogEntryType } from '../../types'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { isValidElement } from 'react'
-
 import { CodeBlock } from '@/components/ui/code-block'
 import { DURATION, EASE } from '@/lib/motion'
 import { formatDate } from '../../utils'

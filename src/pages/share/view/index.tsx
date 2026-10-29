@@ -92,7 +92,7 @@ export default function ResumeSharePage() {
       return (
         <CenteredMessage
           title='链接不可用'
-          text='该分享链接不存在、已关闭或已过期。'
+          text='该分享链接不存在、已关闭或已过期。请联系分享者获取新的链接。'
         />
       )
     }

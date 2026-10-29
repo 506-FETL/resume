@@ -1,8 +1,9 @@
 import { cn } from '@/lib/utils'
 import { Moon, Sun } from 'lucide-react'
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { DURATION, EASE } from '@/lib/motion'
 import { useTheme } from '../theme-provider'
 import { Button } from './button'
 
@@ -12,13 +13,22 @@ interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<'butt
 
 export const AnimatedThemeToggler = ({
   className,
-  duration = 400,
+  duration = DURATION.slow * 1000,
   ...props
 }: AnimatedThemeTogglerProps) => {
   const { theme, setTheme } = useTheme()
   const buttonRef = useRef<HTMLButtonElement>(null)
   const reduceMotion = useReducedMotion()
   const activeTransition = useRef<ViewTransition | null>(null)
+  const activeAnimation = useRef<Animation | null>(null)
+
+  useEffect(() => {
+    return () => {
+      activeTransition.current?.skipTransition()
+      activeAnimation.current?.cancel()
+      activeTransition.current = null
+    }
+  }, [reduceMotion])
 
   const toggleTheme = useCallback(() => {
     const button = buttonRef.current
@@ -47,6 +57,7 @@ export const AnimatedThemeToggler = ({
     }
 
     activeTransition.current?.skipTransition()
+    activeAnimation.current?.cancel()
 
     const transition = document.startViewTransition(() => {
       flushSync(applyTheme)
@@ -61,7 +72,7 @@ export const AnimatedThemeToggler = ({
         .then(() => {
           if (activeTransition.current !== transition) return
 
-          document.documentElement.animate(
+          activeAnimation.current = document.documentElement.animate(
             {
               clipPath: [
                 `circle(0px at ${x}px ${y}px)`,
@@ -70,7 +81,7 @@ export const AnimatedThemeToggler = ({
             },
             {
               duration,
-              easing: 'ease-in-out',
+              easing: `cubic-bezier(${EASE.out.join(',')})`,
               pseudoElement: '::view-transition-new(root)',
             },
           )
@@ -89,7 +100,7 @@ export const AnimatedThemeToggler = ({
       {...props}
     >
       {theme === 'dark' ? <Sun /> : <Moon />}
-      <span className='sr-only'>Toggle theme</span>
+      <span className='sr-only'>切换主题</span>
     </Button>
   )
 }

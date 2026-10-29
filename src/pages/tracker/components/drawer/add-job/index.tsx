@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react'
 import type { AddJobFormData } from './types'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -44,7 +46,7 @@ import {
   isTrackerAccountScopeCurrent,
 } from '../../../lib/account-scope'
 import { useTrackerResumeOptions } from '../../../lib/resume-resources'
-import useTrackerStore from '../../../store'
+import useTrackerStore, { getTrackerConflictAction } from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
 import { AddJobForm } from './add-job-form'
 import { AddJobStageSection } from './add-job-stage-section'
@@ -54,13 +56,15 @@ import { buildJobPayload, validateAddJobForm } from './utils'
 export default function AddJobDrawer() {
   const scope = getTrackerAccountScope()
 
-  const { addDrawerOpen, closeAddDrawer, prependJob } = useTrackerStore(
-    useShallow((state) => ({
-      addDrawerOpen: state.addDrawerOpen,
-      closeAddDrawer: state.closeAddDrawer,
-      prependJob: state.prependJob,
-    })),
-  )
+  const { addDrawerOpen, closeAddDrawer, prependJob, referralSourceId } =
+    useTrackerStore(
+      useShallow((state) => ({
+        addDrawerOpen: state.addDrawerOpen,
+        closeAddDrawer: state.closeAddDrawer,
+        prependJob: state.prependJob,
+        referralSourceId: state.referralSourceId,
+      })),
+    )
 
   const isMobile = useIsMobile()
   const reduce = useReducedMotion()
@@ -81,6 +85,22 @@ export default function AddJobDrawer() {
   const extractRef = useRef<AbortController | null>(null)
   const fieldVersionsRef = useRef<Record<string, number>>({})
   const createButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!addDrawerOpen || !referralSourceId) return
+
+    const source = useTrackerStore
+      .getState()
+      .jobs.find((job) => job.id === referralSourceId)
+
+    if (source)
+      setFormData({
+        ...INITIAL_FORM_DATA,
+        company: source.company,
+        tracker_company_id: source.tracker_company_id,
+        referred_from_job_id: source.id,
+      })
+  }, [addDrawerOpen, referralSourceId])
 
   useEffect(() => {
     if (!addDrawerOpen) {
@@ -132,6 +152,7 @@ export default function AddJobDrawer() {
         ] as const) {
           if (
             profile[field] &&
+            (field !== 'company' || current.tracker_company_id === null) &&
             fieldVersionsRef.current[field] === versions[field]
           )
             next[field] = profile[field]
@@ -167,6 +188,17 @@ export default function AddJobDrawer() {
     setFormData((prev) => ({ ...prev, resume_id: resumeId }))
   }
 
+  const handleCompanyChange = (id: string | null, name: string) => {
+    fieldVersionsRef.current.company =
+      (fieldVersionsRef.current.company ?? 0) + 1
+
+    setFormData((current) => ({
+      ...current,
+      tracker_company_id: id,
+      company: name,
+    }))
+  }
+
   const resetForm = () => {
     setFormData(INITIAL_FORM_DATA)
   }
@@ -198,7 +230,11 @@ export default function AddJobDrawer() {
       if (!isTrackerAccountScopeCurrent(scope)) return
 
       console.error('Failed to add job:', error)
-      toast.error('添加失败', { description: getTrackerErrorMessage(error) })
+
+      toast.error('添加失败', {
+        description: getTrackerErrorMessage(error),
+        action: getTrackerConflictAction(error, closeAddDrawer),
+      })
     } finally {
       setSubmitting(false)
     }
@@ -210,7 +246,14 @@ export default function AddJobDrawer() {
         (field) => !formData[field].trim(),
       )
 
-      if (missingField) document.getElementById(missingField)?.focus()
+      if (missingField)
+        document
+          .getElementById(
+            missingField === 'company' && formData.tracker_company_id === null
+              ? 'company-new'
+              : missingField,
+          )
+          ?.focus()
 
       return
     }
@@ -219,8 +262,9 @@ export default function AddJobDrawer() {
       .getState()
       .jobs.find(
         (job) =>
-          job.company.trim().toLocaleLowerCase() ===
-            formData.company.trim().toLocaleLowerCase() &&
+          job.tracker_company_id === formData.tracker_company_id &&
+          (job.recruitment_batch ?? '').trim() ===
+            formData.recruitment_batch.trim() &&
           job.position.trim().toLocaleLowerCase() ===
             formData.position.trim().toLocaleLowerCase(),
       )
@@ -270,18 +314,19 @@ export default function AddJobDrawer() {
   }
 
   const fields = (
-    <AddJobForm formData={formData} onChange={handleChange}>
+    <AddJobForm
+      formData={formData}
+      onChange={handleChange}
+      onCompanyChange={handleCompanyChange}
+    >
       <div className='space-y-2'>
-        <p className='text-xs text-muted-foreground'>
-          免费提取会将 JD 发送到服务端识别，不消耗积分。识别后仍可修改。
-        </p>
         <Button
           type='button'
           variant='outline'
           disabled={extracting || !formData.jd_text.trim()}
           onClick={extract}
         >
-          {extracting ? '正在提取…' : '免费提取岗位字段'}
+          {extracting ? '正在提取…' : '提取岗位'}
         </Button>
         {extractError && (
           <p role='alert' className='text-sm text-destructive'>
@@ -298,7 +343,7 @@ export default function AddJobDrawer() {
       />
       <AnimatePresence initial={false}>
         {resumesError && (
-          <motion.div
+          <PresenceDiv
             role='alert'
             initial={{ opacity: 0, y: reduce ? 0 : 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -327,7 +372,7 @@ export default function AddJobDrawer() {
             >
               重试列表
             </Button>
-          </motion.div>
+          </PresenceDiv>
         )}
       </AnimatePresence>
     </AddJobForm>

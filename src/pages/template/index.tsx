@@ -1,5 +1,6 @@
 import { ScanSearch } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
@@ -19,15 +20,13 @@ import { useTemplatePageStore } from './store.ts'
 export default function Template() {
   const catalog = useResumeTemplateStore((state) => state.catalog)
 
-  const { selectedTemplateId, styleFilter, layoutFilter, resetFilters } =
-    useTemplatePageStore()
-
-  // 预先挂载关闭状态的预览容器，让首次打开也能经过 primitive 的入场状态。
-  const previewItem =
-    catalog.status === 'ready'
-      ? (catalog.data.find((item) => item.templateId === selectedTemplateId) ??
-        catalog.data[0])
-      : undefined
+  const { styleFilter, layoutFilter, resetFilters } = useTemplatePageStore(
+    useShallow((state) => ({
+      styleFilter: state.styleFilter,
+      layoutFilter: state.layoutFilter,
+      resetFilters: state.resetFilters,
+    })),
+  )
 
   const items = catalog.status === 'ready' ? catalog.data : []
 
@@ -195,7 +194,7 @@ export default function Template() {
           )}
         </div>
       </div>
-      {previewItem && <PreviewDialog item={previewItem} />}
+      <PreviewDialog />
     </PageLayout>
   )
 }

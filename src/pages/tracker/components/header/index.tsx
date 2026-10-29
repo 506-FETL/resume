@@ -17,7 +17,7 @@ export default function TrackerHeader() {
       </div>
       <Button
         className='h-9 shrink-0 rounded-lg px-2.5 sm:px-3'
-        onClick={openAddDrawer}
+        onClick={() => openAddDrawer()}
       >
         <Plus data-icon='inline-start' />
         <span className='hidden sm:inline'>{TRACKER_PRIMARY_ACTION_TEXT}</span>

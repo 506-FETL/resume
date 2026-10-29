@@ -1,6 +1,4 @@
 import type { ReactNode } from 'react'
-import { Field, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 
 interface ReadonlyFieldProps {
   id: string
@@ -11,12 +9,21 @@ interface ReadonlyFieldProps {
 
 export function ReadonlyField({ id, label, icon, value }: ReadonlyFieldProps) {
   return (
-    <Field>
-      <FieldLabel htmlFor={id} className='items-center'>
+    <dl className='space-y-2'>
+      <dt
+        id={`${id}-label`}
+        className='flex items-center gap-2 text-sm font-medium'
+      >
         {icon}
         {label}
-      </FieldLabel>
-      <Input id={id} value={value} disabled className='bg-muted' />
-    </Field>
+      </dt>
+      <dd
+        id={id}
+        aria-labelledby={`${id}-label`}
+        className='text-sm leading-6 text-muted-foreground break-words'
+      >
+        {value}
+      </dd>
+    </dl>
   )
 }

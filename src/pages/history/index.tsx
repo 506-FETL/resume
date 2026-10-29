@@ -1,8 +1,10 @@
 import { JobContextBar } from '@/components/job-context'
 import { History as HistoryIcon, RefreshCcw } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Link } from 'react-router-dom'
 import { PageLayout } from '@/components/layout/page-layout'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -45,7 +47,7 @@ function History() {
       />
 
       <AnimatePresence mode='wait' initial={false}>
-        <motion.div
+        <PresenceDiv
           className='flex min-h-0 min-w-0 flex-1 flex-col'
           key={activeResumeId ?? (loading ? 'loading' : 'empty')}
           initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
@@ -112,7 +114,7 @@ function History() {
               onReloadResumeOptions={reload}
             />
           )}
-        </motion.div>
+        </PresenceDiv>
       </AnimatePresence>
     </PageLayout>
   )

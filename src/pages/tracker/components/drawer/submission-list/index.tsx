@@ -1,27 +1,23 @@
 import type {
   JobSubmission,
-  JobSubmissionMaterial,
+  SubmissionRevision,
 } from '../../../submission-types'
 import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { DURATION, EASE } from '@/lib/motion'
-import { Button } from '@/components/ui/button'
+import { ChevronDown, Pencil } from 'lucide-react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { DURATION } from '@/lib/motion'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Spinner } from '@/components/ui/spinner'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
-import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
-import {
-  getJobSubmissionMaterial,
-  listJobSubmissions,
+  listJobSubmissionRevisions,
+  resolveJobSubmission,
 } from '@/lib/supabase/resume/submissions'
 import {
   createTrackerAccountGuard,
@@ -31,304 +27,478 @@ import {
 import useTrackerStore from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
 import { SubmissionForm } from '../submission-dialog'
+import SubmissionDetails from '../submission-details'
+import SubmissionFileRow from '../submission-file-row'
+import SubmissionJd from '../submission-jd'
+import MaterialPreview from '../submission-preview'
 
-const MotionCard = motion.create(Card)
-
-function MaterialPreview({
-  record,
-  onClose,
-}: {
-  record: JobSubmission
-  onClose: () => void
-}) {
-  const reduce = useReducedMotion()
-  const returnFocusRef = useRef(document.activeElement)
-  const [open, setOpen] = useState(true)
-  const [material, setMaterial] = useState<JobSubmissionMaterial | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [url, setUrl] = useState<string | null>(null)
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    if (open) return
-
-    const timer = setTimeout(onClose, reduce ? 0 : DURATION.base * 1000)
-
-    return () => clearTimeout(timer)
-  }, [open, onClose, reduce])
-
-  useEffect(() => {
-    const scope = getTrackerAccountScope()
-    let active = true
-    let objectUrl: string | null = null
-
-    setError(null)
-
-    getJobSubmissionMaterial(record.id, createTrackerAccountGuard(scope))
-      .then((result) => {
-        if (!active || !isTrackerAccountScopeCurrent(scope)) return
-
-        setMaterial(result)
-
-        if (result.kind === 'file') {
-          objectUrl = URL.createObjectURL(result.file)
-          setUrl(objectUrl)
-        }
-      })
-      .catch((cause) => {
-        if (active && isTrackerAccountScopeCurrent(scope))
-          setError(getTrackerErrorMessage(cause))
-      })
-
-    return () => {
-      active = false
-
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [record.id, attempt])
-
+function RecordFacts({ record }: { record: JobSubmission }) {
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(open) => {
-        if (!open) setOpen(false)
-      }}
-    >
-      <DialogContent
-        style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-        overlayClassName={reduce ? 'animate-none!' : undefined}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault()
-
-          const target = returnFocusRef.current
-
-          if (target instanceof HTMLElement && target.isConnected)
-            target.focus({ preventScroll: true })
-          else
-            document
-              .querySelector<HTMLButtonElement>('main button:not([disabled])')
-              ?.focus({ preventScroll: true })
-        }}
-        className='max-h-[90dvh] overflow-y-auto sm:max-w-4xl'
-      >
-        <DialogHeader>
-          <DialogTitle>投递留档</DialogTitle>
-          <DialogDescription>
-            {record.submitted_on ?? '投递日期未知'} ·{' '}
-            {record.channel ?? '渠道未知'}。这里展示留档材料和记录时保存的 JD。
-          </DialogDescription>
-        </DialogHeader>
-        {error ? (
-          <Alert variant='destructive'>
-            <AlertTitle>留档加载失败</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-            <Button
-              variant='outline'
-              className='mt-2 w-fit'
-              onClick={() => setAttempt((value) => value + 1)}
-            >
-              重试
-            </Button>
-          </Alert>
-        ) : !material ? (
-          <p
-            role='status'
-            className='flex items-center gap-2 text-sm text-muted-foreground'
-          >
-            <Spinner aria-hidden className='motion-reduce:animate-none' />
-            正在加载留档
-          </p>
-        ) : (
-          <>
-            <div className='text-xs text-muted-foreground'>
-              记录于 {new Date(record.created_at).toLocaleString()}
-              {record.supplemented_at &&
-                ` · 材料补充于 ${new Date(record.supplemented_at).toLocaleString()}`}
-            </div>
-            {material.kind === 'platform' && (
-              <div className='h-[60dvh] overflow-y-auto bg-muted/30 p-3'>
-                <ScaledReadonlyPreview
-                  data={buildTemplateResumeData(material.snapshot)}
-                  appearance={material.snapshot}
-                  projectionReferenceDate={material.projectionReferenceDate}
-                  definition={parseSharedTemplateDefinition(
-                    material.templateManifest,
-                  )}
-                />
-              </div>
-            )}
-            {material.kind === 'file' && url && (
-              <>
-                <Button asChild variant='outline'>
-                  <a href={url} download={material.fileName}>
-                    下载原件：{material.fileName}
-                  </a>
-                </Button>
-                {material.fileMime === 'application/pdf' && (
-                  <iframe
-                    title='投递 PDF 原件'
-                    src={url}
-                    className='h-[60dvh] w-full rounded-lg border'
-                  />
-                )}
-              </>
-            )}
-            {material.kind === 'pending' && <p>本次投递尚未补充材料。</p>}
-            <div className='space-y-2'>
-              <h3 className='text-sm font-medium'>记录时保存的 JD</h3>
-              <p className='text-xs text-muted-foreground'>
-                {material.jdUpdatedAt
-                  ? `此 JD 更新于 ${new Date(material.jdUpdatedAt).toLocaleString()}；后续修改不影响这份副本。`
-                  : '未记录 JD 更新时间。'}
-                {' 投递当时的 JD 无法确认。'}
-              </p>
-              <p className='max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-sm'>
-                {material.jdText || '没有 JD 原文'}
-              </p>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+    <dl className='grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2'>
+      <div className='space-y-1'>
+        <dt className='text-xs text-muted-foreground'>投递日期</dt>
+        <dd>{record.submitted_on ?? '日期未知'}</dd>
+      </div>
+      <div className='min-w-0 space-y-1'>
+        <dt className='text-xs text-muted-foreground'>投递渠道</dt>
+        <dd className='break-words'>{record.channel ?? '未填写'}</dd>
+      </div>
+      {record.note && (
+        <div className='min-w-0 space-y-1 sm:col-span-2'>
+          <dt className='text-xs text-muted-foreground'>备注</dt>
+          <dd className='whitespace-pre-wrap break-words'>{record.note}</dd>
+        </div>
+      )}
+    </dl>
   )
 }
 
-export default function SubmissionList({ jobId }: { jobId: string }) {
+function RecordJd({ recordId }: { recordId: string }) {
+  const reduce = useReducedMotion()
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) triggerRef.current?.focus({ preventScroll: true })
+
+        setOpen(next)
+      }}
+    >
+      <CollapsibleTrigger asChild>
+        <Button
+          ref={triggerRef}
+          size='sm'
+          variant='ghost'
+          className='group text-muted-foreground focus-visible:ring-inset'
+        >
+          <ChevronDown
+            aria-hidden
+            className='transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none'
+            style={{ transitionDuration: `${reduce ? 0 : DURATION.fast}s` }}
+          />
+          记录时保存的 JD
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent
+        inert={!open}
+        aria-hidden={!open || undefined}
+        className='motion-reduce:animate-none'
+      >
+        <div className='pt-2'>
+          <SubmissionJd
+            recordId={recordId}
+            enabled={open}
+            onRetry={() => triggerRef.current?.focus({ preventScroll: true })}
+          />
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+export default function SubmissionList({
+  jobId,
+  onViewDetails,
+}: {
+  jobId: string
+  onViewDetails?: () => void
+}) {
   const reduce = useReducedMotion()
   const revision = useTrackerStore((state) => state.submissionRevision)
-  const [rows, setRows] = useState<JobSubmission[] | null>(null)
+  const resource = useTrackerStore((state) => state.submissionsByJob[jobId])
+  const sectionRef = useRef<HTMLElement>(null)
+  const editTriggerRef = useRef<HTMLButtonElement>(null)
+  const historyTriggerRef = useRef<HTMLButtonElement>(null)
+  const legacyTriggerRef = useRef<HTMLButtonElement>(null)
+
+  const [viewing, setViewing] = useState<{
+    record: JobSubmission
+    revisionId?: string
+  } | null>(null)
+
+  const [materialEdit, setMaterialEdit] = useState<JobSubmission | null>(null)
+  const [details, setDetails] = useState<JobSubmission | null>(null)
+  const [history, setHistory] = useState<SubmissionRevision[] | null>(null)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [historyAttempt, setHistoryAttempt] = useState(0)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [legacyOpen, setLegacyOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [attempt, setAttempt] = useState(0)
-  const [viewing, setViewing] = useState<JobSubmission | null>(null)
-  const [supplement, setSupplement] = useState<JobSubmission | null>(null)
 
   useEffect(() => {
+    useTrackerStore.getState().loadSubmissions(jobId)
+  }, [jobId, revision])
+
+  const data = resource?.data
+  const primary = data?.kind === 'ready' ? data.primary : null
+  const legacy = data && data.kind !== 'none' ? data.legacy : []
+  const rows = !data ? null : primary ? [primary, ...legacy] : legacy
+  const primaryId = primary?.id
+  const compact = Boolean(onViewDetails)
+
+  useEffect(() => {
+    if (compact || !primaryId) return
+
     const scope = getTrackerAccountScope()
     let active = true
 
-    setError(null)
+    setHistory(null)
+    setHistoryError(null)
 
-    listJobSubmissions(jobId, createTrackerAccountGuard(scope))
+    listJobSubmissionRevisions(primaryId, createTrackerAccountGuard(scope))
       .then((result) => {
-        if (active && isTrackerAccountScopeCurrent(scope)) setRows(result)
+        if (active && isTrackerAccountScopeCurrent(scope)) setHistory(result)
       })
       .catch((cause) => {
         if (active && isTrackerAccountScopeCurrent(scope))
-          setError(getTrackerErrorMessage(cause))
+          setHistoryError(getTrackerErrorMessage(cause))
       })
 
     return () => {
       active = false
     }
-  }, [jobId, revision, attempt])
+  }, [compact, primaryId, revision, historyAttempt])
+
+  const choose = async (row: JobSubmission) => {
+    const scope = getTrackerAccountScope()
+
+    sectionRef.current?.focus({ preventScroll: true })
+    setBusy(true)
+    setError(null)
+
+    try {
+      await resolveJobSubmission(
+        jobId,
+        row.id,
+        createTrackerAccountGuard(scope),
+      )
+
+      if (!isTrackerAccountScopeCurrent(scope)) return
+
+      useTrackerStore.getState().notifySubmissionChanged()
+      await useTrackerStore.getState().reloadJobs()
+    } catch (cause) {
+      if (isTrackerAccountScopeCurrent(scope))
+        setError(getTrackerErrorMessage(cause))
+    } finally {
+      if (isTrackerAccountScopeCurrent(scope)) setBusy(false)
+    }
+  }
+
+  const readonlyRecord = (row: JobSubmission) => (
+    <article
+      key={row.id}
+      className='space-y-3 border-t py-4 first:border-t-0 first:pt-1'
+    >
+      <RecordFacts record={row} />
+      {row.material_kind !== 'pending' && (
+        <SubmissionFileRow
+          record={row}
+          onPreview={() => setViewing({ record: row })}
+        />
+      )}
+      <RecordJd recordId={row.id} />
+      {!primary && (
+        <Button size='sm' disabled={busy} onClick={() => choose(row)}>
+          选为本岗位的投递
+        </Button>
+      )}
+    </article>
+  )
 
   return (
-    <Card size='sm' className='gap-3'>
-      <CardHeader className='flex items-center justify-between gap-3'>
-        <CardTitle>投递记录</CardTitle>
-        <Button
-          size='sm'
-          onClick={() => {
-            useTrackerStore.getState().requestSubmission(jobId)
-          }}
-        >
-          记录投递
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {error ? (
-          <Alert variant='destructive'>
-            <AlertTitle>投递记录加载失败</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+    <section
+      ref={sectionRef}
+      tabIndex={-1}
+      aria-label={compact ? '投递原件' : '投递详情'}
+      className='min-w-0 space-y-4 px-1 py-1 outline-none'
+    >
+      {!compact && (
+        <div className='flex items-center justify-between gap-3'>
+          <h3 className='text-base font-semibold'>投递详情</h3>
+          {primary ? (
             <Button
-              variant='outline'
+              ref={editTriggerRef}
               size='sm'
+              variant='ghost'
+              onClick={() => setDetails(primary)}
+            >
+              <Pencil aria-hidden className='size-3.5' />
+              编辑
+            </Button>
+          ) : rows?.length === 0 && !resource?.loading ? (
+            <Button
+              size='sm'
+              onClick={() =>
+                useTrackerStore.getState().requestSubmission(jobId)
+              }
+            >
+              记录投递
+            </Button>
+          ) : null}
+        </div>
+      )}
+      <AnimatedContent
+        animationKey={
+          resource?.error
+            ? 'error'
+            : !rows
+              ? 'loading'
+              : primary
+                ? `primary-${primary.id}`
+                : rows.length
+                  ? 'resolve'
+                  : 'empty'
+        }
+      >
+        {resource?.error ? (
+          <Alert variant='destructive'>
+            <AlertTitle>
+              {compact ? '投递原件加载失败' : '投递详情加载失败'}
+            </AlertTitle>
+            <AlertDescription>{resource.error}</AlertDescription>
+            <Button
+              size='sm'
+              variant='outline'
               className='mt-2 w-fit'
-              onClick={() => setAttempt((value) => value + 1)}
+              onClick={() => {
+                sectionRef.current?.focus({ preventScroll: true })
+                useTrackerStore.getState().loadSubmissions(jobId)
+              }}
             >
               重新加载
             </Button>
           </Alert>
-        ) : rows === null ? (
+        ) : !rows ? (
           <p
             role='status'
             className='flex items-center gap-2 text-sm text-muted-foreground'
           >
             <Spinner aria-hidden className='motion-reduce:animate-none' />
-            正在加载投递记录
+            {compact ? '正在读取投递原件' : '正在加载投递详情'}
           </p>
-        ) : rows.length === 0 ? (
-          <p className='text-sm text-muted-foreground'>
-            还没有投递记录。准备、导出简历或创建分享后，仍需在实际投递时记录。
-          </p>
-        ) : (
-          rows.map((row) => (
-            <MotionCard
-              role='article'
-              size='sm'
-              initial={{ opacity: reduce ? 1 : 0, y: reduce ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: reduce ? 0 : DURATION.base,
-                ease: EASE.out,
-              }}
-              key={row.id}
-              className='gap-2 rounded-lg p-3 text-sm shadow-none'
-            >
-              <p>
-                {row.submitted_on ?? '日期未知'} · {row.channel ?? '渠道未知'}
-              </p>
-              <p className='break-all text-xs text-muted-foreground'>
-                {row.material_kind === 'pending'
-                  ? '材料待补'
-                  : row.material_kind === 'platform'
-                    ? '平台简历快照'
-                    : row.file_name}
-              </p>
-              {row.note && (
-                <p className='whitespace-pre-wrap break-words'>{row.note}</p>
-              )}
-              <div className='flex flex-wrap gap-2'>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  onClick={() => setViewing(row)}
-                >
-                  查看留档
-                </Button>
-                {row.material_kind === 'pending' && (
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => setSupplement(row)}
+        ) : compact ? (
+          <div className='space-y-2'>
+            {(primary ? [primary] : legacy)
+              .filter((row) => row.material_kind !== 'pending')
+              .map((row) => (
+                <SubmissionFileRow
+                  key={row.id}
+                  record={row}
+                  onPreview={() => setViewing({ record: row })}
+                />
+              ))}
+          </div>
+        ) : primary ? (
+          <div className='space-y-4'>
+            <RecordFacts record={primary} />
+            {primary.material_kind !== 'pending' && (
+              <SubmissionFileRow
+                record={primary}
+                onPreview={() => setViewing({ record: primary })}
+                onCorrect={() => setMaterialEdit(primary)}
+              />
+            )}
+            <div className='space-y-2 border-t pt-3'>
+              <RecordJd
+                key={`${primary.id}-${revision}`}
+                recordId={primary.id}
+              />
+              <AnimatedContent
+                animationKey={
+                  historyError
+                    ? 'error'
+                    : history
+                      ? history.length
+                        ? 'history'
+                        : 'empty'
+                      : 'loading'
+                }
+              >
+                {historyError ? (
+                  <Alert variant='destructive'>
+                    <AlertTitle>更正历史加载失败</AlertTitle>
+                    <AlertDescription>{historyError}</AlertDescription>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      className='mt-2 w-fit'
+                      onClick={() => {
+                        sectionRef.current?.focus({ preventScroll: true })
+                        setHistoryAttempt((value) => value + 1)
+                      }}
+                    >
+                      重试
+                    </Button>
+                  </Alert>
+                ) : !history ? (
+                  <p
+                    role='status'
+                    className='flex items-center gap-2 px-2.5 py-1 text-xs text-muted-foreground'
                   >
-                    补充材料
-                  </Button>
-                )}
-              </div>
-            </MotionCard>
-          ))
+                    <Spinner
+                      aria-hidden
+                      className='size-3 motion-reduce:animate-none'
+                    />
+                    正在读取更正历史
+                  </p>
+                ) : history.length > 0 ? (
+                  <Collapsible
+                    open={historyOpen}
+                    onOpenChange={(next) => {
+                      if (!next)
+                        historyTriggerRef.current?.focus({
+                          preventScroll: true,
+                        })
+
+                      setHistoryOpen(next)
+                    }}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        ref={historyTriggerRef}
+                        size='sm'
+                        variant='ghost'
+                        className='group text-muted-foreground focus-visible:ring-inset'
+                      >
+                        <ChevronDown
+                          aria-hidden
+                          className='transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none'
+                          style={{
+                            transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
+                          }}
+                        />
+                        更正历史（{history.length}）
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent
+                      inert={!historyOpen}
+                      aria-hidden={!historyOpen || undefined}
+                      className='motion-reduce:animate-none'
+                    >
+                      <ul className='space-y-2 px-1 pt-2 pb-1'>
+                        {history.map((entry) => (
+                          <li
+                            key={entry.id}
+                            className='flex flex-wrap items-center justify-between gap-2 border-t py-2 first:border-t-0'
+                          >
+                            <div className='min-w-0 flex-1 basis-40 space-y-1'>
+                              <p className='whitespace-pre-wrap break-words text-sm'>
+                                {entry.reason}
+                              </p>
+                              <p className='text-xs text-muted-foreground'>
+                                {new Date(entry.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <Button
+                              size='sm'
+                              variant='ghost'
+                              className='focus-visible:ring-inset'
+                              onClick={() =>
+                                setViewing({
+                                  record: primary,
+                                  revisionId: entry.id,
+                                })
+                              }
+                            >
+                              查看更正前信息
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : null}
+              </AnimatedContent>
+              {legacy.length > 0 && (
+                <Collapsible
+                  open={legacyOpen}
+                  onOpenChange={(next) => {
+                    if (!next)
+                      legacyTriggerRef.current?.focus({ preventScroll: true })
+
+                    setLegacyOpen(next)
+                  }}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      ref={legacyTriggerRef}
+                      size='sm'
+                      variant='ghost'
+                      className='group text-muted-foreground focus-visible:ring-inset'
+                    >
+                      <ChevronDown
+                        aria-hidden
+                        className='transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none'
+                        style={{
+                          transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
+                        }}
+                      />
+                      旧版历史记录（{legacy.length}）
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent
+                    inert={!legacyOpen}
+                    aria-hidden={!legacyOpen || undefined}
+                    className='motion-reduce:animate-none'
+                  >
+                    <div className='px-1 pt-2 pb-1'>
+                      {legacy.map(readonlyRecord)}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </div>
+          </div>
+        ) : rows.length ? (
+          <div className='space-y-3'>
+            <p className='text-sm text-muted-foreground'>
+              这个岗位有多份历史记录。请选择实际投递的一份，其余记录仍可查看，不会删除。
+            </p>
+            {rows.map(readonlyRecord)}
+          </div>
+        ) : (
+          <p className='text-sm text-muted-foreground'>
+            尚未记录投递，实际投递后可在这里记录日期和渠道。
+          </p>
         )}
-      </CardContent>
+      </AnimatedContent>
+      {error && (
+        <Alert variant='destructive'>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       {viewing && (
         <MaterialPreview
-          key={viewing.id}
-          record={viewing}
+          key={viewing.revisionId ?? viewing.record.id}
+          {...viewing}
           onClose={() => setViewing(null)}
         />
       )}
-      {supplement && (
+      {materialEdit && (
         <SubmissionForm
-          key={supplement.id}
+          key={materialEdit.id}
           jobId={jobId}
-          requestId={supplement.id}
-          supplement={supplement}
+          requestId={materialEdit.id}
+          correctingRecord={materialEdit}
+          onClose={() => setMaterialEdit(null)}
+        />
+      )}
+      {details && (
+        <SubmissionDetails
+          record={details}
           onClose={() => {
-            setSupplement(null)
-            setAttempt((value) => value + 1)
+            const target = editTriggerRef.current ?? sectionRef.current
+
+            setDetails(null)
+            target?.focus({ preventScroll: true })
           }}
         />
       )}
-    </Card>
+    </section>
   )
 }

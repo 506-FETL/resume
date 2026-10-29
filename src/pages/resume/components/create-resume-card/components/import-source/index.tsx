@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { FileText, LoaderCircle, Upload } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -144,7 +144,6 @@ export default function ImportSource({
                   sourceName: '粘贴内容',
                   content: null,
                   selectedTemplate: undefined,
-                  reviewedSections: [],
                 })
               }}
             />

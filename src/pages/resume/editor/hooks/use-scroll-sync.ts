@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { UIAction } from '@/lib/collaboration'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useEffect, useRef } from 'react'
 import { useThrottledCallback } from '@/hooks/use-throttled-callback'
 
@@ -26,6 +27,7 @@ export function useScrollSync({
   followMode,
   broadcastUIAction,
 }: UseScrollSyncOptions): UseScrollSyncResult {
+  const reduced = useReducedMotion()
   const isAnimatingRemoteScroll = useRef(false)
   const suppressScrollSyncUntilRef = useRef(0)
   const remoteScrollAnimationFrameRef = useRef<number | null>(null)
@@ -97,6 +99,22 @@ export function useScrollSync({
     [scrollContainerRef],
   )
 
+  const clampScrollPosition = useCallback(
+    (target: ScrollTarget, position: number) => {
+      const element =
+        target === 'preview'
+          ? scrollContainerRef.current
+          : document.scrollingElement
+
+      const maximum = element
+        ? Math.max(0, element.scrollHeight - element.clientHeight)
+        : 0
+
+      return Math.min(maximum, Math.max(0, position))
+    },
+    [scrollContainerRef],
+  )
+
   const cancelRemoteScrollAnimation = useCallback(() => {
     if (remoteScrollAnimationFrameRef.current !== null) {
       cancelAnimationFrame(remoteScrollAnimationFrameRef.current)
@@ -117,10 +135,11 @@ export function useScrollSync({
     }
 
     const currentPosition = getScrollPositionByTarget(nextTarget.target)
-    const delta = nextTarget.position - currentPosition
+    const position = clampScrollPosition(nextTarget.target, nextTarget.position)
+    const delta = position - currentPosition
 
     if (Math.abs(delta) <= 1) {
-      setScrollPositionByTarget(nextTarget.target, nextTarget.position)
+      setScrollPositionByTarget(nextTarget.target, position)
       cancelRemoteScrollAnimation()
 
       return
@@ -130,22 +149,38 @@ export function useScrollSync({
       Math.sign(delta) * Math.min(Math.max(Math.abs(delta) * 0.24, 6), 120)
 
     const nextPosition =
-      Math.abs(step) >= Math.abs(delta)
-        ? nextTarget.position
-        : currentPosition + step
+      Math.abs(step) >= Math.abs(delta) ? position : currentPosition + step
 
     setScrollPositionByTarget(nextTarget.target, nextPosition)
+
+    if (
+      Math.abs(getScrollPositionByTarget(nextTarget.target) - currentPosition) <
+      0.5
+    ) {
+      cancelRemoteScrollAnimation()
+
+      return
+    }
 
     remoteScrollAnimationFrameRef.current =
       requestAnimationFrame(stepRemoteScroll)
   }, [
     cancelRemoteScrollAnimation,
+    clampScrollPosition,
     getScrollPositionByTarget,
     setScrollPositionByTarget,
   ])
 
   const animateRemoteScrollTo = useCallback(
     (target: ScrollTarget, position: number) => {
+      if (reduced) {
+        cancelRemoteScrollAnimation()
+        suppressScrollSync()
+        setScrollPositionByTarget(target, clampScrollPosition(target, position))
+
+        return
+      }
+
       remoteScrollTargetRef.current = { target, position }
       isAnimatingRemoteScroll.current = true
 
@@ -154,8 +189,23 @@ export function useScrollSync({
       remoteScrollAnimationFrameRef.current =
         requestAnimationFrame(stepRemoteScroll)
     },
-    [stepRemoteScroll],
+    [
+      reduced,
+      cancelRemoteScrollAnimation,
+      suppressScrollSync,
+      setScrollPositionByTarget,
+      clampScrollPosition,
+      stepRemoteScroll,
+    ],
   )
+
+  useEffect(() => {
+    const target = remoteScrollTargetRef.current
+
+    if (!reduced || !target) return
+
+    animateRemoteScrollTo(target.target, target.position)
+  }, [reduced, animateRemoteScrollTo])
 
   const broadcastScroll = useThrottledCallback(
     (target: ScrollTarget) => {

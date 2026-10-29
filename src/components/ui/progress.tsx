@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { Progress as ProgressPrimitive } from 'radix-ui'
-
 import { cn } from '@/lib/utils'
 
 function Progress({
@@ -19,7 +18,7 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         data-slot='progress-indicator'
-        className='size-full flex-1 bg-primary transition-all'
+        className='size-full flex-1 bg-primary transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)'
         style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
       />
     </ProgressPrimitive.Root>

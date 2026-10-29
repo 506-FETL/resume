@@ -23,7 +23,7 @@ function ContentPanel({ children }: { children: ReactNode }) {
   )
 }
 
-/** 固定区域内交叉过渡，离场内容不参与交互或无障碍导航。 */
+/** 固定区域内依次过渡，离场内容不参与交互或无障碍导航。 */
 export default function HistoryMotionContent({
   transitionKey,
   children,
@@ -40,7 +40,7 @@ export default function HistoryMotionContent({
         className,
       )}
     >
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} mode='wait'>
         <ContentPanel key={transitionKey}>{children}</ContentPanel>
       </AnimatePresence>
     </div>

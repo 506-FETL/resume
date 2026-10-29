@@ -1,6 +1,6 @@
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import { ArrowRight, X } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,12 +30,13 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION } from '@/lib/motion'
 import { exampleKey } from '@/lib/resume-template/source/types'
 import { cn } from '@/lib/utils'
+import { useResumeTemplateStore } from '@/store/resume-template'
 import { useTemplateCreation } from '../../hooks/use-template-creation'
 import { useTemplatePageStore } from '../../store.ts'
 import ExamplePicker from '../example-picker'
 import ExamplePreview from '../example-preview'
 
-export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
+function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
   const {
     previewOpen,
     setPreviewOpen,
@@ -231,4 +232,21 @@ export default function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
       </Dialog>
     </>
   )
+}
+
+export default function TemplatePreviewDialog() {
+  const catalog = useResumeTemplateStore((state) => state.catalog)
+
+  const selectedTemplateId = useTemplatePageStore(
+    (state) => state.selectedTemplateId,
+  )
+
+  // 预览状态独立订阅，打开与切换示例不触发背景目录的布局测量。
+  const item =
+    catalog.status === 'ready'
+      ? (catalog.data.find((item) => item.templateId === selectedTemplateId) ??
+        catalog.data[0])
+      : undefined
+
+  return item ? <PreviewDialog item={item} /> : null
 }

@@ -1,5 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 
 export default function VisibilityIcon({ visible }: { visible: boolean }) {

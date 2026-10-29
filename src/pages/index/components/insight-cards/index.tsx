@@ -14,7 +14,8 @@ import {
   LoaderCircle,
   TrendingUp,
 } from 'lucide-react'
-import { useIsPresent, useReducedMotion } from 'motion/react'
+import { useIsPresent } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   Area,

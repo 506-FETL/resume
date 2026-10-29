@@ -1,5 +1,5 @@
 import { CircleCheck, Eye, Link2 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import useShareStore from '../../store'

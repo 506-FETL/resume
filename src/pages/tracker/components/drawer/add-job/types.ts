@@ -3,6 +3,9 @@ import type { ApplicationStatus } from '../../../types'
 export interface AddJobFormData {
   position: string
   company: string
+  tracker_company_id: string | null
+  recruitment_batch: string
+  referred_from_job_id: string | null
   location: string
   status: ApplicationStatus
   job_url: string
@@ -17,6 +20,9 @@ export interface AddJobFormData {
 export const INITIAL_FORM_DATA: AddJobFormData = {
   position: '',
   company: '',
+  tracker_company_id: null,
+  recruitment_batch: '',
+  referred_from_job_id: null,
   location: '',
   status: 'saved',
   job_url: '',

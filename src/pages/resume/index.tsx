@@ -8,7 +8,8 @@ import { JobContextBar } from '@/components/job-context'
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from './types'
 import { Plus } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
@@ -208,7 +209,7 @@ export default function ResumePage() {
               className='flex items-center justify-between gap-3 rounded-lg border p-3 text-sm'
             >
               <span>
-                {resumes.length ? '刷新失败，保留上次数据' : '— 简历加载失败'}
+                {resumes.length ? '刷新失败，保留上次数据' : '简历加载失败'}
               </span>
               <Button size='sm' variant='outline' onClick={loadResumes}>
                 重试
@@ -224,8 +225,8 @@ export default function ResumePage() {
           >
             <TabsList className='max-w-full'>
               <TabsTrigger value='all'>全部</TabsTrigger>
-              <TabsTrigger value='roots'>原版</TabsTrigger>
-              <TabsTrigger value='variants'>派生版本</TabsTrigger>
+              <TabsTrigger value='roots'>原始简历</TabsTrigger>
+              <TabsTrigger value='variants'>岗位版本</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -294,7 +295,7 @@ export default function ResumePage() {
                   type='button'
                   aria-label='打开创建简历表单'
                   onClick={openCreate}
-                  className='flex h-full min-h-56 w-full cursor-pointer flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border-2 border-dashed bg-card py-6 text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-all hover:border-primary/50 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+                  className='flex h-full min-h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border border-dashed bg-card py-5 text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-[border-color,box-shadow,background-color] ease-(--ui-motion-enter-ease) hover:border-primary/50 hover:bg-muted/20 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
                   style={{
                     transitionDuration: shouldReduceMotion
                       ? '0s'
@@ -302,11 +303,11 @@ export default function ResumePage() {
                   }}
                 >
                   <span aria-hidden='true' className='flex justify-center px-6'>
-                    <span className='flex size-16 shrink-0 items-center justify-center rounded-full bg-primary/10'>
-                      <Plus className='size-8' />
+                    <span className='flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10'>
+                      <Plus className='size-5' />
                     </span>
                   </span>
-                  <span className='flex justify-center px-6 text-lg font-semibold'>
+                  <span className='flex justify-center px-6 text-sm font-medium'>
                     创建新简历
                   </span>
                 </button>
@@ -380,7 +381,7 @@ function ResumePageSkeleton() {
 
       <div className='grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4'>
         {Array.from({ length: 8 }, (_, idx) => idx).map((i) => (
-          <Card key={i} className='min-h-56 gap-3 p-4'>
+          <Card key={i} className='min-h-48 gap-3 p-4'>
             <div className='flex items-center gap-2.5'>
               <Skeleton className='size-8 rounded-lg' />
               <div className='space-y-1.5'>

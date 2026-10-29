@@ -154,16 +154,6 @@ function parseExperience(
     const header = group[headerIndex]
     const range = anchor.range
 
-    if (
-      headerIndex < 0 ||
-      !header ||
-      !isExperienceHeader([header], 0, section)
-    ) {
-      unknown.push(...group)
-
-      continue
-    }
-
     const duration = range
       ? [normalizeDate(range[1]), normalizeDate(range[2])]
       : ['', '']

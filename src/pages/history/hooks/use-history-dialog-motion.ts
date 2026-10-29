@@ -1,5 +1,5 @@
 import type { RefObject } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'

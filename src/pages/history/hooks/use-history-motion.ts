@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 
 export function useHistoryMotion() {

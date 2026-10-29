@@ -221,7 +221,7 @@ export const FilePreview: FC<FilePreviewProps> = ({
             key={file.id}
             className={cn(
               // Base styles - each file is its own group for hover
-              'group/file relative flex items-center rounded-xl transition-all',
+              'group/file relative flex items-center rounded-xl transition-[background-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
               // Lighter background than composer (zinc-700 instead of zinc-800)
               // Light mode: zinc-100 -> zinc-200 on hover
               // Dark mode: zinc-700 -> zinc-600 on hover
@@ -251,7 +251,7 @@ export const FilePreview: FC<FilePreviewProps> = ({
                   // Position and base styles
                   'absolute -top-1 -right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full',
                   // Hidden by default, shows on group-hover/file
-                  'opacity-0 scale-75 transition-all duration-150 group-hover/file:opacity-100 group-hover/file:scale-100',
+                  'opacity-0 scale-75 transition-[background-color,opacity,scale] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) group-hover/file:opacity-100 group-hover/file:scale-100',
                   // Background colors with cursor-pointer
                   'cursor-pointer bg-zinc-400 hover:bg-zinc-500 dark:bg-zinc-500 dark:hover:bg-zinc-400',
                 )}

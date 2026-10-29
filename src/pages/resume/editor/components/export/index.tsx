@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { CheckFilter } from '../../store/checks'
 import type { PreparationRecord } from '@/lib/resume-preparation/types'
 import { AlertCircle, FileText, Printer, Sparkles } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -146,11 +146,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
       exporter.documentState.status !== 'ready'
     )
       return
-    if (
-      format === 'pdf' &&
-      (exporter.documentState.status !== 'ready' || !exporter.handlePrint)
-    )
-      return
+    if (format === 'pdf' && !exporter.handlePrint) return
     if (format === 'word' && !exporter.sourceRef?.current) return
 
     const latestSnapshot = current.getPersistedSnapshot()

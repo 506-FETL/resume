@@ -1,5 +1,6 @@
 import type { GeneratorPhase } from '../types'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 

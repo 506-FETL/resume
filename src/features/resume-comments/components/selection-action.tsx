@@ -1,6 +1,7 @@
 import type { PendingCommentSelection } from '../store/types.ts'
 import { Link2, LoaderCircle, MessageSquarePlus } from 'lucide-react'
-import { motion, useIsPresent, useReducedMotion } from 'motion/react'
+import { motion, useIsPresent } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { countCommentGraphemes } from '../anchors/graphemes.ts'
 import { COMMENT_MOTION } from '../const.ts'

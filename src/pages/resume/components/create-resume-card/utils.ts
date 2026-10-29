@@ -11,8 +11,6 @@ export function emptyDraft(): ImportDraft {
     content: null,
     unassignedText: '',
     warnings: [],
-    reviewedSections: [],
-    unassignedReviewed: false,
     profile: 'graduate',
     updatedAt: new Date().toISOString(),
   }

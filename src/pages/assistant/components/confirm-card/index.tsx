@@ -1,10 +1,6 @@
 import { Check, ShieldQuestion, X } from 'lucide-react'
-import {
-  AnimatePresence,
-  motion,
-  useIsPresent,
-  useReducedMotion,
-} from 'motion/react'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { DURATION, EASE } from '@/lib/motion'
 import useAssistantStore from '../../store'

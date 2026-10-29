@@ -1,12 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import {
-  motion,
-  AnimatePresence,
-  useReducedMotion,
-  type HTMLMotionProps,
-} from 'motion/react'
+import { motion, AnimatePresence, type HTMLMotionProps } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   Slot,
   type WithAsChild,

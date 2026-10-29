@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import useAssistantStore from '../../store'
+import { readableConversationTitle } from '../../composer-references'
 
 export default function ChatHeader() {
   const {
@@ -32,7 +33,7 @@ export default function ChatHeader() {
       <SidebarTrigger aria-label='切换侧边栏' />
       <div className='min-w-0 flex-1'>
         <h1 className='truncate text-sm font-semibold tracking-tight'>
-          {title}
+          {readableConversationTitle(title)}
         </h1>
         <p className='text-xs text-muted-foreground'>AI 求职助手</p>
       </div>

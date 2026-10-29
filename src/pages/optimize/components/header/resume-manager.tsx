@@ -1,5 +1,5 @@
 import { ChevronDown, FileText } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Link } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'

@@ -1,6 +1,7 @@
 import type { RefObject } from 'react'
 import type { CommentThreadGeometry } from '../hooks/use-highlight-geometry.ts'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { createPortal } from 'react-dom'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'

@@ -1,5 +1,7 @@
 # 第三期岗位与投递流程实现计划
 
+2026-10-28 计划更新：同岗位流程只投递一次，公司管理单个 / 多个并行流程；已结束后被捞回接续原流程。用户已确认方向，最新[公司与岗位流程实施计划](2026-10-28-company-process.md)取代下文多次投递任务，并落实 AGENTS.md 新增的防御性编码规则。核心重构及本次后端部署已完成，数据库与核心 HTTP 验证通过；实际页面完整验收尚未完成，详见最新计划第 8 节。旧执行记录保留，不据此继续扩展再次投递入口。
+
 > **面向 AI 代理的工作者：** 必需子技能：使用 superpowers:subagent-driven-development 逐任务实现此计划。步骤使用复选框跟踪进度。
 
 **目标：** 在现有看板、列表和详情抽屉内完成建岗、准备简历、明确记录投递、保留实际材料和继续跟进。
@@ -152,3 +154,12 @@ type SubmissionInput = {
 - 首页桌面三卡的实际标题为 16 px / 600；390 px 时单卡 348 px、页面宽 390 px，无新增横向溢出。截图保存为 `.superpowers/sdd/phase-three-20261026/home-priorities-refined.png`。已恢复视口；系统减少动效仍沿用前述实机限制，代码按 hook / CSS 降级检查。
 - 本轮改动待用户审查；不据此将整期尚未完成的实机验收项标为通过。
 - 本轮 8 个源文件的 Prettier、ESLint layout / lint、TypeScript 和生产构建通过，构建耗时 44.82 秒；`git diff --check` 通过，暂存区仍为原有两份文档、74 行新增。没有新增依赖、后端变更或测试脚本；验收标签已关闭，用户开发服务保留，未提交或推送。
+
+## 面试轮次动画修正与投递记录布局调研（2026-10-26）
+
+- 动画实现完成：轮次容器复用 PresenceDiv，退出时按明确宽度收起占位，连接线同步过渡；退出期间暂停自动定位，退出完成或记录恢复后解除暂停。使用现有动效预设和减少动效 hook，保留原卡片样式与业务操作。
+- 动画验证通过：在临时页面加载实际 InterviewSubStages，用内存数据验证桌面中间轮和末轮删除、390 px 横向滚动到末端、退出中恢复后新增及输入焦点。修改前新增入口出现两段跳变，修改后采样存在连续中间位置；窄屏末端新增入口保持可见。减少动效通过仅作用于测试页面的媒体查询模拟验证，未改系统设置。未据此宣称固定帧率或整期系统模式验收完成。
+- Prettier、ESLint layout、TypeScript 和生产构建退出 0，构建 38.39 秒；保留该文件两处既有 ref 命名警告。采样与构建日志位于 `.superpowers/sdd/phase-three-20261026/round-motion-samples.json` 和 `round-motion-build.log`。动画待用户审查。
+- 投递记录按用户要求先调研：对照项目内分享与历史页 Empty，以及 [shadcn Card](https://ui.shadcn.com/docs/components/base/card)、[Empty](https://ui.shadcn.com/docs/components/base/empty)、[Item](https://ui.shadcn.com/docs/components/base/item) 和 [GitLab 空态规范](https://design.gitlab.com/patterns/empty-states/)。拟采用清晰标题栏、单一主动作及紧凑内容区；现有 Card / Empty / Button / Badge 足够制作方案，无需新增组件或依赖。
+- A 为左对齐的紧凑分区，B 为居中引导空态。两种对照图保存在 `.superpowers/sdd/phase-three-20261026/submission-layout-options-cropped.png`，仅用于审查，正式投递记录组件未修改。边框优先改为业务区域内的 border 或内描边，不放开父级 overflow；不改变求职跟进总布局。
+- 临时验收标签已关闭；清理 `tests/round-delete-motion` 与 `tests/submission-layout-preview` 中四个指定文件的命令被自动审批审查拒绝，仅返回“blocked by policy”，文件保留，未绕过限制。格式与工作区 / 暂存区差异检查通过；未执行提交或推送，保留外部进行的暂存与提交操作。

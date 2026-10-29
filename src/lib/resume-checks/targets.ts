@@ -201,11 +201,10 @@ function replaceText(
 
   while (walker.nextNode()) nodes.push(walker.currentNode as Text)
 
+  const rendered = resumeHtmlToText(raw)
   const changes = new Map<Text, { start: number; length: number }[]>()
 
   for (const target of targets) {
-    const rendered = resumeHtmlToText(raw)
-
     const occurrences = [
       ...rendered.matchAll(new RegExp(escapePattern(target.quote), 'g')),
     ]
@@ -250,7 +249,7 @@ function escapePattern(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** 只产生补丁，不写入状态；调用者仍需在真正写入前核验 before。 */
+/** 仅生成补丁；动作入口需先核对原文签名，并在同一同步快照上写入。 */
 export function createCheckPatch(
   snapshot: CheckSnapshot,
   issue: ResumeCheckIssue,
@@ -276,8 +275,6 @@ export function createCheckPatch(
     /\d/.test(issue.replacement) ||
     issue.targets.some((target) => !target.quote || /\d/.test(target.quote))
   )
-    return null
-  if (checkIssueSignature(snapshot, issue.targets) !== issue.signature)
     return null
 
   const groups = new Map<string, CheckTarget[]>()

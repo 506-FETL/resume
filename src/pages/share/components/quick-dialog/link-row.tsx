@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { PresenceDiv } from '@/components/motion/presence-item'
@@ -23,6 +23,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { formatDateTime } from '@/utils/date'
+import { DURATION, EASE } from '@/lib/motion'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import useShareStore from '../../store'
 import { buildShareUrl, formatShareUrlForDisplay } from '../../utils'
 import VersionBadge from '../version-badge'
@@ -87,11 +89,20 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
       layout
       initial={reduceMotion ? false : { opacity: 0, scale: 0.98, y: 4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -4 }}
+      exit={{
+        opacity: 0,
+        scale: reduceMotion ? 1 : 0.98,
+        y: 0,
+        transition: {
+          duration: reduceMotion ? 0 : DURATION.fast,
+          ease: EASE.in,
+          delay: 0,
+        },
+      }}
       transition={{
-        duration: reduceMotion ? 0 : 0.18,
-        ease: [0.22, 1, 0.36, 1],
-        layout: { duration: reduceMotion ? 0 : 0.2 },
+        duration: reduceMotion ? 0 : DURATION.base,
+        ease: EASE.out,
+        layout: { duration: reduceMotion ? 0 : DURATION.base },
       }}
       className='min-w-0 shrink-0 flex flex-col gap-2 overflow-hidden rounded-lg border p-3'
     >
@@ -138,11 +149,17 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
           onClick={handleCopy}
           aria-label='复制链接'
         >
-          {copied ? (
-            <Check data-icon='inline-start' />
-          ) : (
-            <Copy data-icon='inline-start' />
-          )}
+          <AnimatedContent
+            as='span'
+            animationKey={copied ? 'copied' : 'copy'}
+            className='inline-flex'
+          >
+            {copied ? (
+              <Check data-icon='inline-start' />
+            ) : (
+              <Copy data-icon='inline-start' />
+            )}
+          </AnimatedContent>
         </Button>
       </div>
 

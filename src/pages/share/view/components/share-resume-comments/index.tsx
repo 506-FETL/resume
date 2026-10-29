@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import { AnimatePresence } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark'
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface'
@@ -56,9 +57,14 @@ export default function ShareResumeComments({
 
   return (
     <>
-      {!open ? (
-        <CommentBookmark unread={hasUnread} onOpen={() => onOpenChange(true)} />
-      ) : null}
+      <AnimatePresence initial={false}>
+        {!open ? (
+          <CommentBookmark
+            unread={hasUnread}
+            onOpen={() => onOpenChange(true)}
+          />
+        ) : null}
+      </AnimatePresence>
       <CommentSurface
         rootRef={rootRef}
         sourceLabel={sourceLabel}

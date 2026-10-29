@@ -1,6 +1,5 @@
 import type { ToolVisualDefinition } from './config'
 import { ArrowUpRight } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -38,14 +37,6 @@ export function ToolCard({ disabled, onClick, tool }: ToolCardProps) {
             <span className='min-w-0 wrap-break-word text-sm font-semibold text-foreground'>
               {tool.title}
             </span>
-            <Badge
-              className={cn(
-                'max-w-full rounded-full border px-2 py-0 text-[10px] font-medium',
-                tool.badgeClassName,
-              )}
-            >
-              {tool.badge}
-            </Badge>
           </div>
           {tool.description && (
             <p className='line-clamp-2 wrap-break-word text-xs leading-5 text-muted-foreground'>

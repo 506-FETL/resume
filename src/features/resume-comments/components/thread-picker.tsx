@@ -1,6 +1,7 @@
 import type { ResumeCommentThread } from '../types.ts'
 import { X } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { COMMENT_MOTION } from '../const.ts'
 

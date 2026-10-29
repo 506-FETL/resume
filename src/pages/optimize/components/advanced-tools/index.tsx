@@ -6,6 +6,7 @@ import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import { DialogFooter } from '@/components/ui/dialog'
 import { DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -171,7 +172,7 @@ function AdvancedTools() {
     if (loadingContext) {
       return (
         <div className='flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground'>
-          <div className='size-6 animate-spin rounded-full border-2 border-muted border-t-primary' />
+          <Spinner className='size-6 motion-reduce:animate-none' />
           <p className='text-sm'>正在准备工具结果...</p>
         </div>
       )
@@ -308,7 +309,7 @@ function AdvancedTools() {
               <span>
                 {resumeContext?.resumeType === 'offline'
                   ? '本地简历'
-                  : '在线简历'}
+                  : '云端简历'}
               </span>
             </div>
           ) : undefined

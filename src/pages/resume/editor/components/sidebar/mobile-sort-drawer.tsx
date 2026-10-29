@@ -1,7 +1,8 @@
 import type { ReactNode, RefObject } from 'react'
 import type { ORDERType } from '@/lib/schema'
 import { GripVertical } from 'lucide-react'
-import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
+import { Reorder, useDragControls } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {

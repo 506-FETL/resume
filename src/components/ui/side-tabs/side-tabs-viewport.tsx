@@ -2,7 +2,9 @@
 
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useSideTabsContext } from './side-tabs-provider'
@@ -102,7 +104,7 @@ export function ViewPort({
                 }}
               >
                 {activeItem && (
-                  <motion.div
+                  <PresenceDiv
                     key={activeItem.id}
                     initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -121,7 +123,7 @@ export function ViewPort({
                     className={cn('p-6', scrollable && 'min-h-full', className)}
                   >
                     {activeItem.content}
-                  </motion.div>
+                  </PresenceDiv>
                 )}
               </AnimatePresence>
             </div>

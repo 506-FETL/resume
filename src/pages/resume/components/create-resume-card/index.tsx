@@ -4,7 +4,7 @@ import type { ReactNode, RefObject } from 'react'
 import type { CreationStep } from './types'
 import type { ResumeProfile } from '@/lib/resume-preparation/types'
 import { ArrowLeft, ArrowRight, FileText, Plus, Target, X } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
@@ -229,7 +229,11 @@ export default function CreateResumeCard({
                 data-creation-scroll
                 className='relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-1 -m-1'
               >
-                <AnimatedContent animationKey={step} mode='popLayout'>
+                <AnimatedContent
+                  animationKey={step}
+                  mode='popLayout'
+                  enterDelay={DURATION.fast}
+                >
                   {step === 'choose' && (
                     <div className='space-y-3 py-1'>
                       {(draft.sourceText || draft.creation) && (

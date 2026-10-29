@@ -1,6 +1,6 @@
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
-import { ArrowRight, ScanSearch } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { ArrowRight } from 'lucide-react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
 import { useTemplatePrefetch } from '../../hooks/use-template-prefetch'
 import { useTemplatePageStore } from '../../store.ts'
@@ -23,10 +23,35 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
 
   return (
     <article
-      className='group relative aspect-[210/297] min-w-0 overflow-hidden rounded-xl border bg-card text-card-foreground transition-[border-color,box-shadow] hover:border-foreground/20 hover:shadow-md'
+      className='group relative min-w-0 overflow-hidden rounded-xl border bg-card text-card-foreground transition-[border-color,box-shadow] ease-(--ui-motion-enter-ease) hover:border-foreground/20 hover:shadow-md'
       style={transitionStyle}
     >
-      <CardPreview item={item} example={selectedExample} />
+      <div className='relative aspect-[210/297] overflow-hidden border-b bg-muted/20'>
+        <CardPreview item={item} example={selectedExample} />
+        <div
+          aria-hidden
+          className='pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-background/95 p-4 opacity-0 backdrop-blur-sm transition-[opacity,translate] duration-(--ui-motion-fast) ease-(--ui-motion-exit-ease) group-hover:translate-y-0 group-hover:opacity-100 group-hover:duration-(--ui-motion-base) group-hover:ease-(--ui-motion-enter-ease) group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:duration-(--ui-motion-base) group-focus-within:ease-(--ui-motion-enter-ease) motion-reduce:translate-none'
+          style={reduceMotion ? { transitionDuration: '0s' } : undefined}
+        >
+          <p className='line-clamp-3 text-xs leading-5 text-muted-foreground'>
+            {item.description}
+          </p>
+        </div>
+      </div>
+      <div className='flex min-w-0 items-center gap-3 p-4'>
+        <div className='min-w-0 flex-1'>
+          <h2 className='truncate text-sm font-semibold' title={item.name}>
+            {item.name}
+          </h2>
+          <p className='mt-1 text-xs leading-5 text-muted-foreground'>
+            {category ? `${category.style} · ${category.layout}` : '完整示例'}
+          </p>
+        </div>
+        <span className='inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground'>
+          预览
+          <ArrowRight aria-hidden className='size-3.5' />
+        </span>
+      </div>
       <button
         type='button'
         aria-label={`预览${item.name}`}
@@ -35,30 +60,8 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
         onClick={(event) =>
           showPreview(item.templateId, selectedExample, event.currentTarget)
         }
-        className='group/preview absolute inset-0 cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
-      >
-        <span
-          className='absolute inset-x-0 bottom-0 translate-y-2 space-y-3 border-t bg-background/95 p-4 opacity-0 backdrop-blur-sm transition-[opacity,translate] duration-(--ui-motion-fast) ease-(--ui-motion-exit-ease) group-hover/preview:translate-y-0 group-hover/preview:opacity-100 group-hover/preview:duration-(--ui-motion-base) group-hover/preview:ease-(--ui-motion-enter-ease) group-focus-visible/preview:translate-y-0 group-focus-visible/preview:opacity-100 group-focus-visible/preview:duration-(--ui-motion-base) group-focus-visible/preview:ease-(--ui-motion-enter-ease) motion-reduce:translate-none'
-          style={reduceMotion ? { transitionDuration: '0s' } : undefined}
-        >
-          <span className='block truncate text-sm font-semibold'>
-            {item.name}
-          </span>
-          <span className='block text-xs leading-5 text-muted-foreground'>
-            {item.description}
-          </span>
-          <span className='flex flex-wrap items-center justify-between gap-2'>
-            <span className='text-xs text-muted-foreground'>
-              {category ? `${category.style} · ${category.layout}` : '完整示例'}
-            </span>
-            <span className='inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground'>
-              <ScanSearch aria-hidden className='size-3.5' />
-              预览模板
-              <ArrowRight aria-hidden className='size-3.5' />
-            </span>
-          </span>
-        </span>
-      </button>
+        className='absolute inset-0 cursor-pointer rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
+      />
     </article>
   )
 }

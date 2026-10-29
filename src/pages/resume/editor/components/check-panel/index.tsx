@@ -1,4 +1,5 @@
-import { memo } from 'react'
+import { memo, useRef } from 'react'
+import { AnimatePresence } from 'motion/react'
 import { useShallow } from 'zustand/react/shallow'
 import type { CheckSeverity } from '@/lib/resume-checks/types'
 import {
@@ -9,7 +10,9 @@ import {
   Sparkles,
   Undo2,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { AnimatedContent } from '@/components/motion/animated-content'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import {
   Accordion,
   AccordionContent,
@@ -27,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { DURATION } from '@/lib/motion'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { SECTION_LABELS } from '@/lib/resume-preparation/const'
 import { cn } from '@/lib/utils'
 import useUserStore from '@/store/user'
@@ -67,6 +70,7 @@ function CheckPanel() {
   const review = useResumeReviewStore((value) => value.active)
   const loggedIn = useUserStore((value) => !!value.currentUser)
   const reduced = useReducedMotion()
+  const filterAllRef = useRef<HTMLButtonElement>(null)
   const active = state.issues.filter((issue) => !issue.resolved)
   const resolved = state.issues.filter((issue) => issue.resolved)
   const counts = { error: 0, warning: 0, suggestion: 0 }
@@ -116,6 +120,7 @@ function CheckPanel() {
         </div>
         <div className='flex flex-wrap gap-1.5' aria-label='按严重程度筛选'>
           <Button
+            ref={filterAllRef}
             variant='ghost'
             size='xs'
             aria-pressed={state.filter === 'all'}
@@ -170,180 +175,234 @@ function CheckPanel() {
       </div>
 
       <div className='min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 [scrollbar-gutter:stable]'>
-        {visible.length === 0 ? (
-          <div className='flex items-start gap-2 py-8 text-sm text-muted-foreground'>
-            <Check className='mt-0.5 size-4 shrink-0' />
-            <div>
-              {state.ruleStatus === 'ready'
-                ? state.filter === 'all'
-                  ? '本地规则未发现待处理问题'
-                  : '这一类没有待处理的问题'
-                : state.ruleStatus === 'error'
-                  ? '暂时无法完成本地检查，请重试'
-                  : '正在准备检查结果…'}
-              {state.filter === 'all' && state.proofreadStatus !== 'ready' && (
-                <p className='mt-1 text-xs'>
-                  文字校对尚未完成，可在下方继续检查。
-                </p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <Accordion
-            type='single'
-            collapsible
-            value={state.selectedIssueId ?? ''}
-            onValueChange={(value) =>
-              value
-                ? state.locate(value)
-                : useResumeCheckStore.setState({ selectedIssueId: null })
-            }
-          >
-            {visible.map((issue) => {
-              const level = CHECK_LEVELS[issue.severity]
-              const Icon = level.icon
-
-              // 其余字段只用于确认签名，不是额外缺失的标题。
-              const targetCount = issue.id.startsWith('missing:title:')
-                ? 1
-                : issue.targets.length
-
-              const targetIndex =
-                issue.id === state.selectedIssueId
-                  ? Math.min(
-                      state.selectedTargetIndex,
-                      Math.max(0, targetCount - 1),
-                    )
-                  : 0
-
-              const target = issue.targets[targetIndex]
-
-              return (
-                <AccordionItem key={issue.id} value={issue.id}>
-                  <AccordionTrigger className='items-start gap-2 py-3.5 text-left hover:no-underline'>
-                    <Icon
-                      className={cn('mt-0.5 size-4 shrink-0', level.color)}
-                      aria-label={level.label}
-                    />
-                    <span className='min-w-0 flex-1'>
-                      <span className='block text-sm font-medium'>
-                        {issue.title}
-                      </span>
-                      <span className='mt-1 block text-xs font-normal text-muted-foreground'>
-                        {SECTION_LABELS[issue.section]}
-                        {targetCount > 1 ? ` · ${targetCount} 处` : ''}
-                        {issue.source === 'ai' ? ' · AI 待核对' : ''}
-                      </span>
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent
-                    className='space-y-3 pl-6'
-                    style={{
-                      animationDuration: `${reduced ? 0 : DURATION.base}s`,
-                    }}
-                  >
-                    <p className='text-xs leading-5 text-muted-foreground'>
-                      {issue.detail}
+        <AnimatedContent
+          animationKey={
+            visible.length
+              ? 'issues'
+              : `empty-${state.filter}-${state.ruleStatus}`
+          }
+        >
+          {visible.length === 0 ? (
+            <div className='flex items-start gap-2 py-8 text-sm text-muted-foreground'>
+              <Check className='mt-0.5 size-4 shrink-0' />
+              <div>
+                {state.ruleStatus === 'ready'
+                  ? state.filter === 'all'
+                    ? '本地规则未发现待处理问题'
+                    : '这一类没有待处理的问题'
+                  : state.ruleStatus === 'error'
+                    ? '暂时无法完成本地检查，请重试'
+                    : '正在准备检查结果…'}
+                {state.filter === 'all' &&
+                  state.proofreadStatus !== 'ready' && (
+                    <p className='mt-1 text-xs'>
+                      文字校对尚未完成，可在下方继续检查。
                     </p>
-                    {issue.id === state.selectedIssueId &&
-                      state.locationMessage && (
-                        <p
-                          className='text-xs text-muted-foreground'
-                          role='status'
-                        >
-                          {state.locationMessage}
-                        </p>
-                      )}
-                    {!!target?.quote && (
-                      <div className='max-h-36 overflow-auto break-words rounded-md bg-muted p-2.5 text-xs leading-5'>
-                        <span
-                          className={
-                            issue.replacement
-                              ? 'text-muted-foreground line-through'
-                              : ''
-                          }
-                        >
-                          {target.quote}
-                        </span>
-                        {issue.replacement && (
-                          <span className='ml-2 font-medium'>
-                            {issue.replacement}
+                  )}
+              </div>
+            </div>
+          ) : (
+            <Accordion
+              type='single'
+              collapsible
+              value={state.selectedIssueId ?? ''}
+              onValueChange={(value) =>
+                value
+                  ? state.locate(value)
+                  : useResumeCheckStore.setState({ selectedIssueId: null })
+              }
+            >
+              <AnimatePresence initial={false} mode='popLayout'>
+                {visible.map((issue) => {
+                  const level = CHECK_LEVELS[issue.severity]
+                  const Icon = level.icon
+
+                  // 其余字段只用于确认签名，不是额外缺失的标题。
+                  const targetCount = issue.id.startsWith('missing:title:')
+                    ? 1
+                    : issue.targets.length
+
+                  const targetIndex =
+                    issue.id === state.selectedIssueId
+                      ? Math.min(
+                          state.selectedTargetIndex,
+                          Math.max(0, targetCount - 1),
+                        )
+                      : 0
+
+                  const target = issue.targets[targetIndex]
+
+                  return (
+                    <AccordionItem key={issue.id} value={issue.id} asChild>
+                      <PresenceDiv
+                        layout={reduced ? false : 'position'}
+                        initial={reduced ? false : { opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{
+                          opacity: 0,
+                          transition: {
+                            duration: reduced ? 0 : DURATION.fast,
+                            ease: EASE.in,
+                          },
+                        }}
+                        transition={{
+                          duration: reduced ? 0 : DURATION.base,
+                          ease: EASE.out,
+                          layout: reduced ? { duration: 0 } : SPRING.layout,
+                        }}
+                      >
+                        <AccordionTrigger className='items-start gap-2 py-3.5 text-left hover:no-underline'>
+                          <Icon
+                            className={cn(
+                              'mt-0.5 size-4 shrink-0',
+                              level.color,
+                            )}
+                            aria-label={level.label}
+                          />
+                          <span className='min-w-0 flex-1'>
+                            <span className='block text-sm font-medium'>
+                              {issue.title}
+                            </span>
+                            <span className='mt-1 block text-xs font-normal text-muted-foreground'>
+                              {SECTION_LABELS[issue.section]}
+                              {targetCount > 1 ? ` · ${targetCount} 处` : ''}
+                              {issue.source === 'ai' ? ' · AI 待核对' : ''}
+                            </span>
                           </span>
-                        )}
-                      </div>
-                    )}
-                    {targetCount > 1 && (
-                      <div className='flex items-center gap-2 text-xs text-muted-foreground'>
-                        <span>
-                          第 {targetIndex + 1} / {targetCount} 处
-                        </span>
-                        <Button
-                          size='xs'
-                          variant='ghost'
-                          onClick={() =>
-                            state.locate(
-                              issue.id,
-                              (targetIndex + 1) % targetCount,
-                            )
-                          }
+                        </AccordionTrigger>
+                        <AccordionContent
+                          className='space-y-3 pl-6'
+                          style={{
+                            animationDuration: `${reduced ? 0 : DURATION.base}s`,
+                          }}
                         >
-                          下一处
-                        </Button>
-                      </div>
-                    )}
-                    <div className='flex flex-wrap gap-1.5'>
-                      {issue.resolved ? (
-                        <Button
-                          size='sm'
-                          variant='outline'
-                          disabled={disabled}
-                          onClick={() => keepCheckIssue(issue, false)}
-                        >
-                          恢复提醒
-                        </Button>
-                      ) : (
-                        <>
-                          {issue.replacement && (
-                            <Button
-                              size='sm'
-                              variant='outline'
-                              disabled={disabled}
-                              onClick={() => applyCheckSuggestion(issue)}
-                            >
-                              采用建议
-                            </Button>
+                          <p className='text-xs leading-5 text-muted-foreground'>
+                            {issue.detail}
+                          </p>
+                          {issue.id === state.selectedIssueId &&
+                            state.locationMessage && (
+                              <p
+                                className='text-xs text-muted-foreground'
+                                role='status'
+                              >
+                                {state.locationMessage}
+                              </p>
+                            )}
+                          {!!target?.quote && (
+                            <div className='max-h-36 overflow-auto break-words rounded-md bg-muted p-2.5 text-xs leading-5'>
+                              <span
+                                className={
+                                  issue.replacement
+                                    ? 'text-muted-foreground line-through'
+                                    : ''
+                                }
+                              >
+                                {target.quote}
+                              </span>
+                              {issue.replacement && (
+                                <span className='ml-2 font-medium'>
+                                  {issue.replacement}
+                                </span>
+                              )}
+                            </div>
                           )}
-                          {issue.source !== 'layout' && (
-                            <Button
-                              size='sm'
-                              variant={issue.replacement ? 'ghost' : 'outline'}
-                              disabled={disabled}
-                              onClick={() => editCheckIssue(issue, targetIndex)}
-                            >
-                              前往修改
-                            </Button>
+                          {targetCount > 1 && (
+                            <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                              <span>
+                                第 {targetIndex + 1} / {targetCount} 处
+                              </span>
+                              <Button
+                                size='xs'
+                                variant='ghost'
+                                onClick={() =>
+                                  state.locate(
+                                    issue.id,
+                                    (targetIndex + 1) % targetCount,
+                                  )
+                                }
+                              >
+                                下一处
+                              </Button>
+                            </div>
                           )}
-                          <Button
-                            size='sm'
-                            variant='ghost'
-                            disabled={disabled}
-                            onClick={() => keepCheckIssue(issue, true)}
-                          >
-                            {issue.source === 'layout'
-                              ? '暂不调整'
-                              : issue.severity === 'warning'
-                                ? '确认无误'
-                                : '保留原文'}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )
-            })}
-          </Accordion>
-        )}
+                          <div className='flex flex-wrap gap-1.5'>
+                            {issue.resolved ? (
+                              <Button
+                                size='sm'
+                                variant='outline'
+                                disabled={disabled}
+                                onClick={() => {
+                                  filterAllRef.current?.focus({
+                                    preventScroll: true,
+                                  })
+
+                                  keepCheckIssue(issue, false)
+                                }}
+                              >
+                                恢复提醒
+                              </Button>
+                            ) : (
+                              <>
+                                {issue.replacement && (
+                                  <Button
+                                    size='sm'
+                                    variant='outline'
+                                    disabled={disabled}
+                                    onClick={() => {
+                                      filterAllRef.current?.focus({
+                                        preventScroll: true,
+                                      })
+
+                                      applyCheckSuggestion(issue)
+                                    }}
+                                  >
+                                    采用建议
+                                  </Button>
+                                )}
+                                {issue.source !== 'layout' && (
+                                  <Button
+                                    size='sm'
+                                    variant={
+                                      issue.replacement ? 'ghost' : 'outline'
+                                    }
+                                    disabled={disabled}
+                                    onClick={() =>
+                                      editCheckIssue(issue, targetIndex)
+                                    }
+                                  >
+                                    前往修改
+                                  </Button>
+                                )}
+                                <Button
+                                  size='sm'
+                                  variant='ghost'
+                                  disabled={disabled}
+                                  onClick={() => {
+                                    filterAllRef.current?.focus({
+                                      preventScroll: true,
+                                    })
+
+                                    keepCheckIssue(issue, true)
+                                  }}
+                                >
+                                  {issue.source === 'layout'
+                                    ? '暂不调整'
+                                    : issue.severity === 'warning'
+                                      ? '确认无误'
+                                      : '保留原文'}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </PresenceDiv>
+                    </AccordionItem>
+                  )
+                })}
+              </AnimatePresence>
+            </Accordion>
+          )}
+        </AnimatedContent>
       </div>
 
       <footer className='shrink-0 space-y-2.5 border-t px-4 py-3'>
@@ -410,7 +469,14 @@ function CheckPanel() {
           </Collapsible>
         )}
         {state.canUndo && (
-          <Button size='xs' variant='ghost' onClick={undoCheckSuggestion}>
+          <Button
+            size='xs'
+            variant='ghost'
+            onClick={() => {
+              filterAllRef.current?.focus({ preventScroll: true })
+              undoCheckSuggestion()
+            }}
+          >
             <Undo2 />
             撤销上次修改
           </Button>

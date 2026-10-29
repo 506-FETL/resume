@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { ORDERType, VisibilityItemsType } from '@/lib/schema'
-import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
+import { Reorder, useDragControls } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useRef, useState } from 'react'
 import { Accordion } from '@/components/ui/accordion'
 import {

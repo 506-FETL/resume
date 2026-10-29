@@ -1,6 +1,8 @@
 import type React from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
+import { PresencePage } from '@/components/motion/presence-item'
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
 import { SiteHeader } from '@/components/dashboard/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
@@ -65,7 +67,7 @@ export function DashboardShell({
         {!fullBleed && (
           <header
             className={cn(
-              'sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60',
+              'sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur supports-backdrop-filter:bg-background/60',
               !sidebarOpen &&
                 (routeKey.startsWith('/resume/editor')
                   ? 'md:h-auto'
@@ -76,8 +78,10 @@ export function DashboardShell({
           </header>
         )}
         <div
+          tabIndex={-1}
+          aria-label='页面内容'
           className={cn(
-            'min-h-0 min-w-0 flex-1',
+            'min-h-0 min-w-0 flex-1 outline-none',
             fullBleed
               ? 'overflow-hidden'
               : 'overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]',
@@ -92,14 +96,13 @@ export function DashboardShell({
               : undefined
           }
         >
-          <AnimatePresence mode='wait'>
-            <motion.div
+          <AnimatePresence mode='wait' initial={false}>
+            <PresencePage
               key={routeKey}
-              initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: reduceMotion ? 1 : 0 }}
+              animate={{ opacity: 1 }}
               exit={{
                 opacity: 0,
-                y: reduceMotion ? 0 : -8,
                 transition: {
                   duration: reduceMotion ? 0 : DURATION.fast,
                   ease: EASE.in,
@@ -112,7 +115,7 @@ export function DashboardShell({
               className='h-full min-h-0 w-full'
             >
               {children}
-            </motion.div>
+            </PresencePage>
           </AnimatePresence>
         </div>
       </SidebarInset>

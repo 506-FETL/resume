@@ -1,8 +1,9 @@
 import type { KeyboardEvent } from 'react'
 import type { CertificateItem } from '@/lib/schema/resume/form/honorsCertificates'
 import { Plus, X } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useRef, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ function CertificateListEditor({
   value: CertificateItem[]
   onChange: (val: CertificateItem[]) => void
 }) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const reduceMotion = useReducedMotion()
   const [customInput, setCustomInput] = useState('')
 
@@ -75,6 +77,7 @@ function CertificateListEditor({
       {/* 自定义添加 */}
       <div className='flex gap-2'>
         <Input
+          ref={inputRef}
           placeholder='输入自定义证书名称'
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
@@ -133,15 +136,19 @@ function CertificateListEditor({
                       className='text-sm px-3 py-1.5 gap-1.5 pr-1.5 border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400'
                     >
                       {cert.name}
-                      <button
+                      <Button
                         type='button'
-                        className='size-4 rounded-full hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-colors'
-                        onClick={() =>
+                        variant='ghost'
+                        size='icon-xs'
+                        aria-label={`移除证书 ${cert.name}`}
+                        className='size-4 rounded-full hover:bg-destructive/20 hover:text-destructive'
+                        onClick={() => {
+                          inputRef.current?.focus()
                           onChange(value.filter((c) => c.name !== cert.name))
-                        }
+                        }}
                       >
                         <X className='size-3' />
-                      </button>
+                      </Button>
                     </Badge>
                   </PresenceDiv>
                 ))}

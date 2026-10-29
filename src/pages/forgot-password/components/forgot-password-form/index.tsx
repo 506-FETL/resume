@@ -1,5 +1,6 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import React, { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import React, { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { authErrorMessage } from '@/lib/auth/feedback'
 import { DURATION, EASE } from '@/lib/motion'
 import supabase from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -25,6 +27,7 @@ export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'div'>) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -43,16 +46,22 @@ export function ForgotPasswordForm({
 
       if (error) throw error
 
+      containerRef.current?.focus({ preventScroll: true })
       setSuccess(true)
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : '发生错误, 请稍后再试')
+      setError(authErrorMessage(error, '暂时无法发送邮件，请稍后重试。'))
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
+    <div
+      ref={containerRef}
+      tabIndex={-1}
+      className={cn('flex flex-col gap-6 outline-none', className)}
+      {...props}
+    >
       <AnimatedContent animationKey={success ? 'success' : 'form'}>
         {success ? (
           <Card>
@@ -64,6 +73,20 @@ export function ForgotPasswordForm({
                 如果你使用邮箱和密码注册，将收到密码重置邮件。
               </CardDescription>
             </CardHeader>
+            <CardContent className='flex flex-col gap-2'>
+              <Button asChild>
+                <Link to='/login'>返回登录</Link>
+              </Button>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  containerRef.current?.focus({ preventScroll: true })
+                  setSuccess(false)
+                }}
+              >
+                修改邮箱
+              </Button>
+            </CardContent>
           </Card>
         ) : (
           <Card>
@@ -81,6 +104,8 @@ export function ForgotPasswordForm({
                     <Input
                       id='email'
                       type='email'
+                      autoComplete='email'
+                      name='email'
                       placeholder='m@example.com'
                       required
                       value={email}
@@ -110,7 +135,7 @@ export function ForgotPasswordForm({
                         }}
                         className='overflow-hidden'
                       >
-                        <FieldError>{error}</FieldError>
+                        <FieldError role='alert'>{error}</FieldError>
                       </motion.div>
                     )}
                   </AnimatePresence>

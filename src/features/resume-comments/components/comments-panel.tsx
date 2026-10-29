@@ -264,6 +264,11 @@ export function CommentsPanel({
     <DrawerContent
       data-resume-comment-ui
       aria-label='简历评论'
+      finalFocus={() =>
+        document.querySelector<HTMLButtonElement>(
+          '[data-resume-comment-trigger]',
+        ) ?? true
+      }
       overlayClassName='supports-backdrop-filter:backdrop-blur-none'
       className={
         isMobile

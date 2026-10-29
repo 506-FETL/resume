@@ -1,6 +1,10 @@
 import type { AiConversationSearchResult } from '@/lib/ai/types'
 import { Bot, MessageSquareText, UserRound } from 'lucide-react'
 import { CommandItem } from '@/components/ui/command'
+import {
+  readableConversationTitle,
+  readableMessageText,
+} from '../../composer-references'
 import { formatRelativeTime } from '@/utils'
 
 interface SearchResultProps {
@@ -47,7 +51,10 @@ export default function ConversationSearchResult({
       <div className='min-w-0 flex-1'>
         <div className='flex items-center gap-2'>
           <p className='truncate text-sm font-medium'>
-            <HighlightedText text={result.conversationTitle} query={query} />
+            <HighlightedText
+              text={readableConversationTitle(result.conversationTitle)}
+              query={query}
+            />
           </p>
           <span className='shrink-0 text-[10px] text-muted-foreground'>
             {formatRelativeTime(result.matchedAt)}
@@ -58,7 +65,10 @@ export default function ConversationSearchResult({
         </p>
         {result.matchType === 'message' && (
           <p className='mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground'>
-            <HighlightedText text={result.excerpt} query={query} />
+            <HighlightedText
+              text={readableMessageText(result.excerpt)}
+              query={query}
+            />
           </p>
         )}
       </div>

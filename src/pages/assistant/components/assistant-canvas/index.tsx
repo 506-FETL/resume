@@ -1,7 +1,13 @@
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from 'react'
+import type { CanvasTabKey } from '../../types'
 import { PanelRightClose, X } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -27,51 +33,108 @@ import ChangeLog from './change-log'
 import ResumePreview from './resume-preview'
 import VersionTimeline from './version-timeline'
 
+function CanvasPanel({
+  value,
+  active,
+  displayed,
+  onExitComplete,
+  children,
+}: {
+  value: CanvasTabKey
+  active: CanvasTabKey
+  displayed: CanvasTabKey
+  onExitComplete: () => void
+  children: ReactNode
+}) {
+  const reduceMotion = useReducedMotion()
+  const panelRef = useRef<HTMLDivElement>(null)
+  const visible = displayed === value
+  const exiting = visible && active !== value
+  const interactive = visible && !exiting
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+
+    if (!panel) return
+
+    if (!interactive && panel.contains(document.activeElement)) {
+      panel
+        .closest('[data-slot=tabs]')
+        ?.querySelector<HTMLButtonElement>('[role=tab][data-state=active]')
+        ?.focus({ preventScroll: true })
+    }
+
+    panel.inert = !interactive
+
+    if (interactive) panel.removeAttribute('aria-hidden')
+    else panel.setAttribute('aria-hidden', 'true')
+  }, [interactive])
+
+  return (
+    <TabsContent forceMount asChild value={value}>
+      <motion.div
+        ref={panelRef}
+        hidden={!visible}
+        initial={false}
+        animate={{
+          opacity: interactive ? 1 : 0,
+          transform:
+            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(8px)',
+        }}
+        transition={{
+          duration: reduceMotion ? 0 : exiting ? DURATION.fast : DURATION.base,
+          ease: exiting ? EASE.in : EASE.out,
+          delay: 0,
+        }}
+        onAnimationComplete={() => {
+          if (exiting) onExitComplete()
+        }}
+        className='absolute inset-0 min-h-0 overflow-hidden'
+      >
+        {children}
+      </motion.div>
+    </TabsContent>
+  )
+}
+
 function CanvasInner() {
   const model = useCanvasModel()
   const reduceMotion = useReducedMotion()
   const { canvasActiveTab, setCanvasActiveTab } = useAssistantStore()
+  const [displayedTab, setDisplayedTab] = useState(canvasActiveTab)
+
+  useLayoutEffect(() => {
+    if (reduceMotion) setDisplayedTab(canvasActiveTab)
+  }, [canvasActiveTab, reduceMotion])
+
+  const panelProps = {
+    active: canvasActiveTab,
+    displayed: reduceMotion ? canvasActiveTab : displayedTab,
+    onExitComplete: () => setDisplayedTab(canvasActiveTab),
+  }
 
   return (
     <Tabs
       value={canvasActiveTab}
-      onValueChange={(v) => setCanvasActiveTab(v as typeof canvasActiveTab)}
+      onValueChange={(value) => setCanvasActiveTab(value as CanvasTabKey)}
       className='flex h-full min-h-0 flex-col gap-0'
     >
       <CanvasTabs model={model} />
-      {/* forceMount + CSS 隐藏：各 tab 内容只在首次挂载时加载，切换 tab 不再卸载重挂（避免重复拉取/重渲染） */}
-      <TabsContent
-        forceMount
-        value='resume'
-        className='min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden data-[state=active]:animate-in data-[state=active]:fade-in-0 motion-reduce:animate-none'
-        style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
-      >
-        <ResumePreview />
-      </TabsContent>
-      <TabsContent
-        forceMount
-        value='board'
-        className='min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden data-[state=active]:animate-in data-[state=active]:fade-in-0 motion-reduce:animate-none'
-        style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
-      >
-        {model.touchedBoard && <BoardSnapshot model={model} />}
-      </TabsContent>
-      <TabsContent
-        forceMount
-        value='version'
-        className='min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden data-[state=active]:animate-in data-[state=active]:fade-in-0 motion-reduce:animate-none'
-        style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
-      >
-        {model.touchedVersion && <VersionTimeline model={model} />}
-      </TabsContent>
-      <TabsContent
-        forceMount
-        value='changes'
-        className='min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden data-[state=active]:animate-in data-[state=active]:fade-in-0 motion-reduce:animate-none'
-        style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
-      >
-        {model.hasWrites && <ChangeLog model={model} />}
-      </TabsContent>
+      {/* 切换只改变可见面板，预览、滚动位置和草稿继续保留。 */}
+      <div className='relative min-h-0 flex-1 overflow-hidden'>
+        <CanvasPanel value='resume' {...panelProps}>
+          <ResumePreview />
+        </CanvasPanel>
+        <CanvasPanel value='board' {...panelProps}>
+          {model.touchedBoard && <BoardSnapshot model={model} />}
+        </CanvasPanel>
+        <CanvasPanel value='version' {...panelProps}>
+          {model.touchedVersion && <VersionTimeline model={model} />}
+        </CanvasPanel>
+        <CanvasPanel value='changes' {...panelProps}>
+          {model.hasWrites && <ChangeLog model={model} />}
+        </CanvasPanel>
+      </div>
     </Tabs>
   )
 }
@@ -230,13 +293,11 @@ export default function AssistantCanvas() {
                     size='icon-sm'
                     aria-label='收起画布'
                     onClick={() => {
-                      setCanvasOpen(false)
+                      document
+                        .getElementById('assistant-canvas-trigger')
+                        ?.focus({ preventScroll: true })
 
-                      requestAnimationFrame(() =>
-                        document
-                          .getElementById('assistant-canvas-trigger')
-                          ?.focus(),
-                      )
+                      setCanvasOpen(false)
                     }}
                   >
                     <PanelRightClose />

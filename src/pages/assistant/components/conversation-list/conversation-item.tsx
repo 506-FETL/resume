@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { readableConversationTitle } from '../../composer-references'
 import { cn } from '@/lib/utils'
 import { ConversationActions } from './conversation-actions'
 import { ConversationDeleteDialog } from './conversation-delete-dialog'
@@ -25,8 +26,9 @@ export function ConversationItem({
   onRename,
   onDelete,
 }: ConversationItemProps) {
+  const title = readableConversationTitle(conversation.title)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(conversation.title)
+  const [draft, setDraft] = useState(title)
   const [pendingDelete, setPendingDelete] = useState(false)
 
   const commitRename = () => {
@@ -38,7 +40,7 @@ export function ConversationItem({
   }
 
   const startRename = () => {
-    setDraft(conversation.title)
+    setDraft(title)
     setEditing(true)
   }
 
@@ -88,7 +90,7 @@ export function ConversationItem({
           )}
           onClick={() => onSelect(conversation.id)}
         >
-          <span className='min-w-0 flex-1 truncate'>{conversation.title}</span>
+          <span className='min-w-0 flex-1 truncate'>{title}</span>
         </button>
 
         {/* 模糊遮罩覆盖完整操作区，左侧渐隐，避免长标题穿过图标。 */}
@@ -99,7 +101,7 @@ export function ConversationItem({
             <Spinner className='mr-1.5 size-4 text-muted-foreground' />
           ) : (
             <ConversationActions
-              title={conversation.title}
+              title={title}
               onRename={startRename}
               onDelete={() => setPendingDelete(true)}
             />
@@ -108,7 +110,7 @@ export function ConversationItem({
       </div>
 
       <ConversationDeleteDialog
-        title={conversation.title}
+        title={title}
         open={pendingDelete}
         onOpenChange={setPendingDelete}
         onConfirm={() => onDelete(conversation.id)}

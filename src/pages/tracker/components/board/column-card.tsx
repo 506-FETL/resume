@@ -1,6 +1,7 @@
+import { FocusButton } from '../focus-button'
 import type { JobApplication } from '../../types'
 import { Bell, Building2 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Card } from '@/components/ui/card'
@@ -102,6 +103,7 @@ export const ColumnCard = memo(({ job }: ColumnCardProps) => {
             )}
           </div>
         </div>
+        <FocusButton job={job} />
         {isSelectMode && (
           <Checkbox
             checked={isSelected}

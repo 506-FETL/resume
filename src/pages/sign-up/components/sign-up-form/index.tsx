@@ -1,5 +1,6 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import React, { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import React, { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -11,20 +12,24 @@ import {
 } from '@/components/ui/card'
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { authErrorMessage } from '@/lib/auth/feedback'
 import { DURATION, EASE } from '@/lib/motion'
 import { SignUpWithEmail } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
 
 export function SignUpForm({
   className,
+  redirect = '/',
   ...props
-}: React.ComponentPropsWithoutRef<'div'>) {
+}: React.ComponentPropsWithoutRef<'div'> & { redirect?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,16 +52,22 @@ export function SignUpForm({
 
     try {
       await SignUpWithEmail(email, password)
+      containerRef.current?.focus({ preventScroll: true })
       setSuccess(true)
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : '发生错误')
+      setError(authErrorMessage(error, '暂时无法创建账户，请稍后重试。'))
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
+    <div
+      ref={containerRef}
+      tabIndex={-1}
+      className={cn('flex flex-col gap-6 outline-none', className)}
+      {...props}
+    >
       <AnimatedContent animationKey={success ? 'success' : 'form'}>
         {success ? (
           <Card>
@@ -68,6 +79,13 @@ export function SignUpForm({
                 请查收验证邮件，确认邮箱后再登录。
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button asChild className='w-full'>
+                <Link to={`/login?redirect=${encodeURIComponent(redirect)}`}>
+                  返回登录
+                </Link>
+              </Button>
+            </CardContent>
           </Card>
         ) : (
           <Card>
@@ -84,6 +102,8 @@ export function SignUpForm({
                     <Input
                       id='email'
                       type='email'
+                      autoComplete='email'
+                      name='email'
                       placeholder='m@example.com'
                       required
                       value={email}
@@ -95,16 +115,26 @@ export function SignUpForm({
                     <Input
                       id='password'
                       type='password'
+                      autoComplete='new-password'
+                      name='password'
+                      minLength={6}
+                      aria-describedby='password-help'
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
+                    <FieldDescription id='password-help'>
+                      至少 6 个字符。
+                    </FieldDescription>
                   </Field>
                   <Field>
                     <FieldLabel htmlFor='repeat-password'>确认密码</FieldLabel>
                     <Input
                       id='repeat-password'
                       type='password'
+                      autoComplete='new-password'
+                      name='repeat-password'
+                      minLength={6}
                       required
                       value={repeatPassword}
                       onChange={(e) => setRepeatPassword(e.target.value)}
@@ -133,7 +163,7 @@ export function SignUpForm({
                         }}
                         className='overflow-hidden'
                       >
-                        <FieldError>{error}</FieldError>
+                        <FieldError role='alert'>{error}</FieldError>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -155,7 +185,10 @@ export function SignUpForm({
                 </FieldGroup>
                 <div className='mt-4 text-center text-sm'>
                   已有账号？
-                  <Link to='/login' className='underline underline-offset-4'>
+                  <Link
+                    to={`/login?redirect=${encodeURIComponent(redirect)}`}
+                    className='underline underline-offset-4'
+                  >
                     登录
                   </Link>
                 </div>

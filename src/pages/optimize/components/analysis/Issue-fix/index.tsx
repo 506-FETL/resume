@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import type { Severity } from '@/pages/optimize/types'
 import { Wand2 } from 'lucide-react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -47,6 +48,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
   const [open, setOpen] = useState(false)
   const [isFixing, setIsFixing] = useState(false)
   const isMobile = useIsMobile()
+  const reduceMotion = useReducedMotion()
   const { update, currentAtsConfig } = useAtsStore()
   const triger = useRef<HTMLButtonElement | null>(null)
 
@@ -118,9 +120,9 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
         [severity]: updatedFinding,
       })
 
-      startConfetti(triger)
+      if (!reduceMotion) startConfetti(triger)
     } catch (error) {
-      toast.error('修复除了点问题, 请稍后重试')
+      toast.error('应用修改失败，请稍后重试')
       console.error(error)
     } finally {
       setIsFixing(false)
@@ -133,7 +135,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className='flex h-[min(88dvh,56rem)] min-h-0 w-[60vw] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl data-[state=open]:slide-in-from-bottom-3 data-[state=open]:duration-200 data-[state=open]:ease-out data-[state=closed]:slide-out-to-bottom-2 data-[state=closed]:duration-150 data-[state=closed]:ease-in motion-reduce:animate-none'>
+        <DialogContent className='flex h-[min(88dvh,56rem)] min-h-0 w-[60vw] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl motion-reduce:animate-none'>
           <DialogHeader className='shrink-0 border-b px-4 pt-4 pb-3 md:px-5'>
             <DialogTitle className='flex items-center gap-2 text-base'>
               <Wand2 className='size-4 shrink-0 text-primary' />

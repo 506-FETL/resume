@@ -8,7 +8,7 @@ import {
   SearchX,
   TriangleAlert,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -93,7 +93,7 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
             </Button>
           )}
           {mode === 'empty' && (
-            <Button onClick={openAddDrawer}>
+            <Button onClick={() => openAddDrawer()}>
               <Plus />
               新增职位
             </Button>

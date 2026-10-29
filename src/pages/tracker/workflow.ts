@@ -110,10 +110,11 @@ export function normalizeInterviewSubStages(
 
   return ordered.map((round, index) => ({
     ...round,
-    status:
-      status === 'offer' ||
-      ((status === 'interview' || status === 'rejected') &&
-        index < ordered.length - 1)
+    status: round.is_history
+      ? round.status
+      : status === 'offer' ||
+          ((status === 'interview' || status === 'rejected') &&
+            index < ordered.length - 1)
         ? '已完成'
         : status === 'interview'
           ? '进行中'
@@ -237,9 +238,27 @@ export function transitionJobWorkflow<T extends JobWorkflow>(
       source_stage: source as ActiveApplicationStage | null,
     })
 
+  const rounds = [...normalized.interview_sub_stages]
+
+  if (
+    target === 'interview' &&
+    rounds.length > 0 &&
+    rounds.every((round) => round.is_history)
+  ) {
+    rounds.push({
+      id: crypto.randomUUID(),
+      label: '恢复面试',
+      status: '进行中',
+      start_date: date,
+      notes: '',
+      order: Math.max(...rounds.map((round) => round.order)) + 1,
+    })
+  }
+
   return normalizeJobWorkflow({
     ...normalized,
     status: target,
     stage_details: stageDetails,
+    interview_sub_stages: rounds,
   })
 }

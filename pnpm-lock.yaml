@@ -42,6 +42,9 @@ importers:
       '@fontsource/lxgw-wenkai':
         specifier: 5.2.5
         version: 5.2.5
+      '@fontsource/racing-sans-one':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/tinos':
         specifier: 5.3.0
         version: 5.3.0
@@ -997,6 +1000,9 @@ packages:
 
   '@fontsource/lxgw-wenkai@5.2.5':
     resolution: {integrity: sha512-lIBouZW7qNw3VdVnjc0NC80iDfxjU7OnaKGaz6QHiHjC8z0fv9MyrHpeBMzkPnyEVabcpUu4Wf8DnaihfGVYtw==}
+
+  '@fontsource/racing-sans-one@5.3.0':
+    resolution: {integrity: sha512-ESZApGzFjmr5MjpDA5eoZTfk4LSwpAeuD0W9klx5fFZYXmF5OvE1n5BKNg1CL/aQKEd6YSM5d51iPA+wcmi6Jw==}
 
   '@fontsource/tinos@5.3.0':
     resolution: {integrity: sha512-VVDyyZdbcsLKxo/W7rClAvacD/7DsGc7J5xzzp51Tndib8kDkEe/0bqbb3Xb3iH6+IUjt07aRsvtQ9MGeGGi4w==}
@@ -6802,6 +6808,8 @@ snapshots:
   '@fontsource-variable/noto-serif-sc@5.2.9': {}
 
   '@fontsource/lxgw-wenkai@5.2.5': {}
+
+  '@fontsource/racing-sans-one@5.3.0': {}
 
   '@fontsource/tinos@5.3.0': {}
 

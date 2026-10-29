@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useState } from 'react'
-
 import { cn } from '@/lib/utils'
 
 interface LightRaysProps extends React.HTMLAttributes<HTMLDivElement> {

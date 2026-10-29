@@ -3,8 +3,6 @@ import type { AdvancedToolDefinition, AdvancedToolKey } from './types'
 import { LayoutTemplate, Maximize2, RefreshCcw, Settings2 } from 'lucide-react'
 
 export interface ToolVisualDefinition extends AdvancedToolDefinition {
-  badge: string
-  badgeClassName: string
   icon: LucideIcon
   iconClassName: string
 }
@@ -13,9 +11,6 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
   {
     key: 'job-description',
     title: '职位描述比对',
-    badge: 'JD Match',
-    badgeClassName:
-      'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300',
     icon: LayoutTemplate,
     iconClassName:
       'bg-sky-500/10 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
@@ -24,9 +19,6 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
     key: 'formatter',
     title: '一键格式化',
     description: '批量应用检测建议，直接修改当前简历。',
-    badge: 'Clean Pass',
-    badgeClassName:
-      'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     icon: RefreshCcw,
     iconClassName:
       'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
@@ -35,20 +27,14 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
     key: 'ats-preview',
     title: 'ATS 预览',
     description: '查看简历纯文本和 ATS 解析风险。',
-    badge: 'Plain Text',
-    badgeClassName:
-      'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300',
     icon: Maximize2,
     iconClassName:
       'bg-amber-500/10 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
   },
   {
     key: 'benchmark',
-    title: '岗位内容参考',
-    description: '参考这类岗位的预设指标，看看简历还可以补充什么。',
-    badge: 'Role Signal',
-    badgeClassName:
-      'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    title: '行业基准对比',
+    description: '按岗位方向对比简历内容指标。',
     icon: Settings2,
     iconClassName:
       'bg-rose-500/10 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',

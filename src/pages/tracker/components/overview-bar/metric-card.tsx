@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { TrackerMetricKey } from '../../types'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DURATION, EASE } from '@/lib/motion'
@@ -39,7 +40,7 @@ function MetricCardComponent({
   index,
 }: MetricCardProps) {
   const reduce = useReducedMotion()
-  const display = useCountUp(value, DURATION.slow * 1000)
+  const display = useCountUp(value)
   const accessibleLabel = `${label}：${loading ? '加载中' : error ? '不可用' : `${value} 个职位`}，${active ? '再次点击取消选中' : actionLabel}`
 
   return (

@@ -10,7 +10,8 @@ import {
   LogIn,
   Send,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -58,8 +59,6 @@ export function TodoCard({
   hasCloudResume,
   unavailable,
 }: TodoCardProps) {
-  const navigate = useNavigate()
-
   if (!loading && !unavailable && actions.length === 0) {
     const message = !isAuthenticated
       ? '登录后查看今日待办'
@@ -117,46 +116,48 @@ export function TodoCard({
               tone='positive'
             />
           ) : (
-            <div className='flex flex-col gap-2.5'>
+            <div className='flex flex-col divide-y'>
               {actions.map((action) => {
                 const tone = TONE_STYLES[action.tone]
                 const Icon = tone.icon
 
                 return (
-                  <button
-                    type='button'
+                  <Button
                     key={action.id}
-                    onClick={() => navigate(action.to)}
-                    className='group flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent/40'
+                    asChild
+                    variant='ghost'
+                    className='group h-auto w-full justify-start gap-3 rounded-none px-1 py-4 text-left whitespace-normal motion-reduce:transition-none'
                   >
-                    <div
-                      className={cn(
-                        'flex size-9 shrink-0 items-center justify-center rounded-lg',
-                        tone.box,
-                      )}
-                    >
-                      <Icon className='size-[18px]' />
-                    </div>
-                    <div className='min-w-0 flex-1'>
-                      <p className='text-sm font-medium'>
-                        <span
-                          className={cn(
-                            'mr-1 text-base font-semibold tabular-nums',
-                            tone.count,
-                          )}
-                        >
-                          {action.count}
-                        </span>
-                        {action.label}
-                      </p>
-                      {action.hint && (
-                        <p className='truncate text-xs text-muted-foreground'>
-                          {action.hint}
+                    <Link to={action.to}>
+                      <div
+                        className={cn(
+                          'flex size-9 shrink-0 items-center justify-center rounded-lg',
+                          tone.box,
+                        )}
+                      >
+                        <Icon className='size-[18px]' />
+                      </div>
+                      <div className='min-w-0 flex-1'>
+                        <p className='text-sm font-medium'>
+                          <span
+                            className={cn(
+                              'mr-1 text-base font-semibold tabular-nums',
+                              tone.count,
+                            )}
+                          >
+                            {action.count}
+                          </span>
+                          {action.label}
                         </p>
-                      )}
-                    </div>
-                    <ArrowRight className='size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground' />
-                  </button>
+                        {action.hint && (
+                          <p className='truncate text-xs text-muted-foreground'>
+                            {action.hint}
+                          </p>
+                        )}
+                      </div>
+                      <ArrowRight className='size-4 shrink-0 text-muted-foreground/50 group-hover:text-foreground' />
+                    </Link>
+                  </Button>
                 )
               })}
             </div>

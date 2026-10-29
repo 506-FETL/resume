@@ -24,10 +24,21 @@ export function validateAddJobForm(formData: AddJobFormData): boolean {
 
 export function buildJobPayload(
   formData: AddJobFormData,
-): Omit<JobApplication, 'id' | 'created_at' | 'updated_at' | 'user_id'> {
+): Omit<
+  JobApplication,
+  | 'id'
+  | 'created_at'
+  | 'updated_at'
+  | 'user_id'
+  | 'tracker_company_id'
+  | 'focused_at'
+> & { tracker_company_id: string | null } {
   return normalizeJobWorkflow({
     resume_id: formData.resume_id,
     company: formData.company,
+    tracker_company_id: formData.tracker_company_id,
+    recruitment_batch: formData.recruitment_batch.trim() || null,
+    referred_from_job_id: formData.referred_from_job_id,
     company_logo: formData.company_logo.trim() || null,
     position: formData.position,
     location: formData.location,

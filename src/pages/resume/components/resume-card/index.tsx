@@ -15,7 +15,7 @@ import {
   Share2,
   Sparkles,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
@@ -161,7 +161,7 @@ export default function ResumeCard({
         glowBlur={48}
         glowOpacity={0.16}
         className={cn('group h-full shadow-xs', appearance.border)}
-        contentClassName='flex h-full min-h-56 flex-col p-4'
+        contentClassName='flex h-full min-h-48 flex-col p-4'
       >
         {onPrepareForJob && (
           <Button
@@ -290,7 +290,7 @@ export default function ResumeCard({
                     ? '0s'
                     : `${DURATION.fast}s`,
                 }}
-                title={`派生自 ${parent.display_name || '未命名简历'}`}
+                title={`原始简历：${parent.display_name || '未命名简历'}`}
               >
                 来自 {parent.display_name || '未命名简历'}
               </button>
@@ -313,10 +313,10 @@ export default function ResumeCard({
             onClick={handleDeriveClick}
             className='gap-1 px-2 text-xs text-muted-foreground'
             disabled={isGenerating}
-            aria-label='派生针对性版本'
+            aria-label='创建岗位版本'
           >
             <Sparkles className='size-3.5' />
-            派生
+            岗位版本
           </Button>
           <Button
             size='sm'
@@ -325,7 +325,7 @@ export default function ResumeCard({
             className='gap-1 px-2 text-xs text-muted-foreground'
             disabled={resume.isOffline}
             title={
-              resume.isOffline ? '离线简历需先同步到云端才能分享' : undefined
+              resume.isOffline ? '本地简历需先同步到云端才能分享' : undefined
             }
           >
             <Share2 className='size-3.5' />

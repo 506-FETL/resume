@@ -2,7 +2,8 @@ import type { RefCallback } from 'react'
 import type { ApplicationStatus, JobApplication } from '../../types'
 import type { CrossListDropResult } from '@/components/ui/cross-list-drag'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
@@ -17,6 +18,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   CrossListDragProvider,
   useCrossListContainer,
@@ -31,7 +33,7 @@ import {
   TRACKER_SEARCH_INPUT_ID,
 } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
-import useTrackerStore from '../../store'
+import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import { selectTrackerListJobs } from '../../store/selectors'
 import {
   filterJobs,
@@ -169,6 +171,8 @@ function BoardView() {
     metricFilter,
     searchKeyword,
     showArchived,
+    filterCompanyId,
+    focusedOnly,
     changeJobStatus,
     rejectedCollapsed,
     toggleRejectedCollapsed,
@@ -179,6 +183,8 @@ function BoardView() {
       metricFilter: state.metricFilter,
       searchKeyword: state.searchKeyword,
       showArchived: state.showArchived,
+      filterCompanyId: state.filterCompanyId,
+      focusedOnly: state.focusedOnly,
       changeJobStatus: state.changeJobStatus,
       rejectedCollapsed: state.rejectedCollapsed,
       toggleRejectedCollapsed: state.toggleRejectedCollapsed,
@@ -189,6 +195,22 @@ function BoardView() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const columnElementsRef = useRef<Map<string, HTMLDivElement>>(new Map())
   const pendingMoveJobIdRef = useRef<string | null>(null)
+  const restoreColumnFocusRef = useRef(false)
+
+  const setColumnToggleRef = useCallback(
+    (element: HTMLButtonElement | null) => {
+      if (!element || !restoreColumnFocusRef.current) return
+
+      restoreColumnFocusRef.current = false
+      element.focus({ preventScroll: true })
+    },
+    [],
+  )
+
+  const handleToggleRejected = () => {
+    restoreColumnFocusRef.current = true
+    toggleRejectedCollapsed()
+  }
 
   const focusCancel = useCallback<RefCallback<HTMLButtonElement>>((element) => {
     // ref 在隐藏背景的副作用前挂载，确保焦点先进入确认框。
@@ -201,8 +223,18 @@ function BoardView() {
   } | null>(null)
 
   const scopedJobs = useMemo(
-    () => filterJobs(jobs, null, searchKeyword, showArchived, null),
-    [jobs, searchKeyword, showArchived],
+    () =>
+      filterJobs(
+        filterCompanyId
+          ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
+          : jobs,
+        null,
+        searchKeyword,
+        showArchived,
+        null,
+        focusedOnly,
+      ),
+    [jobs, searchKeyword, showArchived, filterCompanyId, focusedOnly],
   )
 
   const groupedJobs = useMemo(() => {
@@ -256,10 +288,14 @@ function BoardView() {
 
   useEffect(() => {
     if (
-      highlightedStatus &&
-      BOARD_COLUMNS.some((column) => column.status === highlightedStatus)
+      !highlightedStatus ||
+      !BOARD_COLUMNS.some((column) => column.status === highlightedStatus)
     )
-      requestAnimationFrame(() => scrollToColumn(highlightedStatus))
+      return
+
+    const frame = requestAnimationFrame(() => scrollToColumn(highlightedStatus))
+
+    return () => cancelAnimationFrame(frame)
   }, [highlightedStatus, scrollToColumn, rejectedCollapsed])
 
   const commitMove = (jobId: string, newStatus: ApplicationStatus) => {
@@ -267,6 +303,7 @@ function BoardView() {
       if (!isTrackerAccountScopeError(error))
         toast.error('更新状态失败', {
           description: getTrackerErrorMessage(error),
+          action: getTrackerConflictAction(error),
         })
     })
   }
@@ -340,7 +377,7 @@ function BoardView() {
                   className={cn(
                     'flex min-h-0 flex-col rounded-lg border border-transparent bg-muted/35 transition-colors',
                     highlighted && 'border-primary/40 bg-primary/5',
-                    collapsed ? 'w-[44px] shrink-0' : 'w-64 shrink-0',
+                    collapsed ? 'w-[44px] shrink-0' : 'min-w-64 flex-1',
                   )}
                   style={{
                     transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`,
@@ -357,12 +394,14 @@ function BoardView() {
                     className='flex min-h-0 flex-1 flex-col'
                   >
                     {collapsed ? (
-                      <button
+                      <Button
+                        ref={setColumnToggleRef}
                         type='button'
+                        variant='ghost'
                         aria-expanded={false}
-                        onClick={toggleRejectedCollapsed}
+                        onClick={handleToggleRejected}
                         title={`${column.label}（${columnJobs.length}）· 点击展开`}
-                        className='flex min-h-0 w-full flex-1 flex-col items-center gap-2.5 rounded-xl py-4 text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                        className='flex h-auto min-h-0 w-full flex-1 flex-col items-center justify-start gap-2.5 rounded-xl px-0 py-4 text-muted-foreground transition-colors hover:bg-muted/50'
                         style={{
                           transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`,
                         }}
@@ -380,17 +419,19 @@ function BoardView() {
                         <Badge variant='secondary' className='mt-1'>
                           {columnJobs.length}
                         </Badge>
-                      </button>
+                      </Button>
                     ) : (
                       <>
                         <div className='px-2 pt-2.5 pb-2'>
                           <div className='flex items-center justify-between gap-1'>
                             {isRejectedColumn ? (
-                              <button
+                              <Button
+                                ref={setColumnToggleRef}
                                 type='button'
+                                variant='ghost'
                                 aria-expanded={true}
-                                onClick={toggleRejectedCollapsed}
-                                className='flex min-w-0 cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                                onClick={handleToggleRejected}
+                                className='flex h-auto min-w-0 cursor-pointer items-center gap-2 rounded-sm px-0 py-0 hover:bg-transparent'
                               >
                                 <ChevronDown className='size-3.5 shrink-0 text-muted-foreground' />
                                 <span
@@ -404,7 +445,7 @@ function BoardView() {
                                 <h3 className='truncate text-sm font-semibold'>
                                   {column.label}
                                 </h3>
-                              </button>
+                              </Button>
                             ) : (
                               <div className='flex min-w-0 items-center gap-2'>
                                 <span

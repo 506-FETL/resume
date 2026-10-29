@@ -1,6 +1,7 @@
 import type { JobApplication, TrackerContact } from '../../../types'
 import { Plus, Trash2, UserRound } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
@@ -208,9 +209,7 @@ export default function Contacts({ job }: ContactsProps) {
         animationKey={contacts.length === 0 ? 'empty' : 'contacts'}
       >
         {contacts.length === 0 ? (
-          <p className='rounded-lg border border-dashed bg-muted/20 px-3 py-6 text-center text-xs text-muted-foreground'>
-            暂无联系人
-          </p>
+          <p className='text-sm text-muted-foreground'>暂无联系人</p>
         ) : (
           <ul className='flex flex-col gap-3'>
             <AnimatePresence initial={false} mode='popLayout'>

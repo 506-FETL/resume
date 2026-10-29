@@ -1,15 +1,20 @@
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
+import { DURATION } from '@/lib/motion'
 
 // 数字滚动到目标值。reduced-motion 或首帧直接落终值，避免无障碍下的动画。
-export function useCountUp(target: number, duration = 500): number {
+export function useCountUp(
+  target: number,
+  duration = DURATION.fast * 1000,
+): number {
   const reduce = useReducedMotion()
   const [value, setValue] = useState(target)
   const fromRef = useRef(target)
   const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (reduce) {
+    if (reduce || duration <= 0) {
+      fromRef.current = target
       setValue(target)
 
       return
@@ -29,18 +34,21 @@ export function useCountUp(target: number, duration = 500): number {
       const t = Math.min(1, (now - start) / duration)
       const eased = 1 - (1 - t) ** 3
 
-      setValue(Math.round(from + (target - from) * eased))
+      const nextValue = Math.round(from + (target - from) * eased)
+
+      fromRef.current = nextValue
+      setValue(nextValue)
 
       if (t < 1) rafRef.current = requestAnimationFrame(tick)
-      else fromRef.current = target
+      else rafRef.current = null
     }
 
     rafRef.current = requestAnimationFrame(tick)
 
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
 
-      fromRef.current = target
+      rafRef.current = null
     }
   }, [target, duration, reduce])
 

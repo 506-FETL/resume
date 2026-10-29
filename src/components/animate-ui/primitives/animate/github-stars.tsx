@@ -2,11 +2,11 @@
 
 import type { HTMLMotionProps } from 'motion/react'
 import type { WithAsChild } from '@/components/animate-ui/primitives/animate/slot'
-
 import type { ParticlesEffectProps } from '@/components/animate-ui/primitives/effects/particles'
 import type { SlidingNumberProps } from '@/components/animate-ui/primitives/texts/sliding-number'
 import type { UseIsInViewOptions } from '@/hooks/use-is-in-view'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import * as React from 'react'
 import { Slot } from '@/components/animate-ui/primitives/animate/slot'
 import {

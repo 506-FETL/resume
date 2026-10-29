@@ -1,8 +1,9 @@
 import type { KeyboardEvent } from 'react'
 import type { SkillItem } from '@/lib/schema/resume/form/skillSpecialty'
 import { Plus, Trash2, X } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useRef, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,7 @@ function SkillListEditor({
   value: SkillItem[]
   onChange: (val: SkillItem[]) => void
 }) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const reduceMotion = useReducedMotion()
   const [customInput, setCustomInput] = useState('')
 
@@ -86,6 +88,8 @@ function SkillListEditor({
   }
 
   const removeSkill = (index: number) => {
+    inputRef.current?.focus()
+
     onChange(value.filter((_, i) => i !== index))
   }
 
@@ -118,6 +122,7 @@ function SkillListEditor({
       {/* 自定义添加 */}
       <div className='flex gap-2'>
         <Input
+          ref={inputRef}
           placeholder='输入自定义技能名称'
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
@@ -192,6 +197,7 @@ function SkillListEditor({
                           type='button'
                           variant='ghost'
                           size='icon'
+                          aria-label={`移除技能 ${skill.label}`}
                           onClick={() => removeSkill(index)}
                           className='size-7 text-destructive hover:text-destructive hover:bg-destructive/10'
                         >

@@ -1,6 +1,6 @@
 import type { JobApplicationSummary } from '@/lib/supabase/resume/company'
-import type { PendingSubmissionSummary } from '@/lib/supabase/resume/submissions'
 import { jobContextUrl } from '@/lib/job-context'
+import { APPLICATION_STATUS_CONFIG } from '@/pages/tracker/const'
 import { getDaysUntil, isJobPendingFollowUp } from '@/pages/tracker/utils'
 
 export interface JobPriorityItem {
@@ -14,10 +14,7 @@ function jobTitle(job: { company: string; position: string }) {
   return [job.company || '未命名公司', job.position || '未填写职位'].join(' · ')
 }
 
-export function buildJobPriorities(
-  jobs: JobApplicationSummary[],
-  pendingMaterials: PendingSubmissionSummary[],
-) {
+export function buildJobPriorities(jobs: JobApplicationSummary[]) {
   const followUps = jobs
     .filter(isJobPendingFollowUp)
     .sort(
@@ -45,6 +42,7 @@ export function buildJobPriorities(
       job.interview_sub_stages
         .filter(
           (round) =>
+            !round.is_history &&
             round.status !== '已完成' &&
             round.status !== '已拒绝' &&
             round.start_date &&
@@ -67,14 +65,29 @@ export function buildJobPriorities(
       }),
     )
 
-  const materials = pendingMaterials.map(
-    (submission): JobPriorityItem => ({
-      id: submission.id,
-      title: jobTitle(submission.company),
-      detail: '投递已记录，待补实际提交的材料',
-      to: jobContextUrl('/tracker', submission.job_id, { tab: 'documents' }),
-    }),
-  )
+  const focused = jobs
+    .filter(
+      (job) =>
+        job.focused_at &&
+        !job.archived &&
+        job.status !== 'offer' &&
+        job.status !== 'rejected',
+    )
+    .sort((left, right) => right.focused_at!.localeCompare(left.focused_at!))
+    .map(
+      (job): JobPriorityItem => ({
+        id: job.id,
+        title: jobTitle(job),
+        detail: [
+          APPLICATION_STATUS_CONFIG[job.status].label,
+          job.next_action_date,
+          job.next_action,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        to: jobContextUrl('/tracker', job.id, { tab: 'follow-up' }),
+      }),
+    )
 
-  return { interviews, followUps, materials }
+  return { interviews, followUps, focused }
 }

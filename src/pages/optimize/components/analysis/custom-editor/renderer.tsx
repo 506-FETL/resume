@@ -55,7 +55,7 @@ export function SuggestionCompareCard({
   return (
     <div
       className={cn(
-        'min-w-0 max-w-full space-y-3 rounded-xl border p-3 transition-all duration-200 sm:p-4',
+        'min-w-0 max-w-full space-y-3 rounded-xl border p-3 transition-[background-color,border-color,box-shadow,color,transform] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) sm:p-4',
         fixed
           ? 'bg-primary/5 border-primary/20 shadow-sm'
           : 'bg-muted/10 border-border/50 hover:bg-muted/20',

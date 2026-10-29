@@ -1,6 +1,6 @@
 import type { ResumeTemplateBinding } from '@/lib/schema'
 import { LayoutTemplate, RotateCw } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'

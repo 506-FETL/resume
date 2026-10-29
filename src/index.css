@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/inter';
 @import './styles/motion.css';
@@ -311,21 +310,18 @@ body {
   mix-blend-mode: normal;
 }
 
-/* 流式输出动画：对齐 ChatGPT「smooth streaming」——新块以极轻微的模糊+淡入平滑出现，无位移，只在首次挂载触发，长文本零额外重排 */
+/* 仅新挂载的文本块淡入，增量文字不重新播放，也不改变正文布局。 */
 @keyframes stream-in {
   from {
     opacity: 0;
-    filter: blur(3px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
   }
 }
 
 .stream-in > * {
-  animation: stream-in 0.55s cubic-bezier(0.33, 1, 0.68, 1) both;
-  will-change: opacity, filter;
+  animation: stream-in var(--ui-motion-base) var(--ui-motion-enter-ease) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

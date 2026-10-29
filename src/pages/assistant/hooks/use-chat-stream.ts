@@ -25,6 +25,10 @@ import {
   CONVERSATION_TITLE_MAX_LEN,
   DEFAULT_CONVERSATION_TITLE,
 } from '../const'
+import {
+  parseComposerDraft,
+  readableConversationTitle,
+} from '../composer-references'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
 import { TOOL_CANVAS_META, writeLastConversationId } from '../utils'
 import { invalidateCanvasSnapshot } from './use-canvas-preview'
@@ -530,7 +534,11 @@ export function useChatStream() {
         await touchConversation(conversationId)
 
         if (isNewConversation) {
-          const title = trimmed.slice(0, CONVERSATION_TITLE_MAX_LEN)
+          const title = readableConversationTitle(trimmed).slice(
+            0,
+            CONVERSATION_TITLE_MAX_LEN,
+          )
+
           const updated = await updateConversation(conversationId, { title })
 
           useAssistantStore.getState().upsertConversation(updated)
@@ -642,7 +650,10 @@ export function useChatStream() {
       }
 
       try {
-        const references = createSkillReferences(text, skillIds)
+        const references = createSkillReferences(
+          parseComposerDraft(text).text,
+          skillIds,
+        )
 
         const trimmed =
           text.trim() ||
@@ -777,7 +788,9 @@ export function useChatStream() {
       if (ui < 0 || !trimmed) return
 
       try {
-        const references = createSkillReferences(trimmed)
+        const references = createSkillReferences(
+          parseComposerDraft(trimmed).text,
+        )
 
         runSend(trimmed, references, messages[ui])
       } catch (error) {

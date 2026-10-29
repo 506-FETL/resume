@@ -1,9 +1,12 @@
 import type { AiMessage } from '@/lib/ai/types'
 import dayjs from 'dayjs'
 import { Check, Copy, Pencil, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import AnimatedContent from '@/components/motion/animated-content'
+import { readableMessageText } from '../../composer-references'
 import { Button } from '@/components/ui/button'
-import { getEditableMessageText } from '@/lib/ai/skills/references'
+import { getSkillReferences } from '@/lib/ai/skills/references'
 import { cn } from '@/lib/utils'
 
 interface MessageActionsProps {
@@ -13,12 +16,21 @@ interface MessageActionsProps {
 }
 
 function getPlainText(message: AiMessage): string {
-  if (message.role === 'user') return getEditableMessageText(message.parts)
-
-  return message.parts
+  const text = message.parts
     .filter((p) => p.type === 'text')
     .map((p) => (p as { text: string }).text)
     .join('\n')
+
+  if (message.role === 'user') {
+    return [
+      ...getSkillReferences(message.parts).map((skill) => skill.displayName),
+      readableMessageText(text),
+    ]
+      .filter(Boolean)
+      .join('\n')
+  }
+
+  return text
 }
 
 export function MessageActions({
@@ -28,21 +40,32 @@ export function MessageActions({
 }: MessageActionsProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(
+    () => () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+    },
+    [],
+  )
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(getPlainText(message))
       setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+
+      resetTimerRef.current = setTimeout(() => setCopied(false), 1500)
     } catch {
-      // 剪贴板不可用时静默失败
+      toast.error('复制失败，请选择消息文字后复制')
     }
   }
 
   return (
     <div
       className={cn(
-        'flex items-center gap-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100',
+        'flex max-w-full flex-wrap items-center gap-1 text-muted-foreground opacity-100 transition-opacity group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100',
         isUser && 'justify-end',
       )}
     >
@@ -52,15 +75,21 @@ export function MessageActions({
       <Button
         variant='ghost'
         size='icon-xs'
-        aria-label='复制'
+        aria-label={copied ? '已复制' : '复制'}
         title='复制'
         onClick={handleCopy}
       >
-        {copied ? (
-          <Check className='size-3.5 text-primary' />
-        ) : (
-          <Copy className='size-3.5' />
-        )}
+        <AnimatedContent
+          animationKey={copied ? 'copied' : 'copy'}
+          as='span'
+          className='flex size-3.5 items-center justify-center'
+        >
+          {copied ? (
+            <Check className='size-3.5 text-primary' />
+          ) : (
+            <Copy className='size-3.5' />
+          )}
+        </AnimatedContent>
       </Button>
       {isUser && onEdit && (
         <Button

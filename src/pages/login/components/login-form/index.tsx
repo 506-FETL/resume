@@ -1,4 +1,5 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { authErrorMessage } from '@/lib/auth/feedback'
 import { DURATION, EASE } from '@/lib/motion'
 import { SignInWithEmailAndPassword } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
@@ -41,7 +43,7 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
 
       navigate(redirect, { replace: true })
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : '发生错误, 请稍后再试')
+      setError(authErrorMessage(error, '暂时无法登录，请稍后重试。'))
     } finally {
       setIsLoading(false)
     }
@@ -63,6 +65,8 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
                 <Input
                   id='email'
                   type='email'
+                  autoComplete='email'
+                  name='email'
                   placeholder='m@example.com'
                   required
                   value={email}
@@ -82,6 +86,8 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
                 <Input
                   id='password'
                   type='password'
+                  autoComplete='current-password'
+                  name='password'
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -110,7 +116,7 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
                     }}
                     className='overflow-hidden'
                   >
-                    <FieldError>{error}</FieldError>
+                    <FieldError role='alert'>{error}</FieldError>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -132,7 +138,10 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
             </FieldGroup>
             <div className='mt-4 text-center text-sm'>
               还没有账号？
-              <Link to='/sign-up' className='underline underline-offset-4'>
+              <Link
+                to={`/sign-up?redirect=${encodeURIComponent(redirect)}`}
+                className='underline underline-offset-4'
+              >
                 注册
               </Link>
             </div>

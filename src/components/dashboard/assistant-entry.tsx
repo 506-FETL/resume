@@ -1,5 +1,5 @@
 import { Sparkles } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Link, useLocation } from 'react-router-dom'
 import {
   SidebarGroup,

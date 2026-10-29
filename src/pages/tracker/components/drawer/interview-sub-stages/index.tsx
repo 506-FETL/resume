@@ -2,7 +2,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import type { InterviewSubStage } from '../../../types'
 import dayjs from 'dayjs'
 import { CalendarIcon, Check, MessageSquare, Plus, Trash2 } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import {
@@ -45,6 +46,9 @@ interface InterviewSubStagesProps {
 }
 
 function roundStatusLabel(round: InterviewSubStage) {
+  if (round.is_history)
+    return `历史 · ${round.status === '已完成' ? '已通过' : round.status === '已拒绝' ? '已结束' : '已记录'}`
+
   return round.status === '已完成'
     ? '已通过'
     : round.status === '已拒绝'
@@ -89,7 +93,7 @@ export function InterviewSubStages({
   const addRef = useRef<HTMLButtonElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const deletedRef = useRef(false)
-  const exitInProgressRef = useRef(false)
+  const exitingRoundIdRef = useRef<string | null>(null)
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null)
   const deletedRound = subStages.find((round) => round.id === deleting)
 
@@ -97,7 +101,7 @@ export function InterviewSubStages({
     const viewport = scrollRef.current
     const trigger = activeRoundId && triggerRefs.current.get(activeRoundId)
 
-    if (!viewport || !trigger || exitInProgressRef.current) return
+    if (!viewport || !trigger || exitingRoundIdRef.current) return
 
     const viewportBox = viewport.getBoundingClientRect()
     const triggerBox = trigger.getBoundingClientRect()
@@ -116,6 +120,11 @@ export function InterviewSubStages({
       })
     }
   }, [activeRoundId, reduce])
+
+  useEffect(() => {
+    if (subStages.some((round) => round.id === exitingRoundIdRef.current))
+      exitingRoundIdRef.current = null
+  }, [subStages])
 
   useEffect(() => {
     const viewport = scrollRef.current
@@ -235,7 +244,7 @@ export function InterviewSubStages({
                 <AnimatePresence
                   initial={false}
                   onExitComplete={() => {
-                    exitInProgressRef.current = false
+                    exitingRoundIdRef.current = null
                     revealSelectedRound()
                   }}
                 >
@@ -494,7 +503,8 @@ export function InterviewSubStages({
                 if (!deleting) return
 
                 deletedRef.current = true
-                exitInProgressRef.current = subStages.length > 1
+                exitingRoundIdRef.current =
+                  subStages.length > 1 ? deleting : null
 
                 if (selectedRound?.id === deleting) {
                   const next =

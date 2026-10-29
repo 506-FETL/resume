@@ -1,4 +1,5 @@
-import { Loader2, RefreshCcw, Search } from 'lucide-react'
+import { RefreshCcw, Search } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
 import useAtsStore from '../../../store'
 
@@ -32,7 +33,11 @@ export function AnalysisActions({
         onClick={onStartAnalysis}
         disabled={isProcessing || !selectedResumeId}
       >
-        {isProcessing ? <Loader2 className='animate-spin' /> : <RefreshCcw />}
+        {isProcessing ? (
+          <Spinner className='motion-reduce:animate-none' />
+        ) : (
+          <RefreshCcw />
+        )}
         {hasAnalysis ? '重新检测' : '开始检测'}
       </Button>
     </>

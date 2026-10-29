@@ -1,6 +1,7 @@
 import { Plus, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +17,7 @@ export default function VersionTagInput({
   onChange,
 }: VersionTagInputProps) {
   const [inputValue, setInputValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
   const dialogMotion = useHistoryDialogMotion()
 
   const appendTag = () => {
@@ -45,18 +47,18 @@ export default function VersionTagInput({
         <AnimatePresence initial={false} mode='popLayout'>
           {value.length > 0 ? (
             value.map((tag) => (
-              <motion.div
+              <PresenceDiv
                 key={`tag:${tag}`}
                 layout={!dialogMotion.reduceMotion}
                 initial={{
                   opacity: 0,
-                  scale: dialogMotion.reduceMotion ? 1 : 0.9,
+                  scale: dialogMotion.reduceMotion ? 1 : 0.96,
                   y: dialogMotion.reduceMotion ? 0 : 4,
                 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{
                   opacity: 0,
-                  scale: dialogMotion.reduceMotion ? 1 : 0.9,
+                  scale: dialogMotion.reduceMotion ? 1 : 0.96,
                   transition: dialogMotion.exitTransition,
                 }}
                 transition={{
@@ -72,14 +74,15 @@ export default function VersionTagInput({
                     size='icon-xs'
                     className='-mr-1 size-4 rounded-full'
                     aria-label={`移除标签 ${tag}`}
-                    onClick={() =>
+                    onClick={() => {
+                      inputRef.current?.focus()
                       onChange(value.filter((item) => item !== tag))
-                    }
+                    }}
                   >
                     <X />
                   </Button>
                 </Badge>
-              </motion.div>
+              </PresenceDiv>
             ))
           ) : (
             <motion.span
@@ -98,6 +101,7 @@ export default function VersionTagInput({
 
       <div className='flex flex-col gap-2 sm:flex-row'>
         <Input
+          ref={inputRef}
           value={inputValue}
           placeholder='输入标签后按回车，例如：春招、投递版'
           onChange={(event) => setInputValue(event.target.value)}

@@ -3,7 +3,7 @@ import type {
   SubmissionMaterialKind,
 } from '../../../submission-types'
 import { useEffect, useRef, useState } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -31,7 +32,7 @@ import {
 } from '@/components/ui/select'
 import {
   listJobSubmissions,
-  supplementJobSubmission,
+  correctJobSubmissionMaterial,
   SubmissionSaveError,
 } from '@/lib/supabase/resume/submissions'
 import {
@@ -47,16 +48,17 @@ import WorkflowDateField from '../workflow-date-field'
 interface Props {
   jobId: string
   requestId: string
-  supplement?: JobSubmission
+  correctingRecord?: JobSubmission
   onClose: () => void
 }
 
 export function SubmissionForm({
   jobId,
   requestId,
-  supplement,
+  correctingRecord,
   onClose,
 }: Props) {
+  const correcting = Boolean(correctingRecord)
   const scope = getTrackerAccountScope()
   const reduce = useReducedMotion()
   const returnFocusRef = useRef(document.activeElement)
@@ -82,7 +84,10 @@ export function SubmissionForm({
     retry,
   } = useTrackerResumeOptions(true)
 
-  const [kind, setKind] = useState<SubmissionMaterialKind>('pending')
+  const [kind, setKind] = useState<SubmissionMaterialKind>(
+    correcting ? 'platform' : 'pending',
+  )
+
   const [resumeId, setResumeId] = useState(job?.resume_id ?? '')
   const [versionId, setVersionId] = useState('')
 
@@ -95,6 +100,7 @@ export function SubmissionForm({
   const [date, setDate] = useState(new Date().toLocaleDateString('sv-SE'))
   const [channel, setChannel] = useState('')
   const [note, setNote] = useState('')
+  const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uncertain, setUncertain] = useState(false)
@@ -126,7 +132,8 @@ export function SubmissionForm({
     if (kind === 'platform' && !resumeId)
       return setError('请选择一份已保存的简历')
     if (kind === 'file' && !file) return setError('请选择 PDF 或 DOCX 原件')
-    if (supplement && kind === 'pending') return setError('请选择要补充的材料')
+
+    if (correcting && !reason.trim()) return setError('请填写更正原因')
 
     setBusy(true)
     setError(null)
@@ -140,10 +147,10 @@ export function SubmissionForm({
         file: kind === 'file' ? file : undefined,
       }
 
-      if (supplement)
-        await supplementJobSubmission(
-          supplement.id,
-          { ...material, jobId },
+      if (correctingRecord)
+        await correctJobSubmissionMaterial(
+          correctingRecord.id,
+          { ...material, jobId, reason: reason.trim() },
           createTrackerAccountGuard(scope),
         )
       else
@@ -158,6 +165,8 @@ export function SubmissionForm({
 
       if (!isTrackerAccountScopeCurrent(scope)) return
 
+      useTrackerStore.getState().notifySubmissionChanged()
+      await useTrackerStore.getState().reloadJobs()
       close()
     } catch (cause) {
       if (!isTrackerAccountScopeCurrent(scope)) return
@@ -184,10 +193,12 @@ export function SubmissionForm({
         createTrackerAccountGuard(scope),
       )
 
-      const found = rows.find((row) => row.id === (supplement?.id ?? requestId))
+      const found = rows.find(
+        (row) => row.id === (correctingRecord?.id ?? requestId),
+      )
 
       if (!isTrackerAccountScopeCurrent(scope)) return
-      if (found && (!supplement || found.material_kind !== 'pending')) {
+      if (found && (!correctingRecord || found.material_kind !== 'pending')) {
         await useTrackerStore.getState().reloadJobs()
         close()
       } else setError('暂未查到本次保存结果，可使用原编号重试。')
@@ -225,19 +236,17 @@ export function SubmissionForm({
         showCloseButton={!busy && !uncertain}
       >
         <DialogHeader>
-          <DialogTitle>
-            {supplement ? '补充投递材料' : '记录一次投递'}
-          </DialogTitle>
+          <DialogTitle>{correcting ? '更正原件' : '记录投递'}</DialogTitle>
           <DialogDescription>
             {job?.company} · {job?.position}
-            。同一岗位的多次投递共用当前进度，材料保存后不能替换。
+            。投递原件可以不附，更正已有原件时会保留历史。
           </DialogDescription>
         </DialogHeader>
         <fieldset
           disabled={busy || uncertain}
           className='space-y-4 disabled:opacity-70'
         >
-          {!supplement && (
+          {!correctingRecord && (
             <>
               <div className='space-y-2'>
                 <WorkflowDateField
@@ -267,28 +276,58 @@ export function SubmissionForm({
               </div>
             </>
           )}
-          <div className='space-y-2'>
-            <Label htmlFor='submission-kind'>本次材料</Label>
-            <Select
-              value={kind}
-              onValueChange={(value) =>
-                setKind(value as SubmissionMaterialKind)
-              }
-            >
-              <SelectTrigger id='submission-kind' className='w-full'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent
-                style={
-                  reduce ? { animation: 'none', transform: 'none' } : undefined
+          {correcting && (
+            <div className='space-y-2'>
+              <Label htmlFor='material-correction-reason'>更正原因</Label>
+              <Textarea
+                id='material-correction-reason'
+                value={reason}
+                maxLength={1000}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            </div>
+          )}
+          {!correcting && (
+            <div className='flex items-center gap-2'>
+              <Checkbox
+                id='submission-attach'
+                checked={kind !== 'pending'}
+                onCheckedChange={(checked) =>
+                  setKind(checked ? 'platform' : 'pending')
                 }
-              >
-                <SelectItem value='pending'>稍后补材料</SelectItem>
-                <SelectItem value='platform'>平台已保存版本</SelectItem>
-                <SelectItem value='file'>上传原件</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              />
+              <Label htmlFor='submission-attach'>附上投递原件（可选）</Label>
+            </div>
+          )}
+          <AnimatedContent
+            animationKey={kind === 'pending' ? 'none' : 'attached'}
+          >
+            {kind !== 'pending' && (
+              <div className='space-y-2'>
+                <Label htmlFor='submission-kind'>原件来源</Label>
+                <Select
+                  value={kind}
+                  onValueChange={(value) =>
+                    setKind(value as SubmissionMaterialKind)
+                  }
+                >
+                  <SelectTrigger id='submission-kind' className='w-full'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent
+                    style={
+                      reduce
+                        ? { animation: 'none', transform: 'none' }
+                        : undefined
+                    }
+                  >
+                    <SelectItem value='platform'>平台已保存版本</SelectItem>
+                    <SelectItem value='file'>上传原件</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </AnimatedContent>
           <AnimatedContent animationKey={kind}>
             {kind === 'platform' && (
               <div className='space-y-2'>
@@ -316,7 +355,11 @@ export function SubmissionForm({
                     正在加载简历
                   </p>
                 ) : resumes.length === 0 ? (
-                  <p>没有可用的已保存简历，可上传原件或稍后补材料。</p>
+                  <p>
+                    {correcting
+                      ? '没有可用的已保存简历，可上传原件。'
+                      : '没有可用的已保存简历，可上传原件，也可取消附上原件后直接记录投递。'}
+                  </p>
                 ) : (
                   <Select value={resumeId} onValueChange={setResumeId}>
                     <SelectTrigger id='submission-resume' className='w-full'>
@@ -423,7 +466,7 @@ export function SubmissionForm({
         )}
         {uncertain && (
           <p className='break-all text-xs text-muted-foreground'>
-            本次操作编号：{supplement?.id ?? requestId}
+            本次操作编号：{correctingRecord?.id ?? requestId}
           </p>
         )}
         <DialogFooter>
@@ -434,37 +477,7 @@ export function SubmissionForm({
           >
             取消
           </Button>
-          {!supplement &&
-            !uncertain &&
-            job?.status === 'saved' &&
-            job.activities.some(
-              (activity) =>
-                activity.type === 'status_change' &&
-                activity.label.includes('已投递'),
-            ) && (
-              <Button
-                variant='outline'
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true)
-
-                  try {
-                    await useTrackerStore
-                      .getState()
-                      .correctJobStatus(jobId, 'applied')
-
-                    close()
-                  } catch (cause) {
-                    setError(getTrackerErrorMessage(cause))
-                  } finally {
-                    setBusy(false)
-                  }
-                }}
-              >
-                只恢复阶段
-              </Button>
-            )}
-          {uncertain && (
+          {uncertain && !correcting && (
             <Button variant='outline' disabled={busy} onClick={query}>
               查询保存结果
             </Button>
@@ -474,8 +487,8 @@ export function SubmissionForm({
               ? '正在保存…'
               : uncertain
                 ? '使用原编号重试'
-                : supplement
-                  ? '保存材料'
+                : correctingRecord
+                  ? '保存更正'
                   : '确认已投递'}
           </Button>
         </DialogFooter>

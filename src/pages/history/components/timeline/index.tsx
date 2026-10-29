@@ -3,6 +3,7 @@ import { History, SearchX } from 'lucide-react'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { staggerDelay } from '@/lib/motion'
@@ -84,7 +85,7 @@ export default function HistoryTimeline({
 
         <AnimatePresence initial={false}>
           {!loading && versions.length > 0 && (
-            <motion.div
+            <PresenceDiv
               key='filter'
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -96,7 +97,7 @@ export default function HistoryTimeline({
                 <VersionFilterBar criteria={filter} onChange={setFilter} />
                 <AnimatePresence initial={false}>
                   {hasFilter && (
-                    <motion.div
+                    <PresenceDiv
                       key='result-count'
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
@@ -111,28 +112,28 @@ export default function HistoryTimeline({
                         找到 {filteredVersions.length} 个版本，共{' '}
                         {versions.length} 个
                       </p>
-                    </motion.div>
+                    </PresenceDiv>
                   )}
                 </AnimatePresence>
               </div>
-            </motion.div>
+            </PresenceDiv>
           )}
         </AnimatePresence>
 
-        <motion.div
+        <PresenceDiv
           layoutScroll
           className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain p-3'
         >
-          <motion.div
+          <PresenceDiv
             layout={reduceMotion ? false : 'size'}
             transition={layout}
             className='relative flex flex-col gap-2'
           >
             <AnimatePresence initial={false} mode='popLayout'>
               {loading ? (
-                <motion.div key='loading' {...itemMotion}>
+                <PresenceDiv key='loading' {...itemMotion}>
                   <TimelineLoadingState />
-                </motion.div>
+                </PresenceDiv>
               ) : groups.length > 0 ? (
                 groups.flatMap((group) => [
                   <motion.h3
@@ -144,7 +145,7 @@ export default function HistoryTimeline({
                     {group.label}
                   </motion.h3>,
                   ...group.items.map((version, index) => (
-                    <motion.div
+                    <PresenceDiv
                       key={version.id}
                       layout={reduceMotion ? false : 'position'}
                       {...itemMotion}
@@ -161,11 +162,11 @@ export default function HistoryTimeline({
                         selected={selectedEntry === version.id}
                         onSelectEntry={onSelectEntry}
                       />
-                    </motion.div>
+                    </PresenceDiv>
                   )),
                 ])
               ) : (
-                <motion.div
+                <PresenceDiv
                   key={versions.length > 0 ? 'no-results' : 'empty'}
                   {...itemMotion}
                 >
@@ -186,11 +187,11 @@ export default function HistoryTimeline({
                   ) : (
                     <TimelineEmptyState currentResume={currentResume} />
                   )}
-                </motion.div>
+                </PresenceDiv>
               )}
             </AnimatePresence>
-          </motion.div>
-        </motion.div>
+          </PresenceDiv>
+        </PresenceDiv>
       </Card>
     </LayoutGroup>
   )

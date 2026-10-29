@@ -308,6 +308,7 @@ export function filterJobs(
   keyword: string,
   showArchived = true,
   metricFilter: TrackerMetricKey | null = null,
+  focusedOnly = false,
 ): JobApplication[] {
   const trimmed = keyword.trim().toLowerCase()
 
@@ -315,6 +316,7 @@ export function filterJobs(
     // showArchived 打开 = 「已归档视图」，只看已归档；关闭 = 常规视图，隐藏已归档
     if (showArchived ? !job.archived : job.archived) return false
     if (filterStatus && job.status !== filterStatus) return false
+    if (focusedOnly && !job.focused_at) return false
     if (metricFilter && !matchesMetric(job, metricFilter)) return false
     if (!trimmed) return true
 
@@ -332,7 +334,8 @@ export interface TrackerOverviewStats {
   interview: number
   offer: number
   pending: number
-  historicalApplied: number // 全部记录中曾进入已投递或后续阶段的职位，含已归档
+  historicalApplied: number // 有唯一投递留档的职位，含已归档
+  unresolvedSubmissions: number
   responded: number // 全部记录中曾进入测评或后续阶段的职位
   responseRate: number // responded / historicalApplied，不使用当前已投递数作分母
 }
@@ -493,18 +496,26 @@ export function getTrackerOverviewStats(
   jobs: JobApplication[],
   showArchived = false,
   keyword = '',
+  companyId: string | null = null,
+  focusedOnly = false,
 ): TrackerOverviewStats {
-  const scopedJobs = filterJobs(jobs, null, keyword, showArchived)
-  const appliedIdx = APPLICATION_STATUS_ORDER.indexOf('applied')
+  const scopedJobs = filterJobs(
+    companyId
+      ? jobs.filter((job) => job.tracker_company_id === companyId)
+      : jobs,
+    null,
+    keyword,
+    showArchived,
+    null,
+    focusedOnly,
+  )
+
   const responseIdx = APPLICATION_STATUS_ORDER.indexOf('assessment')
 
-  // 历史漏斗口径：投过就算（含已结束/已归档的），据 stage_details 还原漏斗深度
-  const appliedPlus = jobs.filter(
-    (j) => getFurthestStageIndex(j) >= appliedIdx,
-  ).length
+  const appliedPlus = jobs.filter((job) => job.has_submission).length
 
   const responsePlus = jobs.filter(
-    (j) => getFurthestStageIndex(j) >= responseIdx,
+    (j) => j.has_submission && getFurthestStageIndex(j) >= responseIdx,
   ).length
 
   const countMetric = (key: TrackerMetricKey) =>
@@ -520,6 +531,8 @@ export function getTrackerOverviewStats(
     offer: countMetric('offer'),
     pending: countMetric('pending'),
     historicalApplied: appliedPlus,
+    unresolvedSubmissions: jobs.filter((job) => job.unresolved_submissions)
+      .length,
     responded: responsePlus,
     responseRate,
   }

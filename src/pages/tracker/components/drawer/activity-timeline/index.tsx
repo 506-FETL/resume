@@ -15,7 +15,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
@@ -35,12 +36,15 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import { resumeHtmlToText } from '@/lib/resume-import/text'
+import { APPLICATION_STATUS_CONFIG } from '../../../const'
 import { isTrackerAccountScopeError } from '../../../lib/account-scope'
 import useTrackerStore from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
 
 const TYPE_ICON: Record<TrackerActivityType, typeof CircleDot> = {
   status_change: GitCommitHorizontal,
+  workflow_resume: GitCommitHorizontal,
   interview: CircleDot,
   follow_up: CircleDot,
   note: MessageSquarePlus,
@@ -424,6 +428,29 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                                 <p className='mt-0.5 text-xs text-muted-foreground break-words'>
                                   {activity.note}
                                 </p>
+                              )}
+                              {activity.resume_details && (
+                                <div className='mt-1 space-y-1 text-xs text-muted-foreground'>
+                                  <p>
+                                    {activity.resume_details.date} · 恢复到
+                                    {
+                                      APPLICATION_STATUS_CONFIG[
+                                        activity.resume_details.target
+                                      ].label
+                                    }
+                                  </p>
+                                  {activity.resume_details.ended_detail && (
+                                    <p>
+                                      上次结束：
+                                      {activity.resume_details.ended_detail
+                                        .start_date ?? '日期未知'}
+                                      {activity.resume_details.ended_detail
+                                        .notes
+                                        ? ` · ${resumeHtmlToText(activity.resume_details.ended_detail.notes)}`
+                                        : ''}
+                                    </p>
+                                  )}
+                                </div>
                               )}
                               <p className='mt-0.5 text-[11px] text-muted-foreground'>
                                 {dayjs(activity.at).format('YYYY-MM-DD HH:mm')}

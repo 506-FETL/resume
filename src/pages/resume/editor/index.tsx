@@ -3,10 +3,12 @@ import type { RefObject } from 'react'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ORDERType } from '@/lib/schema'
 import { Edit } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageLoading } from '@/components/page-loading'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -60,6 +62,10 @@ function Editor() {
   const [sortDialogOpen, setSortDialogOpen] = useState(false)
   const [commentsOpen, setCommentsOpen] = useState(false)
   const restoreEditPanelRef = useRef(false)
+  const restoreEditFocusRef = useRef(false)
+  const focusEditPanelRef = useRef(false)
+  const editPanelElementRef = useRef<HTMLDivElement | null>(null)
+  const editTriggerElementRef = useRef<HTMLButtonElement | null>(null)
 
   const reviewUiRef = useRef<{
     activeTabId: ORDERType
@@ -179,7 +185,35 @@ function Editor() {
 
   // 桌面编辑面板开关 + 左导航自动让位（桌面恒为右侧常驻侧栏）
   const { open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
-  const closeEditPanel = useCallback(() => setPanelOpen(false), [setPanelOpen])
+
+  const closeEditPanel = useCallback(() => {
+    const active = document.activeElement
+
+    if (active instanceof HTMLElement) active.blur()
+
+    restoreEditFocusRef.current = true
+    setPanelOpen(false)
+  }, [setPanelOpen])
+
+  useEffect(() => {
+    const panel = editPanelElementRef.current
+
+    if (!panelOpen && restoreEditFocusRef.current) {
+      restoreEditFocusRef.current = false
+      editTriggerElementRef.current?.focus({ preventScroll: true })
+
+      return
+    }
+
+    if (!panelOpen || !panel || !focusEditPanelRef.current) return
+
+    focusEditPanelRef.current = false
+
+    panel
+      .querySelector<HTMLButtonElement>('[aria-label="收起编辑栏"]')
+      ?.focus({ preventScroll: true })
+  }, [panelOpen])
+
   const prepareCommentWrite = usePrepareWorkingCommentWrite(currentResumeId)
 
   const commentReview = useCommentReviewMode({
@@ -356,9 +390,6 @@ function Editor() {
     useResumeStore.getState().setSectionOpen(editRequest.section, true)
     useResumeCheckStore.getState().setTab('edit')
 
-    if (!editRequest.target)
-      useResumeCheckStore.setState({ editingIssueId: null })
-
     if (isMobile) setOpen(true)
     else setPanelOpen(true)
 
@@ -442,6 +473,7 @@ function Editor() {
               />
             </div>
             <EditPanel
+              panelRef={editPanelElementRef}
               open={panelOpen && commentReview.isWorking}
               order={order}
               visibilityState={visibilityState}
@@ -452,7 +484,7 @@ function Editor() {
             />
             <AnimatePresence>
               {!panelOpen && !commentsOpen && commentReview.isWorking && (
-                <motion.div
+                <PresenceDiv
                   initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{
@@ -470,9 +502,14 @@ function Editor() {
                   className='fixed bottom-6 right-6 z-1'
                 >
                   <Button
+                    ref={editTriggerElementRef}
                     className='shadow-md'
                     variant='secondary'
                     onClick={() => {
+                      if (document.activeElement instanceof HTMLElement)
+                        document.activeElement.blur()
+
+                      focusEditPanelRef.current = true
                       setCommentsOpen(false)
                       setPanelOpen(true)
                     }}
@@ -480,7 +517,7 @@ function Editor() {
                     <Edit />
                     编辑简历
                   </Button>
-                </motion.div>
+                </PresenceDiv>
               )}
             </AnimatePresence>
           </div>
@@ -657,9 +694,14 @@ function WorkingResumeComments({
 
   return (
     <>
-      {!open && bookmarkVisible ? (
-        <CommentBookmark unread={hasUnread} onOpen={() => onOpenChange(true)} />
-      ) : null}
+      <AnimatePresence initial={false}>
+        {!open && bookmarkVisible ? (
+          <CommentBookmark
+            unread={hasUnread}
+            onOpen={() => onOpenChange(true)}
+          />
+        ) : null}
+      </AnimatePresence>
       <CommentSurface
         rootRef={rootRef}
         sourceLabel={sourceLabel}

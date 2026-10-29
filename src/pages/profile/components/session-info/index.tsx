@@ -51,7 +51,7 @@ export function SessionInfo({
         </Badge>
       </div>
 
-      <div className='bg-muted/50 flex flex-col gap-3 rounded-lg border p-4'>
+      <div className='flex flex-col gap-3'>
         <div className='flex items-start justify-between'>
           <div className='flex items-center gap-2'>
             <Clock className='text-muted-foreground size-4 shrink-0' />

@@ -1,11 +1,13 @@
-import { CheckCircle2, FileText, Target } from 'lucide-react'
+import { ArrowDown, CheckCircle2, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 import { calculateRating, calculateReadabilityRating } from '../../utils'
+import '@fontsource/racing-sans-one/latin-400.css'
 
 interface OverviewSummaryCardProps {
   completedTasks: number
@@ -57,34 +59,48 @@ export default function OverviewSummaryCard({
   }
 
   const overallScore = summary?.overall_score ?? 0
+  const scoreAccent = calculateRating(overallScore)
   const readabilityScore = readabilityIndex?.score ?? 0
 
   const progressDescription =
     totalTasks === 0
-      ? '当前未发现必须修改项'
+      ? '当前没有待处理建议'
       : progress === 100
         ? '当前优化项已全部处理'
         : `${completedTasks}/${totalTasks} 项已完成`
 
   return (
-    <Card className='relative min-w-0 overflow-hidden shadow-none'>
+    <Card className='relative isolate min-w-0 overflow-hidden shadow-none'>
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute inset-0 -z-1 select-none',
+          scoreAccent,
+        )}
+      >
+        <div
+          className='absolute inset-0 opacity-[0.14] dark:opacity-[0.12]'
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse 400px 240px at top left, currentColor, transparent 72%)',
+          }}
+        />
+        <span className="absolute -top-5 -left-1 -rotate-6 font-['Racing_Sans_One',sans-serif] text-[9rem] leading-none font-normal tracking-tighter tabular-nums opacity-[0.08] sm:text-[10rem] dark:opacity-[0.12]">
+          {overallScore}
+        </span>
+      </div>
       <CardContent className='relative isolate min-w-0 p-5 md:p-6'>
         <div className='relative z-10 min-w-0 pb-2'>
           <div className='flex flex-wrap items-start justify-between gap-2'>
             <p className='text-xs font-medium tracking-wide text-muted-foreground'>
               检测结果
             </p>
-            {meta?.rubricVersion === '2.0' && (
-              <Badge variant='secondary' className='rounded-full'>
-                内容自适应评分 2.0
-              </Badge>
-            )}
           </div>
 
           <div className='mt-3 min-w-0 space-y-3'>
             <div className='flex flex-wrap items-center gap-2'>
               <p className='text-xs font-medium text-muted-foreground'>
-                本次评分结论
+                简历评分
               </p>
               <Badge variant='secondary' className='rounded-full px-3'>
                 {summary?.grade || '待评估'}
@@ -92,7 +108,7 @@ export default function OverviewSummaryCard({
               <span
                 className={cn(
                   'text-3xl font-semibold tracking-tight tabular-nums',
-                  calculateRating(overallScore),
+                  scoreAccent,
                 )}
               >
                 {overallScore} / 100
@@ -103,30 +119,20 @@ export default function OverviewSummaryCard({
                 readabilityIndex?.summary ||
                 '已完成当前简历的综合评估'}
             </h2>
-            {assessment?.candidateProfile && (
-              <p className='wrap-break-word text-sm leading-6 text-muted-foreground'>
-                {assessment.candidateProfile}
-              </p>
+            {totalTasks > completedTasks && (
+              <Button asChild variant='outline' size='sm'>
+                <a href='#optimization-findings'>
+                  查看待处理项
+                  <ArrowDown aria-hidden />
+                </a>
+              </Button>
             )}
-            <div className='flex flex-wrap gap-2 pt-0.5'>
-              {assessment?.inferredTarget && (
-                <Badge variant='outline' className='max-w-full rounded-full'>
-                  <Target className='size-3.5' />
-                  <span className='truncate'>{assessment.inferredTarget}</span>
-                </Badge>
-              )}
-              {assessment?.evaluatedSections.length ? (
-                <Badge variant='outline' className='rounded-full'>
-                  已评估 {assessment.evaluatedSections.length} 项真实内容
-                </Badge>
-              ) : null}
-            </div>
           </div>
         </div>
 
-        <div className='relative z-10 mt-5 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2 md:mt-6'>
+        <div className='relative z-10 mt-4 grid gap-3 border-t border-border/60 pt-4 grid-cols-2'>
           <div className='flex min-w-0 items-start gap-3'>
-            <div className='flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary'>
+            <div className='hidden size-8 shrink-0 items-center justify-center sm:flex rounded-md bg-primary/10 text-primary'>
               <FileText className='size-4' />
             </div>
             <div className='min-w-0'>
@@ -142,26 +148,21 @@ export default function OverviewSummaryCard({
                   / 10
                 </span>
               </p>
-              {readabilityIndex?.summary && (
-                <p className='mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground'>
-                  {readabilityIndex.summary}
-                </p>
-              )}
             </div>
           </div>
 
           <div className='flex min-w-0 items-start gap-3'>
-            <div className='flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary'>
+            <div className='hidden size-8 shrink-0 items-center justify-center sm:flex rounded-md bg-primary/10 text-primary'>
               <CheckCircle2 className='size-4' />
             </div>
             <div className='min-w-0 flex-1'>
               <div className='flex items-center justify-between gap-3'>
-                <p className='text-xs text-muted-foreground'>优化完成度</p>
+                <p className='text-xs text-muted-foreground'>处理进度</p>
                 <p className='text-sm font-semibold'>{progress}%</p>
               </div>
               <Progress
                 value={progress}
-                aria-label={`优化完成度 ${progress}%`}
+                aria-label={`处理进度 ${progress}%`}
                 className='mt-2 h-1.5'
               />
               <p className='mt-1.5 text-xs leading-5 text-muted-foreground'>

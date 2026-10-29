@@ -3,12 +3,17 @@ import type {
   InterviewSubStage,
   JobApplication,
   StageDetail,
+  ReopenProcessInput,
 } from '../types'
 import {
   deleteCompany,
   getCompanies,
   updateCompany,
 } from '@/lib/supabase/resume'
+import {
+  reassignTrackerProcess,
+  reopenTrackerProcess,
+} from '@/lib/supabase/resume/company'
 import type { SubmissionInput } from '../submission-types'
 import {
   recordJobSubmission,
@@ -376,10 +381,19 @@ export function createTrackerPersistence(
       throw new Error('不能修改职位标识或归属信息')
 
     const current = find(id)!
+    const changesStatus = 'status' in patch
 
     patch = Object.fromEntries(
       Object.entries(patch).filter(
         ([field, value]) =>
+          // 流程 RPC 需要完整的阶段、轮次与活动快照，即使某个数组未变化。
+          (changesStatus &&
+            [
+              'status',
+              'stage_details',
+              'interview_sub_stages',
+              'activities',
+            ].includes(field)) ||
           !sameValue(current[field as keyof JobApplication], value) ||
           (runtime.dirty.has(field as WorkflowField) &&
             !sameValue(runtime.baseline[field as keyof JobApplication], value)),
@@ -532,7 +546,59 @@ export function createTrackerPersistence(
     }
   }
 
+  const applyTransaction = (
+    id: string,
+    fields: (keyof JobFieldsPatch)[],
+    save: () => Promise<JobApplication>,
+  ) =>
+    enqueue(id, async (runtime) => {
+      requestFlush(runtime)
+      await persistDirty(id, runtime)
+
+      const versions = { ...runtime.versions }
+      const saved = await save()
+      const accepted: JobFieldsPatch = {}
+
+      if (!isLive(id, runtime)) throw new Error('该职位已删除或不可用')
+
+      for (const field of fields) {
+        runtime.baseline = { ...runtime.baseline, [field]: saved[field] }
+
+        if (runtime.versions[field] === versions[field])
+          Object.assign(accepted, { [field]: saved[field] })
+      }
+
+      merge(id, accepted)
+
+      return find(id)!
+    })
+
   return {
+    reassignCompany: (jobId: string, companyId: string) => {
+      const guard = createTrackerAccountGuard(getTrackerAccountScope())
+
+      return applyTransaction(
+        jobId,
+        ['tracker_company_id', 'company', 'company_logo', 'updated_at'],
+        () => reassignTrackerProcess(jobId, companyId, guard),
+      )
+    },
+    reopenProcess: (input: ReopenProcessInput) => {
+      const guard = createTrackerAccountGuard(getTrackerAccountScope())
+
+      return applyTransaction(
+        input.jobId,
+        [
+          'status',
+          'stage_details',
+          'interview_sub_stages',
+          'activities',
+          'archived',
+          'updated_at',
+        ],
+        () => reopenTrackerProcess(input, guard),
+      )
+    },
     recordSubmission: (input: SubmissionInput) =>
       enqueue(input.jobId, async (runtime) => {
         const scope = getTrackerAccountScope()
@@ -573,6 +639,8 @@ export function createTrackerPersistence(
           'interview_sub_stages',
           'activities',
           'updated_at',
+          'has_submission',
+          'unresolved_submissions',
         ] as const) {
           runtime.baseline = { ...runtime.baseline, [field]: saved[field] }
 

@@ -1,4 +1,5 @@
-import { useReducedMotion } from 'motion/react'
+import { useRef } from 'react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +24,7 @@ export function UpgradeDialog() {
   const setOpen = useUpgradeDialogStore((s) => s.setOpen)
   const { quota, loading, error, refetch } = useAiQuota()
   const reduceMotion = useReducedMotion()
+  const returnFocusRef = useRef<HTMLElement | null>(null)
 
   const title =
     reason === 'quota_exceeded' ? '剩余额度不够完成这次操作' : 'AI 额度说明'
@@ -33,6 +35,19 @@ export function UpgradeDialog() {
         className='sm:max-w-md'
         style={reduceMotion ? { animationDuration: '0s' } : undefined}
         overlayClassName={reduceMotion ? 'animate-none!' : undefined}
+        onOpenAutoFocus={() => {
+          // 全局弹窗通过 store 打开，没有关联的 DialogTrigger。
+          returnFocusRef.current =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null
+        }}
+        onCloseAutoFocus={(event) => {
+          if (returnFocusRef.current?.isConnected) {
+            event.preventDefault()
+            returnFocusRef.current.focus({ preventScroll: true })
+          }
+        }}
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

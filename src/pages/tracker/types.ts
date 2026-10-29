@@ -29,6 +29,7 @@ export interface InterviewSubStage {
   start_date: string | null
   notes: string
   order: number
+  is_history?: boolean
 }
 
 export interface StageDetail {
@@ -45,6 +46,7 @@ export type TrackerActivityType =
   | 'note'
   | 'interview'
   | 'follow_up'
+  | 'workflow_resume'
 
 export interface TrackerActivity {
   id: string
@@ -52,6 +54,13 @@ export interface TrackerActivity {
   label: string
   at: string // ISO 时间戳
   note?: string
+  resume_details?: {
+    date: string
+    target: ApplicationStatus
+    ended_detail: StageDetail | null
+    source_stage: ApplicationStatus | null
+    history_round_ids: string[]
+  }
 }
 
 export interface TrackerContact {
@@ -63,6 +72,7 @@ export interface TrackerContact {
 }
 
 export interface JobApplication {
+  focused_at: string | null
   id: string
   created_at: string
   updated_at: string
@@ -70,6 +80,11 @@ export interface JobApplication {
   user_id: string
   company: string
   company_logo: string | null
+  tracker_company_id: string
+  recruitment_batch: string | null
+  referred_from_job_id: string | null
+  has_submission?: boolean
+  unresolved_submissions?: boolean
   position: string
   location: string
   salary: string | null
@@ -91,3 +106,24 @@ export type DrawerTab = 'follow-up' | 'interview' | 'documents'
 
 // 概览聚合指标筛选键（与 filterStatus 互斥）
 export type TrackerMetricKey = 'applied' | 'interview' | 'offer' | 'pending'
+
+export type CompanyProcessPolicy =
+  | 'unknown'
+  | 'single_active'
+  | 'multiple_active'
+
+export interface TrackerCompany {
+  id: string
+  user_id: string
+  name: string
+  logo: string | null
+  process_policy: CompanyProcessPolicy
+}
+
+export interface ReopenProcessInput {
+  jobId: string
+  eventId: string
+  target: 'assessment' | 'screen' | 'written' | 'interview'
+  date: string
+  reason: string
+}

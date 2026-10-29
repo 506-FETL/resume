@@ -23,8 +23,6 @@ export interface ImportDraft {
   selectedTemplate?: CreationTemplateSelection
   unassignedText: string
   warnings: string[]
-  reviewedSections: ORDERType[]
-  unassignedReviewed: boolean
   profile: ResumeProfile
   updatedAt: string
   creation?: {

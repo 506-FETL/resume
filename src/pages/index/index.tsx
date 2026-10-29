@@ -1,13 +1,11 @@
 import type { MouseEvent } from 'react'
 import type { Resume } from './types'
-import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
 import useUserStore from '@/store/user'
-import { DURATION, EASE } from '@/lib/motion'
 import CreateResumeCard from '@/pages/resume/components/create-resume-card'
 import useCurrentResumeStore from '@/store/resume/current'
 import Entry from './components/entry'
@@ -43,28 +41,6 @@ export default function DashboardPage() {
   function openCreate(event: MouseEvent<HTMLButtonElement>) {
     createTriggerRef.current = event.currentTarget
     setCreateOpen(true)
-  }
-
-  const reduceMotion = useReducedMotion()
-
-  const container = {
-    hidden: { opacity: 1 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: reduceMotion ? 0 : 0.03 },
-    },
-  }
-
-  const item = {
-    hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 8 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: reduceMotion ? 0 : DURATION.base,
-        ease: EASE.out,
-      },
-    },
   }
 
   const loadData = useIndexStore((s) => s.loadData)
@@ -141,23 +117,13 @@ export default function DashboardPage() {
 
   return (
     <PageLayout>
-      <motion.div
-        variants={container}
-        initial='hidden'
-        animate='show'
-        className='flex flex-col gap-6'
-      >
-        <motion.div variants={item}>
+      <div className='flex flex-col gap-6'>
+        <div>
           <Header onCreate={openCreate} isGettingStarted={isGettingStarted} />
-        </motion.div>
+        </div>
 
         <AnimatedContent key={user?.id ?? 'guest'} animationKey={mode}>
-          <motion.div
-            variants={container}
-            initial='hidden'
-            animate='show'
-            className='flex flex-col gap-6'
-          >
+          <div className='flex flex-col gap-6'>
             <ImportDraftNotice onResume={openCreate} />
             {isGettingStarted && (
               <GettingStarted
@@ -167,8 +133,7 @@ export default function DashboardPage() {
               />
             )}
             {showRecentResumes && (
-              <motion.section
-                variants={item}
+              <section
                 className='flex flex-col gap-3'
                 aria-labelledby='recent-resumes-title'
               >
@@ -194,7 +159,7 @@ export default function DashboardPage() {
                 ) : resumes.length === 0 ? (
                   <p className='rounded-xl border p-4 text-sm text-muted-foreground'>
                     {resumeError
-                      ? '— 暂时无法加载简历'
+                      ? '暂时无法加载简历'
                       : '还没有简历，点击“创建简历”开始填写。'}
                   </p>
                 ) : (
@@ -280,18 +245,17 @@ export default function DashboardPage() {
                     retry={loadData}
                   />
                 )}
-              </motion.section>
+              </section>
             )}
             {mode === 'workspace' && (
               <>
-                <motion.div variants={item}>
+                <div>
                   <JobPriorities resources={resources} />
-                </motion.div>
+                </div>
                 <div className='flex flex-col gap-2 empty:hidden'>
                   {Object.entries(resources).map(
                     ([key, resource]) =>
-                      resource.error &&
-                      key !== 'pendingMaterials' && (
+                      resource.error && (
                         <ResourceError
                           key={key}
                           label={
@@ -307,7 +271,7 @@ export default function DashboardPage() {
                       ),
                   )}
                 </div>
-                <motion.div variants={item}>
+                <div>
                   <TodoCard
                     unavailable={
                       cloudUnavailable ||
@@ -321,9 +285,9 @@ export default function DashboardPage() {
                     isAuthenticated={isOnline}
                     hasCloudResume={insights.hasCloudResume}
                   />
-                </motion.div>
+                </div>
 
-                <motion.div variants={item}>
+                <div>
                   <StatisticalCard
                     funnel={insights.funnel}
                     jobsLoading={insights.jobsLoading}
@@ -336,12 +300,9 @@ export default function DashboardPage() {
                       Boolean(resources.ats.error && !resources.ats.hasLoaded)
                     }
                   />
-                </motion.div>
+                </div>
 
-                <motion.div
-                  variants={item}
-                  className='grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2'
-                >
+                <div className='grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2'>
                   {(!resources.jobs.error || resources.jobs.hasLoaded) && (
                     <FunnelCard
                       funnel={extras.funnel}
@@ -355,9 +316,9 @@ export default function DashboardPage() {
                         loading={extras.atsTrendLoading}
                       />
                     )}
-                </motion.div>
+                </div>
 
-                <motion.div variants={item}>
+                <div>
                   {!cloudUnavailable &&
                     (!resources.jobs.error || resources.jobs.hasLoaded) &&
                     (!resources.versions.error ||
@@ -367,9 +328,9 @@ export default function DashboardPage() {
                         loading={extras.activityLoading}
                       />
                     )}
-                </motion.div>
+                </div>
 
-                <motion.div variants={item}>
+                <div>
                   <Entry
                     unavailable={
                       cloudUnavailable ||
@@ -388,12 +349,12 @@ export default function DashboardPage() {
                         : undefined
                     }
                   />
-                </motion.div>
+                </div>
               </>
             )}
-          </motion.div>
+          </div>
         </AnimatedContent>
-      </motion.div>
+      </div>
       <CreateResumeCard
         returnFocusRef={createTriggerRef}
         hideTrigger
