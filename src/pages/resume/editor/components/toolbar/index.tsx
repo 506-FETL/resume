@@ -35,7 +35,7 @@ export default function ResumeConfigToolbar() {
     <div
       role='group'
       aria-label='简历工具栏'
-      className='flex min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-2 @max-[46rem]/editor-toolbar:[&_button]:size-10 @max-[46rem]/editor-toolbar:[&_button]:shrink-0 @max-[46rem]/editor-toolbar:[&_button]:p-0 @max-[46rem]/editor-toolbar:[&_button>span]:hidden [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11'
+      className='flex min-w-0 flex-wrap items-center justify-center gap-x-0.5 gap-y-1 sm:gap-1.5 @max-[46rem]/editor-toolbar:[&_button]:size-9 @max-[46rem]/editor-toolbar:[&_button]:shrink-0 @max-[46rem]/editor-toolbar:[&_button]:p-0 @max-[46rem]/editor-toolbar:[&_button>span]:hidden'
     >
       <div
         role='group'

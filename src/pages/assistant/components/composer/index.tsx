@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import type { ComposerContextOption, Tool } from '@/components/ui/composer'
 import { Brain, Briefcase, FileText, Square } from 'lucide-react'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
@@ -104,7 +105,17 @@ export default function Composer() {
     loadingMessages,
     deepThinking,
     setDeepThinking,
-  } = useAssistantStore()
+  } = useAssistantStore(
+    useShallow((state) => ({
+      streaming: state.streaming,
+      composerDraft: state.composerDraft,
+      composerSkillIds: state.composerSkillIds,
+      initializing: state.initializing,
+      loadingMessages: state.loadingMessages,
+      deepThinking: state.deepThinking,
+      setDeepThinking: state.setDeepThinking,
+    })),
+  )
 
   const { sendMessage, stopStreaming } = useChatStream()
   const { resumes, jobs } = useComposerContext()

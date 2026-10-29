@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import type { AutoScrollContainerHandle } from '@/components/ui/auto-scroll-container'
 import { ArrowDown, Sparkles } from 'lucide-react'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
@@ -19,6 +20,24 @@ import useAssistantStore from '../../store'
 import ConfirmCard from '../confirm-card'
 import { MessageBubble } from '../message-bubble'
 
+type MessageViewSnapshot = Pick<
+  ReturnType<typeof useAssistantStore.getState>,
+  | 'initializing'
+  | 'loadingMessages'
+  | 'messages'
+  | 'streaming'
+  | 'activeConversationId'
+  | 'streamingParts'
+  | 'streamingUsage'
+  | 'usageByMessageId'
+  | 'pendingConfirm'
+  | 'conversationViewVersion'
+  | 'targetMessageId'
+  | 'setTargetMessageId'
+  | 'hasMoreMessages'
+  | 'loadingOlder'
+>
+
 const LIST_SKELETON_KEYS = [
   'msg-skeleton-1',
   'msg-skeleton-2',
@@ -26,7 +45,24 @@ const LIST_SKELETON_KEYS = [
 ] as const
 
 export default function MessageList() {
-  const snapshot = useAssistantStore()
+  const snapshot = useAssistantStore(
+    useShallow((state) => ({
+      initializing: state.initializing,
+      loadingMessages: state.loadingMessages,
+      messages: state.messages,
+      streaming: state.streaming,
+      activeConversationId: state.activeConversationId,
+      streamingParts: state.streamingParts,
+      streamingUsage: state.streamingUsage,
+      usageByMessageId: state.usageByMessageId,
+      pendingConfirm: state.pendingConfirm,
+      conversationViewVersion: state.conversationViewVersion,
+      targetMessageId: state.targetMessageId,
+      setTargetMessageId: state.setTargetMessageId,
+      hasMoreMessages: state.hasMoreMessages,
+      loadingOlder: state.loadingOlder,
+    })),
+  )
 
   const {
     initializing,
@@ -80,11 +116,7 @@ function isCurrentMessageView(version: number, conversationId: string | null) {
 }
 
 // 真实消息挂载后才注册定位和哨兵；退出期间保留当时的内容，不消费新会话的定位目标。
-function LoadedMessages({
-  snapshot,
-}: {
-  snapshot: ReturnType<typeof useAssistantStore.getState>
-}) {
+function LoadedMessages({ snapshot }: { snapshot: MessageViewSnapshot }) {
   const {
     activeConversationId,
     messages,

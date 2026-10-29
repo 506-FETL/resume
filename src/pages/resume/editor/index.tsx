@@ -12,7 +12,12 @@ import { PresenceDiv } from '@/components/motion/presence-item'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
-import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  DrawerVirtualKeyboardProvider,
+} from '@/components/ui/drawer'
 import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark.tsx'
 import { CommentSourceSelector } from '@/features/resume-comments/components/comment-source-selector.tsx'
 import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
@@ -543,34 +548,36 @@ function Editor() {
               >
                 <Edit />
               </DrawerTrigger>
-              <DrawerContent>
-                <CheckWorkspace
-                  header={
-                    <div className='shrink-0 border-b'>
-                      <CollaborationControls
-                        onOpenSortDialog={handleOpenSortDialog}
-                        actions={<CheckModeToggle />}
+              <DrawerVirtualKeyboardProvider>
+                <DrawerContent className='@container/editor-drawer [container-type:size]'>
+                  <CheckWorkspace
+                    header={
+                      <div className='shrink-0 [@container_editor-drawer_(max-height:320px)]:[&_[data-slot=drawer-header]]:gap-1 [@container_editor-drawer_(max-height:320px)]:[&_[data-slot=drawer-header]]:p-2'>
+                        <CollaborationControls
+                          onOpenSortDialog={handleOpenSortDialog}
+                          actions={<CheckModeToggle />}
+                        />
+                      </div>
+                    }
+                  >
+                    <div className='@container/panel flex min-h-0 flex-1 flex-col overflow-hidden p-4 [@container_editor-drawer_(max-height:320px)]:p-0'>
+                      <SidebarEditor
+                        activeTabId={activeTabId}
+                        order={order}
+                        visibilityState={visibilityState}
+                        fill={fill}
+                        stroke={stroke}
+                        isMobile={isMobile}
+                        sortDialogOpen={sortDialogOpen}
+                        onSortDialogOpenChange={setSortDialogOpen}
+                        onUpdateActiveTabId={updateActiveTabId}
+                        onUpdateOrder={updateOrder}
+                        onToggleVisibility={toggleVisibility}
                       />
                     </div>
-                  }
-                >
-                  <div className='@container/panel flex min-h-0 flex-1 flex-col overflow-hidden p-4'>
-                    <SidebarEditor
-                      activeTabId={activeTabId}
-                      order={order}
-                      visibilityState={visibilityState}
-                      fill={fill}
-                      stroke={stroke}
-                      isMobile={isMobile}
-                      sortDialogOpen={sortDialogOpen}
-                      onSortDialogOpenChange={setSortDialogOpen}
-                      onUpdateActiveTabId={updateActiveTabId}
-                      onUpdateOrder={updateOrder}
-                      onToggleVisibility={toggleVisibility}
-                    />
-                  </div>
-                </CheckWorkspace>
-              </DrawerContent>
+                  </CheckWorkspace>
+                </DrawerContent>
+              </DrawerVirtualKeyboardProvider>
             </Drawer>
           )}
           <div className='relative flex min-h-full flex-col overflow-auto md:flex-row'>

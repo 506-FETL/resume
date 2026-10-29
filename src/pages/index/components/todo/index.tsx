@@ -75,9 +75,9 @@ export function TodoCard({
   }
 
   return (
-    <Card className='overflow-hidden'>
+    <Card className='gap-0 overflow-hidden rounded-lg py-5 shadow-none'>
       <TodoHeader />
-      <CardContent className='pt-0'>
+      <CardContent className='px-5 pt-0'>
         <AnimatedContent
           animationKey={
             unavailable

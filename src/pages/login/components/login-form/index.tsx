@@ -51,13 +51,13 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card>
-        <CardHeader>
-          <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
+      <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+        <CardHeader className='gap-3 px-0'>
+          <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
             登录
           </h1>
         </CardHeader>
-        <CardContent>
+        <CardContent className='px-0'>
           <form onSubmit={handleLogin}>
             <FieldGroup className='gap-6'>
               <Field>

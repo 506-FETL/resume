@@ -50,6 +50,7 @@ export function DashboardShell({
   return (
     <SidebarProvider
       className='h-full min-h-0 overflow-hidden'
+      style={{ '--sidebar-width': '14rem' } as React.CSSProperties}
       defaultOpen={sidebarOpen}
       open={sidebarOpen}
       onOpenChange={(open) => {
@@ -62,12 +63,12 @@ export function DashboardShell({
         }
       }}
     >
-      <AppSidebar variant='floating' />
+      <AppSidebar variant='sidebar' />
       <SidebarInset className='min-h-0 overflow-hidden'>
         {!fullBleed && (
           <header
             className={cn(
-              'sticky top-0 z-1 shrink-0 border-b bg-background/95 p-2 backdrop-blur supports-backdrop-filter:bg-background/60',
+              'sticky top-0 z-1 flex min-h-14 shrink-0 items-center border-b border-border/70 bg-background p-2',
               !sidebarOpen &&
                 (routeKey.startsWith('/resume/editor')
                   ? 'md:h-auto'

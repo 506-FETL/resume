@@ -22,8 +22,8 @@ export function PageLayout({
       className={cn(
         'mx-auto flex w-full min-w-0 flex-col',
         workspace
-          ? '@container/workspace h-full min-h-[30rem] gap-3 p-3 sm:p-4 lg:px-6'
-          : 'gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8',
+          ? '@container/workspace h-full min-h-[30rem] gap-4 p-4 sm:p-6'
+          : 'gap-8 px-4 py-6 sm:px-6 sm:py-8 lg:px-8',
         !workspace && widths[width],
         className,
       )}
@@ -44,9 +44,9 @@ export function PageHeader({
   children?: ReactNode
 }) {
   return (
-    <header className='flex flex-wrap items-start justify-between gap-4'>
+    <header className='flex flex-wrap items-start justify-between gap-x-6 gap-y-4'>
       <div className='min-w-0 space-y-1.5'>
-        <h1 className='text-2xl leading-8 font-semibold tracking-tight text-foreground'>
+        <h1 className='text-2xl leading-tight font-semibold tracking-tight text-foreground sm:text-[1.75rem]'>
           {title}
         </h1>
         {description && (

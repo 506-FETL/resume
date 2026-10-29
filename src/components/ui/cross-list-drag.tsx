@@ -13,7 +13,7 @@ import type {
   TouchEventHandler,
 } from 'react'
 import type { DragAxis, DragPoint, DropDestination } from '@/lib/motion-drag'
-import { motion, useMotionValue } from 'motion/react'
+import { motion, useMotionTemplate, useMotionValue } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   createContext,
@@ -25,6 +25,7 @@ import {
   useState,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { DURATION, EASE } from '@/lib/motion'
 import {
   findDropContainer,
   findDropIndex,
@@ -169,12 +170,16 @@ export function CrossListDragProvider({
   const sessionRef = useRef<DragSession | null>(null)
   const scrollAreasRef = useRef(scrollAreas)
   const onDropRef = useRef(onDrop)
+  const reduceMotionRef = useRef(reduceMotion)
 
   const suppressClickRef = useRef<{ itemId: string; until: number } | null>(
     null,
   )
 
   const frameRef = useRef<number | null>(null)
+  const pointRef = useRef<DragPoint | null>(null)
+  const previewElementRef = useRef<HTMLDivElement | null>(null)
+  const previewAnimationRef = useRef<Animation | null>(null)
 
   const bodyStyleRef = useRef<{ cursor: string; userSelect: string } | null>(
     null,
@@ -182,9 +187,14 @@ export function CrossListDragProvider({
 
   const overlayX = useMotionValue(0)
   const overlayY = useMotionValue(0)
+  const overlayTransform = useMotionTemplate`translate3d(${overlayX}px, ${overlayY}px, 0)`
+  const [preview, setPreview] = useState<ActiveDrag | null>(null)
   const [active, setActive] = useState<ActiveDrag | null>(null)
   const [destination, setDestination] = useState<DropDestination | null>(null)
   const [liveMessage, setLiveMessage] = useState('')
+
+  // 偏好变化不重绑全局监听，避免清理监听时中断仍在跟手的拖拽。
+  reduceMotionRef.current = reduceMotion
 
   useEffect(() => {
     scrollAreasRef.current = scrollAreas
@@ -220,8 +230,53 @@ export function CrossListDragProvider({
     }
   }, [])
 
+  const clearPreview = useCallback(() => {
+    previewAnimationRef.current?.cancel()
+    previewAnimationRef.current = null
+    setPreview(null)
+  }, [])
+
+  const settlePreview = useCallback(
+    (session: DragSession, returnToSource: boolean) => {
+      const element = previewElementRef.current
+
+      if (!element || reduceMotionRef.current) {
+        clearPreview()
+
+        return
+      }
+
+      const sourceRect = session.itemElement.isConnected
+        ? session.itemElement.getBoundingClientRect()
+        : null
+
+      const currentTransform = getComputedStyle(element).transform
+
+      const targetTransform =
+        returnToSource && sourceRect
+          ? `translate3d(${sourceRect.left - session.startRect.left}px, ${sourceRect.top - session.startRect.top}px, 0)`
+          : currentTransform
+
+      const animation = element.animate(
+        [
+          { transform: currentTransform, opacity: 0.98 },
+          { transform: targetTransform, opacity: 0 },
+        ],
+        {
+          duration: DURATION.fast * 1000,
+          easing: `cubic-bezier(${EASE.out.join(',')})`,
+          fill: 'forwards',
+        },
+      )
+
+      previewAnimationRef.current = animation
+      animation.onfinish = clearPreview
+    },
+    [clearPreview],
+  )
+
   const clearSession = useCallback(
-    (updateState = true) => {
+    (updateState = true, returnToSource = true) => {
       const session = sessionRef.current
 
       if (session?.touchTimer != null) window.clearTimeout(session.touchTimer)
@@ -231,17 +286,35 @@ export function CrossListDragProvider({
       )
         session.itemElement.releasePointerCapture(session.pointerId)
 
+      if (session?.active && session.kind !== 'keyboard') {
+        suppressClickRef.current = {
+          itemId: session.itemId,
+          until: performance.now() + 350,
+        }
+      }
+
       sessionRef.current = null
+      pointRef.current = null
       cancelFrame()
       restoreBodyStyles()
 
       if (updateState) {
+        if (session?.active && session.kind !== 'keyboard')
+          settlePreview(session, returnToSource)
+
         setActive(null)
         setDestination(null)
+      } else {
+        previewAnimationRef.current?.cancel()
+        previewAnimationRef.current = null
       }
     },
-    [cancelFrame, restoreBodyStyles],
+    [cancelFrame, restoreBodyStyles, settlePreview],
   )
+
+  useEffect(() => {
+    if (reduceMotion && !sessionRef.current?.active) clearPreview()
+  }, [clearPreview, reduceMotion])
 
   const resolveDestination = useCallback(
     (point: DragPoint): DropDestination | null => {
@@ -314,11 +387,18 @@ export function CrossListDragProvider({
     [resolveDestination],
   )
 
-  const runAutoScroll = useCallback(
-    (point: DragPoint) => {
-      const session = sessionRef.current
+  const runDragFrame = useCallback(
+    function runDragFrame() {
+      frameRef.current = null
 
-      if (!session?.active) return
+      const session = sessionRef.current
+      const point = pointRef.current
+
+      if (!session?.active || !point) return
+
+      overlayX.set(point.x - session.startPoint.x)
+      overlayY.set(point.y - session.startPoint.y)
+      updateDestination(point)
 
       const scrolledElements = new Set<HTMLElement>()
       let didScroll = false
@@ -331,21 +411,25 @@ export function CrossListDragProvider({
       ) => {
         if (!element || scrolledElements.has(element)) return
 
+        const rect = element.getBoundingClientRect()
+        const crossCoordinate = axis === 'x' ? point.y : point.x
+        const crossStart = axis === 'x' ? rect.top : rect.left
+        const crossEnd = axis === 'x' ? rect.bottom : rect.right
+
+        if (crossCoordinate < crossStart || crossCoordinate > crossEnd) return
+
         scrolledElements.add(element)
 
-        const delta = getEdgeScrollDelta(
-          point,
-          element.getBoundingClientRect(),
-          axis,
-          threshold,
-          maxStep,
-        )
+        const delta = getEdgeScrollDelta(point, rect, axis, threshold, maxStep)
+        const before = axis === 'x' ? element.scrollLeft : element.scrollTop
 
         if (delta === 0) return
-        if (axis === 'x') element.scrollBy({ left: delta })
-        else element.scrollBy({ top: delta })
+        if (axis === 'x') element.scrollBy({ left: delta, behavior: 'instant' })
+        else element.scrollBy({ top: delta, behavior: 'instant' })
 
-        didScroll = true
+        const after = axis === 'x' ? element.scrollLeft : element.scrollTop
+
+        didScroll ||= after !== before
       }
 
       for (const area of scrollAreasRef.current)
@@ -360,27 +444,22 @@ export function CrossListDragProvider({
 
       if (didScroll) {
         updateDestination(point)
-        frameRef.current = requestAnimationFrame(() => runAutoScroll(point))
-      } else {
-        frameRef.current = null
+        frameRef.current = requestAnimationFrame(runDragFrame)
       }
     },
-    [updateDestination],
+    [overlayX, overlayY, updateDestination],
   )
 
   const updateDrag = useCallback(
     (point: DragPoint) => {
-      const session = sessionRef.current
+      if (!sessionRef.current?.active) return
 
-      if (!session?.active) return
+      pointRef.current = point
 
-      overlayX.set(point.x - session.startPoint.x)
-      overlayY.set(point.y - session.startPoint.y)
-      updateDestination(point)
-      cancelFrame()
-      frameRef.current = requestAnimationFrame(() => runAutoScroll(point))
+      if (frameRef.current === null)
+        frameRef.current = requestAnimationFrame(runDragFrame)
     },
-    [cancelFrame, overlayX, overlayY, runAutoScroll, updateDestination],
+    [runDragFrame],
   )
 
   const activateSession = useCallback(() => {
@@ -388,6 +467,7 @@ export function CrossListDragProvider({
 
     if (!session || session.active) return
 
+    clearPreview()
     session.active = true
     session.touchTimer = null
 
@@ -409,16 +489,18 @@ export function CrossListDragProvider({
     document.body.style.cursor = 'grabbing'
     document.body.style.userSelect = 'none'
 
-    setActive({
+    const nextActive = {
       kind: session.kind,
       itemId: session.itemId,
       sourceId: session.sourceId,
       sourceIndex: session.sourceIndex,
       startRect: session.startRect,
-    })
+    }
 
-    updateDestination(session.startPoint)
-  }, [overlayX, overlayY, updateDestination])
+    setActive(nextActive)
+    setPreview(nextActive)
+    updateDrag(session.startPoint)
+  }, [clearPreview, overlayX, overlayY, updateDrag])
 
   const finishSession = useCallback(() => {
     const session = sessionRef.current
@@ -442,14 +524,7 @@ export function CrossListDragProvider({
           }
         : null
 
-    if (session.active && session.kind !== 'keyboard') {
-      suppressClickRef.current = {
-        itemId: session.itemId,
-        until: performance.now() + 350,
-      }
-    }
-
-    clearSession()
+    clearSession(true, result === null)
 
     if (result) onDropRef.current(result)
   }, [clearSession])
@@ -468,6 +543,9 @@ export function CrossListDragProvider({
         return
       if (isInteractiveTarget(event.target, event.currentTarget)) return
 
+      clearPreview()
+      suppressClickRef.current = null
+
       const point = { x: event.clientX, y: event.clientY }
 
       sessionRef.current = {
@@ -482,7 +560,7 @@ export function CrossListDragProvider({
         destination: null,
       }
     },
-    [],
+    [clearPreview],
   )
 
   const beginTouchDrag = useCallback(
@@ -492,6 +570,9 @@ export function CrossListDragProvider({
     ) => {
       if (event.touches.length !== 1 || sessionRef.current) return
       if (isInteractiveTarget(event.target, event.currentTarget)) return
+
+      clearPreview()
+      suppressClickRef.current = null
 
       const touch = event.touches[0]
 
@@ -514,7 +595,7 @@ export function CrossListDragProvider({
 
       sessionRef.current = session
     },
-    [activateSession],
+    [activateSession, clearPreview],
   )
 
   const describeDestination = useCallback((next: DropDestination): string => {
@@ -543,6 +624,7 @@ export function CrossListDragProvider({
 
         event.preventDefault()
         event.stopPropagation()
+        clearPreview()
 
         const startRect = event.currentTarget.getBoundingClientRect()
 
@@ -660,7 +742,7 @@ export function CrossListDragProvider({
       setDestination(nextDestination)
       setLiveMessage(describeDestination(nextDestination))
     },
-    [clearSession, describeDestination, finishSession],
+    [clearPreview, clearSession, describeDestination, finishSession],
   )
 
   useEffect(() => {
@@ -681,28 +763,17 @@ export function CrossListDragProvider({
       if (!session.itemElement.contains(event.target)) cancelKeyboardSession()
     }
 
-    const handleGlobalKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || sessionRef.current?.kind !== 'keyboard')
-        return
-
-      event.preventDefault()
-      event.stopPropagation()
-      cancelKeyboardSession()
-    }
-
     document.addEventListener('focusin', handleFocusIn, true)
-    window.addEventListener('keydown', handleGlobalKeyDown, true)
 
     return () => {
       document.removeEventListener('focusin', handleFocusIn, true)
-      window.removeEventListener('keydown', handleGlobalKeyDown, true)
     }
   }, [active, clearSession])
 
   useEffect(() => {
     const session = sessionRef.current
 
-    if (session?.kind !== 'keyboard') return
+    if (!session) return
 
     const source = containersRef.current.get(session.sourceId)
 
@@ -713,7 +784,7 @@ export function CrossListDragProvider({
     if (
       !session.itemElement.isConnected ||
       !source?.itemIds.includes(session.itemId) ||
-      !target
+      (session.destination !== null && !target)
     ) {
       clearSession()
       setLiveMessage('拖动项目已变化，已取消拖动')
@@ -725,6 +796,7 @@ export function CrossListDragProvider({
       const suppressed = suppressClickRef.current
 
       if (
+        event.detail === 0 ||
         !suppressed ||
         suppressed.itemId !== itemId ||
         performance.now() > suppressed.until
@@ -769,7 +841,13 @@ export function CrossListDragProvider({
         session?.kind === 'pointer' &&
         session.pointerId === event.pointerId
       ) {
-        if (session.active) updateDrag({ x: event.clientX, y: event.clientY })
+        if (session.active) {
+          const point = { x: event.clientX, y: event.clientY }
+
+          overlayX.set(point.x - session.startPoint.x)
+          overlayY.set(point.y - session.startPoint.y)
+          updateDestination(point)
+        }
 
         finishSession()
       }
@@ -819,7 +897,13 @@ export function CrossListDragProvider({
       )
 
       if (!touch) return
-      if (session.active) updateDrag({ x: touch.clientX, y: touch.clientY })
+      if (session.active) {
+        const point = { x: touch.clientX, y: touch.clientY }
+
+        overlayX.set(point.x - session.startPoint.x)
+        overlayY.set(point.y - session.startPoint.y)
+        updateDestination(point)
+      }
 
       finishSession()
     }
@@ -838,6 +922,15 @@ export function CrossListDragProvider({
 
     const handleBlur = () => clearSession()
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !sessionRef.current) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      clearSession()
+      setLiveMessage('已取消拖动')
+    }
+
     window.addEventListener('pointermove', handlePointerMove, {
       passive: false,
     })
@@ -848,6 +941,7 @@ export function CrossListDragProvider({
     window.addEventListener('touchend', handleTouchEnd)
     window.addEventListener('touchcancel', handleTouchCancel)
     window.addEventListener('blur', handleBlur)
+    window.addEventListener('keydown', handleEscape, true)
 
     return () => {
       window.removeEventListener('pointermove', handlePointerMove)
@@ -857,9 +951,18 @@ export function CrossListDragProvider({
       window.removeEventListener('touchend', handleTouchEnd)
       window.removeEventListener('touchcancel', handleTouchCancel)
       window.removeEventListener('blur', handleBlur)
+      window.removeEventListener('keydown', handleEscape, true)
       clearSession(false)
     }
-  }, [activateSession, clearSession, finishSession, updateDrag])
+  }, [
+    activateSession,
+    clearSession,
+    finishSession,
+    overlayX,
+    overlayY,
+    updateDestination,
+    updateDrag,
+  ])
 
   const context = useMemo<CrossListDragContextValue>(
     () => ({
@@ -888,28 +991,26 @@ export function CrossListDragProvider({
       <div aria-atomic='true' aria-live='polite' className='sr-only'>
         {liveMessage}
       </div>
-      {active?.kind !== 'keyboard' &&
-        active &&
+      {preview &&
         typeof document !== 'undefined' &&
         createPortal(
           <motion.div
+            ref={previewElementRef}
             aria-hidden='true'
-            initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 0.98, scale: reduceMotion ? 1 : 1.015 }}
-            transition={{ duration: reduceMotion ? 0 : 0.12 }}
+            data-motion-drag-preview=''
             style={{
               position: 'fixed',
-              left: active.startRect.left,
-              top: active.startRect.top,
-              width: active.startRect.width,
-              minHeight: active.startRect.height,
-              x: overlayX,
-              y: overlayY,
+              left: preview.startRect.left,
+              top: preview.startRect.top,
+              width: preview.startRect.width,
+              minHeight: preview.startRect.height,
+              transform: overlayTransform,
+              opacity: 0.98,
               zIndex: 1000,
               pointerEvents: 'none',
             }}
           >
-            {renderOverlay(active.itemId)}
+            {renderOverlay(preview.itemId)}
           </motion.div>,
           document.body,
         )}

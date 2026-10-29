@@ -117,13 +117,13 @@ export default function DashboardPage() {
 
   return (
     <PageLayout>
-      <div className='flex flex-col gap-6'>
+      <div className='flex min-w-0 flex-col gap-8'>
         <div>
           <Header onCreate={openCreate} isGettingStarted={isGettingStarted} />
         </div>
 
         <AnimatedContent key={user?.id ?? 'guest'} animationKey={mode}>
-          <div className='flex flex-col gap-6'>
+          <div className='flex min-w-0 flex-col gap-8'>
             <ImportDraftNotice onResume={openCreate} />
             {isGettingStarted && (
               <GettingStarted
@@ -157,7 +157,7 @@ export default function DashboardPage() {
                     正在加载简历…
                   </p>
                 ) : resumes.length === 0 ? (
-                  <p className='rounded-xl border p-4 text-sm text-muted-foreground'>
+                  <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
                     {resumeError
                       ? '暂时无法加载简历'
                       : '还没有简历，点击“创建简历”开始填写。'}
@@ -171,13 +171,13 @@ export default function DashboardPage() {
                           new Date(a.updated_at || a.created_at).getTime(),
                       )
                       .slice(0, 2)
-                      .map((resume) => (
+                      .map((resume, index) => (
                         <div
                           key={resume.resume_id}
-                          className='flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4'
+                          className='flex min-w-0 flex-col justify-between gap-6 rounded-lg border bg-card p-5'
                         >
                           <div className='min-w-0'>
-                            <h3 className='truncate text-sm font-medium'>
+                            <h3 className='truncate text-lg font-semibold'>
                               {resume.display_name || '未命名简历'}
                             </h3>
                             <p className='mt-1 text-xs text-muted-foreground'>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
                               ).toLocaleDateString()}
                             </p>
                           </div>
-                          <div className='flex shrink-0 flex-wrap gap-1'>
+                          <div className='flex w-full shrink-0 flex-wrap items-center justify-between gap-2'>
                             <Button
                               variant='ghost'
                               size='sm'
@@ -206,6 +206,7 @@ export default function DashboardPage() {
                             </Button>
                             <Button
                               size='sm'
+                              variant={index === 0 ? 'default' : 'outline'}
                               onClick={() => {
                                 useCurrentResumeStore
                                   .getState()
@@ -271,38 +272,38 @@ export default function DashboardPage() {
                       ),
                   )}
                 </div>
-                <div>
-                  <TodoCard
-                    unavailable={
-                      cloudUnavailable ||
-                      Boolean(
-                        (resources.jobs.error && !resources.jobs.hasLoaded) ||
-                        (resources.ats.error && !resources.ats.hasLoaded),
-                      )
-                    }
-                    actions={insights.actions}
-                    loading={insights.loading}
-                    isAuthenticated={isOnline}
-                    hasCloudResume={insights.hasCloudResume}
-                  />
+                <div className='grid min-w-0 items-start gap-6 lg:grid-cols-2'>
+                  <div className='min-w-0'>
+                    <TodoCard
+                      unavailable={
+                        cloudUnavailable ||
+                        Boolean(
+                          (resources.jobs.error && !resources.jobs.hasLoaded) ||
+                          (resources.ats.error && !resources.ats.hasLoaded),
+                        )
+                      }
+                      actions={insights.actions}
+                      loading={insights.loading}
+                      isAuthenticated={isOnline}
+                      hasCloudResume={insights.hasCloudResume}
+                    />
+                  </div>
+                  <div className='min-w-0'>
+                    <StatisticalCard
+                      funnel={insights.funnel}
+                      jobsLoading={insights.jobsLoading}
+                      atsLoading={insights.atsLoading}
+                      jobsUnavailable={Boolean(
+                        resources.jobs.error && !resources.jobs.hasLoaded,
+                      )}
+                      atsUnavailable={
+                        cloudUnavailable ||
+                        Boolean(resources.ats.error && !resources.ats.hasLoaded)
+                      }
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <StatisticalCard
-                    funnel={insights.funnel}
-                    jobsLoading={insights.jobsLoading}
-                    atsLoading={insights.atsLoading}
-                    jobsUnavailable={Boolean(
-                      resources.jobs.error && !resources.jobs.hasLoaded,
-                    )}
-                    atsUnavailable={
-                      cloudUnavailable ||
-                      Boolean(resources.ats.error && !resources.ats.hasLoaded)
-                    }
-                  />
-                </div>
-
-                <div className='grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2'>
+                <div className='grid min-w-0 items-start gap-6 lg:grid-cols-3'>
                   {(!resources.jobs.error || resources.jobs.hasLoaded) && (
                     <FunnelCard
                       funnel={extras.funnel}
@@ -316,9 +317,6 @@ export default function DashboardPage() {
                         loading={extras.atsTrendLoading}
                       />
                     )}
-                </div>
-
-                <div>
                   {!cloudUnavailable &&
                     (!resources.jobs.error || resources.jobs.hasLoaded) &&
                     (!resources.versions.error ||
@@ -329,8 +327,7 @@ export default function DashboardPage() {
                       />
                     )}
                 </div>
-
-                <div>
+                <div className='min-w-0'>
                   <Entry
                     unavailable={
                       cloudUnavailable ||

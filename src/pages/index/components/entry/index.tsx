@@ -40,19 +40,19 @@ function Entry({
   const navigate = useNavigate()
 
   return (
-    <div className='grid gap-4 grid-cols-1 md:gap-5 md:grid-cols-2'>
+    <div className='grid min-w-0 items-start gap-8 lg:grid-cols-2'>
       {/* 快捷操作 */}
-      <Card className='flex flex-col'>
-        <CardHeader className='pb-4'>
+      <Card className='flex min-w-0 flex-col gap-0 rounded-none border-0 border-t bg-transparent py-5 shadow-none ring-0'>
+        <CardHeader className='px-0 pb-4'>
           <div className='flex items-center gap-2'>
             <div className='p-1.5 rounded-md bg-primary/8'>
               <Sparkles className='size-4 text-primary' />
             </div>
-            <CardTitle className='text-sm font-medium'>快捷操作</CardTitle>
+            <CardTitle className='text-base font-semibold'>快捷操作</CardTitle>
           </div>
         </CardHeader>
-        <CardContent className='flex-1 pt-0'>
-          <div className='grid gap-2.5 grid-cols-2 h-full'>
+        <CardContent className='min-w-0 flex-1 px-0 pt-0'>
+          <div className='grid grid-cols-2 gap-2.5'>
             <QuickAction
               title='创建简历'
               icon={<Plus className='size-4' />}
@@ -83,16 +83,16 @@ function Entry({
       </Card>
 
       {/* 最近动态 */}
-      <Card className='flex flex-col'>
-        <CardHeader className='pb-4'>
+      <Card className='flex min-w-0 flex-col gap-0 rounded-none border-0 border-t bg-transparent py-5 shadow-none ring-0'>
+        <CardHeader className='px-0 pb-4'>
           <div className='flex items-center gap-2'>
             <div className='p-1.5 rounded-md bg-primary/8'>
               <Clock className='size-4 text-primary' />
             </div>
-            <CardTitle className='text-sm font-medium'>最近动态</CardTitle>
+            <CardTitle className='text-base font-semibold'>最近动态</CardTitle>
           </div>
         </CardHeader>
-        <CardContent className='flex-1 pt-0'>
+        <CardContent className='min-w-0 flex-1 px-0 pt-0'>
           <AnimatedContent
             animationKey={
               events.length > 0
@@ -137,7 +137,7 @@ function Entry({
                 </div>
               </div>
             ) : (
-              <Empty className='h-45 border-0 p-0'>
+              <Empty className='border-0 p-3'>
                 <EmptyHeader>
                   <EmptyMedia variant='icon'>
                     <FileUser className='text-muted-foreground/50' />
@@ -189,31 +189,27 @@ function QuickAction({
   iconBg?: string
 }) {
   return (
-    <button
-      type='button'
+    <Button
+      variant='ghost'
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'group flex flex-col items-start gap-2.5 rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow,color,transform] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
-        'motion-safe:hover:-translate-y-0.5 hover:shadow-sm hover:bg-accent/50 hover:border-border/80 motion-safe:active:scale-[0.98] motion-reduce:transition-none',
-        highlight &&
-          'bg-primary/3 border-primary/20 hover:border-primary/40 hover:bg-primary/6 hover:shadow-primary/10',
-        disabled &&
-          'cursor-default opacity-50 hover:translate-y-0 hover:shadow-none hover:bg-transparent hover:border-border',
+        'group h-auto min-w-0 justify-start gap-2 px-1 py-2 text-left motion-reduce:transition-none',
+        highlight && 'font-medium',
       )}
     >
       <div
         className={cn(
           'flex size-8 items-center justify-center rounded-md transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
-          'motion-safe:group-hover:scale-110 motion-safe:group-hover:-rotate-3 motion-reduce:transition-none',
+          'motion-reduce:transition-none',
           disabled && 'group-hover:scale-100 group-hover:rotate-0',
           iconBg,
         )}
       >
         {icon}
       </div>
-      <p className='text-sm font-medium leading-none'>{title}</p>
-    </button>
+      <span className='truncate text-sm font-medium'>{title}</span>
+    </Button>
   )
 }
 
@@ -270,7 +266,7 @@ function TimelineItem({
         type='button'
         onClick={onClick}
         className={cn(
-          'flex flex-1 items-start justify-between gap-2 rounded-md px-2 py-1.5 -mx-2 text-left',
+          'flex min-w-0 flex-1 items-start justify-between gap-2 rounded-md px-2 py-1.5 -mx-2 text-left',
           'transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) hover:bg-muted/50',
           isLast ? '' : 'mb-1',
         )}

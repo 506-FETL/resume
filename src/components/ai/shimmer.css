@@ -1,0 +1,32 @@
+.ai-shimmer-highlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: transparent;
+  background-image: linear-gradient(
+    90deg,
+    transparent calc(50% - var(--ai-shimmer-spread)),
+    var(--color-foreground) 50%,
+    transparent calc(50% + var(--ai-shimmer-spread))
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: ai-shimmer-breathe var(--ai-shimmer-duration) linear infinite;
+}
+
+@keyframes ai-shimmer-breathe {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-shimmer-highlight {
+    display: none;
+    animation: none;
+  }
+}

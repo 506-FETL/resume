@@ -94,3 +94,7 @@
 ) {
   animation-duration: var(--ui-motion-fast);
 }
+
+:where([data-sonner-toaster]) [data-sonner-toast][data-removed='true'] {
+  --toast-motion-duration: var(--ui-motion-fast);
+}

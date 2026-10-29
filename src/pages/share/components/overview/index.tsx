@@ -25,17 +25,17 @@ export default function Overview() {
   ]
 
   return (
-    <dl className='grid grid-cols-3 divide-x overflow-hidden rounded-xl border bg-card'>
+    <dl className='flex flex-wrap gap-x-8 gap-y-3 border-b pb-5'>
       {metrics.map(({ label, value, icon: Icon }) => (
-        <div key={label} className='min-w-0 px-3 py-3 sm:px-5'>
+        <div key={label} className='flex min-w-0 items-center gap-3'>
           <dt className='flex items-center gap-2 text-xs leading-4.5 text-muted-foreground'>
             <Icon className='hidden size-4 sm:block' />
             {label}
           </dt>
-          <dd className='mt-1 text-2xl leading-8 font-semibold tracking-tight tabular-nums'>
+          <dd className='text-lg font-semibold tabular-nums'>
             {pageLoading ? (
               <Skeleton
-                className={cn('h-8 w-12', reduceMotion && 'animate-none')}
+                className={cn('h-5 w-8', reduceMotion && 'animate-none')}
               />
             ) : pageError ? (
               '—'

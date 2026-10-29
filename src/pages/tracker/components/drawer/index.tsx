@@ -487,7 +487,7 @@ function JobDrawer() {
     >
       <div
         className={cn(
-          isMobile ? 'px-4 py-2' : 'px-5 py-5 lg:px-6',
+          isMobile ? 'px-4 py-2' : 'px-5 py-3 lg:px-6',
           !isEditing && 'flex min-h-0 flex-1 flex-col',
         )}
       >
@@ -511,7 +511,7 @@ function JobDrawer() {
             />
           </div>
         ) : (
-          <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-4'>
+          <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-3'>
             <div className='shrink-0'>
               <ProgressTimeline
                 viewingStage={viewingStage}
@@ -529,7 +529,7 @@ function JobDrawer() {
             >
               <TabsList
                 variant='line'
-                className='relative z-20 min-h-10 w-full shrink-0 rounded-none border-b bg-popover p-0 shadow-[0_6px_10px_-10px_rgba(0,0,0,0.45)]'
+                className='relative z-20 min-h-10 w-full shrink-0 rounded-none border-b bg-popover p-0 shadow-none'
               >
                 {DRAWER_TABS.map((tab) => (
                   <TabsTrigger
@@ -561,11 +561,11 @@ function JobDrawer() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              <div className='relative flex min-h-0 flex-1 flex-col md:mt-4'>
+              <div className='relative flex min-h-0 flex-1 flex-col md:mt-3'>
                 <AnimatePresence initial={false} mode='popLayout'>
                   <DrawerTabPanel key={activeTab} value={activeTab}>
                     {activeTab === 'follow-up' && (
-                      <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-4'>
+                      <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-3'>
                         {selectedJob.status !== 'rejected' && (
                           <NextActionSection
                             key={`next-action-${selectedJob.id}`}
@@ -626,12 +626,12 @@ function JobDrawer() {
                       <div className='space-y-6'>
                         <Contacts job={selectedJob} />
                         <DrawerDocument
-                          key={selectedJob.id}
+                          key={`document-${selectedJob.id}`}
                           open={resumeOpen}
                           onOpenChange={setResumeOpen}
                         />
                         <SubmissionList
-                          key={selectedJob.id}
+                          key={`submissions-${selectedJob.id}`}
                           jobId={selectedJob.id}
                           onViewDetails={() => {
                             handleTabChange('interview')

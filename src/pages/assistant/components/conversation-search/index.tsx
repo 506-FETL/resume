@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { MessageSquare, Search } from 'lucide-react'
 import { useEffect } from 'react'
 import {
@@ -19,7 +20,14 @@ import SearchEmpty from './search-empty'
 import ConversationSearchResult from './search-result'
 
 export default function ConversationSearch() {
-  const { searchOpen, setSearchOpen, conversations } = useAssistantStore()
+  const { searchOpen, setSearchOpen, conversations } = useAssistantStore(
+    useShallow((state) => ({
+      searchOpen: state.searchOpen,
+      setSearchOpen: state.setSearchOpen,
+      conversations: state.conversations,
+    })),
+  )
+
   const { openConversation } = useAssistantNavigation()
 
   const {

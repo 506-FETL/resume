@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { PanelRight } from 'lucide-react'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,17 @@ export default function ChatHeader() {
     setCanvasMobileOpen,
     layoutMode,
     canvasMobileOpen,
-  } = useAssistantStore()
+  } = useAssistantStore(
+    useShallow((state) => ({
+      activeConversationId: state.activeConversationId,
+      conversations: state.conversations,
+      canvasOpen: state.canvasOpen,
+      setCanvasOpen: state.setCanvasOpen,
+      setCanvasMobileOpen: state.setCanvasMobileOpen,
+      layoutMode: state.layoutMode,
+      canvasMobileOpen: state.canvasMobileOpen,
+    })),
+  )
 
   const isMobile = layoutMode === 'drawer'
 
@@ -29,13 +40,12 @@ export default function ChatHeader() {
     )?.title ?? '新对话'
 
   return (
-    <header className='flex h-16 shrink-0 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur sm:px-5'>
+    <header className='flex h-16 shrink-0 items-center gap-2 border-b bg-background px-3 sm:px-5'>
       <SidebarTrigger aria-label='切换侧边栏' />
       <div className='min-w-0 flex-1'>
-        <h1 className='truncate text-sm font-semibold tracking-tight'>
+        <h1 className='truncate text-base font-semibold tracking-tight'>
           {readableConversationTitle(title)}
         </h1>
-        <p className='text-xs text-muted-foreground'>AI 求职助手</p>
       </div>
       <AnimatedThemeToggler aria-label='切换主题' />
       <Tooltip>

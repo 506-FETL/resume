@@ -18,28 +18,66 @@ type SlidingNumberRollerProps = {
   prevValue: number
   value: number
   place: number
+  placeKey: string
+  revision: number
+  displayNumber: number
   transition: SpringOptions
   delay?: number
+  onSettled?: (
+    revision: number,
+    displayNumber: number,
+    placeKey: string,
+  ) => void
 }
 
 function SlidingNumberRoller({
   prevValue,
   value,
   place,
+  placeKey,
+  revision,
+  displayNumber,
   transition,
   delay = 0,
+  onSettled,
 }: SlidingNumberRollerProps) {
   const startNumber = Math.floor(prevValue / place) % 10
   const targetNumber = Math.floor(value / place) % 10
   const animatedValue = useSpring(startNumber, transition)
+  const onSettledRef = React.useRef(onSettled)
+
+  onSettledRef.current = onSettled
 
   React.useEffect(() => {
+    let unsubscribe: (() => void) | undefined
+    let didSettle = false
+
+    const markSettled = () => {
+      if (didSettle) return
+
+      didSettle = true
+      onSettledRef.current?.(revision, displayNumber, placeKey)
+    }
+
     const timeoutId = setTimeout(() => {
+      if (
+        animatedValue.get() === targetNumber &&
+        !animatedValue.isAnimating()
+      ) {
+        markSettled()
+
+        return
+      }
+
+      unsubscribe = animatedValue.on('animationComplete', markSettled)
       animatedValue.set(targetNumber)
     }, delay)
 
-    return () => clearTimeout(timeoutId)
-  }, [targetNumber, animatedValue, delay])
+    return () => {
+      clearTimeout(timeoutId)
+      unsubscribe?.()
+    }
+  }, [targetNumber, animatedValue, delay, revision, displayNumber, placeKey])
 
   const [measureRef, { height }] = useMeasure()
 
@@ -126,6 +164,7 @@ type SlidingNumberProps = Omit<HTMLMotionProps<'span'>, 'children'> & {
   number: number
   fromNumber?: number
   onNumberChange?: (number: number) => void
+  onValueAnimationComplete?: (number: number) => void
   padStart?: boolean
   decimalSeparator?: string
   decimalPlaces?: number
@@ -140,6 +179,7 @@ function SlidingNumber({
   number,
   fromNumber,
   onNumberChange,
+  onValueAnimationComplete,
   inView = false,
   inViewMargin = '0px',
   inViewOnce = true,
@@ -162,6 +202,15 @@ function SlidingNumber({
   )
 
   const initialNumeric = Math.abs(Number(number))
+
+  const targetRef = React.useRef({ number, revision: 0 })
+
+  if (targetRef.current.number !== number) {
+    targetRef.current = {
+      number,
+      revision: targetRef.current.revision + 1,
+    }
+  }
 
   const prevNumberRef = React.useRef<number>(
     initiallyStable ? initialNumeric : 0,
@@ -305,6 +354,45 @@ function SlidingNumber({
     [newDecStrRaw],
   )
 
+  const expectedRollers = intPlaces.length + decPlaces.length
+
+  const settledRollersRef = React.useRef<{
+    revision: number
+    displayNumber: number
+    placeKeys: Set<string>
+  }>({ revision: -1, displayNumber: 0, placeKeys: new Set() })
+
+  const notifiedRevisionRef = React.useRef(-1)
+
+  const handleRollerSettled = React.useCallback(
+    (revision: number, displayNumber: number, placeKey: string) => {
+      if (revision !== targetRef.current.revision) return
+      if (displayNumber !== targetRef.current.number) return
+
+      if (
+        settledRollersRef.current.revision !== revision ||
+        settledRollersRef.current.displayNumber !== displayNumber
+      ) {
+        settledRollersRef.current = {
+          revision,
+          displayNumber,
+          placeKeys: new Set(),
+        }
+      }
+
+      settledRollersRef.current.placeKeys.add(placeKey)
+
+      if (
+        settledRollersRef.current.placeKeys.size === expectedRollers &&
+        notifiedRevisionRef.current !== revision
+      ) {
+        notifiedRevisionRef.current = revision
+        onValueAnimationComplete?.(targetRef.current.number)
+      }
+    },
+    [expectedRollers, onValueAnimationComplete],
+  )
+
   const newDecValue = newDecStrRaw ? parseInt(newDecStrRaw, 10) : 0
   const prevDecValue = adjustedPrevDec ? parseInt(adjustedPrevDec, 10) : 0
 
@@ -336,7 +424,11 @@ function SlidingNumber({
               prevValue={parseInt(adjustedPrevInt, 10)}
               value={parseInt(newIntStr ?? '0', 10)}
               place={place}
+              placeKey={`int-${place}`}
+              revision={targetRef.current.revision}
+              displayNumber={effectiveNumber}
               transition={transition}
+              onSettled={handleRollerSettled}
             />
             {isSeparatorPosition && <span>{thousandSeparator}</span>}
           </React.Fragment>
@@ -352,8 +444,12 @@ function SlidingNumber({
               prevValue={prevDecValue}
               value={newDecValue}
               place={place}
+              placeKey={`dec-${place}`}
+              revision={targetRef.current.revision}
+              displayNumber={effectiveNumber}
               transition={transition}
               delay={delay}
+              onSettled={handleRollerSettled}
             />
           ))}
         </>

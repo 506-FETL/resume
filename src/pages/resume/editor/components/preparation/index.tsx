@@ -52,6 +52,7 @@ export default function Preparation({
   isMobile?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [contentMounted, setContentMounted] = useState(false)
   const [selected, setSelected] = useState<ResumeProfile | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -66,7 +67,7 @@ export default function Preparation({
 
   const { record, loading, error, ownerId, retry } = usePreparationRecord(
     resumeId,
-    open,
+    open || contentMounted,
   )
 
   const reducedMotion = useReducedMotion()
@@ -192,7 +193,11 @@ export default function Preparation({
         </Button>
       </DialogTrigger>
       <DialogContent
+        onOpenAutoFocus={() => setContentMounted(true)}
         onCloseAutoFocus={() => {
+          // Radix 在退出完成后才卸载内容，读取状态应保留到此时。
+          setContentMounted(false)
+
           const request = pendingEditRef.current
 
           pendingEditRef.current = null
@@ -211,14 +216,10 @@ export default function Preparation({
           animationDuration: `${reducedMotion ? 0 : open ? DURATION.base : DURATION.fast}s`,
           animationTimingFunction: `cubic-bezier(${(open ? EASE.out : EASE.in).join(',')})`,
         }}
-        className={`max-h-[85dvh] overflow-y-auto sm:max-w-lg ${reducedMotion ? 'animate-none! duration-0!' : ''}`}
-        overlayClassName={
-          reducedMotion
-            ? 'animate-none! duration-0!'
-            : 'preparation-dialog-overlay'
-        }
+        className='max-h-[85dvh] overflow-y-auto sm:max-w-lg'
+        overlayClassName='preparation-dialog-overlay'
       >
-        <style>{`.preparation-dialog-overlay[data-state="open"]{animation-duration:${DURATION.base}s;animation-timing-function:cubic-bezier(${EASE.out.join(',')})}.preparation-dialog-overlay[data-state="closed"]{animation-duration:${DURATION.fast}s;animation-timing-function:cubic-bezier(${EASE.in.join(',')})}`}</style>
+        <style>{`.preparation-dialog-overlay[data-state="open"]{animation-duration:${reducedMotion ? 0 : DURATION.base}s;animation-timing-function:cubic-bezier(${EASE.out.join(',')})}.preparation-dialog-overlay[data-state="closed"]{animation-duration:${reducedMotion ? 0 : DURATION.fast}s;animation-timing-function:cubic-bezier(${EASE.in.join(',')})}`}</style>
         <DialogHeader>
           <DialogTitle>填写建议</DialogTitle>
           <DialogDescription className='sr-only'>
@@ -230,7 +231,7 @@ export default function Preparation({
         ) : error ? (
           <div role='alert'>
             <p>{error}</p>
-            <Button variant='outline' onClick={retry}>
+            <Button variant='outline' onClick={retry} disabled={!open}>
               重试
             </Button>
           </div>
@@ -240,6 +241,7 @@ export default function Preparation({
               <Label htmlFor='preparation-profile'>求职阶段</Label>
               <Select
                 value={profile}
+                disabled={!open}
                 onValueChange={(value) => setSelected(value as ResumeProfile)}
               >
                 <SelectTrigger
@@ -293,7 +295,7 @@ export default function Preparation({
                     <Button
                       variant='outline'
                       size='sm'
-                      disabled={busy || reviewActive || !record}
+                      disabled={!open || busy || reviewActive || !record}
                       onClick={copyExample}
                     >
                       {busy ? '正在添加…' : '添加并编辑'}
@@ -341,7 +343,7 @@ export default function Preparation({
                     <Button
                       variant='outline'
                       size='sm'
-                      disabled={busy}
+                      disabled={!open || busy}
                       onClick={removeSource}
                     >
                       删除原文

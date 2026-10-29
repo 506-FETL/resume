@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { DURATION, EASE } from '@/lib/motion'
+import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
 import { CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CHAT_MIN_WIDTH } from '../../const'
 import { useCanvasModel } from '../../hooks/use-canvas-model'
 import useAssistantStore from '../../store'
@@ -79,11 +79,15 @@ function CanvasPanel({
         animate={{
           opacity: interactive ? 1 : 0,
           transform:
-            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(8px)',
+            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(4px)',
         }}
         transition={{
-          duration: reduceMotion ? 0 : exiting ? DURATION.fast : DURATION.base,
-          ease: exiting ? EASE.in : EASE.out,
+          duration: reduceMotion
+            ? 0
+            : exiting
+              ? CONTENT_SWITCH.exit.duration
+              : CONTENT_SWITCH.enter.duration,
+          ease: exiting ? CONTENT_SWITCH.exit.ease : CONTENT_SWITCH.enter.ease,
           delay: 0,
         }}
         onAnimationComplete={() => {

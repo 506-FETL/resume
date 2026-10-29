@@ -1,0 +1,10 @@
+{
+  ".github/agents/impeccable-asset-producer.agent.md": true,
+  ".github/agents/impeccable-documenter.agent.md": true,
+  ".github/agents/impeccable-finish-reviewer.agent.md": true,
+  ".github/agents/impeccable-manual-edit-applier.agent.md": true,
+  ".impeccable/hook.cache.json": true,
+  ".impeccable/questions/017852ec.hand.json": true,
+  ".impeccable/questions/017852ec.state.json": true,
+  ".impeccable/questions/seeds/2195b55a04c6613b.json": true
+}

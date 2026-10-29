@@ -1,10 +1,8 @@
 import type { User } from '@supabase/supabase-js'
-import { Calendar as CalendarIcon, Mail, Shield } from 'lucide-react'
+import { Calendar as CalendarIcon, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { useCurrentUserName } from '@/hooks/use-current-user'
 import supabase from '@/lib/supabase/client'
 import { ProfileAvatar } from '../profile-avatar'
 import { ReadonlyField } from '../readonly-field'
@@ -26,7 +24,6 @@ function formatRegistrationDate(dateString?: string) {
 }
 
 export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
-  const currentName = useCurrentUserName()
   const [user, setUser] = useState(initialUser)
 
   useEffect(() => {
@@ -47,24 +44,17 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
   const email = user.email || ''
 
   return (
-    <Card className='shadow-none'>
-      <CardHeader>
+    <Card className='gap-5 overflow-visible rounded-none border-0 border-b bg-transparent pt-0 pb-6 shadow-none ring-0'>
+      <CardHeader className='px-0 pt-0'>
         <CardTitle className='font-semibold'>个人资料</CardTitle>
       </CardHeader>
-      <CardContent className='flex flex-col gap-6'>
+      <CardContent className='flex flex-col gap-5 px-0'>
         <div className='flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6'>
           <ProfileAvatar />
-          <div className='flex min-w-0 max-w-full flex-col items-start gap-1'>
-            <h3 className='max-w-full wrap-anywhere text-xl font-semibold'>
-              {currentName || '?'}
-            </h3>
-            <p className='text-muted-foreground flex max-w-full items-start gap-2 text-sm leading-6'>
-              <Mail className='size-4 shrink-0' />
-              <span className='min-w-0 break-all'>{email}</span>
-            </p>
+          <div className='min-w-0'>
             <Badge
               variant={user.email_confirmed_at ? 'outline' : 'destructive'}
-              className='mt-2 gap-1'
+              className='gap-1'
             >
               <Shield className='size-3 shrink-0' />
               {user.email_confirmed_at ? '邮箱已验证' : '邮箱未验证'}
@@ -72,9 +62,7 @@ export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
           </div>
         </div>
 
-        <Separator />
-
-        <div className='grid gap-4 sm:grid-cols-2'>
+        <div className='divide-y'>
           <NameRow initialFullName={fullName} />
           <EmailRow initialEmail={email} />
 

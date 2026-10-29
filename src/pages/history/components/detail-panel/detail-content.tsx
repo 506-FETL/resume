@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { CONTENT_SWITCH } from '@/lib/motion'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
 import HistoryResumePreview from '../shared/history-resume-preview'
@@ -35,7 +36,7 @@ function DetailTabPanel({
   onExitComplete: () => void
   children: ReactNode
 }) {
-  const { reduceMotion, enter, exit } = useHistoryMotion()
+  const { reduceMotion } = useHistoryMotion()
   const visible = displayed === value
   const exiting = visible && active !== value
   const interactive = visible && !exiting
@@ -67,9 +68,13 @@ function DetailTabPanel({
         animate={{
           opacity: interactive ? 1 : 0,
           transform:
-            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(8px)',
+            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(4px)',
         }}
-        transition={{ ...(exiting ? exit : enter), delay: 0 }}
+        transition={{
+          ...(exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
+          ...(reduceMotion && { duration: 0 }),
+          delay: 0,
+        }}
         onAnimationComplete={() => {
           if (exiting) onExitComplete()
         }}

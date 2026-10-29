@@ -29,9 +29,9 @@ export function ResetPasswordForm() {
   return (
     <div className='mx-auto flex max-w-lg flex-col gap-6'>
       <AnimatedContent animationKey={status}>
-        <Card>
-          <CardHeader>
-            <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
+        <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+          <CardHeader className='gap-3 px-0'>
+            <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
               {status === 'success' ? '密码已重置' : '设置新密码'}
             </h1>
             {status === 'success' && (
@@ -40,7 +40,7 @@ export function ResetPasswordForm() {
               </CardDescription>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className='px-0'>
             {status === 'ready' ? (
               <form
                 onSubmit={async (event) => {

@@ -36,7 +36,7 @@ export default function CurrentVersionCard({
       onClick={() => onSelectEntry('current')}
       className={cn(
         'relative isolate flex w-full min-w-0 items-start gap-3 rounded-lg border border-transparent p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        !selected && 'bg-muted/40 hover:bg-muted/70',
+        !selected && 'hover:bg-muted/35',
       )}
       whileHover={reduceMotion ? undefined : { y: -1 }}
       whileTap={reduceMotion ? undefined : { scale: 0.99 }}

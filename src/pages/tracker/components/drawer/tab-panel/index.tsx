@@ -3,7 +3,7 @@ import type { DrawerTab } from '../../../types'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { TabsContent } from '@/components/ui/tabs'
-import { DURATION, EASE } from '@/lib/motion'
+import { CONTENT_SWITCH } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 export default function DrawerTabPanel({
@@ -27,21 +27,21 @@ export default function DrawerTabPanel({
             ? 'overflow-hidden'
             : 'scrollbar-gutter-stable overflow-y-auto',
         )}
-        initial={reduce ? false : { opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={reduce ? false : { opacity: 0, transform: 'translateY(4px)' }}
+        animate={{ opacity: 1, transform: 'translateY(0px)' }}
         exit={{
           opacity: 0,
-          y: 0,
+          transform: 'translateY(0px)',
           transition: {
-            duration: reduce ? 0 : DURATION.fast,
-            ease: EASE.in,
+            ...CONTENT_SWITCH.exit,
+            ...(reduce && { duration: 0 }),
             delay: 0,
           },
         }}
         transition={{
-          duration: reduce ? 0 : DURATION.base,
-          ease: EASE.out,
-          delay: reduce ? 0 : DURATION.fast,
+          ...CONTENT_SWITCH.enter,
+          ...(reduce && { duration: 0 }),
+          delay: reduce ? 0 : CONTENT_SWITCH.exit.duration,
         }}
       >
         {children}

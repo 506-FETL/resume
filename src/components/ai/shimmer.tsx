@@ -1,8 +1,8 @@
 import type { CSSProperties, ElementType } from 'react'
-import { motion } from 'motion/react'
+import { memo } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { memo, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import './shimmer.css'
 
 export interface TextShimmerProps {
   children: string
@@ -14,50 +14,33 @@ export interface TextShimmerProps {
 
 function ShimmerComponent({
   children,
+  as: Component = 'span',
   className,
   duration = 2,
   spread = 2,
 }: TextShimmerProps) {
   const reduceMotion = useReducedMotion()
 
-  const dynamicSpread = useMemo(
-    () => (children?.length ?? 0) * spread,
-    [children, spread],
-  )
-
-  if (reduceMotion)
-    return (
-      <div
-        className={cn('relative inline-block text-muted-foreground', className)}
-      >
-        {children}
-      </div>
-    )
-
   return (
-    <motion.div
-      animate={{ backgroundPosition: '0% center' }}
+    <Component
       className={cn(
-        'relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent',
-        '[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]',
+        'ai-shimmer relative inline-block text-muted-foreground',
         className,
       )}
-      initial={{ backgroundPosition: '100% center' }}
       style={
         {
-          '--spread': `${dynamicSpread}px`,
-          backgroundImage:
-            'var(--bg), linear-gradient(var(--color-muted-foreground), var(--color-muted-foreground))',
+          '--ai-shimmer-duration': `${duration}s`,
+          '--ai-shimmer-spread': `${children.length * spread}px`,
         } as CSSProperties
       }
-      transition={{
-        repeat: Number.POSITIVE_INFINITY,
-        duration,
-        ease: 'linear',
-      }}
     >
       {children}
-    </motion.div>
+      {!reduceMotion && (
+        <span aria-hidden='true' className='ai-shimmer-highlight'>
+          {children}
+        </span>
+      )}
+    </Component>
   )
 }
 

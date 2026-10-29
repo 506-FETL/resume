@@ -75,6 +75,7 @@ Always respond in Chinese-simplified.
 - 动效预设集中在 `src/lib/motion.ts`：优先复用其中的缓动（`EASE`）、时长（`DURATION`）、spring（`SPRING`）与 variants（`fadeInUp`/`fadeScale`），不要随手拍脑袋写新数值。
 - 缓动与时长档位：进入主用招牌曲线 `[0.22, 1, 0.36, 1]`；时长以 `fast=0.14 / base=0.2 / slow=0.28`（秒）为准。进入 = 淡入 + 轻微上移(y≈8px)或缩放(0.96→1)；退出更短、曲线更急。列表用 `index * 0.02~0.04` 的错峰延迟。
 - **所有动效都必须接入 `useReducedMotion()` 降级**（开启减少动效时归零 duration 或去掉位移/缩放）——这是本仓库最强的硬性约定。
+- 手机端与桌面端都应保留流畅、自然的状态过渡，不能仅因窄屏或触摸设备就取消动画。优先通过短时长、轻位移、transform / opacity 和局部更新满足性能要求；只有用户主动开启减少动效时按该偏好降级，具体性能瓶颈须有测量依据。
 - 折叠内容用 `tw-animate-css` 的 `data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up`（外层需 `overflow-hidden`），与 accordion 折叠动画保持一致。
 - 弹窗动画沿用「UI 组件兼容性与加载状态」中的验收要求（至少两轮完整开关 + 反向切换）。
 

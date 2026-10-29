@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { TokenUsage } from '../../store'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { BookOpen, Sparkles } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { Shimmer } from '@/components/ai/shimmer'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Textarea } from '@/components/ui/textarea'
@@ -105,7 +105,13 @@ function renderAssistantParts(
         />,
       )
     } else if (p.type === 'skill-activity') {
-      nodes.push(<SkillActivity key={p.id} activity={p} />)
+      nodes.push(
+        <SkillActivity
+          key={p.id}
+          activity={p}
+          streaming={isStreamingMessage}
+        />,
+      )
     }
   })
 
@@ -166,7 +172,7 @@ function UserMessageEditor({
   )
 }
 
-export function MessageBubble({
+export const MessageBubble = memo(function MessageBubble({
   message,
   onEditSave,
   onRegenerate,
@@ -284,4 +290,4 @@ export function MessageBubble({
       </div>
     </div>
   )
-}
+})

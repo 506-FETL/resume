@@ -1,0 +1,2042 @@
+diff --git a/docs/product-development-guardrails.md b/docs/product-development-guardrails.md
+index fca124d4..56176885 100644
+--- a/docs/product-development-guardrails.md
++++ b/docs/product-development-guardrails.md
+@@ -220,3 +220,15 @@
+ - 资料会话信息：已有用户数据能提供注册/登录等静态元信息时，直接使用已加载的用户对象，不另发重复请求并留下无恢复入口的骨架。
+ - 浏览器验收要等待真实数据状态：优化报告首次加载数秒仍可能是正常等待，不能把骨架截图当成完成页面，也不能仅据短等待宣称永久加载故障。截图、过渡中间帧、交互结果分别记录。
+ - 模板待核对项：本轮默认模板 v3 的两页合成简历出现空“自我评价”标题在第一页底、分隔线在第二页顶。根因尚未定位，不能宣称是本轮引入或已经修复。后续模板维护须用该打印副本复现，按短文/页底临界/多页和背景开关验证；不能放宽打印签名校验掩盖问题。
++
++## 16. 六项动效补齐复盘
++
++来源：[设计](superpowers/specs/2026-10-29-motion-completion-design.md)、[计划](superpowers/plans/2026-10-29-motion-completion.md)、[验收](superpowers/specs/2026-10-29-motion-completion-acceptance.md)。
++
++- 数字和高频切换：统计弹簧的长尾使 0→100 在一次隔离采样中约 3.17 秒才显示终值，页签退出与进入串行也累计等待。数字使用有界 280ms 插值，从当前值接续；高频内容统一 CONTENT_SWITCH 的 70/140ms，保留先退后进、常驻 DOM 和焦点交接。验收实际终值、反向、中途减少动效、逐帧叠字及草稿/滚动保留，不能只核对配置数值。
++- 移动键盘和短视口：编辑抽屉未使用已有 VirtualKeyboardProvider，可视区收缩后字段仍在键盘下面。Provider 放在 Drawer Root 内，Viewport 消费 primitive inset，Popup 相对可用区定位；横屏不足时仅在编辑抽屉局部压缩留白，保留控件尺寸与滚动。验收普通字段、底部字段和富文本选字，以及评论、导航、嵌套抽屉；模拟 visualViewport/CDP touch 不等于系统键盘实机验证。
++- 运行中减少动效：把 CSS transition-duration 改为 0 不保证浏览器已经启动的过渡立刻结束。抽屉偏好变化时还要结束 Popup/Overlay 自身及直属 content/handle 进行中的 CSS 过渡，保留最终位置及原有 ref；不能遍历任意业务后代或结束独立无限动画。验收检查真实 transform、遮罩与嵌套内容 opacity、活动动画及 ref 清理，不以 computed duration=0 单独判定通过。
++- 拖拽与滚动：无溢出或已经触底的容器仍因尝试 scrollBy 被当成“已滚动”，持续续帧；高频 pointermove 还重复测量几何。合并每帧最新坐标，按真实 offset 变化续帧，限制另一轴命中；提交前同步核对最终落点，所有取消和卸载清理帧、捕获及 body 样式。验收真实滚动到边界、容器外、源移除、取消回源中间位置和收尾重入。预览不是业务成功信号，仍须保留终态确认和异步保存。
++- 拖后点击：350ms 抑制曾把紧接的标题 Enter 一起吞掉。只抑制当前拖动的合成指针 click，detail=0 的键盘操作正常执行，新 pointer/touch down 清除旧抑制。验收拖后立即 Enter、普通单击和独立按钮，不能只测拖动成功。
++- 助手流：稳定历史和输入器全量订阅 store，导致每次 token 更新重复执行无关组件。非流 UI 只订阅实际字段，消息保持不可变引用与 memo；等待提示使用小面积 opacity。相同历史和至少 10 秒流分别记录组件执行、Profiler、脚本、长任务及 Paint/Layout，不能把渲染次数下降说成所有绘制或手机 FPS 都改善；同时回归停止、失败重试、取消、上滚与画布快切。
++- 保存反馈：视觉文字、图标和重试入口按同一个语义状态切换；读屏状态立即更新。退出前先把按钮焦点交给稳定节点，再设 inert/aria-hidden；新状态不能仍触发旧重试。通知复用 Sonner 的更新/取消机制和公共时长，验收加载→成功/失败、重复更新、取消与运行中减少动效。
+diff --git a/docs/superpowers/plans/2026-10-29-motion-completion.md b/docs/superpowers/plans/2026-10-29-motion-completion.md
+new file mode 100644
+index 00000000..ba9b793d
+--- /dev/null
++++ b/docs/superpowers/plans/2026-10-29-motion-completion.md
+@@ -0,0 +1,77 @@
++# 六项动效补齐实施计划
++
++> **面向 AI 代理的工作者：** 按 dispatching-parallel-agents 将无共享文件的移动端、拖拽、流式任务隔离执行；主代理负责公共切换与验收集成。按 subagent-driven-development 进行实现后的规格核对与代码复核。不得多人编辑同一文件。
++
++**目标：** 完成已授权的六项动效优化，用实际测量验证响应、连续性、焦点和性能。
++
++**架构：** 延续 React、Base UI/Radix、Motion 和 Zustand。公共高频切换在 motion.ts 收口，其余修改留在所属模块；数据协议不变。依据[设计](../specs/2026-10-29-motion-completion-design.md)，本期无需新组件库或 GSAP。
++
++**技术栈：** React 19、TypeScript、Motion、Base UI/Radix、Tailwind、Vite、现有 bundled Playwright。
++
++**完成状态：** 六个方向已实施，浏览器验证、类型检查、生产构建及本轮文件格式检查通过。全仓 format:check 的四份既有代理文档失败单独记录；用户审查尚未进行。完成证据与验证边界见[验收记录](../specs/2026-10-29-motion-completion-acceptance.md)。下方勾选表示已执行对应工作，不把已知全仓检查失败等同通过。
++
++## 任务 1：数字与高频切换（主代理）
++
++文件：src/lib/motion.ts、src/components/ui/number-ticker.tsx、src/components/ui/tabs.tsx、src/pages/tracker/components/view-transition/index.tsx、src/pages/tracker/components/drawer/tab-panel/index.tsx、src/pages/history/components/detail-panel/detail-content.tsx；必要时 src/components/motion/animated-content.tsx。临时验证 tests/motion-finish-core/。
++
++- [x] 读取 transitions-dev 数字/页签参考、历史切换残留规格和实际实现。
++- [x] 先用真实 NumberTicker 与 Tabs 夹具采样原完成时间、连续反向、最终内容及长内容挂载。
++- [x] 新增共享切换档，保留原标准进入/退出：
++
++  ```ts
++  export const CONTENT_SWITCH = {
++    enter: { duration: DURATION.fast, ease: EASE.out },
++    exit: { duration: DURATION.fast / 2, ease: EASE.out },
++  } as const
++  ```
++
++- [x] NumberTicker 用 `animate(motionValue, target, { duration: DURATION.slow, ease: EASE.out })` 替代无界 spring；effect 清理停止前次动画，目标变化从当前值继续。保留已可见状态与 delay、小数、down，降级时 jump 目标。
++- [x] 页签/视图采用 CONTENT_SWITCH 和 `transform: 'translateY(4px)'`，等待前项退出时使用 exit.duration；复用原 displayed/active 逻辑与焦点隔离，不重构数据状态。
++- [x] 验收 0/20/100、小数、负数、down、更新途中反向、减少动效反向；鼠标与方向键快切、旧面板移除、嵌套页签、forceMount 草稿与 scrollTop。每次切换不得同时出现两组可见文字，最终面板可操作。
++
++## 任务 2：移动抽屉（mobile_motion_finish）
++
++文件：src/components/ui/drawer.tsx、src/pages/resume/editor/index.tsx，以及必要的移动编辑专属组件；临时验证 tests/motion-finish-mobile/。
++
++- [x] 复现 390×844、visualViewport 高 500 时输入框仍处于 y632–668 的遮挡；确认实际时长已被全局 CSS 覆盖。
++- [x] 对照已有评论抽屉：`<Drawer><DrawerVirtualKeyboardProvider><DrawerContent>…</DrawerContent></DrawerVirtualKeyboardProvider></Drawer>`；provider 读取 Drawer context，必须放在 Root 内部。共享 viewport 使用 primitive 提供的 keyboard inset 和可用高度，不增加新监听库。
++- [x] 核对 transition-property，只保留实际需要的 transform/opacity 与必要嵌套行为；useReducedMotion 动态变化时停止位移。
++- [x] 独立合成编辑页回归手柄拖动、滚动内容/选字不误关、输入聚焦避让、两轮关闭及反向、关闭焦点、320/390/844 横竖视口和减少动效。明确模拟与实机边界。
++
++## 任务 3：拖拽与自动滚动（drag_motion_finish）
++
++文件：src/components/ui/cross-list-drag.tsx、src/lib/motion-drag.ts（仅必要的复用修复）、src/pages/tracker/components/board/；临时验证 tests/motion-finish-drag/。
++
++- [x] 核对实际取消路径、无限续帧根因和 tracker 状态确认语义。
++- [x] pointermove 只保存最新坐标，每帧统一执行预览、命中和自动滚动；`didScroll` 由 scrollLeft/scrollTop 的实际变化计算，另一轴超出范围不滚动。
++- [x] Escape 覆盖所有拖拽方式，源移除/blur/cancel 统一清理；保持 `suppressClick` 防止拖后误打开，不能阻止正常按钮点击。
++- [x] 保留退出预览，合法提交短淡出，取消回当前源矩形；复用 DURATION/EASE 与减少动效，快速重新拾取取消旧收尾。目标整列高亮过渡，不加虚假的排序落点。
++- [x] 用真实 CrossListProvider 合成三列做鼠标/触摸/键盘、取消/边界/卸载/退出重入/运行中减少动效；记录 rAF 是否在边界停止及最终数组。真实 tracker 只读检查，提交回调在夹具内验证。
++
++## 任务 4：助手流式性能（stream_motion_finish）
++
++文件：src/components/ai/shimmer.tsx 与专属样式、src/pages/assistant/components/message-list/、composer/、chat-header/、conversation-list/、工具与技能活动组件；需要画布切换时与主代理共用 CONTENT_SWITCH。临时验证 tests/motion-finish-stream/。
++
++- [x] 定位 backgroundPosition 逐帧样式更新、全 store 订阅、历史消息重复 render 和工具状态复用。
++- [x] 先记录真实组件 60 条历史 + 10 秒合成 Markdown 流的基线（React Profiler、帧间隔、LongTask、CDP Paint/Layout）。
++- [x] Shimmer 采用小面积静态文字高亮 + opacity 循环，保留 duration 和可读文本，useReducedMotion 实时停止。
++- [x] 非流 UI 使用 `useShallow` selector，MessageBubble/文本与推理组件在输入稳定时 memo，保留正在流动的真实依赖，不更改 use-chat-stream 协议。
++- [x] 工具状态 key 区分 pending/result/error/cancelled；历史技能不重播，流中新增轻入场；状态切换保留取消与停止按钮焦点。
++- [x] 相同数据复测 10 秒流；失败→重试→完成/取消、停止两轮与反向、手动上滚、320/390/1440 和实时减少动效。输出改善与未覆盖项，不写无证据的 FPS 承诺。
++
++## 任务 5：保存、失败与通知（主代理）
++
++文件：src/pages/tracker/components/drawer/workflow-save-feedback/index.tsx、src/components/motion/animated-content.tsx（仅确有共享需要）、src/components/ui/sonner.tsx / src/styles/motion.css（仅实测发现问题时）。临时验证 tests/motion-finish-core/。
++
++- [x] 检查保存、导入/本地同步和 Sonner 的真实状态分支；不改变请求与扣费，不用假延迟模拟成功。
++- [x] 保存状态使用即时独立 `role='status'` 文本；视觉文字/图标/重试按钮使用同一语义状态 key 与 CONTENT_SWITCH，避免旧错误和新按钮不同步。
++- [x] 点击重试或状态外部变化时，将退出按钮上的焦点移至稳定容器后再隔离；退出内容不可重复提交。与真实 onRetry 配合，不新增业务请求。
++- [x] 验收 idle→pending→saving→saved、error→retry→saving→error/saved、快速反向与减少动效；通知 loading→success/error、取消及重复通知不残留活动加载图标。
++
++## 任务 6：集成与最终审查（主代理）
++
++- [x] 对照 review-animations 逐文件复查并修复问题，记录 Before/After/Why 和结论；技能默认与仓库规则冲突时按仓库保持短过渡和减少动效归零。
++- [x] 对修改文件执行 `pnpm exec prettier <files> --write`，再 `pnpm exec eslint <source-files> --fix --fix-type layout`，核对无重复导入、属性、JSX 和补丁残留。
++- [x] 执行 `pnpm exec tsc -b`、`pnpm build`、`pnpm format:check`、`git diff --check`。既有四份代理文档格式问题与 lint/chunk 警告单独报告，不混入本轮成功结论。
++- [x] 真实页面只读抽查首页、跟进、助手、历史、移动编辑，核对本轮组件的文字、焦点和最终布局。
++- [x] 证据存入 .superpowers/motion-finish-20261029/；删除本轮 tests/motion-finish-\* 临时脚本、关闭独立浏览器和临时服务，保留用户已有测试/服务。更新防回归清单和验收文档，分别记录实施、验证、用户审查。
+diff --git a/docs/superpowers/specs/2026-10-29-motion-completion-acceptance.md b/docs/superpowers/specs/2026-10-29-motion-completion-acceptance.md
+new file mode 100644
+index 00000000..640ecc12
+--- /dev/null
++++ b/docs/superpowers/specs/2026-10-29-motion-completion-acceptance.md
+@@ -0,0 +1,81 @@
++# 六项动效补齐验收
++
++日期：2026-10-29。对应[设计](2026-10-29-motion-completion-design.md)与[实施计划](../plans/2026-10-29-motion-completion.md)，基线为本轮开始时的 `11de3a53`。
++
++- 实施：六个方向已完成，共修改或新增 27 个源码文件。
++- 验证：下列浏览器检查、类型检查、生产构建及本轮文件格式检查通过。全仓格式检查仍有四份既有代理文档失败，详见下文。
++- 用户审查：待进行。代码复审通过不代表用户已认可视觉效果。
++
++## 实施与实测
++
++| 方向     | 落地内容                                                                                             | 实际验证                                                                                                                 |
++| -------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
++| 首页数字 | NumberTicker 从长尾 spring 改为公共 280ms 插值；连续更新接续当前值，减少动效立即显示目标             | 正负数、零、小数、down、连续反向、运行中开启及恢复减少动效；现有跟进统计也已回归                                         |
++| 高频切换 | 公共 Tabs、跟进视图/抽屉、历史详情与助手画布统一 70ms 退出、140ms 进入，4px 位移                     | 方向键、快速反向、外部切换、焦点交接与逐帧叠字检查通过；常驻面板保留 DOM、草稿和滚动                                     |
++| 移动抽屉 | 接通已有虚拟键盘 provider，按可用视口定位；短横屏只收紧编辑区留白；处理运行中减少动效                | 320/390px、640px 横屏、正文滚动、边界、手柄拖动/取消、富文本选字、嵌套排序；评论及导航抽屉两轮开关、退出中重开及焦点恢复 |
++| 拖拽     | 每帧合并坐标，以真实滚动量决定续帧；补齐取消、回源、释放淡出及再次拾取                               | 20 组真实 Provider 场景与 6 组真实看板场景通过；鼠标、键盘、CDP touch、源移除、失焦、卸载、边界、运行中减少动效          |
++| 助手流式 | 缩小 store 订阅，稳定历史消息 memo；等待效果改为小面积 opacity；工具状态与历史技能入场按真实状态区分 | 相同 60 条历史、200 次增量的 10 秒流对照；12 组交互通过，覆盖停止、重试成功/失败/取消、主动上滚、画布快切与偏好切换      |
++| 异步反馈 | 保存文字、图标和重试入口一起切换，退出前交接焦点；独立即时 status；Sonner 复用公共进入/退出时长      | 完整保存状态链、失败重试、外部完成、快速反向；同一通知加载→成功→失败→取消；正常进入 280ms、退出 140ms，减少动效 0ms      |
++
++使用 transitions-dev 的数字、页签、面板及状态参考设计，animation-performance 定位实际成本，review-animations 完成代码与动效复审；通知另按 ask-sonner 核对库的更新、取消和样式接口。现有 Motion、Base UI/Radix、Sonner 足够完成本期短过渡，没有新增 GSAP 或其他依赖。
++
++## 实测中发现并修复的问题
++
++1. 编辑抽屉在视觉视口缩到 500px 后，姓名框仍处于 y632–668。接入 provider 并调整 viewport/popup 后，抽屉范围变为 y8–492，输入可滚动到可见区。640×390、视觉视口高 260px 时，原固定区域挤得正文只剩 9.8px；局部收紧留白后正文为 65.8px，姓名框 y200–236 完整处于抽屉内。
++2. 把 CSS 时长设为零不会立即结束已启动的过渡。现在减少动效变化时结束 Popup/Overlay 自身及直属 content/handle 的 CSS transition；不处理任意业务后代或独立无限动画。嵌套开关途中切换偏好后，80ms 检查 opacity 已到目标且没有运行中过渡；回调 ref 各清理一次，style(state) 和自定义无限 WAAPI 保留。
++3. 拖拽到无溢出或滚动边界时，原实现仍持续续帧；鼠标 Escape 也没有取消。已按实际 offset 判断、统一取消清理，并验证回源中间帧。拖后点击抑制同时修正为保留键盘 Enter 与下一次正常点击。
++4. 保存失败按钮退出时，原文字与入口不统一，焦点可能留在退出内容。现在整个状态一起切换，隔离旧节点之前交接焦点；退出按钮不可继续触发重试。
++
++这些触发场景、根因、长期约束与验收要求已写入[防回归清单第 16 节](../../product-development-guardrails.md#16-六项动效补齐复盘)。
++
++## 对照结果及含义
++
++数字 0→100 的一次隔离采样中，首次显示终值约从 3,173ms 降至 233ms。配置总时长为 280ms，整数四舍五入可能提前显示终值；不能把这一采样等同所有数字的完成时间。公共页签此次采样约 234ms，代码中的退出加进入预算为 210ms。
++
++拖拽同一 JS 任务分发 60 次 pointermove：同步几何读取从 240 次降至 0 次，下一帧后的累计读取从 270 次降至 6 次。无溢出列底部停留 350ms，自动续帧从 21 帧降至 0。该测量证明事件合并与边界停止，不代表手机帧率。
++
++助手使用相同数据、同一桌面 Chrome 环境顺序比较：
++
++| 指标                    |        修改前 |        修改后 |
++| ----------------------- | ------------: | ------------: |
++| MessageBubble 执行次数  |        12,261 |           201 |
++| Composer 执行次数       |           201 |             1 |
++| React Profiler 渲染合计 |     2,629.8ms |     1,977.9ms |
++| ScriptDuration          |     4,567.8ms |     3,537.1ms |
++| 单次渲染 P95            |        11.5ms |        12.9ms |
++| 帧间隔 P95              |        16.8ms |        16.8ms |
++| 超过 50ms 的长任务      |             5 |             0 |
++| Paint 次数 / 合计       | 754 / 125.9ms | 798 / 121.0ms |
++| Layout 次数 / 合计      |  192 / 81.3ms |  199 / 79.8ms |
++
++本次总渲染耗时下降约 24.8%，脚本耗时下降约 22.6%；单次渲染 P95 上升，Paint/Layout 未呈稳定下降，不能声称所有渲染都更快或全面消除卡顿。等待提示单独观察 10 秒，样式更新次数从 600 降至 37、脚本耗时从 45.7ms 降至 0.74ms；新旧两组 Paint 与 Layout 均为 0，因此没有测出“减少逐帧重绘”的结论。
++
++## 验收范围
++
++- 核心组件覆盖 320/390/1440px，无页面横向溢出，未出现 pageerror 或 aria-hidden 焦点警告。浮层覆盖连续两轮开关、退出中重开、运行中开启和恢复减少动效。移动主回归仅记录了 Motion 对减少动效设置的正常提示。
++- 历史详情使用真实容器及加载预览槽，探针输入只验证 DOM 身份和 scrollTop=160 保留；助手画布使用真实控制器、四个常驻面板及隔离内容槽，草稿和 scrollTop=480 保留。两者均不冒充云端历史或真实简历预览写入验证。
++- 真实登录页面只读抽查首页、跟进、助手、历史的 1440/390px，确认内容加载、无横向溢出及浏览器异常。助手另等骨架消失后检查最终页面。移动编辑在独立浏览器与合成离线简历中操作，未改用户数据。
++- 导入草稿和本地同步的已有反馈分支已核对源码；共享通知生命周期经过浏览器验证，本轮没有执行云端同步写入。助手使用真实流式组件和重试控制器，外部执行/持久化边界使用合成结果，未发起付费模型请求。
++- visualViewport 与 CDP touch 是浏览器模拟，尚未覆盖真实 iOS/Android 系统键盘、Safari 系统焦点、手机 GPU 或实际屏幕阅读器播报。本轮未改模板正文、分页和导出；上轮记录的默认模板空模块分页待核对项仍独立保留。
++
++## 最终检查
++
++对冻结的 27 个源码文件先执行 Prettier write，再执行 ESLint layout fix；最后重新完成全项目类型检查与构建。Drawer 最终版本包含直属节点过渡处理和 ref 清理，未使用修改前的构建冒充最终验证。
++
++| 检查                                | 结果                                         |
++| ----------------------------------- | -------------------------------------------- |
++| `pnpm exec tsc -b --pretty false`   | 退出 0                                       |
++| `pnpm build`                        | 退出 0，20.59 秒；保留既有循环分块及大包提示 |
++| 全仓 ESLint（由 format:check 执行） | 0 errors、69 个既有 warnings                 |
++| `pnpm format:check`                 | 退出 1，仅四份既有代理文档格式失败，列于下方 |
++| 本轮修改/新增源码及文档 Prettier    | 通过                                         |
++| `git diff --check`、冲突标记检查    | 通过，未发现残留冲突标记                     |
++| 独立最终复审及 Drawer 补审          | Approve，无有证据的新增阻断问题              |
++
++全仓格式失败文件为 `.github/agents/` 下的 `impeccable-asset-producer.agent.md`、`impeccable-documenter.agent.md`、`impeccable-finish-reviewer.agent.md`、`impeccable-manual-edit-applier.agent.md`。它们不在本期修改范围，本轮没有顺带手改这些代理文档，也不将全仓格式检查报告为通过。
++
++## 证据与清理
++
++原始测量、截图、模块报告、独立审查和最终源码 SHA-256 保存在本机忽略目录 `.superpowers/motion-finish-20261029/`：核心 `core/`、移动 `mobile/`、拖拽 `drag/`、助手 `stream/`；独立报告为 `final-review.md`。截图可能包含本机页面数据，不加入版本库。
++
++本轮 `tests/motion-finish-*` 临时脚本及数据已删除，用户已有测试目录保留。5182、5191、5192、5193 临时服务均已关闭，用户原 5173 服务保留。没有提交、推送、切换分支或执行云端部署。
+diff --git a/docs/superpowers/specs/2026-10-29-motion-completion-design.md b/docs/superpowers/specs/2026-10-29-motion-completion-design.md
+new file mode 100644
+index 00000000..da9949ce
+--- /dev/null
++++ b/docs/superpowers/specs/2026-10-29-motion-completion-design.md
+@@ -0,0 +1,45 @@
++# 六项动效补齐设计
++
++日期：2026-10-29。用户已明确授权按六个方向写计划、直接实施、实测并修复发现的问题。本设计记录这次授权的具体范围，不重复索要批准。上一轮依据见[全站验收](2026-10-29-frontend-refinement-acceptance.md)，文件重复与排版问题已先行修复。
++
++## 目标与边界
++
++缩短高频交互等待，补齐手势、视口与异步状态的连续反馈，降低流式输出期间的动画成本。保留当前页面布局、首页局部渐变、ATS 字体与分数语义，不改简历正文、模板几何、分页、数据库或模型协议。当前分支开发，不提交、不推送，不操作用户真实业务数据。
++
++使用 brainstorming 明确取舍，writing-plans 编排实施，transitions-dev 的数字、页签、面板、状态及流式参考指导设计，animation-performance 定位成本，review-animations 做最终复核。按仓库已有组件和 token 适配参考，不复制不适用的 primitive 属性和昂贵的默认效果。本轮没有复杂时间轴或滚动编排，不新增 GSAP 依赖。
++
++## 1. 数字
++
++首页 NumberTicker 的 stiffness=100、damping=60 无明确完成时间，小幅统计变化也长时间收尾。改为公共 slow 档 280ms 有界插值，首次可见从 startValue 进入，更新从当前显示值接续；保留 direction、小数、延迟与实际最终值。写入单个文字节点，不通过逐帧 React state 更新卡片。减少动效途中切换立即落在目标值，恢复后不回放旧数字。跟进 useCountUp 已为 140ms，先验证再决定是否修改。
++
++## 2. 高频页签与视图
++
++现有退出 140ms + 进入 200ms 合计 340ms，快速连续操作显得迟缓。新增有语义的共享切换档：退出 fast/2=70ms、进入 fast=140ms，总计 210ms；位移缩至 4px，使用完整 transform 字符串。公共 Tabs、跟进抽屉页签/看板列表与历史详情常驻面板复用，助手画布按相同档位衔接。
++
++继续先退后进，避免两组文字同时可见；选中指示及时响应，快速反向从当前状态接续。保留 forceMount 的 DOM、输入、滚动和焦点交接。按本仓库约定保留短过渡，减少动效归零，不照搬技能中删除全部键盘过渡的通用建议。
++
++## 3. 移动抽屉
++
++共享 CSS 已覆盖旧字面时长为 280/140ms，不把源码旧值当作实际性能证据。已复现编辑抽屉在 visualViewport 缩小时不避让键盘；复用 Base UI DrawerVirtualKeyboardProvider 与既有评论抽屉模式，接通 viewport inset 约束，避免另写 keyboard hook。表单滚动、选字与下拉交给现有 primitive，不用大面积手势捕获抢输入。
++
++清理不需要的 height/filter 过渡；保留必要的嵌套抽屉反馈。验证上下滚动、手柄拖动与取消、两轮开关、退出反向、焦点和实时减少动效。模拟 visualViewport 和 CDP touch 属于浏览器模拟，不宣称已完成 iOS/Android 系统键盘实机验收。
++
++## 4. 拖拽
++
++已确认自动滚动在到达边界后仍续帧，且缺少另一轴命中限制；指针事件每次做多组几何读取；鼠标拖拽缺少 Escape；源节点卸载保护只覆盖键盘；预览释放时立即移除。
++
++按帧合并最新坐标，滚动按实际 delta 决定是否继续，越过容器另一轴时停止。取消、失焦、pointer/touch cancel 与源移除共用清理；正常单击不受影响，拖动后的合成 click 不误开详情。合法提交保留业务回调并短淡出；取消回到当前真实源位置。跟进按状态排序，不添加暗示自由排序的插入线；终态确认/请求成功之前不假装卡片已完成业务移动。新拾取、取消途中重开和减少动效可打断预览收尾。
++
++## 5. 助手流式输出
++
++Shimmer 的 backgroundPosition 无限动画与 Markdown 更新争用主线程；实际对照确认的是样式与脚本工作，当前 Chrome 没有记录到等待动画的逐帧 Paint；改为小面积固定文字高亮的 opacity 呼吸。消息及输入器的全 store 订阅、历史气泡缺少 memo 使每次 token 更新重复执行无关 UI；仅收窄真实依赖与稳定历史节点，不改流式合帧、取消、持久化和工具调用协议。
++
++工具 pending/result/error/cancelled 分别显示真实状态；只给流中新增内容轻入场，历史加载不重播。保留用户主动上滚的位置和停止后的焦点。使用相同合成长历史、10 秒流式输入对比渲染、帧间隔、长任务及 Paint/Layout，不把桌面 CPU 降速等同真实手机 GPU。
++
++## 6. 异步反馈
++
++覆盖保存 idle/pending/saving/saved/error、失败重试、加载完成、操作取消与通知。优先修复真实反馈组件，不为测试增加产品内入口。跟进保存反馈现有重试按钮瞬间出现/消失、文字串行延迟且失败消失时可能丢焦点；将状态文字和可操作入口作为一次语义切换，保留即时读屏状态，退出入口不可重复提交，重试后焦点回到稳定状态容器。复核 Sonner 的加载→成功/失败、手动关闭及减少动效；已有实现合格则保留。
++
++## 验收与交付
++
++使用真实组件的隔离合成场景覆盖正常/异常/取消，真实登录页面只读抽查。至少 320/390/1440px；重点浮层两轮开关及反向；减少动效在运行中开启与恢复；检查焦点、aria warning、文字叠帧、最终值与残留动画。临时脚本分别放 tests/motion-finish-\*，验收后只删除本轮脚本，证据保留 .superpowers/motion-finish-20261029/。最后类型检查、ESLint、Prettier、生产构建与差异复查；实施、验证、用户审查分开记录。
+diff --git a/src/components/ai/shimmer.css b/src/components/ai/shimmer.css
+new file mode 100644
+index 00000000..6a5444ec
+--- /dev/null
++++ b/src/components/ai/shimmer.css
+@@ -0,0 +1,32 @@
++.ai-shimmer-highlight {
++  position: absolute;
++  inset: 0;
++  pointer-events: none;
++  color: transparent;
++  background-image: linear-gradient(
++    90deg,
++    transparent calc(50% - var(--ai-shimmer-spread)),
++    var(--color-foreground) 50%,
++    transparent calc(50% + var(--ai-shimmer-spread))
++  );
++  background-clip: text;
++  -webkit-background-clip: text;
++  animation: ai-shimmer-breathe var(--ai-shimmer-duration) linear infinite;
++}
++
++@keyframes ai-shimmer-breathe {
++  0%,
++  100% {
++    opacity: 0.25;
++  }
++  50% {
++    opacity: 0.85;
++  }
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .ai-shimmer-highlight {
++    display: none;
++    animation: none;
++  }
++}
+diff --git a/src/components/ai/shimmer.tsx b/src/components/ai/shimmer.tsx
+index baccf7e5..6535b890 100644
+--- a/src/components/ai/shimmer.tsx
++++ b/src/components/ai/shimmer.tsx
+@@ -1,8 +1,8 @@
+ import type { CSSProperties, ElementType } from 'react'
+-import { motion } from 'motion/react'
++import { memo } from 'react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+-import { memo, useMemo } from 'react'
+ import { cn } from '@/lib/utils'
++import './shimmer.css'
+ 
+ export interface TextShimmerProps {
+   children: string
+@@ -14,50 +14,33 @@ export interface TextShimmerProps {
+ 
+ function ShimmerComponent({
+   children,
++  as: Component = 'span',
+   className,
+   duration = 2,
+   spread = 2,
+ }: TextShimmerProps) {
+   const reduceMotion = useReducedMotion()
+ 
+-  const dynamicSpread = useMemo(
+-    () => (children?.length ?? 0) * spread,
+-    [children, spread],
+-  )
+-
+-  if (reduceMotion)
+-    return (
+-      <div
+-        className={cn('relative inline-block text-muted-foreground', className)}
+-      >
+-        {children}
+-      </div>
+-    )
+-
+   return (
+-    <motion.div
+-      animate={{ backgroundPosition: '0% center' }}
++    <Component
+       className={cn(
+-        'relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent',
+-        '[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]',
++        'ai-shimmer relative inline-block text-muted-foreground',
+         className,
+       )}
+-      initial={{ backgroundPosition: '100% center' }}
+       style={
+         {
+-          '--spread': `${dynamicSpread}px`,
+-          backgroundImage:
+-            'var(--bg), linear-gradient(var(--color-muted-foreground), var(--color-muted-foreground))',
++          '--ai-shimmer-duration': `${duration}s`,
++          '--ai-shimmer-spread': `${children.length * spread}px`,
+         } as CSSProperties
+       }
+-      transition={{
+-        repeat: Number.POSITIVE_INFINITY,
+-        duration,
+-        ease: 'linear',
+-      }}
+     >
+       {children}
+-    </motion.div>
++      {!reduceMotion && (
++        <span aria-hidden='true' className='ai-shimmer-highlight'>
++          {children}
++        </span>
++      )}
++    </Component>
+   )
+ }
+ 
+diff --git a/src/components/ui/cross-list-drag.tsx b/src/components/ui/cross-list-drag.tsx
+index bf1db406..a51c5be4 100644
+--- a/src/components/ui/cross-list-drag.tsx
++++ b/src/components/ui/cross-list-drag.tsx
+@@ -13,7 +13,7 @@ import type {
+   TouchEventHandler,
+ } from 'react'
+ import type { DragAxis, DragPoint, DropDestination } from '@/lib/motion-drag'
+-import { motion, useMotionValue } from 'motion/react'
++import { motion, useMotionTemplate, useMotionValue } from 'motion/react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import {
+   createContext,
+@@ -25,6 +25,7 @@ import {
+   useState,
+ } from 'react'
+ import { createPortal } from 'react-dom'
++import { DURATION, EASE } from '@/lib/motion'
+ import {
+   findDropContainer,
+   findDropIndex,
+@@ -169,12 +170,16 @@ export function CrossListDragProvider({
+   const sessionRef = useRef<DragSession | null>(null)
+   const scrollAreasRef = useRef(scrollAreas)
+   const onDropRef = useRef(onDrop)
++  const reduceMotionRef = useRef(reduceMotion)
+ 
+   const suppressClickRef = useRef<{ itemId: string; until: number } | null>(
+     null,
+   )
+ 
+   const frameRef = useRef<number | null>(null)
++  const pointRef = useRef<DragPoint | null>(null)
++  const previewElementRef = useRef<HTMLDivElement | null>(null)
++  const previewAnimationRef = useRef<Animation | null>(null)
+ 
+   const bodyStyleRef = useRef<{ cursor: string; userSelect: string } | null>(
+     null,
+@@ -182,10 +187,15 @@ export function CrossListDragProvider({
+ 
+   const overlayX = useMotionValue(0)
+   const overlayY = useMotionValue(0)
++  const overlayTransform = useMotionTemplate`translate3d(${overlayX}px, ${overlayY}px, 0)`
++  const [preview, setPreview] = useState<ActiveDrag | null>(null)
+   const [active, setActive] = useState<ActiveDrag | null>(null)
+   const [destination, setDestination] = useState<DropDestination | null>(null)
+   const [liveMessage, setLiveMessage] = useState('')
+ 
++  // 偏好变化不重绑全局监听，避免清理监听时中断仍在跟手的拖拽。
++  reduceMotionRef.current = reduceMotion
++
+   useEffect(() => {
+     scrollAreasRef.current = scrollAreas
+   }, [scrollAreas])
+@@ -220,8 +230,53 @@ export function CrossListDragProvider({
+     }
+   }, [])
+ 
++  const clearPreview = useCallback(() => {
++    previewAnimationRef.current?.cancel()
++    previewAnimationRef.current = null
++    setPreview(null)
++  }, [])
++
++  const settlePreview = useCallback(
++    (session: DragSession, returnToSource: boolean) => {
++      const element = previewElementRef.current
++
++      if (!element || reduceMotionRef.current) {
++        clearPreview()
++
++        return
++      }
++
++      const sourceRect = session.itemElement.isConnected
++        ? session.itemElement.getBoundingClientRect()
++        : null
++
++      const currentTransform = getComputedStyle(element).transform
++
++      const targetTransform =
++        returnToSource && sourceRect
++          ? `translate3d(${sourceRect.left - session.startRect.left}px, ${sourceRect.top - session.startRect.top}px, 0)`
++          : currentTransform
++
++      const animation = element.animate(
++        [
++          { transform: currentTransform, opacity: 0.98 },
++          { transform: targetTransform, opacity: 0 },
++        ],
++        {
++          duration: DURATION.fast * 1000,
++          easing: `cubic-bezier(${EASE.out.join(',')})`,
++          fill: 'forwards',
++        },
++      )
++
++      previewAnimationRef.current = animation
++      animation.onfinish = clearPreview
++    },
++    [clearPreview],
++  )
++
+   const clearSession = useCallback(
+-    (updateState = true) => {
++    (updateState = true, returnToSource = true) => {
+       const session = sessionRef.current
+ 
+       if (session?.touchTimer != null) window.clearTimeout(session.touchTimer)
+@@ -231,18 +286,36 @@ export function CrossListDragProvider({
+       )
+         session.itemElement.releasePointerCapture(session.pointerId)
+ 
++      if (session?.active && session.kind !== 'keyboard') {
++        suppressClickRef.current = {
++          itemId: session.itemId,
++          until: performance.now() + 350,
++        }
++      }
++
+       sessionRef.current = null
++      pointRef.current = null
+       cancelFrame()
+       restoreBodyStyles()
+ 
+       if (updateState) {
++        if (session?.active && session.kind !== 'keyboard')
++          settlePreview(session, returnToSource)
++
+         setActive(null)
+         setDestination(null)
++      } else {
++        previewAnimationRef.current?.cancel()
++        previewAnimationRef.current = null
+       }
+     },
+-    [cancelFrame, restoreBodyStyles],
++    [cancelFrame, restoreBodyStyles, settlePreview],
+   )
+ 
++  useEffect(() => {
++    if (reduceMotion && !sessionRef.current?.active) clearPreview()
++  }, [clearPreview, reduceMotion])
++
+   const resolveDestination = useCallback(
+     (point: DragPoint): DropDestination | null => {
+       const session = sessionRef.current
+@@ -314,11 +387,18 @@ export function CrossListDragProvider({
+     [resolveDestination],
+   )
+ 
+-  const runAutoScroll = useCallback(
+-    (point: DragPoint) => {
++  const runDragFrame = useCallback(
++    function runDragFrame() {
++      frameRef.current = null
++
+       const session = sessionRef.current
++      const point = pointRef.current
+ 
+-      if (!session?.active) return
++      if (!session?.active || !point) return
++
++      overlayX.set(point.x - session.startPoint.x)
++      overlayY.set(point.y - session.startPoint.y)
++      updateDestination(point)
+ 
+       const scrolledElements = new Set<HTMLElement>()
+       let didScroll = false
+@@ -331,21 +411,25 @@ export function CrossListDragProvider({
+       ) => {
+         if (!element || scrolledElements.has(element)) return
+ 
++        const rect = element.getBoundingClientRect()
++        const crossCoordinate = axis === 'x' ? point.y : point.x
++        const crossStart = axis === 'x' ? rect.top : rect.left
++        const crossEnd = axis === 'x' ? rect.bottom : rect.right
++
++        if (crossCoordinate < crossStart || crossCoordinate > crossEnd) return
++
+         scrolledElements.add(element)
+ 
+-        const delta = getEdgeScrollDelta(
+-          point,
+-          element.getBoundingClientRect(),
+-          axis,
+-          threshold,
+-          maxStep,
+-        )
++        const delta = getEdgeScrollDelta(point, rect, axis, threshold, maxStep)
++        const before = axis === 'x' ? element.scrollLeft : element.scrollTop
+ 
+         if (delta === 0) return
+-        if (axis === 'x') element.scrollBy({ left: delta })
+-        else element.scrollBy({ top: delta })
++        if (axis === 'x') element.scrollBy({ left: delta, behavior: 'instant' })
++        else element.scrollBy({ top: delta, behavior: 'instant' })
+ 
+-        didScroll = true
++        const after = axis === 'x' ? element.scrollLeft : element.scrollTop
++
++        didScroll ||= after !== before
+       }
+ 
+       for (const area of scrollAreasRef.current)
+@@ -360,27 +444,22 @@ export function CrossListDragProvider({
+ 
+       if (didScroll) {
+         updateDestination(point)
+-        frameRef.current = requestAnimationFrame(() => runAutoScroll(point))
+-      } else {
+-        frameRef.current = null
++        frameRef.current = requestAnimationFrame(runDragFrame)
+       }
+     },
+-    [updateDestination],
++    [overlayX, overlayY, updateDestination],
+   )
+ 
+   const updateDrag = useCallback(
+     (point: DragPoint) => {
+-      const session = sessionRef.current
++      if (!sessionRef.current?.active) return
+ 
+-      if (!session?.active) return
++      pointRef.current = point
+ 
+-      overlayX.set(point.x - session.startPoint.x)
+-      overlayY.set(point.y - session.startPoint.y)
+-      updateDestination(point)
+-      cancelFrame()
+-      frameRef.current = requestAnimationFrame(() => runAutoScroll(point))
++      if (frameRef.current === null)
++        frameRef.current = requestAnimationFrame(runDragFrame)
+     },
+-    [cancelFrame, overlayX, overlayY, runAutoScroll, updateDestination],
++    [runDragFrame],
+   )
+ 
+   const activateSession = useCallback(() => {
+@@ -388,6 +467,7 @@ export function CrossListDragProvider({
+ 
+     if (!session || session.active) return
+ 
++    clearPreview()
+     session.active = true
+     session.touchTimer = null
+ 
+@@ -409,16 +489,18 @@ export function CrossListDragProvider({
+     document.body.style.cursor = 'grabbing'
+     document.body.style.userSelect = 'none'
+ 
+-    setActive({
++    const nextActive = {
+       kind: session.kind,
+       itemId: session.itemId,
+       sourceId: session.sourceId,
+       sourceIndex: session.sourceIndex,
+       startRect: session.startRect,
+-    })
++    }
+ 
+-    updateDestination(session.startPoint)
+-  }, [overlayX, overlayY, updateDestination])
++    setActive(nextActive)
++    setPreview(nextActive)
++    updateDrag(session.startPoint)
++  }, [clearPreview, overlayX, overlayY, updateDrag])
+ 
+   const finishSession = useCallback(() => {
+     const session = sessionRef.current
+@@ -442,14 +524,7 @@ export function CrossListDragProvider({
+           }
+         : null
+ 
+-    if (session.active && session.kind !== 'keyboard') {
+-      suppressClickRef.current = {
+-        itemId: session.itemId,
+-        until: performance.now() + 350,
+-      }
+-    }
+-
+-    clearSession()
++    clearSession(true, result === null)
+ 
+     if (result) onDropRef.current(result)
+   }, [clearSession])
+@@ -468,6 +543,9 @@ export function CrossListDragProvider({
+         return
+       if (isInteractiveTarget(event.target, event.currentTarget)) return
+ 
++      clearPreview()
++      suppressClickRef.current = null
++
+       const point = { x: event.clientX, y: event.clientY }
+ 
+       sessionRef.current = {
+@@ -482,7 +560,7 @@ export function CrossListDragProvider({
+         destination: null,
+       }
+     },
+-    [],
++    [clearPreview],
+   )
+ 
+   const beginTouchDrag = useCallback(
+@@ -493,6 +571,9 @@ export function CrossListDragProvider({
+       if (event.touches.length !== 1 || sessionRef.current) return
+       if (isInteractiveTarget(event.target, event.currentTarget)) return
+ 
++      clearPreview()
++      suppressClickRef.current = null
++
+       const touch = event.touches[0]
+ 
+       const session: DragSession = {
+@@ -514,7 +595,7 @@ export function CrossListDragProvider({
+ 
+       sessionRef.current = session
+     },
+-    [activateSession],
++    [activateSession, clearPreview],
+   )
+ 
+   const describeDestination = useCallback((next: DropDestination): string => {
+@@ -543,6 +624,7 @@ export function CrossListDragProvider({
+ 
+         event.preventDefault()
+         event.stopPropagation()
++        clearPreview()
+ 
+         const startRect = event.currentTarget.getBoundingClientRect()
+ 
+@@ -660,7 +742,7 @@ export function CrossListDragProvider({
+       setDestination(nextDestination)
+       setLiveMessage(describeDestination(nextDestination))
+     },
+-    [clearSession, describeDestination, finishSession],
++    [clearPreview, clearSession, describeDestination, finishSession],
+   )
+ 
+   useEffect(() => {
+@@ -681,28 +763,17 @@ export function CrossListDragProvider({
+       if (!session.itemElement.contains(event.target)) cancelKeyboardSession()
+     }
+ 
+-    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+-      if (event.key !== 'Escape' || sessionRef.current?.kind !== 'keyboard')
+-        return
+-
+-      event.preventDefault()
+-      event.stopPropagation()
+-      cancelKeyboardSession()
+-    }
+-
+     document.addEventListener('focusin', handleFocusIn, true)
+-    window.addEventListener('keydown', handleGlobalKeyDown, true)
+ 
+     return () => {
+       document.removeEventListener('focusin', handleFocusIn, true)
+-      window.removeEventListener('keydown', handleGlobalKeyDown, true)
+     }
+   }, [active, clearSession])
+ 
+   useEffect(() => {
+     const session = sessionRef.current
+ 
+-    if (session?.kind !== 'keyboard') return
++    if (!session) return
+ 
+     const source = containersRef.current.get(session.sourceId)
+ 
+@@ -713,7 +784,7 @@ export function CrossListDragProvider({
+     if (
+       !session.itemElement.isConnected ||
+       !source?.itemIds.includes(session.itemId) ||
+-      !target
++      (session.destination !== null && !target)
+     ) {
+       clearSession()
+       setLiveMessage('拖动项目已变化，已取消拖动')
+@@ -725,6 +796,7 @@ export function CrossListDragProvider({
+       const suppressed = suppressClickRef.current
+ 
+       if (
++        event.detail === 0 ||
+         !suppressed ||
+         suppressed.itemId !== itemId ||
+         performance.now() > suppressed.until
+@@ -769,7 +841,13 @@ export function CrossListDragProvider({
+         session?.kind === 'pointer' &&
+         session.pointerId === event.pointerId
+       ) {
+-        if (session.active) updateDrag({ x: event.clientX, y: event.clientY })
++        if (session.active) {
++          const point = { x: event.clientX, y: event.clientY }
++
++          overlayX.set(point.x - session.startPoint.x)
++          overlayY.set(point.y - session.startPoint.y)
++          updateDestination(point)
++        }
+ 
+         finishSession()
+       }
+@@ -819,7 +897,13 @@ export function CrossListDragProvider({
+       )
+ 
+       if (!touch) return
+-      if (session.active) updateDrag({ x: touch.clientX, y: touch.clientY })
++      if (session.active) {
++        const point = { x: touch.clientX, y: touch.clientY }
++
++        overlayX.set(point.x - session.startPoint.x)
++        overlayY.set(point.y - session.startPoint.y)
++        updateDestination(point)
++      }
+ 
+       finishSession()
+     }
+@@ -838,6 +922,15 @@ export function CrossListDragProvider({
+ 
+     const handleBlur = () => clearSession()
+ 
++    const handleEscape = (event: KeyboardEvent) => {
++      if (event.key !== 'Escape' || !sessionRef.current) return
++
++      event.preventDefault()
++      event.stopPropagation()
++      clearSession()
++      setLiveMessage('已取消拖动')
++    }
++
+     window.addEventListener('pointermove', handlePointerMove, {
+       passive: false,
+     })
+@@ -848,6 +941,7 @@ export function CrossListDragProvider({
+     window.addEventListener('touchend', handleTouchEnd)
+     window.addEventListener('touchcancel', handleTouchCancel)
+     window.addEventListener('blur', handleBlur)
++    window.addEventListener('keydown', handleEscape, true)
+ 
+     return () => {
+       window.removeEventListener('pointermove', handlePointerMove)
+@@ -857,9 +951,18 @@ export function CrossListDragProvider({
+       window.removeEventListener('touchend', handleTouchEnd)
+       window.removeEventListener('touchcancel', handleTouchCancel)
+       window.removeEventListener('blur', handleBlur)
++      window.removeEventListener('keydown', handleEscape, true)
+       clearSession(false)
+     }
+-  }, [activateSession, clearSession, finishSession, updateDrag])
++  }, [
++    activateSession,
++    clearSession,
++    finishSession,
++    overlayX,
++    overlayY,
++    updateDestination,
++    updateDrag,
++  ])
+ 
+   const context = useMemo<CrossListDragContextValue>(
+     () => ({
+@@ -888,28 +991,26 @@ export function CrossListDragProvider({
+       <div aria-atomic='true' aria-live='polite' className='sr-only'>
+         {liveMessage}
+       </div>
+-      {active?.kind !== 'keyboard' &&
+-        active &&
++      {preview &&
+         typeof document !== 'undefined' &&
+         createPortal(
+           <motion.div
++            ref={previewElementRef}
+             aria-hidden='true'
+-            initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
+-            animate={{ opacity: 0.98, scale: reduceMotion ? 1 : 1.015 }}
+-            transition={{ duration: reduceMotion ? 0 : 0.12 }}
++            data-motion-drag-preview=''
+             style={{
+               position: 'fixed',
+-              left: active.startRect.left,
+-              top: active.startRect.top,
+-              width: active.startRect.width,
+-              minHeight: active.startRect.height,
+-              x: overlayX,
+-              y: overlayY,
++              left: preview.startRect.left,
++              top: preview.startRect.top,
++              width: preview.startRect.width,
++              minHeight: preview.startRect.height,
++              transform: overlayTransform,
++              opacity: 0.98,
+               zIndex: 1000,
+               pointerEvents: 'none',
+             }}
+           >
+-            {renderOverlay(active.itemId)}
++            {renderOverlay(preview.itemId)}
+           </motion.div>,
+           document.body,
+         )}
+diff --git a/src/components/ui/drawer.tsx b/src/components/ui/drawer.tsx
+index 3d9b3407..3f3eb9f2 100644
+--- a/src/components/ui/drawer.tsx
++++ b/src/components/ui/drawer.tsx
+@@ -2,7 +2,8 @@
+ 
+ import * as React from 'react'
+ import { Drawer as DrawerPrimitive } from '@base-ui/react/drawer'
+-
++import { useMergeRefs } from '@floating-ui/react'
++import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import { cn } from '@/lib/utils'
+ import { PortalContainerProvider } from '@/components/ui/portal-container'
+ 
+@@ -25,6 +26,35 @@ function useDrawer() {
+   return context
+ }
+ 
++function useDrawerMotion(forwardedRef: React.Ref<HTMLDivElement> | undefined) {
++  const reduceMotion = useReducedMotion()
++  const motionRef = React.useRef<HTMLDivElement | null>(null)
++  const ref = useMergeRefs([motionRef, forwardedRef])
++
++  React.useLayoutEffect(() => {
++    const element = motionRef.current
++
++    if (!reduceMotion || !element) return
++
++    const motionElements = [
++      element,
++      ...element.querySelectorAll<HTMLElement>(
++        ':scope > [data-slot="drawer-content"], :scope > [data-slot="drawer-swipe-handle"]',
++      ),
++    ]
++
++    // 修改 transition-duration 不会终止浏览器已经启动的 CSS 过渡。
++    for (const motionElement of motionElements) {
++      motionElement
++        .getAnimations()
++        .filter((animation) => animation instanceof CSSTransition)
++        .forEach((animation) => animation.finish())
++    }
++  }, [reduceMotion])
++
++  return { reduceMotion, ref }
++}
++
+ function Drawer({
+   modal = true,
+   showSwipeHandle = false,
+@@ -68,13 +98,22 @@ function DrawerClose({ ...props }: DrawerPrimitive.Close.Props) {
+ 
+ function DrawerOverlay({
+   className,
++  style,
++  ref: forwardedRef,
+   ...props
+ }: DrawerPrimitive.Backdrop.Props) {
++  const { reduceMotion, ref: motionRef } = useDrawerMotion(forwardedRef)
++
+   return (
+     <DrawerPrimitive.Backdrop
+       data-slot='drawer-overlay'
++      ref={motionRef}
++      style={(state) => ({
++        ...(typeof style === 'function' ? style(state) : style),
++        ...(reduceMotion && { transitionDuration: '0s' }),
++      })}
+       className={cn(
+-        'fixed inset-0 z-50 min-h-dvh bg-black/30 opacity-[max(var(--drawer-overlay-min-opacity,0),calc(1-var(--drawer-swipe-progress)))] transition-opacity duration-450 ease-[cubic-bezier(0.32,0.72,0,1)] select-none data-ending-style:pointer-events-none data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-snap-points:[--drawer-overlay-min-opacity:0.5] data-starting-style:opacity-0 data-swiping:duration-0 supports-backdrop-filter:backdrop-blur-sm supports-[-webkit-touch-callout:none]:absolute',
++        'fixed inset-0 z-50 min-h-dvh bg-black/30 opacity-[max(var(--drawer-overlay-min-opacity,0),calc(1-var(--drawer-swipe-progress)))] transition-opacity duration-(--ui-motion-slow) ease-(--ui-motion-enter-ease) select-none data-ending-style:pointer-events-none data-ending-style:opacity-0 data-ending-style:duration-(--ui-motion-fast) data-snap-points:[--drawer-overlay-min-opacity:0.5] data-starting-style:opacity-0 data-swiping:duration-0 supports-backdrop-filter:backdrop-blur-sm supports-[-webkit-touch-callout:none]:absolute',
+         className,
+       )}
+       {...props}
+@@ -91,7 +130,7 @@ function DrawerSwipeHandle({
+       data-slot='drawer-swipe-handle'
+       aria-hidden='true'
+       className={cn(
+-        'relative z-10 flex shrink-0 cursor-grab transition-opacity duration-200 group-data-nested-drawer-open/drawer-popup:opacity-0 group-data-nested-drawer-swiping/drawer-popup:opacity-100 group-data-[swipe-axis=x]/drawer-popup:h-full group-data-[swipe-axis=x]/drawer-popup:w-3 group-data-[swipe-axis=x]/drawer-popup:items-center group-data-[swipe-axis=y]/drawer-popup:h-3 group-data-[swipe-axis=y]/drawer-popup:w-full group-data-[swipe-axis=y]/drawer-popup:justify-center group-data-[swipe-direction=down]/drawer-popup:items-end group-data-[swipe-direction=left]/drawer-popup:order-last group-data-[swipe-direction=left]/drawer-popup:justify-start group-data-[swipe-direction=right]/drawer-popup:justify-end group-data-[swipe-direction=up]/drawer-popup:order-last group-data-[swipe-direction=up]/drawer-popup:items-start after:block after:shrink-0 after:rounded-full after:bg-muted group-data-[swipe-axis=x]/drawer-popup:after:h-[100px] group-data-[swipe-axis=x]/drawer-popup:after:w-1.5 group-data-[swipe-axis=y]/drawer-popup:after:h-1.5 group-data-[swipe-axis=y]/drawer-popup:after:w-[100px] active:cursor-grabbing',
++        'relative z-10 flex shrink-0 cursor-grab transition-opacity duration-(--ui-motion-base) group-data-nested-drawer-open/drawer-popup:opacity-0 group-data-nested-drawer-swiping/drawer-popup:opacity-100 group-data-[swipe-axis=x]/drawer-popup:h-full group-data-[swipe-axis=x]/drawer-popup:w-3 group-data-[swipe-axis=x]/drawer-popup:items-center group-data-[swipe-axis=y]/drawer-popup:h-3 group-data-[swipe-axis=y]/drawer-popup:w-full group-data-[swipe-axis=y]/drawer-popup:justify-center group-data-[swipe-direction=down]/drawer-popup:items-end group-data-[swipe-direction=left]/drawer-popup:order-last group-data-[swipe-direction=left]/drawer-popup:justify-start group-data-[swipe-direction=right]/drawer-popup:justify-end group-data-[swipe-direction=up]/drawer-popup:order-last group-data-[swipe-direction=up]/drawer-popup:items-start after:block after:shrink-0 after:rounded-full after:bg-muted group-data-[swipe-axis=x]/drawer-popup:after:h-[100px] group-data-[swipe-axis=x]/drawer-popup:after:w-1.5 group-data-[swipe-axis=y]/drawer-popup:after:h-1.5 group-data-[swipe-axis=y]/drawer-popup:after:w-[100px] active:cursor-grabbing',
+         className,
+       )}
+       {...props}
+@@ -103,11 +142,14 @@ function DrawerContent({
+   className,
+   children,
+   overlayClassName,
++  style,
++  ref: forwardedRef,
+   ...props
+ }: DrawerPrimitive.Popup.Props & {
+   overlayClassName?: string
+ }) {
+   const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
++  const { reduceMotion, ref: motionRef } = useDrawerMotion(forwardedRef)
+ 
+   const [contentElement, setContentElement] =
+     React.useState<HTMLDivElement | null>(null)
+@@ -126,15 +168,20 @@ function DrawerContent({
+       <DrawerPrimitive.Viewport
+         data-slot='drawer-viewport'
+         data-modal={modal}
+-        className='pointer-events-none fixed inset-0 z-50 select-none data-[modal=true]:pointer-events-auto'
++        className='pointer-events-none fixed inset-x-0 top-0 bottom-(--drawer-keyboard-inset,0px) z-50 select-none data-[modal=true]:pointer-events-auto'
+       >
+         <DrawerPrimitive.Popup
+           data-slot='drawer-popup'
++          ref={motionRef}
++          style={(state) => ({
++            ...(typeof style === 'function' ? style(state) : style),
++            ...(reduceMotion && { transitionDuration: '0s' }),
++          })}
+           data-swipe-axis={swipeAxis}
+           data-snap-points={hasSnapPoints ? '' : undefined}
+           className={cn(
+             // Base.
+-            'group/drawer-popup pointer-events-auto fixed z-50 m-(--drawer-inset,0px) flex h-(--drawer-content-height) max-h-(--drawer-content-max-height,none) min-h-0 w-(--drawer-content-width,auto) transform-[translate3d(var(--translate-x,0px),var(--translate-y,0px),0)_scale(var(--stack-scale))] flex-col rounded-[min(var(--radius-4xl),24px)] border border-popover bg-popover text-sm text-popover-foreground shadow-xl transition-[transform,height,opacity,filter] duration-450 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform outline-none select-none [--drawer-bleed-background:transparent] [--drawer-inset:--spacing(2)] [--drawer-stacked-shadow:0_-20px_25px_-5px_rgb(0_0_0/0.1),0_-8px_10px_-6px_rgb(0_0_0/0.1)] [interpolate-size:allow-keywords] data-[swipe-direction=down]:data-nested-drawer-open:shadow-(--drawer-stacked-shadow) dark:border-border',
++            'group/drawer-popup pointer-events-auto absolute z-50 m-(--drawer-inset,0px) flex h-(--drawer-content-height) max-h-[min(var(--drawer-content-max-height,100%),calc(100%-var(--drawer-inset,0px)*2))] min-h-0 w-(--drawer-content-width,auto) transform-[translate3d(var(--translate-x,0px),var(--translate-y,0px),0)_scale(var(--stack-scale))] flex-col rounded-[min(var(--radius-4xl),24px)] border border-popover bg-popover text-sm text-popover-foreground shadow-xl transition-[transform,opacity,filter] duration-(--ui-motion-slow) ease-(--ui-motion-enter-ease) will-change-transform outline-none select-none [--drawer-bleed-background:transparent] [--drawer-inset:--spacing(2)] [--drawer-stacked-shadow:0_-20px_25px_-5px_rgb(0_0_0/0.1),0_-8px_10px_-6px_rgb(0_0_0/0.1)] data-[swipe-direction=down]:data-nested-drawer-open:shadow-(--drawer-stacked-shadow) dark:border-border',
+             // Nested.
+             'data-nested-drawer-open:overflow-hidden data-nested-drawer-open:brightness-95',
+             // Bleed.
+@@ -144,7 +191,7 @@ function DrawerContent({
+             // Stack.
+             '[--bleed:3rem] [--peek:1rem] [--stack-height:var(--drawer-frontmost-height,var(--drawer-height,0px))] [--stack-peek-offset:max(0px,calc((var(--nested-drawers)-var(--stack-progress))*var(--peek)))] [--stack-progress:clamp(0,var(--drawer-swipe-progress),1)] [--stack-scale-base:max(0,calc(1-(var(--nested-drawers)*var(--stack-step))))] [--stack-scale:clamp(0,calc(var(--stack-scale-base)+(var(--stack-step)*var(--stack-progress))),1)] [--stack-shrink:calc(1-var(--stack-scale))] [--stack-step:0.05]',
+             // Transitions.
+-            'data-ending-style:transform-(--closed-transform) data-ending-style:opacity-[0.9999] data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-nested-drawer-swiping:duration-0 data-ending-style:data-nested-drawer-swiping:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-starting-style:transform-(--closed-transform) data-swiping:duration-0 data-ending-style:data-swiping:duration-[calc(var(--drawer-swipe-strength)*400ms)]',
++            'data-ending-style:transform-(--closed-transform) data-ending-style:opacity-[0.9999] data-ending-style:duration-(--ui-motion-fast) data-nested-drawer-swiping:duration-0 data-ending-style:data-nested-drawer-swiping:duration-(--ui-motion-fast) data-starting-style:transform-(--closed-transform) data-swiping:duration-0 data-ending-style:data-swiping:duration-(--ui-motion-fast)',
+             // Axis: y.
+             'data-[swipe-axis=y]:inset-x-0 data-[swipe-axis=y]:data-nested-drawer-open:h-(--stack-height)',
+             // Axis: x.
+@@ -166,7 +213,7 @@ function DrawerContent({
+             data-slot='drawer-content'
+             data-base-ui-swipe-ignore=''
+             className={cn(
+-              'flex min-h-0 flex-1 touch-auto flex-col overflow-hidden overscroll-contain rounded-[inherit] transition-opacity duration-300 ease-[cubic-bezier(0.45,1.005,0,1.005)] select-text group-data-nested-drawer-open/drawer-popup:opacity-0 group-data-nested-drawer-swiping/drawer-popup:opacity-100 group-data-swiping/drawer-popup:select-none',
++              'flex min-h-0 flex-1 touch-auto flex-col overflow-hidden overscroll-contain rounded-[inherit] transition-opacity duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) select-text group-data-nested-drawer-open/drawer-popup:opacity-0 group-data-nested-drawer-swiping/drawer-popup:opacity-100 group-data-swiping/drawer-popup:select-none',
+             )}
+             ref={setContentElement}
+           >
+diff --git a/src/components/ui/number-ticker.tsx b/src/components/ui/number-ticker.tsx
+index d41bf71f..ed671965 100644
+--- a/src/components/ui/number-ticker.tsx
++++ b/src/components/ui/number-ticker.tsx
+@@ -1,6 +1,12 @@
+-import { type ComponentPropsWithoutRef, useEffect, useRef } from 'react'
+-import { useInView, useMotionValue, useSpring } from 'motion/react'
++import {
++  type ComponentPropsWithoutRef,
++  useEffect,
++  useMemo,
++  useRef,
++} from 'react'
++import { animate, useInView, useMotionValue } from 'motion/react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
++import { DURATION, EASE } from '@/lib/motion'
+ import { cn } from '@/lib/utils'
+ 
+ interface NumberTickerProps extends ComponentPropsWithoutRef<'span'> {
+@@ -24,56 +30,48 @@ export function NumberTicker({
+   const reduceMotion = useReducedMotion()
+   const motionValue = useMotionValue(direction === 'down' ? value : startValue)
+ 
+-  const springValue = useSpring(motionValue, {
+-    damping: 60,
+-    stiffness: 100,
+-  })
++  const formatter = useMemo(
++    () =>
++      Intl.NumberFormat('en-US', {
++        minimumFractionDigits: decimalPlaces,
++        maximumFractionDigits: decimalPlaces,
++      }),
++    [decimalPlaces],
++  )
+ 
+   const isInView = useInView(ref, { once: true, margin: '0px' })
+ 
+   useEffect(() => {
+-    if (reduceMotion) return
+-    if (isInView) {
+-      const timer = setTimeout(() => {
+-        motionValue.set(direction === 'down' ? startValue : value)
+-      }, delay * 1000)
++    const target = direction === 'down' ? startValue : value
++
++    if (reduceMotion) {
++      motionValue.jump(target)
+ 
+-      return () => clearTimeout(timer)
++      return
+     }
++
++    if (!isInView) return
++
++    const animation = animate(motionValue, target, {
++      duration: DURATION.slow,
++      ease: EASE.out,
++      delay,
++    })
++
++    return () => animation.stop()
+   }, [motionValue, isInView, delay, value, direction, startValue, reduceMotion])
+ 
+   useEffect(() => {
+     const updateText = (latest: number) => {
+       if (ref.current) {
+-        ref.current.textContent = Intl.NumberFormat('en-US', {
+-          minimumFractionDigits: decimalPlaces,
+-          maximumFractionDigits: decimalPlaces,
+-        }).format(Number(latest.toFixed(decimalPlaces)))
++        ref.current.textContent = formatter.format(latest)
+       }
+     }
+ 
+-    if (reduceMotion) {
+-      const target = direction === 'down' ? startValue : value
+-
+-      motionValue.jump(target)
+-      springValue.jump(target)
+-      updateText(target)
+-
+-      return
+-    }
+-
+-    updateText(springValue.get())
++    updateText(motionValue.get())
+ 
+-    return springValue.on('change', updateText)
+-  }, [
+-    springValue,
+-    motionValue,
+-    decimalPlaces,
+-    reduceMotion,
+-    direction,
+-    startValue,
+-    value,
+-  ])
++    return motionValue.on('change', updateText)
++  }, [motionValue, formatter, reduceMotion, direction, startValue, value])
+ 
+   return (
+     <span
+@@ -85,10 +83,7 @@ export function NumberTicker({
+       {...props}
+     >
+       {reduceMotion
+-        ? Intl.NumberFormat('en-US', {
+-            minimumFractionDigits: decimalPlaces,
+-            maximumFractionDigits: decimalPlaces,
+-          }).format(direction === 'down' ? startValue : value)
++        ? formatter.format(direction === 'down' ? startValue : value)
+         : direction === 'down'
+           ? value
+           : startValue}
+diff --git a/src/components/ui/sonner.tsx b/src/components/ui/sonner.tsx
+index 2fa4b98c..6bfdefc3 100644
+--- a/src/components/ui/sonner.tsx
++++ b/src/components/ui/sonner.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { useTheme } from 'next-themes'
+ import { Toaster as Sonner, type ToasterProps } from 'sonner'
++import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import {
+   CircleCheckIcon,
+   InfoIcon,
+@@ -12,6 +13,7 @@ import {
+ 
+ const Toaster = ({ ...props }: ToasterProps) => {
+   const { theme = 'system' } = useTheme()
++  const reduceMotion = useReducedMotion()
+ 
+   return (
+     <Sonner
+@@ -33,6 +35,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
+         } as React.CSSProperties
+       }
+       toastOptions={{
++        style: {
++          transitionDuration: reduceMotion
++            ? '0s'
++            : 'var(--toast-motion-duration, var(--ui-motion-slow))',
++          transitionTimingFunction: 'var(--ui-motion-enter-ease)',
++        },
+         classNames: {
+           toast: 'cn-toast',
+         },
+diff --git a/src/components/ui/tabs.tsx b/src/components/ui/tabs.tsx
+index e86e74a2..c0b5f192 100644
+--- a/src/components/ui/tabs.tsx
++++ b/src/components/ui/tabs.tsx
+@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
+ import { motion } from 'motion/react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import { Tabs as TabsPrimitive } from 'radix-ui'
+-import { DURATION, EASE } from '@/lib/motion'
++import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
+ import { cn } from '@/lib/utils'
+ 
+ interface TabsMotionContextValue {
+@@ -184,7 +184,7 @@ function TabsTrigger({
+                   : 'bg-foreground group-data-[orientation=horizontal]/tabs:inset-x-0 group-data-[orientation=horizontal]/tabs:bottom-[-5px] group-data-[orientation=horizontal]/tabs:h-0.5 group-data-[orientation=vertical]/tabs:inset-y-0 group-data-[orientation=vertical]/tabs:-right-1 group-data-[orientation=vertical]/tabs:w-0.5',
+               )}
+               transition={{
+-                duration: reduced ? 0 : DURATION.base,
++                duration: reduced ? 0 : DURATION.fast,
+                 ease: EASE.out,
+               }}
+             />
+@@ -272,11 +272,11 @@ function TabsContent({
+           transform:
+             (displayed && !exiting) || reduced
+               ? 'translateY(0px)'
+-              : 'translateY(8px)',
++              : 'translateY(4px)',
+         }}
+         transition={{
+-          duration: reduced ? 0 : exiting ? DURATION.fast : DURATION.base,
+-          ease: exiting ? EASE.in : EASE.out,
++          ...(exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
++          ...(reduced && { duration: 0 }),
+           delay: 0,
+         }}
+         onAnimationComplete={() => {
+diff --git a/src/lib/motion.ts b/src/lib/motion.ts
+index 9bcccee8..66e794ea 100644
+--- a/src/lib/motion.ts
++++ b/src/lib/motion.ts
+@@ -43,6 +43,12 @@ export const TRANSITION = {
+   exit: { duration: DURATION.fast, ease: EASE.in } satisfies Transition,
+ } as const
+ 
++/** 高频内容先退后进，总时长 210ms；不与普通浮层入场共用等待时间。 */
++export const CONTENT_SWITCH = {
++  enter: { duration: DURATION.fast, ease: EASE.out },
++  exit: { duration: DURATION.fast / 2, ease: EASE.out },
++} as const
++
+ // —— 常用 variants ——
+ /** 淡入 + 轻微上移 */
+ export const fadeInUp: Variants = {
+diff --git a/src/pages/assistant/components/assistant-canvas/index.tsx b/src/pages/assistant/components/assistant-canvas/index.tsx
+index 76fd155e..40d943e9 100644
+--- a/src/pages/assistant/components/assistant-canvas/index.tsx
++++ b/src/pages/assistant/components/assistant-canvas/index.tsx
+@@ -23,7 +23,7 @@ import {
+   TooltipContent,
+   TooltipTrigger,
+ } from '@/components/ui/tooltip'
+-import { DURATION, EASE } from '@/lib/motion'
++import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
+ import { CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CHAT_MIN_WIDTH } from '../../const'
+ import { useCanvasModel } from '../../hooks/use-canvas-model'
+ import useAssistantStore from '../../store'
+@@ -79,11 +79,15 @@ function CanvasPanel({
+         animate={{
+           opacity: interactive ? 1 : 0,
+           transform:
+-            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(8px)',
++            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(4px)',
+         }}
+         transition={{
+-          duration: reduceMotion ? 0 : exiting ? DURATION.fast : DURATION.base,
+-          ease: exiting ? EASE.in : EASE.out,
++          duration: reduceMotion
++            ? 0
++            : exiting
++              ? CONTENT_SWITCH.exit.duration
++              : CONTENT_SWITCH.enter.duration,
++          ease: exiting ? CONTENT_SWITCH.exit.ease : CONTENT_SWITCH.enter.ease,
+           delay: 0,
+         }}
+         onAnimationComplete={() => {
+diff --git a/src/pages/assistant/components/chat-header/index.tsx b/src/pages/assistant/components/chat-header/index.tsx
+index 9e234be5..ece42534 100644
+--- a/src/pages/assistant/components/chat-header/index.tsx
++++ b/src/pages/assistant/components/chat-header/index.tsx
+@@ -1,3 +1,4 @@
++import { useShallow } from 'zustand/react/shallow'
+ import { PanelRight } from 'lucide-react'
+ import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
+ import { Button } from '@/components/ui/button'
+@@ -19,7 +20,17 @@ export default function ChatHeader() {
+     setCanvasMobileOpen,
+     layoutMode,
+     canvasMobileOpen,
+-  } = useAssistantStore()
++  } = useAssistantStore(
++    useShallow((state) => ({
++      activeConversationId: state.activeConversationId,
++      conversations: state.conversations,
++      canvasOpen: state.canvasOpen,
++      setCanvasOpen: state.setCanvasOpen,
++      setCanvasMobileOpen: state.setCanvasMobileOpen,
++      layoutMode: state.layoutMode,
++      canvasMobileOpen: state.canvasMobileOpen,
++    })),
++  )
+ 
+   const isMobile = layoutMode === 'drawer'
+ 
+diff --git a/src/pages/assistant/components/composer/index.tsx b/src/pages/assistant/components/composer/index.tsx
+index 86ade0f7..5e32bb9d 100644
+--- a/src/pages/assistant/components/composer/index.tsx
++++ b/src/pages/assistant/components/composer/index.tsx
+@@ -1,3 +1,4 @@
++import { useShallow } from 'zustand/react/shallow'
+ import type { ComposerContextOption, Tool } from '@/components/ui/composer'
+ import { Brain, Briefcase, FileText, Square } from 'lucide-react'
+ import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+@@ -104,7 +105,17 @@ export default function Composer() {
+     loadingMessages,
+     deepThinking,
+     setDeepThinking,
+-  } = useAssistantStore()
++  } = useAssistantStore(
++    useShallow((state) => ({
++      streaming: state.streaming,
++      composerDraft: state.composerDraft,
++      composerSkillIds: state.composerSkillIds,
++      initializing: state.initializing,
++      loadingMessages: state.loadingMessages,
++      deepThinking: state.deepThinking,
++      setDeepThinking: state.setDeepThinking,
++    })),
++  )
+ 
+   const { sendMessage, stopStreaming } = useChatStream()
+   const { resumes, jobs } = useComposerContext()
+diff --git a/src/pages/assistant/components/conversation-list/index.tsx b/src/pages/assistant/components/conversation-list/index.tsx
+index 92da8585..e970dd21 100644
+--- a/src/pages/assistant/components/conversation-list/index.tsx
++++ b/src/pages/assistant/components/conversation-list/index.tsx
+@@ -1,3 +1,4 @@
++import { useShallow } from 'zustand/react/shallow'
+ import type { AiConversation } from '@/lib/ai/types'
+ import dayjs from 'dayjs'
+ import { useMemo } from 'react'
+@@ -59,7 +60,14 @@ export default function ConversationList({
+     activeConversationId: activeId,
+     loadingConversations: loading,
+     pendingConversationId,
+-  } = useAssistantStore()
++  } = useAssistantStore(
++    useShallow((state) => ({
++      conversations: state.conversations,
++      activeConversationId: state.activeConversationId,
++      loadingConversations: state.loadingConversations,
++      pendingConversationId: state.pendingConversationId,
++    })),
++  )
+ 
+   const { openConversation, deleteAndSelectConversation } =
+     useAssistantNavigation()
+diff --git a/src/pages/assistant/components/conversation-search/index.tsx b/src/pages/assistant/components/conversation-search/index.tsx
+index f76f777d..f628c2aa 100644
+--- a/src/pages/assistant/components/conversation-search/index.tsx
++++ b/src/pages/assistant/components/conversation-search/index.tsx
+@@ -1,3 +1,4 @@
++import { useShallow } from 'zustand/react/shallow'
+ import { MessageSquare, Search } from 'lucide-react'
+ import { useEffect } from 'react'
+ import {
+@@ -19,7 +20,14 @@ import SearchEmpty from './search-empty'
+ import ConversationSearchResult from './search-result'
+ 
+ export default function ConversationSearch() {
+-  const { searchOpen, setSearchOpen, conversations } = useAssistantStore()
++  const { searchOpen, setSearchOpen, conversations } = useAssistantStore(
++    useShallow((state) => ({
++      searchOpen: state.searchOpen,
++      setSearchOpen: state.setSearchOpen,
++      conversations: state.conversations,
++    })),
++  )
++
+   const { openConversation } = useAssistantNavigation()
+ 
+   const {
+diff --git a/src/pages/assistant/components/message-bubble/index.tsx b/src/pages/assistant/components/message-bubble/index.tsx
+index a7f8e647..51ec9e31 100644
+--- a/src/pages/assistant/components/message-bubble/index.tsx
++++ b/src/pages/assistant/components/message-bubble/index.tsx
+@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
+ import type { TokenUsage } from '../../store'
+ import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
+ import { BookOpen, Sparkles } from 'lucide-react'
+-import { useRef, useState } from 'react'
++import { memo, useRef, useState } from 'react'
+ import { Shimmer } from '@/components/ai/shimmer'
+ import AnimatedContent from '@/components/motion/animated-content'
+ import { Textarea } from '@/components/ui/textarea'
+@@ -105,7 +105,13 @@ function renderAssistantParts(
+         />,
+       )
+     } else if (p.type === 'skill-activity') {
+-      nodes.push(<SkillActivity key={p.id} activity={p} />)
++      nodes.push(
++        <SkillActivity
++          key={p.id}
++          activity={p}
++          streaming={isStreamingMessage}
++        />,
++      )
+     }
+   })
+ 
+@@ -166,7 +172,7 @@ function UserMessageEditor({
+   )
+ }
+ 
+-export function MessageBubble({
++export const MessageBubble = memo(function MessageBubble({
+   message,
+   onEditSave,
+   onRegenerate,
+@@ -284,4 +290,4 @@ export function MessageBubble({
+       </div>
+     </div>
+   )
+-}
++})
+diff --git a/src/pages/assistant/components/message-bubble/reasoning-part.tsx b/src/pages/assistant/components/message-bubble/reasoning-part.tsx
+index 60d82fc5..8e734f45 100644
+--- a/src/pages/assistant/components/message-bubble/reasoning-part.tsx
++++ b/src/pages/assistant/components/message-bubble/reasoning-part.tsx
+@@ -1,3 +1,4 @@
++import { memo } from 'react'
+ import {
+   Reasoning,
+   ReasoningContent,
+@@ -29,11 +30,14 @@ function getThinkingMessage(isStreaming: boolean, duration?: number) {
+   )
+ }
+ 
+-export function ReasoningPart({ text, streaming = false }: ReasoningPartProps) {
++export const ReasoningPart = memo(function ReasoningPart({
++  text,
++  streaming = false,
++}: ReasoningPartProps) {
+   return (
+     <Reasoning isStreaming={streaming} defaultOpen={false} className='mb-1'>
+       <ReasoningTrigger getThinkingMessage={getThinkingMessage} />
+       <ReasoningContent>{text}</ReasoningContent>
+     </Reasoning>
+   )
+-}
++})
+diff --git a/src/pages/assistant/components/message-bubble/text-part.tsx b/src/pages/assistant/components/message-bubble/text-part.tsx
+index 7f932d1e..108ae49d 100644
+--- a/src/pages/assistant/components/message-bubble/text-part.tsx
++++ b/src/pages/assistant/components/message-bubble/text-part.tsx
+@@ -1,6 +1,6 @@
+ import type { ComponentProps, ReactNode } from 'react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+-import { isValidElement } from 'react'
++import { isValidElement, memo } from 'react'
+ import { Streamdown } from 'streamdown'
+ import { CodeBlock } from '@/components/ui/code-block'
+ import { cn } from '@/lib/utils'
+@@ -50,7 +50,10 @@ const MARKDOWN_COMPONENTS = { pre: CodeBlockPre } as ComponentProps<
+ 
+ // 助手文本按 markdown 渲染（复用仓库既有 Streamdown，支持流式增量）。
+ // 代码块改用仓库 CodeBlock：带语言图标、语法高亮与复制/下载。
+-export function TextPart({ text, animate = false }: TextPartProps) {
++export const TextPart = memo(function TextPart({
++  text,
++  animate = false,
++}: TextPartProps) {
+   const reduceMotion = useReducedMotion()
+ 
+   return (
+@@ -63,4 +66,4 @@ export function TextPart({ text, animate = false }: TextPartProps) {
+       <Streamdown components={MARKDOWN_COMPONENTS}>{text}</Streamdown>
+     </div>
+   )
+-}
++})
+diff --git a/src/pages/assistant/components/message-bubble/tool-call-part.tsx b/src/pages/assistant/components/message-bubble/tool-call-part.tsx
+index e5f62e29..f995bf50 100644
+--- a/src/pages/assistant/components/message-bubble/tool-call-part.tsx
++++ b/src/pages/assistant/components/message-bubble/tool-call-part.tsx
+@@ -1,5 +1,5 @@
+ import type { AiMessagePart } from '@/lib/ai/types'
+-import { PanelRight, RotateCw } from 'lucide-react'
++import { CircleAlert, CircleMinus, PanelRight, RotateCw } from 'lucide-react'
+ import { motion } from 'motion/react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import AnimatedContent from '@/components/motion/animated-content'
+@@ -79,8 +79,12 @@ export function ToolCallPartGroup({
+           return (
+             <motion.div
+               key={c.toolCallId}
+-              initial={reduced || !streaming ? false : { opacity: 0, y: 8 }}
+-              animate={{ opacity: 1, y: 0 }}
++              initial={
++                reduced || !streaming
++                  ? false
++                  : { opacity: 0, transform: 'translateY(8px)' }
++              }
++              animate={{ opacity: 1, transform: 'translateY(0px)' }}
+               transition={{
+                 duration: reduced ? 0 : DURATION.base,
+                 ease: EASE.out,
+@@ -90,12 +94,16 @@ export function ToolCallPartGroup({
+               className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-0.5 text-sm outline-none'
+             >
+               <AnimatedContent
+-                animationKey={pending ? 'pending' : 'complete'}
++                animationKey={c.state}
+                 as='span'
+                 className='flex size-4 shrink-0 items-center justify-center text-muted-foreground'
+               >
+                 {pending ? (
+                   <Spinner className='size-3.5' />
++                ) : c.state === 'error' ? (
++                  <CircleAlert className='size-4 text-destructive' />
++                ) : c.state === 'cancelled' ? (
++                  <CircleMinus className='size-4' />
+                 ) : (
+                   getToolCategoryIcon(meta?.iconCategory ?? 'general', {
+                     showBackground: false,
+diff --git a/src/pages/assistant/components/message-list/index.tsx b/src/pages/assistant/components/message-list/index.tsx
+index 14cf3c68..669362ea 100644
+--- a/src/pages/assistant/components/message-list/index.tsx
++++ b/src/pages/assistant/components/message-list/index.tsx
+@@ -1,3 +1,4 @@
++import { useShallow } from 'zustand/react/shallow'
+ import type { AutoScrollContainerHandle } from '@/components/ui/auto-scroll-container'
+ import { ArrowDown, Sparkles } from 'lucide-react'
+ import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+@@ -19,6 +20,24 @@ import useAssistantStore from '../../store'
+ import ConfirmCard from '../confirm-card'
+ import { MessageBubble } from '../message-bubble'
+ 
++type MessageViewSnapshot = Pick<
++  ReturnType<typeof useAssistantStore.getState>,
++  | 'initializing'
++  | 'loadingMessages'
++  | 'messages'
++  | 'streaming'
++  | 'activeConversationId'
++  | 'streamingParts'
++  | 'streamingUsage'
++  | 'usageByMessageId'
++  | 'pendingConfirm'
++  | 'conversationViewVersion'
++  | 'targetMessageId'
++  | 'setTargetMessageId'
++  | 'hasMoreMessages'
++  | 'loadingOlder'
++>
++
+ const LIST_SKELETON_KEYS = [
+   'msg-skeleton-1',
+   'msg-skeleton-2',
+@@ -26,7 +45,24 @@ const LIST_SKELETON_KEYS = [
+ ] as const
+ 
+ export default function MessageList() {
+-  const snapshot = useAssistantStore()
++  const snapshot = useAssistantStore(
++    useShallow((state) => ({
++      initializing: state.initializing,
++      loadingMessages: state.loadingMessages,
++      messages: state.messages,
++      streaming: state.streaming,
++      activeConversationId: state.activeConversationId,
++      streamingParts: state.streamingParts,
++      streamingUsage: state.streamingUsage,
++      usageByMessageId: state.usageByMessageId,
++      pendingConfirm: state.pendingConfirm,
++      conversationViewVersion: state.conversationViewVersion,
++      targetMessageId: state.targetMessageId,
++      setTargetMessageId: state.setTargetMessageId,
++      hasMoreMessages: state.hasMoreMessages,
++      loadingOlder: state.loadingOlder,
++    })),
++  )
+ 
+   const {
+     initializing,
+@@ -80,11 +116,7 @@ function isCurrentMessageView(version: number, conversationId: string | null) {
+ }
+ 
+ // 真实消息挂载后才注册定位和哨兵；退出期间保留当时的内容，不消费新会话的定位目标。
+-function LoadedMessages({
+-  snapshot,
+-}: {
+-  snapshot: ReturnType<typeof useAssistantStore.getState>
+-}) {
++function LoadedMessages({ snapshot }: { snapshot: MessageViewSnapshot }) {
+   const {
+     activeConversationId,
+     messages,
+diff --git a/src/pages/assistant/components/skill-activity/index.tsx b/src/pages/assistant/components/skill-activity/index.tsx
+index 2647a595..2fe185bc 100644
+--- a/src/pages/assistant/components/skill-activity/index.tsx
++++ b/src/pages/assistant/components/skill-activity/index.tsx
+@@ -1,16 +1,19 @@
+ import type { AiSkillActivity } from '@/lib/ai/types'
+ import { BookOpen, CircleAlert } from 'lucide-react'
+ import { motion } from 'motion/react'
++import { memo } from 'react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import AnimatedContent from '@/components/motion/animated-content'
+ import { Spinner } from '@/components/ui/spinner'
+ import { getSkillDefinition } from '@/lib/ai/skills/catalog'
+ import { DURATION, EASE } from '@/lib/motion'
+ 
+-export default function SkillActivity({
++const SkillActivity = memo(function SkillActivity({
+   activity,
++  streaming = false,
+ }: {
+   activity: AiSkillActivity
++  streaming?: boolean
+ }) {
+   const reduced = useReducedMotion()
+   const skill = getSkillDefinition(activity.skillId)
+@@ -20,8 +23,12 @@ export default function SkillActivity({
+ 
+   return (
+     <motion.div
+-      initial={{ opacity: 0, y: reduced ? 0 : 8 }}
+-      animate={{ opacity: 1, y: 0 }}
++      initial={
++        reduced || !streaming
++          ? false
++          : { opacity: 0, transform: 'translateY(8px)' }
++      }
++      animate={{ opacity: 1, transform: 'translateY(0px)' }}
+       transition={{ duration: reduced ? 0 : DURATION.base, ease: EASE.out }}
+       className='my-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5'
+       aria-live='polite'
+@@ -66,4 +73,6 @@ export default function SkillActivity({
+       )}
+     </motion.div>
+   )
+-}
++})
++
++export default SkillActivity
+diff --git a/src/pages/history/components/detail-panel/detail-content.tsx b/src/pages/history/components/detail-panel/detail-content.tsx
+index af0f42fb..a2f3fc90 100644
+--- a/src/pages/history/components/detail-panel/detail-content.tsx
++++ b/src/pages/history/components/detail-panel/detail-content.tsx
+@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
+ import { Skeleton } from '@/components/ui/skeleton'
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+ import { cn } from '@/lib/utils'
++import { CONTENT_SWITCH } from '@/lib/motion'
+ import { useHistoryMotion } from '../../hooks/use-history-motion'
+ import useHistoryStore from '../../store'
+ import HistoryResumePreview from '../shared/history-resume-preview'
+@@ -35,7 +36,7 @@ function DetailTabPanel({
+   onExitComplete: () => void
+   children: ReactNode
+ }) {
+-  const { reduceMotion, enter, exit } = useHistoryMotion()
++  const { reduceMotion } = useHistoryMotion()
+   const visible = displayed === value
+   const exiting = visible && active !== value
+   const interactive = visible && !exiting
+@@ -67,9 +68,13 @@ function DetailTabPanel({
+         animate={{
+           opacity: interactive ? 1 : 0,
+           transform:
+-            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(8px)',
++            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(4px)',
++        }}
++        transition={{
++          ...(exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
++          ...(reduceMotion && { duration: 0 }),
++          delay: 0,
+         }}
+-        transition={{ ...(exiting ? exit : enter), delay: 0 }}
+         onAnimationComplete={() => {
+           if (exiting) onExitComplete()
+         }}
+diff --git a/src/pages/resume/editor/components/sidebar/index.tsx b/src/pages/resume/editor/components/sidebar/index.tsx
+index 88df3945..668f7bd0 100644
+--- a/src/pages/resume/editor/components/sidebar/index.tsx
++++ b/src/pages/resume/editor/components/sidebar/index.tsx
+@@ -70,7 +70,7 @@ export default function SidebarEditor({
+       className={isMobile ? 'h-full min-h-0 w-full' : undefined}
+     >
+       {isMobile ? (
+-        <SideTabs className='shrink-0'>
++        <SideTabs className='shrink-0 [@container_editor-drawer_(max-height:320px)]:pb-0'>
+           {renderBasics()}
+           {sortableOrder.map((id) => {
+             const item = ITEMS.find((it) => it.id === id)!
+diff --git a/src/pages/resume/editor/index.tsx b/src/pages/resume/editor/index.tsx
+index 84e8387d..f4372fae 100644
+--- a/src/pages/resume/editor/index.tsx
++++ b/src/pages/resume/editor/index.tsx
+@@ -12,7 +12,12 @@ import { PresenceDiv } from '@/components/motion/presence-item'
+ import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
+ import { useTheme } from '@/components/theme-provider'
+ import { Button } from '@/components/ui/button'
+-import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
++import {
++  Drawer,
++  DrawerContent,
++  DrawerTrigger,
++  DrawerVirtualKeyboardProvider,
++} from '@/components/ui/drawer'
+ import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark.tsx'
+ import { CommentSourceSelector } from '@/features/resume-comments/components/comment-source-selector.tsx'
+ import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
+@@ -543,34 +548,36 @@ function Editor() {
+               >
+                 <Edit />
+               </DrawerTrigger>
+-              <DrawerContent>
+-                <CheckWorkspace
+-                  header={
+-                    <div className='shrink-0 border-b'>
+-                      <CollaborationControls
+-                        onOpenSortDialog={handleOpenSortDialog}
+-                        actions={<CheckModeToggle />}
++              <DrawerVirtualKeyboardProvider>
++                <DrawerContent className='@container/editor-drawer [container-type:size]'>
++                  <CheckWorkspace
++                    header={
++                      <div className='shrink-0 border-b [@container_editor-drawer_(max-height:320px)]:[&_[data-slot=drawer-header]]:gap-1 [@container_editor-drawer_(max-height:320px)]:[&_[data-slot=drawer-header]]:p-2'>
++                        <CollaborationControls
++                          onOpenSortDialog={handleOpenSortDialog}
++                          actions={<CheckModeToggle />}
++                        />
++                      </div>
++                    }
++                  >
++                    <div className='@container/panel flex min-h-0 flex-1 flex-col overflow-hidden p-4 [@container_editor-drawer_(max-height:320px)]:p-0'>
++                      <SidebarEditor
++                        activeTabId={activeTabId}
++                        order={order}
++                        visibilityState={visibilityState}
++                        fill={fill}
++                        stroke={stroke}
++                        isMobile={isMobile}
++                        sortDialogOpen={sortDialogOpen}
++                        onSortDialogOpenChange={setSortDialogOpen}
++                        onUpdateActiveTabId={updateActiveTabId}
++                        onUpdateOrder={updateOrder}
++                        onToggleVisibility={toggleVisibility}
+                       />
+                     </div>
+-                  }
+-                >
+-                  <div className='@container/panel flex min-h-0 flex-1 flex-col overflow-hidden p-4'>
+-                    <SidebarEditor
+-                      activeTabId={activeTabId}
+-                      order={order}
+-                      visibilityState={visibilityState}
+-                      fill={fill}
+-                      stroke={stroke}
+-                      isMobile={isMobile}
+-                      sortDialogOpen={sortDialogOpen}
+-                      onSortDialogOpenChange={setSortDialogOpen}
+-                      onUpdateActiveTabId={updateActiveTabId}
+-                      onUpdateOrder={updateOrder}
+-                      onToggleVisibility={toggleVisibility}
+-                    />
+-                  </div>
+-                </CheckWorkspace>
+-              </DrawerContent>
++                  </CheckWorkspace>
++                </DrawerContent>
++              </DrawerVirtualKeyboardProvider>
+             </Drawer>
+           )}
+           <div className='relative flex min-h-full flex-col overflow-auto md:flex-row'>
+diff --git a/src/pages/tracker/components/board/index.tsx b/src/pages/tracker/components/board/index.tsx
+index 980a0e79..d8661b4d 100644
+--- a/src/pages/tracker/components/board/index.tsx
++++ b/src/pages/tracker/components/board/index.tsx
+@@ -125,11 +125,17 @@ function BoardColumnDropArea({
+       aria-label={`${APPLICATION_STATUS_CONFIG[status].label}职位`}
+       data-motion-drop-container={status}
+       className={cn(
+-        'flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg px-2 pt-1 pb-2 transition-colors [scrollbar-width:thin]',
+-        active && 'bg-primary/5 ring-1 ring-primary/30',
++        'flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg px-2 pt-1 pb-2 transition-[background-color,box-shadow] [scrollbar-width:thin]',
++        active && 'bg-primary/5',
+         highlighted && !active && 'bg-primary/5',
+       )}
+-      style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
++      style={{
++        boxShadow: active
++          ? 'inset 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent)'
++          : 'inset 0 0 0 1px transparent',
++        transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s`,
++        transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
++      }}
+     >
+       {jobs.length > 0 ? (
+         jobs.map((job, index) => (
+diff --git a/src/pages/tracker/components/drawer/tab-panel/index.tsx b/src/pages/tracker/components/drawer/tab-panel/index.tsx
+index e1779789..90379340 100644
+--- a/src/pages/tracker/components/drawer/tab-panel/index.tsx
++++ b/src/pages/tracker/components/drawer/tab-panel/index.tsx
+@@ -3,7 +3,7 @@ import type { DrawerTab } from '../../../types'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import { PresenceDiv } from '@/components/motion/presence-item'
+ import { TabsContent } from '@/components/ui/tabs'
+-import { DURATION, EASE } from '@/lib/motion'
++import { CONTENT_SWITCH } from '@/lib/motion'
+ import { cn } from '@/lib/utils'
+ 
+ export default function DrawerTabPanel({
+@@ -27,21 +27,21 @@ export default function DrawerTabPanel({
+             ? 'overflow-hidden'
+             : 'scrollbar-gutter-stable overflow-y-auto',
+         )}
+-        initial={reduce ? false : { opacity: 0, y: 4 }}
+-        animate={{ opacity: 1, y: 0 }}
++        initial={reduce ? false : { opacity: 0, transform: 'translateY(4px)' }}
++        animate={{ opacity: 1, transform: 'translateY(0px)' }}
+         exit={{
+           opacity: 0,
+-          y: 0,
++          transform: 'translateY(0px)',
+           transition: {
+-            duration: reduce ? 0 : DURATION.fast,
+-            ease: EASE.in,
++            ...CONTENT_SWITCH.exit,
++            ...(reduce && { duration: 0 }),
+             delay: 0,
+           },
+         }}
+         transition={{
+-          duration: reduce ? 0 : DURATION.base,
+-          ease: EASE.out,
+-          delay: reduce ? 0 : DURATION.fast,
++          ...CONTENT_SWITCH.enter,
++          ...(reduce && { duration: 0 }),
++          delay: reduce ? 0 : CONTENT_SWITCH.exit.duration,
+         }}
+       >
+         {children}
+diff --git a/src/pages/tracker/components/drawer/workflow-save-feedback/index.tsx b/src/pages/tracker/components/drawer/workflow-save-feedback/index.tsx
+index e022e047..d503a46d 100644
+--- a/src/pages/tracker/components/drawer/workflow-save-feedback/index.tsx
++++ b/src/pages/tracker/components/drawer/workflow-save-feedback/index.tsx
+@@ -1,8 +1,10 @@
+-import { Check, Cloud, Loader2, RotateCcw } from 'lucide-react'
+-import { AnimatePresence, motion } from 'motion/react'
++import type { RefObject } from 'react'
++import { useLayoutEffect, useRef } from 'react'
++import { Check, CircleAlert, Cloud, Loader2, RotateCcw } from 'lucide-react'
++import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import { Button } from '@/components/ui/button'
+-import { DURATION, EASE } from '@/lib/motion'
++import { CONTENT_SWITCH } from '@/lib/motion'
+ import { cn } from '@/lib/utils'
+ 
+ interface WorkflowSaveFeedbackProps {
+@@ -11,70 +13,125 @@ interface WorkflowSaveFeedbackProps {
+   onRetry: () => void
+ }
+ 
+-export default function WorkflowSaveFeedback({
++const STATUS_LABEL = {
++  idle: '自动保存',
++  pending: '等待保存',
++  saving: '保存中…',
++  saved: '已保存',
++  error: '保存失败，草稿已保留',
++}
++
++function FeedbackState({
+   status,
+-  error,
+   onRetry,
+-}: WorkflowSaveFeedbackProps) {
++  returnFocusRef,
++}: Pick<WorkflowSaveFeedbackProps, 'status' | 'onRetry'> & {
++  returnFocusRef: RefObject<HTMLDivElement | null>
++}) {
+   const reduce = useReducedMotion()
+-
+-  const label = {
+-    idle: '自动保存',
+-    pending: '等待保存',
+-    saving: '保存中…',
+-    saved: '已保存',
+-    error: '保存失败，草稿已保留',
+-  }[status]
++  const isPresent = useIsPresent()
++  const ref = useRef<HTMLDivElement>(null)
+ 
+   const Icon =
+-    status === 'saving' ? Loader2 : status === 'saved' ? Check : Cloud
++    status === 'saving'
++      ? Loader2
++      : status === 'saved'
++        ? Check
++        : status === 'error'
++          ? CircleAlert
++          : Cloud
++
++  useLayoutEffect(() => {
++    const node = ref.current
++
++    if (!node) return
++
++    if (!isPresent && node.contains(document.activeElement)) {
++      returnFocusRef.current?.focus({ preventScroll: true })
++    }
++
++    node.inert = !isPresent
++
++    if (isPresent) node.removeAttribute('aria-hidden')
++    else node.setAttribute('aria-hidden', 'true')
++  }, [isPresent, returnFocusRef])
+ 
+   return (
+-    <div
++    <motion.div
++      ref={ref}
+       className={cn(
+-        'flex min-h-7 items-center gap-1.5 text-xs',
++        'inline-flex min-h-7 items-center gap-1.5',
+         status === 'error' ? 'text-destructive' : 'text-muted-foreground',
+       )}
++      initial={reduce ? false : { opacity: 0, transform: 'translateY(4px)' }}
++      animate={{ opacity: 1, transform: 'translateY(0px)' }}
++      exit={{
++        opacity: 0,
++        transform: 'translateY(0px)',
++        transition: {
++          ...CONTENT_SWITCH.exit,
++          ...(reduce && { duration: 0 }),
++        },
++      }}
++      transition={{
++        ...CONTENT_SWITCH.enter,
++        ...(reduce && { duration: 0 }),
++      }}
+     >
+-      <span
+-        role='status'
+-        aria-live='polite'
+-        title={status === 'error' ? error || undefined : undefined}
+-      >
+-        <AnimatePresence initial={false} mode='wait'>
+-          <motion.span
+-            key={status}
+-            className='inline-flex items-center gap-1.5'
+-            initial={reduce ? false : { opacity: 0 }}
+-            animate={{ opacity: 1 }}
+-            exit={{ opacity: 0 }}
+-            transition={{
+-              duration: reduce ? 0 : DURATION.fast,
+-              ease: EASE.out,
+-            }}
+-          >
+-            <Icon
+-              aria-hidden='true'
+-              className={cn(
+-                'size-3.5',
+-                status === 'saving' && !reduce && 'animate-spin',
+-              )}
+-            />
+-            {label}
+-          </motion.span>
+-        </AnimatePresence>
+-      </span>
++      <Icon
++        aria-hidden='true'
++        className={cn(
++          'size-3.5 shrink-0',
++          status === 'saving' && !reduce && 'animate-spin',
++        )}
++      />
++      <span aria-hidden='true'>{STATUS_LABEL[status]}</span>
+       {status === 'error' && (
+         <Button
+           variant='ghost'
+           size='sm'
+           className='h-7 gap-1 px-2 text-xs'
+-          onClick={onRetry}
++          onClick={() => {
++            if (!isPresent) return
++
++            returnFocusRef.current?.focus({ preventScroll: true })
++            onRetry()
++          }}
+         >
+           <RotateCcw className='size-3' />
+           重试
+         </Button>
+       )}
++    </motion.div>
++  )
++}
++
++export default function WorkflowSaveFeedback({
++  status,
++  error,
++  onRetry,
++}: WorkflowSaveFeedbackProps) {
++  const ref = useRef<HTMLDivElement>(null)
++
++  return (
++    <div
++      ref={ref}
++      tabIndex={-1}
++      aria-label={STATUS_LABEL[status]}
++      className='flex min-h-7 items-center text-xs outline-none'
++      title={status === 'error' ? error || undefined : undefined}
++    >
++      <span role='status' className='sr-only'>
++        {STATUS_LABEL[status]}
++      </span>
++      <AnimatePresence initial={false} mode='wait'>
++        <FeedbackState
++          key={status}
++          status={status}
++          onRetry={onRetry}
++          returnFocusRef={ref}
++        />
++      </AnimatePresence>
+     </div>
+   )
+ }
+diff --git a/src/pages/tracker/components/view-transition/index.tsx b/src/pages/tracker/components/view-transition/index.tsx
+index 72198484..2beae154 100644
+--- a/src/pages/tracker/components/view-transition/index.tsx
++++ b/src/pages/tracker/components/view-transition/index.tsx
+@@ -2,7 +2,7 @@ import type { ReactNode, Ref } from 'react'
+ import { AnimatePresence } from 'motion/react'
+ import { useReducedMotion } from '@/hooks/use-reduced-motion'
+ import { PresenceDiv } from '@/components/motion/presence-item'
+-import { DURATION, EASE } from '@/lib/motion'
++import { CONTENT_SWITCH } from '@/lib/motion'
+ import { cn } from '@/lib/utils'
+ 
+ function Panel({
+@@ -18,21 +18,21 @@ function Panel({
+     <PresenceDiv
+       ref={ref}
+       className='flex min-h-0 min-w-0 flex-1 flex-col'
+-      initial={reduce ? false : { opacity: 0, y: 8 }}
+-      animate={{ opacity: 1, y: 0 }}
++      initial={reduce ? false : { opacity: 0, transform: 'translateY(4px)' }}
++      animate={{ opacity: 1, transform: 'translateY(0px)' }}
+       exit={{
+         opacity: 0,
+-        y: 0,
++        transform: 'translateY(0px)',
+         transition: {
+-          duration: reduce ? 0 : DURATION.fast,
+-          ease: EASE.in,
++          ...CONTENT_SWITCH.exit,
++          ...(reduce && { duration: 0 }),
+           delay: 0,
+         },
+       }}
+       transition={{
+-        duration: reduce ? 0 : DURATION.base,
+-        ease: EASE.out,
+-        delay: reduce ? 0 : DURATION.fast,
++        ...CONTENT_SWITCH.enter,
++        ...(reduce && { duration: 0 }),
++        delay: reduce ? 0 : CONTENT_SWITCH.exit.duration,
+       }}
+     >
+       {children}
+diff --git a/src/styles/motion.css b/src/styles/motion.css
+index 53df7726..2f1a1d16 100644
+--- a/src/styles/motion.css
++++ b/src/styles/motion.css
+@@ -94,3 +94,7 @@
+ ) {
+   animation-duration: var(--ui-motion-fast);
+ }
++
++:where([data-sonner-toaster]) [data-sonner-toast][data-removed='true'] {
++  --toast-motion-duration: var(--ui-motion-fast);
++}

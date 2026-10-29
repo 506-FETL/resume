@@ -3,6 +3,13 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -60,14 +67,12 @@ export default function TemplateFilters() {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} asChild>
-      <aside
-        aria-label='筛选模板'
-        className='self-start rounded-xl border bg-muted/20 lg:sticky lg:top-6'
-      >
-        <div className='flex items-center justify-between gap-1 px-3 py-2.5'>
+      <aside aria-label='筛选模板' className='self-start lg:sticky lg:top-6'>
+        <div className='flex items-center justify-between gap-1 pb-2.5'>
           <h2 className='min-w-0 flex-1'>
             <CollapsibleTrigger asChild>
-              <button
+              <Button
+                variant='ghost'
                 type='button'
                 aria-label={open ? '收起筛选模板' : '展开筛选模板'}
                 className='flex min-h-9 w-full items-center gap-1.5 rounded-md px-1 text-sm font-medium transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring'
@@ -83,7 +88,7 @@ export default function TemplateFilters() {
                   )}
                   style={transitionStyle}
                 />
-              </button>
+              </Button>
             </CollapsibleTrigger>
           </h2>
           <Button
@@ -118,7 +123,7 @@ export default function TemplateFilters() {
               加载筛选选项…
             </p>
           )}
-          <div className='grid grid-cols-2 gap-4 border-t p-3 lg:grid-cols-1 lg:gap-5 lg:py-4'>
+          <div className='grid gap-3 border-t border-border/60 py-3 lg:gap-5 lg:py-4'>
             {groups.map(({ key, title, all, icon: Icon, value, onChange }) => {
               const expanded = openGroups[key]
 
@@ -128,64 +133,116 @@ export default function TemplateFilters() {
                   : []
 
               return (
-                <Collapsible
-                  key={key}
-                  open={expanded}
-                  onOpenChange={(next) =>
-                    setOpenGroups((current) => ({ ...current, [key]: next }))
-                  }
-                  className='min-w-0'
-                >
-                  <h3>
-                    <CollapsibleTrigger asChild>
-                      <button
-                        id={`template-filter-${key}`}
-                        type='button'
-                        className='flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+                <div key={key} className='min-w-0'>
+                  <div className='grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 lg:hidden'>
+                    <label
+                      htmlFor={`template-filter-mobile-${key}`}
+                      className='flex items-center gap-2 text-xs font-medium text-muted-foreground'
+                    >
+                      <Icon aria-hidden className='size-3.5 shrink-0' />
+                      {title}
+                    </label>
+                    <Select
+                      value={value ?? 'all'}
+                      onValueChange={(next) =>
+                        onChange(next === 'all' ? null : next)
+                      }
+                      disabled={facets.status !== 'ready'}
+                    >
+                      <SelectTrigger
+                        id={`template-filter-mobile-${key}`}
+                        className='w-full min-w-0'
                         style={transitionStyle}
                       >
-                        <Icon aria-hidden className='size-3.5' />
-                        <span>{title}</span>
-                        <ChevronDown
-                          aria-hidden
-                          className={cn(
-                            'ml-auto size-3.5 transition-transform',
-                            !expanded && '-rotate-90',
-                          )}
-                          style={transitionStyle}
-                        />
-                      </button>
-                    </CollapsibleTrigger>
-                  </h3>
-                  <CollapsibleContent
-                    inert={!expanded}
-                    style={collapseStyle(expanded)}
+                        <SelectValue className='min-w-0 flex-1 text-left'>
+                          <span className='truncate'>{value ?? all}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent
+                        position='popper'
+                        align='start'
+                        className='max-h-[min(18rem,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) max-w-[calc(100vw-2rem)] data-[state=open]:duration-(--ui-motion-base) data-[state=closed]:duration-(--ui-motion-fast)'
+                        style={
+                          reduceMotion ? { animationDuration: '0s' } : undefined
+                        }
+                      >
+                        <SelectItem value='all' className='min-h-9'>
+                          {all}
+                        </SelectItem>
+                        {options.map((option) => (
+                          <SelectItem
+                            key={option}
+                            value={option}
+                            className='min-h-9 whitespace-normal wrap-break-word [&>span:last-child]:min-w-0 [&>span:last-child]:flex-1'
+                          >
+                            <span className='min-w-0 whitespace-normal wrap-break-word'>
+                              {option}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Collapsible
+                    open={expanded}
+                    onOpenChange={(next) =>
+                      setOpenGroups((current) => ({ ...current, [key]: next }))
+                    }
+                    className='hidden min-w-0 lg:block'
                   >
-                    <div
-                      role='group'
-                      aria-labelledby={`template-filter-${key}`}
-                      className='flex flex-wrap gap-1 px-1 pt-1 pb-1 lg:flex-col'
-                    >
-                      {[null, ...options].map((option) => (
-                        <button
-                          key={option ?? 'all'}
+                    <h3>
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          id={`template-filter-${key}`}
+                          variant='ghost'
                           type='button'
-                          aria-pressed={value === option}
-                          onClick={() => onChange(option)}
-                          className={cn(
-                            'flex min-h-9 items-center rounded-md px-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                            value === option
-                              ? 'bg-background font-medium text-foreground shadow-xs ring-1 ring-border'
-                              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                          )}
+                          className='flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
                           style={transitionStyle}
                         >
-                          {option ?? all}
-                        </button>
-                      ))}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                          <Icon aria-hidden className='size-3.5' />
+                          <span>{title}</span>
+                          <ChevronDown
+                            aria-hidden
+                            className={cn(
+                              'ml-auto size-3.5 transition-transform',
+                              !expanded && '-rotate-90',
+                            )}
+                            style={transitionStyle}
+                          />
+                        </Button>
+                      </CollapsibleTrigger>
+                    </h3>
+                    <CollapsibleContent
+                      inert={!expanded}
+                      style={collapseStyle(expanded)}
+                    >
+                      <div
+                        role='group'
+                        aria-labelledby={`template-filter-${key}`}
+                        className='flex flex-wrap gap-1 px-1 pt-1 pb-1 lg:flex-col'
+                      >
+                        {[null, ...options].map((option) => (
+                          <Button
+                            key={option ?? 'all'}
+                            variant='ghost'
+                            type='button'
+                            aria-pressed={value === option}
+                            onClick={() => onChange(option)}
+                            className={cn(
+                              'flex min-h-9 items-center justify-start rounded-md px-3 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              value === option
+                                ? 'bg-muted font-medium text-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
+                            style={transitionStyle}
+                          >
+                            {option ?? all}
+                          </Button>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
               )
             })}
           </div>
