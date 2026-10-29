@@ -2,7 +2,6 @@
 
 import { PanelLeftIcon } from 'lucide-react'
 import * as React from 'react'
-
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -13,7 +12,6 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-
 import { SIDEBAR_WIDTH_MOBILE, useSidebar } from './sidebar-context'
 
 export function Sidebar({

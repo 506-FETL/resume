@@ -1,7 +1,6 @@
 import { type ComponentPropsWithoutRef, useEffect, useRef } from 'react'
 import { useInView, useMotionValue, useSpring } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-
 import { cn } from '@/lib/utils'
 
 interface NumberTickerProps extends ComponentPropsWithoutRef<'span'> {

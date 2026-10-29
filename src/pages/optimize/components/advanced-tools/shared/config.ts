@@ -33,8 +33,8 @@ export const TOOL_DEFINITIONS: ToolVisualDefinition[] = [
   },
   {
     key: 'benchmark',
-    title: '岗位内容参考',
-    description: '参考这类岗位的预设指标，看看简历还可以补充什么。',
+    title: '行业基准对比',
+    description: '按岗位方向对比简历内容指标。',
     icon: Settings2,
     iconClassName:
       'bg-rose-500/10 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',

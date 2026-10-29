@@ -4,7 +4,6 @@ import type { ChangelogEntry as ChangelogEntryType } from '../../types'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { isValidElement } from 'react'
-
 import { CodeBlock } from '@/components/ui/code-block'
 import { DURATION, EASE } from '@/lib/motion'
 import { formatDate } from '../../utils'
