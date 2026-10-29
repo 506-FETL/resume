@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { MotionConfig, useReducedMotion } from 'motion/react'
+import { MotionConfig } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 
 /** Portals and page content share the same timing tokens and accessibility preference. */
@@ -8,7 +9,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
   return (
     <MotionConfig
-      reducedMotion='user'
+      reducedMotion={reduceMotion ? 'always' : 'never'}
       transition={{
         duration: reduceMotion ? 0 : DURATION.base,
         ease: EASE.out,

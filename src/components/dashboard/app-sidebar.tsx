@@ -1,8 +1,9 @@
 import type React from 'react'
-import { FileText } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { lazy, Suspense } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import {
   Sidebar,
   SidebarContent,
@@ -59,8 +60,12 @@ export function AppSidebar({
               className='data-[slot=sidebar-menu-button]:p-1.5'
             >
               <Link to='/'>
-                <FileText className='size-5' />
-                <span className='text-base font-semibold'>Resume</span>
+                <img
+                  src='/resume_icon_transparent.svg'
+                  alt=''
+                  className='size-5 shrink-0'
+                />
+                <span className='text-base font-semibold'>GResume</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -71,7 +76,7 @@ export function AppSidebar({
         <NavOptions options={Data.modules} description='模块' />
         <AnimatePresence initial={false}>
           {isAssistantRoute && authStatus === 'authenticated' && (
-            <motion.div
+            <PresenceDiv
               key='assistant-conversations'
               initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -92,7 +97,7 @@ export function AppSidebar({
               <Suspense fallback={null}>
                 <ConversationNavigation />
               </Suspense>
-            </motion.div>
+            </PresenceDiv>
           )}
         </AnimatePresence>
       </SidebarContent>

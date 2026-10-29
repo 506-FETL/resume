@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { ChevronRight, FileText, MoreHorizontal, Pencil } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

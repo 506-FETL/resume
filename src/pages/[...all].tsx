@@ -1,50 +1,30 @@
-import { ArrowUpRightIcon, CircleSlashIcon } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
-import { Globe } from '@/components/ui/globe'
-import { Highlighter } from '@/components/ui/highlighter'
-import { LightRays } from '@/components/ui/light-rays'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { PageLayout } from '@/components/layout/page-layout'
 
 export default function NotFound() {
-  const isMobile = useIsMobile()
-
   return (
-    <Empty className='relative h-full overflow-hidden'>
-      <EmptyHeader>
-        <EmptyMedia variant='icon'>
-          <CircleSlashIcon />
-        </EmptyMedia>
-        <EmptyTitle>
-          <Highlighter action='underline'>
-            <span className='text-xl font-bold text-foreground'>404</span>
-          </Highlighter>
-        </EmptyTitle>
-        <EmptyDescription>您访问的页面不存在</EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <Button
-          variant='link'
-          asChild
-          className='text-muted-foreground'
-          size='sm'
-        >
+    <PageLayout width='narrow' className='flex min-h-[60svh] items-center'>
+      <section className='mx-auto w-full max-w-md space-y-6 py-12'>
+        <p className='text-sm font-medium tabular-nums text-muted-foreground'>
+          404
+        </p>
+        <div className='space-y-3'>
+          <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
+            找不到这个页面
+          </h1>
+          <p className='text-sm leading-6 text-muted-foreground'>
+            链接可能有误，或页面已被移除。你可以回到首页继续处理简历和求职进度。
+          </p>
+        </div>
+        <Button asChild>
           <Link to='/'>
-            回到首页
-            <ArrowUpRightIcon />
+            <ArrowLeft aria-hidden />
+            返回首页
           </Link>
         </Button>
-      </EmptyContent>
-      {!isMobile && <LightRays length='100vh' />}
-      <Globe className='top-3/4' />
-    </Empty>
+      </section>
+    </PageLayout>
   )
 }

@@ -2,7 +2,8 @@
 
 import type React from 'react'
 import { useEffect, useMemo, useRef } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import {
   Cancel01Icon,
@@ -241,7 +242,7 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
                 onClick={() => onCategoryChange?.(category)}
                 className={cn(
                   // Base styles
-                  'flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap cursor-pointer transition-all',
+                  'flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium whitespace-nowrap cursor-pointer transition-[color,background-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
                   // Selected state
                   selectedCategory === category
                     ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-700/50 dark:text-white'
@@ -294,7 +295,7 @@ export const SlashCommandDropdown: React.FC<SlashCommandDropdownProps> = ({
                     data-index={index}
                     className={cn(
                       // Base styles - full width with consistent padding
-                      'w-full text-left mx-0 px-3 py-0 cursor-pointer transition-all duration-150',
+                      'w-full text-left mx-0 px-3 py-0 cursor-pointer transition-[color,background-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
                       // Selected/hover states with light mode support
                       isSelected
                         ? 'bg-zinc-100 dark:bg-zinc-700/40'

@@ -1,5 +1,5 @@
 import { CircleHelp } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,7 +16,7 @@ import { useTrackerOverview } from '../../hooks/use-tracker-overview'
 function ResponseRate() {
   const { stats, busy, error } = useTrackerOverview()
   const reduce = useReducedMotion()
-  const rate = useCountUp(stats.responseRate, DURATION.slow * 1000)
+  const rate = useCountUp(stats.responseRate)
   const available = !error && stats.historicalApplied > 0
 
   return (

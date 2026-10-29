@@ -1,29 +1,44 @@
-import { Check, ClipboardCheck, Wand2 } from 'lucide-react'
+import { ChevronDown, ClipboardCheck } from 'lucide-react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useId, useRef, useState } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 
 export default function RepairChecklist() {
   const { currentAtsConfig, loading, revertFixChecklist } = useAtsStore()
-
-  const fixList = currentAtsConfig?.fixChecklist || []
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
+  const checkboxGroupId = useId()
+  const fixList = currentAtsConfig?.fixChecklist ?? []
+  const completed = fixList.filter((item) => item.isDone).length
+  const progress = fixList.length ? (completed / fixList.length) * 100 : 0
 
   return (
-    <Card className='flex min-w-0 flex-col border-primary/10 shadow-none'>
-      <CardHeader className='border-b border-border/50 p-4 md:p-5'>
-        <div className='flex items-center gap-2'>
-          <div className='rounded-md bg-primary/10 p-1.5 text-primary'>
-            <Wand2 className='size-4' />
-          </div>
-          <CardTitle className='text-base font-semibold md:text-lg'>
-            优化修复清单
-          </CardTitle>
-        </div>
+    <Card className='min-w-0 gap-0 py-0 shadow-none'>
+      <CardHeader className='p-4 pb-0 md:p-5 md:pb-0'>
+        <CardTitle className='flex items-center gap-2 text-base font-semibold'>
+          <ClipboardCheck
+            aria-hidden
+            className='size-4 text-muted-foreground'
+          />
+          处理进度
+        </CardTitle>
       </CardHeader>
-
-      <CardContent className='min-h-0 p-0'>
+      <CardContent className='p-4 md:p-5'>
         <AnimatedContent
           animationKey={
             loading
@@ -36,79 +51,108 @@ export default function RepairChecklist() {
           }
         >
           {loading ? (
-            <div className='flex items-center justify-center gap-3 px-5 py-8 text-muted-foreground'>
-              <Spinner className='size-5 animate-spin text-primary' />
-              <p className='text-sm font-medium'>分析修复项中...</p>
+            <div
+              role='status'
+              className='flex items-center gap-2 text-sm text-muted-foreground'
+            >
+              <Spinner
+                aria-hidden
+                className='size-4 motion-reduce:animate-none'
+              />
+              正在整理建议…
             </div>
           ) : fixList.length === 0 ? (
-            <div className='flex flex-col items-center justify-center gap-3 px-5 py-8 text-center'>
-              <div
-                className={cn(
-                  'rounded-full p-3',
-                  currentAtsConfig
-                    ? 'bg-green-100/50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-                    : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {currentAtsConfig ? (
-                  <ClipboardCheck className='size-6' />
-                ) : (
-                  <Wand2 className='size-6' />
-                )}
-              </div>
-              <h3 className='text-sm font-semibold'>
-                {currentAtsConfig
-                  ? '本次检测没有待修复项'
-                  : '检测后生成修复清单'}
-              </h3>
-            </div>
+            <p className='text-sm leading-6 text-muted-foreground'>
+              {currentAtsConfig
+                ? '本次检测没有待处理建议。'
+                : '检测后可在这里记录处理进度。'}
+            </p>
           ) : (
-            <div className='space-y-1 p-3 md:p-4'>
-              {fixList.map((item) => (
-                <button
-                  key={item.id}
-                  type='button'
-                  className={cn(
-                    'group flex w-full items-start gap-3 rounded-lg border border-transparent p-3 text-left transition-all duration-200',
-                    'hover:border-border/50 hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                    item.isDone ? 'opacity-60' : 'bg-card',
-                  )}
-                  onClick={() => revertFixChecklist(item.id)}
-                >
-                  <span
-                    className={cn(
-                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-200',
-                      item.isDone
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-muted-foreground/30 bg-background group-hover:border-primary/50',
-                    )}
+            <Collapsible
+              open={open}
+              onOpenChange={(nextOpen) => {
+                if (
+                  !nextOpen &&
+                  contentRef.current?.contains(document.activeElement)
+                ) {
+                  triggerRef.current?.focus()
+                }
+
+                setOpen(nextOpen)
+              }}
+            >
+              <div className='flex items-baseline justify-between gap-3'>
+                <p className='text-sm font-medium tabular-nums'>
+                  已处理 {completed} / {fixList.length} 项
+                </p>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    ref={triggerRef}
+                    variant='ghost'
+                    size='sm'
+                    className='-mr-2 text-xs text-muted-foreground'
                   >
-                    {item.isDone && <Check className='h-3.5 w-3.5' />}
-                  </span>
-                  <span className='min-w-0 flex-1 space-y-1.5'>
-                    <span
+                    {open ? '收起清单' : '查看清单'}
+                    <ChevronDown
+                      aria-hidden
                       className={cn(
-                        'block wrap-break-word text-sm font-medium leading-snug transition-colors',
-                        item.isDone
-                          ? 'text-muted-foreground line-through'
-                          : 'text-foreground group-hover:text-primary',
+                        'size-3.5 transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
+                        open && 'rotate-180',
                       )}
-                    >
-                      {item.title}
-                    </span>
-                    {item.option === 'required' ? (
-                      <span className='inline-flex items-center rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/20'>
-                        必修
-                      </span>
-                    ) : (
-                      <span className='inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground ring-1 ring-inset ring-secondary-foreground/10'>
-                        可选
-                      </span>
-                    )}
-                  </span>
-                </button>
-              ))}
-            </div>
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <Progress
+                value={progress}
+                aria-label={`已处理 ${completed} 项，共 ${fixList.length} 项`}
+                className='mt-2 h-1.5'
+              />
+              <p className='mt-2 text-xs leading-5 text-muted-foreground'>
+                勾选只记录进度，具体修改请查看问题详情。
+              </p>
+              <CollapsibleContent
+                ref={contentRef}
+                inert={!open}
+                style={reduceMotion ? { animationDuration: '0s' } : undefined}
+              >
+                <div className='mt-4 space-y-3 border-t pt-4'>
+                  {fixList.map((item) => (
+                    <div key={item.id} className='flex items-start gap-3'>
+                      <Checkbox
+                        id={`${checkboxGroupId}-${item.id}`}
+                        checked={item.isDone}
+                        onCheckedChange={() => revertFixChecklist(item.id)}
+                        className='mt-0.5 shrink-0'
+                      />
+                      <label
+                        htmlFor={`${checkboxGroupId}-${item.id}`}
+                        className='min-w-0 flex-1 cursor-pointer space-y-1.5'
+                      >
+                        <span
+                          className={cn(
+                            'block wrap-break-word text-sm leading-5 transition-colors duration-(--ui-motion-fast)',
+                            item.isDone && 'text-muted-foreground line-through',
+                          )}
+                        >
+                          {item.title}
+                        </span>
+                        <Badge
+                          variant='outline'
+                          className={
+                            item.option === 'required'
+                              ? 'border-destructive/20 bg-destructive/5 text-destructive'
+                              : 'font-normal text-muted-foreground'
+                          }
+                        >
+                          {item.option === 'required' ? '需处理' : '可选建议'}
+                        </Badge>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </AnimatedContent>
       </CardContent>

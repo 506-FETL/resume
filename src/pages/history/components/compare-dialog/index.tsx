@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
   ResponsiveDialog,
@@ -215,7 +216,7 @@ export default function CompareDialog({
           aria-busy={loading}
         >
           <AnimatePresence mode='wait' initial={false}>
-            <motion.div
+            <PresenceDiv
               key={resultState}
               initial={{ opacity: 0, y: dialogMotion.reduceMotion ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -273,7 +274,7 @@ export default function CompareDialog({
                 </div>
               ) : (
                 diffs.map((section, index) => (
-                  <motion.div
+                  <PresenceDiv
                     key={section.sectionKey}
                     initial={{
                       opacity: 0,
@@ -299,10 +300,10 @@ export default function CompareDialog({
                         <DiffView before={field.before} after={field.after} />
                       </div>
                     ))}
-                  </motion.div>
+                  </PresenceDiv>
                 ))
               )}
-            </motion.div>
+            </PresenceDiv>
           </AnimatePresence>
         </div>
       </ResponsiveDialogContent>

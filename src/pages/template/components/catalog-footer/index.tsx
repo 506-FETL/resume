@@ -1,5 +1,5 @@
 import { LoaderCircle } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import AnimatedContent from '@/components/motion/animated-content'

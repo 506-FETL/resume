@@ -10,7 +10,7 @@ import {
   Save,
   Share2,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -89,8 +89,18 @@ export function CollaborationControls({
           : 'idle'
 
   const body = (
-    <div className='text-sm text-muted-foreground flex flex-wrap items-center gap-2'>
-      <div className='flex flex-wrap items-center gap-2'>
+    <div
+      className={cn(
+        'text-sm text-muted-foreground flex flex-wrap items-center gap-2',
+        isMobile && 'justify-center',
+      )}
+    >
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-2',
+          isMobile && 'justify-center [&_button]:size-11',
+        )}
+      >
         <Button
           size={isMobile ? 'icon' : 'sm'}
           variant='outline'
@@ -161,7 +171,7 @@ export function CollaborationControls({
       </div>
       {actions}
       {isSharing && (
-        <span className='text-xs font-medium text-emerald-600'>
+        <span className='text-xs font-medium text-emerald-600 dark:text-emerald-400'>
           协作人数
           {participantCount}
         </span>
@@ -244,7 +254,7 @@ function renderSyncStatus({
 
   if (pendingChanges) {
     return (
-      <span className='flex items-center gap-2 text-sm text-amber-600 font-normal'>
+      <span className='flex items-center gap-2 text-sm text-amber-600 font-normal dark:text-amber-400'>
         <Clock className='size-4' />
         有未保存的更改
       </span>
@@ -253,7 +263,7 @@ function renderSyncStatus({
 
   if (lastSyncTime) {
     return (
-      <span className='text-sm text-green-600 font-normal'>
+      <span className='text-sm text-green-600 font-normal dark:text-green-400'>
         已同步
         {formatTime(lastSyncTime)}
       </span>

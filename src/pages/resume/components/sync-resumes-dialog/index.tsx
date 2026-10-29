@@ -114,7 +114,7 @@ export default function SyncResumesDialog() {
                 return (
                   <Card
                     key={resume.resume_id}
-                    className={`cursor-pointer transition-all ${
+                    className={`cursor-pointer transition-[background-color,border-color,box-shadow,color,transform] ${
                       isSelected
                         ? 'border-primary bg-primary/5'
                         : 'hover:border-primary/50'

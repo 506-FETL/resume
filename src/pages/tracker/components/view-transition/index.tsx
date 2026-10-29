@@ -1,10 +1,7 @@
 import type { ReactNode, Ref } from 'react'
-import {
-  AnimatePresence,
-  motion,
-  useIsPresent,
-  useReducedMotion,
-} from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
@@ -15,14 +12,11 @@ function Panel({
   children: ReactNode
   ref?: Ref<HTMLDivElement>
 }) {
-  const present = useIsPresent()
   const reduce = useReducedMotion()
 
   return (
-    <motion.div
+    <PresenceDiv
       ref={ref}
-      inert={!present}
-      aria-hidden={!present || undefined}
       className='flex min-h-0 min-w-0 flex-1 flex-col'
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -42,7 +36,7 @@ function Panel({
       }}
     >
       {children}
-    </motion.div>
+    </PresenceDiv>
   )
 }
 

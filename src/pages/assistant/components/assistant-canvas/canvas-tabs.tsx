@@ -7,7 +7,9 @@ import {
   PinOff,
   Table2,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import AnimatedContent from '@/components/motion/animated-content'
+import { Button } from '@/components/ui/button'
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Tooltip,
@@ -65,8 +67,10 @@ export function CanvasTabs({ model }: { model: CanvasModel }) {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <Button
             type='button'
+            variant='ghost'
+            size='icon-xs'
             aria-label={canvasTabPinned ? '取消固定当前标签' : '固定当前标签'}
             aria-pressed={canvasTabPinned}
             onClick={() => setCanvasTabPinned(!canvasTabPinned)}
@@ -77,12 +81,18 @@ export function CanvasTabs({ model }: { model: CanvasModel }) {
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            {canvasTabPinned ? (
-              <Pin className='size-4' />
-            ) : (
-              <PinOff className='size-4' />
-            )}
-          </button>
+            <AnimatedContent
+              animationKey={canvasTabPinned ? 'pinned' : 'unpinned'}
+              as='span'
+              className='flex size-4 items-center justify-center'
+            >
+              {canvasTabPinned ? (
+                <Pin className='size-4' />
+              ) : (
+                <PinOff className='size-4' />
+              )}
+            </AnimatedContent>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side='left'>
           {canvasTabPinned ? '已固定：切换会话不自动跳走' : '固定当前标签'}

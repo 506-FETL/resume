@@ -60,7 +60,10 @@
 :where(
   [data-slot='button'],
   [data-slot='tabs-trigger'],
-  [data-slot='sidebar-menu-button']
+  [data-slot='sidebar-menu-button'],
+  [data-slot='switch'],
+  [data-slot='checkbox'],
+  [data-slot='checkbox-indicator']
 ) {
   transition-duration: var(--ui-motion-fast);
   transition-timing-function: var(--ui-motion-enter-ease);
@@ -68,14 +71,26 @@
 
 /* Also covers CSS-only loaders, pseudo-elements and portaled controls. */
 @media (prefers-reduced-motion: reduce) {
-  *,
+  *:not([data-resume-check-highlight] .rough-annotation path),
   *::before,
   *::after {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
+  }
+
+  *,
+  *::before,
+  *::after {
     transition-duration: 0s !important;
     transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
+}
+
+:where([data-slot='tooltip-content']):is(
+  [data-state='delayed-open'],
+  [data-state='instant-open']
+) {
+  animation-duration: var(--ui-motion-fast);
 }

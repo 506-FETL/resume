@@ -1,12 +1,8 @@
 import { FocusButton } from '../focus-button'
 import type { JobApplication } from '../../types'
 import { Archive, Bell, Building2, MoreVertical, Trash2 } from 'lucide-react'
-import {
-  AnimatePresence,
-  motion,
-  useIsPresent,
-  useReducedMotion,
-} from 'motion/react'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'

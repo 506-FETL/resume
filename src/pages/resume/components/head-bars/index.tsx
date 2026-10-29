@@ -1,13 +1,6 @@
 import type { MouseEventHandler } from 'react'
 import type { ResumeItem } from '../../types'
-import {
-  Cloud,
-  CloudUpload,
-  GitBranch,
-  HardDrive,
-  Plane,
-  Plus,
-} from 'lucide-react'
+import { Cloud, CloudUpload, GitBranch, HardDrive, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
@@ -64,9 +57,9 @@ function HeadBars({
   }
 
   const resumeTags = [
-    { tone: 'cloud', label: '在线', icon: Cloud },
-    { tone: 'local', label: '离线', icon: HardDrive },
-    { tone: 'variant', label: '派生', icon: GitBranch },
+    { tone: 'cloud', label: '云端', icon: Cloud },
+    { tone: 'local', label: '本地', icon: HardDrive },
+    { tone: 'variant', label: '岗位版本', icon: GitBranch },
   ] as const
 
   return (
@@ -98,8 +91,8 @@ function HeadBars({
               ))
             ) : (
               <Badge variant='outline'>
-                <Plane aria-hidden />
-                离线
+                <HardDrive aria-hidden />
+                本地保存
               </Badge>
             )}
           </div>
@@ -113,7 +106,7 @@ function HeadBars({
             disabled={pendingCount === 0}
           >
             <GitBranch data-icon='inline-start' />
-            派生任务
+            岗位版本任务
             {pendingCount > 0 && (
               <Badge variant='secondary'>{pendingCount}</Badge>
             )}

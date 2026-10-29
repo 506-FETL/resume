@@ -1,7 +1,7 @@
 import type { Scores } from '../../types'
 import type { ChartConfig } from '@/components/ui/chart'
 import { Activity } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useMemo } from 'react'
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from 'recharts'
 import AnimatedContent from '@/components/motion/animated-content'

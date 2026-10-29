@@ -4,7 +4,7 @@ import type {
 } from '../../../submission-types'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Pencil } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'

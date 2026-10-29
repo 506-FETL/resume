@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/utils'
 
 export interface AutoScrollContainerHandle {
@@ -35,6 +36,7 @@ export function AutoScrollContainer({
   renderOverlay,
   ...props
 }: AutoScrollContainerProps) {
+  const reduceMotion = useReducedMotion()
   const containerRef = useRef<HTMLDivElement>(null)
   // 用户上滚或主动定位到消息时解除跟随，回到底部后恢复。
   const followRef = useRef(true)
@@ -81,8 +83,17 @@ export function AutoScrollContainer({
   const scrollToBottom = useCallback(() => {
     followRef.current = true
     setAtBottom(true)
-    scrollToBottomNow('smooth')
-  }, [scrollToBottomNow])
+    scrollToBottomNow(reduceMotion ? 'auto' : 'smooth')
+  }, [reduceMotion, scrollToBottomNow])
+
+  useEffect(() => {
+    const container = containerRef.current
+
+    if (!reduceMotion || !container) return
+
+    // 偏好改变时停在当前位置，取消已经启动的原生 smooth 滚动。
+    container.scrollTo({ top: container.scrollTop, behavior: 'auto' })
+  }, [reduceMotion])
 
   // scroll 事件仅用于同步"回到底部"按钮显隐，不改变跟随状态（跟随只由用户 wheel/touch 意图决定）
   const handleScroll = useCallback(() => {

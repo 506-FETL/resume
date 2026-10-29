@@ -35,9 +35,13 @@ function Optimize() {
       <OptimizeDashboard />
 
       <div className='grid min-w-0 items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]'>
-        <div className='min-w-0 xl:col-start-1 xl:row-start-1'>
+        <section
+          id='optimization-findings'
+          aria-label='待处理项'
+          className='min-w-0 scroll-mt-6 xl:col-start-1 xl:row-start-1'
+        >
           <IssueAnalysis />
-        </div>
+        </section>
 
         <div className='min-w-0 xl:col-start-2 xl:row-start-1'>
           <RepairChecklist />

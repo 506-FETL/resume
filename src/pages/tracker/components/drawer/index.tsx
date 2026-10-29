@@ -13,7 +13,8 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   memo,
   useCallback,

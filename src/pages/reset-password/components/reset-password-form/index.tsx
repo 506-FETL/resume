@@ -1,4 +1,4 @@
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'

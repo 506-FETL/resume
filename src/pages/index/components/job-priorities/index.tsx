@@ -47,7 +47,6 @@ export default function JobPriorities({
         items={focused}
         resource={resources.jobs}
         empty='还没有重点关注的职位'
-        allHref='/tracker?focus=1'
       />
     </div>
   )
@@ -62,7 +61,6 @@ function PriorityCard({
   resource,
   empty,
   emptyHint,
-  allHref,
 }: {
   title: string
   icon: LucideIcon
@@ -75,7 +73,6 @@ function PriorityCard({
   >
   empty: string
   emptyHint?: string
-  allHref?: string
 }) {
   const pending = resource.loading && !resource.hasLoaded
   const unavailable = Boolean(resource.error) && !resource.hasLoaded

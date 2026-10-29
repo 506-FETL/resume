@@ -1,6 +1,9 @@
 import type { AiMessagePart } from '@/lib/ai/types'
-import { Loader2, PanelRight, RotateCw } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { PanelRight, RotateCw } from 'lucide-react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import AnimatedContent from '@/components/motion/animated-content'
+import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
 import { getSkillToolLabel } from '@/lib/ai/skills/presentation'
 import { isSkillTool } from '@/lib/ai/skills/runtime'
@@ -82,56 +85,77 @@ export function ToolCallPartGroup({
                 duration: reduced ? 0 : DURATION.base,
                 ease: EASE.out,
               }}
-              className='flex items-center gap-2 py-0.5 text-sm'
+              tabIndex={-1}
+              data-assistant-tool-row
+              className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-0.5 text-sm outline-none'
             >
-              <span className='flex size-4 shrink-0 items-center justify-center text-muted-foreground'>
+              <AnimatedContent
+                animationKey={pending ? 'pending' : 'complete'}
+                as='span'
+                className='flex size-4 shrink-0 items-center justify-center text-muted-foreground'
+              >
                 {pending ? (
-                  <Loader2
-                    className={`size-3.5 ${reduced ? '' : 'animate-spin'}`}
-                  />
+                  <Spinner className='size-3.5' />
                 ) : (
                   getToolCategoryIcon(meta?.iconCategory ?? 'general', {
                     showBackground: false,
                     size: 16,
                   })
                 )}
-              </span>
-              <span className='min-w-0 flex-1 truncate text-foreground/80'>
+              </AnimatedContent>
+              <span
+                title={label}
+                className='min-w-0 flex-1 truncate text-foreground/80'
+              >
                 {label}
               </span>
-              {stat && (
-                <DiffStat
-                  additions={stat.additions}
-                  deletions={stat.deletions}
-                />
-              )}
-              {c.state === 'cancelled' && (
-                <span className='text-xs text-muted-foreground'>已取消</span>
-              )}
-              {c.state === 'error' && (
-                <>
-                  <span
-                    className='text-xs text-rose-500'
-                    title={skillError ?? undefined}
-                  >
-                    失败
-                  </span>
-                  {!isSkillTool(c.toolName) && (
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-6 gap-1 px-1.5 text-xs text-rose-500 hover:text-rose-600'
-                      onClick={() => retryToolCall(c.toolCallId)}
+              <AnimatedContent
+                animationKey={c.state}
+                as='span'
+                className='flex max-w-full flex-wrap items-center gap-1.5'
+              >
+                {stat && (
+                  <DiffStat
+                    additions={stat.additions}
+                    deletions={stat.deletions}
+                  />
+                )}
+                {c.state === 'cancelled' && (
+                  <span className='text-xs text-muted-foreground'>已取消</span>
+                )}
+                {c.state === 'error' && (
+                  <>
+                    <span
+                      className='text-xs text-rose-500'
+                      title={skillError ?? undefined}
                     >
-                      <RotateCw className='size-3.5' />
-                      重试
-                    </Button>
-                  )}
-                </>
-              )}
-              {skillError && (
-                <span className='text-xs text-destructive'>{skillError}</span>
-              )}
+                      失败
+                    </span>
+                    {!isSkillTool(c.toolName) && (
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='h-6 gap-1 px-1.5 text-xs text-rose-500 hover:text-rose-600'
+                        onClick={(event) => {
+                          event.currentTarget
+                            .closest<HTMLElement>('[data-assistant-tool-row]')
+                            ?.focus({ preventScroll: true })
+
+                          retryToolCall(c.toolCallId)
+                        }}
+                      >
+                        <RotateCw className='size-3.5' />
+                        重试
+                      </Button>
+                    )}
+                  </>
+                )}
+                {skillError && (
+                  <span className='min-w-0 text-xs break-words text-destructive'>
+                    {skillError}
+                  </span>
+                )}
+              </AnimatedContent>
             </motion.div>
           )
         })}

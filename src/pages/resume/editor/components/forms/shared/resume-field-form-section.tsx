@@ -5,7 +5,9 @@ import type {
   UseFormReturn,
 } from 'react-hook-form'
 import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
@@ -17,6 +19,8 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import { ResumeFieldExitSnapshot } from './resume-field-exit-snapshot'
+import { focusBeforeFieldRemoval } from './focus-before-field-removal'
 
 interface ResumeFieldFormSectionProps<TFieldValues extends FieldValues> {
   sync: ReactNode
@@ -57,133 +61,162 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
     <Form {...form}>
       {sync}
       <form id={formId} className={cn('flex flex-col gap-6', className)}>
-        {fields.map((item, index) => {
-          const hidden = form.watch(`items.${index}.hidden` as any)
+        <AnimatePresence initial={false} mode='popLayout'>
+          {fields.map((item, index) => {
+            const hidden = form.watch(`items.${index}.hidden` as any)
 
-          return (
-            <motion.div
-              key={item.id}
-              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: reduceMotion ? 0 : DURATION.base,
-                ease: EASE.out,
-                layout: reduceMotion ? { duration: 0 } : SPRING.layout,
-              }}
-              layout={!reduceMotion}
-            >
-              {index > 0 && <Separator className='my-6' />}
+            return (
+              <PresenceDiv
+                key={item.id}
+                data-resume-field-row
+                initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{
+                  opacity: 0,
+                  y: reduceMotion ? 0 : -4,
+                  transition: {
+                    duration: reduceMotion ? 0 : DURATION.fast,
+                    ease: EASE.in,
+                  },
+                }}
+                transition={{
+                  duration: reduceMotion ? 0 : DURATION.base,
+                  ease: EASE.out,
+                  layout: reduceMotion ? { duration: 0 } : SPRING.layout,
+                }}
+                layout={reduceMotion ? false : 'position'}
+              >
+                <ResumeFieldExitSnapshot>
+                  {index > 0 && <Separator className='my-6' />}
 
-              <div className='flex flex-col gap-4'>
-                <div className='flex items-center justify-between'>
-                  <h3
-                    className={cn(
-                      'text-sm font-medium text-muted-foreground',
-                      hidden && 'opacity-50',
-                    )}
-                  >
-                    {title}
-                    {multiple ? `#${index + 1}` : ''}
-                  </h3>
-                  <div className='flex items-center gap-0.5'>
-                    {multiple && move && (
-                      <>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type='button'
-                              variant='ghost'
-                              size='icon-sm'
-                              disabled={index === 0}
-                              onClick={() => move(index, index - 1)}
-                              aria-label={`上移${title}#${index + 1}`}
-                            >
-                              <ArrowUp className='size-4' />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>上移</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type='button'
-                              variant='ghost'
-                              size='icon-sm'
-                              disabled={index === fields.length - 1}
-                              onClick={() => move(index, index + 1)}
-                              aria-label={`下移${title}#${index + 1}`}
-                            >
-                              <ArrowDown className='size-4' />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>下移</TooltipContent>
-                        </Tooltip>
-                      </>
-                    )}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type='button'
-                          variant='ghost'
-                          size='icon-sm'
-                          onClick={() => {
-                            form.setValue(
-                              `items.${index}.hidden` as any,
-                              !hidden as any,
-                              { shouldDirty: true },
-                            )
-                          }}
-                          aria-label={`${hidden ? '显示' : '隐藏'}${title}${multiple ? `#${index + 1}` : ''}`}
-                        >
-                          {hidden ? (
-                            <EyeOff className='size-4' />
-                          ) : (
-                            <Eye className='size-4' />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {hidden ? '显示此项' : '隐藏此项（内容保留）'}
-                      </TooltipContent>
-                    </Tooltip>
-                    {multiple && (
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='sm'
-                        onClick={() => remove(index)}
-                        className='h-8 text-destructive hover:text-destructive'
+                  <div className='flex flex-col gap-4'>
+                    <div className='flex items-center justify-between'>
+                      <h3
+                        className={cn(
+                          'text-sm font-medium text-muted-foreground',
+                          hidden && 'opacity-50',
+                        )}
                       >
-                        <Trash2 className='size-4' />
-                        {!isMobile && <span className='ml-1'>删除</span>}
-                      </Button>
-                    )}
+                        {title}
+                        {multiple ? `#${index + 1}` : ''}
+                      </h3>
+                      <div className='flex items-center gap-0.5'>
+                        {multiple && move && (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon-sm'
+                                  disabled={index === 0}
+                                  onClick={() => move(index, index - 1)}
+                                  aria-label={`上移${title}#${index + 1}`}
+                                >
+                                  <ArrowUp className='size-4' />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>上移</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon-sm'
+                                  disabled={index === fields.length - 1}
+                                  onClick={() => move(index, index + 1)}
+                                  aria-label={`下移${title}#${index + 1}`}
+                                >
+                                  <ArrowDown className='size-4' />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>下移</TooltipContent>
+                            </Tooltip>
+                          </>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon-sm'
+                              onClick={() => {
+                                form.setValue(
+                                  `items.${index}.hidden` as any,
+                                  !hidden as any,
+                                  { shouldDirty: true },
+                                )
+                              }}
+                              aria-label={`${hidden ? '显示' : '隐藏'}${title}${multiple ? `#${index + 1}` : ''}`}
+                            >
+                              {hidden ? (
+                                <EyeOff className='size-4' />
+                              ) : (
+                                <Eye className='size-4' />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {hidden ? '显示此项' : '隐藏此项（内容保留）'}
+                          </TooltipContent>
+                        </Tooltip>
+                        {multiple && (
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            data-resume-field-remove
+                            aria-label={`删除${title}${multiple ? `#${index + 1}` : ''}`}
+                            onClick={(event) => {
+                              focusBeforeFieldRemoval(event.currentTarget)
+                              remove(index)
+                            }}
+                            className='h-8 text-destructive hover:text-destructive'
+                          >
+                            <Trash2 className='size-4' />
+                            {!isMobile && <span className='ml-1'>删除</span>}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div
+                      className={cn(
+                        'flex min-w-0 flex-col gap-4',
+                        hidden && 'opacity-50',
+                      )}
+                    >
+                      {renderItem(index, item)}
+                    </div>
                   </div>
-                </div>
+                </ResumeFieldExitSnapshot>
+              </PresenceDiv>
+            )
+          })}
+        </AnimatePresence>
 
-                <div
-                  className={cn(
-                    'flex min-w-0 flex-col gap-4',
-                    hidden && 'opacity-50',
-                  )}
-                >
-                  {renderItem(index, item)}
-                </div>
-              </div>
-            </motion.div>
-          )
-        })}
-
-        <Button
-          type='button'
-          variant='outline'
-          size={isMobile ? 'sm' : 'default'}
-          onClick={onAddItem}
-          className='w-full @lg/panel:w-auto'
+        <motion.div
+          layout={reduceMotion ? false : 'position'}
+          layoutDependency={fields.length}
+          transition={{
+            layout: reduceMotion ? { duration: 0 } : SPRING.layout,
+          }}
+          className='flex flex-col'
         >
-          <Plus className='size-4' />
-          {!isMobile && <span className='ml-2'>{addLabel}</span>}
-        </Button>
+          <Button
+            type='button'
+            variant='outline'
+            size={isMobile ? 'sm' : 'default'}
+            onClick={onAddItem}
+            data-resume-field-add
+            aria-label={addLabel}
+            className='w-full @lg/panel:w-auto'
+          >
+            <Plus className='size-4' />
+            {!isMobile && <span className='ml-2'>{addLabel}</span>}
+          </Button>
+        </motion.div>
       </form>
     </Form>
   )

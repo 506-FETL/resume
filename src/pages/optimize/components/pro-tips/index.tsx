@@ -1,5 +1,5 @@
 import { ChevronDown, Lightbulb } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   Collapsible,
   CollapsibleContent,

@@ -202,6 +202,12 @@ export function editCheckIssue(issue: ResumeCheckIssue, targetIndex = 0) {
 
   const target = issue.targets[targetIndex]
 
+  document
+    .querySelector<HTMLElement>(
+      '[data-resume-check-workspace] [data-check-mode="edit"]',
+    )
+    ?.focus({ preventScroll: true })
+
   state.locate(issue.id, targetIndex)
   state.setTab('edit')
 

@@ -1,6 +1,7 @@
 import type { ShareStatusFilter } from '../../utils'
 import { Check, ChevronDown, FileUser, Search, X } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useId, useMemo, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'

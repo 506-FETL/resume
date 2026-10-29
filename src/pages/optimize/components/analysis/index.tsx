@@ -90,7 +90,7 @@ export default function IssueAnalysis() {
         >
           {loading ? (
             <div className='flex items-center justify-center gap-3 py-8 text-muted-foreground'>
-              <Spinner className='size-6 animate-spin text-primary' />
+              <Spinner className='size-6 text-primary motion-reduce:animate-none' />
             </div>
           ) : !findings || totalFindings === 0 ? (
             <div className='flex flex-col items-center justify-center px-4 py-8 text-center text-muted-foreground'>

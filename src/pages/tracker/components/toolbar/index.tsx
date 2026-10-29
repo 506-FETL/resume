@@ -1,5 +1,6 @@
 import { Archive, CheckSquare, Flag, Search, X } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
@@ -141,7 +142,7 @@ export default function TrackerToolbar() {
               />
               <AnimatePresence initial={false}>
                 {searchKeyword && (
-                  <motion.div
+                  <PresenceDiv
                     className='absolute right-1 top-0.5'
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -156,7 +157,7 @@ export default function TrackerToolbar() {
                     >
                       <X className='size-3.5' />
                     </Button>
-                  </motion.div>
+                  </PresenceDiv>
                 )}
               </AnimatePresence>
             </div>
@@ -176,7 +177,7 @@ export default function TrackerToolbar() {
           <div className='order-1 flex basis-full flex-wrap items-center gap-1.5 empty:hidden @min-[620px]/tracker:order-none @min-[620px]/tracker:basis-auto'>
             <AnimatePresence initial={false}>
               {viewMode === 'list' && (
-                <motion.div
+                <PresenceDiv
                   key='company-group-toggle'
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -192,7 +193,7 @@ export default function TrackerToolbar() {
                   >
                     按公司分组
                   </Button>
-                </motion.div>
+                </PresenceDiv>
               )}
             </AnimatePresence>
             <AnimatePresence initial={false}>
@@ -266,7 +267,7 @@ export default function TrackerToolbar() {
             </AnimatePresence>
             <AnimatePresence initial={false}>
               {!isMobile && viewMode === 'list' && (
-                <motion.div
+                <PresenceDiv
                   key='sort-menu'
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -274,7 +275,7 @@ export default function TrackerToolbar() {
                   transition={{ duration: reduce ? 0 : DURATION.fast }}
                 >
                   <SortMenu />
-                </motion.div>
+                </PresenceDiv>
               )}
             </AnimatePresence>
           </div>
@@ -345,6 +346,7 @@ export default function TrackerToolbar() {
                   )}
                   style={actionTransition}
                   aria-pressed={isSelectMode}
+                  id='tracker-batch-toggle'
                   aria-label={isSelectMode ? '退出批量管理' : '批量管理'}
                   onClick={isSelectMode ? exitSelectMode : enterSelectMode}
                 >

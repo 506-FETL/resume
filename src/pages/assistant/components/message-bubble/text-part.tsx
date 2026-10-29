@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { isValidElement } from 'react'
 import { Streamdown } from 'streamdown'
 import { CodeBlock } from '@/components/ui/code-block'
@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 interface TextPartProps {
   text: string
-  // 流式进行中时开启：新出现的 markdown 块以 ChatGPT 式轻模糊淡入呈现，并在尾部显示闪烁光标
+  // 只为流式中新挂载的 Markdown 块淡入，已有块的文字更新不重播。
   animate?: boolean
 }
 

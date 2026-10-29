@@ -3,7 +3,7 @@ import type {
   ResumeHistoryVersionListItem,
 } from '@/lib/supabase/resume/history'
 import { AlertTriangle, LoaderCircle, RotateCcw } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -92,7 +93,7 @@ export default function RestoreVersionDialog({
         </AlertDialogHeader>
 
         <AnimatePresence initial={false} mode='wait'>
-          <motion.div
+          <PresenceDiv
             ref={confirmationRef}
             key={confirmingDirect ? 'direct-confirmation' : 'restore-options'}
             initial={{ opacity: 0, y: dialogMotion.reduceMotion ? 0 : 8 }}
@@ -196,7 +197,7 @@ export default function RestoreVersionDialog({
                 </>
               )}
             </AlertDialogFooter>
-          </motion.div>
+          </PresenceDiv>
         </AnimatePresence>
       </AlertDialogContent>
     </AlertDialog>

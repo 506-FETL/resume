@@ -1,4 +1,4 @@
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {

@@ -13,7 +13,7 @@ import {
   Settings2,
   Trash2,
 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useRef } from 'react'
 import { toast } from 'sonner'
 import { PresenceDiv } from '@/components/motion/presence-item'

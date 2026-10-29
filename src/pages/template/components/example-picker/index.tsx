@@ -3,7 +3,7 @@ import type {
   TemplateCatalogItem,
 } from '@/lib/resume-template/source/types'
 import { Check } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useId } from 'react'
 import { DURATION } from '@/lib/motion'
 import { exampleKey } from '@/lib/resume-template/source/types'

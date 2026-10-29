@@ -1,6 +1,10 @@
-import type { HistoryDetailPanelState } from './use-detail-panel-state'
+import type { ReactNode, RefObject } from 'react'
+import type {
+  HistoryDetailPanelState,
+  HistoryDetailTab,
+} from './use-detail-panel-state'
 import { motion } from 'motion/react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -16,10 +20,71 @@ interface HistoryDetailContentProps {
   state: HistoryDetailPanelState
 }
 
+function DetailTabPanel({
+  value,
+  active,
+  displayed,
+  scrollRef,
+  onExitComplete,
+  children,
+}: {
+  value: HistoryDetailTab
+  active: HistoryDetailTab
+  displayed: HistoryDetailTab
+  scrollRef: RefObject<HTMLDivElement | null>
+  onExitComplete: () => void
+  children: ReactNode
+}) {
+  const { reduceMotion, enter, exit } = useHistoryMotion()
+  const visible = displayed === value
+  const exiting = visible && active !== value
+  const interactive = visible && !exiting
+
+  useLayoutEffect(() => {
+    const panel = scrollRef.current
+
+    if (!panel) return
+
+    if (!interactive && panel.contains(document.activeElement)) {
+      panel
+        .closest('[data-slot=tabs]')
+        ?.querySelector<HTMLButtonElement>('[role=tab][data-state=active]')
+        ?.focus({ preventScroll: true })
+    }
+
+    panel.inert = !interactive
+
+    if (interactive) panel.removeAttribute('aria-hidden')
+    else panel.setAttribute('aria-hidden', 'true')
+  }, [interactive, scrollRef])
+
+  return (
+    <TabsContent forceMount asChild value={value}>
+      <motion.div
+        ref={scrollRef}
+        hidden={!visible}
+        initial={false}
+        animate={{
+          opacity: interactive ? 1 : 0,
+          transform:
+            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(8px)',
+        }}
+        transition={{ ...(exiting ? exit : enter), delay: 0 }}
+        onAnimationComplete={() => {
+          if (exiting) onExitComplete()
+        }}
+        className='scrollbar-thin-subtle absolute inset-0 mt-0 min-h-0 overflow-y-auto overscroll-contain'
+      >
+        {children}
+      </motion.div>
+    </TabsContent>
+  )
+}
+
 export default function HistoryDetailContent({
   state,
 }: HistoryDetailContentProps) {
-  const { reduceMotion, enter } = useHistoryMotion()
+  const { reduceMotion } = useHistoryMotion()
   const resumeScrollRef = useRef<HTMLDivElement>(null)
   const overviewScrollRef = useRef<HTMLDivElement>(null)
   const currentResume = useHistoryStore((state) => state.currentResume)
@@ -29,6 +94,17 @@ export default function HistoryDetailContent({
   )
 
   const { activeTab, setActiveTab } = state
+  const [displayedTab, setDisplayedTab] = useState(activeTab)
+
+  useLayoutEffect(() => {
+    if (reduceMotion) setDisplayedTab(activeTab)
+  }, [activeTab, reduceMotion])
+
+  const panelProps = {
+    active: activeTab,
+    displayed: reduceMotion ? activeTab : displayedTab,
+    onExitComplete: () => setDisplayedTab(activeTab),
+  }
 
   const isCurrent = state.selectedEntry === 'current'
 
@@ -92,14 +168,8 @@ export default function HistoryDetailContent({
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className='isolate px-3 text-xs transition-none data-[state=active]:text-foreground after:transition-none'
+                className='px-3 text-xs'
               >
-                {activeTab === tab.value && (
-                  <span
-                    aria-hidden
-                    className='pointer-events-none absolute inset-0 -z-10 rounded-md bg-background shadow-xs'
-                  />
-                )}
                 {tab.label}
               </TabsTrigger>
             ))}
@@ -107,61 +177,43 @@ export default function HistoryDetailContent({
         </div>
         <Separator />
 
-        <TabsContent
-          ref={overviewScrollRef}
-          forceMount
-          value='overview'
-          hidden={activeTab !== 'overview'}
-          inert={activeTab !== 'overview'}
-          className={cn(
-            'scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain',
-            activeTab !== 'overview' && 'hidden',
-          )}
-        >
-          <motion.div
-            animate={{ opacity: activeTab === 'overview' ? 1 : 0 }}
-            transition={enter}
-            className='flex flex-col gap-4 p-4 sm:p-5'
+        <div className='relative min-h-0 flex-1 overflow-hidden'>
+          <DetailTabPanel
+            value='overview'
+            scrollRef={overviewScrollRef}
+            {...panelProps}
           >
-            {isCurrent ? (
-              <CurrentOverview />
-            ) : (
-              <HistoryVersionOverview state={state} />
-            )}
-          </motion.div>
-        </TabsContent>
-        <TabsContent
-          ref={resumeScrollRef}
-          forceMount
-          value='resume'
-          hidden={activeTab !== 'resume'}
-          inert={activeTab !== 'resume'}
-          className={cn(
-            'scrollbar-thin-subtle mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain',
-            activeTab !== 'resume' && 'hidden',
-          )}
-        >
-          <motion.div
-            animate={{ opacity: activeTab === 'resume' ? 1 : 0 }}
-            transition={enter}
-            className='min-h-full bg-muted/35 p-2 sm:p-4'
+            <div className='flex flex-col gap-4 p-4 sm:p-5'>
+              {isCurrent ? (
+                <CurrentOverview />
+              ) : (
+                <HistoryVersionOverview state={state} />
+              )}
+            </div>
+          </DetailTabPanel>
+          <DetailTabPanel
+            value='resume'
+            scrollRef={resumeScrollRef}
+            {...panelProps}
           >
-            {resumeSnapshot ? (
-              <HistoryResumePreview
-                snapshot={resumeSnapshot}
-                projectionReferenceDate={
-                  isCurrent
-                    ? undefined
-                    : state.selectedVersion?.projection_reference_date
-                }
-              />
-            ) : (
-              <Skeleton
-                className={cn('h-96 w-full', reduceMotion && 'animate-none')}
-              />
-            )}
-          </motion.div>
-        </TabsContent>
+            <div className='min-h-full bg-muted/35 p-2 sm:p-4'>
+              {resumeSnapshot ? (
+                <HistoryResumePreview
+                  snapshot={resumeSnapshot}
+                  projectionReferenceDate={
+                    isCurrent
+                      ? undefined
+                      : state.selectedVersion?.projection_reference_date
+                  }
+                />
+              ) : (
+                <Skeleton
+                  className={cn('h-96 w-full', reduceMotion && 'animate-none')}
+                />
+              )}
+            </div>
+          </DetailTabPanel>
+        </div>
       </Tabs>
     </div>
   )

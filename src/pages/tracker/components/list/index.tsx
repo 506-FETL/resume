@@ -1,4 +1,5 @@
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { PresenceDiv } from '@/components/motion/presence-item'

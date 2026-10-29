@@ -3,7 +3,7 @@ import type {
   SubmissionMaterialKind,
 } from '../../../submission-types'
 import { useEffect, useRef, useState } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'

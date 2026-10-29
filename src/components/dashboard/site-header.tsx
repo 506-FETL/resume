@@ -1,5 +1,6 @@
 import { StarIcon } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Link, useLocation } from 'react-router-dom'
 import { Fragment } from 'react/jsx-runtime'
 import {

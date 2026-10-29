@@ -1,5 +1,7 @@
 import { MessageSquareText } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { PresenceDiv } from '@/components/motion/presence-item'
+import { DURATION, EASE } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -23,11 +25,18 @@ export function CommentBookmark({
   const reduceMotion = useReducedMotion()
 
   return (
-    <motion.div
+    <PresenceDiv
       data-resume-comment-ui
       initial={reduceMotion ? false : { opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 10 }}
+      exit={{
+        opacity: 0,
+        x: reduceMotion ? 0 : 10,
+        transition: {
+          duration: reduceMotion ? 0 : DURATION.fast,
+          ease: EASE.in,
+        },
+      }}
       transition={{
         duration: reduceMotion ? 0 : COMMENT_MOTION.contentDuration,
         ease: COMMENT_MOTION.ease,
@@ -44,8 +53,12 @@ export function CommentBookmark({
             size='icon'
             disabled={disabled}
             aria-label='展开评论'
+            data-resume-comment-trigger
             className='relative rounded-r-none rounded-l-xl border-r-0 shadow-[0_3px_12px_rgb(0_0_0/0.09)] transition-[width,background-color,box-shadow] hover:w-10 hover:shadow-[0_4px_14px_rgb(0_0_0/0.12)]'
-            onClick={onOpen}
+            onClick={(event) => {
+              event.currentTarget.blur()
+              onOpen()
+            }}
           >
             <MessageSquareText className='size-4' />
             {unread ? (
@@ -58,6 +71,6 @@ export function CommentBookmark({
         </TooltipTrigger>
         <TooltipContent side='left'>展开评论</TooltipContent>
       </Tooltip>
-    </motion.div>
+    </PresenceDiv>
   )
 }

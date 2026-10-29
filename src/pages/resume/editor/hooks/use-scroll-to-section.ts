@@ -1,6 +1,6 @@
 import type { RefObject } from 'react'
 import type { ORDERType } from '@/lib/schema'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback } from 'react'
 
 /**

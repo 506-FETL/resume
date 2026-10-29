@@ -1,5 +1,6 @@
 import { ListChecks, PencilLine } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useId } from 'react'
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -23,7 +24,12 @@ export function CheckModeToggle() {
   return (
     <TabsList
       aria-label='编辑模式'
-      className='shrink-0 group-data-[orientation=horizontal]/tabs:h-8'
+      className={cn(
+        'shrink-0',
+        isMobile
+          ? 'group-data-[orientation=horizontal]/tabs:h-12'
+          : 'group-data-[orientation=horizontal]/tabs:h-8',
+      )}
     >
       {(['edit', 'checks'] as const).map((value) => {
         const Icon = value === 'edit' ? PencilLine : ListChecks
@@ -41,7 +47,7 @@ export function CheckModeToggle() {
             title={label}
             className={cn(
               'relative isolate transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:bg-transparent',
-              isMobile ? 'w-9 px-0' : 'px-2.5',
+              isMobile ? 'min-h-11 min-w-11 px-0' : 'px-2.5',
               value === 'checks' && severity && CHECK_LEVELS[severity].color,
               value === 'checks' &&
                 severity === 'error' &&

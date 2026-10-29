@@ -1,6 +1,8 @@
 import type { BatchOptimizationItem } from './types'
 import type { Suggestion } from '@/pages/optimize/types'
 import { ChevronDown, ListOrdered, Sparkles } from 'lucide-react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
@@ -22,18 +24,34 @@ function FormatterFindingCard({
   item,
   onSuggestionsChange,
 }: FormatterFindingCardProps) {
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
+
   const config = severityConfig[item.severity]
   const Icon = config.icon
 
   return (
     <Collapsible
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && contentRef.current?.contains(document.activeElement)) {
+          triggerRef.current?.focus()
+        }
+
+        setOpen(nextOpen)
+      }}
       className={cn(
-        'w-full min-w-0 max-w-full overflow-hidden rounded-2xl border transition-all',
+        'w-full min-w-0 max-w-full overflow-hidden rounded-2xl border transition-[background-color,border-color,box-shadow] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
         config.borderColor,
         config.bgColor,
       )}
     >
-      <CollapsibleTrigger className='flex w-full min-w-0 max-w-full items-start justify-between gap-3 overflow-hidden p-4 text-left transition-colors hover:bg-background/40'>
+      <CollapsibleTrigger
+        ref={triggerRef}
+        className='flex w-full min-w-0 max-w-full items-start justify-between gap-3 overflow-hidden p-4 text-left transition-colors hover:bg-background/40'
+      >
         <div className='min-w-0 space-y-2'>
           <div className='flex items-start gap-2.5'>
             <div className={cn('mt-0.5 shrink-0', config.textColor)}>
@@ -82,10 +100,15 @@ function FormatterFindingCard({
           </div>
         </div>
 
-        <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180' />
+        <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) [[data-state=open]>&]:rotate-180' />
       </CollapsibleTrigger>
 
-      <CollapsibleContent className='min-w-0 max-w-full overflow-hidden'>
+      <CollapsibleContent
+        ref={contentRef}
+        inert={!open}
+        style={reduceMotion ? { animationDuration: '0s' } : undefined}
+        className='min-w-0 max-w-full overflow-hidden'
+      >
         <div className='min-w-0 max-w-full space-y-5 px-4 pb-4'>
           <Separator className='opacity-60' />
 

@@ -142,7 +142,7 @@ function StatCard({
   return (
     <Card
       className={cn(
-        'h-full py-3 transition-all duration-200 hover:shadow-md',
+        'h-full py-3 transition-[background-color,border-color,box-shadow,color,transform] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) hover:shadow-md',
         className,
       )}
     >

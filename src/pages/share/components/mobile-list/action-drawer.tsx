@@ -1,6 +1,7 @@
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Archive, Eye, History, Power, Settings2, Trash2 } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {

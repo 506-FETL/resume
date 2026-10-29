@@ -1,5 +1,7 @@
 import type { Severity } from '../../types'
 import { Check, ChevronDown } from 'lucide-react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,6 +28,11 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
     (f) => f.id === id,
   )
 
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
+
   const config = severityConfig[severity]
 
   if (!finding) return null
@@ -36,14 +43,23 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
 
   return (
     <Collapsible
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && contentRef.current?.contains(document.activeElement)) {
+          triggerRef.current?.focus()
+        }
+
+        setOpen(nextOpen)
+      }}
       className={cn(
-        'border rounded-xl transition-all duration-300',
+        'border rounded-xl transition-[background-color,border-color,box-shadow] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
         isFixed
           ? 'border-green-500/20 bg-green-500/5 shadow-sm'
           : cn(config.borderColor, 'hover:shadow-sm'),
       )}
     >
       <CollapsibleTrigger
+        ref={triggerRef}
         className={cn(
           'flex items-center justify-between w-full p-3 sm:p-4 transition-colors rounded-xl',
           !isFixed && 'hover:bg-muted/20',
@@ -76,9 +92,14 @@ export default function FindingItem({ id, severity }: FindingItemProps) {
             )}
           </div>
         </div>
-        <ChevronDown className='size-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200 [[data-state=open]>&]:rotate-180' />
+        <ChevronDown className='size-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) [[data-state=open]>&]:rotate-180' />
       </CollapsibleTrigger>
-      <CollapsibleContent className='overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down motion-reduce:animate-none'>
+      <CollapsibleContent
+        ref={contentRef}
+        inert={!open}
+        style={reduceMotion ? { animationDuration: '0s' } : undefined}
+        className='overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down motion-reduce:animate-none'
+      >
         <div
           className={cn(
             'px-3 sm:px-4 pb-3 sm:pb-4 space-y-3',

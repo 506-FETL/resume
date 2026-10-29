@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from 'react'
 import type { DrawerTab } from '../../../types'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { TabsContent } from '@/components/ui/tabs'
 import { DURATION, EASE } from '@/lib/motion'

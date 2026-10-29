@@ -1,7 +1,7 @@
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { FileDown, LoaderCircle } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import CanonicalPagedDocument from '@/components/resume/pagination/canonical-paged-document'

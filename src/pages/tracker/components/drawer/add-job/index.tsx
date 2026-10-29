@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react'
 import type { AddJobFormData } from './types'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -341,7 +343,7 @@ export default function AddJobDrawer() {
       />
       <AnimatePresence initial={false}>
         {resumesError && (
-          <motion.div
+          <PresenceDiv
             role='alert'
             initial={{ opacity: 0, y: reduce ? 0 : 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -370,7 +372,7 @@ export default function AddJobDrawer() {
             >
               重试列表
             </Button>
-          </motion.div>
+          </PresenceDiv>
         )}
       </AnimatePresence>
     </AddJobForm>

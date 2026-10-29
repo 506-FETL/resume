@@ -13,7 +13,8 @@ import type {
   TouchEventHandler,
 } from 'react'
 import type { DragAxis, DragPoint, DropDestination } from '@/lib/motion-drag'
-import { motion, useMotionValue, useReducedMotion } from 'motion/react'
+import { motion, useMotionValue } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   createContext,
   use,

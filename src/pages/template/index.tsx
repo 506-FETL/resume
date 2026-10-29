@@ -1,5 +1,6 @@
 import { ScanSearch } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'

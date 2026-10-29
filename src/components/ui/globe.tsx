@@ -1,6 +1,7 @@
 import type { COBEOptions } from 'cobe'
 import createGlobe from 'cobe'
-import { useMotionValue, useReducedMotion, useSpring } from 'motion/react'
+import { useMotionValue, useSpring } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef } from 'react'
 
 import { cn } from '@/lib/utils'

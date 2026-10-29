@@ -1,6 +1,6 @@
 import PurposeFields from '../purpose-fields'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'

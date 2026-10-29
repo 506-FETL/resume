@@ -15,6 +15,25 @@ export default function GettingStarted({
   hasResume,
   onCreate,
 }: GettingStartedProps) {
+  if (hasResume) {
+    return (
+      <section
+        aria-label='本地保存说明'
+        className='flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border bg-muted/20 px-5 py-4'
+      >
+        <p className='min-w-0 text-sm leading-6 text-muted-foreground'>
+          简历保存在这个浏览器里。登录后可同步到云端，清理浏览器数据前请先备份。
+        </p>
+        <Button asChild variant='outline' size='sm'>
+          <Link to='/login?redirect=%2Fresume'>
+            登录并同步
+            <ArrowRight aria-hidden />
+          </Link>
+        </Button>
+      </section>
+    )
+  }
+
   return (
     <section
       aria-labelledby='getting-started-title'
@@ -26,27 +45,16 @@ export default function GettingStarted({
             id='getting-started-title'
             className='text-xl font-semibold tracking-tight sm:text-2xl'
           >
-            {hasResume ? '继续编辑简历' : '创建你的第一份简历'}
+            创建你的第一份简历
           </h2>
           <p className='mt-3 max-w-lg text-sm leading-6 text-muted-foreground'>
-            {hasResume
-              ? '最近编辑的简历'
-              : '可以导入旧简历，也可以选择示例开始写。'}
+            可以导入旧简历，也可以选择示例开始写。
           </p>
           <div className='mt-5 flex flex-wrap gap-2'>
-            {hasResume ? (
-              <Button asChild>
-                <Link to='/resume'>
-                  查看我的简历
-                  <ArrowRight aria-hidden />
-                </Link>
-              </Button>
-            ) : (
-              <Button onClick={onCreate}>
-                <FilePlus2 aria-hidden />
-                创建第一份简历
-              </Button>
-            )}
+            <Button onClick={onCreate}>
+              <FilePlus2 aria-hidden />
+              创建第一份简历
+            </Button>
             <Button asChild variant='outline'>
               <Link to='/template'>
                 <LayoutTemplate aria-hidden />

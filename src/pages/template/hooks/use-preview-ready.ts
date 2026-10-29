@@ -1,5 +1,5 @@
 import type { RefObject } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useState } from 'react'
 
 /** 入场先展示静态图，外框动画结束后再启动完整分页。 */

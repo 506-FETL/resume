@@ -1,6 +1,6 @@
 import type { JobApplication } from '../../types'
 import { Flag } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -38,7 +38,7 @@ export function FocusButton({
               ? 'text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400'
               : 'text-muted-foreground',
           )}
-          aria-label={`${job.position}`}
+          aria-label={`${focused ? '取消关注' : '关注'}${job.position}`}
           aria-pressed={focused}
           style={{
             transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
@@ -74,6 +74,7 @@ export function FocusButton({
           />
         </Button>
       </TooltipTrigger>
+      <TooltipContent>{focused ? '取消重点关注' : '重点关注'}</TooltipContent>
     </Tooltip>
   )
 }

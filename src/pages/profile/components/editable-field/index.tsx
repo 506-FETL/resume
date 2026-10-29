@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useRef } from 'react'
 import { Check, Pencil, X } from 'lucide-react'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,13 @@ export function EditableField({
   onSave,
   onCancel,
 }: EditableFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const moveFocus = (action: () => void) => {
+    inputRef.current?.focus({ preventScroll: true })
+    action()
+  }
+
   return (
     <Field>
       <FieldLabel htmlFor={id} className='items-center'>
@@ -41,11 +49,13 @@ export function EditableField({
       </FieldLabel>
       <div className='flex gap-2'>
         <Input
+          ref={inputRef}
           id={id}
           type={type}
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
-          disabled={!isEditing || isSaving}
+          readOnly={!isEditing || isSaving}
+          aria-busy={isSaving}
           className={
             !isEditing
               ? 'bg-muted transition-colors motion-reduce:transition-none'
@@ -60,7 +70,7 @@ export function EditableField({
             <Button
               variant='outline'
               size='icon'
-              onClick={onEdit}
+              onClick={() => moveFocus(onEdit)}
               aria-label={`编辑${label}`}
             >
               <Pencil />
@@ -70,7 +80,7 @@ export function EditableField({
               <Button
                 variant='outline'
                 size='icon'
-                onClick={onSave}
+                onClick={() => moveFocus(onSave)}
                 disabled={isSaving}
                 aria-label={`保存${label}`}
               >
@@ -85,7 +95,7 @@ export function EditableField({
               <Button
                 variant='outline'
                 size='icon'
-                onClick={onCancel}
+                onClick={() => moveFocus(onCancel)}
                 disabled={isSaving}
                 aria-label={`取消编辑${label}`}
               >

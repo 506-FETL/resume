@@ -1,10 +1,6 @@
 import { type ComponentPropsWithoutRef, useEffect, useRef } from 'react'
-import {
-  useInView,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-} from 'motion/react'
+import { useInView, useMotionValue, useSpring } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 
 import { cn } from '@/lib/utils'
 
@@ -48,17 +44,37 @@ export function NumberTicker({
   }, [motionValue, isInView, delay, value, direction, startValue, reduceMotion])
 
   useEffect(() => {
-    if (reduceMotion) return
-
-    return springValue.on('change', (latest) => {
+    const updateText = (latest: number) => {
       if (ref.current) {
         ref.current.textContent = Intl.NumberFormat('en-US', {
           minimumFractionDigits: decimalPlaces,
           maximumFractionDigits: decimalPlaces,
         }).format(Number(latest.toFixed(decimalPlaces)))
       }
-    })
-  }, [springValue, decimalPlaces, reduceMotion])
+    }
+
+    if (reduceMotion) {
+      const target = direction === 'down' ? startValue : value
+
+      motionValue.jump(target)
+      springValue.jump(target)
+      updateText(target)
+
+      return
+    }
+
+    updateText(springValue.get())
+
+    return springValue.on('change', updateText)
+  }, [
+    springValue,
+    motionValue,
+    decimalPlaces,
+    reduceMotion,
+    direction,
+    startValue,
+    value,
+  ])
 
   return (
     <span
@@ -74,7 +90,9 @@ export function NumberTicker({
             minimumFractionDigits: decimalPlaces,
             maximumFractionDigits: decimalPlaces,
           }).format(direction === 'down' ? startValue : value)
-        : startValue}
+        : direction === 'down'
+          ? value
+          : startValue}
     </span>
   )
 }

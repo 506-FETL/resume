@@ -2,7 +2,7 @@ import type { ResumeProfile } from '@/lib/resume-preparation/types'
 import { Lightbulb } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { ORDERType } from '@/lib/schema'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { toast } from 'sonner'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import {

@@ -1,6 +1,7 @@
 import type { JobApplication, TrackerContact } from '../../../types'
 import { Plus, Trash2, UserRound } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'

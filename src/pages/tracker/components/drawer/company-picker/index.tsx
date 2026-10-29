@@ -1,6 +1,7 @@
 import type { TrackerCompany } from '../../../types'
 import { useEffect } from 'react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AnimatedContent } from '@/components/motion/animated-content'

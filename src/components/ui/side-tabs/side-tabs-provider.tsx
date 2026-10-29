@@ -1,7 +1,8 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { SPRING } from '@/lib/motion'
 import type {
   Dispatch,
@@ -152,15 +153,19 @@ export function SideTabsProvider({
     })
   }, [])
 
-  // 当外部 defaultId 变化时同步内部 active 状态（用于协作 tab 同步等场景）
-  useEffect(() => {
-    setActive((prev) => (prev !== defaultId ? defaultId : prev))
-  }, [defaultId, setActive])
-
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tabsRef = useRef<HTMLDivElement | null>(null)
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const contentRef = useRef<HTMLDivElement | null>(null)
+
+  // 协作切换前先交还焦点，退出表单随后才会被隔离。
+  useEffect(() => {
+    if (contentRef.current?.contains(document.activeElement)) {
+      btnRefs.current[defaultId]?.focus({ preventScroll: true })
+    }
+
+    setActive((prev) => (prev !== defaultId ? defaultId : prev))
+  }, [defaultId, setActive])
 
   /** 计算容器尺寸（随内容变化） */
   const computeBox = useCallback(() => {

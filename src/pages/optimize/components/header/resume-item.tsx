@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import { CheckCircle, Cloud, FileCheck, HardDrive } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -26,7 +27,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
         return {
           Icon: FileCheck,
           bgColor: 'bg-green-500/10',
-          iconColor: 'text-green-600',
+          iconColor: 'text-green-700 dark:text-green-300',
         }
       }
 
@@ -40,7 +41,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
         return {
           Icon: FileCheck,
           bgColor: 'bg-green-500/10',
-          iconColor: 'text-green-600',
+          iconColor: 'text-green-700 dark:text-green-300',
         }
       }
 
@@ -55,9 +56,11 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
   const { Icon, bgColor, iconColor } = getIconAndColor()
 
   return (
-    <div
+    <Button
+      variant='outline'
+      aria-pressed={isSelected}
       className={cn(
-        'flex items-center justify-between p-2.5 sm:p-3 rounded-md border transition-all cursor-pointer',
+        'h-auto w-full justify-between whitespace-normal p-2.5 text-left sm:p-3',
         isSelected
           ? 'bg-accent border-primary/50 ring-1 ring-primary/20'
           : 'hover:bg-muted/70',
@@ -79,7 +82,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
             {resume.isScored ? (
               <Badge
                 variant='outline'
-                className='text-green-600 border-green-600/30 bg-green-50 dark:bg-green-950/30 shrink-0 text-[10px] px-1.5 py-0'
+                className='text-green-700 dark:text-green-300 border-green-600/30 bg-green-50 dark:bg-green-950/30 shrink-0 text-[10px] px-1.5 py-0'
               >
                 已打分
               </Badge>
@@ -121,6 +124,6 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
           <CheckCircle className='size-4' />
         </div>
       )}
-    </div>
+    </Button>
   )
 }

@@ -3,9 +3,9 @@ import {
   motion,
   useMotionTemplate,
   useMotionValue,
-  useReducedMotion,
   useSpring,
 } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useEffect } from 'react'
 import { useTheme } from '@/components/theme-provider'
 import { SPRING } from '@/lib/motion'

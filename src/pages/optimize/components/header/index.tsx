@@ -1,4 +1,4 @@
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/page-layout'
 import { AnimatedContent } from '@/components/motion/animated-content'

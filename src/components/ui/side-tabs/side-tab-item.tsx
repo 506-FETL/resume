@@ -39,10 +39,11 @@ export function Tab({
       }}
       variant={active === id ? 'default' : 'secondary'}
       className={cn(
-        'justify-center transition-all duration-200 ease-in-out shrink-0',
+        'justify-center transition-[color,background-color,border-color,box-shadow,transform,translate] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) shrink-0',
         className,
       )}
       onClick={callAll(() => {
+        btnRefs.current[id]?.focus({ preventScroll: true })
         setActive(id)
         requestAnimationFrame(recomputeGeometry)
       }, onClick)}

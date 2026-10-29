@@ -1,7 +1,7 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Copy, Eye, LockKeyhole, MessageSquareText } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { toast } from 'sonner'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'

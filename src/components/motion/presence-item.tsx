@@ -1,5 +1,6 @@
 import type { HTMLMotionProps } from 'motion/react'
 import type { DOMAttributes, Ref, SyntheticEvent } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { motion, useIsPresent } from 'motion/react'
 
 type GuardedEvents<Element extends HTMLElement> = Pick<
@@ -63,4 +64,32 @@ export function PresenceTableRow(
   const guard = usePresenceGuard(props)
 
   return <motion.tr {...props} {...guard} />
+}
+
+/** 路由退出前将焦点交给稳定容器，再隔离旧页面和它的 Portal。 */
+export function PresencePage(props: HTMLMotionProps<'div'>) {
+  const ref = useRef<HTMLDivElement | null>(null)
+
+  const {
+    inert,
+    'aria-hidden': ariaHidden,
+    ...events
+  } = usePresenceGuard(props)
+
+  useLayoutEffect(() => {
+    const page = ref.current
+
+    if (!page) return
+
+    if (inert && page.contains(document.activeElement)) {
+      page.parentElement?.focus({ preventScroll: true })
+    }
+
+    page.inert = inert
+
+    if (ariaHidden) page.setAttribute('aria-hidden', 'true')
+    else page.removeAttribute('aria-hidden')
+  }, [ariaHidden, inert])
+
+  return <motion.div {...props} {...events} ref={ref} />
 }

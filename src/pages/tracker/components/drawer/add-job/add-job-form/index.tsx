@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { AddJobFormData } from '../types'
 import { ChevronDown } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,

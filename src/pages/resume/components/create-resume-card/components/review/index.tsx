@@ -1,7 +1,7 @@
 import type { ORDERType } from '@/lib/schema'
 import type { ReviewField, ReviewModule } from '../../types'
 import { useEffect, useRef, useState } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Plus, Trash2 } from 'lucide-react'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'

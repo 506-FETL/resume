@@ -1,5 +1,5 @@
 import { ChevronDown, Columns2, Palette, SlidersHorizontal } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {

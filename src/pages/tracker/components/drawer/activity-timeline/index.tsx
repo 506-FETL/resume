@@ -15,7 +15,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'

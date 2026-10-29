@@ -1,5 +1,5 @@
 import { LayoutTemplate, Palette, Undo2 } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -53,14 +53,14 @@ export default function TemplateSettings({
         <DropdownMenuTrigger asChild>
           <Button
             ref={triggerRef}
-            aria-label='模版设置'
+            aria-label='模板设置'
             variant='outline'
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
             disabled={disabled}
           >
             <Palette data-icon='inline-start' />
-            {!isMobile && <span>模版</span>}
+            {!isMobile && <span>模板</span>}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -75,7 +75,7 @@ export default function TemplateSettings({
           }}
         >
           <DropdownMenuLabel className='text-base md:text-sm'>
-            模版设置
+            模板设置
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <div className='flex flex-col gap-2 p-3 md:p-4'>

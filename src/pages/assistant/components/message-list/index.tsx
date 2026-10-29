@@ -1,15 +1,11 @@
 import type { AutoScrollContainerHandle } from '@/components/ui/auto-scroll-container'
 import { ArrowDown, Sparkles } from 'lucide-react'
-import {
-  AnimatePresence,
-  motion,
-  useIsPresent,
-  useReducedMotion,
-} from 'motion/react'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef } from 'react'
-import { Shimmer } from '@/components/ai/shimmer'
 import AnimatedContent from '@/components/motion/animated-content'
 import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DURATION, EASE } from '@/lib/motion'
@@ -56,11 +52,14 @@ export default function MessageList() {
           ))}
         </div>
       ) : viewState === 'empty' ? (
-        <div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
+        <div className='flex h-full flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-6 text-center'>
           <div className='flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary'>
             <Sparkles className='size-6' />
           </div>
-          <p className='text-base font-medium'>AI 简历助手</p>
+          <p className='text-base font-medium'>想先处理哪件求职的事？</p>
+          <p className='max-w-sm text-sm leading-relaxed text-muted-foreground'>
+            直接描述你的问题，或从下方工具中选择简历修改、岗位分析等任务。已有简历或职位时，可用加号加入参考。
+          </p>
         </div>
       ) : (
         <LoadedMessages key={conversationViewVersion} snapshot={snapshot} />
@@ -247,7 +246,7 @@ function LoadedMessages({
       renderOverlay={({ atBottom, scrollToBottom }) => (
         <AnimatePresence initial={false}>
           {!atBottom && (
-            <motion.div
+            <PresenceDiv
               key='scroll-to-bottom'
               initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -277,14 +276,14 @@ function LoadedMessages({
               >
                 <ArrowDown className='size-4' />
               </Button>
-            </motion.div>
+            </PresenceDiv>
           )}
         </AnimatePresence>
       )}
     >
       <div
         ref={contentRef}
-        className='mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-6 lg:px-8'
+        className='mx-auto flex w-full max-w-4xl flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8'
       >
         <div
           ref={topSentinelRef}
@@ -320,33 +319,19 @@ function LoadedMessages({
             />
           </motion.div>
         ))}
-        {streaming &&
-          (streamingParts.length > 0 ? (
-            <MessageBubble
-              message={{
-                id: 'streaming',
-                conversationId: '',
-                userId: '',
-                role: 'assistant',
-                parts: streamingParts,
-                createdAt: new Date().toISOString(),
-              }}
-              usage={streamingUsage}
-            />
-          ) : (
-            <div className='flex gap-3'>
-              <div className='flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary'>
-                <Sparkles className='size-4' />
-              </div>
-              <div className='min-w-0 flex-1 pt-1 text-sm'>
-                {shouldReduceMotion ? (
-                  <span>正在思考…</span>
-                ) : (
-                  <Shimmer duration={1.4}>正在思考…</Shimmer>
-                )}
-              </div>
-            </div>
-          ))}
+        {streaming && (
+          <MessageBubble
+            message={{
+              id: 'streaming',
+              conversationId: '',
+              userId: '',
+              role: 'assistant',
+              parts: streamingParts,
+              createdAt: new Date().toISOString(),
+            }}
+            usage={streamingUsage}
+          />
+        )}
         <ConfirmCard />
         <div ref={bottomRef} id='assistant-message-bottom' aria-hidden='true' />
       </div>

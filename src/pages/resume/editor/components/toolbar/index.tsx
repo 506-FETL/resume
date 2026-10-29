@@ -1,5 +1,5 @@
 import { FileDown, ListChecks } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -35,7 +35,7 @@ export default function ResumeConfigToolbar() {
     <div
       role='group'
       aria-label='简历工具栏'
-      className='flex min-w-0 flex-wrap items-center justify-center gap-1 sm:gap-2 @max-[46rem]/editor-toolbar:[&_button]:size-8 @max-[46rem]/editor-toolbar:[&_button]:p-0 @max-[46rem]/editor-toolbar:[&_button>span]:hidden'
+      className='flex min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-2 @max-[46rem]/editor-toolbar:[&_button]:size-10 @max-[46rem]/editor-toolbar:[&_button]:shrink-0 @max-[46rem]/editor-toolbar:[&_button]:p-0 @max-[46rem]/editor-toolbar:[&_button>span]:hidden [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11'
     >
       <div
         role='group'

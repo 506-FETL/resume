@@ -1,7 +1,8 @@
 'use client'
 
 import type { FC, ReactNode } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUp02Icon,
@@ -11,6 +12,14 @@ import {
 } from '@/components/ui/icons'
 import { cn } from '@/lib/utils'
 import { DURATION, EASE } from '@/lib/motion'
+import { PresenceDiv } from '@/components/motion/presence-item'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { FilePreview, type UploadedFile } from '@/components/ui/file-preview'
 import {
   SlashCommandDropdown,
@@ -108,6 +117,7 @@ export const Composer: FC<ComposerProps> = ({
   const [selectedToolIndex, setSelectedToolIndex] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
+  const contextSelectionRef = useRef(false)
   const shouldReduceMotion = useReducedMotion()
 
   // Use controlled or uncontrolled value
@@ -154,7 +164,7 @@ export const Composer: FC<ComposerProps> = ({
     (e?: React.FormEvent) => {
       e?.preventDefault()
 
-      if (isLoading) return
+      if (disabled || isLoading) return
       if (
         currentValue.trim() ||
         attachedFiles.length > 0 ||
@@ -174,6 +184,7 @@ export const Composer: FC<ComposerProps> = ({
       value,
       isLoading,
       canSubmitOverride,
+      disabled,
     ],
   )
 
@@ -188,18 +199,6 @@ export const Composer: FC<ComposerProps> = ({
     // 工具按钮会取得焦点；立即归还给 textarea，保证上下键和 Enter 走同一套处理。
     textareaRef.current?.focus()
   }, [isToolsDropdownOpen, isLoading])
-
-  // Handle context menu click
-  const handleContextClick = useCallback(() => {
-    if (isLoading) return
-    if (contextOptions && contextOptions.length > 0) {
-      setIsContextMenuOpen(!isContextMenuOpen)
-      setIsToolsDropdownOpen(false)
-      setIsCommandDropdownDismissed(false)
-    } else {
-      onAttachClick?.()
-    }
-  }, [contextOptions, isContextMenuOpen, onAttachClick, isLoading])
 
   // Handle tool selection
   const handleToolSelect = useCallback(
@@ -362,25 +361,33 @@ export const Composer: FC<ComposerProps> = ({
   )
 
   return (
-    <div className={cn('relative w-full', className)}>
+    <div data-composer className={cn('relative w-full', className)}>
       {/* Main Composer Container - light mode friendly */}
       <div
         ref={composerRef}
         className={cn(
           'relative rounded-3xl px-1 pt-1 pb-2',
           // Light mode: light gray background, Dark mode: zinc-800
-          'bg-muted/60 border border-border',
+          'bg-muted/60 border border-border transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30 motion-reduce:transition-none',
         )}
       >
         {/* Slash Command Dropdown - positioned above composer.
 				    Opens via the tools button or by typing "/" at the start of the input. */}
         <AnimatePresence>
           {tools.length > 0 && dropdownOpen && dropdownMatches.length > 0 && (
-            <motion.div
+            <PresenceDiv
               className='absolute bottom-full left-0 right-0 mb-2 z-50'
               initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduceMotion ? undefined : { opacity: 0, y: 8 }}
+              exit={{
+                opacity: 0,
+                y: shouldReduceMotion ? 0 : 8,
+                transition: {
+                  duration: shouldReduceMotion ? 0 : DURATION.fast,
+                  ease: EASE.in,
+                  delay: 0,
+                },
+              }}
               transition={{
                 duration: shouldReduceMotion ? 0 : DURATION.base,
                 ease: EASE.out,
@@ -390,7 +397,11 @@ export const Composer: FC<ComposerProps> = ({
                 matches={dropdownMatches}
                 selectedIndex={selectedToolIndex}
                 onSelect={handleToolSelect}
-                onClose={() => setIsToolsDropdownOpen(false)}
+                onClose={() => {
+                  textareaRef.current?.focus({ preventScroll: true })
+                  setIsToolsDropdownOpen(false)
+                  setIsCommandDropdownDismissed(true)
+                }}
                 position={{ left: 0, width: undefined }}
                 isVisible={true}
                 openedViaButton={!slashActive}
@@ -403,7 +414,7 @@ export const Composer: FC<ComposerProps> = ({
                 className='relative w-full'
                 style={{ position: 'relative' }}
               />
-            </motion.div>
+            </PresenceDiv>
           )}
         </AnimatePresence>
         {/* Attached Files Preview - using FilePreview component */}
@@ -417,7 +428,7 @@ export const Composer: FC<ComposerProps> = ({
         {/* Textarea Input */}
         <form onSubmit={handleSubmit}>
           <div className='relative px-3'>
-            <textarea
+            <Textarea
               ref={textareaRef}
               aria-label='消息内容'
               value={currentValue}
@@ -427,7 +438,7 @@ export const Composer: FC<ComposerProps> = ({
               disabled={disabled || isLoading}
               rows={1}
               className={cn(
-                'w-full resize-none bg-transparent py-3 pr-16 transition-all motion-reduce:transition-none text-base font-normal',
+                'field-sizing-fixed w-full min-h-0 resize-none rounded-none border-0 bg-transparent px-0 py-3 pr-12 text-base font-normal shadow-none focus-visible:ring-0 dark:bg-transparent md:text-base',
                 // Light mode text colors
                 'text-foreground',
                 'placeholder:text-muted-foreground',
@@ -437,7 +448,7 @@ export const Composer: FC<ComposerProps> = ({
               )}
               style={{
                 minHeight: '24px',
-                maxHeight: `${24 * maxRows}px`,
+                maxHeight: `min(${24 * maxRows}px, 28dvh)`,
               }}
             />
             {/* Hint for slash commands */}
@@ -453,79 +464,106 @@ export const Composer: FC<ComposerProps> = ({
         {/* Toolbar */}
         <div className='flex flex-wrap items-center justify-between gap-2 px-2 pt-1'>
           <div className='flex items-center gap-1.5'>
-            {/* Add Context / Attach Button */}
-            <div className='relative'>
-              <button
-                type='button'
-                onClick={handleContextClick}
-                disabled={disabled || isLoading}
-                className={cn(
-                  'group relative flex h-9 w-9 items-center justify-center rounded-full cursor-pointer',
-                  // Light mode colors
-                  'bg-muted transition-colors motion-reduce:transition-none',
-                  'hover:bg-accent',
-                  'disabled:cursor-wait disabled:opacity-70',
-                  isContextMenuOpen && 'bg-accent',
-                )}
-                aria-label='添加上下文或附件'
-              >
-                <HugeiconsIcon
-                  icon={PlusSignIcon}
-                  size={23}
-                  className='text-muted-foreground'
-                />
-              </button>
+            {Boolean(contextOptions?.length) && (
+              <Popover
+                open={isContextMenuOpen}
+                onOpenChange={(open) => {
+                  setIsContextMenuOpen(open)
 
-              {/* Context Menu Dropdown */}
-              <AnimatePresence>
-                {isContextMenuOpen && contextOptions && (
-                  <motion.div
-                    initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-                    transition={{
-                      duration: shouldReduceMotion ? 0 : DURATION.base,
-                      ease: EASE.out,
-                    }}
-                    className='absolute bottom-full left-0 mb-2 min-w-[220px] max-w-[300px] max-h-[320px] overflow-y-auto rounded-xl border border-border bg-popover text-popover-foreground p-1 shadow-xl motion-reduce:animate-none'
+                  if (open) {
+                    contextSelectionRef.current = false
+                    setIsToolsDropdownOpen(false)
+                    setIsCommandDropdownDismissed(true)
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    disabled={disabled || isLoading}
+                    onClick={contextOptions?.length ? undefined : onAttachClick}
+                    className={cn(
+                      'size-9 rounded-full bg-muted text-muted-foreground hover:bg-accent',
+                      isContextMenuOpen && 'bg-accent',
+                    )}
+                    aria-label={
+                      contextOptions?.length ? '引用简历或职位' : '添加附件'
+                    }
                   >
-                    {contextOptions.map((option) => (
-                      <button
+                    <HugeiconsIcon icon={PlusSignIcon} size={23} />
+                  </Button>
+                </PopoverTrigger>
+                {Boolean(contextOptions?.length) && (
+                  <PopoverContent
+                    side='top'
+                    align='start'
+                    sideOffset={8}
+                    className='max-h-72 w-[min(20rem,calc(100vw-2rem))] gap-0 overflow-y-auto rounded-xl p-1'
+                    onCloseAutoFocus={(event) => {
+                      if (contextSelectionRef.current) {
+                        event.preventDefault()
+                        contextSelectionRef.current = false
+                        textareaRef.current?.focus({ preventScroll: true })
+                      }
+                    }}
+                  >
+                    <p className='px-3 py-2 text-xs text-muted-foreground'>
+                      选择本轮要参考的内容
+                    </p>
+                    {contextOptions?.map((option) => (
+                      <Button
                         key={option.id}
                         type='button'
+                        variant='ghost'
                         onClick={() => {
+                          contextSelectionRef.current = true
+                          textareaRef.current?.focus({ preventScroll: true })
                           option.onClick?.()
                           setIsContextMenuOpen(false)
-                          // 选完后把焦点交还输入框，避免「鼠标失焦」需要再次点击才能输入
-                          textareaRef.current?.focus()
                         }}
-                        className='flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left text-sm text-foreground hover:bg-accent transition-colors motion-reduce:transition-none'
+                        className='h-auto w-full items-start justify-start gap-2 rounded-lg px-3 py-2 text-left font-normal whitespace-normal'
                       >
                         {option.icon && (
-                          <span className='mt-0.5 flex-shrink-0 text-primary'>
+                          <span className='mt-0.5 shrink-0 text-primary'>
                             {option.icon}
                           </span>
                         )}
-                        <div className='flex min-w-0 flex-col'>
+                        <span className='flex min-w-0 flex-col'>
                           <span className='break-words leading-snug'>
                             {option.label}
                           </span>
                           {option.description && (
-                            <span className='text-xs text-muted-foreground break-words leading-snug'>
+                            <span className='text-xs text-muted-foreground'>
                               {option.description}
                             </span>
                           )}
-                        </div>
-                      </button>
+                        </span>
+                      </Button>
                     ))}
-                  </motion.div>
+                  </PopoverContent>
                 )}
-              </AnimatePresence>
-            </div>
+              </Popover>
+            )}
+
+            {!contextOptions?.length && onAttachClick && (
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                disabled={disabled || isLoading}
+                onClick={onAttachClick}
+                aria-label='添加附件'
+                className='size-9 rounded-full bg-muted text-muted-foreground hover:bg-accent'
+              >
+                <HugeiconsIcon icon={PlusSignIcon} size={23} />
+              </Button>
+            )}
 
             {/* Tools Button */}
             {showToolsButton && (
-              <button
+              <Button
                 type='button'
                 onClick={handleToolsClick}
                 disabled={disabled || isLoading}
@@ -539,26 +577,30 @@ export const Composer: FC<ComposerProps> = ({
                   isToolsDropdownOpen &&
                     'bg-primary/15 text-primary hover:bg-primary/20',
                 )}
+                variant='ghost'
+                size='icon'
+                aria-expanded={dropdownOpen}
                 aria-label='浏览全部工具'
               >
                 <HugeiconsIcon icon={ToolsIcon} size={23} />
-                {isToolsDropdownOpen && (
-                  <span
-                    className='absolute top-0 right-0 h-2 w-2 rounded-full bg-primary transition'
-                    aria-hidden='true'
-                  />
-                )}
-              </button>
+                <span
+                  className={cn(
+                    'absolute top-0 right-0 size-2 rounded-full bg-primary transition-opacity motion-reduce:transition-none',
+                    isToolsDropdownOpen ? 'opacity-100' : 'opacity-0',
+                  )}
+                  aria-hidden='true'
+                />
+              </Button>
             )}
 
             {leadingActions}
           </div>
 
           {/* Right actions: extra trailing actions + send button */}
-          <div className='ml-auto flex flex-wrap items-center gap-2'>
+          <div className='ml-auto flex min-w-0 items-center gap-1 sm:gap-2'>
             {trailingActions}
             {/* Send Button */}
-            <button
+            <Button
               type='button'
               onClick={() => handleSubmit()}
               disabled={disabled || isLoading || !canSubmit}
@@ -571,10 +613,11 @@ export const Composer: FC<ComposerProps> = ({
                 // Disabled state - visible gray background that contrasts with composer
                 !canSubmit && 'bg-muted text-muted-foreground',
               )}
+              size='icon'
               aria-label='发送消息'
             >
               <HugeiconsIcon icon={ArrowUp02Icon} size={20} />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

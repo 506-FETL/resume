@@ -1,5 +1,6 @@
 import { Link2, LoaderCircle } from 'lucide-react'
-import { motion, useIsPresent, useReducedMotion } from 'motion/react'
+import { motion, useIsPresent } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { COMMENT_MOTION } from '../const.ts'

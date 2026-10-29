@@ -1,5 +1,6 @@
 import { Check, Cloud, Loader2, RotateCcw } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'

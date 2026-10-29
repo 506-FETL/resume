@@ -1,10 +1,6 @@
 import type { ReactNode, Ref } from 'react'
-import {
-  AnimatePresence,
-  motion,
-  useIsPresent,
-  useReducedMotion,
-} from 'motion/react'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 
 interface AnimatedContentProps {

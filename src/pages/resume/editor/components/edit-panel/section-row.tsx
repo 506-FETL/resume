@@ -89,7 +89,7 @@ export function SectionRow({
               {icon}
             </span>
             <span className='truncate'>{label}</span>
-            <ChevronDown className='ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180' />
+            <ChevronDown className='ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) group-data-[state=open]:rotate-180' />
           </AccordionPrimitive.Trigger>
 
           {!fixed && onToggleVisibility && (
