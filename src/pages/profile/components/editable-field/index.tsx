@@ -42,12 +42,12 @@ export function EditableField({
   }
 
   return (
-    <Field>
+    <Field className='gap-2 py-4 sm:grid sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center'>
       <FieldLabel htmlFor={id} className='items-center'>
         {icon}
         {label}
       </FieldLabel>
-      <div className='flex gap-2'>
+      <div className='flex min-w-0 gap-2'>
         <Input
           ref={inputRef}
           id={id}
@@ -58,7 +58,7 @@ export function EditableField({
           aria-busy={isSaving}
           className={
             !isEditing
-              ? 'bg-muted transition-colors motion-reduce:transition-none'
+              ? 'border-transparent bg-transparent px-0 shadow-none transition-colors motion-reduce:transition-none'
               : 'transition-colors motion-reduce:transition-none'
           }
         />

@@ -1,4 +1,3 @@
-import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const TODO_SKELETON_KEYS = ['todo-1', 'todo-2', 'todo-3'] as const
@@ -25,17 +24,13 @@ export function TodoSkeleton() {
 
 export function StatSkeleton() {
   return (
-    <Card>
-      <CardContent className='p-4 md:p-5'>
-        <div className='flex items-start gap-3'>
-          <Skeleton className='size-8 rounded-lg shrink-0' />
-          <div className='flex-1 flex flex-col gap-2'>
-            <Skeleton className='h-3 w-16' />
-            <Skeleton className='h-6 w-10' />
-          </div>
-        </div>
-        <Skeleton className='mt-3 h-3 w-24' />
-      </CardContent>
-    </Card>
+    <div className='flex h-full min-w-0 flex-col gap-1.5 py-3'>
+      <div className='flex items-center gap-2'>
+        <Skeleton className='size-4 shrink-0 rounded' />
+        <Skeleton className='h-3 w-16' />
+      </div>
+      <Skeleton className='h-8 w-10' />
+      <Skeleton className='h-4 w-24' />
+    </div>
   )
 }

@@ -66,9 +66,9 @@ function CardHead({
   description: string
 }) {
   return (
-    <CardHeader className='pb-4'>
+    <CardHeader className='px-0 pb-4'>
       <div className='flex items-center gap-2'>
-        <div className='p-1.5 rounded-md bg-primary/8 text-primary'>{icon}</div>
+        <div className='text-muted-foreground'>{icon}</div>
         <CardTitle className='text-sm font-medium'>{title}</CardTitle>
       </div>
       <CardDescription className='text-xs'>{description}</CardDescription>
@@ -150,7 +150,7 @@ export function FollowUpCard({
         title='待跟进岗位'
         description='已到期或长时间未推进的岗位'
       />
-      <CardContent className='flex-1 pt-0'>
+      <CardContent className='min-w-0 flex-1 px-0 pt-0'>
         <div className='flex flex-col gap-2'>
           {followUps.map((job) => {
             const badge = followUpTone(job.daysUntil)
@@ -218,13 +218,13 @@ export function FunnelCard({
   const hasData = funnel.some((stage) => stage.count > 0)
 
   return (
-    <Card className='flex flex-col'>
+    <Card className='flex min-w-0 flex-col gap-0 rounded-none border-0 border-t bg-transparent py-5 shadow-none ring-0'>
       <CardHead
         icon={<TrendingUp className='size-4' />}
         title='求职漏斗'
         description='各阶段在办岗位分布'
       />
-      <CardContent className='flex-1 pt-0'>
+      <CardContent className='min-w-0 flex-1 px-0 pt-0'>
         <AnimatedContent
           animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}
         >
@@ -300,13 +300,13 @@ export function AtsTrendCard({
   const hasData = trend.length > 0
 
   return (
-    <Card className='flex flex-col'>
+    <Card className='flex min-w-0 flex-col gap-0 rounded-none border-0 border-t bg-transparent py-5 shadow-none ring-0'>
       <CardHead
         icon={<LineChartIcon className='size-4' />}
         title='ATS 分数趋势'
         description='最近 8 次检测得分'
       />
-      <CardContent className='flex-1 pt-0'>
+      <CardContent className='min-w-0 flex-1 px-0 pt-0'>
         <AnimatedContent
           animationKey={
             loading
@@ -456,7 +456,7 @@ export function ActivityCard({
 
   if (!loading && !hasData) {
     return (
-      <div className='flex flex-wrap items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground'>
+      <div className='flex flex-wrap items-center gap-2 border-t py-4 text-sm text-muted-foreground'>
         <Activity className='size-4' aria-hidden />
         <span>本周活跃度</span>
         <span>暂无编辑或投递记录</span>
@@ -465,13 +465,13 @@ export function ActivityCard({
   }
 
   return (
-    <Card className='flex flex-col'>
+    <Card className='flex min-w-0 flex-col gap-0 rounded-none border-0 border-t bg-transparent py-5 shadow-none ring-0'>
       <CardHead
         icon={<Activity className='size-4' />}
         title='本周活跃度'
         description='本周的编辑与投递'
       />
-      <CardContent className='flex-1 pt-0'>
+      <CardContent className='min-w-0 flex-1 px-0 pt-0'>
         <AnimatedContent
           animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}
         >

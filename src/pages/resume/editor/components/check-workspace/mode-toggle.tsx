@@ -27,7 +27,7 @@ export function CheckModeToggle() {
       className={cn(
         'shrink-0',
         isMobile
-          ? 'group-data-[orientation=horizontal]/tabs:h-12'
+          ? 'group-data-[orientation=horizontal]/tabs:h-9'
           : 'group-data-[orientation=horizontal]/tabs:h-8',
       )}
     >
@@ -47,7 +47,7 @@ export function CheckModeToggle() {
             title={label}
             className={cn(
               'relative isolate transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:bg-transparent',
-              isMobile ? 'min-h-11 min-w-11 px-0' : 'px-2.5',
+              isMobile ? 'size-8 px-0' : 'px-2.5',
               value === 'checks' && severity && CHECK_LEVELS[severity].color,
               value === 'checks' &&
                 severity === 'error' &&

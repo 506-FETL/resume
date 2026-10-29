@@ -26,9 +26,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MagicCard } from '@/components/ui/magic-card'
+import { Card } from '@/components/ui/card'
 import { DURATION } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useShareStore from '@/pages/share/store'
 import useJdVariantStore from '@/store/jd-variant'
@@ -150,19 +149,7 @@ export default function ResumeCard({
 
   return (
     <>
-      <MagicCard
-        mode='orb'
-        glowFrom={appearance.glowFrom}
-        glowTo={appearance.glowTo}
-        gradientFrom={appearance.glowFrom}
-        gradientTo={appearance.glowTo}
-        borderColor='var(--resume-card-border)'
-        glowSize={240}
-        glowBlur={48}
-        glowOpacity={0.16}
-        className={cn('group h-full shadow-xs', appearance.border)}
-        contentClassName='flex h-full min-h-48 flex-col p-4'
-      >
+      <Card className='group relative flex h-full min-w-0 flex-col gap-0 rounded-lg border bg-card p-4 shadow-none ring-0'>
         {onPrepareForJob && (
           <Button
             size='sm'
@@ -182,32 +169,35 @@ export default function ResumeCard({
         />
         <div className='pointer-events-none relative flex items-center gap-2.5 [&_button]:pointer-events-auto'>
           <div
-            className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-lg',
-              appearance.icon,
-            )}
+            className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${appearance.icon}`}
           >
             <TypeIcon className='size-4' aria-hidden />
           </div>
-          <div className='min-w-0 flex-1 space-y-0.5'>
-            <div className='flex flex-wrap items-center gap-1.5'>
-              <span className={cn('text-xs font-medium', appearance.text)}>
+          <div className='min-w-0 flex-1'>
+            <h2
+              className='line-clamp-2 text-lg leading-6 font-semibold'
+              title={resume.display_name || '未命名简历'}
+            >
+              {resume.display_name || '未命名简历'}
+            </h2>
+            <div className='mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground'>
+              <Badge variant='outline' className={RESUME_BADGE_COLORS[tone]}>
                 {appearance.label}
-              </span>
+              </Badge>
               {isVariant && (
-                <span className='inline-flex items-center gap-1 text-[11px] text-muted-foreground'>
+                <span className='inline-flex items-center gap-1'>
                   {resume.isOffline ? (
                     <HardDrive className='size-3' aria-hidden />
                   ) : (
                     <Cloud className='size-3' aria-hidden />
                   )}
-                  {resume.isOffline ? '本地' : '云端'}
+                  {resume.isOffline ? '本地保存' : '云端保存'}
                 </span>
               )}
-            </div>
-            <div className='flex items-center gap-1 text-[11px] leading-4 text-muted-foreground'>
-              <span>{resume.updated_at ? '更新于' : '创建于'}</span>
-              <time dateTime={updatedAt}>{updatedLabel}</time>
+              <span aria-hidden>·</span>
+              <time dateTime={updatedAt}>
+                {updatedLabel} {resume.updated_at ? '更新' : '创建'}
+              </time>
             </div>
           </div>
           <DropdownMenu>
@@ -237,12 +227,6 @@ export default function ResumeCard({
         </div>
 
         <div className='pointer-events-none relative mt-3 flex min-w-0 flex-1 flex-col gap-1.5 [&_button]:pointer-events-auto'>
-          <h2
-            className='line-clamp-2 text-sm leading-5 font-semibold'
-            title={resume.display_name || '未命名简历'}
-          >
-            {resume.display_name || '未命名简历'}
-          </h2>
           <TemplateBadge binding={resume.templateBinding} />
           {resume.description && (
             <p
@@ -303,6 +287,7 @@ export default function ResumeCard({
             size='sm'
             onClick={handleCardClick}
             className='min-w-0 flex-1 text-xs'
+            variant='outline'
           >
             <Edit2 data-icon='inline-start' className='size-3.5' />
             编辑简历
@@ -332,7 +317,7 @@ export default function ResumeCard({
             分享
           </Button>
         </div>
-      </MagicCard>
+      </Card>
 
       {/* 编辑对话框 */}
       <EditResumeDialog

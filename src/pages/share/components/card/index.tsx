@@ -60,7 +60,11 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
   const url = buildShareUrl(share.token)
   const busy = pendingShareIds.includes(share.id)
   const archived = Boolean(share.archivedAt)
-  const title = share.label || `${share.display_name || '简历'}的分享`
+  const title = share.label || share.display_name || '未命名简历'
+
+  const showResumeName = Boolean(
+    share.label && share.label !== share.display_name,
+  )
 
   const expiry = share.expires_at
     ? new Date(share.expires_at).toLocaleDateString('zh-CN', {
@@ -105,28 +109,30 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
         aria-label={title}
         aria-busy={busy}
         className={cn(
-          'group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-xs transition-[border-color,box-shadow] hover:border-foreground/20 hover:shadow-sm focus-within:border-foreground/25',
+          'group flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card shadow-none transition-[border-color,box-shadow] hover:border-foreground/20 focus-within:border-foreground/25',
           status === 'expired' && 'border-amber-200 dark:border-amber-900/60',
         )}
         style={{
           transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
         }}
       >
-        <div className='flex-1 p-3 sm:p-3.5'>
+        <div className='flex-1 p-4'>
           <div className='flex items-center gap-2.5'>
             <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground'>
               <FileUser className='size-4' strokeWidth={1.6} />
             </div>
             <div className='min-w-0 flex-1'>
-              <h3 className='truncate text-sm font-semibold' title={title}>
+              <h3 className='truncate text-base font-semibold' title={title}>
                 {title}
               </h3>
-              <p
-                className='mt-0.5 truncate text-xs text-muted-foreground'
-                title={share.display_name || '未命名简历'}
-              >
-                {share.display_name || '未命名简历'}
-              </p>
+              {showResumeName && (
+                <p
+                  className='mt-0.5 truncate text-xs text-muted-foreground'
+                  title={share.display_name || '未命名简历'}
+                >
+                  {share.display_name || '未命名简历'}
+                </p>
+              )}
             </div>
             <span
               className={cn(

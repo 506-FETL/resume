@@ -1,0 +1,3766 @@
+[
+  {
+    "kind": "preparation",
+    "scenario": "close",
+    "initialHeight": 544,
+    "samples": [
+      {
+        "ms": 13,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 14,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 18,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.993133",
+        "overlay": "0.993133",
+        "loading": false
+      },
+      {
+        "ms": 26,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.97454",
+        "overlay": "0.97454",
+        "loading": false
+      },
+      {
+        "ms": 34,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.945912",
+        "overlay": "0.945912",
+        "loading": false
+      },
+      {
+        "ms": 43,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.909451",
+        "overlay": "0.909451",
+        "loading": false
+      },
+      {
+        "ms": 51,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.865993",
+        "overlay": "0.865993",
+        "loading": false
+      },
+      {
+        "ms": 59,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.816403",
+        "overlay": "0.816403",
+        "loading": false
+      },
+      {
+        "ms": 68,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.760664",
+        "overlay": "0.760664",
+        "loading": false
+      },
+      {
+        "ms": 76,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.700646",
+        "overlay": "0.700646",
+        "loading": false
+      },
+      {
+        "ms": 84,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.636148",
+        "overlay": "0.636148",
+        "loading": false
+      },
+      {
+        "ms": 93,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.566663",
+        "overlay": "0.566663",
+        "loading": false
+      },
+      {
+        "ms": 101,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.494123",
+        "overlay": "0.494123",
+        "loading": false
+      },
+      {
+        "ms": 109,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.41699",
+        "overlay": "0.41699",
+        "loading": false
+      },
+      {
+        "ms": 118,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.337245",
+        "overlay": "0.337245",
+        "loading": false
+      },
+      {
+        "ms": 126,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.25406",
+        "overlay": "0.25406",
+        "loading": false
+      },
+      {
+        "ms": 134,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.167396",
+        "overlay": "0.167396",
+        "loading": false
+      },
+      {
+        "ms": 143,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.0758759",
+        "overlay": "0.0758759",
+        "loading": false
+      },
+      {
+        "ms": 153,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 160,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 167,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 176,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 184,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 193,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 201,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 210,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 218,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 226,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 234,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 243,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 251,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 259,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 268,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 276,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 284,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 293,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 301,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 309,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 318,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 326,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 334,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 343,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 351,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 359,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 368,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 376,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 384,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 393,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 444,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  },
+  {
+    "kind": "preparation",
+    "scenario": "escape",
+    "initialHeight": 544,
+    "samples": [
+      {
+        "ms": 13,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 14,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 16,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.993149",
+        "overlay": "0.993149",
+        "loading": false
+      },
+      {
+        "ms": 24,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.974569",
+        "overlay": "0.974569",
+        "loading": false
+      },
+      {
+        "ms": 32,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.945952",
+        "overlay": "0.945952",
+        "loading": false
+      },
+      {
+        "ms": 41,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.909499",
+        "overlay": "0.909499",
+        "loading": false
+      },
+      {
+        "ms": 49,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.86605",
+        "overlay": "0.86605",
+        "loading": false
+      },
+      {
+        "ms": 57,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.816466",
+        "overlay": "0.816466",
+        "loading": false
+      },
+      {
+        "ms": 65,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.763505",
+        "overlay": "0.763505",
+        "loading": false
+      },
+      {
+        "ms": 74,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.69997",
+        "overlay": "0.69997",
+        "loading": false
+      },
+      {
+        "ms": 82,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.636228",
+        "overlay": "0.636228",
+        "loading": false
+      },
+      {
+        "ms": 90,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.567599",
+        "overlay": "0.567599",
+        "loading": false
+      },
+      {
+        "ms": 98,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.49958",
+        "overlay": "0.49958",
+        "loading": false
+      },
+      {
+        "ms": 108,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.417084",
+        "overlay": "0.417084",
+        "loading": false
+      },
+      {
+        "ms": 116,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.337343",
+        "overlay": "0.337343",
+        "loading": false
+      },
+      {
+        "ms": 124,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.25314",
+        "overlay": "0.25314",
+        "loading": false
+      },
+      {
+        "ms": 131,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.176011",
+        "overlay": "0.176011",
+        "loading": false
+      },
+      {
+        "ms": 145,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.0748721",
+        "overlay": "0.0748721",
+        "loading": false
+      },
+      {
+        "ms": 150,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 156,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 165,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 174,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 182,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 190,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 198,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 207,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 215,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 224,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 232,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 240,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 248,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 257,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 265,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 273,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 282,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 290,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 298,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 307,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 315,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 323,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 332,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 340,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 349,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 357,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 365,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 374,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 382,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 390,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 399,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 444,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  },
+  {
+    "kind": "preparation",
+    "scenario": "reverse",
+    "initialHeight": 544,
+    "samples": [
+      {
+        "ms": 12,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 13,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 19,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.993047",
+        "overlay": "0.993047",
+        "loading": false
+      },
+      {
+        "ms": 27,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.974386",
+        "overlay": "0.974386",
+        "loading": false
+      },
+      {
+        "ms": 36,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.946093",
+        "overlay": "0.946093",
+        "loading": false
+      },
+      {
+        "ms": 53,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 53,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.18035",
+        "overlay": "0.18035",
+        "loading": false
+      },
+      {
+        "ms": 61,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.341431",
+        "overlay": "0.341431",
+        "loading": false
+      },
+      {
+        "ms": 69,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.475647",
+        "overlay": "0.475647",
+        "loading": false
+      },
+      {
+        "ms": 77,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.598361",
+        "overlay": "0.598361",
+        "loading": false
+      },
+      {
+        "ms": 86,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.691338",
+        "overlay": "0.691338",
+        "loading": false
+      },
+      {
+        "ms": 94,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.764865",
+        "overlay": "0.764865",
+        "loading": false
+      },
+      {
+        "ms": 102,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.817878",
+        "overlay": "0.817878",
+        "loading": false
+      },
+      {
+        "ms": 111,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.866874",
+        "overlay": "0.866874",
+        "loading": false
+      },
+      {
+        "ms": 119,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.900728",
+        "overlay": "0.900728",
+        "loading": false
+      },
+      {
+        "ms": 128,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.926876",
+        "overlay": "0.926876",
+        "loading": false
+      },
+      {
+        "ms": 136,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.94651",
+        "overlay": "0.94651",
+        "loading": false
+      },
+      {
+        "ms": 144,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.961537",
+        "overlay": "0.961537",
+        "loading": false
+      },
+      {
+        "ms": 152,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.972691",
+        "overlay": "0.972691",
+        "loading": false
+      },
+      {
+        "ms": 161,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.981008",
+        "overlay": "0.981008",
+        "loading": false
+      },
+      {
+        "ms": 169,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.987134",
+        "overlay": "0.987134",
+        "loading": false
+      },
+      {
+        "ms": 177,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.991617",
+        "overlay": "0.991617",
+        "loading": false
+      },
+      {
+        "ms": 186,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.994746",
+        "overlay": "0.994746",
+        "loading": false
+      },
+      {
+        "ms": 194,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.996915",
+        "overlay": "0.996915",
+        "loading": false
+      },
+      {
+        "ms": 202,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.998321",
+        "overlay": "0.998321",
+        "loading": false
+      },
+      {
+        "ms": 211,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.999189",
+        "overlay": "0.999189",
+        "loading": false
+      },
+      {
+        "ms": 219,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.999676",
+        "overlay": "0.999676",
+        "loading": false
+      },
+      {
+        "ms": 228,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.999909",
+        "overlay": "0.999909",
+        "loading": false
+      },
+      {
+        "ms": 235,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0.999985",
+        "overlay": "0.999985",
+        "loading": false
+      },
+      {
+        "ms": 244,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 252,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 260,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 269,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 278,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 287,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 295,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 302,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 311,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 319,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 328,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 336,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 344,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 352,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 361,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 369,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 378,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 386,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 394,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 403,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 411,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 419,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 428,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 436,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 466,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      }
+    ],
+    "remaining": true,
+    "finalHeight": 544,
+    "focusReturned": false
+  },
+  {
+    "kind": "preparation",
+    "scenario": "reduced",
+    "initialHeight": 544,
+    "samples": [
+      {
+        "ms": 21,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 26,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 30,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 38,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 47,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 55,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 63,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 72,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 80,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 88,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 97,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 105,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 114,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 122,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 130,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 138,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 147,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 155,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 164,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 173,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 180,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 188,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 197,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 205,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 215,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 222,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 231,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 239,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 247,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 255,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 263,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 273,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 280,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 289,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 297,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 305,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 314,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 322,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 330,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 338,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 347,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 355,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 363,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 372,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 380,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 389,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 397,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 444,
+        "present": true,
+        "state": "open",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  },
+  {
+    "kind": "preparation",
+    "scenario": "reduce-during-exit",
+    "initialHeight": 544,
+    "samples": [
+      {
+        "ms": 23,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 24,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 27,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.99196",
+        "overlay": "0.99196",
+        "loading": false
+      },
+      {
+        "ms": 35,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0.972466",
+        "overlay": "0.972466",
+        "loading": false
+      },
+      {
+        "ms": 51,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 56,
+        "present": true,
+        "state": "closed",
+        "height": 544,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 60,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 68,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 77,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 85,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 93,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 102,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 110,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 118,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 126,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 135,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 143,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 152,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 160,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 169,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 177,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 185,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 194,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 202,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 210,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 219,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 227,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 235,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 244,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 252,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 260,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 269,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 277,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 285,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 293,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 302,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 310,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 318,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 327,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 335,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 344,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 352,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 360,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 369,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 377,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 385,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 394,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 402,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 410,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 419,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 427,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 435,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 470,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  },
+  {
+    "kind": "export",
+    "scenario": "close",
+    "initialHeight": 564,
+    "samples": [
+      {
+        "ms": 5,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 7,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 15,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.99327",
+        "overlay": "0.99327",
+        "loading": false
+      },
+      {
+        "ms": 23,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.974503",
+        "overlay": "0.974503",
+        "loading": false
+      },
+      {
+        "ms": 32,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.947035",
+        "overlay": "0.947035",
+        "loading": false
+      },
+      {
+        "ms": 40,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.909871",
+        "overlay": "0.909871",
+        "loading": false
+      },
+      {
+        "ms": 48,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.866482",
+        "overlay": "0.866482",
+        "loading": false
+      },
+      {
+        "ms": 57,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.816321",
+        "overlay": "0.816321",
+        "loading": false
+      },
+      {
+        "ms": 65,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.761268",
+        "overlay": "0.761268",
+        "loading": false
+      },
+      {
+        "ms": 73,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.701299",
+        "overlay": "0.701299",
+        "loading": false
+      },
+      {
+        "ms": 82,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.636043",
+        "overlay": "0.636043",
+        "loading": false
+      },
+      {
+        "ms": 90,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.567404",
+        "overlay": "0.567404",
+        "loading": false
+      },
+      {
+        "ms": 98,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.494902",
+        "overlay": "0.494902",
+        "loading": false
+      },
+      {
+        "ms": 107,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.418746",
+        "overlay": "0.418746",
+        "loading": false
+      },
+      {
+        "ms": 115,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.338099",
+        "overlay": "0.338099",
+        "loading": false
+      },
+      {
+        "ms": 123,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.253927",
+        "overlay": "0.253927",
+        "loading": false
+      },
+      {
+        "ms": 132,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.167257",
+        "overlay": "0.167257",
+        "loading": false
+      },
+      {
+        "ms": 140,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.0768457",
+        "overlay": "0.0768457",
+        "loading": false
+      },
+      {
+        "ms": 149,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 157,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 165,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 173,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 182,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 190,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 198,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 207,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 215,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 223,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 232,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 240,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 248,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 257,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 265,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 273,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 282,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 290,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 298,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 307,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 315,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 323,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 332,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 340,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 348,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 357,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 365,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 374,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 382,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 390,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 398,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 429,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  },
+  {
+    "kind": "export",
+    "scenario": "escape",
+    "initialHeight": 564,
+    "samples": [
+      {
+        "ms": 15,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 17,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 22,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.993078",
+        "overlay": "0.993078",
+        "loading": false
+      },
+      {
+        "ms": 30,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.97444",
+        "overlay": "0.97444",
+        "loading": false
+      },
+      {
+        "ms": 38,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.946168",
+        "overlay": "0.946168",
+        "loading": false
+      },
+      {
+        "ms": 46,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.909765",
+        "overlay": "0.909765",
+        "loading": false
+      },
+      {
+        "ms": 55,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.866358",
+        "overlay": "0.866358",
+        "loading": false
+      },
+      {
+        "ms": 64,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.816182",
+        "overlay": "0.816182",
+        "loading": false
+      },
+      {
+        "ms": 71,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.760421",
+        "overlay": "0.760421",
+        "loading": false
+      },
+      {
+        "ms": 80,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.700383",
+        "overlay": "0.700383",
+        "loading": false
+      },
+      {
+        "ms": 89,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.635867",
+        "overlay": "0.635867",
+        "loading": false
+      },
+      {
+        "ms": 97,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.567217",
+        "overlay": "0.567217",
+        "loading": false
+      },
+      {
+        "ms": 105,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.493809",
+        "overlay": "0.493809",
+        "loading": false
+      },
+      {
+        "ms": 113,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.4176",
+        "overlay": "0.4176",
+        "loading": false
+      },
+      {
+        "ms": 122,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.336902",
+        "overlay": "0.336902",
+        "loading": false
+      },
+      {
+        "ms": 130,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.253702",
+        "overlay": "0.253702",
+        "loading": false
+      },
+      {
+        "ms": 139,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.167022",
+        "overlay": "0.167022",
+        "loading": false
+      },
+      {
+        "ms": 147,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.0754856",
+        "overlay": "0.0754856",
+        "loading": false
+      },
+      {
+        "ms": 156,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 163,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 171,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 180,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 188,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 197,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 206,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 213,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 221,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 230,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 239,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 247,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 255,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 264,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 271,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 280,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 288,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 296,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 305,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 314,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 322,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 330,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 338,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 347,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 355,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 363,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 372,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 380,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 388,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 396,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 434,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  },
+  {
+    "kind": "export",
+    "scenario": "reverse",
+    "initialHeight": 564,
+    "samples": [
+      {
+        "ms": 17,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 20,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 26,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.993927",
+        "overlay": "0.993927",
+        "loading": false
+      },
+      {
+        "ms": 35,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.974586",
+        "overlay": "0.974586",
+        "loading": false
+      },
+      {
+        "ms": 53,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 53,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.182413",
+        "overlay": "0.182413",
+        "loading": false
+      },
+      {
+        "ms": 60,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.34324",
+        "overlay": "0.34324",
+        "loading": false
+      },
+      {
+        "ms": 68,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.483317",
+        "overlay": "0.483317",
+        "loading": false
+      },
+      {
+        "ms": 76,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.598361",
+        "overlay": "0.598361",
+        "loading": false
+      },
+      {
+        "ms": 85,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.691338",
+        "overlay": "0.691338",
+        "loading": false
+      },
+      {
+        "ms": 92,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.760928",
+        "overlay": "0.760928",
+        "loading": false
+      },
+      {
+        "ms": 101,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.822769",
+        "overlay": "0.822769",
+        "loading": false
+      },
+      {
+        "ms": 110,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.866874",
+        "overlay": "0.866874",
+        "loading": false
+      },
+      {
+        "ms": 118,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.901083",
+        "overlay": "0.901083",
+        "loading": false
+      },
+      {
+        "ms": 125,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.924405",
+        "overlay": "0.924405",
+        "loading": false
+      },
+      {
+        "ms": 134,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.944633",
+        "overlay": "0.944633",
+        "loading": false
+      },
+      {
+        "ms": 142,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.959965",
+        "overlay": "0.959965",
+        "loading": false
+      },
+      {
+        "ms": 152,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.972807",
+        "overlay": "0.972807",
+        "loading": false
+      },
+      {
+        "ms": 160,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.981008",
+        "overlay": "0.981008",
+        "loading": false
+      },
+      {
+        "ms": 168,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.986753",
+        "overlay": "0.986753",
+        "loading": false
+      },
+      {
+        "ms": 177,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.991617",
+        "overlay": "0.991617",
+        "loading": false
+      },
+      {
+        "ms": 184,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.994459",
+        "overlay": "0.994459",
+        "loading": false
+      },
+      {
+        "ms": 193,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.996915",
+        "overlay": "0.996915",
+        "loading": false
+      },
+      {
+        "ms": 202,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.998321",
+        "overlay": "0.998321",
+        "loading": false
+      },
+      {
+        "ms": 210,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.999189",
+        "overlay": "0.999189",
+        "loading": false
+      },
+      {
+        "ms": 217,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.999642",
+        "overlay": "0.999642",
+        "loading": false
+      },
+      {
+        "ms": 226,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.99991",
+        "overlay": "0.99991",
+        "loading": false
+      },
+      {
+        "ms": 235,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0.999989",
+        "overlay": "0.999989",
+        "loading": false
+      },
+      {
+        "ms": 243,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 251,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 260,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 268,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 276,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 285,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 293,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 302,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 309,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 317,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 327,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 335,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 343,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 352,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 360,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 369,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 376,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 386,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 392,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 401,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 410,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 418,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 427,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 435,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 443,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 456,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      }
+    ],
+    "remaining": true,
+    "finalHeight": 564,
+    "focusReturned": false
+  },
+  {
+    "kind": "export",
+    "scenario": "reduced",
+    "initialHeight": 564,
+    "samples": [
+      {
+        "ms": 18,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 24,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 26,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 30,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 38,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 47,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 55,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 63,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 72,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 80,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 89,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 97,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 105,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 114,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 122,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 130,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 138,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 147,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 155,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 164,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 172,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 180,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 189,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 197,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 205,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 214,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 222,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 230,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 239,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 247,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 255,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 263,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 272,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 281,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 288,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 298,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 305,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 314,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 322,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 330,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 338,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 347,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 355,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 363,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 372,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 380,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 388,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 397,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 429,
+        "present": true,
+        "state": "open",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  },
+  {
+    "kind": "export",
+    "scenario": "reduce-during-exit",
+    "initialHeight": 564,
+    "samples": [
+      {
+        "ms": 12,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 14,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 19,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.993217",
+        "overlay": "0.993217",
+        "loading": false
+      },
+      {
+        "ms": 26,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.974691",
+        "overlay": "0.974691",
+        "loading": false
+      },
+      {
+        "ms": 34,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0.949985",
+        "overlay": "0.949985",
+        "loading": false
+      },
+      {
+        "ms": 47,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "1",
+        "overlay": "1",
+        "loading": false
+      },
+      {
+        "ms": 52,
+        "present": true,
+        "state": "closed",
+        "height": 564,
+        "opacity": "0",
+        "overlay": "0",
+        "loading": false
+      },
+      {
+        "ms": 60,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 67,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 76,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 85,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 93,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 101,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 110,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 118,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 127,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 135,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 143,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 152,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 160,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 168,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 177,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 185,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 194,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 201,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 210,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 218,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 227,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 235,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 243,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 252,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 261,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 269,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 277,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 285,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 293,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 303,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 310,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 318,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 327,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 335,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 344,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 352,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 360,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 369,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 377,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 385,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 393,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 403,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 410,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 418,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 427,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      },
+      {
+        "ms": 435,
+        "present": false,
+        "opacity": null,
+        "overlay": null
+      }
+    ],
+    "remaining": false,
+    "focusReturned": true
+  }
+]

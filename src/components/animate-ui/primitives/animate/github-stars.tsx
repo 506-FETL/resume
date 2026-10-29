@@ -16,14 +16,18 @@ import {
 import { SlidingNumber } from '@/components/animate-ui/primitives/texts/sliding-number'
 import { useIsInView } from '@/hooks/use-is-in-view'
 import { getStrictContext } from '@/lib/get-strict-context'
+import { DURATION, EASE } from '@/lib/motion'
 import { getGithubStars } from '@/lib/supabase/github-stars'
 import { cn } from '@/lib/utils'
 
 interface GithubStarsContextType {
   stars: number
   setStars: (stars: number) => void
+  targetRevision: number
   currentStars: number
   setCurrentStars: (stars: number) => void
+  settledRevision: number | null
+  setSettledRevision: (revision: number) => void
   isCompleted: boolean
   isLoading: boolean
 }
@@ -56,8 +60,28 @@ function GithubStars({
     { inView, inViewOnce, inViewMargin },
   )
 
-  const [stars, setStars] = React.useState(value ?? 0)
+  const [starTarget, setStarTarget] = React.useState({
+    stars: value ?? 0,
+    revision: 0,
+  })
+
+  const stars = starTarget.stars
+  const targetRevision = starTarget.revision
+
+  const setStars = React.useCallback((nextStars: number) => {
+    setStarTarget((current) =>
+      current.stars === nextStars
+        ? current
+        : { stars: nextStars, revision: current.revision + 1 },
+    )
+  }, [])
+
   const [currentStars, setCurrentStars] = React.useState(0)
+
+  const [settledRevision, setSettledRevision] = React.useState<number | null>(
+    null,
+  )
+
   const [isLoading, setIsLoading] = React.useState(value === undefined)
   const [hasValue, setHasValue] = React.useState(value !== undefined)
 
@@ -119,6 +143,9 @@ function GithubStars({
         isLoading,
         setStars,
         setCurrentStars,
+        targetRevision,
+        settledRevision,
+        setSettledRevision,
       }}
     >
       {!isLoading && hasValue && (
@@ -130,18 +157,36 @@ function GithubStars({
   )
 }
 
-type GithubStarsNumberProps = Omit<SlidingNumberProps, 'number' | 'fromNumber'>
+type GithubStarsNumberProps = Omit<
+  SlidingNumberProps,
+  'number' | 'fromNumber' | 'onValueAnimationComplete'
+>
 
 function GithubStarsNumber({
   padStart = true,
   ...props
 }: GithubStarsNumberProps) {
-  const { stars, setCurrentStars } = useGithubStars()
+  const { stars, targetRevision, setCurrentStars, setSettledRevision } =
+    useGithubStars()
+
   const reduceMotion = useReducedMotion()
+  const hasReducedMotionRef = React.useRef(false)
+
+  if (reduceMotion) hasReducedMotionRef.current = true
 
   React.useEffect(() => {
-    if (reduceMotion) setCurrentStars(stars)
-  }, [reduceMotion, stars, setCurrentStars])
+    if (!reduceMotion) return
+
+    setCurrentStars(stars)
+    setSettledRevision(targetRevision)
+  }, [reduceMotion, stars, targetRevision, setCurrentStars, setSettledRevision])
+
+  const handleAnimationComplete = React.useCallback(
+    (settledNumber: number) => {
+      if (settledNumber === stars) setSettledRevision(targetRevision)
+    },
+    [stars, targetRevision, setSettledRevision],
+  )
 
   if (reduceMotion) return <span className={props.className}>{stars}</span>
 
@@ -149,7 +194,9 @@ function GithubStarsNumber({
     <SlidingNumber
       number={stars}
       fromNumber={0}
+      initiallyStable={hasReducedMotionRef.current}
       onNumberChange={setCurrentStars}
+      onValueAnimationComplete={handleAnimationComplete}
       padStart={padStart}
       {...props}
     />
@@ -157,7 +204,7 @@ function GithubStarsNumber({
 }
 
 type GithubStarsIconProps<T extends React.ElementType> = {
-  icon: React.ReactElement<T>
+  icon: T
   color?: string
   activeClassName?: string
 } & React.ComponentProps<T>
@@ -169,17 +216,50 @@ function GithubStarsIcon<T extends React.ElementType>({
   className,
   ...props
 }: GithubStarsIconProps<T>) {
-  const { stars, currentStars, isCompleted } = useGithubStars()
+  const { stars, currentStars, isCompleted, targetRevision, settledRevision } =
+    useGithubStars()
+
+  const reduceMotion = useReducedMotion()
+  const iconRef = React.useRef<HTMLSpanElement>(null)
+  const lastCompletedRevision = React.useRef<number | null>(null)
+
+  React.useEffect(() => {
+    if (
+      !isCompleted ||
+      settledRevision !== targetRevision ||
+      lastCompletedRevision.current === targetRevision
+    )
+      return
+
+    lastCompletedRevision.current = targetRevision
+
+    if (reduceMotion || stars === 0) return
+
+    const animation = iconRef.current?.animate(
+      [
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.22)', offset: 0.4 },
+        { transform: 'scale(1)' },
+      ],
+      {
+        duration: DURATION.slow * 1000,
+        easing: `cubic-bezier(${EASE.out.join(',')})`,
+      },
+    )
+
+    return () => animation?.cancel()
+  }, [isCompleted, stars, reduceMotion, settledRevision, targetRevision])
 
   const fillPercentage =
-    stars === 0
-      ? isCompleted
-        ? 100
-        : 0
-      : Math.min(100, Math.max(0, (currentStars / stars) * 100))
+    stars === 0 ? 0 : Math.min(100, Math.max(0, (currentStars / stars) * 100))
 
   return (
-    <div style={{ position: 'relative' }}>
+    <span
+      ref={iconRef}
+      data-slot='github-stars-icon'
+      data-complete={isCompleted}
+      className='relative inline-flex shrink-0'
+    >
       <Icon aria-hidden='true' className={cn(className)} {...props} />
       <Icon
         aria-hidden='true'
@@ -189,12 +269,12 @@ function GithubStarsIcon<T extends React.ElementType>({
           left: 0,
           fill: color,
           stroke: color,
-          clipPath: `inset(${100 - (isCompleted ? fillPercentage : fillPercentage - 10)}% 0 0 0)`,
+          clipPath: `inset(${100 - fillPercentage}% 0 0 0)`,
         }}
         className={cn(className, activeClassName)}
         {...props}
       />
-    </div>
+    </span>
   )
 }
 

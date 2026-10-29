@@ -1,5 +1,5 @@
 import type { AiMessagePart } from '@/lib/ai/types'
-import { PanelRight, RotateCw } from 'lucide-react'
+import { CircleAlert, CircleMinus, PanelRight, RotateCw } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
@@ -79,8 +79,12 @@ export function ToolCallPartGroup({
           return (
             <motion.div
               key={c.toolCallId}
-              initial={reduced || !streaming ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={
+                reduced || !streaming
+                  ? false
+                  : { opacity: 0, transform: 'translateY(8px)' }
+              }
+              animate={{ opacity: 1, transform: 'translateY(0px)' }}
               transition={{
                 duration: reduced ? 0 : DURATION.base,
                 ease: EASE.out,
@@ -90,12 +94,16 @@ export function ToolCallPartGroup({
               className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-0.5 text-sm outline-none'
             >
               <AnimatedContent
-                animationKey={pending ? 'pending' : 'complete'}
+                animationKey={c.state}
                 as='span'
                 className='flex size-4 shrink-0 items-center justify-center text-muted-foreground'
               >
                 {pending ? (
                   <Spinner className='size-3.5' />
+                ) : c.state === 'error' ? (
+                  <CircleAlert className='size-4 text-destructive' />
+                ) : c.state === 'cancelled' ? (
+                  <CircleMinus className='size-4' />
                 ) : (
                   getToolCategoryIcon(meta?.iconCategory ?? 'general', {
                     showBackground: false,

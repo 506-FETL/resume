@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import type { AiConversation } from '@/lib/ai/types'
 import dayjs from 'dayjs'
 import { useMemo } from 'react'
@@ -59,7 +60,14 @@ export default function ConversationList({
     activeConversationId: activeId,
     loadingConversations: loading,
     pendingConversationId,
-  } = useAssistantStore()
+  } = useAssistantStore(
+    useShallow((state) => ({
+      conversations: state.conversations,
+      activeConversationId: state.activeConversationId,
+      loadingConversations: state.loadingConversations,
+      pendingConversationId: state.pendingConversationId,
+    })),
+  )
 
   const { openConversation, deleteAndSelectConversation } =
     useAssistantNavigation()
@@ -111,10 +119,10 @@ export default function ConversationList({
 
   return (
     <div className='min-h-0 flex-1 overflow-y-auto px-2 pb-2'>
-      <div className='flex flex-col gap-3'>
+      <div className='flex flex-col gap-4'>
         {groups.map((group) => (
           <div key={group.key} className='flex flex-col gap-0.5'>
-            <p className='px-2 pb-1 text-[11px] font-medium text-muted-foreground'>
+            <p className='px-2 pb-1.5 text-xs font-medium text-muted-foreground'>
               {group.label}
             </p>
             {group.items.map((c) => (

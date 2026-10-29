@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -11,8 +11,7 @@ import {
   rememberAssistantReturnPath,
   serializeInternalLocation,
 } from '@/lib/ai/navigation'
-import { DURATION } from '@/lib/motion'
-import { cn } from '@/lib/utils'
+import { DURATION, EASE } from '@/lib/motion'
 
 export function AssistantEntry() {
   const location = useLocation()
@@ -28,11 +27,7 @@ export function AssistantEntry() {
       asChild
       tooltip='AI 助手'
       isActive={isActive}
-      className={cn(
-        'transition-colors',
-        isActive &&
-          'data-[active=true]:bg-primary data-[active=true]:font-semibold data-[active=true]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground',
-      )}
+      className='group/assistant h-10 gap-2.5 rounded-lg border border-sidebar-border bg-background px-2.5 font-medium text-sidebar-foreground shadow-xs transition-[background-color,border-color,box-shadow] hover:border-violet-300/70 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-violet-300/70 data-[active=true]:bg-sidebar-accent dark:hover:border-violet-700/70 dark:data-[active=true]:border-violet-700/70'
       style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
     >
       <Link
@@ -43,23 +38,27 @@ export function AssistantEntry() {
         onClick={() => rememberAssistantReturnPath(from)}
       >
         <span
-          className={cn(
-            'flex size-5 shrink-0 items-center justify-center rounded-md transition-colors group-data-[collapsible=icon]:size-4',
-            isActive
-              ? 'bg-primary-foreground/15'
-              : 'bg-violet-500/15 text-violet-600 ring-1 ring-inset ring-violet-500/20 dark:text-violet-400',
-          )}
-          style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
+          aria-hidden='true'
+          className='flex size-6 shrink-0 items-center justify-center rounded-md bg-violet-100/80 text-violet-600 transition-transform group-focus-visible/assistant:rotate-6 [@media(hover:hover)_and_(pointer:fine)]:group-hover/assistant:rotate-6 motion-reduce:transform-none group-data-[collapsible=icon]:size-4 group-data-[collapsible=icon]:bg-transparent dark:bg-violet-400/10 dark:text-violet-300'
+          style={{
+            transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`,
+            transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+          }}
         >
-          <Sparkles className='size-3.5' />
+          <Sparkles className='size-4' />
         </span>
         <span className='group-data-[collapsible=icon]:hidden'>AI 助手</span>
+        <ArrowRight
+          aria-hidden='true'
+          className='ml-auto size-3.5 text-muted-foreground opacity-40 transition-opacity group-focus-visible/assistant:opacity-100 group-hover/assistant:opacity-100 group-data-[collapsible=icon]:hidden'
+          style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s` }}
+        />
       </Link>
     </SidebarMenuButton>
   )
 
   return (
-    <SidebarGroup className='pb-1'>
+    <SidebarGroup className='px-3 pb-2 group-data-[collapsible=icon]:px-2'>
       <SidebarMenu>
         <SidebarMenuItem>{entry}</SidebarMenuItem>
       </SidebarMenu>

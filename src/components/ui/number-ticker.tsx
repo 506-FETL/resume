@@ -1,6 +1,12 @@
-import { type ComponentPropsWithoutRef, useEffect, useRef } from 'react'
-import { useInView, useMotionValue, useSpring } from 'motion/react'
+import {
+  type ComponentPropsWithoutRef,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
+import { animate, useInView, useMotionValue } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 interface NumberTickerProps extends ComponentPropsWithoutRef<'span'> {
@@ -24,56 +30,48 @@ export function NumberTicker({
   const reduceMotion = useReducedMotion()
   const motionValue = useMotionValue(direction === 'down' ? value : startValue)
 
-  const springValue = useSpring(motionValue, {
-    damping: 60,
-    stiffness: 100,
-  })
+  const formatter = useMemo(
+    () =>
+      Intl.NumberFormat('en-US', {
+        minimumFractionDigits: decimalPlaces,
+        maximumFractionDigits: decimalPlaces,
+      }),
+    [decimalPlaces],
+  )
 
   const isInView = useInView(ref, { once: true, margin: '0px' })
 
   useEffect(() => {
-    if (reduceMotion) return
-    if (isInView) {
-      const timer = setTimeout(() => {
-        motionValue.set(direction === 'down' ? startValue : value)
-      }, delay * 1000)
+    const target = direction === 'down' ? startValue : value
 
-      return () => clearTimeout(timer)
+    if (reduceMotion) {
+      motionValue.jump(target)
+
+      return
     }
+
+    if (!isInView) return
+
+    const animation = animate(motionValue, target, {
+      duration: DURATION.slow,
+      ease: EASE.out,
+      delay,
+    })
+
+    return () => animation.stop()
   }, [motionValue, isInView, delay, value, direction, startValue, reduceMotion])
 
   useEffect(() => {
     const updateText = (latest: number) => {
       if (ref.current) {
-        ref.current.textContent = Intl.NumberFormat('en-US', {
-          minimumFractionDigits: decimalPlaces,
-          maximumFractionDigits: decimalPlaces,
-        }).format(Number(latest.toFixed(decimalPlaces)))
+        ref.current.textContent = formatter.format(latest)
       }
     }
 
-    if (reduceMotion) {
-      const target = direction === 'down' ? startValue : value
+    updateText(motionValue.get())
 
-      motionValue.jump(target)
-      springValue.jump(target)
-      updateText(target)
-
-      return
-    }
-
-    updateText(springValue.get())
-
-    return springValue.on('change', updateText)
-  }, [
-    springValue,
-    motionValue,
-    decimalPlaces,
-    reduceMotion,
-    direction,
-    startValue,
-    value,
-  ])
+    return motionValue.on('change', updateText)
+  }, [motionValue, formatter, reduceMotion, direction, startValue, value])
 
   return (
     <span
@@ -85,10 +83,7 @@ export function NumberTicker({
       {...props}
     >
       {reduceMotion
-        ? Intl.NumberFormat('en-US', {
-            minimumFractionDigits: decimalPlaces,
-            maximumFractionDigits: decimalPlaces,
-          }).format(direction === 'down' ? startValue : value)
+        ? formatter.format(direction === 'down' ? startValue : value)
         : direction === 'down'
           ? value
           : startValue}

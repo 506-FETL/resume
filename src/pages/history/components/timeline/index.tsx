@@ -57,7 +57,7 @@ export default function HistoryTimeline({
 
   return (
     <LayoutGroup id={layoutId}>
-      <Card className='flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-hidden rounded-xl border-border/70 py-0 shadow-none'>
+      <Card className='flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-hidden rounded-none border-0 border-border/70 py-0 shadow-none ring-0 @min-[900px]/workspace:border-r'>
         <div className='flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3.5'>
           <h2 className='flex items-center gap-2 text-sm font-semibold'>
             <History className='size-4 text-muted-foreground' />

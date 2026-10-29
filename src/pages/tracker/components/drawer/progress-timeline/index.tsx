@@ -120,23 +120,20 @@ export default function ProgressTimeline({
       }
     >
       <div className='flex items-center justify-between gap-3'>
-        <h3 className='text-sm font-medium'>流程进度</h3>
+        <h3 className='text-xs font-medium text-muted-foreground'>流程进度</h3>
         <span className='text-xs text-muted-foreground'>
           {job.status === 'rejected'
             ? endedAt
               ? `结束于：${APPLICATION_STATUS_CONFIG[endedAt].label}`
               : '流程已结束'
-            : APPLICATION_STATUS_CONFIG[job.status].label}
+            : null}
         </span>
       </div>
       <div
         ref={scrollRef}
         className='scrollbar-thin-subtle -mx-1 overflow-x-auto px-1 pb-1'
       >
-        <div
-          ref={measureRef}
-          className='relative flex h-24 min-w-[700px] md:h-32'
-        >
+        <div ref={measureRef} className='relative flex h-24 min-w-[700px]'>
           <svg
             aria-hidden='true'
             className='pointer-events-none absolute inset-0 size-full overflow-visible'
@@ -173,10 +170,7 @@ export default function ProgressTimeline({
               />
             ))}
           </svg>
-          <Stepper
-            className='flex-1 pt-[34px] md:pt-[50px]'
-            aria-label='在办阶段'
-          >
+          <Stepper className='flex-1 pt-[34px]' aria-label='在办阶段'>
             {ACTIVE_APPLICATION_STAGES.map((status, index) => {
               const detail = job.stage_details.find(
                 (item) => item.stage === status,
@@ -260,9 +254,7 @@ export default function ProgressTimeline({
                   onClick={() => activate(status)}
                   className={cn(
                     'absolute left-10 z-10 inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg text-xs font-medium outline-none transition-colors duration-[var(--stepper-duration)] ease-[var(--stepper-ease)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    index === 0
-                      ? 'top-[2px] md:top-[10px]'
-                      : 'top-[50px] md:top-[74px]',
+                    index === 0 ? 'top-[2px]' : 'top-[50px]',
                     current
                       ? status === 'offer'
                         ? 'text-emerald-700 dark:text-emerald-400'

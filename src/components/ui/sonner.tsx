@@ -2,6 +2,7 @@
 
 import { useTheme } from 'next-themes'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -12,6 +13,7 @@ import {
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
+  const reduceMotion = useReducedMotion()
 
   return (
     <Sonner
@@ -33,6 +35,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
         } as React.CSSProperties
       }
       toastOptions={{
+        style: {
+          transitionDuration: reduceMotion
+            ? '0s'
+            : 'var(--toast-motion-duration, var(--ui-motion-slow))',
+          transitionTimingFunction: 'var(--ui-motion-enter-ease)',
+        },
         classNames: {
           toast: 'cn-toast',
         },

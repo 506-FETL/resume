@@ -1,8 +1,6 @@
 import type { MouseEventHandler } from 'react'
-import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
-import useUserStore from '@/store/user'
 
 interface HeaderProps {
   focus?: string
@@ -11,28 +9,14 @@ interface HeaderProps {
 }
 
 function Header({ focus, onCreate, isGettingStarted }: HeaderProps) {
-  const [greeting, setGreeting] = useState('')
-  const auth = useUserStore((state) => state.currentUser)
-
-  useEffect(() => {
-    const hour = new Date().getHours()
-
-    if (hour < 5) setGreeting('晚上好')
-    else if (hour < 11) setGreeting('早上好')
-    else if (hour < 13) setGreeting('中午好')
-    else if (hour < 18) setGreeting('下午好')
-    else setGreeting('晚上好')
-  }, [])
-
   return (
     <PageHeader
-      title={
-        isGettingStarted
-          ? '欢迎使用 GResume'
-          : `欢迎回来${auth?.user_metadata.full_name ? `，${auth.user_metadata.full_name}` : ''}`
-      }
+      title='首页'
       description={
-        focus || (isGettingStarted ? '在这里编辑和导出你的简历。' : greeting)
+        focus ||
+        (isGettingStarted
+          ? '创建或导入简历，从已有内容开始。'
+          : '继续编辑简历，查看待办与求职进展。')
       }
       actions={
         <Button aria-label='打开创建简历表单' onClick={onCreate}>

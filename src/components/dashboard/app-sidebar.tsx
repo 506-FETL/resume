@@ -52,28 +52,27 @@ export function AppSidebar({
           setOpenMobile(false)
       }}
     >
-      <SidebarHeader>
+      <SidebarHeader className='h-16 justify-center px-3 group-data-[collapsible=icon]:px-2'>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className='data-[slot=sidebar-menu-button]:p-1.5'
-            >
+            <SidebarMenuButton asChild className='h-10 gap-2.5 px-2'>
               <Link to='/'>
                 <img
                   src='/resume_icon_transparent.svg'
                   alt=''
                   className='size-5 shrink-0'
                 />
-                <span className='text-base font-semibold'>GResume</span>
+                <span className='text-lg font-semibold tracking-tight'>
+                  GResume
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className='gap-1'>
         <AssistantEntry />
-        <NavOptions options={Data.modules} description='模块' />
+        <NavOptions options={Data.modules} />
         <AnimatePresence initial={false}>
           {isAssistantRoute && authStatus === 'authenticated' && (
             <PresenceDiv
@@ -101,7 +100,7 @@ export function AppSidebar({
           )}
         </AnimatePresence>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className='border-t border-sidebar-border/70 p-3 group-data-[collapsible=icon]:p-2'>
         <NavUser />
       </SidebarFooter>
     </Sidebar>

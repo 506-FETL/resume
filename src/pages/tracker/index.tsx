@@ -132,13 +132,13 @@ function TrackerContent() {
         <TrackerHeader />
         <main
           aria-label='职位工作区'
-          className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card'
+          className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t bg-background'
         >
           <OverviewBar />
           <TrackerToolbar />
           <ViewTransition
             animationKey={state}
-            className='flex min-h-0 min-w-0 flex-1 flex-col p-2'
+            className='flex min-h-0 min-w-0 flex-1 flex-col pt-3'
           >
             {state === 'loading' ? (
               <TrackerSkeleton />

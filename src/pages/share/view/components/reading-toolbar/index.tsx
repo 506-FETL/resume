@@ -1,5 +1,12 @@
 import { Maximize, ZoomIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export type ReadingZoom = 'fit' | 50 | 75 | 100
 
@@ -14,7 +21,7 @@ export function ReadingToolbar({
     <div
       role='group'
       aria-label='阅读缩放'
-      className='flex shrink-0 items-center gap-1 rounded-lg border bg-background p-1'
+      className='flex shrink-0 items-center gap-1 rounded-lg bg-background p-1'
     >
       <Button
         size='sm'
@@ -29,23 +36,26 @@ export function ReadingToolbar({
         className='ml-1 size-3.5 text-muted-foreground'
         aria-hidden='true'
       />
-      <select
-        className='h-7 rounded-md bg-background px-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring'
-        aria-label='文档显示比例'
-        value={zoom}
-        onChange={(event) =>
-          onZoomChange(
-            event.target.value === 'fit'
-              ? 'fit'
-              : (Number(event.target.value) as ReadingZoom),
-          )
+      <Select
+        value={String(zoom)}
+        onValueChange={(value) =>
+          onZoomChange(value === 'fit' ? 'fit' : (Number(value) as ReadingZoom))
         }
       >
-        <option value='fit'>自动</option>
-        <option value='50'>50%</option>
-        <option value='75'>75%</option>
-        <option value='100'>100%</option>
-      </select>
+        <SelectTrigger
+          size='sm'
+          aria-label='文档显示比例'
+          className='min-w-20 border-transparent bg-transparent text-xs shadow-none'
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value='fit'>自动</SelectItem>
+          <SelectItem value='50'>50%</SelectItem>
+          <SelectItem value='75'>75%</SelectItem>
+          <SelectItem value='100'>100%</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   )
 }

@@ -64,16 +64,16 @@ export function ForgotPasswordForm({
     >
       <AnimatedContent animationKey={success ? 'success' : 'form'}>
         {success ? (
-          <Card>
-            <CardHeader>
-              <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
+          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+            <CardHeader className='gap-3 px-0'>
+              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
                 请查收邮件
               </h1>
               <CardDescription>
                 如果你使用邮箱和密码注册，将收到密码重置邮件。
               </CardDescription>
             </CardHeader>
-            <CardContent className='flex flex-col gap-2'>
+            <CardContent className='flex flex-col gap-2 px-0'>
               <Button asChild>
                 <Link to='/login'>返回登录</Link>
               </Button>
@@ -89,14 +89,14 @@ export function ForgotPasswordForm({
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardHeader>
-              <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
-                重置密码
+          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+            <CardHeader className='gap-3 px-0'>
+              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
+                找回密码
               </h1>
               <CardDescription>重置链接将发送至注册邮箱。</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='px-0'>
               <form onSubmit={handleForgotPassword}>
                 <FieldGroup className='gap-6'>
                   <Field>

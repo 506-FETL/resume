@@ -1,3 +1,4 @@
+import { useIsMobile } from '@/hooks/use-mobile'
 import { BrainCircuit, ChevronDown, Layers3, Sparkles } from 'lucide-react'
 import {
   Accordion,
@@ -6,7 +7,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,17 +19,26 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { SCORE_LABELS } from '../../const'
 import useAtsStore from '../../store'
+import ScoresRadarChart from './scores-radar-chart'
 
 export default function AssessmentBasisCard() {
-  const { currentAtsConfig } = useAtsStore()
+  const { currentAtsConfig, loading } = useAtsStore()
+  const isMobile = useIsMobile()
+  const rationaleId = useId()
+  const [rationaleOpen, setRationaleOpen] = useState<string[]>([])
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
   const assessment = currentAtsConfig?.meta?.assessment
 
-  if (!assessment || currentAtsConfig?.meta?.rubricVersion !== '2.0')
-    return null
+  if (!loading && !currentAtsConfig?.scores) return null
+
+  if (!assessment || currentAtsConfig?.meta?.rubricVersion !== '2.0') {
+    return (
+      <ScoresRadarChart scores={currentAtsConfig?.scores} loading={loading} />
+    )
+  }
 
   const scoreRationales = Object.entries(currentAtsConfig.scores ?? {}).filter(
     ([, score]) => score.rationale,
@@ -36,7 +46,7 @@ export default function AssessmentBasisCard() {
 
   return (
     <Collapsible
-      open={open}
+      open={!isMobile || open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen && contentRef.current?.contains(document.activeElement)) {
           triggerRef.current?.focus()
@@ -48,32 +58,42 @@ export default function AssessmentBasisCard() {
     >
       <Card className='min-w-0 gap-0 overflow-hidden py-0 shadow-none'>
         <CardHeader className='p-0'>
-          <CollapsibleTrigger asChild>
-            <Button
-              ref={triggerRef}
-              variant='ghost'
-              className='h-auto w-full justify-between gap-3 rounded-none p-4 md:p-5'
-            >
-              <span className='flex items-center gap-2 text-base font-semibold'>
-                <BrainCircuit
+          {isMobile ? (
+            <CollapsibleTrigger asChild>
+              <Button
+                ref={triggerRef}
+                variant='ghost'
+                className='h-auto w-full justify-between gap-3 rounded-none p-4 md:p-5'
+              >
+                <span className='flex items-center gap-2 text-base font-semibold'>
+                  <BrainCircuit
+                    aria-hidden
+                    className='size-4 text-muted-foreground'
+                  />
+                  评分依据
+                </span>
+                <ChevronDown
                   aria-hidden
-                  className='size-4 text-muted-foreground'
+                  className={cn(
+                    'size-4 shrink-0 transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
+                    open && 'rotate-180',
+                  )}
                 />
-                评分依据
-              </span>
-              <ChevronDown
+              </Button>
+            </CollapsibleTrigger>
+          ) : (
+            <h2 className='flex items-center gap-2 p-5 text-base font-semibold'>
+              <BrainCircuit
                 aria-hidden
-                className={cn(
-                  'size-4 shrink-0 transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
-                  open && 'rotate-180',
-                )}
+                className='size-4 text-muted-foreground'
               />
-            </Button>
-          </CollapsibleTrigger>
+              评分依据
+            </h2>
+          )}
         </CardHeader>
         <CollapsibleContent
           ref={contentRef}
-          inert={!open}
+          inert={isMobile && !open}
           style={reduceMotion ? { animationDuration: '0s' } : undefined}
         >
           <CardContent className='p-0'>
@@ -99,53 +119,94 @@ export default function AssessmentBasisCard() {
                   可读性：{currentAtsConfig.readabilityIndex.summary}
                 </p>
               )}
-              <p className='text-xs font-medium text-muted-foreground'>
-                各维度判断理由
-              </p>
             </div>
-            <Accordion
-              type='single'
-              collapsible
-              className='grid items-start gap-2 px-4 pb-4 md:grid-cols-2 md:px-5 md:pb-5'
-            >
-              {scoreRationales.map(([key, score], index) => (
-                <AccordionItem
-                  key={key}
-                  value={key}
-                  className={cn(
-                    'rounded-xl border border-transparent bg-muted/25 px-3 transition-[background-color,border-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) last:border-b hover:border-primary/15 hover:bg-muted/40 data-[state=open]:border-primary/20 data-[state=open]:bg-primary/4 md:px-4',
-                    index === scoreRationales.length - 1 &&
-                      scoreRationales.length % 2 === 1 &&
-                      'md:col-span-2',
-                  )}
+            <div className='grid min-w-0 items-start gap-5 px-4 pb-4 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] md:px-5 md:pb-5'>
+              <ScoresRadarChart
+                scores={currentAtsConfig.scores}
+                loading={loading}
+                embedded
+              />
+              <div className='min-w-0 space-y-2'>
+                <p className='text-xs font-medium text-muted-foreground'>
+                  各维度判断理由
+                </p>
+                <Accordion
+                  type='multiple'
+                  value={
+                    isMobile
+                      ? rationaleOpen
+                      : scoreRationales.map(([key]) => key)
+                  }
+                  onValueChange={setRationaleOpen}
+                  className='gap-2'
                 >
-                  <AccordionTrigger className='min-h-14 items-center py-3 hover:no-underline'>
-                    <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
-                      <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                      <span className='min-w-0 flex-1 truncate font-medium'>
-                        {SCORE_LABELS[key as keyof typeof SCORE_LABELS] ?? key}
-                      </span>
-                      <span className='flex shrink-0 items-baseline gap-0.5 tabular-nums'>
-                        <span className='text-lg font-semibold tracking-tight text-foreground'>
-                          {score.score}
-                        </span>
-                        <span className='text-xs text-muted-foreground'>
-                          /{score.max}
-                        </span>
-                      </span>
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className='border-t border-border/50 pt-3 pr-8 text-sm leading-6 text-muted-foreground'>
-                    <div className='flex items-start gap-2.5'>
-                      <Sparkles className='mt-1 size-3.5 shrink-0 text-primary' />
-                      <p>{score.rationale}</p>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                  {scoreRationales.map(([key, score], index) => (
+                    <AccordionItem
+                      key={key}
+                      value={key}
+                      className='rounded-lg border border-transparent bg-muted/25 px-3 transition-[background-color,border-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) last:border-b hover:border-primary/15 hover:bg-muted/40 data-[state=open]:border-primary/20 data-[state=open]:bg-primary/4 md:px-4'
+                    >
+                      {isMobile ? (
+                        <AccordionTrigger
+                          id={`${rationaleId}-${key}`}
+                          className='min-h-14 items-center py-3 hover:no-underline'
+                        >
+                          <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
+                            <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
+                            <span className='min-w-0 flex-1 truncate font-medium'>
+                              {SCORE_LABELS[key as keyof typeof SCORE_LABELS] ??
+                                key}
+                            </span>
+                            <span className='flex shrink-0 items-baseline gap-0.5 tabular-nums'>
+                              <span className='text-lg font-semibold tracking-tight text-foreground'>
+                                {score.score}
+                              </span>
+                              <span className='text-xs text-muted-foreground'>
+                                /{score.max}
+                              </span>
+                            </span>
+                          </span>
+                        </AccordionTrigger>
+                      ) : (
+                        <h3
+                          id={`${rationaleId}-${key}`}
+                          className='flex min-h-14 items-center py-3'
+                        >
+                          <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
+                            <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
+                            <span className='min-w-0 flex-1 truncate font-medium'>
+                              {SCORE_LABELS[key as keyof typeof SCORE_LABELS] ??
+                                key}
+                            </span>
+                            <span className='flex shrink-0 items-baseline gap-0.5 tabular-nums'>
+                              <span className='text-lg font-semibold tracking-tight text-foreground'>
+                                {score.score}
+                              </span>
+                              <span className='text-xs text-muted-foreground'>
+                                /{score.max}
+                              </span>
+                            </span>
+                          </span>
+                        </h3>
+                      )}
+                      <AccordionContent
+                        aria-labelledby={`${rationaleId}-${key}`}
+                        className='border-t border-border/50 pt-3 pr-8 text-sm leading-6 text-muted-foreground'
+                      >
+                        <div className='flex items-start gap-2.5'>
+                          <Sparkles className='mt-1 size-3.5 shrink-0 text-primary' />
+                          <p>{score.rationale}</p>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            </div>
 
             <div className='space-y-4 border-t border-border/60 bg-muted/10 p-4 md:p-5'>
               <div className='flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-4'>

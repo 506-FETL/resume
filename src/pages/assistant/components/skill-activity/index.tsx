@@ -1,16 +1,19 @@
 import type { AiSkillActivity } from '@/lib/ai/types'
 import { BookOpen, CircleAlert } from 'lucide-react'
 import { motion } from 'motion/react'
+import { memo } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Spinner } from '@/components/ui/spinner'
 import { getSkillDefinition } from '@/lib/ai/skills/catalog'
 import { DURATION, EASE } from '@/lib/motion'
 
-export default function SkillActivity({
+const SkillActivity = memo(function SkillActivity({
   activity,
+  streaming = false,
 }: {
   activity: AiSkillActivity
+  streaming?: boolean
 }) {
   const reduced = useReducedMotion()
   const skill = getSkillDefinition(activity.skillId)
@@ -20,8 +23,12 @@ export default function SkillActivity({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: reduced ? 0 : 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={
+        reduced || !streaming
+          ? false
+          : { opacity: 0, transform: 'translateY(8px)' }
+      }
+      animate={{ opacity: 1, transform: 'translateY(0px)' }}
       transition={{ duration: reduced ? 0 : DURATION.base, ease: EASE.out }}
       className='my-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5'
       aria-live='polite'
@@ -66,4 +73,6 @@ export default function SkillActivity({
       )}
     </motion.div>
   )
-}
+})
+
+export default SkillActivity

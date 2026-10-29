@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>GResume · 清晰目录</title>
+    <!-- prettier-ignore -->
+    <style>
+      * { box-sizing: border-box; }
+      body { width: 1440px; height: 900px; margin: 0; overflow: hidden;
+        display: grid; grid-template-columns: 220px 1fr; color: #18181b;
+        background: #fff; font: 14px/1.6 -apple-system, sans-serif; }
+      aside { padding: 34px 20px 24px; background: #fafafa;
+        border-right: 1px solid #e4e4e7; display: flex; flex-direction: column; }
+      .brand { margin: 0 12px 44px; font-size: 22px; font-weight: 700;
+        letter-spacing: -0.7px; }
+      nav { display: grid; gap: 5px; }
+      nav span { padding: 10px 13px; border-radius: 8px; color: #52525b; }
+      nav .active { background: #e9e9ec; color: #18181b; font-weight: 600; }
+      .user { margin-top: auto; padding: 18px 12px 0;
+        border-top: 1px solid #e4e4e7; }
+      main { padding: 24px 56px 40px; }
+      .preview { margin: 0 0 26px; color: #71717a; font-size: 12px;
+        text-align: right; }
+      header, .section-title, .todo { display: flex; align-items: center;
+        justify-content: space-between; }
+      h1 { margin: 0; font-size: 30px; font-weight: 650;
+        letter-spacing: -0.8px; }
+      h2 { margin: 0; font-size: 18px; font-weight: 600; }
+      h3 { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
+      p { margin: 5px 0 0; color: #71717a; }
+      .button { display: inline-block; padding: 7px 14px;
+        border: 1px solid #dedee3; border-radius: 8px; color: #18181b;
+        white-space: nowrap; text-align: center; }
+      .primary { color: white; background: #18181b; border-color: #18181b; }
+      .section-title { margin: 32px 0 14px; }
+      .text-action { font-weight: 500; color: #3f3f46; }
+      .list { border-top: 1px solid #d4d4d8; padding-top: 8px; }
+      .resume { display: grid; grid-template-columns: 2.4fr 1.2fr 1fr 96px;
+        align-items: center; min-height: 83px; gap: 24px;
+        border-bottom: 1px solid #e4e4e7; }
+      .row-head { min-height: 34px; font-size: 12px; color: #71717a; }
+      .resume strong { font-size: 16px; font-weight: 600; }
+      .resume small { display: block; margin-top: 3px; color: #71717a;
+        font-size: 12px; }
+      .muted { color: #71717a; }
+      .reminders { display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 28px; margin-top: 32px; }
+      article { position: relative; min-height: 154px; padding: 20px;
+        overflow: hidden; border: 1px solid #e4e4e7; border-radius: 12px;
+        display: flex; flex-direction: column; }
+      article svg { position: absolute; width: 66px; height: 66px;
+        top: -7px; left: -9px; color: var(--tone); opacity: 0.1;
+        fill: none; stroke: currentColor; stroke-width: 1.3; }
+      article > :not(svg) { position: relative; }
+      .count { margin-left: 8px; padding: 1px 7px; border-radius: 5px;
+        font-size: 12px; color: var(--tone); background: var(--tint); }
+      .reminder-action { display: block; margin-top: auto; padding-top: 14px;
+        font-size: 13px; font-weight: 500; }
+      .bottom { display: grid; grid-template-columns: 1.7fr 1fr; gap: 56px; }
+      .todo { padding: 16px 0; border-top: 1px solid #e4e4e7; }
+      .stats { display: grid; grid-template-columns: 1fr auto; gap: 14px;
+        padding-top: 16px; border-top: 1px solid #e4e4e7; }
+      .stats b { font-weight: 600; font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <div class="brand">GResume</div>
+      <nav aria-label="主导航">
+        <span>AI 助手</span>
+        <span class="active" aria-current="page">首页</span>
+        <span>我的简历</span>
+        <span>分享管理</span>
+        <span>求职跟进</span>
+        <span style="margin-top: 22px">简历模板</span>
+        <span>简历优化</span>
+        <span>历史版本</span>
+      </nav>
+      <div class="user">示例用户</div>
+    </aside>
+    <main>
+      <p class="preview">设计预览 · 示例数据 · 控件仅作展示</p>
+      <header>
+        <div>
+          <h1>首页</h1>
+          <p>继续编辑简历，查看接下来的求职安排。</p>
+        </div>
+        <span class="button primary">创建简历</span>
+      </header>
+      <section aria-labelledby="recent-heading">
+        <div class="section-title">
+          <h2 id="recent-heading">最近简历</h2>
+          <span class="text-action">查看全部简历 →</span>
+        </div>
+        <div class="list">
+          <div class="resume row-head">
+            <span>简历名称</span><span>目标岗位</span><span>最后编辑</span>
+            <span style="text-align: center">操作</span>
+          </div>
+          <div class="resume">
+            <div><strong>产品经理 · 通用版</strong><small>云端保存</small></div>
+            <span>产品经理</span><span class="muted">今天 10:42</span
+            ><span class="button">继续编辑</span>
+          </div>
+          <div class="resume">
+            <div><strong>运营 · 岗位版本</strong><small>云端保存</small></div>
+            <span>用户运营</span><span class="muted">昨天 18:06</span
+            ><span class="button">继续编辑</span>
+          </div>
+        </div>
+      </section>
+      <section class="reminders" aria-label="求职提醒">
+        <article style="--tone: #7e22ce; --tint: #f3e8ff">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="5" width="16" height="16" rx="2" />
+            <path d="M8 3v4m8-4v4M4 11h16m-11 5 2 2 4-4" />
+          </svg>
+          <h3>近期面试<span class="count">1</span></h3>
+          <div>明天 14:00 · 产品经理</div>
+          <p>示例科技 · 第一轮面试</p>
+          <span class="reminder-action">查看面试安排 →</span>
+        </article>
+        <article style="--tone: #92400e; --tint: #fef3c7">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+          <h3>待跟进<span class="count">2</span></h3>
+          <div>有 2 个岗位到了跟进时间</div>
+          <p>用户运营、内容运营</p>
+          <span class="reminder-action">查看待跟进岗位 →</span>
+        </article>
+        <article style="--tone: #b91c1c; --tint: #fee2e2">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 22V3c5-4 9 4 14 0v12c-5 4-9-4-14 0" />
+          </svg>
+          <h3>重点关注</h3>
+          <p>还没有标记重点关注的岗位。</p>
+          <span class="reminder-action">查看求职跟进 →</span>
+        </article>
+      </section>
+      <div class="bottom">
+        <section aria-labelledby="todo-heading">
+          <div class="section-title"><h2 id="todo-heading">接下来要做</h2></div>
+          <div class="todo">
+            <div>
+              检查「产品经理 · 通用版」
+              <p>导出前核对简历内容与排版。</p>
+            </div>
+            <span class="button">检查并导出</span>
+          </div>
+          <div class="todo">
+            <div>
+              更新「运营 · 岗位版本」
+              <p>继续上次未完成的编辑。</p>
+            </div>
+            <span class="text-action">继续编辑 →</span>
+          </div>
+        </section>
+        <section aria-labelledby="stats-heading">
+          <div class="section-title">
+            <h2 id="stats-heading">求职概况</h2>
+            <span class="muted">当前记录</span>
+          </div>
+          <div class="stats">
+            <span class="muted">进行中的岗位</span><b>6 个</b
+            ><span class="muted">面试中的岗位</span><b>1 个</b
+            ><span class="muted">已收到录用</span><b>0 个</b>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

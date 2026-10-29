@@ -1,0 +1,156 @@
+{
+  "title": "GResume 全站视觉方向",
+  "question": "两种方向都保留现有功能、看板与列表、三页签抽屉和编辑流程。预览使用合成示例；选定方向后会形成完整规格，确认后实施。",
+  "options": [
+    {
+      "id": "catalog",
+      "kind": "assigned",
+      "label": "清晰目录",
+      "kicker": "方案一",
+      "lineage": "出版物目录的对齐与信息分级",
+      "thesis": "让简历名称、岗位和下一步动作成为页面的视觉主角。",
+      "palette": ["#ffffff", "#18181b", "#f4f4f5", "#52525b"],
+      "materials": ["连续信息行", "明确的标题层级", "轻量边界"],
+      "viewport": "保留左侧导航；最近简历用连续信息行，三类提醒紧凑排列，统计在下方展开。",
+      "risk": "更紧凑，卡片之间的留白比现在少。",
+      "raised": [
+        {
+          "from": "star-atlas",
+          "raise": "重要信息用大小与字重区分，颜色不承担唯一含义。"
+        },
+        {
+          "from": "botanical",
+          "raise": "同一对象在不同页面使用一致的信息顺序。"
+        },
+        {
+          "from": "marketing",
+          "raise": "直接展示真实内容与动作，删除重复说明。"
+        },
+        { "from": "grid", "raise": "标题、数值和操作沿共同的基线对齐。" },
+        {
+          "from": "catalog-code",
+          "raise": "元信息只出现一次，保留可读中文名称。"
+        },
+        {
+          "from": "exposure",
+          "raise": "明暗层次有固定用途，不为装饰新增表面。"
+        }
+      ],
+      "html": ".impeccable/mocks/decision/catalog.html",
+      "comp": ".impeccable/mocks/decision/catalog.webp"
+    },
+    {
+      "id": "workspace",
+      "kind": "pick",
+      "label": "专注编辑",
+      "kicker": "推荐方案",
+      "lineage": "编辑校对中的主稿与旁注",
+      "thesis": "保留熟悉的工作区，让内容连贯、操作紧凑、辅助信息退后。",
+      "palette": ["#ffffff", "#18181b", "#fafafa", "#71717a"],
+      "materials": ["开阔正文", "紧凑工具栏", "单层内容容器"],
+      "viewport": "保留左侧导航和页面顺序；最近简历与提醒各有层级，待办与辅助动态区分主次。",
+      "risk": "更接近成熟文档工具，辨识度来自排版和产品内容。",
+      "html": ".impeccable/mocks/decision/workspace.html",
+      "comp": ".impeccable/mocks/decision/workspace.webp"
+    },
+    {
+      "id": "star-atlas",
+      "kind": "challenger",
+      "catalogId": "notation-diagram-systems-star-atlas",
+      "label": "星图分级",
+      "verdict": "declined",
+      "thesis": "用尺度区分重要性。",
+      "palette": ["#142235", "#ffffff"],
+      "materials": ["尺度分级"],
+      "viewport": "保留标准导航与工作区。",
+      "risk": "点阵容易分散求职任务的注意力。",
+      "case": "求职者识别成本高，任务不够直接。",
+      "kept": "重要信息用大小和字重区分。"
+    },
+    {
+      "id": "botanical",
+      "kind": "challenger",
+      "catalogId": "editorial-sequence-montage-botanical-folio-season",
+      "label": "阶段对照",
+      "verdict": "declined",
+      "thesis": "同一对象保持一致尺度。",
+      "palette": ["#f8f6ef", "#354733"],
+      "materials": ["阶段比较"],
+      "viewport": "保留标准导航与工作区。",
+      "risk": "植物隐喻与求职操作没有直接关系。",
+      "case": "隐喻不能改善任务识别。",
+      "kept": "跨页面沿用同一信息顺序。"
+    },
+    {
+      "id": "marketing",
+      "kind": "challenger",
+      "catalogId": "digital-design-canon-monochrome-product-marketing",
+      "label": "产品展示",
+      "verdict": "declined",
+      "thesis": "以实际内容支持说明。",
+      "palette": ["#fafafa", "#171717"],
+      "materials": ["内容与依据"],
+      "viewport": "保留标准导航与工作区。",
+      "risk": "宣传页节奏不适合高频编辑。",
+      "case": "内容展示强于实际操作。",
+      "kept": "删除重复口号和说明。"
+    },
+    {
+      "id": "grid",
+      "kind": "challenger",
+      "catalogId": "crouwel-grid-specimen",
+      "label": "网格排版",
+      "verdict": "declined",
+      "thesis": "信息沿统一基线对齐。",
+      "palette": ["#ffffff", "#181818"],
+      "materials": ["对齐网格"],
+      "viewport": "保留标准导航与工作区。",
+      "risk": "大型造型字和可见网格会挤压内容。",
+      "case": "装饰更突出，工作区更难读。",
+      "kept": "严格对齐和稳定间距。"
+    },
+    {
+      "id": "catalog-code",
+      "kind": "challenger",
+      "catalogId": "brand-identity-canon-saville-catalog-sleeve",
+      "label": "编号目录",
+      "verdict": "declined",
+      "thesis": "每个对象只保留一组元信息。",
+      "palette": ["#171717", "#ffffff"],
+      "materials": ["对象索引"],
+      "viewport": "保留标准导航与工作区。",
+      "risk": "编号替代中文名称会增加识别成本。",
+      "case": "编码不符合日常求职习惯。",
+      "kept": "元信息去重，名称始终可读。"
+    },
+    {
+      "id": "exposure",
+      "kind": "challenger",
+      "catalogId": "operate-b-exposure-record-zone-sheets",
+      "label": "明暗记录",
+      "verdict": "declined",
+      "thesis": "每层表面都有明确用途。",
+      "palette": ["#efefef", "#292929"],
+      "materials": ["明暗分层"],
+      "viewport": "保留标准导航与工作区。",
+      "risk": "重叠纸层和纹理会干扰表单。",
+      "case": "纹理降低内容与状态的辨识度。",
+      "kept": "表面层次按功能分配。"
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "code", "toggle": true },
+  "canon": true,
+  "canonCard": {
+    "kind": "canon",
+    "label": "沿用现有结构精修",
+    "thesis": "保留现在的卡片布局，主要统一留白和文字。",
+    "palette": ["#ffffff", "#171717", "#f5f5f5"],
+    "materials": ["现有卡片", "常规工作台"],
+    "viewport": "保持首页模块形式，调整控件、间距与字号。",
+    "risk": "变化较小，可能不足以解决整体模板感。",
+    "html": ".impeccable/mocks/decision/canon.html",
+    "comp": ".impeccable/mocks/decision/canon.webp"
+  },
+  "steer": true
+}

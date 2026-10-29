@@ -62,7 +62,7 @@ export default function VersionCard({
           'relative isolate flex items-start gap-1 rounded-lg border p-3 transition-colors',
           selected
             ? 'border-transparent'
-            : 'border-border/60 bg-background hover:bg-muted/35',
+            : 'border-transparent bg-background hover:bg-muted/35',
         )}
       >
         {selected && <SelectionHighlight />}

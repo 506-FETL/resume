@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { isValidElement } from 'react'
+import { isValidElement, memo } from 'react'
 import { Streamdown } from 'streamdown'
 import { CodeBlock } from '@/components/ui/code-block'
 import { cn } from '@/lib/utils'
@@ -50,7 +50,10 @@ const MARKDOWN_COMPONENTS = { pre: CodeBlockPre } as ComponentProps<
 
 // 助手文本按 markdown 渲染（复用仓库既有 Streamdown，支持流式增量）。
 // 代码块改用仓库 CodeBlock：带语言图标、语法高亮与复制/下载。
-export function TextPart({ text, animate = false }: TextPartProps) {
+export const TextPart = memo(function TextPart({
+  text,
+  animate = false,
+}: TextPartProps) {
   const reduceMotion = useReducedMotion()
 
   return (
@@ -63,4 +66,4 @@ export function TextPart({ text, animate = false }: TextPartProps) {
       <Streamdown components={MARKDOWN_COMPONENTS}>{text}</Streamdown>
     </div>
   )
-}
+})

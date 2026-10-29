@@ -43,6 +43,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
   const ownerId = useUserStore((state) => state.currentUser?.id ?? null)
   const reviewActive = useResumeReviewStore((state) => state.active)
   const [open, setOpen] = useState(false)
+  const [contentMounted, setContentMounted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [clickFailure, setClickFailure] = useState<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -57,10 +58,12 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
   const identity = `${ownerId ?? 'guest'}:${resumeId}`
   const sameIdentity = checks.identity === identity
   const record = sameIdentity ? checks.record : null
+  const contentEnabled = open || contentMounted
 
   const snapshot = useMemo(
-    () => (open && form.isInitialized ? form.getPersistedSnapshot() : null),
-    [open, form],
+    () =>
+      contentEnabled && form.isInitialized ? form.getPersistedSnapshot() : null,
+    [contentEnabled, form],
   )
 
   const snapshotSignature = snapshot ? JSON.stringify(snapshot) : ''
@@ -98,7 +101,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
   )
 
   const snapshotReady = !!snapshot && !!resumeId && !reviewActive
-  const blocked = busy || !snapshotReady
+  const blocked = !open || busy || !snapshotReady
   const sourceReady = documentState.status === 'ready' && !!isSourceCurrent?.()
   const pdfReady = sourceReady && !!handlePrint
   const wordReady = sourceReady && !!sourceRef?.current
@@ -179,15 +182,17 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent
+        onOpenAutoFocus={() => setContentMounted(true)}
         style={{
           animationDuration: `${reducedMotion ? 0 : open ? DURATION.base : DURATION.fast}s`,
           animationTimingFunction: `cubic-bezier(${(open ? EASE.out : EASE.in).join(',')})`,
         }}
-        className={`flex max-h-[85dvh] flex-col gap-4 sm:max-w-lg ${reducedMotion ? 'animate-none! duration-0!' : ''}`}
-        overlayClassName={
-          reducedMotion ? 'animate-none! duration-0!' : 'resume-export-overlay'
-        }
+        className='flex max-h-[85dvh] flex-col gap-4 sm:max-w-lg'
+        overlayClassName='resume-export-overlay'
         onCloseAutoFocus={() => {
+          // 先完成退场，再释放摘要快照，避免关闭时切回短加载态。
+          setContentMounted(false)
+
           const pendingCheck = pendingCheckRef.current
 
           pendingCheckRef.current = null
@@ -212,7 +217,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
           }
         }}
       >
-        <style>{`.resume-export-overlay[data-state="open"]{animation-duration:${DURATION.base}s;animation-timing-function:cubic-bezier(${EASE.out.join(',')})}.resume-export-overlay[data-state="closed"]{animation-duration:${DURATION.fast}s;animation-timing-function:cubic-bezier(${EASE.in.join(',')})}`}</style>
+        <style>{`.resume-export-overlay[data-state="open"]{animation-duration:${reducedMotion ? 0 : DURATION.base}s;animation-timing-function:cubic-bezier(${EASE.out.join(',')})}.resume-export-overlay[data-state="closed"]{animation-duration:${reducedMotion ? 0 : DURATION.fast}s;animation-timing-function:cubic-bezier(${EASE.in.join(',')})}`}</style>
         <DialogHeader className='shrink-0'>
           <DialogTitle>导出简历</DialogTitle>
           <DialogDescription className='sr-only'>
@@ -281,6 +286,7 @@ export default function ExportDialog({ trigger }: ExportDialogProps) {
                           <Button
                             size='sm'
                             variant='ghost'
+                            disabled={!open}
                             aria-label={`查看${level.label}`}
                             onClick={() => viewChecks(severity, items[0]?.id)}
                           >

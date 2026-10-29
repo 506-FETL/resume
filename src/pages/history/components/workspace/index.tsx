@@ -11,7 +11,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { DURATION, EASE } from '@/lib/motion'
+import { CONTENT_SWITCH } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
 import HistoryDetailPanel from '../detail-panel'
@@ -46,7 +46,14 @@ export default function HistoryWorkspace({
   const detailRef = useRef<HTMLDivElement>(null)
   const backRef = useRef<HTMLButtonElement>(null)
   const [narrow, setNarrow] = useState(true)
-  const previousPanel = useRef(mobilePanel)
+  const [displayedPanel, setDisplayedPanel] = useState(mobilePanel)
+  const previousPanelRef = useRef(mobilePanel)
+  const visiblePanel = reduceMotion ? mobilePanel : displayedPanel
+  const exiting = narrow && visiblePanel !== mobilePanel
+  const timelineVisible = !narrow || visiblePanel === 'timeline'
+  const detailVisible = !narrow || visiblePanel === 'detail'
+  const timelineInteractive = timelineVisible && !exiting
+  const detailInteractive = detailVisible && !exiting
   const hasWorkspace = !(error && !loading && !currentResume)
 
   useLayoutEffect(() => {
@@ -64,41 +71,75 @@ export default function HistoryWorkspace({
   }, [hasWorkspace])
 
   useLayoutEffect(() => {
+    if (!narrow || reduceMotion) setDisplayedPanel(mobilePanel)
+  }, [mobilePanel, narrow, reduceMotion])
+
+  useLayoutEffect(() => {
+    const timeline = timelineRef.current
+    const detail = detailRef.current
+
+    if (!timeline || !detail) return
+
+    // 先把焦点交给常驻容器，再隔离退出面板，避免隐藏聚焦节点。
+    if (
+      (!timelineInteractive && timeline.contains(document.activeElement)) ||
+      (!detailInteractive && detail.contains(document.activeElement))
+    ) {
+      workspaceRef.current?.focus({ preventScroll: true })
+    }
+
+    timeline.inert = !timelineInteractive
+    detail.inert = !detailInteractive
+
+    for (const [panel, interactive] of [
+      [timeline, timelineInteractive],
+      [detail, detailInteractive],
+    ] as const) {
+      if (interactive) panel.removeAttribute('aria-hidden')
+      else panel.setAttribute('aria-hidden', 'true')
+    }
+
+    if (exiting) return
+
     if (narrow) {
       if (
         mobilePanel === 'detail' &&
-        (previousPanel.current !== 'detail' ||
-          timelineRef.current?.contains(document.activeElement))
+        (previousPanelRef.current !== 'detail' ||
+          document.activeElement === workspaceRef.current)
       ) {
         backRef.current?.focus({ preventScroll: true })
       } else if (
         mobilePanel === 'timeline' &&
-        (timelineFocusTarget !== null ||
-          detailRef.current?.contains(document.activeElement))
+        (previousPanelRef.current !== 'timeline' ||
+          timelineFocusTarget !== null ||
+          document.activeElement === workspaceRef.current)
       ) {
         const target =
           timelineFocusTarget ?? detailPanelState.selectedEntry ?? 'current'
 
-        const button = timelineRef.current?.querySelector<HTMLButtonElement>(
+        const button = timeline.querySelector<HTMLButtonElement>(
           `[data-history-entry="${target}"]`,
         )
 
         if (button) button.focus({ preventScroll: true })
-        else timelineRef.current?.focus({ preventScroll: true })
+        else timeline.focus({ preventScroll: true })
       }
     } else if (document.activeElement === backRef.current) {
-      detailRef.current?.focus({ preventScroll: true })
+      detail.focus({ preventScroll: true })
     }
 
-    previousPanel.current = mobilePanel
+    previousPanelRef.current = mobilePanel
 
     if (timelineFocusTarget !== null) clearTimelineFocus()
   }, [
     clearTimelineFocus,
+    detailInteractive,
     detailPanelState.selectedEntry,
+    exiting,
     mobilePanel,
     narrow,
     timelineFocusTarget,
+    timelineInteractive,
   ])
 
   useEffect(() => {
@@ -133,8 +174,10 @@ export default function HistoryWorkspace({
   return (
     <div
       ref={workspaceRef}
+      tabIndex={-1}
       className={cn(
-        'relative grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] gap-3',
+        'relative grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] gap-3 outline-none',
+        narrow && 'overflow-hidden',
         !narrow && 'grid-cols-[clamp(16rem,23%,20rem)_minmax(0,1fr)]',
       )}
     >
@@ -142,19 +185,27 @@ export default function HistoryWorkspace({
         ref={timelineRef}
         tabIndex={-1}
         aria-label='版本记录'
-        inert={narrow && mobilePanel !== 'timeline'}
         initial={false}
-        animate={{ opacity: narrow && mobilePanel !== 'timeline' ? 0 : 1 }}
-        transition={{
-          duration: reduceMotion ? 0 : DURATION.fast,
-          ease: EASE.out,
+        animate={{
+          opacity: timelineInteractive ? 1 : 0,
+          transform:
+            timelineInteractive || reduceMotion
+              ? 'translateX(0px)'
+              : 'translateX(-8px)',
         }}
+        transition={{
+          ...(exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
+          ...(reduceMotion && { duration: 0 }),
+        }}
+        onAnimationComplete={() => {
+          if (exiting && visiblePanel === 'timeline')
+            setDisplayedPanel(mobilePanel)
+        }}
+        style={{ visibility: timelineVisible ? 'visible' : 'hidden' }}
         className={cn(
           'flex h-full min-h-0 min-w-0 flex-col rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          narrow && 'col-start-1 row-start-1',
-          narrow &&
-            mobilePanel !== 'timeline' &&
-            'pointer-events-none absolute inset-0 overflow-hidden',
+          narrow && 'absolute inset-0 col-start-1 row-start-1',
+          !timelineInteractive && 'pointer-events-none',
         )}
       >
         <HistoryTimeline
@@ -165,19 +216,27 @@ export default function HistoryWorkspace({
       <motion.div
         ref={detailRef}
         tabIndex={-1}
-        inert={narrow && mobilePanel !== 'detail'}
         initial={false}
-        animate={{ opacity: narrow && mobilePanel !== 'detail' ? 0 : 1 }}
-        transition={{
-          duration: reduceMotion ? 0 : DURATION.fast,
-          ease: EASE.out,
+        animate={{
+          opacity: detailInteractive ? 1 : 0,
+          transform:
+            detailInteractive || reduceMotion
+              ? 'translateX(0px)'
+              : 'translateX(8px)',
         }}
+        transition={{
+          ...(exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
+          ...(reduceMotion && { duration: 0 }),
+        }}
+        onAnimationComplete={() => {
+          if (exiting && visiblePanel === 'detail')
+            setDisplayedPanel(mobilePanel)
+        }}
+        style={{ visibility: detailVisible ? 'visible' : 'hidden' }}
         className={cn(
           'flex h-full min-h-0 min-w-0 flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          narrow && 'col-start-1 row-start-1',
-          narrow &&
-            mobilePanel !== 'detail' &&
-            'pointer-events-none absolute inset-0 overflow-hidden',
+          narrow && 'absolute inset-0 col-start-1 row-start-1',
+          !detailInteractive && 'pointer-events-none',
         )}
       >
         <Button

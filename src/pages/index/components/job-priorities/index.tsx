@@ -20,7 +20,10 @@ export default function JobPriorities({
   )
 
   return (
-    <div className='grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3'>
+    <section
+      aria-label='求职提醒'
+      className='grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3'
+    >
       <PriorityCard
         title='下一场面试'
         icon={MessagesSquare}
@@ -47,8 +50,9 @@ export default function JobPriorities({
         items={focused}
         resource={resources.jobs}
         empty='还没有重点关注的职位'
+        allTo='/tracker?focus=1'
       />
-    </div>
+    </section>
   )
 }
 
@@ -61,6 +65,7 @@ function PriorityCard({
   resource,
   empty,
   emptyHint,
+  allTo = '/tracker',
 }: {
   title: string
   icon: LucideIcon
@@ -73,12 +78,13 @@ function PriorityCard({
   >
   empty: string
   emptyHint?: string
+  allTo?: string
 }) {
   const pending = resource.loading && !resource.hasLoaded
   const unavailable = Boolean(resource.error) && !resource.hasLoaded
 
   return (
-    <Card className='relative isolate min-w-0'>
+    <Card className='relative isolate h-full min-w-0 gap-0 rounded-lg border bg-card py-5 shadow-none ring-0'>
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 -z-1 select-none ${accent}`}
@@ -87,15 +93,15 @@ function PriorityCard({
           className='absolute inset-0 opacity-[0.14] dark:opacity-[0.12]'
           style={{
             backgroundImage:
-              'radial-gradient(ellipse 280px 190px at top left, currentColor, transparent 72%)',
+              'radial-gradient(ellipse 180px 110px at top left, currentColor, transparent 72%)',
           }}
         />
         <Icon
-          className='absolute -top-3 -left-2 size-28 -rotate-12 opacity-[0.09] dark:opacity-[0.12]'
+          className='absolute -top-3 -left-2 size-22 -rotate-12 opacity-[0.09] dark:opacity-[0.12]'
           strokeWidth={1.25}
         />
       </div>
-      <CardHeader className='pb-3'>
+      <CardHeader className='grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-5 pb-2'>
         <CardTitle className='flex items-center gap-2 text-base font-semibold'>
           {title}
           {resource.hasLoaded && items.length > 0 && (
@@ -107,8 +113,19 @@ function PriorityCard({
             </Badge>
           )}
         </CardTitle>
+        <Button
+          asChild
+          variant='ghost'
+          size='sm'
+          className='h-auto shrink-0 gap-1 px-1 py-1 text-xs text-muted-foreground'
+        >
+          <Link to={allTo} aria-label={`查看全部${title}`}>
+            查看全部
+            <ArrowRight className='size-3' aria-hidden />
+          </Link>
+        </Button>
       </CardHeader>
-      <CardContent className='pt-0'>
+      <CardContent className='px-5 pt-0'>
         <AnimatedContent
           animationKey={
             pending

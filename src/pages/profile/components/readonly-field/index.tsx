@@ -9,7 +9,7 @@ interface ReadonlyFieldProps {
 
 export function ReadonlyField({ id, label, icon, value }: ReadonlyFieldProps) {
   return (
-    <dl className='space-y-2'>
+    <dl className='grid gap-2 py-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center'>
       <dt
         id={`${id}-label`}
         className='flex items-center gap-2 text-sm font-medium'

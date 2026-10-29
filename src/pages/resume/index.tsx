@@ -230,7 +230,7 @@ export default function ResumePage() {
             </TabsList>
           </Tabs>
 
-          <div className='grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4'>
+          <div className='grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4 [&>*]:w-full [&>*]:max-w-96'>
             <AnimatePresence mode='popLayout' initial={false}>
               {visibleItems.map((resume, index) => {
                 const isSyncingThis = syncingIds.has(resume.resume_id)
@@ -280,38 +280,53 @@ export default function ResumePage() {
                 )
               })}
 
-              <PresenceDiv
-                key='create-card'
-                layout={shouldReduceMotion ? false : 'position'}
-                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: shouldReduceMotion ? 0 : DURATION.base,
-                  ease: EASE.out,
-                  layout: shouldReduceMotion ? { duration: 0 } : SPRING.layout,
-                }}
-              >
-                <button
-                  type='button'
-                  aria-label='打开创建简历表单'
-                  onClick={openCreate}
-                  className='flex h-full min-h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border border-dashed bg-card py-5 text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-[border-color,box-shadow,background-color] ease-(--ui-motion-enter-ease) hover:border-primary/50 hover:bg-muted/20 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
-                  style={{
-                    transitionDuration: shouldReduceMotion
-                      ? '0s'
-                      : `${DURATION.base}s`,
+              {visibleItems.length === 0 && (
+                <PresenceDiv
+                  key='create-card'
+                  layout={shouldReduceMotion ? false : 'position'}
+                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{
+                    opacity: 0,
+                    y: shouldReduceMotion ? 0 : -4,
+                    transition: {
+                      duration: shouldReduceMotion ? 0 : DURATION.fast,
+                      ease: EASE.in,
+                    },
+                  }}
+                  transition={{
+                    duration: shouldReduceMotion ? 0 : DURATION.base,
+                    ease: EASE.out,
+                    layout: shouldReduceMotion
+                      ? { duration: 0 }
+                      : SPRING.layout,
                   }}
                 >
-                  <span aria-hidden='true' className='flex justify-center px-6'>
-                    <span className='flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10'>
-                      <Plus className='size-5' />
+                  <Button
+                    variant='outline'
+                    aria-label='打开创建简历表单'
+                    onClick={openCreate}
+                    className='flex h-full min-h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border border-dashed bg-card py-5 text-card-foreground shadow-xs ring-1 ring-foreground/10 transition-[border-color,box-shadow,background-color] ease-(--ui-motion-enter-ease) hover:border-primary/50 hover:bg-muted/20 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+                    style={{
+                      transitionDuration: shouldReduceMotion
+                        ? '0s'
+                        : `${DURATION.base}s`,
+                    }}
+                  >
+                    <span
+                      aria-hidden='true'
+                      className='flex justify-center px-6'
+                    >
+                      <span className='flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10'>
+                        <Plus className='size-5' />
+                      </span>
                     </span>
-                  </span>
-                  <span className='flex justify-center px-6 text-sm font-medium'>
-                    创建新简历
-                  </span>
-                </button>
-              </PresenceDiv>
+                    <span className='flex justify-center px-6 text-sm font-medium'>
+                      创建新简历
+                    </span>
+                  </Button>
+                </PresenceDiv>
+              )}
             </AnimatePresence>
           </div>
 
@@ -379,9 +394,9 @@ function ResumePageSkeleton() {
         <Skeleton className='h-5 w-64' />
       </div>
 
-      <div className='grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-4'>
+      <div className='grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4 [&>*]:w-full [&>*]:max-w-96'>
         {Array.from({ length: 8 }, (_, idx) => idx).map((i) => (
-          <Card key={i} className='min-h-48 gap-3 p-4'>
+          <Card key={i} className='min-h-48 gap-3 rounded-lg p-4'>
             <div className='flex items-center gap-2.5'>
               <Skeleton className='size-8 rounded-lg' />
               <div className='space-y-1.5'>

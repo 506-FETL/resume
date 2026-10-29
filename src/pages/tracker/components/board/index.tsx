@@ -125,11 +125,17 @@ function BoardColumnDropArea({
       aria-label={`${APPLICATION_STATUS_CONFIG[status].label}职位`}
       data-motion-drop-container={status}
       className={cn(
-        'flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg px-2 pt-1 pb-2 transition-colors [scrollbar-width:thin]',
-        active && 'bg-primary/5 ring-1 ring-primary/30',
+        'flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg px-2 pt-1 pb-2 transition-[background-color,box-shadow] [scrollbar-width:thin]',
+        active && 'bg-primary/5',
         highlighted && !active && 'bg-primary/5',
       )}
-      style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
+      style={{
+        boxShadow: active
+          ? 'inset 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent)'
+          : 'inset 0 0 0 1px transparent',
+        transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s`,
+        transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+      }}
     >
       {jobs.length > 0 ? (
         jobs.map((job, index) => (
@@ -375,7 +381,7 @@ function BoardView() {
                     else columnElementsRef.current.delete(column.status)
                   }}
                   className={cn(
-                    'flex min-h-0 flex-col rounded-lg border border-transparent bg-muted/35 transition-colors',
+                    'flex min-h-0 flex-col rounded-lg border border-transparent bg-muted/25 transition-colors',
                     highlighted && 'border-primary/40 bg-primary/5',
                     collapsed ? 'w-[44px] shrink-0' : 'min-w-64 flex-1',
                   )}

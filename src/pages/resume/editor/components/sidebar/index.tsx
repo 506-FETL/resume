@@ -70,7 +70,7 @@ export default function SidebarEditor({
       className={isMobile ? 'h-full min-h-0 w-full' : undefined}
     >
       {isMobile ? (
-        <SideTabs className='shrink-0'>
+        <SideTabs className='shrink-0 [@container_editor-drawer_(max-height:320px)]:pb-0'>
           {renderBasics()}
           {sortableOrder.map((id) => {
             const item = ITEMS.find((it) => it.id === id)!
@@ -92,7 +92,7 @@ export default function SidebarEditor({
           })}
         </SideTabs>
       ) : (
-        <SideTabs>
+        <SideTabs className='gap-2 border-b border-border/60 pb-3'>
           {renderBasics()}
           <Reorder.Group
             as='div'
@@ -100,7 +100,7 @@ export default function SidebarEditor({
             values={draft}
             onReorder={setDraft}
             layoutScroll
-            className='flex flex-row gap-3'
+            className='flex flex-row gap-2'
           >
             {draft.map((id) => {
               const item = ITEMS.find((it) => it.id === id)!

@@ -70,16 +70,16 @@ export function SignUpForm({
     >
       <AnimatedContent animationKey={success ? 'success' : 'form'}>
         {success ? (
-          <Card>
-            <CardHeader>
-              <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
+          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+            <CardHeader className='gap-3 px-0'>
+              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
                 验证邮箱
               </h1>
               <CardDescription>
                 请查收验证邮件，确认邮箱后再登录。
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='px-0'>
               <Button asChild className='w-full'>
                 <Link to={`/login?redirect=${encodeURIComponent(redirect)}`}>
                   返回登录
@@ -88,13 +88,13 @@ export function SignUpForm({
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardHeader>
-              <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
+          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+            <CardHeader className='gap-3 px-0'>
+              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
                 注册
               </h1>
             </CardHeader>
-            <CardContent>
+            <CardContent className='px-0'>
               <form onSubmit={handleSignUp}>
                 <FieldGroup className='gap-6'>
                   <Field>

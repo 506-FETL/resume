@@ -7,7 +7,6 @@ import {
   GithubStars,
   GithubStarsIcon,
   GithubStarsNumber,
-  GithubStarsParticles,
 } from '@/components/animate-ui/primitives/animate/github-stars'
 import {
   Breadcrumb,
@@ -17,6 +16,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useBreadcrumbs } from '@/hooks/use-breadcrumbs'
@@ -114,17 +114,26 @@ export function SiteHeader() {
         )}
       >
         <GithubStars>
-          <div className='p-1 bg-muted flex items-center gap-1 rounded'>
-            <GithubStarsNumber className='text-muted-foreground font-medium' />
-            <GithubStarsParticles>
+          <Button
+            asChild
+            variant='ghost'
+            size='sm'
+            className='gap-1.5 px-2 text-xs text-muted-foreground'
+          >
+            <a
+              href='https://github.com/506-fetl/resume'
+              target='_blank'
+              rel='noreferrer'
+              aria-label='在 GitHub 查看 GResume 仓库'
+            >
               <GithubStarsIcon
                 icon={StarIcon}
-                className='fill-neutral-300 stroke-neutral-300 dark:fill-neutral-700 dark:stroke-neutral-700'
-                activeClassName='text-muted-foreground'
-                size={18}
+                className='size-3.5'
+                color='var(--color-amber-500)'
               />
-            </GithubStarsParticles>
-          </div>
+              <GithubStarsNumber className='font-medium tabular-nums' />
+            </a>
+          </Button>
         </GithubStars>
         <AnimatedThemeToggler />
       </div>

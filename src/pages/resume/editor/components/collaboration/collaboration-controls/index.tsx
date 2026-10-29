@@ -98,7 +98,7 @@ export function CollaborationControls({
       <div
         className={cn(
           'flex flex-wrap items-center gap-2',
-          isMobile && 'justify-center [&_button]:size-11',
+          isMobile && 'justify-center gap-1',
         )}
       >
         <Button

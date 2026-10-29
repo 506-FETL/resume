@@ -12,11 +12,11 @@ interface AccountSettingsCardProps {
 
 export function AccountSettingsCard({ user }: AccountSettingsCardProps) {
   return (
-    <Card className='shadow-none'>
-      <CardHeader>
+    <Card className='gap-5 overflow-visible rounded-none border-0 border-b bg-transparent pt-0 pb-6 shadow-none ring-0'>
+      <CardHeader className='px-0 pt-0'>
         <CardTitle>账户设置</CardTitle>
       </CardHeader>
-      <CardContent className='flex flex-col gap-4'>
+      <CardContent className='px-0 flex flex-col gap-4'>
         <div className='flex items-center justify-between'>
           <Label>修改密码</Label>
           <UpdatePasswordDialog />

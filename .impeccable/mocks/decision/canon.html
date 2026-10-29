@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GResume · 沿用现有结构精修</title>
+    <!-- prettier-ignore -->
+    <style>
+      * { box-sizing: border-box; }
+      :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; color: #232326; background: #f6f6f7; font-size: 14px; font-synthesis: none; }
+      body { width: 1440px; height: 900px; margin: 0; overflow: hidden; }
+      button { font: inherit; }
+      svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+      .symbols { position: absolute; width: 0; height: 0; overflow: hidden; }
+      .sidebar { position: absolute; inset: 16px auto 16px 16px; width: 222px; padding: 22px 12px 12px; border-radius: 12px; background: #fff; box-shadow: 0 3px 18px #18181b05; display: flex; flex-direction: column; }
+      .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 28px; font-size: 19px; font-weight: 650; letter-spacing: -.5px; }
+      .brand-icon { width: 24px; height: 24px; }
+      .nav { display: flex; flex-direction: column; gap: 5px; }
+      .nav-item { display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 13px; color: #66666e; border-radius: 7px; }
+      .nav-item.active { color: #242426; background: #f1f1f3; font-weight: 600; }
+      .assistant { margin-bottom: 18px; color: #3f3f46; }
+      .nav-separator { height: 1px; margin: 13px 12px 18px; background: #ededf0; }
+      .sidebar-bottom { margin-top: auto; }
+      .account { display: flex; align-items: center; gap: 10px; border-top: 1px solid #ededf0; padding: 18px 9px 4px; }
+      .avatar { width: 34px; height: 34px; border-radius: 50%; background: #eeeef0; color: #5f5f66; display: grid; place-items: center; }
+      .account-name { flex: 1; font-size: 13px; font-weight: 500; }
+      .account-name small { display: block; font-size: 11px; font-weight: 400; color: #686870; margin-top: 3px; }
+      main { width: 1106px; margin-left: 286px; padding-top: 44px; }
+      .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 35px; }
+      h1 { margin: 0; font-size: 27px; font-weight: 650; letter-spacing: -.65px; line-height: 1.5; }
+      .greeting { margin: 5px 0 0; color: #707078; line-height: 21px; }
+      .header-actions { display: flex; align-items: center; gap: 18px; }
+      .preview-label { color: #686870; font-size: 12px; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 13px; border: 1px solid #e2e2e7; border-radius: 7px; background: #fff; color: #33333a; white-space: nowrap; }
+      .btn.primary { color: #fff; background: #27272a; border-color: #27272a; }
+      .btn.small { height: 32px; padding: 0 11px; font-size: 13px; }
+      .btn.ghost { border-color: transparent; background: transparent; color: #676770; padding: 0; }
+      .section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+      h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+      .recent { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 25px; }
+      .resume { display: flex; align-items: center; gap: 14px; height: 110px; padding: 18px; border: 1px solid #e3e3e7; background: #fff; border-radius: 12px; }
+      .file-mark { width: 40px; height: 48px; border: 1px solid #e7e7eb; border-radius: 6px; background: #fafafa; color: #8a8a93; display: grid; place-items: center; }
+      .file-mark svg { width: 21px; height: 21px; }
+      .resume-body { flex: 1; min-width: 0; }
+      h3 { margin: 0; font-size: 14px; line-height: 22px; font-weight: 550; }
+      .muted { color: #707078; }
+      .resume-meta { margin: 5px 0 0; font-size: 12px; color: #686870; }
+      .resume-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+      .resume-actions .btn.ghost { padding-right: 4px; }
+      .priorities { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+      .priority { position: relative; overflow: hidden; height: 172px; padding: 19px 20px; border: 1px solid #e3e3e7; border-radius: 12px; background: #fff; isolation: isolate; }
+      .priority::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse 205px 125px at 0 0, var(--tint), transparent 75%); }
+      .priority.purple { --tint: #eee8fb; --accent: #7c4bba; --badge: #f0eafb; }
+      .priority.amber { --tint: #fbefd9; --accent: #926221; --badge: #fcf1d9; }
+      .priority.red { --tint: #fae7e7; --accent: #b34848; --badge: #fceaea; }
+      .priority-head { display: flex; align-items: center; gap: 8px; margin-bottom: 23px; }
+      .priority-head h2 { flex: 1; }
+      .priority-head svg { color: var(--accent); width: 20px; height: 20px; opacity: .7; }
+      .badge { background: var(--badge); color: var(--accent); border-radius: 5px; min-width: 22px; padding: 2px 6px; text-align: center; font-size: 12px; line-height: 18px; font-weight: 600; }
+      .priority-detail { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .priority-detail p { margin: 5px 0 0; font-size: 13px; color: #72727a; }
+      .priority-detail > svg { width: 16px; color: #8a8a92; }
+      .todo { background: #fff; border: 1px solid #e3e3e7; border-radius: 12px; margin-bottom: 26px; padding: 20px 22px 6px; }
+      .todo-heading { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+      .todo-heading > svg { color: #6c6c75; }
+      .todo-count { margin-left: auto; font-size: 12px; color: #686870; }
+      .todo-row { display: flex; align-items: center; gap: 13px; min-height: 69px; padding: 12px 0; border-top: 1px solid #ededf0; }
+      .task-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 7px; color: #71717a; background: #f4f4f5; }
+      .task-info { flex: 1; }
+      .task-info p { margin: 3px 0 0; font-size: 12px; color: #686870; }
+      .task-link { display: flex; align-items: center; gap: 5px; color: #676770; font-size: 13px; }
+      .task-link svg { width: 15px; height: 15px; }
+      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+      .stat { display: flex; align-items: center; gap: 13px; height: 93px; padding: 19px; border: 1px solid #e3e3e7; border-radius: 12px; background: #fff; }
+      .stat > svg { color: #85858e; width: 20px; height: 20px; }
+      .stat-label { font-size: 12px; color: #686870; }
+      .stat-value { margin-top: 3px; font-size: 24px; font-weight: 600; line-height: 30px; font-variant-numeric: tabular-nums; }
+      .stat-value span { margin-left: 5px; font-size: 12px; font-weight: 400; color: #686870; }
+      .continuation { margin-top: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .continuation div { background: #fff; border: 1px solid #e3e3e7; border-radius: 12px; padding: 20px; }
+      ::selection { background: #dedee4; color: #27272a; }
+    </style>
+  </head>
+  <body>
+    <!-- prettier-ignore -->
+    <svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+      <symbol id="file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6"/></symbol>
+      <symbol id="home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
+      <symbol id="spark" viewBox="0 0 24 24"><path d="m12 3 2.7 6.3L21 12l-6.3 2.7L12 21l-2.7-6.3L3 12l6.3-2.7zM20 2v4M18 4h4"/></symbol>
+      <symbol id="share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.5 10.5 7-4M8.5 13.5l7 4"/></symbol>
+      <symbol id="board" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M6 7v4M12 7v7M18 7v3"/></symbol>
+      <symbol id="layout" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></symbol>
+      <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="chat" viewBox="0 0 24 24"><path d="M21 11a7 7 0 0 1-7 7H7l-5 3 2-6a8 8 0 0 1-1-4 9 9 0 0 1 18 0z"/></symbol>
+      <symbol id="bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
+      <symbol id="flag" viewBox="0 0 24 24"><path d="M4 22V3c6-5 10 5 16 0v12c-6 5-10-5-16 0"/></symbol>
+      <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+      <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="list" viewBox="0 0 24 24"><path d="m3 6 2 2 3-4M11 6h10m-18 9 2 2 3-4M11 15h10M11 20h10"/></symbol>
+      <symbol id="send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/></symbol>
+      <symbol id="check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+      <symbol id="more" viewBox="0 0 24 24"><path d="m9 10 3-3 3 3m-6 4 3 3 3-3"/></symbol>
+    </defs></svg>
+    <!-- prettier-ignore -->
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand"><svg class="brand-icon"><use href="#file"/></svg>GResume</div>
+      <div class="nav-item assistant"><svg><use href="#spark"/></svg>AI 助手</div>
+      <nav class="nav">
+        <div class="nav-item active"><svg><use href="#home"/></svg>首页</div>
+        <div class="nav-item"><svg><use href="#file"/></svg>我的简历</div>
+        <div class="nav-item"><svg><use href="#share"/></svg>分享管理</div>
+        <div class="nav-item"><svg><use href="#board"/></svg>求职跟进</div>
+        <div class="nav-separator"></div>
+        <div class="nav-item"><svg><use href="#layout"/></svg>简历模板</div>
+        <div class="nav-item"><svg><use href="#spark"/></svg>简历优化</div>
+        <div class="nav-item"><svg><use href="#clock"/></svg>历史版本</div>
+      </nav>
+      <div class="sidebar-bottom"><div class="account"><div class="avatar">示</div><div class="account-name">示例用户<small>个人账户</small></div><svg><use href="#more"/></svg></div></div>
+    </aside>
+    <!-- prettier-ignore -->
+    <main aria-label="首页设计预览">
+      <header class="page-header"><div><h1>欢迎回来，示例用户</h1><p class="greeting">下午好</p></div><div class="header-actions"><span class="preview-label">设计预览 · 示例数据</span><button class="btn primary" type="button"><svg><use href="#plus"/></svg>创建简历</button></div></header>
+      <section aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">最近简历</h2><button class="btn ghost small" type="button">查看全部<svg><use href="#arrow"/></svg></button></div>
+        <div class="recent">
+          <article class="resume"><div class="file-mark"><svg><use href="#file"/></svg></div><div class="resume-body"><h3>产品经理 · 通用版</h3><p class="resume-meta">云端 · 今天 14:20 更新</p></div><div><button class="btn primary small" type="button">继续编辑</button><div class="resume-actions"><button class="btn ghost small" type="button">检查并导出</button></div></div></article>
+          <article class="resume"><div class="file-mark"><svg><use href="#file"/></svg></div><div class="resume-body"><h3>运营 · 岗位版本</h3><p class="resume-meta">云端 · 昨天 16:45 更新</p></div><div><button class="btn primary small" type="button">继续编辑</button><div class="resume-actions"><button class="btn ghost small" type="button">检查并导出</button></div></div></article>
+        </div>
+      </section>
+      <section class="priorities" aria-label="求职提醒">
+        <article class="priority purple"><div class="priority-head"><svg><use href="#chat"/></svg><h2>下一场面试</h2><span class="badge">1</span></div><div class="priority-detail"><div><h3>产品经理 · 示例科技</h3><p>明天 14:00 · 第一轮面试</p></div><svg><use href="#arrow"/></svg></div></article>
+        <article class="priority amber"><div class="priority-head"><svg><use href="#bell"/></svg><h2>到期跟进</h2><span class="badge">1</span></div><div class="priority-detail"><div><h3>运营专员 · 示例科技</h3><p>今天跟进 · 等待简历反馈</p></div><svg><use href="#arrow"/></svg></div></article>
+        <article class="priority red"><div class="priority-head"><svg><use href="#flag"/></svg><h2>重点关注</h2><span class="badge">1</span></div><div class="priority-detail"><div><h3>产品经理 · 示例科技</h3><p>已标记关注 · 面试中</p></div><svg><use href="#arrow"/></svg></div></article>
+      </section>
+      <section class="todo" aria-labelledby="todo-title"><div class="todo-heading"><svg><use href="#list"/></svg><h2 id="todo-title">今日待办</h2><span class="todo-count">2 项待处理</span></div>
+        <div class="todo-row"><div class="task-icon"><svg><use href="#file"/></svg></div><div class="task-info"><h3>检查并导出简历</h3><p>产品经理 · 通用版</p></div><span class="task-link">检查简历<svg><use href="#arrow"/></svg></span></div>
+        <div class="todo-row"><div class="task-icon"><svg><use href="#spark"/></svg></div><div class="task-info"><h3>查看简历优化建议</h3><p>运营 · 岗位版本</p></div><span class="task-link">查看建议<svg><use href="#arrow"/></svg></span></div>
+      </section>
+      <section class="stats" aria-label="求职统计摘要">
+        <div class="stat"><svg><use href="#send"/></svg><div><div class="stat-label">已投递</div><div class="stat-value">4<span>个岗位</span></div></div></div>
+        <div class="stat"><svg><use href="#chat"/></svg><div><div class="stat-label">面试进行中</div><div class="stat-value">1<span>个岗位</span></div></div></div>
+        <div class="stat"><svg><use href="#check"/></svg><div><div class="stat-label">收到 Offer</div><div class="stat-value">0<span>个岗位</span></div></div></div>
+        <div class="stat"><svg><use href="#spark"/></svg><div><div class="stat-label">平均 ATS 分</div><div class="stat-value">—<span>尚未检测</span></div></div></div>
+      </section>
+      <section class="continuation" aria-label="更多概览"><div><h2>求职进展</h2></div><div><h2>ATS 检测趋势</h2></div></section>
+    </main>
+  </body>
+</html>

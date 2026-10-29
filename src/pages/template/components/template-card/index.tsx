@@ -23,10 +23,10 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
 
   return (
     <article
-      className='group relative min-w-0 overflow-hidden rounded-xl border bg-card text-card-foreground transition-[border-color,box-shadow] ease-(--ui-motion-enter-ease) hover:border-foreground/20 hover:shadow-md'
+      className='group relative min-w-0 overflow-hidden rounded-lg bg-card text-card-foreground transition-colors ease-(--ui-motion-enter-ease) hover:bg-muted/40'
       style={transitionStyle}
     >
-      <div className='relative aspect-[210/297] overflow-hidden border-b bg-muted/20'>
+      <div className='relative aspect-[210/297] overflow-hidden rounded-lg border border-border/60 bg-muted/20'>
         <CardPreview item={item} example={selectedExample} />
         <div
           aria-hidden
@@ -38,7 +38,7 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
           </p>
         </div>
       </div>
-      <div className='flex min-w-0 items-center gap-3 p-4'>
+      <div className='flex min-w-0 items-center gap-3 px-1 py-3'>
         <div className='min-w-0 flex-1'>
           <h2 className='truncate text-sm font-semibold' title={item.name}>
             {item.name}

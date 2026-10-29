@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Tabs as TabsPrimitive } from 'radix-ui'
-import { DURATION, EASE } from '@/lib/motion'
+import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 interface TabsMotionContextValue {
@@ -184,7 +184,7 @@ function TabsTrigger({
                   : 'bg-foreground group-data-[orientation=horizontal]/tabs:inset-x-0 group-data-[orientation=horizontal]/tabs:bottom-[-5px] group-data-[orientation=horizontal]/tabs:h-0.5 group-data-[orientation=vertical]/tabs:inset-y-0 group-data-[orientation=vertical]/tabs:-right-1 group-data-[orientation=vertical]/tabs:w-0.5',
               )}
               transition={{
-                duration: reduced ? 0 : DURATION.base,
+                duration: reduced ? 0 : DURATION.fast,
                 ease: EASE.out,
               }}
             />
@@ -272,11 +272,11 @@ function TabsContent({
           transform:
             (displayed && !exiting) || reduced
               ? 'translateY(0px)'
-              : 'translateY(8px)',
+              : 'translateY(4px)',
         }}
         transition={{
-          duration: reduced ? 0 : exiting ? DURATION.fast : DURATION.base,
-          ease: exiting ? EASE.in : EASE.out,
+          ...(exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
+          ...(reduced && { duration: 0 }),
           delay: 0,
         }}
         onAnimationComplete={() => {

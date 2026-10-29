@@ -43,6 +43,12 @@ export const TRANSITION = {
   exit: { duration: DURATION.fast, ease: EASE.in } satisfies Transition,
 } as const
 
+/** 高频内容先退后进，总时长 210ms；不与普通浮层入场共用等待时间。 */
+export const CONTENT_SWITCH = {
+  enter: { duration: DURATION.fast, ease: EASE.out },
+  exit: { duration: DURATION.fast / 2, ease: EASE.out },
+} as const
+
 // —— 常用 variants ——
 /** 淡入 + 轻微上移 */
 export const fadeInUp: Variants = {

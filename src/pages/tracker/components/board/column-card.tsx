@@ -41,7 +41,7 @@ export const ColumnCard = memo(({ job }: ColumnCardProps) => {
   return (
     <Card
       className={cn(
-        'group gap-0 cursor-grab rounded-lg border border-border/70 bg-card p-0 shadow-none ring-0 transition-[background-color,border-color,box-shadow] select-none hover:border-foreground/20 hover:bg-accent/20 hover:shadow-sm active:cursor-grabbing',
+        'group gap-0 cursor-grab rounded-lg border border-border/70 bg-card p-0 shadow-none ring-0 transition-[background-color,border-color,box-shadow] select-none hover:border-foreground/20 hover:bg-accent/20 active:cursor-grabbing',
         isSelected && 'border-primary bg-primary/5',
         job.archived && 'opacity-60',
       )}
