@@ -8,11 +8,11 @@ import CanonicalPagedDocument from '@/components/resume/pagination/canonical-pag
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
-import { Button } from '@/components/ui/button'
 import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
 import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
+import HistoryActionButton from '../shared/history-action-button'
 
 interface VersionPdfExportButtonProps {
   versionId: number
@@ -133,29 +133,24 @@ export default function VersionPdfExportButton({
     setSnapshot(snap)
   }
 
+  const preparing = documentState.status === 'measuring' && snapshot !== null
+
   return (
     <>
-      <Button
+      <HistoryActionButton
         variant='outline'
-        size='sm'
+        label={loading ? '加载中…' : preparing ? '准备中…' : '导出 PDF'}
         className={className}
+        aria-busy={loading || preparing}
         disabled={loading}
         onClick={handleExport}
       >
-        {loading ? (
-          <LoaderCircle
-            className={cn(!reduceMotion && 'animate-spin')}
-            data-icon='inline-start'
-          />
+        {loading || preparing ? (
+          <LoaderCircle className={cn(!reduceMotion && 'animate-spin')} />
         ) : (
-          <FileDown data-icon='inline-start' />
+          <FileDown />
         )}
-        {loading
-          ? '加载中…'
-          : documentState.status === 'measuring' && snapshot
-            ? '准备中…'
-            : '导出 PDF'}
-      </Button>
+      </HistoryActionButton>
 
       {snapshot && previewData && definition && (
         <div

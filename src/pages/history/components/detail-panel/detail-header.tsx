@@ -30,6 +30,7 @@ import {
 import CompareDialog from '../compare-dialog'
 import HistoryDialogs from '../dialogs'
 import VersionPdfExportButton from '../version-pdf-export'
+import HistoryActionButton from '../shared/history-action-button'
 
 interface DetailHeaderProps {
   state: HistoryDetailPanelState
@@ -186,37 +187,39 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
           </>
         ) : (
           <>
-            <Button
-              size='sm'
+            <HistoryActionButton
+              label='恢复此版本'
               onClick={() => setRestoreTargetId(selectedVersion.id)}
             >
-              <RotateCcw data-icon='inline-start' />
-              恢复此版本
-            </Button>
-            <Button
+              <RotateCcw />
+            </HistoryActionButton>
+            <HistoryActionButton
+              label='对比'
               variant='outline'
-              size='sm'
               disabled={!canCompare}
               title={canCompare ? undefined : '还没有可对比的版本'}
               onClick={() => setCompareOpen(true)}
             >
-              <GitCompare data-icon='inline-start' />
-              对比
-            </Button>
+              <GitCompare />
+            </HistoryActionButton>
             <VersionPdfExportButton
               key={`pdf-${selectedVersion.id}`}
               versionId={selectedVersion.id}
               documentTitle={getVersionTitle(selectedVersion)}
             />
-            <Button variant='outline' size='sm' onClick={state.startEditing}>
-              <Edit3 data-icon='inline-start' />
-              编辑信息
-            </Button>
+            <HistoryActionButton
+              label='编辑信息'
+              variant='outline'
+              onClick={state.startEditing}
+            >
+              <Edit3 />
+            </HistoryActionButton>
             <DropdownMenu key={`menu-${selectedVersion.id}`}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant='ghost'
                   size='icon-sm'
+                  className='max-md:size-9'
                   aria-label='更多版本操作'
                 >
                   <MoreHorizontal />

@@ -10,14 +10,19 @@ import type { SkillItem } from '@/lib/schema'
 import {
   AlertCircle,
   AlertTriangle,
+  BookOpenText,
   Brain,
   Calendar,
+  ChartColumnIncreasing,
   CloudUpload,
   Database,
+  FileSearch,
   FileText,
   Info,
+  ListChecks,
   Sparkles,
   Tag,
+  Target,
 } from 'lucide-react'
 
 export const SCORE_LABELS = {
@@ -26,6 +31,14 @@ export const SCORE_LABELS = {
   impact_quantification: '成果与证据强度',
   ats_parsing: 'ATS 可解析性',
   format_readability: '表达与阅读体验',
+}
+
+export const SCORE_ICONS = {
+  job_match: Target,
+  content_completeness: ListChecks,
+  impact_quantification: ChartColumnIncreasing,
+  ats_parsing: FileSearch,
+  format_readability: BookOpenText,
 }
 
 export const severityConfig: Record<Severity, SeverityConfigVariant> = {

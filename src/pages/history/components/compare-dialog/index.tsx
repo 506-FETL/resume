@@ -212,7 +212,7 @@ export default function CompareDialog({
         </ResponsiveDialogHeader>
 
         <div
-          className='scrollbar-thin-subtle min-h-64 flex-1 overflow-y-auto overscroll-contain'
+          className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain'
           aria-busy={loading}
         >
           <AnimatePresence mode='wait' initial={false}>

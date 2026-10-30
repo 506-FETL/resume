@@ -98,3 +98,12 @@
 :where([data-sonner-toaster]) [data-sonner-toast][data-removed='true'] {
   --toast-motion-duration: var(--ui-motion-fast);
 }
+
+/* 保留调用方时长与缓动，避免与 Radix Popper 的 animation 简写冲突。 */
+.ui-popper-custom-duration {
+  animation-duration: var(--ui-popper-animation-duration);
+}
+
+.ui-popper-custom-easing {
+  animation-timing-function: var(--ui-popper-animation-easing);
+}

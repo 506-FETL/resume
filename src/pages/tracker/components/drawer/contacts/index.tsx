@@ -49,7 +49,15 @@ export default function Contacts({ job }: ContactsProps) {
   const [contacts, setContacts] = useState<TrackerContact[]>(job.contacts)
   const [baseline, setBaseline] = useState<TrackerContact[]>(job.contacts)
   const [savingId, setSavingId] = useState<string | null>(null)
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
+  const [pendingDelete, setPendingDelete] = useState<TrackerContact | null>(
+    null,
+  )
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null)
+  const deletingConfirmedRef = useRef(false)
   const contactsRef = useRef(contacts)
   const baselineRef = useRef(baseline)
   const jobContactsRef = useRef(job.contacts)
@@ -67,7 +75,7 @@ export default function Contacts({ job }: ContactsProps) {
     setContacts(jobContactsRef.current)
     setBaseline(jobContactsRef.current)
     setSavingId(null)
-    setPendingDeleteId(null)
+    setDeleteOpen(false)
   }, [job.id])
 
   const saving = savingId !== null
@@ -165,11 +173,12 @@ export default function Contacts({ job }: ContactsProps) {
   }
 
   const handleDelete = async () => {
-    const deleteId = pendingDeleteId
+    const deleteId = pendingDelete?.id
 
     if (!deleteId || saving) return
 
-    setPendingDeleteId(null)
+    deletingConfirmedRef.current = true
+    setDeleteOpen(false)
 
     const dbNext = baselineRef.current.filter((c) => c.id !== deleteId)
 
@@ -179,12 +188,12 @@ export default function Contacts({ job }: ContactsProps) {
     })
   }
 
-  const pendingDeleteContact = contacts.find(
-    (contact) => contact.id === pendingDeleteId,
-  )
-
   return (
-    <section className='flex flex-col gap-3'>
+    <section
+      ref={sectionRef}
+      tabIndex={-1}
+      className='flex flex-col gap-3 outline-none'
+    >
       <div className='flex items-center justify-between gap-2'>
         <div className='flex items-center gap-2'>
           <UserRound className='size-4 text-muted-foreground' />
@@ -241,9 +250,9 @@ export default function Contacts({ job }: ContactsProps) {
                             layout: SPRING.layout,
                           }
                     }
-                    className='flex items-start gap-2 rounded-lg border bg-card p-3'
+                    className='flex flex-col gap-3 rounded-lg border bg-card p-3'
                   >
-                    <div className='grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.25fr)]'>
+                    <div className='grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2'>
                       <label className='flex flex-col gap-1'>
                         <span className='text-[11px] font-medium text-muted-foreground'>
                           姓名
@@ -309,7 +318,7 @@ export default function Contacts({ job }: ContactsProps) {
                         />
                       </label>
                     </div>
-                    <div className='flex shrink-0 items-center gap-1 pt-[22px]'>
+                    <div className='flex shrink-0 items-center justify-end gap-1'>
                       {rowDirty && (
                         <Button
                           variant='outline'
@@ -327,9 +336,13 @@ export default function Contacts({ job }: ContactsProps) {
                         className='text-destructive hover:bg-destructive/10 hover:text-destructive'
                         aria-label='删除联系人'
                         disabled={saving}
-                        onClick={() => {
-                          if (isPersisted) setPendingDeleteId(contact.id)
-                          else
+                        onClick={(event) => {
+                          if (isPersisted) {
+                            deleteTriggerRef.current = event.currentTarget
+                            deletingConfirmedRef.current = false
+                            setPendingDelete(contact)
+                            setDeleteOpen(true)
+                          } else
                             setContacts((prev) =>
                               prev.filter((c) => c.id !== contact.id),
                             )
@@ -346,21 +359,36 @@ export default function Contacts({ job }: ContactsProps) {
         )}
       </AnimatedContent>
 
-      <AlertDialog
-        open={pendingDeleteId !== null}
-        onOpenChange={(open) => !open && setPendingDeleteId(null)}
-      >
-        <AlertDialogContent size='sm'>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent
+          size='sm'
+          className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto break-words'
+          style={{
+            animationDuration: `${reduceMotion ? 0 : deleteOpen ? DURATION.base : DURATION.fast}s`,
+            animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+
+            const target =
+              !deletingConfirmedRef.current &&
+              deleteTriggerRef.current?.isConnected
+                ? deleteTriggerRef.current
+                : sectionRef.current
+
+            target?.focus({ preventScroll: true })
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除联系人？</AlertDialogTitle>
             <AlertDialogDescription>
-              {`「${pendingDeleteContact?.name.trim() || '该联系人'}」将永久删除，无法恢复。`}
+              {`「${pendingDelete?.name.trim() || '该联系人'}」将永久删除，无法恢复。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={saving}
-              onClick={() => setPendingDeleteId(null)}
+              onClick={() => setDeleteOpen(false)}
             >
               取消
             </AlertDialogCancel>

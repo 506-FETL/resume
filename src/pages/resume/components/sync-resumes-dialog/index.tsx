@@ -77,7 +77,7 @@ export default function SyncResumesDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className='sm:max-w-150'>
+      <DialogContent className='max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-150'>
         <DialogHeader>
           <DialogTitle className='text-2xl'>同步本地简历到云端</DialogTitle>
           <DialogDescription className='sr-only'>
@@ -85,7 +85,7 @@ export default function SyncResumesDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className='flex flex-col gap-4'>
+        <div className='flex min-h-0 flex-col gap-4'>
           {/* 全选按钮 */}
           <div className='flex items-center gap-2 border-b pb-2'>
             <Checkbox
@@ -106,7 +106,7 @@ export default function SyncResumesDialog() {
           </div>
 
           {/* 简历列表 */}
-          <ScrollArea className='h-100 pr-4'>
+          <ScrollArea className='min-h-0 max-h-100 pr-4'>
             <div className='flex flex-col gap-3'>
               {offlineResumes.map((resume) => {
                 const isSelected = selectedIds.includes(resume.resume_id)

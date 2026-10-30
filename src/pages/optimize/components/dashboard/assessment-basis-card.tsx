@@ -17,8 +17,9 @@ import {
 } from '@/components/ui/collapsible'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { SCORE_LABELS } from '../../const'
+import { SCORE_ICONS, SCORE_LABELS } from '../../const'
 import useAtsStore from '../../store'
+import ProTips from '../pro-tips'
 import ScoresRadarChart from './scores-radar-chart'
 
 export default function AssessmentBasisCard() {
@@ -32,11 +33,14 @@ export default function AssessmentBasisCard() {
   const reduceMotion = useReducedMotion()
   const assessment = currentAtsConfig?.meta?.assessment
 
-  if (!loading && !currentAtsConfig?.scores) return null
+  if (!loading && !currentAtsConfig?.scores) return <ProTips />
 
   if (!assessment || currentAtsConfig?.meta?.rubricVersion !== '2.0') {
     return (
-      <ScoresRadarChart scores={currentAtsConfig?.scores} loading={loading} />
+      <div className='min-w-0 space-y-4'>
+        <ScoresRadarChart scores={currentAtsConfig?.scores} loading={loading} />
+        <ProTips />
+      </div>
     )
   }
 
@@ -121,11 +125,14 @@ export default function AssessmentBasisCard() {
               )}
             </div>
             <div className='grid min-w-0 items-start gap-5 px-4 pb-4 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] md:px-5 md:pb-5'>
-              <ScoresRadarChart
-                scores={currentAtsConfig.scores}
-                loading={loading}
-                embedded
-              />
+              <div className='min-w-0 space-y-5'>
+                <ScoresRadarChart
+                  scores={currentAtsConfig.scores}
+                  loading={loading}
+                  embedded
+                />
+                <ProTips embedded />
+              </div>
               <div className='min-w-0 space-y-2'>
                 <p className='text-xs font-medium text-muted-foreground'>
                   各维度判断理由
@@ -140,70 +147,79 @@ export default function AssessmentBasisCard() {
                   onValueChange={setRationaleOpen}
                   className='gap-2'
                 >
-                  {scoreRationales.map(([key, score], index) => (
-                    <AccordionItem
-                      key={key}
-                      value={key}
-                      className='rounded-lg border border-transparent bg-muted/25 px-3 transition-[background-color,border-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) last:border-b hover:border-primary/15 hover:bg-muted/40 data-[state=open]:border-primary/20 data-[state=open]:bg-primary/4 md:px-4'
-                    >
-                      {isMobile ? (
-                        <AccordionTrigger
-                          id={`${rationaleId}-${key}`}
-                          className='min-h-14 items-center py-3 hover:no-underline'
-                        >
-                          <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
-                            <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
-                            <span className='min-w-0 flex-1 truncate font-medium'>
-                              {SCORE_LABELS[key as keyof typeof SCORE_LABELS] ??
-                                key}
-                            </span>
-                            <span className='flex shrink-0 items-baseline gap-0.5 tabular-nums'>
-                              <span className='text-lg font-semibold tracking-tight text-foreground'>
-                                {score.score}
-                              </span>
-                              <span className='text-xs text-muted-foreground'>
-                                /{score.max}
-                              </span>
-                            </span>
-                          </span>
-                        </AccordionTrigger>
-                      ) : (
-                        <h3
-                          id={`${rationaleId}-${key}`}
-                          className='flex min-h-14 items-center py-3'
-                        >
-                          <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
-                            <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
-                            <span className='min-w-0 flex-1 truncate font-medium'>
-                              {SCORE_LABELS[key as keyof typeof SCORE_LABELS] ??
-                                key}
-                            </span>
-                            <span className='flex shrink-0 items-baseline gap-0.5 tabular-nums'>
-                              <span className='text-lg font-semibold tracking-tight text-foreground'>
-                                {score.score}
-                              </span>
-                              <span className='text-xs text-muted-foreground'>
-                                /{score.max}
-                              </span>
-                            </span>
-                          </span>
-                        </h3>
-                      )}
-                      <AccordionContent
-                        aria-labelledby={`${rationaleId}-${key}`}
-                        className='border-t border-border/50 pt-3 pr-8 text-sm leading-6 text-muted-foreground'
+                  {scoreRationales.map(([key, score], index) => {
+                    const Icon = SCORE_ICONS[key as keyof typeof SCORE_ICONS]
+
+                    return (
+                      <AccordionItem
+                        key={key}
+                        value={key}
+                        className='rounded-lg border border-transparent bg-muted/25 px-3 transition-[background-color,border-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) last:border-b hover:border-primary/15 hover:bg-muted/40 data-[state=open]:border-primary/20 data-[state=open]:bg-primary/4 md:px-4'
                       >
-                        <div className='flex items-start gap-2.5'>
-                          <Sparkles className='mt-1 size-3.5 shrink-0 text-primary' />
-                          <p>{score.rationale}</p>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
+                        {isMobile ? (
+                          <AccordionTrigger
+                            id={`${rationaleId}-${key}`}
+                            className='min-h-14 items-center py-3 hover:no-underline'
+                          >
+                            <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
+                              <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
+                                {String(index + 1).padStart(2, '0')}
+                              </span>
+                              <span className='min-w-0 flex-1 truncate font-medium'>
+                                {SCORE_LABELS[
+                                  key as keyof typeof SCORE_LABELS
+                                ] ?? key}
+                              </span>
+                              <span className='flex shrink-0 items-baseline gap-0.5 tabular-nums'>
+                                <span className='text-lg font-semibold tracking-tight text-foreground'>
+                                  {score.score}
+                                </span>
+                                <span className='text-xs text-muted-foreground'>
+                                  /{score.max}
+                                </span>
+                              </span>
+                            </span>
+                          </AccordionTrigger>
+                        ) : (
+                          <h3
+                            id={`${rationaleId}-${key}`}
+                            className='flex min-h-14 items-center py-3'
+                          >
+                            <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
+                              <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
+                                {String(index + 1).padStart(2, '0')}
+                              </span>
+                              <span className='min-w-0 flex-1 truncate font-medium'>
+                                {SCORE_LABELS[
+                                  key as keyof typeof SCORE_LABELS
+                                ] ?? key}
+                              </span>
+                              <span className='flex shrink-0 items-baseline gap-0.5 tabular-nums'>
+                                <span className='text-lg font-semibold tracking-tight text-foreground'>
+                                  {score.score}
+                                </span>
+                                <span className='text-xs text-muted-foreground'>
+                                  /{score.max}
+                                </span>
+                              </span>
+                            </span>
+                          </h3>
+                        )}
+                        <AccordionContent
+                          aria-labelledby={`${rationaleId}-${key}`}
+                          className='border-t border-border/50 pt-3 pr-8 text-sm leading-6 text-muted-foreground'
+                        >
+                          <div className='flex items-start gap-2.5'>
+                            <Icon
+                              aria-hidden
+                              className='mt-1 size-3.5 shrink-0 text-primary'
+                            />
+                            <p>{score.rationale}</p>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    )
+                  })}
                 </Accordion>
               </div>
             </div>

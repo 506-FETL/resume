@@ -7,7 +7,6 @@ import IssueAnalysis from './components/analysis'
 import OptimizeDashboard from './components/dashboard'
 import AssessmentBasisCard from './components/dashboard/assessment-basis-card'
 import Header from './components/header'
-import ProTips from './components/pro-tips'
 import RepairChecklist from './components/repair-checklist'
 import useAtsStore from './store'
 
@@ -45,7 +44,6 @@ function Optimize() {
         </div>
       </div>
       <AssessmentBasisCard />
-      <ProTips />
       <AdvancedTools />
     </PageLayout>
   )

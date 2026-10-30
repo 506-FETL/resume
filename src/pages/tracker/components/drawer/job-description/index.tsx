@@ -32,10 +32,9 @@ export default function JobDescription() {
         </DialogTrigger>
         <DialogContent
           style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-          overlayClassName={reduce ? 'animate-none!' : undefined}
-          className='max-h-[80dvh] overflow-y-auto'
+          className='flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-lg'
         >
-          <DialogHeader>
+          <DialogHeader className='shrink-0 pr-7'>
             <DialogTitle>岗位 JD</DialogTitle>
             <DialogDescription>
               {job?.jd_updated_at
@@ -43,12 +42,16 @@ export default function JobDescription() {
                 : '可在编辑职位中补充 JD 原文和来源。'}
             </DialogDescription>
           </DialogHeader>
-          <p className='whitespace-pre-wrap break-words text-sm'>
-            {job?.jd_text || '尚未填写 JD 原文'}
-          </p>
-          {job?.source && (
-            <p className='text-xs text-muted-foreground'>来源：{job.source}</p>
-          )}
+          <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
+            <p className='whitespace-pre-wrap break-words text-sm'>
+              {job?.jd_text || '尚未填写 JD 原文'}
+            </p>
+            {job?.source && (
+              <p className='text-xs text-muted-foreground'>
+                来源：{job.source}
+              </p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -1,85 +1,72 @@
 import type { GeneratorPhase } from '../types'
-import { motion } from 'motion/react'
+import { Check } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
-const STEPS = ['输入 JD', '解析岗位', '针对性改写', '完成'] as const
-
-const PHASE_INDEX: Record<GeneratorPhase, number> = {
-  idle: 0,
-  parsing: 1,
-  rewriting: 2,
-  success: 3,
-  error: 3,
-  aborted: 3,
-}
+const STEPS = ['职位描述', '岗位解析', '简历改写', '查看结果'] as const
 
 interface GeneratorStepIndicatorProps {
   phase: GeneratorPhase
+  step: number
 }
 
-export function GeneratorStepIndicator({ phase }: GeneratorStepIndicatorProps) {
-  const currentIndex = PHASE_INDEX[phase]
+export function GeneratorStepIndicator({
+  phase,
+  step,
+}: GeneratorStepIndicatorProps) {
   const reduceMotion = useReducedMotion()
+  const interrupted = phase === 'error' || phase === 'aborted'
 
   return (
-    <div className='grid grid-cols-4 gap-2' aria-label='派生进度'>
+    <ol className='grid grid-cols-4 gap-2' aria-label='岗位定制进度'>
       {STEPS.map((label, index) => {
-        const isComplete = index < currentIndex
-        const isCurrent = index === currentIndex
+        const isComplete = index < step - 1
+        const isCurrent = index === step - 1
 
         return (
-          <div
+          <li
             key={label}
-            className='relative flex min-w-0 flex-col items-center gap-2'
             aria-current={isCurrent ? 'step' : undefined}
+            className={cn(
+              'relative flex min-w-0 flex-col items-center gap-1.5 text-xs sm:flex-row',
+              isCurrent
+                ? 'font-medium text-foreground'
+                : 'text-muted-foreground',
+            )}
           >
+            <span
+              aria-hidden
+              style={{ transitionDuration: reduceMotion ? '0s' : undefined }}
+              className={cn(
+                'flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
+                isComplete && 'bg-primary/10 text-primary',
+                isCurrent &&
+                  !interrupted &&
+                  'bg-primary text-primary-foreground',
+                isCurrent && interrupted && 'bg-muted text-muted-foreground',
+                !isComplete && !isCurrent && 'bg-muted text-muted-foreground',
+              )}
+            >
+              {isComplete ? <Check className='size-3' /> : index + 1}
+            </span>
+            <span className='whitespace-nowrap'>{label}</span>
             {index < STEPS.length - 1 && (
               <span
-                aria-hidden='true'
-                className='pointer-events-none absolute top-3.5 left-[calc(50%+0.875rem)] h-px w-[calc(100%-1.25rem)] -translate-y-1/2 overflow-hidden bg-border'
-              >
-                <motion.span
-                  className='absolute inset-0 origin-left bg-primary'
-                  initial={false}
-                  animate={{ scaleX: isComplete ? 1 : 0 }}
-                  transition={{
-                    duration: reduceMotion ? 0 : DURATION.base,
-                    ease: EASE.out,
-                  }}
-                />
-              </span>
+                aria-hidden
+                style={{ transitionDuration: reduceMotion ? '0s' : undefined }}
+                className={cn(
+                  'absolute top-2.5 left-[calc(50%+0.875rem)] h-px w-[calc(100%-1.25rem)] transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) sm:static sm:w-auto sm:flex-1',
+                  isComplete ? 'bg-primary/50' : 'bg-border',
+                )}
+              />
             )}
-            <div
-              className={cn(
-                'relative flex size-7 items-center justify-center rounded-full border text-xs font-medium',
-                isComplete &&
-                  'border-primary bg-primary text-primary-foreground',
-                isCurrent && 'border-primary bg-primary/10 text-primary',
-                !isComplete &&
-                  !isCurrent &&
-                  'border-border bg-muted text-muted-foreground',
-              )}
-            >
-              {index + 1}
-            </div>
-
-            <div
-              className={cn(
-                'hidden truncate text-xs sm:block',
-                isCurrent
-                  ? 'font-medium text-foreground'
-                  : 'text-muted-foreground',
-              )}
-            >
-              {label}
-            </div>
-
-            <div className='sr-only'>{label}</div>
-          </div>
+            {isComplete && <span className='sr-only'>已完成</span>}
+            {isCurrent && interrupted && (
+              <span className='sr-only'>已停止</span>
+            )}
+          </li>
         )
       })}
-    </div>
+    </ol>
   )
 }

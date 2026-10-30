@@ -214,7 +214,6 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
         <DialogContent
           className='flex h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl'
           style={reduceMotion ? { animationDuration: '0s' } : undefined}
-          overlayClassName={reduceMotion ? 'animate-none!' : undefined}
           onCloseAutoFocus={(event) => {
             if (isMobile) {
               event.preventDefault()

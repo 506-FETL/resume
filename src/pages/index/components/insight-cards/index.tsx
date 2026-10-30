@@ -10,8 +10,10 @@ import {
   Activity,
   ArrowRight,
   BellRing,
+  BriefcaseBusiness,
   LineChart as LineChartIcon,
   LoaderCircle,
+  Plus,
   TrendingUp,
 } from 'lucide-react'
 import { useIsPresent } from 'motion/react'
@@ -27,6 +29,15 @@ import {
   YAxis,
 } from 'recharts'
 import { AnimatedContent } from '@/components/motion/animated-content'
+import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import {
   Card,
   CardContent,
@@ -270,11 +281,27 @@ export function FunnelCard({
               </BarChart>
             </ChartContainer>
           ) : (
-            <ChartEmpty
-              icon={<Activity className='size-4 text-muted-foreground/40' />}
-              text='添加岗位'
-              onClick={() => navigate('/tracker')}
-            />
+            <Empty className='min-h-[140px] gap-3 px-3 py-2'>
+              <EmptyHeader className='gap-1.5'>
+                <EmptyMedia variant='icon' className='mb-0 size-8'>
+                  <BriefcaseBusiness className='size-4' aria-hidden />
+                </EmptyMedia>
+                <EmptyTitle className='text-sm'>暂无在办岗位</EmptyTitle>
+                <EmptyDescription className='text-xs'>
+                  添加目标岗位，开始记录求职进展。
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => navigate('/tracker')}
+                >
+                  <Plus aria-hidden />
+                  添加岗位
+                </Button>
+              </EmptyContent>
+            </Empty>
           )}
         </AnimatedContent>
       </CardContent>

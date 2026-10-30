@@ -2,7 +2,7 @@ import type { ApplicationStatus } from '../../types'
 import { Archive, ArrowRightLeft, Trash2, X } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -76,10 +76,14 @@ export default function BatchActions() {
   )
 
   const reduce = useReducedMotion()
+  const statusTriggerRef = useRef<HTMLButtonElement>(null)
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null)
 
   const [pendingBatchStatus, setPendingBatchStatus] =
     useState<ApplicationStatus | null>(null)
 
+  const [batchStatusOpen, setBatchStatusOpen] = useState(false)
+  const [confirmationCount, setConfirmationCount] = useState(0)
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
 
   const selectableCount = filterJobs(
@@ -163,6 +167,8 @@ export default function BatchActions() {
   const handleBatchStatusChange = (newStatus: ApplicationStatus) => {
     if (newStatus === 'rejected' || newStatus === 'offer') {
       setPendingBatchStatus(newStatus)
+      setConfirmationCount(selectedCount)
+      setBatchStatusOpen(true)
 
       return
     }
@@ -241,7 +247,12 @@ export default function BatchActions() {
                 <div className='flex flex-wrap items-center gap-2 sm:ml-auto'>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant='outline' size='sm' className='h-7 gap-1'>
+                      <Button
+                        ref={statusTriggerRef}
+                        variant='outline'
+                        size='sm'
+                        className='h-7 gap-1'
+                      >
                         <ArrowRightLeft className='size-3.5' />
                         改状态
                       </Button>
@@ -271,10 +282,14 @@ export default function BatchActions() {
                     归档
                   </Button>
                   <Button
+                    ref={deleteTriggerRef}
                     variant='destructive'
                     size='sm'
                     className='h-7'
-                    onClick={() => setPendingBatchDelete(true)}
+                    onClick={() => {
+                      setConfirmationCount(selectedCount)
+                      setPendingBatchDelete(true)
+                    }}
                   >
                     <Trash2 />
                     删除选中
@@ -294,15 +309,24 @@ export default function BatchActions() {
           </PresenceDiv>
         )}
       </AnimatePresence>
-      <AlertDialog
-        open={pendingBatchStatus !== null}
-        onOpenChange={(open) => !open && setPendingBatchStatus(null)}
-      >
-        <AlertDialogContent>
+      <AlertDialog open={batchStatusOpen} onOpenChange={setBatchStatusOpen}>
+        <AlertDialogContent
+          className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto'
+          onCloseAutoFocus={(event) => {
+            const target = useTrackerStore.getState().isSelectMode
+              ? statusTriggerRef.current
+              : document.getElementById('tracker-batch-toggle')
+
+            if (target?.isConnected) {
+              event.preventDefault()
+              target.focus({ preventScroll: true })
+            }
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>确认批量变更流程？</AlertDialogTitle>
             <AlertDialogDescription>
-              将把选中的 {selectedCount} 个职位标记为「
+              将把选中的 {confirmationCount} 个职位标记为「
               {pendingBatchStatus
                 ? APPLICATION_STATUS_CONFIG[pendingBatchStatus].label
                 : ''}
@@ -310,13 +334,13 @@ export default function BatchActions() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingBatchStatus(null)}>
+            <AlertDialogCancel onClick={() => setBatchStatusOpen(false)}>
               取消
             </AlertDialogCancel>
             <AlertDialogAction
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
-                setPendingBatchStatus(null)
+                setBatchStatusOpen(false)
 
                 if (pendingBatchStatus) runBatchStatusChange(pendingBatchStatus)
               }}
@@ -331,11 +355,23 @@ export default function BatchActions() {
         open={pendingBatchDelete}
         onOpenChange={(open) => !open && setPendingBatchDelete(false)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto'
+          onCloseAutoFocus={(event) => {
+            const target = useTrackerStore.getState().isSelectMode
+              ? deleteTriggerRef.current
+              : document.getElementById('tracker-batch-toggle')
+
+            if (target?.isConnected) {
+              event.preventDefault()
+              target.focus({ preventScroll: true })
+            }
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除选中的职位？</AlertDialogTitle>
             <AlertDialogDescription>
-              将永久删除当前选中的 {selectedCount} 个职位，且无法恢复。
+              将永久删除当前选中的 {confirmationCount} 个职位，且无法恢复。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

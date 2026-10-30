@@ -13,6 +13,7 @@ interface DateFieldProps {
   value: Date | undefined
   onChange: (value: Date | undefined) => void
   className?: string
+  disabled?: boolean
 }
 
 function startOfToday() {
@@ -27,13 +28,17 @@ export default function DateField({
   value,
   onChange,
   className,
+  disabled = false,
 }: DateFieldProps) {
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
-      <Popover>
+      <Popover modal>
         <PopoverTrigger asChild>
           <Button
+            type='button'
             variant='outline'
+            disabled={disabled}
+            aria-label='分享有效期'
             className='min-w-0 flex-1 justify-start font-normal'
           >
             <CalendarIcon data-icon='inline-start' />
@@ -42,7 +47,10 @@ export default function DateField({
             </span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className='w-auto p-0' align='start'>
+        <PopoverContent
+          className='max-h-(--radix-popover-content-available-height) w-auto max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain p-0'
+          align='start'
+        >
           <Calendar
             mode='single'
             captionLayout='dropdown'
@@ -58,6 +66,7 @@ export default function DateField({
           variant='ghost'
           size='icon-sm'
           aria-label='清除有效期'
+          disabled={disabled}
           onClick={() => onChange(undefined)}
         >
           <X data-icon='inline-start' />

@@ -54,7 +54,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
 
   const reduceMotion = useReducedMotion()
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
-  const openSettingsAfterClose = useRef(false)
+  const actionAfterCloseRef = useRef<(() => void) | null>(null)
   const status = deriveShareStatus(share)
   const statusMeta = SHARE_STATUS_META[status]
   const url = buildShareUrl(share.token)
@@ -161,21 +161,24 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align='end'
-                  className='w-48'
+                  className='max-h-(--radix-dropdown-menu-content-available-height) w-48 overflow-y-auto overscroll-contain'
                   onCloseAutoFocus={(event) => {
-                    if (!openSettingsAfterClose.current) return
+                    const action = actionAfterCloseRef.current
+
+                    if (!action) return
 
                     event.preventDefault()
-                    openSettingsAfterClose.current = false
+                    actionAfterCloseRef.current = null
                     menuTriggerRef.current?.focus({ preventScroll: true })
-                    openSettingsDialog(share.id)
+                    action()
                   }}
                 >
                   <DropdownMenuGroup>
                     <DropdownMenuItem
                       disabled={busy || archived}
                       onSelect={() => {
-                        openSettingsAfterClose.current = true
+                        actionAfterCloseRef.current = () =>
+                          openSettingsDialog(share.id)
                       }}
                     >
                       <Settings2 />
@@ -183,7 +186,10 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       disabled={busy || archived}
-                      onClick={() => openVersionDialog(share.id)}
+                      onSelect={() => {
+                        actionAfterCloseRef.current = () =>
+                          openVersionDialog(share.id)
+                      }}
                     >
                       <History />
                       更换分享版本
@@ -201,7 +207,10 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
                     {!archived && (
                       <DropdownMenuItem
                         disabled={busy}
-                        onClick={() => openArchiveDialog(share.id)}
+                        onSelect={() => {
+                          actionAfterCloseRef.current = () =>
+                            openArchiveDialog(share.id)
+                        }}
                       >
                         <Archive />
                         归档分享
@@ -210,7 +219,10 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
                     <DropdownMenuItem
                       variant='destructive'
                       disabled={busy}
-                      onClick={() => openDeleteDialog(share.id)}
+                      onSelect={() => {
+                        actionAfterCloseRef.current = () =>
+                          openDeleteDialog(share.id)
+                      }}
                     >
                       <Trash2 />
                       永久删除

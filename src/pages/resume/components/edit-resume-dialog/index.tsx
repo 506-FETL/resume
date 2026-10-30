@@ -90,7 +90,7 @@ export default function EditResumeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-125'>
+      <DialogContent className='max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-125'>
         <DialogHeader>
           <DialogTitle>编辑简历信息</DialogTitle>
           <DialogDescription className='sr-only'>

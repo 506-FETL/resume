@@ -104,7 +104,10 @@ export function QuickSaveVersionDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-md' showCloseButton={!saving}>
+      <DialogContent
+        className='max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md'
+        showCloseButton={!saving}
+      >
         <DialogHeader>
           <DialogTitle>快速保存版本</DialogTitle>
           <DialogDescription className='sr-only'>

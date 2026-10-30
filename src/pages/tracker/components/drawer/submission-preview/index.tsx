@@ -95,7 +95,6 @@ export default function MaterialPreview({
     >
       <DialogContent
         style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-        overlayClassName={reduce ? 'animate-none!' : undefined}
         onCloseAutoFocus={(event) => {
           event.preventDefault()
 
@@ -115,9 +114,9 @@ export default function MaterialPreview({
               )
               ?.focus({ preventScroll: true })
         }}
-        className='max-h-[90dvh] overflow-y-auto sm:max-w-4xl'
+        className='flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-4xl'
       >
-        <DialogHeader>
+        <DialogHeader className='shrink-0 pr-7'>
           <DialogTitle>
             {revisionId ? '更正前的投递信息' : '投递原件'}
           </DialogTitle>
@@ -125,103 +124,109 @@ export default function MaterialPreview({
             查看本次保存的投递原件与 JD 副本。
           </DialogDescription>
         </DialogHeader>
-        <AnimatedContent
-          animationKey={error ? 'error' : material ? 'ready' : 'loading'}
-        >
-          {error ? (
-            <Alert variant='destructive'>
-              <AlertTitle>投递原件加载失败</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-              <Button
-                variant='outline'
-                className='mt-2 w-fit'
-                onClick={(event) => {
-                  event.currentTarget
-                    .closest<HTMLElement>('[role="dialog"]')
-                    ?.focus({ preventScroll: true })
+        <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
+          <AnimatedContent
+            animationKey={error ? 'error' : material ? 'ready' : 'loading'}
+          >
+            {error ? (
+              <Alert variant='destructive'>
+                <AlertTitle>投递原件加载失败</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+                <Button
+                  variant='outline'
+                  className='mt-2 w-fit'
+                  onClick={(event) => {
+                    event.currentTarget
+                      .closest<HTMLElement>('[role="dialog"]')
+                      ?.focus({ preventScroll: true })
 
-                  setAttempt((value) => value + 1)
-                }}
+                    setAttempt((value) => value + 1)
+                  }}
+                >
+                  重试
+                </Button>
+              </Alert>
+            ) : !material ? (
+              <p
+                role='status'
+                className='flex items-center gap-2 text-sm text-muted-foreground'
               >
-                重试
-              </Button>
-            </Alert>
-          ) : !material ? (
-            <p
-              role='status'
-              className='flex items-center gap-2 text-sm text-muted-foreground'
-            >
-              <Spinner aria-hidden className='motion-reduce:animate-none' />
-              正在加载投递原件
-            </p>
-          ) : (
-            <>
-              {revisionId && (
-                <dl className='grid grid-cols-1 gap-3 text-sm sm:grid-cols-2'>
-                  <div className='space-y-1'>
-                    <dt className='text-xs text-muted-foreground'>投递日期</dt>
-                    <dd>{material.submittedOn ?? '日期未知'}</dd>
-                  </div>
-                  <div className='space-y-1'>
-                    <dt className='text-xs text-muted-foreground'>投递渠道</dt>
-                    <dd className='break-words'>
-                      {material.channel ?? '未填写'}
-                    </dd>
-                  </div>
-                  {material.note && (
-                    <div className='space-y-1 sm:col-span-2'>
-                      <dt className='text-xs text-muted-foreground'>备注</dt>
-                      <dd className='whitespace-pre-wrap break-words'>
-                        {material.note}
+                <Spinner aria-hidden className='motion-reduce:animate-none' />
+                正在加载投递原件
+              </p>
+            ) : (
+              <>
+                {revisionId && (
+                  <dl className='grid grid-cols-1 gap-3 text-sm sm:grid-cols-2'>
+                    <div className='space-y-1'>
+                      <dt className='text-xs text-muted-foreground'>
+                        投递日期
+                      </dt>
+                      <dd>{material.submittedOn ?? '日期未知'}</dd>
+                    </div>
+                    <div className='space-y-1'>
+                      <dt className='text-xs text-muted-foreground'>
+                        投递渠道
+                      </dt>
+                      <dd className='break-words'>
+                        {material.channel ?? '未填写'}
                       </dd>
                     </div>
-                  )}
-                </dl>
-              )}
-              {material.kind === 'platform' && (
-                <div className='h-[60dvh] overflow-y-auto bg-muted/30 p-3'>
-                  <ScaledReadonlyPreview
-                    data={buildTemplateResumeData(material.snapshot)}
-                    appearance={material.snapshot}
-                    projectionReferenceDate={material.projectionReferenceDate}
-                    definition={material.definition}
-                  />
-                </div>
-              )}
-              {material.kind === 'file' && url && (
-                <>
-                  <Button
-                    asChild
-                    variant='outline'
-                    className='h-auto min-h-9 max-w-full py-2 whitespace-normal'
-                  >
-                    <a
-                      href={url}
-                      download={material.fileName}
-                      className='break-all'
-                    >
-                      下载原件：{material.fileName}
-                    </a>
-                  </Button>
-                  {material.fileMime === 'application/pdf' && (
-                    <iframe
-                      title='投递 PDF 原件'
-                      src={url}
-                      className='h-[60dvh] w-full rounded-lg border'
+                    {material.note && (
+                      <div className='space-y-1 sm:col-span-2'>
+                        <dt className='text-xs text-muted-foreground'>备注</dt>
+                        <dd className='whitespace-pre-wrap break-words'>
+                          {material.note}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
+                {material.kind === 'platform' && (
+                  <div className='min-w-0 rounded-lg bg-muted/30 p-3'>
+                    <ScaledReadonlyPreview
+                      data={buildTemplateResumeData(material.snapshot)}
+                      appearance={material.snapshot}
+                      projectionReferenceDate={material.projectionReferenceDate}
+                      definition={material.definition}
                     />
-                  )}
-                </>
-              )}
-              <section className='space-y-2 border-t pt-4'>
-                <h3 className='text-sm font-medium'>记录时保存的 JD</h3>
-                <SubmissionJdContent
-                  jdText={material.jdText}
-                  jdUpdatedAt={material.jdUpdatedAt}
-                />
-              </section>
-            </>
-          )}
-        </AnimatedContent>
+                  </div>
+                )}
+                {material.kind === 'file' && url && (
+                  <>
+                    <Button
+                      asChild
+                      variant='outline'
+                      className='h-auto min-h-9 max-w-full py-2 whitespace-normal'
+                    >
+                      <a
+                        href={url}
+                        download={material.fileName}
+                        className='break-all'
+                      >
+                        下载原件：{material.fileName}
+                      </a>
+                    </Button>
+                    {material.fileMime === 'application/pdf' && (
+                      <iframe
+                        title='投递 PDF 原件'
+                        src={url}
+                        className='h-[60dvh] w-full rounded-lg border'
+                      />
+                    )}
+                  </>
+                )}
+                <section className='space-y-2 border-t pt-4'>
+                  <h3 className='text-sm font-medium'>记录时保存的 JD</h3>
+                  <SubmissionJdContent
+                    jdText={material.jdText}
+                    jdUpdatedAt={material.jdUpdatedAt}
+                  />
+                </section>
+              </>
+            )}
+          </AnimatedContent>
+        </div>
       </DialogContent>
     </Dialog>
   )

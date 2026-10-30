@@ -38,15 +38,22 @@ export function AnalysisDialog({ open, onOpenChange }: AnalysisDialogProps) {
   }, [analysisState, selectedResumeType])
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className='sm:h-[85vh] sm:max-h-[85vh] flex flex-col p-0 overflow-hidden'>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      contentClassName='h-[min(85dvh,760px)] gap-0 sm:max-w-2xl'
+    >
+      <ResponsiveDialogContent className='min-h-0 flex-col overflow-hidden p-0'>
         <ResponsiveDialogHeader className='px-6 pt-6 pb-2 shrink-0 border-b'>
           <ResponsiveDialogTitle>ATS 分析过程</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
             分析结果仅供参考，请核对后再应用修改。
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
-        <ChainOfThought open className='w-full p-6 overflow-y-auto'>
+        <ChainOfThought
+          open
+          className='min-h-0 w-full flex-1 overflow-y-auto p-6'
+        >
           <ChainOfThoughtContent>
             {visibleSteps.map((stepConfig) => {
               const stepStatus = getStepStatus(

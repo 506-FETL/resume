@@ -45,6 +45,13 @@ export default function ResumePage() {
   const [routeParams] = useSearchParams()
   const routeJobId = routeParams.get('jobId')
   const routeAction = routeParams.get('action')
+
+  const [preparingResume, setPreparingResume] = useState<{
+    jobId: string
+    userId: string | null
+    resumeId: string
+  } | null>(null)
+
   const prepareOperationRef = useRef(0)
   const prepareQueueRef = useRef<Promise<void>>(Promise.resolve())
   const handledJobActionRef = useRef<string | null>(null)
@@ -129,6 +136,8 @@ export default function ResumePage() {
   }, [jobContext, routeJobId, routeAction, loading, openDeriveFor, user?.id])
 
   useLayoutEffect(() => {
+    setPreparingResume(null)
+
     return () => {
       prepareOperationRef.current += 1
     }
@@ -140,6 +149,8 @@ export default function ResumePage() {
     const jobId = jobContext.id
     const scope = getTrackerAccountScope()
     const operation = ++prepareOperationRef.current
+
+    setPreparingResume({ jobId, userId: scope.userId, resumeId })
 
     const isCurrent = () =>
       operation === prepareOperationRef.current &&
@@ -162,6 +173,8 @@ export default function ResumePage() {
         if (!isCurrent()) return
 
         toast.error(error instanceof Error ? error.message : '关联失败，请重试')
+      } finally {
+        if (isCurrent()) setPreparingResume(null)
       }
     })
 
@@ -270,6 +283,16 @@ export default function ResumePage() {
                   >
                     <ResumeCard
                       resume={resume}
+                      preparedForJob={jobContext?.resumeId === resume.resume_id}
+                      preparingForJob={
+                        preparingResume?.jobId === routeJobId &&
+                        preparingResume?.userId === user?.id &&
+                        preparingResume?.resumeId === resume.resume_id
+                      }
+                      prepareDisabled={
+                        preparingResume?.jobId === routeJobId &&
+                        preparingResume?.userId === user?.id
+                      }
                       onPrepareForJob={
                         jobContext?.id === routeJobId && !resume.isOffline
                           ? () => prepareForJob(resume.resume_id)

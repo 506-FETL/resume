@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Spinner } from '@/components/ui/spinner'
 import useShareStore from '../../store'
+import { useShareDialogFocus } from '../../hooks/use-share-dialog-focus'
 import { findShareById } from '../../utils'
 
 export default function ArchiveDialog() {
@@ -27,6 +28,7 @@ export default function ArchiveDialog() {
     archive,
   } = useShareStore()
 
+  const dialogFocus = useShareDialogFocus()
   const share = findShareById(allShares, shares, archiveShareId)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
@@ -61,19 +63,22 @@ export default function ArchiveDialog() {
     <AlertDialog
       open={archiveDialogOpen}
       onOpenChange={(open) => {
-        if (!open) closeArchiveDialog()
+        if (!open && !busy) closeArchiveDialog()
       }}
     >
-      <AlertDialogContent>
-        <AlertDialogHeader>
+      <AlertDialogContent
+        {...dialogFocus}
+        className='flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden'
+      >
+        <AlertDialogHeader className='min-h-0 overflow-y-auto overscroll-contain'>
           <AlertDialogTitle>归档分享链接？</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription className='break-words'>
             归档「
             {renderedShare?.label || '未命名链接'}
             」后，外部访问会立即失效；发布批次和评论仍会保留，之后可在评论来源中继续审阅。
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className='shrink-0'>
           <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
           <AlertDialogAction
             disabled={!archiveShareId || busy}

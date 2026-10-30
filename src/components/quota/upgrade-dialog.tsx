@@ -32,9 +32,8 @@ export function UpgradeDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
-        className='sm:max-w-md'
+        className='max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md'
         style={reduceMotion ? { animationDuration: '0s' } : undefined}
-        overlayClassName={reduceMotion ? 'animate-none!' : undefined}
         onOpenAutoFocus={() => {
           // 全局弹窗通过 store 打开，没有关联的 DialogTrigger。
           returnFocusRef.current =

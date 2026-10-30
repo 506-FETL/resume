@@ -73,7 +73,12 @@ export function InterviewSubStages({
   const cardWidth = isNarrow ? 9 : 10
   const connectorWidth = isNarrow ? 1.25 : 1.5
   const [selectedId, setSelectedId] = useState(subStages.at(-1)?.id ?? '')
-  const [deleting, setDeleting] = useState<string | null>(null)
+
+  const [deletedRound, setDeletedRound] = useState<InterviewSubStage | null>(
+    null,
+  )
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const selectedRound =
     subStages.find((round) => round.id === selectedId) ?? subStages.at(-1)
@@ -95,7 +100,6 @@ export function InterviewSubStages({
   const deletedRef = useRef(false)
   const exitingRoundIdRef = useRef<string | null>(null)
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null)
-  const deletedRound = subStages.find((round) => round.id === deleting)
 
   const revealSelectedRound = useCallback(() => {
     const viewport = scrollRef.current
@@ -407,7 +411,8 @@ export function InterviewSubStages({
                     onClick={(event) => {
                       deleteTriggerRef.current = event.currentTarget
                       deletedRef.current = false
-                      setDeleting(selectedRound.id)
+                      setDeletedRound(selectedRound)
+                      setDeleteOpen(true)
                     }}
                     className='text-muted-foreground hover:text-destructive'
                   >
@@ -468,11 +473,13 @@ export function InterviewSubStages({
           </TabsContent>
         </Tabs>
       )}
-      <AlertDialog
-        open={deleting !== null}
-        onOpenChange={(open) => !open && setDeleting(null)}
-      >
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent
+          className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto break-words'
+          style={{
+            animationDuration: `${reduce ? 0 : deleteOpen ? DURATION.base : DURATION.fast}s`,
+            animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault()
 
@@ -500,6 +507,8 @@ export function InterviewSubStages({
             <AlertDialogAction
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
+                const deleting = deletedRound?.id
+
                 if (!deleting) return
 
                 deletedRef.current = true

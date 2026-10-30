@@ -1,4 +1,6 @@
 import { CircleAlert, GitBranch } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Empty,
@@ -32,61 +34,82 @@ export function VariantLineageTreeDialog({
   currentResumeId,
   onOpen,
 }: VariantLineageTreeDialogProps) {
-  // 仅在弹窗打开时才拉取血缘：弹窗常驻挂载，若无条件按 rootId 查询，
-  // 协作者一进编辑器就会用自己的 user_id 查所有者的 resume_config，触发 406 噪音。
-  const { tree, loading, error } = useVariantLineage(open ? rootResumeId : null)
+  // 关闭时停止发起读取，但保留现有内容直到弹层退出完成。
+  const { tree, loading, error, refresh } = useVariantLineage(
+    rootResumeId,
+    open,
+  )
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader className='border-b px-6 pb-4 pt-6 text-left'>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      contentClassName='h-[min(80dvh,40rem)] sm:max-w-2xl'
+    >
+      <ResponsiveDialogContent className='min-h-0 overflow-hidden'>
+        <ResponsiveDialogHeader className='shrink-0 border-b px-5 py-5 text-left sm:px-6'>
           <ResponsiveDialogTitle>派生关系</ResponsiveDialogTitle>
           <ResponsiveDialogDescription className='sr-only'>
             原始简历与派生版本
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <div className='px-6 py-5 overflow-auto'>
-          {loading && (
-            <div className='flex flex-col gap-3' aria-label='正在加载派生关系'>
-              <Skeleton className='h-24 w-full' />
-              <Skeleton className='ml-6 h-24 w-[calc(100%-1.5rem)]' />
-              <Skeleton className='ml-12 h-24 w-[calc(100%-3rem)]' />
-            </div>
-          )}
+        <ScrollArea className='min-h-0 flex-1 overflow-hidden [&_[data-slot=scroll-area-viewport]]:overscroll-contain'>
+          <div className='px-5 py-5 sm:px-6'>
+            {loading && (
+              <div
+                className='flex flex-col gap-3'
+                aria-label='正在加载派生关系'
+              >
+                <Skeleton className='h-24 w-full' />
+                <Skeleton className='ml-6 h-24 w-[calc(100%-1.5rem)]' />
+                <Skeleton className='ml-12 h-24 w-[calc(100%-3rem)]' />
+              </div>
+            )}
 
-          {error && (
-            <Alert variant='destructive'>
-              <CircleAlert aria-hidden />
-              <AlertTitle>派生关系加载失败</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+            {error && (
+              <Alert variant='destructive'>
+                <CircleAlert aria-hidden />
+                <AlertTitle>派生关系加载失败</AlertTitle>
+                <AlertDescription>
+                  <p>{error}</p>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={() => refresh()}
+                  >
+                    重新加载
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {!loading && !error && tree && (
-            <div className='min-w-md pr-2'>
-              <VariantLineageTree
-                node={tree}
-                currentResumeId={currentResumeId}
-                onOpen={(id) => {
-                  onOpen(id)
-                  onOpenChange(false)
-                }}
-              />
-            </div>
-          )}
+            {!loading && !error && tree && (
+              <div className='min-w-0'>
+                <VariantLineageTree
+                  node={tree}
+                  currentResumeId={currentResumeId}
+                  onOpen={(id) => {
+                    onOpen(id)
+                    onOpenChange(false)
+                  }}
+                />
+              </div>
+            )}
 
-          {!loading && !error && !tree && (
-            <Empty className='min-h-72 border border-dashed'>
-              <EmptyHeader>
-                <EmptyMedia variant='icon'>
-                  <GitBranch />
-                </EmptyMedia>
-                <EmptyTitle>暂无派生关系</EmptyTitle>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </div>
+            {!loading && !error && !tree && (
+              <Empty className='min-h-56'>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <GitBranch />
+                  </EmptyMedia>
+                  <EmptyTitle>暂无派生关系</EmptyTitle>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </div>
+        </ScrollArea>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   )

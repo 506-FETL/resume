@@ -166,7 +166,7 @@ export default function VersionSelector({
       >
         <Command>
           <CommandInput placeholder='搜索版本' />
-          <CommandList className='max-h-72'>
+          <CommandList className='max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-5rem))] overscroll-contain'>
             <CommandEmpty>没有匹配的版本</CommandEmpty>
             <CommandGroup heading='发布内容'>
               <CommandItem

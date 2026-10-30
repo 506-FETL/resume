@@ -160,7 +160,6 @@ export default function CreateResumeCard({
           transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
           animationDuration: `${reduceMotion ? 0 : DURATION.base}s`,
         }}
-        overlayClassName={reduceMotion ? 'animate-none!' : undefined}
         onInteractOutside={(event) => {
           if (flow.creating) event.preventDefault()
         }}

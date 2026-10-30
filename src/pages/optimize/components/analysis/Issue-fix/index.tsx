@@ -135,7 +135,7 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className='flex h-[min(88dvh,56rem)] min-h-0 w-[60vw] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl motion-reduce:animate-none'>
+        <DialogContent className='flex h-[min(88dvh,56rem)] min-h-0 w-[60vw] max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl'>
           <DialogHeader className='shrink-0 border-b px-4 pt-4 pb-3 md:px-5'>
             <DialogTitle className='flex items-center gap-2 text-base'>
               <Wand2 className='size-4 shrink-0 text-primary' />

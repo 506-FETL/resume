@@ -18,6 +18,7 @@ export default function Header() {
         actions={
           <Button
             className='h-10 shrink-0 rounded-lg px-4'
+            data-share-dialog-fallback=''
             onClick={() => setCreateDialogOpen(true)}
             disabled={!canCreate}
             title={canCreate ? undefined : '请先创建或同步一份云端简历'}

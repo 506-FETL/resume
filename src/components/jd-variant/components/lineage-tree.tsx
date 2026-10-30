@@ -5,12 +5,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/utils'
 
 const STATUS_VARIANT: Record<
@@ -41,6 +41,7 @@ export function VariantLineageTree({
   onOpen,
   depth = 0,
 }: VariantLineageTreeProps) {
+  const reduceMotion = useReducedMotion()
   const isCurrent = node.resumeId === currentResumeId
   const status = node.derivedStatus
 
@@ -51,47 +52,47 @@ export function VariantLineageTree({
     <div
       className={cn(
         'relative flex flex-col gap-3',
-        depth > 0 && 'border-l border-border pl-5',
+        depth > 0 && 'border-l border-border pl-3 sm:pl-5',
       )}
     >
       {depth > 0 && (
         <span
-          className='absolute -left-px top-7 h-px w-5 bg-border'
+          className='absolute -left-px top-7 h-px w-3 bg-border sm:w-5'
           aria-hidden
         />
       )}
       <Card
         data-current={isCurrent}
+        style={{ transitionDuration: reduceMotion ? '0s' : undefined }}
         className={cn(
-          'w-[28rem] gap-4 py-4 shadow-none transition-colors',
+          'min-w-0 w-full gap-3 py-4 shadow-none transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
           isCurrent ? 'border-primary bg-primary/5' : 'hover:bg-accent/30',
         )}
       >
-        <CardHeader className='px-4'>
-          <CardTitle className='truncate'>
+        <CardHeader className='flex flex-col gap-2 px-4'>
+          <CardTitle className='min-w-0 wrap-anywhere leading-relaxed'>
             {node.displayName || '未命名简历'}
           </CardTitle>
           {isCurrent && <CardDescription>当前简历</CardDescription>}
-          <CardAction>
-            <div className='flex items-center gap-2'>
-              {status && (
-                <Badge variant={STATUS_VARIANT[status] ?? 'outline'}>
-                  {STATUS_LABEL[status] ?? status}
-                </Badge>
-              )}
-              {matchPct && <Badge variant='outline'>{matchPct}</Badge>}
-              {!isCurrent && (
-                <Button
-                  size='icon-sm'
-                  variant='ghost'
-                  onClick={() => onOpen(node.resumeId)}
-                  aria-label={`打开 ${node.displayName || '未命名简历'}`}
-                >
-                  <ArrowRight />
-                </Button>
-              )}
-            </div>
-          </CardAction>
+          <div className='flex flex-wrap items-center gap-2'>
+            {status && (
+              <Badge variant={STATUS_VARIANT[status] ?? 'outline'}>
+                {STATUS_LABEL[status] ?? status}
+              </Badge>
+            )}
+            {matchPct && <Badge variant='outline'>关键词覆盖 {matchPct}</Badge>}
+            {!isCurrent && (
+              <Button
+                size='sm'
+                variant='ghost'
+                onClick={() => onOpen(node.resumeId)}
+                aria-label={`打开 ${node.displayName || '未命名简历'}`}
+              >
+                打开
+                <ArrowRight />
+              </Button>
+            )}
+          </div>
         </CardHeader>
         {node.jdSnippet && (
           <CardContent className='px-4'>
@@ -179,7 +180,10 @@ export function VariantLineagePath({
             <span className='truncate'>{n.displayName || '未命名'}</span>
           </Badge>
           {n.matchRate != null && (
-            <span className='shrink-0 text-xs tabular-nums text-muted-foreground'>
+            <span
+              className='shrink-0 text-xs tabular-nums text-muted-foreground'
+              aria-label={`关键词覆盖率 ${Math.round(n.matchRate * 100)}%`}
+            >
               {Math.round(n.matchRate * 100)}%
             </span>
           )}

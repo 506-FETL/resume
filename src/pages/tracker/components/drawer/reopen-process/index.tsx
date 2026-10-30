@@ -87,8 +87,8 @@ function ReopenForm({
       }}
     >
       <DialogContent
+        className='flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-lg'
         style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-        overlayClassName={reduce ? 'animate-none!' : undefined}
         onCloseAutoFocus={(event) => {
           event.preventDefault()
           useTrackerStore.getState().finishReopen()
@@ -105,71 +105,79 @@ function ReopenForm({
             returnFocusRef.current.focus({ preventScroll: true })
         }}
       >
-        <DialogHeader>
+        <DialogHeader className='shrink-0 pr-7'>
           <DialogTitle>恢复流程</DialogTitle>
           <DialogDescription>
             继续这个岗位的原流程，保留之前的结束原因和面试记录。恢复到面试中会新增一轮面试。
           </DialogDescription>
         </DialogHeader>
-        <fieldset disabled={busy} className='space-y-4'>
-          {archived && (
-            <p className='text-sm text-muted-foreground'>
-              恢复后会取消归档，并显示在当前岗位列表中。
-            </p>
-          )}
-          <div className='space-y-2'>
-            <Label htmlFor='reopen-stage'>恢复到</Label>
-            <Select
-              value={target}
-              onValueChange={(value) =>
-                setTarget(value as ReopenProcessInput['target'])
-              }
-            >
-              <SelectTrigger id='reopen-stage' className='w-full'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(
-                  ['assessment', 'screen', 'written', 'interview'] as const
-                ).map((stage) => (
-                  <SelectItem key={stage} value={stage}>
-                    {APPLICATION_STATUS_CONFIG[stage].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <WorkflowDateField label='恢复日期' value={date} onChange={setDate} />
-          <div className='space-y-2'>
-            <Label htmlFor='reopen-reason'>恢复说明（选填）</Label>
-            <Textarea
-              id='reopen-reason'
-              value={reason}
-              maxLength={1000}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder='例如：招聘方重新联系，安排后续面试'
-            />
-          </div>
-        </fieldset>
-        {error != null && (
-          <Alert variant='destructive'>
-            <AlertDescription>{getTrackerErrorMessage(error)}</AlertDescription>
-            {error instanceof TrackerProcessError && error.conflictJobId && (
-              <Button
-                size='sm'
-                variant='outline'
-                className='mt-2 w-fit'
-                onClick={() => {
-                  pendingJobRef.current = error.conflictJobId
-                  setOpen(false)
-                }}
-              >
-                打开冲突岗位
-              </Button>
+        <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
+          <fieldset disabled={busy} className='space-y-4'>
+            {archived && (
+              <p className='text-sm text-muted-foreground'>
+                恢复后会取消归档，并显示在当前岗位列表中。
+              </p>
             )}
-          </Alert>
-        )}
-        <DialogFooter>
+            <div className='space-y-2'>
+              <Label htmlFor='reopen-stage'>恢复到</Label>
+              <Select
+                value={target}
+                onValueChange={(value) =>
+                  setTarget(value as ReopenProcessInput['target'])
+                }
+              >
+                <SelectTrigger id='reopen-stage' className='w-full'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(
+                    ['assessment', 'screen', 'written', 'interview'] as const
+                  ).map((stage) => (
+                    <SelectItem key={stage} value={stage}>
+                      {APPLICATION_STATUS_CONFIG[stage].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <WorkflowDateField
+              label='恢复日期'
+              value={date}
+              onChange={setDate}
+            />
+            <div className='space-y-2'>
+              <Label htmlFor='reopen-reason'>恢复说明（选填）</Label>
+              <Textarea
+                id='reopen-reason'
+                value={reason}
+                maxLength={1000}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder='例如：招聘方重新联系，安排后续面试'
+              />
+            </div>
+          </fieldset>
+          {error != null && (
+            <Alert variant='destructive'>
+              <AlertDescription>
+                {getTrackerErrorMessage(error)}
+              </AlertDescription>
+              {error instanceof TrackerProcessError && error.conflictJobId && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='mt-2 w-fit'
+                  onClick={() => {
+                    pendingJobRef.current = error.conflictJobId
+                    setOpen(false)
+                  }}
+                >
+                  打开冲突岗位
+                </Button>
+              )}
+            </Alert>
+          )}
+        </div>
+        <DialogFooter className='shrink-0 border-t pt-4'>
           <Button
             variant='outline'
             disabled={busy}

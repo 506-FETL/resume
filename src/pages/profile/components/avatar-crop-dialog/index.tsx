@@ -86,7 +86,7 @@ export function AvatarCropDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className='max-w-[min(96vw,52rem)] gap-0 overflow-hidden p-0'
+        className='max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-[min(96vw,52rem)]'
         showCloseButton={!submitting}
       >
         <DialogHeader className='px-6 pt-6'>
@@ -96,7 +96,7 @@ export function AvatarCropDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='flex flex-col gap-4 px-6 py-5'>
+        <div className='flex min-h-0 flex-col gap-4 overflow-y-auto px-6 py-5'>
           <div className='flex flex-wrap items-center gap-2'>
             <Button
               type='button'

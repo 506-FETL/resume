@@ -116,7 +116,7 @@ export function TodoCard({
               tone='positive'
             />
           ) : (
-            <div className='flex flex-col divide-y'>
+            <div className='flex flex-col gap-1'>
               {actions.map((action) => {
                 const tone = TONE_STYLES[action.tone]
                 const Icon = tone.icon
@@ -126,7 +126,7 @@ export function TodoCard({
                     key={action.id}
                     asChild
                     variant='ghost'
-                    className='group h-auto w-full justify-start gap-3 rounded-none px-1 py-4 text-left whitespace-normal motion-reduce:transition-none'
+                    className='group h-auto w-full justify-start gap-3 rounded-lg px-3 py-3 text-left whitespace-normal motion-reduce:transition-none'
                   >
                     <Link to={action.to}>
                       <div
@@ -150,7 +150,7 @@ export function TodoCard({
                           {action.label}
                         </p>
                         {action.hint && (
-                          <p className='truncate text-xs text-muted-foreground'>
+                          <p className='mt-0.5 text-xs leading-5 text-muted-foreground'>
                             {action.hint}
                           </p>
                         )}

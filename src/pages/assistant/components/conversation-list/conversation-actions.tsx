@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Ellipsis, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +22,8 @@ export function ConversationActions({
   onDelete,
 }: ConversationActionsProps) {
   const isMobile = useIsMobile()
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const actionAfterCloseRef = useRef<(() => void) | null>(null)
 
   if (isMobile) {
     return (
@@ -30,17 +33,40 @@ export function ConversationActions({
             variant='ghost'
             size='icon-sm'
             aria-label={`管理「${title}」`}
+            ref={triggerRef}
+            data-conversation-delete-trigger=''
           >
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align='end'>
+        <DropdownMenuContent
+          align='end'
+          onCloseAutoFocus={(event) => {
+            const action = actionAfterCloseRef.current
+
+            if (!action) return
+
+            event.preventDefault()
+            actionAfterCloseRef.current = null
+            triggerRef.current?.focus({ preventScroll: true })
+            action()
+          }}
+        >
           <DropdownMenuGroup>
-            <DropdownMenuItem onSelect={onRename}>
+            <DropdownMenuItem
+              onSelect={() => {
+                actionAfterCloseRef.current = onRename
+              }}
+            >
               <Pencil />
               重命名
             </DropdownMenuItem>
-            <DropdownMenuItem variant='destructive' onSelect={onDelete}>
+            <DropdownMenuItem
+              variant='destructive'
+              onSelect={() => {
+                actionAfterCloseRef.current = onDelete
+              }}
+            >
               <Trash2 />
               删除
             </DropdownMenuItem>
@@ -64,6 +90,7 @@ export function ConversationActions({
         variant='ghost'
         size='icon-sm'
         aria-label='删除'
+        data-conversation-delete-trigger=''
         onClick={onDelete}
       >
         <Trash2 className='size-3.5' />

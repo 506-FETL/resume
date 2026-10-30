@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Select as SelectPrimitive } from 'radix-ui'
 
 import { cn } from '@/lib/utils'
+import { getPopperAnimationProps } from '@/lib/popper-animation'
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from 'lucide-react'
 
 function Select({
@@ -57,11 +58,14 @@ function SelectTrigger({
 
 function SelectContent({
   className,
+  style,
   children,
   position = 'item-aligned',
   align = 'center',
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  const animation = getPopperAnimationProps(style)
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -71,10 +75,12 @@ function SelectContent({
           'relative z-50 max-h-(--radix-select-content-available-height) min-w-36 origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
           position === 'popper' &&
             'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
+          animation.className,
           className,
         )}
         position={position}
         align={align}
+        style={animation.style}
         {...props}
       >
         <SelectScrollUpButton />

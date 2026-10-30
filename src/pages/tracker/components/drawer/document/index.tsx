@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 import {
   getTrackerResumeScope,
   useTrackerResumeOptions,
@@ -38,16 +37,13 @@ function SharedResumePreview({ data }: { data: ResumePreviewData }) {
   )
 
   return (
-    <div className='scrollbar-gutter-stable scrollbar-thin-subtle h-full overflow-y-auto bg-muted/30 p-3 sm:p-4'>
+    <div className='p-3 sm:p-4'>
       <ScaledReadonlyPreview data={normalizedData} appearance={data} />
     </div>
   )
 }
 
-export default function DrawerDocument(_props: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
+export default function DrawerDocument() {
   const { jobId, resumeId } = useTrackerStore(
     useShallow((state) => ({
       jobId: state.selectedJob?.id ?? null,
@@ -80,7 +76,7 @@ export default function DrawerDocument(_props: {
     return () => {
       bindingVersionRef.current += 1
     }
-  }, [_props.open, jobId, scope])
+  }, [jobId, scope])
 
   const handleResumeChange = async (value: string) => {
     if (!jobId || binding) return
@@ -93,6 +89,12 @@ export default function DrawerDocument(_props: {
       await useTrackerStore
         .getState()
         .saveJobFields(jobId, { resume_id: value })
+
+      if (
+        version === bindingVersionRef.current &&
+        scope === getTrackerResumeScope()
+      )
+        toast.success('已绑定准备简历')
     } catch (error) {
       if (
         version === bindingVersionRef.current &&
@@ -117,62 +119,34 @@ export default function DrawerDocument(_props: {
   )
 
   return (
-    <section className='overflow-hidden rounded-xl border bg-card'>
-      <header className='flex w-full items-center gap-3 p-4 text-left'>
-        <span className='flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted'>
-          <FileText className='size-5 text-muted-foreground' />
-        </span>
-        <span className='min-w-0 flex-1 space-y-1'>
-          <span className='block text-sm font-medium'>准备中的简历</span>
-          <span className='block truncate text-xs text-muted-foreground'>
+    <section className='min-w-0 space-y-4 border-t pt-5'>
+      <header className='flex flex-wrap items-end justify-between gap-3'>
+        <div className='min-w-0 flex-1 basis-44 space-y-1.5'>
+          <h3 className='flex items-center gap-2 text-sm font-semibold'>
+            <FileText className='size-4 text-muted-foreground' />
+            准备中的简历
+          </h3>
+          <p className='truncate text-xs text-muted-foreground'>
             {resumeId
               ? selectedResume?.display_name || '已绑定简历'
-              : '未绑定简历'}
-          </span>
-        </span>
-      </header>
-      <div className='space-y-4 border-t p-4'>
-        <PreparationActions />
-        {listError ? (
-          <div
-            role='alert'
-            className='flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground'
-          >
-            <span>
-              简历列表加载失败：
-              {listError}
-            </span>
-            <Button variant='outline' size='sm' onClick={retryList}>
-              <RotateCcw className='size-3.5' />
-              重试列表
-            </Button>
-          </div>
-        ) : !resumes ? (
-          <div
-            role='status'
-            className='flex items-center gap-2 py-2 text-sm text-muted-foreground'
-          >
-            <Spinner aria-hidden className='motion-reduce:animate-none' />
-            正在加载简历列表
-          </div>
-        ) : resumes.length === 0 ? (
-          <div className='flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-4'>
-            <p className='text-sm text-muted-foreground'>还没有可绑定的简历</p>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={() => navigate(jobContextUrl('/resume', jobId))}
-            >
-              前往我的简历
-            </Button>
-          </div>
-        ) : (
-          <div className='space-y-2'>
+              : '选择简历后，可在这里预览和继续编辑'}
+          </p>
+        </div>
+        {resumes && resumes.length > 0 && (
+          <div className='w-full min-w-0 space-y-1.5 sm:w-60'>
             <Label
               htmlFor='tracker-resume-select'
-              className='text-xs font-medium text-muted-foreground'
+              className='flex items-center gap-1.5 text-xs text-muted-foreground'
             >
-              绑定简历
+              {binding && (
+                <Spinner
+                  aria-hidden
+                  className={reduce ? 'animate-none' : undefined}
+                />
+              )}
+              <span aria-live='polite'>
+                {binding ? '正在更新绑定…' : '绑定简历'}
+              </span>
             </Label>
             <Select
               value={resumeId || ''}
@@ -181,13 +155,16 @@ export default function DrawerDocument(_props: {
             >
               <SelectTrigger
                 id='tracker-resume-select'
-                className='w-52 max-w-full'
+                className='w-full'
+                aria-busy={binding}
               >
                 <SelectValue placeholder='选择一份简历' />
               </SelectTrigger>
               <SelectContent
                 style={
-                  reduce ? { animation: 'none', transform: 'none' } : undefined
+                  reduce
+                    ? { animationDuration: '0s', transform: 'none' }
+                    : undefined
                 }
               >
                 {resumes.map((resume) => (
@@ -198,47 +175,70 @@ export default function DrawerDocument(_props: {
                 ))}
               </SelectContent>
             </Select>
-            {binding && (
-              <p role='status' className='text-xs text-muted-foreground'>
-                正在更新绑定…
-              </p>
-            )}
           </div>
         )}
-        {resumeId && (
-          <div
-            className={cn(
-              'overflow-hidden rounded-lg border',
-              currentPreview ? 'h-[min(65dvh,48rem)] bg-white' : 'bg-muted/30',
-            )}
+      </header>
+      {listError ? (
+        <div
+          role='alert'
+          className='flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground'
+        >
+          <span className='min-w-0 break-words'>
+            简历列表加载失败：{listError}
+          </span>
+          <Button variant='outline' size='sm' onClick={retryList}>
+            <RotateCcw className='size-3.5' />
+            重试列表
+          </Button>
+        </div>
+      ) : !resumes ? (
+        <div
+          role='status'
+          className='flex items-center gap-2 py-2 text-sm text-muted-foreground'
+        >
+          <Spinner aria-hidden className='motion-reduce:animate-none' />
+          正在加载简历列表
+        </div>
+      ) : resumes.length === 0 ? (
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <p className='text-sm text-muted-foreground'>还没有可绑定的简历</p>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => navigate(jobContextUrl('/resume', jobId))}
           >
-            {currentPreviewError ? (
-              <div
-                role='alert'
-                className='flex flex-col items-center gap-3 px-4 py-8 text-center text-sm text-muted-foreground'
-              >
-                <p>
-                  简历预览加载失败：
-                  {currentPreviewError}
-                </p>
-                <Button variant='outline' size='sm' onClick={retryPreview}>
-                  重试预览
-                </Button>
-              </div>
-            ) : currentPreview ? (
-              <SharedResumePreview data={currentPreview} />
-            ) : (
-              <div
-                role='status'
-                className='flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground'
-              >
-                <Spinner aria-hidden className='motion-reduce:animate-none' />
-                正在加载简历预览
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+            前往我的简历
+          </Button>
+        </div>
+      ) : null}
+      <PreparationActions />
+      {resumeId && (
+        <div className='min-w-0 overflow-hidden rounded-lg bg-muted/35'>
+          {currentPreviewError ? (
+            <div
+              role='alert'
+              className='flex flex-col items-center gap-3 px-4 py-8 text-center text-sm text-muted-foreground'
+            >
+              <p className='break-words'>
+                简历预览加载失败：{currentPreviewError}
+              </p>
+              <Button variant='outline' size='sm' onClick={retryPreview}>
+                重试预览
+              </Button>
+            </div>
+          ) : currentPreview ? (
+            <SharedResumePreview data={currentPreview} />
+          ) : (
+            <div
+              role='status'
+              className='flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground'
+            >
+              <Spinner aria-hidden className='motion-reduce:animate-none' />
+              正在加载简历预览
+            </div>
+          )}
+        </div>
+      )}
     </section>
   )
 }

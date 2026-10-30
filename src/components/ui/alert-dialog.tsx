@@ -46,11 +46,15 @@ function AlertDialogContent({
   className,
   overlayClassName,
   size = 'default',
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
   size?: 'default' | 'sm'
   overlayClassName?: string
 }) {
+  const returnFocusRef = React.useRef<HTMLElement | null>(null)
+
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay className={overlayClassName} />
@@ -62,6 +66,30 @@ function AlertDialogContent({
           className,
         )}
         {...props}
+        onOpenAutoFocus={(event) => {
+          const activeElement = document.activeElement
+
+          returnFocusRef.current =
+            activeElement instanceof HTMLElement &&
+            activeElement !== document.body &&
+            activeElement !== document.documentElement
+              ? activeElement
+              : null
+
+          onOpenAutoFocus?.(event)
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event)
+
+          if (event.defaultPrevented) return
+
+          const target = returnFocusRef.current
+
+          if (target?.isConnected && !target.closest('[inert]')) {
+            event.preventDefault()
+            target.focus({ preventScroll: true })
+          }
+        }}
       />
     </AlertDialogPortal>
   )

@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from '../../types'
 import {
+  Check,
   Cloud,
   Edit2,
   GitBranch,
@@ -19,6 +20,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
+import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -41,11 +43,17 @@ import { VariantBadge } from './variant-badge'
 interface ResumeCardProps {
   resume: ResumeItem
   onPrepareForJob?: () => Promise<void>
+  preparedForJob?: boolean
+  preparingForJob?: boolean
+  prepareDisabled?: boolean
 }
 
 export default function ResumeCard({
   resume,
   onPrepareForJob,
+  preparedForJob = false,
+  preparingForJob = false,
+  prepareDisabled = false,
 }: ResumeCardProps) {
   const { deleteResume, updateResume, openDeriveFor, resumes } =
     useResumeListStore()
@@ -153,11 +161,22 @@ export default function ResumeCard({
         {onPrepareForJob && (
           <Button
             size='sm'
-            variant='outline'
+            variant={preparedForJob ? 'secondary' : 'outline'}
             className='relative z-1 mb-3'
+            disabled={prepareDisabled || preparedForJob}
+            aria-busy={preparingForJob}
             onClick={onPrepareForJob}
           >
-            设为此岗位准备中的简历
+            {preparingForJob ? (
+              <Spinner aria-label='正在设置' />
+            ) : preparedForJob ? (
+              <Check />
+            ) : null}
+            {preparingForJob
+              ? '正在设置…'
+              : preparedForJob
+                ? '已用于此岗位'
+                : '设为准备简历'}
           </Button>
         )}
         <button

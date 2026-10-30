@@ -14,6 +14,7 @@ interface ConversationDeleteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
+  returnFocus: () => HTMLElement | null
 }
 
 export function ConversationDeleteDialog({
@@ -21,10 +22,22 @@ export function ConversationDeleteDialog({
   open,
   onOpenChange,
   onConfirm,
+  returnFocus,
 }: ConversationDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent size='sm'>
+      <AlertDialogContent
+        size='sm'
+        className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto wrap-anywhere'
+        onCloseAutoFocus={(event) => {
+          const target = returnFocus()
+
+          if (target?.isConnected) {
+            event.preventDefault()
+            target.focus({ preventScroll: true })
+          }
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除该会话？</AlertDialogTitle>
           <AlertDialogDescription>

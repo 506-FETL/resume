@@ -24,11 +24,16 @@ export default function DeleteResumeDialog({
 }: DeleteResumeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className='max-h-[calc(100dvh-2rem)] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>确认删除简历?</DialogTitle>
           <DialogDescription>
-            <Badge variant='secondary'>{resumeName}</Badge>
+            <Badge
+              variant='secondary'
+              className='max-w-full whitespace-normal wrap-anywhere'
+            >
+              {resumeName}
+            </Badge>
             的所有数据将永久删除，无法恢复。
           </DialogDescription>
         </DialogHeader>

@@ -53,15 +53,14 @@ export function ResumeManager() {
         </Button>
       </DialogTrigger>
       <DialogContent
-        className='w-[calc(100vw-2rem)] max-w-125'
+        className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] grid-rows-[auto_minmax(0,1fr)] sm:max-w-125'
         style={reduceMotion ? { animationDuration: '0s' } : undefined}
-        overlayClassName={reduceMotion ? 'animate-none!' : undefined}
       >
         <DialogHeader>
           <DialogTitle>选择要优化的简历</DialogTitle>
           <DialogDescription>从已有简历中选择</DialogDescription>
         </DialogHeader>
-        <ScrollArea className='h-[min(350px,55dvh)] -mx-2 px-2'>
+        <ScrollArea className='-mx-2 min-h-0 max-h-[min(350px,55dvh)] px-2'>
           <AnimatedContent
             animationKey={
               resumes.length

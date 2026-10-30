@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PresenceListItem } from '@/components/motion/presence-item'
@@ -59,12 +59,20 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
   const reduce = useReducedMotion()
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
+  const [pendingDeleteActivity, setPendingDeleteActivity] =
+    useState<TrackerActivity | null>(null)
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
+  const [batchDeleteCount, setBatchDeleteCount] = useState(0)
+  const sectionRef = useRef<HTMLElement>(null)
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null)
+  const deletingConfirmedRef = useRef(false)
 
   // 最新在上
   const sorted = useMemo(
@@ -124,11 +132,12 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
   }
 
   const handleDelete = async () => {
-    const deleteId = pendingDeleteId
+    const deleteId = pendingDeleteActivity?.id
 
     if (!deleteId || saving) return
 
-    setPendingDeleteId(null)
+    deletingConfirmedRef.current = true
+    setDeleteOpen(false)
 
     if (editingId === deleteId) setEditingId(null)
 
@@ -175,10 +184,6 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
     cancelEdit()
   }
 
-  const pendingDeleteActivity = job.activities.find(
-    (activity) => activity.id === pendingDeleteId,
-  )
-
   const enterSelectMode = () => {
     cancelEdit()
     setSelectMode(true)
@@ -214,6 +219,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
   const handleBatchDelete = async () => {
     if (saving || selectedIds.size === 0) return
 
+    deletingConfirmedRef.current = true
     setPendingBatchDelete(false)
 
     const removed = selectedIds.size
@@ -226,10 +232,23 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
     exitSelectMode()
   }
 
+  const restoreDeleteFocus = (event: Event) => {
+    event.preventDefault()
+
+    const target =
+      !deletingConfirmedRef.current && deleteTriggerRef.current?.isConnected
+        ? deleteTriggerRef.current
+        : sectionRef.current
+
+    target?.focus({ preventScroll: true })
+  }
+
   return (
     <section
+      ref={sectionRef}
+      tabIndex={-1}
       aria-label='跟进记录'
-      className='flex min-h-0 flex-1 flex-col gap-3 overflow-hidden [@media(max-height:640px)]:overflow-visible'
+      className='flex min-h-0 flex-1 flex-col gap-3 overflow-hidden outline-none [@media(max-height:640px)]:overflow-visible'
     >
       <div className='flex shrink-0 items-center justify-between gap-2'>
         <div className='flex items-center gap-2'>
@@ -381,7 +400,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                         </span>
                         <span className='w-px flex-1 bg-border group-last:hidden' />
                       </div>
-                      <div className='flex min-w-0 flex-1 items-start justify-between gap-2 pb-4'>
+                      <div className='flex min-w-0 flex-1 flex-wrap items-start justify-between gap-2 pb-4'>
                         {editingId === activity.id && !selectMode ? (
                           <div className='flex flex-1 items-center gap-2'>
                             <Input
@@ -420,7 +439,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                           </div>
                         ) : (
                           <>
-                            <div className='min-w-0'>
+                            <div className='min-w-0 flex-1 basis-full sm:basis-0'>
                               <p className='text-sm leading-snug break-words'>
                                 {activity.label}
                               </p>
@@ -457,7 +476,13 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                               </p>
                             </div>
                             {!selectMode && (
-                              <div className='hidden shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:flex'>
+                              <div
+                                className='ml-auto flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100'
+                                style={{
+                                  transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
+                                  transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+                                }}
+                              >
                                 <Button
                                   variant='ghost'
                                   size='icon-sm'
@@ -472,9 +497,13 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                                   size='icon-sm'
                                   aria-label='删除记录'
                                   disabled={saving}
-                                  onClick={() =>
-                                    setPendingDeleteId(activity.id)
-                                  }
+                                  onClick={(event) => {
+                                    deleteTriggerRef.current =
+                                      event.currentTarget
+                                    deletingConfirmedRef.current = false
+                                    setPendingDeleteActivity(activity)
+                                    setDeleteOpen(true)
+                                  }}
                                 >
                                   <Trash2 className='size-3.5' />
                                 </Button>
@@ -512,7 +541,12 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
               size='sm'
               className='h-8'
               disabled={saving || selectedIds.size === 0}
-              onClick={() => setPendingBatchDelete(true)}
+              onClick={(event) => {
+                deleteTriggerRef.current = event.currentTarget
+                deletingConfirmedRef.current = false
+                setBatchDeleteCount(selectedIds.size)
+                setPendingBatchDelete(true)
+              }}
             >
               <Trash2 className='size-3.5' />
               删除所选
@@ -521,11 +555,16 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
         </div>
       )}
 
-      <AlertDialog
-        open={pendingDeleteId !== null}
-        onOpenChange={(open) => !open && setPendingDeleteId(null)}
-      >
-        <AlertDialogContent size='sm'>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent
+          size='sm'
+          className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto break-words'
+          style={{
+            animationDuration: `${reduce ? 0 : deleteOpen || pendingBatchDelete ? DURATION.base : DURATION.fast}s`,
+            animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+          }}
+          onCloseAutoFocus={restoreDeleteFocus}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除记录？</AlertDialogTitle>
             <AlertDialogDescription>
@@ -535,7 +574,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={saving}
-              onClick={() => setPendingDeleteId(null)}
+              onClick={() => setDeleteOpen(false)}
             >
               取消
             </AlertDialogCancel>
@@ -550,11 +589,19 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
         open={pendingBatchDelete}
         onOpenChange={(open) => !open && setPendingBatchDelete(false)}
       >
-        <AlertDialogContent size='sm'>
+        <AlertDialogContent
+          size='sm'
+          className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto break-words'
+          style={{
+            animationDuration: `${reduce ? 0 : deleteOpen || pendingBatchDelete ? DURATION.base : DURATION.fast}s`,
+            animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+          }}
+          onCloseAutoFocus={restoreDeleteFocus}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>确认批量删除？</AlertDialogTitle>
             <AlertDialogDescription>
-              {`选中的 ${selectedIds.size} 条记录将永久删除，无法恢复。`}
+              {`选中的 ${batchDeleteCount} 条记录将永久删除，无法恢复。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
