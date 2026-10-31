@@ -1,15 +1,14 @@
-import type { ReactNode, RefObject } from 'react'
-import type {
-  HistoryDetailPanelState,
-  HistoryDetailTab,
-} from './use-detail-panel-state'
-import { motion } from 'motion/react'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Separator } from '@/components/ui/separator'
+import type { HistoryDetailPanelState } from './use-detail-panel-state'
+import { ChevronDown } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { CONTENT_SWITCH } from '@/lib/motion'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
 import HistoryResumePreview from '../shared/history-resume-preview'
@@ -21,96 +20,20 @@ interface HistoryDetailContentProps {
   state: HistoryDetailPanelState
 }
 
-function DetailTabPanel({
-  value,
-  active,
-  displayed,
-  scrollRef,
-  onExitComplete,
-  children,
-}: {
-  value: HistoryDetailTab
-  active: HistoryDetailTab
-  displayed: HistoryDetailTab
-  scrollRef: RefObject<HTMLDivElement | null>
-  onExitComplete: () => void
-  children: ReactNode
-}) {
-  const { reduceMotion } = useHistoryMotion()
-  const visible = displayed === value
-  const exiting = visible && active !== value
-  const interactive = visible && !exiting
-
-  useLayoutEffect(() => {
-    const panel = scrollRef.current
-
-    if (!panel) return
-
-    if (!interactive && panel.contains(document.activeElement)) {
-      panel
-        .closest('[data-slot=tabs]')
-        ?.querySelector<HTMLButtonElement>('[role=tab][data-state=active]')
-        ?.focus({ preventScroll: true })
-    }
-
-    panel.inert = !interactive
-
-    if (interactive) panel.removeAttribute('aria-hidden')
-    else panel.setAttribute('aria-hidden', 'true')
-  }, [interactive, scrollRef])
-
-  return (
-    <TabsContent forceMount asChild value={value}>
-      <motion.div
-        ref={scrollRef}
-        hidden={!visible}
-        initial={false}
-        animate={{
-          opacity: interactive ? 1 : 0,
-          transform:
-            interactive || reduceMotion ? 'translateY(0px)' : 'translateY(4px)',
-        }}
-        transition={{
-          ...(exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
-          ...(reduceMotion && { duration: 0 }),
-          delay: 0,
-        }}
-        onAnimationComplete={() => {
-          if (exiting) onExitComplete()
-        }}
-        className='scrollbar-thin-subtle absolute inset-0 mt-0 min-h-0 overflow-y-auto overscroll-contain'
-      >
-        {children}
-      </motion.div>
-    </TabsContent>
-  )
-}
-
 export default function HistoryDetailContent({
   state,
 }: HistoryDetailContentProps) {
-  const { reduceMotion } = useHistoryMotion()
-  const resumeScrollRef = useRef<HTMLDivElement>(null)
-  const overviewScrollRef = useRef<HTMLDivElement>(null)
+  const { reduceMotion, surfaceProps } = useHistoryMotion()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const overviewTriggerRef = useRef<HTMLButtonElement>(null)
+  const overviewContentRef = useRef<HTMLDivElement>(null)
   const currentResume = useHistoryStore((state) => state.currentResume)
 
   const loadVersionSnapshot = useHistoryStore(
     (state) => state.loadVersionSnapshot,
   )
 
-  const { activeTab, setActiveTab } = state
-  const [displayedTab, setDisplayedTab] = useState(activeTab)
-
-  useLayoutEffect(() => {
-    if (reduceMotion) setDisplayedTab(activeTab)
-  }, [activeTab, reduceMotion])
-
-  const panelProps = {
-    active: activeTab,
-    displayed: reduceMotion ? activeTab : displayedTab,
-    onExitComplete: () => setDisplayedTab(activeTab),
-  }
-
+  const { overviewOpen, setOverviewOpen } = state
   const isCurrent = state.selectedEntry === 'current'
 
   const selectedVersionId = isCurrent
@@ -130,96 +53,100 @@ export default function HistoryDetailContent({
   }, [selectedVersionId, versionSnapshot, loadVersionSnapshot])
 
   useEffect(() => {
-    resumeScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
-    overviewScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
-  }, [state.selectedEntry])
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
+  }, [state.selectedEntry, state.editing])
 
-  useEffect(() => {
-    if (state.editing) {
-      setActiveTab('overview')
-    }
-  }, [state.editing, setActiveTab])
-
-  // current 用当前内容 snapshot；历史版本用按需加载的
   const resumeSnapshot = isCurrent
     ? (currentResume?.snapshot ?? null)
     : versionSnapshot
 
-  // 未选中任何条目（current 无当前简历、或未选版本）→ 不渲染
   if (isCurrent ? !currentResume : !state.selectedVersion) {
     return null
   }
 
   return (
     <div className='flex h-full min-h-0 flex-1 flex-col overflow-hidden'>
-      <div className='shrink-0 px-3 py-3 sm:px-4'>
+      <div className='shrink-0 px-3 pt-4 pb-3 sm:px-5 sm:pt-5'>
         <DetailHeader state={state} />
       </div>
-      <Separator />
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as typeof activeTab)}
-        className='flex min-h-0 flex-1 flex-col gap-0 overflow-hidden'
+      <div
+        ref={scrollRef}
+        className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain'
       >
-        <div className='shrink-0 px-3 py-2 sm:px-4'>
-          <TabsList className='h-8 justify-start'>
-            {(
-              [
-                { value: 'resume', label: '简历预览' },
-                { value: 'overview', label: '版本信息' },
-              ] as const
-            ).map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className='px-3 text-xs'
-              >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-        <Separator />
+        <Collapsible
+          {...surfaceProps}
+          open={overviewOpen}
+          onOpenChange={(open) => {
+            if (
+              !open &&
+              overviewContentRef.current?.contains(document.activeElement)
+            ) {
+              overviewTriggerRef.current?.focus({ preventScroll: true })
+            }
 
-        <div className='relative min-h-0 flex-1 overflow-hidden'>
-          <DetailTabPanel
-            value='overview'
-            scrollRef={overviewScrollRef}
-            {...panelProps}
+            setOverviewOpen(open)
+          }}
+          className={`${surfaceProps.className} mx-3 border-t border-border/60 sm:mx-5`}
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              ref={overviewTriggerRef}
+              variant='ghost'
+              disabled={state.editing}
+              className='my-1 h-9 w-full justify-between rounded-lg px-2 text-xs font-medium text-muted-foreground aria-expanded:bg-transparent aria-expanded:hover:bg-muted dark:aria-expanded:hover:bg-muted/50'
+            >
+              {isCurrent ? '当前简历信息' : '版本信息'}
+              <ChevronDown
+                aria-hidden
+                className={cn(
+                  'size-3.5 transition-transform duration-(--history-base) ease-(--history-ease)',
+                  overviewOpen && 'rotate-180',
+                )}
+                style={reduceMotion ? { transitionDuration: '0s' } : undefined}
+              />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent
+            ref={overviewContentRef}
+            inert={!overviewOpen}
+            aria-hidden={!overviewOpen || undefined}
+            style={{
+              animationDuration: overviewOpen
+                ? 'var(--history-base)'
+                : 'var(--history-fast)',
+              animationTimingFunction: overviewOpen
+                ? 'var(--history-ease)'
+                : 'var(--history-exit-ease)',
+            }}
           >
-            <div className='flex flex-col gap-4 p-4 sm:p-5'>
+            <div className='min-w-0 px-2 pt-1 pb-5'>
               {isCurrent ? (
                 <CurrentOverview />
               ) : (
                 <HistoryVersionOverview state={state} />
               )}
             </div>
-          </DetailTabPanel>
-          <DetailTabPanel
-            value='resume'
-            scrollRef={resumeScrollRef}
-            {...panelProps}
-          >
-            <div className='min-h-full bg-muted/35 p-2 sm:p-4'>
-              {resumeSnapshot ? (
-                <HistoryResumePreview
-                  snapshot={resumeSnapshot}
-                  projectionReferenceDate={
-                    isCurrent
-                      ? undefined
-                      : state.selectedVersion?.projection_reference_date
-                  }
-                />
-              ) : (
-                <Skeleton
-                  className={cn('h-96 w-full', reduceMotion && 'animate-none')}
-                />
-              )}
-            </div>
-          </DetailTabPanel>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <div className='min-h-full bg-muted/35 p-2 sm:p-4'>
+          {resumeSnapshot ? (
+            <HistoryResumePreview
+              snapshot={resumeSnapshot}
+              projectionReferenceDate={
+                isCurrent
+                  ? undefined
+                  : state.selectedVersion?.projection_reference_date
+              }
+            />
+          ) : (
+            <Skeleton
+              className={cn('h-96 w-full', reduceMotion && 'animate-none')}
+            />
+          )}
         </div>
-      </Tabs>
+      </div>
     </div>
   )
 }

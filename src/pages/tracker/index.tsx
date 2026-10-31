@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom'
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { PageLayout } from '@/components/layout/page-layout'
+import { useIsMobile } from '@/hooks/use-mobile'
 import BoardView from './components/board'
 import JobDrawer from './components/drawer'
 import AddJobDrawer from './components/drawer/add-job'
@@ -21,7 +22,7 @@ import { filterJobs } from './utils'
 function TrackerContent() {
   const {
     jobs,
-    viewMode,
+    viewMode: preferredViewMode,
     loading,
     error,
     isInitialized,
@@ -48,6 +49,8 @@ function TrackerContent() {
   )
 
   const [routeParams] = useSearchParams()
+  const isMobile = useIsMobile()
+  const viewMode = isMobile ? 'list' : preferredViewMode
   const routeJobId = routeParams.get('jobId')
   const routeTab = routeParams.get('tab')
   const routeFocus = routeParams.get('focus')
@@ -128,17 +131,24 @@ function TrackerContent() {
 
   return (
     <>
-      <PageLayout workspace className='gap-2'>
+      <PageLayout workspace className='gap-4 md:gap-2'>
         <TrackerHeader />
         <main
           aria-label='职位工作区'
-          className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t bg-background'
+          className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:border-t'
         >
           <OverviewBar />
           <TrackerToolbar />
           <ViewTransition
+            id={isMobile ? 'tracker-mobile-results' : undefined}
+            role={isMobile ? 'tabpanel' : undefined}
+            aria-labelledby={
+              isMobile
+                ? `tracker-filter-${filterStatus ?? metricFilter ?? 'all'}`
+                : undefined
+            }
             animationKey={state}
-            className='flex min-h-0 min-w-0 flex-1 flex-col pt-3'
+            className='flex min-h-0 min-w-0 flex-1 flex-col pt-1 md:pt-3'
           >
             {state === 'loading' ? (
               <TrackerSkeleton />

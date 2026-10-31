@@ -1,5 +1,5 @@
 import type { ApplicationStatus } from '../../types'
-import { ArrowDown, ArrowUp, ListFilter } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter } from 'lucide-react'
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -42,6 +43,8 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
     filterCompanyId,
     searchKeyword,
     viewMode,
+    groupByCompany,
+    setGroupByCompany,
   } = useTrackerStore(
     useShallow((state) => ({
       jobs: selectTrackerListJobs(state),
@@ -52,6 +55,8 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
       filterCompanyId: state.filterCompanyId,
       searchKeyword: state.searchKeyword,
       viewMode: state.viewMode,
+      groupByCompany: state.groupByCompany,
+      setGroupByCompany: state.setGroupByCompany,
     })),
   )
 
@@ -106,18 +111,26 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant={mobile ? 'secondary' : 'outline'}
-          size='sm'
+          variant={mobile ? 'ghost' : 'outline'}
+          size={mobile ? 'icon' : 'sm'}
           aria-label={
             mobile
-              ? `筛选与排序：${activeLabel}${viewMode === 'list' ? `，${sortLabel}，${directionLabel}` : ''}`
+              ? `排序与分组：${sortLabel}，${directionLabel}${groupByCompany ? '，按公司分组' : ''}`
               : activeLabel
           }
-          className='relative h-9 shrink-0 gap-1.5 rounded-lg px-2.5 shadow-none sm:px-3'
+          className={
+            mobile
+              ? 'size-11 shrink-0 rounded-xl text-muted-foreground'
+              : 'relative h-9 shrink-0 gap-1.5 rounded-lg px-2.5 shadow-none sm:px-3'
+          }
         >
-          <ListFilter className='size-4' />
-          <span>{mobile ? '筛选' : activeLabel}</span>
-          {filterStatus && (
+          {mobile ? (
+            <ArrowUpDown className='size-4' />
+          ) : (
+            <ListFilter className='size-4' />
+          )}
+          {!mobile && <span>{activeLabel}</span>}
+          {!mobile && filterStatus && (
             <Badge
               variant='secondary'
               className='ml-0.5 hidden rounded-full px-1.5 sm:inline-flex'
@@ -125,7 +138,7 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
               {getCount(filterStatus)}
             </Badge>
           )}
-          {filterStatus && (
+          {!mobile && filterStatus && (
             <span
               aria-hidden='true'
               className='absolute top-1 right-1 size-1.5 rounded-full bg-primary sm:hidden'
@@ -141,49 +154,65 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
             : 'w-44'
         }
       >
-        <DropdownMenuLabel>
-          {viewMode === 'board' ? '定位到阶段' : '按阶段筛选'}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={current}
-          onValueChange={(value) =>
-            setFilterStatus(
-              value === ALL_VALUE
-                ? null
-                : (value as NonNullable<typeof filterStatus>),
-            )
-          }
-        >
-          {ALL_FILTER_STATUSES.map((status) => {
-            const value = status ?? ALL_VALUE
+        {mobile ? (
+          <>
+            <DropdownMenuLabel>显示职位</DropdownMenuLabel>
+            <DropdownMenuCheckboxItem
+              checked={groupByCompany}
+              onCheckedChange={setGroupByCompany}
+            >
+              按公司分组
+            </DropdownMenuCheckboxItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuLabel>
+              {viewMode === 'board' ? '定位到阶段' : '按阶段筛选'}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup
+              value={current}
+              onValueChange={(value) =>
+                setFilterStatus(
+                  value === ALL_VALUE
+                    ? null
+                    : (value as NonNullable<typeof filterStatus>),
+                )
+              }
+            >
+              {ALL_FILTER_STATUSES.map((status) => {
+                const value = status ?? ALL_VALUE
 
-            const label =
-              status === null ? '全部' : APPLICATION_STATUS_CONFIG[status].label
+                const label =
+                  status === null
+                    ? '全部'
+                    : APPLICATION_STATUS_CONFIG[status].label
 
-            return (
-              <DropdownMenuRadioItem
-                key={value}
-                value={value}
-                className='justify-between'
-              >
-                <span className='flex items-center gap-2'>
-                  {status && (
-                    <span
-                      aria-hidden='true'
-                      className={`size-1.5 rounded-full ${APPLICATION_STATUS_DOT_CLASSES[status]}`}
-                    />
-                  )}
-                  {label}
-                </span>
-                <span className='text-xs text-muted-foreground'>
-                  {getCount(status)}
-                </span>
-              </DropdownMenuRadioItem>
-            )
-          })}
-        </DropdownMenuRadioGroup>
-        {mobile && viewMode === 'list' && (
+                return (
+                  <DropdownMenuRadioItem
+                    key={value}
+                    value={value}
+                    className='justify-between'
+                  >
+                    <span className='flex items-center gap-2'>
+                      {status && (
+                        <span
+                          aria-hidden='true'
+                          className={`size-1.5 rounded-full ${APPLICATION_STATUS_DOT_CLASSES[status]}`}
+                        />
+                      )}
+                      {label}
+                    </span>
+                    <span className='text-xs text-muted-foreground'>
+                      {getCount(status)}
+                    </span>
+                  </DropdownMenuRadioItem>
+                )
+              })}
+            </DropdownMenuRadioGroup>
+          </>
+        )}
+        {mobile && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>排序方式</DropdownMenuLabel>

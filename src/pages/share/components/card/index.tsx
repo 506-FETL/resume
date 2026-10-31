@@ -1,70 +1,56 @@
 import type { Ref } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import {
-  Archive,
-  ArrowUpRight,
-  Eye,
-  FileUser,
-  History,
-  LockKeyhole,
-  MessageSquareText,
-  MoreHorizontal,
-  Power,
-  Settings2,
-  Trash2,
-} from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useRef } from 'react'
-import { toast } from 'sonner'
+import { Eye, Link2, LockKeyhole, MessageSquareText } from 'lucide-react'
 import { PresenceDiv } from '@/components/motion/presence-item'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Spinner } from '@/components/ui/spinner'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
+import { SHARE_PURPOSE_LABELS } from '@/lib/share-purpose'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/utils/date'
-import { SHARE_MOTION, SHARE_STATUS_META } from '../../const'
+import {
+  SHARE_MOTION,
+  SHARE_PURPOSE_ICONS,
+  SHARE_STATUS_META,
+} from '../../const'
 import useShareStore from '../../store'
-import { buildShareUrl, deriveShareStatus } from '../../utils'
-import CopyLinkButton from '../copy-link-button'
+import { deriveShareStatus } from '../../utils'
+import CardActions from '../card-actions'
 import VersionBadge from '../version-badge'
 
 interface LinkCardProps {
   ref?: Ref<HTMLDivElement>
   share: ResumeShareRecord
   index: number
+  resumeTitle: string
 }
 
-export default function LinkCard({ ref, share, index }: LinkCardProps) {
-  const {
-    pendingShareIds,
-    openSettingsDialog,
-    openArchiveDialog,
-    openDeleteDialog,
-    openVersionDialog,
-    setActive,
-  } = useShareStore()
+export default function LinkCard({
+  ref,
+  share,
+  index,
+  resumeTitle,
+}: LinkCardProps) {
+  const busy = useShareStore((state) =>
+    state.pendingShareIds.includes(share.id),
+  )
 
   const reduceMotion = useReducedMotion()
-  const menuTriggerRef = useRef<HTMLButtonElement>(null)
-  const actionAfterCloseRef = useRef<(() => void) | null>(null)
   const status = deriveShareStatus(share)
   const statusMeta = SHARE_STATUS_META[status]
-  const url = buildShareUrl(share.token)
-  const busy = pendingShareIds.includes(share.id)
-  const archived = Boolean(share.archivedAt)
-  const title = share.label || share.display_name || '未命名简历'
+  const title = share.display_name || '未命名简历'
+  const PurposeIcon = share.purpose ? SHARE_PURPOSE_ICONS[share.purpose] : Link2
 
-  const showResumeName = Boolean(
-    share.label && share.label !== share.display_name,
-  )
+  const purposeLabel =
+    share.label ||
+    (share.purpose ? SHARE_PURPOSE_LABELS[share.purpose] : '未设置用途')
+
+  const contactLabel = share.showPhone
+    ? share.showEmail
+      ? '显示联系方式'
+      : '仅显示手机号'
+    : share.showEmail
+      ? '仅显示邮箱'
+      : '隐藏联系方式'
 
   const expiry = share.expires_at
     ? new Date(share.expires_at).toLocaleDateString('zh-CN', {
@@ -73,20 +59,11 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
       })
     : null
 
-  const handleToggleActive = async () => {
-    try {
-      await setActive(share.id, !share.is_active)
-      toast.success(share.is_active ? '链接已关闭' : '链接已启用')
-    } catch {
-      toast.error('操作失败')
-    }
-  }
-
   return (
     <PresenceDiv
       ref={ref}
       role='listitem'
-      className='min-w-0'
+      className='min-w-0 border-b border-border/60 last:border-b-0'
       layout={reduceMotion ? false : 'position'}
       initial={reduceMotion ? false : SHARE_MOTION.item.initial}
       animate={SHARE_MOTION.item.animate}
@@ -106,179 +83,82 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
       }}
     >
       <article
-        aria-label={title}
+        aria-label={`${title}：${purposeLabel}`}
         aria-busy={busy}
-        className={cn(
-          'group flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card shadow-none transition-[border-color,box-shadow] hover:border-foreground/20 focus-within:border-foreground/25',
-          status === 'expired' && 'border-amber-200 dark:border-amber-900/60',
-        )}
+        className='group grid min-w-0 gap-4 px-3 py-5 transition-colors sm:px-4 hover:bg-muted/25 focus-within:bg-muted/25 @min-[600px]/share-links:grid-cols-[minmax(0,1fr)_auto] @min-[600px]/share-links:gap-6'
         style={{
           transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
+          transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
         }}
       >
-        <div className='flex-1 p-4'>
-          <div className='flex items-center gap-2.5'>
-            <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground'>
-              <FileUser className='size-4' strokeWidth={1.6} />
-            </div>
-            <div className='min-w-0 flex-1'>
-              <h3 className='truncate text-base font-semibold' title={title}>
-                {title}
-              </h3>
-              {showResumeName && (
-                <p
-                  className='mt-0.5 truncate text-xs text-muted-foreground'
-                  title={share.display_name || '未命名简历'}
-                >
-                  {share.display_name || '未命名简历'}
-                </p>
-              )}
-            </div>
+        <div className='min-w-0'>
+          <div className='flex min-h-5 items-center justify-between gap-3'>
+            <h3 className='flex min-w-0 items-start gap-2 text-[15px] leading-snug font-medium'>
+              <PurposeIcon
+                className='mt-0.5 size-4 shrink-0 text-muted-foreground'
+                aria-hidden
+              />
+              <span className='wrap-anywhere'>{purposeLabel}</span>
+            </h3>
             <span
               className={cn(
-                'inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium',
-                statusMeta.badgeClassName,
+                'inline-flex shrink-0 items-center gap-1.5 text-xs',
+                statusMeta.textClassName,
               )}
             >
-              <span
-                className={cn('size-1.5 rounded-full', statusMeta.dotClassName)}
-              />
+              <span className='size-1.5 rounded-full bg-current' aria-hidden />
               {statusMeta.label}
             </span>
-            <div className='shrink-0'>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    ref={menuTriggerRef}
-                    variant='ghost'
-                    size='icon-sm'
-                    aria-label={`更多操作：${title}`}
-                    disabled={busy}
-                    className='text-muted-foreground'
-                  >
-                    {busy ? <Spinner /> : <MoreHorizontal className='size-4' />}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align='end'
-                  className='max-h-(--radix-dropdown-menu-content-available-height) w-48 overflow-y-auto overscroll-contain'
-                  onCloseAutoFocus={(event) => {
-                    const action = actionAfterCloseRef.current
-
-                    if (!action) return
-
-                    event.preventDefault()
-                    actionAfterCloseRef.current = null
-                    menuTriggerRef.current?.focus({ preventScroll: true })
-                    action()
-                  }}
-                >
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      disabled={busy || archived}
-                      onSelect={() => {
-                        actionAfterCloseRef.current = () =>
-                          openSettingsDialog(share.id)
-                      }}
-                    >
-                      <Settings2 />
-                      编辑设置
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={busy || archived}
-                      onSelect={() => {
-                        actionAfterCloseRef.current = () =>
-                          openVersionDialog(share.id)
-                      }}
-                    >
-                      <History />
-                      更换分享版本
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={busy || archived}
-                      onClick={handleToggleActive}
-                    >
-                      <Power />
-                      {share.is_active ? '关闭链接' : '启用链接'}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    {!archived && (
-                      <DropdownMenuItem
-                        disabled={busy}
-                        onSelect={() => {
-                          actionAfterCloseRef.current = () =>
-                            openArchiveDialog(share.id)
-                        }}
-                      >
-                        <Archive />
-                        归档分享
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      variant='destructive'
-                      disabled={busy}
-                      onSelect={() => {
-                        actionAfterCloseRef.current = () =>
-                          openDeleteDialog(share.id)
-                      }}
-                    >
-                      <Trash2 />
-                      永久删除
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
           </div>
 
-          <div className='mt-3 flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground'>
-            <div
-              className='min-w-0 flex-1'
-              title={
-                share.source.kind === 'current'
-                  ? '当前版本'
-                  : `V${share.source.versionNo} · ${share.source.versionLabel}`
-              }
-            >
-              <VersionBadge source={share.source} />
-            </div>
-            {share.has_password && (
-              <span className='inline-flex shrink-0' title='密码保护'>
-                <LockKeyhole className='size-3.5' />
-                <span className='sr-only'>密码保护</span>
-              </span>
-            )}
-            <span
-              className='inline-flex shrink-0'
-              title={share.allowComments ? '允许评论' : '仅查看'}
-            >
-              {share.allowComments ? (
-                <MessageSquareText className='size-3.5' />
-              ) : (
-                <Eye className='size-3.5' />
+          <div className='mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs'>
+            <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2'>
+              <VersionBadge source={share.source} appearance='plain' />
+              {share.has_password && (
+                <span className='inline-flex items-center gap-1 text-muted-foreground'>
+                  <LockKeyhole className='size-3.5' aria-hidden />
+                  密码保护
+                </span>
               )}
-              <span className='sr-only'>
-                {share.allowComments ? '允许评论' : '仅查看'}
+            </div>
+            <div className='flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground'>
+              {share.allowComments ? (
+                <MessageSquareText className='size-3.5' aria-hidden />
+              ) : (
+                <Eye className='size-3.5' aria-hidden />
+              )}
+              <span>{share.allowComments ? '允许评论' : '仅查看'}</span>
+              <span aria-hidden className='text-border'>
+                ·
               </span>
-            </span>
+              <span>{contactLabel}</span>
+            </div>
             {expiry && (
-              <span
-                className='shrink-0'
+              <p
+                className={cn(
+                  'text-muted-foreground',
+                  status === 'expired' && statusMeta.textClassName,
+                )}
                 title={new Date(share.expires_at!).toLocaleString('zh-CN')}
               >
                 {expiry}
                 {status === 'expired' ? '已到期' : '到期'}
-              </span>
+              </p>
             )}
           </div>
+          {title !== resumeTitle && (
+            <p className='mt-2 text-xs text-muted-foreground wrap-anywhere'>
+              简历名称：{title}
+            </p>
+          )}
+        </div>
 
-          <dl className='mt-3 flex min-w-0 items-center justify-between gap-3 text-xs text-muted-foreground'>
+        <div className='flex min-w-0 flex-col gap-3 @min-[600px]/share-links:justify-center'>
+          <dl className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground @min-[600px]/share-links:justify-end'>
             <div className='flex shrink-0 items-center gap-1.5'>
               <dt className='inline-flex items-center'>
-                <Eye className='size-3.5' />
-                <span className='sr-only'>访问次数</span>
+                <Eye className='size-3.5' aria-hidden />
+                <span className='sr-only'>访问次数，包含重复访问</span>
               </dt>
               <dd>
                 <span className='font-medium text-foreground tabular-nums'>
@@ -287,10 +167,10 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
                 次访问
               </dd>
             </div>
-            <div className='min-w-0 text-right'>
+            <div className='min-w-0'>
               <dt className='sr-only'>最近访问</dt>
               <dd
-                className='truncate'
+                className='wrap-anywhere'
                 title={
                   share.last_viewed_at
                     ? new Date(share.last_viewed_at).toLocaleString('zh-CN')
@@ -303,19 +183,7 @@ export default function LinkCard({ ref, share, index }: LinkCardProps) {
               </dd>
             </div>
           </dl>
-        </div>
-
-        <div className='flex items-center justify-between gap-2 border-t border-border/60 px-2 py-1.5'>
-          <CopyLinkButton url={url} />
-          <Button
-            variant='ghost'
-            className='h-8 rounded-md px-2 text-xs'
-            disabled={archived}
-            onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
-          >
-            预览简历
-            <ArrowUpRight className='size-4' />
-          </Button>
+          <CardActions share={share} />
         </div>
       </article>
     </PresenceDiv>

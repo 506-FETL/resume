@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 interface HistoryActionButtonProps extends ComponentProps<typeof Button> {
   label: string
+  compact?: boolean
 }
 
 export default function HistoryActionButton({
@@ -17,6 +18,7 @@ export default function HistoryActionButton({
   children,
   className,
   title,
+  compact = false,
   ...props
 }: HistoryActionButtonProps) {
   const reduceMotion = useReducedMotion()
@@ -25,13 +27,13 @@ export default function HistoryActionButton({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          size='sm'
+          size={compact ? 'icon-sm' : 'sm'}
           {...props}
           aria-label={label}
           className={cn('max-md:size-9 max-md:p-0', className)}
         >
           {children}
-          <span className='hidden md:inline'>{label}</span>
+          {!compact && <span className='hidden md:inline'>{label}</span>}
         </Button>
       </TooltipTrigger>
       <TooltipContent

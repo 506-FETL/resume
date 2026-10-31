@@ -40,7 +40,10 @@ function clearDeletedCurrentResume(resumeId: string) {
   if (currentResume.resumeId === resumeId) currentResume.clearCurrentResume()
 }
 
-export function createResumeListSlice(set: SetState): ResumeListSlice {
+export function createResumeListSlice(
+  set: SetState,
+  get: StoreApi<ResumeListState>['getState'],
+): ResumeListSlice {
   let requestId = 0
   let accountId: string | null | undefined
 
@@ -128,6 +131,7 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
 
     deleteResume: (id: string) => {
       const isOffline = isOfflineResumeId(id)
+      const generation = get().libraryGeneration
 
       if (!isOffline) {
         set((state) => {
@@ -141,6 +145,8 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
 
       const deletePromise = isOffline
         ? deleteOfflineResume(id).then(() => {
+            if (generation !== get().libraryGeneration) return
+
             set((state) => ({
               resumes: state.resumes.filter((r) => r.resume_id !== id),
               offlineResumes: state.offlineResumes.filter(
@@ -149,20 +155,26 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
             }))
 
             clearDeletedCurrentResume(id)
+
+            return get().invalidateLibrary()
           })
         : deleteResumeApi(id).then(() => {
+            if (generation !== get().libraryGeneration) return
+
             set((state) => ({
               resumes: state.resumes.filter((r) => r.resume_id !== id),
             }))
 
             clearDeletedCurrentResume(id)
+
+            return get().invalidateLibrary()
           })
 
       toast.promise(deletePromise, {
         loading: '正在删除简历...',
         success: '简历已删除',
         error: () => {
-          if (!isOffline) {
+          if (!isOffline && generation === get().libraryGeneration) {
             set((state) => {
               const newSet = new Set(state._localDeletingIds)
 
@@ -188,6 +200,8 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
             )
           : state.offlineResumes,
       }))
+
+      get().invalidateLibrary()
     },
 
     addResume: (resume) => {
@@ -205,6 +219,8 @@ export function createResumeListSlice(set: SetState): ResumeListSlice {
             ? [resume, ...state.offlineResumes]
             : state.offlineResumes,
       }))
+
+      get().invalidateLibrary()
     },
   }
 }

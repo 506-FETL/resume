@@ -13,6 +13,7 @@ import type {
   DerivedStatus,
   PersistedResumeSnapshot,
   ResumeAppearanceConfig,
+  ResumeListItem,
   ResumeType,
   VariantChange,
   VariantMetadata,
@@ -276,6 +277,100 @@ export async function getAllOfflineResumes() {
   )
 }
 
+export interface OfflineResumeLibraryIndex {
+  all: string[]
+  roots: string[]
+  variants: string[]
+  pending: string[]
+  variantCount: number
+}
+
+export async function getOfflineResumeLibraryIndex(): Promise<OfflineResumeLibraryIndex> {
+  const db = await getDB()
+  const tx = db.transaction('resumes')
+  const all: string[] = []
+  const parents = new Set<string>()
+  const ready = new Set<string>()
+  const pending = new Set<string>()
+
+  let updatedCursor = await tx.store
+    .index('updated_at')
+    .openKeyCursor(null, 'prev')
+
+  while (updatedCursor) {
+    all.push(updatedCursor.primaryKey)
+    updatedCursor = await updatedCursor.continue()
+  }
+
+  // 旧导入可能没有更新时间；只补齐缺失的键，正文仍在翻到该页时读取。
+  const known = new Set(all)
+
+  const missing = (await tx.store.getAllKeys())
+    .filter((id) => !known.has(id))
+    .sort()
+    .reverse()
+
+  all.push(...missing)
+
+  let parentCursor = await tx.store.index('parent_resume_id').openKeyCursor()
+
+  while (parentCursor) {
+    parents.add(parentCursor.primaryKey)
+    parentCursor = await parentCursor.continue()
+  }
+
+  let statusCursor = await tx.store.index('derived_status').openKeyCursor()
+
+  while (statusCursor) {
+    if (statusCursor.key === 'ready') ready.add(statusCursor.primaryKey)
+    if (statusCursor.key === 'generating' || statusCursor.key === 'failed')
+      pending.add(statusCursor.primaryKey)
+
+    statusCursor = await statusCursor.continue()
+  }
+
+  await tx.done
+
+  return {
+    all,
+    roots: all.filter((id) => !parents.has(id)),
+    variants: all.filter((id) => parents.has(id) && ready.has(id)),
+    pending: all.filter((id) => pending.has(id)),
+    variantCount: parents.size,
+  }
+}
+
+export async function getOfflineResumeSummariesByIds(
+  ids: string[],
+): Promise<ResumeListItem[]> {
+  const db = await getDB()
+  const summaries: ResumeListItem[] = []
+
+  for (let offset = 0; offset < ids.length; offset += 10) {
+    const tx = db.transaction('resumes')
+
+    const records = await Promise.all(
+      ids.slice(offset, offset + 10).map((id) => tx.store.get(id)),
+    )
+
+    await tx.done
+
+    for (const record of records) {
+      if (!record) continue
+
+      const { data, ...summary } = record
+
+      summaries.push({
+        ...summary,
+        isOffline: true,
+        templateBinding: readResumeListTemplateBinding(data?.templateBinding),
+      })
+    }
+  }
+
+  return summaries
+}
+
 export async function createOfflineResumeFromSnapshot(
   prepared: PreparedResumeCreation,
 ) {
@@ -434,14 +529,11 @@ export async function migrateOfflineResumesToCloud(
 
   await assertOwner()
 
-  let offlineResumes = await getAllOfflineResumes()
-
-  // 如果指定了选择的ID，只迁移这些简历
-  if (selectedIds && selectedIds.length > 0) {
-    offlineResumes = offlineResumes.filter((r) =>
-      selectedIds.includes(r.resume_id),
-    )
-  }
+  const offlineResumes = selectedIds?.length
+    ? (await Promise.all(selectedIds.map(getOfflineResumeById))).filter(
+        (resume): resume is OfflineResumeRecord => Boolean(resume),
+      )
+    : await getAllOfflineResumes()
 
   if (offlineResumes.length === 0) {
     return { success: 0, failed: 0, errors: [], successIds: [] }

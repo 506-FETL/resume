@@ -13,18 +13,15 @@ export default function TimelineLoadingState({
     <div
       role='status'
       aria-label='正在加载版本记录'
-      className='flex flex-col gap-2'
+      className='flex flex-col gap-1'
     >
       {Array.from({ length: count }, (_, index) => (
-        <div
-          key={index}
-          className='flex flex-col gap-3 rounded-lg border border-border/60 p-3'
-        >
-          <Skeleton
-            className={cn('h-3 w-20', reduceMotion && 'animate-none')}
-          />
+        <div key={index} className='flex flex-col gap-2 p-2.5'>
           <Skeleton
             className={cn('h-4 w-3/4', reduceMotion && 'animate-none')}
+          />
+          <Skeleton
+            className={cn('h-3 w-2/3', reduceMotion && 'animate-none')}
           />
           <Skeleton
             className={cn('h-3 w-2/5', reduceMotion && 'animate-none')}

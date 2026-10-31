@@ -8,7 +8,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { DURATION } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 
 const tips = [
   '使用简洁的层级和常见字体，避免用图片代替文字。',
@@ -26,15 +25,10 @@ export default function ProTips({ embedded = false }: { embedded?: boolean }) {
     <Collapsible
       open={!isMobile || open}
       onOpenChange={setOpen}
-      className={embedded ? 'border-t pt-4' : 'rounded-xl border bg-muted/20'}
+      className={embedded ? 'border-t pt-4' : 'border-t pt-5'}
     >
       {isMobile ? (
-        <CollapsibleTrigger
-          className={cn(
-            'group flex w-full items-center gap-2 py-3 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-            embedded ? 'rounded-sm' : 'rounded-xl px-4',
-          )}
-        >
+        <CollapsibleTrigger className='group flex w-full items-center gap-2 rounded-sm py-3 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'>
           <Lightbulb className='size-4 text-muted-foreground' />
           提高 ATS 可读性的建议
           <ChevronDown
@@ -45,12 +39,7 @@ export default function ProTips({ embedded = false }: { embedded?: boolean }) {
           />
         </CollapsibleTrigger>
       ) : (
-        <h2
-          className={cn(
-            'flex items-center gap-2 text-sm font-medium',
-            embedded ? 'pb-3' : 'px-4 py-3',
-          )}
-        >
+        <h2 className='flex items-center gap-2 pb-3 text-sm font-medium'>
           <Lightbulb className='size-4 text-muted-foreground' />
           提高 ATS 可读性的建议
         </h2>
@@ -58,12 +47,7 @@ export default function ProTips({ embedded = false }: { embedded?: boolean }) {
       <CollapsibleContent
         style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
       >
-        <ul
-          className={cn(
-            'list-disc space-y-2 text-sm leading-relaxed text-muted-foreground',
-            embedded ? 'pl-4' : 'pr-4 pb-4 pl-10',
-          )}
-        >
+        <ul className='list-disc space-y-2 pl-4 text-sm leading-relaxed text-muted-foreground'>
           {tips.map((tip) => (
             <li key={tip}>{tip}</li>
           ))}

@@ -47,7 +47,7 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <ToolPanelCard>
         <ToolPanelHeader
           title='ATS 纯文本预览'
@@ -96,7 +96,7 @@ function AtsPreviewTool({ resumeContext }: AtsPreviewToolProps) {
         </ToolPanelBody>
       </ToolPanelCard>
 
-      <div className='grid gap-4 lg:grid-cols-[0.96fr_1.44fr]'>
+      <div className='grid min-w-0 gap-6 lg:grid-cols-[0.96fr_1.44fr] lg:gap-8'>
         <ToolPanelCard>
           <ToolPanelHeader
             title='ATS 风险提醒'

@@ -84,7 +84,6 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
 
   return (
     <div className='min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:space-y-5 md:p-6 lg:space-y-8'>
-      {/* 信息概览卡片 */}
       <div className='space-y-1.5 lg:space-y-2'>
         <span
           className={cn(
@@ -113,7 +112,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
             <AlertTriangle className='size-3.5 lg:size-4 text-destructive' />
             问题描述
           </span>
-          <p className='text-xs sm:text-sm lg:text-base leading-relaxed text-foreground/90 bg-destructive/5 p-2.5 sm:p-3 lg:p-4 rounded-lg border border-destructive/10'>
+          <p className='text-sm leading-7 text-foreground/90'>
             {finding.why.summary}
           </p>
         </div>
@@ -122,7 +121,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
             <Lightbulb className='size-3.5 lg:size-4 text-green-600' />
             修复建议
           </span>
-          <p className='text-xs sm:text-sm lg:text-base font-medium leading-relaxed text-foreground/90 bg-green-500/5 p-2.5 sm:p-3 lg:p-4 rounded-lg border border-green-500/10 dark:bg-green-950/20 dark:border-green-500/20'>
+          <p className='text-sm font-medium leading-7 text-foreground/90'>
             {finding.fix.summary}
           </p>
         </div>
@@ -135,19 +134,16 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
           </span>
           执行步骤
         </p>
-        <div className='bg-muted/30 rounded-lg p-3 sm:p-4 lg:p-6 border border-border/50'>
-          <ul className='relative space-y-3 sm:space-y-4 lg:space-y-6 border-l-2 border-blue-200/50 dark:border-blue-800/50 ml-2 lg:ml-3 pl-4 sm:ml-3 sm:pl-5 lg:pl-6'>
-            {steps.map((step: string, i: number) => (
-              <li key={step} className='relative group'>
-                <span className='absolute -left-[25px] sm:-left-[29px] lg:-left-[35px] top-0 lg:top-0.5 flex size-5 lg:size-7 items-center justify-center rounded-full bg-white dark:bg-zinc-950 border-2 border-blue-200/60 dark:border-blue-800/60 text-[10px] lg:text-xs font-bold text-blue-600/80 dark:text-blue-400/80 ring-2 ring-background'>
-                  {i + 1}
-                </span>
-                <span className='text-foreground/90 leading-relaxed block text-xs sm:text-sm lg:text-base'>
+        <div>
+          <ol className='list-decimal space-y-2 pl-5 marker:text-muted-foreground'>
+            {steps.map((step: string) => (
+              <li key={step} className='pl-1'>
+                <span className='text-foreground/90 leading-7 text-sm'>
                   {step}
                 </span>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
       </div>
 
@@ -155,12 +151,10 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
         <TabsList>
           <TabsTrigger value='summary'>
             <FileDiff className='size-3 sm:size-3.5 lg:size-4 shrink-0' />
-            <span className='hidden xs:inline'>改动</span>
             修改对比
           </TabsTrigger>
           <TabsTrigger value='code'>
             <Code2 className='size-3 sm:size-3.5 lg:size-4 shrink-0' />
-            <span className='hidden xs:inline'>代码</span>
             查看代码
           </TabsTrigger>
           <TabsTrigger value='edit'>
@@ -169,7 +163,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
           </TabsTrigger>
         </TabsList>
 
-        <div className='border rounded-lg bg-card p-2'>
+        <div className='min-w-0 border-t pt-4'>
           {needsUserInput && (
             <div className='mx-1 mb-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-800 dark:text-amber-200'>
               请先在“自定义”中核实并补充真实信息，再应用修改。
@@ -184,7 +178,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
             </Badge>
           </div>
           <TabsContent value='summary'>
-            <div className='p-2 sm:p-4 lg:p-6 space-y-4 lg:space-y-6 h-full'>
+            <div className='space-y-6 h-full'>
               {suggestions.map((suggestion: Suggestion) => (
                 <SuggestionCompareCard
                   key={`${suggestion.kind}-${suggestion.valueType}-${JSON.stringify(suggestion.after).slice(0, 20)}`}
@@ -205,7 +199,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
           </TabsContent>
 
           <TabsContent value='code'>
-            <div className='p-2 sm:p-4 lg:p-6'>
+            <div>
               <div className='grid gap-3 sm:grid-cols-1 lg:grid-cols-2 lg:gap-6'>
                 <CodeBlock
                   language='json'
@@ -227,7 +221,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value='edit' className='p-2 sm:p-4 lg:p-6'>
+          <TabsContent value='edit'>
             <CustomEditor suggestions={suggestions} onChange={handleChange} />
           </TabsContent>
         </div>

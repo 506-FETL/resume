@@ -19,6 +19,7 @@ interface VersionPdfExportButtonProps {
   /** 导出文件名（浏览器打印标题），如版本名 */
   documentTitle: string
   className?: string
+  compact?: boolean
 }
 
 /**
@@ -30,6 +31,7 @@ export default function VersionPdfExportButton({
   versionId,
   documentTitle,
   className,
+  compact = false,
 }: VersionPdfExportButtonProps) {
   const loadVersionSnapshot = useHistoryStore(
     (state) => state.loadVersionSnapshot,
@@ -141,6 +143,7 @@ export default function VersionPdfExportButton({
         variant='outline'
         label={loading ? '加载中…' : preparing ? '准备中…' : '导出 PDF'}
         className={className}
+        compact={compact}
         aria-busy={loading || preparing}
         disabled={loading}
         onClick={handleExport}

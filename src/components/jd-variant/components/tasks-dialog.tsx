@@ -1,5 +1,5 @@
 import { CircleAlert, GitBranch } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { toast } from 'sonner'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -50,8 +50,26 @@ export function DerivedJobsDialog({
   open,
   onOpenChange,
 }: DerivedJobsDialogProps) {
-  const { resumes, openDeriveFor, loadResumes, loading, loadError } =
-    useResumeListStore()
+  const list = useResumeListStore()
+  const { openDeriveFor } = list
+  const resumes = list.libraryActive ? list.libraryPendingItems : list.resumes
+  const loading = list.libraryActive ? list.libraryPendingLoading : list.loading
+
+  const loadError = list.libraryActive
+    ? list.libraryPendingError
+    : list.loadError
+
+  const loadPending = list.libraryActive
+    ? list.loadLibraryPendingItems
+    : list.loadResumes
+
+  const loadResumes = list.libraryActive
+    ? list.refreshLibrary
+    : list.loadResumes
+
+  useEffect(() => {
+    if (open) loadPending()
+  }, [open, loadPending])
 
   const tasks = useJdVariantStore((s) => s.tasks)
   const discardTask = useJdVariantStore((s) => s.discardTask)
@@ -61,7 +79,12 @@ export function DerivedJobsDialog({
 
   const runningItems = useMemo<RunningItem[]>(() => {
     const resumeNameById = new Map(
-      resumes.map((r) => [r.resume_id, r.display_name]),
+      [
+        ...Object.values(list.libraryActive ? list.libraryParents : {}),
+        ...resumes,
+      ]
+        .filter((resume) => resume !== null)
+        .map((resume) => [resume.resume_id, resume.display_name]),
     )
 
     const storeRunning: RunningItem[] = Object.values(tasks)
@@ -99,7 +122,7 @@ export function DerivedJobsDialog({
     }
 
     return [...storeRunning, ...dbRunning]
-  }, [tasks, resumes])
+  }, [tasks, resumes, list.libraryActive, list.libraryParents])
 
   const failed = useMemo(
     () => resumes.filter((r) => r.derived_status === 'failed'),
@@ -183,7 +206,7 @@ export function DerivedJobsDialog({
                   size='sm'
                   onClick={() => {
                     runningTabRef.current?.focus({ preventScroll: true })
-                    loadResumes()
+                    loadPending(true)
                   }}
                 >
                   重新加载

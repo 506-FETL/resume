@@ -59,10 +59,8 @@ export default function VersionCard({
         whileHover={reduceMotion ? undefined : { y: -1 }}
         transition={enter}
         className={cn(
-          'relative isolate flex items-start gap-1 rounded-lg border p-3 transition-colors',
-          selected
-            ? 'border-transparent'
-            : 'border-transparent bg-background hover:bg-muted/35',
+          'relative isolate flex min-w-0 items-start gap-1 rounded-lg p-2.5 transition-colors',
+          !selected && 'hover:bg-muted/35',
         )}
       >
         {selected && <SelectionHighlight />}
@@ -70,67 +68,60 @@ export default function VersionCard({
           type='button'
           data-history-entry={version.id}
           aria-pressed={selected}
-          className='flex min-w-0 flex-1 flex-col gap-2.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          className='flex min-w-0 flex-1 flex-col gap-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           onClick={() => onSelectEntry(version.id)}
           whileTap={reduceMotion ? undefined : { scale: 0.99 }}
           transition={enter}
         >
-          <div className='flex flex-wrap items-center gap-1.5 text-xs'>
-            <span
-              className={cn(
-                'font-semibold tabular-nums',
-                selected ? 'text-primary' : 'text-foreground',
-              )}
-            >
-              V{version.version_no}
-            </span>
-            <span className='text-border'>/</span>
-            <span className='flex items-center gap-1 text-muted-foreground'>
-              <SourceIcon className='size-3' />
-              {sourceMeta.label}
-            </span>
+          <div className='flex w-full min-w-0 items-center gap-1.5'>
+            <p className='min-w-0 truncate text-sm font-semibold'>
+              {getVersionTitle(version)}
+            </p>
             {version.milestone_name && (
               <Flag
                 aria-label={`重点版本：${version.milestone_name}`}
-                className='size-3 text-primary'
+                className='size-3 shrink-0 text-primary'
               />
             )}
           </div>
-          <div className='min-w-0 w-full'>
-            <p className='truncate text-sm font-medium'>
-              {getVersionTitle(version)}
-            </p>
-            {version.description && (
-              <p className='mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground'>
-                {version.description}
-              </p>
-            )}
+          <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5 text-muted-foreground'>
+            <span className={cn('tabular-nums', selected && 'text-primary')}>
+              V{version.version_no}
+            </span>
+            <span className='flex items-center gap-1'>
+              <SourceIcon className='size-3' />
+              {sourceMeta.label}
+            </span>
+            <time
+              dateTime={version.created_at}
+              title={formatDateTime(version.created_at)}
+            >
+              {formatRelativeTime(version.created_at)}
+            </time>
           </div>
+          {version.description && (
+            <p className='w-full truncate text-xs leading-5 text-muted-foreground'>
+              {version.description}
+            </p>
+          )}
           {(version.tags?.length ?? 0) > 0 && (
-            <div className='flex flex-wrap gap-1'>
+            <div className='flex w-full min-w-0 items-center gap-1 pt-0.5'>
               {version.tags?.slice(0, 2).map((tag) => (
                 <Badge
                   key={tag}
                   variant='secondary'
-                  className='max-w-28 truncate text-xs font-normal'
+                  className='min-w-0 max-w-24 shrink px-1.5 text-xs font-normal'
                 >
-                  {tag}
+                  <span className='truncate'>{tag}</span>
                 </Badge>
               ))}
               {(version.tags?.length ?? 0) > 2 && (
-                <span className='text-xs text-muted-foreground'>
+                <span className='shrink-0 text-xs text-muted-foreground'>
                   +{(version.tags?.length ?? 0) - 2}
                 </span>
               )}
             </div>
           )}
-          <time
-            dateTime={version.created_at}
-            title={formatDateTime(version.created_at)}
-            className='text-xs text-muted-foreground'
-          >
-            {formatRelativeTime(version.created_at)}
-          </time>
         </motion.button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

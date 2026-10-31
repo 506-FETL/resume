@@ -11,6 +11,8 @@ import {
   ArrowRight,
   BellRing,
   BriefcaseBusiness,
+  CalendarDays,
+  FileSearch,
   LineChart as LineChartIcon,
   LoaderCircle,
   Plus,
@@ -102,25 +104,28 @@ function ChartLoading() {
   )
 }
 
-// 空数据只展示紧凑操作行，不保留空图表高度。
 function ChartEmpty({
   icon,
-  text,
-  onClick,
+  title,
+  description,
+  children,
 }: {
   icon: ReactNode
-  text: string
-  onClick?: () => void
+  title: string
+  description: string
+  children: ReactNode
 }) {
   return (
-    <button
-      type='button'
-      onClick={onClick}
-      className='flex w-full items-center gap-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground motion-reduce:transition-none'
-    >
-      {icon}
-      {text}
-    </button>
+    <Empty className='min-h-[140px] gap-3 px-3 py-2'>
+      <EmptyHeader className='gap-1.5'>
+        <EmptyMedia variant='icon' className='mb-0 size-8'>
+          {icon}
+        </EmptyMedia>
+        <EmptyTitle className='text-sm'>{title}</EmptyTitle>
+        <EmptyDescription className='text-xs'>{description}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>{children}</EmptyContent>
+    </Empty>
   )
 }
 
@@ -281,27 +286,20 @@ export function FunnelCard({
               </BarChart>
             </ChartContainer>
           ) : (
-            <Empty className='min-h-[140px] gap-3 px-3 py-2'>
-              <EmptyHeader className='gap-1.5'>
-                <EmptyMedia variant='icon' className='mb-0 size-8'>
-                  <BriefcaseBusiness className='size-4' aria-hidden />
-                </EmptyMedia>
-                <EmptyTitle className='text-sm'>暂无在办岗位</EmptyTitle>
-                <EmptyDescription className='text-xs'>
-                  添加目标岗位，开始记录求职进展。
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => navigate('/tracker')}
-                >
-                  <Plus aria-hidden />
-                  添加岗位
-                </Button>
-              </EmptyContent>
-            </Empty>
+            <ChartEmpty
+              icon={<BriefcaseBusiness className='size-4' aria-hidden />}
+              title='暂无在办岗位'
+              description='添加目标岗位，开始记录求职进展。'
+            >
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => navigate('/tracker')}
+              >
+                <Plus aria-hidden />
+                添加岗位
+              </Button>
+            </ChartEmpty>
           )}
         </AnimatedContent>
       </CardContent>
@@ -451,12 +449,19 @@ export function AtsTrendCard({
             </ChartContainer>
           ) : (
             <ChartEmpty
-              icon={
-                <LineChartIcon className='size-4 text-muted-foreground/40' />
-              }
-              text='开始 ATS 检测'
-              onClick={() => navigate('/optimize')}
-            />
+              icon={<FileSearch className='size-4' aria-hidden />}
+              title='暂无检测记录'
+              description='检测简历，了解得分与改进建议。'
+            >
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => navigate('/optimize')}
+              >
+                检测简历
+                <ArrowRight aria-hidden />
+              </Button>
+            </ChartEmpty>
           )}
         </AnimatedContent>
       </CardContent>
@@ -478,18 +483,9 @@ export function ActivityCard({
   loading: boolean
 }) {
   const reduceMotion = useReducedMotion()
+  const navigate = useNavigate()
   const total = activity.reduce((sum, day) => sum + day.total, 0)
   const hasData = total > 0
-
-  if (!loading && !hasData) {
-    return (
-      <div className='flex flex-wrap items-center gap-2 border-t py-4 text-sm text-muted-foreground'>
-        <Activity className='size-4' aria-hidden />
-        <span>本周活跃度</span>
-        <span>暂无编辑或投递记录</span>
-      </div>
-    )
-  }
 
   return (
     <Card className='flex min-w-0 flex-col gap-0 rounded-none border-0 border-t bg-transparent py-5 shadow-none ring-0'>
@@ -559,15 +555,20 @@ export function ActivityCard({
               </BarChart>
             </ChartContainer>
           ) : (
-            <div
-              className={cn(
-                'flex w-full flex-col items-center justify-center gap-1 text-sm text-muted-foreground',
-                CHART_HEIGHT,
-              )}
+            <ChartEmpty
+              icon={<CalendarDays className='size-4' aria-hidden />}
+              title='本周暂无活动'
+              description='编辑简历或记录投递后，在这里查看。'
             >
-              <Activity className='size-4 text-muted-foreground/40' />
-              本周还没有编辑或投递记录
-            </div>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => navigate('/resume')}
+              >
+                管理简历
+                <ArrowRight aria-hidden />
+              </Button>
+            </ChartEmpty>
           )}
         </AnimatedContent>
       </CardContent>

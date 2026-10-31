@@ -21,7 +21,7 @@ import {
 } from './utils'
 
 /**
- * 用户中心的额度卡片：展示 plan、今日已用/剩余、进度条、重置文案，
+ * 用户中心的额度分区：展示 plan、今日已用/剩余、进度条、重置文案，
  * 并提供当前账户的额度说明。
  */
 export function QuotaCard() {
@@ -29,10 +29,12 @@ export function QuotaCard() {
   const openDialog = useUpgradeDialogStore((s) => s.openDialog)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>AI 每日额度</CardTitle>
-        <CardDescription>每次使用 AI 消耗的点数可能不同</CardDescription>
+    <Card className='gap-5 overflow-visible rounded-none border-0 border-b bg-transparent pt-0 pb-6 shadow-none ring-0'>
+      <CardHeader className='flex flex-wrap items-start justify-between gap-3 px-0 pt-0'>
+        <div className='min-w-0 space-y-1'>
+          <CardTitle>AI 每日额度</CardTitle>
+          <CardDescription>每次使用 AI 消耗的点数可能不同</CardDescription>
+        </div>
         <CardAction>
           <Button
             size='sm'
@@ -44,7 +46,7 @@ export function QuotaCard() {
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent>
+      <CardContent className='px-0'>
         {loading ? (
           <QuotaCardSkeleton />
         ) : error || !quota ? (
@@ -86,7 +88,7 @@ function QuotaCardBody({
   if (unlimited) {
     return (
       <div className='flex flex-col gap-4'>
-        <div className='flex items-center justify-between'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
           <PlanPill plan={plan} />
           <span className='inline-flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400'>
             <InfinityIcon className='size-4' />
@@ -100,7 +102,7 @@ function QuotaCardBody({
 
   return (
     <div className='flex flex-col gap-4'>
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
         <PlanPill plan={plan} />
         <span
           className={cn(

@@ -179,7 +179,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
   }
 
   return (
-    <div className='flex flex-col gap-4'>
+    <div className='flex flex-col gap-8'>
       <ToolPanelCard>
         <ToolPanelHeader
           title='岗位描述输入'
@@ -190,7 +190,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
             ) : null
           }
         />
-        <ToolPanelBody className='flex flex-col gap-4'>
+        <ToolPanelBody className='space-y-4'>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor={jobDescriptionId}>职位描述</FieldLabel>

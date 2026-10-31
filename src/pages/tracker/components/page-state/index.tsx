@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { BOARD_COLUMNS } from '../../const'
 import { useTrackerFilterActions } from '../../hooks/use-tracker-filter-actions'
 import useTrackerStore from '../../store'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { selectTrackerListJobs } from '../../store/selectors'
 
 interface TrackerPageStateProps {
@@ -112,6 +113,7 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
 
 export function TrackerSkeleton() {
   const viewMode = useTrackerStore((state) => state.viewMode)
+  const isMobile = useIsMobile()
   const reduce = useReducedMotion()
   const still = reduce ? 'animate-none' : ''
 
@@ -121,7 +123,7 @@ export function TrackerSkeleton() {
       aria-label='正在加载职位'
       className='flex min-h-0 min-w-0 flex-1 overflow-hidden'
     >
-      {viewMode === 'board' ? (
+      {!isMobile && viewMode === 'board' ? (
         <div className='flex w-full gap-3'>
           {BOARD_COLUMNS.slice(0, 5).map((column) => (
             <div

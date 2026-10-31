@@ -80,17 +80,35 @@ export default function CreateResumeCard({
     onClose: () => setIsOpen(false),
   })
 
-  const accountId = useResumeListStore((state) => state.accountId)
-  const cloudResumes = useResumeListStore((state) => state.resumes)
-  const offlineResumes = useResumeListStore((state) => state.offlineResumes)
-  const listLoading = useResumeListStore((state) => state.loading)
-  const listError = useResumeListStore((state) => state.loadError)
+  const list = useResumeListStore()
+  const accountId = list.libraryActive ? list.libraryAccountId : list.accountId
+  const cloudResumes = list.libraryActive ? list.libraryOptions : list.resumes
+  const offlineResumes = list.offlineResumes
+
+  const listLoading = list.libraryActive
+    ? list.libraryOptionsLoading
+    : list.loading
+
+  const listError = list.libraryActive
+    ? list.libraryOptionsError
+    : list.loadError
+
+  const loadOptions = list.libraryActive
+    ? list.loadLibraryOptions
+    : list.loadResumes
 
   useEffect(() => {
-    if (isOpen && step === 'job') useResumeListStore.getState().loadResumes()
-  }, [isOpen, step, user?.id])
+    if (isOpen && step === 'job') loadOptions()
+  }, [isOpen, step, user?.id, loadOptions])
 
-  const resumes = user && accountId === user.id ? cloudResumes : offlineResumes
+  const resumes =
+    accountId === (user?.id ?? null)
+      ? list.libraryActive
+        ? cloudResumes
+        : user
+          ? cloudResumes
+          : offlineResumes
+      : []
 
   useLayoutEffect(() => {
     if (!reduceMotion) return
@@ -398,9 +416,7 @@ export default function CreateResumeCard({
                             <p>简历列表暂时没有加载成功。</p>
                             <Button
                               variant='outline'
-                              onClick={() =>
-                                useResumeListStore.getState().loadResumes()
-                              }
+                              onClick={() => loadOptions(true)}
                             >
                               重新加载
                             </Button>

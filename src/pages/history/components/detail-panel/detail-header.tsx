@@ -9,7 +9,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -51,6 +51,24 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
   const { selectedEntry, selectedVersion, editing } = state
+  const editButtonRef = useRef<HTMLButtonElement>(null)
+  const saveButtonRef = useRef<HTMLButtonElement>(null)
+  const previousStateRef = useRef({ selectedEntry, editing })
+
+  useLayoutEffect(() => {
+    const previous = previousStateRef.current
+
+    if (
+      previous.selectedEntry === selectedEntry &&
+      previous.editing !== editing
+    ) {
+      const button = editing ? saveButtonRef.current : editButtonRef.current
+
+      button?.focus({ preventScroll: true })
+    }
+
+    previousStateRef.current = { selectedEntry, editing }
+  }, [editing, selectedEntry])
 
   useEffect(() => {
     setRestoreTargetId(null)
@@ -78,11 +96,14 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
     const syncState = getCurrentSyncState(currentResume, versions)
 
     return (
-      <div className='flex min-w-0 flex-col gap-1.5'>
-        <div className='flex flex-wrap items-center gap-2'>
-          <h2 className='min-w-0 truncate text-base font-semibold tracking-tight'>
-            {currentResume.displayName}
-          </h2>
+      <div className='flex min-w-0 flex-col gap-2'>
+        <h2
+          className='line-clamp-2 min-w-0 break-words text-xl leading-snug font-semibold tracking-tight sm:text-2xl'
+          title={currentResume.displayName}
+        >
+          {currentResume.displayName}
+        </h2>
+        <div className='flex flex-wrap items-center gap-x-3 gap-y-1.5'>
           <Badge variant='secondary' className='font-normal'>
             当前内容
           </Badge>
@@ -94,14 +115,6 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
                 : '有未保存的修改'}
           </span>
         </div>
-        {currentResume.description && (
-          <p
-            className='line-clamp-1 text-xs text-muted-foreground'
-            title={currentResume.description}
-          >
-            {currentResume.description}
-          </p>
-        )}
         <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground'>
           <span
             className='flex items-center gap-1.5'
@@ -134,20 +147,21 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
   const canCompare = versions.length >= 2 || Boolean(currentResume)
 
   return (
-    <div className='flex min-w-0 flex-col gap-2'>
-      <div className='flex flex-wrap items-center gap-2'>
+    <div className='flex min-w-0 flex-col gap-3'>
+      <h2
+        className='line-clamp-2 min-w-0 break-words text-xl leading-snug font-semibold tracking-tight sm:text-2xl'
+        title={getVersionTitle(selectedVersion)}
+      >
+        {getVersionTitle(selectedVersion)}
+      </h2>
+      <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground'>
         <Badge variant='secondary' className='font-normal'>
           V{selectedVersion.version_no}
         </Badge>
-        <h2
-          className='min-w-0 truncate text-base font-semibold tracking-tight'
-          title={getVersionTitle(selectedVersion)}
-        >
-          {getVersionTitle(selectedVersion)}
-        </h2>
-        <span className='text-xs text-muted-foreground'>
-          {sourceMeta.label}
-        </span>
+        <span>{sourceMeta.label}</span>
+        <time dateTime={selectedVersion.created_at}>
+          {formatDateTime(selectedVersion.created_at)}
+        </time>
         {selectedVersion.milestone_name && (
           <Badge
             variant='outline'
@@ -157,18 +171,11 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
           </Badge>
         )}
       </div>
-      <div className='flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1'>
-        <time
-          dateTime={selectedVersion.created_at}
-          className='text-xs text-muted-foreground'
-        >
-          {formatDateTime(selectedVersion.created_at)}
-        </time>
-      </div>
       <div className='flex min-h-8 flex-wrap items-center gap-2'>
         {editing ? (
           <>
             <Button
+              ref={saveButtonRef}
               size='sm'
               onClick={state.submitEditDraft}
               disabled={savingMetadata}
@@ -188,28 +195,31 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
         ) : (
           <>
             <HistoryActionButton
-              label='恢复此版本'
-              onClick={() => setRestoreTargetId(selectedVersion.id)}
-            >
-              <RotateCcw />
-            </HistoryActionButton>
-            <HistoryActionButton
               label='对比'
-              variant='outline'
               disabled={!canCompare}
               title={canCompare ? undefined : '还没有可对比的版本'}
               onClick={() => setCompareOpen(true)}
             >
               <GitCompare />
             </HistoryActionButton>
+            <HistoryActionButton
+              label='恢复此版本'
+              variant='outline'
+              onClick={() => setRestoreTargetId(selectedVersion.id)}
+            >
+              <RotateCcw />
+            </HistoryActionButton>
             <VersionPdfExportButton
               key={`pdf-${selectedVersion.id}`}
               versionId={selectedVersion.id}
               documentTitle={getVersionTitle(selectedVersion)}
+              compact
             />
             <HistoryActionButton
+              ref={editButtonRef}
               label='编辑信息'
               variant='outline'
+              compact
               onClick={state.startEditing}
             >
               <Edit3 />

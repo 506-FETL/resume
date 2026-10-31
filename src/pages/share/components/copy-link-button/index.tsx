@@ -33,9 +33,9 @@ export default function CopyLinkButton({ url }: { url: string }) {
 
   return (
     <Button
-      variant='ghost'
+      variant='outline'
       size='sm'
-      className='h-8 w-17 shrink-0 rounded-md px-1.5'
+      className='h-9 min-w-0 flex-1 px-2 shadow-none'
       aria-label={copied ? '链接已复制' : '复制链接'}
       onClick={handleCopy}
     >
@@ -56,7 +56,7 @@ export default function CopyLinkButton({ url }: { url: string }) {
           ) : (
             <Copy className='size-3.5' />
           )}
-          <span className='text-xs'>{copied ? '已复制' : '复制'}</span>
+          <span className='text-xs'>{copied ? '已复制' : '复制链接'}</span>
         </motion.span>
       </AnimatePresence>
       <span role='status' className='sr-only'>

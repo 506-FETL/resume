@@ -2,7 +2,6 @@ import type { ComponentType, PropsWithChildren, ReactNode } from 'react'
 import type { ToolTone } from './types'
 import { Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { TOOL_TONE_CLASS_MAP } from './const'
 
@@ -13,14 +12,14 @@ export function ToolPanelCard({
   className,
 }: PropsWithChildren<{ className?: string }>) {
   return (
-    <Card
+    <section
       className={cn(
-        'min-w-0 gap-0 border-border/60 bg-card py-0 shadow-none',
+        'min-w-0 space-y-4 border-t border-border/60 pt-5',
         className,
       )}
     >
       {children}
-    </Card>
+    </section>
   )
 }
 
@@ -38,19 +37,19 @@ export function ToolPanelHeader({
   title: string
 }) {
   return (
-    <CardHeader className='p-4 pb-2 md:p-5 md:pb-2'>
+    <header>
       <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
         <div className='flex min-w-0 flex-1 gap-3'>
           {Icon && (
-            <div className='mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+            <div className='mt-1 shrink-0 text-muted-foreground'>
               <Icon className='size-4' />
             </div>
           )}
           <div className='min-w-0 flex-1 space-y-1.5'>
             <div className='flex flex-wrap items-center gap-2'>
-              <CardTitle className='wrap-break-word text-base font-semibold leading-tight'>
+              <h2 className='wrap-break-word text-base font-semibold leading-6'>
                 {title}
-              </CardTitle>
+              </h2>
               {badge}
             </div>
             {description && (
@@ -66,7 +65,7 @@ export function ToolPanelHeader({
           </div>
         )}
       </div>
-    </CardHeader>
+    </header>
   )
 }
 
@@ -74,11 +73,7 @@ export function ToolPanelBody({
   children,
   className,
 }: PropsWithChildren<{ className?: string }>) {
-  return (
-    <CardContent className={cn('min-w-0 p-4 pt-2 md:p-5 md:pt-3', className)}>
-      {children}
-    </CardContent>
-  )
+  return <div className={cn('min-w-0 space-y-3', className)}>{children}</div>
 }
 
 export function ToolStatsGrid({
@@ -88,7 +83,7 @@ export function ToolStatsGrid({
   return (
     <div
       className={cn(
-        'grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60 sm:grid-cols-2 xl:grid-cols-4',
+        'grid min-w-0 grid-cols-2 gap-x-6 gap-y-5 xl:grid-cols-4',
         className,
       )}
     >
@@ -115,12 +110,12 @@ export function ToolStatCard({
   const toneClass = TOOL_TONE_CLASS_MAP[tone]
 
   return (
-    <div className='h-full w-full min-w-0 bg-card p-3.5 md:p-4'>
+    <div className='h-full w-full min-w-0'>
       <div className='flex min-w-0 items-center gap-2.5'>
         {Icon && (
           <div
             className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-md',
+              'flex size-7 shrink-0 items-center justify-center rounded-md',
               toneClass.icon,
             )}
           >
@@ -131,8 +126,8 @@ export function ToolStatCard({
           {label}
         </p>
       </div>
-      <div className='mt-3 flex flex-wrap items-end justify-between gap-2'>
-        <p className='text-2xl font-semibold tracking-tight text-foreground md:text-3xl'>
+      <div className='mt-2 flex flex-wrap items-end justify-between gap-2'>
+        <p className='text-xl font-semibold tracking-tight text-foreground tabular-nums md:text-2xl'>
           {value}
         </p>
         {badge}
@@ -152,7 +147,7 @@ export function ToolEmptyState({
   title: string
 }) {
   return (
-    <div className='flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-8 text-center'>
+    <div className='flex min-h-40 flex-col items-center justify-center px-4 py-8 text-center'>
       <div className='flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
         <Sparkles className='size-5' />
       </div>

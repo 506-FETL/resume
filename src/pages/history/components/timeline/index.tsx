@@ -2,7 +2,6 @@ import type { HistorySelection } from '../../types'
 import { History, SearchX } from 'lucide-react'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { useEffect, useId, useMemo, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -57,18 +56,18 @@ export default function HistoryTimeline({
 
   return (
     <LayoutGroup id={layoutId}>
-      <Card className='flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-hidden rounded-none border-0 border-border/70 py-0 shadow-none ring-0 @min-[900px]/workspace:border-r'>
-        <div className='flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3.5'>
+      <Card className='flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-hidden rounded-none border-0 border-border/70 bg-transparent py-0 shadow-none ring-0 @min-[900px]/workspace:border-r'>
+        <div className='flex shrink-0 items-center justify-between gap-3 px-4 pb-2 pt-3'>
           <h2 className='flex items-center gap-2 text-sm font-semibold'>
             <History className='size-4 text-muted-foreground' />
             版本记录
           </h2>
-          <Badge variant='secondary' className='text-xs font-normal'>
+          <span className='text-xs tabular-nums text-muted-foreground'>
             {loading ? '加载中…' : `${versions.length} 个版本`}
-          </Badge>
+          </span>
         </div>
 
-        <div className='shrink-0 border-b p-3'>
+        <div className='shrink-0 px-2 pb-1'>
           <HistoryMotionContent
             transitionKey={loading && !currentResume ? 'loading' : 'current'}
           >
@@ -91,9 +90,9 @@ export default function HistoryTimeline({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0, transition: exit }}
               transition={enter}
-              className='shrink-0 overflow-hidden border-b'
+              className='shrink-0 overflow-hidden'
             >
-              <div className='px-3 py-3'>
+              <div className='px-3 py-2'>
                 <VersionFilterBar criteria={filter} onChange={setFilter} />
                 <AnimatePresence initial={false}>
                   {hasFilter && (
@@ -122,12 +121,12 @@ export default function HistoryTimeline({
 
         <PresenceDiv
           layoutScroll
-          className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain p-3'
+          className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 pt-1'
         >
           <PresenceDiv
             layout={reduceMotion ? false : 'size'}
             transition={layout}
-            className='relative flex flex-col gap-2'
+            className='relative flex flex-col gap-1'
           >
             <AnimatePresence initial={false} mode='popLayout'>
               {loading ? (
@@ -140,7 +139,7 @@ export default function HistoryTimeline({
                     key={`day-${group.label}`}
                     layout={reduceMotion ? false : 'position'}
                     {...itemMotion}
-                    className='px-1 pb-1 pt-2 text-xs font-medium text-muted-foreground'
+                    className='px-2.5 pb-1 pt-3 text-xs font-medium text-muted-foreground first:pt-1'
                   >
                     {group.label}
                   </motion.h3>,

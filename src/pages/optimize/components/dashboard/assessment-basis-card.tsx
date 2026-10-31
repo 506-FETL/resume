@@ -15,7 +15,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { SCORE_ICONS, SCORE_LABELS } from '../../const'
 import useAtsStore from '../../store'
@@ -60,16 +59,16 @@ export default function AssessmentBasisCard() {
       }}
       asChild
     >
-      <Card className='min-w-0 gap-0 overflow-hidden py-0 shadow-none'>
-        <CardHeader className='p-0'>
+      <section className='min-w-0 border-t pt-6'>
+        <header>
           {isMobile ? (
             <CollapsibleTrigger asChild>
               <Button
                 ref={triggerRef}
                 variant='ghost'
-                className='h-auto w-full justify-between gap-3 rounded-none p-4 md:p-5'
+                className='h-auto w-full justify-between gap-3 px-0 py-2 hover:bg-transparent'
               >
-                <span className='flex items-center gap-2 text-base font-semibold'>
+                <span className='flex items-center gap-2 text-lg font-semibold'>
                   <BrainCircuit
                     aria-hidden
                     className='size-4 text-muted-foreground'
@@ -86,7 +85,7 @@ export default function AssessmentBasisCard() {
               </Button>
             </CollapsibleTrigger>
           ) : (
-            <h2 className='flex items-center gap-2 p-5 text-base font-semibold'>
+            <h2 className='flex items-center gap-2 text-lg font-semibold tracking-tight'>
               <BrainCircuit
                 aria-hidden
                 className='size-4 text-muted-foreground'
@@ -94,14 +93,14 @@ export default function AssessmentBasisCard() {
               评分依据
             </h2>
           )}
-        </CardHeader>
+        </header>
         <CollapsibleContent
           ref={contentRef}
           inert={isMobile && !open}
           style={reduceMotion ? { animationDuration: '0s' } : undefined}
         >
-          <CardContent className='p-0'>
-            <div className='space-y-3 border-t px-4 py-4 md:px-5'>
+          <div className='pt-5'>
+            <div className='mb-6 max-w-[75ch] space-y-3'>
               <div className='flex flex-wrap gap-2'>
                 <Badge variant='secondary'>内容自适应评分 2.0</Badge>
                 {assessment.inferredTarget && (
@@ -124,8 +123,8 @@ export default function AssessmentBasisCard() {
                 </p>
               )}
             </div>
-            <div className='grid min-w-0 items-start gap-5 px-4 pb-4 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] md:px-5 md:pb-5'>
-              <div className='min-w-0 space-y-5'>
+            <div className='grid min-w-0 items-start gap-8 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:gap-10'>
+              <div className='min-w-0 space-y-6'>
                 <ScoresRadarChart
                   scores={currentAtsConfig.scores}
                   loading={loading}
@@ -133,10 +132,8 @@ export default function AssessmentBasisCard() {
                 />
                 <ProTips embedded />
               </div>
-              <div className='min-w-0 space-y-2'>
-                <p className='text-xs font-medium text-muted-foreground'>
-                  各维度判断理由
-                </p>
+              <div className='min-w-0'>
+                <p className='mb-1 text-sm font-medium'>各维度判断理由</p>
                 <Accordion
                   type='multiple'
                   value={
@@ -145,16 +142,16 @@ export default function AssessmentBasisCard() {
                       : scoreRationales.map(([key]) => key)
                   }
                   onValueChange={setRationaleOpen}
-                  className='gap-2'
+                  className='min-w-0'
                 >
-                  {scoreRationales.map(([key, score], index) => {
+                  {scoreRationales.map(([key, score]) => {
                     const Icon = SCORE_ICONS[key as keyof typeof SCORE_ICONS]
 
                     return (
                       <AccordionItem
                         key={key}
                         value={key}
-                        className='rounded-lg border border-transparent bg-muted/25 px-3 transition-[background-color,border-color] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) last:border-b hover:border-primary/15 hover:bg-muted/40 data-[state=open]:border-primary/20 data-[state=open]:bg-primary/4 md:px-4'
+                        className='min-w-0 border-border/60'
                       >
                         {isMobile ? (
                           <AccordionTrigger
@@ -162,10 +159,11 @@ export default function AssessmentBasisCard() {
                             className='min-h-14 items-center py-3 hover:no-underline'
                           >
                             <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
-                              <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                              <span className='min-w-0 flex-1 truncate font-medium'>
+                              <Icon
+                                aria-hidden
+                                className='size-4 shrink-0 text-muted-foreground'
+                              />
+                              <span className='min-w-0 flex-1 wrap-break-word font-medium'>
                                 {SCORE_LABELS[
                                   key as keyof typeof SCORE_LABELS
                                 ] ?? key}
@@ -186,10 +184,11 @@ export default function AssessmentBasisCard() {
                             className='flex min-h-14 items-center py-3'
                           >
                             <span className='flex min-w-0 flex-1 items-center gap-3 pr-1'>
-                              <span className='flex size-7 shrink-0 items-center justify-center rounded-md bg-background text-[10px] font-semibold tabular-nums text-muted-foreground shadow-xs'>
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                              <span className='min-w-0 flex-1 truncate font-medium'>
+                              <Icon
+                                aria-hidden
+                                className='size-4 shrink-0 text-muted-foreground'
+                              />
+                              <span className='min-w-0 flex-1 wrap-break-word font-medium'>
                                 {SCORE_LABELS[
                                   key as keyof typeof SCORE_LABELS
                                 ] ?? key}
@@ -207,15 +206,11 @@ export default function AssessmentBasisCard() {
                         )}
                         <AccordionContent
                           aria-labelledby={`${rationaleId}-${key}`}
-                          className='border-t border-border/50 pt-3 pr-8 text-sm leading-6 text-muted-foreground'
+                          className='pr-2 pb-5 text-sm leading-6 text-muted-foreground sm:pl-7'
                         >
-                          <div className='flex items-start gap-2.5'>
-                            <Icon
-                              aria-hidden
-                              className='mt-1 size-3.5 shrink-0 text-primary'
-                            />
-                            <p>{score.rationale}</p>
-                          </div>
+                          <p className='max-w-[72ch] wrap-break-word'>
+                            {score.rationale}
+                          </p>
                         </AccordionContent>
                       </AccordionItem>
                     )
@@ -224,7 +219,7 @@ export default function AssessmentBasisCard() {
               </div>
             </div>
 
-            <div className='space-y-4 border-t border-border/60 bg-muted/10 p-4 md:p-5'>
+            <div className='mt-8 space-y-5 border-t border-border/60 pt-5'>
               <div className='flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-4'>
                 <div className='flex shrink-0 items-center gap-2 pt-1 text-xs font-medium text-muted-foreground'>
                   <Layers3 className='size-3.5' />
@@ -249,27 +244,28 @@ export default function AssessmentBasisCard() {
                     <Sparkles className='size-3.5' />
                     参考内容
                   </div>
-                  <div className='grid min-w-0 gap-2 sm:grid-cols-2'>
-                    {assessment.evidenceSignals.map((signal, index) => (
-                      <div
+                  <ul className='grid min-w-0 gap-x-8 gap-y-3 sm:grid-cols-2'>
+                    {assessment.evidenceSignals.map((signal) => (
+                      <li
                         key={signal}
-                        className='flex min-w-0 items-start gap-3 rounded-lg border border-border/50 bg-background/70 px-3 py-2.5'
+                        className='flex min-w-0 items-start gap-2.5'
                       >
-                        <span className='mt-0.5 text-[10px] font-semibold tabular-nums text-primary/70'>
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
+                        <span
+                          aria-hidden
+                          className='mt-2.5 size-1 shrink-0 rounded-full bg-muted-foreground'
+                        />
                         <span className='wrap-break-word min-w-0 text-sm leading-6'>
                           {signal}
                         </span>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
             </div>
-          </CardContent>
+          </div>
         </CollapsibleContent>
-      </Card>
+      </section>
     </Collapsible>
   )
 }

@@ -27,11 +27,11 @@ interface SectionRowProps {
 }
 
 /**
- * 编辑区单行：卡片式折叠项。表头为「拖拽柄 + 图标 + 名称 + 展开箭头 + 显隐开关」，
+ * 编辑区单行：连续折叠分区。表头为「拖拽柄 + 图标 + 名称 + 展开箭头 + 显隐开关」，
  * 点表头就地展开该模块表单。直接组合 radix 原语以获得整行布局控制（不改 ui/accordion 原语）。
  *
  * 拖拽中由外层 Motion Reorder.Item 提升层级，并省略 AccordionContent；
- * 展开态被拖动时只移动紧凑表头卡片，落下后从 store 恢复表单内容。
+ * 展开态被拖动时只移动紧凑表头，落下后从 store 恢复表单内容。
  */
 export function SectionRow({
   id,
@@ -49,13 +49,13 @@ export function SectionRow({
     <div
       data-editor-section={id}
       className={cn(
-        'rounded-lg border bg-card transition-shadow',
-        isDragging && 'shadow-lg ring-1 ring-primary/20',
+        'border-b border-border/70 transition-[background-color,box-shadow,opacity] duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
+        isDragging && 'rounded-lg bg-card shadow-lg ring-1 ring-primary/20',
         !visible && 'opacity-60',
       )}
     >
       <AccordionItem value={id} className='border-b-0'>
-        <AccordionPrimitive.Header className='flex items-center gap-1.5 px-2.5'>
+        <AccordionPrimitive.Header className='flex items-center gap-1.5 px-1'>
           {!fixed ? (
             <span
               role='button'
@@ -83,7 +83,7 @@ export function SectionRow({
 
           <AccordionPrimitive.Trigger
             disabled={!visible}
-            className='group flex min-w-0 flex-1 items-center gap-2 py-3 text-left text-sm font-medium outline-none transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-100'
+            className='group flex min-w-0 flex-1 items-center gap-2 rounded-sm py-3 text-left text-sm font-semibold outline-none transition-colors duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease) hover:text-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100'
           >
             <span className='shrink-0 text-muted-foreground [&_svg]:size-4'>
               {icon}

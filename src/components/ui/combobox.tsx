@@ -41,6 +41,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
       data-slot='combobox-clear'
+      aria-label='清除选择'
       render={<InputGroupButton variant='ghost' size='icon-xs' />}
       className={cn(className)}
       {...props}
@@ -61,8 +62,16 @@ function ComboboxInput({
   showTrigger?: boolean
   showClear?: boolean
 }) {
+  const groupRef = React.useRef<HTMLDivElement>(null)
+
+  const focusInput = () => {
+    groupRef.current
+      ?.querySelector<HTMLInputElement>('input[role="combobox"]')
+      ?.focus({ preventScroll: true })
+  }
+
   return (
-    <InputGroup className={cn('w-auto', className)}>
+    <InputGroup ref={groupRef} className={cn('w-auto', className)}>
       <ComboboxPrimitive.Input
         render={<InputGroupInput disabled={disabled} />}
         {...props}
@@ -77,7 +86,17 @@ function ComboboxInput({
             className='group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent'
             disabled={disabled}
           >
-            <ComboboxTrigger />
+            <ComboboxTrigger
+              aria-label='切换选项'
+              onMouseDownCapture={(event) => {
+                if (event.button !== 0) return
+
+                // 浮层只保留输入框的可访问性；先转移焦点，避免箭头随 addon 被隐藏。
+                event.preventDefault()
+                focusInput()
+              }}
+              onClickCapture={focusInput}
+            />
           </InputGroupButton>
         )}
         {showClear && <ComboboxClear disabled={disabled} />}

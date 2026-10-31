@@ -1,5 +1,6 @@
 import { Calendar, FileText } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,6 +29,16 @@ export default function SyncResumesDialog() {
   const rawOfflineResumes = useResumeListStore((s) => s.offlineResumes)
   const isSyncing = useResumeListStore((s) => s.isSyncing)
   const syncResumes = useResumeListStore((s) => s.syncResumes)
+
+  const libraryActive = useResumeListStore((s) => s.libraryActive)
+  const listLoading = useResumeListStore((s) => s.libraryOfflineLoading)
+  const listError = useResumeListStore((s) => s.libraryOfflineError)
+  const loadOptions = useResumeListStore((s) => s.loadLibraryOfflineOptions)
+  const unavailable = libraryActive && (listLoading || Boolean(listError))
+
+  useEffect(() => {
+    if (open && libraryActive) loadOptions()
+  }, [open, libraryActive, loadOptions])
 
   const offlineResumes = useMemo(
     () =>
@@ -86,6 +97,37 @@ export default function SyncResumesDialog() {
         </DialogHeader>
 
         <div className='flex min-h-0 flex-col gap-4'>
+          {libraryActive && (
+            <AnimatedContent
+              animationKey={
+                listLoading ? 'loading' : listError ? 'error' : 'ready'
+              }
+            >
+              {listLoading ? (
+                <p role='status' className='text-sm text-muted-foreground'>
+                  正在读取本地简历…
+                </p>
+              ) : listError ? (
+                <div
+                  role='alert'
+                  className='flex items-center justify-between gap-3 text-sm'
+                >
+                  <p>本地简历读取失败，请重试。</p>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => loadOptions(true)}
+                  >
+                    重试
+                  </Button>
+                </div>
+              ) : offlineResumes.length === 0 ? (
+                <p className='text-sm text-muted-foreground'>
+                  没有需要同步的本地简历。
+                </p>
+              ) : null}
+            </AnimatedContent>
+          )}
           {/* 全选按钮 */}
           <div className='flex items-center gap-2 border-b pb-2'>
             <Checkbox
@@ -95,7 +137,7 @@ export default function SyncResumesDialog() {
                 offlineResumes.length > 0
               }
               onCheckedChange={handleToggleAll}
-              disabled={isSyncing}
+              disabled={isSyncing || unavailable}
             />
             <label
               htmlFor='select-all'
@@ -119,7 +161,11 @@ export default function SyncResumesDialog() {
                         ? 'border-primary bg-primary/5'
                         : 'hover:border-primary/50'
                     }`}
-                    onClick={() => !isSyncing && handleToggle(resume.resume_id)}
+                    onClick={() =>
+                      !isSyncing &&
+                      !unavailable &&
+                      handleToggle(resume.resume_id)
+                    }
                   >
                     <CardHeader className='pb-3'>
                       <div className='flex items-start gap-3'>
@@ -129,7 +175,7 @@ export default function SyncResumesDialog() {
                             onCheckedChange={() =>
                               handleToggle(resume.resume_id)
                             }
-                            disabled={isSyncing}
+                            disabled={isSyncing || unavailable}
                           />
                         </div>
                         <FileText className='size-5 text-primary mt-0.5 shrink-0' />
@@ -180,7 +226,7 @@ export default function SyncResumesDialog() {
             </Button>
             <Button
               onClick={handleSync}
-              disabled={selectedIds.length === 0 || isSyncing}
+              disabled={selectedIds.length === 0 || isSyncing || unavailable}
             >
               {isSyncing ? '同步中...' : `同步 ${selectedIds.length} 个简历`}
             </Button>

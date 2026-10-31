@@ -1,5 +1,5 @@
 import type { SuggestionKind, ValueType } from '@/pages/optimize/types'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { KIND_LABEL_MAP } from '@/pages/optimize/const'
@@ -53,14 +53,7 @@ export function SuggestionCompareCard({
   const kindConfig = kind ? KIND_LABEL_MAP[kind] : null
 
   return (
-    <div
-      className={cn(
-        'min-w-0 max-w-full space-y-3 rounded-xl border p-3 transition-[background-color,border-color,box-shadow,color,transform] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) sm:p-4',
-        fixed
-          ? 'bg-primary/5 border-primary/20 shadow-sm'
-          : 'bg-muted/10 border-border/50 hover:bg-muted/20',
-      )}
-    >
+    <div className='min-w-0 max-w-full space-y-3 border-t border-border/60 pt-4 first:border-t-0 first:pt-0'>
       <div className='flex flex-wrap items-center justify-between gap-2'>
         {(kindConfig || reason) && (
           <div className='flex flex-wrap items-center gap-1.5 text-xs'>
@@ -92,9 +85,9 @@ export function SuggestionCompareCard({
         <div
           className={cn('min-w-0 space-y-1.5', fixed && 'opacity-60 grayscale')}
         >
-          <div className='text-[10px] font-medium text-destructive/80 flex items-center gap-1'>
+          <div className='text-xs font-medium text-destructive flex items-center gap-1.5'>
             <span className='size-4 rounded bg-destructive/10 flex items-center justify-center'>
-              ✕
+              <X aria-hidden className='size-2.5' />
             </span>
             修改前
           </div>
@@ -108,7 +101,7 @@ export function SuggestionCompareCard({
         </div>
 
         <div className='min-w-0 space-y-1.5'>
-          <div className='text-[10px] font-medium text-green-600 dark:text-green-400 flex items-center gap-1'>
+          <div className='text-xs font-medium text-green-700 dark:text-green-300 flex items-center gap-1.5'>
             <span className='size-4 rounded bg-green-500/10 dark:bg-green-500/20 flex items-center justify-center'>
               <ArrowRight className='size-2.5' />
             </span>
@@ -118,7 +111,7 @@ export function SuggestionCompareCard({
             className={cn(
               'rounded-lg p-2.5 min-h-12 transition-colors',
               fixed
-                ? 'bg-background border-2 border-primary/20 shadow-sm'
+                ? 'bg-primary/5 border border-primary/20'
                 : 'bg-green-500/5 dark:bg-green-950/20 border border-green-500/10 dark:border-green-500/20',
             )}
           >
