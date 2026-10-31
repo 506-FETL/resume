@@ -1,11 +1,30 @@
-import type { ReactNode } from 'react'
-import type {
-  ActivityDay,
-  AtsTrendPoint,
-  FollowUpJob,
-  FunnelStage,
-} from '../../insights'
+import { AnimatedContent } from '@/components/motion/animated-content'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import type { ChartConfig } from '@/components/ui/chart'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { DURATION } from '@/lib/motion'
+import { cn } from '@/lib/utils'
+import { NEXT_ACTION_TONE_CLASSES } from '@/pages/tracker/const'
 import {
   Activity,
   ArrowRight,
@@ -19,7 +38,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { useIsPresent } from 'motion/react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Area,
@@ -30,31 +49,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AnimatedContent } from '@/components/motion/animated-content'
-import { Button } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
-import { DURATION } from '@/lib/motion'
-import { cn } from '@/lib/utils'
-import { NEXT_ACTION_TONE_CLASSES } from '@/pages/tracker/const'
+import type {
+  ActivityDay,
+  AtsTrendPoint,
+  FollowUpJob,
+  FunnelStage,
+} from '../../insights'
 
 // 图表统一高度与内边距：left=0 避免 Y 轴刻度被推出容器左缘裁切
 const CHART_HEIGHT = 'h-[140px]'
