@@ -10,6 +10,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Button } from '@/components/ui/button'
+import useAssistantStore from '../../../store'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCanvasPreview } from '../../../hooks/use-canvas-preview'
 
@@ -39,9 +41,18 @@ export default function ResumePreview() {
             <Skeleton className='h-[560px] w-full rounded-lg' />
           )}
           {status === 'error' && (
-            <p className='py-10 text-center text-sm text-muted-foreground'>
-              该简历加载失败，请重试或切换其它简历。
-            </p>
+            <div className='space-y-3 py-10 text-center'>
+              <p className='text-sm text-muted-foreground'>
+                简历加载失败，请重试。
+              </p>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => useAssistantStore.getState().bumpCanvasRefresh()}
+              >
+                重新加载
+              </Button>
+            </div>
           )}
           {(status === 'empty' ||
             (!snapshot && previewData && status === 'idle')) && (

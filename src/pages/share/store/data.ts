@@ -1,7 +1,7 @@
 import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { toast } from 'sonner'
-import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
-import { listResumeHistoryVersions } from '@/lib/supabase/resume/history'
+import { getResumeOptions } from '@/lib/supabase/resume/form'
+import { listResumeHistoryShareOptions } from '@/lib/supabase/resume/history'
 import {
   archiveResumeShare,
   createResumeShareRelease,
@@ -14,7 +14,20 @@ import {
 } from '@/lib/supabase/resume/share'
 import { getCurrentUser } from '@/lib/supabase/user'
 
+let shareReadGeneration = 0
+
+export function clearShareReadRequests() {
+  shareReadGeneration += 1
+  versionOptionRequests.clear()
+  dialogShareRequests.clear()
+}
+
 const versionOptionRequests = new Map<string, Promise<void>>()
+
+const dialogShareRequests = new Map<
+  string,
+  Promise<ShareStoreState['shares']>
+>()
 
 function addPending(ids: string[], shareId: string) {
   return ids.includes(shareId) ? ids : [...ids, shareId]
@@ -83,7 +96,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
       const [allShares, resumes] = await Promise.all([
         listAllResumeShares(),
-        getAllResumesFromUser(),
+        getResumeOptions(),
       ])
 
       if (get().pageRequestId !== requestId) return
@@ -148,8 +161,13 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
       dialogError: null,
     })
 
+    const request =
+      dialogShareRequests.get(resumeId) ?? listResumeShares(resumeId)
+
+    dialogShareRequests.set(resumeId, request)
+
     try {
-      const shares = await listResumeShares(resumeId)
+      const shares = await request
 
       if (
         get().dialogRequestId === requestId &&
@@ -170,6 +188,9 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
           dialogError: error instanceof Error ? error.message : '加载失败',
         })
       }
+    } finally {
+      if (dialogShareRequests.get(resumeId) === request)
+        dialogShareRequests.delete(resumeId)
     }
   },
 
@@ -178,6 +199,7 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
     if (activeRequest) return activeRequest
 
+    const generation = shareReadGeneration
     const current = get().versionOptionsByResumeId[resumeId]
 
     if (current?.loaded && !options?.force) return
@@ -199,9 +221,12 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
 
     const request = (async () => {
       try {
-        const items = await listResumeHistoryVersions(resumeId)
+        const items = await listResumeHistoryShareOptions(resumeId)
 
-        if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
+        if (
+          shareReadGeneration !== generation ||
+          get().versionOptionsByResumeId[resumeId]?.requestId !== requestId
+        )
           return
 
         set((state) => ({
@@ -217,7 +242,10 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
           },
         }))
       } catch (error) {
-        if (get().versionOptionsByResumeId[resumeId]?.requestId !== requestId)
+        if (
+          shareReadGeneration !== generation ||
+          get().versionOptionsByResumeId[resumeId]?.requestId !== requestId
+        )
           return
 
         set((state) => ({

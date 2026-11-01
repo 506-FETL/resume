@@ -1,5 +1,5 @@
 import type { VersionDialogSelection } from '../../types'
-import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryShareOption } from '@/lib/supabase/resume/history'
 import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
 import { Check, ChevronsUpDown, Clock3, History, RefreshCw } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -27,7 +27,7 @@ import { formatDateTime } from '@/utils/date'
 
 interface VersionSelectorProps {
   value: VersionDialogSelection
-  versions: ResumeHistoryVersionListItem[]
+  versions: ResumeHistoryShareOption[]
   loading: boolean
   error: string | null
   freezeCurrent?: boolean
@@ -38,7 +38,7 @@ interface VersionSelectorProps {
   onRetry: () => void
 }
 
-function getVersionLabel(version: ResumeHistoryVersionListItem) {
+function getVersionLabel(version: ResumeHistoryShareOption) {
   return (
     version.version_name?.trim() ||
     version.milestone_name?.trim() ||
@@ -48,7 +48,7 @@ function getVersionLabel(version: ResumeHistoryVersionListItem) {
 
 function getSelectedLabel(
   value: VersionDialogSelection,
-  versions: ResumeHistoryVersionListItem[],
+  versions: ResumeHistoryShareOption[],
 ) {
   if (value.kind === 'current') return '当前版本'
   if (value.kind === 'deleted-history')

@@ -248,11 +248,15 @@ export default function ResumeCard({
                     onEdit={handleCardClick}
                     parentName={parent?.display_name ?? null}
                     jdSnippet={
-                      resume.linked_jd_text
-                        ? resume.linked_jd_text.slice(0, 80)
-                        : null
+                      (
+                        resume.linked_jd_excerpt ?? resume.linked_jd_text
+                      )?.slice(0, 80) ?? null
                     }
-                    matchRate={resume.derived_metadata?.matchRate ?? null}
+                    matchRate={
+                      resume.derived_match_rate ??
+                      resume.derived_metadata?.matchRate ??
+                      null
+                    }
                   />
                 )}
                 {parent && (

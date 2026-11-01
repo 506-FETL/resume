@@ -5,15 +5,16 @@ import type {
 } from '@/lib/schema'
 import {
   deleteOfflineResume,
-  getAllOfflineResumes,
+  getOfflineResumeSummaries,
   getOfflineResumeById,
+  getOfflineResumeProjection,
   isOfflineResumeId,
   updateOfflineResumeMeta,
 } from '@/lib/offline-resume-manager'
 import { ResumeNotFoundError } from '@/lib/resume-id'
 import {
   deleteResume,
-  getAllResumesFromUser,
+  getResumeSummaries,
   getResumeById,
   updateResumeConfig,
 } from '@/lib/supabase/resume'
@@ -40,13 +41,13 @@ interface ResumeMetaPatch {
   description?: string
 }
 
-export async function listAccessibleResumes(): Promise<
-  AccessibleResumeListItem[]
-> {
-  const localPromise = getAllOfflineResumes()
+export async function listAccessibleResumes(
+  limit?: number,
+): Promise<AccessibleResumeListItem[]> {
+  const localPromise = getOfflineResumeSummaries(limit)
 
   const cloudPromise = getCurrentUser().then((user) =>
-    user ? getAllResumesFromUser() : [],
+    user ? getResumeSummaries(limit) : [],
   )
 
   const [cloudResumes, localResumes] = await Promise.all([
@@ -54,7 +55,7 @@ export async function listAccessibleResumes(): Promise<
     localPromise,
   ])
 
-  return [
+  const rows = [
     ...cloudResumes.map((resume) => ({
       ...resume,
       isOffline: false,
@@ -66,6 +67,8 @@ export async function listAccessibleResumes(): Promise<
       storage: 'local' as const,
     })),
   ]
+
+  return limit === undefined ? rows : rows.slice(0, limit)
 }
 
 export async function getAccessibleResumeById(
@@ -95,14 +98,45 @@ export async function getAccessibleResumeById(
   } as AccessibleResumeRecord
 }
 
+export async function getAccessibleResumeMetadata(
+  resumeId: string,
+): Promise<AccessibleResumeRecord> {
+  const selector = 'resume_id,display_name,description,type'
+  const local = isOfflineResumeId(resumeId)
+
+  const record = local
+    ? await getOfflineResumeProjection(resumeId, [
+        'resume_id',
+        'display_name',
+        'description',
+        'type',
+      ])
+    : await getResumeById(resumeId, selector)
+
+  return {
+    ...record,
+    isOffline: local,
+    storage: local ? 'local' : 'cloud',
+  } as AccessibleResumeRecord
+}
+
+export async function getAccessibleResumeSection(
+  resumeId: string,
+  sectionKey: (typeof import('@/store/resume').FORM_DATA_KEYS)[number],
+): Promise<Record<string, unknown>> {
+  if (isOfflineResumeId(resumeId)) {
+    return getOfflineResumeProjection(resumeId, [sectionKey])
+  }
+
+  return getResumeById(resumeId, sectionKey)
+}
+
 export async function updateAccessibleResumeMeta(
   resumeId: string,
   patch: ResumeMetaPatch,
 ): Promise<void> {
   if (isOfflineResumeId(resumeId)) {
-    const localResume = await getOfflineResumeById(resumeId)
-
-    if (!localResume) throw new ResumeNotFoundError()
+    await getOfflineResumeProjection(resumeId, ['resume_id'])
 
     await updateOfflineResumeMeta(resumeId, patch)
 
@@ -115,9 +149,7 @@ export async function updateAccessibleResumeMeta(
 
 export async function deleteAccessibleResume(resumeId: string): Promise<void> {
   if (isOfflineResumeId(resumeId)) {
-    const localResume = await getOfflineResumeById(resumeId)
-
-    if (!localResume) throw new ResumeNotFoundError()
+    await getOfflineResumeProjection(resumeId, ['resume_id'])
 
     await deleteOfflineResume(resumeId)
 

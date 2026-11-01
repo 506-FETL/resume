@@ -20,6 +20,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { SHARE_SEARCH_INPUT_ID, SHARE_STATUS_FILTERS } from '../../const'
@@ -76,7 +81,7 @@ export default function Toolbar() {
     Boolean(searchKeyword) || resumeFilters.length > 0 || statusFilter !== 'all'
 
   return (
-    <div className='min-w-0 space-y-4'>
+    <div className='min-w-0 space-y-4 [@media(max-height:500px)]:space-y-2'>
       <Tabs
         value={statusFilter}
         onValueChange={(value) => setStatusFilter(value as ShareStatusFilter)}
@@ -232,21 +237,29 @@ export default function Toolbar() {
         <AnimatePresence initial={false}>
           {hasFilter && (
             <PresenceDiv
-              className='basis-full sm:basis-auto'
+              className='basis-full sm:basis-auto [@media(max-height:500px)]:basis-auto'
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: reduceMotion ? 0 : DURATION.fast }}
             >
-              <Button
-                variant='ghost'
-                size='sm'
-                className='text-muted-foreground'
-                onClick={resetFilters}
-              >
-                <X className='size-3.5' />
-                重置筛选
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='text-muted-foreground [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
+                    aria-label='重置筛选'
+                    onClick={resetFilters}
+                  >
+                    <X className='size-3.5' aria-hidden />
+                    <span className='[@media(max-height:500px)]:sr-only'>
+                      重置筛选
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>重置筛选</TooltipContent>
+              </Tooltip>
             </PresenceDiv>
           )}
         </AnimatePresence>

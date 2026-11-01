@@ -11,6 +11,7 @@ import {
 import {
   getResumeLibraryCounts,
   getResumeLibraryPage,
+  getResumeLibraryOptionsPage,
   getResumeLibraryParents,
   RESUME_LIBRARY_PAGE_SIZE,
 } from '@/lib/supabase/resume/library'
@@ -202,35 +203,46 @@ export function createResumeLibrarySlice(
       const cloud: ResumeItem[] = []
       const local: ResumeItem[] = []
 
-      while (ownerId && cloud.length < expected) {
-        const batch = await getResumeLibraryPage(ownerId, filter, cloud.length)
-
-        if (!current()) return
-
-        cloud.push(...batch)
-
-        if (batch.length < RESUME_LIBRARY_PAGE_SIZE) break
-      }
-
       const localIds = data.local[filter]
 
-      for (
-        let offset = 0;
-        offset < localIds.length;
-        offset += RESUME_LIBRARY_PAGE_SIZE
-      ) {
-        const batch = await getOfflineResumeSummariesByIds(
-          localIds.slice(offset, offset + RESUME_LIBRARY_PAGE_SIZE),
-        )
+      await Promise.all([
+        (async () => {
+          while (ownerId && cloud.length < expected) {
+            const batch =
+              kind === 'options'
+                ? await getResumeLibraryOptionsPage(ownerId, cloud.length)
+                : await getResumeLibraryPage(ownerId, filter, cloud.length)
 
-        if (!current()) return
+            if (!current()) return
 
-        local.push(...batch)
-      }
+            cloud.push(...batch)
+
+            if (batch.length < RESUME_LIBRARY_PAGE_SIZE) break
+          }
+        })(),
+        (async () => {
+          for (
+            let offset = 0;
+            offset < localIds.length;
+            offset += RESUME_LIBRARY_PAGE_SIZE
+          ) {
+            const batch = await getOfflineResumeSummariesByIds(
+              localIds.slice(offset, offset + RESUME_LIBRARY_PAGE_SIZE),
+            )
+
+            if (!current()) return
+
+            local.push(...batch)
+          }
+        })(),
+      ])
+
+      if (!current()) return
 
       const items = [...cloud, ...local].sort(compareResumes)
 
-      const parents = await readParents(items, ownerId)
+      const parents =
+        kind === 'pending' ? await readParents(items, ownerId) : {}
 
       if (!current()) return
 
@@ -380,36 +392,35 @@ export function createResumeLibrarySlice(
 
           const remaining = RESUME_LIBRARY_PAGE_SIZE - cursor.buffer.length
 
-          if (ownerId && remaining > 0 && cursor.cloudOffset < cloudTotal) {
-            const batch = await getResumeLibraryPage(
-              ownerId,
-              filter,
-              cursor.cloudOffset,
-              remaining,
-            )
-
-            if (!current()) return
-
-            cursor.buffer.push(...batch)
-            cursor.cloudOffset += batch.length
-          }
-
           const localRemaining =
             RESUME_LIBRARY_PAGE_SIZE - cursor.localBuffer.length
 
-          if (localRemaining > 0 && cursor.localOffset < localIds.length) {
-            const ids = localIds.slice(
-              cursor.localOffset,
-              cursor.localOffset + localRemaining,
-            )
+          const ids =
+            localRemaining > 0
+              ? localIds.slice(
+                  cursor.localOffset,
+                  cursor.localOffset + localRemaining,
+                )
+              : []
 
-            const batch = await getOfflineResumeSummariesByIds(ids)
+          const [cloudBatch, localBatch] = await Promise.all([
+            ownerId && remaining > 0 && cursor.cloudOffset < cloudTotal
+              ? getResumeLibraryPage(
+                  ownerId,
+                  filter,
+                  cursor.cloudOffset,
+                  remaining,
+                )
+              : [],
+            ids.length ? getOfflineResumeSummariesByIds(ids) : [],
+          ])
 
-            if (!current()) return
+          if (!current()) return
 
-            cursor.localBuffer.push(...batch)
-            cursor.localOffset += ids.length
-          }
+          cursor.buffer.push(...cloudBatch)
+          cursor.cloudOffset += cloudBatch.length
+          cursor.localBuffer.push(...localBatch)
+          cursor.localOffset += ids.length
 
           const items: ResumeItem[] = []
 

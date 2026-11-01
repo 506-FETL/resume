@@ -13,11 +13,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import {
-  APPLICATION_STATUS_CONFIG,
-  TRACKER_METRIC_LABELS,
-  TRACKER_SEARCH_INPUT_ID,
-} from '../../const'
+import { TRACKER_SEARCH_INPUT_ID } from '../../const'
 import { useTrackerFilterActions } from '../../hooks/use-tracker-filter-actions'
 import useTrackerStore from '../../store'
 import { selectTrackerListJobs } from '../../store/selectors'
@@ -74,11 +70,7 @@ export default function TrackerToolbar() {
     })),
   )
 
-  const {
-    clearFilters,
-    clearSearch,
-    setShowArchived: setShowArchivedWithFocus,
-  } = useTrackerFilterActions()
+  const { clearSearch } = useTrackerFilterActions()
 
   const reduce = useReducedMotion()
   const isMobile = useIsMobile()
@@ -97,12 +89,6 @@ export default function TrackerToolbar() {
 
   const archivedCount = jobs.filter((job) => job.archived).length
 
-  const activeLabel = filterStatus
-    ? APPLICATION_STATUS_CONFIG[filterStatus].label
-    : metricFilter
-      ? TRACKER_METRIC_LABELS[metricFilter]
-      : null
-
   const busy = loading || (!isInitialized && !error)
 
   const actionTransition = {
@@ -115,22 +101,111 @@ export default function TrackerToolbar() {
     animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
   }
 
+  const actionTools = (
+    <div
+      role='group'
+      aria-label='职位工具'
+      className='ml-auto flex shrink-0 items-center gap-1'
+    >
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            id='tracker-focus-filter'
+            variant={focusedOnly ? 'secondary' : 'ghost'}
+            size='icon'
+            aria-label='重点关注'
+            aria-pressed={focusedOnly}
+            className={cn(
+              'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
+              focusedOnly
+                ? 'text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400'
+                : 'text-muted-foreground',
+            )}
+            style={actionTransition}
+            onClick={() =>
+              useTrackerStore.getState().setFocusedOnly(!focusedOnly)
+            }
+          >
+            <Flag
+              className='size-4'
+              fill={focusedOnly ? 'currentColor' : 'none'}
+              aria-hidden
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent style={tooltipAnimation}>
+          {focusedOnly ? '显示全部职位' : '只看重点关注'}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={showArchived ? 'secondary' : 'ghost'}
+            size='icon'
+            className={cn(
+              'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
+              !showArchived && 'text-muted-foreground',
+            )}
+            style={actionTransition}
+            aria-label='已归档'
+            aria-pressed={showArchived}
+            onClick={() => {
+              if (isMobile && isSelectMode) enterSelectMode()
+
+              setShowArchived(!showArchived)
+            }}
+          >
+            <Archive className='size-4' aria-hidden />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent style={tooltipAnimation}>
+          {showArchived ? '返回在办职位' : `已归档（${archivedCount}）`}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={isSelectMode ? 'secondary' : 'ghost'}
+            size='icon'
+            className={cn(
+              'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
+              !isSelectMode && 'text-muted-foreground',
+            )}
+            style={actionTransition}
+            aria-pressed={isSelectMode}
+            id='tracker-batch-toggle'
+            aria-label={isSelectMode ? '退出批量管理' : '批量管理'}
+            onClick={isSelectMode ? exitSelectMode : enterSelectMode}
+          >
+            <CheckSquare className='size-4' aria-hidden />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent style={tooltipAnimation}>
+          {isSelectMode ? '退出批量管理' : '批量管理'}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  )
+
   return (
     <div className='shrink-0 py-1 md:border-b md:px-3 md:py-2'>
-      <div className='flex flex-col gap-2 @min-[980px]/tracker:flex-row @min-[980px]/tracker:items-center @min-[980px]/tracker:gap-3'>
-        <div className='hidden shrink-0 items-center justify-between gap-3 md:flex'>
-          <div className='flex min-w-0 items-center gap-2.5'>
-            <h2 className='text-sm font-semibold sm:text-base'>
-              {showArchived ? '已归档职位' : '职位进展'}
-            </h2>
-            <span className='rounded-md bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground'>
-              {busy || error ? '—' : count}
-            </span>
+      <div className='flex flex-col gap-2 md:gap-3'>
+        <div className='hidden shrink-0 items-center justify-between gap-4 md:flex'>
+          <div className='flex min-w-0 items-center gap-4'>
+            <div className='flex min-w-0 items-center gap-2.5'>
+              <h2 className='text-sm font-semibold sm:text-base'>
+                {showArchived ? '已归档职位' : '职位进展'}
+              </h2>
+              <span className='rounded-md bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground'>
+                {busy || error ? '—' : count}
+              </span>
+            </div>
+            <ViewToggle />
           </div>
-          <ViewToggle />
+          {!isMobile && actionTools}
         </div>
-        <div className='flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-3 md:gap-2'>
-          <div className='flex min-w-0 basis-full items-center gap-2 md:@min-[620px]/tracker:flex-1 md:@min-[620px]/tracker:basis-72 @min-[980px]/tracker:max-w-lg'>
+        <div className='flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-3 md:gap-x-3'>
+          <div className='flex min-w-0 basis-full items-center gap-2 md:max-w-lg md:flex-[1_1_18rem]'>
             <div className='relative min-w-0 flex-1'>
               <Search className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
               <Input
@@ -186,7 +261,7 @@ export default function TrackerToolbar() {
               <MobileStageFilter />
             </div>
           )}
-          <div className='min-w-0 flex-1 md:@min-[620px]/tracker:w-40 md:@min-[620px]/tracker:flex-none'>
+          <div className='min-w-0 flex-1 md:w-44 md:flex-none'>
             <label htmlFor='tracker-company-filter' className='sr-only'>
               按公司筛选
             </label>
@@ -202,7 +277,7 @@ export default function TrackerToolbar() {
               }
             />
           </div>
-          <div className='order-1 flex basis-full flex-wrap items-center gap-1.5 empty:hidden md:@min-[620px]/tracker:order-none md:@min-[620px]/tracker:basis-auto'>
+          <div className='order-1 flex basis-full flex-wrap items-center gap-2 empty:hidden md:order-none md:ml-auto md:basis-auto md:justify-end'>
             <AnimatePresence initial={false}>
               {!isMobile && effectiveViewMode === 'list' && (
                 <PresenceDiv
@@ -225,79 +300,6 @@ export default function TrackerToolbar() {
               )}
             </AnimatePresence>
             <AnimatePresence initial={false}>
-              {activeLabel && !isMobile && (
-                <PresenceDiv
-                  key='active-filter'
-                  initial={reduce ? false : { opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{
-                    opacity: 0,
-                    width: 0,
-                    transition: {
-                      duration: reduce ? 0 : DURATION.fast,
-                      ease: EASE.in,
-                    },
-                  }}
-                  transition={{
-                    duration: reduce ? 0 : DURATION.base,
-                    ease: EASE.out,
-                  }}
-                  className='shrink-0 overflow-hidden'
-                >
-                  <Button
-                    variant='secondary'
-                    size='sm'
-                    className='h-8 gap-1.5 whitespace-nowrap text-xs'
-                    onClick={clearFilters}
-                    aria-label={`清除${effectiveViewMode === 'board' ? '定位' : '筛选'}：${activeLabel}`}
-                  >
-                    <span className='hidden sm:inline'>
-                      {effectiveViewMode === 'board' ? '定位' : '筛选'}：
-                    </span>
-                    {activeLabel}
-                    <X className='size-3' />
-                  </Button>
-                </PresenceDiv>
-              )}
-              {showArchived && (
-                <PresenceDiv
-                  key='archive-filter'
-                  initial={reduce ? false : { opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{
-                    opacity: 0,
-                    width: 0,
-                    transition: {
-                      duration: reduce ? 0 : DURATION.fast,
-                      ease: EASE.in,
-                    },
-                  }}
-                  transition={{
-                    duration: reduce ? 0 : DURATION.base,
-                    ease: EASE.out,
-                  }}
-                  className='shrink-0 overflow-hidden'
-                >
-                  <Button
-                    variant='secondary'
-                    size='sm'
-                    className='h-8 gap-1.5 whitespace-nowrap text-xs'
-                    aria-label='退出归档视图'
-                    onClick={() => {
-                      if (isMobile && isSelectMode) enterSelectMode()
-
-                      setShowArchivedWithFocus(false)
-                    }}
-                  >
-                    <Archive className='size-3' />
-                    <span className='hidden sm:inline'>正在查看归档</span>
-                    <span className='sm:hidden'>已归档</span>
-                    <X className='size-3' />
-                  </Button>
-                </PresenceDiv>
-              )}
-            </AnimatePresence>
-            <AnimatePresence initial={false}>
               {!isMobile && effectiveViewMode === 'list' && (
                 <PresenceDiv
                   key='sort-menu'
@@ -311,89 +313,7 @@ export default function TrackerToolbar() {
               )}
             </AnimatePresence>
           </div>
-          <div
-            role='group'
-            aria-label='职位工具'
-            className='ml-auto flex shrink-0 items-center gap-1'
-          >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  id='tracker-focus-filter'
-                  variant={focusedOnly ? 'secondary' : 'ghost'}
-                  size='icon'
-                  aria-label='重点关注'
-                  aria-pressed={focusedOnly}
-                  className={cn(
-                    'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
-                    focusedOnly
-                      ? 'text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400'
-                      : 'text-muted-foreground',
-                  )}
-                  style={actionTransition}
-                  onClick={() =>
-                    useTrackerStore.getState().setFocusedOnly(!focusedOnly)
-                  }
-                >
-                  <Flag
-                    className='size-4'
-                    fill={focusedOnly ? 'currentColor' : 'none'}
-                    aria-hidden
-                  />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent style={tooltipAnimation}>
-                {focusedOnly ? '显示全部职位' : '只看重点关注'}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={showArchived ? 'secondary' : 'ghost'}
-                  size='icon'
-                  className={cn(
-                    'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
-                    !showArchived && 'text-muted-foreground',
-                  )}
-                  style={actionTransition}
-                  aria-label='已归档'
-                  aria-pressed={showArchived}
-                  onClick={() => {
-                    if (isMobile && isSelectMode) enterSelectMode()
-
-                    setShowArchived(!showArchived)
-                  }}
-                >
-                  <Archive className='size-4' aria-hidden />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent style={tooltipAnimation}>
-                {showArchived ? '返回在办职位' : `已归档（${archivedCount}）`}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isSelectMode ? 'secondary' : 'ghost'}
-                  size='icon'
-                  className={cn(
-                    'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
-                    !isSelectMode && 'text-muted-foreground',
-                  )}
-                  style={actionTransition}
-                  aria-pressed={isSelectMode}
-                  id='tracker-batch-toggle'
-                  aria-label={isSelectMode ? '退出批量管理' : '批量管理'}
-                  onClick={isSelectMode ? exitSelectMode : enterSelectMode}
-                >
-                  <CheckSquare className='size-4' aria-hidden />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent style={tooltipAnimation}>
-                {isSelectMode ? '退出批量管理' : '批量管理'}
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          {isMobile && actionTools}
         </div>
       </div>
       <BatchActions />

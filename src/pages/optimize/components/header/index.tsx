@@ -61,7 +61,7 @@ function Header() {
     <div className='min-w-0 space-y-4'>
       <PageHeader
         title='简历优化'
-        description='先检测，再按优先级完善内容。'
+        description='按优先级完善内容'
         actions={
           <>
             <ResumeManager />
@@ -107,7 +107,7 @@ function Header() {
                 variant='outline'
                 disabled={loading}
                 onClick={() => {
-                  init()
+                  init(true)
                 }}
               >
                 重新加载

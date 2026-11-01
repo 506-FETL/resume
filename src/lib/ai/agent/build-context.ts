@@ -1,16 +1,24 @@
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { getResumeSchemaDoc } from '@/lib/ai/schema-doc'
 import { listAccessibleResumes } from '@/lib/resume-access'
-import { getCompanies } from '@/lib/supabase/resume'
-import { getUserProfile } from '@/lib/supabase/user'
+import { listAssistantJobOverviews } from '@/lib/supabase/resume'
+import { getCurrentUser } from '@/lib/supabase/user'
 
 // 轻量用户概况（不含正文，注入 system 头，给 agent 基本盘感知）
 export async function buildUserContext(): Promise<string> {
   const lines: string[] = []
   const today = new Date().toLocaleDateString('zh-CN')
 
+  const [profileResult, resumeResult, jobsResult] = await Promise.allSettled([
+    getCurrentUser(),
+    listAccessibleResumes(),
+    listAssistantJobOverviews(),
+  ])
+
   try {
-    const profile = (await getUserProfile()) as { full_name?: string } | null
+    if (profileResult.status === 'rejected') throw profileResult.reason
+
+    const profile = profileResult.value?.user_metadata
 
     lines.push(
       `当前用户：${profile?.full_name ?? '未设置昵称'}；今天：${today}。`,
@@ -23,7 +31,9 @@ export async function buildUserContext(): Promise<string> {
   let resumeListLoaded = false
 
   try {
-    accessibleResumes = await listAccessibleResumes()
+    if (resumeResult.status === 'rejected') throw resumeResult.reason
+
+    accessibleResumes = resumeResult.value
     resumeListLoaded = true
 
     if (accessibleResumes.length > 0) {
@@ -61,7 +71,9 @@ export async function buildUserContext(): Promise<string> {
   }
 
   try {
-    const jobs = await getCompanies()
+    if (jobsResult.status === 'rejected') throw jobsResult.reason
+
+    const jobs = jobsResult.value
 
     if (jobs.length > 0) {
       const byStatus = jobs.reduce<Record<string, number>>((acc, j) => {

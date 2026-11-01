@@ -5,6 +5,7 @@ import type {
   VariantMetadata,
 } from '@/lib/schema'
 import { applyVariantChange } from '@/components/jd-variant/utils/apply-changes'
+import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
@@ -123,13 +124,21 @@ export async function cloneResumeAsDraft(args: {
     if (args.draftId && !existingDraft) {
       const existing = await findExisting()
 
-      if (existing) return existing.resume_id
+      if (existing) {
+        notifyResumeReadChanged(existing.resume_id)
+
+        return existing.resume_id
+      }
     }
 
     throw error
   }
 
-  return (data as { resume_id: string }).resume_id
+  const resumeId = (data as { resume_id: string }).resume_id
+
+  notifyResumeReadChanged(resumeId)
+
+  return resumeId
 }
 
 export async function applyVariantChanges(
@@ -174,6 +183,8 @@ export async function applyVariantChanges(
   if (error) {
     throw error
   }
+
+  notifyResumeReadChanged(draftResumeId)
 
   return next
 }
@@ -234,6 +245,8 @@ export async function markVariantReady(
   if (error) {
     throw error
   }
+
+  notifyResumeReadChanged(draftResumeId)
 }
 
 export async function markVariantFailed(
@@ -258,6 +271,8 @@ export async function markVariantFailed(
   if (error) {
     throw error
   }
+
+  notifyResumeReadChanged(draftResumeId)
 }
 
 export async function deleteDraftVariant(draftResumeId: string): Promise<void> {
@@ -276,6 +291,8 @@ export async function deleteDraftVariant(draftResumeId: string): Promise<void> {
   if (error) {
     throw error
   }
+
+  notifyResumeReadChanged(draftResumeId)
 }
 
 interface RawNode {
@@ -283,18 +300,22 @@ interface RawNode {
   parent_resume_id: string | null
   display_name: string | null
   derived_status: DerivedStatus | null
-  derived_metadata: VariantMetadata | null
-  linked_jd_text: string | null
+  generated_at: string | null
+  match_rate: number | null
+  jd_excerpt: string | null
 }
+
+const LINEAGE_SELECTOR =
+  'resume_id,parent_resume_id,display_name,derived_status,generated_at:derived_metadata->>generatedAt,match_rate:derived_metadata->matchRate,jd_excerpt:resume_jd_excerpt'
 
 function toTreeNode(row: RawNode): VariantTreeNode {
   return {
     resumeId: row.resume_id,
     displayName: row.display_name ?? '未命名简历',
     derivedStatus: row.derived_status,
-    generatedAt: row.derived_metadata?.generatedAt ?? null,
-    jdSnippet: row.linked_jd_text?.slice(0, 80) ?? null,
-    matchRate: row.derived_metadata?.matchRate ?? null,
+    generatedAt: row.generated_at,
+    jdSnippet: row.jd_excerpt,
+    matchRate: row.match_rate,
     children: [],
   }
 }
@@ -317,9 +338,7 @@ export async function fetchVariantTree(
 
     const { data, error } = await supabase
       .from('resume_config')
-      .select(
-        'resume_id,parent_resume_id,display_name,derived_status,derived_metadata,linked_jd_text',
-      )
+      .select(LINEAGE_SELECTOR)
       .eq('user_id', user.id)
       .eq('resume_id', walker)
       .maybeSingle()
@@ -333,7 +352,7 @@ export async function fetchVariantTree(
       break
     }
 
-    rootRow = data as RawNode
+    rootRow = data as unknown as RawNode
 
     if (!rootRow.parent_resume_id) {
       break
@@ -367,9 +386,7 @@ export async function fetchVariantTree(
 
     const { data, error } = await supabase
       .from('resume_config')
-      .select(
-        'resume_id,parent_resume_id,display_name,derived_status,derived_metadata,linked_jd_text',
-      )
+      .select(LINEAGE_SELECTOR)
       .eq('user_id', user.id)
       .in('parent_resume_id', layerIds)
 
@@ -377,7 +394,7 @@ export async function fetchVariantTree(
       throw error
     }
 
-    const rows = (data ?? []) as RawNode[]
+    const rows = (data ?? []) as unknown as RawNode[]
     const nextLayer: VariantTreeNode[] = []
 
     for (const row of rows) {

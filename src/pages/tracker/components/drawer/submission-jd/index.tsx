@@ -1,15 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { getJobSubmissionJd } from '@/lib/supabase/resume/submissions'
-import {
-  createTrackerAccountGuard,
-  getTrackerAccountScope,
-  isTrackerAccountScopeCurrent,
-} from '../../../lib/account-scope'
-import { getTrackerErrorMessage } from '../../../utils'
+import useTrackerStore from '../../../store'
 
 type SubmissionJd = { jdText: string | null; jdUpdatedAt: string | null }
 
@@ -37,31 +31,15 @@ export default function SubmissionJd({
   enabled: boolean
   onRetry: () => void
 }) {
-  const [data, setData] = useState<SubmissionJd | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [attempt, setAttempt] = useState(0)
+  const resource = useTrackerStore((state) => state.submissionJdsById[recordId])
+  const revision = useTrackerStore((state) => state.submissionRevision)
+  const current = resource?.revision === revision ? resource : null
+  const data = current?.data
+  const error = current?.error
 
   useEffect(() => {
-    if (!enabled || data) return
-
-    const scope = getTrackerAccountScope()
-    let active = true
-
-    setError(null)
-
-    getJobSubmissionJd(recordId, createTrackerAccountGuard(scope))
-      .then((result) => {
-        if (active && isTrackerAccountScopeCurrent(scope)) setData(result)
-      })
-      .catch((cause) => {
-        if (active && isTrackerAccountScopeCurrent(scope))
-          setError(getTrackerErrorMessage(cause))
-      })
-
-    return () => {
-      active = false
-    }
-  }, [recordId, enabled, attempt, data])
+    if (enabled) useTrackerStore.getState().loadSubmissionJd(recordId)
+  }, [recordId, enabled, revision])
 
   return (
     <AnimatedContent
@@ -78,7 +56,7 @@ export default function SubmissionJd({
             className='mt-2 w-fit'
             onClick={() => {
               onRetry()
-              setAttempt((value) => value + 1)
+              useTrackerStore.getState().loadSubmissionJd(recordId)
             }}
           >
             重试

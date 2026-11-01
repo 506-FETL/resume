@@ -50,7 +50,7 @@ export default function ResumeFocusPreview({
   )
 }
 
-function PreviewContent({
+export function PreviewContent({
   entry,
   onRetry,
 }: {

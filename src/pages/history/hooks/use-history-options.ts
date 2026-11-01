@@ -1,4 +1,5 @@
 import type { HistoryResumeOption } from '../types'
+import useUserStore from '@/store/user'
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { listResumeHistoryOptions } from '@/lib/supabase/resume'
@@ -12,6 +13,9 @@ interface HistoryResumeOptionsStore {
   reload: () => Promise<void>
 }
 
+let accountId = useUserStore.getState().currentUser?.id ?? null
+let generation = 0
+
 const useHistoryResumeOptionsStore = create<HistoryResumeOptionsStore>()(
   (set) => ({
     resumeOptions: [],
@@ -19,10 +23,14 @@ const useHistoryResumeOptionsStore = create<HistoryResumeOptionsStore>()(
     error: null,
     hydrated: false,
     reload: async () => {
+      const request = ++generation
+
       set({ loading: true })
 
       try {
         const options = await listResumeHistoryOptions()
+
+        if (request !== generation) return
 
         set({
           resumeOptions: options.map(buildHistoryResumeOption),
@@ -30,16 +38,34 @@ const useHistoryResumeOptionsStore = create<HistoryResumeOptionsStore>()(
           hydrated: true,
         })
       } catch (loadError) {
+        if (request !== generation) return
+
         const message =
           loadError instanceof Error ? loadError.message : '简历列表加载失败'
 
         set({ resumeOptions: [], error: message, hydrated: true })
       } finally {
-        set({ loading: false })
+        if (request === generation) set({ loading: false })
       }
     },
   }),
 )
+
+useUserStore.subscribe((state) => {
+  const nextAccountId = state.currentUser?.id ?? null
+
+  if (accountId === nextAccountId) return
+
+  accountId = nextAccountId
+  generation += 1
+
+  useHistoryResumeOptionsStore.setState({
+    resumeOptions: [],
+    loading: false,
+    error: null,
+    hydrated: false,
+  })
+})
 
 export function useHistoryResumeOptions() {
   const resumeOptions = useHistoryResumeOptionsStore((s) => s.resumeOptions)

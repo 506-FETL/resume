@@ -21,7 +21,7 @@ export default function OverviewSummaryCard({
 
   if (loading) {
     return (
-      <section aria-label='正在读取检测报告' className='min-w-0 border-b py-6'>
+      <section aria-label='正在读取检测报告' className='min-w-0 py-6'>
         <div className='grid gap-6 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center md:gap-10'>
           <div className='space-y-3'>
             <Skeleton className='h-3 w-16' />
@@ -40,7 +40,7 @@ export default function OverviewSummaryCard({
 
   if (!currentAtsConfig) {
     return (
-      <section className='flex min-h-28 min-w-0 flex-col justify-center gap-2 border-b py-6'>
+      <section className='flex min-h-28 min-w-0 flex-col justify-center gap-2 py-6'>
         <h2 className='text-lg font-semibold'>
           {loadError || analysisError ? '检测报告尚未就绪' : '检测结果'}
         </h2>
@@ -64,11 +64,11 @@ export default function OverviewSummaryCard({
   )
 
   return (
-    <section className='relative isolate min-w-0 border-b py-6 sm:py-8'>
+    <section className='relative isolate min-w-0 py-6 sm:py-8'>
       <div
         aria-hidden
         className={cn(
-          'pointer-events-none absolute inset-y-0 left-0 -z-1 w-72 max-w-full overflow-hidden rounded-xl select-none',
+          'pointer-events-none absolute inset-y-0 -left-4 -z-1 w-80 max-w-[calc(100%+1rem)] select-none',
           scoreAccent,
         )}
       >
@@ -76,10 +76,10 @@ export default function OverviewSummaryCard({
           className='absolute inset-0 opacity-[0.14] dark:opacity-[0.12]'
           style={{
             backgroundImage:
-              'radial-gradient(ellipse 400px 240px at top left, currentColor, transparent 72%)',
+              'radial-gradient(ellipse 48% 46% at 50% 50%, currentColor 0%, transparent 100%)',
           }}
         />
-        <span className="absolute -top-5 -left-1 -rotate-6 font-['Racing_Sans_One',sans-serif] text-[9rem] leading-none font-normal tracking-tighter tabular-nums opacity-[0.08] sm:text-[10rem] dark:opacity-[0.12]">
+        <span className="absolute top-0 left-3 -rotate-6 font-['Racing_Sans_One',sans-serif] text-[9rem] leading-none font-normal tracking-tighter tabular-nums opacity-[0.08] sm:text-[10rem] dark:opacity-[0.12]">
           {overallScore}
         </span>
       </div>

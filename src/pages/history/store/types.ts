@@ -11,10 +11,12 @@ import type {
 } from '@/lib/supabase/resume/history'
 
 export interface HistoryStoreState {
+  resetAccount: (accountId: string | null) => void
   // Data slice
   resumeId: string | null
   currentResume: HistoryCurrentResume | null
   versions: ResumeHistoryVersionListItem[]
+  snapshotGeneration: number
   snapshotCache: Record<number, ResumeSnapshot>
   error: string | null
 
@@ -27,7 +29,7 @@ export interface HistoryStoreState {
   updateVersionMetadata: (
     versionId: number,
     draft: VersionMetadataDraft,
-  ) => Promise<ResumeHistoryVersionRecord | null>
+  ) => Promise<ResumeHistoryVersionListItem | null>
   restoreVersion: (
     versionId: number,
     strategy: RestoreStrategy,

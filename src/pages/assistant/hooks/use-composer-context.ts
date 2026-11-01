@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listAccessibleResumes } from '@/lib/resume-access'
-import { getCompanies } from '@/lib/supabase/resume'
+import { listAssistantJobOverviews } from '@/lib/supabase/resume'
+import { useCanvasResources } from './canvas-resources'
 
 export interface ResumeRef {
   resumeId: string
@@ -17,47 +18,66 @@ export interface JobRef {
 export function useComposerContext() {
   const [resumes, setResumes] = useState<ResumeRef[]>([])
   const [jobs, setJobs] = useState<JobRef[]>([])
+  const [resumesGeneration, setResumesGeneration] = useState(-1)
+  const [jobsGeneration, setJobsGeneration] = useState(-1)
+
+  const { generation, resumeRevision, boardRevision } = useCanvasResources()
 
   useEffect(() => {
     let alive = true
 
-    ;(async () => {
-      try {
-        const rows = await listAccessibleResumes()
+    setResumes([])
 
-        if (alive) {
-          setResumes(
-            rows.slice(0, 20).map((r) => ({
-              resumeId: r.resume_id,
-              name: String(r.display_name ?? '未命名简历'),
-            })),
-          )
-        }
-      } catch {
-        // 概况拉取失败时静默降级
-      }
+    listAccessibleResumes(20)
+      .then((rows) => {
+        if (!alive || generation !== useCanvasResources.getState().generation)
+          return
 
-      try {
-        const companies = await getCompanies()
+        setResumesGeneration(generation)
 
-        if (alive) {
-          setJobs(
-            companies.slice(0, 20).map((j) => ({
-              id: String(j.id),
-              company: j.company ?? '未知公司',
-              position: j.position ?? '未知岗位',
-            })),
-          )
-        }
-      } catch {
-        // 概况拉取失败时静默降级
-      }
-    })()
+        setResumes(
+          rows.map((resume) => ({
+            resumeId: resume.resume_id,
+            name: resume.display_name ?? '未命名简历',
+          })),
+        )
+      })
+      .catch(() => undefined)
 
     return () => {
       alive = false
     }
-  }, [])
+  }, [generation, resumeRevision])
 
-  return { resumes, jobs }
+  useEffect(() => {
+    let alive = true
+
+    setJobs([])
+
+    listAssistantJobOverviews(20)
+      .then((rows) => {
+        if (!alive || generation !== useCanvasResources.getState().generation)
+          return
+
+        setJobsGeneration(generation)
+
+        setJobs(
+          rows.map((job) => ({
+            id: job.id,
+            company: job.company,
+            position: job.position,
+          })),
+        )
+      })
+      .catch(() => undefined)
+
+    return () => {
+      alive = false
+    }
+  }, [generation, boardRevision])
+
+  return {
+    resumes: resumesGeneration === generation ? resumes : [],
+    jobs: jobsGeneration === generation ? jobs : [],
+  }
 }

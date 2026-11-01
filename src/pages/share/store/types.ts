@@ -18,7 +18,10 @@ export interface SettingsPayload {
 }
 
 export interface VersionOptionsEntry {
-  items: ResumeHistoryVersionListItem[]
+  items: Pick<
+    ResumeHistoryVersionListItem,
+    'id' | 'version_no' | 'version_name' | 'milestone_name' | 'created_at'
+  >[]
   loading: boolean
   error: string | null
   requestId: number

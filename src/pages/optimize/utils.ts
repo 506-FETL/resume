@@ -23,6 +23,7 @@ import {
   DEFAULT_WORK_EXPERIENCE,
   normalizeResumeFormData,
 } from '@/lib/schema'
+import { FORM_DATA_KEYS } from '@/store/resume/const'
 import { getResumeById } from '@/lib/supabase/resume'
 import {
   ANALYSIS_INITIAL_STATE,
@@ -132,7 +133,7 @@ export async function fetchResumeDataForAnalysis(
     )
   }
 
-  const onlineResume = await getResumeById(id)
+  const onlineResume = await getResumeById(id, FORM_DATA_KEYS.join(','))
 
   if (!onlineResume) {
     throw new Error('在线简历不存在')

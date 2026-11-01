@@ -14,7 +14,7 @@ export function createProfileExample(
   const careerChange = profile === 'career-change'
   const guide = PROFILE_GUIDES[profile]
 
-  resume.basics.name = '陈晨（示例）'
+  resume.basics.name = '示例用户'
   resume.basics.phone = '13800000000'
   resume.basics.email = `${profile}@example.com`
   resume.basics.workYears = graduate ? '应届' : '3-5年'

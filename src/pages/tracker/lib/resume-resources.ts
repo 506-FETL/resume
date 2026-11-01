@@ -4,7 +4,8 @@ import type {
 } from '../components/drawer/types'
 import type { TrackerAccountScope as ResumeScope } from './account-scope'
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import { getAllResumesFromUser, getResumeById } from '@/lib/supabase/resume'
+import { FORM_DATA_KEYS } from '@/store/resume/const'
+import { getResumeOptions, getResumeById } from '@/lib/supabase/resume'
 import { getTrackerErrorMessage } from '../utils'
 import {
   getTrackerAccountScope,
@@ -98,7 +99,7 @@ export function loadTrackerResumeOptions(
     optionsCache,
     'options',
     requestScope,
-    async () => (await getAllResumesFromUser()) as ResumeOption[],
+    async () => (await getResumeOptions()) as ResumeOption[],
   )
 }
 
@@ -107,7 +108,10 @@ export function loadTrackerResumePreview(
   resumeId: string,
 ) {
   return readResource(previewCache, resumeId, requestScope, async () => {
-    const data = await getResumeById<ResumePreviewData>(resumeId, '*')
+    const data = await getResumeById<ResumePreviewData>(
+      resumeId,
+      `${FORM_DATA_KEYS.join(',')},order,visibility,type,template_binding,spacing,font,theme`,
+    )
 
     if (!data) throw new Error('这份简历暂时无法查看')
 

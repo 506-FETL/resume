@@ -51,13 +51,11 @@ registerTool({
       return { error: '本地简历暂不支持 ATS 评估记录，请先同步到云端。' }
 
     try {
-      const all = (await getAtsFromUserId()) as unknown as Array<
-        Record<string, unknown>
-      >
+      const all = (await getAtsFromUserId(
+        resumeId ?? undefined,
+      )) as unknown as Array<Record<string, unknown>>
 
-      const filtered = resumeId
-        ? all.filter((a) => a.resume_id === resumeId)
-        : all
+      const filtered = all
 
       if (!filtered || filtered.length === 0)
         return { message: '该简历还没有 ATS 评估记录' }
@@ -155,14 +153,11 @@ registerTool({
       return { error: '本地简历暂不支持历史版本，请先同步到云端。' }
 
     try {
-      const all =
-        (await listResumeHistoryVersionSummaries()) as unknown as Array<
-          Record<string, unknown>
-        >
+      const all = (await listResumeHistoryVersionSummaries(
+        resumeId ?? undefined,
+      )) as unknown as Array<Record<string, unknown>>
 
-      const filtered = resumeId
-        ? all.filter((v) => v.resume_id === resumeId)
-        : all
+      const filtered = all
 
       return { count: filtered.length, versions: filtered }
     } catch (error) {

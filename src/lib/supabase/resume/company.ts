@@ -9,6 +9,7 @@ import type {
 } from '@/pages/tracker/types'
 import { normalizeJobWorkflow } from '@/pages/tracker/workflow'
 import supabase from '../client'
+import { collectPages } from '../pagination'
 import { getCurrentUser } from '../user'
 import { trackerProcessError } from './tracker-companies'
 
@@ -66,6 +67,128 @@ export async function getCompanies(
         ),
     }),
   )
+}
+
+export type AssistantJobSummary = Pick<
+  JobApplication,
+  | 'id'
+  | 'company'
+  | 'position'
+  | 'status'
+  | 'location'
+  | 'salary'
+  | 'next_action'
+  | 'archived'
+>
+
+export async function listAssistantJobs(
+  assertUser?: CompanyRequestGuard,
+): Promise<AssistantJobSummary[]> {
+  const user = await getCurrentUser()
+
+  assertUser?.(user?.id ?? null)
+
+  if (!user) throw new Error('用户未登陆')
+
+  return collectPages(async (from, to) => {
+    const { data, error } = await supabase
+      .from('company')
+      .select('id,company,position,status,location,salary,next_action,archived')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)
+
+    if (error) throw trackerProcessError(error)
+
+    return data ?? []
+  })
+}
+
+export type AssistantJobOverview = Pick<
+  AssistantJobSummary,
+  'id' | 'company' | 'position' | 'status'
+>
+
+export async function listAssistantJobOverviews(
+  limit?: number,
+): Promise<AssistantJobOverview[]> {
+  const user = await getCurrentUser()
+
+  if (!user) throw new Error('用户未登陆')
+
+  const fetchPage = async (from: number, to: number) => {
+    const { data, error } = await supabase
+      .from('company')
+      .select('id,company,position,status')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)
+
+    if (error) throw trackerProcessError(error)
+
+    return data ?? []
+  }
+
+  return limit === undefined ? collectPages(fetchPage) : fetchPage(0, limit - 1)
+}
+
+export async function getCompanyById(
+  id: string,
+  assertUser?: CompanyRequestGuard,
+): Promise<JobApplication | null> {
+  const user = await getCurrentUser()
+
+  assertUser?.(user?.id ?? null)
+
+  if (!user) throw new Error('用户未登陆')
+
+  const { data, error } = await supabase
+    .from('company')
+    .select('*,job_submissions(is_primary)')
+    .eq('user_id', user.id)
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw trackerProcessError(error)
+  if (!data) return null
+
+  const { job_submissions, ...row } = data
+
+  return normalizeJobWorkflow({
+    ...row,
+    has_submission: job_submissions.some(
+      (record: { is_primary: boolean }) => record.is_primary,
+    ),
+    unresolved_submissions:
+      job_submissions.length > 0 &&
+      !job_submissions.some(
+        (record: { is_primary: boolean }) => record.is_primary,
+      ),
+  } as JobApplication)
+}
+
+export async function getCompanySummaryById(
+  id: string,
+  assertUser?: CompanyRequestGuard,
+) {
+  const user = await getCurrentUser()
+
+  assertUser?.(user?.id ?? null)
+
+  if (!user) throw new Error('用户未登陆')
+
+  const { data, error } = await supabase
+    .from('company')
+    .select('id,company,position,location')
+    .eq('user_id', user.id)
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw trackerProcessError(error)
+
+  return data
 }
 
 export async function listJobApplicationSummaries(): Promise<

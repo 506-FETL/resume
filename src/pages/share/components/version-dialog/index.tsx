@@ -1,5 +1,5 @@
 import type { VersionDialogSelection } from '../../types'
-import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryShareOption } from '@/lib/supabase/resume/history'
 import type {
   CurrentResumeShareSnapshotProvider,
   ResumeShareRecord,
@@ -30,7 +30,7 @@ interface VersionDialogProps {
   getCurrentSnapshot: CurrentResumeShareSnapshotProvider
 }
 
-function getVersionLabel(version: ResumeHistoryVersionListItem) {
+function getVersionLabel(version: ResumeHistoryShareOption) {
   return (
     version.version_name?.trim() ||
     version.milestone_name?.trim() ||
@@ -40,7 +40,7 @@ function getVersionLabel(version: ResumeHistoryVersionListItem) {
 
 function getDeletedSelection(
   versionId: number,
-  versions: ResumeHistoryVersionListItem[],
+  versions: ResumeHistoryShareOption[],
   share: ResumeShareRecord,
 ): VersionDialogSelection | null {
   const version = versions.find((item) => item.id === versionId)

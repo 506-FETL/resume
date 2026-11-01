@@ -43,8 +43,10 @@ export interface ResumeListItem {
   description?: string
   isOffline?: boolean
   parent_resume_id?: string | null
+  linked_jd_excerpt?: string | null
   linked_jd_text?: string | null
   derived_metadata?: VariantMetadata | null
+  derived_match_rate?: number | null
   derived_status?: DerivedStatus | null
 }
 

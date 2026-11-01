@@ -29,6 +29,10 @@ export default function HistoryDetailContent({
   const overviewContentRef = useRef<HTMLDivElement>(null)
   const currentResume = useHistoryStore((state) => state.currentResume)
 
+  const snapshotGeneration = useHistoryStore(
+    (state) => state.snapshotGeneration,
+  )
+
   const loadVersionSnapshot = useHistoryStore(
     (state) => state.loadVersionSnapshot,
   )
@@ -50,7 +54,12 @@ export default function HistoryDetailContent({
   useEffect(() => {
     if (selectedVersionId !== null && !versionSnapshot)
       loadVersionSnapshot(selectedVersionId)
-  }, [selectedVersionId, versionSnapshot, loadVersionSnapshot])
+  }, [
+    selectedVersionId,
+    versionSnapshot,
+    loadVersionSnapshot,
+    snapshotGeneration,
+  ])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })

@@ -11,6 +11,7 @@ import { useInView } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import useUserStore from '@/store/user'
 import useCurrentResumeStore from '@/store/resume/current'
 import {
   RESUME_BADGE_COLORS,
@@ -22,6 +23,7 @@ const ResumeThumbnail = lazy(() => import('./resume-thumbnail'))
 
 export default function RecentResumeCard({ resume }: { resume: Resume }) {
   const navigate = useNavigate()
+  const accountId = useUserStore((state) => state.currentUser?.id ?? null)
   const previewRef = useRef<HTMLDivElement>(null)
   const previewVisible = useInView(previewRef, { once: true })
 
@@ -55,7 +57,12 @@ export default function RecentResumeCard({ resume }: { resume: Resume }) {
         <div className='relative aspect-[210/297] w-full overflow-hidden rounded-sm bg-white shadow-sm'>
           <Suspense fallback={<PreviewLoading />}>
             {previewVisible ? (
-              <ResumeThumbnail resumeId={resume.resume_id} />
+              <ResumeThumbnail
+                accountId={accountId}
+                resumeId={resume.resume_id}
+                updatedAt={updatedAt}
+                templateBinding={resume.templateBinding}
+              />
             ) : (
               <PreviewLoading />
             )}

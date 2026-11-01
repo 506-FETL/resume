@@ -34,6 +34,9 @@ export interface JdVariantDialogProps {
   recentJds: RecentJd[]
   jobId?: string
   initialJd?: string
+  initialJdLoading?: boolean
+  initialJdError?: string | null
+  onRetryInitialJd?: () => void
   skipInputStep?: boolean
 }
 
@@ -46,6 +49,9 @@ export function JdVariantDialog({
   jobId,
   initialJd = '',
   skipInputStep = false,
+  initialJdLoading = false,
+  initialJdError = null,
+  onRetryInitialJd,
 }: JdVariantDialogProps) {
   const [jd, setJd] = useState(initialJd)
   const [opening, setOpening] = useState(false)
@@ -79,6 +85,8 @@ export function JdVariantDialog({
       open &&
       skipInputStep &&
       !discarding &&
+      !initialJdLoading &&
+      !initialJdError &&
       currentState.phase === 'idle' &&
       initialJd.trim().length >= MIN_JD_CHARS
     ) {
@@ -88,6 +96,8 @@ export function JdVariantDialog({
     open,
     skipInputStep,
     discarding,
+    initialJdLoading,
+    initialJdError,
     currentState.phase,
     initialJd,
     generate,
@@ -128,7 +138,8 @@ export function JdVariantDialog({
               ? 3
               : 2
 
-  const canStart = jd.trim().length >= MIN_JD_CHARS
+  const canStart =
+    !initialJdLoading && !initialJdError && jd.trim().length >= MIN_JD_CHARS
 
   const handleDiscardTask = async () => {
     if (discarding) return
@@ -291,7 +302,15 @@ export function JdVariantDialog({
           <div className='px-5 py-5 sm:px-7 sm:py-6'>
             <AnimatePresence mode='wait' initial={false}>
               <motion.div
-                key={state.phase}
+                key={
+                  state.phase === 'idle'
+                    ? initialJdLoading
+                      ? 'loading-jd'
+                      : initialJdError
+                        ? 'jd-error'
+                        : state.phase
+                    : state.phase
+                }
                 initial={{
                   opacity: 0,
                   transform: shouldReduceMotion ? 'none' : 'translateY(8px)',
@@ -309,13 +328,45 @@ export function JdVariantDialog({
                   ease: EASE.out,
                 }}
               >
-                {state.phase === 'idle' && (
-                  <StepInput
-                    value={jd}
-                    onChange={setJd}
-                    recentJds={recentJds}
-                  />
+                {state.phase === 'idle' && initialJdLoading && (
+                  <div
+                    className='flex items-center gap-2 text-sm text-muted-foreground'
+                    role='status'
+                  >
+                    <Spinner
+                      className={
+                        shouldReduceMotion ? 'animate-none' : undefined
+                      }
+                    />
+                    正在加载职位描述…
+                  </div>
                 )}
+                {state.phase === 'idle' && initialJdError && (
+                  <Alert variant='destructive'>
+                    <AlertCircle aria-hidden />
+                    <AlertTitle>职位描述加载失败</AlertTitle>
+                    <AlertDescription>
+                      {initialJdError}
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={onRetryInitialJd}
+                      >
+                        重新加载
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {state.phase === 'idle' &&
+                  !initialJdLoading &&
+                  !initialJdError && (
+                    <StepInput
+                      value={jd}
+                      onChange={setJd}
+                      recentJds={recentJds}
+                    />
+                  )}
                 {state.phase === 'parsing' && (
                   <StepParsing
                     reasoning={state.parseReasoning}

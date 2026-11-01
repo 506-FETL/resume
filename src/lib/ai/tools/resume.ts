@@ -4,6 +4,7 @@ import useUserStore from '@/store/user'
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import {
   getAccessibleResumeById,
+  getAccessibleResumeSection,
   listAccessibleResumes,
 } from '@/lib/resume-access'
 import { normalizeResumeSection, resumeSchema } from '@/lib/schema'
@@ -127,7 +128,7 @@ registerTool({
     let current: Record<string, unknown>
 
     try {
-      current = await getAccessibleResumeById(currentId)
+      current = await getAccessibleResumeSection(currentId, sectionKey)
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : '读取当前简历失败',

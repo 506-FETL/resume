@@ -1,6 +1,10 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
-import { listConversations, listMessages } from '@/lib/supabase/ai'
+import {
+  loadAssistantConversations,
+  loadAssistantMessages,
+  useConversationReadScope,
+} from './conversation-reads'
 import { getErrorMessage } from '@/utils'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
 import {
@@ -10,11 +14,19 @@ import {
 } from '../utils'
 
 export function useAssistantBootstrap() {
+  const scope = useConversationReadScope()
+
   useEffect(() => {
     let cancelled = false
 
+    const ownsRequest = () =>
+      !cancelled &&
+      scope.generation === useConversationReadScope.getState().generation
+
     const load = async () => {
       useAssistantStore.setState({
+        conversations: [],
+        messages: [],
         initializing: true,
         loadingConversations: true,
         loadingMessages: false,
@@ -22,12 +34,39 @@ export function useAssistantBootstrap() {
         conversationLoadRequestId: null,
       })
 
-      try {
-        const conversations = await listConversations()
+      const initialView = useAssistantStore.getState()
 
-        if (cancelled) return
+      const ownsView = () => {
+        const current = useAssistantStore.getState()
+
+        return (
+          ownsRequest() &&
+          current.conversationViewVersion ===
+            initialView.conversationViewVersion &&
+          current.conversationLoadRequestId ===
+            initialView.conversationLoadRequestId
+        )
+      }
+
+      const finishBootstrap = () => {
+        useAssistantStore.setState({
+          initializing: false,
+          loadingConversations: false,
+        })
+      }
+
+      try {
+        const conversations = await loadAssistantConversations()
+
+        if (!ownsRequest()) return
 
         useAssistantStore.getState().setConversations(conversations)
+
+        if (!ownsView()) {
+          finishBootstrap()
+
+          return
+        }
 
         const currentActiveId =
           useAssistantStore.getState().activeConversationId
@@ -49,16 +88,16 @@ export function useAssistantBootstrap() {
           return
         }
 
-        const { messages, hasMore } = await listMessages(restored.id, {
-          limit: 30,
-        })
+        const { messages, hasMore } = await loadAssistantMessages(restored.id)
 
-        if (cancelled) return
+        if (!ownsRequest()) return
 
         useAssistantStore.setState({
           initializing: false,
           loadingConversations: false,
         })
+
+        if (!ownsView()) return
 
         useAssistantStore
           .getState()
@@ -66,7 +105,11 @@ export function useAssistantBootstrap() {
 
         writeLastConversationId(restored.id)
       } catch (error) {
-        if (cancelled) return
+        if (!ownsRequest()) return
+
+        finishBootstrap()
+
+        if (!ownsView()) return
         if (getErrorMessage(error) === '用户未登录') {
           useAssistantStore.getState().setConversations([])
           useAssistantStore.getState().setConversationView(null, [], {})
@@ -90,5 +133,5 @@ export function useAssistantBootstrap() {
       cancelled = true
       cancelActiveAssistantRun()
     }
-  }, [])
+  }, [scope.generation])
 }

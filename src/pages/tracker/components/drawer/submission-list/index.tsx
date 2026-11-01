@@ -1,7 +1,4 @@
-import type {
-  JobSubmission,
-  SubmissionRevision,
-} from '../../../submission-types'
+import type { JobSubmission } from '../../../submission-types'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Pencil } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -15,10 +12,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  listJobSubmissionRevisions,
-  resolveJobSubmission,
-} from '@/lib/supabase/resume/submissions'
+import { resolveJobSubmission } from '@/lib/supabase/resume/submissions'
 import {
   createTrackerAccountGuard,
   getTrackerAccountScope,
@@ -121,9 +115,6 @@ export default function SubmissionList({
 
   const [materialEdit, setMaterialEdit] = useState<JobSubmission | null>(null)
   const [details, setDetails] = useState<JobSubmission | null>(null)
-  const [history, setHistory] = useState<SubmissionRevision[] | null>(null)
-  const [historyError, setHistoryError] = useState<string | null>(null)
-  const [historyAttempt, setHistoryAttempt] = useState(0)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [legacyOpen, setLegacyOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -133,35 +124,28 @@ export default function SubmissionList({
     useTrackerStore.getState().loadSubmissions(jobId)
   }, [jobId, revision])
 
-  const data = resource?.data
+  const current = resource?.revision === revision ? resource : null
+  const data = current?.data
   const primary = data?.kind === 'ready' ? data.primary : null
   const legacy = data && data.kind !== 'none' ? data.legacy : []
   const rows = !data ? null : primary ? [primary, ...legacy] : legacy
   const primaryId = primary?.id
   const compact = Boolean(onViewDetails)
 
+  const historyResource = useTrackerStore((state) =>
+    primaryId ? state.submissionHistoriesById[primaryId] : undefined,
+  )
+
+  const currentHistory =
+    historyResource?.revision === revision ? historyResource : null
+
+  const history = currentHistory?.data
+  const historyError = currentHistory?.error
+
   useEffect(() => {
-    if (compact || !primaryId) return
-
-    const scope = getTrackerAccountScope()
-    let active = true
-
-    setHistory(null)
-    setHistoryError(null)
-
-    listJobSubmissionRevisions(primaryId, createTrackerAccountGuard(scope))
-      .then((result) => {
-        if (active && isTrackerAccountScopeCurrent(scope)) setHistory(result)
-      })
-      .catch((cause) => {
-        if (active && isTrackerAccountScopeCurrent(scope))
-          setHistoryError(getTrackerErrorMessage(cause))
-      })
-
-    return () => {
-      active = false
-    }
-  }, [compact, primaryId, revision, historyAttempt])
+    if (!compact && primaryId && historyOpen)
+      useTrackerStore.getState().loadSubmissionHistory(primaryId)
+  }, [compact, primaryId, revision, historyOpen])
 
   const choose = async (row: JobSubmission) => {
     const scope = getTrackerAccountScope()
@@ -244,7 +228,7 @@ export default function SubmissionList({
       )}
       <AnimatedContent
         animationKey={
-          resource?.error
+          current?.error
             ? 'error'
             : !rows
               ? 'loading'
@@ -255,7 +239,7 @@ export default function SubmissionList({
                   : 'empty'
         }
       >
-        {resource?.error ? (
+        {current?.error ? (
           <Alert variant='destructive'>
             <AlertTitle>
               {compact ? '投递原件加载失败' : '投递详情加载失败'}
@@ -308,78 +292,79 @@ export default function SubmissionList({
                 key={`${primary.id}-${revision}`}
                 recordId={primary.id}
               />
-              <AnimatedContent
-                animationKey={
-                  historyError
-                    ? 'error'
-                    : history
-                      ? history.length
-                        ? 'history'
-                        : 'empty'
-                      : 'loading'
-                }
-              >
-                {historyError ? (
-                  <Alert variant='destructive'>
-                    <AlertTitle>更正历史加载失败</AlertTitle>
-                    <AlertDescription>{historyError}</AlertDescription>
-                    <Button
-                      size='sm'
-                      variant='outline'
-                      className='mt-2 w-fit'
-                      onClick={() => {
-                        sectionRef.current?.focus({ preventScroll: true })
-                        setHistoryAttempt((value) => value + 1)
-                      }}
-                    >
-                      重试
-                    </Button>
-                  </Alert>
-                ) : !history ? (
-                  <p
-                    role='status'
-                    className='flex items-center gap-2 px-2.5 py-1 text-xs text-muted-foreground'
-                  >
-                    <Spinner
-                      aria-hidden
-                      className='size-3 motion-reduce:animate-none'
-                    />
-                    正在读取更正历史
-                  </p>
-                ) : history.length > 0 ? (
-                  <Collapsible
-                    open={historyOpen}
-                    onOpenChange={(next) => {
-                      if (!next)
-                        historyTriggerRef.current?.focus({
-                          preventScroll: true,
-                        })
+              <Collapsible
+                open={historyOpen}
+                onOpenChange={(next) => {
+                  if (!next)
+                    historyTriggerRef.current?.focus({ preventScroll: true })
 
-                      setHistoryOpen(next)
-                    }}
+                  setHistoryOpen(next)
+                }}
+              >
+                <CollapsibleTrigger asChild>
+                  <Button
+                    ref={historyTriggerRef}
+                    size='sm'
+                    variant='ghost'
+                    className='group text-muted-foreground focus-visible:ring-inset'
                   >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        ref={historyTriggerRef}
-                        size='sm'
-                        variant='ghost'
-                        className='group text-muted-foreground focus-visible:ring-inset'
-                      >
-                        <ChevronDown
-                          aria-hidden
-                          className='transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none'
-                          style={{
-                            transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
+                    <ChevronDown
+                      aria-hidden
+                      className='transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none'
+                      style={{
+                        transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
+                      }}
+                    />
+                    更正历史{history ? `（${history.length}）` : ''}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent
+                  inert={!historyOpen}
+                  aria-hidden={!historyOpen || undefined}
+                  className='motion-reduce:animate-none'
+                >
+                  <AnimatedContent
+                    animationKey={
+                      historyError ? 'error' : history ? 'ready' : 'loading'
+                    }
+                  >
+                    {historyError ? (
+                      <Alert variant='destructive'>
+                        <AlertTitle>更正历史加载失败</AlertTitle>
+                        <AlertDescription>{historyError}</AlertDescription>
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          className='mt-2 w-fit'
+                          onClick={() => {
+                            historyTriggerRef.current?.focus({
+                              preventScroll: true,
+                            })
+
+                            useTrackerStore
+                              .getState()
+                              .loadSubmissionHistory(primary.id)
                           }}
+                        >
+                          重试
+                        </Button>
+                      </Alert>
+                    ) : !history ? (
+                      <p
+                        role='status'
+                        className='flex items-center gap-2 px-2.5 py-2 text-xs text-muted-foreground'
+                      >
+                        <Spinner
+                          aria-hidden
+                          className='size-3 motion-reduce:animate-none'
                         />
-                        更正历史（{history.length}）
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent
-                      inert={!historyOpen}
-                      aria-hidden={!historyOpen || undefined}
-                      className='motion-reduce:animate-none'
-                    >
+                        正在读取更正历史
+                      </p>
+                    ) : history.length === 0 ? (
+                      <p className='px-2.5 py-2 text-sm text-muted-foreground'>
+                        暂无更正记录
+                      </p>
+                    ) : (
                       <ul className='space-y-2 px-1 pt-2 pb-1'>
                         {history.map((entry) => (
                           <li
@@ -410,10 +395,10 @@ export default function SubmissionList({
                           </li>
                         ))}
                       </ul>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : null}
-              </AnimatedContent>
+                    )}
+                  </AnimatedContent>
+                </CollapsibleContent>
+              </Collapsible>
               {legacy.length > 0 && (
                 <Collapsible
                   open={legacyOpen}

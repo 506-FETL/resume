@@ -7,6 +7,8 @@
  * @Description: 离线简历管理器,使用 IndexedDB 存储本地简历
  */
 
+import { ResumeNotFoundError } from '@/lib/resume-id'
+import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import type { DBSchema, IDBPDatabase } from 'idb'
 import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
 import type {
@@ -371,6 +373,27 @@ export async function getOfflineResumeSummariesByIds(
   return summaries
 }
 
+export async function getOfflineResumeSummaries(limit?: number) {
+  const index = await getOfflineResumeLibraryIndex()
+
+  const summaries = await getOfflineResumeSummariesByIds(
+    limit === undefined ? index.all : index.all.slice(0, limit),
+  )
+
+  return summaries.map((resume) => ({
+    resume_id: resume.resume_id,
+    created_at: resume.created_at,
+    updated_at: resume.updated_at,
+    type: resume.type,
+    display_name: resume.display_name,
+    description: resume.description,
+    parent_resume_id: resume.parent_resume_id,
+    derived_status: resume.derived_status,
+    templateBinding: resume.templateBinding,
+    isOffline: true,
+  }))
+}
+
 export async function createOfflineResumeFromSnapshot(
   prepared: PreparedResumeCreation,
 ) {
@@ -398,6 +421,7 @@ export async function createOfflineResumeFromSnapshot(
   }
 
   await db.add('resumes', record)
+  notifyResumeReadChanged(record.resume_id)
 
   return record
 }
@@ -409,6 +433,20 @@ export async function getOfflineResumeById(resumeId: string) {
   const db = await getDB()
 
   return await hydrateOfflineResumeRecord(db, await db.get('resumes', resumeId))
+}
+
+export async function getOfflineResumeProjection(
+  resumeId: string,
+  keys: readonly string[],
+): Promise<Record<string, unknown>> {
+  const db = await getDB()
+  const record = await db.get('resumes', resumeId)
+
+  if (!record) throw new ResumeNotFoundError()
+
+  const source = { ...record.data, ...record } as Record<string, unknown>
+
+  return Object.fromEntries(keys.map((key) => [key, source[key]]))
 }
 
 /**
@@ -429,6 +467,7 @@ export async function updateOfflineResume(
   resume.updated_at = dayjs().toISOString()
 
   await db.put('resumes', resume)
+  notifyResumeReadChanged(resume.resume_id)
 }
 
 /**
@@ -451,6 +490,7 @@ export async function updateOfflineResumeMeta(
   resume.updated_at = dayjs().toISOString()
 
   await db.put('resumes', resume)
+  notifyResumeReadChanged(resume.resume_id)
 }
 
 /**
@@ -479,6 +519,7 @@ export async function deleteOfflineResume(
 
   await tx.store.delete(resumeId)
   await tx.done
+  notifyResumeReadChanged(resumeId)
 }
 
 /**
@@ -643,6 +684,7 @@ export async function importOfflineResume(jsonData: string): Promise<string> {
   }
 
   await db.add('resumes', resume)
+  notifyResumeReadChanged(resume.resume_id)
 
   return newResumeId
 }
@@ -669,6 +711,7 @@ export async function setVariantFieldsOffline(
   const next = { ...resume, ...fields, updated_at: dayjs().toISOString() }
 
   await db.put('resumes', next)
+  notifyResumeReadChanged(next.resume_id)
 }
 
 /**
@@ -719,6 +762,8 @@ export async function cloneOfflineResumeAsDraft(args: {
     derived_status: 'generating',
   })
 
+  notifyResumeReadChanged(draftId)
+
   return draftId
 }
 
@@ -750,6 +795,7 @@ export async function applyOfflineVariantChanges(
   draft.data = snapshot
   draft.updated_at = dayjs().toISOString()
   await db.put('resumes', draft)
+  notifyResumeReadChanged(draft.resume_id)
 
   return snapshot
 }
@@ -785,6 +831,7 @@ export async function markOfflineVariantReady(
   draft.derived_status = 'ready'
   draft.updated_at = dayjs().toISOString()
   await db.put('resumes', draft)
+  notifyResumeReadChanged(draft.resume_id)
 }
 
 /**
@@ -805,6 +852,7 @@ export async function markOfflineVariantFailed(
   draft.description = `派生失败：${message.slice(0, 200)}`
   draft.updated_at = dayjs().toISOString()
   await db.put('resumes', draft)
+  notifyResumeReadChanged(draft.resume_id)
 }
 
 /**

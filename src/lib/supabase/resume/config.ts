@@ -1,4 +1,5 @@
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
@@ -20,6 +21,8 @@ export async function updateResumeConfig(
     .eq('user_id', user.id)
 
   if (error) throw error
+
+  notifyResumeReadChanged(resumeId)
 }
 
 export async function subscribeToResumeConfigUpdates(

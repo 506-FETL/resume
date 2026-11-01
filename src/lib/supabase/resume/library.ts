@@ -14,13 +14,25 @@ export interface ResumeLibraryCloudCounts {
   pending: number
 }
 
+type ResumeLibraryRow = Omit<
+  ResumeListItem,
+  'templateBinding' | 'isOffline' | 'derived_metadata'
+> & { template_binding: unknown }
+
 const LIST_FIELDS =
-  'resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_text,derived_metadata,derived_status,template_binding'
+  'resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_text,derived_match_rate:derived_metadata->matchRate,derived_status,template_binding'
 
 function listQuery(ownerId: string, filter: ResumeLibraryFilter) {
   const query = supabase
     .from('resume_config')
-    .select(LIST_FIELDS)
+    .select(
+      filter === 'pending'
+        ? LIST_FIELDS
+        : LIST_FIELDS.replace(
+            'linked_jd_text,',
+            'linked_jd_excerpt:resume_jd_excerpt,',
+          ),
+    )
     .eq('user_id', ownerId)
 
   if (filter === 'roots') return query.is('parent_resume_id', null)
@@ -46,14 +58,36 @@ export async function getResumeLibraryPage(
     .order('updated_at', { ascending: false, nullsFirst: false })
     .order('resume_id', { ascending: false })
     .range(offset, offset + limit - 1)
+    .returns<ResumeLibraryRow[]>()
 
   if (error) throw error
 
   return data.map((resume) => ({
     ...resume,
     isOffline: false,
+    derived_match_rate:
+      typeof resume.derived_match_rate === 'number'
+        ? resume.derived_match_rate
+        : null,
     templateBinding: readResumeListTemplateBinding(resume.template_binding),
   }))
+}
+
+export async function getResumeLibraryOptionsPage(
+  ownerId: string,
+  offset: number,
+): Promise<ResumeListItem[]> {
+  const { data, error } = await supabase
+    .from('resume_config')
+    .select('resume_id,display_name,type,created_at,updated_at,derived_status')
+    .eq('user_id', ownerId)
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .order('resume_id', { ascending: false })
+    .range(offset, offset + RESUME_LIBRARY_PAGE_SIZE - 1)
+
+  if (error) throw error
+
+  return data.map((resume) => ({ ...resume, isOffline: false }))
 }
 
 export async function getResumeLibraryCounts(

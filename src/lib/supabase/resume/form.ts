@@ -1,12 +1,17 @@
 import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
 import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
+import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
-import { toTemplateBinding } from '@/lib/resume-template/binding'
+import {
+  readResumeListTemplateBinding,
+  toTemplateBinding,
+} from '@/lib/resume-template/binding'
 import { getDefaultTemplateSelection } from '@/lib/resume-template/runtime/default-selection'
 import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
 import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import supabase from '../client'
+import { collectPages } from '../pagination'
 import { getCurrentUser } from '../user'
 import { ensureCloudResumeTemplateBinding } from './template-binding'
 
@@ -102,7 +107,56 @@ export async function createResumeFromSnapshot(
 
   if (error) throw error
 
+  notifyResumeReadChanged(prepared.resumeId)
+
   return data
+}
+
+export async function getResumeOptions() {
+  const user = await getCurrentUser()
+
+  if (!user) throw new Error('用户未登陆')
+
+  const { data, error } = await supabase
+    .from('resume_config')
+    .select('id,resume_id,display_name,type')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  return data
+}
+
+export async function getResumeSummaries(limit?: number) {
+  const user = await getCurrentUser()
+
+  if (!user) throw new Error('用户未登陆')
+
+  const fetchPage = async (from: number, to: number) => {
+    const { data, error } = await supabase
+      .from('resume_config')
+      .select(
+        'id,resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,derived_status,template_binding',
+      )
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)
+
+    if (error) throw error
+
+    return data ?? []
+  }
+
+  const data = await (limit === undefined
+    ? collectPages(fetchPage)
+    : fetchPage(0, limit - 1))
+
+  return data.map((resume) => ({
+    ...resume,
+    templateBinding: readResumeListTemplateBinding(resume.template_binding),
+  }))
 }
 
 export async function getAllResumesFromUser() {
@@ -267,6 +321,8 @@ export async function uploadOfflineResumeToCloud(
     throw error
   }
 
+  notifyResumeReadChanged(data.resume_id)
+
   return data
 }
 
@@ -304,6 +360,8 @@ export async function createNewResume(
     throw error
   }
 
+  notifyResumeReadChanged(data.resume_id)
+
   return data
 }
 
@@ -332,6 +390,8 @@ export async function deleteResume(
   if (error) {
     throw error
   }
+
+  notifyResumeReadChanged(by === 'resume_id' ? id : undefined)
 
   return true
 }

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { ApplicationStatus } from '../../../types'
 import { linkHorizontal } from 'd3-shape'
-import { Check, CircleCheck, CircleMinus } from 'lucide-react'
+import { Check, CircleCheck, CircleMinus, Minus } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef } from 'react'
@@ -14,7 +14,10 @@ import {
 } from '../../../const'
 import useTrackerStore from '../../../store'
 import { selectTrackerDrawerJob } from '../../../store/selectors'
-import { getEndedApplicationStage } from '../../../workflow'
+import {
+  getApplicationStageProgress,
+  getEndedApplicationStage,
+} from '../../../workflow'
 import {
   Stepper,
   StepperIndicator,
@@ -77,31 +80,7 @@ export default function ProgressTimeline({
   const source: [number, number] = [mainWidth * (5.5 / 6) + 14, 64]
   const endedAt = getEndedApplicationStage(job)
 
-  const currentIndex = ACTIVE_APPLICATION_STAGES.findIndex(
-    (stage) => stage === job.status,
-  )
-
-  const terminalSource =
-    job.status === 'rejected'
-      ? endedAt
-      : job.stage_details.find((detail) => detail.stage === 'offer')
-          ?.source_stage
-
-  const progressIndex =
-    currentIndex >= 0
-      ? currentIndex
-      : terminalSource
-        ? ACTIVE_APPLICATION_STAGES.indexOf(terminalSource)
-        : ACTIVE_APPLICATION_STAGES.reduce(
-            (furthest, stage, index) =>
-              job.stage_details.some(
-                (detail) =>
-                  detail.stage === stage && detail.status === '已完成',
-              )
-                ? index
-                : furthest,
-            -1,
-          )
+  const progress = getApplicationStageProgress(job)
 
   return (
     <section
@@ -167,20 +146,18 @@ export default function ProgressTimeline({
           </svg>
           <Stepper className='flex-1 pt-[34px]' aria-label='在办阶段'>
             {ACTIVE_APPLICATION_STAGES.map((status, index) => {
-              const detail = job.stage_details.find(
-                (item) => item.stage === status,
-              )
-
               const current = job.status === status
-              const ended = job.status === 'rejected' && status === endedAt
-              const completed = detail?.status === '已完成' || ended
-              const unrecorded = index < progressIndex && !completed
+              const stepState = progress[index]
+              const completed = stepState === 'completed'
+              const skipped = stepState === 'skipped'
 
-              const stepState = current
-                ? 'active'
+              const stateLabel = current
+                ? '当前阶段'
                 : completed
-                  ? 'completed'
-                  : 'inactive'
+                  ? '已完成'
+                  : skipped
+                    ? '未进行'
+                    : '尚未开始'
 
               return (
                 <StepperItem key={status} state={stepState}>
@@ -188,7 +165,8 @@ export default function ProgressTimeline({
                     <StepperSeparator
                       className={cn(
                         'top-[14px] left-[calc(50%+0.875rem)] w-[calc(100%-1.75rem)]',
-                        index < progressIndex
+                        completed &&
+                          ['completed', 'active'].includes(progress[index + 1])
                           ? 'bg-primary'
                           : 'bg-muted-foreground/20',
                       )}
@@ -196,12 +174,8 @@ export default function ProgressTimeline({
                   )}
                   <StepperTrigger
                     ref={current ? activeRef : undefined}
-                    aria-label={APPLICATION_STATUS_CONFIG[status].label}
-                    title={
-                      unrecorded
-                        ? `${APPLICATION_STATUS_CONFIG[status].label} · 未记录`
-                        : undefined
-                    }
+                    aria-label={`${APPLICATION_STATUS_CONFIG[status].label}，${stateLabel}`}
+                    title={`${APPLICATION_STATUS_CONFIG[status].label} · ${stateLabel}`}
                     aria-pressed={(viewingStage ?? job.status) === status}
                     onClick={() => onStageClick(status)}
                   >
@@ -210,12 +184,12 @@ export default function ProgressTimeline({
                         viewingStage === status &&
                           !current &&
                           'ring-2 ring-primary/15',
-                        unrecorded &&
-                          'border-foreground/65 bg-foreground/65 text-background',
                       )}
                     >
-                      {completed || unrecorded ? (
-                        <Check className='size-3.5' />
+                      {completed ? (
+                        <Check aria-hidden className='size-3.5' />
+                      ) : skipped ? (
+                        <Minus aria-hidden className='size-3.5' />
                       ) : (
                         index + 1
                       )}
@@ -223,11 +197,6 @@ export default function ProgressTimeline({
                     <StepperTitle>
                       {APPLICATION_STATUS_CONFIG[status].label}
                     </StepperTitle>
-                    {unrecorded && (
-                      <span className='absolute top-[53px] text-[10px] text-muted-foreground'>
-                        未记录
-                      </span>
-                    )}
                   </StepperTrigger>
                 </StepperItem>
               )

@@ -1,6 +1,10 @@
 import type { JobFieldsPatch } from '@/pages/tracker/store/workflow-save'
 import type { ApplicationStatus } from '@/pages/tracker/types'
-import { createCompany, getCompanies } from '@/lib/supabase/resume'
+import {
+  createCompany,
+  getCompanyById,
+  listAssistantJobs,
+} from '@/lib/supabase/resume'
 import { APPLICATION_STATUS_CONFIG } from '@/pages/tracker/const'
 import {
   assertTrackerAccountScope,
@@ -21,7 +25,7 @@ registerTool({
     const scope = getTrackerAccountScope()
 
     try {
-      const jobs = await getCompanies(createTrackerAccountGuard(scope))
+      const jobs = await listAssistantJobs(createTrackerAccountGuard(scope))
 
       assertTrackerAccountScope(scope)
 
@@ -59,11 +63,12 @@ registerTool({
     const scope = getTrackerAccountScope()
 
     try {
-      const jobs = await getCompanies(createTrackerAccountGuard(scope))
+      const job = await getCompanyById(
+        String(args.jobId),
+        createTrackerAccountGuard(scope),
+      )
 
       assertTrackerAccountScope(scope)
-
-      const job = jobs.find((j) => j.id === String(args.jobId))
 
       return job ?? { error: '未找到该职位' }
     } catch (error) {
@@ -120,13 +125,9 @@ registerTool({
     const jobId = String(args.jobId)
     const patch = (args.patch ?? {}) as Record<string, unknown>
 
-    const jobs = await getCompanies(createTrackerAccountGuard(scope)).catch(
-      () => [],
-    )
+    const job = await getCompanyById(jobId, createTrackerAccountGuard(scope))
 
     assertTrackerAccountScope(scope)
-
-    const job = jobs.find((j) => j.id === jobId)
 
     if (!job) return { error: '未找到该职位' }
 

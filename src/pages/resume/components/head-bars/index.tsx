@@ -3,7 +3,13 @@ import { Cloud, CloudUpload, GitBranch, HardDrive, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useJdVariantStore from '@/store/jd-variant'
 import { RESUME_BADGE_COLORS } from '../resume-card/const'
@@ -43,16 +49,17 @@ function HeadBars({
   ] as const
 
   return (
-    <PageHeader
-      title='我的简历'
-      description={counts ? `${counts.all} 份简历` : '简历数量暂不可用'}
-      actions={
-        <Button aria-label='打开创建简历表单' onClick={onCreate}>
-          <Plus />
-          创建简历
-        </Button>
-      }
-    >
+    <div className='space-y-1.5 [@media(max-height:500px)]:space-y-1 [@media(max-height:500px)]:[&_h1]:text-xl [@media(max-height:500px)]:[&_header>div:first-child]:space-y-1 [@media(max-height:500px)]:[&_header_p]:text-xs'>
+      <PageHeader
+        title='我的简历'
+        description={counts ? `${counts.all} 份简历` : '简历数量暂不可用'}
+        actions={
+          <Button aria-label='打开创建简历表单' onClick={onCreate}>
+            <Plus />
+            创建简历
+          </Button>
+        }
+      />
       <div className='flex flex-wrap items-center gap-2'>
         <AnimatedContent animationKey={isOnline ? 'online' : 'offline'}>
           <div className='flex flex-wrap items-center gap-1.5'>
@@ -61,10 +68,16 @@ function HeadBars({
                 <Badge
                   key={tone}
                   variant='outline'
-                  className={RESUME_BADGE_COLORS[tone]}
+                  className={cn(
+                    RESUME_BADGE_COLORS[tone],
+                    '[@media(max-height:500px)]:px-1',
+                  )}
                   aria-label={`${label}简历 ${counts?.[tone] ?? '未知'} 份`}
                 >
-                  <Icon aria-hidden />
+                  <Icon
+                    aria-hidden
+                    className='[@media(max-height:500px)]:hidden'
+                  />
                   {label}
                   <span className='tabular-nums'>{counts?.[tone] ?? '—'}</span>
                 </Badge>
@@ -78,30 +91,46 @@ function HeadBars({
           </div>
         </AnimatedContent>
         {hasPendingTasks && (
-          <Button
-            onClick={() => setDerivedJobsOpen(true)}
-            variant='ghost'
-            size='sm'
-            className='w-auto'
-          >
-            <GitBranch data-icon='inline-start' />
-            岗位版本任务
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setDerivedJobsOpen(true)}
+                variant='ghost'
+                size='sm'
+                className='w-auto [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
+                aria-label='岗位版本任务'
+              >
+                <GitBranch data-icon='inline-start' />
+                <span className='[@media(max-height:500px)]:sr-only'>
+                  岗位版本任务
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>岗位版本任务</TooltipContent>
+          </Tooltip>
         )}
         {hasOfflineResumesToSync && (
-          <Button
-            onClick={() => setShowSyncDialog(true)}
-            variant='outline'
-            size='sm'
-            className='w-auto'
-            disabled={!hasOfflineResumesToSync}
-          >
-            <CloudUpload data-icon='inline-start' />
-            同步本地简历 ({offlineCount})
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setShowSyncDialog(true)}
+                variant='outline'
+                size='sm'
+                className='w-auto [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
+                aria-label={`同步本地简历 (${offlineCount})`}
+                disabled={!hasOfflineResumesToSync}
+              >
+                <CloudUpload data-icon='inline-start' />
+                <span className='[@media(max-height:500px)]:sr-only'>
+                  同步本地简历 ({offlineCount})
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>同步本地简历 ({offlineCount})</TooltipContent>
+          </Tooltip>
         )}
       </div>
-    </PageHeader>
+    </div>
   )
 }
 

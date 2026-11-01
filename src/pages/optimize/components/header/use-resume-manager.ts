@@ -1,6 +1,5 @@
 import { Cloud, FileCheck, FileText, HardDrive } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import useResumeListStore from '@/pages/resume/store'
 import useUserStore from '@/store/user'
 import useAtsStore from '../../store'
 
@@ -36,17 +35,16 @@ export function useResumeManager(): UseResumeManagerReturn {
     useAtsStore()
 
   const {
-    resumes: storedResumes,
-    accountId,
-    loading: listLoading,
-    loadError: listError,
-    loadResumes,
-    cancelLoad,
-  } = useResumeListStore()
+    resumeOptions: storedResumes,
+    resumeOptionsLoading: listLoading,
+    resumeOptionsRevision,
+    resumeOptionsError: listError,
+    loadResumeOptions: loadResumes,
+  } = useAtsStore()
 
   const userId = useUserStore((state) => state.currentUser?.id ?? null)
   const authStatus = useUserStore((state) => state.authStatus)
-  const accountMatches = authStatus !== 'unknown' && accountId === userId
+  const accountMatches = authStatus !== 'unknown'
   const loading = !accountMatches || listLoading
   const loadError = accountMatches ? listError : null
   const [open, setOpen] = useState(false)
@@ -55,9 +53,7 @@ export function useResumeManager(): UseResumeManagerReturn {
     if (authStatus === 'unknown') return
 
     loadResumes()
-
-    return cancelLoad
-  }, [authStatus, userId, loadResumes, cancelLoad])
+  }, [authStatus, userId, loadResumes, resumeOptionsRevision])
 
   const resumes = useMemo<ResumeConfig[]>(() => {
     if (!accountMatches) return []
@@ -74,7 +70,7 @@ export function useResumeManager(): UseResumeManagerReturn {
         created_at: resume.created_at,
         isOffline: resume.isOffline,
         isScored: Boolean(resumeAts),
-        overall_score: resumeAts?.summary.overall_score ?? null,
+        overall_score: resumeAts?.overall_score ?? null,
       }
     })
   }, [accountMatches, storedResumes, atsConfigs])

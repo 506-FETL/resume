@@ -5,7 +5,7 @@ import type { ComponentProps, KeyboardEvent } from 'react'
 import { createContext, use } from 'react'
 import { cn } from '@/lib/utils'
 
-type StepState = 'active' | 'completed' | 'inactive' | 'ended'
+type StepState = 'active' | 'completed' | 'inactive' | 'skipped'
 
 const StepContext = createContext<StepState>('inactive')
 
@@ -116,6 +116,7 @@ export function StepperIndicator({
       data-state={state}
       className={cn(
         'relative flex size-7 shrink-0 items-center justify-center rounded-full border bg-background text-xs font-medium text-muted-foreground data-[state=completed]:border-primary data-[state=completed]:bg-primary data-[state=completed]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:ring-4 data-[state=active]:ring-primary/10',
+        'data-[state=skipped]:border-border/60 data-[state=skipped]:bg-muted/60 data-[state=skipped]:text-muted-foreground/60',
         transition,
         className,
       )}
@@ -133,6 +134,7 @@ export function StepperTitle({ className, ...props }: ComponentProps<'span'>) {
       data-state={state}
       className={cn(
         'whitespace-nowrap text-xs font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=completed]:text-foreground',
+        'data-[state=skipped]:text-muted-foreground/60',
         transition,
         className,
       )}

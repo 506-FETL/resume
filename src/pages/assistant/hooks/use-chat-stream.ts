@@ -30,8 +30,7 @@ import {
   readableConversationTitle,
 } from '../composer-references'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
-import { TOOL_CANVAS_META, writeLastConversationId } from '../utils'
-import { invalidateCanvasSnapshot } from './use-canvas-preview'
+import { writeLastConversationId } from '../utils'
 
 // 构造一条本地临时消息（乐观上屏，稍后用服务端返回替换）
 function makeLocalMessage(
@@ -466,17 +465,6 @@ export function useChatStream() {
                   ...prev,
                   result,
                   state: isError ? 'error' : cancelled ? 'cancelled' : 'result',
-                }
-
-                // 简历写操作成功：清掉快照缓存并强制画布刷新，保证右侧画布重新拉取最新 DB 数据
-                // （对齐撤销路径的 bumpCanvasRefresh，避免写后仍命中旧缓存导致「画布不刷新」）
-                if (
-                  !isError &&
-                  !cancelled &&
-                  TOOL_CANVAS_META[prev.toolName]?.category === 'resume'
-                ) {
-                  invalidateCanvasSnapshot()
-                  useAssistantStore.getState().bumpCanvasRefresh()
                 }
               }
 

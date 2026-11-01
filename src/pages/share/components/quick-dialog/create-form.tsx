@@ -1,7 +1,7 @@
 import type { SharePurpose } from '@/lib/supabase/resume/share.types'
 import { sharePurposeDefaults } from '@/lib/share-purpose'
 import PurposeFields from '../purpose-fields'
-import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
+import type { ResumeHistoryShareOption } from '@/lib/supabase/resume/history'
 import type {
   CreateShareOptions,
   ShareVersionSelection,
@@ -20,7 +20,7 @@ interface CreateFormProps {
   formId: string
   submitting: boolean
   onSubmittingChange: (submitting: boolean) => void
-  versions: ResumeHistoryVersionListItem[]
+  versions: ResumeHistoryShareOption[]
   versionsLoading: boolean
   versionsError: string | null
   onRetryVersions: () => void

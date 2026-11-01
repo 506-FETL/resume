@@ -184,13 +184,24 @@ export async function getJobSubmissionJd(
   id: string,
   assertUser?: SubmissionRequestGuard,
 ): Promise<Pick<JobSubmissionMaterial, 'jdText' | 'jdUpdatedAt'>> {
-  const data = await invokeSubmission(
-    { id, action: 'material' },
-    undefined,
-    assertUser,
-  )
+  const user = await getCurrentUser()
 
-  return { jdText: data.jdText, jdUpdatedAt: data.jdUpdatedAt }
+  assertUser?.(user?.id ?? null)
+
+  if (!user) throw new Error('请先登录')
+
+  const { data, error } = await supabase
+    .from('job_submissions')
+    .select('jd_text,jd_updated_at')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  assertUser?.(user.id)
+
+  if (error) throw new Error('无法读取 JD 副本，请重试', { cause: error })
+
+  return { jdText: data.jd_text, jdUpdatedAt: data.jd_updated_at }
 }
 
 export async function resolveJobSubmission(

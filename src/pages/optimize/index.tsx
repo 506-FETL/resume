@@ -9,12 +9,16 @@ import AssessmentBasisCard from './components/dashboard/assessment-basis-card'
 import Header from './components/header'
 import RepairChecklist from './components/repair-checklist'
 import useAtsStore from './store'
+import useUserStore from '@/store/user'
 
 function Optimize() {
   const jobContext = useJobContextStore((state) => state.context)
   const init = useAtsStore((state) => state.init)
+  const ownerId = useUserStore((state) => state.currentUser?.id)
 
   useEffect(() => {
+    if (!ownerId) return
+
     if (jobContext?.resumeId) {
       useAtsStore.getState().setAdvancedToolOpen(false)
       useAtsStore.getState().setAdvancedToolResumeContext(null)
@@ -22,7 +26,7 @@ function Optimize() {
     }
 
     init()
-  }, [init, jobContext])
+  }, [init, jobContext, ownerId])
 
   return (
     <PageLayout>

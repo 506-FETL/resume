@@ -20,10 +20,7 @@ import {
   TOOL_DEFINITIONS,
 } from './shared/config'
 import { AdvancedToolsModal } from './shared/modal'
-import {
-  getAdvancedToolResumeSummary,
-  loadResumeToolContext,
-} from './shared/resume'
+import { getAdvancedToolResumeSummary } from './shared/resume'
 import { ToolCard } from './shared/tool-card'
 
 function AdvancedTools() {
@@ -41,6 +38,16 @@ function AdvancedTools() {
   const setLoadingContext = useAtsStore((s) => s.setAdvancedToolLoadingContext)
   const setResumeContext = useAtsStore((s) => s.setAdvancedToolResumeContext)
   const requestIdRef = useRef(0)
+  const contextSource = useAtsStore((state) => state.advancedToolContextSource)
+
+  const optionsLoading = useAtsStore((state) => state.resumeOptionsLoading)
+
+  const sourceUpdatedAt = useAtsStore(
+    (state) =>
+      state.resumeOptions.find(
+        (resume) => resume.resume_id === selectedResumeId,
+      )?.updated_at ?? '',
+  )
 
   const hasSelectedResume = Boolean(selectedResumeId && selectedResumeType)
 
@@ -73,22 +80,26 @@ function AdvancedTools() {
     }
 
     return (
+      !optionsLoading &&
+      contextSource === sourceUpdatedAt &&
       resumeContext.resumeId === selectedResumeId &&
       resumeContext.resumeType === selectedResumeType &&
       (resumeContext.atsConfig?.id ?? null) === (selectedAtsConfig?.id ?? null)
     )
-  }, [resumeContext, selectedAtsConfig, selectedResumeId, selectedResumeType])
+  }, [
+    resumeContext,
+    selectedAtsConfig,
+    selectedResumeId,
+    selectedResumeType,
+    contextSource,
+    sourceUpdatedAt,
+    optionsLoading,
+  ])
 
-  async function loadContext() {
-    if (!selectedResumeId || !selectedResumeType) {
-      throw new Error('请先在上方选择要处理的简历')
-    }
-
-    return await loadResumeToolContext({
-      atsConfig: selectedAtsConfig,
-      resumeId: selectedResumeId,
-      resumeType: selectedResumeType,
-    })
+  function loadContext(force = false) {
+    return useAtsStore
+      .getState()
+      .loadAdvancedToolContext(sourceUpdatedAt, force)
   }
 
   async function handleOpenTool(tool: AdvancedToolKey) {
@@ -114,7 +125,7 @@ function AdvancedTools() {
     try {
       const nextContext = await loadContext()
 
-      if (requestId !== requestIdRef.current) {
+      if (requestId !== requestIdRef.current || !nextContext) {
         return
       }
 
@@ -140,9 +151,9 @@ function AdvancedTools() {
     setLoadingContext(true)
 
     try {
-      const nextContext = await loadContext()
+      const nextContext = await loadContext(true)
 
-      if (requestId !== requestIdRef.current) {
+      if (requestId !== requestIdRef.current || !nextContext) {
         return
       }
 
@@ -248,7 +259,7 @@ function AdvancedTools() {
           {TOOL_DEFINITIONS.map((tool) => (
             <ToolCard
               key={tool.key}
-              disabled={!hasSelectedResume}
+              disabled={!hasSelectedResume || optionsLoading}
               onClick={() => handleOpenTool(tool.key)}
               tool={tool}
             />

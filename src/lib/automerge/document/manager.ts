@@ -74,7 +74,8 @@ export class DocumentManager {
 
         const binding =
           storedBinding ??
-          (await this.persistence.loadResumeConfig()).templateBinding
+          (await this.persistence.loadResumeConfig({ templateOnly: true }))
+            .templateBinding
 
         if (!binding) throw new Error('简历模板尚未完成初始化，请重试')
 

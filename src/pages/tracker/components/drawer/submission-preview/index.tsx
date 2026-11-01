@@ -1,7 +1,4 @@
-import type {
-  JobSubmission,
-  JobSubmissionMaterial,
-} from '../../../submission-types'
+import type { JobSubmission } from '../../../submission-types'
 import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
@@ -18,13 +15,8 @@ import {
 } from '@/components/ui/dialog'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
-import { getJobSubmissionMaterial } from '@/lib/supabase/resume/submissions'
-import {
-  createTrackerAccountGuard,
-  getTrackerAccountScope,
-  isTrackerAccountScopeCurrent,
-} from '../../../lib/account-scope'
-import { getTrackerErrorMessage } from '../../../utils'
+import useTrackerStore from '../../../store'
+import { submissionMaterialKey } from '../../../store/submissions'
 import { SubmissionJdContent } from '../submission-jd'
 
 export default function MaterialPreview({
@@ -39,10 +31,19 @@ export default function MaterialPreview({
   const reduce = useReducedMotion()
   const returnFocusRef = useRef(document.activeElement)
   const [open, setOpen] = useState(true)
-  const [material, setMaterial] = useState<JobSubmissionMaterial | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const revision = useTrackerStore((state) => state.submissionRevision)
+
+  const resource = useTrackerStore(
+    (state) =>
+      state.submissionMaterialsByKey[
+        submissionMaterialKey(record.id, revisionId)
+      ],
+  )
+
+  const current = resource?.revision === revision ? resource : null
+  const material = current?.data
+  const error = current?.error
   const [url, setUrl] = useState<string | null>(null)
-  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (open) return
@@ -53,38 +54,22 @@ export default function MaterialPreview({
   }, [open, onClose, reduce])
 
   useEffect(() => {
-    const scope = getTrackerAccountScope()
-    let active = true
-    let objectUrl: string | null = null
+    useTrackerStore.getState().loadSubmissionMaterial(record.id, revisionId)
+  }, [record.id, revisionId, revision])
 
-    setError(null)
+  useEffect(() => {
+    if (material?.kind !== 'file') {
+      setUrl(null)
 
-    getJobSubmissionMaterial(
-      record.id,
-      createTrackerAccountGuard(scope),
-      revisionId,
-    )
-      .then((result) => {
-        if (!active || !isTrackerAccountScopeCurrent(scope)) return
-
-        setMaterial(result)
-
-        if (result.kind === 'file') {
-          objectUrl = URL.createObjectURL(result.file)
-          setUrl(objectUrl)
-        }
-      })
-      .catch((cause) => {
-        if (active && isTrackerAccountScopeCurrent(scope))
-          setError(getTrackerErrorMessage(cause))
-      })
-
-    return () => {
-      active = false
-
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
+      return
     }
-  }, [record.id, revisionId, attempt])
+
+    const objectUrl = URL.createObjectURL(material.file)
+
+    setUrl(objectUrl)
+
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [material])
 
   return (
     <Dialog
@@ -140,7 +125,9 @@ export default function MaterialPreview({
                       .closest<HTMLElement>('[role="dialog"]')
                       ?.focus({ preventScroll: true })
 
-                    setAttempt((value) => value + 1)
+                    useTrackerStore
+                      .getState()
+                      .loadSubmissionMaterial(record.id, revisionId)
                   }}
                 >
                   重试

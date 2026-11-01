@@ -137,6 +137,32 @@ export async function listResumeHistoryOptions() {
   return (data ?? []) as ResumeHistoryOptionRecord[]
 }
 
+export type ResumeHistoryShareOption = Pick<
+  ResumeHistoryVersionListRow,
+  'id' | 'version_no' | 'version_name' | 'milestone_name' | 'created_at'
+>
+
+export async function listResumeHistoryShareOptions(resumeId: string) {
+  const user = await getCurrentUser()
+
+  if (!user) throw new Error('用户未登陆')
+
+  return collectPages(async (from, to) => {
+    const { data, error } = await supabase
+      .from('resume_config_versions')
+      .select('id,version_no,version_name,milestone_name,created_at')
+      .eq('resume_id', resumeId)
+      .eq('user_id', user.id)
+      .eq('status', 'frozen')
+      .order('version_no', { ascending: false })
+      .range(from, to)
+
+    if (error) throw error
+
+    return data
+  })
+}
+
 export async function listResumeHistoryVersions(resumeId: string) {
   const user = await getCurrentUser()
 
@@ -305,24 +331,30 @@ export async function getResumeHistoryVersionSnapshot(id: number) {
     .snapshot
 }
 
-export async function listResumeHistoryVersionSummaries() {
+export async function listResumeHistoryVersionSummaries(resumeId?: string) {
   const user = await getCurrentUser()
 
   if (!user) {
     throw new Error('用户未登陆')
   }
 
-  const { data, error } = await supabase
-    .from('resume_config_versions')
-    .select(VERSION_SUMMARY_SELECTOR)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  return collectPages(async (from, to) => {
+    let query = supabase
+      .from('resume_config_versions')
+      .select(VERSION_SUMMARY_SELECTOR)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)
 
-  if (error) {
-    throw error
-  }
+    if (resumeId) query = query.eq('resume_id', resumeId)
 
-  return (data ?? []) as ResumeHistoryVersionSummaryRecord[]
+    const { data, error } = await query
+
+    if (error) throw error
+
+    return (data ?? []) as ResumeHistoryVersionSummaryRecord[]
+  })
 }
 
 export async function createResumeHistoryVersion(
@@ -383,14 +415,14 @@ export async function updateResumeHistoryVersion(
     })
     .eq('id', id)
     .eq('user_id', user.id)
-    .select(VERSION_SELECTOR)
+    .select(VERSION_LIST_SELECTOR)
     .single()
 
   if (error) {
     throw error
   }
 
-  return data as ResumeHistoryVersionRow
+  return data as ResumeHistoryVersionListRow
 }
 
 export async function deleteResumeHistoryVersion(id: number) {

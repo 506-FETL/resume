@@ -283,14 +283,20 @@ export function getTrackerErrorMessage(error: unknown, fallback = '未知错误'
   return error instanceof Error ? error.message : fallback
 }
 
-// 计数和列表筛选共用当前阶段谓词；搜索与归档范围由 filterJobs 统一处理。
+// 指标计数与点击筛选共用口径；阶段菜单仍按单个阶段匹配。
 export function matchesMetric(
   job: JobApplication,
   key: TrackerMetricKey,
 ): boolean {
   switch (key) {
     case 'applied':
-      return job.status === 'applied'
+      return [
+        'applied',
+        'assessment',
+        'screen',
+        'written',
+        'interview',
+      ].includes(job.status)
     case 'interview':
       return job.status === 'interview'
     case 'offer':
@@ -330,7 +336,7 @@ export const TRACKER_FOLLOW_UP_STALE_DAYS = 7
 
 export interface TrackerOverviewStats {
   total: number
-  applied: number // 当前搜索与归档范围内，处于已投递阶段的职位
+  applied: number // 当前搜索与归档范围内，已投递且仍在流程中的职位
   interview: number
   offer: number
   pending: number
@@ -416,6 +422,12 @@ export function resolveTrackerMetricStatus(
   metric: TrackerMetricKey | null,
 ): ApplicationStatus | null {
   if (!metric) return null
+  if (metric === 'applied')
+    return (
+      APPLICATION_STATUS_ORDER.find((status) =>
+        jobs.some((job) => job.status === status && matchesMetric(job, metric)),
+      ) ?? null
+    )
   if (metric !== 'pending') return metric
 
   const [pendingJob] = [...jobs]

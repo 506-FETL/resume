@@ -117,7 +117,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
   return {
     ...persistence,
     ...createTrackerCompanies(get, set),
-    ...createTrackerSubmissions(set),
+    ...createTrackerSubmissions(get, set),
     correctJobStatus: (...args) => get().changeJobStatus(...args),
     reopenQueue: [],
     requestReopen: (jobId, target = 'interview') =>
@@ -414,6 +414,9 @@ subscribeTrackerAccountScope(() => {
     accountScope: getTrackerAccountScope(),
     submissionQueue: [],
     submissionsByJob: {},
+    submissionJdsById: {},
+    submissionHistoriesById: {},
+    submissionMaterialsByKey: {},
     reopenQueue: [],
     jobs: [],
     selectedJob: null,

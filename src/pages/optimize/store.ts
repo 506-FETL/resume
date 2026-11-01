@@ -2,56 +2,38 @@ import type {
   AdvancedToolKey,
   ResumeToolContext,
 } from './components/advanced-tools/shared/types'
-import type {
-  AnalysisState,
-  AtsCreatePayload,
-  AtsEvaluationResult,
-  AtsLlmDraft,
-} from './types'
+import type { AnalysisState, AtsCreatePayload, AtsLlmDraft } from './types'
 import { toast } from 'sonner'
 import { create } from 'zustand'
 import {
   buildAtsAssessmentInput,
-  ensureAtsFindingsHaveSuggestions,
   normalizeAtsEvaluationResult,
 } from '@/lib/ats'
 import { parseLlmJsonObject, runAtsStructured } from '@/lib/llm'
 import { getOfflineResumeById } from '@/lib/offline-resume-manager'
-import {
-  createAtsConfig,
-  getAtsFromUserId,
-  updateFixChecklist,
-} from '@/lib/supabase/resume'
+import { createAtsConfig } from '@/lib/supabase/resume'
 import { uploadOfflineResumeToCloud } from '@/lib/supabase/resume/form'
 import { buildAtsCreatePayload } from '@/lib/supabase/resume/utils'
-import { getCurrentUser } from '@/lib/supabase/user'
+import useUserStore from '@/store/user'
+import { subscribeResumeReadChanges } from '@/lib/resume-read-events'
+import { createAtsReports, type AtsReportsState } from './store/reports'
+import { createAtsResumeOptions } from './store/resume-options'
 import { getErrorMessage } from '@/utils'
 import { ANALYSIS_INITIAL_STATE } from './const'
 import { fetchResumeDataForAnalysis } from './utils'
+import { loadResumeToolContext } from './components/advanced-tools/shared/resume'
 
-interface AtsStore {
-  atsConfigs: AtsEvaluationResult[] | null
-  currentAtsConfig: AtsEvaluationResult | null
-  loading: boolean
-  loadError: string | null
-  analysisError: string | null
-
-  selectedResumeId: string | null
-  selectedResumeType: 'online' | 'offline' | null
-  setSelectedResume: (id: string, type: 'online' | 'offline') => void
-
+interface AtsStore
+  extends
+    AtsReportsState,
+    ReturnType<typeof createAtsReports>,
+    ReturnType<typeof createAtsResumeOptions> {
   // Analysis state
   analysisState: AnalysisState
   setAnalysisState: (state: Partial<AnalysisState>) => void
   resetAnalysisState: () => void
   updateLog: (key: string, value: string, append?: boolean) => void
 
-  revertFixChecklist: (id: string) => Promise<void>
-  update: <K extends keyof AtsEvaluationResult>(
-    key: K,
-    value: AtsEvaluationResult[K],
-  ) => void
-  init: () => Promise<void>
   startAnalysis: (options?: { onComplete?: () => void }) => Promise<void>
 
   // Advanced tools (P6.2)
@@ -59,6 +41,13 @@ interface AtsStore {
   advancedToolOpen: boolean
   advancedToolLoadingContext: boolean
   advancedToolResumeContext: ResumeToolContext | null
+  advancedToolContextSource: string | null
+  loadAdvancedToolContext: (
+    source: string,
+    force?: boolean,
+  ) => Promise<ResumeToolContext | null>
+  resetToolContext: () => void
+  invalidateToolContext: () => void
   setAdvancedToolActiveTool: (tool: AdvancedToolKey | null) => void
   setAdvancedToolOpen: (open: boolean) => void
   setAdvancedToolLoadingContext: (loading: boolean) => void
@@ -66,71 +55,79 @@ interface AtsStore {
 }
 
 const useAtsStore = create<AtsStore>()((set, get) => {
-  let initRequestId = 0
+  const reportActions = createAtsReports(set, get)
+  let activeToolKey: string | null = null
+  let toolRevision = 0
+  const toolRequests = new Map<string, Promise<ResumeToolContext | null>>()
 
-  const init = async () => {
-    const requestId = ++initRequestId
+  const loadAdvancedToolContext = (
+    source: string,
+    force = false,
+  ): Promise<ResumeToolContext | null> => {
+    const {
+      selectedResumeId: resumeId,
+      selectedResumeType: resumeType,
+      currentAtsConfig,
+      advancedToolResumeContext: cached,
+    } = get()
 
-    set({ loadError: null })
+    if (!resumeId || !resumeType)
+      return Promise.reject(new Error('请先在上方选择要处理的简历'))
 
-    try {
-      // 已有报告（包括已加载的空列表）时静默刷新，避免重新挂载整页内容。
-      if (get().atsConfigs === null && !get().loading) set({ loading: true })
+    const atsConfig =
+      currentAtsConfig?.resume_id === resumeId ? currentAtsConfig : null
 
-      const rawData = await getAtsFromUserId()
+    const key = JSON.stringify([resumeId, resumeType, atsConfig?.id, source])
 
-      if (requestId !== initRequestId) return
+    activeToolKey = key
 
-      const latestByResume = new Map<string, AtsEvaluationResult>()
+    if (
+      !force &&
+      cached?.resumeId === resumeId &&
+      cached.resumeType === resumeType &&
+      (cached.atsConfig?.id ?? null) === (atsConfig?.id ?? null) &&
+      get().advancedToolContextSource === source
+    )
+      return Promise.resolve(cached)
 
-      for (const config of rawData ?? []) {
-        if (!latestByResume.has(config.resume_id))
-          latestByResume.set(config.resume_id, config)
-      }
+    const pending = toolRequests.get(key)
 
-      const data = [...latestByResume.values()].map((config) => ({
-        ...config,
-        findings: ensureAtsFindingsHaveSuggestions(config.findings),
-      }))
+    if (pending) return pending
 
-      const { selectedResumeId } = get()
+    const isCurrent = reportActions.isReportAccountCurrent()
+    const revision = toolRevision
 
-      set({
-        atsConfigs: data,
-        currentAtsConfig: selectedResumeId
-          ? (data.find((item) => item.resume_id === selectedResumeId) ?? null)
-          : (data[0] ?? null),
-        loading: false,
+    const request = loadResumeToolContext({ resumeId, resumeType, atsConfig })
+      .then((context) => {
+        if (
+          !isCurrent() ||
+          activeToolKey !== key ||
+          revision !== toolRevision ||
+          (get().currentAtsConfig?.id ?? null) !== (atsConfig?.id ?? null) ||
+          get().selectedResumeId !== resumeId ||
+          get().selectedResumeType !== resumeType
+        )
+          return null
+
+        set({
+          advancedToolResumeContext: context,
+          advancedToolContextSource: source,
+        })
+
+        return context
       })
-    } catch (error: unknown) {
-      const user = await getCurrentUser()
+      .catch((error) => {
+        if (!isCurrent()) return null
 
-      if (requestId !== initRequestId) return
+        throw error
+      })
+      .finally(() => {
+        if (toolRequests.get(key) === request) toolRequests.delete(key)
+      })
 
-      const current = get().currentAtsConfig
+    toolRequests.set(key, request)
 
-      if (!user || (current && current.user_id !== user.id))
-        set({ atsConfigs: null, currentAtsConfig: null })
-
-      toast.error(getErrorMessage(error, '加载失败'))
-      set({ loadError: getErrorMessage(error, '加载失败') })
-      // 刷新失败保留当前报告；首次加载仍可重试。
-    } finally {
-      if (requestId === initRequestId && get().loading) set({ loading: false })
-    }
-  }
-
-  const setSelectedResume = (id: string, type: 'online' | 'offline') => {
-    set({ selectedResumeId: id, selectedResumeType: type, analysisError: null })
-
-    // 尝试切换到对应的 ATS Config
-    const { atsConfigs } = get()
-
-    if (atsConfigs) {
-      const config = atsConfigs.find((c) => c.resume_id === id)
-
-      set({ currentAtsConfig: config || null })
-    }
+    return request
   }
 
   const setAnalysisState = (newState: Partial<AnalysisState>) => {
@@ -163,53 +160,6 @@ const useAtsStore = create<AtsStore>()((set, get) => {
     })
   }
 
-  const update = <K extends keyof AtsEvaluationResult>(
-    key: K,
-    value: AtsEvaluationResult[K],
-  ) => {
-    const { atsConfigs, currentAtsConfig } = get()
-
-    if (!currentAtsConfig) return
-
-    const nextCurrentAtsConfig = { ...currentAtsConfig, [key]: value }
-
-    const nextAtsConfigs =
-      atsConfigs?.map((config) =>
-        config.id === currentAtsConfig.id ? nextCurrentAtsConfig : config,
-      ) ?? null
-
-    set(() => ({
-      currentAtsConfig: nextCurrentAtsConfig,
-      atsConfigs: nextAtsConfigs,
-    }))
-  }
-
-  const revertFixChecklist = async (id: string) => {
-    const { currentAtsConfig } = get()
-
-    if (!currentAtsConfig) {
-      throw new Error('当前没有 ATS 配置')
-    }
-
-    const updatedFixCheckList = currentAtsConfig.fixChecklist.map((item) =>
-      item.id === id ? { ...item, isDone: !item.isDone } : item,
-    )
-
-    try {
-      set(() => ({
-        currentAtsConfig: {
-          ...currentAtsConfig,
-          fixChecklist: updatedFixCheckList,
-        },
-      }))
-
-      await updateFixChecklist(updatedFixCheckList, currentAtsConfig.id)
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, '操作失败'))
-      set(() => ({ currentAtsConfig }))
-    }
-  }
-
   const startAnalysis = async (options?: { onComplete?: () => void }) => {
     const { selectedResumeId, selectedResumeType } = get()
 
@@ -219,6 +169,8 @@ const useAtsStore = create<AtsStore>()((set, get) => {
       return
     }
 
+    const isCurrent = reportActions.isReportAccountCurrent()
+
     resetAnalysisState()
 
     toast.info(
@@ -226,6 +178,8 @@ const useAtsStore = create<AtsStore>()((set, get) => {
     )
 
     try {
+      if (!isCurrent()) return
+
       let currentResumeId = selectedResumeId
       const currentResumeType = selectedResumeType
 
@@ -239,6 +193,8 @@ const useAtsStore = create<AtsStore>()((set, get) => {
           throw new Error('本地简历不存在')
         }
 
+        if (!isCurrent()) return
+
         const onlineResume = await uploadOfflineResumeToCloud(
           offlineResume.data,
           {
@@ -251,9 +207,11 @@ const useAtsStore = create<AtsStore>()((set, get) => {
           throw new Error('上传简历失败')
         }
 
+        if (!isCurrent()) return
+
         updateLog('upload', '上传成功', true)
         currentResumeId = onlineResume.resume_id
-        setSelectedResume(currentResumeId, 'online')
+        reportActions.setSelectedResume(currentResumeId, 'online')
       }
 
       setAnalysisState({ status: 'fetching' })
@@ -263,6 +221,8 @@ const useAtsStore = create<AtsStore>()((set, get) => {
         currentResumeId,
         false,
       )
+
+      if (!isCurrent()) return
 
       const assessmentInput = buildAtsAssessmentInput(resumeData)
 
@@ -281,6 +241,8 @@ const useAtsStore = create<AtsStore>()((set, get) => {
       } = await runAtsStructured(
         assessmentInput,
         ({ content: streamContent, reasoning: streamReasoning }) => {
+          if (!isCurrent()) return
+
           if (streamReasoning) {
             setAnalysisState({ status: 'thinking', reasoning: streamReasoning })
             updateLog('send', '已上传，开始思考...')
@@ -290,6 +252,8 @@ const useAtsStore = create<AtsStore>()((set, get) => {
           }
         },
       )
+
+      if (!isCurrent()) return
 
       if (!finalContent) {
         // 区分两种空内容：模型只产出了思考过程（H1）vs 完全无输出（网络/上游中断）。
@@ -325,16 +289,20 @@ const useAtsStore = create<AtsStore>()((set, get) => {
         currentResumeId,
       )
 
-      await createAtsConfig(payload)
+      const report = await createAtsConfig(payload)
+
+      if (!isCurrent()) return
+
+      reportActions.acceptReport(report)
       updateLog('save', '报告已生成', true)
       toast.success('ATS 分析报告已生成')
-
-      await init()
 
       setAnalysisState({ status: 'complete' })
       updateLog('display', '已展示分析结果')
       options?.onComplete?.()
     } catch (error: unknown) {
+      if (!isCurrent()) return
+
       console.error(error)
       toast.error(getErrorMessage(error, '分析过程中发生错误'))
       set({ analysisError: getErrorMessage(error, '分析过程中发生错误') })
@@ -356,16 +324,28 @@ const useAtsStore = create<AtsStore>()((set, get) => {
     resetAnalysisState,
     updateLog,
 
-    init,
-    setSelectedResume,
-    revertFixChecklist,
-    update,
+    ...reportActions,
+    ...createAtsResumeOptions(set),
     startAnalysis,
 
     advancedToolActiveTool: null,
     advancedToolOpen: false,
     advancedToolLoadingContext: false,
     advancedToolResumeContext: null,
+    advancedToolContextSource: null,
+    loadAdvancedToolContext,
+    invalidateToolContext: () => {
+      toolRevision += 1
+      activeToolKey = null
+      toolRequests.clear()
+      set({ advancedToolContextSource: null })
+    },
+    resetToolContext: () => {
+      toolRevision += 1
+      activeToolKey = null
+      toolRequests.clear()
+      set({ advancedToolResumeContext: null, advancedToolContextSource: null })
+    },
     setAdvancedToolActiveTool: (tool) => set({ advancedToolActiveTool: tool }),
     setAdvancedToolOpen: (open) => set({ advancedToolOpen: open }),
     setAdvancedToolLoadingContext: (loading) =>
@@ -373,6 +353,35 @@ const useAtsStore = create<AtsStore>()((set, get) => {
     setAdvancedToolResumeContext: (context) =>
       set({ advancedToolResumeContext: context }),
   }
+})
+
+useUserStore.subscribe((state, previous) => {
+  if (state.currentUser?.id === previous.currentUser?.id) return
+
+  useAtsStore.getState().resetReports()
+  useAtsStore.getState().resetResumeOptions()
+  useAtsStore.getState().resetToolContext()
+
+  useAtsStore.setState({
+    analysisState: ANALYSIS_INITIAL_STATE,
+    advancedToolActiveTool: null,
+    advancedToolOpen: false,
+    advancedToolLoadingContext: false,
+    advancedToolResumeContext: null,
+  })
+})
+
+subscribeResumeReadChanges((resumeId) => {
+  const state = useAtsStore.getState()
+
+  state.invalidateResumeOptions()
+
+  if (
+    !resumeId ||
+    state.selectedResumeId === resumeId ||
+    state.advancedToolResumeContext?.resumeId === resumeId
+  )
+    state.invalidateToolContext()
 })
 
 export default useAtsStore

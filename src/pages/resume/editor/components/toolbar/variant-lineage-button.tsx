@@ -1,9 +1,12 @@
 import { GitBranch } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { VariantLineageTreeDialog } from '@/components/jd-variant/components/lineage-dialog'
 import { VariantLineagePath } from '@/components/jd-variant/components/lineage-tree'
 import { useVariantLineage } from '@/components/jd-variant/hooks/use-lineage'
+import AnimatedContent from '@/components/motion/animated-content'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Spinner } from '@/components/ui/spinner'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -27,6 +30,7 @@ export function VariantLineageButton({
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [treeOpen, setTreeOpen] = useState(false)
   const navigate = useNavigate()
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const { setCurrentResume } = useCurrentResumeStore()
 
   const current = resumeId
@@ -50,7 +54,10 @@ export function VariantLineageButton({
   const rootId = findRoot(resumeId)
   const disabled = reviewActive || !resumeId || !parentId
 
-  const { tree } = useVariantLineage(disabled ? null : rootId)
+  const { tree, loading, error, refresh } = useVariantLineage(
+    disabled ? null : rootId,
+    popoverOpen || treeOpen,
+  )
 
   const handleOpen = (id: string) => {
     const target = resumes.find((r) => r.resume_id === id)
@@ -64,6 +71,7 @@ export function VariantLineageButton({
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
+            ref={triggerRef}
             variant='outline'
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
@@ -77,7 +85,39 @@ export function VariantLineageButton({
         </PopoverTrigger>
         <PopoverContent align='end' className='flex w-80 flex-col gap-3 p-4'>
           <h3 className='text-sm font-semibold'>派生关系</h3>
-          <VariantLineagePath tree={tree} currentResumeId={resumeId ?? ''} />
+          <AnimatedContent
+            animationKey={error ? 'error' : loading ? 'loading' : 'ready'}
+          >
+            {error ? (
+              <Alert variant='destructive'>
+                <AlertDescription>{error}</AlertDescription>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='mt-2'
+                  onClick={() => {
+                    triggerRef.current?.focus({ preventScroll: true })
+                    refresh()
+                  }}
+                >
+                  重试
+                </Button>
+              </Alert>
+            ) : loading ? (
+              <p
+                role='status'
+                className='flex items-center gap-2 text-sm text-muted-foreground'
+              >
+                <Spinner aria-hidden className='motion-reduce:animate-none' />
+                正在加载派生关系
+              </p>
+            ) : (
+              <VariantLineagePath
+                tree={tree}
+                currentResumeId={resumeId ?? ''}
+              />
+            )}
+          </AnimatedContent>
           <Separator />
           <Button
             size='sm'

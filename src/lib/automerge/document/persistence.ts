@@ -114,10 +114,14 @@ export class AutomergeDocumentPersistence {
     }
   }
 
-  async loadResumeConfig(): Promise<Partial<PersistedResumeSnapshot>> {
+  async loadResumeConfig(options?: {
+    templateOnly: boolean
+  }): Promise<Partial<PersistedResumeSnapshot>> {
     const { data, error } = await supabase
       .from('resume_config')
-      .select(RESUME_PERSISTED_SELECTOR)
+      .select(
+        options?.templateOnly ? 'template_binding' : RESUME_PERSISTED_SELECTOR,
+      )
       .eq('resume_id', this.resumeId)
       .eq('user_id', this.userId)
       .maybeSingle()

@@ -259,7 +259,7 @@ export default function Contacts({ job }: ContactsProps) {
                         </span>
                         <Input
                           value={contact.name}
-                          placeholder='如 佘明聪'
+                          placeholder='如 示例联系人'
                           className='h-8 font-medium'
                           disabled={saving}
                           onChange={(e) =>

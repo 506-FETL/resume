@@ -27,7 +27,7 @@ function OverviewBar() {
       key: 'applied',
       label: '已投递',
       value: stats.applied,
-      description: `${scopeDescription}，当前处于已投递阶段`,
+      description: `${scopeDescription}，已投递或进入后续流程，不含已录用和已结束`,
       icon: Send,
       iconClassName: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
     },

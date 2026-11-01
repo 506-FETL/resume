@@ -8,6 +8,10 @@ import {
   resolveAssistantReturnPath,
 } from '@/lib/ai/navigation'
 import { deleteConversation, listMessages } from '@/lib/supabase/ai'
+import {
+  loadAssistantMessages,
+  useConversationReadScope,
+} from './conversation-reads'
 import { getErrorMessage } from '@/utils'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
 import { clearLastConversationId, writeLastConversationId } from '../utils'
@@ -58,6 +62,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
       options: OpenConversationOptions = {},
     ): Promise<boolean> => {
       const state = useAssistantStore.getState()
+      const scope = useConversationReadScope.getState()
 
       const hasPositionTarget = Object.prototype.hasOwnProperty.call(
         options,
@@ -87,13 +92,15 @@ export function useAssistantNavigation(bindShortcuts = false) {
         abortController: null,
         pendingConversationId: id,
         conversationLoadRequestId: requestId,
+        conversationViewVersion: state.conversationViewVersion + 1,
         loadingMessages: true,
       })
 
       try {
-        const { messages, hasMore } = await listMessages(id, { limit: 30 })
+        const { messages, hasMore } = await loadAssistantMessages(id)
 
         if (
+          scope !== useConversationReadScope.getState() ||
           useAssistantStore.getState().conversationLoadRequestId !== requestId
         )
           return false
@@ -110,6 +117,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
         return true
       } catch (error) {
         if (
+          scope === useConversationReadScope.getState() &&
           useAssistantStore.getState().conversationLoadRequestId === requestId
         ) {
           useAssistantStore.setState({
@@ -191,6 +199,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
   const loadOlderMessages = useCallback(async () => {
     const s = useAssistantStore.getState()
+    const scope = useConversationReadScope.getState()
 
     if (
       s.loadingOlder ||
@@ -209,6 +218,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
       const current = useAssistantStore.getState()
 
       return (
+        scope === useConversationReadScope.getState() &&
         current.activeConversationId === convId &&
         current.conversationViewVersion === s.conversationViewVersion
       )

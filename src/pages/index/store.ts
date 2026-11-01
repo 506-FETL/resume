@@ -1,8 +1,8 @@
 import type { Resume, ResumeStats } from './types'
 import { create } from 'zustand'
-import { getAllOfflineResumes } from '@/lib/offline-resume-manager'
+import { getOfflineResumeSummaries } from '@/lib/offline-resume-manager'
 import { normalizeResumeType } from '@/lib/schema'
-import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
+import { getResumeSummaries } from '@/lib/supabase/resume/form'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { diffDates } from '@/utils/date'
 
@@ -76,7 +76,7 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
       const outcomes = await Promise.allSettled([
         (async () => {
           try {
-            const rawOnlineResumes = user ? await getAllResumesFromUser() : []
+            const rawOnlineResumes = user ? await getResumeSummaries() : []
 
             onlineResumes = rawOnlineResumes.map((r) => ({
               ...r,
@@ -107,11 +107,12 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
         })(),
         (async () => {
           try {
-            const localResumes = await getAllOfflineResumes()
+            const localResumes = await getOfflineResumeSummaries()
 
             const offlineResumes: Resume[] = localResumes.map((r) => ({
               ...r,
               type: normalizeResumeType(r.type),
+              updated_at: r.updated_at ?? r.created_at,
               isOffline: true,
             }))
 

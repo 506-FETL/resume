@@ -3,7 +3,7 @@ import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import {
   deleteAccessibleResume,
-  getAccessibleResumeById,
+  getAccessibleResumeMetadata,
   updateAccessibleResumeMeta,
 } from '@/lib/resume-access'
 import { updateConversationResumeBinding } from '@/lib/supabase/ai'
@@ -12,7 +12,7 @@ import {
   createResumeHistoryVersion,
   createResumeSnapshotHash,
   deleteResumeHistoryVersion,
-  getCompanies,
+  getCompanySummaryById,
   getResumeHistoryResume,
   getResumeHistoryVersionSnapshot,
   listResumeHistoryVersions,
@@ -193,10 +193,10 @@ registerTool({
     if (Object.keys(patch).length === 0)
       return { error: '没有需要更新的字段（display_name / description）' }
 
-    let current: Awaited<ReturnType<typeof getAccessibleResumeById>>
+    let current: Awaited<ReturnType<typeof getAccessibleResumeMetadata>>
 
     try {
-      current = await getAccessibleResumeById(resumeId)
+      current = await getAccessibleResumeMetadata(resumeId)
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : '读取简历信息失败',
@@ -255,10 +255,10 @@ registerTool({
 
     if (!resumeId) return { error: '缺少 resumeId' }
 
-    let current: Awaited<ReturnType<typeof getAccessibleResumeById>>
+    let current: Awaited<ReturnType<typeof getAccessibleResumeMetadata>>
 
     try {
-      current = await getAccessibleResumeById(resumeId)
+      current = await getAccessibleResumeMetadata(resumeId)
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : '读取简历信息失败',
@@ -320,7 +320,7 @@ registerTool({
     if (!resumeId) return { error: '缺少 resumeId' }
 
     try {
-      const resume = await getAccessibleResumeById(resumeId)
+      const resume = await getAccessibleResumeMetadata(resumeId)
       const type = normalizeResumeType(resume.type ?? args.type)
 
       useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
@@ -521,13 +521,12 @@ registerTool({
 
     if (!jobId) return { error: '缺少 jobId' }
 
-    const jobs = await getCompanies(createTrackerAccountGuard(scope)).catch(
-      () => [],
+    const job = await getCompanySummaryById(
+      jobId,
+      createTrackerAccountGuard(scope),
     )
 
     assertTrackerAccountScope(scope)
-
-    const job = jobs.find((j) => j.id === jobId)
 
     if (!job) return { error: '未找到该职位' }
 

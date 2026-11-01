@@ -101,6 +101,71 @@ export function getEndedApplicationStage(
     : null
 }
 
+export type ApplicationStageProgress =
+  | 'active'
+  | 'completed'
+  | 'skipped'
+  | 'inactive'
+
+export function getApplicationStageProgress(
+  job: JobWorkflow,
+): ApplicationStageProgress[] {
+  const terminal = job.status === 'offer' || job.status === 'rejected'
+
+  const source =
+    job.status === 'rejected'
+      ? getEndedApplicationStage(job)
+      : job.status === 'offer'
+        ? getRecordedOfferSourceStage(job)
+        : null
+
+  const currentIndex = stageIndex(job.status)
+
+  return ACTIVE_APPLICATION_STAGES.map((stage, index) => {
+    const detail = job.stage_details.find((entry) => entry.stage === stage)
+
+    if (stage === job.status) return 'active'
+    if (
+      detail?.status === '已完成' ||
+      stage === source ||
+      ((terminal || index < currentIndex) &&
+        hasRecordedStageHistory(job, stage))
+    )
+      return 'completed'
+    if (terminal || index < currentIndex) return 'skipped'
+
+    return 'inactive'
+  })
+}
+
+function hasRecordedStageHistory(
+  job: JobWorkflow,
+  stage: ActiveApplicationStage,
+): boolean {
+  const detail = job.stage_details.find((entry) => entry.stage === stage)
+
+  if (detail && hasStageHistory(detail)) return true
+
+  const label = APPLICATION_STATUS_CONFIG[stage].label
+
+  // 回退会重置阶段状态；只恢复明确到达过的节点，不补齐跳过的阶段。
+  return (job.activities ?? []).some((activity) => {
+    if (activity.type === 'workflow_resume')
+      return (
+        activity.resume_details?.target === stage ||
+        activity.resume_details?.source_stage === stage
+      )
+
+    return (
+      activity.type === 'status_change' &&
+      (activity.label === `推进到「${label}」` ||
+        activity.label === `回退到「${label}」` ||
+        activity.note === `结束于：${label}` ||
+        activity.note === `录用于：${label}`)
+    )
+  })
+}
+
 export function normalizeInterviewSubStages(
   status: ApplicationStatus,
   rounds: readonly InterviewSubStage[],
