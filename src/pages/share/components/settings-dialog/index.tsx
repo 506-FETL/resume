@@ -26,6 +26,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { DURATION, EASE } from '@/lib/motion'
 import useShareStore from '../../store'
+import { useShareDialogFocus } from '../../hooks/use-share-dialog-focus'
 import { dateToExpiryIso, expiryIsoToDate, findShareById } from '../../utils'
 import DateField from '../quick-dialog/date-field'
 import VisibilityIcon from '../visibility-icon'
@@ -53,7 +54,7 @@ export default function SettingsDialog() {
     retainedShare?.id === settingsShareId ? retainedShare : share
 
   const initializedShareIdRef = useRef<string | null>(null)
-  const returnFocusRef = useRef<HTMLElement | null>(null)
+  const dialogFocus = useShareDialogFocus()
 
   const busy = Boolean(
     settingsShareId && pendingShareIds.includes(settingsShareId),
@@ -136,23 +137,12 @@ export default function SettingsDialog() {
       }}
     >
       <DialogContent
-        onOpenAutoFocus={() => {
-          returnFocusRef.current =
-            document.activeElement instanceof HTMLElement
-              ? document.activeElement
-              : null
-        }}
-        onCloseAutoFocus={(event) => {
-          if (returnFocusRef.current?.isConnected) {
-            event.preventDefault()
-            returnFocusRef.current.focus({ preventScroll: true })
-          }
-        }}
+        {...dialogFocus}
         inert={!settingsDialogOpen}
-        className='data-[state=closed]:pointer-events-none'
+        className='flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col gap-5 overflow-hidden sm:max-w-xl data-[state=closed]:pointer-events-none'
         overlayClassName={
           reduceMotion
-            ? 'data-[state=open]:animate-none data-[state=closed]:animate-none'
+            ? 'data-[state=open]:duration-0 data-[state=closed]:duration-0'
             : undefined
         }
         style={{
@@ -160,14 +150,14 @@ export default function SettingsDialog() {
           animationTimingFunction: `cubic-bezier(${(settingsDialogOpen ? EASE.out : EASE.in).join(',')})`,
         }}
       >
-        <DialogHeader>
+        <DialogHeader className='shrink-0 pr-6'>
           <DialogTitle>编辑分享设置</DialogTitle>
           <DialogDescription className='sr-only'>
             修改分享链接和访问权限。
           </DialogDescription>
         </DialogHeader>
 
-        <FieldGroup className='gap-4'>
+        <FieldGroup className='scrollbar-thin-subtle min-h-0 min-w-0 flex-1 gap-5 overflow-y-auto overscroll-contain pr-1'>
           {renderedShare?.purpose ? (
             <PurposeFields
               purpose={renderedShare.purpose}
@@ -195,15 +185,20 @@ export default function SettingsDialog() {
               onChange={(event) => setLabel(event.target.value)}
               placeholder='如：字节专用'
               maxLength={120}
+              disabled={busy}
             />
           </Field>
 
           <Field className='min-w-0'>
             <FieldLabel>有效期</FieldLabel>
-            <DateField value={expiresAt} onChange={setExpiresAt} />
+            <DateField
+              value={expiresAt}
+              onChange={setExpiresAt}
+              disabled={busy}
+            />
           </Field>
 
-          <Field orientation='horizontal' className='rounded-lg border p-3'>
+          <Field orientation='horizontal' className='border-t pt-4'>
             <FieldContent>
               <FieldLabel htmlFor='edit-share-comments-enabled'>
                 允许评论
@@ -231,7 +226,7 @@ export default function SettingsDialog() {
           </Field>
 
           <Collapsible open={passwordEnabled}>
-            <Field orientation='horizontal' className='rounded-lg border p-3'>
+            <Field orientation='horizontal' className='border-t pt-4'>
               <FieldContent>
                 <FieldLabel htmlFor='edit-share-password-enabled'>
                   需要访问密码
@@ -265,6 +260,7 @@ export default function SettingsDialog() {
                     <div className='flex min-w-0 gap-2'>
                       <Input
                         readOnly
+                        disabled={busy}
                         value={
                           showCurrentPasswordState
                             ? '已设置（出于安全原因不可恢复明文）'
@@ -276,6 +272,7 @@ export default function SettingsDialog() {
                         type='button'
                         variant='outline'
                         size='icon'
+                        disabled={busy}
                         aria-label={
                           showCurrentPasswordState
                             ? '隐藏当前密码状态'
@@ -313,12 +310,14 @@ export default function SettingsDialog() {
                       className='min-w-0'
                       maxLength={128}
                       autoComplete='new-password'
+                      disabled={busy}
                       aria-invalid={Boolean(validationError)}
                     />
                     <Button
                       type='button'
                       variant='outline'
                       size='icon'
+                      disabled={busy}
                       aria-label={showNewPassword ? '隐藏新密码' : '显示新密码'}
                       onClick={() => setShowNewPassword((value) => !value)}
                     >
@@ -334,7 +333,7 @@ export default function SettingsDialog() {
           </Collapsible>
         </FieldGroup>
 
-        <DialogFooter>
+        <DialogFooter className='shrink-0 border-t pt-4'>
           <Button
             variant='outline'
             onClick={closeSettingsDialog}
@@ -344,7 +343,7 @@ export default function SettingsDialog() {
           </Button>
           <Button onClick={handleSave} disabled={!share || busy}>
             {busy && <Spinner data-icon='inline-start' />}
-            保存设置
+            {busy ? '正在保存…' : '保存设置'}
           </Button>
         </DialogFooter>
       </DialogContent>

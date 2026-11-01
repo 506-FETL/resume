@@ -219,7 +219,6 @@ export function SubmissionForm({
     >
       <DialogContent
         style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-        overlayClassName={reduce ? 'animate-none!' : undefined}
         onCloseAutoFocus={(event) => {
           event.preventDefault()
 
@@ -232,244 +231,248 @@ export function SubmissionForm({
               .querySelector<HTMLButtonElement>('main button:not([disabled])')
               ?.focus({ preventScroll: true })
         }}
-        className='max-h-[90dvh] overflow-y-auto sm:max-w-lg'
+        className='flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-lg'
         showCloseButton={!busy && !uncertain}
       >
-        <DialogHeader>
+        <DialogHeader className='shrink-0 pr-7'>
           <DialogTitle>{correcting ? '更正原件' : '记录投递'}</DialogTitle>
           <DialogDescription>
             {job?.company} · {job?.position}
             。投递原件可以不附，更正已有原件时会保留历史。
           </DialogDescription>
         </DialogHeader>
-        <fieldset
-          disabled={busy || uncertain}
-          className='space-y-4 disabled:opacity-70'
-        >
-          {!correctingRecord && (
-            <>
-              <div className='space-y-2'>
-                <WorkflowDateField
-                  label='投递日期'
-                  value={date || null}
-                  onChange={(value) => setDate(value ?? '')}
-                />
-                <p className='text-xs text-muted-foreground'>
-                  清除日期表示投递时间未知。
-                </p>
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='submission-channel'>投递渠道（选填）</Label>
-                <Input
-                  id='submission-channel'
-                  value={channel}
-                  onChange={(event) => setChannel(event.target.value)}
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='submission-note'>备注（选填）</Label>
-                <Textarea
-                  id='submission-note'
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                />
-              </div>
-            </>
-          )}
-          {correcting && (
-            <div className='space-y-2'>
-              <Label htmlFor='material-correction-reason'>更正原因</Label>
-              <Textarea
-                id='material-correction-reason'
-                value={reason}
-                maxLength={1000}
-                onChange={(event) => setReason(event.target.value)}
-              />
-            </div>
-          )}
-          {!correcting && (
-            <div className='flex items-center gap-2'>
-              <Checkbox
-                id='submission-attach'
-                checked={kind !== 'pending'}
-                onCheckedChange={(checked) =>
-                  setKind(checked ? 'platform' : 'pending')
-                }
-              />
-              <Label htmlFor='submission-attach'>附上投递原件（可选）</Label>
-            </div>
-          )}
-          <AnimatedContent
-            animationKey={kind === 'pending' ? 'none' : 'attached'}
+        <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
+          <fieldset
+            disabled={busy || uncertain}
+            className='space-y-4 disabled:opacity-70'
           >
-            {kind !== 'pending' && (
+            {!correctingRecord && (
+              <>
+                <div className='space-y-2'>
+                  <WorkflowDateField
+                    label='投递日期'
+                    value={date || null}
+                    onChange={(value) => setDate(value ?? '')}
+                  />
+                  <p className='text-xs text-muted-foreground'>
+                    清除日期表示投递时间未知。
+                  </p>
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='submission-channel'>投递渠道（选填）</Label>
+                  <Input
+                    id='submission-channel'
+                    value={channel}
+                    onChange={(event) => setChannel(event.target.value)}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='submission-note'>备注（选填）</Label>
+                  <Textarea
+                    id='submission-note'
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                  />
+                </div>
+              </>
+            )}
+            {correcting && (
               <div className='space-y-2'>
-                <Label htmlFor='submission-kind'>原件来源</Label>
-                <Select
-                  value={kind}
-                  onValueChange={(value) =>
-                    setKind(value as SubmissionMaterialKind)
-                  }
-                >
-                  <SelectTrigger id='submission-kind' className='w-full'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent
-                    style={
-                      reduce
-                        ? { animation: 'none', transform: 'none' }
-                        : undefined
-                    }
-                  >
-                    <SelectItem value='platform'>平台已保存版本</SelectItem>
-                    <SelectItem value='file'>上传原件</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor='material-correction-reason'>更正原因</Label>
+                <Textarea
+                  id='material-correction-reason'
+                  value={reason}
+                  maxLength={1000}
+                  onChange={(event) => setReason(event.target.value)}
+                />
               </div>
             )}
-          </AnimatedContent>
-          <AnimatedContent animationKey={kind}>
-            {kind === 'platform' && (
-              <div className='space-y-2'>
-                <Label htmlFor='submission-resume'>已保存的简历</Label>
-                {resumeError ? (
-                  <Alert variant='destructive'>
-                    <AlertDescription>{resumeError}</AlertDescription>
-                    <Button
-                      variant='outline'
-                      className='mt-2 w-fit'
-                      onClick={retry}
-                    >
-                      重试
-                    </Button>
-                  </Alert>
-                ) : !resumes ? (
-                  <p
-                    role='status'
-                    className='flex items-center gap-2 text-sm text-muted-foreground'
+            {!correcting && (
+              <div className='flex items-center gap-2'>
+                <Checkbox
+                  id='submission-attach'
+                  checked={kind !== 'pending'}
+                  onCheckedChange={(checked) =>
+                    setKind(checked ? 'platform' : 'pending')
+                  }
+                />
+                <Label htmlFor='submission-attach'>附上投递原件（可选）</Label>
+              </div>
+            )}
+            <AnimatedContent
+              animationKey={kind === 'pending' ? 'none' : 'attached'}
+            >
+              {kind !== 'pending' && (
+                <div className='space-y-2'>
+                  <Label htmlFor='submission-kind'>原件来源</Label>
+                  <Select
+                    value={kind}
+                    onValueChange={(value) =>
+                      setKind(value as SubmissionMaterialKind)
+                    }
                   >
-                    <Spinner
-                      aria-hidden
-                      className='motion-reduce:animate-none'
-                    />
-                    正在加载简历
-                  </p>
-                ) : resumes.length === 0 ? (
-                  <p>
-                    {correcting
-                      ? '没有可用的已保存简历，可上传原件。'
-                      : '没有可用的已保存简历，可上传原件，也可取消附上原件后直接记录投递。'}
-                  </p>
-                ) : (
-                  <Select value={resumeId} onValueChange={setResumeId}>
-                    <SelectTrigger id='submission-resume' className='w-full'>
-                      <SelectValue placeholder='选择简历' />
+                    <SelectTrigger id='submission-kind' className='w-full'>
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent
                       style={
                         reduce
-                          ? { animation: 'none', transform: 'none' }
+                          ? { animationDuration: '0s', transform: 'none' }
                           : undefined
                       }
                     >
-                      {resumes.map((resume) => (
-                        <SelectItem
-                          key={resume.resume_id}
-                          value={resume.resume_id}
-                        >
-                          {resume.display_name}
+                      <SelectItem value='platform'>平台已保存版本</SelectItem>
+                      <SelectItem value='file'>上传原件</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </AnimatedContent>
+            <AnimatedContent animationKey={kind}>
+              {kind === 'platform' && (
+                <div className='space-y-2'>
+                  <Label htmlFor='submission-resume'>已保存的简历</Label>
+                  {resumeError ? (
+                    <Alert variant='destructive'>
+                      <AlertDescription>{resumeError}</AlertDescription>
+                      <Button
+                        variant='outline'
+                        className='mt-2 w-fit'
+                        onClick={retry}
+                      >
+                        重试
+                      </Button>
+                    </Alert>
+                  ) : !resumes ? (
+                    <p
+                      role='status'
+                      className='flex items-center gap-2 text-sm text-muted-foreground'
+                    >
+                      <Spinner
+                        aria-hidden
+                        className='motion-reduce:animate-none'
+                      />
+                      正在加载简历
+                    </p>
+                  ) : resumes.length === 0 ? (
+                    <p>
+                      {correcting
+                        ? '没有可用的已保存简历，可上传原件。'
+                        : '没有可用的已保存简历，可上传原件，也可取消附上原件后直接记录投递。'}
+                    </p>
+                  ) : (
+                    <Select value={resumeId} onValueChange={setResumeId}>
+                      <SelectTrigger id='submission-resume' className='w-full'>
+                        <SelectValue placeholder='选择简历' />
+                      </SelectTrigger>
+                      <SelectContent
+                        style={
+                          reduce
+                            ? { animationDuration: '0s', transform: 'none' }
+                            : undefined
+                        }
+                      >
+                        {resumes.map((resume) => (
+                          <SelectItem
+                            key={resume.resume_id}
+                            value={resume.resume_id}
+                          >
+                            {resume.display_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Label htmlFor='submission-version'>已保存版本</Label>
+                  <Select
+                    value={versionId || 'current'}
+                    onValueChange={(value) =>
+                      setVersionId(value === 'current' ? '' : value)
+                    }
+                  >
+                    <SelectTrigger id='submission-version' className='w-full'>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      style={
+                        reduce
+                          ? { animationDuration: '0s', transform: 'none' }
+                          : undefined
+                      }
+                    >
+                      <SelectItem value='current'>
+                        云端当前已保存内容
+                      </SelectItem>
+                      {versions?.map((version) => (
+                        <SelectItem key={version.id} value={String(version.id)}>
+                          V{version.version_no}
+                          {version.version_name
+                            ? ` · ${version.version_name}`
+                            : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-                <Label htmlFor='submission-version'>已保存版本</Label>
-                <Select
-                  value={versionId || 'current'}
-                  onValueChange={(value) =>
-                    setVersionId(value === 'current' ? '' : value)
-                  }
-                >
-                  <SelectTrigger id='submission-version' className='w-full'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent
-                    style={
-                      reduce
-                        ? { animation: 'none', transform: 'none' }
-                        : undefined
-                    }
-                  >
-                    <SelectItem value='current'>云端当前已保存内容</SelectItem>
-                    {versions?.map((version) => (
-                      <SelectItem key={version.id} value={String(version.id)}>
-                        V{version.version_no}
-                        {version.version_name
-                          ? ` · ${version.version_name}`
-                          : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {versionsError ? (
-                  <p role='alert' className='text-xs text-destructive'>
-                    历史版本加载失败：{versionsError}
-                    。可重新选择简历重试，或使用云端当前内容。
+                  {versionsError ? (
+                    <p role='alert' className='text-xs text-destructive'>
+                      历史版本加载失败：{versionsError}
+                      。可重新选择简历重试，或使用云端当前内容。
+                    </p>
+                  ) : versions === null && resumeId ? (
+                    <p role='status' className='text-xs text-muted-foreground'>
+                      正在加载历史版本
+                    </p>
+                  ) : null}
+                  <p className='text-xs text-muted-foreground'>
+                    未保存的编辑不会进入留档。
                   </p>
-                ) : versions === null && resumeId ? (
-                  <p role='status' className='text-xs text-muted-foreground'>
-                    正在加载历史版本
-                  </p>
-                ) : null}
-                <p className='text-xs text-muted-foreground'>
-                  未保存的编辑不会进入留档。
-                </p>
-              </div>
-            )}
-            {kind === 'file' && (
-              <div className='space-y-2'>
-                <Label htmlFor='submission-file'>
-                  PDF / DOCX，每份不超过 10 MB
-                </Label>
-                <Input
-                  id='submission-file'
-                  type='file'
-                  accept='.pdf,.docx'
-                  onChange={(event) => {
-                    const candidate = event.target.files?.[0]
+                </div>
+              )}
+              {kind === 'file' && (
+                <div className='space-y-2'>
+                  <Label htmlFor='submission-file'>
+                    PDF / DOCX，每份不超过 10 MB
+                  </Label>
+                  <Input
+                    id='submission-file'
+                    type='file'
+                    accept='.pdf,.docx'
+                    onChange={(event) => {
+                      const candidate = event.target.files?.[0]
 
-                    if (
-                      candidate &&
-                      (!/\.(pdf|docx)$/i.test(candidate.name) ||
-                        candidate.size > 10 * 1024 * 1024)
-                    ) {
-                      setFile(undefined)
-                      event.target.value = ''
-                      setError('请选择 10 MB 以内的 PDF 或 DOCX 文件')
+                      if (
+                        candidate &&
+                        (!/\.(pdf|docx)$/i.test(candidate.name) ||
+                          candidate.size > 10 * 1024 * 1024)
+                      ) {
+                        setFile(undefined)
+                        event.target.value = ''
+                        setError('请选择 10 MB 以内的 PDF 或 DOCX 文件')
 
-                      return
-                    }
+                        return
+                      }
 
-                    setFile(candidate)
-                    setError(null)
-                  }}
-                />
-                {file && <p className='break-all text-xs'>{file.name}</p>}
-              </div>
-            )}
-          </AnimatedContent>
-        </fieldset>
-        {error && (
-          <Alert variant='destructive'>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {uncertain && (
-          <p className='break-all text-xs text-muted-foreground'>
-            本次操作编号：{correctingRecord?.id ?? requestId}
-          </p>
-        )}
-        <DialogFooter>
+                      setFile(candidate)
+                      setError(null)
+                    }}
+                  />
+                  {file && <p className='break-all text-xs'>{file.name}</p>}
+                </div>
+              )}
+            </AnimatedContent>
+          </fieldset>
+          {error && (
+            <Alert variant='destructive'>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {uncertain && (
+            <p className='break-all text-xs text-muted-foreground'>
+              本次操作编号：{correctingRecord?.id ?? requestId}
+            </p>
+          )}
+        </div>
+        <DialogFooter className='shrink-0 border-t pt-4'>
           <Button
             variant='outline'
             disabled={busy || uncertain}

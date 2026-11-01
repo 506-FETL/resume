@@ -78,7 +78,7 @@ export default function ComparisonResultView({
         />
       </ToolStatsGrid>
 
-      <div className='grid min-w-0 gap-4 lg:grid-cols-[1.1fr_1.4fr]'>
+      <div className='grid min-w-0 gap-6 lg:grid-cols-[1.1fr_1.4fr] lg:gap-8'>
         <ToolPanelCard>
           <ToolPanelHeader
             title='匹配概览'
@@ -91,7 +91,7 @@ export default function ComparisonResultView({
             }
           />
           <ToolPanelBody className='space-y-4'>
-            <div className='space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4'>
+            <div className='space-y-3'>
               <div className='flex items-center justify-between gap-3'>
                 <p className='text-sm font-medium'>匹配进度</p>
                 <Badge
@@ -116,7 +116,7 @@ export default function ComparisonResultView({
           </ToolPanelBody>
         </ToolPanelCard>
 
-        <div className='grid min-w-0 gap-4 md:grid-cols-2'>
+        <div className='grid min-w-0 gap-6 md:grid-cols-2'>
           <ToolPanelCard>
             <ToolPanelHeader
               title='已覆盖关键词'
@@ -179,7 +179,7 @@ export default function ComparisonResultView({
         </div>
       </div>
 
-      <div className='grid min-w-0 gap-4 md:grid-cols-2'>
+      <div className='grid min-w-0 gap-6 md:grid-cols-2 lg:gap-8'>
         <ToolPanelCard>
           <ToolPanelHeader
             title='匹配亮点'
@@ -190,11 +190,8 @@ export default function ComparisonResultView({
           />
           <ToolPanelBody className='space-y-3'>
             {result.strengths.map((item) => (
-              <div
-                key={item}
-                className='flex items-start gap-3 rounded-xl border border-green-500/15 bg-green-500/5 p-3'
-              >
-                <div className='mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-green-500/10 text-green-700 dark:text-green-300'>
+              <div key={item} className='flex items-start gap-3'>
+                <div className='mt-1 shrink-0 text-green-700 dark:text-green-300'>
                   <BadgeCheck className='size-4' />
                 </div>
                 <p className='text-sm leading-6 text-foreground/90'>{item}</p>
@@ -217,7 +214,7 @@ export default function ComparisonResultView({
             {result.risks.map((item) => (
               <div
                 key={item}
-                className='flex items-start gap-3 rounded-xl border border-amber-500/15 bg-amber-500/5 p-3'
+                className='flex items-start gap-3 rounded-lg border border-amber-500/15 bg-amber-500/5 p-3'
               >
                 <div className='mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300'>
                   <CircleAlert className='size-4' />
@@ -237,7 +234,7 @@ export default function ComparisonResultView({
 
         <TabsContent
           value='sections'
-          className='grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2'
+          className='grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8'
         >
           {result.sectionMatches.map((section) => (
             <ToolPanelCard key={section.sectionKey}>
@@ -285,7 +282,7 @@ export default function ComparisonResultView({
 
         <TabsContent
           value='advice'
-          className='grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2'
+          className='grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8'
         >
           {(result.recommendations.length > 0
             ? result.recommendations
@@ -293,10 +290,7 @@ export default function ComparisonResultView({
                 '当前 JD 命中情况已经比较完整，下一步更值得打磨的是量化结果和经历排序。',
               ]
           ).map((item) => (
-            <ToolPanelCard
-              key={item}
-              className='border-primary/15 bg-primary/5'
-            >
+            <ToolPanelCard key={item}>
               <ToolPanelBody>
                 <div className='flex items-start gap-3'>
                   <div className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>

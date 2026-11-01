@@ -4,28 +4,14 @@ import type {
   CreateShareOptions,
   ShareVersionSelection,
 } from '@/lib/supabase/resume/share.types'
-import { memo } from 'react'
+import { memo, useId, useLayoutEffect, useMemo, useState } from 'react'
+import { Plus, RefreshCcw } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
 import ArchiveDialog from '../archive-dialog'
@@ -34,6 +20,7 @@ import SettingsDialog from '../settings-dialog'
 import VersionDialog from '../version-dialog'
 import { CreateForm } from './create-form'
 import { LinkRow } from './link-row'
+import ShareDrawer from '../share-drawer'
 
 interface QuickDialogProps {
   getSnapshot: SnapshotProvider
@@ -41,6 +28,7 @@ interface QuickDialogProps {
 
 function QuickDialog({ getSnapshot }: QuickDialogProps) {
   const {
+    ownerUserId,
     openForResumeId,
     openForResumeName,
     shares,
@@ -50,17 +38,55 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
     closeDialog,
     createRelease,
     loadVersionOptions,
+    loadDialogShares,
     versionOptionsByResumeId,
   } = useShareStore()
 
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const formId = useId()
+  const [submitting, setSubmitting] = useState(false)
 
   const open = Boolean(openForResumeId)
 
   const versionEntry = openForResumeId
     ? versionOptionsByResumeId[openForResumeId]
     : undefined
+
+  const currentDisplay = useMemo(
+    () => ({
+      ownerUserId,
+      resumeId: openForResumeId,
+      resumeName: openForResumeName,
+      shares,
+      loading: dialogLoading,
+      error: dialogError,
+      versionEntry,
+    }),
+    [
+      ownerUserId,
+      openForResumeId,
+      openForResumeName,
+      shares,
+      dialogLoading,
+      dialogError,
+      versionEntry,
+    ],
+  )
+
+  const [retainedDisplay, setRetainedDisplay] = useState<
+    typeof currentDisplay | null
+  >(null)
+
+  useLayoutEffect(() => {
+    if (open) setRetainedDisplay(currentDisplay)
+  }, [currentDisplay, open])
+
+  // store 关窗时清空列表，退出画面保留到抽屉卸载；切换账户立即失效。
+  const display = open
+    ? currentDisplay
+    : retainedDisplay?.ownerUserId === ownerUserId
+      ? retainedDisplay
+      : null
 
   const handleCreate = async (
     selection: ShareVersionSelection,
@@ -97,124 +123,136 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
     if (!nextOpen) closeDialog()
   }
 
-  const title = (
-    <>
-      分享「
-      {openForResumeName || '简历'}」
-    </>
-  )
-
-  const description = '创建和管理这份简历的分享链接。'
-
-  const body = (
-    <>
-      <CreateForm
-        key={openForResumeId}
-        versions={versionEntry?.items ?? []}
-        versionsLoading={versionEntry?.loading ?? false}
-        versionsError={versionEntry?.error ?? null}
-        onRetryVersions={() => {
-          if (openForResumeId)
-            loadVersionOptions(openForResumeId, { force: true }).catch(
-              () => undefined,
-            )
-        }}
-        onCreate={handleCreate}
-      />
-
-      <div className='min-w-0 flex flex-col gap-3'>
-        <AnimatedContent
-          animationKey={
-            dialogLoading
-              ? 'loading'
-              : dialogError
-                ? 'error'
-                : shares.length === 0
-                  ? 'empty'
-                  : 'ready'
-          }
-          className='space-y-3 empty:hidden'
-        >
-          {dialogLoading && (
-            <div className='flex shrink-0 items-center justify-center py-2 text-muted-foreground'>
-              <Spinner />
-            </div>
-          )}
-
-          {dialogError && (
-            <p className='text-sm text-destructive'>{dialogError}</p>
-          )}
-
-          {!dialogLoading && shares.length === 0 && (
-            <p className='py-4 text-center text-sm text-muted-foreground'>
-              还没有分享链接
-            </p>
-          )}
-        </AnimatedContent>
-
-        <div className='scrollbar-gutter-stable scrollbar-thin-subtle flex min-h-40 flex-col gap-2 rounded-lg pr-1 sm:max-h-[min(38dvh,22rem)] sm:overflow-y-auto sm:overscroll-contain'>
-          <AnimatePresence initial={false} mode='popLayout'>
-            {shares.map((share) => (
-              <LinkRow
-                key={share.id}
-                share={share}
-                busy={pendingShareIds.includes(share.id)}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-      <Button
-        variant='link'
-        className='self-end px-0'
-        onClick={() => {
-          closeDialog()
-          navigate('/share')
-        }}
-      >
-        前往分享管理 →
-      </Button>
-    </>
-  )
-
   return (
     <>
-      {isMobile ? (
-        <Drawer
-          open={open}
-          onOpenChange={handleOpenChange}
-          modal
-          swipeDirection='down'
-          showSwipeHandle
-        >
-          <DrawerContent>
-            <DrawerHeader className='shrink-0 px-6 pt-4 pb-4 text-left'>
-              <DrawerTitle className='text-lg font-semibold'>
-                {title}
-              </DrawerTitle>
-              <DrawerDescription className='sr-only'>
-                {description}
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(env(safe-area-inset-bottom),1rem)]'>
-              {body}
+      <ShareDrawer
+        open={open}
+        busy={submitting}
+        onOpenChange={handleOpenChange}
+        onOpenChangeComplete={(nextOpen) => {
+          if (!nextOpen) setRetainedDisplay(null)
+        }}
+        title={`分享「${display?.resumeName || '简历'}」`}
+        description='生成新链接，或在下方管理这份简历已有的链接。'
+        footer={
+          <>
+            <Button
+              type='button'
+              variant='ghost'
+              className='mr-auto px-2'
+              disabled={submitting}
+              onClick={() => {
+                closeDialog()
+                navigate('/share')
+              }}
+            >
+              分享管理 →
+            </Button>
+            <Button type='submit' form={formId} disabled={submitting}>
+              {submitting ? (
+                <Spinner data-icon='inline-start' />
+              ) : (
+                <Plus data-icon='inline-start' />
+              )}
+              {submitting ? '正在生成…' : '生成分享链接'}
+            </Button>
+          </>
+        }
+      >
+        <div className='space-y-6'>
+          <CreateForm
+            key={display?.resumeId}
+            formId={formId}
+            submitting={submitting}
+            onSubmittingChange={setSubmitting}
+            versions={display?.versionEntry?.items ?? []}
+            versionsLoading={display?.versionEntry?.loading ?? false}
+            versionsError={display?.versionEntry?.error ?? null}
+            onRetryVersions={() => {
+              if (openForResumeId)
+                loadVersionOptions(openForResumeId, { force: true }).catch(
+                  () => undefined,
+                )
+            }}
+            onCreate={handleCreate}
+          />
+          <section
+            className='min-w-0 space-y-3 border-t pt-5'
+            aria-labelledby={`${formId}-links-heading`}
+          >
+            <div className='flex items-center justify-between gap-2'>
+              <h3
+                id={`${formId}-links-heading`}
+                className='text-sm font-medium'
+              >
+                已有链接
+              </h3>
+              {!display?.loading && !display?.error && (
+                <span className='text-xs tabular-nums text-muted-foreground'>
+                  {display?.shares.length ?? 0} 个
+                </span>
+              )}
             </div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent className='max-h-[calc(100dvh-2rem)] min-w-0 max-w-2xl overflow-hidden'>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-              <DialogDescription className='sr-only'>
-                {description}
-              </DialogDescription>
-            </DialogHeader>
-            {body}
-          </DialogContent>
-        </Dialog>
-      )}
-
+            <AnimatedContent
+              animationKey={
+                display?.loading
+                  ? 'loading'
+                  : display?.error
+                    ? 'error'
+                    : display?.shares.length === 0
+                      ? 'empty'
+                      : 'ready'
+              }
+              className='empty:hidden'
+            >
+              {display?.loading ? (
+                <div
+                  role='status'
+                  className='flex items-center gap-2 py-3 text-sm text-muted-foreground'
+                >
+                  <Spinner />
+                  正在加载分享链接…
+                </div>
+              ) : display?.error ? (
+                <div
+                  role='alert'
+                  className='flex items-center justify-between gap-3 py-2'
+                >
+                  <p className='min-w-0 text-sm text-destructive'>
+                    {display.error}
+                  </p>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={() => {
+                      if (openForResumeId) loadDialogShares(openForResumeId)
+                    }}
+                  >
+                    <RefreshCcw data-icon='inline-start' />
+                    重试
+                  </Button>
+                </div>
+              ) : display?.shares.length === 0 ? (
+                <p className='py-3 text-sm text-muted-foreground'>
+                  还没有分享链接，生成后会显示在这里。
+                </p>
+              ) : null}
+            </AnimatedContent>
+            <div className='min-w-0 divide-y divide-border'>
+              <AnimatePresence initial={false} mode='popLayout'>
+                {display?.shares.map((share) => (
+                  <LinkRow
+                    key={share.id}
+                    share={share}
+                    busy={pendingShareIds.includes(share.id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          </section>
+        </div>
+      </ShareDrawer>
       <ArchiveDialog />
       <SettingsDialog />
       <DeleteDialog />

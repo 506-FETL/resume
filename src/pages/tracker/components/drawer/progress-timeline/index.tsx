@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { ApplicationStatus } from '../../../types'
 import { linkHorizontal } from 'd3-shape'
-import { Check, CircleCheck, CircleMinus, Minus } from 'lucide-react'
+import { Check, CircleCheck, CircleMinus } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef } from 'react'
@@ -27,7 +27,6 @@ import {
 interface ProgressTimelineProps {
   viewingStage: ApplicationStatus | null
   onStageClick: (status: ApplicationStatus) => void
-  onStageJump: (status: ApplicationStatus) => void
 }
 
 const terminalWidth = 140
@@ -40,7 +39,6 @@ const curve = linkHorizontal<
 export default function ProgressTimeline({
   viewingStage,
   onStageClick,
-  onStageJump,
 }: ProgressTimelineProps) {
   const job = useTrackerStore(selectTrackerDrawerJob)
   const reduce = useReducedMotion()
@@ -104,9 +102,6 @@ export default function ProgressTimeline({
                 : furthest,
             -1,
           )
-
-  const activate = (status: ApplicationStatus) =>
-    status === job.status ? onStageClick(status) : onStageJump(status)
 
   return (
     <section
@@ -207,7 +202,8 @@ export default function ProgressTimeline({
                         ? `${APPLICATION_STATUS_CONFIG[status].label} · 未记录`
                         : undefined
                     }
-                    onClick={() => activate(status)}
+                    aria-pressed={(viewingStage ?? job.status) === status}
+                    onClick={() => onStageClick(status)}
                   >
                     <StepperIndicator
                       className={cn(
@@ -215,13 +211,11 @@ export default function ProgressTimeline({
                           !current &&
                           'ring-2 ring-primary/15',
                         unrecorded &&
-                          'border-primary/20 bg-muted text-muted-foreground',
+                          'border-foreground/65 bg-foreground/65 text-background',
                       )}
                     >
-                      {completed ? (
+                      {completed || unrecorded ? (
                         <Check className='size-3.5' />
-                      ) : unrecorded ? (
-                        <Minus className='size-3.5' />
                       ) : (
                         index + 1
                       )}
@@ -230,7 +224,7 @@ export default function ProgressTimeline({
                       {APPLICATION_STATUS_CONFIG[status].label}
                     </StepperTitle>
                     {unrecorded && (
-                      <span className='sr-only text-[10px] text-muted-foreground/75 md:not-sr-only md:absolute md:top-[53px]'>
+                      <span className='absolute top-[53px] text-[10px] text-muted-foreground'>
                         未记录
                       </span>
                     )}
@@ -251,7 +245,8 @@ export default function ProgressTimeline({
                   type='button'
                   aria-label={APPLICATION_STATUS_CONFIG[status].label}
                   aria-current={current ? 'step' : undefined}
-                  onClick={() => activate(status)}
+                  aria-pressed={(viewingStage ?? job.status) === status}
+                  onClick={() => onStageClick(status)}
                   className={cn(
                     'absolute left-10 z-10 inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg text-xs font-medium outline-none transition-colors duration-[var(--stepper-duration)] ease-[var(--stepper-ease)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     index === 0 ? 'top-[2px]' : 'top-[50px]',
@@ -265,6 +260,9 @@ export default function ProgressTimeline({
                   <span
                     className={cn(
                       'flex size-7 shrink-0 items-center justify-center rounded-full border bg-background transition-[color,background-color,border-color,box-shadow] duration-[var(--stepper-duration)] ease-[var(--stepper-ease)]',
+                      viewingStage === status &&
+                        !current &&
+                        'ring-2 ring-primary/15',
                       current &&
                         (status === 'offer'
                           ? 'border-emerald-600 bg-emerald-600 text-white ring-4 ring-emerald-500/10'

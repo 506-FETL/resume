@@ -50,11 +50,15 @@ function DialogContent({
   overlayClassName,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
   overlayClassName?: string
 }) {
+  const returnFocusRef = React.useRef<HTMLElement | null>(null)
+
   const [contentElement, setContentElement] =
     React.useState<HTMLDivElement | null>(null)
 
@@ -69,6 +73,31 @@ function DialogContent({
         )}
         {...props}
         ref={setContentElement}
+        onOpenAutoFocus={(event) => {
+          const activeElement = document.activeElement
+
+          returnFocusRef.current =
+            activeElement instanceof HTMLElement &&
+            activeElement !== document.body &&
+            activeElement !== document.documentElement
+              ? activeElement
+              : null
+
+          onOpenAutoFocus?.(event)
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event)
+
+          if (event.defaultPrevented) return
+
+          const target = returnFocusRef.current
+
+          // 通过 store 打开的弹窗没有 DialogTrigger，需要记住实际入口。
+          if (target?.isConnected && !target.closest('[inert]')) {
+            event.preventDefault()
+            target.focus({ preventScroll: true })
+          }
+        }}
       >
         <PortalContainerProvider container={contentElement}>
           {children}

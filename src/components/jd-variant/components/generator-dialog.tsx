@@ -16,6 +16,7 @@ import {
   ResponsiveDialogTitle,
 } from '@/components/ui/responsive-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Spinner } from '@/components/ui/spinner'
 import { DURATION, EASE } from '@/lib/motion'
 import { MIN_JD_CHARS } from '../const'
 import { useJdVariantGenerator } from '../hooks/use-generator'
@@ -49,8 +50,22 @@ export function JdVariantDialog({
   const [jd, setJd] = useState(initialJd)
   const [opening, setOpening] = useState(false)
 
-  const { state, generate, abort, reset, discardDraft } =
-    useJdVariantGenerator(parentResumeId)
+  const {
+    state: currentState,
+    generate,
+    abort,
+    reset,
+    discardDraft,
+  } = useJdVariantGenerator(parentResumeId)
+
+  const [closingState, setClosingState] = useState<typeof currentState | null>(
+    null,
+  )
+
+  const [discarding, setDiscarding] = useState(false)
+
+  const state =
+    open && !discarding ? currentState : (closingState ?? currentState)
 
   const shouldReduceMotion = useReducedMotion()
 
@@ -60,24 +75,41 @@ export function JdVariantDialog({
 
   // 自动跳过 Step 1（来自 optimize 入口的预填）
   useEffect(() => {
-    if (skipInputStep && state.phase === 'idle' && jd.trim().length > 0) {
-      startGenerate()
+    if (
+      open &&
+      skipInputStep &&
+      !discarding &&
+      currentState.phase === 'idle' &&
+      initialJd.trim().length >= MIN_JD_CHARS
+    ) {
+      generate({ parentResumeId, jdText: initialJd })
     }
-  }, [skipInputStep, state.phase, jd, startGenerate])
+  }, [
+    open,
+    skipInputStep,
+    discarding,
+    currentState.phase,
+    initialJd,
+    generate,
+    parentResumeId,
+  ])
 
   useEffect(() => {
-    if (open && state.phase === 'idle') {
+    if (open && currentState.phase === 'idle') {
       setJd(initialJd)
     }
-  }, [initialJd, open, state.phase])
+  }, [initialJd, open, currentState.phase])
 
   const handleOpenChange = (next: boolean) => {
+    if (!next && discarding) return
+
+    if (!next) setClosingState(state)
+
     if (!next && (state.phase === 'parsing' || state.phase === 'rewriting')) {
       toast.info('正在后台生成，可在“派生任务”查看进度')
     }
     if (!next && state.phase === 'idle') {
       reset()
-      setJd('')
     }
 
     onOpenChange(next)
@@ -90,14 +122,28 @@ export function JdVariantDialog({
         ? 2
         : state.phase === 'rewriting'
           ? 3
-          : 4
+          : state.phase === 'success'
+            ? 4
+            : state.draftResumeId
+              ? 3
+              : 2
 
-  const total = 4
   const canStart = jd.trim().length >= MIN_JD_CHARS
 
-  const handleDiscardTask = () => {
-    discardDraft().catch(() => undefined)
-    onOpenChange(false)
+  const handleDiscardTask = async () => {
+    if (discarding) return
+
+    setClosingState(state)
+    setDiscarding(true)
+
+    try {
+      await discardDraft()
+      onOpenChange(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '丢弃失败，请重试')
+    } finally {
+      setDiscarding(false)
+    }
   }
 
   const handleOpenResult = async () => {
@@ -116,7 +162,7 @@ export function JdVariantDialog({
       }
 
       onOpenResume(state.draftResumeId)
-      onOpenChange(false)
+      handleOpenChange(false)
       reset()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '关联失败，请重试')
@@ -125,36 +171,49 @@ export function JdVariantDialog({
     }
   }
 
-  const handleDiscardResult = () => {
-    discardDraft().catch(() => undefined)
-    reset()
-    onOpenChange(false)
-  }
-
   const footer = (() => {
     if (state.phase === 'idle') {
       return (
         <Button type='button' disabled={!canStart} onClick={startGenerate}>
-          开始派生
+          生成岗位版本
         </Button>
       )
     }
 
     if (state.phase === 'parsing' || state.phase === 'rewriting') {
       return (
-        <Button type='button' variant='outline' onClick={abort}>
-          取消生成
-        </Button>
+        <>
+          <Button type='button' variant='ghost' onClick={abort}>
+            取消生成
+          </Button>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => handleOpenChange(false)}
+          >
+            后台生成
+          </Button>
+        </>
       )
     }
 
     if (state.phase === 'error') {
       return (
         <>
-          <Button type='button' variant='outline' onClick={handleDiscardTask}>
-            放弃草稿
+          <Button
+            type='button'
+            variant='outline'
+            disabled={discarding}
+            onClick={handleDiscardTask}
+          >
+            {discarding && <Spinner />}
+            {discarding ? '正在丢弃…' : '丢弃草稿'}
           </Button>
-          <Button type='button' onClick={startGenerate}>
+          <Button
+            type='button'
+            disabled={!canStart || discarding}
+            onClick={startGenerate}
+          >
             重试
           </Button>
         </>
@@ -164,10 +223,20 @@ export function JdVariantDialog({
     if (state.phase === 'aborted') {
       return (
         <>
-          <Button type='button' variant='outline' onClick={handleDiscardTask}>
-            丢弃草稿
+          <Button
+            type='button'
+            variant='outline'
+            disabled={discarding}
+            onClick={handleDiscardTask}
+          >
+            {discarding && <Spinner />}
+            {discarding ? '正在丢弃…' : '丢弃草稿'}
           </Button>
-          <Button type='button' disabled={!jd.trim()} onClick={startGenerate}>
+          <Button
+            type='button'
+            disabled={!canStart || discarding}
+            onClick={startGenerate}
+          >
             重新生成
           </Button>
         </>
@@ -176,39 +245,65 @@ export function JdVariantDialog({
 
     return (
       <>
-        <Button type='button' variant='outline' onClick={handleDiscardResult}>
-          丢弃
+        <Button
+          type='button'
+          variant='outline'
+          disabled={discarding || opening}
+          onClick={handleDiscardTask}
+        >
+          {discarding && <Spinner />}
+          {discarding ? '正在丢弃…' : '丢弃'}
         </Button>
         <Button
           type='button'
-          disabled={!state.draftResumeId || opening}
+          disabled={!state.draftResumeId || opening || discarding}
           onClick={handleOpenResult}
         >
-          {jobId ? '设为准备中的简历并打开' : '打开新简历'}
+          {opening && <Spinner />}
+          {opening
+            ? jobId
+              ? '正在关联岗位…'
+              : '正在打开…'
+            : jobId
+              ? '用于此岗位并打开'
+              : '打开新简历'}
         </Button>
       </>
     )
   })()
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
-      <ResponsiveDialogContent className='min-h-0 sm:max-h-[82vh] sm:max-w-2xl'>
-        <ResponsiveDialogHeader className='shrink-0 gap-3 border-b px-6 pb-5 pt-6 text-left'>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      contentClassName='h-[min(88dvh,48rem)] max-h-[calc(100dvh-2rem)] sm:max-w-[min(60rem,calc(100vw-3rem))] data-[swipe-axis=y]:[--drawer-content-height:90dvh] data-[swipe-axis=y]:[--drawer-content-max-height:90dvh]'
+    >
+      <ResponsiveDialogContent className='min-h-0 overflow-hidden'>
+        <ResponsiveDialogHeader className='shrink-0 gap-4 border-b px-5 py-4 text-left sm:px-7 sm:py-5'>
           <ResponsiveDialogTitle>岗位定制</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription aria-live='polite'>
-            <span className='sr-only'>{`当前第 ${stepIndex} / ${total} 步`}</span>
+          <ResponsiveDialogDescription className='sr-only'>
+            根据职位描述调整简历表述，并另存一份岗位版本。
           </ResponsiveDialogDescription>
-          <GeneratorStepIndicator phase={state.phase} />
+          <GeneratorStepIndicator phase={state.phase} step={stepIndex} />
         </ResponsiveDialogHeader>
 
-        <ScrollArea className='min-h-0 flex-1'>
-          <div className='min-h-55 px-6 py-5'>
+        <ScrollArea className='min-h-0 flex-1 overflow-hidden [&_[data-slot=scroll-area-viewport]]:overscroll-contain'>
+          <div className='px-5 py-5 sm:px-7 sm:py-6'>
             <AnimatePresence mode='wait' initial={false}>
               <motion.div
                 key={state.phase}
-                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -4 }}
+                initial={{
+                  opacity: 0,
+                  transform: shouldReduceMotion ? 'none' : 'translateY(8px)',
+                }}
+                animate={{ opacity: 1, transform: 'translateY(0px)' }}
+                exit={{
+                  opacity: 0,
+                  transform: shouldReduceMotion ? 'none' : 'translateY(-4px)',
+                  transition: {
+                    duration: shouldReduceMotion ? 0 : DURATION.fast,
+                  },
+                }}
                 transition={{
                   duration: shouldReduceMotion ? 0 : DURATION.base,
                   ease: EASE.out,
@@ -231,7 +326,6 @@ export function JdVariantDialog({
                   <StepRewriting
                     completedSections={state.completedSections}
                     changes={state.changes}
-                    estimatedTotal={5}
                     reasoning={state.rewriteReasoning}
                   />
                 )}
@@ -244,17 +338,22 @@ export function JdVariantDialog({
                 {state.phase === 'error' && (
                   <Alert variant='destructive'>
                     <AlertCircle aria-hidden />
-                    <AlertTitle>派生失败</AlertTitle>
+                    <AlertTitle>岗位版本生成失败</AlertTitle>
                     <AlertDescription>
-                      {state.errorMessage ?? '派生失败，请稍后重试。'}
+                      {state.errorMessage ?? '生成失败，请稍后重试。'}
                     </AlertDescription>
                   </Alert>
                 )}
                 {state.phase === 'aborted' && (
                   <Alert>
                     <AlertCircle aria-hidden />
-                    <AlertTitle>已取消派生</AlertTitle>
-                    <AlertDescription>草稿已保留。</AlertDescription>
+                    <AlertTitle>已取消生成</AlertTitle>
+                    <AlertDescription>
+                      {state.errorMessage ??
+                        (state.draftResumeId
+                          ? '已保留草稿，可以重新生成或丢弃。'
+                          : '尚未创建草稿，可以重新生成。')}
+                    </AlertDescription>
                   </Alert>
                 )}
               </motion.div>
@@ -262,8 +361,26 @@ export function JdVariantDialog({
           </div>
         </ScrollArea>
 
-        <ResponsiveDialogFooter className='shrink-0 gap-2 border-t bg-background'>
-          {footer}
+        <ResponsiveDialogFooter
+          aria-busy={discarding}
+          className='shrink-0 gap-3 border-t bg-background px-5 py-4 sm:px-7'
+        >
+          <div className='flex w-full flex-wrap items-center justify-between gap-3'>
+            <p className='text-xs text-muted-foreground'>
+              {discarding
+                ? '正在丢弃草稿，请稍候…'
+                : state.phase === 'idle'
+                  ? '生成后保留原简历'
+                  : state.phase === 'parsing' || state.phase === 'rewriting'
+                    ? '关闭此窗口后会继续生成'
+                    : state.phase === 'success'
+                      ? '新简历已保存，可继续编辑'
+                      : '可重新生成或丢弃任务'}
+            </p>
+            <div className='ml-auto flex flex-wrap justify-end gap-2'>
+              {footer}
+            </div>
+          </div>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>

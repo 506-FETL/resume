@@ -33,10 +33,14 @@ export function createResumeSyncSlice(
     syncResumes: async (selectedIds: string[]) => {
       if (selectedIds.length === 0) return
 
+      const generation = get().libraryGeneration
+
       set({ isSyncing: true, syncingIds: new Set(selectedIds) })
 
       try {
         const result = await syncOfflineResumesToCloud(selectedIds)
+
+        if (generation !== get().libraryGeneration) return
 
         if (result.success > 0) {
           const successIds = new Set(result.successIds)
@@ -63,7 +67,15 @@ export function createResumeSyncSlice(
 
         if (result.success > 0) {
           try {
+            if (get().libraryActive) {
+              await get().refreshLibrary()
+
+              return
+            }
+
             const onlineResumes = await getAllResumesFromUser()
+
+            if (generation !== get().libraryGeneration) return
 
             const newOnlineResumes = onlineResumes.map((r) => ({
               ...r,
@@ -81,18 +93,42 @@ export function createResumeSyncSlice(
           }
         }
       } catch {
-        toast.error('同步失败，请稍后重试')
+        if (generation === get().libraryGeneration)
+          toast.error('同步失败，请稍后重试')
       } finally {
-        set({ isSyncing: false, syncingIds: new Set() })
+        if (generation === get().libraryGeneration)
+          set({ isSyncing: false, syncingIds: new Set() })
       }
     },
 
     setupRealtimeSubscription: () => {
       let cancelled = false
       let unSubscribe: (() => void) | undefined
+      const generation = get().libraryGeneration
 
       subscribeToResumeConfigUpdates((payload) => {
-        if (cancelled) return
+        if (cancelled || generation !== get().libraryGeneration) return
+
+        if (get().libraryActive) {
+          const deletedId =
+            payload.eventType === 'DELETE' ? payload.old.resume_id : null
+
+          if (deletedId && get()._localDeletingIds.has(deletedId)) {
+            set((state) => {
+              const ids = new Set(state._localDeletingIds)
+
+              ids.delete(deletedId)
+
+              return { _localDeletingIds: ids }
+            })
+
+            return
+          }
+
+          get().refreshLibrary()
+
+          return
+        }
 
         switch (payload.eventType) {
           case 'INSERT': {
@@ -162,7 +198,7 @@ export function createResumeSyncSlice(
             const syncPromise = async () => {
               const onlineResumes = await getAllResumesFromUser()
 
-              if (cancelled) return
+              if (cancelled || generation !== get().libraryGeneration) return
 
               const formattedOnlineResumes = onlineResumes.map((r) => ({
                 ...r,

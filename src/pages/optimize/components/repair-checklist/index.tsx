@@ -4,7 +4,6 @@ import { useId, useRef, useState } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Collapsible,
@@ -28,17 +27,17 @@ export default function RepairChecklist() {
   const progress = fixList.length ? (completed / fixList.length) * 100 : 0
 
   return (
-    <Card className='min-w-0 gap-0 py-0 shadow-none'>
-      <CardHeader className='p-4 pb-0 md:p-5 md:pb-0'>
-        <CardTitle className='flex items-center gap-2 text-base font-semibold'>
+    <section className='min-w-0'>
+      <header className='pb-4'>
+        <h2 className='flex items-center gap-2 text-base font-semibold'>
           <ClipboardCheck
             aria-hidden
             className='size-4 text-muted-foreground'
           />
-          处理进度
-        </CardTitle>
-      </CardHeader>
-      <CardContent className='p-4 md:p-5'>
+          修复清单
+        </h2>
+      </header>
+      <div>
         <AnimatedContent
           animationKey={
             loading
@@ -81,7 +80,7 @@ export default function RepairChecklist() {
                 setOpen(nextOpen)
               }}
             >
-              <div className='flex items-baseline justify-between gap-3'>
+              <div className='flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1'>
                 <p className='text-sm font-medium tabular-nums'>
                   已处理 {completed} / {fixList.length} 项
                 </p>
@@ -116,7 +115,7 @@ export default function RepairChecklist() {
                 inert={!open}
                 style={reduceMotion ? { animationDuration: '0s' } : undefined}
               >
-                <div className='mt-4 space-y-3 border-t pt-4'>
+                <div className='mt-5 space-y-4'>
                   {fixList.map((item) => (
                     <div key={item.id} className='flex items-start gap-3'>
                       <Checkbox
@@ -155,7 +154,7 @@ export default function RepairChecklist() {
             </Collapsible>
           )}
         </AnimatedContent>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }

@@ -1,6 +1,6 @@
 import type { AiConversation } from '@/lib/ai/types'
 import { Check, X } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -26,6 +26,7 @@ export function ConversationItem({
   onRename,
   onDelete,
 }: ConversationItemProps) {
+  const itemRef = useRef<HTMLDivElement>(null)
   const title = readableConversationTitle(conversation.title)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(title)
@@ -79,7 +80,7 @@ export function ConversationItem({
 
   return (
     <>
-      <div className='group relative'>
+      <div ref={itemRef} className='group relative'>
         <button
           type='button'
           className={cn(
@@ -114,6 +115,14 @@ export function ConversationItem({
         open={pendingDelete}
         onOpenChange={setPendingDelete}
         onConfirm={() => onDelete(conversation.id)}
+        returnFocus={() =>
+          itemRef.current?.querySelector<HTMLElement>(
+            '[data-conversation-delete-trigger]',
+          ) ??
+          document.querySelector<HTMLElement>(
+            '[data-assistant-new-conversation]',
+          )
+        }
       />
     </>
   )

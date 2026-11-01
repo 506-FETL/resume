@@ -18,6 +18,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
+import { useShareDialogFocus } from '../../hooks/use-share-dialog-focus'
 import {
   findShareById,
   isPublishableVersionSelection,
@@ -81,6 +82,7 @@ export default function VersionDialog({
     closeVersionDialog,
   } = useShareStore()
 
+  const dialogFocus = useShareDialogFocus()
   const share = findShareById(allShares, shares, versionShareId)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
@@ -225,15 +227,18 @@ export default function VersionDialog({
         if (!open && !busy) closeVersionDialog()
       }}
     >
-      <DialogContent className='min-w-0 max-w-lg'>
-        <DialogHeader>
+      <DialogContent
+        {...dialogFocus}
+        className='flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden sm:max-w-lg'
+      >
+        <DialogHeader className='shrink-0 pr-6'>
           <DialogTitle>更换分享版本</DialogTitle>
           <DialogDescription>
             发布后原链接保持不变，访问者刷新即可看到所选版本。
           </DialogDescription>
         </DialogHeader>
 
-        <div className='min-w-0 space-y-2'>
+        <div className='scrollbar-thin-subtle min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto overscroll-contain'>
           <VersionSelector
             value={selection}
             currentDisabled={renderedShare?.purpose === 'application'}
@@ -270,7 +275,7 @@ export default function VersionDialog({
           </p>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className='shrink-0'>
           <Button
             variant='outline'
             disabled={busy}
@@ -287,7 +292,7 @@ export default function VersionDialog({
             onClick={handlePublish}
           >
             {busy && <Spinner data-icon='inline-start' />}
-            发布所选版本
+            {busy ? '正在发布…' : '发布所选版本'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,26 +10,19 @@ import { fetchVariantTree } from '@/lib/supabase/resume/variant'
 interface CacheState {
   byId: Record<string, VariantLineage | undefined>
   set: (id: string, lineage: VariantLineage) => void
-  invalidate: (id: string) => void
 }
 
 const useLineageCache = create<CacheState>((set) => ({
   byId: {},
   set: (id, lineage) => set((s) => ({ byId: { ...s.byId, [id]: lineage } })),
-  invalidate: (id) =>
-    set((s) => {
-      const next = { ...s.byId }
-
-      delete next[id]
-
-      return { byId: next }
-    }),
 }))
 
-export function useVariantLineage(rootId: string | null | undefined) {
+export function useVariantLineage(
+  rootId: string | null | undefined,
+  enabled = true,
+) {
   const cached = useLineageCache((s) => (rootId ? s.byId[rootId] : undefined))
   const setCache = useLineageCache((s) => s.set)
-  const invalidate = useLineageCache((s) => s.invalidate)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +40,7 @@ export function useVariantLineage(rootId: string | null | undefined) {
 
         setCache(id, lineage)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'lineage fetch failed')
+        setError(e instanceof Error ? e.message : '读取派生关系失败，请重试')
       } finally {
         setLoading(false)
       }
@@ -56,26 +49,25 @@ export function useVariantLineage(rootId: string | null | undefined) {
   )
 
   useEffect(() => {
-    if (!rootId || cached) {
+    if (!enabled || !rootId || cached) {
       return
     }
 
     load(rootId)
-  }, [rootId, cached, load])
+  }, [enabled, rootId, cached, load])
 
   const refresh = useCallback(async () => {
     if (!rootId) {
       return
     }
 
-    invalidate(rootId)
     await load(rootId)
-  }, [rootId, invalidate, load])
+  }, [rootId, load])
 
   return {
     tree: cached?.root ?? null,
     lineage: cached ?? null,
-    loading,
+    loading: loading || (enabled && Boolean(rootId) && !cached && !error),
     error,
     refresh,
   }

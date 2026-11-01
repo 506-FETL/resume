@@ -89,7 +89,7 @@ function ListView() {
     return <JobTable jobs={displayJobs} groupByCompany={groupByCompany} />
 
   return (
-    <div className='grid grid-cols-1 content-start gap-2'>
+    <div className='grid min-w-0 grid-cols-1 content-start'>
       <AnimatePresence initial={false} mode='popLayout'>
         {displayJobs.map((job, index) => (
           <PresenceDiv
@@ -119,7 +119,7 @@ function ListView() {
             {groupByCompany &&
               displayJobs[index - 1]?.tracker_company_id !==
                 job.tracker_company_id && (
-                <div className='px-1 pt-3 pb-2'>
+                <div className='px-1 pt-5 pb-2'>
                   <CompanyGroupTitle job={job} />
                 </div>
               )}

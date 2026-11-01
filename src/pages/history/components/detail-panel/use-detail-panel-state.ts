@@ -14,16 +14,14 @@ import {
 
 const EMPTY_DRAFT = createMetadataDraft()
 
-export type HistoryDetailTab = 'overview' | 'resume'
-
 export interface HistoryDetailPanelState {
   selectedEntry: HistorySelection
   selectedVersion: ResumeHistoryVersionListItem | null
   editing: boolean
   editDraft: VersionMetadataDraft
   discardDialogOpen: boolean
-  activeTab: HistoryDetailTab
-  setActiveTab: (tab: HistoryDetailTab) => void
+  overviewOpen: boolean
+  setOverviewOpen: (open: boolean) => void
   selectEntry: (target: HistorySelection) => void
   requestSelectEntry: (target: HistorySelection) => void
   requestCloseDetail: () => void
@@ -58,7 +56,7 @@ export function useHistoryDetailPanelState(
   const [pendingDiscardAction, setPendingDiscardAction] =
     useState<PendingDiscardAction>(null)
 
-  const [activeTab, setActiveTab] = useState<HistoryDetailTab>('resume')
+  const [overviewOpen, setOverviewOpen] = useState(false)
 
   const selectedVersion = useMemo(
     () =>
@@ -165,6 +163,7 @@ export function useHistoryDetailPanelState(
     }
 
     setEditing(true)
+    setOverviewOpen(true)
     setEditDraft(createMetadataDraft(selectedVersion))
   }, [selectedVersion])
 
@@ -218,8 +217,8 @@ export function useHistoryDetailPanelState(
     editing,
     editDraft,
     discardDialogOpen,
-    activeTab,
-    setActiveTab,
+    overviewOpen,
+    setOverviewOpen,
     selectEntry,
     requestSelectEntry,
     requestCloseDetail,

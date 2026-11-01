@@ -25,6 +25,7 @@ import { filterJobs } from '../../utils'
 import BatchActions from '../batch-actions'
 import { ViewToggle } from '../header/view-toggle'
 import { CompanyPicker } from '../drawer/company-picker'
+import MobileStageFilter from '../mobile-stage-filter'
 import FilterMenu from './filter-menu'
 import SortMenu from './sort-menu'
 
@@ -80,16 +81,17 @@ export default function TrackerToolbar() {
   } = useTrackerFilterActions()
 
   const reduce = useReducedMotion()
-  const isMobile = useIsMobile(640)
+  const isMobile = useIsMobile()
+  const effectiveViewMode = isMobile ? 'list' : viewMode
 
   const count = filterJobs(
     filterCompanyId
       ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
       : jobs,
-    viewMode === 'list' ? filterStatus : null,
+    effectiveViewMode === 'list' ? filterStatus : null,
     searchKeyword,
     showArchived,
-    viewMode === 'list' ? metricFilter : null,
+    effectiveViewMode === 'list' ? metricFilter : null,
     focusedOnly,
   ).length
 
@@ -114,9 +116,9 @@ export default function TrackerToolbar() {
   }
 
   return (
-    <div className='shrink-0 border-b px-3 py-2'>
+    <div className='shrink-0 py-1 md:border-b md:px-3 md:py-2'>
       <div className='flex flex-col gap-2 @min-[980px]/tracker:flex-row @min-[980px]/tracker:items-center @min-[980px]/tracker:gap-3'>
-        <div className='flex shrink-0 items-center justify-between gap-3'>
+        <div className='hidden shrink-0 items-center justify-between gap-3 md:flex'>
           <div className='flex min-w-0 items-center gap-2.5'>
             <h2 className='text-sm font-semibold sm:text-base'>
               {showArchived ? '已归档职位' : '职位进展'}
@@ -127,8 +129,8 @@ export default function TrackerToolbar() {
           </div>
           <ViewToggle />
         </div>
-        <div className='flex min-w-0 flex-1 flex-wrap items-center gap-1.5 sm:gap-2'>
-          <div className='flex min-w-0 basis-full items-center gap-2 @min-[620px]/tracker:flex-1 @min-[620px]/tracker:basis-72 @min-[980px]/tracker:max-w-lg'>
+        <div className='flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-3 md:gap-2'>
+          <div className='flex min-w-0 basis-full items-center gap-2 md:@min-[620px]/tracker:flex-1 md:@min-[620px]/tracker:basis-72 @min-[980px]/tracker:max-w-lg'>
             <div className='relative min-w-0 flex-1'>
               <Search className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
               <Input
@@ -137,13 +139,25 @@ export default function TrackerToolbar() {
                 aria-label='搜索职位'
                 value={searchKeyword}
                 placeholder='搜索职位…'
-                className='rounded-lg pl-9 pr-9 shadow-none [&::-webkit-search-cancel-button]:appearance-none'
-                onChange={(event) => setSearchKeyword(event.target.value)}
+                className={cn(
+                  'pl-9 pr-9 shadow-none [&::-webkit-search-cancel-button]:appearance-none',
+                  isMobile
+                    ? 'h-11 rounded-xl border-transparent bg-muted/50 dark:bg-muted/50'
+                    : 'rounded-lg',
+                )}
+                onChange={(event) => {
+                  if (isMobile && isSelectMode) enterSelectMode()
+
+                  setSearchKeyword(event.target.value)
+                }}
               />
               <AnimatePresence initial={false}>
                 {searchKeyword && (
                   <PresenceDiv
-                    className='absolute right-1 top-0.5'
+                    className={cn(
+                      'absolute right-1',
+                      isMobile ? 'top-1.5' : 'top-0.5',
+                    )}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -153,7 +167,11 @@ export default function TrackerToolbar() {
                       size='icon-sm'
                       variant='ghost'
                       aria-label='清空搜索'
-                      onClick={clearSearch}
+                      onClick={() => {
+                        if (isMobile && isSelectMode) enterSelectMode()
+
+                        clearSearch()
+                      }}
                     >
                       <X className='size-3.5' />
                     </Button>
@@ -163,7 +181,12 @@ export default function TrackerToolbar() {
             </div>
             <FilterMenu mobile={isMobile} />
           </div>
-          <div className='min-w-0 flex-1 @min-[620px]/tracker:w-40 @min-[620px]/tracker:flex-none'>
+          {isMobile && (
+            <div className='basis-full'>
+              <MobileStageFilter />
+            </div>
+          )}
+          <div className='min-w-0 flex-1 md:@min-[620px]/tracker:w-40 md:@min-[620px]/tracker:flex-none'>
             <label htmlFor='tracker-company-filter' className='sr-only'>
               按公司筛选
             </label>
@@ -172,11 +195,16 @@ export default function TrackerToolbar() {
               value={filterCompanyId}
               onChange={setFilterCompanyId}
               allLabel='全部公司'
+              inputClassName={
+                isMobile
+                  ? 'h-9 border-transparent bg-transparent shadow-none dark:bg-transparent [&>input]:pl-0'
+                  : undefined
+              }
             />
           </div>
-          <div className='order-1 flex basis-full flex-wrap items-center gap-1.5 empty:hidden @min-[620px]/tracker:order-none @min-[620px]/tracker:basis-auto'>
+          <div className='order-1 flex basis-full flex-wrap items-center gap-1.5 empty:hidden md:@min-[620px]/tracker:order-none md:@min-[620px]/tracker:basis-auto'>
             <AnimatePresence initial={false}>
-              {viewMode === 'list' && (
+              {!isMobile && effectiveViewMode === 'list' && (
                 <PresenceDiv
                   key='company-group-toggle'
                   initial={{ opacity: 0 }}
@@ -197,7 +225,7 @@ export default function TrackerToolbar() {
               )}
             </AnimatePresence>
             <AnimatePresence initial={false}>
-              {activeLabel && (
+              {activeLabel && !isMobile && (
                 <PresenceDiv
                   key='active-filter'
                   initial={reduce ? false : { opacity: 0, width: 0 }}
@@ -221,10 +249,10 @@ export default function TrackerToolbar() {
                     size='sm'
                     className='h-8 gap-1.5 whitespace-nowrap text-xs'
                     onClick={clearFilters}
-                    aria-label={`清除${viewMode === 'board' ? '定位' : '筛选'}：${activeLabel}`}
+                    aria-label={`清除${effectiveViewMode === 'board' ? '定位' : '筛选'}：${activeLabel}`}
                   >
                     <span className='hidden sm:inline'>
-                      {viewMode === 'board' ? '定位' : '筛选'}：
+                      {effectiveViewMode === 'board' ? '定位' : '筛选'}：
                     </span>
                     {activeLabel}
                     <X className='size-3' />
@@ -255,7 +283,11 @@ export default function TrackerToolbar() {
                     size='sm'
                     className='h-8 gap-1.5 whitespace-nowrap text-xs'
                     aria-label='退出归档视图'
-                    onClick={() => setShowArchivedWithFocus(false)}
+                    onClick={() => {
+                      if (isMobile && isSelectMode) enterSelectMode()
+
+                      setShowArchivedWithFocus(false)
+                    }}
                   >
                     <Archive className='size-3' />
                     <span className='hidden sm:inline'>正在查看归档</span>
@@ -266,7 +298,7 @@ export default function TrackerToolbar() {
               )}
             </AnimatePresence>
             <AnimatePresence initial={false}>
-              {!isMobile && viewMode === 'list' && (
+              {!isMobile && effectiveViewMode === 'list' && (
                 <PresenceDiv
                   key='sort-menu'
                   initial={{ opacity: 0 }}
@@ -293,7 +325,7 @@ export default function TrackerToolbar() {
                   aria-label='重点关注'
                   aria-pressed={focusedOnly}
                   className={cn(
-                    'size-10 rounded-lg @min-[620px]/tracker:size-9 [@media(pointer:coarse)]:size-11',
+                    'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
                     focusedOnly
                       ? 'text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400'
                       : 'text-muted-foreground',
@@ -320,13 +352,17 @@ export default function TrackerToolbar() {
                   variant={showArchived ? 'secondary' : 'ghost'}
                   size='icon'
                   className={cn(
-                    'size-10 rounded-lg @min-[620px]/tracker:size-9 [@media(pointer:coarse)]:size-11',
+                    'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
                     !showArchived && 'text-muted-foreground',
                   )}
                   style={actionTransition}
                   aria-label='已归档'
                   aria-pressed={showArchived}
-                  onClick={() => setShowArchived(!showArchived)}
+                  onClick={() => {
+                    if (isMobile && isSelectMode) enterSelectMode()
+
+                    setShowArchived(!showArchived)
+                  }}
                 >
                   <Archive className='size-4' aria-hidden />
                 </Button>
@@ -341,7 +377,7 @@ export default function TrackerToolbar() {
                   variant={isSelectMode ? 'secondary' : 'ghost'}
                   size='icon'
                   className={cn(
-                    'size-10 rounded-lg @min-[620px]/tracker:size-9 [@media(pointer:coarse)]:size-11',
+                    'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
                     !isSelectMode && 'text-muted-foreground',
                   )}
                   style={actionTransition}

@@ -73,7 +73,10 @@ export default function RestoreVersionDialog({
       }}
     >
       <AlertDialogContent
-        className={dialogMotion.contentClassName}
+        className={cn(
+          dialogMotion.contentClassName,
+          'max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto wrap-anywhere',
+        )}
         overlayClassName={dialogMotion.overlayClassName}
       >
         <style>{dialogMotion.styles}</style>

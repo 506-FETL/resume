@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Spinner } from '@/components/ui/spinner'
 import useShareStore from '../../store'
+import { useShareDialogFocus } from '../../hooks/use-share-dialog-focus'
 import { findShareById } from '../../utils'
 
 export default function DeleteDialog() {
@@ -27,6 +28,7 @@ export default function DeleteDialog() {
     remove,
   } = useShareStore()
 
+  const dialogFocus = useShareDialogFocus()
   const share = findShareById(allShares, shares, deleteShareId)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
@@ -59,19 +61,22 @@ export default function DeleteDialog() {
     <AlertDialog
       open={deleteDialogOpen}
       onOpenChange={(open) => {
-        if (!open) closeDeleteDialog()
+        if (!open && !busy) closeDeleteDialog()
       }}
     >
-      <AlertDialogContent>
-        <AlertDialogHeader>
+      <AlertDialogContent
+        {...dialogFocus}
+        className='flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden'
+      >
+        <AlertDialogHeader className='min-h-0 overflow-y-auto overscroll-contain'>
           <AlertDialogTitle>永久删除分享链接？</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription className='break-words'>
             删除「
             {renderedShare?.label || '未命名链接'}
             」后，全部发布批次、访问记录和评论都会永久删除且无法恢复。
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className='shrink-0'>
           <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
           <AlertDialogAction
             variant='destructive'

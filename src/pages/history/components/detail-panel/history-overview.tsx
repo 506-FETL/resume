@@ -1,18 +1,8 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
-import {
-  Bookmark,
-  Briefcase,
-  CalendarClock,
-  Flag,
-  MessageSquareText,
-  Send,
-  Tags,
-} from 'lucide-react'
+import { Briefcase, Send } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { formatDateTime } from '@/utils/date'
-import { SOURCE_META } from '../../const'
 import { useJobSummaries } from '../../hooks/use-job-summaries'
+import HistoryMotionContent from '../motion-content'
 import VersionMetadataFields from '../shared/version-metadata-fields'
 import MetricCard from './metric-card'
 
@@ -24,92 +14,71 @@ export default function HistoryVersionOverview({
   state,
 }: HistoryVersionOverviewProps) {
   const { selectedVersion: version, editing } = state
-  const { getLabel } = useJobSummaries()
+  const { getLabel, loading } = useJobSummaries()
 
   if (!version) {
     return null
   }
 
-  if (editing) {
-    return (
-      <Card className='gap-0 py-0'>
-        <CardContent className='px-5 py-5'>
+  const jobLabel = getLabel(version.company_id)
+
+  const jobValue = !version.company_id
+    ? '未关联岗位'
+    : loading
+      ? '正在加载岗位…'
+      : (jobLabel ?? '岗位信息暂不可用')
+
+  return (
+    <HistoryMotionContent transitionKey={editing ? 'editing' : 'overview'}>
+      {editing ? (
+        <div className='min-w-0 py-1'>
           <VersionMetadataFields
             draft={state.editDraft}
             onChange={state.updateEditDraft}
           />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const jobLabel = getLabel(version.company_id)
-  const jobValue = jobLabel ?? (version.company_id ? '岗位已删除' : '未关联')
-
-  return (
-    <>
-      <Card className='gap-0 rounded-lg border-border/70 py-3 shadow-none'>
-        <CardContent className='grid gap-3 px-5 sm:grid-cols-2'>
-          <MetricCard
-            label='版本号'
-            value={`V${version.version_no}`}
-            icon={Bookmark}
-          />
-          <MetricCard
-            label='版本来源'
-            value={SOURCE_META[version.source_type].label}
-            icon={SOURCE_META[version.source_type].icon}
-          />
-          <MetricCard
-            label='创建时间'
-            value={formatDateTime(version.created_at)}
-            icon={CalendarClock}
-          />
-          <MetricCard
-            label='重点标记'
-            value={version.milestone_name || '未设置'}
-            icon={Flag}
-          />
-          <MetricCard label='关联岗位' value={jobValue} icon={Briefcase} />
-          <MetricCard
-            label='投递日期'
-            value={version.submitted_at || '未记录'}
-            icon={Send}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className='gap-4 rounded-lg border-border/70 py-4 shadow-none'>
-        <CardContent className='flex flex-col gap-3 px-5'>
-          <div>
-            <div className='flex items-center gap-2 text-sm font-medium'>
-              <MessageSquareText className='size-4 text-primary' />
-              版本说明
+        </div>
+      ) : (
+        <div className='grid min-w-0 gap-4'>
+          <dl className='grid min-w-0 gap-4'>
+            <div>
+              <dt className='text-xs text-muted-foreground'>版本说明</dt>
+              <dd className='mt-1.5 break-words text-sm leading-6'>
+                {version.description || (
+                  <span className='text-muted-foreground'>暂无说明</span>
+                )}
+              </dd>
             </div>
-            <p className='mt-2 text-sm leading-6 text-muted-foreground'>
-              {version.description || '暂无说明'}
-            </p>
+            <div>
+              <dt className='text-xs text-muted-foreground'>标签</dt>
+              <dd className='mt-1.5 flex flex-wrap gap-1.5'>
+                {(version.tags?.length ?? 0) > 0 ? (
+                  version.tags?.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant='secondary'
+                      className='max-w-full whitespace-normal break-words'
+                    >
+                      {tag}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className='text-sm text-muted-foreground'>
+                    暂无标签
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
+          <div className='grid min-w-0 gap-x-6 gap-y-1 sm:grid-cols-2'>
+            <MetricCard label='关联岗位' value={jobValue} icon={Briefcase} />
+            <MetricCard
+              label='投递日期'
+              value={version.submitted_at || '未记录'}
+              icon={Send}
+            />
           </div>
-
-          <div>
-            <div className='flex items-center gap-2 text-sm font-medium'>
-              <Tags className='size-4 text-primary' />
-              标签
-            </div>
-            <div className='mt-2 flex flex-wrap gap-2'>
-              {(version.tags?.length ?? 0) > 0 ? (
-                version.tags?.map((tag) => (
-                  <Badge key={tag} variant='secondary'>
-                    {tag}
-                  </Badge>
-                ))
-              ) : (
-                <span className='text-sm text-muted-foreground'>暂无标签</span>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </>
+        </div>
+      )}
+    </HistoryMotionContent>
   )
 }

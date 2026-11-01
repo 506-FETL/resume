@@ -34,7 +34,7 @@ export default function PurposeFields({
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className='space-y-3 sm:col-span-2'>
+    <div className='min-w-0 space-y-4 sm:col-span-2'>
       <Field>
         <FieldLabel htmlFor={onPurposeChange ? `${id}-purpose` : undefined}>
           分享用途
@@ -49,11 +49,8 @@ export default function PurposeFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent
-              style={
-                reduceMotion
-                  ? { animation: 'none', transform: 'none' }
-                  : undefined
-              }
+              position='popper'
+              style={reduceMotion ? { animationDuration: '0ms' } : undefined}
             >
               {Object.entries(SHARE_PURPOSE_LABELS).map(([value, label]) => (
                 <SelectItem key={value} value={value}>

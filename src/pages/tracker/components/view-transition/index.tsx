@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react'
+import type { ComponentProps, ReactNode, Ref } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { PresenceDiv } from '@/components/motion/presence-item'
@@ -45,13 +45,12 @@ export default function ViewTransition({
   animationKey,
   className,
   children,
+  ...props
 }: {
   animationKey: string
-  className?: string
-  children: ReactNode
-}) {
+} & ComponentProps<'div'>) {
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative', className)} {...props}>
       <AnimatePresence initial={false} mode='popLayout'>
         <Panel key={animationKey}>{children}</Panel>
       </AnimatePresence>

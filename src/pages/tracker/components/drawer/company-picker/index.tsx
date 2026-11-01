@@ -29,6 +29,7 @@ export function CompanyPicker({
   allowCreate = false,
   allLabel,
   disabled = false,
+  inputClassName,
 }: {
   id: string
   value: string | null
@@ -37,6 +38,7 @@ export function CompanyPicker({
   allowCreate?: boolean
   allLabel?: string
   disabled?: boolean
+  inputClassName?: string
 }) {
   const { companies, companiesLoading, companiesError, loadCompanies, jobs } =
     useTrackerStore(
@@ -73,6 +75,7 @@ export function CompanyPicker({
       >
         <ComboboxInput
           id={id}
+          className={inputClassName}
           placeholder={allLabel ?? '搜索并选择已有公司'}
           showClear={Boolean(allLabel)}
           disabled={disabled}

@@ -51,13 +51,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -85,7 +78,7 @@ import ProgressTimeline from './progress-timeline/index'
 import DrawerStageDetail from './stage-detail/index'
 import DrawerTabPanel from './tab-panel'
 
-type ConfirmKind = 'reject' | 'delete' | 'jump-offer' | null
+type ConfirmKind = 'reject' | 'delete' | 'jump-offer'
 
 const DRAWER_TABS: { value: DrawerTab; label: string }[] = [
   { value: 'follow-up', label: '跟进' },
@@ -127,8 +120,8 @@ function JobDrawer() {
     null,
   )
 
-  const [confirmKind, setConfirmKind] = useState<ConfirmKind>(null)
-  const [resumeOpen, setResumeOpen] = useState(false)
+  const [confirmKind, setConfirmKind] = useState<ConfirmKind>('reject')
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const confirmTriggerRef = useRef<HTMLElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const drawerTriggerRef = useRef<HTMLElement | null>(null)
@@ -167,8 +160,7 @@ function JobDrawer() {
 
     setIsEditing(false)
     setViewingStage(null)
-    setResumeOpen(false)
-    setConfirmKind(null)
+    setConfirmOpen(false)
   }, [selectedJob?.id, drawerOpen, routeJobId, routeTab])
 
   const handleOpenChange = (
@@ -216,16 +208,21 @@ function JobDrawer() {
     setViewingStage(null)
   }
 
-  // 节点沿用推进/回退入口；两个互斥终态都需明确确认。
+  const openConfirmation = (kind: ConfirmKind) => {
+    setConfirmKind(kind)
+    setConfirmOpen(true)
+  }
+
+  // 预览与推进分开；状态动作继续经过原有终态、投递与恢复流程。
   const handleStageJump = (target: ApplicationStatus) => {
     if (!selectedJob || target === selectedJob.status) return
     if (target === 'offer') {
-      setConfirmKind('jump-offer')
+      openConfirmation('jump-offer')
 
       return
     }
     if (target === 'rejected') {
-      setConfirmKind('reject')
+      openConfirmation('reject')
 
       return
     }
@@ -245,13 +242,13 @@ function JobDrawer() {
     if (!selectedJob || selectedJob.status === 'rejected') return
 
     handleProgressChange('rejected')
-    setConfirmKind(null)
+    setConfirmOpen(false)
   }
 
   const handleDelete = async () => {
     if (!selectedJob) return
 
-    setConfirmKind(null)
+    setConfirmOpen(false)
 
     try {
       await deleteJob(selectedJob.id)
@@ -292,13 +289,34 @@ function JobDrawer() {
 
   const statusConfig = APPLICATION_STATUS_CONFIG[selectedJob.status]
   const displayStage = viewingStage || selectedJob.status
+  const displayStageLabel = APPLICATION_STATUS_CONFIG[displayStage].label
+  const isCurrentStage = displayStage === selectedJob.status
+
+  const isPreviousStage =
+    APPLICATION_STATUS_ORDER.indexOf(displayStage) <
+    APPLICATION_STATUS_ORDER.indexOf(selectedJob.status)
+
+  const stageActionLabel = isCurrentStage
+    ? '当前阶段'
+    : displayStage === 'rejected'
+      ? '结束该流程'
+      : displayStage === 'offer'
+        ? '标记为已录用'
+        : selectedJob.status === 'rejected' && displayStage !== 'saved'
+          ? '恢复流程'
+          : `${isPreviousStage ? '回到' : '推进到'}「${displayStageLabel}」`
 
   const canStepBack =
     APPLICATION_STATUS_ORDER.indexOf(selectedJob.status) > 0 &&
     selectedJob.status !== 'rejected'
 
   const titleBlock = (
-    <div className={cn('flex items-start', isMobile ? 'gap-2.5' : 'gap-3')}>
+    <div
+      className={cn(
+        'flex min-w-0 flex-1 items-start',
+        isMobile ? 'gap-2.5' : 'gap-3',
+      )}
+    >
       <div
         className={cn(
           'flex shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary',
@@ -383,7 +401,7 @@ function JobDrawer() {
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={selectedJob.status === 'rejected'}
-          onClick={() => setConfirmKind('reject')}
+          onClick={() => openConfirmation('reject')}
           className='text-destructive focus:text-destructive'
         >
           <XCircle className='size-4' />
@@ -395,7 +413,7 @@ function JobDrawer() {
           {selectedJob.archived ? '取消归档' : '归档'}
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => setConfirmKind('delete')}
+          onClick={() => openConfirmation('delete')}
           className='text-destructive focus:text-destructive'
         >
           <Trash2 className='size-4' />
@@ -516,10 +534,10 @@ function JobDrawer() {
               <ProgressTimeline
                 viewingStage={viewingStage}
                 onStageClick={(stage) => {
+                  flushWorkflow(selectedJob.id).catch(() => {})
                   setViewingStage(stage === selectedJob.status ? null : stage)
                   handleTabChange('interview')
                 }}
-                onStageJump={handleStageJump}
               />
             </div>
             <Tabs
@@ -581,39 +599,22 @@ function JobDrawer() {
                     )}
                     {activeTab === 'interview' && (
                       <div className='space-y-6'>
-                        <div className='flex items-center justify-between gap-3 rounded-lg bg-muted/35 px-3 py-2'>
+                        <div className='flex flex-wrap items-center justify-between gap-2 border-b pb-3'>
                           <span className='text-xs text-muted-foreground'>
                             查看阶段记录
                           </span>
-                          <Select
-                            value={displayStage}
-                            onValueChange={(value) => {
-                              flushWorkflow(selectedJob.id).catch(() => {})
-
-                              setViewingStage(
-                                value === selectedJob.status
-                                  ? null
-                                  : (value as ApplicationStatus),
-                              )
-                            }}
+                          <Button
+                            size='sm'
+                            variant={isCurrentStage ? 'secondary' : 'outline'}
+                            disabled={isCurrentStage}
+                            onClick={() => handleStageJump(displayStage)}
+                            className='h-8 max-w-full text-xs'
                           >
-                            <SelectTrigger
-                              aria-label='查看阶段记录'
-                              className='h-8 w-40 bg-background text-xs'
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(APPLICATION_STATUS_CONFIG).map(
-                                ([value, config]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {config.label}
-                                    {value === selectedJob.status && '（当前）'}
-                                  </SelectItem>
-                                ),
-                              )}
-                            </SelectContent>
-                          </Select>
+                            {stageActionLabel}
+                            {!isCurrentStage && (
+                              <ArrowRight className='size-3.5' />
+                            )}
+                          </Button>
                         </div>
                         <ViewTransition
                           animationKey={`${selectedJob.id}-${displayStage}`}
@@ -625,11 +626,7 @@ function JobDrawer() {
                     {activeTab === 'documents' && (
                       <div className='space-y-6'>
                         <Contacts job={selectedJob} />
-                        <DrawerDocument
-                          key={`document-${selectedJob.id}`}
-                          open={resumeOpen}
-                          onOpenChange={setResumeOpen}
-                        />
+                        <DrawerDocument key={`document-${selectedJob.id}`} />
                         <SubmissionList
                           key={`submissions-${selectedJob.id}`}
                           jobId={selectedJob.id}
@@ -651,11 +648,13 @@ function JobDrawer() {
   )
 
   const confirmDialog = (
-    <AlertDialog
-      open={confirmKind !== null}
-      onOpenChange={(open) => !open && setConfirmKind(null)}
-    >
+    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
       <AlertDialogContent
+        className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto break-words'
+        style={{
+          animationDuration: `${reduce ? 0 : confirmOpen ? DURATION.base : DURATION.fast}s`,
+          animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
+        }}
         onOpenAutoFocus={() => {
           confirmTriggerRef.current =
             document.activeElement instanceof HTMLElement

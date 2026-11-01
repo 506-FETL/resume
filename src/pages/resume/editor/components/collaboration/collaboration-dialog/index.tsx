@@ -32,7 +32,7 @@ export function CollaborationDialog() {
 
   return (
     <Dialog open={collabDialogOpen} onOpenChange={setCollaborationDialogOpen}>
-      <DialogContent className='max-w-lg' aria-describedby={undefined}>
+      <DialogContent className='max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg'>
         {isSharing ? (
           <SharingContent
             participantCount={participantCount}

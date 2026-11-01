@@ -199,9 +199,8 @@ export function ResumePhotoField({
       </div>
       <Dialog open={open} onOpenChange={close}>
         <DialogContent
-          className='sm:max-w-lg'
+          className='max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg'
           style={reduceMotion ? { animationDuration: '0s' } : undefined}
-          overlayClassName={reduceMotion ? 'animate-none!' : undefined}
         >
           <DialogHeader>
             <DialogTitle>裁切简历照片</DialogTitle>

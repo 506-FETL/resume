@@ -13,6 +13,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { MIN_JD_CHARS } from '../../const'
 
 export interface RecentJd {
@@ -30,25 +31,29 @@ const SAMPLE_JD = `职位：前端工程师
 要求：3 年以上 React 经验，熟悉 TypeScript / Tailwind / 状态管理，能独立交付完整模块。`
 
 export function StepInput({ value, onChange, recentJds }: StepInputProps) {
+  const reduceMotion = useReducedMotion()
   const trimmedLen = value.trim().length
   const tooShort = trimmedLen < MIN_JD_CHARS
   const showError = trimmedLen > 0 && tooShort
 
   return (
-    <FieldGroup>
+    <FieldGroup className='gap-5'>
       <Field data-invalid={showError || undefined}>
-        <FieldLabel htmlFor='jd-input'>粘贴职位描述</FieldLabel>
+        <FieldLabel htmlFor='jd-input'>目标岗位的职位描述</FieldLabel>
+        <FieldDescription>
+          粘贴职责与任职要求，用于生成这份岗位版本。
+        </FieldDescription>
         <Textarea
           id='jd-input'
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          rows={8}
+          rows={10}
           placeholder='粘贴目标岗位 JD…'
-          className='max-h-60'
+          className='min-h-52 max-h-80 resize-y text-sm leading-relaxed'
           aria-invalid={showError}
         />
         <FieldDescription aria-live='polite'>
-          已输入 {trimmedLen} 字，至少需要 {MIN_JD_CHARS} 字。
+          {trimmedLen} 字 · 至少 {MIN_JD_CHARS} 字
         </FieldDescription>
         {showError && (
           <FieldError>
@@ -81,7 +86,9 @@ export function StepInput({ value, onChange, recentJds }: StepInputProps) {
       <Accordion type='single' collapsible>
         <AccordionItem value='sample'>
           <AccordionTrigger>查看示例 JD</AccordionTrigger>
-          <AccordionContent>
+          <AccordionContent
+            style={{ animationDuration: reduceMotion ? '0s' : undefined }}
+          >
             <pre className='whitespace-pre-wrap rounded-md bg-muted/40 p-3 text-xs text-muted-foreground'>
               {SAMPLE_JD}
             </pre>

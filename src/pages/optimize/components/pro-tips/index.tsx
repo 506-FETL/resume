@@ -16,7 +16,7 @@ const tips = [
   '重要信息不要放在页眉页脚；导出 PDF 后检查排版是否完整。',
 ]
 
-export default function ProTips() {
+export default function ProTips({ embedded = false }: { embedded?: boolean }) {
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const reduceMotion = useReducedMotion()
@@ -25,10 +25,10 @@ export default function ProTips() {
     <Collapsible
       open={!isMobile || open}
       onOpenChange={setOpen}
-      className='rounded-xl border bg-muted/20'
+      className={embedded ? 'border-t pt-4' : 'border-t pt-5'}
     >
       {isMobile ? (
-        <CollapsibleTrigger className='group flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'>
+        <CollapsibleTrigger className='group flex w-full items-center gap-2 rounded-sm py-3 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'>
           <Lightbulb className='size-4 text-muted-foreground' />
           提高 ATS 可读性的建议
           <ChevronDown
@@ -39,16 +39,15 @@ export default function ProTips() {
           />
         </CollapsibleTrigger>
       ) : (
-        <h2 className='flex items-center gap-2 px-4 py-3 text-sm font-medium'>
+        <h2 className='flex items-center gap-2 pb-3 text-sm font-medium'>
           <Lightbulb className='size-4 text-muted-foreground' />
           提高 ATS 可读性的建议
         </h2>
       )}
       <CollapsibleContent
-        className='motion-reduce:animate-none'
         style={{ animationDuration: `${reduceMotion ? 0 : DURATION.base}s` }}
       >
-        <ul className='list-disc space-y-2 pr-4 pb-4 pl-10 text-sm leading-relaxed text-muted-foreground'>
+        <ul className='list-disc space-y-2 pl-4 text-sm leading-relaxed text-muted-foreground'>
           {tips.map((tip) => (
             <li key={tip}>{tip}</li>
           ))}

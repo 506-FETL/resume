@@ -18,9 +18,8 @@ export function SubmissionJdContent({ jdText, jdUpdatedAt }: SubmissionJd) {
     <div className='space-y-2'>
       <p className='text-xs leading-relaxed text-muted-foreground'>
         {jdUpdatedAt
-          ? `此 JD 更新于 ${new Date(jdUpdatedAt).toLocaleString()}。`
+          ? `更新于 ${new Date(jdUpdatedAt).toLocaleString()}。`
           : '未记录 JD 更新时间。'}
-        后续修改不影响这份副本，投递当时的 JD 无法确认。
       </p>
       <p className='whitespace-pre-wrap wrap-break-word text-sm'>
         {jdText || '没有保存 JD 原文'}

@@ -5,7 +5,6 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useMemo } from 'react'
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from 'recharts'
 import AnimatedContent from '@/components/motion/animated-content'
-import { Card } from '@/components/ui/card'
 import {
   ChartContainer,
   ChartTooltip,
@@ -49,14 +48,10 @@ export default function ScoresRadarChart({
   }, [scores])
 
   const content = (
-    <div
-      className={cn('flex min-h-0 min-w-0 flex-col', !embedded && 'p-4 md:p-5')}
-    >
+    <div className='flex min-h-0 min-w-0 flex-col'>
       <div className='flex items-center justify-between gap-3'>
         <div className='flex items-center gap-2'>
-          <div className='rounded-md bg-primary/10 p-1.5 text-primary'>
-            <Activity className='size-4' />
-          </div>
+          <Activity aria-hidden className='size-4 text-muted-foreground' />
           <p className='text-sm font-medium'>能力雷达图</p>
         </div>
         <span className='text-xs text-muted-foreground'>五维评分</span>
@@ -177,6 +172,6 @@ export default function ScoresRadarChart({
   return embedded ? (
     content
   ) : (
-    <Card className='min-w-0 border-primary/15 shadow-sm'>{content}</Card>
+    <section className='min-w-0 border-t pt-6'>{content}</section>
   )
 }

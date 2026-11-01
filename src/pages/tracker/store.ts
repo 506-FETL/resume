@@ -93,7 +93,7 @@ interface TrackerStore
   enterSelectMode: () => void
   exitSelectMode: () => void
   toggleSelect: (id: string) => void
-  selectAll: () => void
+  selectAll: (viewMode?: ViewMode) => void
   openJobDrawer: (job: JobApplication) => void
   closeJobDrawer: () => void
   openAddDrawer: (sourceJob?: JobApplication) => void
@@ -286,7 +286,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         return { selectedIds: nextSelectedIds }
       })
     },
-    selectAll: () => {
+    selectAll: (viewMode) => {
       set((state) => {
         const selectableJobs = filterJobs(
           state.filterCompanyId
@@ -294,10 +294,10 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
                 (job) => job.tracker_company_id === state.filterCompanyId,
               )
             : state.jobs,
-          state.viewMode === 'list' ? state.filterStatus : null,
+          (viewMode ?? state.viewMode) === 'list' ? state.filterStatus : null,
           state.searchKeyword,
           state.showArchived,
-          state.viewMode === 'list' ? state.metricFilter : null,
+          (viewMode ?? state.viewMode) === 'list' ? state.metricFilter : null,
           state.focusedOnly,
         )
 

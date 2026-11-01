@@ -10,18 +10,26 @@ export default function DetailPanelLoadingState() {
     <div
       role='status'
       aria-label='正在加载版本详情'
-      className='flex h-full min-h-0 flex-col gap-4 p-5'
+      className='flex h-full min-h-0 flex-col gap-3 px-3 pt-4 sm:px-5 sm:pt-5'
     >
-      <Skeleton className={cn('h-5 w-20', skeletonClass)} />
-      <Skeleton className={cn('h-6 w-48 max-w-full', skeletonClass)} />
-      <Skeleton className={cn('h-3 w-36', skeletonClass)} />
-      <div className='mt-2 flex gap-2'>
-        <Skeleton className={cn('h-8 w-20', skeletonClass)} />
-        <Skeleton className={cn('h-8 w-20', skeletonClass)} />
+      <Skeleton className={cn('h-7 w-60 max-w-full sm:h-8', skeletonClass)} />
+      <div className='flex flex-wrap items-center gap-3'>
+        <Skeleton className={cn('h-5 w-10', skeletonClass)} />
+        <Skeleton className={cn('h-3 w-12', skeletonClass)} />
+        <Skeleton className={cn('h-3 w-28', skeletonClass)} />
       </div>
-      <Skeleton
-        className={cn('min-h-40 w-full flex-1 rounded-lg', skeletonClass)}
-      />
+      <div className='flex gap-2'>
+        <Skeleton className={cn('h-8 w-16', skeletonClass)} />
+        <Skeleton className={cn('h-8 w-20', skeletonClass)} />
+        <Skeleton className={cn('size-8', skeletonClass)} />
+        <Skeleton className={cn('size-8', skeletonClass)} />
+      </div>
+      <div className='border-t border-border/60 py-3'>
+        <Skeleton className={cn('h-3 w-20', skeletonClass)} />
+      </div>
+      <div className='-mx-3 min-h-40 flex-1 bg-muted/35 p-3 sm:-mx-5 sm:p-4'>
+        <Skeleton className={cn('h-full w-full rounded-sm', skeletonClass)} />
+      </div>
     </div>
   )
 }

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, useIsPresent } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState, type Ref } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { PresenceTableRow } from '@/components/motion/presence-item'
@@ -37,7 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
+import { DURATION, EASE, staggerDelay } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import {
   APPLICATION_STATUS_CONFIG,
@@ -188,6 +188,7 @@ function SortableHead({
 }
 
 interface JobTableRowProps {
+  ref?: Ref<HTMLTableRowElement>
   job: JobApplication
   index: number
   layoutKey: { jobs: JobApplication[]; isSelectMode: boolean }
@@ -201,6 +202,7 @@ interface JobTableRowProps {
 
 const JobTableRow = memo(
   ({
+    ref,
     job,
     index,
     layoutKey,
@@ -233,6 +235,7 @@ const JobTableRow = memo(
 
     return (
       <PresenceTableRow
+        ref={ref}
         key={job.id}
         layout={reduce ? false : 'position'}
         layoutDependency={layoutKey}
@@ -253,7 +256,11 @@ const JobTableRow = memo(
                 duration: DURATION.base,
                 delay: staggerDelay(Math.min(index, 8)),
                 ease: EASE.out,
-                layout: SPRING.layout,
+                layout: {
+                  type: 'tween',
+                  duration: DURATION.base,
+                  ease: EASE.out,
+                },
               }
         }
         onClick={handleRowClick}
@@ -552,7 +559,7 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
   )
 
   return (
-    <div className='@container/jobs flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/70 bg-card'>
+    <div className='@container/jobs flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
       <div className='scrollbar-thin-subtle min-h-0 flex-1 overflow-auto'>
         <table className='w-full min-w-[420px] table-fixed text-sm'>
           <thead className='sticky top-0 z-10 bg-muted text-xs text-muted-foreground'>
@@ -598,20 +605,35 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
               </th>
             </tr>
           </thead>
-          <tbody>
-            <AnimatePresence initial={false}>
+          <tbody className='relative'>
+            <AnimatePresence initial={false} mode='popLayout'>
               {jobs.flatMap((job, index) => [
                 ...(groupByCompany &&
                 jobs[index - 1]?.tracker_company_id !== job.tracker_company_id
                   ? [
                       <PresenceTableRow
                         key={`company-${job.tracker_company_id}`}
+                        layout={reduceMotion ? false : 'position'}
+                        layoutDependency={layoutKey}
                         initial={reduceMotion ? false : { opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        exit={{
+                          opacity: 0,
+                          transition: {
+                            duration: reduceMotion ? 0 : DURATION.fast,
+                            ease: EASE.out,
+                          },
+                        }}
                         transition={{
                           duration: reduceMotion ? 0 : DURATION.base,
                           ease: EASE.out,
+                          layout: reduceMotion
+                            ? { duration: 0 }
+                            : {
+                                type: 'tween',
+                                duration: DURATION.base,
+                                ease: EASE.out,
+                              },
                         }}
                         className='border-t bg-muted/40'
                       >

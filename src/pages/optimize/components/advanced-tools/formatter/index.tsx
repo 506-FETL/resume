@@ -179,7 +179,7 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
         : '已全部处理'
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <ToolPanelCard>
         <ToolPanelHeader
           action={
@@ -286,13 +286,13 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
           }
         />
         <ToolPanelBody>
-          <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
+          <div className='space-y-3'>
             {batchResult.summary.map((line) => (
               <div
                 key={line}
-                className='flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 text-sm leading-6 text-muted-foreground'
+                className='flex items-start gap-3 text-sm leading-6 text-muted-foreground'
               >
-                <div className='mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary'>
+                <div className='mt-1 shrink-0 text-muted-foreground'>
                   <Sparkles className='size-3.5' />
                 </div>
                 <p>{line}</p>
@@ -319,7 +319,7 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
               <ToolMetaBadge tone='warning'>{`${batchResult.pendingIssueCount} 个问题待处理`}</ToolMetaBadge>
             }
           />
-          <ToolPanelBody className='space-y-3'>
+          <ToolPanelBody className='space-y-0'>
             {batchResult.items.map((item) => (
               <FormatterFindingCard
                 key={item.findingId}

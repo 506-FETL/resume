@@ -4,12 +4,12 @@ import { ChevronDown, ListOrdered, Sparkles } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '@/pages/optimize/const'
 import CustomEditor from '../../analysis/custom-editor'
@@ -42,65 +42,64 @@ function FormatterFindingCard({
 
         setOpen(nextOpen)
       }}
-      className={cn(
-        'w-full min-w-0 max-w-full overflow-hidden rounded-2xl border transition-[background-color,border-color,box-shadow] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease)',
-        config.borderColor,
-        config.bgColor,
-      )}
+      className='w-full min-w-0 max-w-full border-b border-border/60 last:border-b-0'
     >
-      <CollapsibleTrigger
-        ref={triggerRef}
-        className='flex w-full min-w-0 max-w-full items-start justify-between gap-3 overflow-hidden p-4 text-left transition-colors hover:bg-background/40'
-      >
-        <div className='min-w-0 space-y-2'>
-          <div className='flex items-start gap-2.5'>
-            <div className={cn('mt-0.5 shrink-0', config.textColor)}>
-              <Icon className='size-4' />
+      <CollapsibleTrigger asChild>
+        <Button
+          ref={triggerRef}
+          variant='ghost'
+          className='h-auto w-full min-w-0 max-w-full items-start justify-between gap-3 whitespace-normal px-2 py-4 text-left'
+        >
+          <div className='min-w-0 space-y-2'>
+            <div className='flex items-start gap-2.5'>
+              <div className={cn('mt-0.5 shrink-0', config.textColor)}>
+                <Icon className='size-4' />
+              </div>
+              <div className='min-w-0'>
+                <p className='wrap-break-word whitespace-normal text-sm font-medium leading-6 text-foreground'>
+                  {item.title}
+                </p>
+                <p className='wrap-break-word whitespace-normal text-xs leading-5 text-muted-foreground'>
+                  {item.locationText}
+                </p>
+              </div>
             </div>
-            <div className='min-w-0'>
-              <p className='wrap-break-word whitespace-normal text-sm font-medium leading-6 text-foreground'>
-                {item.title}
-              </p>
-              <p className='wrap-break-word whitespace-normal text-xs leading-5 text-muted-foreground'>
-                {item.locationText}
-              </p>
-            </div>
-          </div>
 
-          <div className='flex flex-wrap gap-2 pl-6'>
-            <Badge
-              className={cn(
-                'rounded-full border-transparent',
-                config.badgeBg,
-                config.badgeText,
+            <div className='flex flex-wrap gap-2 pl-6'>
+              <Badge
+                className={cn(
+                  'rounded-full border-transparent',
+                  config.badgeBg,
+                  config.badgeText,
+                )}
+              >
+                {config.label}
+              </Badge>
+              <Badge variant='secondary' className='rounded-full'>
+                可应用 {item.autoApplicableSuggestionCount}/
+                {item.pendingSuggestionCount}
+              </Badge>
+              {item.conflictedSuggestionCount > 0 && (
+                <Badge
+                  variant='outline'
+                  className='rounded-full border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                >
+                  冲突保留 {item.conflictedSuggestionCount}
+                </Badge>
               )}
-            >
-              {config.label}
-            </Badge>
-            <Badge variant='secondary' className='rounded-full'>
-              可应用 {item.autoApplicableSuggestionCount}/
-              {item.pendingSuggestionCount}
-            </Badge>
-            {item.conflictedSuggestionCount > 0 && (
-              <Badge
-                variant='outline'
-                className='rounded-full border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-              >
-                冲突保留 {item.conflictedSuggestionCount}
-              </Badge>
-            )}
-            {item.requiresInputSuggestionCount > 0 && (
-              <Badge
-                variant='outline'
-                className='rounded-full border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-              >
-                待补充 {item.requiresInputSuggestionCount}
-              </Badge>
-            )}
+              {item.requiresInputSuggestionCount > 0 && (
+                <Badge
+                  variant='outline'
+                  className='rounded-full border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                >
+                  待补充 {item.requiresInputSuggestionCount}
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
 
-        <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) [[data-state=open]>&]:rotate-180' />
+          <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) [[data-state=open]>&]:rotate-180' />
+        </Button>
       </CollapsibleTrigger>
 
       <CollapsibleContent
@@ -109,9 +108,7 @@ function FormatterFindingCard({
         style={reduceMotion ? { animationDuration: '0s' } : undefined}
         className='min-w-0 max-w-full overflow-hidden'
       >
-        <div className='min-w-0 max-w-full space-y-5 px-4 pb-4'>
-          <Separator className='opacity-60' />
-
+        <div className='min-w-0 max-w-full space-y-5 px-2 pb-5 sm:pl-8'>
           <div className='space-y-1.5'>
             <p
               className={cn(
@@ -137,7 +134,7 @@ function FormatterFindingCard({
                 <ListOrdered className='size-3.5' />
                 执行步骤
               </div>
-              <ul className='min-w-0 max-w-full space-y-2 rounded-xl border border-border/50 bg-background/60 p-4'>
+              <ul className='min-w-0 max-w-full space-y-2'>
                 {item.steps.map((step) => (
                   <li
                     key={step}

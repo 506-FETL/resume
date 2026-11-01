@@ -138,7 +138,7 @@ export default function AnalysisTrace({
   const processLabel = getProcessLabel(status, Boolean(analysisError))
 
   return (
-    <ToolPanelCard className='border-primary/15 bg-primary/5'>
+    <ToolPanelCard>
       <ToolPanelHeader
         title='推导过程'
         icon={Brain}

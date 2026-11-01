@@ -1,8 +1,11 @@
+import type { ComponentProps } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import { Archive, Eye, History, Power, Settings2, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { toast } from 'sonner'
+import { Spinner } from '@/components/ui/spinner'
+import { DURATION, EASE, staggerDelay } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -12,6 +15,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import useShareStore from '../../store'
+import { getShareReturnFocus } from '../../hooks/use-share-dialog-focus'
 import { buildShareUrl } from '../../utils'
 
 interface ActionDrawerProps {
@@ -39,38 +43,47 @@ export default function ActionDrawer({
   const reduceMotion = useReducedMotion()
   const busy = Boolean(share && pendingShareIds.includes(share.id))
 
-  const handleDrawerOpenChange = (nextOpen: boolean) => {
-    if (nextOpen && document.activeElement instanceof HTMLElement)
-      document.activeElement.blur()
+  const handleDrawerOpenChange: NonNullable<
+    ComponentProps<typeof Drawer>['onOpenChange']
+  > = (nextOpen, details) => {
+    const nestedEscape =
+      details.reason === 'escape-key' &&
+      details.event
+        .composedPath()
+        .some(
+          (node) =>
+            node instanceof Element &&
+            node.matches(
+              '[data-slot="dialog-content"], [role="alertdialog"], [role="listbox"], [role="menu"], [data-slot="popover-content"]',
+            ),
+        )
+
+    if (!nextOpen && (busy || nestedEscape)) {
+      details.cancel()
+
+      return
+    }
 
     onOpenChange(nextOpen)
-
-    if (!nextOpen) {
-      requestAnimationFrame(() => {
-        if (restoreFocusTo?.isConnected) restoreFocusTo.focus()
-      })
-    }
   }
 
   const handlePreview = () => {
     if (!share) return
 
     window.open(buildShareUrl(share.token), '_blank', 'noopener,noreferrer')
-    handleDrawerOpenChange(false)
+    onOpenChange(false)
   }
 
   const handleSettings = () => {
     if (!share) return
 
     openSettingsDialog(share.id)
-    handleDrawerOpenChange(false)
   }
 
   const handleVersion = () => {
     if (!share) return
 
     openVersionDialog(share.id)
-    handleDrawerOpenChange(false)
   }
 
   const handleToggleActive = async () => {
@@ -79,7 +92,7 @@ export default function ActionDrawer({
     try {
       await setActive(share.id, !share.is_active)
       toast.success(share.is_active ? '链接已关闭' : '链接已启用')
-      handleDrawerOpenChange(false)
+      onOpenChange(false)
     } catch {
       toast.error('操作失败')
     }
@@ -89,14 +102,12 @@ export default function ActionDrawer({
     if (!share) return
 
     openDeleteDialog(share.id)
-    handleDrawerOpenChange(false)
   }
 
   const handleArchive = () => {
     if (!share) return
 
     openArchiveDialog(share.id)
-    handleDrawerOpenChange(false)
   }
 
   const actions = [
@@ -151,7 +162,11 @@ export default function ActionDrawer({
           disabled={busy || Boolean(share?.archivedAt)}
           onClick={handleToggleActive}
         >
-          <Power data-icon='inline-start' />
+          {busy ? (
+            <Spinner data-icon='inline-start' />
+          ) : (
+            <Power data-icon='inline-start' />
+          )}
           {share?.is_active ? '关闭链接' : '启用链接'}
         </Button>
       ),
@@ -160,22 +175,28 @@ export default function ActionDrawer({
 
   return (
     <Drawer open={open} showSwipeHandle onOpenChange={handleDrawerOpenChange}>
-      <DrawerContent>
-        <DrawerHeader className='text-left'>
-          <DrawerTitle>{share?.label || '分享链接'}</DrawerTitle>
-          <DrawerDescription>
+      <DrawerContent
+        data-share-dialog-fallback=''
+        finalFocus={() => getShareReturnFocus(restoreFocusTo) ?? false}
+      >
+        <DrawerHeader className='shrink-0 pb-4 text-left'>
+          <DrawerTitle className='line-clamp-2 break-words'>
+            {share?.label || '分享链接'}
+          </DrawerTitle>
+          <DrawerDescription className='line-clamp-2 break-words'>
             {share?.display_name || '选择要执行的操作'}
           </DrawerDescription>
         </DrawerHeader>
-        <div className='grid grid-cols-2 gap-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]'>
+        <div className='scrollbar-thin-subtle grid min-h-0 grid-cols-2 gap-2 overflow-y-auto overscroll-contain px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]'>
           {actions.map((action, index) => (
             <motion.div
               key={action.key}
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
-                duration: reduceMotion ? 0 : 0.16,
-                delay: reduceMotion ? 0 : index * 0.035,
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+                delay: reduceMotion ? 0 : staggerDelay(index),
               }}
             >
               {action.node}
@@ -187,8 +208,9 @@ export default function ActionDrawer({
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
-                duration: reduceMotion ? 0 : 0.16,
-                delay: reduceMotion ? 0 : actions.length * 0.035,
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+                delay: reduceMotion ? 0 : staggerDelay(actions.length),
               }}
             >
               <Button
@@ -207,8 +229,9 @@ export default function ActionDrawer({
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: reduceMotion ? 0 : 0.16,
-              delay: reduceMotion ? 0 : actions.length * 0.035,
+              duration: reduceMotion ? 0 : DURATION.base,
+              ease: EASE.out,
+              delay: reduceMotion ? 0 : staggerDelay(actions.length),
             }}
           >
             <Button

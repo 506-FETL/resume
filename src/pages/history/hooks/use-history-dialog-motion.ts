@@ -42,7 +42,7 @@ const styles = `
   transition-duration: ${DURATION.fast}s;
   transition-timing-function: ${exitEase};
 }
-.history-dialog-reduced { animation: none !important; transition-duration: 0s !important; }
+.history-dialog-reduced { animation-duration: 0s !important; transition-duration: 0s !important; }
 .history-dialog-reduced *, .history-dialog-reduced *::before, .history-dialog-reduced *::after {
   animation-duration: 0s !important;
   transition-duration: 0s !important;

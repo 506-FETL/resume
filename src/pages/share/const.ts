@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ShareStatusFilter } from './utils'
+import type { SharePurpose } from '@/lib/supabase/resume/share.types'
 import {
   Archive,
   Ban,
@@ -7,6 +8,8 @@ import {
   CircleCheck,
   CircleX,
   FileUser,
+  Globe,
+  MessageSquareText,
   Send,
   Target,
 } from 'lucide-react'
@@ -15,7 +18,7 @@ import { DURATION, EASE } from '@/lib/motion'
 export const SHARE_SEARCH_INPUT_ID = 'share-management-search'
 
 export const SHARE_STATUS_FILTERS = [
-  { value: 'all', label: '全部链接' },
+  { value: 'all', label: '全部' },
   { value: 'active', label: '有效' },
   { value: 'inactive', label: '已关闭' },
   { value: 'expired', label: '已过期' },
@@ -23,7 +26,18 @@ export const SHARE_STATUS_FILTERS = [
 ] as const
 
 export const SHARE_GRID_CLASS =
-  'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3 sm:gap-4'
+  '@container/share-list flex min-w-0 flex-col gap-8 sm:gap-10'
+
+export const SHARE_GROUP_CLASS = 'min-w-0'
+
+export const SHARE_GROUP_HEADER_CLASS =
+  'flex min-w-0 items-center gap-3 border-b border-border/80 px-3 pb-4 sm:gap-3.5 sm:px-4'
+
+export const SHARE_PURPOSE_ICONS: Record<SharePurpose, LucideIcon> = {
+  review: MessageSquareText,
+  application: BriefcaseBusiness,
+  showcase: Globe,
+}
 
 export const SHARE_STATUS_META: Record<
   Exclude<ShareStatusFilter, 'all'>,
@@ -32,9 +46,11 @@ export const SHARE_STATUS_META: Record<
     icon: LucideIcon
     dotClassName: string
     badgeClassName: string
+    textClassName: string
   }
 > = {
   active: {
+    textClassName: 'text-emerald-700 dark:text-emerald-400',
     label: '有效',
     icon: CircleCheck,
     dotClassName: 'bg-emerald-500',
@@ -42,6 +58,7 @@ export const SHARE_STATUS_META: Record<
       'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300',
   },
   inactive: {
+    textClassName: 'text-muted-foreground',
     label: '已关闭',
     icon: Ban,
     dotClassName: 'bg-slate-400',
@@ -49,6 +66,7 @@ export const SHARE_STATUS_META: Record<
       'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300',
   },
   expired: {
+    textClassName: 'text-amber-700 dark:text-amber-400',
     label: '已过期',
     icon: CircleX,
     dotClassName: 'bg-red-500',
@@ -56,6 +74,7 @@ export const SHARE_STATUS_META: Record<
       'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300',
   },
   archived: {
+    textClassName: 'text-muted-foreground',
     label: '已归档',
     icon: Archive,
     dotClassName: 'bg-violet-500',

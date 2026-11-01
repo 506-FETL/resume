@@ -7,6 +7,8 @@ coverage/
 .vite/
 .playwright-mcp/
 .superpowers/
+.impeccable/hook.cache.json
+.impeccable/questions/*.state.json
 .worktrees/
 supabase/.temp/
 supabase/.branches/

@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -128,37 +129,33 @@ function DialogBody() {
           。预览当前简历，应用后生效。
         </DialogDescription>
       </DialogHeader>
-      <div
-        className='flex shrink-0 gap-1 border-b bg-muted/30 p-2 md:hidden'
-        role='tablist'
-        aria-label='模板选择视图'
+      <Tabs
+        value={mobileTab}
+        onValueChange={(value) => setMobileTab(value as 'list' | 'preview')}
+        className='shrink-0 md:hidden'
       >
-        <Button
-          id='template-switch-list-tab'
-          role='tab'
-          aria-controls='template-switch-gallery-panel'
-          aria-selected={mobileTab === 'list'}
-          variant={mobileTab === 'list' ? 'secondary' : 'ghost'}
-          size='sm'
-          className='flex-1'
-          onClick={() => setMobileTab('list')}
+        <TabsList
+          className='h-auto w-full rounded-none border-b bg-muted/30 p-2'
+          aria-label='模板选择视图'
         >
-          选择模板
-        </Button>
-        <Button
-          id='template-switch-preview-tab'
-          role='tab'
-          aria-controls='template-switch-preview-panel'
-          aria-selected={mobileTab === 'preview'}
-          variant={mobileTab === 'preview' ? 'secondary' : 'ghost'}
-          size='sm'
-          className='flex-1'
-          onClick={() => setMobileTab('preview')}
-        >
-          简历预览
-          {pageCount ? ` · ${pageCount} 页` : ''}
-        </Button>
-      </div>
+          <TabsTrigger
+            id='template-switch-list-tab'
+            aria-controls='template-switch-gallery-panel'
+            value='list'
+            className='flex-1'
+          >
+            选择模板
+          </TabsTrigger>
+          <TabsTrigger
+            id='template-switch-preview-tab'
+            aria-controls='template-switch-preview-panel'
+            value='preview'
+            className='flex-1'
+          >
+            简历预览{pageCount ? ` · ${pageCount} 页` : ''}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
       {state.conflictBinding && (
         <p
           role='status'
@@ -172,6 +169,8 @@ function DialogBody() {
       <div className='relative flex min-h-0 flex-1'>
         <motion.section
           id='template-switch-preview-panel'
+          role={isMobile ? 'tabpanel' : undefined}
+          aria-labelledby={isMobile ? 'template-switch-preview-tab' : undefined}
           aria-label='当前简历真实内容预览'
           aria-hidden={isMobile && mobileTab !== 'preview'}
           inert={isMobile && mobileTab !== 'preview'}
@@ -245,6 +244,8 @@ function DialogBody() {
         </motion.section>
         <motion.aside
           id='template-switch-gallery-panel'
+          role={isMobile ? 'tabpanel' : undefined}
+          aria-labelledby={isMobile ? 'template-switch-list-tab' : undefined}
           aria-label='可用简历模板'
           aria-hidden={isMobile && mobileTab !== 'list'}
           inert={isMobile && mobileTab !== 'list'}
@@ -297,9 +298,6 @@ export default function TemplateSwitchDialog({
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
       <DialogContent
         className='flex h-[94dvh] max-w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 md:h-[90dvh] md:max-w-[min(1400px,calc(100%-4rem))]'
-        overlayClassName={
-          reduceMotion ? 'animate-none! duration-0!' : undefined
-        }
         style={{
           animationDuration: `${reduceMotion ? 0 : open ? DURATION.base : DURATION.fast}s`,
           animationTimingFunction: `cubic-bezier(${(open ? EASE.out : EASE.in).join(',')})`,

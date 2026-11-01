@@ -1,11 +1,13 @@
 import { BellRing, CheckCheck, Send, Users } from 'lucide-react'
 import { memo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useTrackerOverview } from '../../hooks/use-tracker-overview'
 import useTrackerStore from '../../store'
 import { MetricCard } from './metric-card'
 
 function OverviewBar() {
+  const isMobile = useIsMobile()
   const { stats, busy, error, showArchived } = useTrackerOverview()
 
   const { viewMode, metricFilter, setMetricFilter } = useTrackerStore(
@@ -56,6 +58,8 @@ function OverviewBar() {
       accent: true,
     },
   ] as const
+
+  if (isMobile) return null
 
   return (
     <section

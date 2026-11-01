@@ -27,18 +27,22 @@ export function RewriteDialogShell({
   title,
 }: RewriteDialogShellProps) {
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className='flex flex-col gap-0 overflow-hidden p-0 sm:h-[85vh] sm:max-h-[85vh] sm:max-w-3xl'>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      contentClassName='h-[min(88dvh,800px)] gap-0 sm:max-w-3xl'
+    >
+      <ResponsiveDialogContent className='min-h-0 flex-col gap-0 overflow-hidden p-0'>
         <ResponsiveDialogHeader className='shrink-0 border-b px-6 pb-4 pt-6'>
           <ResponsiveDialogTitle className='flex items-center gap-2 text-base'>
             {Icon ? <Icon className='size-4' /> : null}
             {title}
           </ResponsiveDialogTitle>
-          {description && (
-            <ResponsiveDialogDescription>
-              {description}
-            </ResponsiveDialogDescription>
-          )}
+          <ResponsiveDialogDescription
+            className={description ? undefined : 'sr-only'}
+          >
+            {description || '查看并选择改写建议。'}
+          </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <div className='flex min-h-0 flex-1 flex-col'>{children}</div>

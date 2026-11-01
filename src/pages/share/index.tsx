@@ -7,7 +7,6 @@ import ArchiveDialog from './components/archive-dialog'
 import Content from './components/content'
 import DeleteDialog from './components/delete-dialog'
 import Header from './components/header'
-import Overview from './components/overview'
 import SettingsDialog from './components/settings-dialog'
 import Toolbar from './components/toolbar'
 import VersionDialog from './components/version-dialog'
@@ -32,7 +31,6 @@ export default function Management() {
       >
         <JobContextBar />
         <Header />
-        <Overview />
         <section aria-label='分享链接' className='min-w-0 space-y-5'>
           <Toolbar />
           <Content />

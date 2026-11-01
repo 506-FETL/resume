@@ -11,13 +11,21 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SHARE_GRID_CLASS } from '../../const'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { cn } from '@/lib/utils'
+import {
+  SHARE_GRID_CLASS,
+  SHARE_GROUP_CLASS,
+  SHARE_GROUP_HEADER_CLASS,
+} from '../../const'
 import useShareStore from '../../store'
 import { filterShares } from '../../utils'
 import EmptyState from '../empty-state'
 import Grid from '../grid'
 
 export default function Content() {
+  const reduceMotion = useReducedMotion()
+
   const {
     allShares,
     pageLoading,
@@ -58,38 +66,57 @@ export default function Content() {
         <div
           role='status'
           aria-label='正在加载分享链接'
-          className={SHARE_GRID_CLASS}
+          className={cn(
+            SHARE_GRID_CLASS,
+            reduceMotion && '[&_[data-slot=skeleton]]:animate-none',
+          )}
         >
-          {[0, 1, 2].map((index) => (
+          {[2, 1].map((linkCount) => (
             <div
-              key={index}
+              key={linkCount}
               aria-hidden='true'
-              className='min-w-0 overflow-hidden rounded-xl border bg-card'
+              className={SHARE_GROUP_CLASS}
             >
-              <div className='space-y-2.5 p-3 sm:p-3.5'>
-                <div className='flex items-center gap-2.5'>
-                  <Skeleton className='size-8 shrink-0 rounded-lg' />
-                  <div className='min-w-0 flex-1 space-y-1.5'>
-                    <Skeleton className='h-4 w-24' />
-                    <Skeleton className='h-3 w-16' />
-                  </div>
-                  <Skeleton className='h-5 w-10 rounded-full' />
-                </div>
-                <Skeleton className='h-5 w-32 rounded-full' />
-                <div className='flex justify-between'>
-                  <Skeleton className='h-4 w-20' />
-                  <Skeleton className='h-4 w-20' />
+              <div className={SHARE_GROUP_HEADER_CLASS}>
+                <Skeleton className='size-10 shrink-0 rounded-xl' />
+                <div className='min-w-0 flex-1'>
+                  <Skeleton className='h-6 w-32 max-w-full sm:h-7.5' />
+                  <Skeleton className='mt-1.5 h-4 w-20' />
                 </div>
               </div>
-              <div className='flex justify-between border-t border-border/60 px-2 py-1.5'>
-                <Skeleton className='h-8 w-17 rounded-md' />
-                <Skeleton className='h-8 w-22 rounded-md' />
+              <div className='@container/share-links min-w-0'>
+                {Array.from({ length: linkCount }, (_, linkIndex) => (
+                  <div
+                    key={linkIndex}
+                    className='grid min-w-0 gap-4 border-b border-border/60 px-3 py-5 last:border-b-0 sm:px-4 @min-[600px]/share-links:grid-cols-[minmax(0,1fr)_auto] @min-[600px]/share-links:gap-6'
+                  >
+                    <div className='min-w-0'>
+                      <div className='flex min-h-5 items-center gap-2'>
+                        <Skeleton className='size-4 shrink-0 rounded-sm' />
+                        <Skeleton className='h-4 w-24' />
+                        <Skeleton className='ml-auto h-3 w-8' />
+                      </div>
+                      <div className='mt-3 flex flex-wrap gap-2'>
+                        <Skeleton className='h-4 w-28' />
+                        <Skeleton className='h-4 w-36' />
+                      </div>
+                    </div>
+                    <div className='flex min-w-0 flex-col justify-center gap-3 @min-[600px]/share-links:w-56'>
+                      <Skeleton className='h-4 w-40 @min-[600px]/share-links:self-end' />
+                      <div className='flex gap-1.5'>
+                        <Skeleton className='h-9 flex-1 rounded-md' />
+                        <Skeleton className='h-9 w-20 rounded-md' />
+                        <Skeleton className='size-9 rounded-md' />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
       ) : contentState === 'error' ? (
-        <Empty className='min-h-105 border border-dashed bg-muted/20'>
+        <Empty className='min-h-80 border-t border-border/60 rounded-none'>
           <EmptyHeader>
             <EmptyMedia variant='icon'>
               <RefreshCcw />

@@ -7,7 +7,7 @@ import { PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
 import useUserStore from '@/store/user'
 import CreateResumeCard from '@/pages/resume/components/create-resume-card'
-import useCurrentResumeStore from '@/store/resume/current'
+import RecentResumeCard from './components/recent-resume-card'
 import Entry from './components/entry'
 import Header from './components/header'
 import GettingStarted from './components/getting-started'
@@ -171,57 +171,11 @@ export default function DashboardPage() {
                           new Date(a.updated_at || a.created_at).getTime(),
                       )
                       .slice(0, 2)
-                      .map((resume, index) => (
-                        <div
-                          key={resume.resume_id}
-                          className='flex min-w-0 flex-col justify-between gap-6 rounded-lg border bg-card p-5'
-                        >
-                          <div className='min-w-0'>
-                            <h3 className='truncate text-lg font-semibold'>
-                              {resume.display_name || '未命名简历'}
-                            </h3>
-                            <p className='mt-1 text-xs text-muted-foreground'>
-                              {resume.isOffline ? '本地' : '云端'} ·{' '}
-                              {new Date(
-                                resume.updated_at || resume.created_at,
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className='flex w-full shrink-0 flex-wrap items-center justify-between gap-2'>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={() => {
-                                useCurrentResumeStore
-                                  .getState()
-                                  .setCurrentResume(
-                                    resume.resume_id,
-                                    resume.type,
-                                  )
-
-                                navigate('/resume/editor?check=1')
-                              }}
-                            >
-                              检查并导出
-                            </Button>
-                            <Button
-                              size='sm'
-                              variant={index === 0 ? 'default' : 'outline'}
-                              onClick={() => {
-                                useCurrentResumeStore
-                                  .getState()
-                                  .setCurrentResume(
-                                    resume.resume_id,
-                                    resume.type,
-                                  )
-
-                                navigate('/resume/editor')
-                              }}
-                            >
-                              继续编辑
-                            </Button>
-                          </div>
-                        </div>
+                      .map((resume) => (
+                        <RecentResumeCard
+                          key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
+                          resume={resume}
+                        />
                       ))}
                   </div>
                 )}

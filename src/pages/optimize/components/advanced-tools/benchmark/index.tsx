@@ -82,8 +82,8 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
   )
 
   return (
-    <div className='space-y-4'>
-      <div className='rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground'>
+    <div className='space-y-8'>
+      <div className='max-w-[75ch] text-sm leading-6 text-muted-foreground'>
         这些参考值是我们预设的，用来提醒你检查简历内容，不是招聘要求或行业统计。
         你不需要填满所有模块，这些指标也不会改变 ATS 总分或预测筛选结果。
       </div>
@@ -144,7 +144,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
             />
           </ToolStatsGrid>
 
-          <div className='space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4'>
+          <div className='space-y-3 border-t border-border/60 pt-4'>
             <div className='flex items-center justify-between gap-3'>
               <p className='text-sm font-medium'>关键词覆盖率</p>
               <ToolMetaBadge tone={'default'}>
@@ -162,7 +162,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
         </ToolPanelBody>
       </ToolPanelCard>
 
-      <div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
+      <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8'>
         {benchmarkResult.metrics.map((metric) => {
           const progressValue =
             metric.target && metric.target > 0
@@ -185,19 +185,11 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                   : 'warn'
 
           return (
-            <ToolPanelCard
-              key={metric.key}
-              className={cn(
-                status === 'good' && 'border-green-500/15 bg-green-500/5',
-                status === 'warn' && 'border-amber-500/15 bg-amber-500/5',
-                status === 'missing' &&
-                  'border-destructive/15 bg-destructive/5',
-              )}
-            >
+            <ToolPanelCard key={metric.key}>
               <ToolPanelBody>
                 <div className='flex items-start justify-between gap-3'>
                   <div className='flex items-center gap-2'>
-                    <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-background/80 text-foreground shadow-sm'>
+                    <div className='shrink-0 text-muted-foreground'>
                       <Icon className='size-4' />
                     </div>
                     <p className='text-sm font-medium'>{metric.label}</p>
@@ -234,7 +226,7 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
         })}
       </div>
 
-      <div className='grid gap-4 lg:grid-cols-2'>
+      <div className='grid gap-6 lg:grid-cols-2 lg:gap-8'>
         <ToolPanelCard>
           <ToolPanelHeader
             title='已达到参考值'
@@ -249,14 +241,14 @@ function BenchmarkTool({ resumeContext }: BenchmarkToolProps) {
                 benchmarkResult.strengths.map((strength) => (
                   <div
                     key={strength}
-                    className='flex items-start gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm leading-6 text-green-800 dark:text-green-200'
+                    className='flex items-start gap-3 text-sm leading-6 text-green-800 dark:text-green-200'
                   >
                     <Sparkles className='mt-0.5 size-4 shrink-0' />
                     <span>{strength}</span>
                   </div>
                 ))
               ) : (
-                <div className='flex items-start gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-sm leading-6 text-green-800 dark:text-green-200'>
+                <div className='flex items-start gap-3 text-sm leading-6 text-muted-foreground'>
                   <Sparkles className='mt-0.5 size-4 shrink-0' />
                   <span>
                     暂时没有达到参考值的项目。可以先检查经历是否写完整，不必为了凑数添加内容。

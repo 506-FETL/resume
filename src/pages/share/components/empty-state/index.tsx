@@ -29,7 +29,7 @@ export default function EmptyState({ filtered }: EmptyStateProps) {
 
   return (
     <>
-      <Empty className='min-h-80 rounded-2xl border border-dashed bg-muted/15'>
+      <Empty className='min-h-80 rounded-none border-t border-border/60'>
         <EmptyHeader>
           <EmptyMedia variant='icon'>
             {filtered ? <SearchX /> : <Link2 />}

@@ -83,8 +83,8 @@ export default function SubmissionDetails({
       }}
     >
       <DialogContent
+        className='flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-lg'
         style={{ animationDuration: `${reduce ? 0 : DURATION.base}s` }}
-        overlayClassName={reduce ? 'animate-none!' : undefined}
         onCloseAutoFocus={(event) => {
           event.preventDefault()
 
@@ -97,48 +97,54 @@ export default function SubmissionDetails({
           onClose()
         }}
       >
-        <DialogHeader>
+        <DialogHeader className='shrink-0 pr-7'>
           <DialogTitle>更正投递信息</DialogTitle>
           <DialogDescription>
             更正原记录，保留修改前的信息和材料。当前流程阶段不变。
           </DialogDescription>
         </DialogHeader>
-        <fieldset disabled={busy} className='space-y-4'>
-          <WorkflowDateField label='投递日期' value={date} onChange={setDate} />
-          <div className='space-y-2'>
-            <Label htmlFor='edit-submission-channel'>渠道（选填）</Label>
-            <Input
-              id='edit-submission-channel'
-              maxLength={200}
-              value={channel}
-              onChange={(event) => setChannel(event.target.value)}
+        <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
+          <fieldset disabled={busy} className='space-y-4'>
+            <WorkflowDateField
+              label='投递日期'
+              value={date}
+              onChange={setDate}
             />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='edit-submission-note'>备注（选填）</Label>
-            <Textarea
-              id='edit-submission-note'
-              maxLength={4000}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='edit-submission-reason'>更正原因</Label>
-            <Textarea
-              id='edit-submission-reason'
-              maxLength={1000}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-            />
-          </div>
-        </fieldset>
-        {error && (
-          <Alert variant='destructive'>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <DialogFooter>
+            <div className='space-y-2'>
+              <Label htmlFor='edit-submission-channel'>渠道（选填）</Label>
+              <Input
+                id='edit-submission-channel'
+                maxLength={200}
+                value={channel}
+                onChange={(event) => setChannel(event.target.value)}
+              />
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='edit-submission-note'>备注（选填）</Label>
+              <Textarea
+                id='edit-submission-note'
+                maxLength={4000}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='edit-submission-reason'>更正原因</Label>
+              <Textarea
+                id='edit-submission-reason'
+                maxLength={1000}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            </div>
+          </fieldset>
+          {error && (
+            <Alert variant='destructive'>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+        <DialogFooter className='shrink-0 border-t pt-4'>
           <Button
             variant='outline'
             disabled={busy}

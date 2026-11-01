@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
@@ -104,34 +105,37 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
         ease: EASE.out,
         layout: { duration: reduceMotion ? 0 : DURATION.base },
       }}
-      className='min-w-0 shrink-0 flex flex-col gap-2 overflow-hidden rounded-lg border p-3'
+      className='flex min-w-0 shrink-0 flex-col gap-3 py-4 first:pt-0 last:pb-0'
     >
-      <div className='flex items-center justify-between gap-2'>
-        <div className='flex items-center gap-2 min-w-0'>
-          <span className='truncate font-medium'>
-            {share.label || '未命名链接'}
-          </span>
-          {share.has_password && (
-            <Badge variant='outline'>
-              <KeyRound className='size-3' />
-              密码
-            </Badge>
-          )}
-          {expired && <Badge variant='destructive'>已过期</Badge>}
-          {!share.is_active && <Badge variant='secondary'>已关闭</Badge>}
-          {share.archivedAt && <Badge variant='secondary'>已归档</Badge>}
-          <Badge variant='outline'>
-            <MessageSquareText className='size-3' />
-            {share.allowComments ? '允许评论' : '仅查看'}
-          </Badge>
-          <VersionBadge source={share.source} />
+      <div className='flex min-w-0 items-start justify-between gap-3'>
+        <span className='min-w-0 break-words font-medium'>
+          {share.label || '未命名链接'}
+        </span>
+        <div className='flex shrink-0 items-center gap-2'>
+          {busy && <Spinner aria-label='正在更新链接' />}
+          <Switch
+            checked={share.is_active}
+            disabled={busy || Boolean(share.archivedAt)}
+            onCheckedChange={handleToggleActive}
+            aria-label={`启用或关闭${share.label || '分享链接'}`}
+          />
         </div>
-        <Switch
-          checked={share.is_active}
-          disabled={busy || Boolean(share.archivedAt)}
-          onCheckedChange={handleToggleActive}
-          aria-label='启用或关闭链接'
-        />
+      </div>
+      <div className='flex min-w-0 flex-wrap items-center gap-1.5'>
+        {share.has_password && (
+          <Badge variant='outline'>
+            <KeyRound className='size-3' />
+            密码
+          </Badge>
+        )}
+        {expired && <Badge variant='destructive'>已过期</Badge>}
+        {!share.is_active && <Badge variant='secondary'>已关闭</Badge>}
+        {share.archivedAt && <Badge variant='secondary'>已归档</Badge>}
+        <Badge variant='outline'>
+          <MessageSquareText className='size-3' />
+          {share.allowComments ? '允许评论' : '仅查看'}
+        </Badge>
+        <VersionBadge source={share.source} />
       </div>
 
       <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5'>

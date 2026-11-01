@@ -30,6 +30,7 @@ export default function ConversationNavigation() {
             <SidebarMenuButton
               tooltip='新建对话'
               aria-label='新建对话'
+              data-assistant-new-conversation=''
               disabled={initializing}
               onClick={startNewConversation}
             >
