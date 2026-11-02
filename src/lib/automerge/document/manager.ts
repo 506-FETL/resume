@@ -5,6 +5,11 @@ import type {
   DocumentSaveResult,
 } from '../shared'
 import type { AutomergeResumeDocument, ChangeFn } from './schema'
+import type { AutomergeSnapshotRow } from './persistence'
+import type { WriteOp } from '@/hooks/collab/write-plan'
+import type { ResumeTemplateBinding } from '@/lib/schema'
+import { next as Automerge } from '@automerge/automerge'
+import { applyWriteOpsDefault } from '@/hooks/collab/apply-write-ops'
 import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
 import { CollaborationSessionManager } from '../collaboration/session-manager'
 import { getAutomergeRepo } from '../repo'
@@ -42,7 +47,22 @@ export class DocumentManager {
     )
   }
 
-  async initialize() {
+  readPersistedSnapshot() {
+    return this.persistence.fetchSnapshotRow()
+  }
+
+  cloneDocument(doc: AutomergeResumeDocument) {
+    return Automerge.clone(doc)
+  }
+
+  applyWriteOps(doc: AutomergeResumeDocument, ops: WriteOp[]) {
+    applyWriteOpsDefault(doc, ops)
+  }
+
+  async initialize(
+    prefetchedSnapshot?: AutomergeSnapshotRow | null,
+    onTemplateBindingReady?: (binding: ResumeTemplateBinding) => void,
+  ) {
     if (this.handle) {
       return this.handle
     }
@@ -59,25 +79,38 @@ export class DocumentManager {
         this.source.documentData,
       )
 
+      const binding = readResumeListTemplateBinding(
+        handle.doc()?.templateBinding,
+      )
+
+      if (binding) onTemplateBindingReady?.(binding)
+
       return this.attachHandle(handle)
     }
 
-    const existingHandle = await this.persistence.loadPersistedHandle(repo)
+    const existingHandle = await this.persistence.loadPersistedHandle(
+      repo,
+      prefetchedSnapshot,
+    )
 
     if (existingHandle) {
       const doc = existingHandle.doc()
+      let binding = readResumeListTemplateBinding(doc?.templateBinding)
+      const needsBinding = !binding
 
-      if (!readResumeListTemplateBinding(doc?.templateBinding)) {
+      if (!binding) {
         const storedBinding = readResumeListTemplateBinding(
           (doc as unknown as Record<string, unknown>)?.template_binding,
         )
 
-        const binding =
+        const recoveredBinding =
           storedBinding ??
           (await this.persistence.loadResumeConfig({ templateOnly: true }))
             .templateBinding
 
-        if (!binding) throw new Error('简历模板尚未完成初始化，请重试')
+        if (!recoveredBinding) throw new Error('简历模板尚未完成初始化，请重试')
+
+        binding = recoveredBinding
 
         existingHandle.change((current) => {
           if (!readResumeListTemplateBinding(current.templateBinding))
@@ -85,12 +118,14 @@ export class DocumentManager {
               ...(readResumeListTemplateBinding(
                 (current as unknown as Record<string, unknown>)
                   .template_binding,
-              ) ?? binding),
+              ) ?? recoveredBinding),
             }
         })
-
-        await this.saveToSupabase(existingHandle)
       }
+
+      onTemplateBindingReady?.(binding)
+
+      if (needsBinding) await this.saveToSupabase(existingHandle)
 
       return this.attachHandle(existingHandle)
     }
@@ -103,6 +138,10 @@ export class DocumentManager {
       userId: this.userId,
       seedData,
     })
+
+    const binding = readResumeListTemplateBinding(handle.doc()?.templateBinding)
+
+    if (binding) onTemplateBindingReady?.(binding)
 
     if (this.persistence.canPersist()) {
       await this.saveToSupabase(handle)

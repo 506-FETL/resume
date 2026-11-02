@@ -5,11 +5,10 @@ import type {
   ShareVersionSelection,
 } from '@/lib/supabase/resume/share.types'
 import { memo, useId, useLayoutEffect, useMemo, useState } from 'react'
-import { Plus, RefreshCcw } from 'lucide-react'
-import { AnimatePresence } from 'motion/react'
+import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import AnimatedContent from '@/components/motion/animated-content'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
@@ -18,9 +17,12 @@ import ArchiveDialog from '../archive-dialog'
 import DeleteDialog from '../delete-dialog'
 import SettingsDialog from '../settings-dialog'
 import VersionDialog from '../version-dialog'
-import { CreateForm } from './create-form'
-import { LinkRow } from './link-row'
 import ShareDrawer from '../share-drawer'
+
+const QuickDialogContent = createDeferredComponent(
+  () => import('./content'),
+  '分享面板',
+)
 
 interface QuickDialogProps {
   getSnapshot: SnapshotProvider
@@ -45,6 +47,7 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
   const navigate = useNavigate()
   const formId = useId()
   const [submitting, setSubmitting] = useState(false)
+  const [contentReady, setContentReady] = useState(false)
 
   const open = Boolean(openForResumeId)
 
@@ -148,7 +151,11 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
             >
               分享管理 →
             </Button>
-            <Button type='submit' form={formId} disabled={submitting}>
+            <Button
+              type='submit'
+              form={formId}
+              disabled={submitting || !contentReady}
+            >
               {submitting ? (
                 <Spinner data-icon='inline-start' />
               ) : (
@@ -159,99 +166,24 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
           </>
         }
       >
-        <div className='space-y-6'>
-          <CreateForm
-            key={display?.resumeId}
-            formId={formId}
-            submitting={submitting}
-            onSubmittingChange={setSubmitting}
-            versions={display?.versionEntry?.items ?? []}
-            versionsLoading={display?.versionEntry?.loading ?? false}
-            versionsError={display?.versionEntry?.error ?? null}
-            onRetryVersions={() => {
-              if (openForResumeId)
-                loadVersionOptions(openForResumeId, { force: true }).catch(
-                  () => undefined,
-                )
-            }}
-            onCreate={handleCreate}
-          />
-          <section
-            className='min-w-0 space-y-3 border-t pt-5'
-            aria-labelledby={`${formId}-links-heading`}
-          >
-            <div className='flex items-center justify-between gap-2'>
-              <h3
-                id={`${formId}-links-heading`}
-                className='text-sm font-medium'
-              >
-                已有链接
-              </h3>
-              {!display?.loading && !display?.error && (
-                <span className='text-xs tabular-nums text-muted-foreground'>
-                  {display?.shares.length ?? 0} 个
-                </span>
-              )}
-            </div>
-            <AnimatedContent
-              animationKey={
-                display?.loading
-                  ? 'loading'
-                  : display?.error
-                    ? 'error'
-                    : display?.shares.length === 0
-                      ? 'empty'
-                      : 'ready'
-              }
-              className='empty:hidden'
-            >
-              {display?.loading ? (
-                <div
-                  role='status'
-                  className='flex items-center gap-2 py-3 text-sm text-muted-foreground'
-                >
-                  <Spinner />
-                  正在加载分享链接…
-                </div>
-              ) : display?.error ? (
-                <div
-                  role='alert'
-                  className='flex items-center justify-between gap-3 py-2'
-                >
-                  <p className='min-w-0 text-sm text-destructive'>
-                    {display.error}
-                  </p>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    size='sm'
-                    onClick={() => {
-                      if (openForResumeId) loadDialogShares(openForResumeId)
-                    }}
-                  >
-                    <RefreshCcw data-icon='inline-start' />
-                    重试
-                  </Button>
-                </div>
-              ) : display?.shares.length === 0 ? (
-                <p className='py-3 text-sm text-muted-foreground'>
-                  还没有分享链接，生成后会显示在这里。
-                </p>
-              ) : null}
-            </AnimatedContent>
-            <div className='min-w-0 divide-y divide-border'>
-              <AnimatePresence initial={false} mode='popLayout'>
-                {display?.shares.map((share) => (
-                  <LinkRow
-                    key={share.id}
-                    share={share}
-                    busy={pendingShareIds.includes(share.id)}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          </section>
-        </div>
+        <QuickDialogContent
+          display={display}
+          formId={formId}
+          submitting={submitting}
+          setSubmitting={setSubmitting}
+          pendingShareIds={pendingShareIds}
+          onReadyChange={setContentReady}
+          onCreate={handleCreate}
+          onRetryVersions={() => {
+            if (openForResumeId)
+              loadVersionOptions(openForResumeId, { force: true }).catch(
+                () => undefined,
+              )
+          }}
+          onRetryShares={() => {
+            if (openForResumeId) loadDialogShares(openForResumeId)
+          }}
+        />
       </ShareDrawer>
       <ArchiveDialog />
       <SettingsDialog />

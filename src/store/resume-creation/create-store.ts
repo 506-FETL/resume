@@ -7,7 +7,7 @@ import type {
 } from '@/lib/resume-template/create/types'
 import type { TemplateSource } from '@/lib/resume-template/source/types'
 import { create } from 'zustand'
-import { isEqual } from 'lodash'
+import isEqual from 'lodash/isEqual'
 import { persistPreparedResume } from '@/lib/resume-template/create/persist'
 import { prepareTemplateResume } from '@/lib/resume-template/create/prepare'
 import { CreationOutcomeUnknownError } from '@/lib/resume-template/create/types'

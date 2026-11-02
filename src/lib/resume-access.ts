@@ -2,6 +2,7 @@ import type {
   PersistedResumeSnapshot,
   ResumeListItem,
   ResumeType,
+  VariantMetadata,
 } from '@/lib/schema'
 import {
   deleteOfflineResume,
@@ -118,6 +119,16 @@ export async function getAccessibleResumeMetadata(
     isOffline: local,
     storage: local ? 'local' : 'cloud',
   } as AccessibleResumeRecord
+}
+
+export async function getAccessibleResumeDerivedMetadata(
+  resumeId: string,
+): Promise<VariantMetadata | null> {
+  const record = isOfflineResumeId(resumeId)
+    ? await getOfflineResumeProjection(resumeId, ['derived_metadata'])
+    : await getResumeById(resumeId, 'derived_metadata')
+
+  return (record.derived_metadata as VariantMetadata | null) ?? null
 }
 
 export async function getAccessibleResumeSection(

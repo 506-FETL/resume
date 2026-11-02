@@ -1,7 +1,7 @@
 import type { PreparationRecord } from './types'
 import type { VariantMetadata } from '@/lib/schema'
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import { getAccessibleResumeById } from '@/lib/resume-access'
+import { getAccessibleResumeDerivedMetadata } from '@/lib/resume-access'
 import useUserStore from '@/store/user'
 import {
   flushPendingEvidence,
@@ -143,13 +143,12 @@ export function useDerivedMetadata(resumeId: string | null, enabled: boolean) {
 
     setState({ key, metadata: null, loading: true, error: null })
 
-    getAccessibleResumeById(resumeId)
-      .then((record) => {
+    getAccessibleResumeDerivedMetadata(resumeId)
+      .then((metadata) => {
         if (!cancelled)
           setState({
             key,
-            metadata:
-              (record.derived_metadata as VariantMetadata | null) ?? null,
+            metadata,
             loading: false,
             error: null,
           })

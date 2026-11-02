@@ -1,10 +1,16 @@
 import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { DURATION, EASE } from '@/lib/motion'
 import { useResumeCheckStore } from '../../store/checks'
-import CheckPanel from '../check-panel'
+
+const CheckPanel = createDeferredComponent(
+  () => import('../check-panel'),
+  '检查面板',
+)
 
 export default function CheckWorkspace({
   children,
@@ -16,6 +22,11 @@ export default function CheckWorkspace({
   const tab = useResumeCheckStore((state) => state.tab)
   const setTab = useResumeCheckStore((state) => state.setTab)
   const reduced = useReducedMotion()
+  const [checksVisited, setChecksVisited] = useState(tab === 'checks')
+
+  useEffect(() => {
+    if (tab === 'checks') setChecksVisited(true)
+  }, [tab])
 
   return (
     <Tabs
@@ -65,7 +76,7 @@ export default function CheckWorkspace({
             className='absolute inset-0 m-0 flex min-h-0 flex-col overflow-hidden'
             style={{ pointerEvents: tab === 'checks' ? 'auto' : 'none' }}
           >
-            <CheckPanel />
+            {checksVisited || tab === 'checks' ? <CheckPanel /> : null}
           </motion.div>
         </TabsContent>
       </div>

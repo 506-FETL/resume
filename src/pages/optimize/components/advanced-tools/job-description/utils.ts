@@ -1,7 +1,9 @@
 import type { JobDescriptionComparisonResult } from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import type { AnalysisState } from '@/pages/optimize/types'
-import { isArray, isFinite, isNumber } from 'lodash'
+import isArray from 'lodash/isArray'
+import isFinite from 'lodash/isFinite'
+import isNumber from 'lodash/isNumber'
 import { SECTION_LABEL_MAP } from '../shared/const'
 import { getResumeSections } from '../shared/resume'
 import {

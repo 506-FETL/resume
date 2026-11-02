@@ -1,7 +1,6 @@
 import type { StoreApi } from 'zustand'
 import type { ResumeState } from '../form'
-import { next as Automerge } from '@automerge/automerge'
-import { cloneDeep } from 'lodash'
+import cloneDeep from 'lodash/cloneDeep'
 import { notifyWorkingDocumentPersisted } from '@/features/resume-comments/api/working-document-sync.ts'
 import {
   isOfflineResumeId,
@@ -67,7 +66,7 @@ export function createSyncSlice(
     if (!offline && !sourceDoc) throw new Error('简历文档尚未就绪，无法保存')
 
     // doc 的字段视图不可变，但 save() 会读取共享后端的新变化；排队前必须 clone。
-    const doc = sourceDoc ? Automerge.clone(sourceDoc) : undefined
+    const doc = sourceDoc ? manager!.cloneDocument(sourceDoc) : undefined
     // 普通表单与外观也必须在切换前深拷贝。
     const snapshot = cloneDeep(getPersistedSnapshot(state))
 

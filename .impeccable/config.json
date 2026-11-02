@@ -1,3 +1,30 @@
 {
-  "buildPath": "comp"
+  "buildPath": "comp",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "ibm plex sans sc",
+        "files": ["src/index.css"],
+        "createdAt": "2026-11-01T11:58:53.896Z",
+        "reason": "Agent: DESIGN.md 应用与纸张分离规则明确排除简历字体；现有简历外观选项使用此字体"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "zcool xiaowei",
+        "files": ["src/index.css"],
+        "createdAt": "2026-11-01T11:58:53.914Z",
+        "reason": "Agent: DESIGN.md 应用与纸张分离规则明确排除简历字体；现有简历外观选项使用此字体"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "lxgw wenkai",
+        "files": ["src/index.css"],
+        "createdAt": "2026-11-01T11:58:53.930Z",
+        "reason": "Agent: DESIGN.md 应用与纸张分离规则明确排除简历字体；现有简历外观选项使用此字体"
+      }
+    ]
+  }
 }

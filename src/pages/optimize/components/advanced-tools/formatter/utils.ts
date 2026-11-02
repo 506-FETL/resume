@@ -1,7 +1,7 @@
 import type { BatchOptimizationItem, BatchOptimizationResult } from './types'
 import type { ResumeSchema } from '@/lib/schema'
 import type { Finding, FindingsGroup, Suggestion } from '@/pages/optimize/types'
-import { toPath } from 'lodash'
+import toPath from 'lodash/toPath'
 import { isSuggestionReadyToApply } from '@/lib/ats'
 import { ensureResumeEntryIds } from '@/lib/schema/resume/entry-id'
 import { setLeaf } from '@/pages/optimize/utils'

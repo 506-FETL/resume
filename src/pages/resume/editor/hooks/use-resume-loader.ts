@@ -1,7 +1,7 @@
 import type { AutomergeUrl } from '@automerge/automerge-repo'
 import type { PreparedGuestSession } from '@/lib/collaboration'
 import type { ResumeLoadResult } from '@/store/resume/helpers/sync-service'
-import { parseAutomergeUrl } from '@automerge/automerge-repo'
+import { parseAutomergeUrl } from '@automerge/automerge-repo/slim'
 import { useEffect, useRef, useState } from 'react'
 import {
   matchPath,

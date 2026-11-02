@@ -1,6 +1,7 @@
 import { StarIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { lazy, Suspense } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Fragment } from 'react/jsx-runtime'
 import {
@@ -22,8 +23,11 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useBreadcrumbs } from '@/hooks/use-breadcrumbs'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import ResumeConfigToolbar from '@/pages/resume/editor/components/toolbar'
 import { AnimatedThemeToggler } from '../ui/animated-theme-toggler'
+
+const ResumeConfigToolbar = lazy(
+  () => import('@/pages/resume/editor/components/toolbar'),
+)
 
 export function SiteHeader() {
   const reduceMotion = useReducedMotion()
@@ -82,30 +86,32 @@ export function SiteHeader() {
         </Breadcrumb>
       )}
 
-      <AnimatePresence mode='wait'>
-        {location.pathname.includes('/editor') && (
-          <motion.div
-            key='toolbar'
-            initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{
-              opacity: 0,
-              y: reduceMotion ? 0 : -4,
-              transition: {
-                duration: reduceMotion ? 0 : DURATION.fast,
-                ease: EASE.in,
-              },
-            }}
-            transition={{
-              duration: reduceMotion ? 0 : DURATION.base,
-              ease: EASE.out,
-            }}
-            className='@container/editor-toolbar flex min-w-0 flex-1 justify-center'
-          >
-            <ResumeConfigToolbar />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Suspense fallback={null}>
+        <AnimatePresence mode='wait'>
+          {location.pathname.includes('/editor') && (
+            <motion.div
+              key='toolbar'
+              initial={{ opacity: 0, y: reduceMotion ? 0 : -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{
+                opacity: 0,
+                y: reduceMotion ? 0 : -4,
+                transition: {
+                  duration: reduceMotion ? 0 : DURATION.fast,
+                  ease: EASE.in,
+                },
+              }}
+              transition={{
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+              }}
+              className='@container/editor-toolbar flex min-w-0 flex-1 justify-center'
+            >
+              <ResumeConfigToolbar />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Suspense>
 
       <div
         className={cn(

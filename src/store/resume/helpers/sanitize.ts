@@ -1,4 +1,4 @@
-import { cloneDeepWith } from 'lodash'
+import cloneDeepWith from 'lodash/cloneDeepWith'
 
 export function sanitizeDeep<T>(value: T): T {
   return cloneDeepWith(value, (val) => {

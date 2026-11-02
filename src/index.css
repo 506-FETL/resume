@@ -3,6 +3,7 @@
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/inter';
 @import './styles/motion.css';
+@source not '../tests';
 @plugin "@tailwindcss/typography";
 
 @font-face {

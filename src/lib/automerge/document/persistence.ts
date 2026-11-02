@@ -4,6 +4,7 @@ import type {
   DocumentSaveResult,
 } from '../shared'
 import type { AutomergeResumeDocument } from './schema'
+import type { AutomergeSnapshotRow } from './read-snapshot'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { next as Automerge } from '@automerge/automerge'
 import { parseAutomergeUrl } from '@automerge/automerge-repo'
@@ -15,11 +16,9 @@ import {
   decodeDocumentData,
   encodeBytesToBase64,
 } from '../shared'
+import { readAutomergeSnapshot } from './read-snapshot'
 
-interface AutomergeSnapshotRow {
-  document_data: unknown
-  metadata: Record<string, any> | null
-}
+export type { AutomergeSnapshotRow } from './read-snapshot'
 
 export class AutomergeDocumentPersistence {
   private readonly resumeId: string
@@ -42,8 +41,12 @@ export class AutomergeDocumentPersistence {
 
   async loadPersistedHandle(
     repo: Repo,
+    prefetchedSnapshot?: AutomergeSnapshotRow | null,
   ): Promise<DocHandle<AutomergeResumeDocument> | null> {
-    const snapshot = await this.fetchSnapshotRow()
+    const snapshot =
+      prefetchedSnapshot === undefined
+        ? await this.fetchSnapshotRow()
+        : prefetchedSnapshot
 
     if (!snapshot) {
       return null
@@ -192,25 +195,8 @@ export class AutomergeDocumentPersistence {
     return { success: true }
   }
 
-  private async fetchSnapshotRow(): Promise<AutomergeSnapshotRow | null> {
-    const { data, error } = await supabase
-      .from('automerge_documents')
-      .select('document_data, metadata')
-      .eq('resume_id', this.resumeId)
-      .maybeSingle()
-
-    if (error) {
-      throw new Error('读取持久化简历文档失败', { cause: error })
-    }
-
-    if (data === null) {
-      return null
-    }
-    if (data === undefined) {
-      throw new Error('读取持久化简历文档失败：服务端未返回明确结果')
-    }
-
-    return data as AutomergeSnapshotRow
+  async fetchSnapshotRow(): Promise<AutomergeSnapshotRow | null> {
+    return readAutomergeSnapshot(this.resumeId, this.userId)
   }
 }
 

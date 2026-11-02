@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createNextResumeVersion } from '@/lib/supabase/resume'
+import { createNextResumeVersion } from '@/lib/supabase/resume/history/queries'
 import useResumeStore from '@/store/resume/form'
 
 interface QuickSaveVersionDialogProps {

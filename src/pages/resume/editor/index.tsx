@@ -326,6 +326,7 @@ function Editor() {
 
   const editRequest = usePreparationUiStore((state) => state.editRequest)
   const checkRequest = useResumeCheckStore((state) => state.requestVersion)
+  const checkTab = useResumeCheckStore((state) => state.tab)
   const handledCheckRequestRef = useRef('')
   const cancelFieldFocusRef = useRef<(() => void) | null>(null)
 
@@ -356,6 +357,17 @@ function Editor() {
   ])
 
   useEffect(() => () => cancelFieldFocusRef.current?.(), [])
+
+  useEffect(() => {
+    if (
+      !commentReview.isWorking ||
+      checkTab !== 'edit' ||
+      !(isMobile ? open : panelOpen)
+    ) {
+      cancelFieldFocusRef.current?.()
+      cancelFieldFocusRef.current = null
+    }
+  }, [checkTab, commentReview.isWorking, isMobile, open, panelOpen])
 
   useEffect(() => {
     if (

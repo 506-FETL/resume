@@ -1,20 +1,35 @@
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { Suspense } from 'react'
+import { lazy, Suspense } from 'react'
 import { useLocation, useRoutes } from 'react-router-dom'
 import routes from '~react-pages'
-import { JobContextGate } from '@/components/job-context'
 import { AuthRequired } from '@/components/auth-required'
-import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { PresencePage } from '@/components/motion/presence-item'
 import { MotionProvider } from '@/components/motion/motion-provider'
 import { PageLoading } from '@/components/page-loading'
-import { UpgradeDialog } from '@/components/quota/upgrade-dialog'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { DURATION, EASE } from '@/lib/motion'
 import { useRecoveryNavigation } from '@/pages/reset-password/hooks/use-recovery-navigation'
 import useUserStore from '@/store/user'
+
+const DashboardShell = lazy(() =>
+  import('@/components/layout/dashboard-shell').then((module) => ({
+    default: module.DashboardShell,
+  })),
+)
+
+const JobContextGate = lazy(() =>
+  import('@/components/job-context').then((module) => ({
+    default: module.JobContextGate,
+  })),
+)
+
+const UpgradeDialog = lazy(() =>
+  import('@/components/quota/upgrade-dialog').then((module) => ({
+    default: module.UpgradeDialog,
+  })),
+)
 
 const ACCOUNT_PAGES: Record<string, { title: string; description: string }> = {
   '/tracker': {
@@ -95,20 +110,28 @@ function App() {
                   {recoveryPending ? <PageLoading /> : element}
                 </Suspense>
               ) : (
-                <DashboardShell
-                  routeKey={location.pathname}
-                  fullBleed={isAssistantRoute && authStatus === 'authenticated'}
-                >
-                  <Suspense fallback={<PageLoading />}>
-                    {recoveryPending ? <PageLoading /> : page}
-                  </Suspense>
-                </DashboardShell>
+                <Suspense fallback={<PageLoading />}>
+                  <DashboardShell
+                    routeKey={location.pathname}
+                    fullBleed={
+                      isAssistantRoute && authStatus === 'authenticated'
+                    }
+                  >
+                    <Suspense fallback={<PageLoading />}>
+                      {recoveryPending ? <PageLoading /> : page}
+                    </Suspense>
+                  </DashboardShell>
+                </Suspense>
               )}
             </PresencePage>
           </AnimatePresence>
         </div>
         <Toaster position='top-right' richColors />
-        <UpgradeDialog />
+        {!isShareViewRoute && (
+          <Suspense fallback={null}>
+            <UpgradeDialog />
+          </Suspense>
+        )}
       </MotionProvider>
     </ThemeProvider>
   )

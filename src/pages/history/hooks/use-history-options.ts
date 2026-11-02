@@ -2,7 +2,7 @@ import type { HistoryResumeOption } from '../types'
 import useUserStore from '@/store/user'
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import { listResumeHistoryOptions } from '@/lib/supabase/resume'
+import { listResumeHistoryOptions } from '@/lib/supabase/resume/history/queries'
 import { buildHistoryResumeOption } from '../utils'
 
 interface HistoryResumeOptionsStore {

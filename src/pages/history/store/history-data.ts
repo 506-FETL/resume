@@ -15,14 +15,14 @@ import { toast } from 'sonner'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import {
   createResumeHistoryVersion,
-  createResumeSnapshotHash,
   deleteResumeHistoryVersion,
   getResumeHistoryResume,
   getResumeHistoryVersionSnapshot,
   listResumeHistoryVersions,
-  restoreResumeHistoryVersion,
   updateResumeHistoryVersion,
-} from '@/lib/supabase/resume'
+} from '@/lib/supabase/resume/history/queries'
+import { restoreResumeHistoryVersion } from '@/lib/supabase/resume/history/restore'
+import { createResumeSnapshotHash } from '@/lib/supabase/resume/history/snapshot'
 import {
   buildCurrentResume,
   buildResumeSnapshot,

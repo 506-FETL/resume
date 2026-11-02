@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/tooltip'
 import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 import { cn } from '@/lib/utils'
-import { ASSISTANT_TOOLS, TEMPLATE_PROMPTS } from '../../composer-tools'
+import { ASSISTANT_TOOLS, TEMPLATE_PROMPTS } from '../composer-tools'
 import { composeDraft, parseComposerDraft } from '../../composer-references'
 import { COMPOSER_PLACEHOLDER } from '../../const'
 import { useChatStream } from '../../hooks/use-chat-stream'

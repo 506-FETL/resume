@@ -61,8 +61,6 @@ interface GetResult {
 interface CurrentReleaseRow {
   id: string
   release_no: number
-  snapshot: unknown
-  template_manifest: unknown
   display_name: string | null
   created_at: string
 }
@@ -242,7 +240,7 @@ async function ensureShareCommentScope(
 ) {
   const { data: existing, error: existingError } = await admin
     .from('resume_comment_scopes')
-    .select('id,projection_reference_date')
+    .select('id,projection_reference_date,document_hash,document_revision')
     .eq('kind', 'version')
     .eq('version_id', version.id)
     .is('archived_at', null)
@@ -255,13 +253,26 @@ async function ensureShareCommentScope(
     return {
       id: existing.id as string,
       projectionReferenceDate: String(existing.projection_reference_date),
+      documentHash: existing.document_hash as string,
+      documentRevision: existing.document_revision as number,
     }
   }
 
   const referenceDate = version.projection_reference_date
 
+  const { data: savedVersion, error: versionError } = await admin
+    .from('resume_config_versions')
+    .select('snapshot')
+    .eq('id', version.id)
+    .eq('user_id', version.user_id)
+    .eq('resume_id', version.resume_id)
+    .single()
+
+  if (versionError || !savedVersion)
+    throw versionError ?? new Error('Shared version unavailable')
+
   const { document, documentHash } = buildCommentAnchorDocument(
-    version.snapshot,
+    savedVersion.snapshot,
     referenceDate,
   )
 
@@ -280,7 +291,46 @@ async function ensureShareCommentScope(
   if (error || typeof data !== 'string')
     throw error ?? new Error('Unable to ensure version comment scope')
 
-  return { id: data, projectionReferenceDate: referenceDate }
+  const { data: scope, error: scopeError } = await admin
+    .from('resume_comment_scopes')
+    .select('id,projection_reference_date,document_hash,document_revision')
+    .eq('id', data)
+    .single()
+
+  if (scopeError || !scope)
+    throw scopeError ?? new Error('Comment scope unavailable')
+
+  return {
+    id: scope.id as string,
+    projectionReferenceDate: String(scope.projection_reference_date),
+    documentHash: scope.document_hash as string,
+    documentRevision: scope.document_revision as number,
+  }
+}
+
+async function loadReleasedShareSource(
+  admin: AdminClient,
+  release: CurrentReleaseRow,
+  version: SharedVersionRow,
+) {
+  const [{ data, error }, commentScope] = await Promise.all([
+    admin
+      .from('resume_share_releases')
+      .select('snapshot,template_manifest')
+      .eq('id', release.id)
+      .single(),
+    ensureShareCommentScope(admin, version),
+  ])
+
+  if (error || !data) throw error ?? new Error('Share release unavailable')
+
+  return {
+    snapshot: redactHiddenResumeSections(data.snapshot),
+    templateManifest: data.template_manifest,
+    displayName: release.display_name,
+    version,
+    commentScope,
+  }
 }
 
 async function notifyShareCommentSettings({
@@ -671,7 +721,6 @@ Deno.serve(async (req) => {
           id,
           resume_id,
           user_id,
-          snapshot,
           status,
           document_revision,
           projection_reference_date
@@ -679,8 +728,6 @@ Deno.serve(async (req) => {
         current_release:resume_share_releases!resume_shares_current_release_id_fkey(
           id,
           release_no,
-          snapshot,
-          template_manifest,
           display_name,
           created_at
         )
@@ -815,20 +862,26 @@ Deno.serve(async (req) => {
 
     // 校验通过后原子记录访问；统计失败不阻断简历查看。
     if (!refreshOnly) {
-      const { error: viewError } = await admin.rpc('record_resume_share_view', {
-        p_share_id: data.id,
-      })
+      scheduleBackground(
+        (async () => {
+          const { error: viewError } = await admin.rpc(
+            'record_resume_share_view',
+            { p_share_id: data.id },
+          )
 
-      if (viewError) {
-        context.log({
-          level: 'warn',
-          event: 'view_counter_failed',
-          operation,
-          status: 200,
-          errorCode: 'database_unexpected',
-          sqlState: viewError.code,
-        })
-      }
+          if (viewError) {
+            context.log({
+              level: 'warn',
+              event: 'view_counter_failed',
+              operation,
+              status: 200,
+              errorCode: 'database_unexpected',
+              sqlState: viewError.code,
+            })
+          }
+        })(),
+        'view_counter_failed',
+      )
     }
 
     const sourceKind = data.source_kind === 'current' ? 'current' : 'history'
@@ -863,13 +916,7 @@ Deno.serve(async (req) => {
               )
             },
           })
-        : {
-            snapshot: redactHiddenResumeSections(currentRelease.snapshot),
-            templateManifest: currentRelease.template_manifest,
-            displayName: currentRelease.display_name,
-            version,
-            commentScope: await ensureShareCommentScope(admin, version),
-          }
+        : await loadReleasedShareSource(admin, currentRelease, version)
 
     version = source.version
 

@@ -35,7 +35,7 @@ import {
   normalizeResumeType,
   resolveResumeTemplateBinding,
 } from '@/lib/schema'
-import { createResumeSnapshotHash } from '@/lib/supabase/resume'
+import { createResumeSnapshotHash } from '@/lib/supabase/resume/history/snapshot'
 import { RESUME_TYPE_LABEL_MAP } from './const'
 
 interface SnapshotFieldConfig {

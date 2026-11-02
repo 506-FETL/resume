@@ -15,18 +15,67 @@ import {
   UserRound,
 } from 'lucide-react'
 import { createElement } from 'react'
-import ApplicationInfoForm from './components/forms/application-info'
-import BasicResumeForm from './components/forms/basic-resume'
-import CampusExperienceForm from './components/forms/campus-experience'
-import EduBackgroundForm from './components/forms/edu-background'
-import HobbiesForm from './components/forms/hobbies'
-import HonorsCertificatesForm from './components/forms/honors-certificates'
-import InternshipExperienceForm from './components/forms/internship-experience'
-import JobIntentForm from './components/forms/job-intent'
-import ProjectExperienceForm from './components/forms/project-experience'
-import SelfEvaluationForm from './components/forms/self-evaluation'
-import SkillSpecialtyForm from './components/forms/skill-specialty'
-import WorkExperienceForm from './components/forms/work-experience'
+import { createDeferredComponent } from '@/components/deferred-content'
+
+const ApplicationInfoForm = createDeferredComponent(
+  () => import('./components/forms/application-info'),
+  '报考信息',
+)
+
+const BasicResumeForm = createDeferredComponent(
+  () => import('./components/forms/basic-resume'),
+  '基本信息',
+)
+
+const CampusExperienceForm = createDeferredComponent(
+  () => import('./components/forms/campus-experience'),
+  '校园经历',
+)
+
+const EduBackgroundForm = createDeferredComponent(
+  () => import('./components/forms/edu-background'),
+  '教育背景',
+)
+
+const HobbiesForm = createDeferredComponent(
+  () => import('./components/forms/hobbies'),
+  '兴趣爱好',
+)
+
+const HonorsCertificatesForm = createDeferredComponent(
+  () => import('./components/forms/honors-certificates'),
+  '荣誉证书',
+)
+
+const InternshipExperienceForm = createDeferredComponent(
+  () => import('./components/forms/internship-experience'),
+  '实习经验',
+)
+
+const JobIntentForm = createDeferredComponent(
+  () => import('./components/forms/job-intent'),
+  '求职意向',
+)
+
+const ProjectExperienceForm = createDeferredComponent(
+  () => import('./components/forms/project-experience'),
+  '项目经验',
+)
+
+const SelfEvaluationForm = createDeferredComponent(
+  () => import('./components/forms/self-evaluation'),
+  '自我评价',
+)
+
+const SkillSpecialtyForm = createDeferredComponent(
+  () => import('./components/forms/skill-specialty'),
+  '技能特长',
+)
+
+const WorkExperienceForm = createDeferredComponent(
+  () => import('./components/forms/work-experience'),
+  '工作经历',
+)
 
 export const ITEMS: Item<ORDERType>[] = [
   {

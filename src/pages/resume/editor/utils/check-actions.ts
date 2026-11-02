@@ -1,6 +1,5 @@
 import type { CheckPatch, ResumeCheckIssue } from '@/lib/resume-checks/types'
 import { toast } from 'sonner'
-import { proofreadResume } from '@/lib/resume-checks/proofread'
 import {
   checkIssueSignature,
   createCheckPatch,
@@ -58,6 +57,7 @@ export async function runProofreading() {
   })
 
   try {
+    const { proofreadResume } = await import('@/lib/resume-checks/proofread')
     const issues = await proofreadResume(snapshot, controller)
 
     if (request !== controller || !isCurrent(state.identity)) return

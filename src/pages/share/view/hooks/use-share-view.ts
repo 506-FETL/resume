@@ -2,7 +2,7 @@ import type { ShareViewResult } from '@/lib/supabase/resume/share.types'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useStore } from 'zustand'
 import { ResumeCommentClientError } from '@/features/resume-comments/api/client'
-import { fetchSharedResume } from '@/lib/supabase/resume/share'
+import { fetchSharedResume } from '@/lib/supabase/resume/share-view'
 import { createShareViewStore } from '../store'
 import { applyShareResult, refreshDelay } from '../utils'
 

@@ -1,7 +1,8 @@
 import type { AutomergeResumeDocument } from './schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { Suggestion } from '@/lib/schema/ats'
-import { set, toPath } from 'lodash'
+import set from 'lodash/set'
+import toPath from 'lodash/toPath'
 import { toast } from 'sonner'
 import {
   normalizeResumeFormData,

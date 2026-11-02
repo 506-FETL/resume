@@ -7,11 +7,11 @@ import type {
   StartShareParams,
 } from './types'
 import type { DocumentManager } from '@/lib/automerge'
+import type useRichTextCollabStore from '../richtext/store'
 import { toast } from 'sonner'
 import { create } from 'zustand'
-import { COLLABORATION_CONTROL_ACK_TIMEOUT_MS } from '@/lib/automerge'
+import { COLLABORATION_CONTROL_ACK_TIMEOUT_MS } from '@/lib/automerge/shared/constants'
 import useResumeStore from '@/store/resume/form'
-import { useRichTextCollabStore } from '../richtext'
 import { createCollaborationSessionId } from '../shared'
 import { createSessionCallbacks } from './callbacks'
 import { startCollaborationLeaseMonitor } from './lease'
@@ -67,6 +67,14 @@ interface PendingHostAttempt {
   userId: string
   ownerGeneration: number
   status: 'active' | 'rolling_back' | 'retryable'
+}
+
+async function loadRichTextCollabStore() {
+  try {
+    return (await import('../richtext/store')).default
+  } catch (error) {
+    throw new Error('协作编辑组件加载失败，请重试', { cause: error })
+  }
 }
 
 type PendingHostAttemptIdentity = Omit<
@@ -150,6 +158,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
   get,
 ) => {
   let activeGeneration = 0
+  let richTextCollabStore: typeof useRichTextCollabStore | null = null
   let stopLeaseMonitor: (() => void) | null = null
   let activeStopOperation: ActiveStopOperation | null = null
   let activeHostStartOperation: ActiveHostStartOperation | null = null
@@ -266,7 +275,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       }
     }
 
-    useRichTextCollabStore.getState().stop()
+    richTextCollabStore?.getState().stop()
 
     if (state.sessionId && state.resumeId && state.self) {
       clearStoredSession(state.sessionId, state.resumeId, state.self.userId)
@@ -291,7 +300,7 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
     result: Awaited<ReturnType<typeof connectDocumentSession>>,
     seed: boolean,
   ) => {
-    useRichTextCollabStore.getState().start({
+    richTextCollabStore!.getState().start({
       resumeId: result.resumeId,
       sessionId: result.sessionId,
       role: result.role,
@@ -359,6 +368,16 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
       if (!docManager.canPersist()) {
         throw new Error('共享文档不能恢复为协作发起者')
       }
+
+      const loadedRichTextStore = await loadRichTextCollabStore()
+
+      if (!isCurrentHostOperation()) {
+        throw new CollaborationOperationError('协作会话已切换', {
+          code: 'session_changed',
+        })
+      }
+
+      richTextCollabStore = loadedRichTextStore
 
       if (options.saveSnapshot) {
         await useResumeStore.getState().syncToSupabase()
@@ -753,6 +772,11 @@ const useCollaborationStore = create<CollaborationSessionStore>()((
         commentAccess: prepared.authorization.commentAccess,
         error: null,
       })
+
+      const loadedRichTextStore = await loadRichTextCollabStore()
+
+      assertPreparedSession(prepared, activeGeneration, get)
+      richTextCollabStore = loadedRichTextStore
 
       const result = await connectDocumentSession({
         ...prepared,

@@ -12,7 +12,6 @@ import type {
 } from '@/lib/schema'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { create } from 'zustand'
-import { applyWriteOpsDefault } from '@/hooks/collab/apply-write-ops'
 import {
   DEFAULT_APPLICATION_INFO,
   DEFAULT_BASICS,
@@ -169,7 +168,7 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
       { [key]: nextValue } as Partial<ResumeState>,
       (doc) => {
         ensureSection(doc, key)
-        applyWriteOpsDefault(doc, ops)
+        get().docManager?.applyWriteOps(doc, ops)
       },
     )
   },

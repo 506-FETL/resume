@@ -1,6 +1,14 @@
 import type { ReadingZoom } from './components/reading-toolbar'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useParams } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PageLoading } from '@/components/page-loading'
@@ -14,9 +22,12 @@ import useCurrentUser from '@/hooks/use-current-user'
 import PdfExport from '../components/pdf-export'
 import CenteredMessage from './components/centered-message'
 import { ReadingToolbar } from './components/reading-toolbar'
-import ShareResumeComments from './components/share-resume-comments'
 import { INITIAL_DOCUMENT_STATE } from './const'
 import { useShareView } from './hooks/use-share-view'
+
+const ShareResumeComments = lazy(
+  () => import('./components/share-resume-comments'),
+)
 
 export default function ResumeSharePage() {
   const { token } = useParams<{ token: string }>()
@@ -190,22 +201,24 @@ export default function ResumeSharePage() {
           </div>
         </main>
         {state.commentAccess ? (
-          <ResumeCommentProvider
-            access={state.commentAccess.context}
-            refreshAccess={refreshCommentAccess}
-            onAccessInvalidated={handleCommentAccessInvalidated}
-          >
-            <ShareResumeComments
-              rootRef={documentRef}
-              sourceLabel={`${state.displayName || '简历'}${state.sourceKind === 'current' ? ' · 当前版本' : state.releaseNo ? ` · 第 ${state.releaseNo} 版` : ''}`}
-              allowComments={state.allowComments}
-              currentUserId={currentUser?.id ?? null}
-              open={commentsOpen}
-              onOpenChange={setCommentsOpen}
-              layoutRevision={`${JSON.stringify(documentState.signature)}:${readingZoom}`}
-              documentRevision={state.documentRevision}
-            />
-          </ResumeCommentProvider>
+          <Suspense fallback={null}>
+            <ResumeCommentProvider
+              access={state.commentAccess.context}
+              refreshAccess={refreshCommentAccess}
+              onAccessInvalidated={handleCommentAccessInvalidated}
+            >
+              <ShareResumeComments
+                rootRef={documentRef}
+                sourceLabel={`${state.displayName || '简历'}${state.sourceKind === 'current' ? ' · 当前版本' : state.releaseNo ? ` · 第 ${state.releaseNo} 版` : ''}`}
+                allowComments={state.allowComments}
+                currentUserId={currentUser?.id ?? null}
+                open={commentsOpen}
+                onOpenChange={setCommentsOpen}
+                layoutRevision={`${JSON.stringify(documentState.signature)}:${readingZoom}`}
+                documentRevision={state.documentRevision}
+              />
+            </ResumeCommentProvider>
+          </Suspense>
         ) : null}
       </div>
     )

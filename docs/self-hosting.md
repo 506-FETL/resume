@@ -6,15 +6,18 @@
 
 使用 Node.js 24、pnpm 10.33.3，在项目根目录的 `.env.local` 中配置：
 
-| 变量                                     | 说明                                  |
-| ---------------------------------------- | ------------------------------------- |
-| `VITE_SUPABASE_URL`                      | 必需，Supabase 项目 URL               |
-| `VITE_SUPABASE_PUBLISHABLE_KEY`          | 必需，可公开的 publishable / anon key |
-| `VITE_BASE_URL`                          | 站点基地址，用于认证回调和分享链接    |
-| `VITE_RESUME_COMMENTS_FUNCTION_REGION`   | 可选，评论函数区域；未设置时自动解析  |
-| `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` | 可选，协作协议 v2 开关；当前默认关闭  |
+| 变量                                     | 说明                                                                                    |
+| ---------------------------------------- | --------------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`                      | 必需，Supabase 项目 URL                                                                 |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`          | 必需，可公开的 publishable / anon key                                                   |
+| `VITE_BASE_URL`                          | 站点基地址，用于认证回调和分享链接                                                      |
+| `VITE_RESUME_COMMENTS_FUNCTION_REGION`   | 可选，评论函数区域；未设置时自动解析                                                    |
+| `VITE_RESUME_SHARE_FUNCTION_REGION`      | 可选，分享读取函数区域；默认 `us-east-1`，应与自己的数据库区域一致；`auto` 使用自动选择 |
+| `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` | 可选，协作协议 v2 开关；当前默认关闭                                                    |
 
 `VITE_` 变量会写入浏览器构建产物，只能放公开配置。模型密钥、service role key 和评论签名密钥放在服务端。
+
+分享读取需要多次查询数据库，函数和数据库跨区会累积网络等待。默认区域对应当前站点的数据库；自托管请按 Supabase 项目的实际区域设置分享函数区域。区域选择方式见 [Supabase 官方说明](https://supabase.com/docs/guides/functions/regional-invocation)。
 
 ```bash
 pnpm install --frozen-lockfile
@@ -23,6 +26,8 @@ pnpm preview
 ```
 
 生产资源位于 `dist/`。静态托管需将前端路由回退到 `index.html`，仓库的 [`vercel.json`](../vercel.json) 已包含 Vercel 配置。环境变量在构建时生效，修改后需重新构建。
+
+构建沿用 Vite 7 默认浏览器基线、自动分包和 Terser，保留 WASM 插件。公开分享与普通外壳不提前加载编辑工具栏；不要重新合并成包含编辑器的全站 vendor 包。Vercel 配置仅对带内容哈希的 `/assets/` 设置一年 immutable，HTML 与其他 public 文件继续 no-cache。部署到其他静态服务器时也需分别设置这两类规则；不要长期缓存分享接口返回的正文。
 
 ## 数据库与核心函数
 

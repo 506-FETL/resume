@@ -1,5 +1,4 @@
 import type { RestoreResumeHistoryVersionInput } from './types'
-import { replaceAutomergeDocumentSnapshot } from '@/lib/automerge'
 import { createResumeHistoryVersion } from './queries'
 import { createResumeSnapshotHash, trimToNull } from './snapshot'
 
@@ -11,6 +10,9 @@ export async function restoreResumeHistoryVersion({
   currentUpdatedAt,
   strategy,
 }: RestoreResumeHistoryVersionInput) {
+  const { replaceAutomergeDocumentSnapshot } =
+    await import('@/lib/automerge/document/sync')
+
   if (strategy === 'with_backup') {
     await createResumeHistoryVersion({
       resume_id: resumeId,

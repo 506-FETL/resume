@@ -5,6 +5,7 @@ import { type FC, useEffect, useState } from 'react'
 import { Check, Copy, Download } from 'lucide-react'
 import { parseSanitizedHtml } from '@/lib/safe-html'
 import { cn } from '@/lib/utils'
+import '@/styles/devicon.css'
 
 // Devicon class mapping for language icons
 const deviconMap: Record<string, string> = {

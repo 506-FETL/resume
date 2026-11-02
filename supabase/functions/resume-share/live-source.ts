@@ -14,7 +14,6 @@ export interface SharedVersionRow {
   id: number
   resume_id: string
   user_id: string
-  snapshot: unknown
   status: 'active' | 'frozen'
   document_revision: number
   projection_reference_date: string
@@ -23,6 +22,8 @@ export interface SharedVersionRow {
 export interface ShareCommentScope {
   id: string
   projectionReferenceDate: string
+  documentHash: string
+  documentRevision: number
 }
 
 // 只选取简历公开字段，禁止把 owner、协作状态等数据库元数据带入响应。
@@ -121,7 +122,7 @@ export async function loadLiveShareSource({
     const { data: config, error } = await admin
       .from('resume_config')
       .select(
-        `${SNAPSHOT_FIELDS},display_name,updated_at,current_version_id,version:resume_config_versions!resume_config_current_version_id_fkey(id,resume_id,user_id,snapshot,status,document_revision,projection_reference_date)`,
+        `${SNAPSHOT_FIELDS},display_name,updated_at,current_version_id,version:resume_config_versions!resume_config_current_version_id_fkey(id,resume_id,user_id,status,document_revision,projection_reference_date)`,
       )
       .eq('resume_id', resumeId)
       .eq('user_id', ownerUserId)
@@ -150,29 +151,18 @@ export async function loadLiveShareSource({
     )
       continue
 
-    const manifest = await loadTemplateManifest(
-      admin,
-      snapshot.template_binding,
-    )
-
-    const commentScope = await ensureScope(admin, version)
-
-    const { data: scope, error: scopeError } = await admin
-      .from('resume_comment_scopes')
-      .select('document_hash,document_revision')
-      .eq('id', commentScope.id)
-      .single()
-
-    if (scopeError || !scope)
-      throw scopeError ?? new Error('Comment scope unavailable')
+    const [manifest, commentScope] = await Promise.all([
+      loadTemplateManifest(admin, snapshot.template_binding),
+      ensureScope(admin, version),
+    ])
 
     const { document, documentHash } = buildCommentAnchorDocument(
       snapshot,
       commentScope.projectionReferenceDate,
     )
 
-    if (scope.document_revision !== version.document_revision) continue
-    if (scope.document_hash !== documentHash) {
+    if (commentScope.documentRevision !== version.document_revision) continue
+    if (commentScope.documentHash !== documentHash) {
       const { data: threads, error: threadsError } = await admin
         .from('resume_comment_threads')
         .select('id,anchor')

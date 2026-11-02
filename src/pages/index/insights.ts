@@ -3,11 +3,9 @@ import type { ApplicationStatus } from '@/pages/tracker/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { jobContextUrl } from '@/lib/job-context'
 import { countPendingAtsFindings } from '@/lib/ats'
-import {
-  listAtsSummaries,
-  listJobApplicationSummaries,
-  listResumeHistoryVersionSummaries,
-} from '@/lib/supabase/resume'
+import { listAtsSummaries } from '@/lib/supabase/resume/ats'
+import { listJobApplicationSummaries } from '@/lib/supabase/resume/company'
+import { listResumeHistoryVersionSummaries } from '@/lib/supabase/resume/history/queries'
 import {
   APPLICATION_STATUS_CONFIG,
   APPLICATION_STATUS_ORDER,

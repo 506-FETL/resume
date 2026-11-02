@@ -8,7 +8,7 @@ import type {
   PersistedResumeSnapshot,
   ResumeAppearancePatch,
 } from '@/lib/schema'
-import { get } from 'lodash'
+import get from 'lodash/get'
 import {
   DEFAULT_ORDER,
   DEFAULT_VISIBILITY,

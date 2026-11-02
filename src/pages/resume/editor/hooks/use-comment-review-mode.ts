@@ -17,7 +17,7 @@ import {
 import {
   getResumeVersionForShare,
   listResumeVersions,
-} from '@/lib/supabase/resume/history'
+} from '@/lib/supabase/resume/history/queries'
 import useResumeStore from '@/store/resume/form'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 

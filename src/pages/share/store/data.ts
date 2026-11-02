@@ -1,7 +1,7 @@
 import type { ShareDataSlice, ShareSlice, ShareStoreState } from './types'
 import { toast } from 'sonner'
 import { getResumeOptions } from '@/lib/supabase/resume/form'
-import { listResumeHistoryShareOptions } from '@/lib/supabase/resume/history'
+import { listResumeHistoryShareOptions } from '@/lib/supabase/resume/history/queries'
 import {
   archiveResumeShare,
   createResumeShareRelease,

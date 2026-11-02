@@ -12,7 +12,6 @@ import '@fontsource/tinos/latin-400-italic.css'
 import '@fontsource/tinos/latin-700-italic.css'
 import '@fontsource-variable/noto-sans-sc/wght.css'
 import '@fontsource-variable/noto-serif-sc/wght.css'
-import './styles/devicon.css'
 import './index.css'
 
 const app = createRoot(document.getElementById('root')!)

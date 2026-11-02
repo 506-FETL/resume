@@ -5,13 +5,13 @@ import type { EditorMode, ResumeLoadResult } from '../helpers/sync-service'
 import type {
   AutomergeResumeDocument,
   DocumentInitializationSource,
-} from '@/lib/automerge'
-import dayjs from 'dayjs'
-import { toast } from 'sonner'
-import {
-  CollaborationDocumentLoadError,
   DocumentManager,
 } from '@/lib/automerge'
+import type { ResumeTemplateBinding } from '@/lib/schema'
+import dayjs from 'dayjs'
+import { toast } from 'sonner'
+import { readAutomergeSnapshot } from '@/lib/automerge/document/read-snapshot'
+import { CollaborationDocumentLoadError } from '@/lib/automerge/shared/types'
 import {
   getOfflineResumeById,
   isOfflineResumeId,
@@ -23,6 +23,8 @@ import {
   hasCompleteResumeEntryIds,
 } from '@/lib/schema/resume/entry-id'
 import { getCurrentUser } from '@/lib/supabase/user'
+import useUserStore from '@/store/user'
+import { useResumeTemplateStore } from '@/store/resume-template'
 import useResumeConfigStore from '../config'
 import {
   hasPersistedAppearance,
@@ -115,7 +117,14 @@ export function createDocumentSlice(
         throw new CollaborationDocumentLoadError('离线简历不支持实时协作')
 
       const requestId = ++latestLoadRequestId
-      const isCurrentRequest = () => requestId === latestLoadRequestId
+      let requestUserId: string | null = null
+      let accountChanged = false
+
+      const isCurrentRequest = () =>
+        requestId === latestLoadRequestId &&
+        !accountChanged &&
+        (!requestUserId ||
+          useUserStore.getState().currentUser?.id === requestUserId)
 
       const assertCurrentRequest = () => {
         if (!isCurrentRequest()) throw new ResumeLoadSupersededError()
@@ -186,6 +195,8 @@ export function createDocumentSlice(
           data as Partial<AutomergeResumeDocument>,
         )
 
+        preloadTemplate(snapshot.templateBinding)
+
         set({
           ...mapSnapshotToState(snapshot),
           isSyncing: false,
@@ -220,11 +231,32 @@ export function createDocumentSlice(
         throw new Error('用户未登录')
       }
 
+      requestUserId = user.id
+
+      const unsubscribeUser = useUserStore.subscribe((current, previous) => {
+        if (current.currentUser?.id !== previous.currentUser?.id)
+          accountChanged = true
+      })
+
       let manager: DocumentManager | null = null
 
       try {
-        // 自有云端简历先验证 resume_config 行存在，避免已删除的 UUID 被初始化成一份空白 Automerge 文档。
+        // 两个只读请求并行；确认配置存在前不能导入、创建或保存文档。
         // 协作来源已经由 Edge 返回的 bootstrap 鉴权，不得再读 owner-only 外观数据或回退 owner 文档。
+        const persistedSnapshotRequest =
+          source.kind === 'owner'
+            ? readAutomergeSnapshot(resumeId, user.id).then(
+                (snapshot) => ({ status: 'fulfilled' as const, snapshot }),
+                (error: unknown) => ({ status: 'rejected' as const, error }),
+              )
+            : null
+
+        const managerModuleRequest =
+          import('@/lib/automerge/document/manager').then(
+            (module) => ({ status: 'fulfilled' as const, module }),
+            (error: unknown) => ({ status: 'rejected' as const, error }),
+          )
+
         const initialCloudAppearanceResult =
           source.kind === 'owner'
             ? await getCloudAppearanceSource(resumeId)
@@ -235,11 +267,34 @@ export function createDocumentSlice(
         if (initialCloudAppearanceResult?.resumeExists === false)
           throw new ResumeNotFoundError()
 
-        manager = new DocumentManager(resumeId, user.id, {
-          source,
-        })
+        const persistedSnapshotResult = await persistedSnapshotRequest
 
-        const handle = await manager.initialize()
+        assertCurrentRequest()
+
+        if (persistedSnapshotResult?.status === 'rejected')
+          throw persistedSnapshotResult.error
+
+        const managerModuleResult = await managerModuleRequest
+
+        assertCurrentRequest()
+
+        if (managerModuleResult.status === 'rejected')
+          throw new Error('简历编辑组件加载失败，请重试', {
+            cause: managerModuleResult.error,
+          })
+
+        manager = new managerModuleResult.module.DocumentManager(
+          resumeId,
+          user.id,
+          { source },
+        )
+
+        const handle = await manager.initialize(
+          persistedSnapshotResult?.snapshot,
+          (binding) => {
+            if (isCurrentRequest()) preloadTemplate(binding)
+          },
+        )
 
         assertCurrentRequest()
 
@@ -381,6 +436,8 @@ export function createDocumentSlice(
         })
 
         throw error
+      } finally {
+        unsubscribeUser()
       }
     },
 
@@ -418,4 +475,13 @@ export function createDocumentSlice(
       })
     },
   }
+}
+
+function preloadTemplate(binding?: ResumeTemplateBinding) {
+  if (!binding) return
+
+  useResumeTemplateStore.getState().loadDefinition({
+    templateId: binding.templateId,
+    templateVersion: binding.templateVersion,
+  })
 }

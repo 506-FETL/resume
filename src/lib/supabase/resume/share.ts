@@ -9,11 +9,9 @@ import type {
   ResumeShareReviewRelease,
   ResumeShareSnapshotSource,
   ShareVersionSelection,
-  ShareViewResult,
 } from './share.types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { sharePurposeDefaults } from '@/lib/share-purpose'
-import { createResumeHistoryVersion } from './history'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
 import {
   isResumeCommentClientError,
@@ -30,7 +28,11 @@ import { redactHiddenResumeSections } from '../../../../supabase/functions/share
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 import { getResumeById, RESUME_PERSISTED_SELECTOR } from './form'
-import { getCurrentResumeVersion, getResumeVersionForShare } from './history'
+import {
+  createResumeHistoryVersion,
+  getCurrentResumeVersion,
+  getResumeVersionForShare,
+} from './history/queries'
 import {
   readShareVersionSource,
   toShareVersionSourcePatch,
@@ -671,93 +673,4 @@ export async function deleteResumeShare(shareId: string): Promise<void> {
   })
 
   if (error) throw error
-}
-
-/** 匿名读取分享内容（分享页调用；无需登录） */
-export async function fetchSharedResume(
-  token: string,
-  password?: string,
-  options: {
-    refresh?: boolean
-    knownContentRevision?: string
-    accessToken?: string
-    signal?: AbortSignal
-  } = {},
-): Promise<ShareViewResult> {
-  const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-share`,
-    {
-      method: 'POST',
-      signal: options.signal,
-      cache: 'no-store',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        token,
-        knownContentRevision: options.knownContentRevision,
-        accessToken: options.accessToken,
-        ...(password ? { password } : {}),
-        ...(options.refresh ? { refresh: true } : {}),
-      }),
-    },
-  )
-
-  const body = (await res.json().catch(() => null)) as {
-    source_kind?: 'current' | 'history'
-    content_revision?: string
-    not_modified?: boolean
-    needPassword?: boolean
-    error?: string
-    snapshot?: PersistedResumeSnapshot
-    template_manifest?: unknown
-    display_name?: string | null
-    share_id?: string
-    release_id?: string
-    release_no?: number
-    version_id?: number
-    document_revision?: number
-    allow_comments?: boolean
-    projection_reference_date?: string
-    comment_scope_id?: string
-    comment_access_token?: string
-    comment_access_expires_at?: string
-  } | null
-
-  if (!body) throw new Error('Invalid share response')
-
-  if (body.needPassword) {
-    return {
-      needPassword: true,
-      wrongPassword: body.error === 'wrong_password',
-      rateLimited: body.error === 'rate_limited',
-    }
-  }
-
-  if (res.status >= 500 || res.status === 429)
-    throw new Error('Share temporarily unavailable')
-
-  if (!res.ok) return { unavailable: true }
-
-  if (!body.not_modified && (!body.snapshot || !body.template_manifest))
-    throw new Error('Incomplete share response')
-
-  return {
-    sourceKind: body.source_kind,
-    contentRevision: body.content_revision,
-    notModified: body.not_modified === true,
-    snapshot: body.snapshot,
-    templateDefinition: body.template_manifest
-      ? parseSharedTemplateDefinition(body.template_manifest)
-      : undefined,
-    displayName: body.display_name ?? null,
-    shareId: body.share_id,
-    releaseId: body.release_id,
-    releaseNo: body.release_no,
-    versionId: body.version_id,
-    documentRevision: body.document_revision,
-    allowComments: body.allow_comments,
-    projectionReferenceDate: body.projection_reference_date,
-    commentScopeId: body.comment_scope_id,
-    commentAccessToken: body.comment_access_token,
-    commentAccessExpiresAt: body.comment_access_expires_at,
-  }
 }

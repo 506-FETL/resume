@@ -1,5 +1,5 @@
 import type { DebouncedFunc } from 'lodash'
-import { throttle } from 'lodash'
+import throttle from 'lodash/throttle'
 import * as React from 'react'
 
 interface ThrottleSettings {

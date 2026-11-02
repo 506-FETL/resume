@@ -30,16 +30,31 @@ export function checkFormPath(
 export function focusCheckField(target: CheckTarget, reduced: boolean) {
   let frame = 0
   let cancelled = false
-  const started = performance.now()
+  let settleUntil = performance.now() + 2500
   const identity = useResumeStore.getState().currentResumeId
 
+  const stop = () => {
+    cancelled = true
+    cancelAnimationFrame(frame)
+    observer.disconnect()
+  }
+
   const seek = () => {
-    if (cancelled || useResumeStore.getState().currentResumeId !== identity)
+    frame = 0
+
+    if (cancelled || useResumeStore.getState().currentResumeId !== identity) {
+      stop()
+
       return
+    }
 
     const path = checkFormPath(target)
 
-    if (!path) return
+    if (!path) {
+      stop()
+
+      return
+    }
 
     const fields = Array.from(
       document.querySelectorAll<HTMLElement>(
@@ -75,12 +90,16 @@ export function focusCheckField(target: CheckTarget, reduced: boolean) {
         inputs[datePart ? Number(datePart[1]) : 0] ??
         inputs[0]
 
+      if (!input) return
+
+      stop()
+
       field.scrollIntoView({
         block: 'center',
         behavior: reduced ? 'instant' : 'smooth',
       })
 
-      input?.focus({ preventScroll: true })
+      input.focus({ preventScroll: true })
 
       if (
         (input instanceof HTMLInputElement ||
@@ -97,13 +116,26 @@ export function focusCheckField(target: CheckTarget, reduced: boolean) {
       return
     }
 
-    if (performance.now() - started < 2500) frame = requestAnimationFrame(seek)
+    if (performance.now() < settleUntil) frame = requestAnimationFrame(seek)
   }
+
+  // 代码分包可能晚于入场动画就绪；真实字段挂载后再接续定位。
+  const observer = new MutationObserver(() => {
+    if (cancelled) return
+
+    settleUntil = performance.now() + 2500
+
+    if (!frame) frame = requestAnimationFrame(seek)
+  })
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['inert', 'aria-hidden', 'hidden'],
+  })
 
   frame = requestAnimationFrame(seek)
 
-  return () => {
-    cancelled = true
-    cancelAnimationFrame(frame)
-  }
+  return stop
 }
