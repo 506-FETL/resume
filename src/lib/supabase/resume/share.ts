@@ -11,6 +11,7 @@ import type {
   ShareVersionSelection,
 } from './share.types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
+import type { ResumeHistoryShareReleaseRow } from './history/types'
 import { sharePurposeDefaults } from '@/lib/share-purpose'
 import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document.ts'
 import {
@@ -37,6 +38,7 @@ import {
   readShareVersionSource,
   toShareVersionSourcePatch,
 } from './share-version'
+import { getResumeShareFunctionUrl } from './share-function-url'
 
 const SHARE_SELECT = `
   id,
@@ -276,12 +278,21 @@ export async function resolveResumeShareRelease(input: {
     input.selection.versionId,
   )
 
-  const snapshot = mapSourceToPersistedSnapshot(version.snapshot)
-
-  const source = await buildResumeShareSnapshotSource(
-    snapshot,
+  return resolveHistoryResumeShareRelease(
+    input.selection.versionId,
+    version,
     input.displayName,
   )
+}
+
+async function resolveHistoryResumeShareRelease(
+  versionId: number,
+  version: ResumeHistoryShareReleaseRow,
+  displayName: string | null,
+): Promise<ResolvedResumeShareRelease> {
+  const snapshot = mapSourceToPersistedSnapshot(version.snapshot)
+
+  const source = await buildResumeShareSnapshotSource(snapshot, displayName)
 
   const commentAnchor = buildCommentAnchorDocument(
     snapshot,
@@ -292,7 +303,7 @@ export async function resolveResumeShareRelease(input: {
     ...source,
     source: {
       kind: 'history',
-      versionId: input.selection.versionId,
+      versionId,
       versionNo: version.version_no,
       versionLabel:
         version.version_name?.trim() ||
@@ -300,7 +311,7 @@ export async function resolveResumeShareRelease(input: {
         '未命名版本',
       versionCreatedAt: version.created_at,
     },
-    versionId: input.selection.versionId,
+    versionId,
     documentRevision: version.document_revision,
     projectionReferenceDate: version.projection_reference_date,
     commentAnchorDocument: commentAnchor.document,
@@ -386,67 +397,69 @@ export async function createResumeShareRelease(
       snapshot: savedSnapshot,
     })
 
-    release = await resolveResumeShareRelease({
-      resumeId,
-      displayName: savedDisplayName,
-      selection: { kind: 'history', versionId: version.id },
-      getCurrentSource: getResumeSnapshotById,
-    })
+    release = await resolveHistoryResumeShareRelease(
+      version.id,
+      version,
+      savedDisplayName,
+    )
   }
 
   const token = generateToken()
   const hasPassword = Boolean(options.password)
 
-  const { data, error } = await supabase
-    .from('resume_shares')
-    .insert({
-      resume_id: resumeId,
-      user_id: user.id,
-      token,
-      label: options.label ?? null,
-      display_name: release.displayName,
-      snapshot: release.snapshot,
-      template_manifest: release.templateManifest,
-      expires_at: options.expiresAt ?? null,
-      purpose: policy.purpose,
-      show_phone: policy.showPhone,
-      show_email: policy.showEmail,
-      allow_comments:
-        policy.purpose === 'showcase' || !policy.showPhone || !policy.showEmail
-          ? false
-          : policy.allowComments,
-      version_id: release.versionId,
-      ...toShareVersionSourcePatch(release.source),
-      // 发布批次和密码都就绪前保持关闭，避免公开读取到半初始化记录。
-      is_active: false,
-    })
-    .select('id')
-    .single()
+  const allowComments =
+    policy.purpose === 'showcase' || !policy.showPhone || !policy.showEmail
+      ? false
+      : policy.allowComments
 
-  if (error) throw error
+  const controller = new AbortController()
+  let timedOut = false
+  let shareId: string
+
+  const timeoutId = globalThis.setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, SHARE_PUBLISH_TIMEOUT_MS)
 
   try {
-    await publishResumeShareRelease(data.id, release)
+    const { data, error } = await supabase
+      .rpc('create_resume_share_release', {
+        ...toShareReleaseRpcParameters(release),
+        p_resume_id: resumeId,
+        p_token: token,
+        p_label: options.label ?? null,
+        p_expires_at: options.expiresAt ?? null,
+        p_purpose: policy.purpose,
+        p_show_phone: policy.showPhone,
+        p_show_email: policy.showEmail,
+        p_allow_comments: allowComments,
+        p_activate: !hasPassword,
+      })
+      .abortSignal(controller.signal)
 
+    if (error) throw error
+
+    shareId = data
+  } catch (error) {
+    throw toPublishError(error, timedOut)
+  } finally {
+    globalThis.clearTimeout(timeoutId)
+  }
+
+  try {
     if (hasPassword) {
-      await updateResumeShareSettings(data.id, {
+      await updateResumeShareSettings(shareId, {
         label: options.label ?? null,
         expiresAt: options.expiresAt ?? null,
         password: options.password!,
-        allowComments:
-          policy.purpose === 'showcase' ||
-          !policy.showPhone ||
-          !policy.showEmail
-            ? false
-            : policy.allowComments,
+        allowComments,
+        activate: true,
       })
     }
 
-    await setResumeShareActive(data.id, true)
-
-    return getResumeShareRecord(data.id)
+    return await getResumeShareRecord(shareId)
   } catch (error) {
-    await deleteResumeShare(data.id).catch(() => undefined)
+    await deleteResumeShare(shareId).catch(() => undefined)
 
     throw error
   }
@@ -474,6 +487,7 @@ export async function updateResumeShareSettings(
     allowComments: boolean
     showPhone?: boolean
     showEmail?: boolean
+    activate?: true
   },
 ): Promise<void> {
   const {
@@ -484,28 +498,26 @@ export async function updateResumeShareSettings(
 
   if (!token) throw new Error('用户未登录')
 
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-share`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        op: 'update_settings',
-        shareId,
-        label: settings.label,
-        expiresAt: settings.expiresAt,
-        allowComments: settings.allowComments,
-        showPhone: settings.showPhone,
-        showEmail: settings.showEmail,
-        ...(settings.password !== undefined
-          ? { password: settings.password }
-          : {}),
-      }),
+  const response = await fetch(getResumeShareFunctionUrl(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
-  )
+    body: JSON.stringify({
+      op: 'update_settings',
+      shareId,
+      label: settings.label,
+      expiresAt: settings.expiresAt,
+      allowComments: settings.allowComments,
+      showPhone: settings.showPhone,
+      showEmail: settings.showEmail,
+      activate: settings.activate,
+      ...(settings.password !== undefined
+        ? { password: settings.password }
+        : {}),
+    }),
+  })
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
@@ -603,11 +615,30 @@ function toPublishError(error: unknown, timedOut: boolean): Error {
   return new Error('发布失败，请稍后重试')
 }
 
+function toShareReleaseRpcParameters(release: ResolvedResumeShareRelease) {
+  const source = toShareVersionSourcePatch(release.source)
+
+  return {
+    p_version_id: release.versionId,
+    p_snapshot: release.snapshot,
+    p_template_manifest: release.templateManifest,
+    p_display_name: release.displayName,
+    p_source_kind: source.source_kind,
+    p_source_version_id: source.source_version_id,
+    p_source_version_no: source.source_version_no,
+    p_source_version_label: source.source_version_label,
+    p_source_version_created_at: source.source_version_created_at,
+    p_anchor_document: release.commentAnchorDocument,
+    p_document_hash: release.commentDocumentHash,
+    p_projection_reference_date: release.projectionReferenceDate,
+    p_expected_document_revision: release.documentRevision,
+  }
+}
+
 async function performResumeShareReleasePublish(
   shareId: string,
   release: ResolvedResumeShareRelease,
 ): Promise<ResumeShareRecord> {
-  const source = toShareVersionSourcePatch(release.source)
   const controller = new AbortController()
   let timedOut = false
 
@@ -619,20 +650,8 @@ async function performResumeShareReleasePublish(
   try {
     const { error } = await supabase
       .rpc('publish_resume_share_release', {
+        ...toShareReleaseRpcParameters(release),
         p_share_id: shareId,
-        p_version_id: release.versionId,
-        p_snapshot: release.snapshot,
-        p_template_manifest: release.templateManifest,
-        p_display_name: release.displayName,
-        p_source_kind: source.source_kind,
-        p_source_version_id: source.source_version_id,
-        p_source_version_no: source.source_version_no,
-        p_source_version_label: source.source_version_label,
-        p_source_version_created_at: source.source_version_created_at,
-        p_anchor_document: release.commentAnchorDocument,
-        p_document_hash: release.commentDocumentHash,
-        p_projection_reference_date: release.projectionReferenceDate,
-        p_expected_document_revision: release.documentRevision,
       })
       .abortSignal(controller.signal)
 

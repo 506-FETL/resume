@@ -25,6 +25,7 @@ useUserStore.subscribe((state) => {
     dialogRequestId: current.dialogRequestId + 1,
     shares: [],
     allShares: [],
+    pendingShareIds: [],
     resumeMap: {},
     searchKeyword: '',
     resumeFilters: [],

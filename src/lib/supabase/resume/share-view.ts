@@ -1,6 +1,7 @@
 import type { ShareViewResult } from './share.types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
+import { getResumeShareFunctionUrl } from './share-function-url'
 
 /** 匿名读取分享内容（分享页调用；无需登录） */
 export async function fetchSharedResume(
@@ -13,17 +14,7 @@ export async function fetchSharedResume(
     signal?: AbortSignal
   } = {},
 ): Promise<ShareViewResult> {
-  const url = new URL(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-share`,
-  )
-
-  // 当前项目数据库位于美国东部，分享读取的多次查询应在同一区域执行。
-  const region =
-    import.meta.env.VITE_RESUME_SHARE_FUNCTION_REGION ?? 'us-east-1'
-
-  if (region !== 'auto') url.searchParams.set('forceFunctionRegion', region)
-
-  const res = await fetch(url, {
+  const res = await fetch(getResumeShareFunctionUrl(), {
     method: 'POST',
     signal: options.signal,
     cache: 'no-store',

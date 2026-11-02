@@ -65,6 +65,12 @@ interface CurrentReleaseRow {
   created_at: string
 }
 
+interface SavedShareSettings {
+  current_release_id: string | null
+  version_id: number | null
+  allow_comments: boolean
+}
+
 type AdminClient = SupabaseClient
 
 let cachedAdminClient: AdminClient | null = null
@@ -335,26 +341,17 @@ async function loadReleasedShareSource(
 
 async function notifyShareCommentSettings({
   admin,
-  shareId,
+  share,
   userId,
-  allowComments,
   realtimeSecret,
 }: {
   admin: AdminClient
-  shareId: string
+  share: SavedShareSettings
   userId: string
-  allowComments: boolean
   realtimeSecret: string
 }) {
-  const { data: share, error: shareError } = await admin
-    .from('resume_shares')
-    .select('current_release_id,version_id')
-    .eq('id', shareId)
-    .eq('user_id', userId)
-    .single()
-
-  if (shareError || !share.current_release_id || !share.version_id)
-    throw shareError ?? new Error('Current share release not found')
+  if (!share.current_release_id || !share.version_id)
+    throw new Error('Current share release not found')
 
   const { data: scope, error: scopeError } = await admin
     .from('resume_comment_scopes')
@@ -374,7 +371,7 @@ async function notifyShareCommentSettings({
       p_type: 'settings_changed',
       p_actor_kind: 'user',
       p_actor_id: userId,
-      p_payload: { allowComments },
+      p_payload: { allowComments: share.allow_comments },
     },
   )
 
@@ -606,6 +603,11 @@ Deno.serve(async (req) => {
         return json({ error: 'password_too_long' }, 400)
       if (expiresAt && Number.isNaN(new Date(expiresAt).getTime()))
         return json({ error: 'invalid_expiry' }, 400)
+      if (
+        settingsBody.activate !== undefined &&
+        typeof settingsBody.activate !== 'boolean'
+      )
+        return json({ error: 'invalid_activation' }, 400)
       if (!(await verifyShareOwnership(admin, shareId, userId)))
         return json({ error: 'not_found' }, 404)
       if (!(await consumeOwnerWriteLimit(admin, userId)))
@@ -631,6 +633,7 @@ Deno.serve(async (req) => {
         ...(allowComments === undefined
           ? {}
           : { allow_comments: allowComments }),
+        ...(settingsBody.activate === true ? { is_active: true } : {}),
       }
 
       if (passwordProvided) {
@@ -649,11 +652,13 @@ Deno.serve(async (req) => {
         }
       }
 
-      const { error, count } = await admin
+      const { data: savedShare, error } = await admin
         .from('resume_shares')
-        .update(patch, { count: 'exact' })
+        .update(patch)
         .eq('id', shareId)
         .eq('user_id', userId)
+        .select('current_release_id,version_id,allow_comments')
+        .maybeSingle()
 
       if (error) {
         context.log({
@@ -667,30 +672,29 @@ Deno.serve(async (req) => {
 
         return json({ error: 'unexpected' }, 500)
       }
-      if (!count) return json({ error: 'not_found' }, 404)
+      if (!savedShare) return json({ error: 'not_found' }, 404)
       if (allowComments !== undefined) {
         const realtimeSecret =
           Deno.env.get('RESUME_COMMENT_REALTIME_SECRET') ??
           Deno.env.get('RESUME_COMMENT_TOKEN_SECRET') ??
           serviceRoleKey
 
-        try {
-          await notifyShareCommentSettings({
+        scheduleBackground(
+          notifyShareCommentSettings({
             admin,
-            shareId,
+            share: savedShare,
             userId,
-            allowComments,
             realtimeSecret,
-          })
-        } catch {
-          context.log({
-            level: 'warn',
-            event: 'comment_notification_failed',
-            operation,
-            status: 200,
-            errorCode: 'database_unexpected',
-          })
-        }
+          }).catch(() => {
+            context.log({
+              level: 'warn',
+              event: 'comment_notification_failed',
+              operation,
+              status: 200,
+              errorCode: 'database_unexpected',
+            })
+          }),
+        )
       }
 
       return json({ ok: true })

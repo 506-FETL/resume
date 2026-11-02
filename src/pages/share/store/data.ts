@@ -275,7 +275,11 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
   },
 
   createRelease: async (resumeId, release, options) => {
+    const generation = shareReadGeneration
     const record = await createResumeShareRelease(resumeId, release, options)
+
+    if (shareReadGeneration !== generation)
+      throw new Error('登录状态已变更，请重新加载')
 
     set((state) => ({
       shares:
@@ -313,12 +317,17 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
     if (get().pendingShareIds.includes(shareId))
       throw new Error('操作正在进行中')
 
+    const generation = shareReadGeneration
+
     set((state) => ({
       pendingShareIds: addPending(state.pendingShareIds, shareId),
     }))
 
     try {
       await updateResumeShareSettings(shareId, settings)
+
+      if (shareReadGeneration !== generation)
+        throw new Error('登录状态已变更，请重新加载')
 
       set((state) => ({
         ...mapShareLists(state, (share) =>
@@ -344,9 +353,11 @@ export const createShareDataSlice: ShareSlice<ShareDataSlice> = (set, get) => ({
         ),
       }))
     } finally {
-      set((state) => ({
-        pendingShareIds: removePending(state.pendingShareIds, shareId),
-      }))
+      if (shareReadGeneration === generation) {
+        set((state) => ({
+          pendingShareIds: removePending(state.pendingShareIds, shareId),
+        }))
+      }
     }
   },
 
