@@ -191,6 +191,31 @@ export async function getCompanySummaryById(
   return data
 }
 
+export type JobOptionSummary = Pick<
+  JobApplication,
+  'id' | 'company' | 'position'
+>
+
+export async function listJobOptions(): Promise<JobOptionSummary[]> {
+  const user = await getCurrentUser()
+
+  if (!user) throw new Error('用户未登陆')
+
+  return collectPages(async (from, to) => {
+    const { data, error } = await supabase
+      .from('company')
+      .select('id,company,position')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)
+
+    if (error) throw trackerProcessError(error)
+
+    return data ?? []
+  })
+}
+
 export async function listJobApplicationSummaries(): Promise<
   JobApplicationSummary[]
 > {

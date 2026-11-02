@@ -1,37 +1,21 @@
-import type { JobApplicationSummary } from '@/lib/supabase/resume'
-import { useEffect, useState } from 'react'
-import { listJobApplicationSummaries } from '@/lib/supabase/resume'
+import { useEffect } from 'react'
+import useHistoryStore from '../store'
 
 export interface JobOption {
   id: string
   label: string // 「公司 · 职位」
 }
 
-/** 拉取当前用户的岗位列表，供版本关联岗位选择器使用；组件级一次性加载。 */
 export function useJobSummaries() {
-  const [jobs, setJobs] = useState<JobApplicationSummary[]>([])
-  const [loading, setLoading] = useState(true)
+  const jobs = useHistoryStore((state) => state.jobOptions)
+  const loading = useHistoryStore((state) => state.jobOptionsLoading)
+  const error = useHistoryStore((state) => state.jobOptionsError)
+  const generation = useHistoryStore((state) => state.jobOptionsGeneration)
+  const load = useHistoryStore((state) => state.loadJobOptions)
 
   useEffect(() => {
-    let cancelled = false
-
-    setLoading(true)
-
-    listJobApplicationSummaries()
-      .then((rows) => {
-        if (!cancelled) setJobs(rows)
-      })
-      .catch(() => {
-        if (!cancelled) setJobs([])
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    load()
+  }, [load, generation])
 
   const options: JobOption[] = jobs.map((job) => ({
     id: job.id,
@@ -45,5 +29,5 @@ export function useJobSummaries() {
     return options.find((option) => option.id === companyId)?.label ?? null
   }
 
-  return { options, getLabel, loading }
+  return { options, getLabel, loading, error, retry: load }
 }

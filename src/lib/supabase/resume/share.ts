@@ -38,7 +38,7 @@ import {
   readShareVersionSource,
   toShareVersionSourcePatch,
 } from './share-version'
-import { getResumeShareFunctionUrl } from './share-function-url'
+import { getDatabaseFunctionUrl } from '../edge-functions'
 
 const SHARE_SELECT = `
   id,
@@ -498,7 +498,7 @@ export async function updateResumeShareSettings(
 
   if (!token) throw new Error('用户未登录')
 
-  const response = await fetch(getResumeShareFunctionUrl(), {
+  const response = await fetch(getDatabaseFunctionUrl('resume-share'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

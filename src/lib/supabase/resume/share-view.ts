@@ -1,7 +1,7 @@
 import type { ShareViewResult } from './share.types'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
-import { getResumeShareFunctionUrl } from './share-function-url'
+import { getDatabaseFunctionUrl } from '../edge-functions'
 
 /** 匿名读取分享内容（分享页调用；无需登录） */
 export async function fetchSharedResume(
@@ -14,7 +14,7 @@ export async function fetchSharedResume(
     signal?: AbortSignal
   } = {},
 ): Promise<ShareViewResult> {
-  const res = await fetch(getResumeShareFunctionUrl(), {
+  const res = await fetch(getDatabaseFunctionUrl('resume-share'), {
     method: 'POST',
     signal: options.signal,
     cache: 'no-store',

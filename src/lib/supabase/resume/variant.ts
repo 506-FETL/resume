@@ -194,8 +194,8 @@ export async function markVariantReady(
   args: {
     matchRate: number
     generatedAt: string
-    changes?: VariantChange[]
-    keywords?: string[]
+    changes: VariantChange[]
+    keywords: string[]
     expectedOwner?: string
   },
 ): Promise<void> {
@@ -208,24 +208,9 @@ export async function markVariantReady(
   if (args.expectedOwner && user.id !== args.expectedOwner)
     throw new Error('登录状态已改变')
 
-  const { data: existing, error: selectError } = await supabase
-    .from('resume_config')
-    .select('derived_metadata')
-    .eq('resume_id', draftResumeId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (selectError) {
-    throw selectError
-  }
-
-  const prior =
-    (existing as { derived_metadata: VariantMetadata | null } | null)
-      ?.derived_metadata ?? null
-
   const next: VariantMetadata = {
-    keywords: args.keywords ?? prior?.keywords ?? [],
-    changes: args.changes ?? prior?.changes ?? [],
+    keywords: args.keywords,
+    changes: args.changes,
     matchRate: args.matchRate,
     generatedAt: args.generatedAt,
   }
@@ -241,6 +226,8 @@ export async function markVariantReady(
     })
     .eq('resume_id', draftResumeId)
     .eq('user_id', user.id)
+    .select('resume_id')
+    .single()
 
   if (error) {
     throw error

@@ -44,7 +44,17 @@ export const COMMENT_ERROR_CODES = [
   'unexpected',
 ] as const
 
-export type CommentErrorCode = (typeof COMMENT_ERROR_CODES)[number]
+export type CommentErrorCode =
+  | (typeof COMMENT_ERROR_CODES)[number]
+  | 'collaboration_snapshot_unavailable'
+  | 'owner_must_host'
+  | 'collaboration_session_conflict'
+  | 'session_id_retired'
+  | 'member_protocol_conflict'
+  | 'member_lease_conflict'
+  | 'member_lease_retired'
+  | 'attempt_limit'
+  | 'upgrade_required'
 
 export interface CommentApiErrorBody {
   code: CommentErrorCode

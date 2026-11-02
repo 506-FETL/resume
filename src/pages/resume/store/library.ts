@@ -348,7 +348,12 @@ export function createResumeLibrarySlice(
           return get().loadLibraryPage(1)
         }
 
-        const data = await readIndex(ownerId)
+        const [data, firstCloudBatch] = await Promise.all([
+          readIndex(ownerId),
+          ownerId && !cache.get(filter)?.has(1)
+            ? getResumeLibraryPage(ownerId, filter, 0)
+            : null,
+        ])
 
         if (!current()) return
 
@@ -404,14 +409,16 @@ export function createResumeLibrarySlice(
               : []
 
           const [cloudBatch, localBatch] = await Promise.all([
-            ownerId && remaining > 0 && cursor.cloudOffset < cloudTotal
-              ? getResumeLibraryPage(
-                  ownerId,
-                  filter,
-                  cursor.cloudOffset,
-                  remaining,
-                )
-              : [],
+            target === 1 && firstCloudBatch
+              ? firstCloudBatch
+              : ownerId && remaining > 0 && cursor.cloudOffset < cloudTotal
+                ? getResumeLibraryPage(
+                    ownerId,
+                    filter,
+                    cursor.cloudOffset,
+                    remaining,
+                  )
+                : [],
             ids.length ? getOfflineResumeSummariesByIds(ids) : [],
           ])
 

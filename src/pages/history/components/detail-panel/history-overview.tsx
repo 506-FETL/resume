@@ -1,6 +1,7 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import { Briefcase, Send } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useJobSummaries } from '../../hooks/use-job-summaries'
 import HistoryMotionContent from '../motion-content'
 import VersionMetadataFields from '../shared/version-metadata-fields'
@@ -14,7 +15,7 @@ export default function HistoryVersionOverview({
   state,
 }: HistoryVersionOverviewProps) {
   const { selectedVersion: version, editing } = state
-  const { getLabel, loading } = useJobSummaries()
+  const { getLabel, loading, error, retry } = useJobSummaries()
 
   if (!version) {
     return null
@@ -77,6 +78,14 @@ export default function HistoryVersionOverview({
               icon={Send}
             />
           </div>
+          {error && version.company_id && (
+            <div className='flex items-center gap-2 text-sm' role='alert'>
+              <span className='text-muted-foreground'>{error}</span>
+              <Button type='button' variant='ghost' size='sm' onClick={retry}>
+                重试
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </HistoryMotionContent>

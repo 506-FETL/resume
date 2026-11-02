@@ -519,8 +519,6 @@ export function useChatStream() {
         finishConversationRun()
 
         // 6. 刷新排序；首条消息生成标题
-        await touchConversation(conversationId)
-
         if (isNewConversation) {
           const title = readableConversationTitle(trimmed).slice(
             0,
@@ -530,6 +528,8 @@ export function useChatStream() {
           const updated = await updateConversation(conversationId, { title })
 
           useAssistantStore.getState().upsertConversation(updated)
+        } else {
+          await touchConversation(conversationId)
         }
 
         // 7. 本轮成功：以服务端权威额度校正各展示位（composer / 账户菜单 / 用户中心）

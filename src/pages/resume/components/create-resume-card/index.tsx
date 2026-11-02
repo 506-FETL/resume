@@ -81,34 +81,16 @@ export default function CreateResumeCard({
   })
 
   const list = useResumeListStore()
-  const accountId = list.libraryActive ? list.libraryAccountId : list.accountId
-  const cloudResumes = list.libraryActive ? list.libraryOptions : list.resumes
-  const offlineResumes = list.offlineResumes
-
-  const listLoading = list.libraryActive
-    ? list.libraryOptionsLoading
-    : list.loading
-
-  const listError = list.libraryActive
-    ? list.libraryOptionsError
-    : list.loadError
-
-  const loadOptions = list.libraryActive
-    ? list.loadLibraryOptions
-    : list.loadResumes
+  const accountId = list.libraryAccountId
+  const listLoading = list.libraryOptionsLoading
+  const listError = list.libraryOptionsError
+  const loadOptions = list.loadLibraryOptions
 
   useEffect(() => {
     if (isOpen && step === 'job') loadOptions()
   }, [isOpen, step, user?.id, loadOptions])
 
-  const resumes =
-    accountId === (user?.id ?? null)
-      ? list.libraryActive
-        ? cloudResumes
-        : user
-          ? cloudResumes
-          : offlineResumes
-      : []
+  const resumes = accountId === (user?.id ?? null) ? list.libraryOptions : []
 
   useLayoutEffect(() => {
     if (!reduceMotion) return

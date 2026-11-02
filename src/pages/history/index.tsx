@@ -3,6 +3,7 @@ import { History as HistoryIcon, RefreshCcw } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
 import { PageLayout } from '@/components/layout/page-layout'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
@@ -20,9 +21,12 @@ import HistoryHeader from './components/header'
 import HistoryWorkspace from './components/workspace'
 import { useActiveHistoryResumeId } from './hooks/use-active-resume-id'
 import { useHistoryMotion } from './hooks/use-history-motion'
+import useHistoryStore from './store'
 import './motion.css'
 
 function History() {
+  useEffect(() => () => useHistoryStore.getState().resetJobOptions(), [])
+
   const {
     activeResumeId,
     resumeOptions,

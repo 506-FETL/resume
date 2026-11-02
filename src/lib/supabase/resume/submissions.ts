@@ -9,6 +9,7 @@ import type {
 import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
 import { mapSourceToPersistedSnapshot } from '@/store/resume/helpers'
 import supabase from '../client'
+import { getDatabaseFunctionRegion } from '../edge-functions'
 import { getCurrentUser } from '../user'
 import { TrackerProcessError } from './tracker-companies'
 
@@ -49,6 +50,7 @@ async function invokeSubmission(
   if (file) body.set('file', file)
 
   const { data, error } = await supabase.functions.invoke('job-submissions', {
+    region: getDatabaseFunctionRegion('job-submissions'),
     body,
   })
 

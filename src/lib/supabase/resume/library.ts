@@ -93,32 +93,39 @@ export async function getResumeLibraryOptionsPage(
 export async function getResumeLibraryCounts(
   ownerId: string,
 ): Promise<ResumeLibraryCloudCounts> {
-  const count = () =>
-    supabase
-      .from('resume_config')
-      .select('resume_id', { count: 'exact', head: true })
-      .eq('user_id', ownerId)
+  const { data, error } = await supabase.rpc('get_resume_library_counts', {
+    p_owner_id: ownerId,
+  })
 
-  const results = await Promise.all([
-    count(),
-    count().is('parent_resume_id', null),
-    count().not('parent_resume_id', 'is', null),
-    count().not('parent_resume_id', 'is', null).eq('derived_status', 'ready'),
-    count().in('derived_status', ['generating', 'failed']),
-  ])
+  if (error) throw error
 
-  for (const result of results) {
-    if (result.error) throw result.error
-    if (result.count === null) throw new Error('未能读取简历数量，请重试')
+  return readResumeLibraryCounts(data)
+}
+
+function readResumeLibraryCounts(value: unknown): ResumeLibraryCloudCounts {
+  const fields = [
+    'all',
+    'roots',
+    'variants',
+    'readyVariants',
+    'pending',
+  ] as const
+
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    fields.some((field) => {
+      const count = (value as Record<string, unknown>)[field]
+
+      return (
+        typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0
+      )
+    })
+  ) {
+    throw new Error('未能读取简历数量，请重试')
   }
 
-  return {
-    all: results[0].count!,
-    roots: results[1].count!,
-    variants: results[2].count!,
-    readyVariants: results[3].count!,
-    pending: results[4].count!,
-  }
+  return value as ResumeLibraryCloudCounts
 }
 
 export async function getResumeLibraryParents(

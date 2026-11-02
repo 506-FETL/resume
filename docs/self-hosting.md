@@ -6,18 +6,20 @@
 
 使用 Node.js 24、pnpm 10.33.3，在项目根目录的 `.env.local` 中配置：
 
-| 变量                                     | 说明                                                                                    |
-| ---------------------------------------- | --------------------------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`                      | 必需，Supabase 项目 URL                                                                 |
-| `VITE_SUPABASE_PUBLISHABLE_KEY`          | 必需，可公开的 publishable / anon key                                                   |
-| `VITE_BASE_URL`                          | 站点基地址，用于认证回调和分享链接                                                      |
-| `VITE_RESUME_COMMENTS_FUNCTION_REGION`   | 可选，评论函数区域；未设置时自动解析                                                    |
-| `VITE_RESUME_SHARE_FUNCTION_REGION`      | 可选，分享读取函数区域；默认 `us-east-1`，应与自己的数据库区域一致；`auto` 使用自动选择 |
-| `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` | 可选，协作协议 v2 开关；当前默认关闭                                                    |
+| 变量                                     | 说明                                                                  |
+| ---------------------------------------- | --------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`                      | 必需，Supabase 项目 URL                                               |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`          | 必需，可公开的 publishable / anon key                                 |
+| `VITE_BASE_URL`                          | 站点基地址，用于认证回调和分享链接                                    |
+| `VITE_SUPABASE_FUNCTION_REGION`          | 可选，数据库密集函数的统一区域；默认 `us-east-1`，`auto` 使用自动选择 |
+| `VITE_RESUME_COMMENTS_FUNCTION_REGION`   | 可选，覆盖评论及实时协作函数区域                                      |
+| `VITE_JOB_SUBMISSIONS_FUNCTION_REGION`   | 可选，覆盖投递记录及原件函数区域                                      |
+| `VITE_RESUME_SHARE_FUNCTION_REGION`      | 可选，覆盖分享读取与管理写入函数区域                                  |
+| `VITE_COLLABORATION_PROTOCOL_V2_ENABLED` | 可选，协作协议 v2 开关；当前默认关闭                                  |
 
 `VITE_` 变量会写入浏览器构建产物，只能放公开配置。模型密钥、service role key 和评论签名密钥放在服务端。
 
-分享读取需要多次查询数据库，函数和数据库跨区会累积网络等待。默认区域对应当前站点的数据库；自托管请按 Supabase 项目的实际区域设置分享函数区域。区域选择方式见 [Supabase 官方说明](https://supabase.com/docs/guides/functions/regional-invocation)。
+分享、评论/实时协作和投递函数需要多次访问数据库或存储，跨区会累积网络等待。单函数配置优先于统一配置，单函数也可设为 `auto`。默认区域对应当前站点的数据库；自托管请按 Supabase 项目的实际区域设置统一配置。模型代理、JD 识别和简历智能导入仍使用自动地区策略，不能只按数据库位置判断整条模型链路。SDK 指定地区会发送 `x-region`，函数 CORS 预检须允许该请求头；鉴权仍使用 Authorization。区域选择方式见 [Supabase 官方说明](https://supabase.com/docs/guides/functions/regional-invocation)。
 
 ```bash
 pnpm install --frozen-lockfile

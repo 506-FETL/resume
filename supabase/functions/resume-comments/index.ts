@@ -7,6 +7,7 @@ import type {
   ResumeCommentRelocationResult,
 } from '../shared/resume-comment-core.ts'
 import type { CommentApiOp } from '../shared/resume-comment-schema.ts'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.103.0'
 import { corsPreflightResponse, isOriginAllowed } from '../shared/cors.ts'
 import {
@@ -49,7 +50,7 @@ import {
   SupabaseAuthenticationError,
 } from '../shared/supabase-auth.ts'
 
-type AdminClient = ReturnType<typeof createClient>
+type AdminClient = SupabaseClient
 
 let cachedAdminClient: AdminClient | null = null
 let cachedAdminClientKey: string | null = null
@@ -106,6 +107,8 @@ interface ScopeRow {
   archived_at: string | null
 }
 
+type AccessScopeRow = Omit<ScopeRow, 'anchor_document'>
+
 interface ShareRow {
   id: string
   user_id: string
@@ -149,7 +152,7 @@ interface CollaborationMemberRow {
 
 interface ResolvedAccess {
   kind: AccessKind
-  scope: ScopeRow
+  scope: AccessScopeRow
   userId: string | null
   actorKind: ActorKind | null
   actorId: string | null
@@ -1251,7 +1254,7 @@ async function resolveCommentAccessRpc(
   access: ResolvedAccess
   sharePasswordHash: string | null
 }> {
-  const { data, error } = await admin.rpc('resolve_resume_comment_access_v1', {
+  const { data, error } = await admin.rpc('resolve_resume_comment_access_v2', {
     ...input,
     p_collaboration_protocol_version:
       collaboratorLease?.protocolVersion ?? null,
@@ -1278,7 +1281,6 @@ async function resolveCommentAccessRpc(
     scopeValue.owner_user_id !== envelope.ownerUserId ||
     !isUuidValue(scopeValue.resume_id) ||
     scopeValue.version_id !== envelope.versionId ||
-    !isRecord(scopeValue.anchor_document) ||
     typeof scopeValue.document_hash !== 'string' ||
     !isPositiveSafeInteger(scopeValue.document_revision) ||
     !isDateOnly(scopeValue.projection_reference_date) ||
@@ -1288,7 +1290,7 @@ async function resolveCommentAccessRpc(
     return bootstrapProtocolError('invalid_access_rpc_protocol')
   }
 
-  const scope = scopeValue as unknown as ScopeRow
+  const scope = scopeValue as unknown as AccessScopeRow
 
   const share =
     envelope.kind === 'share'
@@ -2001,7 +2003,14 @@ async function handleCollaborationSessionOperation({
     throw new CommentApiError('unauthorized', '协作者评论权限不存在', 401)
   }
 
-  const scope = await getScope(admin, session.scope_id)
+  const { data: scope, error: scopeError } = await admin
+    .from('resume_comment_scopes')
+    .select('kind,version_id')
+    .eq('id', session.scope_id)
+    .maybeSingle()
+
+  if (scopeError || !scope)
+    throw new CommentApiError('not_found', '评论空间不存在', 404)
 
   if (scope.kind !== 'version' || scope.version_id == null)
     throw new CommentApiError('unauthorized', '协作评论版本无效', 401)
@@ -2364,6 +2373,8 @@ async function loadThreads(
   scopeId: string,
   threadIds?: string[],
 ) {
+  if (threadIds?.length === 0) return { threads: [], profiles: [] }
+
   let query = admin
     .from('resume_comment_threads')
     .select(
@@ -2398,11 +2409,7 @@ async function loadThreads(
     .eq('scope_id', scopeId)
     .is('deleted_at', null)
 
-  if (threadIds)
-    query =
-      threadIds.length > 0
-        ? query.in('id', threadIds)
-        : query.in('id', ['00000000-0000-0000-0000-000000000000'])
+  if (threadIds) query = query.in('id', threadIds)
 
   const { data, error } = await query.order('last_activity_at', {
     ascending: false,
@@ -2754,7 +2761,7 @@ Deno.serve(async (req) => {
 
   const timeOperation = async <T>(
     name: BootstrapTimingName,
-    operation: () => Promise<T>,
+    operation: () => PromiseLike<T>,
   ) => {
     const startedAt = performance.now()
 
@@ -3333,13 +3340,21 @@ Deno.serve(async (req) => {
         pepper: anonymousPepper,
       })
 
-      const { data: threadRows, error: threadError } = await admin
-        .from('resume_comment_threads')
-        .select('id,anchor')
-        .eq('scope_id', access.scope.id)
-        .eq('anchor_status', 'anchored')
-        .is('deleted_at', null)
-        .is('resolved_at', null)
+      const [{ data: threadRows, error: threadError }, snapshot] =
+        await Promise.all([
+          admin
+            .from('resume_comment_threads')
+            .select('id,anchor')
+            .eq('scope_id', access.scope.id)
+            .eq('anchor_status', 'anchored')
+            .is('deleted_at', null)
+            .is('resolved_at', null),
+          loadPersistedResumeSnapshot(
+            admin,
+            access.userId,
+            access.scope.resume_id,
+          ),
+        ])
 
       if (threadError) throw threadError
 
@@ -3373,12 +3388,6 @@ Deno.serve(async (req) => {
 
         relocations.push({ threadId: thread.id, ...result })
       }
-
-      const snapshot = await loadPersistedResumeSnapshot(
-        admin,
-        access.userId,
-        access.scope.resume_id,
-      )
 
       const { data, error } = await admin.rpc(
         'sync_resume_version_comment_document_v3',

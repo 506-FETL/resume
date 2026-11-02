@@ -39,7 +39,7 @@ export default function VersionMetadataFields({
   draft,
   onChange,
 }: VersionMetadataFieldsProps) {
-  const { options: jobOptions } = useJobSummaries()
+  const { options: jobOptions, loading, error, retry } = useJobSummaries()
   const { surfaceProps } = useHistoryMotion()
 
   return (
@@ -94,6 +94,7 @@ export default function VersionMetadataFields({
       <Field>
         <FieldLabel>关联岗位</FieldLabel>
         <Select
+          disabled={loading || Boolean(error)}
           value={draft.companyId ?? NONE_COMPANY}
           onValueChange={(value) =>
             onChange({ companyId: value === NONE_COMPANY ? null : value })
@@ -115,6 +116,18 @@ export default function VersionMetadataFields({
             ))}
           </SelectContent>
         </Select>
+        {loading ? (
+          <FieldDescription role='status'>正在加载岗位…</FieldDescription>
+        ) : error ? (
+          <div className='flex items-center gap-2' role='alert'>
+            <FieldDescription>{error}</FieldDescription>
+            <Button type='button' variant='ghost' size='sm' onClick={retry}>
+              重试
+            </Button>
+          </div>
+        ) : jobOptions.length === 0 ? (
+          <FieldDescription>暂无可关联的岗位。</FieldDescription>
+        ) : null}
       </Field>
 
       <Field>

@@ -13,6 +13,14 @@ const BUCKET = 'job-submission-materials'
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+interface SubmissionMaterialRow {
+  job_id: string
+  material_kind: string
+  file_path: string
+  file_name: string
+  [key: string]: unknown
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS')
     return corsPreflightResponse(request, 'allowlist')
@@ -103,9 +111,16 @@ Deno.serve(async (request: Request) => {
     if (!UUID.test(id)) return respond({ error: '记录编号无效' }, 400)
 
     if (action === 'material' || action === 'download') {
+      const currentFields: string =
+        input.revisionId != null
+          ? 'id'
+          : action === 'download'
+            ? 'job_id,material_kind,file_path,file_name'
+            : '*'
+
       const { data: current, error } = await admin
         .from('job_submissions')
-        .select('*')
+        .select(currentFields)
         .eq('id', id)
         .eq('user_id', userId)
         .maybeSingle()
@@ -113,15 +128,20 @@ Deno.serve(async (request: Request) => {
       if (error) throw error
       if (!current) return respond({ error: '投递记录不存在' }, 404)
 
-      let row = current
+      let row = current as unknown as SubmissionMaterialRow
 
       if (input.revisionId != null) {
         if (!UUID.test(String(input.revisionId)))
           return respond({ error: '历史编号无效' }, 400)
 
+        const revisionFields: string =
+          action === 'download'
+            ? 'job_id:before_snapshot->>job_id,material_kind:before_snapshot->>material_kind,file_path:before_snapshot->>file_path,file_name:before_snapshot->>file_name'
+            : 'before_snapshot'
+
         const { data: revision, error: revisionError } = await admin
           .from('job_submission_revisions')
-          .select('before_snapshot')
+          .select(revisionFields)
           .eq('id', input.revisionId)
           .eq('submission_id', id)
           .eq('user_id', userId)
@@ -130,7 +150,14 @@ Deno.serve(async (request: Request) => {
         if (revisionError) throw revisionError
         if (!revision) return respond({ error: '更正历史不存在' }, 404)
 
-        row = revision.before_snapshot
+        row =
+          action === 'download'
+            ? (revision as unknown as SubmissionMaterialRow)
+            : (
+                revision as unknown as {
+                  before_snapshot: SubmissionMaterialRow
+                }
+              ).before_snapshot
       }
 
       const { data: job, error: jobError } = await admin

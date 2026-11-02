@@ -9,8 +9,9 @@ import type {
   ResumeHistoryVersionRecord,
   ResumeSnapshot,
 } from '@/lib/supabase/resume/history'
+import type { HistoryJobOptionsSlice } from './job-options'
 
-export interface HistoryStoreState {
+export interface HistoryStoreState extends HistoryJobOptionsSlice {
   resetAccount: (accountId: string | null) => void
   // Data slice
   resumeId: string | null

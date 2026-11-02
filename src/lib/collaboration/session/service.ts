@@ -8,6 +8,7 @@ import type {
 } from './types'
 import type { DocumentManager } from '@/lib/automerge'
 import supabase from '@/lib/supabase/client'
+import { getDatabaseFunctionRegion } from '@/lib/supabase/edge-functions'
 import {
   buildCollaborationRoomName,
   buildCollaborationShareUrl,
@@ -211,6 +212,7 @@ async function callCollaborationCommentOperation<T>(
   }
 
   const { data, error } = await supabase.functions.invoke('resume-comments', {
+    region: getDatabaseFunctionRegion('resume-comments'),
     body: {
       op,
       ...input,

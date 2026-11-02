@@ -15,6 +15,7 @@ import type {
   ResumeCommentThread,
 } from '../types.ts'
 import supabase from '@/lib/supabase/client'
+import { getDatabaseFunctionUrl } from '@/lib/supabase/edge-functions'
 
 export interface AnonymousCommentCredential {
   id: string
@@ -984,14 +985,7 @@ export class ResumeCommentClient {
       ? input.requestId
       : crypto.randomUUID()
 
-    const url = new URL(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resume-comments`,
-    )
-
-    const region =
-      import.meta.env.VITE_RESUME_COMMENTS_FUNCTION_REGION ?? 'auto'
-
-    if (region !== 'auto') url.searchParams.set('forceFunctionRegion', region)
+    const url = getDatabaseFunctionUrl('resume-comments')
 
     const requestHeaders = {
       'Content-Type': 'application/json',

@@ -8,6 +8,7 @@ import type {
 import {
   deleteCompany,
   getCompanies,
+  getCompanyById,
   updateCompany,
 } from '@/lib/supabase/resume'
 import {
@@ -623,8 +624,10 @@ export function createTrackerPersistence(
           createTrackerAccountGuard(scope),
         )
 
-        const rows = await getCompanies(createTrackerAccountGuard(scope))
-        const saved = rows.find((row) => row.id === input.jobId)
+        const saved = await getCompanyById(
+          input.jobId,
+          createTrackerAccountGuard(scope),
+        )
 
         assertTrackerAccountScope(scope)
 
