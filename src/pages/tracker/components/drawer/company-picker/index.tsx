@@ -1,6 +1,7 @@
 import type { TrackerCompany } from '../../../types'
 import { useEffect } from 'react'
 import { AnimatePresence } from 'motion/react'
+import { RotateCcw } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -16,6 +17,7 @@ import {
   ComboboxList,
 } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
+import { InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
 import { Spinner } from '@/components/ui/spinner'
 import { DURATION, EASE } from '@/lib/motion'
 import useTrackerStore from '../../../store'
@@ -30,6 +32,7 @@ export function CompanyPicker({
   allLabel,
   disabled = false,
   inputClassName,
+  feedbackPlacement = 'below',
 }: {
   id: string
   value: string | null
@@ -39,6 +42,7 @@ export function CompanyPicker({
   allLabel?: string
   disabled?: boolean
   inputClassName?: string
+  feedbackPlacement?: 'below' | 'inline'
 }) {
   const { companies, companiesLoading, companiesError, loadCompanies, jobs } =
     useTrackerStore(
@@ -53,6 +57,13 @@ export function CompanyPicker({
 
   const reduce = useReducedMotion()
   const selected = companies.find((company) => company.id === value) ?? null
+  const inlineFeedback = feedbackPlacement === 'inline'
+
+  const feedbackState = companiesLoading
+    ? 'loading'
+    : companiesError
+      ? 'error'
+      : 'ready'
 
   useEffect(() => {
     loadCompanies()
@@ -76,10 +87,53 @@ export function CompanyPicker({
         <ComboboxInput
           id={id}
           className={inputClassName}
-          placeholder={allLabel ?? '搜索并选择已有公司'}
+          placeholder={
+            inlineFeedback && companiesLoading
+              ? '正在加载公司…'
+              : inlineFeedback && companiesError
+                ? '公司加载失败'
+                : (allLabel ?? '搜索并选择已有公司')
+          }
           showClear={Boolean(allLabel)}
           disabled={disabled}
-        />
+          aria-busy={inlineFeedback && companiesLoading}
+          aria-invalid={inlineFeedback && Boolean(companiesError)}
+          aria-describedby={inlineFeedback ? `${id}-status` : undefined}
+        >
+          {inlineFeedback && (
+            <InputGroupAddon
+              align='inline-end'
+              className='order-none w-6 shrink-0 justify-center p-0'
+            >
+              <AnimatedContent
+                animationKey={feedbackState}
+                className='flex size-6 items-center justify-center'
+              >
+                {companiesLoading ? (
+                  <Spinner
+                    aria-hidden
+                    className='size-3.5'
+                    style={{ animation: reduce ? 'none' : undefined }}
+                  />
+                ) : companiesError ? (
+                  <InputGroupButton
+                    size='icon-xs'
+                    aria-label='重新加载公司'
+                    title={companiesError}
+                    className='text-destructive hover:text-destructive'
+                    disabled={disabled}
+                    onClick={() => {
+                      document.getElementById(id)?.focus()
+                      loadCompanies(true)
+                    }}
+                  >
+                    <RotateCcw className='size-3.5' aria-hidden />
+                  </InputGroupButton>
+                ) : null}
+              </AnimatedContent>
+            </InputGroupAddon>
+          )}
+        </ComboboxInput>
         <ComboboxContent
           style={{
             animationDuration: `${reduce ? 0 : DURATION.base}s`,
@@ -110,8 +164,17 @@ export function CompanyPicker({
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
+      {inlineFeedback && (
+        <span id={`${id}-status`} role='status' className='sr-only'>
+          {companiesLoading
+            ? '正在加载公司'
+            : companiesError
+              ? `公司加载失败：${companiesError}，请重试`
+              : ''}
+        </span>
+      )}
       <AnimatePresence initial={false}>
-        {companiesLoading && (
+        {!inlineFeedback && companiesLoading && (
           <PresenceDiv
             key='loading'
             initial={{ opacity: 0 }}
@@ -125,7 +188,7 @@ export function CompanyPicker({
             </p>
           </PresenceDiv>
         )}
-        {companiesError && (
+        {!inlineFeedback && companiesError && (
           <PresenceDiv
             key='error'
             initial={{ opacity: 0 }}

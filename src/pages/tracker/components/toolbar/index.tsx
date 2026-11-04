@@ -270,6 +270,7 @@ export default function TrackerToolbar() {
               value={filterCompanyId}
               onChange={setFilterCompanyId}
               allLabel='全部公司'
+              feedbackPlacement='inline'
               inputClassName={
                 isMobile
                   ? 'h-9 border-transparent bg-transparent shadow-none dark:bg-transparent [&>input]:pl-0'
