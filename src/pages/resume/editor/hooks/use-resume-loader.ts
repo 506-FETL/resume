@@ -27,6 +27,11 @@ import useResumeStore from '@/store/resume/form'
 import useUserStore from '@/store/user'
 import { getErrorMessage } from '@/utils'
 
+if (import.meta.env.DEV && location.port === '5173') {
+  const probe = '/tests/single-edit/trace-client.js'
+  import(/* @vite-ignore */ probe).catch(() => {})
+}
+
 type CollaborationRoute =
   | { kind: 'none' }
   | {
@@ -504,8 +509,13 @@ export function useResumeLoader() {
       }
     }
 
-    runLoad().catch((error) => {
-      console.warn('[resume-loader] unexpected load failure:', error)
+    // StrictMode 会在本轮挂载中立即清理并重开 effect。过期的邀请不能先占用 v1 成员租约。
+    queueMicrotask(() => {
+      if (!isCurrentLoad()) return
+
+      runLoad().catch((error) => {
+        console.warn('[resume-loader] unexpected load failure:', error)
+      })
     })
 
     return () => {

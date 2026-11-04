@@ -11,14 +11,20 @@ import {
   PENDING_MESSAGE_TTL_MS,
 } from '../shared'
 
-interface PendingSyncMessage {
-  senderId: Message['senderId']
+interface SyncMessagePayload {
   targetId: Message['targetId']
   messageType: Message['type']
   documentId: string | null
   message: string
+}
+
+interface PendingSyncMessage extends SyncMessagePayload {
+  senderId: Message['senderId']
   timestamp: number
 }
+
+// 与批量 RPC 的上限一致。正在发送的批次不可追加，后续消息排入下一批。
+const MAX_SYNC_BATCH_SIZE = 32
 
 export class SupabaseNetworkAdapter extends NetworkAdapter {
   private channel: RealtimeChannel | null = null
@@ -32,6 +38,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
   private heartbeat: ReturnType<typeof setTimeout> | null = null
   private peers = new Map<string, Record<string, unknown>>()
   private sendQueue: Promise<void> = Promise.resolve()
+  private queuedSyncBatch: SyncMessagePayload[] | null = null
   private presenceMetadata: Record<string, unknown> = {}
   private ready = false
   private localDocumentId: string | null = null
@@ -152,6 +159,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
     this.ready = false
     this.closed = true
     this.pendingMessages = []
+    this.queuedSyncBatch = null
 
     if (this.heartbeat) {
       clearTimeout(this.heartbeat)
@@ -200,17 +208,48 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       return
     }
 
-    this.sendAuthorized('automerge-sync', {
+    const payload = {
       targetId: message.targetId,
       messageType: message.type,
-      documentId: (message as any).documentId || this.localDocumentId,
+      documentId:
+        ('documentId' in message && message.documentId) || this.localDocumentId,
       message: encodeBytesToBase64(message.data),
-    }).catch(() => {
-      /* sendAuthorized already closes this connection. */
+    }
+
+    if (
+      this.queuedSyncBatch &&
+      this.queuedSyncBatch.length < MAX_SYNC_BATCH_SIZE
+    ) {
+      this.queuedSyncBatch.push(payload)
+
+      return
+    }
+
+    const batch = [payload]
+
+    this.queuedSyncBatch = batch
+
+    this.enqueueSend((inboxId) => {
+      if (this.queuedSyncBatch === batch) this.queuedSyncBatch = null
+
+      if (batch.length === 1) {
+        return supabase.rpc('send_automerge_message', {
+          p_inbox_id: inboxId,
+          p_event: 'automerge-sync',
+          p_payload: batch[0],
+        })
+      }
+
+      return supabase.rpc('send_automerge_sync_batch', {
+        p_inbox_id: inboxId,
+        p_payloads: batch,
+      })
     })
   }
 
-  private sendAuthorized(event: string, payload: Record<string, unknown>) {
+  private enqueueSend(
+    send: (inboxId: string) => PromiseLike<{ error: unknown }>,
+  ) {
     const generation = this.connectionGeneration
     const inboxId = this.inboxId
 
@@ -219,11 +258,7 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
         throw new Error('协作实时频道已断开')
       }
 
-      const { error } = await supabase.rpc('send_automerge_message', {
-        p_inbox_id: inboxId,
-        p_event: event,
-        p_payload: payload,
-      })
+      const { error } = await send(inboxId)
 
       if (error) {
         throw error
@@ -247,7 +282,16 @@ export class SupabaseNetworkAdapter extends NetworkAdapter {
       throw new Error('协作控制频道尚未就绪')
     }
 
-    await this.sendAuthorized('automerge-control', { type, data })
+    // 后来的正文不能合入排在控制消息之前的批次。
+    this.queuedSyncBatch = null
+
+    await this.enqueueSend((inboxId) =>
+      supabase.rpc('send_automerge_message', {
+        p_inbox_id: inboxId,
+        p_event: 'automerge-control',
+        p_payload: { type, data },
+      }),
+    )
   }
 
   private registerSyncBroadcast(channel: RealtimeChannel, generation: number) {
