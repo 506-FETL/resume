@@ -1,3 +1,8 @@
+import {
+  resolveLegacyWorkspacePath,
+  WORKSPACE_PATH,
+} from '@/lib/workspace-path'
+
 const ASSISTANT_RETURN_TO_STORAGE_KEY = 'gresume:assistant:return-to'
 
 export interface InternalLocationLike {
@@ -56,15 +61,18 @@ export function resolveAssistantReturnPath(
   routeStateFrom: unknown,
   allowStoredFallback = false,
 ): string {
-  if (isSafeWorkspacePath(routeStateFrom)) return routeStateFrom
+  if (isSafeWorkspacePath(routeStateFrom))
+    return resolveLegacyWorkspacePath(routeStateFrom)
 
-  if (!allowStoredFallback) return '/'
+  if (!allowStoredFallback) return WORKSPACE_PATH
 
   try {
     const stored = sessionStorage.getItem(ASSISTANT_RETURN_TO_STORAGE_KEY)
 
-    return isSafeWorkspacePath(stored) ? stored : '/'
+    return isSafeWorkspacePath(stored)
+      ? resolveLegacyWorkspacePath(stored)
+      : WORKSPACE_PATH
   } catch {
-    return '/'
+    return WORKSPACE_PATH
   }
 }

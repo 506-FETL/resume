@@ -32,9 +32,8 @@ export function NavOptions({
       <SidebarMenu className='gap-1'>
         {options.map((item) => {
           const isActive =
-            item.url === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(item.url)
+            location.pathname === item.url ||
+            location.pathname.startsWith(`${item.url}/`)
 
           return (
             <SidebarMenuItem key={item.title}>

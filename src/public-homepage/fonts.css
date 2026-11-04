@@ -1,0 +1,19 @@
+@font-face {
+  font-family: 'GResume Sketch Latin';
+  src: url('./assets/sketch-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GResume Sketch CJK';
+  src: url('./assets/sketch-cjk.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.public-home {
+  --hand: 'GResume Sketch Latin', 'GResume Sketch CJK', cursive;
+}

@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { PageLayout } from '@/components/layout/page-layout'
+import { WORKSPACE_PATH } from '@/lib/workspace-path'
 
 export default function NotFound() {
   return (
@@ -19,7 +20,7 @@ export default function NotFound() {
           </p>
         </div>
         <Button asChild>
-          <Link to='/'>
+          <Link to={WORKSPACE_PATH}>
             <ArrowLeft aria-hidden />
             返回首页
           </Link>

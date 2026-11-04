@@ -1,0 +1,130 @@
+.version-desk {
+  container-type: inline-size;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 650px;
+  aspect-ratio: 4 / 3;
+  margin-inline: auto;
+  color: #202324;
+}
+
+.cover-artboard,
+.cover-origin,
+.cover-versions {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cover-origin {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cover-artboard {
+  left: 1.6%;
+  transform: rotate(-6deg);
+}
+
+.cover-dividers {
+  position: absolute;
+  left: 23%;
+  top: 0;
+  display: flex;
+  align-items: flex-end;
+  width: max-content;
+  height: 12.5%;
+  gap: 0.8cqw;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.cover-dividers button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  height: 90%;
+  flex: none;
+  padding: 0.2em 0.8em 0.15em;
+  border: max(1.5px, 0.49cqw) solid #202324;
+  border-bottom: 0;
+  border-radius: 0.55em 0.7em 0 0 / 0.55em 0.95em 0 0;
+  background: #a6b9de;
+  box-shadow: 0.28cqw -0.22cqw 0 #202324;
+  color: #202324;
+  font: 700 clamp(13px, 3.7cqw, 24px) / 1 var(--hand);
+  white-space: nowrap;
+  cursor: pointer;
+  transform-origin: bottom center;
+  transition:
+    transform var(--base) var(--ease),
+    background-color var(--fast) var(--ease);
+}
+
+.cover-dividers button[data-state='active'] {
+  color: #202324;
+  background: #fff5d8;
+  transform: translateY(-0.55cqw);
+}
+
+.cover-dividers button::before {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto;
+  height: max(100%, 44px);
+  transform: translateY(-50%);
+}
+
+.cover-dividers button::after {
+  content: '';
+  position: absolute;
+  right: 20%;
+  bottom: 19%;
+  left: 19%;
+  height: max(1px, 0.35cqw);
+  border-radius: 50%;
+  background: #294ca2;
+  transform: rotate(-2deg) scaleX(0.35);
+  transform-origin: left;
+  opacity: 0;
+  transition:
+    opacity var(--fast) var(--ease),
+    transform var(--base) var(--ease);
+}
+.cover-dividers button[data-state='active']::after {
+  transform: rotate(-2deg) scaleX(1);
+  opacity: 1;
+}
+
+.cover-dividers [data-slot='tabs-indicator'] {
+  display: none;
+}
+
+.cover-dividers button:focus-visible {
+  outline: 3px solid #fff9de;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px #203d83;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cover-dividers button:hover {
+    transform: translateY(-0.95cqw);
+  }
+}
+
+.version-desk[data-reduced-motion='true'] .cover-dividers button {
+  transition: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-dividers button,
+  .cover-dividers button::after {
+    transition: none;
+  }
+}

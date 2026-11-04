@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
+import { WORKSPACE_PATH } from '@/lib/workspace-path'
 
 export interface Breadcrumb {
   href: string
@@ -11,7 +12,7 @@ export interface Breadcrumb {
  *
  * 该 Hook 会读取 `react-router` 当前匹配到的 `pathname`，
  * 按层级拆分路径片段，并为每一层构造可直接渲染的
- * `{ href, label }` 结构。返回值默认始终包含首页项 `/`。
+ * `{ href, label }` 结构。每个页面都从工作台首页开始。
  *
  * 适用于页面头部导航、编辑器路径提示等需要展示当前位置的场景。
  *
@@ -40,7 +41,9 @@ export function useBreadcrumbs(): Breadcrumb[] {
       'reset-password': '重置密码',
     }
 
-    const result: Breadcrumb[] = [{ href: '/', label: '首页' }]
+    const result: Breadcrumb[] = [{ href: WORKSPACE_PATH, label: '首页' }]
+
+    if (pathname.replace(/\/+$/, '') === WORKSPACE_PATH) return result
 
     result.push(
       ...segments

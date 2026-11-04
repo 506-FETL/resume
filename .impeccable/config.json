@@ -24,6 +24,27 @@
         "files": ["src/index.css"],
         "createdAt": "2026-11-01T11:58:53.930Z",
         "reason": "Agent: DESIGN.md 应用与纸张分离规则明确排除简历字体；现有简历外观选项使用此字体"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "gresume sketch latin",
+        "files": ["src/public-homepage/fonts.css"],
+        "createdAt": "2026-11-04T06:03:57.420Z",
+        "reason": "宣传页沿用 README 图示的 Excalifont 字形，使用重新命名的本地子集。"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "gresume sketch cjk",
+        "files": ["src/public-homepage/fonts.css"],
+        "createdAt": "2026-11-04T07:21:00.000Z",
+        "reason": "宣传页沿用 README 图示的小赖中文字形，使用重新命名的本地子集。"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": ["src/public-homepage/homepage.css"],
+        "createdAt": "2026-11-04T08:27:06.504Z",
+        "reason": "Agent：已核对封面实景。命中的是整幅文件夹封面底缘 4px 的内阴影，用于表现封面在内页上方的厚度；这里没有卡片或侧边强调条。"
       }
     ]
   }

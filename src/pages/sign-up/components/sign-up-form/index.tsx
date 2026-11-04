@@ -23,10 +23,11 @@ import { authErrorMessage } from '@/lib/auth/feedback'
 import { DURATION, EASE } from '@/lib/motion'
 import { SignUpWithEmail } from '@/lib/supabase/user'
 import { cn } from '@/lib/utils'
+import { WORKSPACE_PATH } from '@/lib/workspace-path'
 
 export function SignUpForm({
   className,
-  redirect = '/',
+  redirect = WORKSPACE_PATH,
   ...props
 }: React.ComponentPropsWithoutRef<'div'> & { redirect?: string }) {
   const containerRef = useRef<HTMLDivElement>(null)

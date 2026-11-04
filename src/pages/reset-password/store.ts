@@ -1,6 +1,6 @@
 import type { RecoveryIdentity, RecoveryStatus } from './types'
 import { create } from 'zustand'
-import { recoveryCallback } from '@/lib/auth/recovery-callback'
+import { hasAuthCallback, recoveryCallback } from '@/lib/auth/recovery-callback'
 import supabase from '@/lib/supabase/client'
 import { INVALID_RECOVERY_MESSAGE } from './const'
 import {
@@ -26,12 +26,6 @@ let revision = 0
 
 const expectsRecovery =
   recoveryCallback.isResetPage || recoveryCallback.isRecovery
-
-const hasAuthCallback =
-  expectsRecovery ||
-  recoveryCallback.hasTokens ||
-  recoveryCallback.hasCode ||
-  recoveryCallback.hasError
 
 export const useRecoveryStore = create<RecoveryStore>((set, get) => ({
   status: hasAuthCallback ? 'checking' : 'idle',

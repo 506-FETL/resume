@@ -1,29 +1,37 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ErrorBoundary } from 'react-error-boundary'
-import { BrowserRouter } from 'react-router-dom'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import App from './App'
-import ErrorFallback from './components/ErrorBoundary'
-import '@fontsource-variable/arimo/wght.css'
-import '@fontsource/tinos/latin-400.css'
-import '@fontsource/tinos/latin-700.css'
-import '@fontsource/tinos/latin-400-italic.css'
-import '@fontsource/tinos/latin-700-italic.css'
-import '@fontsource-variable/noto-sans-sc/wght.css'
-import '@fontsource-variable/noto-serif-sc/wght.css'
-import './index.css'
+import { hasAuthCallback } from '@/lib/auth/recovery-callback'
+import { WORKSPACE_PATH } from '@/lib/workspace-path'
 
-const app = createRoot(document.getElementById('root')!)
+const { pathname, search, hash } = window.location
+const isPublicHome = pathname === '/' && !hasAuthCallback
 
-app.render(
-  <StrictMode>
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <App />
-        </TooltipProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
-  </StrictMode>,
+// 旧邮件回到根路径时，保留 SDK 尚未消费的验证码或令牌。
+if (pathname === '/' && hasAuthCallback) {
+  window.history.replaceState(
+    window.history.state,
+    '',
+    `${WORKSPACE_PATH}${search}${hash}`,
+  )
+}
+
+const root = createRoot(document.getElementById('root')!)
+
+async function loadPage() {
+  if (isPublicHome) {
+    const { default: PublicHomepage } = await import('./public-homepage')
+
+    return <PublicHomepage />
+  }
+
+  const { default: WorkspaceApp } = await import('./workspace-app')
+
+  document.title = 'GResume'
+
+  return <WorkspaceApp />
+}
+
+loadPage().then(
+  (page) => root.render(<StrictMode>{page}</StrictMode>),
+  () => root.render(<p role='alert'>页面未能加载，请刷新后重试。</p>),
 )

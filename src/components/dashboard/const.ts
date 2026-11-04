@@ -9,12 +9,13 @@ import {
   Settings,
   Share2,
 } from 'lucide-react'
+import { WORKSPACE_PATH } from '@/lib/workspace-path'
 
 export const Data = {
   modules: [
     {
       title: '首页',
-      url: '/',
+      url: WORKSPACE_PATH,
       icon: HomeIcon,
     },
     {

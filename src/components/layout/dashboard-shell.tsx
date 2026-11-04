@@ -8,6 +8,7 @@ import { SiteHeader } from '@/components/dashboard/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import { WORKSPACE_PATH } from '@/lib/workspace-path'
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -24,7 +25,7 @@ export function DashboardShell({
 
   // Only application pages opt in; resume document containers keep their own layout.
   const usesPageLayout = [
-    '/',
+    WORKSPACE_PATH,
     '/resume',
     '/template',
     '/share',
@@ -37,7 +38,7 @@ export function DashboardShell({
     '/sign-up',
     '/forgot-password',
     '/reset-password',
-  ].includes(routeKey.replace(/\/$/, '') || '/')
+  ].includes(routeKey.replace(/\/$/, ''))
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {

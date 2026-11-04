@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { WORKSPACE_PATH } from '@/lib/workspace-path'
 import { INVALID_RECOVERY_MESSAGE } from '../../const'
 import { useRecoveryStore } from '../../store'
 
@@ -107,7 +108,7 @@ export function ResetPasswordForm() {
               </form>
             ) : status === 'success' ? (
               <Button asChild className='w-full'>
-                <Link to='/'>完成，返回首页</Link>
+                <Link to={WORKSPACE_PATH}>完成，返回首页</Link>
               </Button>
             ) : (
               <div className='space-y-4'>

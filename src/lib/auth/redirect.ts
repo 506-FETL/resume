@@ -1,3 +1,5 @@
+import { resolveLegacyWorkspacePath } from '@/lib/workspace-path'
+
 const REDIRECT_BASE = 'https://resume.local'
 const MAX_PATH_DECODE_DEPTH = 4
 
@@ -74,7 +76,9 @@ export function sanitizeAppRedirect(
     )
       return fallback
 
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    return resolveLegacyWorkspacePath(
+      `${parsed.pathname}${parsed.search}${parsed.hash}`,
+    )
   } catch {
     return fallback
   }

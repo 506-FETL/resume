@@ -13,3 +13,10 @@ export const recoveryCallback = {
     (key) => hash.has(key) || url.searchParams.has(key),
   ),
 }
+
+export const hasAuthCallback =
+  recoveryCallback.isResetPage ||
+  recoveryCallback.isRecovery ||
+  recoveryCallback.hasTokens ||
+  recoveryCallback.hasCode ||
+  recoveryCallback.hasError

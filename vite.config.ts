@@ -7,6 +7,7 @@ import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
 import { defineConfig } from 'vite'
 import Pages from 'vite-plugin-pages'
 import wasm from 'vite-plugin-wasm'
+import { WORKSPACE_PATH } from './src/lib/workspace-path'
 
 export default defineConfig({
   server: {
@@ -43,6 +44,9 @@ export default defineConfig({
         '**/content/**',
       ],
       importMode: 'async',
+      extendRoute(route, parent) {
+        if (!parent && route.path === '/') return { path: WORKSPACE_PATH }
+      },
     }),
   ],
   resolve: {
