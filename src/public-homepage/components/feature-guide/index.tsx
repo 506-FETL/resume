@@ -41,28 +41,26 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
         <div className='story-material story-checklist'>
           <PencilArrow />
           <h3>
-            排版清单
+            简历模板
             <HandUnderline />
           </h3>
           <ul>
-            {['选单栏模板', '项目经历放前面', '预览分页，导出 PDF 或 Word'].map(
-              (item) => (
-                <li key={item}>
-                  <svg
-                    viewBox='0 0 18 18'
-                    aria-hidden='true'
-                    fill='none'
-                    stroke='currentColor'
-                    strokeWidth='2'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                  >
-                    <InkPath data-template-check='' d='m3 9 4 4 8-10' />
-                  </svg>
-                  {item}
-                </li>
-              ),
-            )}
+            {['选一份模板', '放上项目经历'].map((item) => (
+              <li key={item}>
+                <svg
+                  viewBox='0 0 18 18'
+                  aria-hidden='true'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='2'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                >
+                  <InkPath data-template-check='' d='m3 9 4 4 8-10' />
+                </svg>
+                {item}
+              </li>
+            ))}
           </ul>
         </div>
       )
@@ -72,30 +70,30 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
           <PencilArrow />
           <div className='story-clipping-sides'>
             <div data-note-side='job'>
-              <h3>职位描述比对</h3>
+              <h3>看看这个岗位要什么</h3>
               <strong>{example.job}</strong>
               <blockquote>“{example.requirement}”</blockquote>
               <dl className='story-match'>
                 <div>
-                  <dt>已覆盖</dt>
+                  <dt>已经写了</dt>
                   <dd>{example.covered}</dd>
                 </div>
                 <div>
-                  <dt>待补</dt>
+                  <dt>还没写</dt>
                   <dd>{example.missing}</dd>
                 </div>
               </dl>
             </div>
             <div data-note-side='report'>
-              <h3>五维检测 / 项目经历</h3>
-              <strong>先改这两处</strong>
+              <h3>检查建议</h3>
+              <strong>这段再写具体一点</strong>
               <dl className='story-findings'>
                 <div>
-                  <dt>内容充分度</dt>
-                  <dd>原文只说参与了项目，哪一块是你负责的？</dd>
+                  <dt>你做了哪部分</dt>
+                  <dd>只写「参与项目」，看不出你的分工。</dd>
                 </div>
                 <div>
-                  <dt>成果与证据强度</dt>
+                  <dt>具体怎么做的</dt>
                   <dd>{example.finding}</dd>
                 </div>
               </dl>
@@ -106,12 +104,10 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
     case 'assistant':
       return (
         <div className='story-material story-margin-note story-request'>
-          <h3>柳如烟给助手的留言</h3>
-          <p>
-            “先存一份底稿，再照这条笔记改一下「{example.project.name}」那段。”
-          </p>
+          <h3>让助手帮忙改</h3>
+          <p>“先存下现在这份，再按下面的笔记，帮我改一下项目经历。”</p>
           <div className='story-source-note'>
-            <strong>项目笔记</strong>
+            <strong>我当时做的事</strong>
             <p>{example.brief}</p>
           </div>
         </div>
@@ -121,11 +117,8 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
     case 'history':
       return (
         <div className='story-material story-margin-note'>
-          <h3>早上的底稿还在</h3>
-          <p>
-            底稿里的「{example.project.name}
-            」还没填日期。对照合改稿，能看见两人分别改了什么，也能恢复到这一版。
-          </p>
+          <h3>看看改之前的样子</h3>
+          <p>哪句改过、哪天补了日期，都能对照着看。想用原来的，也可以恢复。</p>
         </div>
       )
     case 'sharing':
@@ -133,19 +126,21 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
         <dl className='story-material story-pair'>
           <div>
             <dt>
-              请人审阅
-              <HandUnderline />
-            </dt>
-            <dd>阿禾能看到最新保存的稿子。开了评论，就能在原句旁留言。</dd>
-          </div>
-          <div>
-            <dt>
-              正式投递
+              发给朋友看看
               <HandUnderline />
             </dt>
             <dd>
-              投{example.job}
-              用的是这份合改稿。以后改简历，招聘方手里的版本也不会变。
+              阿禾能在原句旁留言。你保存修改后，她打开链接就能看到新内容。
+            </dd>
+          </div>
+          <div>
+            <dt>
+              发给招聘方
+              <HandUnderline />
+            </dt>
+            <dd>
+              选好要发的版本。以后再修改，招聘方看到的还是发出时的那份。也能下载
+              PDF 或 Word。
             </dd>
           </div>
         </dl>
@@ -153,30 +148,29 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
     case 'followup':
       return (
         <div className='story-material story-margin-note'>
-          <h3>11 月 7 日，约到一面</h3>
+          <h3>11 月 7 日，约好面试</h3>
           <p>
-            “帮我把{example.job}这条改成面试中。11
-            日下午两点一面，记到下一步里。”
+            “这个岗位约了 11 号下午两点面试，帮我改成面试中，把时间也记上。”
           </p>
         </div>
       )
     case 'delivery':
       return (
         <div className='story-material story-log'>
-          <h3>投递单</h3>
+          <h3>投过的，记下来</h3>
           <dl>
             <div>
               <dt>岗位</dt>
               <dd>{example.job}</dd>
             </div>
             <div>
-              <dt>投递日期</dt>
+              <dt>哪天投的</dt>
               <dd>
                 <time dateTime='2026-11-04'>11 月 4 日</time>
               </dd>
             </div>
             <div>
-              <dt>投递状态</dt>
+              <dt>现在进展</dt>
               <dd>已投递</dd>
             </div>
           </dl>
@@ -193,16 +187,17 @@ export default function FeatureGuide({ role }: { role: DemoRole }) {
   const example = storyExamples[role]
 
   const descriptions: Record<ChapterId, string> = {
-    templates: `柳如烟选了单栏模板，把「${example.project.name}」放在专业技能之前，准备投${example.job}。`,
-    review: `对照职位描述，简历里还没写到「${example.missing}」。ATS 纯文本能读出项目原句。检测报告指出分工没写清楚，柳如烟补上了「${example.responsibility}」。`,
-    assistant: `助手先读这份简历和已有的检测报告。柳如烟确认保存底稿，再核对修改前后的差别。确认应用后，助手把这两句写进简历：${example.lines.join('')}`,
-    collaboration: `柳如烟重写了第二句：${example.jointLine}阿禾同时在这页补上项目时间：${example.project.period}。`,
-    history: '打开底稿能找回原句；换回合改稿，两人刚写的描述和日期都还在。',
+    templates: `柳如烟选好模板，把「${example.project.name}」放在技能前面，准备投${example.job}。`,
+    review: `这个岗位要求「${example.missing}」，简历里还没写清楚。先看看招聘系统读到了什么，再按建议修改。柳如烟补上「${example.responsibility}」，清单勾掉第一项，第二项留给助手接着改。`,
+    assistant: `助手先看简历和检查建议。柳如烟同意保存修改前的版本，再看助手准备怎么改。确认后，助手把这两句写进简历：${example.lines.join('')}写完后，原清单的第二项也打上勾，两项都完成后再进入下一幕。`,
+    collaboration: `柳如烟把第二句改成：${example.jointLine}阿禾同时补上项目时间：${example.project.period}。`,
+    history:
+      '切到修改前，能看到原来的句子；再切回来，两人刚写的描述和日期都还在。想用原来的版本，也可以恢复。',
     sharing:
-      '审阅链接随保存更新。留给招聘方的链接固定在这份合改稿，之后编辑不会改变它。',
-    delivery: `11 月 4 日投出简历后，柳如烟把这份固定稿记在${example.job}岗位下。`,
+      '发给朋友的链接能看到最新保存的内容。发给招聘方的那份会保留下来，之后再改简历也不会改变它。还可以下载 PDF 或 Word。',
+    delivery: `11 月 4 日投出简历后，柳如烟在${example.job}这条记录里，记下投递日期和发出去的那份简历。`,
     followup:
-      '11 月 7 日收到面试邀请。柳如烟确认后，助手把状态改成面试中，记下 11 月 11 日下午两点的一面。',
+      '11 月 7 日收到面试消息。柳如烟确认后，助手把状态改成面试中，记下 11 月 11 日下午两点的面试。',
   }
 
   return (

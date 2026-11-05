@@ -63,27 +63,49 @@ export function useHomeReading() {
   useLayoutEffect(() => {
     const track = document.getElementById('guide')!
     const frame = track.querySelector<HTMLElement>('.story-frame')!
-    const orientation = window.matchMedia('(orientation: portrait)')
 
     const saved: ReadingPlace | undefined =
       window.history.state?.homeReading?.place
 
     let ranges = measure(track, frame)
+    let viewportWidth = window.innerWidth
+    let viewportHeight = window.innerHeight
     let pendingSave: number | undefined
+    let restoreFrame: number | undefined
 
-    if (saved) goToPlace(saved, ranges)
-    else if (window.location.hash && window.scrollY === 0) {
+    if (saved) {
+      goToPlace(saved, ranges)
+
+      // WebKit 会在首轮布局后执行旧锚点滚动；下一帧以记录的位置收束。
+      restoreFrame = window.requestAnimationFrame(() => {
+        ranges = measure(track, frame)
+        goToPlace(saved, ranges)
+      })
+    } else if (window.location.hash && window.scrollY === 0) {
       document
         .getElementById(window.location.hash.slice(1))
         ?.scrollIntoView({ behavior: 'instant' })
     }
 
+    let reading = currentPlace(ranges)
+
+    function rememberReading() {
+      if (
+        window.innerWidth !== viewportWidth ||
+        window.innerHeight !== viewportHeight
+      )
+        return
+
+      reading = currentPlace(ranges)
+    }
+
     function save() {
       ranges = measure(track, frame)
+      reading = currentPlace(ranges)
 
       saveReading({
         role: selectedRoleRef.current,
-        place: currentPlace(ranges),
+        place: reading,
       })
     }
 
@@ -94,22 +116,29 @@ export function useHomeReading() {
     }
 
     function turn() {
-      // 同一幕在横、竖屏占的滚动距离不同，先按转屏前的尺寸找出笔迹进度。
-      const place = currentPlace(ranges)
+      // 横屏变短时浏览器会先收回 scrollY；保留转屏前最后一次真实滚动的进度。
+      window.clearTimeout(pendingSave)
+      viewportWidth = window.innerWidth
+      viewportHeight = window.innerHeight
 
       ranges = measure(track, frame)
-      goToPlace(place, ranges)
+      goToPlace(reading, ranges)
     }
 
+    document.addEventListener('scroll', rememberReading, { passive: true })
     document.addEventListener('scrollend', saveAfterSettling)
     window.addEventListener('pagehide', save)
-    orientation.addEventListener('change', turn)
+    window.addEventListener('resize', turn)
 
     return () => {
       window.clearTimeout(pendingSave)
+
+      if (restoreFrame !== undefined) window.cancelAnimationFrame(restoreFrame)
+
+      document.removeEventListener('scroll', rememberReading)
       document.removeEventListener('scrollend', saveAfterSettling)
       window.removeEventListener('pagehide', save)
-      orientation.removeEventListener('change', turn)
+      window.removeEventListener('resize', turn)
     }
   }, [])
 

@@ -199,7 +199,7 @@ export function ParsingProof({ role }: { role: DemoRole }) {
         />
         <path d='m195 180 237-1m-226 17-.5 63' stroke='#aebdb2' fill='none' />
         <text x='204' y='171' fill='#325442' fontSize='17'>
-          ATS 纯文本预览
+          招聘系统读到的内容
         </text>
         <g fill='#354655' fontSize='15.5'>
           <text x='209' y='201'>
@@ -231,7 +231,7 @@ export function ChangeProof({ role }: { role: DemoRole }) {
           strokeWidth='1.6'
         />
         <text x='201' y='192' fill='#374654' fontSize='15'>
-          修改前后 · 项目描述
+          这段改成这样
         </text>
         <path d='m196 201 251-1 .2 23-250 1Z' fill='#f9e5d9' />
         <path d='m196 228 251-2 1 45-251 2Z' fill='#e3eddc' />
@@ -255,7 +255,7 @@ export function ChangeProof({ role }: { role: DemoRole }) {
             strokeWidth='2.1'
           />
           <text x='367' y='287' fontSize='15'>
-            确认应用
+            就这样改
           </text>
         </g>
       </g>
@@ -267,15 +267,13 @@ function LedgerLine({
   y,
   children,
   mark,
-  printed,
 }: {
   y: number
   children: string
   mark: string
-  printed?: boolean
 }) {
   return (
-    <g transform={`translate(0 ${y})`}>
+    <g data-check-row={mark} transform={`translate(0 ${y})`}>
       <path
         d='m190-11 12-.4.6 12-12 .4Z'
         fill='none'
@@ -289,13 +287,7 @@ function LedgerLine({
         stroke='#2a6548'
         strokeWidth='2.4'
       />
-      <text
-        data-ledger-line={printed ? undefined : mark}
-        x='213'
-        y='0'
-        fontSize='15'
-        fill='#32433e'
-      >
+      <text x='213' y='0' fontSize='15' fill='#32433e'>
         {children}
       </text>
     </g>
@@ -335,56 +327,52 @@ export function JobLedger({ role }: { role: DemoRole }) {
         <path d='m184 327 249-2' fill='none' stroke='#bdc7ad' />
         <g data-art='report-face'>
           <text x='188' y='321' fill='#3d5a47' fontSize='17'>
-            检测报告 / 修复清单
+            这两处改一下
           </text>
-          <LedgerLine y={352} mark='role' printed>
+          <LedgerLine y={352} mark='role'>
             补上自己负责的部分
           </LedgerLine>
-          <LedgerLine y={379} mark='pending' printed>
+          <LedgerLine y={379} mark='pending'>
             {example.repair}
           </LedgerLine>
         </g>
-        <g data-art='agent-face'>
-          <text x='188' y='321' fill='#315746' fontSize='17'>
-            助手的操作记录
+        <g
+          data-art='confirm-save'
+          transform='translate(0 -44) rotate(-5 396 361)'
+        >
+          <path
+            d='m345 349 85-1 1 21-86 1Z'
+            fill='#e9eef6'
+            stroke={blue}
+            strokeWidth='1.3'
+          />
+          <InkPath
+            data-save-confirm-ink=''
+            d='m349 359 4 4 7-10'
+            fill='none'
+            stroke={blue}
+            strokeWidth='1.7'
+          />
+          <text
+            data-art='saving-label'
+            x='395'
+            y='365'
+            textAnchor='middle'
+            fill={blue}
+            fontSize='14'
+          >
+            先存一份
           </text>
-          <LedgerLine y={347} mark='read'>
-            读取简历和已有的检测报告
-          </LedgerLine>
-          <LedgerLine y={368} mark='save'>
-            保存历史版本「底稿」
-          </LedgerLine>
-          <LedgerLine y={389} mark='write'>
-            写入项目描述
-          </LedgerLine>
-          <g data-art='confirm-save' transform='rotate(-5 396 361)'>
-            <path
-              d='m361 349 69-1 1 21-70 1Z'
-              fill='#e9eef6'
-              stroke={blue}
-              strokeWidth='1.3'
-            />
-            <text
-              data-art='saving-label'
-              x='395'
-              y='365'
-              textAnchor='middle'
-              fill={blue}
-              fontSize='14'
-            >
-              确认保存
-            </text>
-            <text
-              data-art='saved-label'
-              x='395'
-              y='365'
-              textAnchor='middle'
-              fill={blue}
-              fontSize='14'
-            >
-              已存底稿
-            </text>
-          </g>
+          <text
+            data-art='saved-label'
+            x='395'
+            y='365'
+            textAnchor='middle'
+            fill={blue}
+            fontSize='14'
+          >
+            已经存好
+          </text>
         </g>
       </g>
     </g>

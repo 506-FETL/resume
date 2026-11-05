@@ -209,50 +209,33 @@ function Resume({ role }: { role: DemoRole }) {
       <text x='387' y='367' fill='#484e52' fontSize='15'>
         01/01
       </text>
-      <g data-art='role-tag'>
-        <g transform='rotate(-5 373 48)'>
-          <path d='m307 35 132-1-3 29-130 2Z' fill='#2c3750' opacity='.15' />
-          <path
-            d='m304 31 133-1-1 29-132 3 2-7-3-4 2-7-2-5Z'
-            fill={yellow}
-            stroke={ink}
-            strokeWidth='1.6'
-          />
-          <path
-            d='m311 34-2 19m123-16-1 17'
-            fill='none'
-            stroke='#aa8c40'
-            strokeDasharray='2 3'
-          />
-          <text x='371' y='52' textAnchor='middle' fill={ink} fontSize='18'>
-            岗位副本
-          </text>
+      <g transform='translate(410 299) scale(.72) translate(-354 -331)'>
+        <g data-art='stamp'>
+          <g transform='rotate(-13 354 331)' stroke={blue}>
+            <path
+              d='M320 313q35-2 70 0l-.5 34-70 1Z'
+              fill='#e9eff8'
+              strokeWidth='2.7'
+            />
+            <path
+              d='m324 317 61-.5-.2 26-61 1Z'
+              fill='none'
+              strokeWidth='1.1'
+              strokeDasharray='41 3 15 1'
+            />
+            <text
+              x='354'
+              y='337'
+              textAnchor='middle'
+              fill={blue}
+              stroke='none'
+              fontSize='17'
+            >
+              就这版
+            </text>
+          </g>
         </g>
-      </g>
-      <g data-art='stamp'>
-        <g transform='rotate(-13 354 331)' stroke={blue}>
-          <path
-            d='M320 313q35-2 70 0l-.5 34-70 1Z'
-            fill='#e9eff8'
-            strokeWidth='2.7'
-          />
-          <path
-            d='m324 317 61-.5-.2 26-61 1Z'
-            fill='none'
-            strokeWidth='1.1'
-            strokeDasharray='41 3 15 1'
-          />
-          <text
-            x='354'
-            y='337'
-            textAnchor='middle'
-            fill={blue}
-            stroke='none'
-            fontSize='17'
-          >
-            固定版
-          </text>
-        </g>
+        <RubberStamp />
       </g>
     </g>
   )
@@ -296,10 +279,10 @@ function LinkTicket() {
           strokeWidth='2.4'
         />
         <text x='463' y='272' fontSize='14' fill={blue}>
-          正式投递
+          发给招聘方
         </text>
         <text x='434' y='298' fontSize='22' fill={ink}>
-          分享链接
+          简历链接
         </text>
         <path
           d='m574 253 11-.2m-11 4 11-.2m-11 6 11-.2m-11 7 11-.2m-11 4 11-.2m-11 6 11-.2m-11 4 11-.2m-11 8 11-.2'
@@ -332,7 +315,7 @@ function LinkTicket() {
 function RubberStamp() {
   return (
     <g data-art='stamp-tool' stroke={ink} strokeWidth='2.2'>
-      <g transform='rotate(-14 337 318)'>
+      <g transform='translate(17 13) rotate(-13 337 318)'>
         <path d='m295 307 80-1-1.5 14-77 1Z' fill='#242d44' />
         <path d='m292 294 84-1 2 17-87 1Z' fill='#c87943' />
         <path d='m292 294 7-6 73-1 4 6Z' fill='#e7ab68' />
@@ -397,14 +380,21 @@ function Receipt({ role }: { role: DemoRole }) {
             stroke='#5b6e59'
             strokeWidth='1.2'
           />
+          <InkPath
+            data-followup-confirm-ink=''
+            d='m408 253 4 4 8-10'
+            fill='none'
+            stroke='#31523b'
+            strokeWidth='1.7'
+          />
           <text
-            x='457'
+            x='467'
             y='259'
             textAnchor='middle'
             fontSize='14'
             fill='#31523b'
           >
-            已确认更新岗位
+            记下来
           </text>
         </g>
         <g data-art='interview-status'>
@@ -428,7 +418,7 @@ function Receipt({ role }: { role: DemoRole }) {
           {storyExamples[role].job}
         </text>
         <text x='373' y='372' fontSize='15'>
-          11.04 已投递
+          11.04 投出
         </text>
         <path
           d='m499 368 32-1m-24 5 22-1'
@@ -501,7 +491,6 @@ export default function StoryArt({ role }: { role: DemoRole }) {
         <ParsingProof role={role} />
         <ChangeProof role={role} />
         <JobLedger role={role} />
-        <RubberStamp />
         <LinkTicket />
         <g data-art='pencil'>
           <HandPencil />

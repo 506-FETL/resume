@@ -1,4 +1,5 @@
 import { InkPath } from './ink-path'
+import { HandPencil } from '../cover-marks'
 
 export function VersionIndex() {
   return (
@@ -20,13 +21,13 @@ export function VersionIndex() {
         09:10
       </text>
       <text x='109' y='160' fontSize='19'>
-        底稿
+        修改前
       </text>
       <text x='109' y='185' fontSize='12'>
         09:35
       </text>
       <text x='109' y='205' fontSize='19'>
-        合改稿
+        修改后
       </text>
     </g>
   )
@@ -64,8 +65,11 @@ export function InterviewDate() {
           strokeWidth='2.3'
         />
         <text x='228' y='376' textAnchor='middle' fontSize='18'>
-          14:00 一面
+          14:00 面试
         </text>
+        <g data-art='calendar-pencil'>
+          <HandPencil />
+        </g>
       </g>
     </g>
   )
