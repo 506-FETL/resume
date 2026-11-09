@@ -13,6 +13,7 @@ export function createFolderOpening(track: HTMLElement, reduced: boolean) {
   const origin = hero.querySelector<SVGSVGElement>('.cover-origin')!
   const dividers = hero.querySelector<HTMLElement>('.cover-dividers')!
   const frame = track.querySelector<HTMLElement>('.story-frame')!
+  const drawing = track.querySelector<HTMLElement>('.story-drawing')!
   const desk = track.querySelector<SVGSVGElement>('.story-drawing > svg')!
   const back = desk.querySelector<SVGGElement>('[data-cover-back]')!
   const front = desk.querySelector<SVGGElement>('[data-cover-front]')!
@@ -109,10 +110,37 @@ export function createFolderOpening(track: HTMLElement, reduced: boolean) {
     sheet.setAttribute('transform', toPage.multiply(sheetPose).toString())
   }
 
+  function refreshLayout() {
+    const bounds = drawing.getBoundingClientRect()
+    const frameBounds = frame.getBoundingClientRect()
+    const scale = Math.min(bounds.width / 640, bounds.height / 450)
+    const insetX = (bounds.width - 640 * scale) / 2
+    const insetY = (bounds.height - 450 * scale) / 2
+    const left = Math.min(0, frameBounds.left - bounds.left)
+    const top = frameBounds.top - bounds.top - runway.offsetHeight
+    const width = Math.max(bounds.width, frameBounds.right - bounds.left) - left
+    const height = frameBounds.bottom - bounds.top - top
+
+    // Safari 回滚时会漏绘 SVG 视口外的内容；画布覆盖封面到内页，保持原坐标与比例。
+    desk.setAttribute(
+      'viewBox',
+      `${(left - insetX) / scale} ${(top - insetY) / scale} ${width / scale} ${height / scale}`,
+    )
+
+    Object.assign(desk.style, {
+      position: 'absolute',
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+    })
+
+    hero.style.setProperty('--cover-height', `${hero.offsetHeight}px`)
+  }
+
   return {
     draw,
-    refreshLayout: () =>
-      hero.style.setProperty('--cover-height', `${hero.offsetHeight}px`),
+    refreshLayout,
     start: () =>
       Math.max(0, runway.offsetTop + hero.offsetHeight - window.innerHeight),
   }

@@ -35,11 +35,12 @@ function InkField({
     <g data-field={name} transform={`translate(${x} ${y})`}>
       <defs>
         <clipPath id={clipId}>
+          {/* Safari 倒放到零宽裁切时会漏出整句；保留不可见的非零宽度。 */}
           <rect
             data-ink={name}
             x='0'
             y={-size - 2}
-            width='0'
+            width='0.001'
             height={size + 8}
           />
         </clipPath>
