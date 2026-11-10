@@ -138,7 +138,7 @@ export default function MaterialPreview({
                 role='status'
                 className='flex items-center gap-2 text-sm text-muted-foreground'
               >
-                <Spinner aria-hidden className='motion-reduce:animate-none' />
+                <Spinner aria-hidden />
                 正在加载投递原件
               </p>
             ) : (

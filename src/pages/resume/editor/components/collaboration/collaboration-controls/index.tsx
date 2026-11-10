@@ -1,3 +1,4 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { ReactNode } from 'react'
 import {
   ArrowUpDown,
@@ -5,12 +6,10 @@ import {
   Cloud,
   HardDrive,
   Link2,
-  Loader2,
   Radio,
   Save,
   Share2,
 } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -64,7 +63,6 @@ export function CollaborationControls({
   const resumeId = useCurrentResumeStore((state) => state.resumeId)
   const resumeName = useResumeDisplayName()
   const syncError = useResumeStore((state) => state.syncError)
-  const reduceMotion = useReducedMotion()
   const { openDialog: openQuickDialog } = useShareStore()
   const isOffline = Boolean(resumeId) && isOfflineResumeId(resumeId!)
   const canShare = Boolean(resumeId) && !isOffline
@@ -131,9 +129,7 @@ export function CollaborationControls({
                 )}
               >
                 {isCollabConnecting ? (
-                  <Loader2
-                    className={cn('size-4', !reduceMotion && 'animate-spin')}
-                  />
+                  <Spinner className='size-4' />
                 ) : isSharing ? (
                   <Radio className='size-4' />
                 ) : (
@@ -209,7 +205,6 @@ export function CollaborationControls({
               syncError,
               pendingChanges,
               lastSyncTime,
-              reduceMotion: !!reduceMotion,
             })}
           </AnimatedContent>
         </span>
@@ -227,18 +222,16 @@ function renderSyncStatus({
   syncError,
   pendingChanges,
   lastSyncTime,
-  reduceMotion,
 }: {
   isSyncing: boolean
   syncError: string | null
   pendingChanges: boolean
   lastSyncTime: number | null
-  reduceMotion: boolean
 }) {
   if (isSyncing) {
     return (
       <span className='flex items-center gap-2 text-sm text-muted-foreground font-normal'>
-        <Clock className={cn('size-4', !reduceMotion && 'animate-spin')} />
+        <Spinner />
         同步中...
       </span>
     )

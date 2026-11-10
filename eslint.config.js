@@ -148,6 +148,35 @@ export default defineConfig([
   },
   prettier,
   {
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
+    // 图标聚合入口只转出原库，实际消费它的组件仍接受导入检查。
+    ignores: ['src/components/ui/icons.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['lucide-react'],
+              importNamePattern: '^Loader',
+              message: '加载图标统一使用 @/components/ui/spinner 的 Spinner。',
+            },
+            {
+              group: ['@/components/ui/icons'],
+              importNamePattern: '^Loading',
+              message: '加载图标统一使用 @/components/ui/spinner 的 Spinner。',
+            },
+            {
+              group: ['@hugeicons/core-free-icons'],
+              importNamePattern: '^Loading',
+              message: '加载图标统一使用 @/components/ui/spinner 的 Spinner。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: codeFiles,
     plugins: { '@stylistic': stylistic },
     rules: {

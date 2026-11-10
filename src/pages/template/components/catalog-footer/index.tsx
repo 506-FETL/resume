@@ -1,11 +1,9 @@
-import { LoaderCircle } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { Spinner } from '@/components/ui/spinner'
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { useResumeTemplateStore } from '@/store/resume-template'
 import {
   TEMPLATE_LOAD_MORE_DISTANCE,
@@ -16,8 +14,6 @@ import { useTemplatePageStore } from '../../store'
 import { templateScrollRoot } from '../../utils'
 
 export default function CatalogFooter() {
-  const reduceMotion = useReducedMotion()
-
   const {
     catalog,
     catalogQuery,
@@ -123,12 +119,7 @@ export default function CatalogFooter() {
               disabled={loadingMore || !matchesFilter}
               onClick={loadMore}
             >
-              {loadingMore && (
-                <LoaderCircle
-                  aria-hidden
-                  className={cn('size-4', !reduceMotion && 'animate-spin')}
-                />
-              )}
+              {loadingMore && <Spinner aria-hidden className='size-4' />}
               {loadingMore
                 ? '正在加载更多模板…'
                 : loadMoreError

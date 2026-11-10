@@ -1,13 +1,7 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { JobApplication } from '../../../types'
 import dayjs from 'dayjs'
-import {
-  Bell,
-  CalendarIcon,
-  Check,
-  ChevronDown,
-  Loader2,
-  X,
-} from 'lucide-react'
+import { Bell, CalendarIcon, Check, ChevronDown, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useId, useRef, useState } from 'react'
@@ -311,9 +305,7 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
               aria-label={saving ? '保存跟进中' : '保存跟进'}
             >
               {saving ? (
-                <Loader2
-                  className={cn('size-3.5', !reduce && 'animate-spin')}
-                />
+                <Spinner className='size-3.5' />
               ) : (
                 <Check className='size-3.5' />
               )}

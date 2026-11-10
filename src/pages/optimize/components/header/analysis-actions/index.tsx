@@ -33,11 +33,7 @@ export function AnalysisActions({
         onClick={onStartAnalysis}
         disabled={isProcessing || !selectedResumeId}
       >
-        {isProcessing ? (
-          <Spinner className='motion-reduce:animate-none' />
-        ) : (
-          <RefreshCcw />
-        )}
+        {isProcessing ? <Spinner /> : <RefreshCcw />}
         {hasAnalysis ? '重新检测' : '开始检测'}
       </Button>
     </>

@@ -1,4 +1,5 @@
-import { Clock3, LoaderCircle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
+import { Clock3 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
@@ -55,11 +56,7 @@ export function CommentReviewBanner({
           disabled={switching}
           onClick={onReturn}
         >
-          {switching ? (
-            <LoaderCircle
-              className={reduceMotion ? undefined : 'animate-spin'}
-            />
-          ) : null}
+          {switching ? <Spinner /> : null}
           <span className='hidden sm:inline'>返回当前版本</span>
           <span className='sm:hidden'>返回</span>
         </Button>

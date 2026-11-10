@@ -1,8 +1,9 @@
+import { Spinner } from '@/components/ui/spinner'
 import type {
   RestoreStrategy,
   ResumeHistoryVersionListItem,
 } from '@/lib/supabase/resume/history'
-import { AlertTriangle, LoaderCircle, RotateCcw } from 'lucide-react'
+import { AlertTriangle, RotateCcw } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import {
@@ -156,12 +157,7 @@ export default function RestoreVersionDialog({
                     onClick={() => onConfirm('without_backup')}
                   >
                     {restoring && restoreStrategy === 'without_backup' && (
-                      <LoaderCircle
-                        data-icon='inline-start'
-                        className={cn(
-                          !dialogMotion.reduceMotion && 'animate-spin',
-                        )}
-                      />
+                      <Spinner data-icon='inline-start' />
                     )}
                     {restoring && restoreStrategy === 'without_backup'
                       ? '恢复中...'
@@ -185,12 +181,7 @@ export default function RestoreVersionDialog({
                     onClick={() => onConfirm('with_backup')}
                   >
                     {restoring && restoreStrategy === 'with_backup' && (
-                      <LoaderCircle
-                        data-icon='inline-start'
-                        className={cn(
-                          !dialogMotion.reduceMotion && 'animate-spin',
-                        )}
-                      />
+                      <Spinner data-icon='inline-start' />
                     )}
                     {restoring && restoreStrategy === 'with_backup'
                       ? '恢复中...'

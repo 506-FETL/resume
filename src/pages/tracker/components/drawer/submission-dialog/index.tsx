@@ -348,10 +348,7 @@ export function SubmissionForm({
                       role='status'
                       className='flex items-center gap-2 text-sm text-muted-foreground'
                     >
-                      <Spinner
-                        aria-hidden
-                        className='motion-reduce:animate-none'
-                      />
+                      <Spinner aria-hidden />
                       正在加载简历
                     </p>
                   ) : resumes.length === 0 ? (

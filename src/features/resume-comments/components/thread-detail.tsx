@@ -1,7 +1,8 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { ReactNode } from 'react'
 import type { ResumeCommentThread } from '../types.ts'
 import type { CommentUiPermissions } from './types.ts'
-import { ArrowLeft, Link2, LoaderCircle, RotateCcw, Trash2 } from 'lucide-react'
+import { ArrowLeft, Link2, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -144,7 +145,7 @@ export function ThreadDetail({
             disabled={resolving}
             onClick={() => actions.resolveThread(thread)}
           >
-            {resolving ? <LoaderCircle className='animate-spin' /> : null}
+            {resolving ? <Spinner /> : null}
             {resolving ? '解决中…' : '解决'}
           </Button>
         ) : null}
@@ -155,11 +156,7 @@ export function ThreadDetail({
             disabled={reopening}
             onClick={() => actions.reopenThread(thread)}
           >
-            {reopening ? (
-              <LoaderCircle className='animate-spin' />
-            ) : (
-              <RotateCcw />
-            )}
+            {reopening ? <Spinner /> : <RotateCcw />}
             {reopening ? '重开中…' : '重开'}
           </Button>
         ) : null}

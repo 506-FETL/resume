@@ -1,6 +1,7 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import { useEffect, useRef, useState } from 'react'
-import { Check, FileText, LoaderCircle } from 'lucide-react'
+import { Check, FileText } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
@@ -186,9 +187,7 @@ function TemplateOption({
           ) : (
             <div className='flex h-full flex-col items-center justify-center gap-2 text-muted-foreground'>
               {status === 'loading' ? (
-                <LoaderCircle
-                  className={cn('size-5', !reduceMotion && 'animate-spin')}
-                />
+                <Spinner className='size-5' />
               ) : (
                 <FileText className='size-6' />
               )}

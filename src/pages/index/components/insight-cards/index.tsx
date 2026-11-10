@@ -1,3 +1,4 @@
+import { Spinner } from '@/components/ui/spinner'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,7 +34,6 @@ import {
   CalendarDays,
   FileSearch,
   LineChart as LineChartIcon,
-  LoaderCircle,
   Plus,
   TrendingUp,
 } from 'lucide-react'
@@ -89,14 +89,13 @@ function CardHead({
   )
 }
 
-// 图表加载中：占位与图表等高，居中显示旋转的 LoaderCircle（比默认 spinner 的放射状图标更利落）
 function ChartLoading() {
   return (
     <div
       className={cn('flex w-full items-center justify-center', CHART_HEIGHT)}
     >
-      <LoaderCircle
-        className='size-6 animate-spin motion-reduce:animate-none text-muted-foreground/60'
+      <Spinner
+        className='size-6 text-muted-foreground/60'
         aria-label='加载中'
         role='status'
       />

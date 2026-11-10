@@ -1,6 +1,7 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { RefObject } from 'react'
 import { useLayoutEffect, useRef } from 'react'
-import { Check, CircleAlert, Cloud, Loader2, RotateCcw } from 'lucide-react'
+import { Check, CircleAlert, Cloud, RotateCcw } from 'lucide-react'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
@@ -34,7 +35,7 @@ function FeedbackState({
 
   const Icon =
     status === 'saving'
-      ? Loader2
+      ? Spinner
       : status === 'saved'
         ? Check
         : status === 'error'
@@ -78,13 +79,7 @@ function FeedbackState({
         ...(reduce && { duration: 0 }),
       }}
     >
-      <Icon
-        aria-hidden='true'
-        className={cn(
-          'size-3.5 shrink-0',
-          status === 'saving' && !reduce && 'animate-spin',
-        )}
-      />
+      <Icon aria-hidden='true' className='size-3.5 shrink-0' />
       <span aria-hidden='true'>{STATUS_LABEL[status]}</span>
       {status === 'error' && (
         <Button

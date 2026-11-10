@@ -1,9 +1,9 @@
+import { Spinner } from '@/components/ui/spinner'
 import type {
   ExampleRef,
   TemplateCatalogItem,
 } from '@/lib/resume-template/source/types'
-import { FileText, LoaderCircle } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { FileText } from 'lucide-react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { exampleKey } from '@/lib/resume-template/source/types'
@@ -23,8 +23,6 @@ export default function CardPreview({
     TEMPLATE_PREVIEW_ROOT_MARGIN,
     true,
   )
-
-  const reduceMotion = useReducedMotion()
 
   const preview = item.previews.find(
     (candidate) =>
@@ -58,12 +56,9 @@ export default function CardPreview({
         ) : (
           <div className='flex aspect-[210/297] flex-col items-center justify-center gap-3 bg-muted/20 px-5 text-center'>
             {status === 'loading' ? (
-              <LoaderCircle
+              <Spinner
                 aria-hidden
-                className={cn(
-                  'size-6 text-muted-foreground/50',
-                  !reduceMotion && 'animate-spin',
-                )}
+                className='size-6 text-muted-foreground/50'
               />
             ) : (
               <FileText

@@ -1,4 +1,4 @@
-import { LoaderCircle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -86,9 +86,7 @@ export function CommentComposer({
             disabled={!valid || disabled || submitDisabled || pending}
             aria-live='polite'
           >
-            {pending ? (
-              <LoaderCircle className='animate-spin' data-icon='inline-start' />
-            ) : null}
+            {pending ? <Spinner data-icon='inline-start' /> : null}
             {pending ? pendingLabel : submitLabel}
           </Button>
         </div>

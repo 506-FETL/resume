@@ -8,11 +8,11 @@ import {
   File01Icon,
   HugeiconsIcon,
   Image01Icon,
-  Loading03Icon,
   MusicNote01Icon,
   Txt01Icon,
   Video01Icon,
 } from '@/components/ui/icons'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 export interface UploadedFile {
@@ -234,11 +234,7 @@ export const FilePreview: FC<FilePreviewProps> = ({
             {/* Loading overlay */}
             {file.isUploading && (
               <div className='absolute inset-0 flex items-center justify-center rounded-xl bg-black/30 dark:bg-black/30'>
-                <HugeiconsIcon
-                  icon={Loading03Icon}
-                  size={20}
-                  className='animate-spin text-white'
-                />
+                <Spinner className='size-5 text-white' aria-label='正在上传' />
               </div>
             )}
 

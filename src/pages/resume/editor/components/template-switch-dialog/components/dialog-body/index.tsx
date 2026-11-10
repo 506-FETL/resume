@@ -1,5 +1,6 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { TemplateSwitchPreviewState } from '@/pages/resume/editor/components/template-switch-preview'
-import { ArrowRight, ImageOff, LoaderCircle, Undo2 } from 'lucide-react'
+import { ArrowRight, ImageOff, Undo2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
@@ -197,10 +198,7 @@ export default function TemplateSwitchDialogBody() {
                   '预览暂不可用'
                 ) : (
                   <>
-                    <LoaderCircle
-                      aria-hidden
-                      className={cn('size-3', !reduceMotion && 'animate-spin')}
-                    />
+                    <Spinner aria-hidden className='size-3' />
                     准备中
                     <span className='sr-only'>，完成后自动更新预览</span>
                   </>

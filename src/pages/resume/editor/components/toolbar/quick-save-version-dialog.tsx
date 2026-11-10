@@ -1,5 +1,5 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { FormEvent } from 'react'
-import { LoaderCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -137,12 +137,7 @@ export function QuickSaveVersionDialog({
               取消
             </Button>
             <Button type='submit' disabled={saving}>
-              {saving && (
-                <LoaderCircle
-                  className='animate-spin'
-                  data-icon='inline-start'
-                />
-              )}
+              {saving && <Spinner data-icon='inline-start' />}
               {saving ? '保存中...' : '保存版本'}
             </Button>
           </DialogFooter>

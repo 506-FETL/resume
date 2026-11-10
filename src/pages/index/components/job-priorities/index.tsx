@@ -142,7 +142,7 @@ function PriorityCard({
               role='status'
               className='flex items-center gap-2 py-2 text-sm text-muted-foreground'
             >
-              <Spinner aria-hidden className='motion-reduce:animate-none' />
+              <Spinner aria-hidden />
               正在加载
             </div>
           ) : unavailable ? (

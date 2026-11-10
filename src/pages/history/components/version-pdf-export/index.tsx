@@ -1,7 +1,7 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
-import { FileDown, LoaderCircle } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { FileDown } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import CanonicalPagedDocument from '@/components/resume/pagination/canonical-paged-document'
@@ -10,7 +10,6 @@ import { buildTemplateResumeData } from '@/components/resume/runtime/context/res
 import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
 import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
-import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
 import HistoryActionButton from '../shared/history-action-button'
 
@@ -44,7 +43,6 @@ export default function VersionPdfExportButton({
           ?.projection_reference_date,
     ) ?? new Date().toISOString().slice(0, 10)
 
-  const reduceMotion = useReducedMotion()
   const printRef = useRef<HTMLDivElement>(null)
   // 仅点击导出后挂载打印文档；命中快照缓存不代表需要提前渲染、测量 PDF。
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(null)
@@ -148,11 +146,7 @@ export default function VersionPdfExportButton({
         disabled={loading}
         onClick={handleExport}
       >
-        {loading || preparing ? (
-          <LoaderCircle className={cn(!reduceMotion && 'animate-spin')} />
-        ) : (
-          <FileDown />
-        )}
+        {loading || preparing ? <Spinner /> : <FileDown />}
       </HistoryActionButton>
 
       {snapshot && previewData && definition && (

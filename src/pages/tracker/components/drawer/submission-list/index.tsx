@@ -262,7 +262,7 @@ export default function SubmissionList({
             role='status'
             className='flex items-center gap-2 text-sm text-muted-foreground'
           >
-            <Spinner aria-hidden className='motion-reduce:animate-none' />
+            <Spinner aria-hidden />
             {compact ? '正在读取投递原件' : '正在加载投递详情'}
           </p>
         ) : compact ? (
@@ -354,10 +354,7 @@ export default function SubmissionList({
                         role='status'
                         className='flex items-center gap-2 px-2.5 py-2 text-xs text-muted-foreground'
                       >
-                        <Spinner
-                          aria-hidden
-                          className='size-3 motion-reduce:animate-none'
-                        />
+                        <Spinner aria-hidden className='size-3' />
                         正在读取更正历史
                       </p>
                     ) : history.length === 0 ? (

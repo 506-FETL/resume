@@ -1,5 +1,6 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { RewriteSessionState } from '../types'
-import { AlertCircle, Loader2, Sparkles } from 'lucide-react'
+import { AlertCircle, Sparkles } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 interface RewriteStatusViewProps {
@@ -14,7 +15,7 @@ export function RewriteStatusView({ state }: RewriteStatusViewProps) {
         aria-live='polite'
         className='flex items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 px-6 py-10 text-sm text-muted-foreground'
       >
-        <Loader2 className='size-4 animate-spin text-primary' />
+        <Spinner className='size-4 text-primary' />
         <span>正在生成改写方案…</span>
       </div>
     )

@@ -1,7 +1,8 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { UseFormReturn } from 'react-hook-form'
 import type { PercentCrop } from 'react-image-crop'
 import type { BasicFormInput } from '@/lib/schema'
-import { ImagePlus, LoaderCircle, Trash2 } from 'lucide-react'
+import { ImagePlus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
@@ -17,7 +18,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DURATION, EASE } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 import { cropResumePhoto, readPhotoFile } from './utils'
 import 'react-image-crop/dist/ReactCrop.css'
 
@@ -168,11 +168,7 @@ export function ResumePhotoField({
             disabled={busy}
             onClick={() => inputRef.current?.click()}
           >
-            {busy && (
-              <LoaderCircle
-                className={cn('size-3.5', !reduceMotion && 'animate-spin')}
-              />
-            )}
+            {busy && <Spinner className='size-3.5' />}
             {photo ? '替换照片' : '选择照片'}
           </Button>
           <Button

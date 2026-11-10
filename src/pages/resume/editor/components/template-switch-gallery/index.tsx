@@ -1,6 +1,7 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import type { ResumeTemplateBinding } from '@/lib/schema'
-import { Check, FileText, LoaderCircle, RefreshCw } from 'lucide-react'
+import { Check, FileText, RefreshCw } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
@@ -110,9 +111,7 @@ function TemplateCard({
           ) : (
             <div className='flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-xs text-muted-foreground'>
               {status === 'loading' ? (
-                <LoaderCircle
-                  className={cn('size-5', !reduceMotion && 'animate-spin')}
-                />
+                <Spinner className='size-5' />
               ) : (
                 <FileText className='size-6' />
               )}
@@ -176,7 +175,6 @@ export default function TemplateSwitchGallery() {
   const state = useTemplateSwitchCatalog()
   const currentBinding = useResumeStore((state) => state.templateBinding)
   const current = useTemplateCatalogEntry(currentBinding?.templateId)
-  const reduceMotion = useReducedMotion()
   const { loadMore, loadMoreError, nextOffset } = state
   const { ref, inRange } = useTemplateIntersection('160px', false, nextOffset)
 
@@ -339,11 +337,7 @@ export default function TemplateSwitchGallery() {
               disabled={state.loadingMore || state.refreshingCatalog}
               onClick={() => state.loadMore()}
             >
-              {state.loadingMore && (
-                <LoaderCircle
-                  className={cn('size-4', !reduceMotion && 'animate-spin')}
-                />
-              )}
+              {state.loadingMore && <Spinner className='size-4' />}
               {state.loadMoreError
                 ? '加载失败，点击重试'
                 : state.loadingMore

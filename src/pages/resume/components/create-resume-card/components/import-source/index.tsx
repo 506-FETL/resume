@@ -1,5 +1,6 @@
+import { Spinner } from '@/components/ui/spinner'
 import { useRef, useState } from 'react'
-import { FileText, LoaderCircle, Upload } from 'lucide-react'
+import { FileText, Upload } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -167,7 +168,7 @@ export default function ImportSource({
           aria-live='polite'
           className='flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-sm'
         >
-          <LoaderCircle className='size-4 shrink-0 animate-spin motion-reduce:animate-none' />
+          <Spinner className='size-4 shrink-0' />
           <span className='flex-1'>
             {stage === 'reading' ? '正在读取文件…' : '正在识别并填充内容…'}
           </span>

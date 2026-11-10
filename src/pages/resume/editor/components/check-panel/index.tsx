@@ -1,15 +1,9 @@
+import { Spinner } from '@/components/ui/spinner'
 import { memo, useRef } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useShallow } from 'zustand/react/shallow'
 import type { CheckSeverity } from '@/lib/resume-checks/types'
-import {
-  Check,
-  ChevronDown,
-  LoaderCircle,
-  RotateCw,
-  Sparkles,
-  Undo2,
-} from 'lucide-react'
+import { Check, ChevronDown, RotateCw, Sparkles, Undo2 } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { PresenceDiv } from '@/components/motion/presence-item'
@@ -444,13 +438,7 @@ function CheckPanel() {
             : '登录后可校对错别字和专业名词。'}
         </p>
         {state.proofreadStatus === 'running' && (
-          <LoaderCircle
-            className={cn(
-              'size-3.5 text-muted-foreground',
-              !reduced && 'animate-spin',
-            )}
-            aria-hidden
-          />
+          <Spinner className='size-3.5 text-muted-foreground' aria-hidden />
         )}
         {state.proofreadError && (
           <p role='alert' className='text-xs text-destructive'>

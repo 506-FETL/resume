@@ -70,7 +70,7 @@ export default function IssueAnalysis() {
             role='status'
             className='flex items-center justify-center gap-3 py-8 text-sm text-muted-foreground'
           >
-            <Spinner className='size-5 text-primary motion-reduce:animate-none' />
+            <Spinner className='size-5 text-primary' />
             正在读取检测报告
           </div>
         ) : !findings || totalFindings === 0 ? (

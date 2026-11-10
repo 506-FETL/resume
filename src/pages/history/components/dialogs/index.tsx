@@ -1,5 +1,6 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { RestoreStrategy } from '../../types'
-import { LoaderCircle, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
   AlertDialog,
@@ -12,7 +13,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { useHistoryDialogMotion } from '../../hooks/use-history-dialog-motion'
 import useHistoryStore from '../../store'
 import RestoreVersionDialog from './restore-version-dialog'
@@ -106,12 +106,7 @@ export default function HistoryDialogs({
               disabled={Boolean(deletingVersionId)}
               onClick={onConfirmDelete}
             >
-              {deletingVersionId && (
-                <LoaderCircle
-                  data-icon='inline-start'
-                  className={cn(!dialogMotion.reduceMotion && 'animate-spin')}
-                />
-              )}
+              {deletingVersionId && <Spinner data-icon='inline-start' />}
               {deletingVersionId ? '删除中...' : '确认删除'}
             </Button>
           </AlertDialogFooter>

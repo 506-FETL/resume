@@ -29,6 +29,7 @@ import { getErrorMessage } from '@/utils'
 
 if (import.meta.env.DEV && location.port === '5173') {
   const probe = '/tests/single-edit/trace-client.js'
+
   import(/* @vite-ignore */ probe).catch(() => {})
 }
 

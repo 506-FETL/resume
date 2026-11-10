@@ -54,10 +54,7 @@ export default function RepairChecklist() {
               role='status'
               className='flex items-center gap-2 text-sm text-muted-foreground'
             >
-              <Spinner
-                aria-hidden
-                className='size-4 motion-reduce:animate-none'
-              />
+              <Spinner aria-hidden className='size-4' />
               正在整理建议…
             </div>
           ) : fixList.length === 0 ? (

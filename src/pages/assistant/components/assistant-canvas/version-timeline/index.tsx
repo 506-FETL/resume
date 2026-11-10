@@ -1,6 +1,7 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { CanvasModel } from '../../../types'
 import type { ResumeType } from '@/lib/schema'
-import { History, LoaderCircle } from 'lucide-react'
+import { History } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -87,10 +88,7 @@ export default function VersionTimeline({
         <EmptyContent>
           <Button onClick={openHistory} disabled={isOfflineResume || opening}>
             {opening ? (
-              <LoaderCircle
-                data-icon='inline-start'
-                className='animate-spin motion-reduce:animate-none'
-              />
+              <Spinner data-icon='inline-start' />
             ) : (
               <History data-icon='inline-start' />
             )}

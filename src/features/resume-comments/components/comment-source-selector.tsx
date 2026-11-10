@@ -1,5 +1,6 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { AccessibleCommentScopeSummary } from '../store/types.ts'
-import { FileClock, FilePenLine, LoaderCircle } from 'lucide-react'
+import { FileClock, FilePenLine } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -77,8 +78,8 @@ export function CommentSourceSelector({
           <SelectValue>
             <span className='flex min-w-0 items-center gap-2'>
               {loading ? (
-                <LoaderCircle
-                  className='size-4 shrink-0 animate-spin'
+                <Spinner
+                  className='size-4 shrink-0'
                   aria-label='正在加载评论来源'
                 />
               ) : null}

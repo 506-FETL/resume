@@ -1,13 +1,7 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { ResumeComment, ResumeCommentThread } from '../types.ts'
 import type { CommentUiPermissions } from './types.ts'
-import {
-  ArrowLeft,
-  LoaderCircle,
-  MessageCircle,
-  RefreshCw,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { ArrowLeft, MessageCircle, RefreshCw, Trash2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useMemo, useState } from 'react'
@@ -237,8 +231,8 @@ function CommentNode({
               </span>
             ) : null}
             {pending ? (
-              <LoaderCircle
-                className='ml-auto size-3.5 animate-spin text-muted-foreground'
+              <Spinner
+                className='ml-auto size-3.5 text-muted-foreground'
                 aria-label='正在处理'
               />
             ) : null}
@@ -296,12 +290,7 @@ function CommentNode({
               >
                 {delivery.state === 'sending' ? (
                   <>
-                    <LoaderCircle
-                      className={cn(
-                        'size-3.5',
-                        !reduceMotion && 'animate-spin',
-                      )}
-                    />
+                    <Spinner className='size-3.5' />
                     <span>发送中</span>
                   </>
                 ) : (

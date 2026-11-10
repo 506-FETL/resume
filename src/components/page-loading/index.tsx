@@ -1,4 +1,4 @@
-import { WanderingEyes } from '@/components/wandering-eyes'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 interface PageLoadingProps {
@@ -13,7 +13,7 @@ export function PageLoading({ className }: PageLoadingProps) {
         className,
       )}
     >
-      <WanderingEyes className='w-24 sm:w-28 [--duration:3s]' />
+      <Spinner className='size-8' />
     </div>
   )
 }

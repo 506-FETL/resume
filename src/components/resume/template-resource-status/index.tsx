@@ -1,4 +1,4 @@
-import { LoaderCircle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
@@ -22,12 +22,7 @@ export default function TemplateResourceStatus({
       className='flex min-h-40 flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground'
       role={error ? 'alert' : 'status'}
     >
-      {!error && (
-        <LoaderCircle
-          className={reduced ? 'size-5' : 'size-5 animate-spin'}
-          aria-hidden
-        />
-      )}
+      {!error && <Spinner className='size-5' aria-hidden />}
       <p>{error ?? '正在准备简历预览…'}</p>
       {error && onRetry && (
         <Button variant='outline' size='sm' onClick={onRetry}>

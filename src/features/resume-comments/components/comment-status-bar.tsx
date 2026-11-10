@@ -1,4 +1,5 @@
-import { CheckCircle2, LoaderCircle, MessageCircle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
+import { CheckCircle2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -44,11 +45,7 @@ export function CommentStatusBar({
                 onResolve()
               }}
             >
-              {resolving ? (
-                <LoaderCircle className='animate-spin' />
-              ) : (
-                <CheckCircle2 />
-              )}
+              {resolving ? <Spinner /> : <CheckCircle2 />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>

@@ -1,5 +1,6 @@
+import { Spinner } from '@/components/ui/spinner'
 import type { PendingCommentSelection } from '../store/types.ts'
-import { Link2, LoaderCircle, MessageSquarePlus } from 'lucide-react'
+import { Link2, MessageSquarePlus } from 'lucide-react'
 import { motion, useIsPresent } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
@@ -82,7 +83,7 @@ export function SelectionAction({
           disabled={disabled || pending || !isPresent}
           onClick={onComment}
         >
-          {pending ? <LoaderCircle className='animate-spin' /> : <Icon />}
+          {pending ? <Spinner /> : <Icon />}
           {label}
         </Button>
       </motion.div>
@@ -101,7 +102,7 @@ export function SelectionAction({
           aria-label={`已选择 ${selectedCount} 个字，${label}`}
           onClick={onComment}
         >
-          {pending ? <LoaderCircle className='animate-spin' /> : <Icon />}
+          {pending ? <Spinner /> : <Icon />}
           <span>{`已选择 ${selectedCount} 个字 · ${label}`}</span>
         </Button>
       </motion.div>

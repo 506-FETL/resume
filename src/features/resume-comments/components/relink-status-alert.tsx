@@ -1,4 +1,5 @@
-import { Link2, LoaderCircle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
+import { Link2 } from 'lucide-react'
 import { motion, useIsPresent } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -38,7 +39,7 @@ export function RelinkStatusAlert({
           aria-live='polite'
           className='bg-background/95 shadow-lg supports-backdrop-filter:backdrop-blur-md'
         >
-          {pending ? <LoaderCircle className='animate-spin' /> : <Link2 />}
+          {pending ? <Spinner /> : <Link2 />}
           <AlertTitle>
             {pending ? '正在关联评论…' : '正在重新关联评论'}
           </AlertTitle>

@@ -1,4 +1,5 @@
-import { Copy, Loader2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
+import { Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -105,7 +106,7 @@ function SharingContent({
           onClick={() => onStopSharing().catch(() => undefined)}
           disabled={isStopping}
         >
-          {isStopping && <Loader2 className='mr-2 size-4 animate-spin' />}
+          {isStopping && <Spinner className='mr-2 size-4' />}
           {isStopping
             ? '正在停止共享'
             : collaborationRole === 'host'
@@ -154,9 +155,7 @@ function StartSharingContent({
           onClick={onStartSharing}
           disabled={!canStartSharing}
         >
-          {isCollabConnecting && (
-            <Loader2 className='mr-2 size-4 animate-spin' />
-          )}
+          {isCollabConnecting && <Spinner className='mr-2 size-4' />}
           {collaborationConnectionLabel ?? '确认开启'}
         </Button>
       </DialogFooter>
