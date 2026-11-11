@@ -57,11 +57,7 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton asChild className='h-10 gap-2.5 px-2'>
               <a href='/' aria-label='GResume 展示首页'>
-                <img
-                  src='/resume_icon_transparent.svg'
-                  alt=''
-                  className='size-5 shrink-0'
-                />
+                <img src='/favicon.svg' alt='' className='size-5 shrink-0' />
                 <span className='text-lg font-semibold tracking-tight'>
                   GResume
                 </span>
