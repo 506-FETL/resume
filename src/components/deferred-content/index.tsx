@@ -64,13 +64,8 @@ export function createDeferredComponent<Props extends object>(
       >
         <Suspense
           fallback={
-            <motion.div
-              {...feedbackMotion}
-              role='status'
-              className='py-3 text-center'
-            >
-              <PageLoading className='min-h-24' />
-              <p className='text-sm text-muted-foreground'>正在加载{label}…</p>
+            <motion.div {...feedbackMotion} className='py-3 text-center'>
+              <PageLoading className='min-h-24' label={`正在加载${label}`} />
             </motion.div>
           }
         >

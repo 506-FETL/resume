@@ -66,6 +66,8 @@ interface ResumeDB extends DBSchema {
       updated_at: string
       parent_resume_id: string
       derived_status: string
+      display_name: string
+      description: string
     }
   }
 }
@@ -73,7 +75,7 @@ interface ResumeDB extends DBSchema {
 type OfflineResumeRecord = ResumeDB['resumes']['value']
 
 const DB_NAME = 'offline-resumes'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 let dbInstance: IDBPDatabase<ResumeDB> | null = null
 const LEGACY_STORAGE_KEY = 'resume-config-storage'
@@ -179,7 +181,7 @@ async function hydrateOfflineResumeRecord(
 async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
   if (dbInstance) return dbInstance
 
-  const connection = await openDB<ResumeDB>(DB_NAME, DB_VERSION, {
+  let connection = await openDB<ResumeDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         const resumeStore = db.createObjectStore('resumes', {
@@ -194,6 +196,12 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
 
         store.createIndex('parent_resume_id', 'parent_resume_id')
         store.createIndex('derived_status', 'derived_status')
+      }
+      if (oldVersion < 3) {
+        const store = tx.objectStore('resumes')
+
+        store.createIndex('display_name', 'display_name')
+        store.createIndex('description', 'description')
       }
     },
   }).catch(async (error: unknown) => {
@@ -234,6 +242,46 @@ async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
       throw error
     }
   })
+
+  try {
+    const transaction = connection.transaction('resumes', 'readonly')
+    const store = transaction.store
+    const searchIndexes = ['display_name', 'description'] as const
+
+    if (
+      searchIndexes.some(
+        (name) =>
+          store.indexNames.contains(name) &&
+          (store.index(name).keyPath !== name || store.index(name).unique),
+      )
+    )
+      throw new Error('本地简历搜索索引不兼容，已有数据已保留')
+
+    const missing = searchIndexes.filter(
+      (name) => !store.indexNames.contains(name),
+    )
+
+    await transaction.done
+
+    // 历史数据库也可能恰好使用当前版本号，按实际索引补齐，不覆盖其他存储表。
+    if (missing.length) {
+      const version = connection.version + 1
+
+      connection.close()
+
+      connection = await openDB<ResumeDB>(DB_NAME, version, {
+        upgrade(_db, _oldVersion, _newVersion, tx) {
+          const resumeStore = tx.objectStore('resumes')
+
+          for (const name of missing) resumeStore.createIndex(name, name)
+        },
+      })
+    }
+  } catch (error) {
+    connection.close()
+
+    throw error
+  }
 
   dbInstance = connection
 
@@ -287,13 +335,16 @@ export interface OfflineResumeLibraryIndex {
   variantCount: number
 }
 
-export async function getOfflineResumeLibraryIndex(): Promise<OfflineResumeLibraryIndex> {
+export async function getOfflineResumeLibraryIndex(
+  search = '',
+): Promise<OfflineResumeLibraryIndex> {
   const db = await getDB()
   const tx = db.transaction('resumes')
   const all: string[] = []
   const parents = new Set<string>()
   const ready = new Set<string>()
   const pending = new Set<string>()
+  const matching = search ? new Set<string>() : null
 
   let updatedCursor = await tx.store
     .index('updated_at')
@@ -331,14 +382,29 @@ export async function getOfflineResumeLibraryIndex(): Promise<OfflineResumeLibra
     statusCursor = await statusCursor.continue()
   }
 
+  if (matching) {
+    for (const field of ['display_name', 'description'] as const) {
+      let cursor = await tx.store.index(field).openKeyCursor()
+
+      while (cursor) {
+        if (cursor.key.toLowerCase().includes(search))
+          matching.add(cursor.primaryKey)
+
+        cursor = await cursor.continue()
+      }
+    }
+  }
+
   await tx.done
 
+  const visible = matching ? all.filter((id) => matching.has(id)) : all
+
   return {
-    all,
-    roots: all.filter((id) => !parents.has(id)),
-    variants: all.filter((id) => parents.has(id) && ready.has(id)),
-    pending: all.filter((id) => pending.has(id)),
-    variantCount: parents.size,
+    all: visible,
+    roots: visible.filter((id) => !parents.has(id)),
+    variants: visible.filter((id) => parents.has(id) && ready.has(id)),
+    pending: visible.filter((id) => pending.has(id)),
+    variantCount: visible.filter((id) => parents.has(id)).length,
   }
 }
 

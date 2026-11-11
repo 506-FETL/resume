@@ -65,7 +65,9 @@ export function redactShareContacts<T>(
           (policy.show_phone === false &&
             /^(phone|mobile|telephone|tel)$/i.test(key)) ||
           (policy.show_email === false && /^(email|mail)$/i.test(key))
-            ? ''
+            ? typeof entry === 'string' && entry.trim()
+              ? 'XXXXXXX'
+              : ''
             : visit(entry),
         ]),
       )

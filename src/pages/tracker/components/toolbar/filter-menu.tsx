@@ -37,24 +37,30 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
   const {
     jobs,
     filterStatus,
+    metricFilter,
     setFilterStatus,
     showArchived,
     focusedOnly,
     filterCompanyId,
     searchKeyword,
-    viewMode,
+    loading,
+    error,
+    isInitialized,
     groupByCompany,
     setGroupByCompany,
   } = useTrackerStore(
     useShallow((state) => ({
       jobs: selectTrackerListJobs(state),
       filterStatus: state.filterStatus,
+      metricFilter: state.metricFilter,
       setFilterStatus: state.setFilterStatus,
       showArchived: state.showArchived,
       focusedOnly: state.focusedOnly,
       filterCompanyId: state.filterCompanyId,
       searchKeyword: state.searchKeyword,
-      viewMode: state.viewMode,
+      loading: state.loading,
+      error: state.error,
+      isInitialized: state.isInitialized,
       groupByCompany: state.groupByCompany,
       setGroupByCompany: state.setGroupByCompany,
     })),
@@ -68,11 +74,13 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
     })),
   )
 
-  const current = filterStatus ?? ALL_VALUE
+  const current = filterStatus ?? (metricFilter ? '' : ALL_VALUE)
 
   const activeLabel = filterStatus
     ? APPLICATION_STATUS_CONFIG[filterStatus].label
-    : '全部阶段'
+    : metricFilter
+      ? '按阶段筛选'
+      : '全部阶段'
 
   const sortLabel = TRACKER_SORT_OPTIONS.find(
     (option) => option.value === sortBy,
@@ -104,8 +112,14 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
     return result
   }, [scopedJobs])
 
+  const unavailable = loading || !isInitialized || Boolean(error)
+
   const getCount = (status: (typeof ALL_FILTER_STATUSES)[number]) =>
-    status === null ? scopedJobs.length : (counts.get(status) ?? 0)
+    unavailable
+      ? '—'
+      : status === null
+        ? scopedJobs.length
+        : (counts.get(status) ?? 0)
 
   return (
     <DropdownMenu>
@@ -166,9 +180,7 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
           </>
         ) : (
           <>
-            <DropdownMenuLabel>
-              {viewMode === 'board' ? '定位到阶段' : '按阶段筛选'}
-            </DropdownMenuLabel>
+            <DropdownMenuLabel>按阶段筛选</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup
               value={current}

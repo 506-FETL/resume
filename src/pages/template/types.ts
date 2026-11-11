@@ -9,6 +9,8 @@ export interface TemplatePageState {
     trigger: HTMLButtonElement,
   ) => void
   previewOpen: boolean
+  previewStep: 'preview' | 'details'
+  setPreviewStep: (step: 'preview' | 'details') => void
   selectedExamples: Record<string, ExampleRef>
   setPreviewOpen: (open: boolean) => void
   selectExample: (templateId: string, example: ExampleRef) => void

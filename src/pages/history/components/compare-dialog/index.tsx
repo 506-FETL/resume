@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { staggerDelay } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { DiffView } from '@/pages/assistant/components/diff/diff-view'
@@ -199,13 +200,15 @@ export default function CompareDialog({
                 exit={{ opacity: 0, transition: dialogMotion.exitTransition }}
                 transition={dialogMotion.enterTransition}
               >
-                {loading
-                  ? '正在加载版本内容…'
-                  : failed
-                    ? '版本内容暂时不可用'
-                    : changed > 0
-                      ? `共 ${changed} 处改动`
-                      : '内容一致，无改动'}
+                {loading ? (
+                  <Spinner aria-hidden className='size-3.5' />
+                ) : failed ? (
+                  '版本内容暂时不可用'
+                ) : changed > 0 ? (
+                  `共 ${changed} 处改动`
+                ) : (
+                  '内容一致，无改动'
+                )}
               </motion.span>
             </AnimatePresence>
           </div>

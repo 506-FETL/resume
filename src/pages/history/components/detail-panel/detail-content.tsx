@@ -63,6 +63,7 @@ export default function HistoryDetailContent({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
+    overviewContentRef.current?.scrollTo({ top: 0, behavior: 'instant' })
   }, [state.selectedEntry, state.editing])
 
   const resumeSnapshot = isCurrent
@@ -74,15 +75,13 @@ export default function HistoryDetailContent({
   }
 
   return (
-    <div className='flex h-full min-h-0 flex-1 flex-col overflow-hidden'>
-      <div className='shrink-0 px-3 pt-4 pb-3 sm:px-5 sm:pt-5'>
+    <div className='flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
+      <div className='shrink-0 px-3 pt-4 pb-3 sm:px-5 sm:pt-5 [@media(max-height:500px)]:py-0'>
         <DetailHeader state={state} />
       </div>
 
-      <div
-        ref={scrollRef}
-        className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain'
-      >
+      <div className='flex min-h-0 flex-1 flex-col'>
+        {/* 扣除常驻触发器后，信息区最多占剩余高度的一半。 */}
         <Collapsible
           {...surfaceProps}
           open={overviewOpen}
@@ -96,14 +95,14 @@ export default function HistoryDetailContent({
 
             setOverviewOpen(open)
           }}
-          className={`${surfaceProps.className} mx-3 border-t border-border/60 sm:mx-5`}
+          className={`${surfaceProps.className} mx-3 flex max-h-[calc(50%+1.375rem)] min-h-0 shrink-0 flex-col overflow-hidden border-t border-border/60 sm:mx-5 [@media(max-height:500px)]:max-h-[calc(50%+1.125rem)]`}
         >
           <CollapsibleTrigger asChild>
             <Button
               ref={overviewTriggerRef}
               variant='ghost'
               disabled={state.editing}
-              className='my-1 h-9 w-full justify-between rounded-lg px-2 text-xs font-medium text-muted-foreground aria-expanded:bg-transparent aria-expanded:hover:bg-muted dark:aria-expanded:hover:bg-muted/50'
+              className='my-1 h-9 w-full shrink-0 justify-between rounded-lg px-2 text-xs font-medium text-muted-foreground aria-expanded:bg-transparent aria-expanded:hover:bg-muted dark:aria-expanded:hover:bg-muted/50 [@media(max-height:500px)]:my-0'
             >
               {isCurrent ? '当前简历信息' : '版本信息'}
               <ChevronDown
@@ -118,8 +117,12 @@ export default function HistoryDetailContent({
           </CollapsibleTrigger>
           <CollapsibleContent
             ref={overviewContentRef}
+            role='region'
+            aria-label={isCurrent ? '当前简历信息' : '版本信息'}
+            tabIndex={overviewOpen ? 0 : -1}
             inert={!overviewOpen}
             aria-hidden={!overviewOpen || undefined}
+            className='scrollbar-thin-subtle min-h-0 overflow-y-auto overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
             style={{
               animationDuration: overviewOpen
                 ? 'var(--history-base)'
@@ -139,21 +142,29 @@ export default function HistoryDetailContent({
           </CollapsibleContent>
         </Collapsible>
 
-        <div className='min-h-full bg-muted/35 p-2 sm:p-4'>
-          {resumeSnapshot ? (
-            <HistoryResumePreview
-              snapshot={resumeSnapshot}
-              projectionReferenceDate={
-                isCurrent
-                  ? undefined
-                  : state.selectedVersion?.projection_reference_date
-              }
-            />
-          ) : (
-            <Skeleton
-              className={cn('h-96 w-full', reduceMotion && 'animate-none')}
-            />
-          )}
+        <div
+          ref={scrollRef}
+          role='region'
+          aria-label='简历预览'
+          tabIndex={0}
+          className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
+        >
+          <div className='min-h-full bg-muted/35 p-2 sm:p-4'>
+            {resumeSnapshot ? (
+              <HistoryResumePreview
+                snapshot={resumeSnapshot}
+                projectionReferenceDate={
+                  isCurrent
+                    ? undefined
+                    : state.selectedVersion?.projection_reference_date
+                }
+              />
+            ) : (
+              <Skeleton
+                className={cn('h-96 w-full', reduceMotion && 'animate-none')}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -104,12 +104,8 @@ export function VariantLineageButton({
                 </Button>
               </Alert>
             ) : loading ? (
-              <p
-                role='status'
-                className='flex items-center gap-2 text-sm text-muted-foreground'
-              >
-                <Spinner aria-hidden />
-                正在加载派生关系
+              <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+                <Spinner aria-label='正在加载派生关系' />
               </p>
             ) : (
               <VariantLineagePath

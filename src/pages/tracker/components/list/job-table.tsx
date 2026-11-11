@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Spinner } from '@/components/ui/spinner'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,13 +92,15 @@ export function CompanyGroupTitle({ job }: { job: JobApplication }) {
       </span>
       <span className='text-xs font-normal text-muted-foreground'>
         {activeCount} 个进行中 ·{' '}
-        {company
-          ? COMPANY_POLICY_LABELS[company.process_policy]
-          : companiesLoading
-            ? '正在加载规则'
-            : companiesError
-              ? '规则加载失败'
-              : '规则未加载'}
+        {company ? (
+          COMPANY_POLICY_LABELS[company.process_policy]
+        ) : companiesLoading ? (
+          <Spinner className='size-3' aria-label='正在加载公司流程规则' />
+        ) : companiesError ? (
+          '规则加载失败'
+        ) : (
+          '规则未加载'
+        )}
       </span>
     </div>
   )

@@ -1,6 +1,7 @@
 import type { ResumeOption } from '../../types'
 import type { AddJobFormData } from '../types'
 import { Field, FieldLabel } from '@/components/ui/field'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Select,
   SelectContent,
@@ -66,7 +67,13 @@ export function AddJobStageSection({
         >
           <SelectTrigger id='resume-id'>
             <SelectValue
-              placeholder={loadingResumes ? '加载中...' : '选择简历'}
+              placeholder={
+                loadingResumes ? (
+                  <Spinner aria-label='正在加载简历选项' />
+                ) : (
+                  '选择简历'
+                )
+              }
             />
           </SelectTrigger>
           <SelectContent>
@@ -74,7 +81,6 @@ export function AddJobStageSection({
               {resumes.map((r) => (
                 <SelectItem key={r.resume_id} value={r.resume_id}>
                   {r.display_name}
-                  {r.type === 'default' && ' (默认)'}
                 </SelectItem>
               ))}
             </SelectGroup>

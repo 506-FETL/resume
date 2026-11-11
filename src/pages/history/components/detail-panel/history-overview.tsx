@@ -2,6 +2,7 @@ import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import { Briefcase, Send } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { useJobSummaries } from '../../hooks/use-job-summaries'
 import HistoryMotionContent from '../motion-content'
 import VersionMetadataFields from '../shared/version-metadata-fields'
@@ -23,11 +24,13 @@ export default function HistoryVersionOverview({
 
   const jobLabel = getLabel(version.company_id)
 
-  const jobValue = !version.company_id
-    ? '未关联岗位'
-    : loading
-      ? '正在加载岗位…'
-      : (jobLabel ?? '岗位信息暂不可用')
+  const jobValue = !version.company_id ? (
+    '未关联岗位'
+  ) : loading ? (
+    <Spinner aria-label='正在加载关联岗位' />
+  ) : (
+    (jobLabel ?? '岗位信息暂不可用')
+  )
 
   return (
     <HistoryMotionContent transitionKey={editing ? 'editing' : 'overview'}>

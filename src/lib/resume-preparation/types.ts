@@ -16,10 +16,13 @@ export type CreationContent = ResumeSchema & {
 }
 
 export interface ImportDraft {
+  displayName: string
+  description: string
   sourceText: string
   sourceName: string
   content: CreationContent | null
-  contentSource?: 'import' | 'profile'
+  contentSource?: 'import' | 'profile' | 'template'
+  creationMode?: 'local' | 'cloud'
   selectedTemplate?: CreationTemplateSelection
   unassignedText: string
   warnings: string[]
@@ -29,6 +32,7 @@ export interface ImportDraft {
     operationId: string
     mode: 'local' | 'cloud'
     displayName: string
+    description?: string
     selection?: CreationTemplateSelection
     submitted?: boolean
   }

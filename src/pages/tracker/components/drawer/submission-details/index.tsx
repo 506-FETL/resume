@@ -41,35 +41,48 @@ export default function SubmissionDetails({
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
 
   const save = async () => {
     if (!reason.trim()) return setError('请填写更正原因')
 
     const scope = getTrackerAccountScope()
+    let confirmed = saved
 
     setBusy(true)
     setError(null)
 
     try {
-      await updateJobSubmissionDetails(
-        record.id,
-        {
-          submittedOn: date,
-          channel: channel.trim() || null,
-          note: note.trim() || null,
-          reason: reason.trim(),
-        },
-        createTrackerAccountGuard(scope),
-      )
+      if (!saved) {
+        const updated = await updateJobSubmissionDetails(
+          record.id,
+          {
+            submittedOn: date,
+            channel: channel.trim() || null,
+            note: note.trim() || null,
+            reason: reason.trim(),
+          },
+          createTrackerAccountGuard(scope),
+        )
+
+        if (!isTrackerAccountScopeCurrent(scope)) return
+
+        useTrackerStore.getState().notifySubmissionChanged(updated)
+        confirmed = true
+        setSaved(true)
+      }
 
       if (!isTrackerAccountScopeCurrent(scope)) return
 
-      useTrackerStore.getState().notifySubmissionChanged()
-      await useTrackerStore.getState().reloadJobs()
+      await useTrackerStore.getState().refreshSubmissionJob(record.job_id)
       setOpen(false)
     } catch (cause) {
       if (isTrackerAccountScopeCurrent(scope))
-        setError(getTrackerErrorMessage(cause))
+        setError(
+          confirmed
+            ? `更正已保存，但职位进度读取失败：${getTrackerErrorMessage(cause)}。请重新读取，无需再次提交。`
+            : getTrackerErrorMessage(cause),
+        )
     } finally {
       if (isTrackerAccountScopeCurrent(scope)) setBusy(false)
     }
@@ -104,7 +117,7 @@ export default function SubmissionDetails({
           </DialogDescription>
         </DialogHeader>
         <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
-          <fieldset disabled={busy} className='space-y-4'>
+          <fieldset disabled={busy || saved} className='space-y-4'>
             <WorkflowDateField
               label='投递日期'
               value={date}
@@ -150,10 +163,16 @@ export default function SubmissionDetails({
             disabled={busy}
             onClick={() => setOpen(false)}
           >
-            取消
+            {saved ? '关闭' : '取消'}
           </Button>
           <Button disabled={busy} onClick={save}>
-            {busy ? '正在保存…' : '保存更正'}
+            {saved
+              ? busy
+                ? '正在读取…'
+                : '重新读取职位'
+              : busy
+                ? '正在保存…'
+                : '保存更正'}
           </Button>
         </DialogFooter>
       </DialogContent>

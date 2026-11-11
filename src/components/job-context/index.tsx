@@ -76,7 +76,7 @@ export function JobContextGate({ children }: { children: ReactNode }) {
 
   if (!jobId) return children
   if (state.key !== key || (!state.ready && !state.error))
-    return <PageLoading />
+    return <PageLoading label='正在加载岗位信息' />
   if (state.error)
     return (
       <div className='space-y-3 p-6'>

@@ -66,12 +66,11 @@ export default function IssueAnalysis() {
         className='min-w-0'
       >
         {loading ? (
-          <div
-            role='status'
-            className='flex items-center justify-center gap-3 py-8 text-sm text-muted-foreground'
-          >
-            <Spinner className='size-5 text-primary' />
-            正在读取检测报告
+          <div className='flex items-center justify-center gap-3 py-8 text-sm text-muted-foreground'>
+            <Spinner
+              className='size-5 text-primary'
+              aria-label='正在读取检测报告'
+            />
           </div>
         ) : !findings || totalFindings === 0 ? (
           <div className='flex flex-col items-center justify-center px-4 py-8 text-center text-muted-foreground'>

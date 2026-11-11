@@ -3,9 +3,10 @@ import { cn } from '@/lib/utils'
 
 interface PageLoadingProps {
   className?: string
+  label?: string
 }
 
-export function PageLoading({ className }: PageLoadingProps) {
+export function PageLoading({ className, label = '加载中' }: PageLoadingProps) {
   return (
     <div
       className={cn(
@@ -13,7 +14,7 @@ export function PageLoading({ className }: PageLoadingProps) {
         className,
       )}
     >
-      <Spinner className='size-8' />
+      <Spinner className='size-8' aria-label={label} />
     </div>
   )
 }

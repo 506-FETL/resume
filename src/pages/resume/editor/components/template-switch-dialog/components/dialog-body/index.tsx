@@ -199,8 +199,9 @@ export default function TemplateSwitchDialogBody() {
                 ) : (
                   <>
                     <Spinner aria-hidden className='size-3' />
-                    准备中
-                    <span className='sr-only'>，完成后自动更新预览</span>
+                    <span className='sr-only'>
+                      正在准备预览，完成后自动更新
+                    </span>
                   </>
                 )}
               </AnimatedContent>

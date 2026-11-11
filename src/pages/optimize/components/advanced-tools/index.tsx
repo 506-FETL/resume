@@ -182,8 +182,7 @@ function AdvancedTools() {
     if (loadingContext) {
       return (
         <div className='flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground'>
-          <Spinner className='size-6' />
-          <p className='text-sm'>正在准备工具结果...</p>
+          <Spinner className='size-6' aria-label='正在读取简历与工具结果' />
         </div>
       )
     }

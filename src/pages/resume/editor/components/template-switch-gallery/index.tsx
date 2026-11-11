@@ -111,13 +111,11 @@ function TemplateCard({
           ) : (
             <div className='flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-xs text-muted-foreground'>
               {status === 'loading' ? (
-                <Spinner className='size-5' />
+                <Spinner className='size-5' aria-label='正在加载模板缩略图' />
               ) : (
                 <FileText className='size-6' />
               )}
-              <span>
-                {status === 'loading' ? '加载缩略图…' : '查看真实内容预览'}
-              </span>
+              {status !== 'loading' && <span>查看真实内容预览</span>}
             </div>
           )}
           <div className='absolute left-2 right-2 top-2 flex flex-wrap gap-1 text-[10px] leading-5'>
@@ -277,8 +275,8 @@ export default function TemplateSwitchGallery() {
           缩略图为模板示例，大图预览使用你的真实内容。
         </p>
         {state.refreshingCatalog && (
-          <p role='status' className='mb-3 text-xs text-muted-foreground'>
-            正在获取模板列表…
+          <p className='mb-3 text-xs text-muted-foreground'>
+            <Spinner className='size-3.5' aria-label='正在获取模板列表' />
           </p>
         )}
         {(state.catalog.status === 'error' || state.catalogRefreshError) && (
@@ -337,12 +335,10 @@ export default function TemplateSwitchGallery() {
               disabled={state.loadingMore || state.refreshingCatalog}
               onClick={() => state.loadMore()}
             >
-              {state.loadingMore && <Spinner className='size-4' />}
-              {state.loadMoreError
-                ? '加载失败，点击重试'
-                : state.loadingMore
-                  ? '加载更多模板…'
-                  : '加载更多模板'}
+              {state.loadingMore && (
+                <Spinner className='size-4' aria-label='正在加载更多模板' />
+              )}
+              {state.loadMoreError ? '加载失败，点击重试' : '加载更多模板'}
             </Button>
           )}
           {state.nextOffset === null &&

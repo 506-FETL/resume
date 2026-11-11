@@ -124,8 +124,8 @@ export default function SubmissionList({
     useTrackerStore.getState().loadSubmissions(jobId)
   }, [jobId, revision])
 
-  const current = resource?.revision === revision ? resource : null
-  const data = current?.data
+  const current = resource
+  const data = resource?.data
   const primary = data?.kind === 'ready' ? data.primary : null
   const legacy = data && data.kind !== 'none' ? data.legacy : []
   const rows = !data ? null : primary ? [primary, ...legacy] : legacy
@@ -136,11 +136,8 @@ export default function SubmissionList({
     primaryId ? state.submissionHistoriesById[primaryId] : undefined,
   )
 
-  const currentHistory =
-    historyResource?.revision === revision ? historyResource : null
-
-  const history = currentHistory?.data
-  const historyError = currentHistory?.error
+  const history = historyResource?.data
+  const historyError = historyResource?.error
 
   useEffect(() => {
     if (!compact && primaryId && historyOpen)
@@ -149,25 +146,36 @@ export default function SubmissionList({
 
   const choose = async (row: JobSubmission) => {
     const scope = getTrackerAccountScope()
+    let confirmed = row.is_primary
 
     sectionRef.current?.focus({ preventScroll: true })
     setBusy(true)
     setError(null)
 
     try {
-      await resolveJobSubmission(
-        jobId,
-        row.id,
-        createTrackerAccountGuard(scope),
-      )
+      if (!confirmed) {
+        const saved = await resolveJobSubmission(
+          jobId,
+          row.id,
+          createTrackerAccountGuard(scope),
+        )
+
+        if (!isTrackerAccountScopeCurrent(scope)) return
+
+        useTrackerStore.getState().notifySubmissionChanged(saved)
+        confirmed = true
+      }
 
       if (!isTrackerAccountScopeCurrent(scope)) return
 
-      useTrackerStore.getState().notifySubmissionChanged()
-      await useTrackerStore.getState().reloadJobs()
+      await useTrackerStore.getState().refreshSubmissionJob(jobId)
     } catch (cause) {
       if (isTrackerAccountScopeCurrent(scope))
-        setError(getTrackerErrorMessage(cause))
+        setError(
+          confirmed
+            ? `投递已选定，但职位进度读取失败：${getTrackerErrorMessage(cause)}。`
+            : getTrackerErrorMessage(cause),
+        )
     } finally {
       if (isTrackerAccountScopeCurrent(scope)) setBusy(false)
     }
@@ -258,12 +266,10 @@ export default function SubmissionList({
             </Button>
           </Alert>
         ) : !rows ? (
-          <p
-            role='status'
-            className='flex items-center gap-2 text-sm text-muted-foreground'
-          >
-            <Spinner aria-hidden />
-            {compact ? '正在读取投递原件' : '正在加载投递详情'}
+          <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+            <Spinner
+              aria-label={compact ? '正在读取投递原件' : '正在加载投递详情'}
+            />
           </p>
         ) : compact ? (
           <div className='space-y-2'>
@@ -289,7 +295,7 @@ export default function SubmissionList({
             )}
             <div className='space-y-2 border-t pt-3'>
               <RecordJd
-                key={`${primary.id}-${revision}`}
+                key={`${primary.id}-${resource?.revision ?? 0}`}
                 recordId={primary.id}
               />
               <Collapsible
@@ -350,12 +356,11 @@ export default function SubmissionList({
                         </Button>
                       </Alert>
                     ) : !history ? (
-                      <p
-                        role='status'
-                        className='flex items-center gap-2 px-2.5 py-2 text-xs text-muted-foreground'
-                      >
-                        <Spinner aria-hidden className='size-3' />
-                        正在读取更正历史
+                      <p className='flex items-center gap-2 px-2.5 py-2 text-xs text-muted-foreground'>
+                        <Spinner
+                          className='size-3'
+                          aria-label='正在读取更正历史'
+                        />
                       </p>
                     ) : history.length === 0 ? (
                       <p className='px-2.5 py-2 text-sm text-muted-foreground'>
@@ -452,6 +457,17 @@ export default function SubmissionList({
       {error && (
         <Alert variant='destructive'>
           <AlertDescription>{error}</AlertDescription>
+          {primary && (
+            <Button
+              size='sm'
+              variant='outline'
+              className='mt-2 w-fit'
+              disabled={busy}
+              onClick={() => choose(primary)}
+            >
+              重新读取职位
+            </Button>
+          )}
         </Alert>
       )}
       {viewing && (

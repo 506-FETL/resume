@@ -138,12 +138,8 @@ function PriorityCard({
           }
         >
           {pending ? (
-            <div
-              role='status'
-              className='flex items-center gap-2 py-2 text-sm text-muted-foreground'
-            >
-              <Spinner aria-hidden />
-              正在加载
+            <div className='flex items-center gap-2 py-2 text-sm text-muted-foreground'>
+              <Spinner aria-label={`正在加载${title}`} />
             </div>
           ) : unavailable ? (
             <p className='py-2 text-sm text-muted-foreground'>

@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
 import {
   APPLICATION_STATUS_CONFIG,
   APPLICATION_STATUS_ORDER,
@@ -55,7 +54,6 @@ export default function BatchActions() {
     showArchived,
     focusedOnly,
     filterCompanyId,
-    viewMode: preferredViewMode,
   } = useTrackerStore(
     useShallow((state) => ({
       jobs: selectTrackerListJobs(state),
@@ -72,13 +70,10 @@ export default function BatchActions() {
       showArchived: state.showArchived,
       focusedOnly: state.focusedOnly,
       filterCompanyId: state.filterCompanyId,
-      viewMode: state.viewMode,
     })),
   )
 
   const reduce = useReducedMotion()
-  const isMobile = useIsMobile()
-  const viewMode = isMobile ? 'list' : preferredViewMode
   const statusTriggerRef = useRef<HTMLButtonElement>(null)
   const deleteTriggerRef = useRef<HTMLButtonElement>(null)
 
@@ -93,10 +88,10 @@ export default function BatchActions() {
     filterCompanyId
       ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
       : jobs,
-    viewMode === 'list' ? filterStatus : null,
+    filterStatus,
     searchKeyword,
     showArchived,
-    viewMode === 'list' ? metricFilter : null,
+    metricFilter,
     focusedOnly,
   ).length
 
@@ -240,7 +235,7 @@ export default function BatchActions() {
                 variant='ghost'
                 size='sm'
                 className='h-7'
-                onClick={() => selectAll(viewMode)}
+                onClick={selectAll}
               >
                 {selectedCount === selectableCount && selectableCount > 0
                   ? '取消全选'

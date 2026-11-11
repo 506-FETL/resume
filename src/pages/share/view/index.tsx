@@ -93,8 +93,8 @@ export default function ResumeSharePage() {
   const renderContent = () => {
     if (state.phase === 'loading') {
       return (
-        <div role='status' aria-label='正在加载简历'>
-          <PageLoading className='min-h-dvh bg-muted/30' />
+        <div>
+          <PageLoading className='min-h-dvh bg-muted/30' label='正在加载简历' />
         </div>
       )
     }

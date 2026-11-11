@@ -57,7 +57,7 @@ export default function CardPreview({
           <div className='flex aspect-[210/297] flex-col items-center justify-center gap-3 bg-muted/20 px-5 text-center'>
             {status === 'loading' ? (
               <Spinner
-                aria-hidden
+                aria-label={`正在加载${item.name}缩略图`}
                 className='size-6 text-muted-foreground/50'
               />
             ) : (
@@ -67,16 +67,13 @@ export default function CardPreview({
               />
             )}
             <p className='text-sm font-medium'>{item.name}</p>
-            <p
-              role={status === 'loading' ? 'status' : undefined}
-              className='text-xs text-muted-foreground'
-            >
-              {status === 'loading'
-                ? '正在加载缩略图…'
-                : status === 'error'
+            {status !== 'loading' && (
+              <p className='text-xs text-muted-foreground'>
+                {status === 'error'
                   ? '缩略图暂不可用，可重试或打开完整预览'
                   : '点击查看完整预览'}
-            </p>
+              </p>
+            )}
             {status === 'error' && (
               <Button
                 variant='outline'

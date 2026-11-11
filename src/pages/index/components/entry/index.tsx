@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
+import { PageLoading } from '@/components/page-loading'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -136,6 +137,8 @@ function Entry({
                   </Button>
                 </div>
               </div>
+            ) : timelineLoading && !unavailable ? (
+              <PageLoading className='min-h-24' label='正在加载动态' />
             ) : (
               <Empty className='border-0 p-3'>
                 <EmptyHeader>
@@ -143,11 +146,7 @@ function Entry({
                     <FileUser className='text-muted-foreground/50' />
                   </EmptyMedia>
                   <EmptyTitle className='text-sm'>
-                    {unavailable
-                      ? '— 动态暂不可用'
-                      : timelineLoading
-                        ? '正在加载动态'
-                        : '暂无动态'}
+                    {unavailable ? '— 动态暂不可用' : '暂无动态'}
                   </EmptyTitle>
                 </EmptyHeader>
                 {!unavailable && !timelineLoading && resumeCount === 0 && (

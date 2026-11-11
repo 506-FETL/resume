@@ -2,6 +2,7 @@ import { ChevronDown, Columns2, Palette, SlidersHorizontal } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Select,
   SelectContent,
@@ -116,11 +117,8 @@ export default function TemplateFilters() {
             </div>
           )}
           {(facets.status === 'idle' || facets.status === 'loading') && (
-            <p
-              role='status'
-              className='px-3 py-2 text-xs text-muted-foreground'
-            >
-              加载筛选选项…
+            <p className='px-3 py-2 text-xs text-muted-foreground'>
+              <Spinner className='size-3.5' aria-label='正在加载筛选选项' />
             </p>
           )}
           <div className='grid gap-3 border-t border-border/60 py-3 lg:gap-5 lg:py-4'>

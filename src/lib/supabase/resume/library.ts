@@ -22,28 +22,52 @@ type ResumeLibraryRow = Omit<
 const LIST_FIELDS =
   'resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_text,derived_match_rate:derived_metadata->matchRate,derived_status,template_binding'
 
-function listQuery(ownerId: string, filter: ResumeLibraryFilter) {
-  const query = supabase
+function listQuery(
+  ownerId: string,
+  filter: ResumeLibraryFilter,
+  offset: number,
+  limit: number,
+  search: string,
+) {
+  const fields =
+    filter === 'pending'
+      ? LIST_FIELDS
+      : LIST_FIELDS.replace(
+          'linked_jd_text,',
+          'linked_jd_excerpt:resume_jd_excerpt,',
+        )
+
+  if (search && filter !== 'pending') {
+    return supabase
+      .rpc('search_resume_library_page', {
+        p_owner_id: ownerId,
+        p_query: search,
+        p_filter: filter,
+        p_offset: offset,
+        p_limit: limit,
+      })
+      .select(
+        'resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_excerpt,derived_match_rate,derived_status,template_binding',
+      )
+  }
+
+  let query = supabase
     .from('resume_config')
-    .select(
-      filter === 'pending'
-        ? LIST_FIELDS
-        : LIST_FIELDS.replace(
-            'linked_jd_text,',
-            'linked_jd_excerpt:resume_jd_excerpt,',
-          ),
-    )
+    .select(fields)
     .eq('user_id', ownerId)
 
-  if (filter === 'roots') return query.is('parent_resume_id', null)
+  if (filter === 'roots') query = query.is('parent_resume_id', null)
   if (filter === 'variants')
-    return query
+    query = query
       .not('parent_resume_id', 'is', null)
       .eq('derived_status', 'ready')
   if (filter === 'pending')
-    return query.in('derived_status', ['generating', 'failed'])
+    query = query.in('derived_status', ['generating', 'failed'])
 
   return query
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .order('resume_id', { ascending: false })
+    .range(offset, offset + limit - 1)
 }
 
 export async function getResumeLibraryPage(
@@ -51,18 +75,23 @@ export async function getResumeLibraryPage(
   filter: ResumeLibraryFilter,
   offset: number,
   size = RESUME_LIBRARY_PAGE_SIZE,
+  search = '',
 ): Promise<ResumeListItem[]> {
   const limit = Math.min(RESUME_LIBRARY_PAGE_SIZE, Math.max(1, size))
 
-  const { data, error } = await listQuery(ownerId, filter)
-    .order('updated_at', { ascending: false, nullsFirst: false })
-    .order('resume_id', { ascending: false })
-    .range(offset, offset + limit - 1)
-    .returns<ResumeLibraryRow[]>()
+  const { data, error } = await listQuery(
+    ownerId,
+    filter,
+    offset,
+    limit,
+    search,
+  )
 
   if (error) throw error
 
-  return data.map((resume) => ({
+  const rows = data as ResumeLibraryRow[]
+
+  return rows.map((resume) => ({
     ...resume,
     isOffline: false,
     derived_match_rate:
@@ -92,10 +121,14 @@ export async function getResumeLibraryOptionsPage(
 
 export async function getResumeLibraryCounts(
   ownerId: string,
+  search = '',
 ): Promise<ResumeLibraryCloudCounts> {
-  const { data, error } = await supabase.rpc('get_resume_library_counts', {
-    p_owner_id: ownerId,
-  })
+  const { data, error } = await (search
+    ? supabase.rpc('search_resume_library_counts', {
+        p_owner_id: ownerId,
+        p_query: search,
+      })
+    : supabase.rpc('get_resume_library_counts', { p_owner_id: ownerId }))
 
   if (error) throw error
 

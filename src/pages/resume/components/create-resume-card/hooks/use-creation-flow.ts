@@ -18,12 +18,12 @@ import {
 } from '@/lib/resume-preparation/evidence'
 import { createProfileExample } from '@/lib/resume-preparation/profile-example'
 import { populatedSections, importReady } from '../utils'
-import { PROFILE_GUIDES } from '@/lib/resume-preparation/const'
 import {
   preparationScope,
   updatePreparation,
 } from '@/lib/resume-preparation/storage'
 import { getDefaultTemplateSelection } from '@/lib/resume-template/runtime/default-selection'
+import { resumeTemplateSource } from '@/lib/resume-template/source'
 import useResumeListStore from '@/pages/resume/store'
 import { useResumeCreationStore } from '@/store/resume-creation'
 import useCurrentResumeStore from '@/store/resume/current'
@@ -77,6 +77,7 @@ export function useCreationFlow({
     sessionRef.current += 1
     abortRef.current?.abort()
     setImportStage(null)
+    setCreating(false)
     setError(null)
 
     if (open) {
@@ -135,6 +136,7 @@ export function useCreationFlow({
         sourceName: source.sourceName,
         selectedTemplate: undefined,
         contentSource: 'import',
+        creationMode: undefined,
         content: {
           ...result.content,
           order: [...DEFAULT_ORDER],
@@ -181,6 +183,7 @@ export function useCreationFlow({
     state.patch({
       content: createProfileExample(state.draft.profile),
       contentSource: 'profile',
+      creationMode: undefined,
       sourceText: '',
       sourceName: '',
       unassignedText: '',
@@ -196,20 +199,45 @@ export function useCreationFlow({
 
     const state = useCreationDraftStore.getState()
     const capturedOwner = userId
+    const session = sessionRef.current
     const capturedJobId = routeJobId
     const previouslySubmitted = Boolean(state.draft.creation?.submitted)
     let submitted = previouslySubmitted
 
     if (state.scope !== scope) return
 
+    const isCurrent = () =>
+      mountedRef.current &&
+      sessionRef.current === session &&
+      useCreationDraftStore.getState().scope === scope &&
+      (useUserStore.getState().currentUser?.id ?? null) === capturedOwner
+
     setCreating(true)
     setError(null)
 
     try {
-      const original = state.draft.content
+      const selection =
+        state.draft.creation?.selection ??
+        state.draft.selectedTemplate ??
+        (previouslySubmitted
+          ? { ...(await getDefaultTemplateSelection()), name: '默认模板' }
+          : null)
+
+      if (!selection) throw new Error('请选择一个模板')
+
+      const exampleSource =
+        state.draft.contentSource === 'profile' ||
+        state.draft.contentSource === 'template'
+
+      const original =
+        state.draft.contentSource === 'template' && !state.draft.creation
+          ? (await resumeTemplateSource.getExample(selection.example)).content
+          : state.draft.content
+
+      if (!isCurrent()) return
 
       const content =
-        original && state.draft.contentSource !== 'profile'
+        original && !exampleSource
           ? {
               ...original,
               visibility: {
@@ -225,32 +253,17 @@ export function useCreationFlow({
           : original
 
       if (!content) throw new Error('请先准备简历内容')
-      if (
-        !state.draft.creation &&
-        state.draft.contentSource !== 'profile' &&
-        !importReady(state.draft)
-      )
+      if (!state.draft.creation && !exampleSource && !importReady(state.draft))
         throw new Error('尚未识别到可填充的内容，请补充内容或重新导入')
-
-      const selection =
-        state.draft.creation?.selection ??
-        state.draft.selectedTemplate ??
-        (previouslySubmitted
-          ? { ...(await getDefaultTemplateSelection()), name: '默认模板' }
-          : null)
-
-      if (!selection) throw new Error('请选择一个模板')
 
       const creation = state.draft.creation ?? {
         operationId: crypto.randomUUID(),
-        mode: online ? ('cloud' as const) : ('local' as const),
+        mode:
+          state.draft.creationMode ??
+          (online ? ('cloud' as const) : ('local' as const)),
         selection,
-        displayName:
-          state.draft.contentSource === 'profile'
-            ? `${PROFILE_GUIDES[state.draft.profile].label}简历`
-            : [content.basics.name, content.job_intent.jobIntent]
-                .filter(Boolean)
-                .join(' · ') || '我的简历',
+        displayName: state.draft.displayName.trim() || '示例简历',
+        description: state.draft.description.trim(),
       }
 
       state.patch({
@@ -263,8 +276,7 @@ export function useCreationFlow({
 
       await state.persist()
 
-      if ((useUserStore.getState().currentUser?.id ?? null) !== capturedOwner)
-        throw new Error('账号已切换，请在当前账号重新打开创建入口')
+      if (!isCurrent()) return
 
       const resumeId =
         creation.mode === 'local'
@@ -279,33 +291,27 @@ export function useCreationFlow({
         unassignedText: draft.unassignedText,
       }))
 
-      if ((useUserStore.getState().currentUser?.id ?? null) !== capturedOwner)
-        throw new Error('账号已切换，请在当前账号重新打开创建入口')
+      if (!isCurrent()) return
 
       state.patch({ creation: { ...creation, submitted: true } })
       await state.persist()
 
-      if ((useUserStore.getState().currentUser?.id ?? null) !== capturedOwner)
-        throw new Error('账号已切换，请在当前账号重新打开创建入口')
+      if (!isCurrent()) return
 
       submitted = true
 
-      const result = await useResumeCreationStore
-        .getState()
-        .start({ ...selection, ...creation, description: '', content })
+      const result = await useResumeCreationStore.getState().start({
+        ...selection,
+        ...creation,
+        description: creation.description ?? '',
+        content,
+      })
 
-      if (
-        (useUserStore.getState().currentUser?.id ?? null) !== capturedOwner ||
-        !mountedRef.current
-      )
-        return
+      if (!isCurrent()) return
 
       const prepared = useResumeCreationStore.getState().prepared
 
-      if (
-        draft.contentSource === 'profile' &&
-        prepared?.resumeId === result.resumeId
-      ) {
+      if (exampleSource && prepared?.resumeId === result.resumeId) {
         await recordPreparationEvidence(
           result.resumeId,
           capturedOwner,
@@ -320,8 +326,7 @@ export function useCreationFlow({
         )
       }
 
-      if ((useUserStore.getState().currentUser?.id ?? null) !== capturedOwner)
-        return
+      if (!isCurrent()) return
 
       useResumeListStore.getState().addResume({
         resume_id: result.resumeId,
@@ -341,11 +346,7 @@ export function useCreationFlow({
       if (capturedJobId && result.mode !== 'local') {
         const context = await bindJobResume(capturedJobId, result.resumeId)
 
-        if (
-          !mountedRef.current ||
-          (useUserStore.getState().currentUser?.id ?? null) !== capturedOwner
-        )
-          return
+        if (!isCurrent()) return
 
         useJobContextStore.getState().setContext(context)
       }
@@ -353,11 +354,7 @@ export function useCreationFlow({
       await useCreationDraftStore.getState().discard()
       useResumeCreationStore.getState().reset()
 
-      if (
-        (useUserStore.getState().currentUser?.id ?? null) !== capturedOwner ||
-        !mountedRef.current
-      )
-        return
+      if (!isCurrent()) return
 
       toast.success(
         result.mode === 'local'
@@ -374,6 +371,8 @@ export function useCreationFlow({
           : '/resume/editor?prepare=1',
       )
     } catch (reason) {
+      if (!isCurrent()) return
+
       const latest = useCreationDraftStore.getState()
       const prepared = useResumeCreationStore.getState().prepared
 
@@ -383,16 +382,11 @@ export function useCreationFlow({
       )
         submitted = false
 
-      if (!submitted && useCreationDraftStore.getState().scope === scope)
-        state.patch({ creation: undefined })
+      if (!submitted) state.patch({ creation: undefined })
 
-      if (
-        mountedRef.current &&
-        useCreationDraftStore.getState().scope === scope
-      )
-        setError(reason instanceof Error ? reason.message : '创建失败，请重试')
+      setError(reason instanceof Error ? reason.message : '创建失败，请重试')
     } finally {
-      if (mountedRef.current) setCreating(false)
+      if (isCurrent()) setCreating(false)
     }
   }
 

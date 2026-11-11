@@ -37,15 +37,29 @@ export function PageHeader({
   description,
   actions,
   children,
+  layout = 'stacked',
 }: {
   title: string
   description?: ReactNode
   actions?: ReactNode
   children?: ReactNode
+  layout?: 'stacked' | 'compact'
 }) {
   return (
-    <header className='flex flex-wrap items-start justify-between gap-x-6 gap-y-4'>
-      <div className='min-w-0 space-y-1.5'>
+    <header
+      className={cn(
+        'flex flex-wrap items-start justify-between gap-x-6 gap-y-4',
+        layout === 'compact' &&
+          'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-x-4',
+      )}
+    >
+      <div
+        className={cn(
+          'min-w-0 space-y-1.5',
+          layout === 'compact' &&
+            'flex flex-wrap items-baseline gap-x-2 gap-y-1 space-y-0',
+        )}
+      >
         <h1 className='text-2xl leading-tight font-semibold tracking-tight text-foreground sm:text-[1.75rem]'>
           {title}
         </h1>
@@ -54,10 +68,20 @@ export function PageHeader({
             {description}
           </p>
         )}
-        {children}
+        {layout === 'stacked' && children}
       </div>
+      {layout === 'compact' && children && (
+        <div className='col-span-2 row-start-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-1'>
+          {children}
+        </div>
+      )}
       {actions && (
-        <div className='flex max-w-full flex-wrap items-center gap-2'>
+        <div
+          className={cn(
+            'flex max-w-full flex-wrap items-center gap-2',
+            layout === 'compact' && 'col-start-2 row-start-1 lg:col-start-3',
+          )}
+        >
           {actions}
         </div>
       )}

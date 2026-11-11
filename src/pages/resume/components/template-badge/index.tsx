@@ -4,6 +4,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
+import { Spinner } from '@/components/ui/spinner'
 import { DURATION } from '@/lib/motion'
 import useResumeListStore from '../../store'
 
@@ -30,11 +31,7 @@ export default function TemplateBadge({
   const loading =
     Boolean(templateId) && (!resource || resource.status === 'loading')
 
-  const label = !templateId
-    ? '未设置模板'
-    : loading
-      ? '模板加载中…'
-      : (name ?? templateId)
+  const label = !templateId ? '未设置模板' : (name ?? templateId)
 
   const title = binding
     ? `当前模板：${name ?? templateId} · v${binding.templateVersion}`
@@ -54,8 +51,14 @@ export default function TemplateBadge({
           title={title}
           className='max-w-full min-w-0 shrink text-muted-foreground transition-none'
         >
-          <LayoutTemplate className='shrink-0' aria-hidden />
-          <span className='truncate'>{label}</span>
+          {loading ? (
+            <Spinner aria-label='正在加载模板名称' />
+          ) : (
+            <>
+              <LayoutTemplate className='shrink-0' aria-hidden />
+              <span className='truncate'>{label}</span>
+            </>
+          )}
         </Badge>
         {templateId && resource?.status === 'error' && (
           <button

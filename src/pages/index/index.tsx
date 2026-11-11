@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import useUserStore from '@/store/user'
 import CreateResumeCard from '@/pages/resume/components/create-resume-card'
 import RecentResumeCard from './components/recent-resume-card'
@@ -153,8 +154,8 @@ export default function DashboardPage() {
                   </Button>
                 </div>
                 {resumesLoading && resumes.length === 0 ? (
-                  <p className='text-sm text-muted-foreground' role='status'>
-                    正在加载简历…
+                  <p className='text-sm text-muted-foreground'>
+                    <Spinner aria-label='正在加载简历' />
                   </p>
                 ) : resumes.length === 0 ? (
                   <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
@@ -227,7 +228,7 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className='grid min-w-0 items-start gap-6 lg:grid-cols-2'>
-                  <div className='min-w-0'>
+                  <div className='min-w-0 self-stretch'>
                     <TodoCard
                       unavailable={
                         cloudUnavailable ||

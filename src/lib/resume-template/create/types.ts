@@ -23,6 +23,12 @@ export interface CreateTemplateResumeInput {
   operationId?: string
 }
 
+export interface TemplateCreationDraft {
+  displayName: string
+  description: string
+  operation?: CreateTemplateResumeInput
+}
+
 export interface CreationIdentity {
   operationId: string
   ownerId: string | null
@@ -58,5 +64,16 @@ export class CreationOutcomeUnknownError extends Error {
   constructor() {
     super('暂时无法确认创建结果，请重试确认；不会重复创建简历')
     this.name = 'CreationOutcomeUnknownError'
+  }
+}
+
+/** 仅表示本次调用在初次查询时终止，尚未尝试插入。 */
+export class CreationLookupFailedError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : '创建前查询失败，请重试', {
+      cause,
+    })
+
+    this.name = 'CreationLookupFailedError'
   }
 }

@@ -88,11 +88,9 @@ export function CompanyPicker({
           id={id}
           className={inputClassName}
           placeholder={
-            inlineFeedback && companiesLoading
-              ? '正在加载公司…'
-              : inlineFeedback && companiesError
-                ? '公司加载失败'
-                : (allLabel ?? '搜索并选择已有公司')
+            inlineFeedback && companiesError && !companiesLoading
+              ? '公司加载失败'
+              : (allLabel ?? '搜索并选择已有公司')
           }
           showClear={Boolean(allLabel)}
           disabled={disabled}
@@ -110,11 +108,7 @@ export function CompanyPicker({
                 className='flex size-6 items-center justify-center'
               >
                 {companiesLoading ? (
-                  <Spinner
-                    aria-hidden
-                    className='size-3.5'
-                    style={{ animation: reduce ? 'none' : undefined }}
-                  />
+                  <Spinner aria-hidden className='size-3.5' />
                 ) : companiesError ? (
                   <InputGroupButton
                     size='icon-xs'
@@ -141,11 +135,13 @@ export function CompanyPicker({
           }}
         >
           <ComboboxEmpty>
-            {companiesLoading
-              ? '正在加载公司…'
-              : companiesError
-                ? '公司加载失败，请重试'
-                : '没有匹配的公司'}
+            {companiesLoading ? (
+              <Spinner aria-hidden />
+            ) : companiesError ? (
+              '公司加载失败，请重试'
+            ) : (
+              '没有匹配的公司'
+            )}
           </ComboboxEmpty>
           <ComboboxList>
             {(company: TrackerCompany) => (
@@ -183,8 +179,7 @@ export function CompanyPicker({
             transition={{ duration: reduce ? 0 : DURATION.fast }}
           >
             <p className='flex items-center gap-1.5 text-xs text-muted-foreground'>
-              <Spinner className='size-3' />
-              正在加载公司
+              <Spinner className='size-3' aria-label='正在加载公司' />
             </p>
           </PresenceDiv>
         )}

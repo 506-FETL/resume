@@ -169,6 +169,51 @@ export async function getCompanyById(
   } as JobApplication)
 }
 
+type JobApplicationProgress = Pick<
+  JobApplication,
+  | 'status'
+  | 'stage_details'
+  | 'interview_sub_stages'
+  | 'activities'
+  | 'updated_at'
+  | 'has_submission'
+  | 'unresolved_submissions'
+>
+
+export async function getCompanyProgressById(
+  id: string,
+  assertUser?: CompanyRequestGuard,
+): Promise<JobApplicationProgress | null> {
+  const user = await getCurrentUser()
+
+  assertUser?.(user?.id ?? null)
+
+  if (!user) throw new Error('用户未登陆')
+
+  const { data, error } = await supabase
+    .from('company')
+    .select(
+      'status,stage_details,interview_sub_stages,activities,updated_at,job_submissions(is_primary)',
+    )
+    .eq('user_id', user.id)
+    .eq('id', id)
+    .maybeSingle()
+
+  assertUser?.(user.id)
+
+  if (error) throw trackerProcessError(error)
+  if (!data) return null
+
+  const { job_submissions, ...progress } = data
+  const hasSubmission = job_submissions.some((record) => record.is_primary)
+
+  return {
+    ...progress,
+    has_submission: hasSubmission,
+    unresolved_submissions: job_submissions.length > 0 && !hasSubmission,
+  } as JobApplicationProgress
+}
+
 export async function getCompanySummaryById(
   id: string,
   assertUser?: CompanyRequestGuard,

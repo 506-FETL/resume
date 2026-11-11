@@ -42,6 +42,7 @@ import {
 } from '../../../lib/account-scope'
 import { useTrackerResumeOptions } from '../../../lib/resume-resources'
 import useTrackerStore from '../../../store'
+import { SubmissionRefreshError } from '../../../store/workflow-save'
 import { getTrackerErrorMessage } from '../../../utils'
 import WorkflowDateField from '../workflow-date-field'
 
@@ -104,6 +105,31 @@ export function SubmissionForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uncertain, setUncertain] = useState(false)
+  const [savedRecord, setSavedRecord] = useState<JobSubmission | null>(null)
+
+  const acceptSaved = (record: JobSubmission, rows?: JobSubmission[]) => {
+    useTrackerStore.getState().notifySubmissionChanged(record, rows)
+    setSavedRecord(record)
+    setUncertain(false)
+  }
+
+  const refreshSaved = async () => {
+    setBusy(true)
+    setError(null)
+
+    try {
+      await useTrackerStore.getState().refreshSubmissionJob(jobId)
+
+      if (isTrackerAccountScopeCurrent(scope)) close()
+    } catch (cause) {
+      if (isTrackerAccountScopeCurrent(scope))
+        setError(
+          `投递已保存，但职位进度读取失败：${getTrackerErrorMessage(cause)}。请重新读取，无需再次提交。`,
+        )
+    } finally {
+      if (isTrackerAccountScopeCurrent(scope)) setBusy(false)
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -147,35 +173,48 @@ export function SubmissionForm({
         file: kind === 'file' ? file : undefined,
       }
 
-      if (correctingRecord)
-        await correctJobSubmissionMaterial(
-          correctingRecord.id,
-          { ...material, jobId, reason: reason.trim() },
-          createTrackerAccountGuard(scope),
-        )
-      else
-        await useTrackerStore.getState().recordSubmission({
-          ...material,
-          id: requestId,
-          jobId,
-          submittedOn: date || null,
-          channel: channel.trim() || null,
-          note: note.trim() || null,
-        })
+      const saved = correctingRecord
+        ? await correctJobSubmissionMaterial(
+            correctingRecord.id,
+            { ...material, jobId, reason: reason.trim() },
+            createTrackerAccountGuard(scope),
+          )
+        : await useTrackerStore.getState().recordSubmission({
+            ...material,
+            id: requestId,
+            jobId,
+            submittedOn: date || null,
+            channel: channel.trim() || null,
+            note: note.trim() || null,
+          })
 
       if (!isTrackerAccountScopeCurrent(scope)) return
 
-      useTrackerStore.getState().notifySubmissionChanged()
-      await useTrackerStore.getState().reloadJobs()
-      close()
+      acceptSaved(saved)
+
+      if (correctingRecord) await refreshSaved()
+      else close()
     } catch (cause) {
       if (!isTrackerAccountScopeCurrent(scope)) return
+
+      if (cause instanceof SubmissionRefreshError) {
+        acceptSaved(cause.submission)
+        setError(cause.message)
+
+        return
+      }
 
       const rejected =
         cause instanceof SubmissionSaveError && cause.outcome === 'rejected'
 
       setError(
-        `${getTrackerErrorMessage(cause)}。${rejected ? '输入已保留，可修改后重试。' : '输入已保留；先查询结果，再使用本次编号重试。'}`,
+        `${getTrackerErrorMessage(cause)}。${
+          rejected
+            ? '输入已保留，可修改后重试。'
+            : correcting
+              ? '输入已保留，可使用原编号重试。'
+              : '输入已保留；先查询结果，再使用本次编号重试。'
+        }`,
       )
 
       setUncertain(!rejected)
@@ -198,9 +237,9 @@ export function SubmissionForm({
       )
 
       if (!isTrackerAccountScopeCurrent(scope)) return
-      if (found && (!correctingRecord || found.material_kind !== 'pending')) {
-        await useTrackerStore.getState().reloadJobs()
-        close()
+      if (found && !correctingRecord) {
+        acceptSaved(found, rows)
+        await refreshSaved()
       } else setError('暂未查到本次保存结果，可使用原编号重试。')
     } catch (cause) {
       if (isTrackerAccountScopeCurrent(scope))
@@ -243,7 +282,7 @@ export function SubmissionForm({
         </DialogHeader>
         <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
           <fieldset
-            disabled={busy || uncertain}
+            disabled={busy || uncertain || Boolean(savedRecord)}
             className='space-y-4 disabled:opacity-70'
           >
             {!correctingRecord && (
@@ -344,12 +383,8 @@ export function SubmissionForm({
                       </Button>
                     </Alert>
                   ) : !resumes ? (
-                    <p
-                      role='status'
-                      className='flex items-center gap-2 text-sm text-muted-foreground'
-                    >
-                      <Spinner aria-hidden />
-                      正在加载简历
+                    <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+                      <Spinner aria-label='正在加载简历选项' />
                     </p>
                   ) : resumes.length === 0 ? (
                     <p>
@@ -416,8 +451,11 @@ export function SubmissionForm({
                       。可重新选择简历重试，或使用云端当前内容。
                     </p>
                   ) : versions === null && resumeId ? (
-                    <p role='status' className='text-xs text-muted-foreground'>
-                      正在加载历史版本
+                    <p className='text-xs text-muted-foreground'>
+                      <Spinner
+                        className='size-3.5'
+                        aria-label='正在加载历史版本'
+                      />
                     </p>
                   ) : null}
                   <p className='text-xs text-muted-foreground'>
@@ -475,21 +513,25 @@ export function SubmissionForm({
             disabled={busy || uncertain}
             onClick={close}
           >
-            取消
+            {savedRecord ? '关闭' : '取消'}
           </Button>
           {uncertain && !correcting && (
             <Button variant='outline' disabled={busy} onClick={query}>
               查询保存结果
             </Button>
           )}
-          <Button disabled={busy} onClick={save}>
-            {busy
-              ? '正在保存…'
-              : uncertain
-                ? '使用原编号重试'
-                : correctingRecord
-                  ? '保存更正'
-                  : '确认已投递'}
+          <Button disabled={busy} onClick={savedRecord ? refreshSaved : save}>
+            {savedRecord
+              ? busy
+                ? '正在读取…'
+                : '重新读取职位'
+              : busy
+                ? '正在保存…'
+                : uncertain
+                  ? '使用原编号重试'
+                  : correctingRecord
+                    ? '保存更正'
+                    : '确认已投递'}
           </Button>
         </DialogFooter>
       </DialogContent>

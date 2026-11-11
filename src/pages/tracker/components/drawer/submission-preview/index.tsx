@@ -40,9 +40,8 @@ export default function MaterialPreview({
       ],
   )
 
-  const current = resource?.revision === revision ? resource : null
-  const material = current?.data
-  const error = current?.error
+  const material = resource?.data
+  const error = resource?.error
   const [url, setUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -134,12 +133,8 @@ export default function MaterialPreview({
                 </Button>
               </Alert>
             ) : !material ? (
-              <p
-                role='status'
-                className='flex items-center gap-2 text-sm text-muted-foreground'
-              >
-                <Spinner aria-hidden />
-                正在加载投递原件
+              <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+                <Spinner aria-label='正在加载投递原件' />
               </p>
             ) : (
               <>

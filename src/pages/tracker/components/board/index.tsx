@@ -55,7 +55,7 @@ function BoardJobItem({
   reduceMotion: boolean | null
   layoutItems: JobApplication[]
 }) {
-  const { dragging, getDragProps } = useCrossListItem({
+  const { dragging, previewing, settling, getDragProps } = useCrossListItem({
     id: job.id,
     containerId,
     index,
@@ -64,9 +64,9 @@ function BoardJobItem({
   return (
     <motion.div
       {...getDragProps()}
-      layout={reduceMotion ? false : 'position'}
+      layout={reduceMotion || previewing ? false : 'position'}
       layoutDependency={layoutItems}
-      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      initial={reduceMotion || previewing ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: dragging ? 0.3 : 1, y: 0 }}
       transition={
         reduceMotion
@@ -81,9 +81,12 @@ function BoardJobItem({
               },
             }
       }
-      className='shrink-0 cursor-grab rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing'
+      className={cn(
+        'shrink-0 cursor-grab rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing',
+        settling && 'opacity-0!',
+      )}
     >
-      <ColumnCard job={job} />
+      <ColumnCard job={job} previewing={previewing} />
     </motion.div>
   )
 }
@@ -162,9 +165,27 @@ function BoardColumnDropArea({
   )
 }
 
-function JobOverlay({ job }: { job: JobApplication }) {
+function JobOverlay({
+  job,
+  settling,
+}: {
+  job: JobApplication
+  settling: boolean
+}) {
+  const reduceMotion = useReducedMotion()
+
   return (
-    <div className='rounded-lg shadow-xl ring-1 ring-primary/20'>
+    <div className='relative rounded-lg'>
+      <motion.div
+        aria-hidden='true'
+        initial={false}
+        animate={{ opacity: settling ? 0 : 1 }}
+        transition={{
+          duration: reduceMotion ? 0 : DURATION.base,
+          ease: EASE.out,
+        }}
+        className='pointer-events-none absolute inset-0 rounded-lg shadow-xl ring-1 ring-primary/20'
+      />
       <ColumnCard job={job} />
     </div>
   )
@@ -234,13 +255,21 @@ function BoardView() {
         filterCompanyId
           ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
           : jobs,
-        null,
+        filterStatus,
         searchKeyword,
         showArchived,
-        null,
+        metricFilter,
         focusedOnly,
       ),
-    [jobs, searchKeyword, showArchived, filterCompanyId, focusedOnly],
+    [
+      jobs,
+      filterStatus,
+      metricFilter,
+      searchKeyword,
+      showArchived,
+      filterCompanyId,
+      focusedOnly,
+    ],
   )
 
   const groupedJobs = useMemo(() => {
@@ -305,13 +334,24 @@ function BoardView() {
   }, [highlightedStatus, scrollToColumn, rejectedCollapsed])
 
   const commitMove = (jobId: string, newStatus: ApplicationStatus) => {
-    changeJobStatus(jobId, newStatus).catch((error) => {
+    const save = changeJobStatus(jobId, newStatus).catch((error) => {
       if (!isTrackerAccountScopeError(error))
         toast.error('更新状态失败', {
           description: getTrackerErrorMessage(error),
           action: getTrackerConflictAction(error),
         })
     })
+
+    const { submissionQueue, reopenQueue } = useTrackerStore.getState()
+
+    // 需要用户补充投递或恢复流程时，预览先回源，不停留在弹窗上方。
+    if (
+      submissionQueue.some((request) => request.jobId === jobId) ||
+      reopenQueue.some((request) => request.jobId === jobId)
+    )
+      return
+
+    return save
   }
 
   const handleDrop = ({ itemId, destinationId }: CrossListDropResult) => {
@@ -330,7 +370,7 @@ function BoardView() {
       return
     }
 
-    commitMove(itemId, newStatus)
+    return commitMove(itemId, newStatus)
   }
 
   const scrollAreas = [
@@ -350,12 +390,12 @@ function BoardView() {
       <CrossListDragProvider
         onDrop={handleDrop}
         scrollAreas={scrollAreas}
-        renderOverlay={(jobId) => {
+        renderOverlay={(jobId, settling) => {
           const job = useTrackerStore
             .getState()
             .jobs.find((item) => item.id === jobId)
 
-          return job ? <JobOverlay job={job} /> : null
+          return job ? <JobOverlay job={job} settling={settling} /> : null
         }}
       >
         <div

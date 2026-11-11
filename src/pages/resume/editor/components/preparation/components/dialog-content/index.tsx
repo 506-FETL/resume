@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Select,
   SelectContent,
@@ -172,7 +173,9 @@ export default function PreparationContent({
   return (
     <>
       {loading ? (
-        <p role='status'>正在读取填写记录…</p>
+        <p>
+          <Spinner aria-label='正在读取填写记录' />
+        </p>
       ) : error ? (
         <div role='alert'>
           <p>{error}</p>

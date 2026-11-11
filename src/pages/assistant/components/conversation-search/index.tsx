@@ -114,8 +114,8 @@ export default function ConversationSearch() {
               disabled={loadingMore}
               onSelect={loadMore}
             >
-              {loadingMore && <Spinner />}
-              <span>{loadingMore ? '正在加载…' : '加载更多'}</span>
+              {loadingMore && <Spinner aria-label='正在加载更多搜索结果' />}
+              <span>加载更多</span>
             </CommandItem>
           </CommandGroup>
         )}

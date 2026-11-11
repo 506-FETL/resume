@@ -434,8 +434,8 @@ function Editor() {
 
   if (loading) {
     return (
-      <div role='status' aria-label='正在加载简历' className='h-full'>
-        <PageLoading />
+      <div className='h-full'>
+        <PageLoading label='正在加载简历' />
       </div>
     )
   }

@@ -61,7 +61,11 @@ import {
   APPLICATION_STATUS_ORDER,
   TRACKER_SEARCH_INPUT_ID,
 } from '../../const'
-import { isTrackerAccountScopeError } from '../../lib/account-scope'
+import {
+  getTrackerAccountScope,
+  isTrackerAccountScopeCurrent,
+  isTrackerAccountScopeError,
+} from '../../lib/account-scope'
 import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import { selectTrackerDrawerJob } from '../../store/selectors'
 import { getTrackerErrorMessage, getTrackerNextAction } from '../../utils'
@@ -169,6 +173,20 @@ function JobDrawer() {
       NonNullable<ComponentProps<typeof Drawer>['onOpenChange']>
     >[1],
   ) => {
+    // Radix Select 可能把后续点击重定向到 body；上层弹窗退出前不能因此关闭抽屉。
+    if (
+      !newOpen &&
+      (details?.reason === 'escape-key' ||
+        details?.reason === 'outside-press') &&
+      document.querySelector(
+        '[data-slot="dialog-content"], [role="alertdialog"]',
+      )
+    ) {
+      details.cancel()
+
+      return
+    }
+
     // Radix 可能先卸载日历节点，用原始事件路径识别浮层，Esc 只关闭当前层。
     if (
       !newOpen &&
@@ -197,15 +215,27 @@ function JobDrawer() {
   const handleProgressChange = (newStatus: ApplicationStatus) => {
     if (!selectedJob) return
 
-    changeJobStatus(selectedJob.id, newStatus).catch((error) => {
-      if (!isTrackerAccountScopeError(error))
-        toast.error('更新失败', {
-          description: getTrackerErrorMessage(error),
-          action: getTrackerConflictAction(error),
-        })
-    })
+    const scope = getTrackerAccountScope()
+    const { id, status } = selectedJob
 
-    setViewingStage(null)
+    changeJobStatus(id, newStatus)
+      .then(() => {
+        const current = selectTrackerDrawerJob(useTrackerStore.getState())
+
+        if (
+          isTrackerAccountScopeCurrent(scope) &&
+          current?.id === id &&
+          current.status !== status
+        )
+          setViewingStage(null)
+      })
+      .catch((error) => {
+        if (!isTrackerAccountScopeError(error))
+          toast.error('更新失败', {
+            description: getTrackerErrorMessage(error),
+            action: getTrackerConflictAction(error),
+          })
+      })
   }
 
   const openConfirmation = (kind: ConfirmKind) => {

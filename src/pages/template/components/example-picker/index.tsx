@@ -1,5 +1,6 @@
 import type {
   ExampleOption,
+  ExampleRef,
   TemplateCatalogItem,
 } from '@/lib/resume-template/source/types'
 import { Check } from 'lucide-react'
@@ -16,16 +17,14 @@ function ExampleChoice({
   example,
   name,
   disabled,
+  selected,
 }: {
   item: TemplateCatalogItem
   example: ExampleOption
   name: string
   disabled: boolean
+  selected: boolean
 }) {
-  const selectedExample =
-    useTemplatePageStore((state) => state.selectedExamples[item.templateId]) ??
-    item.defaultExample
-
   const selectExample = useTemplatePageStore((state) => state.selectExample)
   const prefetchEvents = useTemplatePrefetch(item, example, disabled)
   const reduceMotion = useReducedMotion()
@@ -33,8 +32,6 @@ function ExampleChoice({
   const transitionStyle = {
     transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
   }
-
-  const selected = exampleKey(selectedExample) === exampleKey(example)
 
   return (
     <label
@@ -88,9 +85,11 @@ function ExampleChoice({
 export default function ExamplePicker({
   item,
   disabled = false,
+  selectedExample,
 }: {
   item: TemplateCatalogItem
   disabled?: boolean
+  selectedExample: ExampleRef
 }) {
   const name = useId()
 
@@ -104,6 +103,7 @@ export default function ExamplePicker({
           example={example}
           name={name}
           disabled={disabled}
+          selected={exampleKey(selectedExample) === exampleKey(example)}
         />
       ))}
     </fieldset>

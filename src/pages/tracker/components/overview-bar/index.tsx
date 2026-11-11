@@ -10,9 +10,9 @@ function OverviewBar() {
   const isMobile = useIsMobile()
   const { stats, busy, error, showArchived } = useTrackerOverview()
 
-  const { viewMode, metricFilter, setMetricFilter } = useTrackerStore(
+  const { filterStatus, metricFilter, setMetricFilter } = useTrackerStore(
     useShallow((state) => ({
-      viewMode: state.viewMode,
+      filterStatus: state.filterStatus,
       metricFilter: state.metricFilter,
       setMetricFilter: state.setMetricFilter,
     })),
@@ -29,7 +29,7 @@ function OverviewBar() {
       value: stats.applied,
       description: `${scopeDescription}，已投递或进入后续流程，不含已录用和已结束`,
       icon: Send,
-      iconClassName: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      iconClassName: 'text-blue-600 dark:text-blue-400',
     },
     {
       key: 'interview',
@@ -37,7 +37,7 @@ function OverviewBar() {
       value: stats.interview,
       description: `${scopeDescription}，当前处于面试阶段`,
       icon: Users,
-      iconClassName: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+      iconClassName: 'text-violet-600 dark:text-violet-400',
     },
     {
       key: 'offer',
@@ -45,7 +45,7 @@ function OverviewBar() {
       value: stats.offer,
       description: `${scopeDescription}，当前已录用`,
       icon: CheckCheck,
-      iconClassName: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      iconClassName: 'text-emerald-600 dark:text-emerald-400',
     },
     {
       key: 'pending',
@@ -54,7 +54,7 @@ function OverviewBar() {
       description:
         '当前搜索范围内已到期或多日未更新的职位，不含已结束、已录用和已归档',
       icon: BellRing,
-      iconClassName: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      iconClassName: 'text-amber-600 dark:text-amber-400',
       accent: true,
     },
   ] as const
@@ -62,33 +62,34 @@ function OverviewBar() {
   if (isMobile) return null
 
   return (
-    <section
-      aria-label='求职概览'
+    <div
+      role='group'
+      aria-label='快捷筛选职位'
       aria-busy={busy}
-      className='shrink-0 border-b bg-muted/15 px-1 py-1 sm:px-2'
+      className='flex min-w-0 flex-wrap items-center gap-1'
     >
-      <div
-        role='group'
-        aria-label={
-          viewMode === 'list' ? '按求职指标筛选' : '按求职指标定位阶段'
-        }
-        className='grid grid-cols-4 gap-1'
-      >
-        {metrics.map(({ key, ...metric }, index) => (
-          <MetricCard
-            key={key}
-            metricKey={key}
-            {...metric}
-            index={index}
-            loading={busy}
-            error={error}
-            active={metricFilter === key}
-            actionLabel={viewMode === 'list' ? '筛选相关职位' : '定位相关阶段'}
-            onClick={setMetricFilter}
-          />
-        ))}
-      </div>
-    </section>
+      <MetricCard
+        metricKey={null}
+        label={showArchived ? '全部归档' : '全部职位'}
+        description={scopeDescription}
+        value={stats.total}
+        loading={busy}
+        error={error}
+        active={metricFilter === null && filterStatus === null}
+        onClick={setMetricFilter}
+      />
+      {metrics.map(({ key, ...metric }) => (
+        <MetricCard
+          key={key}
+          metricKey={key}
+          {...metric}
+          loading={busy}
+          error={error}
+          active={metricFilter === key}
+          onClick={setMetricFilter}
+        />
+      ))}
+    </div>
   )
 }
 

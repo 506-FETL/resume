@@ -329,16 +329,8 @@ export function JdVariantDialog({
                 }}
               >
                 {state.phase === 'idle' && initialJdLoading && (
-                  <div
-                    className='flex items-center gap-2 text-sm text-muted-foreground'
-                    role='status'
-                  >
-                    <Spinner
-                      className={
-                        shouldReduceMotion ? 'animate-none' : undefined
-                      }
-                    />
-                    正在加载职位描述…
+                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+                    <Spinner aria-label='正在加载职位描述' />
                   </div>
                 )}
                 {state.phase === 'idle' && initialJdError && (

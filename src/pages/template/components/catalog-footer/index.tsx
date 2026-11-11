@@ -119,12 +119,10 @@ export default function CatalogFooter() {
               disabled={loadingMore || !matchesFilter}
               onClick={loadMore}
             >
-              {loadingMore && <Spinner aria-hidden className='size-4' />}
-              {loadingMore
-                ? '正在加载更多模板…'
-                : loadMoreError
-                  ? '重试加载更多'
-                  : '加载更多模板'}
+              {loadingMore && (
+                <Spinner className='size-4' aria-label='正在加载更多模板' />
+              )}
+              {loadMoreError ? '重试加载更多' : '加载更多模板'}
             </Button>
           </div>
         )}

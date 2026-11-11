@@ -1,4 +1,5 @@
 import type { ImportDraft, PreparationRecord } from './types'
+import type { TemplateCreationDraft } from '@/lib/resume-template/create/types'
 import { openDB } from 'idb'
 
 const listeners = new Set<() => void>()
@@ -177,4 +178,23 @@ export async function completeDerivedPreparation(key: string) {
   const db = await database()
 
   await db.delete('drafts', `derived:${key}`)
+}
+
+export async function loadTemplateCreationDraft(
+  key: string,
+): Promise<TemplateCreationDraft | null> {
+  const db = await database()
+
+  return (await db.get('drafts', `template-creation:${key}`)) ?? null
+}
+
+export async function saveTemplateCreationDraft(
+  key: string,
+  draft: TemplateCreationDraft | null,
+) {
+  const db = await database()
+  const storageKey = `template-creation:${key}`
+
+  if (draft) await db.put('drafts', structuredClone(draft), storageKey)
+  else await db.delete('drafts', storageKey)
 }

@@ -6,6 +6,7 @@ export type CreationStep =
   | 'import'
   | 'review'
   | 'template'
+  | 'details'
   | 'job'
 
 export interface ReviewField {

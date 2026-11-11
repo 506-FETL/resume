@@ -234,7 +234,7 @@ export default function HistoryWorkspace({
         }}
         style={{ visibility: detailVisible ? 'visible' : 'hidden' }}
         className={cn(
-          'flex h-full min-h-0 min-w-0 flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'flex h-full min-h-0 min-w-0 flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring [@media(max-height:500px)]:gap-1',
           narrow && 'absolute inset-0 col-start-1 row-start-1',
           !detailInteractive && 'pointer-events-none',
         )}

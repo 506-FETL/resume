@@ -20,10 +20,10 @@ export default function TemplateResourceStatus({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduced ? 0 : DURATION.base, ease: EASE.out }}
       className='flex min-h-40 flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground'
-      role={error ? 'alert' : 'status'}
+      role={error ? 'alert' : undefined}
     >
-      {!error && <Spinner className='size-5' aria-hidden />}
-      <p>{error ?? '正在准备简历预览…'}</p>
+      {!error && <Spinner className='size-5' aria-label='正在准备简历预览' />}
+      {error && <p>{error}</p>}
       {error && onRetry && (
         <Button variant='outline' size='sm' onClick={onRetry}>
           重试

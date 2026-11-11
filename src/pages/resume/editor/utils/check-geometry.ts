@@ -1,5 +1,4 @@
 import type { CheckTarget } from '@/lib/resume-checks/types'
-import { collectTextRangeClientRects } from '@/features/resume-comments/anchors/geometry'
 
 export interface CheckRect {
   id: string
@@ -7,6 +6,11 @@ export interface CheckRect {
   y: number
   width: number
   height: number
+}
+
+export interface CheckGeometry {
+  rects: CheckRect[]
+  text: { range: Range; color: string }[]
 }
 
 function fieldKey(target: CheckTarget) {
@@ -27,11 +31,11 @@ function fieldKey(target: CheckTarget) {
   return field
 }
 
-function quotedRange(
+function quotedRanges(
   element: HTMLElement,
   quote: string,
   occurrence: number,
-): Range | null {
+): Range[] {
   const nodes: { node: Text; start: number; end: number }[] = []
   let text = ''
 
@@ -68,30 +72,32 @@ function quotedRange(
   for (let i = 0; i <= occurrence; i++) {
     index = text.indexOf(quote, index + 1)
 
-    if (index < 0) return null
+    if (index < 0) return []
   }
 
   const end = index + quote.length
-  const first = nodes.find((item) => item.end > index)
-  const last = nodes.find((item) => item.end >= end)
 
-  if (!first || !last) return null
+  return nodes
+    .filter((item) => item.end > index && item.start < end)
+    .map((item) => {
+      const range = document.createRange()
 
-  const range = document.createRange()
+      range.setStart(item.node, Math.max(0, index - item.start))
+      range.setEnd(item.node, Math.min(item.node.length, end - item.start))
 
-  range.setStart(first.node, index - first.start)
-  range.setEnd(last.node, end - last.start)
-
-  return range
+      return range
+    })
 }
 
 /** 只测量真实显示页，并裁掉每页内重复源文档的不可见部分。 */
-export function locateCheckRects(
+export function locateCheckGeometry(
   root: HTMLElement,
   scroller: HTMLElement,
   target: CheckTarget,
-): CheckRect[] {
-  if (!target.quote) return []
+): CheckGeometry {
+  const result: CheckGeometry = { rects: [], text: [] }
+
+  if (!target.quote) return result
 
   const key = `${target.section}/${target.entryId ?? 'singleton'}/${fieldKey(target)}`
 
@@ -106,13 +112,12 @@ export function locateCheckRects(
   )
 
   const origin = scroller.getBoundingClientRect()
-  const result: CheckRect[] = []
 
   for (const element of elements) {
     const page = element.closest<HTMLElement>('[data-resume-page-index]')
-    const range = quotedRange(element, target.quote, target.occurrence ?? 0)
+    const ranges = quotedRanges(element, target.quote, target.occurrence ?? 0)
 
-    if (!page || !range) continue
+    if (!page || ranges.length === 0) continue
 
     const clips = [
       page.querySelector('[data-resume-page-viewport]'),
@@ -122,33 +127,46 @@ export function locateCheckRects(
       .filter((clip): clip is Element => !!clip)
       .map((clip) => clip.getBoundingClientRect())
 
-    for (const rect of collectTextRangeClientRects(range)) {
-      const left = Math.max(rect.left, ...clips.map((clip) => clip.left))
-      const right = Math.min(rect.right, ...clips.map((clip) => clip.right))
-      const top = Math.max(rect.top, ...clips.map((clip) => clip.top))
-      const bottom = Math.min(rect.bottom, ...clips.map((clip) => clip.bottom))
+    const visible: DOMRect[] = []
 
-      if (right - left < 1 || bottom - top < 1) continue
+    for (const range of ranges) {
+      const rects = Array.from(range.getClientRects()).flatMap((rect) => {
+        const left = Math.max(rect.left, ...clips.map((clip) => clip.left))
+        const right = Math.min(rect.right, ...clips.map((clip) => clip.right))
+        const top = Math.max(rect.top, ...clips.map((clip) => clip.top))
 
-      const next = {
-        id: `${key}:${result.length}`,
-        x: left - origin.left + scroller.scrollLeft,
-        y: top - origin.top + scroller.scrollTop,
-        width: right - left,
-        height: bottom - top,
-      }
+        const bottom = Math.min(
+          rect.bottom,
+          ...clips.map((clip) => clip.bottom),
+        )
 
-      const previous = result.at(-1)
+        return right - left >= 1 && bottom - top >= 1
+          ? [new DOMRect(left, top, right - left, bottom - top)]
+          : []
+      })
 
-      if (
-        previous &&
-        Math.abs(previous.y - next.y) < 2 &&
-        Math.abs(previous.x + previous.width - next.x) < 3
-      ) {
-        previous.width = next.x + next.width - previous.x
-        previous.height = Math.max(previous.height, next.height)
-      } else result.push(next)
+      if (rects.length === 0) continue
+
+      visible.push(...rects)
+
+      result.text.push({
+        range,
+        color: getComputedStyle(range.startContainer.parentElement!).color,
+      })
     }
+
+    if (visible.length === 0) continue
+
+    const left = Math.min(...visible.map((rect) => rect.left))
+    const top = Math.min(...visible.map((rect) => rect.top))
+
+    result.rects.push({
+      id: `${key}:${result.rects.length}`,
+      x: left - origin.left + scroller.scrollLeft,
+      y: top - origin.top + scroller.scrollTop,
+      width: Math.max(...visible.map((rect) => rect.right)) - left,
+      height: Math.max(...visible.map((rect) => rect.bottom)) - top,
+    })
   }
 
   return result

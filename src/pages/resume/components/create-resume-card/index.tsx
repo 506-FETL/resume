@@ -5,7 +5,7 @@ import type { CreationStep } from './types'
 import type { ResumeProfile } from '@/lib/resume-preparation/types'
 import { ArrowLeft, ArrowRight, FileText, Plus, Target, X } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,7 @@ export default function CreateResumeCard({
   const isOpen = open ?? localOpen
   const setIsOpen = onOpenChange ?? setLocalOpen
   const panelHostRef = useRef<HTMLDivElement | null>(null)
+  const detailsFormId = useId()
   const step = useCreationDraftStore((state) => state.step)
   const setStep = useCreationDraftStore((state) => state.setStep)
   const headingRef = useRef<HTMLHeadingElement | null>(null)
@@ -109,16 +111,22 @@ export default function CreateResumeCard({
       ? '导入结果'
       : step === 'template'
         ? '选择模板'
-        : step === 'import'
-          ? '导入旧简历'
-          : step === 'profile'
-            ? '从哪里开始写'
-            : step === 'job'
-              ? '选择用于岗位定制的简历'
-              : '创建简历'
+        : step === 'details'
+          ? '填写简历信息'
+          : step === 'import'
+            ? '导入旧简历'
+            : step === 'profile'
+              ? '从哪里开始写'
+              : step === 'job'
+                ? '选择用于岗位定制的简历'
+                : '创建简历'
 
   const draftReady = ready && loadedScope === flow.scope
   const busy = flow.creating || flow.reading
+  const templateWorkspace = step === 'template' || step === 'details'
+
+  const storageMode =
+    draft.creation?.mode ?? draft.creationMode ?? (isOnline ? 'cloud' : 'local')
 
   function go(next: CreationStep) {
     panelHostRef.current?.focus()
@@ -178,13 +186,19 @@ export default function CreateResumeCard({
         <div ref={panelHostRef} tabIndex={-1} className='outline-none'>
           <AnimatePresence initial={false} mode='wait'>
             <CreationStepPanel
-              key={draftReady ? step : 'loading'}
+              key={
+                draftReady
+                  ? templateWorkspace
+                    ? 'template-workspace'
+                    : step
+                  : 'loading'
+              }
               measureRef={measureRef}
               refreshBounds={refreshBounds}
               className={cn(
                 'relative flex max-h-[90dvh] w-[min(600px,calc(100vw-2rem))] flex-col gap-4 p-5',
                 draftReady &&
-                  (step === 'review' || step === 'template') &&
+                  (step === 'review' || templateWorkspace) &&
                   'h-[min(88dvh,48rem)] w-[min(960px,calc(100vw-2rem))]',
               )}
             >
@@ -223,7 +237,9 @@ export default function CreateResumeCard({
                       ? '查看自动填充的简历，选择模板或按需修改。'
                       : step === 'template'
                         ? '选择简历排版。'
-                        : '选择创建简历的方式。'}
+                        : step === 'details'
+                          ? '填写简历名称和描述后创建，两项都可以留空。'
+                          : '选择创建简历的方式。'}
                 </DialogDescription>
               </DialogHeader>
               <Button
@@ -238,24 +254,35 @@ export default function CreateResumeCard({
               </Button>
               {!draftReady ? (
                 <div className='flex min-h-[min(16rem,60dvh)] items-center justify-center'>
-                  <p role='status' className='text-muted-foreground'>
-                    正在读取草稿…
+                  <p className='text-muted-foreground'>
+                    <Spinner className='size-6' aria-label='正在读取草稿' />
                   </p>
                 </div>
               ) : (
                 <>
                   <div
                     data-creation-scroll
-                    className='relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-1 -m-1'
+                    className={cn(
+                      'relative min-h-0 flex-1 overscroll-y-contain',
+                      templateWorkspace
+                        ? 'overflow-visible'
+                        : 'overflow-y-auto p-1 -m-1',
+                    )}
                   >
                     {step === 'choose' && (
                       <div className='space-y-3 py-1'>
-                        {(draft.sourceText || draft.creation) && (
+                        {(draft.sourceText ||
+                          draft.content ||
+                          draft.selectedTemplate ||
+                          draft.creation) && (
                           <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/50 p-3'>
                             <p className='text-sm'>
                               {draft.creation
                                 ? '上次创建尚未确认'
-                                : '有一份导入草稿'}
+                                : draft.contentSource === 'profile' ||
+                                    draft.contentSource === 'template'
+                                  ? '有一份未完成的简历'
+                                  : '有一份导入草稿'}
                             </p>
                             <div className='flex items-center gap-1'>
                               <Button
@@ -263,33 +290,42 @@ export default function CreateResumeCard({
                                 variant='outline'
                                 onClick={() =>
                                   go(
-                                    draft.creation
-                                      ? 'template'
-                                      : draft.content
-                                        ? 'review'
-                                        : 'import',
+                                    draft.creation || draft.selectedTemplate
+                                      ? 'details'
+                                      : draft.contentSource === 'profile'
+                                        ? 'template'
+                                        : draft.content
+                                          ? 'review'
+                                          : 'import',
                                   )
                                 }
                               >
-                                {draft.creation ? '继续创建' : '继续导入'}
+                                {draft.creation ||
+                                draft.contentSource === 'profile' ||
+                                draft.contentSource === 'template'
+                                  ? '继续创建'
+                                  : '继续导入'}
                               </Button>
-                              {draft.sourceText && !draft.creation && (
-                                <Button
-                                  variant='ghost'
-                                  size='icon-sm'
-                                  aria-label='清除导入草稿'
-                                  onClick={() => {
-                                    headingRef.current?.focus()
+                              {(draft.sourceText ||
+                                draft.content ||
+                                draft.selectedTemplate) &&
+                                !draft.creation && (
+                                  <Button
+                                    variant='ghost'
+                                    size='icon-sm'
+                                    aria-label='清除草稿'
+                                    onClick={() => {
+                                      headingRef.current?.focus()
 
-                                    useCreationDraftStore
-                                      .getState()
-                                      .discard()
-                                      .catch(() => undefined)
-                                  }}
-                                >
-                                  <X className='size-4' />
-                                </Button>
-                              )}
+                                      useCreationDraftStore
+                                        .getState()
+                                        .discard()
+                                        .catch(() => undefined)
+                                    }}
+                                  >
+                                    <X className='size-4' />
+                                  </Button>
+                                )}
                             </div>
                           </div>
                         )}
@@ -380,18 +416,21 @@ export default function CreateResumeCard({
                       />
                     )}
                     {step === 'review' && <ImportPreview />}
-                    {step === 'template' && <TemplatePicker />}
+                    {templateWorkspace && (
+                      <TemplatePicker
+                        formId={detailsFormId}
+                        busy={busy}
+                        onCreate={() => flow.create()}
+                      />
+                    )}
                     {step === 'job' && (
                       <div className='space-y-3'>
                         <p className='text-sm text-muted-foreground'>
                           选择原简历，生成岗位定制版本。
                         </p>
                         {listLoading ? (
-                          <p
-                            role='status'
-                            className='text-sm text-muted-foreground'
-                          >
-                            正在读取简历…
+                          <p className='text-sm text-muted-foreground'>
+                            <Spinner aria-label='正在读取简历选项' />
                           </p>
                         ) : listError ? (
                           <div role='alert' className='space-y-2 text-sm'>
@@ -491,7 +530,7 @@ export default function CreateResumeCard({
                     </p>
                   )}
                   {step !== 'choose' && (
-                    <div className='flex shrink-0 flex-wrap items-center justify-between gap-2 border-t pt-3'>
+                    <div className='flex shrink-0 items-center justify-between gap-2 border-t pt-3'>
                       <Button
                         size='sm'
                         variant='ghost'
@@ -500,26 +539,33 @@ export default function CreateResumeCard({
                           go(
                             draft.creation
                               ? 'choose'
-                              : step === 'template'
-                                ? draft.contentSource === 'profile'
-                                  ? 'profile'
-                                  : 'review'
-                                : step === 'review'
-                                  ? 'import'
-                                  : 'choose',
+                              : step === 'details'
+                                ? 'template'
+                                : step === 'template'
+                                  ? draft.contentSource === 'template'
+                                    ? 'choose'
+                                    : draft.contentSource === 'profile'
+                                      ? 'profile'
+                                      : 'review'
+                                  : step === 'review'
+                                    ? 'import'
+                                    : 'choose',
                           )
                         }
                       >
                         <ArrowLeft className='size-4' />
                         返回
                       </Button>
-                      <div className='flex flex-wrap items-center justify-end gap-3'>
-                        {step === 'template' && (
-                          <span className='max-w-44 truncate text-xs text-muted-foreground'>
+                      <div className='flex min-w-0 flex-1 items-center justify-end gap-3'>
+                        {templateWorkspace && (
+                          <span
+                            className='max-w-44 truncate text-xs text-muted-foreground'
+                            title={`${draft.selectedTemplate?.name ?? draft.creation?.selection?.name ?? '请选择模板'} · ${storageMode === 'cloud' ? '云端' : '本地'}`}
+                          >
                             {draft.selectedTemplate?.name ??
                               draft.creation?.selection?.name ??
                               '请选择模板'}{' '}
-                            · {isOnline ? '云端' : '本地'}
+                            · {storageMode === 'cloud' ? '云端' : '本地'}
                           </span>
                         )}
                         {step === 'review' && (
@@ -545,11 +591,21 @@ export default function CreateResumeCard({
                         )}
                         {step === 'template' && (
                           <Button
+                            disabled={busy || !draft.selectedTemplate}
+                            onClick={() => go('details')}
+                          >
+                            下一步
+                            <ArrowRight className='size-4' />
+                          </Button>
+                        )}
+                        {step === 'details' && (
+                          <Button
+                            type='submit'
+                            form={detailsFormId}
                             disabled={
                               busy ||
                               (!draft.selectedTemplate && !draft.creation)
                             }
-                            onClick={() => flow.create()}
                           >
                             {flow.creating
                               ? '正在创建…'

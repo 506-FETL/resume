@@ -46,7 +46,26 @@ export const useCreationDraftStore = create<CreationDraftState>((set, get) => ({
       const draft = await loadImportDraft(scope)
 
       if (version === loadVersion)
-        set({ draft: draft ?? emptyDraft(), ready: true })
+        set({
+          draft: draft
+            ? {
+                ...draft,
+                displayName:
+                  draft.displayName ??
+                  draft.creation?.displayName ??
+                  '示例简历',
+                description:
+                  draft.description ?? draft.creation?.description ?? '',
+                creation: draft.creation
+                  ? {
+                      ...draft.creation,
+                      description: draft.creation.description ?? '',
+                    }
+                  : undefined,
+              }
+            : emptyDraft(),
+          ready: true,
+        })
     } catch {
       if (version === loadVersion)
         set({

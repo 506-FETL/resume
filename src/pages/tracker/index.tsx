@@ -10,7 +10,6 @@ import SubmissionDialog from './components/drawer/submission-dialog'
 import ReopenProcessDialog from './components/drawer/reopen-process'
 import TrackerHeader from './components/header'
 import ListView from './components/list'
-import OverviewBar from './components/overview-bar'
 import { TrackerPageState, TrackerSkeleton } from './components/page-state'
 import TrackerToolbar from './components/toolbar'
 import ViewTransition from './components/view-transition'
@@ -94,15 +93,14 @@ function TrackerContent() {
         filterCompanyId
           ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
           : jobs,
-        viewMode === 'list' ? filterStatus : null,
+        filterStatus,
         searchKeyword,
         showArchived,
-        viewMode === 'list' ? metricFilter : null,
+        metricFilter,
         focusedOnly,
       ),
     [
       jobs,
-      viewMode,
       filterStatus,
       metricFilter,
       searchKeyword,
@@ -116,6 +114,21 @@ function TrackerContent() {
     () => filterJobs(jobs, null, '', showArchived),
     [jobs, showArchived],
   )
+
+  useEffect(() => {
+    const { selectedIds } = useTrackerStore.getState()
+
+    if (selectedIds.size === 0) return
+
+    const visibleIds = new Set(visibleJobs.map((job) => job.id))
+
+    const nextSelectedIds = new Set(
+      [...selectedIds].filter((id) => visibleIds.has(id)),
+    )
+
+    if (nextSelectedIds.size !== selectedIds.size)
+      useTrackerStore.setState({ selectedIds: nextSelectedIds })
+  }, [visibleJobs])
 
   const state = busy
     ? 'loading'
@@ -131,13 +144,15 @@ function TrackerContent() {
 
   return (
     <>
-      <PageLayout workspace className='gap-4 md:gap-2'>
+      <PageLayout
+        workspace
+        className='min-h-0 gap-4 md:gap-2 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-2'
+      >
         <TrackerHeader />
         <main
           aria-label='职位工作区'
           className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:border-t'
         >
-          <OverviewBar />
           <TrackerToolbar />
           <ViewTransition
             id={isMobile ? 'tracker-mobile-results' : undefined}

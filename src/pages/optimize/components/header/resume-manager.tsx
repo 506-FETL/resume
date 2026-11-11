@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { PageLoading } from '@/components/page-loading'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { ResumeItem } from './resume-item'
@@ -42,13 +43,11 @@ export function ResumeManager() {
       <DialogTrigger asChild>
         <Button variant='outline' size='sm' disabled={initialLoading}>
           {initialLoading ? (
-            <Spinner />
+            <Spinner aria-label='正在加载简历列表' />
           ) : (
             <ButtonIcon className={cn(iconColorClass)} />
           )}
-          <span className='truncate text-xs'>
-            {initialLoading ? '加载中...' : selectedResumeName}
-          </span>
+          <span className='truncate text-xs'>{selectedResumeName}</span>
           <ChevronDown className='shrink-0 opacity-50' />
         </Button>
       </DialogTrigger>
@@ -73,13 +72,10 @@ export function ResumeManager() {
             }
           >
             {initialLoading ? (
-              <div
-                className='flex min-h-48 flex-col items-center justify-center gap-3 text-muted-foreground'
-                role='status'
-              >
-                <Spinner className='size-8' />
-                <p className='text-sm'>正在加载简历列表...</p>
-              </div>
+              <PageLoading
+                className='text-muted-foreground'
+                label='正在加载简历列表'
+              />
             ) : (
               <div className='space-y-4'>
                 <AnimatedContent animationKey={loadError ? 'error' : 'ready'}>

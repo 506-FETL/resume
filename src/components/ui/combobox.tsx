@@ -126,6 +126,7 @@ function ComboboxContent({
   return (
     <ComboboxPrimitive.Portal
       container={container ?? modalContainer ?? undefined}
+      className='contents'
     >
       <ComboboxPrimitive.Positioner
         side={side}

@@ -1,8 +1,10 @@
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
-import { ArrowRight, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, X } from 'lucide-react'
+import { useId, useLayoutEffect, useRef } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Dialog,
   DialogContent,
@@ -33,8 +35,8 @@ import { cn } from '@/lib/utils'
 import { useResumeTemplateStore } from '@/store/resume-template'
 import { useTemplateCreation } from '../../hooks/use-template-creation'
 import { useTemplatePageStore } from '../../store.ts'
-import ExamplePicker from '../example-picker'
-import ExamplePreview from '../example-preview'
+import TemplateCreationForm from '../creation-form'
+import PreviewWorkspace from '../preview-workspace'
 
 function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
   const {
@@ -43,13 +45,24 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
     previewTrigger,
     selectedExamples,
     selectExample,
+    previewStep,
+    setPreviewStep,
   } = useTemplatePageStore()
 
-  const selectedExample =
-    selectedExamples[item.templateId] ?? item.defaultExample
-
-  const category = item.category
   const creation = useTemplateCreation(item)
+
+  const selectedExample =
+    creation.draft.operation?.example ??
+    selectedExamples[item.templateId] ??
+    item.defaultExample
+
+  const details = previewStep === 'details'
+  const formId = useId()
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const mobileTitleRef = useRef<HTMLHeadingElement>(null)
+  const useTemplateRef = useRef<HTMLButtonElement>(null)
+  const mobileUseTemplateRef = useRef<HTMLButtonElement>(null)
+  const previousStepRef = useRef(previewStep)
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
 
@@ -57,17 +70,47 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
     transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
   }
 
+  useLayoutEffect(() => {
+    const changed = previousStepRef.current !== previewStep
+
+    previousStepRef.current = previewStep
+
+    if (!previewOpen || !changed) return
+
+    const title = isMobile ? mobileTitleRef.current : titleRef.current
+
+    const trigger = isMobile
+      ? mobileUseTemplateRef.current
+      : useTemplateRef.current
+
+    if (details) title?.focus({ preventScroll: true })
+    else trigger?.focus({ preventScroll: true })
+  }, [details, previewOpen, previewStep, isMobile])
+
   function renderContent(mobile: boolean) {
     const Header = mobile ? DrawerHeader : DialogHeader
     const Title = mobile ? DrawerTitle : DialogTitle
     const Description = mobile ? DrawerDescription : DialogDescription
     const Footer = mobile ? DrawerFooter : DialogFooter
+    const currentFormId = `${formId}-${mobile ? 'mobile' : 'desktop'}`
 
     return (
       <>
         <Header className='relative shrink-0 gap-2 border-b px-5 py-5 pr-14 text-left! sm:px-6 sm:pr-14'>
-          <Title className='text-lg font-semibold'>{item.name}</Title>
-          <Description>预览完整排版，选择示例后开始填写。</Description>
+          <Title
+            ref={mobile ? mobileTitleRef : titleRef}
+            tabIndex={-1}
+            className='text-lg font-semibold outline-none'
+          >
+            <AnimatedContent animationKey={previewStep} as='span'>
+              {details ? '填写简历信息' : item.name}
+            </AnimatedContent>
+          </Title>
+          <Description>
+            {details
+              ? '名称和描述都可以留空。'
+              : '预览完整排版，选择示例后开始填写。'}
+          </Description>
           {mobile && (
             <Button
               aria-label='关闭预览'
@@ -81,7 +124,7 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
             </Button>
           )}
         </Header>
-        {mobile && (
+        {mobile && !details && (
           <div className='flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3'>
             <span className='text-xs text-muted-foreground'>示例内容</span>
             <Select
@@ -93,7 +136,7 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
 
                 if (ref) selectExample(item.templateId, ref)
               }}
-              disabled={creation.loading}
+              disabled={creation.locked || !creation.ready}
             >
               <SelectTrigger aria-label='示例内容' className='w-44'>
                 <SelectValue />
@@ -108,37 +151,18 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
             </Select>
           </div>
         )}
-        <div className='flex min-h-0 flex-1'>
-          <div className='min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-muted/50 p-4 sm:p-7'>
-            <AnimatedContent
-              animationKey={`${item.templateId}@${item.currentVersion}:${exampleKey(selectedExample)}`}
-              className='mx-auto max-w-2xl'
-            >
-              <ExamplePreview item={item} example={selectedExample} />
-            </AnimatedContent>
-          </div>
-          {!mobile && (
-            <aside
-              aria-label='模板详情'
-              className='flex w-80 shrink-0 flex-col gap-6 overflow-y-auto border-l p-6'
-            >
-              <div className='space-y-3'>
-                {category && (
-                  <p className='text-xs text-muted-foreground'>
-                    {category.style}
-                    风格 · {category.layout}
-                    排版
-                  </p>
-                )}
-                <p className='text-sm leading-6'>{item.description}</p>
-              </div>
-              <ExamplePicker item={item} disabled={creation.loading} />
-              <p className='mt-auto border-t pt-4 text-xs leading-6 text-muted-foreground'>
-                创建后会带入所选示例，你可以在编辑器中逐项替换内容、调整模块并导出简历。
-              </p>
-            </aside>
-          )}
-        </div>
+        <PreviewWorkspace
+          item={item}
+          example={selectedExample}
+          mobile={mobile}
+          disabled={creation.locked || !creation.ready}
+        >
+          <TemplateCreationForm
+            formId={currentFormId}
+            creation={creation}
+            onCreate={() => creation.create(selectedExample)}
+          />
+        </PreviewWorkspace>
         {creation.error && (
           <p
             role='alert'
@@ -147,39 +171,67 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
             {creation.error}
           </p>
         )}
+        {creation.draft.operation && !creation.loading && !creation.error && (
+          <p
+            role='status'
+            className='shrink-0 px-5 pt-3 text-xs text-muted-foreground'
+          >
+            这次创建还没有确认完成，重试会继续确认原来的简历。
+          </p>
+        )}
         <Footer className='m-0 shrink-0 flex-row items-center border-t px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6'>
           <p className='mr-auto hidden text-xs text-muted-foreground sm:block'>
-            当前示例：
-            {item.examples.find(
-              (example) => exampleKey(example) === exampleKey(selectedExample),
-            )?.name ?? selectedExample.exampleId}
+            {details
+              ? `${item.name} · ${creation.mode === 'cloud' ? '云端' : '本地'}`
+              : `当前示例：${
+                  item.examples.find(
+                    (example) =>
+                      exampleKey(example) === exampleKey(selectedExample),
+                  )?.name ?? selectedExample.exampleId
+                }`}
           </p>
           <Button
             variant='outline'
             className='h-10 motion-reduce:transform-none'
             style={transitionStyle}
-            onClick={() => setPreviewOpen(false)}
+            onClick={() =>
+              details ? setPreviewStep('preview') : setPreviewOpen(false)
+            }
           >
-            返回列表
+            {details && <ArrowLeft aria-hidden className='size-4' />}
+            {details ? '返回预览' : '返回列表'}
           </Button>
           <Button
+            ref={mobile ? mobileUseTemplateRef : useTemplateRef}
+            type={details ? 'submit' : 'button'}
+            form={details ? currentFormId : undefined}
             className='h-10 flex-1 px-4 motion-reduce:transform-none sm:flex-none'
             style={transitionStyle}
             disabled={
-              creation.disabled || !creation.isExampleReady(selectedExample)
+              !creation.ready ||
+              creation.loading ||
+              !creation.isExampleReady(selectedExample)
             }
-            onClick={() => {
-              creation.create(selectedExample).then((ok) => {
-                if (ok) setPreviewOpen(false)
-              })
-            }}
+            onClick={
+              details
+                ? undefined
+                : (event) => {
+                    // 切步后该按钮会变成 submit，不能让本次点击继续提交新表单。
+                    event.preventDefault()
+                    setPreviewStep('details')
+                  }
+            }
           >
-            {creation.loading
-              ? '创建中…'
-              : creation.retrying
-                ? '重试创建'
-                : '使用此模板'}
-            <ArrowRight aria-hidden className='size-4' />
+            {details
+              ? creation.draft.operation && !creation.loading
+                ? '确认创建结果'
+                : '创建简历'
+              : '使用此模板'}
+            {creation.loading ? (
+              <Spinner aria-label='正在创建简历' />
+            ) : (
+              !details && <ArrowRight aria-hidden className='size-4' />
+            )}
           </Button>
         </Footer>
       </>
@@ -196,7 +248,7 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
       >
         <DrawerContent
           className={cn(
-            'overflow-hidden rounded-t-2xl rounded-b-none duration-(--ui-motion-slow) [--drawer-inset:0px] data-[swipe-axis=y]:[--drawer-content-height:92dvh] data-[swipe-axis=y]:[--drawer-content-max-height:92dvh] data-ending-style:duration-(--ui-motion-fast)',
+            'overflow-clip rounded-t-2xl rounded-b-none duration-(--ui-motion-slow) [--drawer-inset:0px] data-[swipe-axis=y]:[--drawer-content-height:92dvh] data-[swipe-axis=y]:[--drawer-content-max-height:92dvh] data-ending-style:duration-(--ui-motion-fast)',
             reduceMotion && 'transition-none!',
           )}
           overlayClassName={cn(

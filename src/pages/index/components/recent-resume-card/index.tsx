@@ -10,6 +10,7 @@ import { lazy, Suspense, useRef } from 'react'
 import { useInView } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import useUserStore from '@/store/user'
 import useCurrentResumeStore from '@/store/resume/current'
@@ -113,11 +114,8 @@ export default function RecentResumeCard({ resume }: { resume: Resume }) {
 
 function PreviewLoading() {
   return (
-    <div
-      className='flex h-full items-center justify-center px-2 text-center text-xs text-neutral-500'
-      role='status'
-    >
-      正在加载预览…
+    <div className='flex h-full items-center justify-center px-2 text-center text-xs text-neutral-500'>
+      <Spinner aria-label='正在加载简历预览' />
     </div>
   )
 }

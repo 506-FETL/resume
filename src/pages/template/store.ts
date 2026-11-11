@@ -13,8 +13,11 @@ export const useTemplatePageStore = create<TemplatePageState>((set) => ({
         [selectedTemplateId]: example,
       },
       previewOpen: true,
+      previewStep: 'preview',
     })),
   previewOpen: false,
+  previewStep: 'preview',
+  setPreviewStep: (previewStep) => set({ previewStep }),
   selectedExamples: {},
   setPreviewOpen: (previewOpen) => set({ previewOpen }),
   selectExample: (templateId, example) =>

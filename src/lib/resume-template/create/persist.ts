@@ -3,14 +3,20 @@ import type {
   PreparedResumeCreation,
   ResumeCreationPersistence,
 } from './types'
-import { CreationOutcomeUnknownError } from './types'
+import { CreationLookupFailedError, CreationOutcomeUnknownError } from './types'
 
 /** 查询失败不等于记录不存在；重试始终使用原身份且从不覆盖已创建内容。 */
 export async function persistPreparedResume(
   prepared: PreparedResumeCreation,
   persistence: ResumeCreationPersistence,
 ): Promise<CreatedTemplateResume> {
-  const existing = await persistence.find(prepared)
+  let existing: CreatedTemplateResume | null
+
+  try {
+    existing = await persistence.find(prepared)
+  } catch (error) {
+    throw new CreationLookupFailedError(error)
+  }
 
   if (existing) return existing
 

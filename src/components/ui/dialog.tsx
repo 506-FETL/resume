@@ -52,6 +52,7 @@ function DialogContent({
   showCloseButton = true,
   onOpenAutoFocus,
   onCloseAutoFocus,
+  onEscapeKeyDown,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
@@ -97,6 +98,26 @@ function DialogContent({
             event.preventDefault()
             target.focus({ preventScroll: true })
           }
+        }}
+        onEscapeKeyDown={(event) => {
+          onEscapeKeyDown?.(event)
+
+          if (event.defaultPrevented) return
+
+          // Radix 先在捕获阶段处理 Escape，需把展开的 Base UI 下拉留给自身关闭。
+          if (
+            event
+              .composedPath()
+              .some(
+                (node) =>
+                  node instanceof Element &&
+                  contentElement?.contains(node) &&
+                  node.matches(
+                    '[role="combobox"][aria-expanded="true"], [data-slot="combobox-content"][data-open]',
+                  ),
+              )
+          )
+            event.preventDefault()
         }}
       >
         <PortalContainerProvider container={contentElement}>

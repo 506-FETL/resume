@@ -68,7 +68,19 @@ export default function MobileStageFilter() {
     'pending',
   ).length
 
-  const selectedStage = BOARD_COLUMNS.find((column) => column.status === value)
+  const selectedStage = BOARD_COLUMNS.find(
+    (column) => column.status === filterStatus,
+  )
+
+  const metricLabel =
+    metricFilter && metricFilter !== 'pending'
+      ? { applied: '已投递流程', interview: '面试中', offer: '已录用' }[
+          metricFilter
+        ]
+      : null
+
+  const stageLabel = selectedStage?.label ?? metricLabel ?? '全部阶段'
+  const stageActive = Boolean(selectedStage || metricLabel)
 
   const selectFilter = (next: string) => {
     const target =
@@ -81,9 +93,13 @@ export default function MobileStageFilter() {
     // 回焦可能再次触发 Radix 自动激活，读取最新值，保持本次选择幂等。
     const store = useTrackerStore.getState()
 
-    if (next === (store.filterStatus ?? store.metricFilter ?? 'all')) return
-    if (store.isSelectMode) store.enterSelectMode()
-
+    if (
+      next === 'pending'
+        ? store.metricFilter === 'pending'
+        : store.metricFilter === null &&
+          store.filterStatus === (next === 'all' ? null : next)
+    )
+      return
     if (next === 'pending') store.setMetricFilter('pending')
     else
       store.setFilterStatus(next === 'all' ? null : (next as ApplicationStatus))
@@ -121,25 +137,23 @@ export default function MobileStageFilter() {
           <Button
             ref={stageTriggerRef}
             id={
-              selectedStage ? `tracker-filter-${value}` : 'tracker-filter-stage'
+              stageActive ? `tracker-filter-${value}` : 'tracker-filter-stage'
             }
             variant='ghost'
-            aria-label={`按阶段筛选：${selectedStage?.label ?? '全部阶段'}`}
-            aria-pressed={Boolean(selectedStage)}
+            aria-label={`按阶段筛选：${stageLabel}`}
+            aria-pressed={stageActive}
             className={cn(
               'h-10 min-w-0 gap-1.5 rounded-lg px-2 text-sm font-normal text-muted-foreground',
-              selectedStage && 'bg-muted font-medium text-foreground',
+              stageActive && 'bg-muted font-medium text-foreground',
             )}
           >
-            <span className='truncate'>
-              {selectedStage?.label ?? '全部阶段'}
-            </span>
+            <span className='truncate'>{stageLabel}</span>
             <ChevronDown className='size-3.5' />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end' className='w-44'>
           <DropdownMenuRadioGroup
-            value={selectedStage?.status ?? 'all'}
+            value={selectedStage?.status ?? (metricFilter ? '' : 'all')}
             onValueChange={selectFilter}
           >
             <DropdownMenuRadioItem value='all'>全部阶段</DropdownMenuRadioItem>

@@ -67,15 +67,15 @@ export function TodoCard({
         : '今日待办已完成'
 
     return (
-      <div className='flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground'>
-        <CircleCheckBig className='size-4 shrink-0' aria-hidden />
+      <div className='flex h-full items-start gap-2 rounded-t-lg border-x border-t border-foreground/10 bg-transparent px-4 py-3 text-sm text-muted-foreground'>
+        <CircleCheckBig className='mt-0.5 size-4 shrink-0' aria-hidden />
         <span>{message}</span>
       </div>
     )
   }
 
   return (
-    <Card className='gap-0 overflow-hidden rounded-lg py-5 shadow-none'>
+    <Card className='h-full gap-0 overflow-hidden rounded-t-lg rounded-b-none border-x border-t border-foreground/10 bg-transparent py-5 shadow-none ring-0'>
       <TodoHeader />
       <CardContent className='px-5 pt-0'>
         <AnimatedContent

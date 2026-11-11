@@ -1,11 +1,17 @@
 import type { ORDERType, ResumeSchema } from '@/lib/schema'
-import type { ImportDraft } from '@/lib/resume-preparation/types'
+import type {
+  CreationTemplateSelection,
+  ImportDraft,
+} from '@/lib/resume-preparation/types'
+import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import { resumeHtmlToText } from '@/lib/resume-import/text'
 import { hasResumeContent } from '@/lib/resume-import/mapping'
 import { REVIEW_MODULES } from './const'
 
 export function emptyDraft(): ImportDraft {
   return {
+    displayName: '示例简历',
+    description: '',
     sourceText: '',
     sourceName: '粘贴内容',
     content: null,
@@ -47,4 +53,28 @@ export function populatedSections(content: ResumeSchema): ORDERType[] {
 
 export function importReady(draft: ImportDraft) {
   return Boolean(draft.content && hasResumeContent(draft.content))
+}
+
+export function mergeTemplateOptions(
+  current: TemplateCatalogItem[],
+  incoming: TemplateCatalogItem[],
+  selected?: CreationTemplateSelection,
+) {
+  const items = new Map(current.map((item) => [item.templateId, item]))
+
+  for (const item of incoming) {
+    const previous = items.get(item.templateId)
+
+    // 目录页和精确条目分别缓存，迟到的旧目录页不能覆盖已恢复的版本。
+    if (
+      selected?.template.templateId === item.templateId &&
+      previous?.currentVersion === selected.template.templateVersion &&
+      item.currentVersion !== selected.template.templateVersion
+    )
+      continue
+
+    items.set(item.templateId, item)
+  }
+
+  return [...items.values()]
 }

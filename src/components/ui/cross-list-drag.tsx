@@ -20,6 +20,7 @@ import {
   use,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -93,8 +94,15 @@ interface ActiveDrag {
   startRect: DOMRect
 }
 
+interface PreviewSettlement {
+  session: DragSession
+  pendingDrop: boolean
+  targetTransform: string | null
+}
+
 interface CrossListDragContextValue {
   active: ActiveDrag | null
+  preview: ActiveDrag | null
   destination: DropDestination | null
   registerContainer: (container: ContainerRegistration) => () => void
   beginPointerDrag: (
@@ -160,8 +168,8 @@ export function CrossListDragProvider({
   scrollAreas = [],
   children,
 }: {
-  onDrop: (result: CrossListDropResult) => void
-  renderOverlay: (itemId: string) => ReactNode
+  onDrop: (result: CrossListDropResult) => void | Promise<void>
+  renderOverlay: (itemId: string, settling: boolean) => ReactNode
   scrollAreas?: CrossListScrollArea[]
   children: ReactNode
 }) {
@@ -180,6 +188,7 @@ export function CrossListDragProvider({
   const pointRef = useRef<DragPoint | null>(null)
   const previewElementRef = useRef<HTMLDivElement | null>(null)
   const previewAnimationRef = useRef<Animation | null>(null)
+  const settlementRef = useRef<PreviewSettlement | null>(null)
 
   const bodyStyleRef = useRef<{ cursor: string; userSelect: string } | null>(
     null,
@@ -231,52 +240,82 @@ export function CrossListDragProvider({
   }, [])
 
   const clearPreview = useCallback(() => {
+    settlementRef.current = null
     previewAnimationRef.current?.cancel()
     previewAnimationRef.current = null
     setPreview(null)
   }, [])
 
-  const settlePreview = useCallback(
-    (session: DragSession, returnToSource: boolean) => {
-      const element = previewElementRef.current
+  const settlePreview = useCallback(() => {
+    const settlement = settlementRef.current
+    const element = previewElementRef.current
 
-      if (!element || reduceMotionRef.current) {
-        clearPreview()
+    if (!settlement) return
+    if (!element || reduceMotionRef.current) {
+      clearPreview()
 
-        return
-      }
+      return
+    }
 
-      const sourceRect = session.itemElement.isConnected
-        ? session.itemElement.getBoundingClientRect()
-        : null
+    const { session } = settlement
 
-      const currentTransform = getComputedStyle(element).transform
-
-      const targetTransform =
-        returnToSource && sourceRect
-          ? `translate3d(${sourceRect.left - session.startRect.left}px, ${sourceRect.top - session.startRect.top}px, 0)`
-          : currentTransform
-
-      const animation = element.animate(
-        [
-          { transform: currentTransform, opacity: 0.98 },
-          { transform: targetTransform, opacity: 0 },
-        ],
-        {
-          duration: DURATION.fast * 1000,
-          easing: `cubic-bezier(${EASE.out.join(',')})`,
-          fill: 'forwards',
-        },
+    const target = [...containersRef.current.values()]
+      .map((container) =>
+        container.element.querySelector<HTMLElement>(
+          `[data-motion-drag-item="${CSS.escape(session.itemId)}"]`,
+        ),
       )
+      .find((item) => item !== null)
 
-      previewAnimationRef.current = animation
-      animation.onfinish = clearPreview
-    },
-    [clearPreview],
-  )
+    // 保存队列尚未更新卡片时，保留松手位置，等真实布局就绪再落位。
+    if (
+      settlement.pendingDrop &&
+      target?.dataset.motionDragContainerId === session.sourceId
+    )
+      return
+
+    const targetRect = target?.getBoundingClientRect()
+
+    const currentTransform = previewAnimationRef.current
+      ? getComputedStyle(element).transform
+      : `translate3d(${overlayX.get()}px, ${overlayY.get()}px, 0)`
+
+    const targetTransform = targetRect
+      ? `translate3d(${targetRect.left - session.startRect.left}px, ${targetRect.top - session.startRect.top}px, 0) scale(${targetRect.width / session.startRect.width}, ${targetRect.height / session.startRect.height})`
+      : currentTransform
+
+    if (settlement.targetTransform === targetTransform) return
+
+    settlement.targetTransform = targetTransform
+    previewAnimationRef.current?.cancel()
+
+    const animation = element.animate(
+      [
+        { transform: currentTransform, opacity: 1 },
+        { transform: targetTransform, opacity: targetRect ? 1 : 0 },
+      ],
+      {
+        duration: (targetRect ? DURATION.base : DURATION.fast) * 1000,
+        easing: `cubic-bezier(${EASE.out.join(',')})`,
+        fill: 'forwards',
+      },
+    )
+
+    previewAnimationRef.current = animation
+    animation.onfinish = () => {
+      // React 卸载提交前保留终点，避免取消 WAAPI 后闪回松手位置。
+      element.style.transform = targetTransform
+      element.style.opacity = targetRect ? '1' : '0'
+      clearPreview()
+    }
+  }, [clearPreview, overlayX, overlayY])
+
+  useLayoutEffect(() => {
+    settlePreview()
+  }, [active, children, preview, settlePreview])
 
   const clearSession = useCallback(
-    (updateState = true, returnToSource = true) => {
+    (updateState = true, pendingDrop?: void | Promise<void>) => {
       const session = sessionRef.current
 
       if (session?.touchTimer != null) window.clearTimeout(session.touchTimer)
@@ -299,12 +338,31 @@ export function CrossListDragProvider({
       restoreBodyStyles()
 
       if (updateState) {
-        if (session?.active && session.kind !== 'keyboard')
-          settlePreview(session, returnToSource)
+        if (session?.active && session.kind !== 'keyboard') {
+          const settlement: PreviewSettlement = {
+            session,
+            pendingDrop: Boolean(pendingDrop),
+            targetTransform: null,
+          }
+
+          settlementRef.current = settlement
+
+          if (pendingDrop) {
+            const finishDrop = () => {
+              if (settlementRef.current !== settlement) return
+
+              settlement.pendingDrop = false
+              settlePreview()
+            }
+
+            pendingDrop.then(finishDrop, finishDrop)
+          }
+        }
 
         setActive(null)
         setDestination(null)
       } else {
+        settlementRef.current = null
         previewAnimationRef.current?.cancel()
         previewAnimationRef.current = null
       }
@@ -524,9 +582,9 @@ export function CrossListDragProvider({
           }
         : null
 
-    clearSession(true, result === null)
+    const pendingDrop = result ? onDropRef.current(result) : undefined
 
-    if (result) onDropRef.current(result)
+    clearSession(true, pendingDrop)
   }, [clearSession])
 
   const beginPointerDrag = useCallback(
@@ -967,6 +1025,7 @@ export function CrossListDragProvider({
   const context = useMemo<CrossListDragContextValue>(
     () => ({
       active,
+      preview,
       destination,
       registerContainer,
       beginPointerDrag,
@@ -976,6 +1035,7 @@ export function CrossListDragProvider({
     }),
     [
       active,
+      preview,
       beginPointerDrag,
       beginTouchDrag,
       destination,
@@ -1005,12 +1065,13 @@ export function CrossListDragProvider({
               width: preview.startRect.width,
               minHeight: preview.startRect.height,
               transform: overlayTransform,
-              opacity: 0.98,
+              transformOrigin: 'top left',
+              opacity: 1,
               zIndex: 1000,
               pointerEvents: 'none',
             }}
           >
-            {renderOverlay(preview.itemId)}
+            {renderOverlay(preview.itemId, active === null)}
           </motion.div>,
           document.body,
         )}
@@ -1137,12 +1198,15 @@ export function useCrossListItem({
   index: number
 }): {
   dragging: boolean
+  previewing: boolean
+  settling: boolean
   getDragProps: () => CrossListDragItemProps
 } {
   const context = useCrossListDragContext()
 
   const {
     active,
+    preview,
     beginPointerDrag,
     beginTouchDrag,
     handleKeyboardDrag,
@@ -1191,6 +1255,8 @@ export function useCrossListItem({
 
   return {
     dragging: active?.itemId === id,
+    previewing: preview?.itemId === id,
+    settling: preview?.itemId === id && active === null,
     getDragProps,
   }
 }

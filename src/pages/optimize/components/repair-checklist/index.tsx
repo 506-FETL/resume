@@ -50,12 +50,8 @@ export default function RepairChecklist() {
           }
         >
           {loading ? (
-            <div
-              role='status'
-              className='flex items-center gap-2 text-sm text-muted-foreground'
-            >
-              <Spinner aria-hidden className='size-4' />
-              正在整理建议…
+            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+              <Spinner className='size-4' aria-label='正在读取修复清单' />
             </div>
           ) : fixList.length === 0 ? (
             <p className='text-sm leading-6 text-muted-foreground'>

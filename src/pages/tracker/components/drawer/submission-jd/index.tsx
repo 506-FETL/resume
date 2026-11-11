@@ -33,9 +33,8 @@ export default function SubmissionJd({
 }) {
   const resource = useTrackerStore((state) => state.submissionJdsById[recordId])
   const revision = useTrackerStore((state) => state.submissionRevision)
-  const current = resource?.revision === revision ? resource : null
-  const data = current?.data
-  const error = current?.error
+  const data = resource?.data
+  const error = resource?.error
 
   useEffect(() => {
     if (enabled) useTrackerStore.getState().loadSubmissionJd(recordId)
@@ -65,12 +64,8 @@ export default function SubmissionJd({
       ) : data ? (
         <SubmissionJdContent {...data} />
       ) : (
-        <p
-          role='status'
-          className='flex items-center gap-2 text-sm text-muted-foreground'
-        >
-          <Spinner aria-hidden />
-          正在加载 JD 副本
+        <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+          <Spinner aria-label='正在加载 JD 副本' />
         </p>
       )}
     </AnimatedContent>

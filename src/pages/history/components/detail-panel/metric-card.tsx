@@ -1,8 +1,9 @@
 import type { LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 interface MetricCardProps {
   label: string
-  value: string
+  value: ReactNode
   icon?: LucideIcon
 }
 

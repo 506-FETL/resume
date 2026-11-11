@@ -93,7 +93,7 @@ interface TrackerStore
   enterSelectMode: () => void
   exitSelectMode: () => void
   toggleSelect: (id: string) => void
-  selectAll: (viewMode?: ViewMode) => void
+  selectAll: () => void
   openJobDrawer: (job: JobApplication) => void
   closeJobDrawer: () => void
   openAddDrawer: (sourceJob?: JobApplication) => void
@@ -167,7 +167,6 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
 
       set((state) => ({
         submissionQueue: state.submissionQueue.slice(1),
-        submissionRevision: state.submissionRevision + 1,
       }))
 
       current?.resolve()
@@ -229,11 +228,12 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     // 共享状态操作
     setViewMode: (mode) => set({ viewMode: mode }),
     setFilterStatus: (status) =>
-      set({ filterStatus: status, metricFilter: null }),
+      set({ filterStatus: status, metricFilter: null, selectedIds: new Set() }),
     setMetricFilter: (key) =>
       set((state) => ({
         metricFilter: state.metricFilter === key ? null : key,
         filterStatus: null,
+        selectedIds: new Set(),
       })),
     clearFilters: () =>
       set({
@@ -241,6 +241,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         metricFilter: null,
         filterCompanyId: null,
         focusedOnly: false,
+        selectedIds: new Set(),
       }),
     setFocusedOnly: (value) =>
       set({ focusedOnly: value, selectedIds: new Set() }),
@@ -258,8 +259,10 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         return { focused_at: focusedAt }
       })
     },
-    setSearchKeyword: (keyword) => set({ searchKeyword: keyword }),
-    setShowArchived: (value) => set({ showArchived: value }),
+    setSearchKeyword: (keyword) =>
+      set({ searchKeyword: keyword, selectedIds: new Set() }),
+    setShowArchived: (value) =>
+      set({ showArchived: value, selectedIds: new Set() }),
     setFilterCompanyId: (id) =>
       set({ filterCompanyId: id, selectedIds: new Set() }),
     setGroupByCompany: (value) => set({ groupByCompany: value }),
@@ -286,7 +289,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         return { selectedIds: nextSelectedIds }
       })
     },
-    selectAll: (viewMode) => {
+    selectAll: () => {
       set((state) => {
         const selectableJobs = filterJobs(
           state.filterCompanyId
@@ -294,18 +297,19 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
                 (job) => job.tracker_company_id === state.filterCompanyId,
               )
             : state.jobs,
-          (viewMode ?? state.viewMode) === 'list' ? state.filterStatus : null,
+          state.filterStatus,
           state.searchKeyword,
           state.showArchived,
-          (viewMode ?? state.viewMode) === 'list' ? state.metricFilter : null,
+          state.metricFilter,
           state.focusedOnly,
         )
 
         return {
-          selectedIds:
-            state.selectedIds.size === selectableJobs.length
-              ? new Set()
-              : new Set(selectableJobs.map((job) => job.id)),
+          selectedIds: selectableJobs.every((job) =>
+            state.selectedIds.has(job.id),
+          )
+            ? new Set()
+            : new Set(selectableJobs.map((job) => job.id)),
         }
       })
     },

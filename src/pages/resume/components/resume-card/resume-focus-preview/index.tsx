@@ -123,21 +123,16 @@ export function PreviewContent({
               ease: EASE.out,
             }}
             className='absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center text-xs text-neutral-500'
-            role='status'
+            role={entry?.status === 'error' ? 'status' : undefined}
           >
             {(entry?.status === 'generating' || entry?.status === 'queued') && (
-              <Spinner
-                aria-hidden
-                className={reduceMotion ? 'animate-none' : undefined}
-              />
+              <Spinner aria-label='正在加载简历预览' />
             )}
-            <span>
-              {entry?.status === 'error'
-                ? '预览暂时不可用'
-                : entry
-                  ? '正在加载预览…'
-                  : '简历预览'}
-            </span>
+            {(entry?.status === 'error' || !entry) && (
+              <span>
+                {entry?.status === 'error' ? '预览暂时不可用' : '简历预览'}
+              </span>
+            )}
             {entry?.status === 'error' && (
               <Button
                 variant='link'

@@ -1,6 +1,7 @@
 import type { HistoryResumeOption } from '../../types'
 import { AlertCircle, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Select,
   SelectContent,
@@ -49,7 +50,13 @@ export default function HistoryResumeSelector({
             className='w-full min-w-0 bg-background text-left shadow-none'
           >
             <SelectValue
-              placeholder={loading ? '正在加载简历…' : '选择一份云端简历'}
+              placeholder={
+                loading ? (
+                  <Spinner aria-label='正在加载简历选项' />
+                ) : (
+                  '选择一份云端简历'
+                )
+              }
             >
               {selectedResume && (
                 <span className='flex min-w-0 items-center gap-2'>

@@ -22,6 +22,7 @@ import BatchActions from '../batch-actions'
 import { ViewToggle } from '../header/view-toggle'
 import { CompanyPicker } from '../drawer/company-picker'
 import MobileStageFilter from '../mobile-stage-filter'
+import OverviewBar from '../overview-bar'
 import FilterMenu from './filter-menu'
 import SortMenu from './sort-menu'
 
@@ -80,10 +81,10 @@ export default function TrackerToolbar() {
     filterCompanyId
       ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
       : jobs,
-    effectiveViewMode === 'list' ? filterStatus : null,
+    filterStatus,
     searchKeyword,
     showArchived,
-    effectiveViewMode === 'list' ? metricFilter : null,
+    metricFilter,
     focusedOnly,
   ).length
 
@@ -149,11 +150,7 @@ export default function TrackerToolbar() {
             style={actionTransition}
             aria-label='已归档'
             aria-pressed={showArchived}
-            onClick={() => {
-              if (isMobile && isSelectMode) enterSelectMode()
-
-              setShowArchived(!showArchived)
-            }}
+            onClick={() => setShowArchived(!showArchived)}
           >
             <Archive className='size-4' aria-hidden />
           </Button>
@@ -188,22 +185,22 @@ export default function TrackerToolbar() {
   )
 
   return (
-    <div className='shrink-0 py-1 md:border-b md:px-3 md:py-2'>
+    <div className='shrink-0 py-1 md:border-b md:py-3 [@media(max-height:500px)]:max-h-[calc(100%-5rem)] [@media(max-height:500px)]:overflow-y-auto [@media(max-height:500px)]:overscroll-contain'>
       <div className='flex flex-col gap-2 md:gap-3'>
-        <div className='hidden shrink-0 items-center justify-between gap-4 md:flex'>
-          <div className='flex min-w-0 items-center gap-4'>
-            <div className='flex min-w-0 items-center gap-2.5'>
-              <h2 className='text-sm font-semibold sm:text-base'>
-                {showArchived ? '已归档职位' : '职位进展'}
-              </h2>
-              <span className='rounded-md bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground'>
-                {busy || error ? '—' : count}
-              </span>
-            </div>
+        <div className='hidden shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 md:flex'>
+          <OverviewBar />
+          <div className='ml-auto flex shrink-0 items-center gap-3'>
             <ViewToggle />
+            {!isMobile && actionTools}
           </div>
-          {!isMobile && actionTools}
         </div>
+        <span className='sr-only' role='status'>
+          {busy
+            ? '正在加载职位'
+            : error
+              ? '职位数量暂不可用'
+              : `当前显示 ${count} 个职位`}
+        </span>
         <div className='flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-3 md:gap-x-3'>
           <div className='flex min-w-0 basis-full items-center gap-2 md:max-w-lg md:flex-[1_1_18rem]'>
             <div className='relative min-w-0 flex-1'>
@@ -220,11 +217,7 @@ export default function TrackerToolbar() {
                     ? 'h-11 rounded-xl border-transparent bg-muted/50 dark:bg-muted/50'
                     : 'rounded-lg',
                 )}
-                onChange={(event) => {
-                  if (isMobile && isSelectMode) enterSelectMode()
-
-                  setSearchKeyword(event.target.value)
-                }}
+                onChange={(event) => setSearchKeyword(event.target.value)}
               />
               <AnimatePresence initial={false}>
                 {searchKeyword && (
@@ -242,11 +235,7 @@ export default function TrackerToolbar() {
                       size='icon-sm'
                       variant='ghost'
                       aria-label='清空搜索'
-                      onClick={() => {
-                        if (isMobile && isSelectMode) enterSelectMode()
-
-                        clearSearch()
-                      }}
+                      onClick={clearSearch}
                     >
                       <X className='size-3.5' />
                     </Button>

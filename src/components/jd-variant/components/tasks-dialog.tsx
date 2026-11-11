@@ -214,12 +214,8 @@ export function DerivedJobsDialog({
               </AlertDescription>
             </Alert>
           ) : loading ? (
-            <p
-              className='mt-4 flex items-center gap-2 text-sm text-muted-foreground'
-              role='status'
-            >
-              <Spinner />
-              正在读取任务…
+            <p className='mt-4 flex items-center gap-2 text-sm text-muted-foreground'>
+              <Spinner aria-label='正在读取任务' />
             </p>
           ) : null}
         </AnimatedContent>

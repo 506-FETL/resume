@@ -8,14 +8,14 @@ import type {
 import {
   deleteCompany,
   getCompanies,
-  getCompanyById,
   updateCompany,
 } from '@/lib/supabase/resume'
 import {
+  getCompanyProgressById,
   reassignTrackerProcess,
   reopenTrackerProcess,
 } from '@/lib/supabase/resume/company'
-import type { SubmissionInput } from '../submission-types'
+import type { JobSubmission, SubmissionInput } from '../submission-types'
 import {
   recordJobSubmission,
   SubmissionSaveError,
@@ -43,6 +43,19 @@ export type WorkflowSaveStatus =
 export interface WorkflowSaveState {
   status: WorkflowSaveStatus
   error: string | null
+}
+
+export class SubmissionRefreshError extends Error {
+  readonly submission: JobSubmission
+
+  constructor(submission: JobSubmission, cause: unknown) {
+    super('投递已保存，但职位进度读取失败，请重新读取，无需再次提交', {
+      cause,
+    })
+
+    this.name = 'SubmissionRefreshError'
+    this.submission = submission
+  }
 }
 
 export type JobFieldsPatch = Partial<
@@ -574,7 +587,55 @@ export function createTrackerPersistence(
       return find(id)!
     })
 
+  const refreshSubmissionJob = async (
+    id: string,
+    runtime: Runtime,
+    versions = { ...runtime.versions },
+  ) => {
+    const scope = getTrackerAccountScope()
+
+    const saved = await getCompanyProgressById(
+      id,
+      createTrackerAccountGuard(scope),
+    )
+
+    assertTrackerAccountScope(scope)
+
+    if (!saved || !isLive(id, runtime)) throw new Error('该职位已删除或不可用')
+
+    const accepted: JobFieldsPatch = {}
+
+    for (const field of [
+      'status',
+      'stage_details',
+      'interview_sub_stages',
+      'activities',
+      'updated_at',
+      'has_submission',
+      'unresolved_submissions',
+    ] as const) {
+      runtime.baseline = { ...runtime.baseline, [field]: saved[field] }
+
+      if (
+        !runtime.dirty.has(field as WorkflowField) &&
+        runtime.versions[field] === versions[field]
+      )
+        Object.assign(accepted, { [field]: saved[field] })
+    }
+
+    merge(id, accepted)
+
+    const latest = normalizeJobWorkflow(find(id)!)
+
+    merge(id, {
+      stage_details: latest.stage_details,
+      interview_sub_stages: latest.interview_sub_stages,
+    })
+  }
+
   return {
+    refreshSubmissionJob: (id: string) =>
+      enqueue(id, (runtime) => refreshSubmissionJob(id, runtime)),
     reassignCompany: (jobId: string, companyId: string) => {
       const guard = createTrackerAccountGuard(getTrackerAccountScope())
 
@@ -624,41 +685,13 @@ export function createTrackerPersistence(
           createTrackerAccountGuard(scope),
         )
 
-        const saved = await getCompanyById(
-          input.jobId,
-          createTrackerAccountGuard(scope),
-        )
+        try {
+          await refreshSubmissionJob(input.jobId, runtime, versions)
+        } catch (cause) {
+          assertTrackerAccountScope(scope)
 
-        assertTrackerAccountScope(scope)
-
-        if (!saved || !isLive(input.jobId, runtime))
-          throw new Error('投递已记录，请重新加载职位确认进度')
-
-        const accepted: JobFieldsPatch = {}
-
-        for (const field of [
-          'status',
-          'stage_details',
-          'interview_sub_stages',
-          'activities',
-          'updated_at',
-          'has_submission',
-          'unresolved_submissions',
-        ] as const) {
-          runtime.baseline = { ...runtime.baseline, [field]: saved[field] }
-
-          if (runtime.versions[field] === versions[field])
-            Object.assign(accepted, { [field]: saved[field] })
+          throw new SubmissionRefreshError(result, cause)
         }
-
-        merge(input.jobId, accepted)
-
-        const latest = normalizeJobWorkflow(find(input.jobId)!)
-
-        merge(input.jobId, {
-          stage_details: latest.stage_details,
-          interview_sub_stages: latest.interview_sub_stages,
-        })
 
         return result
       }),

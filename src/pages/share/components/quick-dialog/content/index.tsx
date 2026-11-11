@@ -85,12 +85,8 @@ export default function QuickDialogContent({
           className='empty:hidden'
         >
           {display?.loading ? (
-            <div
-              role='status'
-              className='flex items-center gap-2 py-3 text-sm text-muted-foreground'
-            >
-              <Spinner />
-              正在加载分享链接…
+            <div className='flex items-center gap-2 py-3 text-sm text-muted-foreground'>
+              <Spinner aria-label='正在加载分享链接' />
             </div>
           ) : display?.error ? (
             <div

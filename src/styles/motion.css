@@ -71,7 +71,7 @@
 
 /* Also covers CSS-only loaders, pseudo-elements and portaled controls. */
 @media (prefers-reduced-motion: reduce) {
-  *:not([data-resume-check-highlight] .rough-annotation path),
+  *,
   *::before,
   *::after {
     animation-duration: 0s !important;

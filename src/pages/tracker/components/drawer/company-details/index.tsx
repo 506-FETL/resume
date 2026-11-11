@@ -143,8 +143,7 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
           >
             {companiesLoading && !company && (
               <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-                <Spinner />
-                正在加载公司信息
+                <Spinner aria-label='正在加载公司信息' />
               </p>
             )}
             {companiesError && (

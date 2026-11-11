@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Spinner } from '@/components/ui/spinner'
 import useResumeListStore from '@/pages/resume/store'
 import { formatDate } from '@/utils/date'
 
@@ -104,8 +105,8 @@ export default function SyncResumesDialog() {
               }
             >
               {listLoading ? (
-                <p role='status' className='text-sm text-muted-foreground'>
-                  正在读取本地简历…
+                <p className='text-sm text-muted-foreground'>
+                  <Spinner aria-label='正在读取本地简历' />
                 </p>
               ) : listError ? (
                 <div

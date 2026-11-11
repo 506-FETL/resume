@@ -1,0 +1,8 @@
+{
+  "extends": "../../../tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"],
+    "tsBuildInfoFile": "../../../node_modules/.tmp/pagination-fixture.tsbuildinfo"
+  },
+  "include": ["./*.ts", "./*.tsx", "../../../src/vite-env.d.ts"]
+}

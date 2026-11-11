@@ -3,7 +3,11 @@ import type { ResumeItem } from '../types'
 import type { ResumeLibraryCloudCounts } from '@/lib/supabase/resume/library'
 import type { ResumeFilterMode } from './resume-ui'
 import type { ResumeListState } from './types'
-import type { OfflineResumeLibraryIndex } from '@/lib/offline-resume-manager'
+import type {
+  LibraryPageResult,
+  LibraryQueryCache,
+  ResumeLibraryCounts,
+} from './library-cache'
 import {
   getOfflineResumeLibraryIndex,
   getOfflineResumeSummariesByIds,
@@ -17,17 +21,21 @@ import {
 } from '@/lib/supabase/resume/library'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { getErrorMessage } from '@/utils'
+import {
+  matchesResumeLibraryQuery,
+  normalizeResumeLibraryQuery,
+} from '@/lib/resume-library-search'
+import {
+  createCompleteLibraryCache,
+  createLibraryIndex,
+  createLibraryQueryCache,
+  readCachedLibraryItems,
+  readCompleteLibraryItems,
+} from './library-cache'
+import { buildLibraryPage } from './library-page'
+import { compareResumes, getFilterTotal, getLibraryPageNumber } from '../utils'
 
-export interface ResumeLibraryCounts {
-  all: number
-  cloud: number
-  local: number
-  variant: number
-  roots: number
-  readyVariants: number
-  offline: number
-  pending: number
-}
+export type { ResumeLibraryCounts } from './library-cache'
 
 export interface ResumeLibrarySlice {
   libraryActive: boolean
@@ -40,6 +48,8 @@ export interface ResumeLibrarySlice {
   libraryPage: number
   libraryTotal: number | null
   libraryCounts: ResumeLibraryCounts | null
+  librarySearchInput: string
+  libraryQuery: string
   libraryOptions: ResumeItem[]
   libraryOptionsLoading: boolean
   libraryOptionsError: string | null
@@ -54,28 +64,11 @@ export interface ResumeLibrarySlice {
   cancelLibraryLoad: () => void
   resetLibraryAccount: (accountId: string | null) => void
   setLibraryFilter: (filter: ResumeFilterMode) => void
+  setLibrarySearchInput: (value: string) => void
+  setLibraryQuery: (value: string) => Promise<void>
   loadLibraryOptions: (force?: boolean) => Promise<void>
   loadLibraryPendingItems: (force?: boolean) => Promise<void>
   loadLibraryOfflineOptions: (force?: boolean) => Promise<void>
-}
-
-interface LibraryIndex {
-  local: OfflineResumeLibraryIndex
-  counts: ResumeLibraryCounts
-  cloud: ResumeLibraryCloudCounts
-}
-
-interface PageCursor {
-  cloudOffset: number
-  localOffset: number
-  buffer: ResumeItem[]
-  localBuffer: ResumeItem[]
-}
-
-interface CachedPage {
-  items: ResumeItem[]
-  next: PageCursor
-  ready: boolean
 }
 
 const EMPTY_CLOUD_COUNTS: ResumeLibraryCloudCounts = {
@@ -92,9 +85,7 @@ export function createResumeLibrarySlice(
 ): ResumeLibrarySlice {
   let requestId = 0
   let revision = 0
-  let index: LibraryIndex | null = null
-  let indexRequest: Promise<LibraryIndex> | null = null
-  let cache = new Map<ResumeFilterMode, Map<number, CachedPage>>()
+  let queries = new Map<string, LibraryQueryCache>()
   let optionsLoaded = false
   let pendingLoaded = false
   let optionsRequest = 0
@@ -102,42 +93,56 @@ export function createResumeLibrarySlice(
   let offlineLoaded = false
   let offlineRequest = 0
 
-  async function readIndex(ownerId: string | null) {
-    if (index) return index
-    if (indexRequest) return indexRequest
+  function getQueryCache(query: string) {
+    const existing = queries.get(query)
+
+    if (existing?.completeItems) return existing
+
+    const base = queries.get('')
+    const complete = query && base ? readCompleteLibraryItems(base) : undefined
+
+    if (complete) {
+      const derived = createCompleteLibraryCache(
+        complete.filter((item) => matchesResumeLibraryQuery(item, query)),
+      )
+
+      queries.set(query, derived)
+
+      return derived
+    }
+
+    const cache = existing ?? createLibraryQueryCache()
+
+    queries.set(query, cache)
+
+    return cache
+  }
+
+  async function readIndex(ownerId: string | null, query = '') {
+    const cache = getQueryCache(query)
+
+    if (cache.index) return cache.index
+    if (cache.indexRequest) return cache.indexRequest
 
     const currentRevision = revision
 
     const request = Promise.all([
-      getOfflineResumeLibraryIndex(),
-      ownerId ? getResumeLibraryCounts(ownerId) : EMPTY_CLOUD_COUNTS,
+      getOfflineResumeLibraryIndex(query),
+      ownerId ? getResumeLibraryCounts(ownerId, query) : EMPTY_CLOUD_COUNTS,
     ]).then(([local, cloud]) => {
-      const result: LibraryIndex = {
-        local,
-        cloud,
-        counts: {
-          all: cloud.all + local.all.length,
-          cloud: cloud.roots,
-          local: local.roots.length,
-          variant: cloud.variants + local.variantCount,
-          roots: cloud.roots + local.roots.length,
-          readyVariants: cloud.readyVariants + local.variants.length,
-          offline: local.all.length,
-          pending: cloud.pending + local.pending.length,
-        },
-      }
+      const result = createLibraryIndex(local, cloud)
 
-      if (currentRevision === revision) index = result
+      if (currentRevision === revision) cache.index = result
 
       return result
     })
 
-    indexRequest = request
+    cache.indexRequest = request
 
     try {
       return await request
     } finally {
-      if (indexRequest === request) indexRequest = null
+      if (cache.indexRequest === request) cache.indexRequest = null
     }
   }
 
@@ -283,9 +288,80 @@ export function createResumeLibrarySlice(
     optionsRequest += 1
     pendingRequest += 1
     offlineRequest += 1
-    index = null
-    indexRequest = null
-    cache = new Map()
+    queries = new Map()
+  }
+
+  async function readQueryPage(
+    ownerId: string | null,
+    query: string,
+    filter: ResumeFilterMode,
+    requestedPage: number,
+    cache: LibraryQueryCache,
+  ) {
+    const key = `${filter}:${requestedPage}`
+    const existing = cache.requests.get(key)
+
+    if (existing) return existing
+
+    const currentRevision = revision
+    const current = () => currentRevision === revision
+
+    const request = (async (): Promise<LibraryPageResult | undefined> => {
+      const [data, firstCloudBatch] = await Promise.all([
+        readIndex(ownerId, query),
+        ownerId && !cache.pages.get(filter)?.has(1)
+          ? getResumeLibraryPage(
+              ownerId,
+              filter,
+              0,
+              RESUME_LIBRARY_PAGE_SIZE,
+              query,
+            )
+          : null,
+        readIndex(ownerId),
+      ])
+
+      if (!current()) return
+
+      const total = getFilterTotal(data.counts, filter)
+      const page = getLibraryPageNumber(requestedPage, total)
+      const cached = readCachedLibraryItems(cache, filter, page)
+
+      if (cached) return { items: cached, page, total }
+
+      const loaded = await buildLibraryPage({
+        cache,
+        data,
+        ownerId,
+        filter,
+        query,
+        page,
+        firstCloudBatch,
+        current,
+      })
+
+      if (!loaded || !current()) return
+
+      const parents = await readParents(loaded.items, ownerId)
+
+      if (!current()) return
+
+      loaded.ready = true
+
+      set((state) => ({
+        libraryParents: { ...state.libraryParents, ...parents },
+      }))
+
+      return { items: loaded.items, page, total }
+    })()
+
+    cache.requests.set(key, request)
+
+    try {
+      return await request
+    } finally {
+      if (cache.requests.get(key) === request) cache.requests.delete(key)
+    }
   }
 
   return {
@@ -299,6 +375,8 @@ export function createResumeLibrarySlice(
     libraryPage: 1,
     libraryTotal: null,
     libraryCounts: null,
+    librarySearchInput: '',
+    libraryQuery: '',
     libraryOptions: [],
     libraryOptionsLoading: false,
     libraryOptionsError: null,
@@ -312,22 +390,35 @@ export function createResumeLibrarySlice(
       const request = ++requestId
       const currentRevision = revision
       const filter = get().filterMode
+      const query = get().libraryQuery
+      const cache = getQueryCache(query)
 
       const current = () =>
         request === requestId && currentRevision === revision
 
-      const cachedPage = cache.get(filter)?.get(requestedPage)
+      const cachedPageNumber = cache.index
+        ? getLibraryPageNumber(
+            requestedPage,
+            getFilterTotal(cache.index.counts, filter),
+          )
+        : requestedPage
+
+      const cachedItems = readCachedLibraryItems(
+        cache,
+        filter,
+        cachedPageNumber,
+      )
 
       // 账户切换和数据变更会清空缓存；父简历信息补齐后才可直接展示。
-      if (index && cachedPage?.ready) {
+      if (cache.index && cachedItems) {
         set({
           libraryActive: true,
           libraryLoading: false,
           libraryError: null,
-          libraryItems: cachedPage.items,
-          libraryPage: requestedPage,
-          libraryCounts: index.counts,
-          libraryTotal: getFilterTotal(index.counts, filter),
+          libraryItems: cachedItems,
+          libraryPage: cachedPageNumber,
+          libraryCounts: queries.get('')?.index?.counts ?? null,
+          libraryTotal: getFilterTotal(cache.index.counts, filter),
         })
 
         return
@@ -348,117 +439,23 @@ export function createResumeLibrarySlice(
           return get().loadLibraryPage(1)
         }
 
-        const [data, firstCloudBatch] = await Promise.all([
-          readIndex(ownerId),
-          ownerId && !cache.get(filter)?.has(1)
-            ? getResumeLibraryPage(ownerId, filter, 0)
-            : null,
-        ])
-
-        if (!current()) return
-
-        const total = getFilterTotal(data.counts, filter)
-
-        const page = Math.max(
-          1,
-          Math.min(requestedPage, Math.ceil(total / RESUME_LIBRARY_PAGE_SIZE)),
+        const result = await readQueryPage(
+          ownerId,
+          query,
+          filter,
+          requestedPage,
+          cache,
         )
 
-        const pages = cache.get(filter) ?? new Map<number, CachedPage>()
-        const localIds = data.local[filter]
-
-        const cloudTotal =
-          filter === 'roots'
-            ? data.cloud.roots
-            : filter === 'variants'
-              ? data.cloud.readyVariants
-              : data.cloud.all
-
-        cache.set(filter, pages)
+        if (!current() || !result) return
 
         set({
-          libraryCounts: data.counts,
-          libraryTotal: total,
+          libraryItems: result.items,
+          libraryPage: result.page,
+          libraryCounts: queries.get('')?.index?.counts ?? null,
+          libraryTotal: result.total,
           isOnline: Boolean(user),
         })
-
-        for (let target = 1; target <= page; target += 1) {
-          if (pages.has(target)) continue
-
-          const previous = pages.get(target - 1)?.next
-
-          const cursor: PageCursor = previous
-            ? {
-                ...previous,
-                buffer: [...previous.buffer],
-                localBuffer: [...previous.localBuffer],
-              }
-            : { cloudOffset: 0, localOffset: 0, buffer: [], localBuffer: [] }
-
-          const remaining = RESUME_LIBRARY_PAGE_SIZE - cursor.buffer.length
-
-          const localRemaining =
-            RESUME_LIBRARY_PAGE_SIZE - cursor.localBuffer.length
-
-          const ids =
-            localRemaining > 0
-              ? localIds.slice(
-                  cursor.localOffset,
-                  cursor.localOffset + localRemaining,
-                )
-              : []
-
-          const [cloudBatch, localBatch] = await Promise.all([
-            target === 1 && firstCloudBatch
-              ? firstCloudBatch
-              : ownerId && remaining > 0 && cursor.cloudOffset < cloudTotal
-                ? getResumeLibraryPage(
-                    ownerId,
-                    filter,
-                    cursor.cloudOffset,
-                    remaining,
-                  )
-                : [],
-            ids.length ? getOfflineResumeSummariesByIds(ids) : [],
-          ])
-
-          if (!current()) return
-
-          cursor.buffer.push(...cloudBatch)
-          cursor.cloudOffset += cloudBatch.length
-          cursor.localBuffer.push(...localBatch)
-          cursor.localOffset += ids.length
-
-          const items: ResumeItem[] = []
-
-          while (items.length < RESUME_LIBRARY_PAGE_SIZE) {
-            const cloud = cursor.buffer[0]
-            const offline = cursor.localBuffer[0]
-
-            if (!cloud && !offline) break
-            if (offline && (!cloud || compareResumes(offline, cloud) <= 0)) {
-              items.push(cursor.localBuffer.shift()!)
-            } else {
-              items.push(cursor.buffer.shift()!)
-            }
-          }
-
-          pages.set(target, { items, next: cursor, ready: false })
-        }
-
-        const loadedPage = pages.get(page)!
-        const items = loadedPage.items
-        const parents = await readParents(items, ownerId)
-
-        if (!current()) return
-
-        loadedPage.ready = true
-
-        set((state) => ({
-          libraryItems: items,
-          libraryParents: { ...state.libraryParents, ...parents },
-          libraryPage: page,
-        }))
       } catch (error) {
         if (current()) set({ libraryError: getErrorMessage(error) })
       } finally {
@@ -522,6 +519,8 @@ export function createResumeLibrarySlice(
         libraryPage: 1,
         libraryTotal: null,
         libraryCounts: null,
+        librarySearchInput: '',
+        libraryQuery: '',
         libraryOptions: [],
         libraryOptionsLoading: false,
         libraryOptionsError: null,
@@ -545,6 +544,18 @@ export function createResumeLibrarySlice(
       get().loadLibraryPage(1)
     },
 
+    setLibrarySearchInput: (value) => set({ librarySearchInput: value }),
+
+    setLibraryQuery: async (value) => {
+      const query = normalizeResumeLibraryQuery(value)
+
+      if (get().libraryQuery === query) return
+
+      set({ libraryQuery: query, libraryPage: 1, libraryTotal: null })
+
+      await get().loadLibraryPage(1)
+    },
+
     loadLibraryOptions: (force) => loadAuxiliary('options', force),
     loadLibraryPendingItems: (force) => loadAuxiliary('pending', force),
 
@@ -561,7 +572,8 @@ export function createResumeLibrarySlice(
 
       try {
         const localIndex =
-          index?.local ?? (await getOfflineResumeLibraryIndex())
+          queries.get('')?.index?.local ??
+          (await getOfflineResumeLibraryIndex())
 
         const items: ResumeItem[] = []
 
@@ -590,22 +602,4 @@ export function createResumeLibrarySlice(
       }
     },
   }
-}
-
-function getFilterTotal(counts: ResumeLibraryCounts, filter: ResumeFilterMode) {
-  return filter === 'roots'
-    ? counts.roots
-    : filter === 'variants'
-      ? counts.readyVariants
-      : counts.all
-}
-
-function compareResumes(a: ResumeItem, b: ResumeItem) {
-  const time =
-    (b.updated_at ? new Date(b.updated_at).getTime() : -Infinity) -
-    (a.updated_at ? new Date(a.updated_at).getTime() : -Infinity)
-
-  return (
-    time || (a.resume_id < b.resume_id ? 1 : a.resume_id > b.resume_id ? -1 : 0)
-  )
 }

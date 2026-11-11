@@ -10,6 +10,7 @@ import {
   isTrackerAccountScopeCurrent,
 } from '../lib/account-scope'
 import type {
+  JobSubmission,
   JobSubmissionMaterial,
   JobSubmissionState,
   SubmissionRevision,
@@ -41,6 +42,15 @@ export function submissionMaterialKey(recordId: string, revisionId?: string) {
   return `${recordId}:${revisionId ?? 'current'}`
 }
 
+function invalidateResource<T>(resource?: SubmissionResource<T>) {
+  return {
+    data: null,
+    loading: false,
+    error: null,
+    revision: (resource?.revision ?? 0) + 1,
+  }
+}
+
 export function createTrackerSubmissions(
   get: () => SubmissionResources,
   set: (
@@ -57,16 +67,16 @@ export function createTrackerSubmissions(
     ) => Promise<SubmissionData[K]>,
   ) => {
     const scope = getTrackerAccountScope()
-    const revision = get().submissionRevision
     const cached = get()[collection][key]
+    const revision = cached?.revision ?? 0
 
-    if (cached?.revision === revision && (cached.data || cached.loading)) return
+    if (cached?.data || cached?.loading) return
 
     const write = (
       resource: Omit<SubmissionResource<SubmissionData[K]>, 'revision'>,
     ) => {
       if (!isTrackerAccountScopeCurrent(scope)) return
-      if (get().submissionRevision !== revision) return
+      if ((get()[collection][key]?.revision ?? 0) !== revision) return
 
       set(
         (state) =>
@@ -101,8 +111,58 @@ export function createTrackerSubmissions(
       {} as SubmissionResources['submissionHistoriesById'],
     submissionMaterialsByKey:
       {} as SubmissionResources['submissionMaterialsByKey'],
-    notifySubmissionChanged: () =>
-      set((state) => ({ submissionRevision: state.submissionRevision + 1 })),
+    notifySubmissionChanged: (
+      record: JobSubmission,
+      records?: JobSubmission[],
+    ) =>
+      set((state) => {
+        const previous = state.submissionsByJob[record.job_id]
+        const cached = previous?.data
+
+        const rows =
+          records ??
+          (cached?.kind === 'ready'
+            ? [cached.primary, ...cached.legacy]
+            : cached?.kind === 'needs-resolution'
+              ? cached.legacy
+              : [])
+
+        const updated = [record, ...rows.filter((row) => row.id !== record.id)]
+        const primary = updated.find((row) => row.is_primary)
+        const materialKey = submissionMaterialKey(record.id)
+
+        const data: JobSubmissionState = primary
+          ? {
+              kind: 'ready',
+              primary,
+              legacy: updated.filter((row) => !row.is_primary),
+            }
+          : { kind: 'needs-resolution', legacy: updated }
+
+        return {
+          submissionRevision: state.submissionRevision + 1,
+          submissionsByJob: {
+            ...state.submissionsByJob,
+            [record.job_id]: { ...invalidateResource(previous), data },
+          },
+          submissionJdsById: {
+            ...state.submissionJdsById,
+            [record.id]: invalidateResource(state.submissionJdsById[record.id]),
+          },
+          submissionHistoriesById: {
+            ...state.submissionHistoriesById,
+            [record.id]: invalidateResource(
+              state.submissionHistoriesById[record.id],
+            ),
+          },
+          submissionMaterialsByKey: {
+            ...state.submissionMaterialsByKey,
+            [materialKey]: invalidateResource(
+              state.submissionMaterialsByKey[materialKey],
+            ),
+          },
+        }
+      }),
     loadSubmissionJd: (recordId: string) =>
       loadResource('submissionJdsById', recordId, (guard) =>
         getJobSubmissionJd(recordId, guard),

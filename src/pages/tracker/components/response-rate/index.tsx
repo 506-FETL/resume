@@ -8,6 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '../../hooks/use-count-up'
@@ -49,7 +50,9 @@ function ResponseRate() {
       >
         <p className='font-medium'>响应率怎么算？</p>
         {busy ? (
-          <p role='status'>正在加载职位记录…</p>
+          <p>
+            <Spinner className='size-3.5' aria-label='正在加载职位记录' />
+          </p>
         ) : error ? (
           <p>职位记录加载失败，暂时无法计算。</p>
         ) : stats.historicalApplied === 0 ? (

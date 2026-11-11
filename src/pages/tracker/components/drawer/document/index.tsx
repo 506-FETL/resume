@@ -170,7 +170,6 @@ export default function DrawerDocument() {
                 {resumes.map((resume) => (
                   <SelectItem key={resume.resume_id} value={resume.resume_id}>
                     {resume.display_name}
-                    {resume.type === 'default' && '（默认）'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -192,12 +191,8 @@ export default function DrawerDocument() {
           </Button>
         </div>
       ) : !resumes ? (
-        <div
-          role='status'
-          className='flex items-center gap-2 py-2 text-sm text-muted-foreground'
-        >
-          <Spinner aria-hidden />
-          正在加载简历列表
+        <div className='flex items-center gap-2 py-2 text-sm text-muted-foreground'>
+          <Spinner aria-label='正在加载简历列表' />
         </div>
       ) : resumes.length === 0 ? (
         <div className='flex flex-wrap items-center justify-between gap-3'>
@@ -229,12 +224,8 @@ export default function DrawerDocument() {
           ) : currentPreview ? (
             <SharedResumePreview data={currentPreview} />
           ) : (
-            <div
-              role='status'
-              className='flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground'
-            >
-              <Spinner aria-hidden />
-              正在加载简历预览
+            <div className='flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground'>
+              <Spinner aria-label='正在加载简历预览' />
             </div>
           )}
         </div>

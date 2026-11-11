@@ -40,8 +40,14 @@ function History() {
   const { surfaceProps } = useHistoryMotion()
 
   return (
-    <PageLayout workspace {...surfaceProps}>
-      <JobContextBar />
+    <PageLayout
+      workspace
+      {...surfaceProps}
+      className={`${surfaceProps.className} min-h-0 overflow-hidden [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1`}
+    >
+      <div className='shrink-0 empty:hidden [@media(max-height:500px)]:[&>div]:flex-nowrap'>
+        <JobContextBar />
+      </div>
       <HistoryHeader
         activeResumeId={activeResumeId}
         resumeOptions={resumeOptions}
