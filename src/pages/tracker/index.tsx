@@ -14,7 +14,8 @@ import SubmissionDialog from './components/drawer/submission-dialog'
 import ReopenProcessDialog from './components/drawer/reopen-process'
 import TrackerHeader from './components/header'
 import ListView from './components/list'
-import { TrackerPageState, TrackerSkeleton } from './components/page-state'
+import { TrackerPageState } from './components/page-state'
+import { TrackerContentSkeleton } from '@/components/page-skeletons/tracker'
 import TrackerToolbar from './components/toolbar'
 import ViewTransition from './components/view-transition'
 import { useTrackerJobs } from './hooks/use-tracker-jobs'
@@ -159,43 +160,45 @@ function TrackerContent() {
           className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:border-t'
         >
           <TrackerToolbar />
-          {isInitialized && (
-            <div className='flex min-h-7 shrink-0 items-center text-xs text-muted-foreground'>
-              <span role='status' className='sr-only'>
-                {loading ? '正在刷新职位' : error ? `刷新失败：${error}` : ''}
-              </span>
-              <AnimatedContent
-                animationKey={
-                  error ? 'error' : showRefreshing ? 'refreshing' : 'idle'
-                }
-              >
-                {error ? (
-                  <div className='flex min-w-0 flex-wrap items-center gap-2'>
-                    <span className='break-words'>
-                      刷新失败，仍显示上次结果：{error}
-                    </span>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-7 px-2 text-xs'
-                      onClick={reload}
-                      disabled={loading}
+          <div className='flex min-h-7 shrink-0 items-center text-xs text-muted-foreground'>
+            {isInitialized && (
+              <>
+                <span role='status' className='sr-only'>
+                  {loading ? '正在刷新职位' : error ? `刷新失败：${error}` : ''}
+                </span>
+                <AnimatedContent
+                  animationKey={
+                    error ? 'error' : showRefreshing ? 'refreshing' : 'idle'
+                  }
+                >
+                  {error ? (
+                    <div className='flex min-w-0 flex-wrap items-center gap-2'>
+                      <span className='break-words'>
+                        刷新失败，仍显示上次结果：{error}
+                      </span>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='h-7 px-2 text-xs'
+                        onClick={reload}
+                        disabled={loading}
+                      >
+                        重试
+                      </Button>
+                    </div>
+                  ) : showRefreshing ? (
+                    <span
+                      className='inline-flex items-center gap-1.5'
+                      aria-hidden
                     >
-                      重试
-                    </Button>
-                  </div>
-                ) : showRefreshing ? (
-                  <span
-                    className='inline-flex items-center gap-1.5'
-                    aria-hidden
-                  >
-                    <Spinner className='size-3' aria-hidden />
-                    正在刷新职位
-                  </span>
-                ) : null}
-              </AnimatedContent>
-            </div>
-          )}
+                      <Spinner className='size-3' aria-hidden />
+                      正在刷新职位
+                    </span>
+                  ) : null}
+                </AnimatedContent>
+              </>
+            )}
+          </div>
           <ViewTransition
             id={isMobile ? 'tracker-mobile-results' : undefined}
             role={isMobile ? 'tabpanel' : undefined}
@@ -208,7 +211,7 @@ function TrackerContent() {
             className='flex min-h-0 min-w-0 flex-1 flex-col pt-1 md:pt-3'
           >
             {state === 'loading' ? (
-              <TrackerSkeleton />
+              <TrackerContentSkeleton viewMode={viewMode} />
             ) : state === 'board' ? (
               <BoardView />
             ) : state === 'list' ? (

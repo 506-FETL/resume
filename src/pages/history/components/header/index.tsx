@@ -25,7 +25,7 @@ export default function HistoryHeader({
 
   return (
     <motion.header
-      initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: reduceMotion ? 0 : DURATION.base,

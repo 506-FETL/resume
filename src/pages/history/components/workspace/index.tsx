@@ -11,6 +11,10 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import {
+  HistoryDetailSkeleton,
+  HistoryTimelineSkeleton,
+} from '@/components/page-skeletons/history'
 import { CONTENT_SWITCH } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
@@ -35,6 +39,7 @@ export default function HistoryWorkspace({
     loading,
     error,
     currentResume,
+    resumeId,
     mobilePanel,
     timelineFocusTarget,
     clearTimelineFocus,
@@ -168,6 +173,20 @@ export default function HistoryWorkspace({
           </Button>
         </EmptyContent>
       </Empty>
+    )
+  }
+
+  if (resumeId !== activeResumeId) {
+    return (
+      <div
+        ref={workspaceRef}
+        className='grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] gap-3 @min-[900px]/workspace:grid-cols-[clamp(16rem,23%,20rem)_minmax(0,1fr)]'
+      >
+        <HistoryTimelineSkeleton />
+        <div className='hidden min-h-0 min-w-0 flex-col @min-[900px]/workspace:flex'>
+          <HistoryDetailSkeleton />
+        </div>
+      </div>
     )
   }
 

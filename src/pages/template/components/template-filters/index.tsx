@@ -2,8 +2,7 @@ import { ChevronDown, Columns2, Palette, SlidersHorizontal } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { LoadingRegion } from '@/components/loading-skeleton'
-import { Skeleton } from '@/components/ui/skeleton'
+import { TemplateFilterOptionsSkeleton } from '@/components/page-skeletons/template'
 import {
   Select,
   SelectContent,
@@ -35,16 +34,24 @@ export default function TemplateFilters() {
 
   const [open, setOpen] = useState(true)
   const [openGroups, setOpenGroups] = useState({ style: true, layout: true })
+
+  const [interacted, setInteracted] = useState({
+    filters: false,
+    style: false,
+    layout: false,
+  })
+
   const reduceMotion = useReducedMotion()
 
   const transitionStyle = {
     transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
   }
 
-  const collapseStyle = (expanded: boolean) => ({
-    animationDuration: reduceMotion
-      ? '0s'
-      : `${expanded ? DURATION.base : DURATION.fast}s`,
+  const collapseStyle = (expanded: boolean, key: keyof typeof interacted) => ({
+    animationDuration:
+      reduceMotion || !interacted[key]
+        ? '0s'
+        : `${expanded ? DURATION.base : DURATION.fast}s`,
     animationTimingFunction: `cubic-bezier(${(expanded ? EASE.out : EASE.in).join(',')})`,
   })
 
@@ -68,7 +75,14 @@ export default function TemplateFilters() {
   ]
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} asChild>
+    <Collapsible
+      open={open}
+      onOpenChange={(next) => {
+        setInteracted((current) => ({ ...current, filters: true }))
+        setOpen(next)
+      }}
+      asChild
+    >
       <aside aria-label='筛选模板' className='self-start lg:sticky lg:top-6'>
         <div className='flex items-center justify-between gap-1 pb-2.5'>
           <h2 className='min-w-0 flex-1'>
@@ -104,7 +118,10 @@ export default function TemplateFilters() {
             重置
           </Button>
         </div>
-        <CollapsibleContent inert={!open} style={collapseStyle(open)}>
+        <CollapsibleContent
+          inert={!open}
+          style={collapseStyle(open, 'filters')}
+        >
           {facets.status === 'error' && (
             <div role='alert' className='px-3 py-2 text-xs text-destructive'>
               筛选选项加载失败
@@ -118,13 +135,7 @@ export default function TemplateFilters() {
             </div>
           )}
           {(facets.status === 'idle' || facets.status === 'loading') && (
-            <LoadingRegion
-              label='正在加载筛选选项'
-              className='space-y-2 px-3 py-2'
-            >
-              <Skeleton className='h-3 w-20' />
-              <Skeleton className='h-3 w-16' />
-            </LoadingRegion>
+            <TemplateFilterOptionsSkeleton />
           )}
           <div className='grid gap-3 border-t border-border/60 py-3 lg:gap-5 lg:py-4'>
             {groups.map(({ key, title, all, icon: Icon, value, onChange }) => {
@@ -188,9 +199,10 @@ export default function TemplateFilters() {
                   </div>
                   <Collapsible
                     open={expanded}
-                    onOpenChange={(next) =>
+                    onOpenChange={(next) => {
+                      setInteracted((current) => ({ ...current, [key]: true }))
                       setOpenGroups((current) => ({ ...current, [key]: next }))
-                    }
+                    }}
                     className='hidden min-w-0 lg:block'
                   >
                     <h3>
@@ -217,7 +229,7 @@ export default function TemplateFilters() {
                     </h3>
                     <CollapsibleContent
                       inert={!expanded}
-                      style={collapseStyle(expanded)}
+                      style={collapseStyle(expanded, key)}
                     >
                       <div
                         role='group'

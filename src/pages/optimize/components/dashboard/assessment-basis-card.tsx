@@ -1,3 +1,4 @@
+import { OptimizeBasisSkeleton } from '@/components/page-skeletons/optimize'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { BrainCircuit, ChevronDown, Layers3, Sparkles } from 'lucide-react'
 import {
@@ -32,12 +33,16 @@ export default function AssessmentBasisCard() {
   const reduceMotion = useReducedMotion()
   const assessment = currentAtsConfig?.meta?.assessment
 
-  if (!loading && !currentAtsConfig?.scores) return <ProTips />
+  if (loading && !currentAtsConfig) return <OptimizeBasisSkeleton />
+  if (!currentAtsConfig?.scores) return <ProTips />
 
   if (!assessment || currentAtsConfig?.meta?.rubricVersion !== '2.0') {
     return (
       <div className='min-w-0 space-y-4'>
-        <ScoresRadarChart scores={currentAtsConfig?.scores} loading={loading} />
+        <ScoresRadarChart
+          scores={currentAtsConfig?.scores}
+          loading={loading && !currentAtsConfig}
+        />
         <ProTips />
       </div>
     )
@@ -127,7 +132,7 @@ export default function AssessmentBasisCard() {
               <div className='min-w-0 space-y-6'>
                 <ScoresRadarChart
                   scores={currentAtsConfig.scores}
-                  loading={loading}
+                  loading={loading && !currentAtsConfig}
                   embedded
                 />
                 <ProTips embedded />

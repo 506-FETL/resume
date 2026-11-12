@@ -15,7 +15,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Skeleton } from '@/components/ui/skeleton'
+import { HistoryWorkspaceSkeleton } from '@/components/page-skeletons/history'
 import { DURATION, EASE } from '@/lib/motion'
 import HistoryHeader from './components/header'
 import HistoryWorkspace from './components/workspace'
@@ -35,6 +35,11 @@ function History() {
     reload,
     selectResume,
   } = useActiveHistoryResumeId()
+
+  const currentResume = useHistoryStore((state) => state.currentResume)
+
+  const waitingForContent =
+    !currentResume || currentResume.resumeId !== activeResumeId
 
   const reduceMotion = useReducedMotion()
   const { surfaceProps } = useHistoryMotion()
@@ -60,11 +65,15 @@ function History() {
         <PresenceDiv
           className='flex min-h-0 min-w-0 flex-1 flex-col'
           key={activeResumeId ?? (loading ? 'loading' : 'empty')}
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+          initial={
+            waitingForContent ? false : { opacity: 0, y: reduceMotion ? 0 : 8 }
+          }
           animate={{ opacity: 1, y: 0 }}
           exit={{
-            opacity: 0,
-            transition: { duration: reduceMotion ? 0 : DURATION.fast },
+            opacity: waitingForContent ? 1 : 0,
+            transition: {
+              duration: reduceMotion || waitingForContent ? 0 : DURATION.fast,
+            },
           }}
           transition={{
             duration: reduceMotion ? 0 : DURATION.base,
@@ -72,18 +81,7 @@ function History() {
           }}
         >
           {!activeResumeId && loading ? (
-            <div
-              role='status'
-              aria-label='正在加载历史版本'
-              className='grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-3 @min-[900px]/workspace:grid-cols-[clamp(16rem,23%,20rem)_minmax(0,1fr)]'
-            >
-              <Skeleton
-                className={`h-full min-h-0 rounded-xl ${reduceMotion ? 'animate-none' : ''}`}
-              />
-              <Skeleton
-                className={`hidden h-full min-h-0 rounded-xl @min-[900px]/workspace:block ${reduceMotion ? 'animate-none' : ''}`}
-              />
-            </div>
+            <HistoryWorkspaceSkeleton />
           ) : !activeResumeId ? (
             <Empty className='min-h-0 flex-1 overflow-y-auto rounded-xl border bg-muted/10'>
               <EmptyHeader>

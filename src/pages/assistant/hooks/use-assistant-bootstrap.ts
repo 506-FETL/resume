@@ -24,20 +24,33 @@ export function useAssistantBootstrap() {
       scope.generation === useConversationReadScope.getState().generation
 
     const load = async () => {
+      const existing = useAssistantStore.getState()
+
+      const preserveView =
+        existing.bootstrapGeneration === scope.generation &&
+        !existing.initializing &&
+        (!existing.loadingMessages ||
+          (existing.activeConversationId !== null &&
+            existing.pendingConversationId === existing.activeConversationId &&
+            existing.conversationLoadRequestId === null)) &&
+        (!existing.bootstrapError || existing.bootstrapError.preserveView)
+
       const retryConversationId =
-        useAssistantStore.getState().bootstrapError?.conversationId ?? null
+        existing.bootstrapError?.conversationId ?? null
 
       let restoringConversationId = retryConversationId
 
       useAssistantStore.setState({
-        ...(!retryConversationId && { conversations: [] }),
-        messages: [],
-        initializing: true,
+        ...(!preserveView && {
+          ...(!retryConversationId && { conversations: [] }),
+          messages: [],
+          initializing: true,
+          loadingMessages: false,
+          pendingConversationId: null,
+          conversationLoadRequestId: null,
+        }),
         bootstrapError: null,
         loadingConversations: !retryConversationId,
-        loadingMessages: false,
-        pendingConversationId: null,
-        conversationLoadRequestId: null,
       })
 
       const initialView = useAssistantStore.getState()
@@ -61,6 +74,11 @@ export function useAssistantBootstrap() {
         })
       }
 
+      const completeBootstrap = () => {
+        finishBootstrap()
+        useAssistantStore.setState({ bootstrapGeneration: scope.generation })
+      }
+
       try {
         const conversations = retryConversationId
           ? useAssistantStore.getState().conversations
@@ -72,13 +90,20 @@ export function useAssistantBootstrap() {
         useAssistantStore.getState().setLoadingConversations(false)
 
         if (!ownsView()) {
-          finishBootstrap()
+          completeBootstrap()
 
           return
         }
 
         const currentActiveId =
           useAssistantStore.getState().activeConversationId
+
+        // 用户主动创建的空白会话在返回时仍保持为空白会话。
+        if (preserveView && !retryConversationId && !currentActiveId) {
+          completeBootstrap()
+
+          return
+        }
 
         const restored = retryConversationId
           ? conversations.find(
@@ -91,10 +116,7 @@ export function useAssistantBootstrap() {
             )
 
         if (!restored) {
-          useAssistantStore.setState({
-            initializing: false,
-            loadingConversations: false,
-          })
+          completeBootstrap()
 
           useAssistantStore.getState().setConversationView(null, [], {})
 
@@ -103,16 +125,37 @@ export function useAssistantBootstrap() {
 
         restoringConversationId = restored.id
 
+        const refreshingCurrent =
+          preserveView && restored.id === currentActiveId
+
+        if (refreshingCurrent) {
+          useAssistantStore.setState({
+            loadingMessages: true,
+            pendingConversationId: restored.id,
+          })
+        } else if (preserveView) {
+          useAssistantStore.setState({ initializing: true, messages: [] })
+        }
+
         const { messages, hasMore } = await loadAssistantMessages(restored.id)
 
         if (!ownsRequest()) return
 
-        useAssistantStore.setState({
-          initializing: false,
-          loadingConversations: false,
-        })
+        completeBootstrap()
 
         if (!ownsView()) return
+        if (
+          refreshingCurrent &&
+          (useAssistantStore.getState().messages !== initialView.messages ||
+            useAssistantStore.getState().streaming)
+        ) {
+          useAssistantStore.setState({
+            loadingMessages: false,
+            pendingConversationId: null,
+          })
+
+          return
+        }
 
         useAssistantStore
           .getState()
@@ -129,6 +172,23 @@ export function useAssistantBootstrap() {
           restoringConversationId = null
           useAssistantStore.getState().setConversations([])
           useAssistantStore.getState().setConversationView(null, [], {})
+          useAssistantStore.setState({ bootstrapGeneration: null })
+        } else if (
+          preserveView &&
+          (!restoringConversationId ||
+            restoringConversationId === initialView.activeConversationId)
+        ) {
+          useAssistantStore.setState({
+            loadingMessages: false,
+            pendingConversationId: null,
+            bootstrapError: {
+              message: getErrorMessage(error),
+              conversationId: restoringConversationId,
+              preserveView: true,
+            },
+          })
+
+          return
         }
 
         useAssistantStore.setState({

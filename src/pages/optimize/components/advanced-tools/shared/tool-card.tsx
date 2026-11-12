@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 interface ToolCardProps {
   disabled: boolean
-  onClick: () => void
+  onClick?: () => void
   tool: ToolVisualDefinition
 }
 

@@ -6,6 +6,7 @@ import AnimatedContent from '@/components/motion/animated-content'
 import { PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
 import { RecentResumesSkeleton } from './components/skeleton'
+import { DashboardPageSkeleton } from '@/components/page-skeletons/dashboard'
 import useUserStore from '@/store/user'
 import CreateResumeCard from '@/pages/resume/components/create-resume-card'
 import RecentResumeCard from './components/recent-resume-card'
@@ -115,6 +116,8 @@ export default function DashboardPage() {
 
     return () => useIndexStore.getState().cancelLoad()
   }, [loadData, user?.id, authStatus])
+
+  if (mode === 'pending') return <DashboardPageSkeleton />
 
   return (
     <PageLayout>

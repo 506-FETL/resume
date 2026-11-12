@@ -58,7 +58,7 @@ function Header() {
   }, [])
 
   return (
-    <div className='min-w-0 space-y-4'>
+    <div className='min-w-0'>
       <PageHeader
         title='简历优化'
         description='按优先级完善内容'
@@ -87,13 +87,16 @@ function Header() {
         className='empty:hidden'
       >
         {isProcessing ? (
-          <p role='status' className='rounded-lg bg-muted px-4 py-3 text-sm'>
+          <p
+            role='status'
+            className='mt-4 rounded-lg bg-muted px-4 py-3 text-sm'
+          >
             正在检测简历，完成后会更新报告。你可以通过“查看分析”查看进度。
           </p>
         ) : loadError || analysisError ? (
           <div
             role='alert'
-            className='flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm'
+            className='mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm'
           >
             <p>
               {loadError

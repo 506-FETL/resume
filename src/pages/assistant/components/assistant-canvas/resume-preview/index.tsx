@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/empty'
 import { Button } from '@/components/ui/button'
 import useAssistantStore from '../../../store'
-import { Skeleton } from '@/components/ui/skeleton'
+import { AssistantCanvasPreviewSkeleton } from '@/components/page-skeletons/assistant'
 import { useCanvasPreview } from '../../../hooks/use-canvas-preview'
 
 export default function ResumePreview() {
@@ -37,9 +37,7 @@ export default function ResumePreview() {
           animationKey={status === 'idle' && !previewData ? 'empty' : status}
           className='p-3'
         >
-          {status === 'loading' && (
-            <Skeleton className='h-[560px] w-full rounded-lg' />
-          )}
+          {status === 'loading' && <AssistantCanvasPreviewSkeleton />}
           {status === 'error' && (
             <div className='space-y-3 py-10 text-center'>
               <p className='text-sm text-muted-foreground'>

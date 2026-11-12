@@ -31,16 +31,46 @@ export function createFolderOpening(track: HTMLElement, reduced: boolean) {
   const tools = desk.querySelector<SVGGElement>('[data-desk-tools]')!
   const stack = desk.querySelector<SVGGElement>('[data-template-stack]')!
 
-  function draw(progress: number) {
+  let layout: {
+    cover: DOMMatrix
+    page: DOMMatrix
+    runwayTop: number
+    guideTop: number
+    handoff: number
+    end: number
+    heroHeight: number
+    frameHeight: number
+    flowLeft: number
+    flowTop: number
+    fixedLeft: number
+    fixedTop: number
+  }
+
+  let fixed = false
+
+  function draw(progress: number, scrollY: number) {
+    const nextFixed = !reduced && scrollY < layout.handoff
+
+    if (nextFixed !== fixed) {
+      fixed = nextFixed
+
+      // 在工作簿已固定的区间内交接，避免倒滑时画布先随页面移动一帧。
+      Object.assign(desk.style, {
+        position: fixed ? 'fixed' : 'absolute',
+        left: `${fixed ? layout.fixedLeft : layout.flowLeft}px`,
+        top: `${fixed ? layout.fixedTop : layout.flowTop}px`,
+      })
+    }
+
     const time = reduced ? Number(progress >= 0.56) : progress
-    const open = phase(time, 0, 0.34)
-    const pull = phase(time, 0.12, 0.55)
-    const folderOpacity = 1 - phase(time, 0.48, 0.7)
+    const open = phase(time, 0.32, 0.54)
+    const pull = phase(time, 0.36, 0.72)
+    const folderOpacity = 1 - phase(time, 0.66, 0.88)
 
     const copyOpacity = 1 - phase(time, 0.2, 0.48)
-    const tabOpacity = 1 - phase(time, 0.13, 0.32)
+    const tabOpacity = 1 - phase(time, 0.12, 0.24)
 
-    if (time < 1) positionArtwork(time, open, pull)
+    if (time < 1) positionArtwork(time, open, pull, scrollY)
     else sheet.removeAttribute('transform')
 
     coverCopy.forEach((element) => {
@@ -57,37 +87,56 @@ export function createFolderOpening(track: HTMLElement, reduced: boolean) {
       ? 'visible'
       : 'hidden'
     tools.style.opacity = stack.style.opacity = String(phase(time, 0.76, 1))
-    mask.setAttribute('height', String(294 + 180 * pull))
+
+    mask.setAttribute(
+      'height',
+      String(294 + 140 * pull + 40 * phase(time, 0.72, 0.88)),
+    )
   }
 
-  function positionArtwork(time: number, open: number, pull: number) {
-    const land = phase(time, 0.36, 0.97)
-    const restTop = Math.min(0, frame.clientHeight - hero.offsetHeight)
+  function positionArtwork(
+    time: number,
+    open: number,
+    pull: number,
+    scrollY: number,
+  ) {
+    const land = phase(time, 0.58, 0.97)
+    const restTop = Math.min(0, layout.frameHeight - layout.heroHeight)
+    const coverTop = Math.max(layout.runwayTop - scrollY, restTop)
 
-    const slip = reduced
+    const heroTop = reduced
+      ? Math.min(coverTop, layout.guideTop - scrollY - layout.heroHeight)
+      : coverTop
+
+    const cover = new DOMMatrix().translate(0, heroTop).multiply(layout.cover)
+
+    const frameTop = fixed
       ? 0
-      : Math.max(0, restTop - hero.getBoundingClientRect().top)
+      : Math.min(Math.max(0, layout.guideTop - scrollY), layout.end - scrollY)
 
-    const cover = new DOMMatrix()
-      .translate(0, slip)
-      .multiply(origin.getScreenCTM()!)
+    const page = new DOMMatrix().translate(0, frameTop).multiply(layout.page)
 
-    const page = DOMMatrix.fromMatrix(desk.getScreenCTM()!)
     const toPage = page.inverse()
-    const frameTop = frame.getBoundingClientRect().top
-    const pocket = toPage.multiply(cover)
-    const retreat = phase(time, 0.32, 0.72)
+    const coverScale = Math.hypot(cover.a, cover.b)
+    const carry = phase(time, 0, 0.32)
 
-    const carrier = pocket
+    const travel =
+      Math.min(185, (layout.frameHeight * 0.12) / coverScale) * carry
+
+    const carried = cover.translate(0, travel)
+    const retreat = phase(time, 0.62, 0.88)
+
+    const carrier = toPage
+      .multiply(carried)
       .translate(68 * retreat, 185 * retreat)
       .rotate(4 * retreat)
 
-    // 纸的中心从夹袋坐标移到内页坐标。先抽出下沿，再转向工作簿。
-    const start = new DOMPoint(285, 280 - 184 * pull).matrixTransform(cover)
+    // 纸和袋先共用下移基准，停稳后才抽纸；交接前不提前追向内页。
+    const start = new DOMPoint(285, 280 - 184 * pull).matrixTransform(carried)
     const end = new DOMPoint(320, 213).matrixTransform(page)
     const x = mix(start.x, end.x, land)
-    const scale = mix(Math.hypot(cover.a, cover.b) * 1.25, page.a, land)
-    const clearance = Math.min(frame.clientHeight * 0.55, 206 * scale + 18)
+    const scale = mix(coverScale * 1.25, page.a, land)
+    const clearance = Math.min(layout.frameHeight * 0.55, 206 * scale + 18)
     const liftedY = mix(start.y, Math.max(start.y, clearance), pull)
     const y = mix(liftedY, end.y - frameTop, land)
     const tilt = (Math.atan2(cover.b, cover.a) * 180) / Math.PI - 5 * pull
@@ -100,6 +149,8 @@ export function createFolderOpening(track: HTMLElement, reduced: boolean) {
 
     back.setAttribute('transform', carrier.toString())
     front.setAttribute('transform', carrier.toString())
+
+    dividers.style.transform = `translateY(${travel * coverScale}px)`
     hands.setAttribute('transform', `translate(${10 * open} ${46 * open})`)
 
     fold.setAttribute(
@@ -135,13 +186,52 @@ export function createFolderOpening(track: HTMLElement, reduced: boolean) {
       height: `${height}px`,
     })
 
+    fixed = false
     hero.style.setProperty('--cover-height', `${hero.offsetHeight}px`)
+
+    const scrollY = window.scrollY
+    const guideTop = track.getBoundingClientRect().top + scrollY
+
+    // 滚动帧只按 sticky 的位置换算矩阵，避免写入 SVG 后再读取布局。
+    layout = {
+      cover: new DOMMatrix()
+        .translate(0, -hero.getBoundingClientRect().top)
+        .multiply(measureViewport(origin)),
+      page: new DOMMatrix()
+        .translate(0, -frameBounds.top)
+        .multiply(measureViewport(desk)),
+      runwayTop: runway.getBoundingClientRect().top + scrollY,
+      guideTop,
+      handoff: guideTop + frame.clientHeight / 2,
+      end: guideTop + track.offsetHeight - frame.offsetHeight,
+      heroHeight: hero.offsetHeight,
+      frameHeight: frame.clientHeight,
+      flowLeft: left,
+      flowTop: top,
+      fixedLeft: bounds.left + left,
+      fixedTop: bounds.top - frameBounds.top + top,
+    }
   }
 
   return {
     draw,
     refreshLayout,
+    handoff: () => layout.handoff,
     start: () =>
-      Math.max(0, runway.offsetTop + hero.offsetHeight - window.innerHeight),
+      runway.offsetTop + Math.max(0, hero.offsetHeight - window.innerHeight),
   }
+}
+
+function measureViewport(svg: SVGSVGElement) {
+  const matrix = DOMMatrix.fromMatrix(svg.getScreenCTM()!)
+  const bounds = svg.getBoundingClientRect()
+  const viewBox = svg.viewBox.baseVal
+  const x = viewBox.x + viewBox.width / 2
+  const y = viewBox.y + viewBox.height / 2
+
+  // WebKit 会误算旋转祖先下滚动后的平移；用实际视口中心还原。
+  matrix.e = bounds.left + bounds.width / 2 - matrix.a * x - matrix.c * y
+  matrix.f = bounds.top + bounds.height / 2 - matrix.b * x - matrix.d * y
+
+  return matrix
 }

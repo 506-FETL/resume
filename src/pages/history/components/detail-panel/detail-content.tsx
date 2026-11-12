@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Skeleton } from '@/components/ui/skeleton'
+import { PaperSkeleton } from '@/components/loading-skeleton'
 import { cn } from '@/lib/utils'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
@@ -160,8 +160,9 @@ export default function HistoryDetailContent({
                 }
               />
             ) : (
-              <Skeleton
-                className={cn('h-96 w-full', reduceMotion && 'animate-none')}
+              <PaperSkeleton
+                label='正在加载版本预览'
+                className='mx-auto max-w-[794px] shadow-sm'
               />
             )}
           </div>

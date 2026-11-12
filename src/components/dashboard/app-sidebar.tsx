@@ -3,6 +3,7 @@ import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { lazy, Suspense } from 'react'
 import { useLocation } from 'react-router-dom'
+import { AssistantNavigationSkeleton } from '@/components/page-skeletons/assistant'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import {
   Sidebar,
@@ -89,7 +90,7 @@ export function AppSidebar({
               }}
               className='flex min-h-48 flex-1 flex-col border-t border-sidebar-border group-data-[collapsible=icon]:min-h-0 group-data-[collapsible=icon]:flex-none'
             >
-              <Suspense fallback={null}>
+              <Suspense fallback={<AssistantNavigationSkeleton />}>
                 <ConversationNavigation />
               </Suspense>
             </PresenceDiv>

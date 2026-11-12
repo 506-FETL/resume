@@ -2,7 +2,7 @@ import type { Severity } from '../../types'
 import { Search } from 'lucide-react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
-import { ContentSkeleton } from '@/components/loading-skeleton'
+import { OptimizeFindingsSkeleton } from '@/components/page-skeletons/optimize'
 import { isAtsFindingPending } from '@/lib/ats'
 import useAtsStore from '../../store'
 import FindingItem from './finding-item'
@@ -11,6 +11,7 @@ const severityOrder: Severity[] = ['high', 'medium', 'low']
 
 export default function IssueAnalysis() {
   const { currentAtsConfig, loading, loadError, analysisError } = useAtsStore()
+  const initialLoading = loading && !currentAtsConfig
   const findings = currentAtsConfig?.findings
 
   const allFindings = severityOrder.flatMap((severity) =>
@@ -53,7 +54,7 @@ export default function IssueAnalysis() {
       </header>
       <AnimatedContent
         animationKey={
-          loading
+          initialLoading
             ? 'loading'
             : hasError
               ? 'error'
@@ -65,8 +66,8 @@ export default function IssueAnalysis() {
         }
         className='min-w-0'
       >
-        {loading ? (
-          <ContentSkeleton label='正在读取检测报告' className='px-0' rows={3} />
+        {initialLoading ? (
+          <OptimizeFindingsSkeleton />
         ) : !findings || totalFindings === 0 ? (
           <div className='flex flex-col items-center justify-center px-4 py-8 text-center text-muted-foreground'>
             <Search aria-hidden className='mb-3 size-6 opacity-40' />

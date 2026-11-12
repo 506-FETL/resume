@@ -108,7 +108,12 @@ function App() {
             >
               {isShareViewRoute ? (
                 <Suspense
-                  fallback={<RouteSkeleton pathname={location.pathname} />}
+                  fallback={
+                    <RouteSkeleton
+                      pathname={location.pathname}
+                      guest={authStatus === 'anonymous'}
+                    />
+                  }
                 >
                   {recoveryPending ? (
                     <PageLoading label='正在恢复会话' />
@@ -120,12 +125,15 @@ function App() {
                 <Suspense fallback={<PageLoading label='正在打开工作台' />}>
                   <DashboardShell
                     routeKey={location.pathname}
-                    fullBleed={
-                      isAssistantRoute && authStatus === 'authenticated'
-                    }
+                    fullBleed={isAssistantRoute && authStatus !== 'anonymous'}
                   >
                     <Suspense
-                      fallback={<RouteSkeleton pathname={location.pathname} />}
+                      fallback={
+                        <RouteSkeleton
+                          pathname={location.pathname}
+                          guest={authStatus === 'anonymous'}
+                        />
+                      }
                     >
                       {recoveryPending ? (
                         <PageLoading label='正在恢复会话' />

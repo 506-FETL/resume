@@ -21,7 +21,7 @@ export default function Management() {
   return (
     <PageLayout className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-2'>
       <motion.div
-        initial={reduceMotion ? false : SHARE_MOTION.page.initial}
+        initial={false}
         animate={SHARE_MOTION.page.animate}
         transition={{
           ...SHARE_MOTION.page.transition,

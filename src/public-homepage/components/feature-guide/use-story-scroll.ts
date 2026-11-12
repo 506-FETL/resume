@@ -277,21 +277,38 @@ function connectStory(
   const playhead = { position: 0 }
   let start = 0
   let guideTop = 0
+  let handoff = 0
   let end = 0
   let previousOpening = -1
+  let previousScroll = -1
+  let renderFrame: number | undefined
+  let layoutChanged = false
   let current = -1
   let mounted = true
 
   function measure() {
+    layoutChanged = false
     opening.refreshLayout()
     start = opening.start()
+    handoff = opening.handoff()
     guideTop = track.getBoundingClientRect().top + window.scrollY
     end = guideTop + track.offsetHeight - frame.offsetHeight
     previousOpening = -1
   }
 
   function render() {
-    const y = gsap.utils.interpolate(start, end, playhead.position)
+    if (renderFrame !== undefined) window.cancelAnimationFrame(renderFrame)
+
+    renderFrame = undefined
+
+    if (layoutChanged) {
+      driver.refresh()
+
+      return
+    }
+
+    const scrollY = window.scrollY
+    const y = end * playhead.position
     const open = gsap.utils.clamp(0, 1, (y - start) / (guideTop - start))
 
     const beat = gsap.utils.clamp(
@@ -318,15 +335,32 @@ function connectStory(
       })
     }
 
-    // 即使缓动已停，封面的坐标仍会随原生滚动移动。
-    if (open !== previousOpening || open === 0) opening.draw(open)
+    // 缓动与原生滚动共用一次绘制，封面停在起点时仍跟随页面位置。
+    if (
+      open !== previousOpening ||
+      ((scrollY < handoff || previousScroll < handoff) &&
+        scrollY !== previousScroll)
+    )
+      opening.draw(open, scrollY)
 
     previousOpening = open
+    previousScroll = scrollY
 
     if (index === current) return
 
     current = index
     showStep(index)
+  }
+
+  function scheduleRender() {
+    if (renderFrame !== undefined) return
+
+    renderFrame = window.requestAnimationFrame(render)
+  }
+
+  function scheduleLayout() {
+    layoutChanged = true
+    scheduleRender()
   }
 
   measure()
@@ -336,11 +370,12 @@ function connectStory(
     paused: true,
     ease: 'none',
     duration: 1,
-    onUpdate: render,
+    onUpdate: scheduleRender,
   })
 
   const driver = ScrollTrigger.create({
-    start: () => start,
+    // 开夹开始前仍跟踪页头滚出，避免固定画布到起点时一次补偿整段位移。
+    start: 0,
     end: () => end,
     animation: scrub,
     scrub: reduced ? true : DURATION.slow,
@@ -349,18 +384,20 @@ function connectStory(
       scrub.progress(self.progress)
       render()
     },
-    onUpdate: () => {
-      if (previousOpening < 1)
-        opening.draw(previousOpening < 0 ? 0 : previousOpening)
-    },
+    onUpdate: scheduleRender,
   })
 
   document.fonts.ready.then(() => {
     if (mounted) driver.refresh()
   })
 
+  window.addEventListener('resize', scheduleLayout)
+
   return () => {
     mounted = false
+    window.removeEventListener('resize', scheduleLayout)
+
+    if (renderFrame !== undefined) window.cancelAnimationFrame(renderFrame)
   }
 }
 

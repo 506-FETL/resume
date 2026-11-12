@@ -3,18 +3,12 @@ import type { AiConversation } from '@/lib/ai/types'
 import dayjs from 'dayjs'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
-import { Skeleton } from '@/components/ui/skeleton'
+import { AssistantConversationListSkeleton } from '@/components/page-skeletons/assistant'
 import { updateConversation } from '@/lib/supabase/ai'
 import { getErrorMessage } from '@/utils'
 import { useAssistantNavigation } from '../../hooks/use-assistant-navigation'
 import useAssistantStore from '../../store'
 import { ConversationItem } from './conversation-item'
-
-const LIST_SKELETON_KEYS = [
-  'conv-skeleton-1',
-  'conv-skeleton-2',
-  'conv-skeleton-3',
-] as const
 
 interface ConversationGroup {
   key: string
@@ -59,6 +53,7 @@ export default function ConversationList({
     conversations,
     activeConversationId: activeId,
     loadingConversations: loading,
+    initializing,
     pendingConversationId,
     bootstrapError,
   } = useAssistantStore(
@@ -66,6 +61,7 @@ export default function ConversationList({
       conversations: state.conversations,
       activeConversationId: state.activeConversationId,
       loadingConversations: state.loadingConversations,
+      initializing: state.initializing,
       pendingConversationId: state.pendingConversationId,
       bootstrapError: state.bootstrapError,
     })),
@@ -101,15 +97,8 @@ export default function ConversationList({
     }
   }
 
-  if (loading) {
-    return (
-      <div className='flex h-full min-h-0 flex-col gap-1 overflow-hidden px-2 py-1'>
-        {LIST_SKELETON_KEYS.map((key) => (
-          <Skeleton key={key} className='h-9 w-full rounded-lg' />
-        ))}
-      </div>
-    )
-  }
+  if (loading && initializing && conversations.length === 0)
+    return <AssistantConversationListSkeleton />
 
   if (conversations.length === 0) {
     return (
@@ -122,7 +111,10 @@ export default function ConversationList({
   }
 
   return (
-    <div className='min-h-0 flex-1 overflow-y-auto px-2 pb-2'>
+    <div
+      aria-busy={loading}
+      className='min-h-0 flex-1 overflow-y-auto px-2 pb-2'
+    >
       <div className='flex flex-col gap-4'>
         {groups.map((group) => (
           <div key={group.key} className='flex flex-col gap-0.5'>

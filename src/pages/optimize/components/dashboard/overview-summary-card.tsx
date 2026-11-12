@@ -1,7 +1,7 @@
 import { ArrowDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { OptimizeSummarySkeleton } from '@/components/page-skeletons/optimize'
 import { isAtsFindingPending } from '@/lib/ats'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
@@ -19,24 +19,7 @@ export default function OverviewSummaryCard({
   const { meta, readabilityIndex, summary } = currentAtsConfig ?? {}
   const assessment = meta?.rubricVersion === '2.0' ? meta.assessment : undefined
 
-  if (loading) {
-    return (
-      <section aria-label='正在读取检测报告' className='min-w-0 py-6'>
-        <div className='grid gap-6 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center md:gap-10'>
-          <div className='space-y-3'>
-            <Skeleton className='h-3 w-16' />
-            <Skeleton className='h-12 w-24' />
-            <Skeleton className='h-2 w-full' />
-          </div>
-          <div className='space-y-3'>
-            <Skeleton className='h-7 w-3/4' />
-            <Skeleton className='h-7 w-full' />
-            <Skeleton className='h-4 w-1/3' />
-          </div>
-        </div>
-      </section>
-    )
-  }
+  if (loading && !currentAtsConfig) return <OptimizeSummarySkeleton />
 
   if (!currentAtsConfig) {
     return (

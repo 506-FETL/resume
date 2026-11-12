@@ -21,6 +21,7 @@ useUserStore.subscribe((state) => {
   cancelActiveAssistantRun()
   useAssistantStore.getState().setConversations([])
   useAssistantStore.getState().setConversationView(null, [], {})
+  useAssistantStore.setState({ bootstrapGeneration: null, initializing: true })
 
   useConversationReadScope.setState((scope) => ({
     owner,

@@ -9,6 +9,7 @@ import { AutoScrollContainer } from '@/components/ui/auto-scroll-container'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AssistantMessagesSkeleton } from '@/components/page-skeletons/assistant'
 import { DURATION, EASE } from '@/lib/motion'
 import {
   CONVERSATION_BOTTOM_TARGET,
@@ -25,6 +26,7 @@ type MessageViewSnapshot = Pick<
   | 'initializing'
   | 'bootstrapError'
   | 'loadingMessages'
+  | 'pendingConversationId'
   | 'messages'
   | 'streaming'
   | 'activeConversationId'
@@ -39,18 +41,13 @@ type MessageViewSnapshot = Pick<
   | 'loadingOlder'
 >
 
-const LIST_SKELETON_KEYS = [
-  'msg-skeleton-1',
-  'msg-skeleton-2',
-  'msg-skeleton-3',
-] as const
-
 export default function MessageList() {
   const snapshot = useAssistantStore(
     useShallow((state) => ({
       initializing: state.initializing,
       bootstrapError: state.bootstrapError,
       loadingMessages: state.loadingMessages,
+      pendingConversationId: state.pendingConversationId,
       messages: state.messages,
       streaming: state.streaming,
       activeConversationId: state.activeConversationId,
@@ -70,58 +67,83 @@ export default function MessageList() {
     initializing,
     bootstrapError,
     loadingMessages,
+    pendingConversationId,
+    activeConversationId,
     messages,
     streaming,
     conversationViewVersion,
   } = snapshot
 
   const viewState =
-    initializing || loadingMessages
+    initializing ||
+    (loadingMessages &&
+      (!activeConversationId || pendingConversationId !== activeConversationId))
       ? 'loading'
-      : bootstrapError
+      : bootstrapError && !bootstrapError.preserveView
         ? 'error'
         : messages.length === 0 && !streaming
           ? 'empty'
           : 'ready'
 
   return (
-    <AnimatedContent animationKey={viewState} className='h-full min-h-0'>
-      {viewState === 'loading' ? (
-        <div className='mx-auto flex w-full max-w-4xl flex-col gap-4 px-6 py-6 lg:px-8'>
-          {LIST_SKELETON_KEYS.map((key) => (
-            <Skeleton key={key} className='h-16 w-2/3 rounded-2xl' />
-          ))}
-        </div>
-      ) : viewState === 'error' ? (
-        <div className='flex h-full flex-col items-center justify-center gap-3 p-6 text-center'>
-          <p role='alert' className='text-sm text-muted-foreground'>
-            对话暂时未能加载，请重试。
-          </p>
-          <Button
-            variant='outline'
-            onClick={() =>
-              useAssistantStore.setState((state) => ({
-                bootstrapAttempt: state.bootstrapAttempt + 1,
-              }))
-            }
+    <div className='flex h-full min-h-0 flex-col'>
+      <AnimatedContent
+        animationKey={bootstrapError?.preserveView ? 'refresh-error' : 'none'}
+      >
+        {bootstrapError?.preserveView && (
+          <div
+            role='alert'
+            className='flex items-center justify-between gap-3 border-b px-4 py-2 text-sm text-muted-foreground'
           >
-            重新加载
-          </Button>
-        </div>
-      ) : viewState === 'empty' ? (
-        <div className='flex h-full flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-6 text-center'>
-          <div className='flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary'>
-            <Sparkles className='size-6' />
+            <span>对话更新失败，当前内容已保留。</span>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() =>
+                useAssistantStore.setState((state) => ({
+                  bootstrapAttempt: state.bootstrapAttempt + 1,
+                }))
+              }
+            >
+              重试
+            </Button>
           </div>
-          <p className='text-base font-medium'>想先处理哪件求职的事？</p>
-          <p className='max-w-sm text-sm leading-relaxed text-muted-foreground'>
-            直接描述你的问题，或从下方工具中选择简历修改、岗位分析等任务。已有简历或职位时，可用加号加入参考。
-          </p>
-        </div>
-      ) : (
-        <LoadedMessages key={conversationViewVersion} snapshot={snapshot} />
-      )}
-    </AnimatedContent>
+        )}
+      </AnimatedContent>
+      <AnimatedContent animationKey={viewState} className='min-h-0 flex-1'>
+        {viewState === 'loading' ? (
+          <AssistantMessagesSkeleton />
+        ) : viewState === 'error' ? (
+          <div className='flex h-full flex-col items-center justify-center gap-3 p-6 text-center'>
+            <p role='alert' className='text-sm text-muted-foreground'>
+              对话暂时未能加载，请重试。
+            </p>
+            <Button
+              variant='outline'
+              onClick={() =>
+                useAssistantStore.setState((state) => ({
+                  bootstrapAttempt: state.bootstrapAttempt + 1,
+                }))
+              }
+            >
+              重新加载
+            </Button>
+          </div>
+        ) : viewState === 'empty' ? (
+          <div className='flex h-full flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-6 text-center'>
+            <div className='flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary'>
+              <Sparkles className='size-6' />
+            </div>
+            <p className='text-base font-medium'>想先处理哪件求职的事？</p>
+            <p className='max-w-sm text-sm leading-relaxed text-muted-foreground'>
+              直接描述你的问题，或从下方工具中选择简历修改、岗位分析等任务。已有简历或职位时，可用加号加入参考。
+            </p>
+          </div>
+        ) : (
+          <LoadedMessages key={conversationViewVersion} snapshot={snapshot} />
+        )}
+      </AnimatedContent>
+    </div>
   )
 }
 

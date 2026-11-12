@@ -1,11 +1,8 @@
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
+import { ShareOverviewSkeleton } from '@/components/page-skeletons/share'
 import useShareStore from '../../store'
 import { deriveShareStatus } from '../../utils'
 
 export default function Overview() {
-  const reduceMotion = useReducedMotion()
   const { allShares, pageLoading, pageError } = useShareStore()
 
   const metrics = [
@@ -20,6 +17,8 @@ export default function Overview() {
       value: allShares.reduce((sum, share) => sum + share.view_count, 0),
     },
   ]
+
+  if (pageLoading && allShares.length === 0) return <ShareOverviewSkeleton />
 
   return (
     <dl
@@ -38,15 +37,11 @@ export default function Overview() {
           </dt>
           <dd className='inline-flex items-center gap-1'>
             {index === 2 && <span>累计</span>}
-            {pageLoading ? (
-              <Skeleton
-                className={cn('h-4 w-5', reduceMotion && 'animate-none')}
-              />
-            ) : (
-              <span className='font-medium text-foreground tabular-nums'>
-                {pageError ? '—' : value.toLocaleString()}
-              </span>
-            )}
+            <span className='font-medium text-foreground tabular-nums'>
+              {pageError && allShares.length === 0
+                ? '—'
+                : value.toLocaleString()}
+            </span>
             <span>{label}</span>
           </dd>
         </div>

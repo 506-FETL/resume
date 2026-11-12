@@ -9,7 +9,7 @@ export default function OptimizeDashboard() {
     <div className='min-w-0'>
       <AnimatedContent
         animationKey={
-          loading ? 'loading' : currentAtsConfig ? 'summary' : 'empty'
+          currentAtsConfig ? 'summary' : loading ? 'loading' : 'empty'
         }
         className='min-w-0'
       >

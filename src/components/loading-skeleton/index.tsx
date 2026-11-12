@@ -22,7 +22,7 @@ export function LoadingRegion({
     <motion.div
       role='status'
       aria-busy='true'
-      initial={reduced ? false : { opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       transition={{ duration: reduced ? 0 : DURATION.fast, ease: EASE.out }}
       className={className}

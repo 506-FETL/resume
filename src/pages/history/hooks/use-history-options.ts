@@ -43,7 +43,7 @@ const useHistoryResumeOptionsStore = create<HistoryResumeOptionsStore>()(
         const message =
           loadError instanceof Error ? loadError.message : '简历列表加载失败'
 
-        set({ resumeOptions: [], error: message, hydrated: true })
+        set({ error: message, hydrated: true })
       } finally {
         if (request === generation) set({ loading: false })
       }

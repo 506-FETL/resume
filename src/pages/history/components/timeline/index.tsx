@@ -88,7 +88,7 @@ export default function HistoryTimeline({
         </div>
 
         <AnimatePresence initial={false}>
-          {!loading && versions.length > 0 && (
+          {versions.length > 0 && (
             <PresenceDiv
               key='filter'
               initial={{ height: 0, opacity: 0 }}
@@ -134,7 +134,7 @@ export default function HistoryTimeline({
             className='relative flex flex-col gap-1'
           >
             <AnimatePresence initial={false} mode='popLayout'>
-              {loading ? (
+              {loading && !currentResume ? (
                 <PresenceDiv key='loading' {...itemMotion}>
                   <TimelineLoadingState />
                 </PresenceDiv>

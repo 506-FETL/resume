@@ -54,7 +54,7 @@ export default function ConversationNavigation() {
         {expanded && (
           <motion.div
             key='conversation-list'
-            initial={{ height: 0, opacity: 0 }}
+            initial={initializing ? false : { height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{
               height: 0,

@@ -62,7 +62,11 @@ function ScaledReadonlyPreview({
   }, [resource.status, error, onDocumentStateChange])
 
   if (resource.status !== 'ready')
-    return <TemplateResourceStatus error={error ?? undefined} onRetry={retry} />
+    return (
+      <div className='mx-auto w-full max-w-[794px]'>
+        <TemplateResourceStatus error={error ?? undefined} onRetry={retry} />
+      </div>
+    )
 
   return (
     <ScaledResumeDocument

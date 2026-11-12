@@ -17,14 +17,13 @@ interface HistoryDetailPanelProps {
 }
 
 export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
-  const loading = useHistoryStore((state) => state.loading)
   const currentResume = useHistoryStore((state) => state.currentResume)
 
   return (
     <>
       <Card className='flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-hidden rounded-none border-0 bg-transparent py-0 shadow-none ring-0'>
         <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
-          {loading || !currentResume ? (
+          {!currentResume ? (
             <DetailPanelLoadingState />
           ) : state.selectedEntry ? (
             <HistoryDetailContent state={state} />

@@ -1,5 +1,4 @@
-import { LoadingRegion } from '@/components/loading-skeleton'
-import { Skeleton } from '@/components/ui/skeleton'
+import { DashboardChartSkeleton } from '@/components/page-skeletons/dashboard'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -87,17 +86,6 @@ function CardHead({
       </div>
       <CardDescription className='text-xs'>{description}</CardDescription>
     </CardHeader>
-  )
-}
-
-function ChartLoading() {
-  return (
-    <LoadingRegion
-      label='正在加载图表'
-      className={cn('w-full py-2', CHART_HEIGHT)}
-    >
-      <Skeleton className='h-full w-full rounded-sm' />
-    </LoadingRegion>
   )
 }
 
@@ -242,7 +230,7 @@ export function FunnelCard({
           animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}
         >
           {loading ? (
-            <ChartLoading />
+            <DashboardChartSkeleton />
           ) : hasData ? (
             <ChartContainer
               config={funnelConfig}
@@ -341,7 +329,7 @@ export function AtsTrendCard({
           }
         >
           {loading ? (
-            <ChartLoading />
+            <DashboardChartSkeleton />
           ) : trend.length === 1 ? (
             <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2'>
               <span className='text-2xl font-semibold tabular-nums'>
@@ -496,7 +484,7 @@ export function ActivityCard({
           animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}
         >
           {loading ? (
-            <ChartLoading />
+            <DashboardChartSkeleton />
           ) : total > 0 ? (
             <ChartContainer
               config={activityConfig}

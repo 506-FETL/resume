@@ -9,29 +9,20 @@ import {
   ASSISTANT_CANVAS_TAB_STORAGE_KEY,
   ASSISTANT_CANVAS_WIDTH_STORAGE_KEY,
   ASSISTANT_DEEP_THINKING_STORAGE_KEY,
-  CANVAS_DEFAULT_WIDTH,
   CANVAS_MAX_WIDTH,
   CANVAS_MIN_WIDTH,
   CANVAS_TABS,
 } from './const'
 import { readStoredBoolean, writeStoredBoolean } from './utils'
+import { readAssistantCanvasPreferences } from './canvas-preferences'
+
+const initialCanvasPreferences = readAssistantCanvasPreferences()
 
 // 本轮 token 用量（输入/输出/合计），用于会话层轻量展示成本
 export interface TokenUsage {
   input: number
   output: number
   total: number
-}
-
-function readStoredCanvasWidth(): number {
-  try {
-    const raw = Number(localStorage.getItem(ASSISTANT_CANVAS_WIDTH_STORAGE_KEY))
-
-    if (Number.isFinite(raw) && raw > 0)
-      return Math.min(CANVAS_MAX_WIDTH, Math.max(CANVAS_MIN_WIDTH, raw))
-  } catch {}
-
-  return CANVAS_DEFAULT_WIDTH
 }
 
 function readStoredCanvasTab(): CanvasTabKey {
@@ -50,8 +41,13 @@ interface AssistantStore {
   activeConversationId: string | null
   messages: AiMessage[]
   initializing: boolean
-  bootstrapError: { message: string; conversationId: string | null } | null
+  bootstrapError: {
+    message: string
+    conversationId: string | null
+    preserveView?: boolean
+  } | null
   bootstrapAttempt: number
+  bootstrapGeneration: number | null
   streaming: boolean
   streamingText: string
   streamingParts: AiMessagePart[]
@@ -139,6 +135,7 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   initializing: true,
   bootstrapError: null,
   bootstrapAttempt: 0,
+  bootstrapGeneration: null,
   streaming: false,
   streamingText: '',
   streamingParts: [],
@@ -152,7 +149,7 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   loadingMessages: false,
   searchOpen: false,
   deepThinking: readStoredBoolean(ASSISTANT_DEEP_THINKING_STORAGE_KEY, false),
-  canvasOpen: readStoredBoolean(ASSISTANT_CANVAS_STORAGE_KEY, true),
+  canvasOpen: initialCanvasPreferences.open,
   layoutMode: 'drawer',
   availableWidth: 0,
   setAssistantLayout: (layoutMode, availableWidth) =>
@@ -161,7 +158,7 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
       availableWidth,
       canvasMobileOpen: layoutMode === 'split' ? false : state.canvasMobileOpen,
     })),
-  canvasWidth: readStoredCanvasWidth(),
+  canvasWidth: initialCanvasPreferences.width,
   canvasMobileOpen: false,
   canvasActiveTab: readStoredCanvasTab(),
   canvasTabPinned: readStoredBoolean(

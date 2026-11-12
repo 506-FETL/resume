@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { Progress } from '@/components/ui/progress'
-import { ContentSkeleton } from '@/components/loading-skeleton'
+import { OptimizeChecklistSkeleton } from '@/components/page-skeletons/optimize'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 
@@ -22,6 +22,7 @@ export default function RepairChecklist() {
   const contentRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
   const checkboxGroupId = useId()
+  const initialLoading = loading && !currentAtsConfig
   const fixList = currentAtsConfig?.fixChecklist ?? []
   const completed = fixList.filter((item) => item.isDone).length
   const progress = fixList.length ? (completed / fixList.length) * 100 : 0
@@ -40,7 +41,7 @@ export default function RepairChecklist() {
       <div>
         <AnimatedContent
           animationKey={
-            loading
+            initialLoading
               ? 'loading'
               : !currentAtsConfig
                 ? 'unassessed'
@@ -49,12 +50,8 @@ export default function RepairChecklist() {
                   : 'checklist'
           }
         >
-          {loading ? (
-            <ContentSkeleton
-              label='正在读取修复清单'
-              className='p-0'
-              rows={2}
-            />
+          {initialLoading ? (
+            <OptimizeChecklistSkeleton />
           ) : fixList.length === 0 ? (
             <p className='text-sm leading-6 text-muted-foreground'>
               {currentAtsConfig

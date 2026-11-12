@@ -7,7 +7,7 @@ import { GETTING_STARTED_STEPS } from '../../const'
 interface GettingStartedProps {
   isAuthenticated: boolean
   hasResume: boolean
-  onCreate: MouseEventHandler<HTMLButtonElement>
+  onCreate?: MouseEventHandler<HTMLButtonElement>
 }
 
 export default function GettingStarted({
@@ -51,7 +51,7 @@ export default function GettingStarted({
             可以导入旧简历，也可以选择示例开始写。
           </p>
           <div className='mt-5 flex flex-wrap gap-2'>
-            <Button onClick={onCreate}>
+            <Button onClick={onCreate} disabled={!onCreate}>
               <FilePlus2 aria-hidden />
               创建第一份简历
             </Button>

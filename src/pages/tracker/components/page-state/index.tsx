@@ -8,15 +8,10 @@ import {
   SearchX,
   TriangleAlert,
 } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
-import { BOARD_COLUMNS } from '../../const'
 import { useTrackerFilterActions } from '../../hooks/use-tracker-filter-actions'
 import useTrackerStore from '../../store'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { selectTrackerListJobs } from '../../store/selectors'
 
 interface TrackerPageStateProps {
@@ -107,49 +102,6 @@ export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-export function TrackerSkeleton() {
-  const viewMode = useTrackerStore((state) => state.viewMode)
-  const isMobile = useIsMobile()
-  const reduce = useReducedMotion()
-  const still = reduce ? 'animate-none' : ''
-
-  return (
-    <div
-      role='status'
-      aria-label='正在加载职位'
-      className='flex min-h-0 min-w-0 flex-1 overflow-hidden'
-    >
-      {!isMobile && viewMode === 'board' ? (
-        <div className='flex w-full gap-3'>
-          {BOARD_COLUMNS.slice(0, 5).map((column) => (
-            <div
-              key={column.status}
-              className='min-w-[232px] flex-1 space-y-4 rounded-xl bg-muted/40 p-3'
-            >
-              <span className='text-sm font-medium'>{column.label}</span>
-              <div className='space-y-3 rounded-xl border bg-card p-4'>
-                <Skeleton className={cn('size-8 rounded-lg', still)} />
-                <Skeleton className={cn('h-4 w-3/4', still)} />
-                <Skeleton className={cn('h-3 w-1/2', still)} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className='w-full space-y-3'>
-          {['first', 'second', 'third', 'fourth'].map((key) => (
-            <Skeleton
-              key={key}
-              className={cn('h-20 w-full rounded-xl', still)}
-            />
-          ))}
-        </div>
-      )}
-      <span className='sr-only'>正在加载职位</span>
     </div>
   )
 }
