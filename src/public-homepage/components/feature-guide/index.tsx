@@ -70,16 +70,16 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
           <PencilArrow />
           <div className='story-clipping-sides'>
             <div data-note-side='job'>
-              <h3>看看这个岗位要什么</h3>
+              <h3>岗位要求</h3>
               <strong>{example.job}</strong>
               <blockquote>“{example.requirement}”</blockquote>
               <dl className='story-match'>
                 <div>
-                  <dt>已经写了</dt>
+                  <dt>写了</dt>
                   <dd>{example.covered}</dd>
                 </div>
                 <div>
-                  <dt>还没写</dt>
+                  <dt>可还没写</dt>
                   <dd>{example.missing}</dd>
                 </div>
               </dl>
@@ -104,7 +104,7 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
     case 'assistant':
       return (
         <div className='story-material story-margin-note story-request'>
-          <h3>让助手帮忙改</h3>
+          <h3>让AI助手帮忙</h3>
           <p>“先存下现在这份，再按下面的笔记，帮我改一下项目经历。”</p>
           <div className='story-source-note'>
             <strong>我当时做的事</strong>
@@ -117,8 +117,9 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
     case 'history':
       return (
         <div className='story-material story-margin-note'>
-          <h3>看看改之前的样子</h3>
-          <p>哪句改过、哪天补了日期，都能对照着看。想用原来的，也可以恢复。</p>
+          <h3>查看历史</h3>
+          <p>哪句改过、哪天补了日期，都能对照着看</p>
+          <p>想回退？一键恢复</p>
         </div>
       )
     case 'sharing':
@@ -129,9 +130,7 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
               发给朋友看看
               <HandUnderline />
             </dt>
-            <dd>
-              阿禾能在原句旁留言。你保存修改后，她打开链接就能看到新内容。
-            </dd>
+            <dd>能在原句旁留言。保存修改后，打开链接就能看到新内容。</dd>
           </div>
           <div>
             <dt>
@@ -139,8 +138,8 @@ function ChapterMaterial({ id, role }: { id: ChapterId; role: DemoRole }) {
               <HandUnderline />
             </dt>
             <dd>
-              选好要发的版本。以后再修改，招聘方看到的还是发出时的那份。也能下载
-              PDF 或 Word。
+              按版本发布。以后再修改，招聘方看到的还是发出时的那份。也能下载 PDF
+              或 Word。
             </dd>
           </div>
         </dl>

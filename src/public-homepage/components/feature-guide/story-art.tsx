@@ -231,7 +231,7 @@ function Resume({ role }: { role: DemoRole }) {
               stroke='none'
               fontSize='17'
             >
-              就这版
+              V1.0
             </text>
           </g>
         </g>

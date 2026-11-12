@@ -1,5 +1,5 @@
 const sequence = [
-  { id: 'templates', title: '选模板', pose: 0.76, beats: 1 },
+  { id: 'templates', title: '100+模板', pose: 0.76, beats: 1 },
   { id: 'review', title: '简历优化', pose: 1.999, beats: 3.5 },
   { id: 'assistant', title: 'AI 助手', pose: 2.89, beats: 3.2 },
   { id: 'collaboration', title: '实时协作', pose: 3.91, beats: 1.9 },

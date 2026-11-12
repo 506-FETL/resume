@@ -79,12 +79,12 @@ export default function PublicHomepage() {
               <div className='home-intro'>
                 <p className='cover-lead'>
                   <span>选模板写简历 ·&nbsp;</span>
-                  <span>按岗位各存一版</span>
+                  <span>按岗位保存</span>
                 </p>
                 <p className='cover-description'>
-                  AI 可以帮你改写项目经历
+                  AI 可以帮你优化项目经历
                   <br />
-                  投了哪家、哪天面试，也能记下来
+                  投了哪家 哪天面试 都能记下来
                 </p>
                 <div className='home-actions'>
                   <WorkspaceLink />
@@ -110,9 +110,9 @@ export default function PublicHomepage() {
               写<span>自己</span>的简历
             </h2>
             <p>
-              第一次写，可以挑一份示例
+              第一次用可以挑一份示例
               <br />
-              旧稿也能导入，PDF、DOCX 都行
+              已有简历也能导入，支持PDF、DOCX
             </p>
             <div className='home-actions'>
               <WorkspaceLink />
