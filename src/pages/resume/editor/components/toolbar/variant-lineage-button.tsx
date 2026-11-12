@@ -6,7 +6,7 @@ import { VariantLineagePath } from '@/components/jd-variant/components/lineage-t
 import { useVariantLineage } from '@/components/jd-variant/hooks/use-lineage'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -104,9 +104,11 @@ export function VariantLineageButton({
                 </Button>
               </Alert>
             ) : loading ? (
-              <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-                <Spinner aria-label='正在加载派生关系' />
-              </p>
+              <ContentSkeleton
+                label='正在加载派生关系'
+                className='p-0'
+                rows={2}
+              />
             ) : (
               <VariantLineagePath
                 tree={tree}

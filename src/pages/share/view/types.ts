@@ -4,7 +4,8 @@ import type { PersistedResumeSnapshot } from '@/lib/schema'
 
 export type ViewState =
   | { phase: 'loading' }
-  | { phase: 'password'; wrong: boolean; rateLimited: boolean }
+  | { phase: 'password'; wrong: boolean; rateLimited: boolean; error?: string }
+  | { phase: 'error' }
   | {
       sourceKind: 'current' | 'history'
       contentRevision?: string

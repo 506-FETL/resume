@@ -7,7 +7,8 @@ import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Spinner } from '@/components/ui/spinner'
+import { LoadingRegion } from '@/components/loading-skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { buildJobPriorities } from '../../job-priorities'
 
 export default function JobPriorities({
@@ -138,9 +139,17 @@ function PriorityCard({
           }
         >
           {pending ? (
-            <div className='flex items-center gap-2 py-2 text-sm text-muted-foreground'>
-              <Spinner aria-label={`正在加载${title}`} />
-            </div>
+            <LoadingRegion
+              label={`正在加载${title}`}
+              className='space-y-4 py-2'
+            >
+              {[0, 1].map((item) => (
+                <div key={item} className='space-y-2'>
+                  <Skeleton className='h-4 w-3/5' />
+                  <Skeleton className='h-3 w-4/5' />
+                </div>
+              ))}
+            </LoadingRegion>
           ) : unavailable ? (
             <p className='py-2 text-sm text-muted-foreground'>
               暂时无法读取{title}

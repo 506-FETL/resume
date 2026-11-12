@@ -29,7 +29,6 @@ import SortMenu from './sort-menu'
 export default function TrackerToolbar() {
   const {
     jobs,
-    loading,
     error,
     isInitialized,
     viewMode,
@@ -50,7 +49,6 @@ export default function TrackerToolbar() {
   } = useTrackerStore(
     useShallow((state) => ({
       jobs: selectTrackerListJobs(state),
-      loading: state.loading,
       error: state.error,
       isInitialized: state.isInitialized,
       viewMode: state.viewMode,
@@ -90,7 +88,7 @@ export default function TrackerToolbar() {
 
   const archivedCount = jobs.filter((job) => job.archived).length
 
-  const busy = loading || (!isInitialized && !error)
+  const busy = !isInitialized && !error
 
   const actionTransition = {
     transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
@@ -156,7 +154,9 @@ export default function TrackerToolbar() {
           </Button>
         </TooltipTrigger>
         <TooltipContent style={tooltipAnimation}>
-          {showArchived ? '返回在办职位' : `已归档（${archivedCount}）`}
+          {showArchived
+            ? '返回在办职位'
+            : `已归档（${isInitialized ? archivedCount : '—'}）`}
         </TooltipContent>
       </Tooltip>
       <Tooltip>
@@ -197,7 +197,7 @@ export default function TrackerToolbar() {
         <span className='sr-only' role='status'>
           {busy
             ? '正在加载职位'
-            : error
+            : error && !isInitialized
               ? '职位数量暂不可用'
               : `当前显示 ${count} 个职位`}
         </span>

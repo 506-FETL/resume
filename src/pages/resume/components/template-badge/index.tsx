@@ -4,7 +4,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DURATION } from '@/lib/motion'
 import useResumeListStore from '../../store'
 
@@ -47,18 +47,24 @@ export default function TemplateBadge({
         data-resume-template-tag={templateId ?? ''}
       >
         <Badge
+          asChild
           variant='secondary'
           title={title}
           className='max-w-full min-w-0 shrink text-muted-foreground transition-none'
         >
-          {loading ? (
-            <Spinner aria-label='正在加载模板名称' />
-          ) : (
-            <>
-              <LayoutTemplate className='shrink-0' aria-hidden />
-              <span className='truncate'>{label}</span>
-            </>
-          )}
+          <div>
+            {loading ? (
+              <div role='status'>
+                <span className='sr-only'>正在加载模板名称</span>
+                <Skeleton className='h-3 w-16' />
+              </div>
+            ) : (
+              <>
+                <LayoutTemplate className='shrink-0' aria-hidden />
+                <span className='truncate'>{label}</span>
+              </>
+            )}
+          </div>
         </Badge>
         {templateId && resource?.status === 'error' && (
           <button

@@ -11,7 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { resolveJobSubmission } from '@/lib/supabase/resume/submissions'
 import {
   createTrackerAccountGuard,
@@ -266,11 +266,11 @@ export default function SubmissionList({
             </Button>
           </Alert>
         ) : !rows ? (
-          <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-            <Spinner
-              aria-label={compact ? '正在读取投递原件' : '正在加载投递详情'}
-            />
-          </p>
+          <ContentSkeleton
+            label={compact ? '正在读取投递原件' : '正在加载投递详情'}
+            className='p-0'
+            rows={compact ? 1 : 2}
+          />
         ) : compact ? (
           <div className='space-y-2'>
             {(primary ? [primary] : legacy)
@@ -356,12 +356,11 @@ export default function SubmissionList({
                         </Button>
                       </Alert>
                     ) : !history ? (
-                      <p className='flex items-center gap-2 px-2.5 py-2 text-xs text-muted-foreground'>
-                        <Spinner
-                          className='size-3'
-                          aria-label='正在读取更正历史'
-                        />
-                      </p>
+                      <ContentSkeleton
+                        label='正在读取更正历史'
+                        className='px-2.5 py-2'
+                        rows={2}
+                      />
                     ) : history.length === 0 ? (
                       <p className='px-2.5 py-2 text-sm text-muted-foreground'>
                         暂无更正记录

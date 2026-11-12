@@ -2,6 +2,10 @@ import { useSearchParams } from 'react-router-dom'
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { PageLayout } from '@/components/layout/page-layout'
+import { AnimatedContent } from '@/components/motion/animated-content'
+import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
+import { useDelayedBusy } from '@/hooks/use-delayed-busy'
 import { useIsMobile } from '@/hooks/use-mobile'
 import BoardView from './components/board'
 import JobDrawer from './components/drawer'
@@ -85,7 +89,8 @@ function TrackerContent() {
   }, [routeJobId, routeTab, isInitialized, loading, jobs])
 
   const { reload } = useTrackerJobs()
-  const busy = loading || (!isInitialized && !error)
+  const busy = !isInitialized && (loading || !error)
+  const showRefreshing = useDelayedBusy(isInitialized && loading)
 
   const visibleJobs = useMemo(
     () =>
@@ -132,7 +137,7 @@ function TrackerContent() {
 
   const state = busy
     ? 'loading'
-    : error
+    : error && !isInitialized
       ? 'error'
       : scopedJobs.length === 0
         ? showArchived
@@ -154,6 +159,43 @@ function TrackerContent() {
           className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:border-t'
         >
           <TrackerToolbar />
+          {isInitialized && (
+            <div className='flex min-h-7 shrink-0 items-center text-xs text-muted-foreground'>
+              <span role='status' className='sr-only'>
+                {loading ? '正在刷新职位' : error ? `刷新失败：${error}` : ''}
+              </span>
+              <AnimatedContent
+                animationKey={
+                  error ? 'error' : showRefreshing ? 'refreshing' : 'idle'
+                }
+              >
+                {error ? (
+                  <div className='flex min-w-0 flex-wrap items-center gap-2'>
+                    <span className='break-words'>
+                      刷新失败，仍显示上次结果：{error}
+                    </span>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-7 px-2 text-xs'
+                      onClick={reload}
+                      disabled={loading}
+                    >
+                      重试
+                    </Button>
+                  </div>
+                ) : showRefreshing ? (
+                  <span
+                    className='inline-flex items-center gap-1.5'
+                    aria-hidden
+                  >
+                    <Spinner className='size-3' aria-hidden />
+                    正在刷新职位
+                  </span>
+                ) : null}
+              </AnimatedContent>
+            </div>
+          )}
           <ViewTransition
             id={isMobile ? 'tracker-mobile-results' : undefined}
             role={isMobile ? 'tabpanel' : undefined}

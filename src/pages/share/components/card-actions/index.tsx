@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Spinner } from '@/components/ui/spinner'
 import useShareStore from '../../store'
+import { hasShareOperationDialog } from '../../store/selectors'
 import { buildShareUrl } from '../../utils'
 import CopyLinkButton from '../copy-link-button'
 
@@ -37,6 +38,11 @@ export default function CardActions({ share }: { share: ResumeShareRecord }) {
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const actionAfterCloseRef = useRef<(() => void) | null>(null)
   const busy = pendingShareIds.includes(share.id)
+
+  const operationInDialog = useShareStore((state) =>
+    hasShareOperationDialog(state, share.id),
+  )
+
   const archived = Boolean(share.archivedAt)
   const title = share.label || share.display_name || '未命名简历'
   const url = buildShareUrl(share.token)
@@ -75,9 +81,14 @@ export default function CardActions({ share }: { share: ResumeShareRecord }) {
             size='icon'
             aria-label={`更多操作：${title}`}
             disabled={busy}
+            aria-busy={busy}
             className='text-muted-foreground shadow-none'
           >
-            {busy ? <Spinner /> : <MoreHorizontal className='size-4' />}
+            {busy && !operationInDialog ? (
+              <Spinner />
+            ) : (
+              <MoreHorizontal className='size-4' />
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent

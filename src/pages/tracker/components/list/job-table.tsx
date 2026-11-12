@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,7 +95,9 @@ export function CompanyGroupTitle({ job }: { job: JobApplication }) {
         {company ? (
           COMPANY_POLICY_LABELS[company.process_policy]
         ) : companiesLoading ? (
-          <Spinner className='size-3' aria-label='正在加载公司流程规则' />
+          <span role='status' aria-label='正在加载公司流程规则'>
+            <Skeleton className='inline-block h-3 w-16 align-middle' />
+          </span>
         ) : companiesError ? (
           '规则加载失败'
         ) : (

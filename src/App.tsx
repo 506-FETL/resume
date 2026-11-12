@@ -7,6 +7,7 @@ import { AuthRequired } from '@/components/auth-required'
 import { PresencePage } from '@/components/motion/presence-item'
 import { MotionProvider } from '@/components/motion/motion-provider'
 import { PageLoading } from '@/components/page-loading'
+import { RouteSkeleton } from '@/components/route-skeleton'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { DURATION, EASE } from '@/lib/motion'
@@ -106,19 +107,31 @@ function App() {
               className='h-dvh w-full'
             >
               {isShareViewRoute ? (
-                <Suspense fallback={<PageLoading />}>
-                  {recoveryPending ? <PageLoading /> : element}
+                <Suspense
+                  fallback={<RouteSkeleton pathname={location.pathname} />}
+                >
+                  {recoveryPending ? (
+                    <PageLoading label='正在恢复会话' />
+                  ) : (
+                    element
+                  )}
                 </Suspense>
               ) : (
-                <Suspense fallback={<PageLoading />}>
+                <Suspense fallback={<PageLoading label='正在打开工作台' />}>
                   <DashboardShell
                     routeKey={location.pathname}
                     fullBleed={
                       isAssistantRoute && authStatus === 'authenticated'
                     }
                   >
-                    <Suspense fallback={<PageLoading />}>
-                      {recoveryPending ? <PageLoading /> : page}
+                    <Suspense
+                      fallback={<RouteSkeleton pathname={location.pathname} />}
+                    >
+                      {recoveryPending ? (
+                        <PageLoading label='正在恢复会话' />
+                      ) : (
+                        page
+                      )}
                     </Suspense>
                   </DashboardShell>
                 </Suspense>

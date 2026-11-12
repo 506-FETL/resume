@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/responsive-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { DURATION, EASE } from '@/lib/motion'
 import { MIN_JD_CHARS } from '../const'
 import { useJdVariantGenerator } from '../hooks/use-generator'
@@ -329,9 +330,10 @@ export function JdVariantDialog({
                 }}
               >
                 {state.phase === 'idle' && initialJdLoading && (
-                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                    <Spinner aria-label='正在加载职位描述' />
-                  </div>
+                  <ContentSkeleton
+                    label='正在加载职位描述'
+                    className='min-h-48 px-0'
+                  />
                 )}
                 {state.phase === 'idle' && initialJdError && (
                   <Alert variant='destructive'>

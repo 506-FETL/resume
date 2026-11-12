@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -214,9 +215,17 @@ export function DerivedJobsDialog({
               </AlertDescription>
             </Alert>
           ) : loading ? (
-            <p className='mt-4 flex items-center gap-2 text-sm text-muted-foreground'>
-              <Spinner aria-label='正在读取任务' />
-            </p>
+            resumes.length === 0 && runningItems.length === 0 ? (
+              <ContentSkeleton
+                label='正在读取任务'
+                className='mt-4 px-0'
+                rows={2}
+              />
+            ) : (
+              <p role='status' className='mt-4 text-sm text-muted-foreground'>
+                正在更新任务…
+              </p>
+            )
           ) : null}
         </AnimatedContent>
 

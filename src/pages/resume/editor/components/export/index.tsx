@@ -3,6 +3,7 @@ import type { CheckFilter } from '../../store/checks'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { createDeferredComponent } from '@/components/deferred-content'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ interface ExportDialogProps {
 const ExportContent = createDeferredComponent(
   () => import('./components/dialog-content'),
   '导出选项',
+  <ContentSkeleton label='正在加载导出选项' />,
 )
 
 export default function ExportDialog({ trigger }: ExportDialogProps) {

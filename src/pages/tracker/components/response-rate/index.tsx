@@ -8,7 +8,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Spinner } from '@/components/ui/spinner'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '../../hooks/use-count-up'
@@ -49,10 +48,11 @@ function ResponseRate() {
         }}
       >
         <p className='font-medium'>响应率怎么算？</p>
+        <p>
+          响应率 = 已留档且进入测评或后续阶段的岗位数 ÷ 已确认投递的岗位数。
+        </p>
         {busy ? (
-          <p>
-            <Spinner className='size-3.5' aria-label='正在加载职位记录' />
-          </p>
+          <p role='status'>职位记录尚未读完，暂时无法计算。</p>
         ) : error ? (
           <p>职位记录加载失败，暂时无法计算。</p>
         ) : stats.historicalApplied === 0 ? (

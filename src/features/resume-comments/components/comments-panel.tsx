@@ -1,6 +1,7 @@
 import type { PendingCommentCreationSnapshot } from '../store/types.ts'
 import type { CommentUiPermissions } from './types.ts'
 import { createDeferredComponent } from '@/components/deferred-content'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import {
   Drawer,
   DrawerContent,
@@ -14,6 +15,7 @@ import { useCommentMobileLayout } from '../hooks/use-comment-mobile-layout.ts'
 const PanelBody = createDeferredComponent(
   () => import('./comments-panel-content.tsx'),
   '评论面板',
+  <ContentSkeleton label='正在加载评论面板' />,
 )
 
 export function CommentsPanel({

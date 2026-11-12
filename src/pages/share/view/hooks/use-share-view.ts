@@ -39,6 +39,9 @@ export function useShareView(token: string | undefined) {
 
       const previous = store.getState().state
 
+      if (previous.phase === 'error')
+        store.getState().setState({ phase: 'loading' })
+
       const request = async () => {
         try {
           const result = await fetchSharedResume(
@@ -78,8 +81,15 @@ export function useShareView(token: string | undefined) {
 
           session.failures += 1
 
-          if (store.getState().state.phase !== 'ready')
-            store.getState().setState({ phase: 'unavailable' })
+          if (previous.phase === 'password')
+            store.getState().setState({
+              phase: 'password',
+              wrong: false,
+              rateLimited: false,
+              error: '暂时无法验证密码，请重试。',
+            })
+          else if (store.getState().state.phase !== 'ready')
+            store.getState().setState({ phase: 'error' })
 
           throw error
         } finally {

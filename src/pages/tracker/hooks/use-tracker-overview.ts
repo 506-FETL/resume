@@ -7,7 +7,6 @@ import { getTrackerOverviewStats } from '../utils'
 export function useTrackerOverview() {
   const {
     jobs,
-    loading,
     error,
     isInitialized,
     showArchived,
@@ -17,7 +16,6 @@ export function useTrackerOverview() {
   } = useTrackerStore(
     useShallow((state) => ({
       jobs: selectTrackerListJobs(state),
-      loading: state.loading,
       error: Boolean(state.error),
       isInitialized: state.isInitialized,
       showArchived: state.showArchived,
@@ -41,8 +39,8 @@ export function useTrackerOverview() {
 
   return {
     stats,
-    busy: loading || (!isInitialized && !error),
-    error,
+    busy: !isInitialized && !error,
+    error: !isInitialized && error,
     showArchived,
   }
 }

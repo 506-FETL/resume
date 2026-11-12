@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { staggerDelay } from '@/lib/motion'
 import {
   DEFAULT_VERSION_FILTER,
@@ -64,7 +64,11 @@ export default function HistoryTimeline({
             版本记录
           </h2>
           <span className='text-xs tabular-nums text-muted-foreground'>
-            {loading ? <Spinner aria-hidden /> : `${versions.length} 个版本`}
+            {loading && !currentResume ? (
+              <Skeleton className='h-3 w-14' />
+            ) : (
+              `${versions.length} 个版本`
+            )}
           </span>
         </div>
 

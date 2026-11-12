@@ -35,7 +35,10 @@ function StatisticalCard({
           className='h-full'
         >
           {jobsLoading ? (
-            <StatSkeleton />
+            <StatSkeleton
+              title='已投递'
+              icon={<Send className='size-4 text-muted-foreground' />}
+            />
           ) : (
             <StatCard
               title='已投递'
@@ -55,7 +58,10 @@ function StatisticalCard({
           className='h-full'
         >
           {jobsLoading ? (
-            <StatSkeleton />
+            <StatSkeleton
+              title='面试进行中'
+              icon={<Users className='size-4 text-muted-foreground' />}
+            />
           ) : (
             <StatCard
               title='面试进行中'
@@ -71,7 +77,10 @@ function StatisticalCard({
           className='h-full'
         >
           {jobsLoading ? (
-            <StatSkeleton />
+            <StatSkeleton
+              title='收到 Offer'
+              icon={<CircleCheckBig className='size-4 text-muted-foreground' />}
+            />
           ) : (
             <StatCard
               title='收到 Offer'
@@ -87,7 +96,10 @@ function StatisticalCard({
           className='h-full'
         >
           {atsLoading ? (
-            <StatSkeleton />
+            <StatSkeleton
+              title='平均 ATS 分'
+              icon={<Sparkles className='size-4 text-muted-foreground' />}
+            />
           ) : (
             <StatCard
               title='平均 ATS 分'

@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { createDeferredComponent } from '@/components/deferred-content'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
@@ -22,6 +23,7 @@ import ShareDrawer from '../share-drawer'
 const QuickDialogContent = createDeferredComponent(
   () => import('./content'),
   '分享面板',
+  <ContentSkeleton label='正在加载分享面板' />,
 )
 
 interface QuickDialogProps {

@@ -60,12 +60,14 @@ export default function ConversationList({
     activeConversationId: activeId,
     loadingConversations: loading,
     pendingConversationId,
+    bootstrapError,
   } = useAssistantStore(
     useShallow((state) => ({
       conversations: state.conversations,
       activeConversationId: state.activeConversationId,
       loadingConversations: state.loadingConversations,
       pendingConversationId: state.pendingConversationId,
+      bootstrapError: state.bootstrapError,
     })),
   )
 
@@ -112,7 +114,9 @@ export default function ConversationList({
   if (conversations.length === 0) {
     return (
       <div className='flex h-full min-h-0 items-start justify-center px-3 pt-8'>
-        <p className='text-center text-xs text-muted-foreground'>暂无对话</p>
+        <p className='text-center text-xs text-muted-foreground'>
+          {bootstrapError ? '对话暂时未能加载' : '暂无对话'}
+        </p>
       </div>
     )
   }

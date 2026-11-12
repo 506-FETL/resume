@@ -11,6 +11,8 @@ import { buildTemplateResumeData } from '@/components/resume/runtime/context/res
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { ContentSkeleton, PaperSkeleton } from '@/components/loading-skeleton'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Spinner } from '@/components/ui/spinner'
 import {
   Select,
@@ -138,12 +140,7 @@ export default function DrawerDocument() {
               htmlFor='tracker-resume-select'
               className='flex items-center gap-1.5 text-xs text-muted-foreground'
             >
-              {binding && (
-                <Spinner
-                  aria-hidden
-                  className={reduce ? 'animate-none' : undefined}
-                />
-              )}
+              {binding && <Spinner aria-hidden />}
               <span aria-live='polite'>
                 {binding ? '正在更新绑定…' : '绑定简历'}
               </span>
@@ -191,9 +188,7 @@ export default function DrawerDocument() {
           </Button>
         </div>
       ) : !resumes ? (
-        <div className='flex items-center gap-2 py-2 text-sm text-muted-foreground'>
-          <Spinner aria-label='正在加载简历列表' />
-        </div>
+        <ContentSkeleton label='正在加载简历列表' className='p-0' rows={1} />
       ) : resumes.length === 0 ? (
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <p className='text-sm text-muted-foreground'>还没有可绑定的简历</p>
@@ -208,7 +203,12 @@ export default function DrawerDocument() {
       ) : null}
       <PreparationActions />
       {resumeId && (
-        <div className='min-w-0 overflow-hidden rounded-lg bg-muted/35'>
+        <AnimatedContent
+          animationKey={
+            currentPreviewError ? 'error' : currentPreview ? 'ready' : 'loading'
+          }
+          className='min-w-0 overflow-hidden rounded-lg bg-muted/35'
+        >
           {currentPreviewError ? (
             <div
               role='alert'
@@ -224,11 +224,12 @@ export default function DrawerDocument() {
           ) : currentPreview ? (
             <SharedResumePreview data={currentPreview} />
           ) : (
-            <div className='flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground'>
-              <Spinner aria-label='正在加载简历预览' />
-            </div>
+            <PaperSkeleton
+              label='正在加载简历预览'
+              className='mx-auto max-w-lg'
+            />
           )}
-        </div>
+        </AnimatedContent>
       )}
     </section>
   )

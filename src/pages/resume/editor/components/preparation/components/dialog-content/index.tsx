@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import {
   Select,
   SelectContent,
@@ -173,9 +173,7 @@ export default function PreparationContent({
   return (
     <>
       {loading ? (
-        <p>
-          <Spinner aria-label='正在读取填写记录' />
-        </p>
+        <ContentSkeleton label='正在读取填写记录' className='px-0' />
       ) : error ? (
         <div role='alert'>
           <p>{error}</p>

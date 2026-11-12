@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import { createDeferredComponent } from '@/components/deferred-content'
+import { LoadingRegion, PaperSkeleton } from '@/components/loading-skeleton'
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,14 @@ import { useTemplateSwitchStore } from '../../template-switch/store'
 const DialogBody = createDeferredComponent(
   () => import('./components/dialog-body'),
   '模板选择',
+  <LoadingRegion
+    label='正在加载模板选择'
+    className='grid grid-cols-2 gap-4 p-5 md:grid-cols-4'
+  >
+    {[0, 1, 2, 3].map((item) => (
+      <PaperSkeleton key={item} className='rounded-lg border' compact />
+    ))}
+  </LoadingRegion>,
 )
 
 export default function TemplateSwitchDialog({

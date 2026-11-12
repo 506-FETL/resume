@@ -5,7 +5,7 @@ import { DURATION } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Spinner } from '@/components/ui/spinner'
+import { PaperSkeleton } from '@/components/loading-skeleton'
 import {
   Dialog,
   DialogContent,
@@ -133,9 +133,10 @@ export default function MaterialPreview({
                 </Button>
               </Alert>
             ) : !material ? (
-              <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-                <Spinner aria-label='正在加载投递原件' />
-              </p>
+              <PaperSkeleton
+                label='正在加载投递原件'
+                className='mx-auto max-w-lg'
+              />
             ) : (
               <>
                 {revisionId && (

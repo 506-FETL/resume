@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import useTrackerStore from '../../../store'
 
 type SubmissionJd = { jdText: string | null; jdUpdatedAt: string | null }
@@ -64,9 +64,7 @@ export default function SubmissionJd({
       ) : data ? (
         <SubmissionJdContent {...data} />
       ) : (
-        <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-          <Spinner aria-label='正在加载 JD 副本' />
-        </p>
+        <ContentSkeleton label='正在加载 JD 副本' className='p-0' rows={2} />
       )}
     </AnimatedContent>
   )

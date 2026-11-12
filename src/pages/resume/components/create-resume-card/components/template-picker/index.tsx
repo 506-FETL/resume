@@ -1,4 +1,6 @@
 import { Spinner } from '@/components/ui/spinner'
+import { PaperSkeleton } from '@/components/loading-skeleton'
+import CatalogSkeleton from '@/pages/template/components/catalog-skeleton'
 import type {
   ExampleRef,
   TemplateCatalogItem,
@@ -232,6 +234,9 @@ export default function TemplatePicker({
           aria-hidden={details}
           className='absolute inset-0 space-y-4 overflow-y-auto overscroll-y-contain p-1'
         >
+          {loading && items.length === 0 && (
+            <CatalogSkeleton className='grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4' />
+          )}
           <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
             {items.map((item, index) => (
               <TemplateOption
@@ -284,7 +289,7 @@ export default function TemplatePicker({
                 {error}
               </p>
             )}
-            {nextOffset !== null && (
+            {nextOffset !== null && (!loading || items.length > 0) && (
               <Button
                 variant='outline'
                 size='sm'
@@ -323,7 +328,10 @@ export default function TemplatePicker({
                   className='flex h-full flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground'
                 >
                   {entryStatus === 'loading' ? (
-                    <Spinner className='size-6' aria-label='正在读取已选模板' />
+                    <PaperSkeleton
+                      label='正在读取已选模板'
+                      className='h-full'
+                    />
                   ) : (
                     <FileText aria-hidden className='size-8' />
                   )}
@@ -403,7 +411,13 @@ function TemplateOption({
   )
 
   const thumbnail = url ? (
-    <img
+    <motion.img
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: reduceMotion ? 0 : DURATION.base,
+        ease: EASE.out,
+      }}
       src={url}
       alt={`${item.name}排版预览`}
       width={preview?.asset.width}
@@ -418,12 +432,12 @@ function TemplateOption({
       data-template-preview-status={status}
       className='flex h-full flex-col items-center justify-center gap-2 text-muted-foreground'
     >
-      {status === 'loading' ? (
-        <Spinner className='size-5' aria-label='正在加载模板预览' />
+      {status === 'loading' || status === 'idle' ? (
+        <PaperSkeleton label='正在加载模板预览' className='h-full' compact />
       ) : (
         <FileText className='size-6' />
       )}
-      {status !== 'loading' && (
+      {status !== 'loading' && status !== 'idle' && (
         <span className='text-xs'>
           {status === 'error'
             ? '预览加载失败'

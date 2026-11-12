@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { DURATION, EASE } from '@/lib/motion'
 import { TrackerProcessError } from '@/lib/supabase/resume/tracker-companies'
 import { APPLICATION_STATUS_CONFIG } from '../../../const'
@@ -142,9 +142,11 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
             className='space-y-4'
           >
             {companiesLoading && !company && (
-              <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-                <Spinner aria-label='正在加载公司信息' />
-              </p>
+              <ContentSkeleton
+                label='正在加载公司信息'
+                className='p-0'
+                rows={2}
+              />
             )}
             {companiesError && (
               <Alert variant='destructive'>

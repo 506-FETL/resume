@@ -103,7 +103,7 @@ export default function CatalogFooter() {
           <p role='status' className='text-xs text-muted-foreground'>
             已展示全部
             <Badge variant='outline' className='mx-1'>
-              {catalog.status === 'ready' ? catalog.data.length : 0}
+              {catalog.status === 'ready' ? catalog.data.length : '—'}
             </Badge>
             套模板
           </p>

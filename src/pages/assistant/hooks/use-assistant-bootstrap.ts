@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { toast } from 'sonner'
 import {
   loadAssistantConversations,
   loadAssistantMessages,
@@ -15,6 +14,7 @@ import {
 
 export function useAssistantBootstrap() {
   const scope = useConversationReadScope()
+  const attempt = useAssistantStore((state) => state.bootstrapAttempt)
 
   useEffect(() => {
     let cancelled = false
@@ -24,11 +24,17 @@ export function useAssistantBootstrap() {
       scope.generation === useConversationReadScope.getState().generation
 
     const load = async () => {
+      const retryConversationId =
+        useAssistantStore.getState().bootstrapError?.conversationId ?? null
+
+      let restoringConversationId = retryConversationId
+
       useAssistantStore.setState({
-        conversations: [],
+        ...(!retryConversationId && { conversations: [] }),
         messages: [],
         initializing: true,
-        loadingConversations: true,
+        bootstrapError: null,
+        loadingConversations: !retryConversationId,
         loadingMessages: false,
         pendingConversationId: null,
         conversationLoadRequestId: null,
@@ -56,11 +62,14 @@ export function useAssistantBootstrap() {
       }
 
       try {
-        const conversations = await loadAssistantConversations()
+        const conversations = retryConversationId
+          ? useAssistantStore.getState().conversations
+          : await loadAssistantConversations()
 
         if (!ownsRequest()) return
 
         useAssistantStore.getState().setConversations(conversations)
+        useAssistantStore.getState().setLoadingConversations(false)
 
         if (!ownsView()) {
           finishBootstrap()
@@ -71,11 +80,15 @@ export function useAssistantBootstrap() {
         const currentActiveId =
           useAssistantStore.getState().activeConversationId
 
-        const restored = chooseRestoredConversation(
-          conversations,
-          currentActiveId,
-          readLastConversationId(),
-        )
+        const restored = retryConversationId
+          ? conversations.find(
+              (conversation) => conversation.id === retryConversationId,
+            )
+          : chooseRestoredConversation(
+              conversations,
+              currentActiveId,
+              readLastConversationId(),
+            )
 
         if (!restored) {
           useAssistantStore.setState({
@@ -87,6 +100,8 @@ export function useAssistantBootstrap() {
 
           return
         }
+
+        restoringConversationId = restored.id
 
         const { messages, hasMore } = await loadAssistantMessages(restored.id)
 
@@ -111,6 +126,7 @@ export function useAssistantBootstrap() {
 
         if (!ownsView()) return
         if (getErrorMessage(error) === '用户未登录') {
+          restoringConversationId = null
           useAssistantStore.getState().setConversations([])
           useAssistantStore.getState().setConversationView(null, [], {})
         }
@@ -121,9 +137,12 @@ export function useAssistantBootstrap() {
           loadingMessages: false,
           pendingConversationId: null,
           conversationLoadRequestId: null,
+          activeConversationId: null,
+          bootstrapError: {
+            message: getErrorMessage(error),
+            conversationId: restoringConversationId,
+          },
         })
-
-        toast.error('加载会话失败', { description: getErrorMessage(error) })
       }
     }
 
@@ -133,5 +152,5 @@ export function useAssistantBootstrap() {
       cancelled = true
       cancelActiveAssistantRun()
     }
-  }, [scope.generation])
+  }, [scope.generation, attempt])
 }

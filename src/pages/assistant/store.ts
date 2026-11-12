@@ -50,6 +50,8 @@ interface AssistantStore {
   activeConversationId: string | null
   messages: AiMessage[]
   initializing: boolean
+  bootstrapError: { message: string; conversationId: string | null } | null
+  bootstrapAttempt: number
   streaming: boolean
   streamingText: string
   streamingParts: AiMessagePart[]
@@ -135,6 +137,8 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   activeConversationId: null,
   messages: [],
   initializing: true,
+  bootstrapError: null,
+  bootstrapAttempt: 0,
   streaming: false,
   streamingText: '',
   streamingParts: [],
@@ -210,6 +214,7 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   setConversationView: (conversationId, messages, options) =>
     set((state) => ({
       activeConversationId: conversationId,
+      bootstrapError: null,
       messages,
       targetMessageId: options?.targetMessageId ?? null,
       hasMoreMessages: options?.hasMore ?? false,
@@ -324,6 +329,7 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   reset: () =>
     set((state) => ({
       activeConversationId: null,
+      bootstrapError: null,
       messages: [],
       streaming: false,
       streamingText: '',

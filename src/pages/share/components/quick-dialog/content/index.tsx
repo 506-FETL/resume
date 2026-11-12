@@ -6,7 +6,7 @@ import { RefreshCcw } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { CreateForm } from '../create-form'
 import { LinkRow } from '../link-row'
 
@@ -74,7 +74,7 @@ export default function QuickDialogContent({
         </div>
         <AnimatedContent
           animationKey={
-            display?.loading
+            display?.loading && !display.shares.length
               ? 'loading'
               : display?.error
                 ? 'error'
@@ -84,10 +84,12 @@ export default function QuickDialogContent({
           }
           className='empty:hidden'
         >
-          {display?.loading ? (
-            <div className='flex items-center gap-2 py-3 text-sm text-muted-foreground'>
-              <Spinner aria-label='正在加载分享链接' />
-            </div>
+          {display?.loading && !display.shares.length ? (
+            <ContentSkeleton
+              label='正在加载分享链接'
+              className='px-0'
+              rows={2}
+            />
           ) : display?.error ? (
             <div
               role='alert'

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { useDelayedBusy } from '@/hooks/use-delayed-busy'
 import { readableConversationTitle } from '../../composer-references'
 import { cn } from '@/lib/utils'
 import { ConversationActions } from './conversation-actions'
@@ -31,6 +32,7 @@ export function ConversationItem({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(title)
   const [pendingDelete, setPendingDelete] = useState(false)
+  const showPending = useDelayedBusy(pending)
 
   const commitRename = () => {
     const next = draft.trim()
@@ -90,6 +92,7 @@ export function ConversationItem({
               : 'text-foreground/80 hover:bg-accent/60 hover:text-foreground',
           )}
           onClick={() => onSelect(conversation.id)}
+          aria-busy={pending}
         >
           <span className='min-w-0 flex-1 truncate'>{title}</span>
         </button>
@@ -99,7 +102,14 @@ export function ConversationItem({
 
         <div className='absolute inset-y-0 right-1 flex items-center'>
           {pending ? (
-            <Spinner className='mr-1.5 size-4 text-muted-foreground' />
+            <span className='mr-1.5 size-4'>
+              {showPending && (
+                <Spinner
+                  className='size-4 text-muted-foreground'
+                  aria-label='正在打开对话'
+                />
+              )}
+            </span>
           ) : (
             <ConversationActions
               title={title}

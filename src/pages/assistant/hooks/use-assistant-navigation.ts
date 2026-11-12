@@ -86,6 +86,8 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
       useAssistantStore.setState({
         streaming: false,
+        initializing: false,
+        bootstrapError: null,
         streamingText: '',
         streamingParts: [],
         composerSkillIds: [],

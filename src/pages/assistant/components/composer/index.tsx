@@ -102,6 +102,7 @@ export default function Composer() {
     composerDraft: draft,
     composerSkillIds,
     initializing,
+    bootstrapError,
     loadingMessages,
     deepThinking,
     setDeepThinking,
@@ -111,6 +112,7 @@ export default function Composer() {
       composerDraft: state.composerDraft,
       composerSkillIds: state.composerSkillIds,
       initializing: state.initializing,
+      bootstrapError: state.bootstrapError,
       loadingMessages: state.loadingMessages,
       deepThinking: state.deepThinking,
       setDeepThinking: state.setDeepThinking,
@@ -119,7 +121,9 @@ export default function Composer() {
 
   const { sendMessage, stopStreaming } = useChatStream()
   const { resumes, jobs } = useComposerContext()
-  const disabled = streaming || initializing || loadingMessages
+
+  const disabled =
+    streaming || initializing || loadingMessages || Boolean(bootstrapError)
 
   const { text: visibleDraft, references } = useMemo(
     () => parseComposerDraft(draft),

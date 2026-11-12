@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import useResumeListStore from '@/pages/resume/store'
 import { formatDate } from '@/utils/date'
 
@@ -104,10 +104,16 @@ export default function SyncResumesDialog() {
                 listLoading ? 'loading' : listError ? 'error' : 'ready'
               }
             >
-              {listLoading ? (
-                <p className='text-sm text-muted-foreground'>
-                  <Spinner aria-label='正在读取本地简历' />
+              {listLoading && offlineResumes.length > 0 ? (
+                <p role='status' className='sr-only'>
+                  正在读取本地简历
                 </p>
+              ) : listLoading ? (
+                <ContentSkeleton
+                  label='正在读取本地简历'
+                  rows={3}
+                  className='px-0'
+                />
               ) : listError ? (
                 <div
                   role='alert'
@@ -144,7 +150,9 @@ export default function SyncResumesDialog() {
               htmlFor='select-all'
               className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer'
             >
-              全选 ({selectedIds.length}/{offlineResumes.length})
+              {listLoading || listError
+                ? '全选'
+                : `全选 (${selectedIds.length}/${offlineResumes.length})`}
             </label>
           </div>
 

@@ -1,4 +1,3 @@
-import { Spinner } from '@/components/ui/spinner'
 import type { TemplateSwitchPreviewState } from '@/pages/resume/editor/components/template-switch-preview'
 import { ArrowRight, ImageOff, Undo2 } from 'lucide-react'
 import { motion } from 'motion/react'
@@ -198,7 +197,6 @@ export default function TemplateSwitchDialogBody() {
                   '预览暂不可用'
                 ) : (
                   <>
-                    <Spinner aria-hidden className='size-3' />
                     <span className='sr-only'>
                       正在准备预览，完成后自动更新
                     </span>

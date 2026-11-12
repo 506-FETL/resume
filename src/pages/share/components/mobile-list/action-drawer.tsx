@@ -15,6 +15,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import useShareStore from '../../store'
+import { hasShareOperationDialog } from '../../store/selectors'
 import { getShareReturnFocus } from '../../hooks/use-share-dialog-focus'
 import { buildShareUrl } from '../../utils'
 
@@ -42,6 +43,10 @@ export default function ActionDrawer({
 
   const reduceMotion = useReducedMotion()
   const busy = Boolean(share && pendingShareIds.includes(share.id))
+
+  const operationInDialog = useShareStore((state) =>
+    hasShareOperationDialog(state, share?.id ?? null),
+  )
 
   const handleDrawerOpenChange: NonNullable<
     ComponentProps<typeof Drawer>['onOpenChange']
@@ -161,8 +166,9 @@ export default function ActionDrawer({
           className='h-11 w-full justify-start'
           disabled={busy || Boolean(share?.archivedAt)}
           onClick={handleToggleActive}
+          aria-busy={busy}
         >
-          {busy ? (
+          {busy && !operationInDialog ? (
             <Spinner data-icon='inline-start' />
           ) : (
             <Power data-icon='inline-start' />

@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { useParams } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
-import { PageLoading } from '@/components/page-loading'
+import { RouteSkeleton } from '@/components/route-skeleton'
 import { A4_PAGE_WIDTH } from '@/components/resume/pagination/const'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
@@ -92,10 +92,22 @@ export default function ResumeSharePage() {
 
   const renderContent = () => {
     if (state.phase === 'loading') {
+      return <RouteSkeleton pathname='/share/view/loading' />
+    }
+
+    if (state.phase === 'error') {
       return (
-        <div>
-          <PageLoading className='min-h-dvh bg-muted/30' label='正在加载简历' />
-        </div>
+        <CenteredMessage
+          title='暂时无法加载简历'
+          text='连接失败，请检查网络后重试。'
+        >
+          <Button
+            variant='outline'
+            onClick={() => load().catch(() => undefined)}
+          >
+            重新加载
+          </Button>
+        </CenteredMessage>
       )
     }
 
@@ -128,10 +140,21 @@ export default function ResumeSharePage() {
             />
             <AnimatedContent
               animationKey={
-                state.rateLimited ? 'limited' : state.wrong ? 'wrong' : 'none'
+                state.error
+                  ? 'error'
+                  : state.rateLimited
+                    ? 'limited'
+                    : state.wrong
+                      ? 'wrong'
+                      : 'none'
               }
               className='empty:hidden'
             >
+              {state.error && (
+                <p role='alert' className='text-sm text-destructive'>
+                  {state.error}
+                </p>
+              )}
               {state.rateLimited && (
                 <p role='alert' className='text-sm text-destructive'>
                   尝试过于频繁，请稍后再试。

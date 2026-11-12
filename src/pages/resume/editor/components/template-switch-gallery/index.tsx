@@ -1,4 +1,7 @@
 import { Spinner } from '@/components/ui/spinner'
+import { PaperSkeleton } from '@/components/loading-skeleton'
+import CatalogSkeleton from '@/pages/template/components/catalog-skeleton'
+import { useDelayedBusy } from '@/hooks/use-delayed-busy'
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import type { ResumeTemplateBinding } from '@/lib/schema'
 import { Check, FileText, RefreshCw } from 'lucide-react'
@@ -101,21 +104,25 @@ function TemplateCard({
       >
         <div className='relative aspect-[210/297] overflow-hidden bg-muted/30'>
           {url ? (
-            <img
+            <motion.img
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+              }}
               src={url}
               alt={`${name}示例缩略图`}
               width={preview?.asset.width}
               height={preview?.asset.height}
               className='h-full w-full object-cover object-top'
             />
+          ) : status === 'loading' || status === 'idle' ? (
+            <PaperSkeleton label='正在加载模板缩略图' compact />
           ) : (
             <div className='flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-xs text-muted-foreground'>
-              {status === 'loading' ? (
-                <Spinner className='size-5' aria-label='正在加载模板缩略图' />
-              ) : (
-                <FileText className='size-6' />
-              )}
-              {status !== 'loading' && <span>查看真实内容预览</span>}
+              <FileText aria-hidden className='size-6' />
+              <span>查看真实内容预览</span>
             </div>
           )}
           <div className='absolute left-2 right-2 top-2 flex flex-wrap gap-1 text-[10px] leading-5'>
@@ -171,6 +178,7 @@ function TemplateCard({
 
 export default function TemplateSwitchGallery() {
   const state = useTemplateSwitchCatalog()
+  const showRefreshing = useDelayedBusy(state.refreshingCatalog)
   const currentBinding = useResumeStore((state) => state.templateBinding)
   const current = useTemplateCatalogEntry(currentBinding?.templateId)
   const { loadMore, loadMoreError, nextOffset } = state
@@ -274,10 +282,17 @@ export default function TemplateSwitchGallery() {
         <p className='mb-3 text-xs text-muted-foreground'>
           缩略图为模板示例，大图预览使用你的真实内容。
         </p>
-        {state.refreshingCatalog && (
-          <p className='mb-3 text-xs text-muted-foreground'>
-            <Spinner className='size-3.5' aria-label='正在获取模板列表' />
+        <div role='status' className='sr-only'>
+          {state.refreshingCatalog ? '正在更新模板列表' : ''}
+        </div>
+        {showRefreshing && (
+          <p aria-hidden className='mb-3 text-xs text-muted-foreground'>
+            正在更新模板列表…
           </p>
+        )}
+        {(state.catalog.status === 'idle' ||
+          state.catalog.status === 'loading') && (
+          <CatalogSkeleton className='grid-cols-2 gap-3' />
         )}
         {(state.catalog.status === 'error' || state.catalogRefreshError) && (
           <div role='alert' className='mb-3 text-sm'>

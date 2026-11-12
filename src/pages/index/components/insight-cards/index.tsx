@@ -1,4 +1,5 @@
-import { Spinner } from '@/components/ui/spinner'
+import { LoadingRegion } from '@/components/loading-skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -91,15 +92,12 @@ function CardHead({
 
 function ChartLoading() {
   return (
-    <div
-      className={cn('flex w-full items-center justify-center', CHART_HEIGHT)}
+    <LoadingRegion
+      label='正在加载图表'
+      className={cn('w-full py-2', CHART_HEIGHT)}
     >
-      <Spinner
-        className='size-6 text-muted-foreground/60'
-        aria-label='加载中'
-        role='status'
-      />
-    </div>
+      <Skeleton className='h-full w-full rounded-sm' />
+    </LoadingRegion>
   )
 }
 

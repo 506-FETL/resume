@@ -23,7 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Spinner } from '@/components/ui/spinner'
+import { LoadingRegion } from '@/components/loading-skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useHistoryMotion } from '../../../hooks/use-history-motion'
 import { useJobSummaries } from '../../../hooks/use-job-summaries'
 import VersionTagInput from '../tag-input'
@@ -118,9 +119,9 @@ export default function VersionMetadataFields({
           </SelectContent>
         </Select>
         {loading ? (
-          <FieldDescription>
-            <Spinner className='size-3.5' aria-label='正在加载岗位选项' />
-          </FieldDescription>
+          <LoadingRegion label='正在加载岗位选项'>
+            <Skeleton className='h-3.5 w-24' />
+          </LoadingRegion>
         ) : error ? (
           <div className='flex items-center gap-2' role='alert'>
             <FieldDescription>{error}</FieldDescription>

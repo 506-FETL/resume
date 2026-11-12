@@ -25,7 +25,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Spinner } from '@/components/ui/spinner'
 import { staggerDelay } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { DiffView } from '@/pages/assistant/components/diff/diff-view'
@@ -201,7 +200,7 @@ export default function CompareDialog({
                 transition={dialogMotion.enterTransition}
               >
                 {loading ? (
-                  <Spinner aria-hidden className='size-3.5' />
+                  <Skeleton className='h-3 w-20' />
                 ) : failed ? (
                   '版本内容暂时不可用'
                 ) : changed > 0 ? (

@@ -1,3 +1,5 @@
+import { useDelayedBusy } from '@/hooks/use-delayed-busy'
+import { AnimatedContent } from '@/components/motion/animated-content'
 import { Spinner } from '@/components/ui/spinner'
 import type { RefObject } from 'react'
 import { useLayoutEffect, useRef } from 'react'
@@ -32,15 +34,6 @@ function FeedbackState({
   const reduce = useReducedMotion()
   const isPresent = useIsPresent()
   const ref = useRef<HTMLDivElement>(null)
-
-  const Icon =
-    status === 'saving'
-      ? Spinner
-      : status === 'saved'
-        ? Check
-        : status === 'error'
-          ? CircleAlert
-          : Cloud
 
   useLayoutEffect(() => {
     const node = ref.current
@@ -79,8 +72,6 @@ function FeedbackState({
         ...(reduce && { duration: 0 }),
       }}
     >
-      <Icon aria-hidden='true' className='size-3.5 shrink-0' />
-      <span aria-hidden='true'>{STATUS_LABEL[status]}</span>
       {status === 'error' && (
         <Button
           variant='ghost'
@@ -107,25 +98,57 @@ export default function WorkflowSaveFeedback({
   onRetry,
 }: WorkflowSaveFeedbackProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const showSaving = useDelayedBusy(status === 'saving')
+
+  const Icon =
+    status === 'saving' && showSaving
+      ? Spinner
+      : status === 'saved'
+        ? Check
+        : status === 'error'
+          ? CircleAlert
+          : Cloud
 
   return (
     <div
       ref={ref}
       tabIndex={-1}
       aria-label={STATUS_LABEL[status]}
-      className='flex min-h-7 items-center text-xs outline-none'
+      className='flex min-h-7 items-center gap-1.5 text-xs outline-none'
       title={status === 'error' ? error || undefined : undefined}
     >
       <span role='status' className='sr-only'>
         {STATUS_LABEL[status]}
       </span>
-      <AnimatePresence initial={false} mode='wait'>
-        <FeedbackState
-          key={status}
-          status={status}
-          onRetry={onRetry}
-          returnFocusRef={ref}
+      <AnimatedContent
+        animationKey={`${status}-${showSaving}`}
+        className='flex size-3.5 shrink-0 items-center justify-center'
+      >
+        <Icon
+          aria-hidden
+          className={cn(
+            'size-3.5',
+            status === 'saving' && !showSaving && 'invisible',
+          )}
         />
+      </AnimatedContent>
+      <span
+        aria-hidden
+        className={
+          status === 'error' ? 'text-destructive' : 'text-muted-foreground'
+        }
+      >
+        {STATUS_LABEL[status]}
+      </span>
+      <AnimatePresence initial={false}>
+        {status === 'error' && (
+          <FeedbackState
+            key='retry'
+            status={status}
+            onRetry={onRetry}
+            returnFocusRef={ref}
+          />
+        )}
       </AnimatePresence>
     </div>
   )

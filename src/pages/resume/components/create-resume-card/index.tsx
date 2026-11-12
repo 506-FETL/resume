@@ -15,7 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton, FormSkeleton } from '@/components/loading-skeleton'
 import {
   Dialog,
   DialogContent,
@@ -253,11 +253,10 @@ export default function CreateResumeCard({
                 <X />
               </Button>
               {!draftReady ? (
-                <div className='flex min-h-[min(16rem,60dvh)] items-center justify-center'>
-                  <p className='text-muted-foreground'>
-                    <Spinner className='size-6' aria-label='正在读取草稿' />
-                  </p>
-                </div>
+                <FormSkeleton
+                  label='正在读取草稿'
+                  className='min-h-[min(16rem,60dvh)] px-0'
+                />
               ) : (
                 <>
                   <div
@@ -429,9 +428,11 @@ export default function CreateResumeCard({
                           选择原简历，生成岗位定制版本。
                         </p>
                         {listLoading ? (
-                          <p className='text-sm text-muted-foreground'>
-                            <Spinner aria-label='正在读取简历选项' />
-                          </p>
+                          <ContentSkeleton
+                            label='正在读取简历选项'
+                            rows={3}
+                            className='px-0'
+                          />
                         ) : listError ? (
                           <div role='alert' className='space-y-2 text-sm'>
                             <p>简历列表暂时没有加载成功。</p>

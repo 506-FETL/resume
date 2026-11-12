@@ -2,7 +2,8 @@ import { ChevronDown, Columns2, Palette, SlidersHorizontal } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { LoadingRegion } from '@/components/loading-skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -117,9 +118,13 @@ export default function TemplateFilters() {
             </div>
           )}
           {(facets.status === 'idle' || facets.status === 'loading') && (
-            <p className='px-3 py-2 text-xs text-muted-foreground'>
-              <Spinner className='size-3.5' aria-label='正在加载筛选选项' />
-            </p>
+            <LoadingRegion
+              label='正在加载筛选选项'
+              className='space-y-2 px-3 py-2'
+            >
+              <Skeleton className='h-3 w-20' />
+              <Skeleton className='h-3 w-16' />
+            </LoadingRegion>
           )}
           <div className='grid gap-3 border-t border-border/60 py-3 lg:gap-5 lg:py-4'>
             {groups.map(({ key, title, all, icon: Icon, value, onChange }) => {

@@ -3,6 +3,7 @@ import type { ORDERType } from '@/lib/schema'
 import { Lightbulb } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { createDeferredComponent } from '@/components/deferred-content'
+import { FormSkeleton } from '@/components/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,6 +22,7 @@ import { usePreparationUiStore } from '../../preparation-store'
 const PreparationContent = createDeferredComponent(
   () => import('./components/dialog-content'),
   '填写建议',
+  <FormSkeleton label='正在加载填写建议' />,
 )
 
 export default function Preparation({

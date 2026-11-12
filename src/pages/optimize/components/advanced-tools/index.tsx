@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { DialogFooter } from '@/components/ui/dialog'
 import { DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -181,9 +181,11 @@ function AdvancedTools() {
   function renderToolContent() {
     if (loadingContext) {
       return (
-        <div className='flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground'>
-          <Spinner className='size-6' aria-label='正在读取简历与工具结果' />
-        </div>
+        <ContentSkeleton
+          label='正在读取简历与工具结果'
+          className='min-h-48 px-0'
+          rows={3}
+        />
       )
     }
 

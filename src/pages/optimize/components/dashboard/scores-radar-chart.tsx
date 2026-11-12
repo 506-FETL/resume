@@ -10,7 +10,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { Spinner } from '@/components/ui/spinner'
+import { LoadingRegion } from '@/components/loading-skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DURATION } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { SCORE_LABELS } from '../../const'
@@ -63,9 +64,12 @@ export default function ScoresRadarChart({
         }
       >
         {loading ? (
-          <div className='flex min-h-24 flex-1 items-center justify-center'>
-            <Spinner className='size-6' />
-          </div>
+          <LoadingRegion
+            label='正在读取评分'
+            className={cn('w-full py-4', embedded ? 'h-56' : 'h-72 sm:h-80')}
+          >
+            <Skeleton className='h-full w-full rounded-sm' />
+          </LoadingRegion>
         ) : chartData.length > 0 ? (
           <>
             <ChartContainer

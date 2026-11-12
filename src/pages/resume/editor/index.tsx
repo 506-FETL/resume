@@ -7,7 +7,7 @@ import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PageLoading } from '@/components/page-loading'
+import { RouteSkeleton } from '@/components/route-skeleton'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
 import { useTheme } from '@/components/theme-provider'
@@ -433,11 +433,7 @@ function Editor() {
   ])
 
   if (loading) {
-    return (
-      <div className='h-full'>
-        <PageLoading label='正在加载简历' />
-      </div>
-    )
+    return <RouteSkeleton pathname='/resume/editor' />
   }
 
   return (

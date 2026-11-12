@@ -5,7 +5,7 @@ import type {
 import { AnimatePresence, motion, useInView, useIsPresent } from 'motion/react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { PaperSkeleton } from '@/components/loading-skeleton'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
 import { useResumePreviewStore } from '../../../store/preview-cache'
@@ -125,14 +125,14 @@ export function PreviewContent({
             className='absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center text-xs text-neutral-500'
             role={entry?.status === 'error' ? 'status' : undefined}
           >
-            {(entry?.status === 'generating' || entry?.status === 'queued') && (
-              <Spinner aria-label='正在加载简历预览' />
+            {entry?.status !== 'error' && (
+              <PaperSkeleton
+                label='正在加载简历预览'
+                className='absolute inset-0 h-full'
+                compact
+              />
             )}
-            {(entry?.status === 'error' || !entry) && (
-              <span>
-                {entry?.status === 'error' ? '预览暂时不可用' : '简历预览'}
-              </span>
-            )}
+            {entry?.status === 'error' && <span>预览暂时不可用</span>}
             {entry?.status === 'error' && (
               <Button
                 variant='link'

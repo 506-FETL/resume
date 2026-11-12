@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { createDeferredComponent } from '@/components/deferred-content'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { DURATION, EASE } from '@/lib/motion'
@@ -10,6 +11,7 @@ import { useResumeCheckStore } from '../../store/checks'
 const CheckPanel = createDeferredComponent(
   () => import('../check-panel'),
   '检查面板',
+  <ContentSkeleton label='正在加载检查面板' />,
 )
 
 export default function CheckWorkspace({

@@ -2,7 +2,7 @@ import type { Severity } from '../../types'
 import { Search } from 'lucide-react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { isAtsFindingPending } from '@/lib/ats'
 import useAtsStore from '../../store'
 import FindingItem from './finding-item'
@@ -66,12 +66,7 @@ export default function IssueAnalysis() {
         className='min-w-0'
       >
         {loading ? (
-          <div className='flex items-center justify-center gap-3 py-8 text-sm text-muted-foreground'>
-            <Spinner
-              className='size-5 text-primary'
-              aria-label='正在读取检测报告'
-            />
-          </div>
+          <ContentSkeleton label='正在读取检测报告' className='px-0' rows={3} />
         ) : !findings || totalFindings === 0 ? (
           <div className='flex flex-col items-center justify-center px-4 py-8 text-center text-muted-foreground'>
             <Search aria-hidden className='mb-3 size-6 opacity-40' />

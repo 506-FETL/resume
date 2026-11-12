@@ -1,6 +1,7 @@
 import { ScanSearch } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { useDelayedBusy } from '@/hooks/use-delayed-busy'
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
@@ -12,6 +13,7 @@ import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { CATALOG_PAGE_SIZE } from '@/lib/resume-template/source/types'
 import { useResumeTemplateStore } from '@/store/resume-template'
 import CatalogFooter from './components/catalog-footer'
+import CatalogSkeleton from './components/catalog-skeleton'
 import PreviewDialog from './components/preview-dialog'
 import TemplateCard from './components/template-card'
 import TemplateFilters from './components/template-filters'
@@ -39,6 +41,8 @@ export default function Template() {
         loadFacets: state.loadFacets,
       })),
     )
+
+  const showRefreshing = useDelayedBusy(refreshingCatalog)
 
   const load = useResumeTemplateStore((state) => state.loadCatalog)
   const reduceMotion = useReducedMotion()
@@ -77,11 +81,11 @@ export default function Template() {
                       {nextOffset !== null ? `${items.length}+` : items.length}
                     </span>
                   </h2>
-                  {refreshingCatalog && (
-                    <span
-                      role='status'
-                      className='text-xs text-muted-foreground'
-                    >
+                  <span role='status' className='sr-only'>
+                    {refreshingCatalog ? '正在更新筛选结果' : ''}
+                  </span>
+                  {showRefreshing && (
+                    <span aria-hidden className='text-xs text-muted-foreground'>
                       正在更新筛选结果…
                     </span>
                   )}
@@ -182,6 +186,13 @@ export default function Template() {
                   !catalogRefreshError && <CatalogFooter />}
               </section>
             </div>
+          ) : catalog.status !== 'error' ? (
+            <section aria-label='模板列表' className='space-y-4'>
+              <h2 className='flex min-h-9 items-center text-sm font-medium'>
+                {styleFilter || layoutFilter ? '筛选结果' : '全部模板'}
+              </h2>
+              <CatalogSkeleton />
+            </section>
           ) : (
             <TemplateResourceStatus
               error={

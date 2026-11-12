@@ -27,6 +27,7 @@ import { formatDateTime } from '@/utils/date'
 import { DURATION, EASE } from '@/lib/motion'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import useShareStore from '../../store'
+import { hasShareOperationDialog } from '../../store/selectors'
 import { buildShareUrl, formatShareUrlForDisplay } from '../../utils'
 import VersionBadge from '../version-badge'
 
@@ -46,6 +47,11 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
   } = useShareStore()
 
   const reduceMotion = useReducedMotion()
+
+  const operationInDialog = useShareStore((state) =>
+    hasShareOperationDialog(state, share.id),
+  )
+
   const [copied, setCopied] = useState(false)
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const url = buildShareUrl(share.token)
@@ -112,10 +118,11 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
           {share.label || '未命名链接'}
         </span>
         <div className='flex shrink-0 items-center gap-2'>
-          {busy && <Spinner aria-label='正在更新链接' />}
+          {busy && !operationInDialog && <Spinner aria-label='正在更新链接' />}
           <Switch
             checked={share.is_active}
             disabled={busy || Boolean(share.archivedAt)}
+            aria-busy={busy}
             onCheckedChange={handleToggleActive}
             aria-label={`启用或关闭${share.label || '分享链接'}`}
           />

@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { Progress } from '@/components/ui/progress'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 
@@ -50,9 +50,11 @@ export default function RepairChecklist() {
           }
         >
           {loading ? (
-            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-              <Spinner className='size-4' aria-label='正在读取修复清单' />
-            </div>
+            <ContentSkeleton
+              label='正在读取修复清单'
+              className='p-0'
+              rows={2}
+            />
           ) : fixList.length === 0 ? (
             <p className='text-sm leading-6 text-muted-foreground'>
               {currentAtsConfig

@@ -23,6 +23,7 @@ import { MessageBubble } from '../message-bubble'
 type MessageViewSnapshot = Pick<
   ReturnType<typeof useAssistantStore.getState>,
   | 'initializing'
+  | 'bootstrapError'
   | 'loadingMessages'
   | 'messages'
   | 'streaming'
@@ -48,6 +49,7 @@ export default function MessageList() {
   const snapshot = useAssistantStore(
     useShallow((state) => ({
       initializing: state.initializing,
+      bootstrapError: state.bootstrapError,
       loadingMessages: state.loadingMessages,
       messages: state.messages,
       streaming: state.streaming,
@@ -66,6 +68,7 @@ export default function MessageList() {
 
   const {
     initializing,
+    bootstrapError,
     loadingMessages,
     messages,
     streaming,
@@ -75,9 +78,11 @@ export default function MessageList() {
   const viewState =
     initializing || loadingMessages
       ? 'loading'
-      : messages.length === 0 && !streaming
-        ? 'empty'
-        : 'ready'
+      : bootstrapError
+        ? 'error'
+        : messages.length === 0 && !streaming
+          ? 'empty'
+          : 'ready'
 
   return (
     <AnimatedContent animationKey={viewState} className='h-full min-h-0'>
@@ -86,6 +91,22 @@ export default function MessageList() {
           {LIST_SKELETON_KEYS.map((key) => (
             <Skeleton key={key} className='h-16 w-2/3 rounded-2xl' />
           ))}
+        </div>
+      ) : viewState === 'error' ? (
+        <div className='flex h-full flex-col items-center justify-center gap-3 p-6 text-center'>
+          <p role='alert' className='text-sm text-muted-foreground'>
+            对话暂时未能加载，请重试。
+          </p>
+          <Button
+            variant='outline'
+            onClick={() =>
+              useAssistantStore.setState((state) => ({
+                bootstrapAttempt: state.bootstrapAttempt + 1,
+              }))
+            }
+          >
+            重新加载
+          </Button>
         </div>
       ) : viewState === 'empty' ? (
         <div className='flex h-full flex-col items-center justify-center gap-3 overflow-y-auto px-6 py-6 text-center'>

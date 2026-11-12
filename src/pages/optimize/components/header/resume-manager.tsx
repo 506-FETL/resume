@@ -12,8 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { PageLoading } from '@/components/page-loading'
-import { Spinner } from '@/components/ui/spinner'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import { cn } from '@/lib/utils'
 import { ResumeItem } from './resume-item'
 import { useResumeManager } from './use-resume-manager'
@@ -41,12 +40,8 @@ export function ResumeManager() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant='outline' size='sm' disabled={initialLoading}>
-          {initialLoading ? (
-            <Spinner aria-label='正在加载简历列表' />
-          ) : (
-            <ButtonIcon className={cn(iconColorClass)} />
-          )}
+        <Button variant='outline' size='sm' aria-busy={initialLoading}>
+          <ButtonIcon className={cn(iconColorClass)} />
           <span className='truncate text-xs'>{selectedResumeName}</span>
           <ChevronDown className='shrink-0 opacity-50' />
         </Button>
@@ -72,10 +67,7 @@ export function ResumeManager() {
             }
           >
             {initialLoading ? (
-              <PageLoading
-                className='text-muted-foreground'
-                label='正在加载简历列表'
-              />
+              <ContentSkeleton label='正在加载简历列表' rows={3} />
             ) : (
               <div className='space-y-4'>
                 <AnimatedContent animationKey={loadError ? 'error' : 'ready'}>

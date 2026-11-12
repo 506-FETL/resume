@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
-import { PageLoading } from '@/components/page-loading'
+import { TimelineSkeleton } from '../skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -138,7 +138,7 @@ function Entry({
                 </div>
               </div>
             ) : timelineLoading && !unavailable ? (
-              <PageLoading className='min-h-24' label='正在加载动态' />
+              <TimelineSkeleton />
             ) : (
               <Empty className='border-0 p-3'>
                 <EmptyHeader>

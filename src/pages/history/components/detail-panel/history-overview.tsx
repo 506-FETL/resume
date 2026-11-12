@@ -2,7 +2,8 @@ import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import { Briefcase, Send } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingRegion } from '@/components/loading-skeleton'
 import { useJobSummaries } from '../../hooks/use-job-summaries'
 import HistoryMotionContent from '../motion-content'
 import VersionMetadataFields from '../shared/version-metadata-fields'
@@ -26,8 +27,10 @@ export default function HistoryVersionOverview({
 
   const jobValue = !version.company_id ? (
     '未关联岗位'
-  ) : loading ? (
-    <Spinner aria-label='正在加载关联岗位' />
+  ) : loading && !jobLabel ? (
+    <LoadingRegion label='正在加载关联岗位'>
+      <Skeleton className='h-4 w-24' />
+    </LoadingRegion>
   ) : (
     (jobLabel ?? '岗位信息暂不可用')
   )

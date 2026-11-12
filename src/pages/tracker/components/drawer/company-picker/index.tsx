@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
+import { useDelayedBusy } from '@/hooks/use-delayed-busy'
 import { Spinner } from '@/components/ui/spinner'
 import { DURATION, EASE } from '@/lib/motion'
 import useTrackerStore from '../../../store'
@@ -58,8 +59,9 @@ export function CompanyPicker({
   const reduce = useReducedMotion()
   const selected = companies.find((company) => company.id === value) ?? null
   const inlineFeedback = feedbackPlacement === 'inline'
+  const showLoading = useDelayedBusy(companiesLoading)
 
-  const feedbackState = companiesLoading
+  const feedbackState = showLoading
     ? 'loading'
     : companiesError
       ? 'error'
@@ -94,39 +96,37 @@ export function CompanyPicker({
           }
           showClear={Boolean(allLabel)}
           disabled={disabled}
-          aria-busy={inlineFeedback && companiesLoading}
+          aria-busy={companiesLoading}
           aria-invalid={inlineFeedback && Boolean(companiesError)}
-          aria-describedby={inlineFeedback ? `${id}-status` : undefined}
+          aria-describedby={`${id}-status`}
         >
-          {inlineFeedback && (
-            <InputGroupAddon
-              align='inline-end'
-              className='order-none w-6 shrink-0 justify-center p-0'
+          <InputGroupAddon
+            align='inline-end'
+            className='order-none w-6 shrink-0 justify-center p-0'
+          >
+            <AnimatedContent
+              animationKey={feedbackState}
+              className='flex size-6 items-center justify-center'
             >
-              <AnimatedContent
-                animationKey={feedbackState}
-                className='flex size-6 items-center justify-center'
-              >
-                {companiesLoading ? (
-                  <Spinner aria-hidden className='size-3.5' />
-                ) : companiesError ? (
-                  <InputGroupButton
-                    size='icon-xs'
-                    aria-label='重新加载公司'
-                    title={companiesError}
-                    className='text-destructive hover:text-destructive'
-                    disabled={disabled}
-                    onClick={() => {
-                      document.getElementById(id)?.focus()
-                      loadCompanies(true)
-                    }}
-                  >
-                    <RotateCcw className='size-3.5' aria-hidden />
-                  </InputGroupButton>
-                ) : null}
-              </AnimatedContent>
-            </InputGroupAddon>
-          )}
+              {showLoading ? (
+                <Spinner aria-hidden className='size-3.5' />
+              ) : companiesError && inlineFeedback ? (
+                <InputGroupButton
+                  size='icon-xs'
+                  aria-label='重新加载公司'
+                  title={companiesError}
+                  className='text-destructive hover:text-destructive'
+                  disabled={disabled}
+                  onClick={() => {
+                    document.getElementById(id)?.focus()
+                    loadCompanies(true)
+                  }}
+                >
+                  <RotateCcw className='size-3.5' aria-hidden />
+                </InputGroupButton>
+              ) : null}
+            </AnimatedContent>
+          </InputGroupAddon>
         </ComboboxInput>
         <ComboboxContent
           style={{
@@ -135,13 +135,11 @@ export function CompanyPicker({
           }}
         >
           <ComboboxEmpty>
-            {companiesLoading ? (
-              <Spinner aria-hidden />
-            ) : companiesError ? (
-              '公司加载失败，请重试'
-            ) : (
-              '没有匹配的公司'
-            )}
+            {companiesLoading
+              ? '正在加载公司…'
+              : companiesError
+                ? '公司加载失败，请重试'
+                : '没有匹配的公司'}
           </ComboboxEmpty>
           <ComboboxList>
             {(company: TrackerCompany) => (
@@ -160,29 +158,14 @@ export function CompanyPicker({
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
-      {inlineFeedback && (
-        <span id={`${id}-status`} role='status' className='sr-only'>
-          {companiesLoading
-            ? '正在加载公司'
-            : companiesError
-              ? `公司加载失败：${companiesError}，请重试`
-              : ''}
-        </span>
-      )}
+      <span id={`${id}-status`} role='status' className='sr-only'>
+        {companiesLoading
+          ? '正在加载公司'
+          : companiesError
+            ? `公司加载失败：${companiesError}，请重试`
+            : ''}
+      </span>
       <AnimatePresence initial={false}>
-        {!inlineFeedback && companiesLoading && (
-          <PresenceDiv
-            key='loading'
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : DURATION.fast }}
-          >
-            <p className='flex items-center gap-1.5 text-xs text-muted-foreground'>
-              <Spinner className='size-3' aria-label='正在加载公司' />
-            </p>
-          </PresenceDiv>
-        )}
         {!inlineFeedback && companiesError && (
           <PresenceDiv
             key='error'

@@ -10,7 +10,7 @@ import { listResumeHistoryVersions } from '@/lib/supabase/resume/history/queries
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history/types'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -383,9 +383,15 @@ export function SubmissionForm({
                       </Button>
                     </Alert>
                   ) : !resumes ? (
-                    <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-                      <Spinner aria-label='正在加载简历选项' />
-                    </p>
+                    <Select disabled>
+                      <SelectTrigger
+                        id='submission-resume'
+                        className='w-full'
+                        aria-busy='true'
+                      >
+                        <SelectValue placeholder='正在加载简历…' />
+                      </SelectTrigger>
+                    </Select>
                   ) : resumes.length === 0 ? (
                     <p>
                       {correcting
@@ -451,12 +457,13 @@ export function SubmissionForm({
                       。可重新选择简历重试，或使用云端当前内容。
                     </p>
                   ) : versions === null && resumeId ? (
-                    <p className='text-xs text-muted-foreground'>
-                      <Spinner
-                        className='size-3.5'
-                        aria-label='正在加载历史版本'
-                      />
-                    </p>
+                    <span
+                      role='status'
+                      aria-label='正在加载历史版本'
+                      className='block'
+                    >
+                      <Skeleton className='h-3 w-28' />
+                    </span>
                   ) : null}
                   <p className='text-xs text-muted-foreground'>
                     未保存的编辑不会进入留档。

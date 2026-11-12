@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { PageLoading } from '@/components/page-loading'
+import { RouteSkeleton } from '@/components/route-skeleton'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -76,7 +76,9 @@ export function JobContextGate({ children }: { children: ReactNode }) {
 
   if (!jobId) return children
   if (state.key !== key || (!state.ready && !state.error))
-    return <PageLoading label='正在加载岗位信息' />
+    return (
+      <RouteSkeleton pathname={location.pathname} label='正在加载岗位信息' />
+    )
   if (state.error)
     return (
       <div className='space-y-3 p-6'>

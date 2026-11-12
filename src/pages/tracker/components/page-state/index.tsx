@@ -130,7 +130,7 @@ export function TrackerSkeleton() {
               key={column.status}
               className='min-w-[232px] flex-1 space-y-4 rounded-xl bg-muted/40 p-3'
             >
-              <Skeleton className={cn('h-4 w-20', still)} />
+              <span className='text-sm font-medium'>{column.label}</span>
               <div className='space-y-3 rounded-xl border bg-card p-4'>
                 <Skeleton className={cn('size-8 rounded-lg', still)} />
                 <Skeleton className={cn('h-4 w-3/4', still)} />

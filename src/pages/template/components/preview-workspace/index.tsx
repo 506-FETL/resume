@@ -6,7 +6,7 @@ import type {
 import { useEffect, useId, useLayoutEffect, useRef } from 'react'
 import { LayoutGroup, motion, useAnimationControls } from 'motion/react'
 import AnimatedContent from '@/components/motion/animated-content'
-import { Spinner } from '@/components/ui/spinner'
+import { PaperSkeleton } from '@/components/loading-skeleton'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import { exampleKey } from '@/lib/resume-template/source/types'
@@ -174,20 +174,24 @@ export default function PreviewWorkspace({
                   }}
                 >
                   {thumbnail.url ? (
-                    <img
-                      src={thumbnail.url}
-                      alt={`${item.name}排版预览`}
-                      width={preview?.asset.width}
-                      height={preview?.asset.height}
-                      className='h-auto w-full dark:opacity-60'
-                    />
-                  ) : thumbnail.status === 'loading' ? (
-                    <div className='flex h-full min-h-40 items-center justify-center'>
-                      <Spinner
-                        className='size-6'
-                        aria-label='正在加载模板预览'
+                    <motion.div
+                      initial={reduceMotion ? false : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{
+                        duration: reduceMotion ? 0 : DURATION.base,
+                        ease: EASE.out,
+                      }}
+                    >
+                      <img
+                        src={thumbnail.url}
+                        alt={`${item.name}排版预览`}
+                        width={preview?.asset.width}
+                        height={preview?.asset.height}
+                        className='h-auto w-full dark:opacity-60'
                       />
-                    </div>
+                    </motion.div>
+                  ) : thumbnail.status === 'loading' ? (
+                    <PaperSkeleton label='正在加载模板预览' />
                   ) : (
                     <div className='[&_[data-resume-page]]:rounded-none [&_[data-resume-page]]:shadow-none [&_[data-resume-page]]:ring-0'>
                       <ExamplePreview item={item} example={example} />

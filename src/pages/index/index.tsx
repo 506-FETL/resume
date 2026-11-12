@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { RecentResumesSkeleton } from './components/skeleton'
 import useUserStore from '@/store/user'
 import CreateResumeCard from '@/pages/resume/components/create-resume-card'
 import RecentResumeCard from './components/recent-resume-card'
@@ -153,33 +153,41 @@ export default function DashboardPage() {
                     查看全部
                   </Button>
                 </div>
-                {resumesLoading && resumes.length === 0 ? (
-                  <p className='text-sm text-muted-foreground'>
-                    <Spinner aria-label='正在加载简历' />
-                  </p>
-                ) : resumes.length === 0 ? (
-                  <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
-                    {resumeError
-                      ? '暂时无法加载简历'
-                      : '还没有简历，点击“创建简历”开始填写。'}
-                  </p>
-                ) : (
-                  <div className='grid gap-3 md:grid-cols-2'>
-                    {[...resumes]
-                      .sort(
-                        (a, b) =>
-                          new Date(b.updated_at || b.created_at).getTime() -
-                          new Date(a.updated_at || a.created_at).getTime(),
-                      )
-                      .slice(0, 2)
-                      .map((resume) => (
-                        <RecentResumeCard
-                          key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
-                          resume={resume}
-                        />
-                      ))}
-                  </div>
-                )}
+                <AnimatedContent
+                  animationKey={
+                    resumes.length
+                      ? 'resumes'
+                      : resumesLoading
+                        ? 'loading'
+                        : 'empty'
+                  }
+                >
+                  {resumesLoading && resumes.length === 0 ? (
+                    <RecentResumesSkeleton />
+                  ) : resumes.length === 0 ? (
+                    <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
+                      {resumeError
+                        ? '暂时无法加载简历'
+                        : '还没有简历，点击“创建简历”开始填写。'}
+                    </p>
+                  ) : (
+                    <div className='grid gap-3 md:grid-cols-2'>
+                      {[...resumes]
+                        .sort(
+                          (a, b) =>
+                            new Date(b.updated_at || b.created_at).getTime() -
+                            new Date(a.updated_at || a.created_at).getTime(),
+                        )
+                        .slice(0, 2)
+                        .map((resume) => (
+                          <RecentResumeCard
+                            key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
+                            resume={resume}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </AnimatedContent>
                 {accountMatches && cloudState.error && (
                   <ResourceError
                     label='云端简历'
