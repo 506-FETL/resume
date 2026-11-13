@@ -39,6 +39,16 @@ export async function callLLM(
   req: ChatCompletionCreateParams & CallLLMExtras,
   abortController?: AbortController,
 ) {
+  const controller = abortController ?? new AbortController()
+  const response = await requestLLM({ ...req }, controller.signal)
+
+  return Stream.fromSSEResponse<ChatCompletionChunk>(response, controller)
+}
+
+export async function requestLLM(
+  req: CallLLMExtras & Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<Response> {
   const {
     model = 'deepseek-v4-pro',
     messages = [],
@@ -60,7 +70,6 @@ export async function callLLM(
   }
 
   const quotaIdentity = captureAiQuotaIdentity(session.user.id)
-  const controller = abortController ?? new AbortController()
   const requestId = providedRequestId ?? crypto.randomUUID()
 
   const response = await fetch(
@@ -81,7 +90,7 @@ export async function callLLM(
         ...(action !== undefined ? { action } : {}),
         ...rest,
       }),
-      signal: controller.signal,
+      signal,
     },
   )
 
@@ -135,10 +144,5 @@ export async function callLLM(
     throw new Error(`LLM request failed: ${response.status} ${errorText}`)
   }
 
-  const streamData = Stream.fromSSEResponse<ChatCompletionChunk>(
-    response,
-    controller,
-  )
-
-  return streamData
+  return response
 }

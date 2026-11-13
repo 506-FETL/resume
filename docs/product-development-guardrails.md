@@ -458,6 +458,12 @@
 
 来源：[Trace 升级规格](superpowers/specs/2026-11-13-assistant-trace-design.md)、[验收记录](superpowers/specs/2026-11-13-assistant-trace-acceptance.md)。
 
+完整 AI Elements 接入及 SDK 验收补充：[规格](superpowers/specs/2026-11-13-assistant-ai-elements-design.md)、[验收](superpowers/specs/2026-11-13-assistant-ai-elements-acceptance.md)。
+
+- 输入输出优先采用 shadcn AI Elements 官方组合：确认用 Item，引用用 Attachment，代码和原始差异用 CodeBlock，Markdown 与流式动画用 Streamdown；不要恢复逐 token 整段高亮、自写淡入或原生交互按钮。
+- 前端协议解析和多步循环由 AI SDK DeepSeek provider、ToolLoopAgent 与 UI 消息读取器负责；业务适配只承接既有历史 parts、技能数据、确认与保存。模型仍经过原 llm-proxy 鉴权和额度账本，maxRetries 保持 0，不因 SDK 默认重试增加收费请求。验收思考回传、碎片参数、历史因果、用量、额度错误及照片剔除。
+- SDK 默认可以并行启动工具，当前确认桥只容纳一个 pendingConfirm，必须保持本轮工具串行；排队工具不能显示正在等待用户确认。停止会提前关闭 SDK 输出流，但已经确认的写入仍可能随后成功或失败；必须等待已启动队列收尾，保留真实结果再保存中断记录，不能把已经完成的写入标成未执行。验收包括成功/失败写入中停止、未启动工具不执行，以及第一项确认、第二项取消。
+
 - 官方 Trace 用于真实思考、技能与工具过程，正文用 Message / Bubble，输入沿用 InputGroup / Command / Popover。Trace 的 Base UI Collapsible 使用自己的 starting/ending 状态，不改共享 Radix primitive；保留真实参数、结果、差异、确认、重试和画布动作。
 - Message Scroller 依据 Content 的直接子行判断追加与补入。固定哨兵或常驻空尾行会破坏判断；哨兵放在 Content 外，直接子行只对应消息。按用户最新反馈，消息采用真实内容的底部跟随，不设置轮次 scrollAnchor，也不在完成后补偿跳转；主动发送恢复跟随，增量和完成尊重上滚阅读与搜索。未知高度的 `content-visibility: auto` 曾让远距离定位偏离真实尺寸，未经过真实定位验收不要恢复。验收覆盖发送到完成的连续帧、长历史、补入、回到底部及搜索定位。
 - 流式与保存回复复用同一行和 Trace 实例，保留手动展开状态；操作行预留真实等高空间。已显示行的 key 在同一会话视图中保持稳定，不能在分页补入前驱后重新分配。实际删除行通过 popLayout 保留退出，ref 传到根 Item，Content 为相对定位参照；不让退出副本继续占正常流。验收包含首条 assistant、连续 assistant、用户消息落库换 ID、重跑截断与确认退出。

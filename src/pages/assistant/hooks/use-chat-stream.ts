@@ -329,8 +329,8 @@ export function useChatStream() {
         return
       }
 
-      // 4. 起 agent 循环，把回调事件映射到结构化进行中态 streamingParts
-      const draft: AiMessagePart[] = []
+      // 4. SDK 组装消息快照，页面只负责合帧与持久化。
+      let draft: AiMessagePart[] = []
       // 用 requestAnimationFrame 合帧：高频 token 回调在一帧内只触发一次 store 更新，避免逐 token 重渲染卡顿
       let rafId: number | null = null
 
@@ -352,9 +352,6 @@ export function useChatStream() {
         }
       }
 
-      let reasoningIdx = -1
-      let textIdx = -1
-
       let finalUsage: { input: number; output: number; total: number } | null =
         null
 
@@ -374,100 +371,8 @@ export function useChatStream() {
           thinking,
           context,
           callbacks: {
-            onSkillActivity: (activity) => {
-              const index = draft.findIndex(
-                (part) =>
-                  part.type === 'skill-activity' && part.id === activity.id,
-              )
-
-              if (index < 0) draft.push(activity)
-              else draft[index] = activity
-
-              pushDraft()
-            },
-            onReasoning: (full) => {
-              if (reasoningIdx < 0) {
-                draft.push({ type: 'reasoning', text: full })
-                reasoningIdx = draft.length - 1
-              } else {
-                draft[reasoningIdx] = { type: 'reasoning', text: full }
-              }
-
-              pushDraft()
-            },
-            onText: (full) => {
-              if (textIdx < 0) {
-                draft.push({ type: 'text', text: full })
-                textIdx = draft.length - 1
-              } else {
-                draft[textIdx] = { type: 'text', text: full }
-              }
-
-              pushDraft()
-            },
-            onToolCallPending: (call) => {
-              // 已存在同 id 的工具行则跳过，避免重复
-              const exists = draft.some(
-                (p) => p.type === 'tool-call' && p.toolCallId === call.id,
-              )
-
-              if (!exists) {
-                draft.push({
-                  type: 'tool-call',
-                  toolCallId: call.id,
-                  toolName: call.name,
-                  step: call.step,
-                  args: {},
-                  state: 'call',
-                })
-
-                textIdx = -1
-                reasoningIdx = -1
-                pushDraft()
-              }
-            },
-            onToolCallStart: (call) => {
-              const i = draft.findIndex(
-                (p) => p.type === 'tool-call' && p.toolCallId === call.id,
-              )
-
-              const next = {
-                type: 'tool-call' as const,
-                toolCallId: call.id,
-                toolName: call.name,
-                step: call.step,
-                args: call.args,
-                state: call.awaitingConfirm
-                  ? ('awaiting-confirm' as const)
-                  : ('call' as const),
-              }
-
-              if (i >= 0) draft[i] = next
-              else draft.push(next)
-
-              // 工具调用后，后续文本/推理应另起新块
-              textIdx = -1
-              reasoningIdx = -1
-              pushDraft()
-            },
-            onToolResult: (id, result, isError, cancelled) => {
-              const i = draft.findIndex(
-                (p) => p.type === 'tool-call' && p.toolCallId === id,
-              )
-
-              if (i >= 0) {
-                const prev = draft[i] as Extract<
-                  AiMessagePart,
-                  { type: 'tool-call' }
-                >
-
-                draft[i] = {
-                  ...prev,
-                  result,
-                  state: isError ? 'error' : cancelled ? 'cancelled' : 'result',
-                }
-              }
-
+            onParts: (parts) => {
+              draft = parts
               pushDraft()
             },
             onUsage: (usage) => {

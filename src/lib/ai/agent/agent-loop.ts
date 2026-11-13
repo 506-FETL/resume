@@ -1,62 +1,45 @@
-import type { ChatCompletionChunk } from 'openai/resources/chat/completions'
-import type { AiMessage, AiMessagePart, AiSkillActivity } from '../types.ts'
-import type { StreamUsage } from './stream-parser'
-import type { AgentTool } from './tool-registry.ts'
-import { getSkillReferences } from '../skills/references.ts'
+import type { AiMessage, AiMessagePart } from '../types'
+import type { AgentUIMessage } from './to-message-parts'
+import type { AgentTool } from './tool-registry'
+import { createDeepSeek } from '@ai-sdk/deepseek'
 import {
-  buildSkillCatalogContext,
-  createSkillRuntime,
-} from '../skills/runtime.ts'
+  createUIMessageStream,
+  jsonSchema,
+  readUIMessageStream,
+  stepCountIs,
+  tool,
+  ToolLoopAgent,
+} from 'ai'
+import { getSkillReferences } from '../skills/references'
+import { buildSkillCatalogContext, createSkillRuntime } from '../skills/runtime'
 import { serializeAiToolValue } from './serialize-tool-value'
-import { StreamParser } from './stream-parser.ts'
-import { toApiMessages } from './to-api-messages.ts'
-import { getTools, toApiToolDefs } from './tool-registry.ts'
+import { getToolResultState, toMessageParts } from './to-message-parts'
+import { toModelMessages } from './to-model-messages'
+import { getTools } from './tool-registry'
 
-// 注：light/heavy 与扣费金额已改由 llm-proxy 服务端根据请求 payload 权威判定，
-// 客户端不再进行 per-turn 加权计算，也不上报 weight。
-
-export interface AgentCallbacks {
-  onSkillActivity?: (activity: AiSkillActivity) => void
-  onReasoning?: (full: string) => void
-  onText?: (full: string) => void
-  // 流式期间：一旦解析出工具函数名即触发（每个工具仅首次触发一次），用于即时上屏 pending 轨迹行
-  onToolCallPending?: (call: {
-    id: string
-    name: string
-    step?: number
-  }) => void
-  onToolCallStart?: (call: {
-    id: string
-    name: string
-    args: Record<string, unknown>
-    awaitingConfirm?: boolean
-    step?: number
-  }) => void
-  onToolResult?: (
-    id: string,
-    result: unknown,
-    isError: boolean,
-    cancelled?: boolean,
-  ) => void
-  // 累计 token 用量（本轮多步求和），每步结束回调一次
-  onUsage?: (usage: StreamUsage) => void
+export interface AgentUsage {
+  input: number
+  output: number
+  total: number
 }
 
 export interface AgentRunOptions {
-  history: AiMessage[] // 含刚追加的用户消息
+  history: AiMessage[]
   signal: AbortSignal
-  thinking?: boolean // 默认关
-  maxSteps?: number // 默认 12，含按需读取技能与资料的轮次
-  context?: string // 轻量用户概况，注入 system
-  callbacks?: AgentCallbacks
+  thinking?: boolean
+  maxSteps?: number
+  context?: string
+  callbacks?: {
+    onParts?: (parts: AiMessagePart[]) => void
+    onUsage?: (usage: AgentUsage) => void
+  }
 }
 
-// 运行多步 agent，返回最终 assistant 消息的 parts（供落库）
 export interface AgentDependencies {
   request?: (
     request: Record<string, unknown>,
-    controller: AbortController,
-  ) => Promise<AsyncIterable<ChatCompletionChunk>>
+    signal?: AbortSignal,
+  ) => Promise<Response>
   tools?: AgentTool[]
   skillLoaders?: Parameters<typeof createSkillRuntime>[0]['loaders']
 }
@@ -74,191 +57,218 @@ export async function runAgent(
     callbacks = {},
   } = options
 
-  const finalParts: AiMessagePart[] = []
+  const usage: AgentUsage = { input: 0, output: 0, total: 0 }
 
-  const skillRuntime = createSkillRuntime({
-    signal,
-    loaders: dependencies.skillLoaders,
-    onActivity: (activity) => {
-      const index = finalParts.findIndex(
-        (part) => part.type === 'skill-activity' && part.id === activity.id,
+  const completedTools = new Map<
+    string,
+    Extract<AiMessagePart, { type: 'tool-call' }>
+  >()
+
+  let toolQueue: Promise<unknown> = Promise.resolve()
+  let step = 0
+  let failure: unknown
+  let requestFailure: unknown
+  let reachedStepLimit = false
+  let finalParts: AiMessagePart[] = []
+
+  const onError = (error: unknown) => {
+    failure ??= error
+
+    return error instanceof Error ? error.message : '回复失败'
+  }
+
+  const stream = createUIMessageStream<AgentUIMessage>({
+    onError,
+    execute: async ({ writer }) => {
+      signal.throwIfAborted()
+
+      const skillRuntime = createSkillRuntime({
+        signal,
+        loaders: dependencies.skillLoaders,
+        onActivity: (activity) => {
+          writer.write({
+            type: 'data-skill-activity',
+            id: activity.id,
+            data: activity,
+          })
+        },
+      })
+
+      const lastUser = [...history]
+        .reverse()
+        .find((message) => message.role === 'user')
+
+      const skillContext = await skillRuntime.loadExplicit(
+        lastUser ? getSkillReferences(lastUser.parts) : [],
       )
 
-      if (index < 0) finalParts.push(activity)
-      else finalParts[index] = activity
+      const tools = [
+        ...(dependencies.tools ?? getTools()),
+        ...skillRuntime.tools,
+      ]
 
-      callbacks.onSkillActivity?.(activity)
+      // 页面只有一个写入确认位；串行执行也保留原工具之间的读写顺序。
+      const sdkTools = Object.fromEntries(
+        tools.map((definition) => {
+          return [
+            definition.name,
+            tool({
+              description: definition.description,
+              inputSchema: jsonSchema<Record<string, unknown>>(
+                definition.parameters,
+              ),
+              execute: (input, { toolCallId }) => {
+                const execution = toolQueue.then(async () => {
+                  signal.throwIfAborted()
+
+                  if (definition.mode === 'write') {
+                    writer.write({
+                      type: 'data-tool-start',
+                      id: toolCallId,
+                      data: { toolCallId },
+                    })
+                  }
+
+                  let output: unknown
+
+                  try {
+                    output = await definition.execute(input, { signal })
+                  } catch (error) {
+                    output = {
+                      error:
+                        error instanceof Error ? error.message : '工具执行失败',
+                    }
+                  }
+
+                  completedTools.set(toolCallId, {
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName: definition.name,
+                    step,
+                    args: input,
+                    result: output,
+                    state: getToolResultState(output),
+                  })
+
+                  return output
+                })
+
+                toolQueue = execution.catch(() => undefined)
+
+                return execution
+              },
+              toModelOutput: ({ output }) => ({
+                type: 'text',
+                value: serializeAiToolValue(output),
+              }),
+            }),
+          ]
+        }),
+      )
+
+      const request =
+        dependencies.request ?? (await import('../../llm/call')).requestLLM
+
+      const provider = createDeepSeek({
+        // 真正鉴权由 requestLLM 交给现有代理；浏览器不持有模型密钥。
+        apiKey: 'handled-by-llm-proxy',
+        fetch: async (_url, init) => {
+          try {
+            return await request(
+              JSON.parse(init?.body as string),
+              init?.signal ?? signal,
+            )
+          } catch (error) {
+            requestFailure = error
+
+            throw error
+          }
+        },
+      })
+
+      const agent = new ToolLoopAgent({
+        model: provider('deepseek-v4-pro'),
+        tools: sdkTools,
+        stopWhen: stepCountIs(maxSteps),
+        maxRetries: 0,
+        ...(!thinking ? { temperature: 0 } : {}),
+        providerOptions: {
+          deepseek: { thinking: { type: thinking ? 'enabled' : 'disabled' } },
+        },
+        onStepFinish: ({ usage: stepUsage }) => {
+          step++
+          usage.input += stepUsage.inputTokens ?? 0
+          usage.output += stepUsage.outputTokens ?? 0
+          usage.total += stepUsage.totalTokens ?? 0
+          callbacks.onUsage?.({ ...usage })
+        },
+        onFinish: ({ steps, finishReason }) => {
+          reachedStepLimit =
+            steps.length >= maxSteps && finishReason === 'tool-calls'
+        },
+      })
+
+      const result = await agent.stream({
+        messages: toModelMessages(
+          history,
+          [context, buildSkillCatalogContext(), skillContext]
+            .filter(Boolean)
+            .join('\n\n'),
+        ),
+        abortSignal: signal,
+      })
+
+      writer.merge(
+        result.toUIMessageStream({
+          sendReasoning: true,
+          // SDK 同样用此回调格式化工具错误；工具失败由模型继续处理。
+          onError: (error) =>
+            error instanceof Error ? error.message : '回复失败',
+        }),
+      )
     },
   })
 
-  const lastUser = [...history]
-    .reverse()
-    .find((message) => message.role === 'user')
-
-  const skillContext = await skillRuntime.loadExplicit(
-    lastUser ? getSkillReferences(lastUser.parts) : [],
-  )
-
-  const apiMessages = toApiMessages(
-    history,
-    [context, buildSkillCatalogContext(), skillContext]
-      .filter(Boolean)
-      .join('\n\n'),
-  )
-
-  const tools = [...(dependencies.tools ?? getTools()), ...skillRuntime.tools]
-
-  const requestLLM =
-    dependencies.request ??
-    (async (request, controller) => {
-      const { callLLM } = await import('../../llm/call.ts')
-
-      return callLLM(request as any, controller)
-    })
-
-  const cumulativeUsage: StreamUsage = { input: 0, output: 0, total: 0 }
-
-  for (let step = 0; step < maxSteps; step++) {
-    if (signal.aborted) throw new DOMException('aborted', 'AbortError')
-
-    const parser = new StreamParser({
-      onReasoning: (_d, full) => callbacks.onReasoning?.(full),
-      onText: (_d, full) => callbacks.onText?.(full),
-    })
-
-    const req: Record<string, unknown> = {
-      messages: apiMessages,
-      stream: true,
-      stream_options: { include_usage: true },
-      tools: toApiToolDefs(tools),
-      thinking: thinking ? { type: 'enabled' } : { type: 'disabled' },
-    }
-
-    const requestController = new AbortController()
-    const abortRequest = () => requestController.abort()
-
-    signal.addEventListener('abort', abortRequest, { once: true })
-
-    if (signal.aborted) requestController.abort()
-
-    try {
-      const stream = await requestLLM(req, requestController)
-
-      const seenPendingTools = new Set<string>()
-
-      for await (const chunk of stream) {
-        if (signal.aborted) throw new DOMException('aborted', 'AbortError')
-
-        parser.push(chunk)
-
-        // 仅在 id 已就绪时上屏（避免 idx-N 兜底 key 与 onToolCallStart 真实 id 不匹配产生重复行）
-        for (const p of parser.pendingToolCalls()) {
-          if (p.name && p.id && !seenPendingTools.has(p.id)) {
-            seenPendingTools.add(p.id)
-            callbacks.onToolCallPending?.({ id: p.id, name: p.name, step })
-          }
-        }
-      }
-    } finally {
-      signal.removeEventListener('abort', abortRequest)
-    }
-
-    const { text, reasoning, toolCalls, finishReason, usage } = parser.result()
-
-    if (usage) {
-      cumulativeUsage.input += usage.input
-      cumulativeUsage.output += usage.output
-      cumulativeUsage.total += usage.total
-      callbacks.onUsage?.({ ...cumulativeUsage })
-    }
-
-    if (reasoning) finalParts.push({ type: 'reasoning', text: reasoning })
-
-    // 需要调用工具
-    if (finishReason === 'tool_calls' && toolCalls.length > 0) {
-      // 记录 assistant 的 tool_calls 到 api 上下文
-      // DeepSeek 思考模式下：携带 tools 的请求，后续轮次必须完整回传本轮 reasoning_content，
-      // 否则 API 返回 400。见 https://api-docs.deepseek.com/zh-cn/guides/thinking_mode#工具调用
-      apiMessages.push({
-        role: 'assistant',
-        content: text || null,
-        reasoning_content: reasoning || undefined,
-        tool_calls: toolCalls.map((tc) => ({
-          id: tc.id,
-          type: 'function',
-          function: { name: tc.name, arguments: serializeAiToolValue(tc.args) },
-        })),
-      } as any)
-
-      if (text) finalParts.push({ type: 'text', text })
-
-      for (const tc of toolCalls) {
-        if (signal.aborted) throw new DOMException('aborted', 'AbortError')
-
-        const tool = tools.find((tool) => tool.name === tc.name)
-        const isWrite = tool?.mode === 'write'
-
-        callbacks.onToolCallStart?.({ ...tc, awaitingConfirm: isWrite, step })
-
-        let result: unknown
-        let isError = false
-        let cancelled = false
-
-        if (!tool) {
-          result = { error: `工具不存在: ${tc.name}` }
-          isError = true
-        } else {
-          try {
-            result = await tool.execute(tc.args, { signal })
-
-            if (result && typeof result === 'object') {
-              const obj = result as Record<string, unknown>
-
-              if ('error' in obj) isError = true
-              if ('cancelled' in obj && obj.cancelled) cancelled = true
-            }
-          } catch (e) {
-            if (signal.aborted) throw e
-
-            result = { error: e instanceof Error ? e.message : '工具执行失败' }
-            isError = true
-          }
-        }
-
-        callbacks.onToolResult?.(tc.id, result, isError, cancelled)
-
-        finalParts.push({
-          type: 'tool-call',
-          toolCallId: tc.id,
-          toolName: tc.name,
-          step,
-          args: tc.args,
-          result,
-          state: isError ? 'error' : cancelled ? 'cancelled' : 'result',
-        })
-
-        apiMessages.push({
-          role: 'tool',
-          content: serializeAiToolValue(result),
-          tool_call_id: tc.id,
-        } as any)
-      }
-
-      // 继续下一轮
-      continue
-    }
-
-    // 正常结束
-    if (text) finalParts.push({ type: 'text', text })
-
-    return finalParts
+  for await (const message of readUIMessageStream<AgentUIMessage>({
+    stream,
+    onError: (error) => onError(requestFailure ?? error),
+  })) {
+    finalParts = toMessageParts(message)
+    callbacks.onParts?.(finalParts)
   }
 
-  // 到达步数上限
-  finalParts.push({
-    type: 'text',
-    text: '（已达到工具调用步数上限，以上为当前进展）',
-  })
+  if (signal.aborted) {
+    // SDK 取消会关闭输出流，但已确认的数据库写入仍可能完成；先保留真实结果再落库。
+    await toolQueue
+
+    const observedTools = new Set<string>()
+
+    finalParts = finalParts.map((part) => {
+      if (part.type !== 'tool-call') return part
+
+      observedTools.add(part.toolCallId)
+
+      return completedTools.get(part.toolCallId) ?? part
+    })
+
+    for (const [id, part] of completedTools) {
+      if (!observedTools.has(id)) finalParts.push(part)
+    }
+
+    callbacks.onParts?.(finalParts)
+  }
+
+  signal.throwIfAborted()
+
+  if (failure) throw failure
+  if (reachedStepLimit) {
+    finalParts.push({
+      type: 'text',
+      text: '（已达到工具调用步数上限，以上为当前进展）',
+    })
+
+    callbacks.onParts?.(finalParts)
+  }
 
   return finalParts
 }

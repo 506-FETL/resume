@@ -9,7 +9,7 @@ import {
   ListOrdered,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { CodeBlock } from '@/components/ui/code-block'
+import { CodeSnippet } from '@/components/ui/code-snippet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { hasUnresolvedSuggestionInput } from '@/lib/ats'
 import { cn } from '@/lib/utils'
@@ -201,22 +201,22 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
           <TabsContent value='code'>
             <div>
               <div className='grid gap-3 sm:grid-cols-1 lg:grid-cols-2 lg:gap-6'>
-                <CodeBlock
+                <CodeSnippet
                   language='json'
                   filename='before.json'
                   className='text-sm lg:text-base'
                   showLineNumbers
                 >
                   {beforeCode}
-                </CodeBlock>
-                <CodeBlock
+                </CodeSnippet>
+                <CodeSnippet
                   language='json'
                   filename='after.json'
                   className='text-sm lg:text-base'
                   showLineNumbers
                 >
                   {afterCode}
-                </CodeBlock>
+                </CodeSnippet>
               </div>
             </div>
           </TabsContent>

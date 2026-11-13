@@ -2,12 +2,12 @@ import type { ComponentProps, ReactNode } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { isValidElement, memo } from 'react'
 import { Streamdown } from 'streamdown'
-import { CodeBlock } from '@/components/ui/code-block'
-import { cn } from '@/lib/utils'
+import 'streamdown/styles.css'
+import { CodeSnippet } from '@/components/ui/code-snippet'
+import { DURATION, EASE } from '@/lib/motion'
 
 interface TextPartProps {
   text: string
-  // 只为流式中新挂载的 Markdown 块淡入，已有块的文字更新不重播。
   animate?: boolean
 }
 
@@ -37,9 +37,9 @@ function CodeBlockPre({ children }: ComponentProps<'pre'>) {
   const { code, language } = extractCode(children)
 
   return (
-    <CodeBlock language={language} showLineNumbers>
+    <CodeSnippet language={language} showLineNumbers>
       {code}
-    </CodeBlock>
+    </CodeSnippet>
   )
 }
 
@@ -48,8 +48,14 @@ const MARKDOWN_COMPONENTS = { pre: CodeBlockPre } as ComponentProps<
   typeof Streamdown
 >['components']
 
+const STREAM_ANIMATION = {
+  animation: 'fadeIn',
+  duration: DURATION.base * 1000,
+  easing: `cubic-bezier(${EASE.out.join(',')})`,
+} as const
+
 // 助手文本按 markdown 渲染（复用仓库既有 Streamdown，支持流式增量）。
-// 代码块改用仓库 CodeBlock：带语言图标、语法高亮与复制/下载。
+// 代码块组合官方 CodeBlock 原语，保留增量高亮、复制与下载。
 export const TextPart = memo(function TextPart({
   text,
   animate = false,
@@ -57,13 +63,15 @@ export const TextPart = memo(function TextPart({
   const reduceMotion = useReducedMotion()
 
   return (
-    <div
-      className={cn(
-        'prose prose-sm prose-stone max-w-none dark:prose-invert prose-pre:my-2 prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5',
-        animate && !reduceMotion && 'stream-in',
-      )}
-    >
-      <Streamdown components={MARKDOWN_COMPONENTS}>{text}</Streamdown>
+    <div className='prose prose-sm prose-stone max-w-none dark:prose-invert prose-pre:my-2 prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5'>
+      <Streamdown
+        components={MARKDOWN_COMPONENTS}
+        mode={animate ? 'streaming' : 'static'}
+        isAnimating={animate}
+        animated={reduceMotion ? false : STREAM_ANIMATION}
+      >
+        {text}
+      </Streamdown>
     </div>
   )
 })

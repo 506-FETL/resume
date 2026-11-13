@@ -4,7 +4,7 @@ import type { ChangelogEntry as ChangelogEntryType } from '../../types'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { isValidElement } from 'react'
-import { CodeBlock } from '@/components/ui/code-block'
+import { CodeSnippet } from '@/components/ui/code-snippet'
 import { DURATION, EASE } from '@/lib/motion'
 import { formatDate } from '../../utils'
 
@@ -21,7 +21,7 @@ function MdxPre({ children }: { children?: ReactNode }) {
       ? children.props.children.trim()
       : ''
 
-  return <CodeBlock language={language}>{code}</CodeBlock>
+  return <CodeSnippet language={language}>{code}</CodeSnippet>
 }
 
 const mdxComponents: MDXComponents = { pre: MdxPre }

@@ -83,19 +83,21 @@ export function ConversationItem({
   return (
     <>
       <div ref={itemRef} className='group relative'>
-        <button
+        <Button
           type='button'
+          variant='ghost'
           className={cn(
-            'flex h-9 w-full items-center rounded-lg px-2.5 text-left text-sm transition-colors',
+            'h-9 w-full justify-start rounded-lg px-2.5 text-left text-sm font-normal',
             active
               ? 'bg-accent font-medium text-accent-foreground'
               : 'text-foreground/80 hover:bg-accent/60 hover:text-foreground',
           )}
           onClick={() => onSelect(conversation.id)}
           aria-busy={pending}
+          aria-pressed={active}
         >
           <span className='min-w-0 flex-1 truncate'>{title}</span>
-        </button>
+        </Button>
 
         {/* 模糊遮罩覆盖完整操作区，左侧渐隐，避免长标题穿过图标。 */}
         <div className='pointer-events-none absolute inset-y-0 right-0 w-20 rounded-r-lg bg-accent/85 opacity-0 backdrop-blur-sm transition-opacity [mask-image:linear-gradient(to_left,black_75%,transparent)] group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none' />

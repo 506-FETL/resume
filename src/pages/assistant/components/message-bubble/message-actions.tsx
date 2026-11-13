@@ -6,6 +6,11 @@ import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { readableMessageText } from '../../composer-references'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { MessageFooter } from '@/components/ui/message'
 import { getSkillReferences } from '@/lib/ai/skills/references'
 import { cn } from '@/lib/utils'
@@ -73,46 +78,58 @@ export function MessageActions({
       <span className='ml-0.5 text-[11px] tabular-nums'>
         {dayjs(message.createdAt).format('YYYY-MM-DD HH:mm:ss')}
       </span>
-      <Button
-        variant='ghost'
-        size='icon-xs'
-        aria-label={copied ? '已复制' : '复制'}
-        title='复制'
-        onClick={handleCopy}
-      >
-        <AnimatedContent
-          animationKey={copied ? 'copied' : 'copy'}
-          as='span'
-          className='flex size-3.5 items-center justify-center'
-        >
-          {copied ? (
-            <Check className='size-3.5 text-primary' />
-          ) : (
-            <Copy className='size-3.5' />
-          )}
-        </AnimatedContent>
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='ghost'
+            size='icon-xs'
+            aria-label={copied ? '已复制' : '复制'}
+            onClick={handleCopy}
+          >
+            <AnimatedContent
+              animationKey={copied ? 'copied' : 'copy'}
+              as='span'
+              className='flex size-3.5 items-center justify-center'
+            >
+              {copied ? (
+                <Check className='size-3.5 text-primary' />
+              ) : (
+                <Copy className='size-3.5' />
+              )}
+            </AnimatedContent>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{copied ? '已复制' : '复制'}</TooltipContent>
+      </Tooltip>
       {isUser && onEdit && (
-        <Button
-          variant='ghost'
-          size='icon-xs'
-          aria-label='编辑'
-          title='编辑并重新生成'
-          onClick={onEdit}
-        >
-          <Pencil className='size-3.5' />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon-xs'
+              aria-label='编辑'
+              onClick={onEdit}
+            >
+              <Pencil className='size-3.5' />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>编辑并重新生成</TooltipContent>
+        </Tooltip>
       )}
       {!isUser && onRegenerate && (
-        <Button
-          variant='ghost'
-          size='icon-xs'
-          aria-label='重新生成'
-          title='重新生成'
-          onClick={onRegenerate}
-        >
-          <RefreshCw className='size-3.5' />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon-xs'
+              aria-label='重新生成'
+              onClick={onRegenerate}
+            >
+              <RefreshCw className='size-3.5' />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>重新生成</TooltipContent>
+        </Tooltip>
       )}
     </MessageFooter>
   )

@@ -311,26 +311,6 @@ body {
   mix-blend-mode: normal;
 }
 
-/* 仅新挂载的文本块淡入，增量文字不重新播放，也不改变正文布局。 */
-@keyframes stream-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.stream-in > * {
-  animation: stream-in var(--ui-motion-base) var(--ui-motion-enter-ease) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stream-in > * {
-    animation: none;
-  }
-}
-
 /* 变更记录「定位」目标：给简历各章节留出 sticky 标题栏高度的滚动边距，避免滚动到顶部时被遮挡 */
 [id^='resume-section-'] {
   scroll-margin-top: 4rem;

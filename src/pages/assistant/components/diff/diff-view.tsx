@@ -1,3 +1,8 @@
+import {
+  CodeBlock,
+  CodeBlockContent,
+  CodeBlockLine,
+} from '@/components/ui/code-block'
 import { cn } from '@/lib/utils'
 import { computeLineDiff } from './compute-line-diff'
 
@@ -43,16 +48,21 @@ export function DiffView({
   const lines = computeLineDiff(before, after)
 
   return (
-    // 原生 max-h + overflow-auto：Radix ScrollArea 的 Viewport 用 display:table，
-    // 仅设 max-height 时不会裁剪/滚动，会把内容整体撑开导致溢出，故改用原生滚动容器。
-    <div className={cn('max-h-72 overflow-auto rounded-lg border', className)}>
-      <pre className='min-w-full font-mono text-xs leading-relaxed'>
+    <CodeBlock size='sm' className={className}>
+      <CodeBlockContent wrap className='max-h-72'>
         {lines.map((line, idx) => (
-          <div
+          <CodeBlockLine
             // eslint-disable-next-line @eslint-react/no-array-index-key
             key={`${line.type}-${idx}-${line.text}`}
+            variant={
+              line.type === 'add'
+                ? 'added'
+                : line.type === 'remove'
+                  ? 'removed'
+                  : 'default'
+            }
             className={cn(
-              'flex gap-2 px-2 py-0.5',
+              'py-0.5',
               line.type === 'add' &&
                 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
               line.type === 'remove' &&
@@ -60,15 +70,10 @@ export function DiffView({
               line.type === 'context' && 'text-muted-foreground',
             )}
           >
-            <span className='select-none text-muted-foreground/60'>
-              {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
-            </span>
-            <span className='min-w-0 flex-1 whitespace-pre-wrap break-words'>
-              {line.text}
-            </span>
-          </div>
+            {line.text}
+          </CodeBlockLine>
         ))}
-      </pre>
-    </div>
+      </CodeBlockContent>
+    </CodeBlock>
   )
 }

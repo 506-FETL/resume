@@ -1,295 +1,261 @@
 'use client'
 
-import type { BundledLanguage } from 'shiki'
-import { type FC, useEffect, useState } from 'react'
-import { Check, Copy, Download } from 'lucide-react'
-import { parseSanitizedHtml } from '@/lib/safe-html'
+import * as React from 'react'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
-import '@/styles/devicon.css'
 
-// Devicon class mapping for language icons
-const deviconMap: Record<string, string> = {
-  javascript: 'devicon-javascript-plain colored',
-  js: 'devicon-javascript-plain colored',
-  typescript: 'devicon-typescript-plain colored',
-  ts: 'devicon-typescript-plain colored',
-  tsx: 'devicon-react-original colored',
-  jsx: 'devicon-react-original colored',
-  python: 'devicon-python-plain colored',
-  py: 'devicon-python-plain colored',
-  java: 'devicon-java-plain colored',
-  cpp: 'devicon-cplusplus-plain colored',
-  c: 'devicon-c-plain colored',
-  csharp: 'devicon-csharp-plain colored',
-  cs: 'devicon-csharp-plain colored',
-  ruby: 'devicon-ruby-plain colored',
-  rb: 'devicon-ruby-plain colored',
-  go: 'devicon-go-original-wordmark colored',
-  rust: 'devicon-rust-original colored',
-  rs: 'devicon-rust-original colored',
-  php: 'devicon-php-plain colored',
-  swift: 'devicon-swift-plain colored',
-  kotlin: 'devicon-kotlin-plain colored',
-  kt: 'devicon-kotlin-plain colored',
-  html: 'devicon-html5-plain colored',
-  css: 'devicon-css3-plain colored',
-  json: 'devicon-json-plain colored',
-  xml: 'devicon-xml-plain colored',
-  yaml: 'devicon-yaml-plain colored',
-  yml: 'devicon-yaml-plain colored',
-  markdown: 'devicon-markdown-original',
-  md: 'devicon-markdown-original',
-  bash: 'devicon-bash-plain colored',
-  shell: 'devicon-bash-plain colored',
-  sh: 'devicon-bash-plain colored',
-  sql: 'devicon-mysql-plain colored',
-  docker: 'devicon-docker-plain colored',
-  dockerfile: 'devicon-docker-plain colored',
-  react: 'devicon-react-original colored',
-  vue: 'devicon-vuejs-plain colored',
-  angular: 'devicon-angularjs-plain colored',
-  svelte: 'devicon-svelte-plain colored',
-  nodejs: 'devicon-nodejs-plain colored',
-}
+import { Button } from '@/components/ui/button'
+import { Check, Copy } from 'lucide-react'
+import { toast } from 'sonner'
+import AnimatedContent from '@/components/motion/animated-content'
+import { DURATION } from '@/lib/motion'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 
-// Map common language names to shiki-supported languages
-const languageMap: Record<string, BundledLanguage> = {
-  javascript: 'javascript',
-  js: 'javascript',
-  typescript: 'typescript',
-  ts: 'typescript',
-  tsx: 'tsx',
-  jsx: 'jsx',
-  python: 'python',
-  py: 'python',
-  java: 'java',
-  cpp: 'cpp',
-  c: 'c',
-  csharp: 'csharp',
-  cs: 'csharp',
-  ruby: 'ruby',
-  rb: 'ruby',
-  go: 'go',
-  rust: 'rust',
-  rs: 'rust',
-  php: 'php',
-  swift: 'swift',
-  kotlin: 'kotlin',
-  kt: 'kotlin',
-  html: 'html',
-  css: 'css',
-  json: 'json',
-  xml: 'xml',
-  yaml: 'yaml',
-  yml: 'yaml',
-  markdown: 'markdown',
-  md: 'markdown',
-  bash: 'bash',
-  shell: 'bash',
-  sh: 'bash',
-  sql: 'sql',
-}
+const codeBlockVariants = cva(
+  'group/code-block relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl text-sm has-[>[data-slot=code-block-content]:focus-visible]:ring-3 has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/30 data-[size=sm]:rounded-xl data-[size=sm]:text-xs',
+  {
+    variants: {
+      variant: {
+        default:
+          'bg-muted text-foreground ring-1 ring-foreground/5 dark:ring-foreground/10',
+        destructive:
+          'bg-destructive/5 text-destructive ring-1 ring-destructive/15 dark:bg-destructive/10 dark:ring-destructive/20',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
 
-export interface CodeBlockProps {
-  children: string
-  language?: string
-  filename?: string
-  showLineNumbers?: boolean
-  className?: string
-}
-
-export const CodeBlock: FC<CodeBlockProps> = ({
-  children,
-  language = 'plaintext',
-  filename,
-  showLineNumbers = false,
+function CodeBlock({
   className,
-}) => {
-  const [copied, setCopied] = useState(false)
-  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null)
-
-  useEffect(() => {
-    const mappedLang = languageMap[language.toLowerCase()]
-
-    if (!mappedLang) {
-      // No highlighting for unknown languages
-      setHighlightedHtml(null)
-
-      return
-    }
-
-    import('shiki/bundle/web')
-      .then(({ codeToHtml }) =>
-        codeToHtml(children, {
-          lang: mappedLang,
-          themes: {
-            light: 'github-light',
-            dark: 'github-dark',
-          },
-        }),
-      )
-      .then(setHighlightedHtml)
-      .catch(() => setHighlightedHtml(null))
-  }, [children, language])
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(children)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const handleDownload = () => {
-    const extension = getFileExtension(language)
-    const blob = new Blob([children], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-
-    a.href = url
-    a.download = filename || `code.${extension}`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  const lines = children.split('\n')
-
-  const deviconClass =
-    deviconMap[language.toLowerCase()] || deviconMap[language]
-
+  variant = 'default',
+  size = 'default',
+  ...props
+}: React.ComponentProps<'div'> &
+  VariantProps<typeof codeBlockVariants> & { size?: 'default' | 'sm' }) {
   return (
     <div
-      data-code-block=''
-      className={cn(
-        'not-prose relative my-4 overflow-hidden rounded-lg border',
-        'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950',
-        className,
-      )}
-    >
-      {/* Header */}
-      <div
-        className={cn(
-          'flex items-center justify-between border-b px-4 py-2',
-          'border-zinc-200 bg-zinc-100/50 dark:border-zinc-800 dark:bg-zinc-900/50',
-        )}
-      >
-        <div className='flex items-center gap-2'>
-          {deviconClass ? (
-            <i className={cn(deviconClass, 'text-base')} aria-hidden='true' />
-          ) : (
-            <span
-              className={cn(
-                'rounded px-2 py-0.5 text-xs',
-                'bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400',
-              )}
-            >
-              {language}
-            </span>
-          )}
-          {filename && (
-            <span className='text-sm font-medium text-zinc-700 dark:text-zinc-300'>
-              {filename}
-            </span>
-          )}
-        </div>
-        <div className='flex items-center gap-1'>
-          <button
-            type='button'
-            onClick={handleDownload}
-            className={cn(
-              'rounded-md p-1.5 transition-colors',
-              'text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700',
-              'dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200',
-            )}
-            aria-label='Download code'
-          >
-            <Download size={16} />
-          </button>
-          <button
-            type='button'
-            onClick={handleCopy}
-            className={cn(
-              'rounded-md p-1.5 transition-colors',
-              'text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700',
-              'dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200',
-            )}
-            aria-label='Copy code'
-          >
-            {copied ? (
-              <Check size={16} className='text-green-500' />
-            ) : (
-              <Copy size={16} />
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Code content */}
-      <div className='overflow-x-auto'>
-        {highlightedHtml ? (
-          <div className='flex'>
-            {showLineNumbers && (
-              <div className='flex-shrink-0 py-4 pl-4 pr-2 select-none text-right text-sm text-zinc-400 dark:text-zinc-600'>
-                {lines.map((_, i) => (
-                  <div key={`line--${_}-${i}`}>{i + 1}</div>
-                ))}
-              </div>
-            )}
-            <div className='min-w-max flex-1 p-4 text-sm [&>pre]:!m-0 [&>pre]:!bg-transparent [&>pre]:!p-0'>
-              {parseSanitizedHtml(highlightedHtml)}
-            </div>
-          </div>
-        ) : (
-          <pre className='p-4'>
-            <code className='text-sm text-zinc-800 dark:text-zinc-100'>
-              {showLineNumbers ? (
-                <div className='flex'>
-                  <div className='mr-4 select-none text-zinc-400 dark:text-zinc-600'>
-                    {lines.map((_, i) => (
-                      <div key={`line-${i}`} className='text-right'>
-                        {i + 1}
-                      </div>
-                    ))}
-                  </div>
-                  <div className='flex-1'>{children}</div>
-                </div>
-              ) : (
-                children
-              )}
-            </code>
-          </pre>
-        )}
-      </div>
-    </div>
+      data-slot='code-block'
+      data-variant={variant}
+      data-size={size}
+      className={cn(codeBlockVariants({ variant }), className)}
+      {...props}
+    />
   )
 }
 
-// Helper function to get file extension from language
-function getFileExtension(language: string): string {
-  const extensionMap: Record<string, string> = {
-    javascript: 'js',
-    typescript: 'ts',
-    python: 'py',
-    java: 'java',
-    cpp: 'cpp',
-    c: 'c',
-    csharp: 'cs',
-    ruby: 'rb',
-    go: 'go',
-    rust: 'rs',
-    php: 'php',
-    swift: 'swift',
-    kotlin: 'kt',
-    html: 'html',
-    css: 'css',
-    json: 'json',
-    xml: 'xml',
-    yaml: 'yaml',
-    markdown: 'md',
-    bash: 'sh',
-    shell: 'sh',
-    sql: 'sql',
-  }
+function CodeBlockHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot='code-block-header'
+      className={cn(
+        'flex min-w-0 shrink-0 items-center gap-2 px-4 pt-4 text-muted-foreground group-data-[size=sm]/code-block:px-3 group-data-[size=sm]/code-block:pt-3 group-data-[variant=destructive]/code-block:text-destructive *:has-[>[data-slot=code-block-title]]:min-w-0',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
 
-  return extensionMap[language.toLowerCase()] || 'txt'
+function CodeBlockTitle({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot='code-block-title'
+      className={cn(
+        "min-w-0 truncate font-sans text-sm font-medium text-foreground group-data-[size=sm]/code-block:text-xs group-data-[variant=destructive]/code-block:text-destructive [&_svg]:pointer-events-none [&_svg]:inline-block [&_svg]:align-middle [&_svg:not([class*='size-'])]:size-4 group-data-[size=sm]/code-block:[&_svg:not([class*='size-'])]:size-3.5 *:[svg]:me-1.5",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+function CodeBlockActions({
+  className,
+  ...props
+}: React.ComponentProps<'div'>) {
+  const reduceMotion = useReducedMotion()
+
+  return (
+    <div
+      style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s` }}
+      data-slot='code-block-actions'
+      className={cn(
+        '-my-1 ms-auto -me-1.5 flex shrink-0 items-center gap-1 *:data-[slot=button]:hover:bg-foreground/5 dark:*:data-[slot=button]:hover:bg-foreground/10 [[data-slot=code-block]>&]:absolute [[data-slot=code-block]>&]:end-3 [[data-slot=code-block]>&]:top-3 [[data-slot=code-block]>&]:z-10 [[data-slot=code-block]>&]:m-0 [[data-slot=code-block]>&]:opacity-0 [[data-slot=code-block]>&]:transition-opacity [[data-slot=code-block]>&]:group-focus-within/code-block:opacity-100 [[data-slot=code-block]>&]:group-hover/code-block:opacity-100 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:end-2 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:top-2 [[data-slot=code-block]>&]:pointer-coarse:opacity-100 [[data-slot=code-block]>&]:*:[button]:bg-background [[data-slot=code-block]>&]:*:[button]:ring-1 [[data-slot=code-block]>&]:*:[button]:ring-foreground/10',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+function CodeBlockCopyButton({
+  value,
+  variant = 'ghost',
+  size = 'icon-xs',
+  className,
+  onClick,
+  ...props
+}: React.ComponentProps<typeof Button> & { value: string }) {
+  const [copied, setCopied] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!copied) {
+      return
+    }
+
+    const timeout = setTimeout(() => setCopied(false), 2000)
+
+    return () => clearTimeout(timeout)
+  }, [copied])
+
+  return (
+    <>
+      <Button
+        data-slot='code-block-copy-button'
+        data-copied={copied || undefined}
+        variant={variant}
+        size={size}
+        aria-label={copied ? '已复制' : '复制代码'}
+        className={cn(
+          'hover:bg-foreground/5 dark:hover:bg-foreground/10',
+          className,
+        )}
+        onClick={(event) => {
+          onClick?.(event)
+
+          navigator.clipboard
+            .writeText(value)
+            .then(() => setCopied(true))
+            .catch(() => toast.error('复制失败，请选择代码后复制'))
+        }}
+        {...props}
+      >
+        <AnimatedContent
+          as='span'
+          animationKey={copied ? 'copied' : 'copy'}
+          className='flex'
+        >
+          {copied ? <Check /> : <Copy />}
+        </AnimatedContent>
+      </Button>
+      <span aria-live='polite' className='sr-only'>
+        {copied ? '已复制' : ''}
+      </span>
+    </>
+  )
+}
+
+function CodeBlockContent({
+  className,
+  children,
+  style,
+  wrap = false,
+  lineNumbers = false,
+  startLine = 1,
+  ...props
+}: React.ComponentProps<'pre'> & {
+  wrap?: boolean
+  lineNumbers?: boolean
+  startLine?: number
+}) {
+  return (
+    <pre
+      data-slot='code-block-content'
+      data-wrap={wrap || undefined}
+      data-numbered={lineNumbers || undefined}
+      dir='ltr'
+      tabIndex={0}
+      style={{ counterReset: `line ${startLine - 1}`, ...style }}
+      className={cn(
+        'min-h-0 min-w-0 scroll-fade-x scrollbar-thin overflow-auto px-4 py-4 text-start font-mono leading-relaxed outline-none group-has-data-[slot=code-block-footer]/code-block:pb-2 group-has-data-[slot=code-block-header]/code-block:pt-2 group-data-[size=sm]/code-block:px-3 group-data-[size=sm]/code-block:py-3 group-data-[size=sm]/code-block:group-has-data-[slot=code-block-header]/code-block:pt-1.5 data-wrap:scroll-fade-y data-wrap:wrap-break-word data-wrap:whitespace-pre-wrap',
+        className,
+      )}
+      {...props}
+    >
+      <code
+        data-slot='code-block-code'
+        className='grid min-h-lh min-w-max content-start in-data-numbered:grid-cols-[auto_1fr] in-data-wrap:min-w-0'
+      >
+        {lineNumbers && typeof children === 'string'
+          ? children
+              .replace(/\n$/, '')
+              .split('\n')
+              .map((line, index) => (
+                <CodeBlockLine key={index}>{line}</CodeBlockLine>
+              ))
+          : children}
+      </code>
+    </pre>
+  )
+}
+
+const codeBlockLineVariants = cva(
+  "relative -mx-4 block min-h-lh px-4 group-data-[size=sm]/code-block:-mx-3 group-data-[size=sm]/code-block:px-3 before:min-w-6 before:text-end before:text-muted-foreground after:absolute after:start-1 after:top-0 after:text-muted-foreground after:select-none in-data-numbered:col-span-2 in-data-numbered:grid in-data-numbered:grid-cols-subgrid in-data-numbered:gap-x-3 in-data-numbered:[counter-increment:line] in-data-numbered:before:content-[counter(line)] in-data-numbered:before:select-none in-data-numbered:supports-[content:counter(line)_/_'']:before:content-[counter(line)_/_'']",
+  {
+    variants: {
+      variant: {
+        default: '',
+        added: "bg-foreground/5 after:content-['+']",
+        removed: "bg-destructive/10 after:text-destructive after:content-['−']",
+        highlighted: 'bg-foreground/5',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
+
+function CodeBlockLine({
+  className,
+  variant = 'default',
+  children,
+  ...props
+}: React.ComponentProps<'span'> & VariantProps<typeof codeBlockLineVariants>) {
+  // An empty line holds a newline so copying a selection keeps blank lines.
+  const empty =
+    children === undefined ||
+    children === null ||
+    children === '' ||
+    (Array.isArray(children) && children.length === 0)
+
+  return (
+    <span
+      data-slot='code-block-line'
+      data-variant={variant}
+      className={cn(codeBlockLineVariants({ variant }), className)}
+      {...props}
+    >
+      <span data-slot='code-block-line-content' className='min-w-0'>
+        {empty ? '\n' : children}
+      </span>
+    </span>
+  )
+}
+
+function CodeBlockFooter({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot='code-block-footer'
+      className={cn(
+        'flex min-w-0 shrink-0 items-center gap-2 px-4 pb-4 text-muted-foreground group-data-[size=sm]/code-block:px-3 group-data-[size=sm]/code-block:pb-3',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export {
+  CodeBlock,
+  CodeBlockHeader,
+  CodeBlockTitle,
+  CodeBlockActions,
+  CodeBlockCopyButton,
+  CodeBlockContent,
+  CodeBlockLine,
+  CodeBlockFooter,
 }

@@ -1,17 +1,16 @@
 import { Check, ShieldQuestion, X } from 'lucide-react'
 import { AnimatePresence, motion, useIsPresent } from 'motion/react'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import {
-  Trace,
-  TraceCollapsible,
-  TraceCollapsibleContent,
-  TraceCollapsibleTrigger,
-  TraceIcon,
-  TraceLine,
-  TraceTitle,
-} from '@/components/ui/trace'
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item'
 import { DURATION, EASE } from '@/lib/motion'
 import useAssistantStore from '../../store'
 import { JobChangeSummary } from './job-change-summary'
@@ -25,7 +24,6 @@ function Confirmation({ pending }: { pending: PendingConfirm }) {
   const reduceMotion = useReducedMotion()
   const isPresent = useIsPresent()
   const resolvedRef = useRef(false)
-  const [open, setOpen] = useState(true)
   const { preview, resolve } = pending
 
   const respond = (accepted: boolean, button: HTMLButtonElement) => {
@@ -59,21 +57,18 @@ function Confirmation({ pending }: { pending: PendingConfirm }) {
         duration: reduceMotion ? 0 : DURATION.base,
         ease: EASE.out,
       }}
-      className='min-w-0 rounded-xl border p-3 sm:p-4'
+      className='min-w-0'
     >
-      <Trace>
-        <TraceCollapsible open={open} onOpenChange={setOpen}>
-          <TraceCollapsibleTrigger className='w-full'>
-            <TraceLine className='text-foreground'>
-              <TraceIcon>
-                <ShieldQuestion />
-              </TraceIcon>
-              <TraceTitle title={preview.title}>
-                等待确认：{preview.title}
-              </TraceTitle>
-            </TraceLine>
-          </TraceCollapsibleTrigger>
-          <TraceCollapsibleContent>
+      <Item variant='outline' size='sm' className='items-start'>
+        <ItemMedia variant='icon'>
+          <ShieldQuestion />
+        </ItemMedia>
+        <ItemContent className='min-w-0'>
+          <ItemTitle className='line-clamp-none'>
+            等待确认：{preview.title}
+          </ItemTitle>
+          <ItemDescription>确认后将应用以下修改。</ItemDescription>
+          <div className='mt-2'>
             {preview.kind === 'resume-field' ? (
               <ResumeFieldDiff
                 sectionKey={preview.sectionKey ?? ''}
@@ -83,26 +78,26 @@ function Confirmation({ pending }: { pending: PendingConfirm }) {
             ) : (
               <JobChangeSummary summary={preview.summary ?? ''} />
             )}
-          </TraceCollapsibleContent>
-        </TraceCollapsible>
-      </Trace>
-      <div className='mt-3 flex justify-end gap-2'>
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={(event) => respond(false, event.currentTarget)}
-        >
-          <X className='size-3.5' />
-          取消
-        </Button>
-        <Button
-          size='sm'
-          onClick={(event) => respond(true, event.currentTarget)}
-        >
-          <Check className='size-3.5' />
-          确认应用
-        </Button>
-      </div>
+          </div>
+        </ItemContent>
+        <ItemActions className='basis-full justify-end'>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={(event) => respond(false, event.currentTarget)}
+          >
+            <X className='size-3.5' />
+            取消
+          </Button>
+          <Button
+            size='sm'
+            onClick={(event) => respond(true, event.currentTarget)}
+          >
+            <Check className='size-3.5' />
+            确认应用
+          </Button>
+        </ItemActions>
+      </Item>
     </motion.div>
   )
 }

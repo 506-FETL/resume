@@ -10,6 +10,7 @@ import { motion } from 'motion/react'
 import { memo, useState } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
+import { CodeBlock, CodeBlockContent } from '@/components/ui/code-block'
 import AnimatedContent from '@/components/motion/animated-content'
 import {
   Trace,
@@ -188,18 +189,25 @@ function ToolCallDetails({ call }: { call: ToolCallPart }) {
     <div className='space-y-3 text-xs'>
       <div>
         <p className='mb-1 font-medium text-foreground'>请求内容</p>
-        <pre className='max-h-56 overflow-auto rounded-md bg-muted p-3 text-foreground whitespace-pre-wrap break-all'>
-          {JSON.stringify(call.args, null, 2)}
-        </pre>
+        <CodeBlock size='sm'>
+          <CodeBlockContent wrap className='max-h-56'>
+            {JSON.stringify(call.args, null, 2)}
+          </CodeBlockContent>
+        </CodeBlock>
       </div>
       {call.result !== undefined && (
         <div>
           <p className='mb-1 font-medium text-foreground'>
             {call.state === 'error' ? '失败原因' : '返回结果'}
           </p>
-          <pre className='max-h-72 overflow-auto rounded-md bg-muted p-3 text-foreground whitespace-pre-wrap break-all'>
-            {JSON.stringify(call.result, null, 2)}
-          </pre>
+          <CodeBlock
+            size='sm'
+            variant={call.state === 'error' ? 'destructive' : 'default'}
+          >
+            <CodeBlockContent wrap className='max-h-72'>
+              {JSON.stringify(call.result, null, 2)}
+            </CodeBlockContent>
+          </CodeBlock>
         </div>
       )}
     </div>

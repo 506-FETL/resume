@@ -26,15 +26,3 @@ export function getTool(name: string): AgentTool | undefined {
 export function getTools(): AgentTool[] {
   return [...registry.values()]
 }
-
-// 导出为 DeepSeek tools 数组格式
-export function toApiToolDefs(tools: readonly AgentTool[] = getTools()) {
-  return tools.map((t) => ({
-    type: 'function' as const,
-    function: {
-      name: t.name,
-      description: t.description,
-      parameters: t.parameters,
-    },
-  }))
-}

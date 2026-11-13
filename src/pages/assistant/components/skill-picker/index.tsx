@@ -2,8 +2,13 @@ import { X } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { PresenceDiv } from '@/components/motion/presence-item'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentTitle,
+  AttachmentActions,
+  AttachmentAction,
+} from '@/components/ui/attachment'
 import type { ComposerSkillPickerProps } from '../../types'
 import { DURATION, EASE, staggerDelay } from '@/lib/motion'
 
@@ -66,45 +71,48 @@ export function SkillPicker({
                 }}
                 className='max-w-full'
               >
-                <Badge
-                  variant='secondary'
-                  className='h-7 max-w-full gap-1 pr-1'
-                >
-                  <span className='truncate'>{skill.displayName}</span>
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon-xs'
-                    aria-label={`移除${label} ${skill.displayName}`}
-                    disabled={disabled}
-                    onClick={(event) => {
-                      const button = event.currentTarget
+                <Attachment size='xs' className='min-w-0 gap-1'>
+                  <AttachmentContent>
+                    <AttachmentTitle>{skill.displayName}</AttachmentTitle>
+                  </AttachmentContent>
+                  <AttachmentActions>
+                    <AttachmentAction
+                      type='button'
+                      variant='ghost'
+                      size='icon-xs'
+                      aria-label={`移除${label} ${skill.displayName}`}
+                      disabled={disabled}
+                      onClick={(event) => {
+                        const button = event.currentTarget
 
-                      const siblings = Array.from(
-                        button
-                          .closest('[data-composer-tags]')
-                          ?.querySelectorAll<HTMLButtonElement>(
-                            'button:not(:disabled)',
-                          ) ?? [],
-                      ).filter((item) => !item.closest('[inert]'))
+                        const siblings = Array.from(
+                          button
+                            .closest('[data-composer-tags]')
+                            ?.querySelectorAll<HTMLButtonElement>(
+                              'button:not(:disabled)',
+                            ) ?? [],
+                        ).filter((item) => !item.closest('[inert]'))
 
-                      const index = siblings.indexOf(button)
-                      const target = siblings[index + 1] ?? siblings[index - 1]
+                        const index = siblings.indexOf(button)
 
-                      const input = button
-                        .closest('[data-composer]')
-                        ?.querySelector<HTMLTextAreaElement>('textarea')
+                        const target =
+                          siblings[index + 1] ?? siblings[index - 1]
 
-                      if (target) target.focus()
-                      else input?.focus({ preventScroll: true })
+                        const input = button
+                          .closest('[data-composer]')
+                          ?.querySelector<HTMLTextAreaElement>('textarea')
 
-                      onRemove(skill.id)
-                    }}
-                    className='size-5 shrink-0 rounded-full text-primary/75 hover:bg-primary/15 hover:text-primary'
-                  >
-                    <X className='size-3.5' />
-                  </Button>
-                </Badge>
+                        if (target) target.focus()
+                        else input?.focus({ preventScroll: true })
+
+                        onRemove(skill.id)
+                      }}
+                      className='size-5 shrink-0 rounded-full text-primary/75 hover:bg-primary/15 hover:text-primary'
+                    >
+                      <X className='size-3.5' />
+                    </AttachmentAction>
+                  </AttachmentActions>
+                </Attachment>
               </PresenceDiv>
             ))}
           </AnimatePresence>

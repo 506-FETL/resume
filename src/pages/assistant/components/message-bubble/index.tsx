@@ -2,7 +2,12 @@ import type { ReactNode } from 'react'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { BookOpen, Brain, Sparkles } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentMedia,
+  AttachmentTitle,
+} from '@/components/ui/attachment'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import {
   Message,
@@ -227,14 +232,18 @@ export const MessageBubble = memo(function MessageBubble({
             ) : (
               <div className='flex min-w-0 flex-col items-end gap-1.5'>
                 {getSkillReferences(message.parts).map((reference) => (
-                  <Badge
-                    variant='secondary'
+                  <Attachment
+                    size='xs'
                     key={reference.skillId}
-                    className='max-w-full gap-1.5 py-1'
+                    className='min-w-0'
                   >
-                    <BookOpen className='size-3.5 shrink-0' />
-                    <span className='truncate'>{reference.displayName}</span>
-                  </Badge>
+                    <AttachmentMedia>
+                      <BookOpen />
+                    </AttachmentMedia>
+                    <AttachmentContent>
+                      <AttachmentTitle>{reference.displayName}</AttachmentTitle>
+                    </AttachmentContent>
+                  </Attachment>
                 ))}
                 {text.trim() && (
                   <Bubble
