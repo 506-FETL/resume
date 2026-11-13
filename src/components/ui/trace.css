@@ -1,0 +1,27 @@
+/* 状态只在短标题上呼吸，避免流式正文每帧重新绘制渐变。 */
+[data-slot='trace-line'][data-status='running'] > [data-slot='trace-title'] {
+  animation: trace-running 1.4s ease-in-out infinite;
+}
+
+@keyframes trace-running {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+[data-slot='trace'][data-reduced-motion] [data-slot='trace-title'] {
+  animation: none;
+}
+
+[data-slot='trace'][data-reduced-motion] [data-slot='trace-icon'],
+[data-slot='trace'][data-reduced-motion] [data-slot='trace-line'],
+[data-slot='trace'][data-reduced-motion]
+  [data-slot='trace-collapsible-trigger'],
+[data-slot='trace'][data-reduced-motion]
+  [data-slot='trace-collapsible-content'] {
+  transition: none;
+}

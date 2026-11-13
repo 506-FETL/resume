@@ -99,12 +99,15 @@ export function AssistantPageSkeleton() {
         </div>
         <div className='shrink-0 border-t bg-background/90 py-3'>
           <div className='mx-auto w-full max-w-4xl px-3 sm:px-6 lg:px-8'>
-            <div className='space-y-5 rounded-2xl border p-3'>
-              <Skeleton className='h-5 w-44' />
-              <div className='flex items-center gap-2'>
-                <Skeleton className='size-9 rounded-full' />
-                <Skeleton className='h-9 w-24 rounded-full' />
-                <Skeleton className='ml-auto size-9 rounded-full' />
+            <div className='rounded-xl border'>
+              <div className='min-h-16 p-3'>
+                <Skeleton className='h-5 w-44' />
+              </div>
+              <div className='flex flex-wrap items-center gap-1.5 px-2.5 pt-1.5 pb-2'>
+                <Skeleton className='size-8 rounded-full' />
+                <Skeleton className='size-8 rounded-full' />
+                <Skeleton className='h-8 w-24 rounded-full' />
+                <Skeleton className='ml-auto size-8 rounded-full' />
               </div>
             </div>
             <Skeleton className='mt-1.5 h-4 w-32' />

@@ -1,9 +1,16 @@
 import type { ReactNode } from 'react'
-import type { TokenUsage } from '../../store'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
-import { BookOpen, Sparkles } from 'lucide-react'
+import { BookOpen, Brain, Sparkles } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
-import { Shimmer } from '@/components/ai/shimmer'
+import { Badge } from '@/components/ui/badge'
+import { Bubble, BubbleContent } from '@/components/ui/bubble'
+import {
+  Message,
+  MessageContent,
+  MessageFooter,
+  MessageHeader,
+} from '@/components/ui/message'
+import { Trace, TraceIcon, TraceLine, TraceTitle } from '@/components/ui/trace'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -26,7 +33,6 @@ interface MessageBubbleProps {
   message: AiMessage
   onEditSave?: (messageId: string, newText: string) => void
   onRegenerate?: (messageId: string) => void
-  usage?: TokenUsage | null
 }
 
 type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
@@ -49,7 +55,7 @@ function editableText(message: AiMessage): string {
   return composeDraft(getEditableMessageText(parts), references)
 }
 
-// 助手 parts 分组分派：连续的 tool-call 合并成一个 ToolCallsSection；reasoning/text 各自渲染
+// 保持流式部件的 key 稳定，展开状态不会随 token 更新重置。
 function renderAssistantParts(
   parts: AiMessagePart[],
   isStreamingMessage: boolean,
@@ -176,7 +182,6 @@ export const MessageBubble = memo(function MessageBubble({
   message,
   onEditSave,
   onRegenerate,
-  usage,
 }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   const [editing, setEditing] = useState(false)
@@ -195,91 +200,116 @@ export const MessageBubble = memo(function MessageBubble({
     const text = readableMessageText(plainText(message))
 
     return (
-      <div
+      <Message
+        align='end'
         ref={userMessageRef}
         tabIndex={-1}
         role='group'
         aria-label='你的消息'
-        className='group flex min-w-0 flex-col items-end gap-1.5 outline-none'
+        className='group outline-none'
       >
-        <AnimatedContent
-          animationKey={editing ? 'editing' : 'message'}
-          className='w-full min-w-0'
-        >
-          {editing ? (
-            <div className='ml-auto w-full sm:max-w-[85%]'>
-              <UserMessageEditor
-                initial={editableText(message)}
-                onCancel={finishEditing}
-                onSave={(value) => {
-                  finishEditing()
-                  onEditSave?.(message.id, value)
-                }}
-              />
-            </div>
-          ) : (
-            <div className='flex min-w-0 flex-col items-end gap-1.5'>
-              {getSkillReferences(message.parts).map((reference) => (
-                <span
-                  key={reference.skillId}
-                  className='flex max-w-full items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs text-primary'
-                >
-                  <BookOpen className='size-3.5 shrink-0' />
-                  <span className='truncate'>{reference.displayName}</span>
-                </span>
-              ))}
-              {text.trim() && (
-                <div className='max-w-[92%] rounded-2xl rounded-br-md bg-primary px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words text-primary-foreground sm:max-w-[85%] sm:px-4'>
-                  {text}
-                </div>
-              )}
-              {!hideActions && (
-                <MessageActions
-                  message={message}
-                  onEdit={
-                    onEditSave
-                      ? () => {
-                          userMessageRef.current?.focus({ preventScroll: true })
-                          setEditing(true)
-                        }
-                      : undefined
-                  }
+        <MessageContent>
+          <AnimatedContent
+            animationKey={editing ? 'editing' : 'message'}
+            className='w-full min-w-0'
+          >
+            {editing ? (
+              <div className='ml-auto w-full sm:max-w-[85%]'>
+                <UserMessageEditor
+                  initial={editableText(message)}
+                  onCancel={finishEditing}
+                  onSave={(value) => {
+                    finishEditing()
+                    onEditSave?.(message.id, value)
+                  }}
                 />
-              )}
-            </div>
-          )}
-        </AnimatedContent>
-      </div>
+              </div>
+            ) : (
+              <div className='flex min-w-0 flex-col items-end gap-1.5'>
+                {getSkillReferences(message.parts).map((reference) => (
+                  <Badge
+                    variant='secondary'
+                    key={reference.skillId}
+                    className='max-w-full gap-1.5 py-1'
+                  >
+                    <BookOpen className='size-3.5 shrink-0' />
+                    <span className='truncate'>{reference.displayName}</span>
+                  </Badge>
+                ))}
+                {text.trim() && (
+                  <Bubble
+                    align='end'
+                    variant='muted'
+                    className='max-w-[92%] sm:max-w-[85%]'
+                  >
+                    <BubbleContent className='whitespace-pre-wrap'>
+                      {text}
+                    </BubbleContent>
+                  </Bubble>
+                )}
+                {!hideActions && (
+                  <MessageActions
+                    message={message}
+                    onEdit={
+                      onEditSave
+                        ? () => {
+                            userMessageRef.current?.focus({
+                              preventScroll: true,
+                            })
+
+                            setEditing(true)
+                          }
+                        : undefined
+                    }
+                  />
+                )}
+              </div>
+            )}
+          </AnimatedContent>
+        </MessageContent>
+      </Message>
     )
   }
 
   return (
-    <div className='group flex min-w-0 gap-2 sm:gap-3'>
-      <div className='flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary'>
-        <Sparkles className='size-4' />
-      </div>
-      <div className='flex min-w-0 flex-1 flex-col gap-2'>
+    <Message className='group' role='group' aria-label='AI 助手的回复'>
+      <MessageContent>
+        <MessageHeader className='gap-1.5 px-0'>
+          <Sparkles className='size-3.5' aria-hidden='true' />
+          AI 助手
+        </MessageHeader>
         <AnimatedContent
           animationKey={
             message.id === 'streaming' && message.parts.length === 0
               ? 'thinking'
               : 'content'
           }
-          className='min-w-0 pt-0.5 text-sm leading-relaxed break-words text-foreground'
+          className='min-w-0 text-sm leading-relaxed break-words text-foreground'
         >
           {message.parts.length === 0 && message.id === 'streaming' ? (
-            <Shimmer duration={1.4}>正在思考…</Shimmer>
+            <Trace>
+              <TraceLine status='running'>
+                <TraceIcon>
+                  <Brain />
+                </TraceIcon>
+                <TraceTitle>正在思考</TraceTitle>
+              </TraceLine>
+            </Trace>
           ) : (
-            renderAssistantParts(message.parts, message.id === 'streaming')
+            <Bubble variant='ghost' className='w-full'>
+              <BubbleContent className='flex w-full flex-col gap-3 overflow-visible'>
+                {renderAssistantParts(
+                  message.parts,
+                  message.id === 'streaming',
+                )}
+              </BubbleContent>
+            </Bubble>
           )}
         </AnimatedContent>
-        {usage && usage.total > 0 && (
-          <p className='text-[11px] tabular-nums text-muted-foreground/80'>
-            本轮 tokens：输入 {usage.input} / 输出 {usage.output} / 合计{' '}
-            {usage.total}
-          </p>
-        )}
-        {!hideActions && (
+        {hideActions ? (
+          // 预留操作行，完成后显示按钮时正文保持原位。
+          <MessageFooter aria-hidden='true' className='h-6' />
+        ) : (
           <MessageActions
             message={message}
             onRegenerate={
@@ -287,7 +317,7 @@ export const MessageBubble = memo(function MessageBubble({
             }
           />
         )}
-      </div>
-    </div>
+      </MessageContent>
+    </Message>
   )
 })

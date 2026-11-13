@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { readableMessageText } from '../../composer-references'
 import { Button } from '@/components/ui/button'
+import { MessageFooter } from '@/components/ui/message'
 import { getSkillReferences } from '@/lib/ai/skills/references'
 import { cn } from '@/lib/utils'
 
@@ -63,9 +64,9 @@ export function MessageActions({
   }
 
   return (
-    <div
+    <MessageFooter
       className={cn(
-        'flex max-w-full flex-wrap items-center gap-1 text-muted-foreground opacity-100 transition-opacity group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100',
+        'flex max-w-full flex-wrap items-center gap-1 px-0 text-muted-foreground opacity-100 transition-opacity group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100',
         isUser && 'justify-end',
       )}
     >
@@ -113,6 +114,6 @@ export function MessageActions({
           <RefreshCw className='size-3.5' />
         </Button>
       )}
-    </div>
+    </MessageFooter>
   )
 }

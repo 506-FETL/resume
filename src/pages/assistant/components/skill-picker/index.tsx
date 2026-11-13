@@ -3,19 +3,9 @@ import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import type { ComposerSkillPickerProps } from '../../types'
 import { DURATION, EASE, staggerDelay } from '@/lib/motion'
-
-export interface ComposerSkill {
-  id: string
-  displayName: string
-}
-
-interface SkillPickerProps {
-  skills: ComposerSkill[]
-  disabled?: boolean
-  onRemove: (id: string) => void
-  label?: string
-}
 
 /** 已选技能只保留轻量元数据；正文在运行时才按需读取。 */
 export function SkillPicker({
@@ -23,7 +13,7 @@ export function SkillPicker({
   disabled = false,
   onRemove,
   label = '技能',
-}: SkillPickerProps) {
+}: ComposerSkillPickerProps) {
   const shouldReduceMotion = useReducedMotion()
 
   return (
@@ -49,7 +39,7 @@ export function SkillPicker({
           aria-label={`本次已选${label}`}
           data-composer-tags
         >
-          <span className='self-center text-xs text-zinc-500 dark:text-zinc-400'>
+          <span className='self-center text-xs text-muted-foreground'>
             {label}
           </span>
           <AnimatePresence initial={false}>
@@ -74,42 +64,47 @@ export function SkillPicker({
                   delay: shouldReduceMotion ? 0 : staggerDelay(index),
                   ease: EASE.out,
                 }}
-                className='inline-flex max-w-full items-center gap-1 rounded-full bg-primary/10 py-1 pl-2.5 pr-1 text-xs font-medium text-primary'
+                className='max-w-full'
               >
-                <span className='truncate'>{skill.displayName}</span>
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon-xs'
-                  aria-label={`移除${label} ${skill.displayName}`}
-                  disabled={disabled}
-                  onClick={(event) => {
-                    const button = event.currentTarget
-
-                    const siblings = Array.from(
-                      button
-                        .closest('[data-composer-tags]')
-                        ?.querySelectorAll<HTMLButtonElement>(
-                          'button:not(:disabled)',
-                        ) ?? [],
-                    ).filter((item) => !item.closest('[inert]'))
-
-                    const index = siblings.indexOf(button)
-                    const target = siblings[index + 1] ?? siblings[index - 1]
-
-                    const input = button
-                      .closest('[data-composer]')
-                      ?.querySelector<HTMLTextAreaElement>('textarea')
-
-                    if (target) target.focus()
-                    else input?.focus({ preventScroll: true })
-
-                    onRemove(skill.id)
-                  }}
-                  className='size-5 shrink-0 rounded-full text-primary/75 hover:bg-primary/15 hover:text-primary'
+                <Badge
+                  variant='secondary'
+                  className='h-7 max-w-full gap-1 pr-1'
                 >
-                  <X className='size-3.5' />
-                </Button>
+                  <span className='truncate'>{skill.displayName}</span>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon-xs'
+                    aria-label={`移除${label} ${skill.displayName}`}
+                    disabled={disabled}
+                    onClick={(event) => {
+                      const button = event.currentTarget
+
+                      const siblings = Array.from(
+                        button
+                          .closest('[data-composer-tags]')
+                          ?.querySelectorAll<HTMLButtonElement>(
+                            'button:not(:disabled)',
+                          ) ?? [],
+                      ).filter((item) => !item.closest('[inert]'))
+
+                      const index = siblings.indexOf(button)
+                      const target = siblings[index + 1] ?? siblings[index - 1]
+
+                      const input = button
+                        .closest('[data-composer]')
+                        ?.querySelector<HTMLTextAreaElement>('textarea')
+
+                      if (target) target.focus()
+                      else input?.focus({ preventScroll: true })
+
+                      onRemove(skill.id)
+                    }}
+                    className='size-5 shrink-0 rounded-full text-primary/75 hover:bg-primary/15 hover:text-primary'
+                  >
+                    <X className='size-3.5' />
+                  </Button>
+                </Badge>
               </PresenceDiv>
             ))}
           </AnimatePresence>

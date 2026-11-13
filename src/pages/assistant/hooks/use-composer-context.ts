@@ -1,83 +1,118 @@
 import { useEffect, useState } from 'react'
 import { listAccessibleResumes } from '@/lib/resume-access'
 import { listAssistantJobOverviews } from '@/lib/supabase/resume'
+import useUserStore from '@/store/user'
+import type {
+  ComposerContextResult,
+  ComposerJobReference,
+  ComposerReferenceState,
+  ComposerResumeReference,
+} from '../types'
 import { useCanvasResources } from './canvas-resources'
 
-export interface ResumeRef {
-  resumeId: string
-  name: string
-}
+export function useComposerContext(): ComposerContextResult {
+  const [resumes, setResumes] = useState<
+    ComposerReferenceState<ComposerResumeReference>
+  >({ generation: -1, items: [], status: 'idle' })
 
-export interface JobRef {
-  id: string
-  company: string
-  position: string
-}
+  const [jobs, setJobs] = useState<
+    ComposerReferenceState<ComposerJobReference>
+  >({ generation: -1, items: [], status: 'idle' })
 
-// 加载可供 @ 引用的简历与职位，用于 Composer 的 contextOptions
-export function useComposerContext() {
-  const [resumes, setResumes] = useState<ResumeRef[]>([])
-  const [jobs, setJobs] = useState<JobRef[]>([])
-  const [resumesGeneration, setResumesGeneration] = useState(-1)
-  const [jobsGeneration, setJobsGeneration] = useState(-1)
-
-  const { generation, resumeRevision, boardRevision } = useCanvasResources()
+  const [resumeRetry, setResumeRetry] = useState(0)
+  const [jobRetry, setJobRetry] = useState(0)
+  const authStatus = useUserStore((state) => state.authStatus)
+  const generation = useCanvasResources((state) => state.generation)
+  const resumeRevision = useCanvasResources((state) => state.resumeRevision)
+  const boardRevision = useCanvasResources((state) => state.boardRevision)
 
   useEffect(() => {
+    if (authStatus === 'unknown') return
+
     let alive = true
 
-    setResumes([])
+    setResumes((current) => ({
+      generation,
+      items: current.generation === generation ? current.items : [],
+      status: 'loading',
+    }))
 
     listAccessibleResumes(20)
       .then((rows) => {
         if (!alive || generation !== useCanvasResources.getState().generation)
           return
 
-        setResumesGeneration(generation)
-
-        setResumes(
-          rows.map((resume) => ({
+        setResumes({
+          generation,
+          status: 'ready',
+          items: rows.map((resume) => ({
             resumeId: resume.resume_id,
             name: resume.display_name ?? '未命名简历',
           })),
-        )
+        })
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!alive || generation !== useCanvasResources.getState().generation)
+          return
+
+        setResumes((current) => ({ ...current, status: 'error' }))
+      })
 
     return () => {
       alive = false
     }
-  }, [generation, resumeRevision])
+  }, [authStatus, generation, resumeRevision, resumeRetry])
 
   useEffect(() => {
+    if (authStatus === 'unknown') return
+
     let alive = true
 
-    setJobs([])
+    setJobs((current) => ({
+      generation,
+      items: current.generation === generation ? current.items : [],
+      status: 'loading',
+    }))
 
     listAssistantJobOverviews(20)
       .then((rows) => {
         if (!alive || generation !== useCanvasResources.getState().generation)
           return
 
-        setJobsGeneration(generation)
-
-        setJobs(
-          rows.map((job) => ({
+        setJobs({
+          generation,
+          status: 'ready',
+          items: rows.map((job) => ({
             id: job.id,
             company: job.company,
             position: job.position,
           })),
-        )
+        })
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!alive || generation !== useCanvasResources.getState().generation)
+          return
+
+        setJobs((current) => ({ ...current, status: 'error' }))
+      })
 
     return () => {
       alive = false
     }
-  }, [generation, boardRevision])
+  }, [authStatus, generation, boardRevision, jobRetry])
+
+  const pendingStatus = authStatus === 'unknown' ? 'idle' : 'loading'
 
   return {
-    resumes: resumesGeneration === generation ? resumes : [],
-    jobs: jobsGeneration === generation ? jobs : [],
+    resumes:
+      resumes.generation === generation && authStatus !== 'unknown'
+        ? resumes
+        : { generation, items: [], status: pendingStatus },
+    jobs:
+      jobs.generation === generation && authStatus !== 'unknown'
+        ? jobs
+        : { generation, items: [], status: pendingStatus },
+    retryResumes: () => setResumeRetry((current) => current + 1),
+    retryJobs: () => setJobRetry((current) => current + 1),
   }
 }

@@ -1,43 +1,51 @@
-import { memo } from 'react'
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai/reasoning'
+import { Brain } from 'lucide-react'
+import { memo, useState } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
-import { Shimmer } from '@/components/ai/shimmer'
+import {
+  Trace,
+  TraceCollapsible,
+  TraceCollapsibleContent,
+  TraceCollapsibleTrigger,
+  TraceIcon,
+  TraceLine,
+  TraceTitle,
+} from '@/components/ui/trace'
+import { TextPart } from './text-part'
 
 interface ReasoningPartProps {
   text: string
   streaming?: boolean
 }
 
-function getThinkingMessage(isStreaming: boolean, duration?: number) {
-  const thinking = isStreaming || duration === 0
-  const label = duration === undefined ? '已完成思考' : `思考了 ${duration} 秒`
-
-  return (
-    <AnimatedContent
-      animationKey={thinking ? 'thinking' : 'complete'}
-      className='inline-flex min-w-0'
-    >
-      {thinking ? (
-        <Shimmer duration={1}>正在思考…</Shimmer>
-      ) : (
-        <span>{label}</span>
-      )}
-    </AnimatedContent>
-  )
-}
-
 export const ReasoningPart = memo(function ReasoningPart({
   text,
   streaming = false,
 }: ReasoningPartProps) {
+  const [open, setOpen] = useState<boolean>()
+
   return (
-    <Reasoning isStreaming={streaming} defaultOpen={false} className='mb-1'>
-      <ReasoningTrigger getThinkingMessage={getThinkingMessage} />
-      <ReasoningContent>{text}</ReasoningContent>
-    </Reasoning>
+    <Trace>
+      <TraceCollapsible open={open ?? streaming} onOpenChange={setOpen}>
+        <TraceCollapsibleTrigger>
+          <TraceLine status={streaming ? 'running' : undefined}>
+            <TraceIcon>
+              <Brain />
+            </TraceIcon>
+            <TraceTitle>
+              <AnimatedContent
+                as='span'
+                className='inline-block'
+                animationKey={streaming ? 'running' : 'done'}
+              >
+                {streaming ? '正在思考' : '查看思考过程'}
+              </AnimatedContent>
+            </TraceTitle>
+          </TraceLine>
+        </TraceCollapsibleTrigger>
+        <TraceCollapsibleContent className='text-sm'>
+          <TextPart text={text} animate={streaming} />
+        </TraceCollapsibleContent>
+      </TraceCollapsible>
+    </Trace>
   )
 })

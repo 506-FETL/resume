@@ -1,4 +1,4 @@
-import type { Tool } from '@/components/ui/composer'
+import type { ComposerTool } from '../../types'
 import {
   BarChart3,
   Compass,
@@ -13,7 +13,7 @@ import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 
 // AI 求职助手的快捷指令（Slash / 工具按钮共用）。选中后把中文提示词模板填入输入框。
 // 每个工具配置独立图标，避免下拉里所有条目都是同一个「工具」图标。
-export const ASSISTANT_TOOLS: Tool[] = [
+export const ASSISTANT_TOOLS: ComposerTool[] = [
   {
     name: '优化这段经历',
     category: '经历',
