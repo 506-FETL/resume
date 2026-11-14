@@ -42,7 +42,7 @@ function createPendingComment(pending: PendingCommentCreation): ResumeComment {
     id: pending.commentId,
     threadId: pending.threadId,
     parentId: pending.kind === 'reply' ? pending.parentCommentId : null,
-    author: LOCAL_COMMENT_AUTHOR,
+    author: pending.author ?? LOCAL_COMMENT_AUTHOR,
     body: pending.body,
     editedAt: null,
     deletedAt: null,

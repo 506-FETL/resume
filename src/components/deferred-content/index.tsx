@@ -16,6 +16,7 @@ export function createDeferredComponent<Props extends object>(
   loader: () => Promise<DeferredModule<Props>>,
   label: string,
   fallback?: ReactNode,
+  options?: { wrapFallback?: boolean },
 ): ComponentType<Props> {
   let modulePromise: Promise<DeferredModule<Props>> | undefined
 
@@ -65,9 +66,13 @@ export function createDeferredComponent<Props extends object>(
       >
         <Suspense
           fallback={
-            <motion.div {...feedbackMotion} className='py-3 text-center'>
-              {fallback ?? <FormSkeleton label={`正在加载${label}`} />}
-            </motion.div>
+            options?.wrapFallback === false ? (
+              fallback
+            ) : (
+              <motion.div {...feedbackMotion} className='py-3 text-center'>
+                {fallback ?? <FormSkeleton label={`正在加载${label}`} />}
+              </motion.div>
+            )
           }
         >
           <Content {...props} />

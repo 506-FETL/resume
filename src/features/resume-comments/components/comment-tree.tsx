@@ -4,7 +4,8 @@ import type { CommentUiPermissions } from './types.ts'
 import { ArrowLeft, MessageCircle, RefreshCw, Trash2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import AnimatedContent from '@/components/motion/animated-content'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { COMMENT_MOTION } from '../const.ts'
 import { useResumeCommentStore } from '../context.tsx'
 import { useCommentActions } from '../hooks/use-comment-actions.ts'
+import { CommentBody } from './comment-body.tsx'
 import { CommentComposer } from './comment-composer.tsx'
 import { isCurrentCommentAuthor } from './types.ts'
 
@@ -65,62 +67,6 @@ function formatTime(value: string) {
     : ''
 }
 
-function CommentBody({ body }: { body: string }) {
-  const parts = useMemo(() => {
-    const result: Array<{ key: number; text: string; link: boolean }> = []
-    const pattern = /https?:\/\/\S+|mailto:\S+/giu
-    let cursor = 0
-
-    for (const match of body.matchAll(pattern)) {
-      const index = match.index
-
-      if (index > cursor)
-        result.push({
-          key: cursor,
-          text: body.slice(cursor, index),
-          link: false,
-        })
-
-      result.push({ key: index, text: match[0], link: true })
-      cursor = index + match[0].length
-    }
-
-    if (cursor < body.length)
-      result.push({ key: cursor, text: body.slice(cursor), link: false })
-
-    return result
-  }, [body])
-
-  return (
-    <p className='whitespace-pre-wrap wrap-break-word text-sm leading-6'>
-      {parts.map((part) => {
-        if (!part.link) return <span key={part.key}>{part.text}</span>
-
-        try {
-          const url = new URL(part.text)
-
-          if (!['http:', 'https:', 'mailto:'].includes(url.protocol))
-            return <span key={part.key}>{part.text}</span>
-
-          return (
-            <a
-              key={part.key}
-              href={url.href}
-              target={url.protocol === 'mailto:' ? undefined : '_blank'}
-              rel='noreferrer noopener'
-              className='text-primary underline underline-offset-2'
-            >
-              {part.text}
-            </a>
-          )
-        } catch {
-          return <span key={part.key}>{part.text}</span>
-        }
-      })}
-    </p>
-  )
-}
-
 function CommentNode({
   node,
   depth,
@@ -141,6 +87,12 @@ function CommentNode({
   isLast?: boolean
 }) {
   const reduceMotion = useReducedMotion()
+  const feedbackRef = useRef<HTMLDivElement>(null)
+
+  const commentRenderKeys = useResumeCommentStore(
+    (state) => state.commentRenderKeys,
+  )
+
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const comment = node.comment
@@ -200,10 +152,8 @@ function CommentNode({
         </>
       ) : null}
       <article
-        className={cn(
-          'group/comment relative flex min-w-0 gap-2.5 py-3 transition-[opacity,filter] duration-200 motion-reduce:transition-none',
-          delivery && 'opacity-55 grayscale-[0.35]',
-        )}
+        className='group/comment relative flex min-w-0 gap-2.5 py-3'
+        aria-busy={delivery?.state === 'sending'}
       >
         {hasVisibleContinuation ? (
           <span
@@ -269,118 +219,120 @@ function CommentNode({
               <CommentBody body={comment.body} />
             </div>
           )}
-          <AnimatePresence initial={false}>
-            {delivery ? (
-              <motion.div
-                key={delivery.state}
-                role='status'
-                initial={reduceMotion ? false : { opacity: 0, y: 3 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -2 }}
-                transition={{
-                  duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration,
-                  ease: COMMENT_MOTION.ease,
-                }}
-                className={cn(
-                  'mt-1 flex min-h-7 flex-wrap items-center gap-1.5 text-xs',
-                  delivery.state === 'failed'
-                    ? 'text-destructive'
-                    : 'text-muted-foreground',
-                )}
-              >
-                {delivery.state === 'sending' ? (
-                  <>
-                    <Spinner className='size-3.5' />
-                    <span>发送中</span>
-                  </>
+          {!editing ? (
+            <div
+              ref={feedbackRef}
+              tabIndex={-1}
+              className='mt-1 min-h-7 outline-none'
+            >
+              <AnimatedContent animationKey={delivery?.state ?? 'actions'}>
+                {delivery ? (
+                  <div
+                    role='status'
+                    className={cn(
+                      'flex min-h-7 flex-wrap items-center gap-1.5 text-xs',
+                      delivery.state === 'failed'
+                        ? 'text-destructive'
+                        : 'text-muted-foreground',
+                    )}
+                  >
+                    {delivery.state === 'sending' ? (
+                      <>
+                        <Spinner className='size-3.5' />
+                        <span>发送中</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{delivery.errorMessage || '发送失败'}</span>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          className='text-destructive hover:text-destructive'
+                          onClick={() => {
+                            feedbackRef.current?.focus({ preventScroll: true })
+                            actions.retryPendingCreation(delivery.requestId)
+                          }}
+                        >
+                          <RefreshCw />
+                          重试
+                        </Button>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          onClick={() =>
+                            actions.discardPendingCreation(delivery.requestId)
+                          }
+                        >
+                          <X />
+                          移除
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 ) : (
-                  <>
-                    <span>{delivery.errorMessage || '发送失败'}</span>
-                    <Button
-                      size='xs'
-                      variant='ghost'
-                      className='text-destructive hover:text-destructive'
-                      onClick={() =>
-                        actions.retryPendingCreation(delivery.requestId)
-                      }
-                    >
-                      <RefreshCw />
-                      重试
-                    </Button>
-                    <Button
-                      size='xs'
-                      variant='ghost'
-                      onClick={() =>
-                        actions.discardPendingCreation(delivery.requestId)
-                      }
-                    >
-                      <X />
-                      移除
-                    </Button>
-                  </>
+                  <div className='flex min-h-7 items-center gap-1 opacity-100 transition-opacity motion-reduce:transition-none md:opacity-0 md:group-hover/comment:opacity-100 md:group-focus-within/comment:opacity-100'>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          aria-label={`回复 ${comment.author.displayName}`}
+                          onClick={() =>
+                            onReply({
+                              commentId: comment.id,
+                              displayName: comment.author.displayName,
+                            })
+                          }
+                        >
+                          <MessageCircle />
+                          回复
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{`回复 ${comment.author.displayName}`}</TooltipContent>
+                    </Tooltip>
+                    {canManage && !confirmingDelete ? (
+                      <>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          onClick={() => setEditing(true)}
+                        >
+                          编辑
+                        </Button>
+                        <Button
+                          size='icon-xs'
+                          variant='ghost'
+                          aria-label='删除评论'
+                          onClick={() => setConfirmingDelete(true)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </>
+                    ) : null}
+                    {canManage && confirmingDelete ? (
+                      <>
+                        <Button
+                          size='xs'
+                          variant='destructive'
+                          disabled={pending}
+                          onClick={() =>
+                            actions.deleteComment(thread, comment.id)
+                          }
+                        >
+                          确认删除
+                        </Button>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          onClick={() => setConfirmingDelete(false)}
+                        >
+                          取消
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
                 )}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-          {!editing && !delivery ? (
-            <div className='mt-1 flex min-h-7 items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover/comment:opacity-100 md:group-focus-within/comment:opacity-100'>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size='xs'
-                    variant='ghost'
-                    aria-label={`回复 ${comment.author.displayName}`}
-                    onClick={() =>
-                      onReply({
-                        commentId: comment.id,
-                        displayName: comment.author.displayName,
-                      })
-                    }
-                  >
-                    <MessageCircle />
-                    回复
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{`回复 ${comment.author.displayName}`}</TooltipContent>
-              </Tooltip>
-              {canManage && !confirmingDelete ? (
-                <>
-                  <Button
-                    size='xs'
-                    variant='ghost'
-                    onClick={() => setEditing(true)}
-                  >
-                    编辑
-                  </Button>
-                  <Button
-                    size='icon-xs'
-                    variant='ghost'
-                    aria-label='删除评论'
-                    onClick={() => setConfirmingDelete(true)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </>
-              ) : null}
-              {canManage && confirmingDelete ? (
-                <>
-                  <Button
-                    size='xs'
-                    variant='destructive'
-                    disabled={pending}
-                    onClick={() => actions.deleteComment(thread, comment.id)}
-                  >
-                    确认删除
-                  </Button>
-                  <Button
-                    size='xs'
-                    variant='ghost'
-                    onClick={() => setConfirmingDelete(false)}
-                  >
-                    取消
-                  </Button>
-                </>
-              ) : null}
+              </AnimatedContent>
             </div>
           ) : null}
           {error ? (
@@ -395,7 +347,7 @@ function CommentNode({
           <AnimatePresence>
             {visibleChildren.map((child, index) => (
               <CommentNode
-                key={child.comment.id}
+                key={commentRenderKeys[child.comment.id] ?? child.comment.id}
                 node={child}
                 depth={depth + 1}
                 thread={thread}
@@ -442,6 +394,11 @@ export function CommentTree({
 }) {
   const actions = useCommentActions()
   const reduceMotion = useReducedMotion()
+
+  const commentRenderKeys = useResumeCommentStore(
+    (state) => state.commentRenderKeys,
+  )
+
   const [detailPath, setDetailPath] = useState<string[]>([])
   const [navigationDirection, setNavigationDirection] = useState<1 | -1>(1)
   const tree = useMemo(() => buildCommentTree(comments), [comments])
@@ -506,7 +463,7 @@ export function CommentTree({
           <AnimatePresence>
             {roots.map((node, index) => (
               <CommentNode
-                key={node.comment.id}
+                key={commentRenderKeys[node.comment.id] ?? node.comment.id}
                 node={node}
                 depth={0}
                 thread={thread}

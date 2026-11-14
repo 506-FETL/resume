@@ -20,18 +20,12 @@ import {
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { isResumeNotFoundError } from '@/lib/resume-id'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
-import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume'
+import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume/config'
 import useResumeConfigStore from '@/store/resume/config'
 import useCurrentResumeStore from '@/store/resume/current'
 import useResumeStore from '@/store/resume/form'
 import useUserStore from '@/store/user'
 import { getErrorMessage } from '@/utils'
-
-if (import.meta.env.DEV && location.port === '5173') {
-  const probe = '/tests/single-edit/trace-client.js'
-
-  import(/* @vite-ignore */ probe).catch(() => {})
-}
 
 type CollaborationRoute =
   | { kind: 'none' }

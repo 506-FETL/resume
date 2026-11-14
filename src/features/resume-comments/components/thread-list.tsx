@@ -85,6 +85,10 @@ export function ThreadList({
   const actions = useCommentActions()
   const reduceMotion = useReducedMotion()
 
+  const commentRenderKeys = useResumeCommentStore(
+    (state) => state.commentRenderKeys,
+  )
+
   const pendingEntities = useResumeCommentStore(
     (state) => state.pendingEntities,
   )
@@ -132,7 +136,7 @@ export function ThreadList({
 
           return (
             <motion.div
-              key={thread.id}
+              key={root ? (commentRenderKeys[root.id] ?? root.id) : thread.id}
               layout
               className='w-full min-w-0'
               initial={reduceMotion ? false : { opacity: 0, y: 6 }}

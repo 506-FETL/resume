@@ -6,8 +6,14 @@ import type {
   PendingCommentCreation,
   PendingCommentCreationSnapshot,
 } from '../store/types.ts'
-import type { CommentThreadCounts, ResumeCommentThread } from '../types.ts'
+import type {
+  CommentAuthor,
+  CommentThreadCounts,
+  ResumeCommentThread,
+} from '../types.ts'
 import { useCallback, useState } from 'react'
+import { getUserDisplayName } from '@/hooks/use-current-user'
+import useUserStore from '@/store/user'
 import { ensureAnonymousCommentIdentity } from '../api/anonymous-identity.ts'
 import {
   deleteCommentCache,
@@ -482,6 +488,7 @@ export function useCommentActions() {
           createdAtContentHash: state.scope.documentHash,
         },
         body,
+        author: getPendingCommentAuthor(),
         documentHash: state.scope.documentHash,
         originalPageIndex: selection.originalPageIndex,
         createdAt: new Date().toISOString(),
@@ -537,6 +544,7 @@ export function useCommentActions() {
         threadRevision: thread.revision,
         documentHash: state.scope.documentHash,
         body,
+        author: getPendingCommentAuthor(),
         createdAt: new Date().toISOString(),
       })
 
@@ -697,5 +705,20 @@ export function useCommentActions() {
         return response
       })
     },
+  }
+}
+
+function getPendingCommentAuthor(): CommentAuthor | undefined {
+  const user = useUserStore.getState().currentUser
+
+  if (!user) return undefined
+
+  const avatarUrl = user.user_metadata.avatar_url
+
+  return {
+    kind: 'user',
+    userId: user.id,
+    displayName: getUserDisplayName(user),
+    avatarUrl: typeof avatarUrl === 'string' ? avatarUrl : null,
   }
 }

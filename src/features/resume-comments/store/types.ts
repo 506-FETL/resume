@@ -1,6 +1,7 @@
 import type { StoreApi } from 'zustand/vanilla'
 import type { CommentAnchor } from '../anchors/types.ts'
 import type {
+  CommentAuthor,
   CommentErrorCode,
   CommentScopeKind,
   CommentThreadCounts,
@@ -62,6 +63,7 @@ interface PendingCommentCreationBase {
   commentId: string
   body: string
   createdAt: string
+  author?: CommentAuthor
 }
 
 export interface PendingThreadCreation extends PendingCommentCreationBase {
@@ -122,6 +124,7 @@ export interface ResumeCommentStoreState {
   lastError: CommentErrorCode | null
   pendingEntities: Record<string, true>
   pendingCreationsByRequestId: Record<string, PendingCommentCreation>
+  commentRenderKeys: Record<string, string>
   mutationErrors: Record<string, string>
   contentNotice: string | null
 

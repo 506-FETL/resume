@@ -9,10 +9,11 @@ export async function readAutomergeSnapshot(
   userId: string,
 ): Promise<AutomergeSnapshotRow | null> {
   const { data, error } = await supabase
-    .from('automerge_documents')
-    .select('document_data')
-    .eq('resume_id', resumeId)
-    .eq('user_id', userId)
+    .rpc(
+      'get_automerge_snapshot',
+      { p_resume_id: resumeId, p_user_id: userId },
+      { get: true },
+    )
     .maybeSingle()
 
   if (error) {

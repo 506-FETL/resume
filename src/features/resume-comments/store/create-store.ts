@@ -76,6 +76,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
     lastError: null,
     pendingEntities: {},
     pendingCreationsByRequestId: {},
+    commentRenderKeys: {},
     mutationErrors: {},
     contentNotice: null,
 
@@ -166,6 +167,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
           lastError: null,
           pendingEntities: {},
           pendingCreationsByRequestId,
+          commentRenderKeys: scopeChanged ? {} : state.commentRenderKeys,
           mutationErrors: {},
           contentNotice: null,
         }
@@ -278,6 +280,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
         }
 
         let activeThreadId = state.activeThreadId
+        let commentRenderKeys = state.commentRenderKeys
 
         for (const event of input.events) {
           if (!event.clientRequestId) continue
@@ -285,6 +288,12 @@ export function createResumeCommentStore(): ResumeCommentStore {
           const pending = pendingCreationsByRequestId[event.clientRequestId]
 
           if (!pending) continue
+
+          if (event.commentId)
+            commentRenderKeys = {
+              ...commentRenderKeys,
+              [event.commentId]: pending.commentId,
+            }
 
           threadsById = removePendingCreationFromThreads(threadsById, pending)
 
@@ -324,6 +333,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
           ),
           activeThreadId,
           pendingCreationsByRequestId,
+          commentRenderKeys,
         }
       }),
     applyDocumentSync: (input) =>
@@ -508,6 +518,13 @@ export function createResumeCommentStore(): ResumeCommentStore {
               ? (input.thread?.id ?? input.event.threadId)
               : state.activeThreadId,
           pendingCreationsByRequestId,
+          commentRenderKeys:
+            pending && input.event.commentId
+              ? {
+                  ...state.commentRenderKeys,
+                  [input.event.commentId]: pending.commentId,
+                }
+              : state.commentRenderKeys,
         }
       }),
     beginPending: (entityKey) =>
@@ -586,6 +603,7 @@ export function createResumeCommentStore(): ResumeCommentStore {
         connection: 'connecting',
         pendingEntities: {},
         pendingCreationsByRequestId: {},
+        commentRenderKeys: {},
         mutationErrors: {},
         contentNotice: null,
       })),

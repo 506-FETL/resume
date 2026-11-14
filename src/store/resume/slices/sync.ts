@@ -7,7 +7,7 @@ import {
   updateOfflineResume,
 } from '@/lib/offline-resume-manager'
 import { hasCompleteResumeEntryIds } from '@/lib/schema/resume/entry-id'
-import { updateResumeConfig } from '@/lib/supabase/resume'
+import { updateResumeConfig } from '@/lib/supabase/resume/config'
 import { getTimestamp } from '@/utils/date'
 import { mapSourceToPersistedSnapshot } from '../helpers'
 import {

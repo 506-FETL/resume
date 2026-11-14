@@ -2087,7 +2087,7 @@ async function resolveAnonymousIdentity({
 }
 
 // 旧访问解析器保留为 RPC 快速回滚路径。
-// eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
+// eslint-disable-next-line unused-imports/no-unused-vars
 async function resolveAccess({
   userId,
   body,
@@ -2449,7 +2449,7 @@ async function loadThreads(
 }
 
 // 旧 bootstrap/recovery 快速回滚仍需保留此读取器。
-// eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
+// eslint-disable-next-line unused-imports/no-unused-vars
 async function loadReadState(admin: AdminClient, access: ResolvedAccess) {
   if (!access.actorKind || !access.actorId) {
     return 0
@@ -2503,7 +2503,7 @@ function countThreadRows(
 }
 
 // 旧 bootstrap/recovery 快速回滚仍需保留此读取器。
-// eslint-disable-next-line no-unused-vars, unused-imports/no-unused-vars
+// eslint-disable-next-line unused-imports/no-unused-vars
 async function loadVersionReference(admin: AdminClient, versionId: number) {
   const [versionResult, shareCountResult] = await Promise.all([
     admin

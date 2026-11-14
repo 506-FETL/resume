@@ -404,6 +404,9 @@ function normalizeEvents(value: unknown): ResumeCommentEvent[] {
     const event = asRecord(item)
     const type = String(event.type ?? '') as ResumeCommentEventType
 
+    const commentId =
+      event.commentId ?? asRecord(event.sanitized_payload).commentId
+
     if (!COMMENT_EVENT_TYPES.has(type)) return []
 
     return [
@@ -413,6 +416,7 @@ function normalizeEvents(value: unknown): ResumeCommentEvent[] {
         threadId: asNullableString(event.thread_id),
         createdAt: String(event.created_at ?? ''),
         isOwn: event.is_own === true,
+        commentId: isUuid(commentId) ? commentId : undefined,
         clientRequestId: isUuid(event.clientRequestId)
           ? event.clientRequestId
           : isUuid(event.client_request_id)
@@ -525,7 +529,10 @@ function normalizeMutation(value: unknown): CommentMutationResult {
     : []
 
   const thread = normalizedThreads[0] ?? null
-  const commentId = asNullableString(data.commentId)
+
+  const commentId =
+    asNullableString(data.commentId) ??
+    asNullableString(asRecord(data.comment).id)
 
   const event = normalizeEvents([data.event])[0] ?? {
     eventSeq: asNumber(asRecord(data.event).event_seq, asNumber(data.eventSeq)),
@@ -542,7 +549,7 @@ function normalizeMutation(value: unknown): CommentMutationResult {
       : null,
     removedCommentId: asNullableString(data.removedCommentId),
     counts: normalizeCounts(data.counts),
-    event,
+    event: { ...event, commentId: event.commentId ?? commentId ?? undefined },
     threadId: asNullableString(data.threadId),
     commentId,
     revision: data.revision == null ? null : asNumber(data.revision),

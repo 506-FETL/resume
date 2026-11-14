@@ -153,6 +153,7 @@ export interface ResumeCommentEvent {
   createdAt: string
   isOwn?: boolean
   clientRequestId?: string
+  commentId?: string
 }
 
 export interface CommentThreadReadState {
