@@ -1,5 +1,9 @@
 import type { AssistantLayoutMode, CanvasTabKey } from './types'
-import type { ConfirmPreview } from '@/lib/ai/agent/confirm-bridge'
+import type {
+  ConfirmDecision,
+  ConfirmPreview,
+} from '@/lib/ai/agent/confirm-bridge'
+import type { ComposerSlice } from './store/composer-slice'
 import type { AiConversation, AiMessage, AiMessagePart } from '@/lib/ai/types'
 import type { MessageCursor } from '@/lib/supabase/ai'
 import { create } from 'zustand'
@@ -15,6 +19,9 @@ import {
 } from './const'
 import { readStoredBoolean, writeStoredBoolean } from './utils'
 import { readAssistantCanvasPreferences } from './canvas-preferences'
+import { createComposerSlice } from './store/composer-slice'
+import { recordAssistantRunPhase } from './runtime/assistant-run'
+import { installComposerSessions } from './store/composer-sessions'
 
 const initialCanvasPreferences = readAssistantCanvasPreferences()
 
@@ -36,7 +43,7 @@ function readStoredCanvasTab(): CanvasTabKey {
   return 'resume'
 }
 
-interface AssistantStore {
+export interface AssistantStore extends ComposerSlice {
   conversations: AiConversation[]
   activeConversationId: string | null
   messages: AiMessage[]
@@ -51,13 +58,13 @@ interface AssistantStore {
   streaming: boolean
   streamingText: string
   streamingParts: AiMessagePart[]
-  composerDraft: string
-  composerSkillIds: string[]
   pendingConfirm: {
     id: string
     toolName: string
     preview: ConfirmPreview
-    resolve: (confirmed: boolean) => void
+    status: 'pending' | 'applying' | 'result' | 'error'
+    result?: unknown
+    resolve: (decision: ConfirmDecision) => void
   } | null
   hasMoreMessages: boolean
   loadingOlder: boolean
@@ -103,8 +110,6 @@ interface AssistantStore {
   setStreaming: (value: boolean) => void
   setStreamingText: (text: string) => void
   setStreamingParts: (parts: AiMessagePart[]) => void
-  setComposerDraft: (text: string) => void
-  setComposerSkillIds: (ids: string[]) => void
   setPendingConfirm: (p: AssistantStore['pendingConfirm']) => void
   setInitializing: (value: boolean) => void
   setLoadingConversations: (value: boolean) => void
@@ -128,7 +133,8 @@ interface AssistantStore {
   reset: () => void
 }
 
-const useAssistantStore = create<AssistantStore>()((set) => ({
+const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
+  ...createComposerSlice(set, get, api),
   conversations: [],
   activeConversationId: null,
   messages: [],
@@ -139,8 +145,6 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   streaming: false,
   streamingText: '',
   streamingParts: [],
-  composerDraft: '',
-  composerSkillIds: [],
   pendingConfirm: null,
   hasMoreMessages: false,
   loadingOlder: false,
@@ -212,6 +216,10 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
     set((state) => ({
       activeConversationId: conversationId,
       bootstrapError: null,
+      pendingConfirm:
+        state.activeConversationId === conversationId
+          ? state.pendingConfirm
+          : null,
       messages,
       targetMessageId: options?.targetMessageId ?? null,
       hasMoreMessages: options?.hasMore ?? false,
@@ -224,6 +232,8 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
       loadingMessages: false,
       composerSkillIds: [],
       conversationViewVersion: state.conversationViewVersion + 1,
+      explicitPreviewResumeId: null,
+      annotationTarget: null,
     })),
   prependOlderMessages: (older, hasMore) =>
     set((state) => ({
@@ -247,8 +257,6 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
   setStreaming: (value) => set({ streaming: value }),
   setStreamingText: (text) => set({ streamingText: text }),
   setStreamingParts: (parts) => set({ streamingParts: parts }),
-  setComposerDraft: (text) => set({ composerDraft: text }),
-  setComposerSkillIds: (ids) => set({ composerSkillIds: [...new Set(ids)] }),
   setPendingConfirm: (p) => set({ pendingConfirm: p }),
   setInitializing: (value) => set({ initializing: value }),
   setLoadingConversations: (value) => set({ loadingConversations: value }),
@@ -318,8 +326,9 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
     set((state) => {
       if (!state.inFlightConversationIds[conversationId]) return {}
 
-      const { [conversationId]: _, ...inFlightConversationIds } =
-        state.inFlightConversationIds
+      const inFlightConversationIds = { ...state.inFlightConversationIds }
+
+      delete inFlightConversationIds[conversationId]
 
       return { inFlightConversationIds }
     }),
@@ -345,7 +354,9 @@ const useAssistantStore = create<AssistantStore>()((set) => ({
 export function cancelActiveAssistantRun(): void {
   const state = useAssistantStore.getState()
 
-  state.pendingConfirm?.resolve(false)
+  if (state.pendingConfirm?.status === 'pending')
+    state.pendingConfirm.resolve({ kind: 'reject' })
+
   state.abortController?.abort()
 
   useAssistantStore.setState({
@@ -354,7 +365,16 @@ export function cancelActiveAssistantRun(): void {
     streamingParts: [],
     streamingUsage: null,
     abortController: null,
+    queuePaused: true,
+    runPhase: state.abortController ? 'settling' : 'idle',
   })
 }
+
+useAssistantStore.subscribe((state, previous) => {
+  if (state.runPhase !== previous.runPhase)
+    recordAssistantRunPhase(state.runPhase)
+})
+
+installComposerSessions(useAssistantStore)
 
 export default useAssistantStore

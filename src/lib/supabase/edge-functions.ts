@@ -4,6 +4,7 @@ const regionOverrides = {
   'resume-share': import.meta.env.VITE_RESUME_SHARE_FUNCTION_REGION,
   'resume-comments': import.meta.env.VITE_RESUME_COMMENTS_FUNCTION_REGION,
   'job-submissions': import.meta.env.VITE_JOB_SUBMISSIONS_FUNCTION_REGION,
+  'experience-sources': import.meta.env.VITE_EXPERIENCE_SOURCES_FUNCTION_REGION,
 }
 
 type DatabaseFunction = keyof typeof regionOverrides

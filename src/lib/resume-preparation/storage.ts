@@ -65,6 +65,16 @@ export async function saveImportDraft(
   notify()
 }
 
+export async function findPreparation(
+  resumeId: string,
+  ownerId: string | null,
+): Promise<PreparationRecord | null> {
+  const key = recordKey(resumeId, ownerId)
+  const db = await database()
+
+  return (await db.get('records', key)) ?? null
+}
+
 export async function loadPreparation(
   resumeId: string,
   ownerId: string | null,

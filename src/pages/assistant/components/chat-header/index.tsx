@@ -9,7 +9,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import useAssistantStore from '../../store'
-import { readableConversationTitle } from '../../composer-references'
+import ConversationNavigation from '../conversation-navigation'
 
 export default function ChatHeader() {
   const {
@@ -43,9 +43,7 @@ export default function ChatHeader() {
     <header className='flex h-16 shrink-0 items-center gap-2 border-b bg-background px-3 sm:px-5'>
       <SidebarTrigger aria-label='切换侧边栏' />
       <div className='min-w-0 flex-1'>
-        <h1 className='truncate text-base font-semibold tracking-tight'>
-          {readableConversationTitle(title)}
-        </h1>
+        <ConversationNavigation title={title} />
       </div>
       <AnimatedThemeToggler aria-label='切换主题' />
       <Tooltip>

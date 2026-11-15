@@ -45,6 +45,13 @@
         "files": ["src/public-homepage/homepage.css"],
         "createdAt": "2026-11-04T08:27:06.504Z",
         "reason": "Agent：已核对封面实景。命中的是整幅文件夹封面底缘 4px 的内阴影，用于表现封面在内页上方的厚度；这里没有卡片或侧边强调条。"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "noto sans sc variable",
+        "files": ["src/components/tiptap-templates/simple/simple-editor.scss"],
+        "createdAt": "2026-11-15T07:28:49.224Z",
+        "reason": "代理复核保留既有编辑器字体：src/workspace-app.tsx 已加载 Noto Sans SC；本期仅调整聚焦样式，避免改变富文本排版。"
       }
     ]
   }

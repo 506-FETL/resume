@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -42,6 +43,11 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
   const {
     currentResume,
     versions,
+    versionsLoaded,
+    versionsLoading,
+    versionsError,
+    currentResumeLoading,
+    currentResumeError,
     savingMetadata,
     restoreVersion,
     deleteVersion,
@@ -108,11 +114,19 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
             当前内容
           </Badge>
           <span className='text-xs text-muted-foreground'>
-            {versions.length === 0
-              ? '尚未保存版本'
-              : syncState.synced
-                ? `已与 V${syncState.latestVersionNo} 同步`
-                : '有未保存的修改'}
+            {!versionsLoaded ? (
+              versionsError ? (
+                '版本状态暂不可用'
+              ) : (
+                <Skeleton className='h-3 w-24' />
+              )
+            ) : versions.length === 0 ? (
+              '尚未保存版本'
+            ) : syncState.synced ? (
+              `已与 V${syncState.latestVersionNo} 同步`
+            ) : (
+              '有未保存的修改'
+            )}
           </span>
         </div>
         <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground'>
@@ -143,7 +157,18 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
     (version) => version.version_no < selectedVersion.version_no,
   )
 
-  const compareBaseId = olderVersion ? String(olderVersion.id) : 'current'
+  const fallbackVersion = versions.find(
+    (version) => version.id !== selectedVersion.id,
+  )
+
+  const compareBaseId = olderVersion
+    ? String(olderVersion.id)
+    : currentResume
+      ? 'current'
+      : fallbackVersion
+        ? String(fallbackVersion.id)
+        : null
+
   const canCompare = versions.length >= 2 || Boolean(currentResume)
 
   return (
@@ -206,6 +231,12 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
             <HistoryActionButton
               label='恢复此版本'
               variant='outline'
+              disabled={
+                !currentResume ||
+                currentResumeLoading ||
+                versionsLoading ||
+                Boolean(currentResumeError || versionsError)
+              }
               onClick={() => setRestoreTargetId(selectedVersion.id)}
             >
               <RotateCcw />

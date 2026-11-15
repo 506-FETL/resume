@@ -14,6 +14,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ContentSkeleton } from '@/components/loading-skeleton'
 import { cn } from '@/lib/utils'
+import useAtsStore from '../../store'
 import { ResumeItem } from './resume-item'
 import { useResumeManager } from './use-resume-manager'
 
@@ -34,6 +35,7 @@ export function ResumeManager() {
     resumes,
   } = useResumeManager()
 
+  const { summariesError, summariesLoading, reloadSummaries } = useAtsStore()
   const reduceMotion = useReducedMotion()
   const initialLoading = loading && resumes.length === 0
 
@@ -70,6 +72,26 @@ export function ResumeManager() {
               <ContentSkeleton label='正在加载简历列表' rows={3} />
             ) : (
               <div className='space-y-4'>
+                <AnimatedContent
+                  animationKey={summariesError ? 'error' : 'ready'}
+                >
+                  {summariesError && (
+                    <div
+                      role='alert'
+                      className='flex items-center justify-between gap-3 text-sm text-muted-foreground'
+                    >
+                      <p>检测记录暂时不可用，仍可选择简历。</p>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        disabled={summariesLoading}
+                        onClick={() => reloadSummaries()}
+                      >
+                        重试检测记录
+                      </Button>
+                    </div>
+                  )}
+                </AnimatedContent>
                 <AnimatedContent animationKey={loadError ? 'error' : 'ready'}>
                   {loadError && (
                     <div

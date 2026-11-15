@@ -8,11 +8,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { COMMENT_MOTION } from '../const.ts'
 import { useResumeCommentStore } from '../context.tsx'
@@ -271,25 +266,20 @@ function CommentNode({
                   </div>
                 ) : (
                   <div className='flex min-h-7 items-center gap-1 opacity-100 transition-opacity motion-reduce:transition-none md:opacity-0 md:group-hover/comment:opacity-100 md:group-focus-within/comment:opacity-100'>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size='xs'
-                          variant='ghost'
-                          aria-label={`回复 ${comment.author.displayName}`}
-                          onClick={() =>
-                            onReply({
-                              commentId: comment.id,
-                              displayName: comment.author.displayName,
-                            })
-                          }
-                        >
-                          <MessageCircle />
-                          回复
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{`回复 ${comment.author.displayName}`}</TooltipContent>
-                    </Tooltip>
+                    <Button
+                      size='xs'
+                      variant='ghost'
+                      aria-label={`回复 ${comment.author.displayName}`}
+                      onClick={() =>
+                        onReply({
+                          commentId: comment.id,
+                          displayName: comment.author.displayName,
+                        })
+                      }
+                    >
+                      <MessageCircle />
+                      回复
+                    </Button>
                     {canManage && !confirmingDelete ? (
                       <>
                         <Button

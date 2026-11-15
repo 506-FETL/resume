@@ -36,6 +36,11 @@ export interface ShareDataSlice {
   resumeMap: Record<string, ResumeSummary>
   pageLoading: boolean
   pageError: string | null
+  pageLoaded: boolean
+  resumeOptionsLoading: boolean
+  resumeOptionsError: string | null
+  resumeOptionsLoaded: boolean
+  resumeOptionsRequestId: number
   dialogLoading: boolean
   dialogError: string | null
   dialogRequestId: number
@@ -44,6 +49,7 @@ export interface ShareDataSlice {
 
   bootstrapPage: () => Promise<void>
   reloadPage: () => Promise<void>
+  reloadResumeOptions: () => Promise<void>
   loadDialogShares: (resumeId: string) => Promise<void>
   loadVersionOptions: (
     resumeId: string,

@@ -38,10 +38,18 @@ export interface HistoryDataSlice {
   versions: ResumeHistoryVersionListItem[]
   snapshotGeneration: number
   snapshotCache: Record<number, ResumeSnapshot>
+  snapshotErrors: Record<number, string>
   error: string | null
+  currentResumeLoading: boolean
+  currentResumeError: string | null
+  versionsLoading: boolean
+  versionsError: string | null
+  versionsLoaded: boolean
 
   init: (resumeId: string | null | undefined) => Promise<void>
   reload: () => Promise<void>
+  reloadCurrentResume: () => Promise<void>
+  reloadVersions: () => Promise<void>
   loadVersionSnapshot: (id: number) => Promise<ResumeSnapshot | null>
   saveCurrentVersion: (
     draft: VersionMetadataDraft,
@@ -69,31 +77,71 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
   const isCurrent = (generation: number, resumeId: string | null) =>
     generation === requestId && get().resumeId === resumeId
 
-  const hydrate = async (resumeId: string, activeRequestId?: number) => {
-    if (get().resumeId !== resumeId) return
+  const readCurrentResume = async (resumeId: string, generation: number) => {
+    set({ currentResumeLoading: true, currentResumeError: null })
 
-    const hydrationId = activeRequestId ?? ++requestId
+    try {
+      const resume = await getResumeHistoryResume(resumeId)
+      const currentResume = await buildCurrentResume(resume)
 
-    const [resume, versions] = await Promise.all([
-      getResumeHistoryResume(resumeId),
-      listResumeHistoryVersions(resumeId),
+      if (!isCurrent(generation, resumeId)) return false
+
+      set({ currentResume, currentResumeLoading: false })
+
+      return true
+    } catch (error) {
+      if (!isCurrent(generation, resumeId)) return false
+
+      set({
+        currentResumeLoading: false,
+        currentResumeError:
+          error instanceof Error ? error.message : '当前简历加载失败',
+      })
+
+      return false
+    }
+  }
+
+  const readVersions = async (resumeId: string, generation: number) => {
+    set({ versionsLoading: true, versionsError: null })
+
+    try {
+      const versions = await listResumeHistoryVersions(resumeId)
+
+      if (!isCurrent(generation, resumeId)) return false
+
+      set({
+        versions: versions.map(normalizeHistoryVersionListItem),
+        snapshotCache: Object.fromEntries(
+          Object.entries(get().snapshotCache).filter(([id]) =>
+            versions.some((version) => version.id === Number(id)),
+          ),
+        ),
+        versionsLoaded: true,
+        versionsLoading: false,
+      })
+
+      return true
+    } catch (error) {
+      if (!isCurrent(generation, resumeId)) return false
+
+      set({
+        versionsLoading: false,
+        versionsError:
+          error instanceof Error ? error.message : '版本记录加载失败',
+      })
+
+      return false
+    }
+  }
+
+  const hydrate = async (resumeId: string, generation: number) => {
+    const results = await Promise.all([
+      readCurrentResume(resumeId, generation),
+      readVersions(resumeId, generation),
     ])
 
-    const currentResume = await buildCurrentResume(resume)
-
-    if (get().resumeId !== resumeId || hydrationId !== requestId) return
-
-    set({
-      currentResume,
-      versions: versions.map(normalizeHistoryVersionListItem),
-      snapshotCache: Object.fromEntries(
-        Object.entries(get().snapshotCache).filter(([id]) =>
-          versions.some((version) => version.id === Number(id)),
-        ),
-      ),
-      error: null,
-      loading: false,
-    })
+    return results.every(Boolean)
   }
 
   return {
@@ -110,8 +158,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         currentResume: null,
         versions: [],
         snapshotCache: {},
+        snapshotErrors: {},
         error: null,
-        loading: false,
+        currentResumeLoading: false,
+        currentResumeError: null,
+        versionsLoading: false,
+        versionsError: null,
+        versionsLoaded: false,
         savingCurrent: false,
         savingMetadata: false,
         restoring: false,
@@ -123,7 +176,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
     versions: [],
     snapshotGeneration: 0,
     snapshotCache: {},
+    snapshotErrors: {},
     error: null,
+    currentResumeLoading: false,
+    currentResumeError: null,
+    versionsLoading: false,
+    versionsError: null,
+    versionsLoaded: false,
 
     async loadVersionSnapshot(id) {
       const { snapshotCache, resumeId, versions } = get()
@@ -135,6 +194,10 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       if (snapshotRequests.has(id)) return snapshotRequests.get(id)!
 
       const generation = requestId
+      const snapshotErrors = { ...get().snapshotErrors }
+
+      delete snapshotErrors[id]
+      set({ snapshotErrors })
 
       const current = () =>
         isCurrent(generation, resumeId) &&
@@ -155,9 +218,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         })
         .catch((error: unknown) => {
           if (current())
-            toast.error(
-              error instanceof Error ? error.message : '加载版本内容失败',
-            )
+            set((state) => ({
+              snapshotErrors: {
+                ...state.snapshotErrors,
+                [id]:
+                  error instanceof Error ? error.message : '加载版本内容失败',
+              },
+            }))
 
           return null
         })
@@ -172,72 +239,42 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
     async init(resumeId) {
       const activeRequestId = ++requestId
+      const sameResume = get().resumeId === resumeId
 
       snapshotRequests.clear()
 
       set({
         snapshotGeneration: activeRequestId,
+        resumeId: resumeId ?? null,
         savingCurrent: false,
         savingMetadata: false,
         restoring: false,
         deletingVersionId: null,
-      })
-
-      if (!resumeId) {
-        set({
-          resumeId: null,
-          currentResume: null,
-          versions: [],
-          snapshotCache: {},
-          loading: false,
-          error: null,
-        })
-
-        return
-      }
-
-      if (isOfflineResumeId(resumeId)) {
-        set({
-          resumeId,
-          currentResume: null,
-          versions: [],
-          snapshotCache: {},
-          loading: false,
-          error: '当前仅支持查看云端简历的版本记录，请先同步到云端。',
-        })
-
-        return
-      }
-
-      const keepData =
-        get().resumeId === resumeId && get().currentResume !== null
-
-      set({
-        resumeId,
-        ...(!keepData && {
-          currentResume: null,
-          versions: [],
-          snapshotCache: {},
-        }),
-        loading: !keepData,
         error: null,
+        ...(!sameResume && {
+          currentResume: null,
+          versions: [],
+          versionsLoaded: false,
+          snapshotCache: {},
+          snapshotErrors: {},
+        }),
+        currentResumeError: null,
+        versionsError: null,
       })
 
-      try {
-        await hydrate(resumeId, activeRequestId)
-      } catch (error) {
-        if (get().resumeId !== resumeId || activeRequestId !== requestId) return
-
-        const message =
-          error instanceof Error ? error.message : '版本记录加载失败'
-
+      if (!resumeId || isOfflineResumeId(resumeId)) {
         set({
-          loading: false,
-          error: message,
+          currentResumeLoading: false,
+          versionsLoading: false,
+          error: resumeId
+            ? '当前仅支持查看云端简历的版本记录，请先同步到云端。'
+            : null,
         })
 
-        toast.error(message)
+        return
       }
+
+      await hydrate(resumeId, activeRequestId)
     },
 
     async reload() {
@@ -248,34 +285,39 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       const activeRequestId = ++requestId
 
       snapshotRequests.clear()
+      set({ snapshotGeneration: activeRequestId, error: null })
+      await hydrate(resumeId, activeRequestId)
+    },
 
-      set({
-        snapshotGeneration: activeRequestId,
-        loading: get().currentResume === null,
-        error: null,
-        savingCurrent: false,
-        savingMetadata: false,
-        restoring: false,
-        deletingVersionId: null,
-      })
+    async reloadCurrentResume() {
+      const { resumeId, currentResumeLoading } = get()
 
-      try {
-        await hydrate(resumeId, activeRequestId)
-      } catch (error) {
-        if (get().resumeId !== resumeId || activeRequestId !== requestId) return
+      if (!resumeId || currentResumeLoading) return
 
-        const message =
-          error instanceof Error ? error.message : '版本记录刷新失败'
+      await readCurrentResume(resumeId, requestId)
+    },
 
-        set({ loading: false, error: message })
-        toast.error(message)
-      }
+    async reloadVersions() {
+      const { resumeId, versionsLoading } = get()
+
+      if (!resumeId || versionsLoading) return
+
+      await readVersions(resumeId, requestId)
     },
 
     async saveCurrentVersion(draft) {
       const { resumeId, currentResume, versions } = get()
 
-      if (!resumeId || !currentResume) return null
+      if (
+        !resumeId ||
+        !currentResume ||
+        !get().versionsLoaded ||
+        get().currentResumeLoading ||
+        get().versionsLoading ||
+        get().currentResumeError ||
+        get().versionsError
+      )
+        return null
 
       const generation = requestId
 
@@ -378,7 +420,16 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       const { resumeId, currentResume, versions } = get()
       const targetVersion = versions.find((version) => version.id === versionId)
 
-      if (!resumeId || !currentResume || !targetVersion) return null
+      if (
+        !resumeId ||
+        !currentResume ||
+        !targetVersion ||
+        get().currentResumeLoading ||
+        get().versionsLoading ||
+        get().currentResumeError ||
+        get().versionsError
+      )
+        return null
 
       const generation = requestId
 
@@ -402,9 +453,11 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
         if (!isCurrent(generation, resumeId)) return null
 
-        await hydrate(resumeId, generation)
+        const refreshed = await hydrate(resumeId, generation)
 
         if (!isCurrent(generation, resumeId)) return null
+        if (!refreshed)
+          throw new Error('版本已恢复，部分内容刷新失败，请重试加载')
 
         toast.success('已恢复至所选版本')
 

@@ -1,3 +1,4 @@
+import useUserStore from '@/store/user'
 import type { ResumeType } from '@/lib/schema'
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
@@ -39,18 +40,27 @@ const RESUME_TYPES: ResumeType[] = ['default', 'modern', 'simple']
 
 // 把简历绑定到当前会话：更新内存态（画布预览即时切换）并持久化，
 // 使助手画布预览跟随每个会话正在查看/修改的简历，而非全局当前简历。
-function bindResumeToActiveConversation(resumeId: string): void {
+function bindResumeToActiveConversation(
+  resumeId: string,
+  target?: import('../agent/tool-registry').AgentToolContext['target'],
+): void {
   const { activeConversationId, conversations, upsertConversation } =
     useAssistantStore.getState()
 
-  if (!activeConversationId) return
+  const conversationId = target?.conversationId ?? activeConversationId
 
-  const conversation = conversations.find((c) => c.id === activeConversationId)
+  if (target) target.resumeId = resumeId
+  if (target && useUserStore.getState().currentUser?.id !== target.ownerId)
+    return
+
+  if (!conversationId) return
+
+  const conversation = conversations.find((c) => c.id === conversationId)
 
   if (conversation && conversation.resumeId !== resumeId)
     upsertConversation({ ...conversation, resumeId })
 
-  updateConversationResumeBinding(activeConversationId, resumeId).catch(() => {
+  updateConversationResumeBinding(conversationId, resumeId).catch(() => {
     // 持久化失败静默：内存态已更新，切设备时回退到全局当前简历
   })
 }
@@ -99,10 +109,17 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'account', confirmation: 'required' },
   execute: async (args, context) => {
     const displayName = String(args.display_name ?? '').trim()
+    const ownerId = useUserStore.getState().currentUser?.id
+
+    const conversationId =
+      context?.target?.conversationId ??
+      useAssistantStore.getState().activeConversationId
 
     if (!displayName) return { error: '新建简历需要 display_name（简历名称）' }
+    if (!ownerId) return { error: '请先登录后创建简历。' }
 
     const type = normalizeResumeType(args.type)
     const sectionColumns = pickSectionColumns(args.sections)
@@ -134,13 +151,30 @@ registerTool({
 
           const resumeId = (created as { resume_id: string }).resume_id
 
+          if (useUserStore.getState().currentUser?.id !== ownerId)
+            return {
+              ok: true,
+              resumeId,
+              opened: false,
+              before: '',
+              after: `名称：${displayName}`,
+              message:
+                '简历已在原账户创建。登录状态已改变，未继续预填或切换当前简历。',
+            }
+
           // 有初始内容时写入 section 列，首次打开会 seed 进正文文档
           if (filledKeys.length)
             await updateResumeConfig(resumeId, sectionColumns)
 
-          // 自动在编辑器打开新简历
-          useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
-          bindResumeToActiveConversation(resumeId)
+          const opened =
+            useUserStore.getState().currentUser?.id === ownerId &&
+            !context?.signal?.aborted &&
+            useAssistantStore.getState().activeConversationId === conversationId
+
+          if (opened)
+            useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
+
+          bindResumeToActiveConversation(resumeId, context?.target)
 
           // 统一红绿 diff：新建 → before 为空，after 为简历名称/描述
           const afterLines = [`名称：${displayName}`]
@@ -153,7 +187,7 @@ registerTool({
           return {
             ok: true,
             resumeId,
-            opened: true,
+            opened,
             before: '',
             after: afterLines.join('\n'),
           }
@@ -179,6 +213,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'account', confirmation: 'required' },
   execute: async (args, context) => {
     const resumeId = String(args.resumeId ?? '')
 
@@ -229,6 +264,21 @@ registerTool({
           after,
         },
         apply: async () => {
+          const latest = await getAccessibleResumeMetadata(resumeId)
+
+          if (
+            Object.keys(patch).some(
+              (key) =>
+                latest[key as keyof typeof latest] !==
+                current[key as keyof typeof current],
+            )
+          )
+            return {
+              error:
+                '这些简历信息在等待确认时已被修改。请读取最新内容，重新生成差异并请用户确认。',
+              conflict: true,
+            }
+
           await updateAccessibleResumeMeta(resumeId, patch)
 
           return { ok: true, resumeId, before, after }
@@ -250,6 +300,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'account', confirmation: 'required' },
   execute: async (args, context) => {
     const resumeId = String(args.resumeId ?? '')
 
@@ -314,7 +365,8 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'read',
-  execute: async (args) => {
+  policy: { scope: 'account', confirmation: 'none' },
+  execute: async (args, context) => {
     const resumeId = String(args.resumeId ?? '')
 
     if (!resumeId) return { error: '缺少 resumeId' }
@@ -323,8 +375,16 @@ registerTool({
       const resume = await getAccessibleResumeMetadata(resumeId)
       const type = normalizeResumeType(resume.type ?? args.type)
 
+      context?.signal?.throwIfAborted()
+
+      if (
+        context?.target &&
+        useUserStore.getState().currentUser?.id !== context.target.ownerId
+      )
+        return { cancelled: true, message: '账户已改变，本轮不再打开简历。' }
+
       useCurrentResumeStore.getState().setCurrentResume(resumeId, type)
-      bindResumeToActiveConversation(resumeId)
+      bindResumeToActiveConversation(resumeId, context?.target)
 
       return { ok: true, resumeId, type, storage: resume.storage }
     } catch (error) {
@@ -346,8 +406,11 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'target-resume', confirmation: 'required' },
   execute: async (args, context) => {
-    const resumeId = resolveActiveResumeId()
+    const resumeId = context?.target
+      ? context.target.resumeId
+      : resolveActiveResumeId()
 
     if (!resumeId)
       return {
@@ -407,8 +470,11 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'target-resume', confirmation: 'required' },
   execute: async (args, context) => {
-    const resumeId = resolveActiveResumeId()
+    const resumeId = context?.target
+      ? context.target.resumeId
+      : resolveActiveResumeId()
 
     if (!resumeId)
       return {
@@ -476,13 +542,16 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'account', confirmation: 'required' },
   execute: async (args, context) => {
     const versionId = Number(args.versionId)
 
     if (!Number.isFinite(versionId)) return { error: 'versionId 必须是数字' }
 
     // 尽力把这次删除归属到本对话绑定的简历，供画布按简历隔离变更记录
-    const resumeId = resolveActiveResumeId()
+    const resumeId = context?.target
+      ? context.target.resumeId
+      : resolveActiveResumeId()
 
     return requestConfirm(
       {
@@ -515,6 +584,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'account', confirmation: 'required' },
   execute: async (args, context) => {
     const jobId = String(args.jobId ?? '')
     const scope = getTrackerAccountScope()

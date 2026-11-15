@@ -127,7 +127,16 @@ export default function VersionPdfExportButton({
       setLoading(false),
     )
 
-    if (!snap) return
+    if (!snap) {
+      shouldPrintRef.current = false
+
+      toast.error(
+        useHistoryStore.getState().snapshotErrors[versionId] ??
+          '版本内容暂时不可用，请重试',
+      )
+
+      return
+    }
 
     shouldPrintRef.current = true
     setSnapshot(snap)

@@ -21,9 +21,8 @@ interface EmptyStateProps {
 export default function EmptyState({ filtered }: EmptyStateProps) {
   const { resetFilters } = useShareFilterActions()
 
-  const canCreate = useShareStore(
-    (state) => Object.keys(state.resumeMap).length > 0,
-  )
+  const { resumeMap, resumeOptionsLoaded, resumeOptionsError } = useShareStore()
+  const canCreate = Object.keys(resumeMap).length > 0
 
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -39,9 +38,13 @@ export default function EmptyState({ filtered }: EmptyStateProps) {
           </EmptyTitle>
           {!filtered && (
             <EmptyDescription>
-              {canCreate
-                ? '为简历创建分享链接，向对方展示指定版本。'
-                : '先创建或同步一份云端简历，再创建分享链接。'}
+              {!resumeOptionsLoaded
+                ? resumeOptionsError
+                  ? '简历列表暂时不可用，请重试后创建分享。'
+                  : '简历列表正在加载，完成后可以创建分享。'
+                : canCreate
+                  ? '为简历创建分享链接，向对方展示指定版本。'
+                  : '先创建或同步一份云端简历，再创建分享链接。'}
             </EmptyDescription>
           )}
         </EmptyHeader>
@@ -55,11 +58,11 @@ export default function EmptyState({ filtered }: EmptyStateProps) {
               <Plus data-icon='inline-start' />
               新建分享
             </Button>
-          ) : (
+          ) : resumeOptionsLoaded ? (
             <Button asChild>
               <Link to='/resume'>前往我的简历</Link>
             </Button>
-          )}
+          ) : null}
         </EmptyContent>
       </Empty>
       <CreateDialog open={createOpen} onOpenChange={setCreateOpen} />

@@ -26,6 +26,7 @@ export function useBreadcrumbs(): Breadcrumb[] {
 
     const labels: Record<string, string> = {
       resume: '我的简历',
+      experience: '职业档案',
       template: '简历模板',
       editor: '编辑简历',
       assistant: 'AI 助手',

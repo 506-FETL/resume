@@ -1,9 +1,12 @@
 import { useShallow } from 'zustand/react/shallow'
 import { ArrowUp, Brain, Square, WandSparkles } from 'lucide-react'
+import { useId, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useMemo, useRef, useState } from 'react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { EXPERIENCE_FILE_ACCEPT } from '@/lib/experience-sources/const'
+import { Spinner } from '@/components/ui/spinner'
+import { useComposerUploads } from '../../hooks/use-composer-uploads'
 import { QuotaMeter } from '@/components/quota/quota-meter'
 import {
   InputGroup,
@@ -17,24 +20,35 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 import { cn } from '@/lib/utils'
-import { ASSISTANT_TOOLS, TEMPLATE_PROMPTS } from '../composer-tools'
+import { ASSISTANT_TOOLS } from '../composer-tools'
+import { ASSISTANT_COMMANDS } from '@/lib/ai/commands'
+import { createSkillReferences } from '@/lib/ai/skills/references'
+import { referenceKey } from '@/lib/ai/references'
+import type { AiUserReference } from '@/lib/ai/types'
+import AnimatedContent from '@/components/motion/animated-content'
+import ContextUsage from '../context-usage'
+import ReferenceTags from '../reference-tags'
+import { useSourceScope } from '../../hooks/use-source-scope'
+import { freezeSourceScope } from '../../store/source-scope'
+import QueuedMessages from '../queued-messages'
 import { ComposerReferencePicker } from '../composer-tools/reference-picker'
 import { ComposerTools } from '../composer-tools/tool-menu'
-import { composeDraft, parseComposerDraft } from '../../composer-references'
 import { COMPOSER_PLACEHOLDER } from '../../const'
 import { useChatStream } from '../../hooks/use-chat-stream'
 import { useComposerContext } from '../../hooks/use-composer-context'
 import useAssistantStore from '../../store'
 import type { ComposerKeyDownEvent, ComposerTool } from '../../types'
-import { SkillPicker } from '../skill-picker'
 
 export default function Composer() {
   const {
     streaming,
     composerDraft: draft,
-    composerSkillIds,
+    composerReferences: references,
+    pendingConfirm,
+    confirmationFeedback,
+    runPhase,
+    draftStorageFailed,
     initializing,
     bootstrapError,
     loadingMessages,
@@ -44,7 +58,11 @@ export default function Composer() {
     useShallow((state) => ({
       streaming: state.streaming,
       composerDraft: state.composerDraft,
-      composerSkillIds: state.composerSkillIds,
+      composerReferences: state.composerReferences,
+      pendingConfirm: state.pendingConfirm,
+      confirmationFeedback: state.confirmationFeedback,
+      runPhase: state.runPhase,
+      draftStorageFailed: state.draftStorageFailed,
       initializing: state.initializing,
       bootstrapError: state.bootstrapError,
       loadingMessages: state.loadingMessages,
@@ -54,7 +72,11 @@ export default function Composer() {
   )
 
   const { sendMessage, stopStreaming } = useChatStream()
+  const uploads = useComposerUploads()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const sendStatusId = useId()
   const context = useComposerContext()
+  const sourceScope = useSourceScope()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const commandRef = useRef<HTMLDivElement>(null)
   const thinkingRef = useRef<HTMLButtonElement>(null)
@@ -62,15 +84,38 @@ export default function Composer() {
   const [manualToolsOpen, setManualToolsOpen] = useState(false)
   const [commandDismissed, setCommandDismissed] = useState(false)
   const [menuQuery, setMenuQuery] = useState('')
+
+  const [newTaskProposalId, setNewTaskProposalId] = useState<string | null>(
+    null,
+  )
+
   const reduceMotion = useReducedMotion()
 
-  const disabled =
-    streaming || initializing || loadingMessages || Boolean(bootstrapError)
+  const disabled = initializing || loadingMessages || Boolean(bootstrapError)
 
-  const { text: visibleDraft, references } = useMemo(
-    () => parseComposerDraft(draft),
-    [draft],
+  const hasExplicitSources = references.some(
+    (reference) =>
+      reference.type === 'reference' && reference.kind === 'experience',
   )
+
+  const composerSources = hasExplicitSources
+    ? freezeSourceScope(sourceScope.sources ?? [], references)
+    : sourceScope.sources
+
+  const running =
+    streaming ||
+    [
+      'preparing',
+      'generating',
+      'confirming',
+      'applying',
+      'compacting',
+    ].includes(runPhase)
+
+  const awaiting = pendingConfirm?.status === 'pending'
+  const asNewTask = awaiting && newTaskProposalId === pendingConfirm.id
+  const replying = awaiting && !asNewTask
+  const visibleDraft = replying ? confirmationFeedback : draft
 
   const queryMode = visibleDraft.startsWith('/') || visibleDraft.startsWith('$')
   const query = queryMode ? visibleDraft.slice(1) : menuQuery
@@ -94,19 +139,18 @@ export default function Composer() {
     )
   })
 
-  const selectedSkills = useMemo(
-    () =>
-      composerSkillIds.flatMap((id) => {
-        const skill = BUILTIN_SKILLS.find((item) => item.id === id)
-
-        return skill ? [{ id: skill.id, displayName: skill.displayName }] : []
-      }),
-    [composerSkillIds],
-  )
-
   const canSend = Boolean(
-    visibleDraft.trim() || references.length || composerSkillIds.length,
+    visibleDraft.trim() || (!replying && references.length),
   )
+
+  const sendBlockedReason = uploads.tasks.length
+    ? uploads.tasks.some((task) => ['failed', 'unknown'].includes(task.status))
+      ? '文件还未准备好，请重试或移除后再发送。'
+      : '文件正在上传，完成后就可以发送。'
+    : undefined
+
+  const sendDisabled =
+    disabled || !canSend || Boolean(sendBlockedReason) || !composerSources
 
   const closeTools = () => {
     setManualToolsOpen(false)
@@ -124,57 +168,55 @@ export default function Composer() {
     })
   }
 
-  const appendDraft = (token: string, label: string) => {
-    const state = useAssistantStore.getState()
-    const current = parseComposerDraft(state.composerDraft)
-
-    if (current.references.some((reference) => reference.token === token))
-      return
-
-    state.setComposerDraft(
-      composeDraft(current.text, [...current.references, { token, label }]),
-    )
+  const appendDraft = (reference: AiUserReference) => {
+    useAssistantStore.getState().addComposerReferences([reference])
   }
 
   const handleToolSelect = (tool: ComposerTool) => {
     const state = useAssistantStore.getState()
-    const current = parseComposerDraft(state.composerDraft)
 
     closeTools()
     focusDraft()
 
-    if (tool.skillId) {
-      state.setComposerSkillIds([
-        ...new Set([...state.composerSkillIds, tool.skillId]),
-      ])
+    if (tool.skillId)
+      state.addComposerReferences(createSkillReferences('', [tool.skillId]))
+    else {
+      const command = ASSISTANT_COMMANDS.find(
+        (item) => item.displayName === tool.name,
+      )
 
-      if (/^[$/]\S*$/.test(current.text.trim()))
-        state.setComposerDraft(composeDraft('', current.references))
-
-      return
+      if (command)
+        state.addComposerReferences([
+          {
+            type: 'reference',
+            kind: 'command',
+            id: command.id,
+            version: command.version,
+            label: command.displayName,
+          },
+        ])
     }
 
-    const template = TEMPLATE_PROMPTS[tool.name]
-
-    if (!template) return
-
-    const merged = current.text.startsWith('/')
-      ? template
-      : current.text
-        ? `${current.text}\n${template}`
-        : template
-
-    state.setComposerDraft(
-      composeDraft(merged.replace(/\n+$/, ''), current.references),
-    )
+    if (/^[$/]\S*$/.test(visibleDraft.trim())) {
+      if (replying) state.setConfirmationFeedback('')
+      else state.setComposerDraft('')
+    }
   }
 
-  const submit = () => {
-    const text = composeDraft(visibleDraft.trim(), references)
+  const submit = (
+    mode: 'queue' | 'interrupt' | 'feedback' = replying ? 'feedback' : 'queue',
+  ) => {
+    if (sendDisabled || composingRef.current) return
 
-    if (disabled || composingRef.current || !canSend) return
-    if (sendMessage(text, composerSkillIds)) {
-      useAssistantStore.setState({ composerDraft: '', composerSkillIds: [] })
+    if (sendMessage(visibleDraft.trim(), references, mode)) {
+      useAssistantStore.setState({
+        ...(replying ? { confirmationFeedback: '' } : { composerDraft: '' }),
+        composerReferences: [],
+        composerSkillIds: [],
+        composerLibrarySources: null,
+      })
+
+      setNewTaskProposalId(null)
       closeTools()
     }
   }
@@ -207,6 +249,16 @@ export default function Composer() {
 
       return
     }
+    if (
+      event.key === 'Enter' &&
+      event.shiftKey &&
+      (event.metaKey || event.ctrlKey)
+    ) {
+      event.preventDefault()
+      submit('interrupt')
+
+      return
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       submit()
@@ -215,7 +267,132 @@ export default function Composer() {
 
   return (
     <div className='mx-auto w-full max-w-4xl px-3 sm:px-6 lg:px-8'>
+      {awaiting && (
+        <div className='mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground'>
+          <span>
+            {replying
+              ? '补充要求，重新生成这次修改'
+              : '这条消息将作为新任务排队'}
+          </span>
+          <InputGroupButton
+            size='sm'
+            onClick={() =>
+              setNewTaskProposalId(asNewTask ? null : pendingConfirm.id)
+            }
+          >
+            {replying ? '改为新任务' : '回复当前修改'}
+          </InputGroupButton>
+        </div>
+      )}
+      <AnimatedContent
+        animationKey={runPhase === 'compacting' ? 'compacting' : 'none'}
+      >
+        {runPhase === 'compacting' && (
+          <p className='mb-2 text-xs text-muted-foreground' role='status'>
+            正在整理较早的对话
+          </p>
+        )}
+      </AnimatedContent>
+      {runPhase === 'settling' && (
+        <p className='mb-2 text-xs text-muted-foreground' role='status'>
+          正在完成已确认的修改，随后继续
+        </p>
+      )}
+      {!hasExplicitSources && sourceScope.error && (
+        <p className='mb-2 text-xs text-destructive' role='alert'>
+          职业档案读取失败
+          <InputGroupButton type='button' size='sm' onClick={sourceScope.retry}>
+            重试
+          </InputGroupButton>
+        </p>
+      )}
+      {!hasExplicitSources && !sourceScope.sources && !sourceScope.error && (
+        <p className='mb-2 text-xs text-muted-foreground' role='status'>
+          正在读取职业档案目录
+        </p>
+      )}
+      <QueuedMessages />
+      <input
+        ref={fileInputRef}
+        type='file'
+        hidden
+        multiple
+        accept={EXPERIENCE_FILE_ACCEPT}
+        onChange={(event) => {
+          uploads.addFiles(Array.from(event.target.files ?? []))
+          event.target.value = ''
+        }}
+      />
+      <div className='space-y-1' aria-label='文件上传任务'>
+        <AnimatePresence initial={false}>
+          {uploads.tasks.map((task) => (
+            <motion.div
+              key={task.operationId}
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{
+                opacity: 0,
+                transition: { duration: reduceMotion ? 0 : DURATION.fast },
+              }}
+              transition={{
+                duration: reduceMotion ? 0 : DURATION.base,
+                ease: EASE.out,
+              }}
+              className='mb-2 flex items-center gap-2 text-xs'
+            >
+              {['reading', 'saving'].includes(task.status) && (
+                <Spinner className='size-3' />
+              )}
+              <span className='min-w-0 flex-1 truncate'>
+                {task.file.name} ·{' '}
+                {task.status === 'reading'
+                  ? '正在提取文字'
+                  : task.status === 'saving'
+                    ? '正在保存原件'
+                    : task.error}
+              </span>
+              {['failed', 'unknown'].includes(task.status) && (
+                <InputGroupButton
+                  type='button'
+                  size='sm'
+                  onClick={() => uploads.retry(task)}
+                >
+                  {task.status === 'unknown' ? '核对并重试' : '重试'}
+                </InputGroupButton>
+              )}
+              <InputGroupButton
+                type='button'
+                size='sm'
+                onClick={() => uploads.remove(task)}
+              >
+                移除
+              </InputGroupButton>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+      <AnimatedContent animationKey={sendBlockedReason ? 'blocked' : 'ready'}>
+        {sendBlockedReason && (
+          <p
+            id={sendStatusId}
+            className='mb-2 text-xs text-muted-foreground'
+            role='status'
+          >
+            {sendBlockedReason}
+          </p>
+        )}
+      </AnimatedContent>
       <form
+        onDragOver={(event) => {
+          if (!disabled && event.dataTransfer.types.includes('Files'))
+            event.preventDefault()
+        }}
+        onDrop={(event) => {
+          if (disabled || !event.dataTransfer.files.length) return
+
+          event.preventDefault()
+          uploads.addFiles(Array.from(event.dataTransfer.files))
+        }}
         data-composer
         onSubmit={(event) => {
           event.preventDefault()
@@ -242,41 +419,37 @@ export default function Composer() {
                 align='block-start'
                 className='max-h-28 flex-col items-start gap-0 overflow-y-auto p-0'
               >
-                <SkillPicker
-                  label='引用'
-                  skills={references.map((reference) => ({
-                    id: reference.token,
-                    displayName: reference.label,
-                  }))}
-                  disabled={disabled}
-                  onRemove={(token) =>
-                    useAssistantStore.getState().setComposerDraft(
-                      composeDraft(
-                        visibleDraft,
-                        references.filter(
-                          (reference) => reference.token !== token,
-                        ),
-                      ),
-                    )
-                  }
-                />
-                <SkillPicker
-                  skills={selectedSkills}
-                  disabled={disabled}
-                  onRemove={(id) =>
-                    useAssistantStore
-                      .getState()
-                      .setComposerSkillIds(
-                        composerSkillIds.filter((skillId) => skillId !== id),
-                      )
-                  }
-                />
+                {references.length > 0 && (
+                  <div className='w-full min-w-0 px-3 pt-3 pb-1'>
+                    <ReferenceTags
+                      references={references}
+                      disabled={disabled}
+                      onRemove={(key) => {
+                        useAssistantStore
+                          .getState()
+                          .setComposerReferences(
+                            references.filter(
+                              (reference) => referenceKey(reference) !== key,
+                            ),
+                          )
+
+                        textareaRef.current?.focus({ preventScroll: true })
+                      }}
+                    />
+                  </div>
+                )}
               </InputGroupAddon>
               <InputGroupTextarea
                 ref={textareaRef}
                 value={visibleDraft}
                 rows={1}
-                placeholder={COMPOSER_PLACEHOLDER}
+                placeholder={
+                  replying
+                    ? '希望怎样修改？可以直接补充要求…'
+                    : streaming
+                      ? '继续输入，发送后加入队列…'
+                      : COMPOSER_PLACEHOLDER
+                }
                 aria-label='发送给 AI 助手的消息'
                 role='combobox'
                 aria-autocomplete='list'
@@ -286,11 +459,11 @@ export default function Composer() {
                 onChange={(event) => {
                   setCommandDismissed(false)
 
-                  useAssistantStore
-                    .getState()
-                    .setComposerDraft(
-                      composeDraft(event.target.value, references),
-                    )
+                  const state = useAssistantStore.getState()
+
+                  if (replying)
+                    state.setConfirmationFeedback(event.target.value)
+                  else state.setComposerDraft(event.target.value)
                 }}
                 onCompositionStart={() => {
                   composingRef.current = true
@@ -298,11 +471,18 @@ export default function Composer() {
                 onCompositionEnd={() => {
                   composingRef.current = false
                 }}
+                onPaste={(event) => {
+                  if (!event.clipboardData.files.length) return
+
+                  event.preventDefault()
+                  uploads.addFiles(Array.from(event.clipboardData.files))
+                }}
                 onKeyDown={handleKeyDown}
               />
               <InputGroupAddon align='block-end' className='flex-wrap gap-1.5'>
                 <ComposerReferencePicker
                   context={context}
+                  onUploadFiles={() => fileInputRef.current?.click()}
                   disabled={disabled}
                   onSelect={appendDraft}
                   textareaRef={textareaRef}
@@ -336,60 +516,69 @@ export default function Composer() {
                       深度思考
                     </InputGroupButton>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {deepThinking ? '已开启深度思考' : '开启深度思考，耗时更长'}
-                  </TooltipContent>
                 </Tooltip>
-                <InputGroupButton
-                  type='button'
-                  size='icon-sm'
-                  variant={streaming ? 'destructive' : 'default'}
-                  className='relative ml-auto shrink-0 rounded-full'
-                  aria-label={streaming ? '停止生成' : '发送消息'}
-                  disabled={!streaming && (disabled || !canSend)}
-                  onClick={() => {
-                    if (streaming) {
-                      thinkingRef.current?.focus({ preventScroll: true })
-                      stopStreaming()
-
-                      return
-                    }
-
-                    submit()
-                  }}
-                >
-                  <AnimatePresence initial={false}>
-                    <motion.span
-                      key={streaming ? 'stop' : 'send'}
-                      aria-hidden
-                      className='absolute inset-0 flex items-center justify-center'
-                      initial={
-                        reduceMotion
-                          ? false
-                          : { opacity: 0, transform: 'scale(0.96)' }
-                      }
-                      animate={{ opacity: 1, transform: 'scale(1)' }}
-                      exit={{
-                        opacity: 0,
-                        transform: reduceMotion ? 'scale(1)' : 'scale(0.96)',
-                        transition: {
-                          duration: reduceMotion ? 0 : DURATION.fast,
-                          ease: EASE.in,
-                        },
-                      }}
-                      transition={{
-                        duration: reduceMotion ? 0 : DURATION.base,
-                        ease: EASE.out,
+                <ContextUsage sources={composerSources} />
+                <div className='ml-auto flex items-center gap-1'>
+                  {running && (
+                    <InputGroupButton
+                      type='button'
+                      size='icon-sm'
+                      variant='ghost'
+                      className='rounded-full'
+                      aria-label='停止生成'
+                      onClick={() => {
+                        thinkingRef.current?.focus({ preventScroll: true })
+                        stopStreaming()
                       }}
                     >
-                      {streaming ? (
-                        <Square className='size-3.5 fill-current' />
-                      ) : (
+                      <Square className='size-3.5 fill-current' />
+                    </InputGroupButton>
+                  )}
+                  {running && canSend && (
+                    <InputGroupButton
+                      type='button'
+                      size='sm'
+                      onClick={() => submit('interrupt')}
+                      disabled={sendDisabled}
+                      aria-describedby={
+                        sendBlockedReason ? sendStatusId : undefined
+                      }
+                      title='Ctrl / ⌘ + Shift + Enter'
+                    >
+                      立即发送
+                    </InputGroupButton>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InputGroupButton
+                        type='submit'
+                        size='icon-sm'
+                        variant='default'
+                        className='rounded-full'
+                        aria-label={
+                          replying
+                            ? '发送修改要求'
+                            : streaming
+                              ? '加入队列'
+                              : '发送消息'
+                        }
+                        disabled={sendDisabled}
+                        aria-describedby={
+                          sendBlockedReason ? sendStatusId : undefined
+                        }
+                      >
                         <ArrowUp className='size-4' />
-                      )}
-                    </motion.span>
-                  </AnimatePresence>
-                </InputGroupButton>
+                      </InputGroupButton>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {replying
+                        ? '发送修改要求'
+                        : streaming
+                          ? '加入队列，当前回复结束后发送'
+                          : '发送消息'}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </InputGroupAddon>
             </InputGroup>
           </PopoverAnchor>
@@ -406,6 +595,11 @@ export default function Composer() {
           />
         </Popover>
       </form>
+      {draftStorageFailed && (
+        <p className='mt-2 text-xs text-muted-foreground' role='status'>
+          草稿暂未保存到本机，刷新后可能丢失
+        </p>
+      )}
       <QuotaMeter className='mt-1.5' />
     </div>
   )

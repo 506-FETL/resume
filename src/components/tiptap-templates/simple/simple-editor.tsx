@@ -6,7 +6,7 @@ import type { CollabExtensionConfig } from '@/lib/collaboration/richtext/collab-
 import type { DebouncedMirror } from '@/lib/collaboration/richtext/mirror-debounce'
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react'
 import * as React from 'react'
-import { AiRewriteBubble } from '@/components/ai-rewrite'
+import { EditorArchive } from '@/features/experience-sources/editor-archive'
 // --- Icons ---
 import { ArrowLeftIcon } from '@/components/tiptap-icons/arrow-left-icon'
 import { HighlighterIcon } from '@/components/tiptap-icons/highlighter-icon'
@@ -316,24 +316,23 @@ export function SimpleEditor({
     })
   }, [collabAwareness, collabUserName, collabUserColor, collabUserId])
 
-  const fieldSection = fieldContext?.sectionKey
-  const fieldLabel = fieldContext?.fieldLabel
-  const jobIntent = fieldContext?.jobIntent
-
-  const stableFieldContext = React.useMemo(
-    () =>
-      fieldSection && fieldLabel
-        ? { sectionKey: fieldSection, fieldLabel, jobIntent }
-        : undefined,
-    [fieldSection, fieldLabel, jobIntent],
-  )
-
   const editorContextValue = React.useMemo(() => ({ editor }), [editor])
 
   return (
     <div className='simple-editor-wrapper'>
       <EditorContext value={editorContextValue}>
         <Toolbar ref={toolbarRef}>
+          {editor && fieldContext?.fieldLabel && (
+            <>
+              <ToolbarGroup>
+                <EditorArchive
+                  editor={editor}
+                  fieldLabel={fieldContext.fieldLabel}
+                />
+              </ToolbarGroup>
+              <ToolbarSeparator />
+            </>
+          )}
           {mobileView === 'main' ? (
             <MainToolbarContent
               onHighlighterClick={showHighlighter}
@@ -353,9 +352,6 @@ export function SimpleEditor({
           role='presentation'
           className='simple-editor-content'
         />
-        {!isMobile && editor && stableFieldContext && (
-          <AiRewriteBubble editor={editor} fieldContext={stableFieldContext} />
-        )}
       </EditorContext>
     </div>
   )

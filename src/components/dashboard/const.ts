@@ -1,6 +1,7 @@
 import {
   Axe,
   FileUser,
+  Files,
   FolderKanban,
   History,
   HomeIcon,
@@ -22,6 +23,11 @@ export const Data = {
       title: '我的简历',
       url: '/resume',
       icon: FileUser,
+    },
+    {
+      title: '职业档案',
+      url: '/experience',
+      icon: Files,
     },
     {
       title: '分享管理',

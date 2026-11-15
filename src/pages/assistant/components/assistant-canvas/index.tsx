@@ -213,7 +213,18 @@ export default function AssistantCanvas() {
           data-assistant-canvas
           className='flex-col! gap-0 overflow-hidden p-0 motion-reduce:transition-none'
           overlayClassName='motion-reduce:transition-none'
-          finalFocus={() => document.getElementById('assistant-canvas-trigger')}
+          finalFocus={() => {
+            const focusComposer =
+              useAssistantStore.getState().focusComposerOnCanvasClose
+
+            useAssistantStore.setState({ focusComposerOnCanvasClose: false })
+
+            return focusComposer
+              ? document.querySelector<HTMLTextAreaElement>(
+                  '[data-composer] textarea',
+                )
+              : document.getElementById('assistant-canvas-trigger')
+          }}
           style={
             {
               '--drawer-content-height': 'calc(100dvh - 1rem)',

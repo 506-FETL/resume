@@ -68,7 +68,7 @@ export default function ResumePage() {
   const prepareQueueRef = useRef<Promise<void>>(Promise.resolve())
   const handledJobActionRef = useRef<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
-  const createTriggerRef = useRef<HTMLElement | null>(null)
+  const createTriggerRef = useRef<HTMLButtonElement | null>(null)
   const allFilterTriggerRef = useRef<HTMLButtonElement | null>(null)
   const pageTriggerRef = useRef<HTMLButtonElement | null>(null)
   const pageStatusRef = useRef<HTMLSpanElement | null>(null)
@@ -88,6 +88,8 @@ export default function ResumePage() {
     libraryPage,
     libraryTotal,
     libraryCounts,
+    libraryCountsError,
+    libraryHasLoaded,
     libraryQuery,
     libraryParents,
     loadLibraryPage,
@@ -226,9 +228,7 @@ export default function ResumePage() {
 
   const visibleItems = resumes
 
-  const initialLoading =
-    loading &&
-    (!accountMatches || (libraryCounts === null && resumes.length === 0))
+  const initialLoading = loading && (!accountMatches || !libraryHasLoaded)
 
   const pageCount =
     libraryTotal === null
@@ -288,128 +288,196 @@ export default function ResumePage() {
   )
 
   return (
-    <AnimatedContent
-      key={user?.id ?? 'offline'}
-      animationKey={initialLoading ? 'loading' : 'resumes'}
-      className='h-full min-h-0'
-    >
-      {initialLoading ? (
-        <ResumeLibrarySkeleton />
-      ) : (
-        <PageLayout className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1'>
-          <div className='shrink-0 space-y-4 sm:space-y-6 [@media(max-height:500px)]:space-y-1'>
-            <div className='space-y-4 sm:space-y-6 [@media(max-height:500px)]:max-h-[calc(100dvh-16rem)] [@media(max-height:500px)]:space-y-1 [@media(max-height:500px)]:overflow-y-auto [@media(max-height:500px)]:overscroll-contain'>
-              <div className='empty:hidden [@media(max-height:500px)]:[&>div]:flex-nowrap [@media(max-height:500px)]:[&_a]:h-9'>
-                <JobContextBar />
-              </div>
-              <HeadBars
-                counts={accountMatches ? libraryCounts : null}
-                isOnline={isOnline}
-                offlineCount={
-                  accountMatches ? (libraryCounts?.offline ?? 0) : 0
-                }
-                onCreate={openCreate}
-              />
-              {loadError && (
-                <div
-                  role='status'
-                  className='flex items-center justify-between gap-3 rounded-lg border p-3 text-sm [@media(max-height:500px)]:p-2'
-                >
-                  <span>
-                    {resumes.length ? '刷新失败，保留上次数据' : '简历加载失败'}
-                  </span>
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    className='[@media(max-height:500px)]:h-9'
-                    onClick={() =>
-                      libraryQuery
-                        ? loadLibraryPage(libraryPage)
-                        : refreshLibrary()
-                    }
-                  >
-                    重试
-                  </Button>
+    <>
+      <AnimatedContent
+        key={user?.id ?? 'offline'}
+        animationKey={initialLoading ? 'loading' : 'resumes'}
+        className='h-full min-h-0'
+      >
+        {initialLoading ? (
+          <ResumeLibrarySkeleton
+            header={
+              accountMatches && (libraryCounts || libraryCountsError) ? (
+                <HeadBars
+                  counts={libraryCounts}
+                  isOnline={isOnline}
+                  offlineCount={libraryCounts?.offline ?? 0}
+                  onCreate={openCreate}
+                  createButtonRef={createTriggerRef}
+                />
+              ) : undefined
+            }
+          />
+        ) : (
+          <PageLayout className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1'>
+            <div className='shrink-0 space-y-4 sm:space-y-6 [@media(max-height:500px)]:space-y-1'>
+              <div className='space-y-4 sm:space-y-6 [@media(max-height:500px)]:max-h-[calc(100dvh-16rem)] [@media(max-height:500px)]:space-y-1 [@media(max-height:500px)]:overflow-y-auto [@media(max-height:500px)]:overscroll-contain'>
+                <div className='empty:hidden [@media(max-height:500px)]:[&>div]:flex-nowrap [@media(max-height:500px)]:[&_a]:h-9'>
+                  <JobContextBar />
                 </div>
-              )}
-            </div>
-            <div className='flex min-w-0 flex-col gap-2 sm:flex-row sm:justify-between [@media(max-height:500px)]:gap-1'>
-              <LibrarySearch />
-              <div className='flex min-w-0 items-center gap-2'>
-                <Tabs
-                  value={filterMode}
-                  onValueChange={(v) =>
-                    setLibraryFilter(v as 'all' | 'roots' | 'variants')
+                <HeadBars
+                  counts={accountMatches ? libraryCounts : null}
+                  isOnline={isOnline}
+                  offlineCount={
+                    accountMatches ? (libraryCounts?.offline ?? 0) : 0
                   }
-                  className='min-w-0'
-                >
-                  <TabsList className='max-w-full'>
-                    <TabsTrigger ref={allFilterTriggerRef} value='all'>
-                      全部
-                    </TabsTrigger>
-                    <TabsTrigger value='roots'>原始简历</TabsTrigger>
-                    <TabsTrigger value='variants'>岗位版本</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                <div className='flex h-4 w-16 shrink-0 items-center text-muted-foreground'>
-                  <AnimatePresence initial={false}>
-                    {loading && showLoadingHint && (
-                      <PresenceDiv
-                        key='library-loading'
-                        className='flex'
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{
-                          opacity: 0,
-                          transition: {
-                            duration: shouldReduceMotion ? 0 : DURATION.fast,
-                            ease: EASE.in,
-                          },
-                        }}
-                        transition={{
+                  onCreate={openCreate}
+                  createButtonRef={createTriggerRef}
+                />
+                {loadError && (
+                  <div
+                    role='status'
+                    className='flex items-center justify-between gap-3 rounded-lg border p-3 text-sm [@media(max-height:500px)]:p-2'
+                  >
+                    <span>
+                      {resumes.length
+                        ? '刷新失败，保留上次数据'
+                        : '简历加载失败'}
+                    </span>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      className='[@media(max-height:500px)]:h-9'
+                      onClick={() =>
+                        libraryQuery
+                          ? loadLibraryPage(libraryPage)
+                          : refreshLibrary()
+                      }
+                    >
+                      重试
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className='flex min-w-0 flex-col gap-2 sm:flex-row sm:justify-between [@media(max-height:500px)]:gap-1'>
+                <LibrarySearch />
+                <div className='flex min-w-0 items-center gap-2'>
+                  <Tabs
+                    value={filterMode}
+                    onValueChange={(v) =>
+                      setLibraryFilter(v as 'all' | 'roots' | 'variants')
+                    }
+                    className='min-w-0'
+                  >
+                    <TabsList className='max-w-full'>
+                      <TabsTrigger ref={allFilterTriggerRef} value='all'>
+                        全部
+                      </TabsTrigger>
+                      <TabsTrigger value='roots'>原始简历</TabsTrigger>
+                      <TabsTrigger value='variants'>岗位版本</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <div className='flex h-4 w-16 shrink-0 items-center text-muted-foreground'>
+                    <AnimatePresence initial={false}>
+                      {loading && showLoadingHint && (
+                        <PresenceDiv
+                          key='library-loading'
+                          className='flex'
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{
+                            opacity: 0,
+                            transition: {
+                              duration: shouldReduceMotion ? 0 : DURATION.fast,
+                              ease: EASE.in,
+                            },
+                          }}
+                          transition={{
+                            duration: shouldReduceMotion ? 0 : DURATION.base,
+                            ease: EASE.out,
+                          }}
+                        >
+                          <Spinner
+                            className='size-4'
+                            aria-label='正在加载简历'
+                          />
+                        </PresenceDiv>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              ref={resumeListRef}
+              role='region'
+              aria-label='简历列表'
+              tabIndex={-1}
+              className='min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable]'
+              aria-busy={loading}
+              inert={loading || undefined}
+            >
+              <AnimatePresence mode='popLayout' initial={false}>
+                {visibleItems.map((resume, index) => {
+                  const isSyncingThis = syncingIds.has(resume.resume_id)
+
+                  return (
+                    <PresenceDiv
+                      key={resume.resume_id}
+                      className='min-w-0 border-b border-border/60 last:border-b-0'
+                      layout={shouldReduceMotion ? false : 'position'}
+                      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                      animate={{
+                        opacity: isSyncingThis ? 0.55 : 1,
+                        y: 0,
+                        transition: {
                           duration: shouldReduceMotion ? 0 : DURATION.base,
                           ease: EASE.out,
-                        }}
-                      >
-                        <Spinner className='size-4' aria-label='正在加载简历' />
-                      </PresenceDiv>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            ref={resumeListRef}
-            role='region'
-            aria-label='简历列表'
-            tabIndex={-1}
-            className='min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable]'
-            aria-busy={loading}
-            inert={loading || undefined}
-          >
-            <AnimatePresence mode='popLayout' initial={false}>
-              {visibleItems.map((resume, index) => {
-                const isSyncingThis = syncingIds.has(resume.resume_id)
-
-                return (
-                  <PresenceDiv
-                    key={resume.resume_id}
-                    className='min-w-0 border-b border-border/60 last:border-b-0'
-                    layout={shouldReduceMotion ? false : 'position'}
-                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-                    animate={{
-                      opacity: isSyncingThis ? 0.55 : 1,
-                      y: 0,
-                      transition: {
+                          delay: shouldReduceMotion
+                            ? 0
+                            : staggerDelay(Math.min(index, 8)),
+                        },
+                      }}
+                      exit={{
+                        opacity: 0,
+                        y: shouldReduceMotion ? 0 : -4,
+                        transition: {
+                          duration: shouldReduceMotion ? 0 : DURATION.fast,
+                          ease: EASE.in,
+                        },
+                      }}
+                      transition={{
                         duration: shouldReduceMotion ? 0 : DURATION.base,
                         ease: EASE.out,
-                        delay: shouldReduceMotion
-                          ? 0
-                          : staggerDelay(Math.min(index, 8)),
-                      },
-                    }}
+                        layout: shouldReduceMotion
+                          ? { duration: 0 }
+                          : SPRING.layout,
+                      }}
+                    >
+                      <ResumeCard
+                        resume={resume}
+                        onDeletedClose={() =>
+                          pageStatusRef.current?.focus({ preventScroll: true })
+                        }
+                        preparedForJob={
+                          jobContext?.resumeId === resume.resume_id
+                        }
+                        preparingForJob={
+                          preparingResume?.jobId === routeJobId &&
+                          preparingResume?.userId === user?.id &&
+                          preparingResume?.resumeId === resume.resume_id
+                        }
+                        prepareDisabled={
+                          preparingResume?.jobId === routeJobId &&
+                          preparingResume?.userId === user?.id
+                        }
+                        onPrepareForJob={
+                          jobContext?.id === routeJobId && !resume.isOffline
+                            ? () => prepareForJob(resume.resume_id)
+                            : undefined
+                        }
+                      />
+                    </PresenceDiv>
+                  )
+                })}
+
+                {visibleItems.length === 0 && !loadError && !loading && (
+                  <PresenceDiv
+                    key='create-empty'
+                    layout={shouldReduceMotion ? false : 'position'}
+                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{
                       opacity: 0,
                       y: shouldReduceMotion ? 0 : -4,
@@ -426,218 +494,172 @@ export default function ResumePage() {
                         : SPRING.layout,
                     }}
                   >
-                    <ResumeCard
-                      resume={resume}
-                      onDeletedClose={() =>
-                        pageStatusRef.current?.focus({ preventScroll: true })
-                      }
-                      preparedForJob={jobContext?.resumeId === resume.resume_id}
-                      preparingForJob={
-                        preparingResume?.jobId === routeJobId &&
-                        preparingResume?.userId === user?.id &&
-                        preparingResume?.resumeId === resume.resume_id
-                      }
-                      prepareDisabled={
-                        preparingResume?.jobId === routeJobId &&
-                        preparingResume?.userId === user?.id
-                      }
-                      onPrepareForJob={
-                        jobContext?.id === routeJobId && !resume.isOffline
-                          ? () => prepareForJob(resume.resume_id)
-                          : undefined
-                      }
-                    />
-                  </PresenceDiv>
-                )
-              })}
-
-              {visibleItems.length === 0 && !loadError && !loading && (
-                <PresenceDiv
-                  key='create-empty'
-                  layout={shouldReduceMotion ? false : 'position'}
-                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{
-                    opacity: 0,
-                    y: shouldReduceMotion ? 0 : -4,
-                    transition: {
-                      duration: shouldReduceMotion ? 0 : DURATION.fast,
-                      ease: EASE.in,
-                    },
-                  }}
-                  transition={{
-                    duration: shouldReduceMotion ? 0 : DURATION.base,
-                    ease: EASE.out,
-                    layout: shouldReduceMotion
-                      ? { duration: 0 }
-                      : SPRING.layout,
-                  }}
-                >
-                  <Empty className='min-h-64 px-4 py-10'>
-                    <EmptyHeader>
-                      <EmptyMedia variant='icon'>
-                        <FileText aria-hidden />
-                      </EmptyMedia>
-                      <EmptyTitle>
-                        {libraryQuery
-                          ? '未找到匹配的简历'
-                          : libraryCounts?.all === 0
-                            ? '还没有简历'
-                            : filterMode === 'variants'
-                              ? '还没有可用的岗位版本'
-                              : '没有原始简历'}
-                      </EmptyTitle>
-                      <EmptyDescription>
-                        {libraryQuery
-                          ? '试试其他名称或描述，或清空搜索。'
-                          : libraryCounts?.all === 0
-                            ? '创建一份简历，整理经历并选择适合的模板。'
-                            : filterMode === 'variants'
-                              ? '从原始简历创建岗位版本，生成完成后会显示在这里。'
-                              : '创建一份新的原始简历，已有岗位版本可在「全部」中查看。'}
-                      </EmptyDescription>
-                    </EmptyHeader>
-                    <div className='flex flex-wrap justify-center gap-2'>
-                      {libraryQuery ? (
-                        <Button
-                          variant='outline'
-                          onClick={() => {
-                            document
-                              .getElementById('resume-library-search')
-                              ?.focus({ preventScroll: true })
-
-                            setLibrarySearchInput('')
-                            setLibraryQuery('')
-                          }}
-                        >
-                          清空搜索
-                        </Button>
-                      ) : (
-                        (libraryCounts?.all ?? 0) > 0 && (
+                    <Empty className='min-h-64 px-4 py-10'>
+                      <EmptyHeader>
+                        <EmptyMedia variant='icon'>
+                          <FileText aria-hidden />
+                        </EmptyMedia>
+                        <EmptyTitle>
+                          {libraryQuery
+                            ? '未找到匹配的简历'
+                            : libraryCounts?.all === 0
+                              ? '还没有简历'
+                              : filterMode === 'variants'
+                                ? '还没有可用的岗位版本'
+                                : '没有原始简历'}
+                        </EmptyTitle>
+                        <EmptyDescription>
+                          {libraryQuery
+                            ? '试试其他名称或描述，或清空搜索。'
+                            : libraryCounts?.all === 0
+                              ? '创建一份简历，整理经历并选择适合的模板。'
+                              : filterMode === 'variants'
+                                ? '从原始简历创建岗位版本，生成完成后会显示在这里。'
+                                : '创建一份新的原始简历，已有岗位版本可在「全部」中查看。'}
+                        </EmptyDescription>
+                      </EmptyHeader>
+                      <div className='flex flex-wrap justify-center gap-2'>
+                        {libraryQuery ? (
                           <Button
                             variant='outline'
                             onClick={() => {
-                              allFilterTriggerRef.current?.focus({
-                                preventScroll: true,
-                              })
+                              document
+                                .getElementById('resume-library-search')
+                                ?.focus({ preventScroll: true })
 
-                              setLibraryFilter('all')
+                              setLibrarySearchInput('')
+                              setLibraryQuery('')
                             }}
                           >
-                            查看全部简历
+                            清空搜索
                           </Button>
-                        )
-                      )}
-                      <Button
-                        aria-label='打开创建简历表单'
-                        onClick={openCreate}
-                      >
-                        <Plus aria-hidden />
-                        创建新简历
-                      </Button>
-                    </div>
-                  </Empty>
-                </PresenceDiv>
-              )}
-            </AnimatePresence>
-          </div>
+                        ) : (
+                          (libraryCounts?.all ?? 0) > 0 && (
+                            <Button
+                              variant='outline'
+                              onClick={() => {
+                                allFilterTriggerRef.current?.focus({
+                                  preventScroll: true,
+                                })
 
-          <footer className='shrink-0 border-t bg-background pt-3 pb-[env(safe-area-inset-bottom)] [@media(max-height:500px)]:pt-1'>
-            <nav
-              aria-label='简历分页'
-              className='flex min-w-0 flex-wrap items-center justify-end gap-2'
-            >
-              <span
-                ref={pageStatusRef}
-                tabIndex={-1}
-                role='status'
-                aria-live='polite'
-                className='mr-1 text-xs whitespace-nowrap text-muted-foreground tabular-nums'
+                                setLibraryFilter('all')
+                              }}
+                            >
+                              查看全部简历
+                            </Button>
+                          )
+                        )}
+                        <Button
+                          aria-label='打开创建简历表单'
+                          onClick={openCreate}
+                        >
+                          <Plus aria-hidden />
+                          创建新简历
+                        </Button>
+                      </div>
+                    </Empty>
+                  </PresenceDiv>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <footer className='shrink-0 border-t bg-background pt-3 pb-[env(safe-area-inset-bottom)] [@media(max-height:500px)]:pt-1'>
+              <nav
+                aria-label='简历分页'
+                className='flex min-w-0 flex-wrap items-center justify-end gap-2'
               >
-                {pageCount !== null
-                  ? `第 ${libraryPage} / ${pageCount} 页 · ${libraryQuery ? `匹配 ${libraryTotal} 份` : `每页 ${RESUME_LIBRARY_PAGE_SIZE} 份`}`
-                  : loading
-                    ? `每页 ${RESUME_LIBRARY_PAGE_SIZE} 份`
-                    : '页数暂不可用'}
-              </span>
-              <Button
-                variant='outline'
-                size='icon-sm'
-                aria-label='上一页简历'
-                disabled={loading || libraryPage <= 1}
-                onClick={(event) => changePage(event, libraryPage - 1)}
-              >
-                <ChevronLeft />
-              </Button>
-              <Button
-                variant='outline'
-                size='icon-sm'
-                aria-label='下一页简历'
-                disabled={
-                  loading || pageCount === null || libraryPage >= pageCount
-                }
-                onClick={(event) => changePage(event, libraryPage + 1)}
-              >
-                <ChevronRight />
-              </Button>
-            </nav>
-          </footer>
+                <span
+                  ref={pageStatusRef}
+                  tabIndex={-1}
+                  role='status'
+                  aria-live='polite'
+                  className='mr-1 text-xs whitespace-nowrap text-muted-foreground tabular-nums'
+                >
+                  {pageCount !== null
+                    ? `第 ${libraryPage} / ${pageCount} 页 · ${libraryQuery ? `匹配 ${libraryTotal} 份` : `每页 ${RESUME_LIBRARY_PAGE_SIZE} 份`}`
+                    : loading
+                      ? `每页 ${RESUME_LIBRARY_PAGE_SIZE} 份`
+                      : '页数暂不可用'}
+                </span>
+                <Button
+                  variant='outline'
+                  size='icon-sm'
+                  aria-label='上一页简历'
+                  disabled={loading || libraryPage <= 1}
+                  onClick={(event) => changePage(event, libraryPage - 1)}
+                >
+                  <ChevronLeft />
+                </Button>
+                <Button
+                  variant='outline'
+                  size='icon-sm'
+                  aria-label='下一页简历'
+                  disabled={
+                    loading || pageCount === null || libraryPage >= pageCount
+                  }
+                  onClick={(event) => changePage(event, libraryPage + 1)}
+                >
+                  <ChevronRight />
+                </Button>
+              </nav>
+            </footer>
 
-          <CreateResumeCard
-            online={isOnline}
-            returnFocusRef={createTriggerRef}
-            hideTrigger
-            open={createOpen}
-            onOpenChange={setCreateOpen}
-          />
-          <SyncResumesDialog />
+            <QuickDialog
+              getSnapshot={async () => {
+                if (!shareOpenForResumeId) throw new Error('未选择简历')
 
-          <QuickDialog
-            getSnapshot={async () => {
-              if (!shareOpenForResumeId) throw new Error('未选择简历')
-
-              return getResumeSnapshotById(shareOpenForResumeId)
-            }}
-          />
-
-          <DerivedJobsDialog
-            open={derivedJobsOpen}
-            onOpenChange={setDerivedJobsOpen}
-          />
-
-          {deriveDialogParentId && (
-            <JdVariantDialog
-              key={deriveDialogParentId}
-              open={Boolean(derivePendingFor)}
-              onOpenChange={(o) => {
-                if (!o) openDeriveFor(null)
-              }}
-              parentResumeId={deriveDialogParentId}
-              recentJds={[]}
-              initialJd={
-                jobContext?.id === routeJobId
-                  ? jobContext.jdText
-                  : deriveJd.text
-              }
-              initialJdLoading={!useJobJd && deriveJd.loading}
-              initialJdError={!useJobJd ? deriveJd.error : null}
-              onRetryInitialJd={deriveJd.retry}
-              jobId={jobContext?.id === routeJobId ? jobContext.id : undefined}
-              onOpenResume={(draftId) => {
-                const target = resumes.find((r) => r.resume_id === draftId)
-
-                setCurrentResume(draftId, target?.type ?? 'default')
-
-                navigate(
-                  jobContext?.id === routeJobId
-                    ? jobContextUrl('/resume/editor', jobContext.id)
-                    : '/resume/editor',
-                )
+                return getResumeSnapshotById(shareOpenForResumeId)
               }}
             />
-          )}
-        </PageLayout>
-      )}
-    </AnimatedContent>
+
+            {deriveDialogParentId && (
+              <JdVariantDialog
+                key={deriveDialogParentId}
+                open={Boolean(derivePendingFor)}
+                onOpenChange={(o) => {
+                  if (!o) openDeriveFor(null)
+                }}
+                parentResumeId={deriveDialogParentId}
+                recentJds={[]}
+                initialJd={
+                  jobContext?.id === routeJobId
+                    ? jobContext.jdText
+                    : deriveJd.text
+                }
+                initialJdLoading={!useJobJd && deriveJd.loading}
+                initialJdError={!useJobJd ? deriveJd.error : null}
+                onRetryInitialJd={deriveJd.retry}
+                jobId={
+                  jobContext?.id === routeJobId ? jobContext.id : undefined
+                }
+                onOpenResume={(draftId) => {
+                  const target = resumes.find((r) => r.resume_id === draftId)
+
+                  setCurrentResume(draftId, target?.type ?? 'default')
+
+                  navigate(
+                    jobContext?.id === routeJobId
+                      ? jobContextUrl('/resume/editor', jobContext.id)
+                      : '/resume/editor',
+                  )
+                }}
+              />
+            )}
+          </PageLayout>
+        )}
+      </AnimatedContent>
+      <CreateResumeCard
+        online={isOnline}
+        returnFocusRef={createTriggerRef}
+        hideTrigger
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
+      <SyncResumesDialog />
+      <DerivedJobsDialog
+        open={derivedJobsOpen}
+        onOpenChange={setDerivedJobsOpen}
+      />
+    </>
   )
 }

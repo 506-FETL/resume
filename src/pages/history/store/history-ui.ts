@@ -8,7 +8,6 @@ export interface HistoryUiSlice {
   showDetail: () => void
   showTimeline: (target: HistorySelection) => void
   clearTimelineFocus: () => void
-  loading: boolean
   savingCurrent: boolean
   savingMetadata: boolean
   restoring: boolean
@@ -25,7 +24,6 @@ export function createHistoryUiSlice(set: Set): HistoryUiSlice {
     showTimeline: (target) =>
       set({ mobilePanel: 'timeline', timelineFocusTarget: target }),
     clearTimelineFocus: () => set({ timelineFocusTarget: null }),
-    loading: false,
     savingCurrent: false,
     savingMetadata: false,
     restoring: false,

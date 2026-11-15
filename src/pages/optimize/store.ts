@@ -313,6 +313,8 @@ const useAtsStore = create<AtsStore>()((set, get) => {
   return {
     loading: true,
     loadError: null,
+    summariesLoading: true,
+    summariesError: null,
     analysisError: null,
     currentAtsConfig: null,
     atsConfigs: null,

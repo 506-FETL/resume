@@ -17,6 +17,8 @@ export interface AtsReportsState {
   currentAtsConfig: AtsEvaluationResult | null
   loading: boolean
   loadError: string | null
+  summariesLoading: boolean
+  summariesError: string | null
   selectedResumeId: string | null
   selectedResumeType: 'online' | 'offline' | null
   analysisError: string | null
@@ -31,6 +33,13 @@ export function createAtsReports(
   let reportRevision = 0
   let summaryRevision = 0
   let initRequest: Promise<void> | null = null
+  let summariesRequest: Promise<void> | null = null
+
+  let currentRequest: {
+    resumeId: string | null
+    promise: Promise<void>
+  } | null = null
+
   const reports = new Map<AtsEvaluationResult['id'], AtsEvaluationResult>()
 
   const requests = new Map<
@@ -71,43 +80,146 @@ export function createAtsReports(
     return request
   }
 
-  const selectReport = async () => {
+  const selectReport = (latest = false): Promise<void> => {
+    const { selectedResumeId, atsConfigs, currentAtsConfig } = get()
+
+    if (currentRequest?.resumeId === selectedResumeId && !latest)
+      return currentRequest.promise
+
     const requestId = ++selectionRequest
     const scope = generation
-    const { selectedResumeId, atsConfigs } = get()
+
+    currentRequest = null
 
     const summary = selectedResumeId
       ? atsConfigs?.find((row) => row.resume_id === selectedResumeId)
       : atsConfigs?.[0]
 
-    if (!summary) {
+    if (!summary && atsConfigs !== null && !latest) {
       set({ currentAtsConfig: null, loading: false, loadError: null })
 
-      return
+      return Promise.resolve()
     }
 
-    const cached = reports.get(summary.id)
+    const cached = latest
+      ? null
+      : summary
+        ? reports.get(summary.id)
+        : atsConfigs === null &&
+            currentAtsConfig &&
+            (!selectedResumeId ||
+              currentAtsConfig.resume_id === selectedResumeId)
+          ? currentAtsConfig
+          : null
 
     if (cached) {
       set({ currentAtsConfig: cached, loading: false, loadError: null })
 
-      return
+      return Promise.resolve()
     }
 
-    set({ currentAtsConfig: null, loading: true, loadError: null })
+    set({
+      currentAtsConfig:
+        !selectedResumeId || currentAtsConfig?.resume_id === selectedResumeId
+          ? currentAtsConfig
+          : null,
+      loading: true,
+      loadError: null,
+    })
 
-    try {
-      const report = await readReport(summary.id)
+    const task = (async () => {
+      try {
+        const report =
+          summary && !latest
+            ? await readReport(summary.id)
+            : await getLatestAtsReport(selectedResumeId)
 
-      if (scope === generation && requestId === selectionRequest)
-        set({ currentAtsConfig: report, loading: false })
-    } catch (error) {
-      if (scope === generation && requestId === selectionRequest)
-        set({
-          loading: false,
-          loadError: getErrorMessage(error, '报告加载失败，请重试'),
-        })
-    }
+        if (scope !== generation || requestId !== selectionRequest) return
+
+        const normalized = report
+          ? {
+              ...report,
+              findings: ensureAtsFindingsHaveSuggestions(report.findings),
+            }
+          : null
+
+        if (normalized) reports.set(normalized.id, normalized)
+
+        set({ currentAtsConfig: normalized, loading: false })
+      } catch (error) {
+        if (scope === generation && requestId === selectionRequest)
+          set({
+            loading: false,
+            loadError: getErrorMessage(error, '报告加载失败，请重试'),
+          })
+      }
+    })().finally(() => {
+      if (currentRequest?.promise !== task) return
+
+      currentRequest = null
+
+      if (
+        scope === generation &&
+        requestId === selectionRequest &&
+        get().atsConfigs !== atsConfigs
+      )
+        return reconcileReport()
+    })
+
+    currentRequest = { resumeId: selectedResumeId, promise: task }
+
+    return task
+  }
+
+  const reconcileReport = () => {
+    const { atsConfigs, selectedResumeId, currentAtsConfig, loadError } = get()
+
+    if (atsConfigs === null || currentRequest || loadError) return
+
+    const target = selectedResumeId
+      ? atsConfigs.find((row) => row.resume_id === selectedResumeId)
+      : atsConfigs[0]
+
+    if ((target?.id ?? null) !== (currentAtsConfig?.id ?? null))
+      return selectReport()
+  }
+
+  const loadSummaries = (): Promise<void> => {
+    if (summariesRequest) return summariesRequest
+
+    const scope = generation
+    const revision = summaryRevision
+
+    set({ summariesLoading: true, summariesError: null })
+
+    const task = listLatestAtsReportSummaries()
+      .then((summaries) => {
+        if (scope !== generation || revision !== summaryRevision) return
+
+        const ids = new Set(summaries.map((row) => row.id))
+
+        for (const id of reports.keys()) {
+          if (!ids.has(id)) reports.delete(id)
+        }
+
+        set({ atsConfigs: summaries, summariesLoading: false })
+
+        reconcileReport()
+      })
+      .catch((error: unknown) => {
+        if (scope === generation && revision === summaryRevision)
+          set({
+            summariesLoading: false,
+            summariesError: getErrorMessage(error, '检测记录加载失败，请重试'),
+          })
+      })
+      .finally(() => {
+        if (summariesRequest === task) summariesRequest = null
+      })
+
+    summariesRequest = task
+
+    return task
   }
 
   const acceptReport = (report: AtsEvaluationResult) => {
@@ -119,7 +231,12 @@ export function createAtsReports(
     summaryRevision += 1
     reports.set(report.id, normalized)
 
+    selectionRequest += 1
+    currentRequest = null
+
     set((state) => ({
+      summariesLoading: false,
+      summariesError: null,
       atsConfigs: [
         {
           id: report.id,
@@ -163,64 +280,26 @@ export function createAtsReports(
     init: (force = false): Promise<void> => {
       if (initRequest) return initRequest
 
-      const scope = generation
-      const summaryVersion = summaryRevision
-
       if (force) {
         reportRevision += 1
         selectionRequest += 1
+        currentRequest = null
         reports.clear()
         requests.clear()
       }
 
-      set({
-        loadError: null,
-        loading: get().atsConfigs === null || get().loading,
-      })
-
-      const request = (async () => {
-        try {
-          const [summaries, initialReport] = await Promise.all([
-            listLatestAtsReportSummaries(),
-            get().atsConfigs === null || force
-              ? getLatestAtsReport(get().selectedResumeId)
-              : null,
-          ])
-
-          if (scope !== generation || summaryVersion !== summaryRevision) return
-
-          if (initialReport)
-            reports.set(initialReport.id, {
-              ...initialReport,
-              findings: ensureAtsFindingsHaveSuggestions(
-                initialReport.findings,
-              ),
-            })
-
-          const ids = new Set(summaries.map((row) => row.id))
-
-          for (const id of reports.keys()) {
-            if (!ids.has(id)) reports.delete(id)
-          }
-
-          set({ atsConfigs: summaries })
-          await selectReport()
-        } catch (error) {
-          if (scope !== generation || summaryVersion !== summaryRevision) return
-
-          set({
-            loading: false,
-            loadError: getErrorMessage(error, '报告加载失败，请重试'),
-          })
-        }
-      })().finally(() => {
-        if (initRequest === request) initRequest = null
-      })
+      const request = Promise.all([loadSummaries(), selectReport(force)])
+        .then(() => undefined)
+        .finally(() => {
+          if (initRequest === request) initRequest = null
+        })
 
       initRequest = request
 
       return request
     },
+    reloadSummaries: loadSummaries,
+    reloadCurrentReport: () => selectReport(true),
     setSelectedResume: (id: string, type: 'online' | 'offline') => {
       set({
         selectedResumeId: id,
@@ -228,7 +307,7 @@ export function createAtsReports(
         analysisError: null,
       })
 
-      if (get().atsConfigs !== null) selectReport()
+      selectReport()
     },
     acceptReport,
     update,
@@ -261,6 +340,8 @@ export function createAtsReports(
       generation += 1
       selectionRequest += 1
       initRequest = null
+      summariesRequest = null
+      currentRequest = null
       reports.clear()
       requests.clear()
 
@@ -271,6 +352,8 @@ export function createAtsReports(
         selectedResumeType: null,
         loading: true,
         loadError: null,
+        summariesLoading: true,
+        summariesError: null,
         analysisError: null,
       })
     },

@@ -141,7 +141,9 @@ export function CollaborationControls({
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent side='bottom'>{shareButtonTooltip}</TooltipContent>
+          {(isMobile || shareButtonTooltip !== '开启实时协作') && (
+            <TooltipContent side='bottom'>{shareButtonTooltip}</TooltipContent>
+          )}
         </Tooltip>
         <Button
           size={isMobile ? 'icon' : 'sm'}

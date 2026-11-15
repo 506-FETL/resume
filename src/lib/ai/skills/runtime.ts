@@ -87,6 +87,7 @@ export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, 
       name: 'activate_skill',
       description: '加载一个内置技能的完整工作说明。用户要求使用 ASu/阿酥简历提升，或任务符合技能简介时先调用。继续历史技能任务需再次加载相同版本。',
       mode: 'read',
+  policy: { scope: 'builtin', confirmation: 'none' },
       parameters: {
         type: 'object',
         properties: {
@@ -102,6 +103,7 @@ export function createSkillRuntime({ signal, onActivity, loaders = { loadSkill, 
       name: 'read_skill_resource',
       description: '按需读取本轮已激活技能的参考资料。path 必须使用激活结果 resources 中的精确路径。',
       mode: 'read',
+  policy: { scope: 'builtin', confirmation: 'none' },
       parameters: {
         type: 'object',
         properties: {

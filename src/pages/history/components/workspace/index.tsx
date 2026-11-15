@@ -36,9 +36,7 @@ export default function HistoryWorkspace({
   const {
     init,
     reload,
-    loading,
     error,
-    currentResume,
     resumeId,
     mobilePanel,
     timelineFocusTarget,
@@ -59,7 +57,7 @@ export default function HistoryWorkspace({
   const detailVisible = !narrow || visiblePanel === 'detail'
   const timelineInteractive = timelineVisible && !exiting
   const detailInteractive = detailVisible && !exiting
-  const hasWorkspace = !(error && !loading && !currentResume)
+  const hasWorkspace = !error
 
   useLayoutEffect(() => {
     const element = workspaceRef.current
@@ -156,7 +154,7 @@ export default function HistoryWorkspace({
     await reload()
   }
 
-  if (error && !loading && !currentResume) {
+  if (error) {
     return (
       <Empty className='min-h-0 flex-1 overflow-y-auto border border-dashed bg-muted/20'>
         <EmptyHeader>

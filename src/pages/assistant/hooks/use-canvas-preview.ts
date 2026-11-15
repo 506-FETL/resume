@@ -33,6 +33,7 @@ export function useCanvasPreview() {
     canvasActiveTab,
     activeConversationId,
     conversations,
+    explicitPreviewResumeId,
   } = useAssistantStore()
 
   const { generation, resumeRevision } = useCanvasResources()
@@ -45,6 +46,7 @@ export function useCanvasPreview() {
   const [options, setOptions] = useState<ResumeOption[]>([])
   const [optionsReady, setOptionsReady] = useState(false)
   const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(null)
+  const [loadedResumeId, setLoadedResumeId] = useState<string | null>(null)
   const [loadedGeneration, setLoadedGeneration] = useState(generation)
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'empty'>(
@@ -73,6 +75,7 @@ export function useCanvasPreview() {
   useEffect(() => {
     setOptions([])
     setSnapshot(null)
+    setLoadedResumeId(null)
     setOptionsReady(false)
     setStatus('loading')
     setLoadedGeneration(generation)
@@ -111,18 +114,26 @@ export function useCanvasPreview() {
         const previousPreviewId = useAssistantStore.getState().previewResumeId
 
         const target =
-          boundResumeId && availableIds.has(boundResumeId)
+          explicitPreviewResumeId ??
+          (boundResumeId && availableIds.has(boundResumeId)
             ? boundResumeId
             : hasCurrent
               ? currentResumeId
               : previousPreviewId && availableIds.has(previousPreviewId)
                 ? previousPreviewId
-                : (list[0]?.resumeId ?? null)
+                : (list[0]?.resumeId ?? null))
 
         optionsLoadingRef.current = false
         setOptions(list)
         setOptionsReady(true)
         setPreviewResumeId(target)
+
+        if (target && !availableIds.has(target)) {
+          setSnapshot(null)
+          setStatus('error')
+
+          return
+        }
 
         if (!target) {
           setSnapshot(null)
@@ -146,6 +157,7 @@ export function useCanvasPreview() {
   }, [
     active,
     boundResumeId,
+    explicitPreviewResumeId,
     currentResumeId,
     generation,
     resumeRevision,
@@ -179,6 +191,7 @@ export function useCanvasPreview() {
           return
 
         setSnapshot(next)
+        setLoadedResumeId(previewResumeId)
         setStatus('idle')
       })
       .catch((error) => {
@@ -225,8 +238,13 @@ export function useCanvasPreview() {
   return {
     previewResumeId,
     options: ownsData ? options : [],
-    snapshot: ownsData ? snapshot : null,
-    status: ownsData ? status : ('loading' as const),
+    loadedResumeId,
+    snapshot: ownsData && loadedResumeId === previewResumeId ? snapshot : null,
+    status: ownsData
+      ? snapshot && loadedResumeId !== previewResumeId
+        ? ('loading' as const)
+        : status
+      : ('loading' as const),
     currentName: ownsData ? currentName : null,
   }
 }

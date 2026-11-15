@@ -1,3 +1,4 @@
+import type { ExperienceSourceBlock } from '../experience-sources/types'
 import type { ResumeSchema } from '../schema/resume'
 import type { EntrySection } from '../../../supabase/functions/shared/resume-import-contract'
 
@@ -18,6 +19,7 @@ export interface ResumeParseResult {
 }
 
 export interface ExtractedResumeFile {
+  blocks: ExperienceSourceBlock[]
   text: string
   sourceName: string
 }

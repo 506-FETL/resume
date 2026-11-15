@@ -1,5 +1,9 @@
 import { FileText } from 'lucide-react'
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import type { ResumeDocumentState } from '@/components/resume/pagination/types'
+import { buildCommentAnchorDocument } from '@/features/resume-comments/anchors/document'
+import AnnotationControls from './annotation-controls'
+import { useAnnotationTarget } from './use-annotation-target'
 import AnimatedContent from '@/components/motion/animated-content'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
@@ -16,23 +20,66 @@ import { AssistantCanvasPreviewSkeleton } from '@/components/page-skeletons/assi
 import { useCanvasPreview } from '../../../hooks/use-canvas-preview'
 
 export default function ResumePreview() {
-  const { snapshot, status, currentName } = useCanvasPreview()
+  const { snapshot, status, currentName, previewResumeId, loadedResumeId } =
+    useCanvasPreview()
+
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  const [documentState, setDocumentState] = useState<{
+    key: string
+    state: ResumeDocumentState
+  } | null>(null)
+
+  const referenceDate = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   const previewData = useMemo(
     () => (snapshot ? buildTemplateResumeData(snapshot) : null),
     [snapshot],
   )
 
+  const anchorModel = useMemo(
+    () =>
+      snapshot ? buildCommentAnchorDocument(snapshot, referenceDate) : null,
+    [snapshot, referenceDate],
+  )
+
+  const previewKey = `${loadedResumeId}:${anchorModel?.documentHash}`
+
+  const onDocumentStateChange = useCallback(
+    (state: ResumeDocumentState) =>
+      setDocumentState({ key: previewKey, state }),
+    [previewKey],
+  )
+
+  useAnnotationTarget(
+    rootRef,
+    anchorModel,
+    loadedResumeId,
+    documentState?.key === previewKey ? documentState.state : null,
+  )
+
   return (
-    <div className='flex h-full min-h-0 flex-col'>
+    <div ref={rootRef} className='flex h-full min-h-0 flex-col'>
       <div className='flex shrink-0 items-center gap-2 border-b px-3 py-2 text-sm'>
         <FileText className='size-4 shrink-0 text-muted-foreground' />
         <span className='min-w-0 flex-1 truncate font-medium'>
           {currentName ?? '当前简历'}
         </span>
+        {anchorModel && previewData && previewResumeId && (
+          <AnnotationControls
+            rootRef={rootRef}
+            model={anchorModel}
+            data={previewData}
+            resumeId={previewResumeId}
+            name={currentName ?? '当前简历'}
+          />
+        )}
       </div>
       {/* 用原生溢出容器而非 Radix ScrollArea：后者视口用 display:table，会让内容按自然宽度撑开导致预览无法按容器宽度自适应缩放 */}
-      <div className='min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]'>
+      <div
+        data-canvas-scroll
+        className='min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]'
+      >
         <AnimatedContent
           animationKey={status === 'idle' && !previewData ? 'empty' : status}
           className='p-3'
@@ -67,7 +114,13 @@ export default function ResumePreview() {
             </Empty>
           )}
           {snapshot && previewData && status === 'idle' && (
-            <ScaledReadonlyPreview data={previewData} appearance={snapshot} />
+            <ScaledReadonlyPreview
+              key={previewKey}
+              data={previewData}
+              appearance={snapshot}
+              projectionReferenceDate={referenceDate}
+              onDocumentStateChange={onDocumentStateChange}
+            />
           )}
         </AnimatedContent>
       </div>

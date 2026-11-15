@@ -87,6 +87,36 @@ interface ToolCanvasMeta {
 
 // 单一来源：工具 → 画布分类/动作/图标/标题（替代 tool-call-part 内旧 TOOL_META）
 export const TOOL_CANVAS_META: Record<string, ToolCanvasMeta> = {
+  list_resume_knowledge: {
+    category: 'read',
+    action: 'read',
+    iconCategory: 'documents',
+    label: '读取写作资料目录',
+  },
+  read_resume_knowledge: {
+    category: 'read',
+    action: 'read',
+    iconCategory: 'documents',
+    label: '读取写作参考资料',
+  },
+  read_resume_preparation: {
+    category: 'read',
+    action: 'read',
+    iconCategory: 'documents',
+    label: '读取本机导入与修改证据',
+  },
+  search_experience_sources: {
+    category: 'read',
+    action: 'read',
+    iconCategory: 'documents',
+    label: '查找本轮职业档案',
+  },
+  read_experience_source: {
+    category: 'read',
+    action: 'read',
+    iconCategory: 'documents',
+    label: '读取经历原文',
+  },
   activate_skill: {
     category: 'read',
     action: 'read',
@@ -344,6 +374,11 @@ export function deriveCanvasModel(
     // 「修改当前简历字段」成功后可撤销：把该模块写回 before
     let undo: CanvasChange['undo']
 
+    const targetResumeId =
+      resolveChangeResumeId(args, part.result) ??
+      part.targetResumeId ??
+      undefined
+
     if (
       part.toolName === 'update_current_resume_field' &&
       part.state === 'result' &&
@@ -352,7 +387,7 @@ export function deriveCanvasModel(
     ) {
       const r = part.result as Record<string, unknown>
 
-      if (typeof r.sectionKey === 'string' && 'before' in r)
+      if (targetResumeId && typeof r.sectionKey === 'string' && 'before' in r)
         undo = { sectionKey: r.sectionKey, before: r.before }
     }
 
@@ -367,7 +402,7 @@ export function deriveCanvasModel(
         stat && (stat.additions > 0 || stat.deletions > 0) ? stat : undefined,
       state: part.state,
       targetTab: meta.targetTab,
-      resumeId: resolveChangeResumeId(args, part.result),
+      resumeId: targetResumeId,
       undo,
       undone: part.undone,
     })

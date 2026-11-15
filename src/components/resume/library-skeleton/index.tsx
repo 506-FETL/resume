@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react'
 import { PageLayout } from '@/components/layout/page-layout'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function ResumeLibrarySkeleton() {
+export function ResumeLibrarySkeleton({ header }: { header?: ReactNode } = {}) {
   return (
     <PageLayout
       role='status'
@@ -9,16 +10,18 @@ export function ResumeLibrarySkeleton() {
       className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1'
     >
       <div className='shrink-0 space-y-4 sm:space-y-6 [@media(max-height:500px)]:space-y-1'>
-        <div className='grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-x-4'>
-          <div className='flex min-w-0 items-center gap-2'>
-            <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
-              我的简历
-            </h1>
-            <Skeleton className='h-5 w-10' />
+        {header ?? (
+          <div className='grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-x-4'>
+            <div className='flex min-w-0 items-center gap-2'>
+              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
+                我的简历
+              </h1>
+              <Skeleton className='h-5 w-10' />
+            </div>
+            <Skeleton className='col-span-2 row-start-2 h-5 w-64 max-w-full lg:col-span-1 lg:col-start-2 lg:row-start-1' />
+            <Skeleton className='col-start-2 row-start-1 h-9 w-24 lg:col-start-3' />
           </div>
-          <Skeleton className='col-span-2 row-start-2 h-5 w-64 max-w-full lg:col-span-1 lg:col-start-2 lg:row-start-1' />
-          <Skeleton className='col-start-2 row-start-1 h-9 w-24 lg:col-start-3' />
-        </div>
+        )}
         <div className='flex flex-col gap-2 sm:flex-row sm:justify-between [@media(max-height:500px)]:gap-1'>
           <Skeleton className='h-9 w-full sm:max-w-80' />
           <Skeleton className='h-9 w-60 max-w-full' />

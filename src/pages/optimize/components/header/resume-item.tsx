@@ -8,7 +8,7 @@ interface ResumeConfig {
   id: string
   resume_id: string
   display_name: string
-  isScored: boolean
+  isScored: boolean | null
   overall_score: number | null
   created_at: string
   isOffline?: boolean
@@ -91,7 +91,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
                 variant='outline'
                 className='text-muted-foreground shrink-0 text-[10px] px-1.5 py-0'
               >
-                待分析
+                {resume.isScored === null ? '检测状态待确认' : '待分析'}
               </Badge>
             )}
           </div>

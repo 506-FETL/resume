@@ -19,10 +19,18 @@ export interface HistoryStoreState extends HistoryJobOptionsSlice {
   versions: ResumeHistoryVersionListItem[]
   snapshotGeneration: number
   snapshotCache: Record<number, ResumeSnapshot>
+  snapshotErrors: Record<number, string>
   error: string | null
+  currentResumeLoading: boolean
+  currentResumeError: string | null
+  versionsLoading: boolean
+  versionsError: string | null
+  versionsLoaded: boolean
 
   init: (resumeId: string | null | undefined) => Promise<void>
   reload: () => Promise<void>
+  reloadCurrentResume: () => Promise<void>
+  reloadVersions: () => Promise<void>
   loadVersionSnapshot: (id: number) => Promise<ResumeSnapshot | null>
   saveCurrentVersion: (
     draft: VersionMetadataDraft,
@@ -43,7 +51,6 @@ export interface HistoryStoreState extends HistoryJobOptionsSlice {
   showDetail: () => void
   showTimeline: (target: HistorySelection) => void
   clearTimelineFocus: () => void
-  loading: boolean
   savingCurrent: boolean
   savingMetadata: boolean
   restoring: boolean

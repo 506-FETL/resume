@@ -16,6 +16,7 @@ import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
 import { groupVersionsByDay } from '../../utils'
 import HistoryMotionContent from '../motion-content'
+import HistoryLoadError from '../shared/history-load-error'
 import CurrentVersionCard from './current-version-card'
 import TimelineEmptyState from './empty-state'
 import TimelineLoadingState from './loading-state'
@@ -31,7 +32,21 @@ export default function HistoryTimeline({
   selectedEntry,
   onSelectEntry,
 }: HistoryTimelineProps) {
-  const { resumeId, currentResume, versions, loading } = useHistoryStore()
+  const {
+    resumeId,
+    currentResume,
+    currentResumeError,
+    currentResumeLoading,
+    versions,
+    versionsLoaded,
+    versionsLoading,
+    versionsError,
+    reloadCurrentResume,
+    reloadVersions,
+  } = useHistoryStore()
+
+  const currentPending = !currentResume && !currentResumeError
+  const versionsPending = !versionsLoaded && !versionsError
   const [filter, setFilter] = useState(DEFAULT_VERSION_FILTER)
   const { reduceMotion, enter, exit, layout } = useHistoryMotion()
   const layoutId = useId()
@@ -64,19 +79,21 @@ export default function HistoryTimeline({
             版本记录
           </h2>
           <span className='text-xs tabular-nums text-muted-foreground'>
-            {loading && !currentResume ? (
+            {versionsPending ? (
               <Skeleton className='h-3 w-14' />
-            ) : (
+            ) : versionsLoaded ? (
               `${versions.length} 个版本`
+            ) : (
+              '—'
             )}
           </span>
         </div>
 
         <div className='shrink-0 px-2 pb-1'>
           <HistoryMotionContent
-            transitionKey={loading && !currentResume ? 'loading' : 'current'}
+            transitionKey={currentPending ? 'loading' : 'current'}
           >
-            {loading && !currentResume ? (
+            {currentPending ? (
               <TimelineLoadingState count={1} />
             ) : (
               <CurrentVersionCard
@@ -85,6 +102,11 @@ export default function HistoryTimeline({
               />
             )}
           </HistoryMotionContent>
+          <HistoryLoadError
+            error={currentResumeError}
+            retry={reloadCurrentResume}
+            loading={currentResumeLoading}
+          />
         </div>
 
         <AnimatePresence initial={false}>
@@ -128,13 +150,18 @@ export default function HistoryTimeline({
           layoutScroll
           className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 pt-1'
         >
+          <HistoryLoadError
+            error={versionsError}
+            retry={reloadVersions}
+            loading={versionsLoading}
+          />
           <PresenceDiv
             layout={reduceMotion ? false : 'size'}
             transition={layout}
             className='relative flex flex-col gap-1'
           >
             <AnimatePresence initial={false} mode='popLayout'>
-              {loading && !currentResume ? (
+              {versionsPending ? (
                 <PresenceDiv key='loading' {...itemMotion}>
                   <TimelineLoadingState />
                 </PresenceDiv>
@@ -169,7 +196,7 @@ export default function HistoryTimeline({
                     </PresenceDiv>
                   )),
                 ])
-              ) : (
+              ) : versionsLoaded ? (
                 <PresenceDiv
                   key={versions.length > 0 ? 'no-results' : 'empty'}
                   {...itemMotion}
@@ -192,7 +219,7 @@ export default function HistoryTimeline({
                     <TimelineEmptyState currentResume={currentResume} />
                   )}
                 </PresenceDiv>
-              )}
+              ) : null}
             </AnimatePresence>
           </PresenceDiv>
         </PresenceDiv>

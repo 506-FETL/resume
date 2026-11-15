@@ -45,6 +45,10 @@ const ACCOUNT_PAGES: Record<string, { title: string; description: string }> = {
     title: '登录后查看历史版本',
     description: '查看云端简历的版本记录，对比修改并恢复历史内容。',
   },
+  '/experience': {
+    title: '登录后管理职业档案',
+    description: '保存周报、项目记录和旧简历，并在助手中引用。',
+  },
   '/assistant': {
     title: '登录后使用 AI 助手',
     description: '与 AI 助手一起完善简历、管理求职进展，并保存对话记录。',

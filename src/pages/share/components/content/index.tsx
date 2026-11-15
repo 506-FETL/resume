@@ -21,6 +21,7 @@ export default function Content() {
     allShares,
     pageLoading,
     pageError,
+    pageLoaded,
     searchKeyword,
     resumeFilters,
     statusFilter,
@@ -43,39 +44,65 @@ export default function Content() {
     statusFilter !== 'all'
 
   const contentState =
-    allShares.length === 0 && pageLoading
+    allShares.length === 0 && pageLoading && !pageLoaded
       ? 'loading'
-      : allShares.length === 0 && pageError
+      : allShares.length === 0 && pageError && !pageLoaded
         ? 'error'
         : filteredShares.length === 0
           ? 'empty'
           : 'content'
 
+  const hasPartialError = pageError && (pageLoaded || allShares.length > 0)
+
   return (
-    <AnimatedContent animationKey={contentState}>
-      {contentState === 'loading' ? (
-        <ShareContentSkeleton />
-      ) : contentState === 'error' ? (
-        <Empty className='min-h-80 border-t border-border/60 rounded-none'>
-          <EmptyHeader>
-            <EmptyMedia variant='icon'>
-              <RefreshCcw />
-            </EmptyMedia>
-            <EmptyTitle>分享链接暂时不可用</EmptyTitle>
-            <EmptyDescription>{pageError}</EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button variant='outline' onClick={() => reloadPage()}>
-              <RefreshCcw data-icon='inline-start' />
+    <>
+      <AnimatedContent animationKey={hasPartialError ? 'error' : 'ready'}>
+        {hasPartialError && (
+          <div
+            role='alert'
+            className='mb-3 flex items-center justify-between gap-3 text-sm text-muted-foreground'
+          >
+            <p>
+              {pageLoaded
+                ? '分享链接刷新失败，已保留原有内容。'
+                : '分享列表加载失败，已显示刚创建的链接。'}
+            </p>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={pageLoading}
+              onClick={() => reloadPage()}
+            >
               重试
             </Button>
-          </EmptyContent>
-        </Empty>
-      ) : contentState === 'empty' ? (
-        <EmptyState filtered={hasFilter} />
-      ) : (
-        <Grid shares={filteredShares} />
-      )}
-    </AnimatedContent>
+          </div>
+        )}
+      </AnimatedContent>
+      <AnimatedContent animationKey={contentState}>
+        {contentState === 'loading' ? (
+          <ShareContentSkeleton />
+        ) : contentState === 'error' ? (
+          <Empty className='min-h-80 border-t border-border/60 rounded-none'>
+            <EmptyHeader>
+              <EmptyMedia variant='icon'>
+                <RefreshCcw />
+              </EmptyMedia>
+              <EmptyTitle>分享链接暂时不可用</EmptyTitle>
+              <EmptyDescription>{pageError}</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant='outline' onClick={() => reloadPage()}>
+                <RefreshCcw data-icon='inline-start' />
+                重试
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : contentState === 'empty' ? (
+          <EmptyState filtered={hasFilter} />
+        ) : (
+          <Grid shares={filteredShares} />
+        )}
+      </AnimatedContent>
+    </>
   )
 }

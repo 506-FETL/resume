@@ -45,6 +45,9 @@ export interface ResumeLibrarySlice {
   libraryParents: Record<string, ResumeItem | null>
   libraryLoading: boolean
   libraryError: string | null
+  libraryHasLoaded: boolean
+  libraryCountsLoading: boolean
+  libraryCountsError: string | null
   libraryPage: number
   libraryTotal: number | null
   libraryCounts: ResumeLibraryCounts | null
@@ -59,6 +62,7 @@ export interface ResumeLibrarySlice {
   libraryOfflineLoading: boolean
   libraryOfflineError: string | null
   loadLibraryPage: (page?: number) => Promise<void>
+  loadLibraryCounts: () => Promise<void>
   refreshLibrary: () => Promise<void>
   invalidateLibrary: () => Promise<void>
   cancelLibraryLoad: () => void
@@ -92,6 +96,7 @@ export function createResumeLibrarySlice(
   let pendingRequest = 0
   let offlineLoaded = false
   let offlineRequest = 0
+  let countsRequest: Promise<void> | null = null
 
   function getQueryCache(query: string) {
     const existing = queries.get(query)
@@ -289,6 +294,7 @@ export function createResumeLibrarySlice(
     pendingRequest += 1
     offlineRequest += 1
     queries = new Map()
+    countsRequest = null
   }
 
   async function readQueryPage(
@@ -318,7 +324,6 @@ export function createResumeLibrarySlice(
               query,
             )
           : null,
-        readIndex(ownerId),
       ])
 
       if (!current()) return
@@ -372,6 +377,9 @@ export function createResumeLibrarySlice(
     libraryParents: {},
     libraryLoading: true,
     libraryError: null,
+    libraryHasLoaded: false,
+    libraryCountsLoading: true,
+    libraryCountsError: null,
     libraryPage: 1,
     libraryTotal: null,
     libraryCounts: null,
@@ -385,6 +393,34 @@ export function createResumeLibrarySlice(
     libraryPendingError: null,
     libraryOfflineLoading: false,
     libraryOfflineError: null,
+
+    loadLibraryCounts: () => {
+      if (countsRequest) return countsRequest
+
+      const currentRevision = revision
+      const ownerId = get().libraryAccountId
+
+      const current = () =>
+        currentRevision === revision && ownerId === get().libraryAccountId
+
+      set({ libraryCountsLoading: true, libraryCountsError: null })
+
+      const request = readIndex(ownerId)
+        .then((data) => {
+          if (current()) set({ libraryCounts: data.counts })
+        })
+        .catch((error: unknown) => {
+          if (current()) set({ libraryCountsError: getErrorMessage(error) })
+        })
+        .finally(() => {
+          if (current()) set({ libraryCountsLoading: false })
+          if (countsRequest === request) countsRequest = null
+        })
+
+      countsRequest = request
+
+      return request
+    },
 
     loadLibraryPage: async (requestedPage = get().libraryPage) => {
       const request = ++requestId
@@ -416,8 +452,8 @@ export function createResumeLibrarySlice(
           libraryLoading: false,
           libraryError: null,
           libraryItems: cachedItems,
+          libraryHasLoaded: true,
           libraryPage: cachedPageNumber,
-          libraryCounts: queries.get('')?.index?.counts ?? null,
           libraryTotal: getFilterTotal(cache.index.counts, filter),
         })
 
@@ -439,6 +475,8 @@ export function createResumeLibrarySlice(
           return get().loadLibraryPage(1)
         }
 
+        get().loadLibraryCounts()
+
         const result = await readQueryPage(
           ownerId,
           query,
@@ -451,8 +489,8 @@ export function createResumeLibrarySlice(
 
         set({
           libraryItems: result.items,
+          libraryHasLoaded: true,
           libraryPage: result.page,
-          libraryCounts: queries.get('')?.index?.counts ?? null,
           libraryTotal: result.total,
           isOnline: Boolean(user),
         })
@@ -471,7 +509,6 @@ export function createResumeLibrarySlice(
       clearCache()
 
       set({
-        libraryCounts: null,
         libraryTotal: null,
         libraryParents: {},
         libraryOptionsLoading: false,
@@ -516,6 +553,9 @@ export function createResumeLibrarySlice(
         libraryParents: {},
         libraryLoading: true,
         libraryError: null,
+        libraryHasLoaded: false,
+        libraryCountsLoading: true,
+        libraryCountsError: null,
         libraryPage: 1,
         libraryTotal: null,
         libraryCounts: null,

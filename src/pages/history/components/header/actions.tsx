@@ -9,7 +9,15 @@ export default function HistoryHeaderActions({
 }: {
   activeResumeId: string | null
 }) {
-  const { currentResume, loading } = useHistoryStore()
+  const {
+    currentResume,
+    currentResumeLoading,
+    currentResumeError,
+    versionsLoading,
+    versionsError,
+    versionsLoaded,
+  } = useHistoryStore()
+
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
 
   useEffect(() => {
@@ -21,7 +29,13 @@ export default function HistoryHeaderActions({
       <Button
         className='shrink-0'
         disabled={
-          !currentResume || currentResume.resumeId !== activeResumeId || loading
+          !currentResume ||
+          currentResume.resumeId !== activeResumeId ||
+          currentResumeLoading ||
+          currentResumeError !== null ||
+          versionsLoading ||
+          versionsError !== null ||
+          !versionsLoaded
         }
         onClick={() => setSaveDialogOpen(true)}
       >

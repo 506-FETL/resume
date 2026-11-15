@@ -1,3 +1,4 @@
+import { useIsShortViewport } from '@/hooks/use-is-short-viewport'
 import type { ShareStatusFilter } from '../../utils'
 import { Check, ChevronDown, FileUser, Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -14,6 +15,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Input } from '@/components/ui/input'
+import { ContentSkeleton } from '@/components/loading-skeleton'
 import {
   Popover,
   PopoverContent,
@@ -33,11 +35,18 @@ import useShareStore from '../../store'
 import { deriveShareStatus, filterShares } from '../../utils'
 
 export default function Toolbar() {
+  const isShortViewport = useIsShortViewport()
+
   const {
     allShares,
     pageLoading,
     pageError,
+    pageLoaded,
     resumeMap,
+    resumeOptionsLoaded,
+    resumeOptionsLoading,
+    resumeOptionsError,
+    reloadResumeOptions,
     searchKeyword,
     resumeFilters,
     statusFilter,
@@ -108,7 +117,7 @@ export default function Toolbar() {
                 >
                   {label}
                   <span className='rounded-sm px-0.5 text-xs leading-4 tabular-nums text-muted-foreground sm:bg-muted sm:px-1.5 sm:py-0.5'>
-                    {pageLoading || pageError ? '—' : count}
+                    {!pageLoaded && (pageLoading || pageError) ? '—' : count}
                   </span>
                   {statusFilter === value && (
                     <motion.span
@@ -177,7 +186,26 @@ export default function Toolbar() {
             <Command>
               <CommandInput placeholder='搜索简历' />
               <CommandList>
-                <CommandEmpty>没有匹配的简历</CommandEmpty>
+                {!resumeOptionsLoaded && !resumeOptionsError ? (
+                  <ContentSkeleton rows={3} label='正在加载简历列表' />
+                ) : resumeOptionsError ? (
+                  <div
+                    role='alert'
+                    className='space-y-2 p-3 text-sm text-muted-foreground'
+                  >
+                    <p>简历列表暂时不可用。</p>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      disabled={resumeOptionsLoading}
+                      onClick={() => reloadResumeOptions()}
+                    >
+                      重试
+                    </Button>
+                  </div>
+                ) : (
+                  <CommandEmpty>没有匹配的简历</CommandEmpty>
+                )}
                 <CommandGroup>
                   {resumes.map((resume) => (
                     <CommandItem
@@ -258,7 +286,7 @@ export default function Toolbar() {
                     </span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>重置筛选</TooltipContent>
+                {isShortViewport && <TooltipContent>重置筛选</TooltipContent>}
               </Tooltip>
             </PresenceDiv>
           )}

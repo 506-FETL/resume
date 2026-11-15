@@ -1,5 +1,10 @@
 export interface AgentToolContext {
   signal?: AbortSignal
+  target?: {
+    resumeId: string | null
+    conversationId: string
+    ownerId: string
+  }
 }
 
 export interface AgentTool {
@@ -7,6 +12,10 @@ export interface AgentTool {
   description: string
   parameters: Record<string, unknown> // JSON Schema，对齐 DeepSeek tools.function.parameters
   mode: 'read' | 'write' // read 自动执行；write 走确认卡
+  policy: {
+    scope: 'account' | 'target-resume' | 'selected-sources' | 'builtin'
+    confirmation: 'required' | 'none'
+  }
   execute: (
     args: Record<string, unknown>,
     context?: AgentToolContext,

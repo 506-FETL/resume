@@ -8,6 +8,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { PaperSkeleton } from '@/components/loading-skeleton'
+import AnimatedContent from '@/components/motion/animated-content'
 import { cn } from '@/lib/utils'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
@@ -15,6 +16,7 @@ import HistoryResumePreview from '../shared/history-resume-preview'
 import CurrentOverview from './current-overview'
 import DetailHeader from './detail-header'
 import HistoryVersionOverview from './history-overview'
+import HistoryLoadError from '../shared/history-load-error'
 
 interface HistoryDetailContentProps {
   state: HistoryDetailPanelState
@@ -51,12 +53,19 @@ export default function HistoryDetailContent({
       : (state.snapshotCache[selectedVersionId] ?? null),
   )
 
+  const snapshotError = useHistoryStore((state) =>
+    selectedVersionId === null
+      ? null
+      : (state.snapshotErrors[selectedVersionId] ?? null),
+  )
+
   useEffect(() => {
-    if (selectedVersionId !== null && !versionSnapshot)
+    if (selectedVersionId !== null && !versionSnapshot && !snapshotError)
       loadVersionSnapshot(selectedVersionId)
   }, [
     selectedVersionId,
     versionSnapshot,
+    snapshotError,
     loadVersionSnapshot,
     snapshotGeneration,
   ])
@@ -150,21 +159,35 @@ export default function HistoryDetailContent({
           className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
         >
           <div className='min-h-full bg-muted/35 p-2 sm:p-4'>
-            {resumeSnapshot ? (
-              <HistoryResumePreview
-                snapshot={resumeSnapshot}
-                projectionReferenceDate={
-                  isCurrent
-                    ? undefined
-                    : state.selectedVersion?.projection_reference_date
-                }
-              />
-            ) : (
-              <PaperSkeleton
-                label='正在加载版本预览'
-                className='mx-auto max-w-[794px] shadow-sm'
-              />
-            )}
+            <AnimatedContent
+              animationKey={
+                resumeSnapshot ? 'ready' : snapshotError ? 'error' : 'loading'
+              }
+            >
+              {resumeSnapshot ? (
+                <HistoryResumePreview
+                  snapshot={resumeSnapshot}
+                  projectionReferenceDate={
+                    isCurrent
+                      ? undefined
+                      : state.selectedVersion?.projection_reference_date
+                  }
+                />
+              ) : snapshotError ? (
+                <HistoryLoadError
+                  error={snapshotError}
+                  retry={() => {
+                    if (selectedVersionId !== null)
+                      loadVersionSnapshot(selectedVersionId)
+                  }}
+                />
+              ) : (
+                <PaperSkeleton
+                  label='正在加载版本预览'
+                  className='mx-auto max-w-[794px] shadow-sm'
+                />
+              )}
+            </AnimatedContent>
           </div>
         </div>
       </div>

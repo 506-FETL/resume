@@ -1,3 +1,4 @@
+import type { AiUserReference } from '@/lib/ai/types'
 import type { AiConversation, AiMessage, AiToolCallState } from '@/lib/ai/types'
 import type { KeyboardEvent, ReactNode, RefObject } from 'react'
 
@@ -69,9 +70,10 @@ export interface ComposerCommandAccessibilityProps {
 }
 
 export interface ComposerReferencePickerProps {
+  onUploadFiles: () => void
   context: ComposerContextResult
   disabled: boolean
-  onSelect: (token: string, label: string) => void
+  onSelect: (reference: AiUserReference) => void
   textareaRef: RefObject<HTMLTextAreaElement | null>
 }
 

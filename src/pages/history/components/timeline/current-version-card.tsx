@@ -2,6 +2,7 @@ import type { HistorySelection } from '../../types'
 import { ChevronRight, FileText } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatRelativeTime } from '@/utils/date'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
@@ -18,7 +19,9 @@ export default function CurrentVersionCard({
   onSelectEntry,
 }: CurrentVersionCardProps) {
   const { reduceMotion, enter } = useHistoryMotion()
-  const { currentResume, versions } = useHistoryStore()
+
+  const { currentResume, versions, versionsLoaded, versionsError } =
+    useHistoryStore()
 
   const { latestVersionNo, synced } = getCurrentSyncState(
     currentResume,
@@ -60,11 +63,19 @@ export default function CurrentVersionCard({
         </div>
         <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5 text-muted-foreground'>
           <span>
-            {versions.length === 0
-              ? '尚未保存版本'
-              : synced
-                ? `已同步至 V${latestVersionNo}`
-                : '有未保存更新'}
+            {!versionsLoaded ? (
+              versionsError ? (
+                '版本状态暂不可用'
+              ) : (
+                <Skeleton className='inline-block h-3 w-20' />
+              )
+            ) : versions.length === 0 ? (
+              '尚未保存版本'
+            ) : synced ? (
+              `已同步至 V${latestVersionNo}`
+            ) : (
+              '有未保存更新'
+            )}
           </span>
           {currentResume.updatedAt && (
             <time dateTime={currentResume.updatedAt}>

@@ -7,7 +7,7 @@ export interface ResumeConfig {
   id: string
   resume_id: string
   display_name: string
-  isScored: boolean
+  isScored: boolean | null
   overall_score: number | null
   created_at: string
   isOffline?: boolean
@@ -69,7 +69,7 @@ export function useResumeManager(): UseResumeManagerReturn {
         display_name: resume.display_name || '未命名简历',
         created_at: resume.created_at,
         isOffline: resume.isOffline,
-        isScored: Boolean(resumeAts),
+        isScored: atsConfigs === null ? null : Boolean(resumeAts),
         overall_score: resumeAts?.overall_score ?? null,
       }
     })

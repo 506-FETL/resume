@@ -1,4 +1,5 @@
-import type { MouseEventHandler } from 'react'
+import { useIsShortViewport } from '@/hooks/use-is-short-viewport'
+import type { MouseEventHandler, Ref } from 'react'
 import { Cloud, CloudUpload, GitBranch, HardDrive, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
@@ -19,6 +20,7 @@ function HeadBars({
   counts,
   isOnline,
   offlineCount,
+  createButtonRef,
 }: {
   onCreate: MouseEventHandler<HTMLButtonElement>
   counts: {
@@ -30,7 +32,13 @@ function HeadBars({
   } | null
   isOnline: boolean
   offlineCount: number
+  createButtonRef?: Ref<HTMLButtonElement>
 }) {
+  const isShortViewport = useIsShortViewport()
+
+  const { libraryCountsError, libraryCountsLoading, loadLibraryCounts } =
+    useResumeListStore()
+
   const setShowSyncDialog = useResumeListStore((s) => s.setShowSyncDialog)
   const setDerivedJobsOpen = useResumeListStore((s) => s.setDerivedJobsOpen)
   const hasOfflineResumesToSync = isOnline && offlineCount > 0
@@ -62,7 +70,11 @@ function HeadBars({
           </span>
         }
         actions={
-          <Button aria-label='打开创建简历表单' onClick={onCreate}>
+          <Button
+            ref={createButtonRef}
+            aria-label='打开创建简历表单'
+            onClick={onCreate}
+          >
             <Plus />
             创建简历
           </Button>
@@ -116,7 +128,7 @@ function HeadBars({
                   </span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>岗位版本任务</TooltipContent>
+              {isShortViewport && <TooltipContent>岗位版本任务</TooltipContent>}
             </Tooltip>
           )}
           {hasOfflineResumesToSync && (
@@ -136,11 +148,31 @@ function HeadBars({
                   </span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>同步本地简历 ({offlineCount})</TooltipContent>
+              {isShortViewport && (
+                <TooltipContent>同步本地简历 ({offlineCount})</TooltipContent>
+              )}
             </Tooltip>
           )}
         </div>
       </PageHeader>
+      <AnimatedContent animationKey={libraryCountsError ? 'error' : 'ready'}>
+        {libraryCountsError && (
+          <div
+            role='alert'
+            className='mt-2 flex items-center gap-2 text-xs text-muted-foreground'
+          >
+            <span>简历数量读取失败，列表仍可继续加载。</span>
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={libraryCountsLoading}
+              onClick={() => loadLibraryCounts()}
+            >
+              重试统计
+            </Button>
+          </div>
+        )}
+      </AnimatedContent>
     </div>
   )
 }

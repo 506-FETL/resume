@@ -156,6 +156,7 @@ function AttachmentAction({
   return (
     <Button
       data-slot='attachment-action'
+      type='button'
       variant={variant ?? 'ghost'}
       size={size}
       className={cn(className)}

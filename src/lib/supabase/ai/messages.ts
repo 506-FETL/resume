@@ -1,4 +1,5 @@
 import type { AiMessage, AiMessagePart, AiMessageRole } from '@/lib/ai/types'
+import { normalizeUserParts } from '@/lib/ai/references'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
@@ -8,7 +9,10 @@ function mapMessage(row: any): AiMessage {
     conversationId: row.conversation_id,
     userId: row.user_id,
     role: row.role,
-    parts: (row.parts || []) as AiMessagePart[],
+    parts:
+      row.role === 'user'
+        ? normalizeUserParts(row.parts || [])
+        : row.parts || [],
     createdAt: row.created_at,
   }
 }
@@ -24,7 +28,12 @@ export type MessageCursor = Pick<AiMessage, 'createdAt' | 'id'>
 // before 同时携带时间与 ID，避免同一时间的消息跨页时被跳过。
 export async function listMessages(
   conversationId: string,
-  options: { limit?: number; before?: MessageCursor } = {},
+  options: {
+    limit?: number
+    before?: MessageCursor
+    after?: MessageCursor
+    signal?: AbortSignal
+  } = {},
 ): Promise<ListMessagesResult> {
   const user = await getCurrentUser()
 
@@ -48,6 +57,15 @@ export async function listMessages(
       `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`,
     )
   }
+
+  if (options.after) {
+    const { createdAt, id } = options.after
+
+    query = query.or(
+      `created_at.gt.${createdAt},and(created_at.eq.${createdAt},id.gt.${id})`,
+    )
+  }
+  if (options.signal) query = query.abortSignal(options.signal)
 
   const { data, error } = await query
 
@@ -79,7 +97,7 @@ export async function truncateMessages(
 
 export async function insertMessage(
   conversationId: string,
-  msg: { role: AiMessageRole; parts: AiMessagePart[] },
+  msg: { id?: string; role: AiMessageRole; parts: AiMessagePart[] },
 ): Promise<AiMessage> {
   const user = await getCurrentUser()
 
@@ -88,6 +106,7 @@ export async function insertMessage(
   const { data, error } = await supabase
     .from('ai_messages')
     .insert({
+      ...(msg.id ? { id: msg.id } : {}),
       conversation_id: conversationId,
       user_id: user.id,
       role: msg.role,
@@ -96,7 +115,22 @@ export async function insertMessage(
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (msg.id) {
+      const { data: existing, error: lookupError } = await supabase
+        .from('ai_messages')
+        .select('*')
+        .eq('id', msg.id)
+        .eq('conversation_id', conversationId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!lookupError && existing && existing.role === msg.role)
+        return mapMessage(existing)
+    }
+
+    throw error
+  }
 
   return mapMessage(data)
 }

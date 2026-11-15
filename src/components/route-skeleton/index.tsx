@@ -8,6 +8,7 @@ import {
 } from '@/components/loading-skeleton'
 import { AssistantPageSkeleton } from '@/components/page-skeletons/assistant'
 import { DashboardPageSkeleton } from '@/components/page-skeletons/dashboard'
+import { ExperiencePageSkeleton } from '@/components/page-skeletons/experience'
 import { HistoryPageSkeleton } from '@/components/page-skeletons/history'
 import { OptimizePageSkeleton } from '@/components/page-skeletons/optimize'
 import { ProfilePageSkeleton } from '@/components/page-skeletons/profile'
@@ -41,6 +42,7 @@ export function RouteSkeleton({
   if (path === '/tracker') return <TrackerPageSkeleton />
   if (path === '/optimize') return <OptimizePageSkeleton />
   if (path === '/share') return <SharePageSkeleton />
+  if (path === '/experience') return <ExperiencePageSkeleton />
   if (path === '/history') return <HistoryPageSkeleton />
   if (path === '/profile') return <ProfilePageSkeleton />
   if (path.startsWith('/assistant')) return <AssistantPageSkeleton />

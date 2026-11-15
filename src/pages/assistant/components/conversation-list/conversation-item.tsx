@@ -56,7 +56,7 @@ export function ConversationItem({
           className='h-9 flex-1 rounded-lg'
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') commitRename()
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) commitRename()
             if (e.key === 'Escape') setEditing(false)
           }}
         />
@@ -87,7 +87,7 @@ export function ConversationItem({
           type='button'
           variant='ghost'
           className={cn(
-            'h-9 w-full justify-start rounded-lg px-2.5 text-left text-sm font-normal',
+            'h-9 w-full justify-start rounded-lg pr-11 pl-2.5 text-left text-sm font-normal',
             active
               ? 'bg-accent font-medium text-accent-foreground'
               : 'text-foreground/80 hover:bg-accent/60 hover:text-foreground',

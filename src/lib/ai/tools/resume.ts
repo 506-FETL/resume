@@ -18,6 +18,7 @@ registerTool({
     '列出当前用户可访问的所有本地和云端简历（名称、类型、存储位置、派生状态）。当用户问有哪些简历、想对比/选择简历时使用。',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async () => {
     try {
       const rows = await listAccessibleResumes()
@@ -55,6 +56,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async (args) => {
     try {
       return await getAccessibleResumeById(String(args.resumeId))
@@ -107,8 +109,12 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'target-resume', confirmation: 'required' },
   execute: async (args, context) => {
-    const currentId = resolveActiveResumeId()
+    const currentId = context?.target
+      ? context.target.resumeId
+      : resolveActiveResumeId()
+
     const ownerId = useUserStore.getState().currentUser?.id ?? null
 
     if (!currentId)
@@ -180,6 +186,15 @@ registerTool({
         apply: async () => {
           if ((useUserStore.getState().currentUser?.id ?? null) !== ownerId)
             throw new Error('登录账号已改变，请重新确认修改')
+
+          const latest = await getAccessibleResumeSection(currentId, sectionKey)
+
+          if (JSON.stringify(latest[sectionKey]) !== JSON.stringify(before))
+            return {
+              error:
+                '这部分简历在等待确认时已被修改。请读取最新内容，重新生成差异并请用户确认。',
+              conflict: true,
+            }
 
           // 经编辑器 store 写入 Automerge 文档并落库，保证编辑器与画布一致
           await applyResumeFieldToDocument(

@@ -68,24 +68,49 @@ const ToolCallRow = memo(function ToolCallRow({
 
   const stat = statOf(call)
   const targetTab = meta?.targetTab
+  const busy = useAssistantStore((state) => state.runPhase !== 'idle')
+  const confirming = useAssistantStore((state) => state.pendingConfirm)
+
+  const confirmationStatus =
+    call.state === 'awaiting-confirm' && confirming?.toolName === call.toolName
+      ? confirming.status
+      : null
+
+  const applying = confirmationStatus === 'applying'
+
+  const visibleState =
+    confirmationStatus === 'result' || confirmationStatus === 'error'
+      ? confirmationStatus
+      : call.state
+
+  const revisionRequested =
+    call.result &&
+    typeof call.result === 'object' &&
+    'revisionRequested' in call.result &&
+    call.result.revisionRequested === true
+
   const canRetry = call.state === 'error' && !isSkillTool(call.toolName)
 
   const status =
-    call.state === 'call'
+    visibleState === 'call'
       ? 'running'
-      : call.state === 'awaiting-confirm'
+      : visibleState === 'awaiting-confirm'
         ? 'pending'
-        : call.state === 'error'
+        : visibleState === 'error'
           ? 'error'
           : undefined
 
-  const title = {
-    call: `正在${label}`,
-    'awaiting-confirm': `${label}，等待确认`,
-    result: `已${label}`,
-    error: `${label}失败`,
-    cancelled: `已取消${label}`,
-  }[call.state]
+  const title = applying
+    ? `正在${label}`
+    : revisionRequested
+      ? '已要求修改'
+      : {
+          call: `正在${label}`,
+          'awaiting-confirm': `${label}，等待确认`,
+          result: `已${label}`,
+          error: `${label}失败`,
+          cancelled: `已取消${label}`,
+        }[visibleState]
 
   return (
     <motion.div
@@ -108,9 +133,9 @@ const ToolCallRow = memo(function ToolCallRow({
           <AnimatedContent
             as='span'
             className='min-w-0'
-            animationKey={call.state}
+            animationKey={applying ? 'applying' : visibleState}
           >
-            <TraceLine status={status}>
+            <TraceLine status={applying ? 'running' : status}>
               <TraceIcon>
                 {call.state === 'error' ? (
                   <CircleAlert />
@@ -148,6 +173,7 @@ const ToolCallRow = memo(function ToolCallRow({
               variant='ghost'
               size='sm'
               className='h-7 gap-1 px-2 text-xs text-destructive'
+              disabled={busy}
               onClick={(event) => {
                 event.currentTarget
                   .closest<HTMLElement>('[data-assistant-tool-row]')

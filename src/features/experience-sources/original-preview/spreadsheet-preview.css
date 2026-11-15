@@ -1,0 +1,20 @@
+.experience-spreadsheet table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.experience-spreadsheet td,
+.experience-spreadsheet th {
+  min-width: 6rem;
+  max-width: 32rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.experience-spreadsheet tr:first-child {
+  background: var(--muted);
+}

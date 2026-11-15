@@ -44,7 +44,7 @@ export function CheckModeToggle() {
             data-check-mode={value}
             data-severity={value === 'checks' ? severity : undefined}
             aria-label={label}
-            title={label}
+            title={isMobile ? label : undefined}
             className={cn(
               'relative isolate transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:bg-transparent',
               isMobile ? 'size-8 px-0' : 'px-2.5',

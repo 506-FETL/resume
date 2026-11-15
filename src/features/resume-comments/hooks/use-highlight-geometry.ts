@@ -34,15 +34,18 @@ function findVisibleNodes(root: HTMLElement, nodeKey: string) {
   )
 }
 
-function anchorToRange(node: HTMLElement, thread: ResumeCommentThread) {
+export function commentAnchorToRange(
+  node: HTMLElement,
+  originalAnchor: CommentAnchor,
+) {
   const projection = projectCommentDomNode(node)
 
   const [sectionKey = '', entryId = '', fieldKey = ''] =
-    thread.anchor.nodeKey.split('/')
+    originalAnchor.nodeKey.split('/')
 
   // 已解决期间正文可能发生过变化；重开后按当前 DOM 重定位，不能只沿用旧偏移。
-  const relocated = relocateAnchor(thread.anchor, {
-    nodeKey: thread.anchor.nodeKey,
+  const relocated = relocateAnchor(originalAnchor, {
+    nodeKey: originalAnchor.nodeKey,
     sectionKey,
     entryId,
     fieldKey,
@@ -137,7 +140,7 @@ export function useHighlightGeometry({
 
         const ranges = findVisibleNodes(root, thread.anchor.nodeKey).flatMap(
           (node) => {
-            const resolved = anchorToRange(node, thread)
+            const resolved = commentAnchorToRange(node, thread.anchor)
 
             return resolved ? [resolved] : []
           },

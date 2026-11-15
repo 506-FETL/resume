@@ -51,18 +51,7 @@ export function getSkillReferences(parts: readonly AiMessagePart[]): AiSkillRefe
 }
 
 export function getEditableMessageText(parts: readonly AiMessagePart[]): string {
-  const text = parts.filter(part => part.type === 'text').map(part => part.text).join('\n')
-  const mentioned = new Set(explicitSkillNames(text).map(name => SKILL_ALIASES[name] ?? name))
-
-  const missing = getSkillReferences(parts)
-    .filter(reference => !mentioned.has(reference.skillId))
-    .map(reference => `$${reference.skillId}`)
-
-  return [...missing, text].filter(Boolean).join(' ')
+  return parts.filter(part => part.type === 'text').map(part => part.text).join('\n')
 }
 
-export function createUserParts(text: string, references: readonly AiSkillReference[]): AiMessagePart[] {
-  const message = text.trim() || (references.length > 0 ? '请使用所选技能，帮助我优化当前简历。' : '')
-
-  return [...references, { type: 'text', text: message }]
-}
+export { createUserParts } from '../references.ts'

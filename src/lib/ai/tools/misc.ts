@@ -13,6 +13,7 @@ registerTool({
   description: '获取当前日期和时间（用户本地时区）。',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   mode: 'read',
+  policy: { scope: 'builtin', confirmation: 'none' },
   execute: async () => ({ now: new Date().toLocaleString('zh-CN') }),
 })
 
@@ -21,6 +22,7 @@ registerTool({
   description: '获取当前登录用户的资料（昵称、邮箱等）。',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async () => {
     try {
       return (await getUserProfile()) ?? { message: '无用户资料' }
@@ -44,6 +46,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async (args) => {
     const resumeId = typeof args.resumeId === 'string' ? args.resumeId : null
 
@@ -78,6 +81,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async (args) => {
     const resumeId = String(args.resumeId)
 
@@ -110,6 +114,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async (args) => {
     try {
       const page = await resumeTemplateSource.listTemplatePage({
@@ -146,6 +151,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async (args) => {
     const resumeId = typeof args.resumeId === 'string' ? args.resumeId : null
 

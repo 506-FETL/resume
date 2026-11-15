@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/utils'
 import { useAssistantNavigation } from '../../hooks/use-assistant-navigation'
 import useAssistantStore from '../../store'
 import { ConversationItem } from './conversation-item'
+import { readableConversationTitle } from '../../composer-references'
 
 interface ConversationGroup {
   key: string
@@ -44,10 +45,12 @@ function groupConversations(list: AiConversation[]): ConversationGroup[] {
 
 interface ConversationListProps {
   onNavigate?: () => void
+  query?: string
 }
 
 export default function ConversationList({
   onNavigate,
+  query = '',
 }: ConversationListProps = {}) {
   const {
     conversations,
@@ -71,8 +74,15 @@ export default function ConversationList({
     useAssistantNavigation()
 
   const groups = useMemo(
-    () => groupConversations(conversations),
-    [conversations],
+    () =>
+      groupConversations(
+        conversations.filter((conversation) =>
+          readableConversationTitle(conversation.title)
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase()),
+        ),
+      ),
+    [conversations, query],
   )
 
   const handleSelect = async (id: string) => {
@@ -109,6 +119,16 @@ export default function ConversationList({
       </div>
     )
   }
+
+  if (groups.length === 0)
+    return (
+      <p
+        role='status'
+        className='px-3 py-8 text-center text-sm text-muted-foreground'
+      >
+        近期对话中没有找到，可以搜索全部历史。
+      </p>
+    )
 
   return (
     <div

@@ -1,5 +1,5 @@
 import { JobContextBar } from '@/components/job-context'
-import type { RefObject } from 'react'
+import type { CSSProperties, RefObject } from 'react'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ORDERType } from '@/lib/schema'
 import { Edit } from 'lucide-react'
@@ -559,7 +559,15 @@ function EditorWorkspace({ currentUser, loading }: EditorWorkspaceProps) {
                 <Edit />
               </DrawerTrigger>
               <DrawerVirtualKeyboardProvider>
-                <DrawerContent className='@container/editor-drawer @container-[size]'>
+                <DrawerContent
+                  className='@container/editor-drawer @container-[size]'
+                  style={
+                    {
+                      '--drawer-content-height': '90dvh',
+                      '--drawer-content-max-height': '90dvh',
+                    } as CSSProperties
+                  }
+                >
                   <CheckWorkspace
                     header={
                       <div className='shrink-0 [@container_editor-drawer_(max-height:320px)]:**:data-[slot=drawer-header]:gap-1 [@container_editor-drawer_(max-height:320px)]:**:data-[slot=drawer-header]:p-2'>

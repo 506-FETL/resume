@@ -1,13 +1,7 @@
 import type { ReactNode } from 'react'
-import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
-import { BookOpen, Brain, Sparkles } from 'lucide-react'
+import type { AiMessage, AiMessagePart, AiUserReference } from '@/lib/ai/types'
+import { Brain, Sparkles } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
-import {
-  Attachment,
-  AttachmentContent,
-  AttachmentMedia,
-  AttachmentTitle,
-} from '@/components/ui/attachment'
 import { Bubble, BubbleContent } from '@/components/ui/bubble'
 import {
   Message,
@@ -18,47 +12,28 @@ import {
 import { Trace, TraceIcon, TraceLine, TraceTitle } from '@/components/ui/trace'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  composeDraft,
-  parseComposerDraft,
-  readableMessageText,
-} from '../../composer-references'
 import { Button } from '@/components/ui/button'
-import {
-  getEditableMessageText,
-  getSkillReferences,
-} from '@/lib/ai/skills/references'
+import { getUserReferences, referenceKey } from '@/lib/ai/references'
+import ReferenceTags from '../reference-tags'
 import SkillActivity from '../skill-activity'
 import { MessageActions } from './message-actions'
 import { ReasoningPart } from './reasoning-part'
+import { collectCitationEvidence } from '@/lib/ai/agent/citation-evidence'
 import { TextPart } from './text-part'
 import { ToolCallPartGroup } from './tool-call-part'
+import useAssistantStore from '../../store'
 
 interface MessageBubbleProps {
   message: AiMessage
-  onEditSave?: (messageId: string, newText: string) => void
+  onEditSave?: (
+    messageId: string,
+    newText: string,
+    references: AiUserReference[],
+  ) => void
   onRegenerate?: (messageId: string) => void
 }
 
 type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
-
-function plainText(message: AiMessage): string {
-  return message.parts
-    .filter((p) => p.type === 'text')
-    .map((p) => (p as { text: string }).text)
-    .join('\n')
-}
-
-function editableText(message: AiMessage): string {
-  const { text, references } = parseComposerDraft(plainText(message))
-
-  const parts: AiMessagePart[] = [
-    ...message.parts.filter((part) => part.type !== 'text'),
-    { type: 'text', text },
-  ]
-
-  return composeDraft(getEditableMessageText(parts), references)
-}
 
 // 保持流式部件的 key 稳定，展开状态不会随 token 更新重置。
 function renderAssistantParts(
@@ -66,6 +41,7 @@ function renderAssistantParts(
   isStreamingMessage: boolean,
 ) {
   const nodes: ReactNode[] = []
+  const evidence = collectCitationEvidence(parts)
   let buffer: ToolCallPart[] = []
 
   const flush = () => {
@@ -113,6 +89,7 @@ function renderAssistantParts(
           key={`text-${index}`}
           text={p.text}
           animate={streaming}
+          evidence={evidence}
         />,
       )
     } else if (p.type === 'skill-activity') {
@@ -134,33 +111,45 @@ function renderAssistantParts(
 // 用户消息内联编辑器
 function UserMessageEditor({
   initial,
+  initialReferences,
   onSave,
   onCancel,
 }: {
   initial: string
-  onSave: (text: string) => void
+  initialReferences: AiUserReference[]
+  onSave: (text: string, references: AiUserReference[]) => void
   onCancel: () => void
 }) {
-  const { text, references } = parseComposerDraft(initial)
-  const [value, setValue] = useState(text)
+  const [value, setValue] = useState(initial)
+  const [references, setReferences] = useState(initialReferences)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const canSave = Boolean(value.trim() || references.length)
 
   return (
     <div className='flex w-full flex-col gap-2'>
       {references.length > 0 && (
-        <p className='text-xs text-muted-foreground'>
-          {references.map((reference) => reference.label).join(' · ')}
-        </p>
+        <ReferenceTags
+          references={references}
+          onRemove={(key) => {
+            setReferences((current) =>
+              current.filter((reference) => referenceKey(reference) !== key),
+            )
+
+            textareaRef.current?.focus({ preventScroll: true })
+          }}
+        />
       )}
       <Textarea
+        ref={textareaRef}
         value={value}
         autoFocus
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return
 
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && value.trim()) {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSave) {
             e.preventDefault()
-            onSave(composeDraft(value, references))
+            onSave(value, references)
           }
           if (e.key === 'Escape') onCancel()
         }}
@@ -173,8 +162,8 @@ function UserMessageEditor({
         </Button>
         <Button
           size='sm'
-          disabled={!value.trim()}
-          onClick={() => onSave(composeDraft(value, references))}
+          disabled={!canSave}
+          onClick={() => onSave(value, references)}
         >
           保存并重新生成
         </Button>
@@ -192,6 +181,14 @@ export const MessageBubble = memo(function MessageBubble({
   const [editing, setEditing] = useState(false)
   const userMessageRef = useRef<HTMLDivElement>(null)
 
+  const pendingWriteId = useAssistantStore(
+    (state) => state.pendingAssistantWrite?.id,
+  )
+
+  const persistencePending = useAssistantStore((state) =>
+    Boolean(state.pendingAssistantWrite || state.pendingMessageUpdates.length),
+  )
+
   const finishEditing = () => {
     userMessageRef.current?.focus({ preventScroll: true })
     setEditing(false)
@@ -199,10 +196,17 @@ export const MessageBubble = memo(function MessageBubble({
 
   // 本地临时行 / 进行中行不显示操作栏
   const hideActions =
-    message.id.startsWith('local-') || message.id === 'streaming'
+    message.id.startsWith('local-') ||
+    message.id === 'streaming' ||
+    message.id === pendingWriteId
 
   if (isUser) {
-    const text = readableMessageText(plainText(message))
+    const parts = message.parts
+
+    const text = parts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join('\n')
 
     return (
       <Message
@@ -221,30 +225,21 @@ export const MessageBubble = memo(function MessageBubble({
             {editing ? (
               <div className='ml-auto w-full sm:max-w-[85%]'>
                 <UserMessageEditor
-                  initial={editableText(message)}
+                  initial={text}
+                  initialReferences={getUserReferences(parts)}
                   onCancel={finishEditing}
-                  onSave={(value) => {
+                  onSave={(value, references) => {
                     finishEditing()
-                    onEditSave?.(message.id, value)
+                    onEditSave?.(message.id, value, references)
                   }}
                 />
               </div>
             ) : (
               <div className='flex min-w-0 flex-col items-end gap-1.5'>
-                {getSkillReferences(message.parts).map((reference) => (
-                  <Attachment
-                    size='xs'
-                    key={reference.skillId}
-                    className='min-w-0'
-                  >
-                    <AttachmentMedia>
-                      <BookOpen />
-                    </AttachmentMedia>
-                    <AttachmentContent>
-                      <AttachmentTitle>{reference.displayName}</AttachmentTitle>
-                    </AttachmentContent>
-                  </Attachment>
-                ))}
+                <ReferenceTags
+                  references={getUserReferences(parts)}
+                  align='end'
+                />
                 {text.trim() && (
                   <Bubble
                     align='end'
@@ -259,6 +254,7 @@ export const MessageBubble = memo(function MessageBubble({
                 {!hideActions && (
                   <MessageActions
                     message={message}
+                    disabled={persistencePending}
                     onEdit={
                       onEditSave
                         ? () => {
@@ -321,6 +317,7 @@ export const MessageBubble = memo(function MessageBubble({
         ) : (
           <MessageActions
             message={message}
+            disabled={persistencePending}
             onRegenerate={
               onRegenerate ? () => onRegenerate(message.id) : undefined
             }

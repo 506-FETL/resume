@@ -15,7 +15,7 @@ function Header() {
   const loadError = useAtsStore((s) => s.loadError)
   const analysisError = useAtsStore((s) => s.analysisError)
   const hasReport = useAtsStore((s) => s.currentAtsConfig !== null)
-  const init = useAtsStore((s) => s.init)
+  const reloadCurrentReport = useAtsStore((s) => s.reloadCurrentReport)
   const loading = useAtsStore((s) => s.loading)
   const reduceMotion = useReducedMotion()
   const { status, logs, reasoning, content } = analysisState
@@ -110,7 +110,7 @@ function Header() {
                 variant='outline'
                 disabled={loading}
                 onClick={() => {
-                  init(true)
+                  reloadCurrentReport()
                 }}
               >
                 重新加载

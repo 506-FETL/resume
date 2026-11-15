@@ -1,6 +1,10 @@
-import type { AiMessage, AiMessagePart } from '../types'
+import type { AiMessage, AiMessagePart, AiContextUsage } from '../types'
 import type { AgentUIMessage } from './to-message-parts'
-import type { AgentTool } from './tool-registry'
+import type { AgentTool, AgentToolContext } from './tool-registry'
+import type { ContextCompactionEvent } from './context-events'
+import type { ModelMessage } from 'ai'
+import type { UserContext } from './build-context'
+import type { ExperienceSourceReference } from '@/lib/experience-sources/types'
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import {
   createUIMessageStream,
@@ -16,6 +20,14 @@ import { serializeAiToolValue } from './serialize-tool-value'
 import { getToolResultState, toMessageParts } from './to-message-parts'
 import { toModelMessages } from './to-model-messages'
 import { getTools } from './tool-registry'
+import { createEvidenceTools } from './evidence-tools'
+import { createStepContextCompactor } from './step-context'
+import {
+  ASSISTANT_MODEL,
+  MODEL_CONTEXT_LIMITS,
+  createContextTokenCounter,
+  estimateContextTokens,
+} from './context-budget'
 
 export interface AgentUsage {
   input: number
@@ -28,10 +40,17 @@ export interface AgentRunOptions {
   signal: AbortSignal
   thinking?: boolean
   maxSteps?: number
-  context?: string
+  context?: UserContext
+  summary?: string
+  conversationId?: string
+  sources?: ExperienceSourceReference[]
+  target?: AgentToolContext['target']
+  skipCompaction?: boolean
   callbacks?: {
     onParts?: (parts: AiMessagePart[]) => void
     onUsage?: (usage: AgentUsage) => void
+    onContextUsage?: (usage: AiContextUsage) => void
+    onCompaction?: (event: ContextCompactionEvent) => void
   }
 }
 
@@ -58,11 +77,40 @@ export async function runAgent(
   } = options
 
   const usage: AgentUsage = { input: 0, output: 0, total: 0 }
+  const counter = createContextTokenCounter()
+  let lastStepMessages: ModelMessage[] = []
+  let contextUsage: AiContextUsage | undefined
+
+  const reportContext = (
+    inputTokens: number,
+    estimated: boolean,
+    outputTokens?: number,
+    reasoningTokens?: number,
+  ) => {
+    contextUsage = {
+      type: 'context-usage',
+      targetResumeId: options.target?.resumeId,
+      inputTokens,
+      outputTokens,
+      reasoningTokens,
+      estimated,
+      model: ASSISTANT_MODEL,
+      sourceFingerprint: JSON.stringify(
+        (options.sources ?? [])
+          .map((source) => [source.sourceId, source.versionId])
+          .sort(),
+      ),
+    }
+
+    callbacks.onContextUsage?.(contextUsage)
+  }
 
   const completedTools = new Map<
     string,
     Extract<AiMessagePart, { type: 'tool-call' }>
   >()
+
+  const toolTargets = new Map<string, string | null>()
 
   let toolQueue: Promise<unknown> = Promise.resolve()
   let step = 0
@@ -104,6 +152,9 @@ export async function runAgent(
 
       const tools = [
         ...(dependencies.tools ?? getTools()),
+        ...(dependencies.tools
+          ? []
+          : createEvidenceTools(options.sources ?? [])),
         ...skillRuntime.tools,
       ]
 
@@ -113,7 +164,7 @@ export async function runAgent(
           return [
             definition.name,
             tool({
-              description: definition.description,
+              description: `${definition.description}\n作用范围：${definition.policy.scope}；${definition.policy.confirmation === 'required' ? '必须经本轮界面的明确确认后写入。' : '无需写入确认，但不能扩大已授权的读取范围。'}`,
               inputSchema: jsonSchema<Record<string, unknown>>(
                 definition.parameters,
               ),
@@ -121,7 +172,11 @@ export async function runAgent(
                 const execution = toolQueue.then(async () => {
                   signal.throwIfAborted()
 
-                  if (definition.mode === 'write') {
+                  const targetResumeId = options.target?.resumeId ?? null
+
+                  toolTargets.set(toolCallId, targetResumeId)
+
+                  if (definition.policy.confirmation === 'required') {
                     writer.write({
                       type: 'data-tool-start',
                       id: toolCallId,
@@ -132,7 +187,10 @@ export async function runAgent(
                   let output: unknown
 
                   try {
-                    output = await definition.execute(input, { signal })
+                    output = await definition.execute(input, {
+                      signal,
+                      target: options.target,
+                    })
                   } catch (error) {
                     output = {
                       error:
@@ -145,6 +203,7 @@ export async function runAgent(
                     toolCallId,
                     toolName: definition.name,
                     step,
+                    targetResumeId,
                     args: input,
                     result: output,
                     state: getToolResultState(output),
@@ -174,10 +233,18 @@ export async function runAgent(
         apiKey: 'handled-by-llm-proxy',
         fetch: async (_url, init) => {
           try {
-            return await request(
-              JSON.parse(init?.body as string),
-              init?.signal ?? signal,
+            const payload = JSON.parse(init?.body as string)
+
+            if (
+              new TextEncoder().encode(JSON.stringify(payload)).byteLength >
+                MODEL_CONTEXT_LIMITS.requestBytes ||
+              payload.messages.length > MODEL_CONTEXT_LIMITS.requestMessages
             )
+              throw new Error(
+                '本轮完整请求超过处理范围，请缩小材料范围。原记录已保留。',
+              )
+
+            return await request(payload, init?.signal ?? signal)
           } catch (error) {
             requestFailure = error
 
@@ -186,16 +253,59 @@ export async function runAgent(
         },
       })
 
+      const compactStep = createStepContextCompactor(
+        signal,
+        {
+          onCompaction: callbacks.onCompaction,
+          skipCompaction: options.skipCompaction,
+        },
+        counter,
+      )
+
       const agent = new ToolLoopAgent({
-        model: provider('deepseek-v4-pro'),
+        model: provider(ASSISTANT_MODEL),
         tools: sdkTools,
         stopWhen: stepCountIs(maxSteps),
         maxRetries: 0,
+        maxOutputTokens: MODEL_CONTEXT_LIMITS.outputTokens,
+        prepareStep: async (stepOptions) => {
+          const prepared = await compactStep(stepOptions)
+
+          lastStepMessages = prepared.messages
+
+          reportContext(
+            counter.estimate(lastStepMessages, estimateContextTokens(sdkTools)),
+            true,
+          )
+
+          return prepared
+        },
         ...(!thinking ? { temperature: 0 } : {}),
         providerOptions: {
           deepseek: { thinking: { type: thinking ? 'enabled' : 'disabled' } },
         },
         onStepFinish: ({ usage: stepUsage }) => {
+          const details = stepUsage.raw?.completion_tokens_details
+
+          // DeepSeek SDK 会把缺失的推理用量补为 0，只有上游确实返回时才展示。
+          const reasoningTokens =
+            details &&
+            typeof details === 'object' &&
+            !Array.isArray(details) &&
+            typeof details.reasoning_tokens === 'number'
+              ? stepUsage.outputTokenDetails.reasoningTokens
+              : undefined
+
+          counter.observe(lastStepMessages, stepUsage.inputTokens ?? 0)
+
+          if (stepUsage.inputTokens != null)
+            reportContext(
+              stepUsage.inputTokens,
+              false,
+              stepUsage.outputTokens,
+              reasoningTokens,
+            )
+
           step++
           usage.input += stepUsage.inputTokens ?? 0
           usage.output += stepUsage.outputTokens ?? 0
@@ -211,9 +321,19 @@ export async function runAgent(
       const result = await agent.stream({
         messages: toModelMessages(
           history,
-          [context, buildSkillCatalogContext(), skillContext]
-            .filter(Boolean)
-            .join('\n\n'),
+          {
+            instructions: [
+              context?.instructions,
+              buildSkillCatalogContext(),
+              skillContext,
+            ]
+              .filter(Boolean)
+              .join('\n\n'),
+            data: context?.data,
+          },
+          options.summary,
+          options.sources ?? [],
+          options.target?.resumeId,
         ),
         abortSignal: signal,
       })
@@ -233,8 +353,22 @@ export async function runAgent(
     stream,
     onError: (error) => onError(requestFailure ?? error),
   })) {
-    finalParts = toMessageParts(message)
+    finalParts = toMessageParts(message).map((part) =>
+      part.type === 'tool-call' && toolTargets.has(part.toolCallId)
+        ? { ...part, targetResumeId: toolTargets.get(part.toolCallId)! }
+        : part,
+    )
+
+    if (contextUsage) finalParts.push(contextUsage)
+
     callbacks.onParts?.(finalParts)
+  }
+
+  if (contextUsage) {
+    finalParts = [
+      ...finalParts.filter((part) => part.type !== 'context-usage'),
+      contextUsage,
+    ]
   }
 
   if (signal.aborted) {

@@ -3,7 +3,7 @@ import useShareStore from '../../store'
 import { deriveShareStatus } from '../../utils'
 
 export default function Overview() {
-  const { allShares, pageLoading, pageError } = useShareStore()
+  const { allShares, pageLoading, pageLoaded } = useShareStore()
 
   const metrics = [
     { label: '个分享', value: allShares.length },
@@ -18,7 +18,7 @@ export default function Overview() {
     },
   ]
 
-  if (pageLoading && allShares.length === 0) return <ShareOverviewSkeleton />
+  if (pageLoading && !pageLoaded) return <ShareOverviewSkeleton />
 
   return (
     <dl
@@ -38,9 +38,7 @@ export default function Overview() {
           <dd className='inline-flex items-center gap-1'>
             {index === 2 && <span>累计</span>}
             <span className='font-medium text-foreground tabular-nums'>
-              {pageError && allShares.length === 0
-                ? '—'
-                : value.toLocaleString()}
+              {pageLoaded ? value.toLocaleString() : '—'}
             </span>
             <span>{label}</span>
           </dd>

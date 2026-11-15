@@ -1,4 +1,5 @@
 import type { ExtractedResumeFile } from './types'
+import { createExperienceBlocks } from '../experience-sources/extract'
 import { createPdfTextAssembler } from './pdf-text'
 import {
   MAX_DOCX_EXPANDED_BYTES,
@@ -61,7 +62,7 @@ function readFile(file: File, signal?: AbortSignal): Promise<ArrayBuffer> {
 async function extractPdf(
   data: ArrayBuffer,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<Pick<ExtractedResumeFile, 'text' | 'blocks'>> {
   const [pdfjs, { default: workerUrl }] = await Promise.all([
     import('pdfjs-dist'),
     import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
@@ -160,7 +161,22 @@ async function extractPdf(
           : 'PDF 中有页面未提取到文字，可能包含扫描页。请检查原文件并改用粘贴，避免遗漏内容。',
       )
 
-    return validateText(pages.join('\n\n'))
+    const text = validateText(pages.join('\n\n'))
+    let offset = 0
+
+    const ranges = pages.flatMap((page, index) => {
+      const result = Array.from(page.matchAll(/[^\n]+/g), (match) => ({
+        start: offset + match.index,
+        end: offset + match.index + match[0].length,
+        page: index + 1,
+      }))
+
+      offset += page.length + 2
+
+      return result
+    })
+
+    return { text, blocks: createExperienceBlocks(text, ranges) }
   } catch (error) {
     checkAbort(signal)
 
@@ -187,7 +203,7 @@ async function extractPdf(
 async function extractDocx(
   data: ArrayBuffer,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<Pick<ExtractedResumeFile, 'text' | 'blocks'>> {
   const { Unzip, UnzipInflate } = await import('fflate')
 
   checkAbort(signal)
@@ -350,12 +366,28 @@ async function extractDocx(
 
       return rank(left) - rank(right) || left.localeCompare(right)
     })
-    .map(([, part]) => docxXmlToText(part.chunks))
+    .flatMap(([, part]) => docxXmlToText(part.chunks))
 
-  return validateText(output.join('\n'))
+  const joined = output.join('\n')
+  const text = validateText(joined)
+  const leading = joined.length - joined.trimStart().length
+  let offset = -leading
+
+  const ranges = output.map((paragraph) => {
+    const range = {
+      start: Math.max(0, offset),
+      end: Math.min(text.length, offset + paragraph.length),
+    }
+
+    offset += paragraph.length + 1
+
+    return range
+  })
+
+  return { text, blocks: createExperienceBlocks(text, ranges) }
 }
 
-function docxXmlToText(chunks: Uint8Array[]): string {
+function docxXmlToText(chunks: Uint8Array[]): string[] {
   const xmlBytes = new Uint8Array(
     chunks.reduce((size, chunk) => size + chunk.length, 0),
   )
@@ -410,7 +442,7 @@ function docxXmlToText(chunks: Uint8Array[]): string {
     },
   )
 
-  return paragraphs.join('\n')
+  return paragraphs
 }
 
 export async function extractResumeFile(
@@ -454,14 +486,14 @@ export async function extractResumeFile(
   }
 
   try {
-    const text =
+    const extracted =
       extension === 'pdf'
         ? await extractPdf(data, signal)
         : await extractDocx(data, signal)
 
     checkAbort(signal)
 
-    return { text, sourceName: file.name }
+    return { ...extracted, sourceName: file.name }
   } catch (error) {
     checkAbort(signal)
 

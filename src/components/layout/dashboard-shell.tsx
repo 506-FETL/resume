@@ -27,6 +27,7 @@ export function DashboardShell({
   const usesPageLayout = [
     WORKSPACE_PATH,
     '/resume',
+    '/experience',
     '/template',
     '/share',
     '/tracker',

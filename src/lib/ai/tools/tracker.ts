@@ -21,6 +21,7 @@ registerTool({
     '列出当前用户求职看板里的所有职位（公司、岗位、状态、城市等）。当用户问投了哪些公司、看板情况、求职进度时使用。',
   parameters: { type: 'object', properties: {}, additionalProperties: false },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async () => {
     const scope = getTrackerAccountScope()
 
@@ -59,6 +60,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'read',
+  policy: { scope: 'account', confirmation: 'none' },
   execute: async (args) => {
     const scope = getTrackerAccountScope()
 
@@ -120,6 +122,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'account', confirmation: 'required' },
   execute: async (args, context) => {
     const scope = getTrackerAccountScope()
     const jobId = String(args.jobId)
@@ -225,6 +228,7 @@ registerTool({
     additionalProperties: false,
   },
   mode: 'write',
+  policy: { scope: 'account', confirmation: 'required' },
   execute: async (args, context) => {
     const scope = getTrackerAccountScope()
     const data = (args.data ?? {}) as Record<string, unknown>

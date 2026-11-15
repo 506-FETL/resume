@@ -118,7 +118,7 @@ export function SectionRow({
         {/* 拖拽时省略内容，仅拖动紧凑表头；落下后表单从 store 重新填充 */}
         {!isDragging && (
           <AccordionContent className='h-auto p-0'>
-            <div className='max-h-[min(60dvh,42rem)] overflow-y-auto px-3 pb-4 [scrollbar-gutter:stable]'>
+            <div className='px-3 pb-4'>
               <CheckFields section={id}>{content}</CheckFields>
             </div>
           </AccordionContent>

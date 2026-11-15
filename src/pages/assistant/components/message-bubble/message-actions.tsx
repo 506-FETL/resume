@@ -4,7 +4,6 @@ import { Check, Copy, Pencil, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
-import { readableMessageText } from '../../composer-references'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -12,11 +11,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { MessageFooter } from '@/components/ui/message'
-import { getSkillReferences } from '@/lib/ai/skills/references'
+import { visibleMessageText } from '@/lib/ai/references'
 import { cn } from '@/lib/utils'
 
 interface MessageActionsProps {
   message: AiMessage
+  disabled?: boolean
   onEdit?: () => void
   onRegenerate?: () => void
 }
@@ -27,14 +27,7 @@ function getPlainText(message: AiMessage): string {
     .map((p) => (p as { text: string }).text)
     .join('\n')
 
-  if (message.role === 'user') {
-    return [
-      ...getSkillReferences(message.parts).map((skill) => skill.displayName),
-      readableMessageText(text),
-    ]
-      .filter(Boolean)
-      .join('\n')
-  }
+  if (message.role === 'user') return visibleMessageText(message.parts)
 
   return text
 }
@@ -43,6 +36,7 @@ export function MessageActions({
   message,
   onEdit,
   onRegenerate,
+  disabled,
 }: MessageActionsProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
@@ -109,6 +103,7 @@ export function MessageActions({
               size='icon-xs'
               aria-label='编辑'
               onClick={onEdit}
+              disabled={disabled}
             >
               <Pencil className='size-3.5' />
             </Button>
@@ -124,6 +119,7 @@ export function MessageActions({
               size='icon-xs'
               aria-label='重新生成'
               onClick={onRegenerate}
+              disabled={disabled}
             >
               <RefreshCw className='size-3.5' />
             </Button>
