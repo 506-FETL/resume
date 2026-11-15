@@ -79,6 +79,7 @@ export async function runAgent(
   const usage: AgentUsage = { input: 0, output: 0, total: 0 }
   const counter = createContextTokenCounter()
   let lastStepMessages: ModelMessage[] = []
+  let lastRequestInput: unknown
   let contextUsage: AiContextUsage | undefined
 
   const reportContext = (
@@ -244,6 +245,13 @@ export async function runAgent(
                 '本轮完整请求超过处理范围，请缩小材料范围。原记录已保留。',
               )
 
+            lastRequestInput = {
+              messages: payload.messages,
+              tools: payload.tools,
+            }
+
+            reportContext(estimateContextTokens(lastRequestInput), true)
+
             return await request(payload, init?.signal ?? signal)
           } catch (error) {
             requestFailure = error
@@ -273,11 +281,6 @@ export async function runAgent(
 
           lastStepMessages = prepared.messages
 
-          reportContext(
-            counter.estimate(lastStepMessages, estimateContextTokens(sdkTools)),
-            true,
-          )
-
           return prepared
         },
         ...(!thinking ? { temperature: 0 } : {}),
@@ -285,6 +288,16 @@ export async function runAgent(
           deepseek: { thinking: { type: thinking ? 'enabled' : 'disabled' } },
         },
         onStepFinish: ({ usage: stepUsage }) => {
+          const inputTokens =
+            typeof stepUsage.raw?.prompt_tokens === 'number'
+              ? stepUsage.inputTokens
+              : undefined
+
+          const outputTokens =
+            typeof stepUsage.raw?.completion_tokens === 'number'
+              ? stepUsage.outputTokens
+              : undefined
+
           const details = stepUsage.raw?.completion_tokens_details
 
           // DeepSeek SDK 会把缺失的推理用量补为 0，只有上游确实返回时才展示。
@@ -296,13 +309,16 @@ export async function runAgent(
               ? stepUsage.outputTokenDetails.reasoningTokens
               : undefined
 
-          counter.observe(lastStepMessages, stepUsage.inputTokens ?? 0)
+          if (inputTokens != null)
+            counter.observe(lastStepMessages, inputTokens, lastRequestInput)
 
-          if (stepUsage.inputTokens != null)
+          const reportedInput = inputTokens ?? contextUsage?.inputTokens
+
+          if (reportedInput != null)
             reportContext(
-              stepUsage.inputTokens,
-              false,
-              stepUsage.outputTokens,
+              reportedInput,
+              inputTokens == null,
+              outputTokens,
               reasoningTokens,
             )
 

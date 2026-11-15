@@ -45,6 +45,7 @@ export interface ExperienceSourceRelation extends ExperienceSourceReference {
 
 export interface ExperienceSource {
   id: string
+  conversationId?: string
   name: string
   kind: ExperienceSourceKind
   status: ExperienceSourceStatus
@@ -56,7 +57,7 @@ export interface ExperienceSource {
 
 export type ExperienceSourceMetadata = Pick<
   ExperienceSource,
-  'id' | 'name' | 'status' | 'currentVersionId' | 'updatedAt'
+  'id' | 'conversationId' | 'name' | 'status' | 'currentVersionId' | 'updatedAt'
 >
 
 export interface ExtractedExperienceFile {
@@ -114,14 +115,16 @@ export async function hashExperienceBytes(data: BufferSource): Promise<string> {
 
 export function hashExperienceRequest(input: {
   sourceId?: string
+  conversationId?: string
   name: string
   contentHash: string
   extracted: ExtractedExperienceFile
 }): Promise<string> {
-  const { sourceId, name, contentHash, extracted } = input
+  const { sourceId, conversationId, name, contentHash, extracted } = input
 
   const canonical = {
     sourceId: sourceId ?? null,
+    ...(conversationId ? { conversationId } : {}),
     name: name.trim(),
     contentHash,
     extracted: {

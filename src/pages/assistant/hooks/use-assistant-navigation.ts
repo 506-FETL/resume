@@ -13,6 +13,7 @@ import {
   useConversationReadScope,
 } from './conversation-reads'
 import { getErrorMessage } from '@/utils'
+import { useExperienceSourcesStore } from '@/store/experience-sources'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
 import { clearLastConversationId, writeLastConversationId } from '../utils'
 
@@ -174,6 +175,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
         if (activeConversationId === id) cancelActiveAssistantRun()
 
         await deleteConversation(id)
+        useExperienceSourcesStore.getState().invalidate()
         useAssistantStore.getState().removeConversationLocal(id)
         toast.success('已删除会话')
 

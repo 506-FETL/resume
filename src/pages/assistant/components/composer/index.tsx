@@ -300,7 +300,7 @@ export default function Composer() {
       )}
       {!hasExplicitSources && sourceScope.error && (
         <p className='mb-2 text-xs text-destructive' role='alert'>
-          职业档案读取失败
+          参考资料读取失败
           <InputGroupButton type='button' size='sm' onClick={sourceScope.retry}>
             重试
           </InputGroupButton>
@@ -308,7 +308,7 @@ export default function Composer() {
       )}
       {!hasExplicitSources && !sourceScope.sources && !sourceScope.error && (
         <p className='mb-2 text-xs text-muted-foreground' role='status'>
-          正在读取职业档案目录
+          正在读取参考资料目录
         </p>
       )}
       <QueuedMessages />
@@ -340,16 +340,18 @@ export default function Composer() {
               }}
               className='mb-2 flex items-center gap-2 text-xs'
             >
-              {['reading', 'saving'].includes(task.status) && (
+              {['preparing', 'reading', 'saving'].includes(task.status) && (
                 <Spinner className='size-3' />
               )}
               <span className='min-w-0 flex-1 truncate'>
                 {task.file.name} ·{' '}
-                {task.status === 'reading'
-                  ? '正在提取文字'
-                  : task.status === 'saving'
-                    ? '正在保存原件'
-                    : task.error}
+                {task.status === 'preparing'
+                  ? '正在准备对话'
+                  : task.status === 'reading'
+                    ? '正在读取文件'
+                    : task.status === 'saving'
+                      ? '正在保存原件'
+                      : task.error}
               </span>
               {['failed', 'unknown'].includes(task.status) && (
                 <InputGroupButton
@@ -517,7 +519,7 @@ export default function Composer() {
                     </InputGroupButton>
                   </TooltipTrigger>
                 </Tooltip>
-                <ContextUsage sources={composerSources} />
+                <ContextUsage />
                 <div className='ml-auto flex items-center gap-1'>
                   {running && (
                     <InputGroupButton

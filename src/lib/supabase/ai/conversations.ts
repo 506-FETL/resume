@@ -1,4 +1,5 @@
 import type { AiConversation, AiConversationSearchResult } from '@/lib/ai/types'
+import { deleteConversationExperienceSources } from '@/lib/experience-sources/api'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
@@ -58,16 +59,46 @@ export async function listConversations(): Promise<AiConversation[]> {
 
 export async function createConversation(
   title = '新对话',
+  options: { id?: string; ownerId?: string; signal?: AbortSignal } = {},
 ): Promise<AiConversation> {
   const user = await getCurrentUser()
 
-  if (!user) throw new Error('用户未登录')
+  options.signal?.throwIfAborted()
 
-  const { data, error } = await supabase
+  if (!user) throw new Error('用户未登录')
+  if (options.ownerId && user.id !== options.ownerId)
+    throw new Error('账户已切换，请重新创建对话。')
+
+  const id = options.id ?? crypto.randomUUID()
+
+  let request = supabase
     .from('ai_conversations')
-    .insert({ user_id: user.id, title })
+    .insert({ id, user_id: user.id, title })
     .select()
-    .single()
+
+  if (options.signal) request = request.abortSignal(options.signal)
+
+  const { data, error } = await request.single()
+
+  options.signal?.throwIfAborted()
+
+  if (error?.code === '23505') {
+    let lookup = supabase
+      .from('ai_conversations')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+
+    if (options.signal) lookup = lookup.abortSignal(options.signal)
+
+    const existing = await lookup.single()
+
+    options.signal?.throwIfAborted()
+
+    if (existing.error) throw existing.error
+
+    return mapConversation(existing.data)
+  }
 
   if (error) throw error
 
@@ -129,17 +160,7 @@ export async function updateConversationResumeBinding(
 }
 
 export async function deleteConversation(id: string): Promise<void> {
-  const user = await getCurrentUser()
-
-  if (!user) throw new Error('用户未登录')
-
-  const { error } = await supabase
-    .from('ai_conversations')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)
-
-  if (error) throw error
+  await deleteConversationExperienceSources(id)
 }
 
 export async function searchConversations({

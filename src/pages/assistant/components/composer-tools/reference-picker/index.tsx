@@ -226,17 +226,7 @@ export function ComposerReferencePicker({
                 </CommandGroup>
               ))}
               <CommandSeparator />
-              <CommandGroup heading='职业档案'>
-                <CommandItem
-                  value='从职业档案选择'
-                  onSelect={() => {
-                    setOpen(false)
-                    setSourcesOpen(true)
-                  }}
-                >
-                  <Archive />
-                  从职业档案选择
-                </CommandItem>
+              <CommandGroup heading='当前对话'>
                 <CommandItem
                   value='上传文件'
                   onSelect={() => {
@@ -247,6 +237,19 @@ export function ComposerReferencePicker({
                 >
                   <Upload />
                   上传文件
+                </CommandItem>
+              </CommandGroup>
+              <CommandSeparator />
+              <CommandGroup heading='职业档案'>
+                <CommandItem
+                  value='从职业档案选择'
+                  onSelect={() => {
+                    setOpen(false)
+                    setSourcesOpen(true)
+                  }}
+                >
+                  <Archive />
+                  从职业档案选择
                 </CommandItem>
               </CommandGroup>
             </CommandList>

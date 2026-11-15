@@ -65,8 +65,13 @@ export function createContextTokenCounter() {
   let measured: { messages: string[]; tokens: number } | undefined
 
   return {
-    observe(messages: ModelMessage[], inputTokens: number) {
-      recordContextUsage(messages, inputTokens)
+    observe(
+      messages: ModelMessage[],
+      inputTokens: number,
+      requestInput: unknown = messages,
+    ) {
+      // 实测输入包含工具定义，校准必须使用同一份完整请求。
+      recordContextUsage(requestInput, inputTokens)
 
       if (inputTokens > 0)
         measured = {

@@ -18,6 +18,7 @@ type Draft = Pick<
 
 const memoryDrafts = new Map<string, Draft>()
 const failedDrafts = new Set<string>()
+const newConversationDrafts = new Map<string, string>()
 
 let accountGeneration = 0
 
@@ -168,12 +169,26 @@ function writeDraft(key: string | null, state: Draft) {
   }
 }
 
+export function reserveNewConversationDraft(
+  store: StoreApi<AssistantStore>,
+  ownerId: string,
+  conversationId: string,
+) {
+  const state = store.getState()
+  const draftKey = `${ownerId}:${state.conversationViewVersion}`
+
+  newConversationDrafts.set(draftKey, conversationId)
+  writeDraft(`assistant-draft-v1:${ownerId}:${conversationId}`, state)
+  writeDraft(`assistant-draft-v1:${ownerId}:new`, emptyDraft())
+}
+
 export function updateConversationDraft(
   store: StoreApi<AssistantStore>,
   ownerId: string,
   conversationId: string,
   update: (draft: Draft) => Partial<Draft>,
   recoveryEpoch: number,
+  options: { pauseQueue?: boolean } = {},
 ) {
   if (getDraftRecoveryEpoch(ownerId) !== recoveryEpoch) return
 
@@ -181,7 +196,10 @@ export function updateConversationDraft(
     useUserStore.getState().currentUser?.id === ownerId &&
     store.getState().activeConversationId === conversationId
   ) {
-    store.setState({ ...update(store.getState()), queuePaused: true })
+    store.setState({
+      ...update(store.getState()),
+      ...(options.pauseQueue === false ? {} : { queuePaused: true }),
+    })
 
     return
   }
@@ -196,8 +214,15 @@ export function installComposerSessions(store: StoreApi<AssistantStore>) {
   let owner = useUserStore.getState().currentUser?.id ?? null
   let updating = false
 
-  const keyFor = (conversationId: string | null) =>
-    owner ? `assistant-draft-v1:${owner}:${conversationId ?? 'new'}` : null
+  const keyFor = (
+    conversationId: string | null,
+    view = store.getState().conversationViewVersion,
+  ) => {
+    const target =
+      conversationId ?? newConversationDrafts.get(`${owner}:${view}`) ?? 'new'
+
+    return owner ? `assistant-draft-v1:${owner}:${target}` : null
+  }
 
   store.setState({
     ...readDraft(keyFor(store.getState().activeConversationId)),
@@ -210,10 +235,17 @@ export function installComposerSessions(store: StoreApi<AssistantStore>) {
   store.subscribe((state, previous) => {
     if (updating) return
 
-    const changed = state.activeConversationId !== previous.activeConversationId
+    const previousKey = keyFor(
+      previous.activeConversationId,
+      previous.conversationViewVersion,
+    )
+
+    const changed =
+      keyFor(state.activeConversationId, state.conversationViewVersion) !==
+      previousKey
 
     if (changed) {
-      writeDraft(keyFor(previous.activeConversationId), previous)
+      writeDraft(previousKey, previous)
       updating = true
 
       // 首次发送创建了会话；同一草稿和排队项随新会话转移。
@@ -271,6 +303,10 @@ export function installComposerSessions(store: StoreApi<AssistantStore>) {
 
         memoryDrafts.delete(key)
         failedDrafts.delete(key)
+      }
+
+      for (const key of newConversationDrafts.keys()) {
+        if (key.startsWith(`${owner}:`)) newConversationDrafts.delete(key)
       }
 
       try {

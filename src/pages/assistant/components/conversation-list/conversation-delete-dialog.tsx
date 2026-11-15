@@ -41,7 +41,7 @@ export function ConversationDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除该会话？</AlertDialogTitle>
           <AlertDialogDescription>
-            {`「${title}」及其全部消息将被永久删除，无法恢复。`}
+            {`「${title}」中的消息和上传附件将被永久删除，无法恢复。引用的职业档案会保留。`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

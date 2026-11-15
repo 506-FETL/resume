@@ -184,9 +184,15 @@ export async function retryToolCall(toolCallId: string): Promise<boolean> {
               .map((source) => [source.id, source]),
           )
 
-          const sources = frozen.filter(
-            (source) => available.get(source.sourceId)?.status === 'ready',
-          )
+          const sources = frozen.filter((source) => {
+            const metadata = available.get(source.sourceId)
+
+            return (
+              metadata?.status === 'ready' &&
+              (!metadata.conversationId ||
+                metadata.conversationId === message.conversationId)
+            )
+          })
 
           const tool =
             registered ??

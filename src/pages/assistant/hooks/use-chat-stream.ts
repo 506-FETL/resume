@@ -333,7 +333,15 @@ export function useChatStream() {
 
       // 2. 后台确保会话存在
       let conversationId = initialConversationId
-      let isNewConversation = false
+
+      let isNewConversation = Boolean(
+        initialConversationId &&
+        !initialState.hasMoreMessages &&
+        !initialState.messages.some((message) => message.role === 'user') &&
+        initialState.conversations.find(
+          (conversation) => conversation.id === initialConversationId,
+        )?.title === DEFAULT_CONVERSATION_TITLE,
+      )
 
       try {
         if (!conversationId) {
@@ -545,6 +553,25 @@ export function useChatStream() {
         submission?.thinking ?? useAssistantStore.getState().deepThinking
 
       try {
+        const statuses = await Promise.all(
+          Array.from(
+            { length: Math.ceil(frozenSources.length / 100) },
+            (_, index) =>
+              getExperienceSourceMetadata(
+                frozenSources
+                  .slice(index * 100, (index + 1) * 100)
+                  .map((source) => source.sourceId),
+                controller.signal,
+              ),
+          ),
+        )
+
+        const available = new Map(
+          statuses
+            .flatMap((result) => result.items)
+            .map((source) => [source.id, source]),
+        )
+
         const selectedSources = references
           .filter(
             (reference) =>
@@ -555,6 +582,18 @@ export function useChatStream() {
             versionId: reference.versionId,
             name: reference.label,
           }))
+
+        if (
+          selectedSources.some((source) => {
+            const metadata = available.get(source.sourceId)
+
+            return (
+              metadata?.conversationId &&
+              metadata.conversationId !== conversationId
+            )
+          })
+        )
+          throw new Error('附件属于其他对话，请移除后在当前对话重新上传。')
 
         if (selectedSources.length) {
           const existing = await getExperienceRelations({
@@ -585,29 +624,12 @@ export function useChatStream() {
             }))
         }
 
-        const statuses = await Promise.all(
-          Array.from(
-            { length: Math.ceil(frozenSources.length / 100) },
-            (_, index) =>
-              getExperienceSourceMetadata(
-                frozenSources
-                  .slice(index * 100, (index + 1) * 100)
-                  .map((source) => source.sourceId),
-                controller.signal,
-              ),
-          ),
-        )
-
-        const available = new Map(
-          statuses
-            .flatMap((result) => result.items)
-            .map((source) => [source.id, source]),
-        )
-
         const runSources = frozenSources.flatMap((source) => {
           const metadata = available.get(source.sourceId)
 
-          return metadata?.status === 'ready'
+          return metadata?.status === 'ready' &&
+            (!metadata.conversationId ||
+              metadata.conversationId === conversationId)
             ? [
                 {
                   ...source,

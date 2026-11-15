@@ -123,19 +123,21 @@ export default function SourceViewer() {
             {downloading && <Spinner />}下载原件
           </Button>
         )}
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={() => {
-            setOpen(false)
+        {version && !detail?.source.conversationId && (
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => {
+              setOpen(false)
 
-            navigate(
-              `/experience?${new URLSearchParams({ sourceId: source.sourceId, versionId: source.versionId, ...(source.blockId ? { blockId: source.blockId } : {}) })}`,
-            )
-          }}
-        >
-          在资料库中管理
-        </Button>
+              navigate(
+                `/experience?${new URLSearchParams({ sourceId: source.sourceId, versionId: source.versionId, ...(source.blockId ? { blockId: source.blockId } : {}) })}`,
+              )
+            }}
+          >
+            在职业档案中管理
+          </Button>
+        )}
       </div>
     </>
   )

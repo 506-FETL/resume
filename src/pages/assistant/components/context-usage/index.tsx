@@ -8,83 +8,108 @@ import {
 import { InputGroupButton } from '@/components/ui/input-group'
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
+import AnimatedContent from '@/components/motion/animated-content'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   MODEL_CONTEXT_LIMITS,
   ASSISTANT_MODEL,
 } from '@/lib/ai/agent/context-budget'
-import { resolveActiveResumeId } from '@/lib/ai/active-resume'
-import type { ExperienceSourceRelation } from '@/lib/experience-sources/types'
-import { freezeSourceScope } from '../../store/source-scope'
-import { getUserReferences } from '@/lib/ai/references'
 import useAssistantStore from '../../store'
-import { BouncingDots } from '@/components/loading-ui/bouncing-dots'
 
 const tokenFormat = new Intl.NumberFormat('en-US', {
   notation: 'compact',
   maximumFractionDigits: 1,
 })
 
-export default function ContextUsage({
-  sources,
-}: {
-  sources?: ExperienceSourceRelation[]
-}) {
+export default function ContextUsage() {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dismissedRef = useRef(false)
   const reduced = useReducedMotion()
   const messages = useAssistantStore((state) => state.messages)
-  const streamingParts = useAssistantStore((state) => state.streamingParts)
-  const draft = useAssistantStore((state) => state.composerDraft)
-  const references = useAssistantStore((state) => state.composerReferences)
+
+  const conversationId = useAssistantStore(
+    (state) => state.activeConversationId,
+  )
+
+  const currentUsage = useAssistantStore((state) =>
+    state.streaming
+      ? state.streamingParts.find(
+          (part) =>
+            part.type === 'context-usage' && part.model === ASSISTANT_MODEL,
+        )
+      : undefined,
+  )
+
+  const streaming = useAssistantStore((state) => state.streaming)
+  const initializing = useAssistantStore((state) => state.initializing)
+  const loadingMessages = useAssistantStore((state) => state.loadingMessages)
+  const bootstrapError = useAssistantStore((state) => state.bootstrapError)
+
+  const switchingConversation = useAssistantStore(
+    (state) =>
+      state.pendingConversationId !== null &&
+      state.pendingConversationId !== state.activeConversationId,
+  )
+
   const phase = useAssistantStore((state) => state.runPhase)
 
-  const fingerprint = useMemo(() => {
-    const submitted = [...messages]
+  const previousUsage = useMemo(() => {
+    const assistant = [...messages]
       .reverse()
-      .find((message) => message.role === 'user')
+      .find(
+        (message) =>
+          message.role === 'assistant' &&
+          message.conversationId === conversationId,
+      )
 
-    const scope = freezeSourceScope(
-      sources ?? [],
-      submitted ? getUserReferences(submitted.parts) : [],
+    return assistant?.parts.find(
+      (part) => part.type === 'context-usage' && part.model === ASSISTANT_MODEL,
     )
+  }, [conversationId, messages])
 
-    return JSON.stringify(
-      scope.map((source) => [source.sourceId, source.versionId]).sort(),
-    )
-  }, [sources, messages])
+  const snapshot = switchingConversation
+    ? undefined
+    : (currentUsage ?? previousUsage)
 
-  const last = streamingParts.length
-    ? streamingParts
-    : (messages.at(-1)?.parts ?? [])
+  const actual = snapshot?.type === 'context-usage' ? snapshot : undefined
+  const input = actual?.inputTokens
+  const outputTotal = actual?.outputTokens
+  const reasoning = actual?.reasoningTokens
 
-  const actual = last.find((part) => part.type === 'context-usage')
-
-  const measured =
-    actual?.type === 'context-usage' &&
-    actual.model === ASSISTANT_MODEL &&
-    actual.sourceFingerprint === fingerprint &&
-    actual.targetResumeId === resolveActiveResumeId() &&
-    !draft &&
-    !references.length
-
-  const input = measured ? actual.inputTokens : undefined
-  const outputTotal = measured ? actual.outputTokens : undefined
-  const reasoning = measured ? actual.reasoningTokens : undefined
+  const status = actual
+    ? currentUsage
+      ? '本次调用'
+      : '上次调用'
+    : bootstrapError
+      ? '读取失败'
+      : initializing || loadingMessages
+        ? '读取中'
+        : streaming
+          ? '准备中'
+          : messages.length
+            ? '未记录'
+            : '未发送'
 
   const output =
     outputTotal == null
       ? undefined
       : Math.max(0, outputTotal - (reasoning ?? 0))
 
-  const estimated = !measured || actual.estimated
-  const used = input == null ? undefined : input + (outputTotal ?? 0)
+  const estimated = actual?.estimated ?? false
+
+  const used =
+    input == null ? undefined : input + (outputTotal ?? reasoning ?? 0)
+
+  const incompleteTotal = Boolean(actual && !estimated && outputTotal == null)
+  const totalPrefix = estimated ? '约 ' : outputTotal == null ? '≥ ' : ''
 
   const percent =
     used == null
       ? undefined
-      : Math.round((used / MODEL_CONTEXT_LIMITS.taskContextTokens) * 100)
+      : (incompleteTotal ? Math.floor : Math.round)(
+          (used / MODEL_CONTEXT_LIMITS.taskContextTokens) * 100,
+        )
 
   return (
     <HoverCard
@@ -102,8 +127,8 @@ export default function ContextUsage({
           size='sm'
           aria-label={
             percent == null
-              ? '上下文占用，尚未统计'
-              : `上下文占用，${estimated ? '约 ' : ''}${percent}%`
+              ? `上下文占用，${status}`
+              : `上下文占用，${status}，${totalPrefix}${percent}%`
           }
           aria-expanded={open}
           onClick={() => {
@@ -134,12 +159,14 @@ export default function ContextUsage({
           ) : (
             <Layers className='size-4' aria-hidden />
           )}
-          <span>
-            {percent == null ? (
-              <BouncingDots className='w-4 h-4' />
-            ) : (
-              `${estimated ? '约 ' : ''}${percent}%`
-            )}
+          <span className='relative inline-flex min-w-6 justify-center tabular-nums'>
+            <AnimatedContent
+              as='span'
+              animationKey={actual ? 'usage' : status}
+              mode='popLayout'
+            >
+              {percent == null ? status : `${totalPrefix}${percent}%`}
+            </AnimatedContent>
           </span>
         </InputGroupButton>
       </HoverCardTrigger>
@@ -160,11 +187,11 @@ export default function ContextUsage({
         style={reduced ? { animationDuration: '0s' } : undefined}
       >
         <div className='flex items-center justify-between gap-2 text-sm'>
-          <span className='font-medium'>Context</span>
+          <span className='font-medium'>上下文</span>
           <span className='text-muted-foreground tabular-nums'>
             {used == null
-              ? '—'
-              : `${estimated ? '约 ' : ''}${tokenFormat.format(used)}`}
+              ? status
+              : `${totalPrefix}${incompleteTotal ? used.toLocaleString('en-US') : tokenFormat.format(used)}`}
             {' / '}
             {tokenFormat.format(MODEL_CONTEXT_LIMITS.taskContextTokens)}
           </span>
@@ -173,25 +200,39 @@ export default function ContextUsage({
           value={percent == null ? undefined : Math.min(percent, 100)}
           aria-label='上下文占用'
           aria-valuetext={
-            percent == null
-              ? '尚未统计'
-              : `${estimated ? '约 ' : ''}${percent}%`
+            percent == null ? status : `${totalPrefix}${percent}%`
           }
         />
         <dl className='grid grid-cols-2 gap-y-2 text-sm'>
-          <dt className='text-muted-foreground'>输入</dt>
+          <dt className='text-muted-foreground'>模型输入</dt>
           <dd className='text-right tabular-nums'>
-            {input == null ? '—' : tokenFormat.format(input)}
+            {input == null
+              ? status === '未发送'
+                ? '发送后统计'
+                : '未统计'
+              : `${estimated ? '约 ' : ''}${tokenFormat.format(input)}`}
           </dd>
           <dt className='text-muted-foreground'>输出</dt>
           <dd className='text-right tabular-nums'>
-            {output == null ? '—' : tokenFormat.format(output)}
+            {output == null
+              ? status === '未发送'
+                ? '尚未生成'
+                : '未返回'
+              : tokenFormat.format(output)}
           </dd>
           <dt className='text-muted-foreground'>推理</dt>
           <dd className='text-right tabular-nums'>
-            {reasoning == null ? '-' : tokenFormat.format(reasoning)}
+            {reasoning == null
+              ? status === '未发送'
+                ? '尚未生成'
+                : '未返回'
+              : tokenFormat.format(reasoning)}
           </dd>
         </dl>
+        <p className='text-xs leading-relaxed text-muted-foreground'>
+          {actual ? `${status} token。` : ''}
+          输入包含对话、资料、系统提示和工具定义。
+        </p>
       </HoverCardContent>
     </HoverCard>
   )

@@ -5,6 +5,7 @@ import { useExperienceSourcesStore } from '@/store/experience-sources'
 export async function persistExperienceUpload(options: {
   operationId: string
   sourceId?: string
+  conversationId?: string
   name: string
   file?: File
   text?: string
@@ -41,6 +42,7 @@ export async function persistExperienceUpload(options: {
     return await saveExperienceSource({
       operationId: options.operationId,
       sourceId: options.sourceId,
+      conversationId: options.conversationId,
       name: options.name,
       extracted,
       file: options.file,

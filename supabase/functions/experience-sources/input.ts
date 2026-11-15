@@ -34,6 +34,7 @@ export type ExperienceInput =
       action: 'save'
       operationId: string
       sourceId?: string
+      conversationId?: string
       name: string
       extracted: ExtractedExperienceFile
     }
@@ -48,6 +49,7 @@ export type ExperienceInput =
   | { action: 'download'; sourceId: string; versionId?: string }
   | { action: 'rename'; sourceId: string; name: string }
   | { action: 'delete'; sourceId: string }
+  | { action: 'delete-conversation'; conversationId: string }
   | {
       action: 'search'
       query: string
@@ -248,6 +250,9 @@ export function parseExperienceInput(value: unknown): ExperienceInput {
         ...(input.sourceId === undefined
           ? {}
           : { sourceId: uuid(input.sourceId) }),
+        ...(input.conversationId === undefined
+          ? {}
+          : { conversationId: uuid(input.conversationId) }),
         name: string(input.name, 160).trim(),
         extracted: extracted(input.extracted),
       }
@@ -291,6 +296,8 @@ export function parseExperienceInput(value: unknown): ExperienceInput {
       }
     case 'delete':
       return { action, sourceId: uuid(input.sourceId) }
+    case 'delete-conversation':
+      return { action, conversationId: uuid(input.conversationId) }
     case 'search': {
       if (!Array.isArray(input.sourceIds) || input.sourceIds.length > 200)
         invalid()

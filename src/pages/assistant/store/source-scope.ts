@@ -36,8 +36,46 @@ export function peekSourceScope(target: SourceScopeTarget) {
   return scopes.get(sourceScopeKey(target))
 }
 
-export function loadSourceScope(target: SourceScopeTarget) {
-  return loadLibraryScope(target)
+export function loadSourceScope(
+  target: SourceScopeTarget,
+): Promise<ExperienceSourceRelation[]> {
+  const key = sourceScopeKey(target)
+  const cached = scopes.get(key)
+
+  if (cached) return Promise.resolve(cached)
+
+  const pendingKey = `scope:${key}`
+  const current = pending.get(pendingKey)
+
+  if (current) return current
+
+  const request = Promise.all([
+    loadLibraryScope(target),
+    target.conversationId
+      ? loadSourceCatalog(target.ownerId, target.conversationId)
+      : Promise.resolve([]),
+  ])
+    .then(([library, conversation]) => {
+      if (
+        sourceScopeKey(target) !== key ||
+        useUserStore.getState().currentUser?.id !== target.ownerId
+      )
+        throw new Error('资料已变化，请重新读取。')
+
+      const sources = [...library, ...conversation]
+
+      scopes.set(key, sources)
+      details.set(key, { conversation, resume: [] })
+
+      return sources
+    })
+    .finally(() => {
+      if (pending.get(pendingKey) === request) pending.delete(pendingKey)
+    })
+
+  pending.set(pendingKey, request)
+
+  return request
 }
 
 export function loadLibraryScope(
@@ -46,88 +84,78 @@ export function loadLibraryScope(
   const ownerId =
     target?.ownerId ?? useUserStore.getState().currentUser?.id ?? ''
 
-  const catalogTarget = {
-    ownerId,
-    conversationId: null,
-    resumeId: null,
-    scopeRevision: 0,
-  }
+  return loadSourceCatalog(ownerId, null)
+}
 
-  const key = sourceScopeKey(catalogTarget)
-  const targetKey = target ? sourceScopeKey(target) : key
+function loadSourceCatalog(
+  ownerId: string,
+  conversationId: string | null,
+): Promise<ExperienceSourceRelation[]> {
+  const target = { ownerId, conversationId, resumeId: null, scopeRevision: 0 }
+  const key = `catalog:${sourceScopeKey(target)}`
   const cached = scopes.get(key)
 
-  if (cached) {
-    scopes.set(targetKey, cached)
+  if (cached) return Promise.resolve(cached)
 
-    return Promise.resolve(cached)
-  }
+  const current = pending.get(key)
 
-  let request = pending.get(key)
+  if (current) return current
 
-  if (!request) {
-    request = (async () => {
-      const sources: ExperienceSourceRelation[] = []
-      let after: string | undefined
+  const request = (async () => {
+    const sources: ExperienceSourceRelation[] = []
+    let after: string | undefined
 
-      while (true) {
-        let query = supabase
-          .from('experience_sources')
-          .select('id,name,current_version_id,updated_at')
-          .eq('owner_id', ownerId)
-          .eq('status', 'ready')
-          .neq('kind', 'image')
-          .order('id')
-          .limit(200)
+    while (true) {
+      let query = supabase
+        .from('experience_sources')
+        .select('id,name,current_version_id,updated_at')
+        .eq('owner_id', ownerId)
+        .eq('status', 'ready')
+        .neq('kind', 'image')
+        .order('id')
+        .limit(200)
 
-        if (after) query = query.gt('id', after)
+      query = conversationId
+        ? query.eq('conversation_id', conversationId)
+        : query.is('conversation_id', null)
 
-        const { data, error } = await query
+      if (after) query = query.gt('id', after)
 
-        if (error) throw error
-        if (
-          useUserStore.getState().currentUser?.id !== ownerId ||
-          sourceScopeKey(catalogTarget) !== key
-        )
-          throw new Error('职业档案已变化，请重新读取。')
+      const { data, error } = await query
 
-        for (const source of data) {
-          if (source.current_version_id)
-            sources.push({
-              sourceId: source.id,
-              name: source.name,
-              versionId: source.current_version_id,
-              currentVersionId: source.current_version_id,
-              updatedAt: source.updated_at,
-            })
-        }
+      if (error) throw error
+      if (
+        useUserStore.getState().currentUser?.id !== ownerId ||
+        `catalog:${sourceScopeKey(target)}` !== key
+      )
+        throw new Error('资料已变化，请重新读取。')
 
-        if (data.length < 200) break
-
-        after = data[data.length - 1].id
+      for (const source of data) {
+        if (source.current_version_id)
+          sources.push({
+            sourceId: source.id,
+            name: source.name,
+            versionId: source.current_version_id,
+            currentVersionId: source.current_version_id,
+            updatedAt: source.updated_at,
+          })
       }
 
-      scopes.set(key, sources)
+      if (data.length < 200) break
 
-      return sources
-    })().finally(() => {
-      if (pending.get(key) === request) pending.delete(key)
-    })
+      after = data[data.length - 1].id
+    }
 
-    pending.set(key, request)
-  }
-
-  return request.then((sources) => {
-    if (
-      sourceScopeKey(catalogTarget) !== key ||
-      useUserStore.getState().currentUser?.id !== ownerId
-    )
-      throw new Error('职业档案已变化，请重新读取。')
-
-    scopes.set(targetKey, sources)
+    scopes.set(key, sources)
 
     return sources
+  })().finally(() => {
+    if (pending.get(key) === request) pending.delete(key)
   })
+
+  pending.set(key, request)
+
+  return request
 }
 
 export function freezeSourceScope(

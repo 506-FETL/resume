@@ -118,6 +118,7 @@ export function getExperienceOperation(
 export async function saveExperienceSource(options: {
   operationId: string
   sourceId?: string
+  conversationId?: string
   name: string
   extracted: ExtractedExperienceFile
   file?: File
@@ -203,6 +204,13 @@ export async function deleteExperienceSource(
   signal?: AbortSignal,
 ): Promise<void> {
   await request({ action: 'delete', sourceId }, { signal })
+}
+
+export async function deleteConversationExperienceSources(
+  conversationId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  await request({ action: 'delete-conversation', conversationId }, { signal })
 }
 
 export function searchExperienceSources(options: {

@@ -22,7 +22,7 @@ import type { ExperienceInput } from './input.ts'
 const BUCKET = 'experience-source-originals'
 
 const SOURCE_FIELDS =
-  'id,name,kind,status,current_version_id,preview_text,created_at,updated_at'
+  'id,conversation_id,name,kind,status,current_version_id,preview_text,created_at,updated_at'
 
 const VERSION_FIELDS =
   'id,source_id,source_name,content_hash,file_name,file_mime,file_size,extractor_version,text_length,block_count,created_at'
@@ -46,6 +46,7 @@ type VersionRow = {
 
 type SourceRow = {
   id: string
+  conversation_id: string | null
   name: string
   kind: ExperienceSource['kind']
   status: ExperienceSource['status']
@@ -58,6 +59,7 @@ type SourceRow = {
 function sourceResult(row: SourceRow): ExperienceSource {
   return {
     id: row.id,
+    ...(row.conversation_id ? { conversationId: row.conversation_id } : {}),
     name: row.name,
     kind: row.kind,
     status: row.status,
@@ -164,6 +166,47 @@ async function boundedForm(request: Request): Promise<FormData> {
   }
 }
 
+async function deleteSource(
+  admin: SupabaseClient,
+  owner: string,
+  sourceId: string,
+) {
+  const { data: paths, error } = await admin.rpc(
+    'begin_delete_experience_source',
+    { p_owner: owner, p_source: sourceId },
+  )
+
+  if (error) throw error
+
+  for (let offset = 0; offset < paths.length; offset += 100) {
+    const { error: removeError } = await admin.storage
+      .from(BUCKET)
+      .remove(paths.slice(offset, offset + 100))
+
+    if (removeError) {
+      await admin
+        .from('experience_sources')
+        .update({
+          status: 'delete-failed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('owner_id', owner)
+        .eq('id', sourceId)
+
+      fail('delete_failed', '原文件未能全部删除，请重试删除。', 503)
+    }
+  }
+
+  const { error: deleteError } = await admin
+    .from('experience_sources')
+    .delete()
+    .eq('owner_id', owner)
+    .eq('id', sourceId)
+    .in('status', ['deleting', 'delete-failed'])
+
+  if (deleteError) throw deleteError
+}
+
 async function handleExperienceInput(
   admin: SupabaseClient,
   owner: string,
@@ -176,7 +219,7 @@ async function handleExperienceInput(
 
       const { data, error } = await admin
         .from('experience_sources')
-        .select('id,name,status,current_version_id,updated_at')
+        .select('id,conversation_id,name,status,current_version_id,updated_at')
         .eq('owner_id', owner)
         .in('id', input.sourceIds)
 
@@ -184,6 +227,7 @@ async function handleExperienceInput(
 
       const items = (data ?? []).map((row) => ({
         id: row.id,
+        ...(row.conversation_id ? { conversationId: row.conversation_id } : {}),
         name: row.name,
         status: row.status,
         currentVersionId: row.current_version_id,
@@ -203,6 +247,7 @@ async function handleExperienceInput(
         .from('experience_sources')
         .select(SOURCE_FIELDS, { count: 'exact' })
         .eq('owner_id', owner)
+        .is('conversation_id', null)
 
       if (input.kind === 'paste') query = query.eq('kind', 'paste')
       else if (input.kind === 'files') query = query.neq('kind', 'paste')
@@ -268,6 +313,7 @@ async function handleExperienceInput(
 
       const requestHash = await hashExperienceRequest({
         sourceId: input.sourceId,
+        conversationId: input.conversationId,
         name: input.name,
         contentHash,
         extracted,
@@ -284,6 +330,7 @@ async function handleExperienceInput(
           p_hash: contentHash,
           p_request_hash: requestHash,
           p_has_file: Boolean(file),
+          p_conversation: input.conversationId ?? null,
         },
       )
 
@@ -494,41 +541,50 @@ async function handleExperienceInput(
     }
 
     case 'delete': {
-      const { data: paths, error } = await admin.rpc(
-        'begin_delete_experience_source',
-        { p_owner: owner, p_source: input.sourceId },
-      )
+      await deleteSource(admin, owner, input.sourceId)
 
-      if (error) throw error
+      return { deleted: true }
+    }
 
-      if (paths.length) {
-        for (let offset = 0; offset < paths.length; offset += 100) {
-          const { error: removeError } = await admin.storage
-            .from(BUCKET)
-            .remove(paths.slice(offset, offset + 100))
+    case 'delete-conversation': {
+      const { data: conversation, error: targetError } = await admin
+        .from('ai_conversations')
+        .select('id')
+        .eq('user_id', owner)
+        .eq('id', input.conversationId)
+        .maybeSingle()
 
-          if (removeError) {
-            await admin
-              .from('experience_sources')
-              .update({
-                status: 'delete-failed',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('owner_id', owner)
-              .eq('id', input.sourceId)
+      if (targetError) throw targetError
+      if (!conversation) return { deleted: true }
 
-            fail('delete_failed', '原文件未能全部删除，请重试删除。', 503)
-          }
-        }
+      while (true) {
+        const { data: sources, error } = await admin
+          .from('experience_sources')
+          .select('id')
+          .eq('owner_id', owner)
+          .eq('conversation_id', input.conversationId)
+          .order('id')
+          .limit(100)
+
+        if (error) throw error
+        if (!sources.length) break
+
+        for (const source of sources)
+          await deleteSource(admin, owner, source.id)
       }
 
       const { error: deleteError } = await admin
-        .from('experience_sources')
+        .from('ai_conversations')
         .delete()
-        .eq('owner_id', owner)
-        .eq('id', input.sourceId)
-        .in('status', ['deleting', 'delete-failed'])
+        .eq('user_id', owner)
+        .eq('id', input.conversationId)
 
+      if (deleteError?.code === '23503')
+        fail(
+          'conversation_files_remaining',
+          '对话仍有文件正在保存，请稍后重试删除。',
+          409,
+        )
       if (deleteError) throw deleteError
 
       return { deleted: true }
@@ -721,6 +777,7 @@ Deno.serve(async (request: Request) => {
       operation_conflict: [409, '本次操作内容已改变，请重新发起保存。'],
       source_not_found: [404, '资料不存在或已删除。'],
       source_unavailable: [409, '资料正在删除，暂时无法读取或更新。'],
+      source_scope_mismatch: [409, '这份文件不能改存到其他位置，请重新上传。'],
       target_not_found: [404, '会话或简历不存在。'],
       upload_in_progress: [409, '资料仍在保存，请稍后重试删除。'],
     }

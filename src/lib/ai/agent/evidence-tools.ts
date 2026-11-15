@@ -127,7 +127,7 @@ export function createEvidenceTools(
     {
       name: 'search_experience_sources',
       description:
-        '在本轮冻结的职业档案中按需检索；用户明确附加档案时仅包含这些附件，没有显式附件时才使用账户目录。返回真实版本、段落、页码与相邻上下文。没有结果时可按段落读取，不能扩展到本轮范围以外的资料。',
+        '在本轮冻结的资料中按需检索；用户明确附加资料时仅包含这些附件，没有显式附件时才使用职业档案和当前对话附件目录。返回真实版本、段落、页码与相邻上下文。没有结果时可按段落读取，不能扩展到本轮范围以外的资料。',
       mode: 'read',
       policy: { scope: 'selected-sources', confirmation: 'none' },
       parameters: {
@@ -143,7 +143,7 @@ export function createEvidenceTools(
 
         if (!sources.length)
           return {
-            message: '本轮没有可读取的职业档案，请从 + 中上传文件或选择档案。',
+            message: '本轮没有可读取的资料，请从 + 中上传文件或选择职业档案。',
             matches: [],
           }
 
