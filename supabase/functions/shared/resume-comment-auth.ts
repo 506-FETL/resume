@@ -55,7 +55,7 @@ function bytesToBase64Url(bytes: Uint8Array): string {
     .replace(/=+$/g, '')
 }
 
-function base64UrlToBytes(value: string): Uint8Array {
+function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
   const base64 = value
     .replace(/-/g, '+')
     .replace(/_/g, '/')
@@ -127,7 +127,7 @@ export async function verifyCommentToken<
   }
 
   let payloadValue: unknown
-  let signature: Uint8Array
+  let signature: Uint8Array<ArrayBuffer>
 
   try {
     payloadValue = JSON.parse(

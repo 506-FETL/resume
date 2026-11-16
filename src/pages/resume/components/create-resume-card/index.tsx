@@ -1,21 +1,5 @@
-import { jobContextUrl, useJobContextStore } from '@/lib/job-context'
-import { toast } from 'sonner'
-import type { ReactNode, RefObject } from 'react'
-import type { CreationStep } from './types'
-import type { ResumeProfile } from '@/lib/resume-preparation/types'
-import { ArrowLeft, ArrowRight, FileText, Plus, Target, X } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import {
-  AnimatePresence,
-  motion,
-  useAnimationControls,
-  usePresence,
-} from 'motion/react'
-import { useNavigate } from 'react-router-dom'
-import useMeasure from 'react-use-measure'
+import { FormSkeleton } from '@/components/loading-skeleton'
 import { Button } from '@/components/ui/button'
-import { ContentSkeleton, FormSkeleton } from '@/components/loading-skeleton'
 import {
   Dialog,
   DialogContent,
@@ -24,17 +8,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
-import { PROFILE_GUIDES } from '@/lib/resume-preparation/const'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useUserStore from '@/store/user'
+import { Plus, X } from 'lucide-react'
+import { AnimatePresence } from 'motion/react'
+import type { ReactNode, RefObject } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import useMeasure from 'react-use-measure'
+import { CreationChoices } from './components/choose-step'
+import { CreationFooter } from './components/creation-footer'
+import { CreationStepPanel } from './components/creation-step-panel'
 import ImportPreview from './components/import-preview'
 import ImportSource from './components/import-source'
+import { CreationJob } from './components/job-step'
+import { CreationProfile } from './components/profile-step'
+import TemplatePicker from './components/template-picker'
 import { useCreationFlow } from './hooks/use-creation-flow'
 import { useCreationDraftStore } from './store'
-import { importReady } from './utils'
-import TemplatePicker from './components/template-picker'
+import type { CreationStep } from './types'
 
 export default function CreateResumeCard({
   trigger,
@@ -53,10 +47,8 @@ export default function CreateResumeCard({
   hideTrigger?: boolean
   returnFocusRef?: RefObject<HTMLElement | null>
 }) {
-  const jobContext = useJobContextStore((state) => state.context)
   const reduceMotion = useReducedMotion()
   const [measureRef, bounds, refreshBounds] = useMeasure({ offsetSize: true })
-  const navigate = useNavigate()
   const user = useUserStore((state) => state.currentUser)
   const isOnline = Boolean(user) && (online ?? true)
   const [localOpen, setLocalOpen] = useState(false)
@@ -72,8 +64,6 @@ export default function CreateResumeCard({
   const loadedScope = useCreationDraftStore((state) => state.scope)
   const ready = useCreationDraftStore((state) => state.ready)
   const saveError = useCreationDraftStore((state) => state.saveError)
-  const saving = useCreationDraftStore((state) => state.saving)
-  const patch = useCreationDraftStore((state) => state.patch)
 
   const flow = useCreationFlow({
     open: isOpen,
@@ -83,16 +73,11 @@ export default function CreateResumeCard({
   })
 
   const list = useResumeListStore()
-  const accountId = list.libraryAccountId
-  const listLoading = list.libraryOptionsLoading
-  const listError = list.libraryOptionsError
   const loadOptions = list.loadLibraryOptions
 
   useEffect(() => {
     if (isOpen && step === 'job') loadOptions()
   }, [isOpen, step, user?.id, loadOptions])
-
-  const resumes = accountId === (user?.id ?? null) ? list.libraryOptions : []
 
   useLayoutEffect(() => {
     if (!reduceMotion) return
@@ -124,9 +109,6 @@ export default function CreateResumeCard({
   const draftReady = ready && loadedScope === flow.scope
   const busy = flow.creating || flow.reading
   const templateWorkspace = step === 'template' || step === 'details'
-
-  const storageMode =
-    draft.creation?.mode ?? draft.creationMode ?? (isOnline ? 'cloud' : 'local')
 
   function go(next: CreationStep) {
     panelHostRef.current?.focus()
@@ -269,143 +251,9 @@ export default function CreateResumeCard({
                     )}
                   >
                     {step === 'choose' && (
-                      <div className='space-y-3 py-1'>
-                        {(draft.sourceText ||
-                          draft.content ||
-                          draft.selectedTemplate ||
-                          draft.creation) && (
-                          <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/50 p-3'>
-                            <p className='text-sm'>
-                              {draft.creation
-                                ? '上次创建尚未确认'
-                                : draft.contentSource === 'profile' ||
-                                    draft.contentSource === 'template'
-                                  ? '有一份未完成的简历'
-                                  : '有一份导入草稿'}
-                            </p>
-                            <div className='flex items-center gap-1'>
-                              <Button
-                                size='sm'
-                                variant='outline'
-                                onClick={() =>
-                                  go(
-                                    draft.creation || draft.selectedTemplate
-                                      ? 'details'
-                                      : draft.contentSource === 'profile'
-                                        ? 'template'
-                                        : draft.content
-                                          ? 'review'
-                                          : 'import',
-                                  )
-                                }
-                              >
-                                {draft.creation ||
-                                draft.contentSource === 'profile' ||
-                                draft.contentSource === 'template'
-                                  ? '继续创建'
-                                  : '继续导入'}
-                              </Button>
-                              {(draft.sourceText ||
-                                draft.content ||
-                                draft.selectedTemplate) &&
-                                !draft.creation && (
-                                  <Button
-                                    variant='ghost'
-                                    size='icon-sm'
-                                    aria-label='清除草稿'
-                                    onClick={() => {
-                                      headingRef.current?.focus()
-
-                                      useCreationDraftStore
-                                        .getState()
-                                        .discard()
-                                        .catch(() => undefined)
-                                    }}
-                                  >
-                                    <X className='size-4' />
-                                  </Button>
-                                )}
-                            </div>
-                          </div>
-                        )}
-                        {[
-                          {
-                            step: 'import' as const,
-                            title: '我有旧简历',
-                            description: '导入 PDF、DOCX，或粘贴文字',
-                            icon: FileText,
-                          },
-                          {
-                            step: 'profile' as const,
-                            title: '从零整理经历',
-                            description: '选一份示例，改成自己的经历',
-                            icon: Plus,
-                          },
-                          {
-                            step: 'job' as const,
-                            title: '我有目标岗位',
-                            description: '选一份简历，按岗位要求调整',
-                            icon: Target,
-                          },
-                        ].map((item) => (
-                          <Button
-                            variant='outline'
-                            key={item.step}
-                            type='button'
-                            disabled={Boolean(draft.creation)}
-                            onClick={() => go(item.step)}
-                            className='h-auto w-full justify-start gap-3 rounded-lg p-4 text-left whitespace-normal shadow-none transition-colors hover:bg-accent/50 motion-reduce:transition-none'
-                          >
-                            <item.icon className='size-5 shrink-0 text-muted-foreground' />
-                            <span className='min-w-0 flex-1'>
-                              <span className='block font-medium'>
-                                {item.title}
-                              </span>
-                              <span className='mt-1 block text-xs text-muted-foreground'>
-                                {item.description}
-                              </span>
-                            </span>
-                            <ArrowRight className='size-4 text-muted-foreground' />
-                          </Button>
-                        ))}
-                      </div>
+                      <CreationChoices go={go} headingRef={headingRef} />
                     )}
-                    {step === 'profile' && (
-                      <div className='space-y-3'>
-                        {(
-                          Object.entries(PROFILE_GUIDES) as [
-                            ResumeProfile,
-                            (typeof PROFILE_GUIDES)[ResumeProfile],
-                          ][]
-                        ).map(([key, guide]) => (
-                          <Button
-                            variant='outline'
-                            type='button'
-                            key={key}
-                            disabled={Boolean(draft.creation)}
-                            aria-pressed={draft.profile === key}
-                            onClick={() => patch({ profile: key })}
-                            className={cn(
-                              'block h-auto w-full rounded-lg p-4 text-left whitespace-normal shadow-none transition-colors motion-reduce:transition-none',
-                              draft.profile === key
-                                ? 'border-primary bg-muted/50'
-                                : 'hover:bg-muted/30',
-                            )}
-                          >
-                            <span className='block text-sm font-medium'>
-                              {guide.label}
-                            </span>
-                            <span className='mt-1 block text-xs leading-5 text-muted-foreground'>
-                              {key === 'graduate'
-                                ? '教育、实习与项目'
-                                : key === 'experienced'
-                                  ? '工作职责与项目成果'
-                                  : '相关经历与可迁移技能'}
-                            </span>
-                          </Button>
-                        ))}
-                      </div>
-                    )}
+                    {step === 'profile' && <CreationProfile />}
                     {step === 'import' && (
                       <ImportSource
                         onFile={flow.readFile}
@@ -423,84 +271,7 @@ export default function CreateResumeCard({
                       />
                     )}
                     {step === 'job' && (
-                      <div className='space-y-3'>
-                        <p className='text-sm text-muted-foreground'>
-                          选择原简历，生成岗位定制版本。
-                        </p>
-                        {listLoading ? (
-                          <ContentSkeleton
-                            label='正在读取简历选项'
-                            rows={3}
-                            className='px-0'
-                          />
-                        ) : listError ? (
-                          <div role='alert' className='space-y-2 text-sm'>
-                            <p>简历列表暂时没有加载成功。</p>
-                            <Button
-                              variant='outline'
-                              onClick={() => loadOptions(true)}
-                            >
-                              重新加载
-                            </Button>
-                          </div>
-                        ) : (
-                          resumes
-                            .filter(
-                              (resume) =>
-                                resume.derived_status !== 'generating',
-                            )
-                            .map((resume) => (
-                              <Button
-                                key={resume.resume_id}
-                                variant='outline'
-                                className='w-full justify-between'
-                                onClick={() => {
-                                  if (jobContext && !jobContext.jdText.trim()) {
-                                    toast.info('请先返回岗位补充 JD 原文')
-
-                                    return
-                                  }
-
-                                  useResumeListStore
-                                    .getState()
-                                    .openDeriveFor(resume.resume_id)
-
-                                  setIsOpen(false)
-
-                                  navigate(
-                                    jobContext
-                                      ? jobContextUrl('/resume', jobContext.id)
-                                      : '/resume',
-                                  )
-                                }}
-                              >
-                                <span className='truncate'>
-                                  {resume.display_name || '未命名简历'}
-                                </span>
-                                <ArrowRight className='size-4 shrink-0' />
-                              </Button>
-                            ))
-                        )}
-                        {!listLoading && !listError && resumes.length === 0 && (
-                          <>
-                            <p className='text-sm'>
-                              先准备一份简历，再带入目标岗位。
-                            </p>
-                            <Button
-                              variant='outline'
-                              onClick={() => go('import')}
-                            >
-                              导入旧简历
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              onClick={() => go('profile')}
-                            >
-                              从零开始
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                      <CreationJob go={go} onClose={() => setIsOpen(false)} />
                     )}
                   </div>
                   {(flow.error || saveError) && (
@@ -530,99 +301,14 @@ export default function CreateResumeCard({
                       创建尚未确认，重试不会重复保存。
                     </p>
                   )}
-                  {step !== 'choose' && (
-                    <div className='flex shrink-0 items-center justify-between gap-2 border-t pt-3'>
-                      <Button
-                        size='sm'
-                        variant='ghost'
-                        disabled={busy}
-                        onClick={() =>
-                          go(
-                            draft.creation
-                              ? 'choose'
-                              : step === 'details'
-                                ? 'template'
-                                : step === 'template'
-                                  ? draft.contentSource === 'template'
-                                    ? 'choose'
-                                    : draft.contentSource === 'profile'
-                                      ? 'profile'
-                                      : 'review'
-                                  : step === 'review'
-                                    ? 'import'
-                                    : 'choose',
-                          )
-                        }
-                      >
-                        <ArrowLeft className='size-4' />
-                        返回
-                      </Button>
-                      <div className='flex min-w-0 flex-1 items-center justify-end gap-3'>
-                        {templateWorkspace && (
-                          <span className='max-w-44 truncate text-xs text-muted-foreground'>
-                            {draft.selectedTemplate?.name ??
-                              draft.creation?.selection?.name ??
-                              '请选择模板'}{' '}
-                            · {storageMode === 'cloud' ? '云端' : '本地'}
-                          </span>
-                        )}
-                        {step === 'review' && (
-                          <Button
-                            disabled={busy || !importReady(draft)}
-                            onClick={() => go('template')}
-                          >
-                            选择模板
-                            <ArrowRight className='size-4' />
-                          </Button>
-                        )}
-                        {step === 'profile' && (
-                          <Button
-                            disabled={busy || Boolean(draft.creation)}
-                            onClick={() => {
-                              headingRef.current?.focus()
-                              flow.prepareProfile()
-                            }}
-                          >
-                            选择模板
-                            <ArrowRight className='size-4' />
-                          </Button>
-                        )}
-                        {step === 'template' && (
-                          <Button
-                            disabled={busy || !draft.selectedTemplate}
-                            onClick={() => go('details')}
-                          >
-                            下一步
-                            <ArrowRight className='size-4' />
-                          </Button>
-                        )}
-                        {step === 'details' && (
-                          <Button
-                            type='submit'
-                            form={detailsFormId}
-                            disabled={
-                              busy ||
-                              (!draft.selectedTemplate && !draft.creation)
-                            }
-                          >
-                            {flow.creating
-                              ? '正在创建…'
-                              : draft.creation
-                                ? '重试创建'
-                                : '创建简历'}
-                          </Button>
-                        )}
-                        {step === 'import' && saving && (
-                          <span
-                            role='status'
-                            className='text-xs text-muted-foreground'
-                          >
-                            保存中…
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  <CreationFooter
+                    step={step}
+                    go={go}
+                    headingRef={headingRef}
+                    flow={flow}
+                    detailsFormId={detailsFormId}
+                    isOnline={isOnline}
+                  />
                 </>
               )}
             </CreationStepPanel>
@@ -630,87 +316,5 @@ export default function CreateResumeCard({
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function CreationStepPanel({
-  children,
-  className,
-  measureRef,
-  refreshBounds,
-}: {
-  children: ReactNode
-  className: string
-  measureRef: (element: HTMLDivElement | null) => void
-  refreshBounds: () => void
-}) {
-  const reduceMotion = useReducedMotion()
-  const [isPresent, safeToRemove] = usePresence()
-  const controls = useAnimationControls()
-  const panelRef = useRef<HTMLDivElement | null>(null)
-
-  useLayoutEffect(refreshBounds, [refreshBounds])
-
-  useLayoutEffect(() => {
-    const panel = panelRef.current
-
-    if (!panel) return
-
-    if (!isPresent && panel.contains(document.activeElement))
-      panel.parentElement?.focus()
-
-    panel.inert = !isPresent
-
-    if (isPresent) panel.removeAttribute('aria-hidden')
-    else panel.setAttribute('aria-hidden', 'true')
-  }, [isPresent])
-
-  useEffect(() => {
-    let active = true
-
-    const target = {
-      opacity: isPresent ? 1 : 0,
-      transform: 'translateY(0px)',
-    }
-
-    if (reduceMotion) {
-      controls.set(target)
-
-      if (!isPresent) safeToRemove?.()
-
-      return
-    }
-
-    controls
-      .start({
-        ...target,
-        transition: isPresent ? CONTENT_SWITCH.enter : CONTENT_SWITCH.exit,
-      })
-      .then(() => {
-        if (active && !isPresent) safeToRemove?.()
-      })
-
-    return () => {
-      active = false
-      controls.stop()
-    }
-  }, [controls, isPresent, reduceMotion, safeToRemove])
-
-  return (
-    <motion.div
-      ref={(node) => {
-        panelRef.current = node
-        measureRef(node)
-      }}
-      data-creation-layout
-      className={className}
-      initial={{
-        opacity: reduceMotion ? 1 : 0,
-        transform: `translateY(${reduceMotion ? 0 : 8}px)`,
-      }}
-      animate={controls}
-    >
-      {children}
-    </motion.div>
   )
 }

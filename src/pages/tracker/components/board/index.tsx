@@ -7,31 +7,12 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  CrossListDragProvider,
-  useCrossListContainer,
-  useCrossListItem,
-} from '@/components/ui/cross-list-drag'
-import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
+import { CrossListDragProvider } from '@/components/ui/cross-list-drag'
+import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import {
-  APPLICATION_STATUS_CONFIG,
-  APPLICATION_STATUS_DOT_CLASSES,
-  BOARD_COLUMNS,
-  TRACKER_SEARCH_INPUT_ID,
-} from '../../const'
+import { APPLICATION_STATUS_DOT_CLASSES, BOARD_COLUMNS } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore, { getTrackerConflictAction } from '../../store'
 import { selectTrackerListJobs } from '../../store/selectors'
@@ -40,156 +21,9 @@ import {
   getTrackerErrorMessage,
   resolveTrackerMetricStatus,
 } from '../../utils'
-import { ColumnCard } from './column-card'
-
-function BoardJobItem({
-  job,
-  containerId,
-  index,
-  reduceMotion,
-  layoutItems,
-}: {
-  job: JobApplication
-  containerId: ApplicationStatus
-  index: number
-  reduceMotion: boolean | null
-  layoutItems: JobApplication[]
-}) {
-  const { dragging, previewing, settling, getDragProps } = useCrossListItem({
-    id: job.id,
-    containerId,
-    index,
-  })
-
-  return (
-    <motion.div
-      {...getDragProps()}
-      layout={reduceMotion || previewing ? false : 'position'}
-      layoutDependency={layoutItems}
-      initial={reduceMotion || previewing ? false : { opacity: 0, y: 8 }}
-      animate={{ opacity: dragging ? 0.3 : 1, y: 0 }}
-      transition={
-        reduceMotion
-          ? { duration: 0 }
-          : {
-              layout: SPRING.layout,
-              opacity: { duration: DURATION.fast, ease: EASE.out },
-              y: {
-                duration: DURATION.base,
-                ease: EASE.out,
-                delay: staggerDelay(Math.min(index, 8)),
-              },
-            }
-      }
-      className={cn(
-        'shrink-0 cursor-grab rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing',
-        settling && 'opacity-0!',
-      )}
-    >
-      <ColumnCard job={job} previewing={previewing} />
-    </motion.div>
-  )
-}
-
-function BoardColumnDropArea({
-  status,
-  jobs,
-  highlighted,
-  reduceMotion,
-}: {
-  status: ApplicationStatus
-  jobs: JobApplication[]
-  highlighted: boolean
-  reduceMotion: boolean | null
-}) {
-  const scrollRef = useRef<HTMLDivElement | null>(null)
-  const itemIds = useMemo(() => jobs.map((job) => job.id), [jobs])
-
-  const { ref: registerContainerRef, active } = useCrossListContainer({
-    id: status,
-    label: APPLICATION_STATUS_CONFIG[status].label,
-    itemIds,
-    axis: 'y',
-    scrollRef,
-  })
-
-  const setContainerRef = useCallback<RefCallback<HTMLDivElement>>(
-    (element) => {
-      scrollRef.current = element
-      registerContainerRef(element)
-    },
-    [registerContainerRef],
-  )
-
-  return (
-    <div
-      ref={setContainerRef}
-      role='list'
-      aria-label={`${APPLICATION_STATUS_CONFIG[status].label}职位`}
-      data-motion-drop-container={status}
-      className={cn(
-        'flex min-h-0 flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-b-lg px-2 pt-1 pb-2 transition-[background-color,box-shadow] [scrollbar-width:thin]',
-        active && 'bg-primary/5',
-        highlighted && !active && 'bg-primary/5',
-      )}
-      style={{
-        boxShadow: active
-          ? 'inset 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent)'
-          : 'inset 0 0 0 1px transparent',
-        transitionDuration: `${reduceMotion ? 0 : DURATION.fast}s`,
-        transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
-      }}
-    >
-      {jobs.length > 0 ? (
-        jobs.map((job, index) => (
-          <BoardJobItem
-            key={job.id}
-            job={job}
-            containerId={status}
-            index={index}
-            reduceMotion={reduceMotion}
-            layoutItems={jobs}
-          />
-        ))
-      ) : (
-        <div
-          className={cn(
-            'flex min-h-[72px] shrink-0 items-center justify-center rounded-lg border border-dashed border-border/70 px-3 text-xs text-muted-foreground',
-            active && 'border-primary/50 bg-primary/5 text-primary',
-          )}
-        >
-          拖入此列
-        </div>
-      )}
-    </div>
-  )
-}
-
-function JobOverlay({
-  job,
-  settling,
-}: {
-  job: JobApplication
-  settling: boolean
-}) {
-  const reduceMotion = useReducedMotion()
-
-  return (
-    <div className='relative rounded-lg'>
-      <motion.div
-        aria-hidden='true'
-        initial={false}
-        animate={{ opacity: settling ? 0 : 1 }}
-        transition={{
-          duration: reduceMotion ? 0 : DURATION.base,
-          ease: EASE.out,
-        }}
-        className='pointer-events-none absolute inset-0 rounded-lg shadow-xl ring-1 ring-primary/20'
-      />
-      <ColumnCard job={job} />
-    </div>
-  )
-}
+import { BoardColumnDropArea } from './column-drop-area'
+import { JobOverlay } from './job-overlay'
+import { MoveConfirmation } from './move-confirmation'
 
 function BoardView() {
   const {
@@ -530,56 +364,14 @@ function BoardView() {
         </div>
       </CrossListDragProvider>
 
-      <AlertDialog
-        open={pendingMove !== null}
-        onOpenChange={(open) => !open && setPendingMove(null)}
-      >
-        <AlertDialogContent
-          onCloseAutoFocus={(event) => {
-            event.preventDefault()
-
-            const card = scrollContainerRef.current?.querySelector<HTMLElement>(
-              `[data-motion-drag-item="${CSS.escape(pendingMoveJobIdRef.current ?? '')}"]`,
-            )
-
-            const fallback = document.getElementById(TRACKER_SEARCH_INPUT_ID)
-            const target = card ?? fallback
-
-            target?.focus({ preventScroll: true })
-          }}
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pendingMove?.newStatus === 'offer'
-                ? '确认移动到「已录用」？'
-                : '确认移动到「已结束」？'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingMove?.newStatus === 'offer'
-                ? '将把该职位标记为已录用。'
-                : '将把该职位标记为结束流程，可在「已结束」列或筛选下查看。'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              ref={focusCancel}
-              onClick={() => setPendingMove(null)}
-            >
-              取消
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingMove)
-                  commitMove(pendingMove.jobId, pendingMove.newStatus)
-
-                setPendingMove(null)
-              }}
-            >
-              确认
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MoveConfirmation
+        pendingMove={pendingMove}
+        setPendingMove={setPendingMove}
+        scrollContainerRef={scrollContainerRef}
+        pendingMoveJobIdRef={pendingMoveJobIdRef}
+        focusCancel={focusCancel}
+        commitMove={commitMove}
+      />
     </>
   )
 }

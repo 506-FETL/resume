@@ -1,3 +1,5 @@
+import type { UploadTab, UploadJob, ExperienceUploadDialogProps } from './types'
+import { UploadJobList } from './upload-job-list'
 import { Button } from '@/components/ui/button'
 import {
   FileUpload,
@@ -16,53 +18,20 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   EXPERIENCE_FILE_ACCEPT,
   EXPERIENCE_FILE_FORMATS_LABEL,
   EXPERIENCE_MAX_BYTES,
 } from '@/lib/experience-sources/const'
-import type {
-  ExperienceSourceReference,
-  ExtractedExperienceFile,
-} from '@/lib/experience-sources/types'
+
 import { ExperienceSourceError } from '@/lib/experience-sources/types'
 import { persistExperienceUpload } from '@/lib/experience-sources/upload'
-import { DURATION, EASE } from '@/lib/motion'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
-import { Check, FileText, Upload, X } from 'lucide-react'
-import { motion } from 'motion/react'
+import { Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { experienceError } from '../utils'
 
-type UploadTab = 'files' | 'paste'
-
-type UploadJob = {
-  operationId: string
-  sourceId?: string
-  name: string
-  file?: File
-  text?: string
-  extracted?: ExtractedExperienceFile
-  status:
-    | 'queued'
-    | 'reading'
-    | 'saving'
-    | 'ready'
-    | 'failed'
-    | 'unknown'
-    | 'cancelled'
-  error?: string
-  controller: AbortController
-}
-
-export interface ExperienceUploadDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onComplete?: (references: ExperienceSourceReference[]) => void
-  initialTab?: UploadTab
-  sourceId?: string
-}
+export type { ExperienceUploadDialogProps } from './types'
 
 export function ExperienceUploadDialog(props: ExperienceUploadDialogProps) {
   const generation = useExperienceSourcesStore((state) => state.generation)
@@ -84,7 +53,6 @@ function UploadDialogContent({
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const [fileError, setFileError] = useState<string | null>(null)
-  const reduced = useReducedMotion()
   const onCompleteRef = useRef(onComplete)
   const pasteDraftRef = useRef({ title, text })
 
@@ -344,81 +312,7 @@ function UploadDialogContent({
             </div>
           </TabsContent>
         </Tabs>
-        <div className='mt-4 space-y-2' aria-live='polite'>
-          {jobs.map((job, index) => (
-            <motion.div
-              key={job.operationId}
-              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: reduced ? 0 : DURATION.base,
-                ease: EASE.out,
-                delay: reduced ? 0 : Math.min(index, 5) * 0.03,
-              }}
-              className='flex items-start gap-3 rounded-lg bg-muted/30 p-3'
-            >
-              <div className='pt-0.5'>
-                {job.status === 'ready' ? (
-                  <Check className='size-4 text-primary' />
-                ) : (
-                  <FileText className='size-4 text-muted-foreground' />
-                )}
-              </div>
-              <div className='min-w-0 flex-1'>
-                <p className='wrap-break-word text-sm font-medium'>
-                  {job.name}
-                </p>
-                <p
-                  className={
-                    job.status === 'failed' || job.status === 'unknown'
-                      ? 'text-xs text-destructive'
-                      : 'text-xs text-muted-foreground'
-                  }
-                >
-                  {
-                    {
-                      queued: '待保存',
-                      reading: '正在读取文件',
-                      saving: '正在保存资料',
-                      ready: '已保存',
-                      failed: job.error,
-                      unknown: job.error,
-                      cancelled: '已停止提取，尚未上传',
-                    }[job.status]
-                  }
-                </p>
-              </div>
-              {job.status === 'reading' && (
-                <Button
-                  size='icon-sm'
-                  variant='ghost'
-                  aria-label={`停止提取${job.name}`}
-                  onClick={() => job.controller.abort()}
-                >
-                  <X />
-                </Button>
-              )}
-              {!saving &&
-                job.status !== 'ready' &&
-                job.status !== 'unknown' && (
-                  <Button
-                    size='icon-sm'
-                    variant='ghost'
-                    aria-label={`移除${job.name}`}
-                    onClick={() =>
-                      setJobs((current) =>
-                        current.filter(
-                          (item) => item.operationId !== job.operationId,
-                        ),
-                      )
-                    }
-                  >
-                    <X />
-                  </Button>
-                )}
-            </motion.div>
-          ))}
-        </div>
+        <UploadJobList jobs={jobs} saving={saving} setJobs={setJobs} />
       </div>
       <ResponsiveDialogFooter>
         <Button disabled={saving || !canSave} onClick={save}>

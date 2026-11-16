@@ -1,0 +1,174 @@
+@media (hover: hover) and (pointer: fine) {
+  .home-nav-entry:hover {
+    background: #f9fbff;
+    color: var(--blue);
+  }
+  .end-colophon a:hover {
+    text-decoration: underline;
+    text-underline-offset: 5px;
+  }
+  .home-entry:hover {
+    transform: translate(-1px, -2px);
+    box-shadow: 4px 6px 0 #142a63;
+  }
+  .home-entry:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 2px 0 #142a63;
+  }
+}
+@media (min-width: 1536px) {
+  .home-hero .home-entry {
+    font-size: clamp(17px, 1.12vw, 2.2svh);
+  }
+}
+@media (max-width: 700px) {
+  .public-home {
+    --mast-height: 58px;
+  }
+  .home-mast nav {
+    gap: 12px;
+  }
+  .home-nav-entry {
+    font-size: 14px;
+  }
+  .home-nav-entry {
+    padding: 6px 9px;
+  }
+  .home-brand {
+    gap: 4px;
+    font-size: 27px;
+  }
+  .cover-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'title' 'intro' 'object';
+    justify-items: center;
+    padding-block: clamp(19px, 5.3vw, 31px) clamp(32px, 7vw, 48px);
+    row-gap: clamp(12px, 2.4vw, 18px);
+  }
+  .cover-spine {
+    width: 8px;
+  }
+  .cover-mastline {
+    width: 100%;
+    justify-content: center;
+  }
+  .cover-mastline h1 {
+    font-size: clamp(56px, 17.1vw, 107px);
+  }
+  .cover-paperclip {
+    display: none;
+  }
+  .cover-object {
+    width: min(100%, 440px);
+    margin-block: 0;
+  }
+  .home-intro {
+    padding: 0;
+    justify-self: center;
+    width: min(100%, 420px);
+  }
+  .cover-lead {
+    font-size: clamp(18px, 4.7vw, 22px);
+  }
+  .cover-description {
+    margin-top: 6px;
+    font-size: 16px;
+  }
+  .home-actions {
+    margin-top: 16px;
+    gap: 16px;
+  }
+  .home-entry {
+    min-height: 44px;
+    padding: 9px 17px;
+    font-size: 16px;
+  }
+  .end-layout {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 12px;
+    padding-block: 16px 30px;
+  }
+  .end-paper {
+    grid-row: 1;
+    width: min(100%, 340px);
+  }
+  .end-copy {
+    justify-self: center;
+    width: min(100%, 420px);
+  }
+  .end-copy h2 {
+    font-size: clamp(39px, 9.8vw, 53px);
+  }
+  .end-copy > p {
+    margin-top: 10px;
+  }
+  .end-colophon {
+    min-height: 54px;
+    padding-block: 4px;
+  }
+}
+@media (max-width: 365px) {
+  .home-mast nav {
+    gap: 8px;
+  }
+}
+@media (min-width: 520px) and (max-height: 530px) and (orientation: landscape) {
+  .public-home {
+    --mast-height: 48px;
+  }
+  .cover-layout {
+    grid-template-areas: 'title object' 'intro object';
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 12px;
+    padding-block: 16px 20px;
+  }
+  .cover-mastline {
+    align-self: end;
+    justify-content: start;
+  }
+  .cover-mastline h1 {
+    font-size: clamp(45px, 7vw, 94px);
+  }
+  .cover-paperclip {
+    display: none;
+  }
+  .home-intro {
+    padding-top: 0;
+  }
+  .cover-lead {
+    font-size: clamp(17px, 2vw, 22px);
+  }
+  .cover-description {
+    margin-top: 5px;
+    font-size: 16px;
+  }
+  .home-intro .home-actions {
+    margin-top: 14px;
+  }
+  .cover-object {
+    width: min(100%, calc(116svh - 68px));
+    margin: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-runway {
+    --turn: 0px;
+  }
+  html:has(.public-home) {
+    scroll-behavior: auto;
+  }
+  .public-home *,
+  .public-home *::before,
+  .public-home *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+  .home-role-copy[data-selected] {
+    transform: none;
+    transition: none;
+  }
+  .home-entry:hover,
+  .home-entry:active {
+    transform: none;
+  }
+}

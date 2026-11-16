@@ -1,16 +1,12 @@
+import type { EditorWorkspaceProps } from './types'
+import { useEditorWorkspace } from './use-editor-workspace'
+import { WorkingResumeComments } from './working-resume-comments'
 import { JobContextBar } from '@/components/job-context'
-import type { CSSProperties, RefObject } from 'react'
-import type { ResumeDocumentState } from '@/components/resume/pagination/types'
-import type { ORDERType } from '@/lib/schema'
+import type { CSSProperties } from 'react'
 import { Edit } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { RouteSkeleton } from '@/components/route-skeleton'
 import { PresenceDiv } from '@/components/motion/presence-item'
-import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
-import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -18,22 +14,10 @@ import {
   DrawerTrigger,
   DrawerVirtualKeyboardProvider,
 } from '@/components/ui/drawer'
-import { CommentBookmark } from '@/features/resume-comments/components/comment-bookmark.tsx'
 import { CommentSourceSelector } from '@/features/resume-comments/components/comment-source-selector.tsx'
-import { CommentSurface } from '@/features/resume-comments/components/comment-surface.tsx'
-import {
-  ResumeCommentProvider,
-  useResumeCommentStore,
-} from '@/features/resume-comments/context.tsx'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { useCollaborationStore } from '@/lib/collaboration'
+import { ResumeCommentProvider } from '@/features/resume-comments/context.tsx'
 import { DURATION, EASE } from '@/lib/motion'
-import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
-import { buildResumeShareSnapshotSource } from '@/lib/supabase/resume/share'
 import QuickDialog from '@/pages/share/components/quick-dialog'
-import useCurrentResumeStore from '@/store/resume/current'
-import useResumeExportStore from '@/store/resume/export'
-import useResumeStore from '@/store/resume/form'
 import CollaborationPanelProvider from '../../components/collaboration'
 import { CollaborationControls } from '../../components/collaboration/collaboration-controls'
 import { CollaborationDialog } from '../../components/collaboration/collaboration-dialog'
@@ -43,398 +27,53 @@ import EditPanel from '../../components/edit-panel'
 import CheckWorkspace from '../../components/check-workspace'
 import { CheckModeToggle } from '../../components/check-workspace/mode-toggle'
 import CheckRuntime from '../../components/check-runtime'
-import { useResumeCheckStore } from '../../store/checks'
-import { focusCheckField } from '../../utils/check-focus'
 import ResumePreview from '../../components/preview'
 import SidebarEditor from '../../components/sidebar'
-import {
-  useCommentReviewMode,
-  usePrepareWorkingCommentWrite,
-  useWorkingDocumentCommentSync,
-} from '../../hooks/use-comment-review-mode'
-import { useEditPanel } from '../../hooks/use-edit-panel'
-import { useResumeDisplayName } from '../../hooks/use-resume-display-name'
-import type { useResumeLoader } from '../../hooks/use-resume-loader'
-import { useScrollToSection } from '../../hooks/use-scroll-to-section'
-import { useResumeReviewStore } from '../../review-store'
-import { usePreparationUiStore } from '../../preparation-store'
-
-type EditorWorkspaceProps = Pick<
-  ReturnType<typeof useResumeLoader>,
-  'currentUser' | 'loading'
->
 
 function EditorWorkspace({ currentUser, loading }: EditorWorkspaceProps) {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const isMobile = useIsMobile()
-  const reduceMotion = useReducedMotion()
-  const [open, setOpen] = useState(false)
-  const [sortDialogOpen, setSortDialogOpen] = useState(false)
-  const [commentsOpen, setCommentsOpen] = useState(false)
-  const restoreEditPanelRef = useRef(false)
-  const restoreEditFocusRef = useRef(false)
-  const focusEditPanelRef = useRef(false)
-  const editPanelElementRef = useRef<HTMLDivElement | null>(null)
-  const editTriggerElementRef = useRef<HTMLButtonElement | null>(null)
-
-  const reviewUiRef = useRef<{
-    activeTabId: ORDERType
-    panelOpen: boolean
-    scrollTop: number
-  } | null>(null)
-
-  const { theme } = useTheme()
-
-  const documentRef = useRef<HTMLDivElement | null>(null)
-  const sourceRef = useRef<HTMLDivElement | null>(null)
-  const previewScrollRef = useRef<HTMLDivElement | null>(null)
-
-  const [documentState, setDocumentState] = useState<ResumeDocumentState>({
-    status: 'measuring',
-    signature: null,
-    fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
-    fontWeights: [400, 600, 700],
-    error: null,
-  })
-
-  const resumeName = useResumeStore((state) => state.basics.name)
-  const currentResumeId = useCurrentResumeStore((state) => state.resumeId)
-  const editorMode = useResumeStore((state) => state.mode)
-  const collaborationRole = useCollaborationStore((state) => state.role)
-
-  const collaborationCommentAccess = useCollaborationStore(
-    (state) => state.commentAccess,
-  )
-
-  const collaborationRequested =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).has('collabSession')
-
-  const collaboratorMode =
-    collaborationRole === 'guest' ||
-    (collaborationRequested && collaborationRole !== 'host')
-
-  const collaboratorCommentContext = useMemo(
-    () =>
-      collaborationCommentAccess
-        ? {
-            kind: 'collaborator' as const,
-            ...collaborationCommentAccess,
-          }
-        : null,
-    [collaborationCommentAccess],
-  )
-
-  const refreshCollaboratorCommentAccess = useCallback(async () => {
-    const access = await useCollaborationStore.getState().refreshCommentAccess()
-
-    return { kind: 'collaborator' as const, ...access }
-  }, [])
-
-  const currentDisplayName = useResumeDisplayName()
-  const setSourceRef = useResumeExportStore((state) => state.setSourceRef)
-  const setHandlePrint = useResumeExportStore((state) => state.setHandlePrint)
-
-  const setExportDocumentState = useResumeExportStore(
-    (state) => state.setDocumentState,
-  )
-
-  const handlePrint = useResumePrint({
-    contentRef: documentRef,
-    documentState,
-    documentTitle: resumeName ? `${resumeName}-简历` : '我的简历',
-  })
-
-  useEffect(() => {
-    setSourceRef(sourceRef)
-  }, [setSourceRef])
-
-  useEffect(() => {
-    setExportDocumentState(documentState)
-  }, [documentState, setExportDocumentState])
-
-  useEffect(() => {
-    setHandlePrint(handlePrint)
-
-    return () => setHandlePrint(null)
-  }, [setHandlePrint, handlePrint])
-
-  const activeTabId = useResumeStore((state) => state.activeTabId)
-  const order = useResumeStore((state) => state.order)
-  const updateActiveTabId = useResumeStore((state) => state.updateActiveTabId)
-  const updateOrder = useResumeStore((state) => state.updateOrder)
-  const toggleVisibility = useResumeStore((state) => state.toggleVisibility)
-  const visibilityState = useResumeStore((state) => state.visibility)
-
-  const getShareSnapshot = useCallback(async () => {
-    const before = useResumeStore.getState()
-
-    if (before.currentResumeId !== currentResumeId || before.mode !== 'online')
-      throw new Error('简历已切换，请重新打开分享')
-    if (before.pendingChanges || before.isSyncing) await before.manualSync()
-
-    const current = useResumeStore.getState()
-
-    if (
-      current.currentResumeId !== currentResumeId ||
-      current.mode !== 'online'
-    )
-      throw new Error('简历已切换，请重新打开分享')
-    if (current.pendingChanges || current.syncError)
-      throw new Error(current.syncError ?? '简历尚未保存，请保存完成后再分享')
-
-    return buildResumeShareSnapshotSource(
-      current.getPersistedSnapshot(),
-      currentDisplayName,
-    )
-  }, [currentResumeId, currentDisplayName])
-
-  const fill = theme === 'dark' ? '#0c0a09' : '#fafaf9'
-  const stroke = theme === 'dark' ? '#3d3b3b' : '#e7e5e4'
-
-  // 桌面编辑面板开关 + 左导航自动让位（桌面恒为右侧常驻侧栏）
-  const { open: panelOpen, setOpen: setPanelOpen } = useEditPanel()
-
-  const closeEditPanel = useCallback(() => {
-    const active = document.activeElement
-
-    if (active instanceof HTMLElement) active.blur()
-
-    restoreEditFocusRef.current = true
-    setPanelOpen(false)
-  }, [setPanelOpen])
-
-  useEffect(() => {
-    const panel = editPanelElementRef.current
-
-    if (!panelOpen && restoreEditFocusRef.current) {
-      restoreEditFocusRef.current = false
-      editTriggerElementRef.current?.focus({ preventScroll: true })
-
-      return
-    }
-
-    if (!panelOpen || !panel || !focusEditPanelRef.current) return
-
-    focusEditPanelRef.current = false
-
-    panel
-      .querySelector<HTMLButtonElement>('[aria-label="收起编辑栏"]')
-      ?.focus({ preventScroll: true })
-  }, [panelOpen])
-
-  const prepareCommentWrite = usePrepareWorkingCommentWrite(currentResumeId)
-
-  const commentReview = useCommentReviewMode({
-    resumeId: currentResumeId,
-    workingLabel: currentDisplayName,
-    enabled: commentsOpen,
-    collaboratorMode,
-    collaboratorAccess: collaboratorCommentContext,
-  })
-
-  const setReviewActive = useResumeReviewStore((state) => state.setActive)
-
-  useEffect(() => {
-    setReviewActive(!commentReview.isWorking)
-
-    return () => setReviewActive(false)
-  }, [commentReview.isWorking, setReviewActive])
-
-  const handleCommentsOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setCommentsOpen(nextOpen)
-
-      if (nextOpen) {
-        restoreEditPanelRef.current = panelOpen
-        setPanelOpen(false)
-
-        if (open) setOpen(false)
-
-        return
-      }
-      if (restoreEditPanelRef.current && !isMobile && commentReview.isWorking)
-        setPanelOpen(true)
-
-      restoreEditPanelRef.current = false
-    },
-    [commentReview.isWorking, isMobile, open, panelOpen, setPanelOpen],
-  )
-
-  const handleMobileEditOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setOpen(nextOpen)
-
-      if (nextOpen && commentsOpen) handleCommentsOpenChange(false)
-    },
-    [commentsOpen, handleCommentsOpenChange],
-  )
-
-  const scrollToSection = useScrollToSection(previewScrollRef)
-  // 桌面：点 tab 既切换又滚动渲染区到对应章节；移动端走底部抽屉
-  const useSidebarMode = !isMobile
-
-  const handleActivateWithScroll = useCallback(
-    (id: typeof activeTabId) => {
-      updateActiveTabId(id)
-      scrollToSection(id)
-    },
-    [updateActiveTabId, scrollToSection],
-  )
-
-  const handleCommentSourceChange = useCallback(
-    async (key: Parameters<typeof commentReview.selectSource>[0]) => {
-      const enteringReview = commentReview.isWorking && key !== 'working'
-      const leavingReview = !commentReview.isWorking && key === 'working'
-
-      if (enteringReview) {
-        reviewUiRef.current = {
-          activeTabId,
-          panelOpen,
-          scrollTop: previewScrollRef.current?.scrollTop ?? 0,
-        }
-
-        restoreEditPanelRef.current = panelOpen
-      }
-
-      const changed = await commentReview.selectSource(key)
-
-      if (!changed) return
-      if (key !== 'working') {
-        setPanelOpen(false)
-        setOpen(false)
-
-        return
-      }
-      if (leavingReview && reviewUiRef.current) {
-        const saved = reviewUiRef.current
-
-        updateActiveTabId(saved.activeTabId)
-        restoreEditPanelRef.current = saved.panelOpen
-
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            previewScrollRef.current?.scrollTo({ top: saved.scrollTop })
-          }),
-        )
-
-        reviewUiRef.current = null
-      }
-    },
-    [activeTabId, commentReview, panelOpen, setPanelOpen, updateActiveTabId],
-  )
-
-  const handleOpenSortDialog = useCallback(() => {
-    setSortDialogOpen(true)
-  }, [])
-
-  const editRequest = usePreparationUiStore((state) => state.editRequest)
-  const checkRequest = useResumeCheckStore((state) => state.requestVersion)
-  const checkTab = useResumeCheckStore((state) => state.tab)
-  const handledCheckRequestRef = useRef('')
-  const cancelFieldFocusRef = useRef<(() => void) | null>(null)
-
-  useEffect(() => {
-    if (
-      !checkRequest ||
-      `${currentResumeId}:${checkRequest}` === handledCheckRequestRef.current ||
-      loading
-    )
-      return
-
-    handledCheckRequestRef.current = `${currentResumeId}:${checkRequest}`
-
-    if (!commentReview.isWorking) return
-
-    handleCommentsOpenChange(false)
-
-    if (isMobile) setOpen(true)
-    else setPanelOpen(true)
-  }, [
-    checkRequest,
-    currentResumeId,
-    loading,
-    commentReview.isWorking,
-    handleCommentsOpenChange,
+  const {
     isMobile,
-    setPanelOpen,
-  ])
-
-  useEffect(() => () => cancelFieldFocusRef.current?.(), [])
-
-  useEffect(() => {
-    if (
-      !commentReview.isWorking ||
-      checkTab !== 'edit' ||
-      !(isMobile ? open : panelOpen)
-    ) {
-      cancelFieldFocusRef.current?.()
-      cancelFieldFocusRef.current = null
-    }
-  }, [checkTab, commentReview.isWorking, isMobile, open, panelOpen])
-
-  useEffect(() => {
-    if (
-      loading ||
-      !currentResumeId ||
-      (searchParams.get('prepare') !== '1' &&
-        searchParams.get('action') !== 'experience')
-    )
-      return
-
-    usePreparationUiStore
-      .getState()
-      .requestEdit(
-        currentResumeId,
-        searchParams.get('action') === 'experience'
-          ? 'work_experience'
-          : 'basics',
-      )
-
-    const next = new URLSearchParams(searchParams)
-
-    next.delete('prepare')
-    next.delete('action')
-    setSearchParams(next, { replace: true })
-  }, [loading, currentResumeId, searchParams, setSearchParams])
-
-  useEffect(() => {
-    if (!editRequest || loading) return
-
-    usePreparationUiStore.getState().clearEditRequest()
-
-    if (editRequest.resumeId !== currentResumeId || !commentReview.isWorking)
-      return
-
-    handleCommentsOpenChange(false)
-    updateActiveTabId(editRequest.section)
-    useResumeStore.getState().setSectionOpen(editRequest.section, true)
-    useResumeCheckStore.getState().setTab('edit')
-
-    if (isMobile) setOpen(true)
-    else setPanelOpen(true)
-
-    scrollToSection(editRequest.section)
-    cancelFieldFocusRef.current?.()
-
-    if (editRequest.target) {
-      cancelFieldFocusRef.current = focusCheckField(
-        editRequest.target,
-        !!reduceMotion,
-      )
-    }
-  }, [
-    editRequest,
-    loading,
-    currentResumeId,
-    commentReview.isWorking,
-    handleCommentsOpenChange,
-    updateActiveTabId,
-    isMobile,
-    setPanelOpen,
-    scrollToSection,
     reduceMotion,
-  ])
+    open,
+    sortDialogOpen,
+    setSortDialogOpen,
+    commentsOpen,
+    setCommentsOpen,
+    focusEditPanelRef,
+    editPanelElementRef,
+    editTriggerElementRef,
+    documentRef,
+    sourceRef,
+    previewScrollRef,
+    documentState,
+    setDocumentState,
+    currentResumeId,
+    getShareSnapshot,
+    editorMode,
+    collaborationCommentAccess,
+    collaboratorMode,
+    collaboratorCommentContext,
+    refreshCollaboratorCommentAccess,
+    activeTabId,
+    order,
+    updateActiveTabId,
+    updateOrder,
+    toggleVisibility,
+    visibilityState,
+    fill,
+    stroke,
+    panelOpen,
+    setPanelOpen,
+    closeEditPanel,
+    prepareCommentWrite,
+    commentReview,
+    handleCommentsOpenChange,
+    handleMobileEditOpenChange,
+    useSidebarMode,
+    handleActivateWithScroll,
+    handleCommentSourceChange,
+    handleOpenSortDialog,
+  } = useEditorWorkspace(loading)
 
   if (loading) {
     return <RouteSkeleton pathname='/resume/editor' />
@@ -679,67 +318,6 @@ function EditorWorkspace({ currentUser, loading }: EditorWorkspaceProps) {
       <CollaborationDialog />
       <QuickDialog getSnapshot={getShareSnapshot} />
     </CollaborationPanelProvider>
-  )
-}
-
-function WorkingResumeComments({
-  resumeId,
-  syncWorkingDocument,
-  rootRef,
-  sourceLabel,
-  currentUserId,
-  canCreate,
-  canModerateAll,
-  open,
-  bookmarkVisible,
-  onOpenChange,
-  layoutRevision,
-}: {
-  resumeId: string
-  syncWorkingDocument: boolean
-  rootRef: RefObject<HTMLElement | null>
-  sourceLabel: string
-  currentUserId: string | null
-  canCreate: boolean
-  canModerateAll: boolean
-  open: boolean
-  bookmarkVisible: boolean
-  onOpenChange: (open: boolean) => void
-  layoutRevision: string
-}) {
-  useWorkingDocumentCommentSync(resumeId, syncWorkingDocument)
-
-  const hasUnread = useResumeCommentStore((state) =>
-    Object.values(state.threadReadStateById).some(
-      (thread) =>
-        thread.latestCommentEventSeq >
-        Math.max(thread.lastReadEventSeq, state.lastReadEventSeq),
-    ),
-  )
-
-  return (
-    <>
-      <AnimatePresence initial={false}>
-        {!open && bookmarkVisible ? (
-          <CommentBookmark
-            unread={hasUnread}
-            onOpen={() => onOpenChange(true)}
-          />
-        ) : null}
-      </AnimatePresence>
-      <CommentSurface
-        rootRef={rootRef}
-        sourceLabel={sourceLabel}
-        permissions={{
-          canCreate,
-          canModerateAll,
-          currentUserId,
-        }}
-        layoutRevision={layoutRevision}
-        open={open}
-        onOpenChange={onOpenChange}
-      />
-    </>
   )
 }
 

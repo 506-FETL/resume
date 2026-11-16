@@ -18,6 +18,51 @@ const generatedComponentFiles = [
   '**/tiptap-*/**/*.{js,jsx,ts,tsx}',
 ]
 
+const sourceLineCounts = new Map()
+
+const sourceSizeProcessor = {
+  meta: { name: 'source-file-size', version: '1.0.0' },
+  preprocess(text, filename) {
+    const lines = text.split(/\r?\n/u).length - Number(text.endsWith('\n'))
+
+    sourceLineCounts.set(filename, lines)
+
+    return []
+  },
+  postprocess(_messages, filename) {
+    const lines = sourceLineCounts.get(filename)
+
+    sourceLineCounts.delete(filename)
+
+    return lines > 400
+      ? [
+          {
+            ruleId: 'max-lines',
+            severity: 2,
+            message: `文件共 ${lines} 行，超过 400 行；请按职责拆分。`,
+            line: 401,
+            column: 1,
+          },
+        ]
+      : []
+  },
+}
+
+// 已执行迁移属于历史账本；后续新迁移仍检查实际行数。
+const historicalLargeMigrations = [
+  'supabase/migrations/20260811000002_add_resume_shares.sql',
+  'supabase/migrations/20260813000002_add_resume_comments.sql',
+  'supabase/migrations/20260813000003_add_resume_comment_api_transactions.sql',
+  'supabase/migrations/20260814000001_add_version_centric_resume_comments.sql',
+  'supabase/migrations/20260814060000_optimize_resume_comment_bootstrap.sql',
+  'supabase/migrations/20260815170650_add_resume_comment_thread_read_states.sql',
+  'supabase/migrations/20260816073703_add_ai_credit_reservations.sql',
+  'supabase/migrations/20260816170453_add_backend_maintenance_jobs.sql',
+  'supabase/migrations/20260818051900_add_comment_collaboration_member_lease.sql',
+  'supabase/migrations/20260822075237_optimize_resume_comment_mutations.sql',
+  'supabase/migrations/20261028063058_tracker_company_processes.sql',
+]
+
 export default defineConfig([
   globalIgnores([
     '**/node_modules/**',
@@ -37,6 +82,25 @@ export default defineConfig([
     'supabase/.temp/**',
     'supabase/.branches/**',
   ]),
+  {
+    files: codeFiles,
+    rules: {
+      'max-lines': [
+        'error',
+        { max: 400, skipBlankLines: false, skipComments: false },
+      ],
+    },
+  },
+  {
+    files: [
+      '**/*.{css,scss,sql}',
+      '**/*.sql.inc',
+      'src/**/*.json',
+      'supabase/templates/**/*.html',
+    ],
+    ignores: historicalLargeMigrations,
+    processor: sourceSizeProcessor,
+  },
   {
     files: codeFiles,
     ignores: generatedComponentFiles,

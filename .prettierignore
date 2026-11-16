@@ -23,3 +23,6 @@ skills/
 .trae/
 .github/skills/
 .github/prompts/
+
+# SQL include 沿用 SQL 排版；避免按 .inc 的 HTML parser 重写语句。
+**/*.sql.inc

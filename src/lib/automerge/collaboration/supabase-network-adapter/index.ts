@@ -1,0 +1,1 @@
+export { SupabaseNetworkAdapter } from './adapter'

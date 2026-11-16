@@ -1,0 +1,1 @@
+export { DeclarativeRenderer } from './root'

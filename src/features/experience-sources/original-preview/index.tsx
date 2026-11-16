@@ -1,5 +1,11 @@
+import { prepareOriginalViewer } from './prepare'
 import { useEffect, useState } from 'react'
-import { createDeferredComponent } from '@/components/deferred-content'
+import {
+  PdfPreview,
+  DocxPreview,
+  SpreadsheetPreview,
+  ImagePreview,
+} from './viewers'
 import { FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -7,34 +13,6 @@ import type { ExperienceSourceVersion } from '@/lib/experience-sources/types'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import { experienceError } from '../utils'
 import { experiencePreviewKind } from '../../../../supabase/functions/shared/experience-file-formats'
-
-const PdfPreview = createDeferredComponent(
-  () => import('./pdf-preview'),
-  'PDF 预览',
-  <Skeleton className='aspect-[210/297] w-full' />,
-  { wrapFallback: false },
-)
-
-const DocxPreview = createDeferredComponent(
-  () => import('./docx-preview'),
-  'DOCX 预览',
-  <Skeleton className='aspect-[210/297] w-full' />,
-  { wrapFallback: false },
-)
-
-const SpreadsheetPreview = createDeferredComponent(
-  () => import('./spreadsheet-preview'),
-  '表格预览',
-  <Skeleton className='h-80 w-full' />,
-  { wrapFallback: false },
-)
-
-const ImagePreview = createDeferredComponent(
-  () => import('./image-preview'),
-  '图片预览',
-  <Skeleton className='aspect-[4/3] w-full' />,
-  { wrapFallback: false },
-)
 
 export default function ExperienceOriginalPreview({
   sourceId,
@@ -55,6 +33,8 @@ export default function ExperienceOriginalPreview({
     if (!kind) return
 
     let active = true
+
+    prepareOriginalViewer(kind)?.catch(() => {})
 
     setBlob(null)
     setText(null)

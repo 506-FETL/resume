@@ -1,12 +1,6 @@
-import type { AiMessage } from '@/lib/ai/types'
-import {
-  getDraftRecoveryEpoch,
-  getAssistantAccountGeneration,
-} from '../../../store/composer-sessions'
-import { recordAppliedAiEvidence } from '@/lib/resume-preparation/evidence'
-import useUserStore from '@/store/user'
+import { useChangeActions } from './use-change-actions'
+import { useChangeDisclosure } from './use-change-disclosure'
 import type { CanvasChange, CanvasModel } from '../../../types'
-import type { FormDataMap } from '@/store/resume'
 import {
   ChevronRight,
   ChevronsDownUp,
@@ -18,8 +12,6 @@ import {
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,118 +21,10 @@ import {
 } from '@/components/ui/collapsible'
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { DURATION, EASE, staggerDelay } from '@/lib/motion'
-import { normalizeResumeSection } from '@/lib/schema'
-import { persistAssistantMessageUpdate } from '../../../runtime/message-persistence'
-import {
-  assistantRunner,
-  executeAssistantRun,
-  getAssistantRun,
-} from '../../../runtime/assistant-run'
-import { applyResumeFieldToDocument } from '@/store/resume'
 import useAssistantStore from '../../../store'
-import { retryToolCall } from '../../../tool-retry'
 import { DiffStat } from '../../diff/diff-view'
 import { FieldDiffView } from '../../diff/field-diff-view'
-
-async function markChangeState(
-  toolCallId: string,
-  undone: boolean,
-  messages: AiMessage[],
-): Promise<boolean> {
-  const index = messages.findIndex((message) =>
-    message.parts.some(
-      (part) => part.type === 'tool-call' && part.toolCallId === toolCallId,
-    ),
-  )
-
-  const owner = messages[index]
-
-  if (!owner) return false
-
-  const updated = {
-    ...owner,
-    parts: owner.parts.map((part) =>
-      part.type === 'tool-call' && part.toolCallId === toolCallId
-        ? { ...part, undone }
-        : part,
-    ),
-  }
-
-  const current = useAssistantStore.getState()
-
-  messages[index] = updated
-
-  if (
-    useUserStore.getState().currentUser?.id === owner.userId &&
-    current.activeConversationId === owner.conversationId &&
-    !getAssistantRun()?.controller.signal.aborted
-  )
-    current.replaceMessage(owner.id, updated)
-
-  return persistAssistantMessageUpdate(
-    updated,
-    getAssistantRun()?.recoveryEpoch,
-  )
-}
-
-async function runCanvasWrite(
-  work: () => Promise<void>,
-  targetResumeId = useAssistantStore.getState().previewResumeId ??
-    resolveActiveResumeId(),
-): Promise<void> {
-  const state = useAssistantStore.getState()
-  const ownerId = useUserStore.getState().currentUser?.id
-
-  if (
-    assistantRunner.busy ||
-    !ownerId ||
-    state.pendingAssistantWrite ||
-    state.pendingMessageUpdates.length
-  )
-    return
-
-  await assistantRunner.start(() =>
-    executeAssistantRun(
-      {
-        ownerId,
-        recoveryEpoch: getDraftRecoveryEpoch(ownerId),
-        accountGeneration: getAssistantAccountGeneration(),
-        conversationId: state.activeConversationId,
-        submissionId: crypto.randomUUID(),
-        targetResumeId,
-        toolName: 'canvas_change_history',
-      },
-      async (run) => {
-        if (
-          useUserStore.getState().currentUser?.id !== ownerId ||
-          useAssistantStore.getState().activeConversationId !==
-            state.activeConversationId
-        )
-          return
-
-        useAssistantStore.setState({
-          runPhase: 'applying',
-          abortController: run.controller,
-        })
-
-        try {
-          await work()
-        } finally {
-          if (
-            useAssistantStore.getState().abortController === run.controller ||
-            !useAssistantStore.getState().abortController
-          )
-            useAssistantStore.setState({
-              runPhase: 'idle',
-              abortController: null,
-            })
-        }
-      },
-    ),
-  )
-}
 
 function StateBadge({ state }: { state: CanvasChange['state'] }) {
   if (state === 'cancelled') return <Badge variant='outline'>已取消</Badge>
@@ -151,312 +35,32 @@ function StateBadge({ state }: { state: CanvasChange['state'] }) {
 }
 
 export default function ChangeLog({ model }: { model: CanvasModel }) {
-  const bumpCanvasRefresh = useAssistantStore((s) => s.bumpCanvasRefresh)
   const requestCanvasTab = useAssistantStore((s) => s.requestCanvasTab)
   const reduceMotion = useReducedMotion()
 
-  const running = useAssistantStore(
-    (state) =>
-      state.runPhase !== 'idle' ||
-      Boolean(state.pendingAssistantWrite) ||
-      state.pendingMessageUpdates.length > 0,
-  )
-
-  const [localUndone, setLocalUndone] = useState<Map<string, boolean>>(
-    () => new Map(),
-  )
-
-  const [pendingId, setPendingId] = useState<string | null>(null)
-  const [pendingRetryId, setPendingRetryId] = useState<string | null>(null)
-  const [undoAllPending, setUndoAllPending] = useState(false)
-  const [reapplyPending, setReapplyPending] = useState(false)
-  const [retryAllPending, setRetryAllPending] = useState(false)
-
-  // 可折叠项（带 diff/摘要详情）id 集合
-  const collapsibleIds = useMemo(
-    () => model.writes.filter((c) => c.detail).map((c) => c.id),
-    [model.writes],
-  )
-
-  // 受控展开状态：默认展开 diff 类详情。新变更进来时补充其默认态（不覆盖用户手动折叠过的项）。
-  const [openIds, setOpenIds] = useState<Set<string>>(
-    () =>
-      new Set(
-        model.writes.filter((c) => c.detail?.kind === 'diff').map((c) => c.id),
-      ),
-  )
-
-  const [seenIds, setSeenIds] = useState<Set<string>>(
-    () => new Set(model.writes.map((c) => c.id)),
-  )
-
-  useEffect(() => {
-    const freshDiffIds = model.writes
-      .filter((c) => c.detail?.kind === 'diff' && !seenIds.has(c.id))
-      .map((c) => c.id)
-
-    const unseen = model.writes
-      .filter((c) => !seenIds.has(c.id))
-      .map((c) => c.id)
-
-    if (unseen.length === 0) return
-    if (freshDiffIds.length > 0)
-      setOpenIds((prev) => new Set([...prev, ...freshDiffIds]))
-
-    setSeenIds((prev) => new Set([...prev, ...unseen]))
-  }, [model.writes, seenIds])
-
-  const setCollapsibleOpen = (id: string, open: boolean) => {
-    setOpenIds((prev) => {
-      const next = new Set(prev)
-
-      if (open) next.add(id)
-      else next.delete(id)
-
-      return next
-    })
-  }
-
-  const allExpanded =
-    collapsibleIds.length > 0 && collapsibleIds.every((id) => openIds.has(id))
-
-  const toggleAll = () => {
-    setOpenIds(allExpanded ? new Set() : new Set(collapsibleIds))
-  }
-
-  const isUndoneItem = (change: CanvasChange): boolean =>
-    localUndone.get(change.id) ?? Boolean(change.undone)
-
-  const handleUndo = async (change: CanvasChange) => {
-    return runCanvasWrite(async () => {
-      const messagesSnapshot = [...useAssistantStore.getState().messages]
-
-      if (!change.undo) return
-
-      const currentId = change.resumeId
-
-      if (!currentId) {
-        toast.error('这条修改缺少简历目标，无法撤销')
-
-        return
-      }
-
-      setPendingId(change.id)
-
-      try {
-        await applyResumeFieldToDocument(
-          currentId,
-          change.undo.sectionKey as keyof FormDataMap,
-          normalizeResumeSection(
-            change.undo.sectionKey as keyof FormDataMap,
-            change.undo.before,
-          ),
-        )
-
-        setLocalUndone((prev) => new Map(prev).set(change.id, true))
-
-        const saved = await markChangeState(change.id, true, messagesSnapshot)
-
-        bumpCanvasRefresh()
-
-        if (saved) toast.success('已撤销该修改')
-      } catch (error) {
-        toast.error('撤销失败', {
-          description: error instanceof Error ? error.message : '请稍后重试',
-        })
-      } finally {
-        setPendingId(null)
-      }
-    }, change.resumeId)
-  }
-
-  const handleRedo = async (change: CanvasChange) => {
-    return runCanvasWrite(async () => {
-      const messagesSnapshot = [...useAssistantStore.getState().messages]
-
-      const detail = change.detail
-      const ownerId = useUserStore.getState().currentUser?.id ?? null
-
-      if (!change.undo || detail?.kind !== 'diff') return
-
-      const currentId = change.resumeId
-
-      if (!currentId) {
-        toast.error('这条修改缺少简历目标，无法重做')
-
-        return
-      }
-
-      setPendingId(change.id)
-
-      try {
-        if ((useUserStore.getState().currentUser?.id ?? null) !== ownerId)
-          throw new Error('登录账号已改变，请重新确认修改')
-
-        await applyResumeFieldToDocument(
-          currentId,
-          change.undo.sectionKey as keyof FormDataMap,
-          detail.after as Record<string, unknown>,
-        )
-
-        await recordAppliedAiEvidence(
-          currentId,
-          ownerId,
-          change.undo.sectionKey as keyof FormDataMap,
-          detail.after,
-          detail.before,
-        )
-
-        setLocalUndone((prev) => new Map(prev).set(change.id, false))
-
-        const saved = await markChangeState(change.id, false, messagesSnapshot)
-
-        bumpCanvasRefresh()
-
-        if (saved) toast.success('已重新应用该修改')
-      } catch (error) {
-        toast.error('重做失败', {
-          description: error instanceof Error ? error.message : '请稍后重试',
-        })
-      } finally {
-        setPendingId(null)
-      }
-    }, change.resumeId)
-  }
-
-  const handleUndoAll = async () => {
-    return runCanvasWrite(async () => {
-      const messagesSnapshot = [...useAssistantStore.getState().messages]
-
-      setUndoAllPending(true)
-
-      const targets = model.writes
-        .filter(
-          (c) =>
-            c.resumeId && c.undo && c.state === 'result' && !isUndoneItem(c),
-        )
-        .reverse()
-
-      let successCount = 0
-
-      try {
-        for (const change of targets) {
-          if (getAssistantRun()?.controller.signal.aborted) break
-
-          try {
-            await applyResumeFieldToDocument(
-              change.resumeId!,
-              change.undo!.sectionKey as keyof FormDataMap,
-              normalizeResumeSection(
-                change.undo!.sectionKey as keyof FormDataMap,
-                change.undo!.before,
-              ),
-            )
-
-            setLocalUndone((prev) => new Map(prev).set(change.id, true))
-
-            if (await markChangeState(change.id, true, messagesSnapshot))
-              successCount++
-            else break
-          } catch {
-            // 跳过单条失败，继续其他
-          }
-        }
-
-        if (successCount > 0) {
-          bumpCanvasRefresh()
-          toast.success(`已撤销 ${successCount} 项修改`)
-        }
-      } finally {
-        setUndoAllPending(false)
-      }
-    })
-  }
-
-  const handleReapplyAll = async () => {
-    return runCanvasWrite(async () => {
-      const messagesSnapshot = [...useAssistantStore.getState().messages]
-
-      setReapplyPending(true)
-
-      const ownerId = useUserStore.getState().currentUser?.id ?? null
-
-      const targets = model.writes.filter(
-        (c) =>
-          c.resumeId && isUndoneItem(c) && c.undo && c.detail?.kind === 'diff',
-      )
-
-      let successCount = 0
-
-      try {
-        for (const change of targets) {
-          if (getAssistantRun()?.controller.signal.aborted) break
-
-          const detail = change.detail
-
-          if (detail?.kind !== 'diff') continue
-
-          try {
-            if ((useUserStore.getState().currentUser?.id ?? null) !== ownerId)
-              throw new Error('登录账号已改变，请重新确认修改')
-
-            await applyResumeFieldToDocument(
-              change.resumeId!,
-              change.undo!.sectionKey as keyof FormDataMap,
-              detail.after as Record<string, unknown>,
-            )
-
-            await recordAppliedAiEvidence(
-              change.resumeId!,
-              ownerId,
-              change.undo!.sectionKey as keyof FormDataMap,
-              detail.after,
-              detail.before,
-            )
-
-            setLocalUndone((prev) => new Map(prev).set(change.id, false))
-
-            if (await markChangeState(change.id, false, messagesSnapshot))
-              successCount++
-            else break
-          } catch {
-            // 跳过单条失败，继续其他
-          }
-        }
-
-        if (successCount > 0) {
-          bumpCanvasRefresh()
-          toast.success(`已重新应用 ${successCount} 项修改`)
-        }
-      } finally {
-        setReapplyPending(false)
-      }
-    })
-  }
-
-  const handleRetry = async (change: CanvasChange) => {
-    setPendingRetryId(change.id)
-
-    try {
-      await retryToolCall(change.id)
-    } finally {
-      setPendingRetryId(null)
-    }
-  }
-
-  const handleRetryAll = async () => {
-    setRetryAllPending(true)
-
-    const targets = model.writes.filter((c) => c.state === 'error')
-
-    try {
-      for (const change of targets) {
-        if (!(await retryToolCall(change.id))) break
-      }
-    } finally {
-      setRetryAllPending(false)
-    }
-  }
+  const {
+    running,
+    pendingId,
+    pendingRetryId,
+    undoAllPending,
+    reapplyPending,
+    retryAllPending,
+    isUndoneItem,
+    handleUndo,
+    handleRedo,
+    handleUndoAll,
+    handleReapplyAll,
+    handleRetry,
+    handleRetryAll,
+  } = useChangeActions(model)
+
+  const {
+    collapsibleIds,
+    openIds,
+    setCollapsibleOpen,
+    allExpanded,
+    toggleAll,
+  } = useChangeDisclosure(model)
 
   const handleLocate = (sectionKey: string) => {
     requestCanvasTab('resume')

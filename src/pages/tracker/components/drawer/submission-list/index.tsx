@@ -1,7 +1,8 @@
+import { useSubmissionList } from './use-submission-list'
+import { RecordFacts } from './record-facts'
+import { RecordJd } from './record-jd'
 import type { JobSubmission } from '../../../submission-types'
-import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Pencil } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -12,86 +13,11 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { ContentSkeleton } from '@/components/loading-skeleton'
-import { resolveJobSubmission } from '@/lib/supabase/resume/submissions'
-import {
-  createTrackerAccountGuard,
-  getTrackerAccountScope,
-  isTrackerAccountScopeCurrent,
-} from '../../../lib/account-scope'
 import useTrackerStore from '../../../store'
-import { getTrackerErrorMessage } from '../../../utils'
 import { SubmissionForm } from '../submission-dialog'
 import SubmissionDetails from '../submission-details'
 import SubmissionFileRow from '../submission-file-row'
-import SubmissionJd from '../submission-jd'
 import MaterialPreview from '../submission-preview'
-
-function RecordFacts({ record }: { record: JobSubmission }) {
-  return (
-    <dl className='grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2'>
-      <div className='space-y-1'>
-        <dt className='text-xs text-muted-foreground'>投递日期</dt>
-        <dd>{record.submitted_on ?? '日期未知'}</dd>
-      </div>
-      <div className='min-w-0 space-y-1'>
-        <dt className='text-xs text-muted-foreground'>投递渠道</dt>
-        <dd className='break-words'>{record.channel ?? '未填写'}</dd>
-      </div>
-      {record.note && (
-        <div className='min-w-0 space-y-1 sm:col-span-2'>
-          <dt className='text-xs text-muted-foreground'>备注</dt>
-          <dd className='whitespace-pre-wrap break-words'>{record.note}</dd>
-        </div>
-      )}
-    </dl>
-  )
-}
-
-function RecordJd({ recordId }: { recordId: string }) {
-  const reduce = useReducedMotion()
-  const [open, setOpen] = useState(false)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-
-  return (
-    <Collapsible
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) triggerRef.current?.focus({ preventScroll: true })
-
-        setOpen(next)
-      }}
-    >
-      <CollapsibleTrigger asChild>
-        <Button
-          ref={triggerRef}
-          size='sm'
-          variant='ghost'
-          className='group text-muted-foreground focus-visible:ring-inset'
-        >
-          <ChevronDown
-            aria-hidden
-            className='transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none'
-            style={{ transitionDuration: `${reduce ? 0 : DURATION.fast}s` }}
-          />
-          记录时保存的 JD
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent
-        inert={!open}
-        aria-hidden={!open || undefined}
-        className='motion-reduce:animate-none'
-      >
-        <div className='pt-2'>
-          <SubmissionJd
-            recordId={recordId}
-            enabled={open}
-            onRetry={() => triggerRef.current?.focus({ preventScroll: true })}
-          />
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  )
-}
 
 export default function SubmissionList({
   jobId,
@@ -100,86 +26,34 @@ export default function SubmissionList({
   jobId: string
   onViewDetails?: () => void
 }) {
-  const reduce = useReducedMotion()
-  const revision = useTrackerStore((state) => state.submissionRevision)
-  const resource = useTrackerStore((state) => state.submissionsByJob[jobId])
-  const sectionRef = useRef<HTMLElement>(null)
-  const editTriggerRef = useRef<HTMLButtonElement>(null)
-  const historyTriggerRef = useRef<HTMLButtonElement>(null)
-  const legacyTriggerRef = useRef<HTMLButtonElement>(null)
-
-  const [viewing, setViewing] = useState<{
-    record: JobSubmission
-    revisionId?: string
-  } | null>(null)
-
-  const [materialEdit, setMaterialEdit] = useState<JobSubmission | null>(null)
-  const [details, setDetails] = useState<JobSubmission | null>(null)
-  const [historyOpen, setHistoryOpen] = useState(false)
-  const [legacyOpen, setLegacyOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    useTrackerStore.getState().loadSubmissions(jobId)
-  }, [jobId, revision])
-
-  const current = resource
-  const data = resource?.data
-  const primary = data?.kind === 'ready' ? data.primary : null
-  const legacy = data && data.kind !== 'none' ? data.legacy : []
-  const rows = !data ? null : primary ? [primary, ...legacy] : legacy
-  const primaryId = primary?.id
-  const compact = Boolean(onViewDetails)
-
-  const historyResource = useTrackerStore((state) =>
-    primaryId ? state.submissionHistoriesById[primaryId] : undefined,
-  )
-
-  const history = historyResource?.data
-  const historyError = historyResource?.error
-
-  useEffect(() => {
-    if (!compact && primaryId && historyOpen)
-      useTrackerStore.getState().loadSubmissionHistory(primaryId)
-  }, [compact, primaryId, revision, historyOpen])
-
-  const choose = async (row: JobSubmission) => {
-    const scope = getTrackerAccountScope()
-    let confirmed = row.is_primary
-
-    sectionRef.current?.focus({ preventScroll: true })
-    setBusy(true)
-    setError(null)
-
-    try {
-      if (!confirmed) {
-        const saved = await resolveJobSubmission(
-          jobId,
-          row.id,
-          createTrackerAccountGuard(scope),
-        )
-
-        if (!isTrackerAccountScopeCurrent(scope)) return
-
-        useTrackerStore.getState().notifySubmissionChanged(saved)
-        confirmed = true
-      }
-
-      if (!isTrackerAccountScopeCurrent(scope)) return
-
-      await useTrackerStore.getState().refreshSubmissionJob(jobId)
-    } catch (cause) {
-      if (isTrackerAccountScopeCurrent(scope))
-        setError(
-          confirmed
-            ? `投递已选定，但职位进度读取失败：${getTrackerErrorMessage(cause)}。`
-            : getTrackerErrorMessage(cause),
-        )
-    } finally {
-      if (isTrackerAccountScopeCurrent(scope)) setBusy(false)
-    }
-  }
+  const {
+    reduce,
+    resource,
+    sectionRef,
+    editTriggerRef,
+    historyTriggerRef,
+    legacyTriggerRef,
+    viewing,
+    setViewing,
+    materialEdit,
+    setMaterialEdit,
+    details,
+    setDetails,
+    historyOpen,
+    setHistoryOpen,
+    legacyOpen,
+    setLegacyOpen,
+    busy,
+    error,
+    current,
+    primary,
+    legacy,
+    rows,
+    compact,
+    history,
+    historyError,
+    choose,
+  } = useSubmissionList(jobId, onViewDetails)
 
   const readonlyRecord = (row: JobSubmission) => (
     <article

@@ -1,0 +1,328 @@
+import AnimatedContent from '@/components/motion/animated-content'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { cn } from '@/lib/utils'
+import { MessageCircle, RefreshCw, Trash2, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useRef, useState } from 'react'
+import { COMMENT_MOTION } from '../../../const.ts'
+import { useResumeCommentStore } from '../../../context.tsx'
+import type { useCommentActions } from '../../../hooks/use-comment-actions.ts'
+import type { ResumeCommentThread } from '../../../types.ts'
+import { CommentBody } from '../../comment-body.tsx'
+import { CommentComposer } from '../../comment-composer.tsx'
+import type { CommentUiPermissions } from '../../types.ts'
+import { isCurrentCommentAuthor } from '../../types.ts'
+import type { CommentReplyTarget, CommentTreeNode } from '../tree-model'
+import { countDescendants, formatTime } from '../tree-model'
+
+export function CommentNode({
+  node,
+  depth,
+  thread,
+  permissions,
+  actions,
+  onReply,
+  onOpenReplies,
+  isLast = true,
+}: {
+  node: CommentTreeNode
+  depth: number
+  thread: ResumeCommentThread
+  permissions: CommentUiPermissions
+  actions: ReturnType<typeof useCommentActions>
+  onReply: (target: CommentReplyTarget) => void
+  onOpenReplies: (commentId: string) => void
+  isLast?: boolean
+}) {
+  const reduceMotion = useReducedMotion()
+  const feedbackRef = useRef<HTMLDivElement>(null)
+
+  const commentRenderKeys = useResumeCommentStore(
+    (state) => state.commentRenderKeys,
+  )
+
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const comment = node.comment
+  const delivery = comment.delivery
+
+  const canManage =
+    !delivery &&
+    !comment.deletedAt &&
+    isCurrentCommentAuthor(comment.author, permissions)
+
+  const editKey = `comment:${comment.id}:edit`
+  const deleteKey = `comment:${comment.id}:delete`
+
+  const pending = useResumeCommentStore((state) =>
+    Boolean(state.pendingEntities[editKey] || state.pendingEntities[deleteKey]),
+  )
+
+  const error = useResumeCommentStore(
+    (state) => state.mutationErrors[editKey] ?? state.mutationErrors[deleteKey],
+  )
+
+  const image = comment.author.kind === 'user' ? comment.author.avatarUrl : null
+  const visibleChildren = depth < 2 ? node.children : []
+  const hiddenReplyCount = depth >= 2 ? countDescendants(node) : 0
+
+  const hasVisibleContinuation =
+    visibleChildren.length > 0 || hiddenReplyCount > 0
+
+  return (
+    <motion.div
+      layout='position'
+      initial={reduceMotion ? false : { opacity: 0, y: 7, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={
+        reduceMotion
+          ? { opacity: 0 }
+          : { opacity: 0, height: 0, y: -4, scale: 0.985 }
+      }
+      transition={{
+        duration: reduceMotion ? 0 : COMMENT_MOTION.itemDuration,
+        ease: COMMENT_MOTION.ease,
+      }}
+      className={cn('relative w-full min-w-0', depth > 0 && 'pl-7')}
+    >
+      {depth > 0 ? (
+        <>
+          <span
+            aria-hidden
+            className='pointer-events-none absolute -top-px left-0 h-[calc(1.75rem+1px)] w-7 rounded-bl-xl border-b border-l border-border/80'
+          />
+          {!isLast ? (
+            <span
+              aria-hidden
+              className='pointer-events-none absolute -bottom-px left-0 top-[calc(1.75rem-1px)] border-l border-border/80'
+            />
+          ) : null}
+        </>
+      ) : null}
+      <article
+        className='group/comment relative flex min-w-0 gap-2.5 py-3'
+        aria-busy={delivery?.state === 'sending'}
+      >
+        {hasVisibleContinuation ? (
+          <span
+            aria-hidden
+            className='pointer-events-none absolute -bottom-px left-4 top-11 border-l border-border/80'
+          />
+        ) : null}
+        <Avatar className='size-8 shrink-0'>
+          {image ? <AvatarImage src={image} alt='' /> : null}
+          <AvatarFallback>
+            {comment.author.displayName.slice(0, 1)}
+          </AvatarFallback>
+        </Avatar>
+        <div className='min-w-0 flex-1'>
+          <div className='flex min-w-0 items-center gap-2'>
+            <span className='truncate text-sm font-medium'>
+              {comment.author.displayName}
+            </span>
+            <span className='shrink-0 text-xs text-muted-foreground'>
+              {formatTime(comment.createdAt)}
+            </span>
+            {comment.editedAt ? (
+              <span className='shrink-0 text-xs text-muted-foreground'>
+                已编辑
+              </span>
+            ) : null}
+            {pending ? (
+              <Spinner
+                className='ml-auto size-3.5 text-muted-foreground'
+                aria-label='正在处理'
+              />
+            ) : null}
+          </div>
+          {editing ? (
+            <div className='mt-2'>
+              <CommentComposer
+                draftKey={`edit:${comment.id}`}
+                initialValue={comment.body}
+                submitLabel='保存'
+                pending={pending}
+                pendingLabel='正在保存…'
+                disabled={pending}
+                onCancel={() => setEditing(false)}
+                onSubmit={async (value) => {
+                  const response = await actions.editComment(
+                    thread,
+                    comment.id,
+                    value,
+                  )
+
+                  if (response) setEditing(false)
+
+                  return Boolean(response)
+                }}
+              />
+            </div>
+          ) : comment.deletedAt ? (
+            <p className='mt-1 text-sm italic text-muted-foreground'>
+              这条评论已删除
+            </p>
+          ) : (
+            <div className='mt-1'>
+              <CommentBody body={comment.body} />
+            </div>
+          )}
+          {!editing ? (
+            <div
+              ref={feedbackRef}
+              tabIndex={-1}
+              className='mt-1 min-h-7 outline-none'
+            >
+              <AnimatedContent animationKey={delivery?.state ?? 'actions'}>
+                {delivery ? (
+                  <div
+                    role='status'
+                    className={cn(
+                      'flex min-h-7 flex-wrap items-center gap-1.5 text-xs',
+                      delivery.state === 'failed'
+                        ? 'text-destructive'
+                        : 'text-muted-foreground',
+                    )}
+                  >
+                    {delivery.state === 'sending' ? (
+                      <>
+                        <Spinner className='size-3.5' />
+                        <span>发送中</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{delivery.errorMessage || '发送失败'}</span>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          className='text-destructive hover:text-destructive'
+                          onClick={() => {
+                            feedbackRef.current?.focus({ preventScroll: true })
+                            actions.retryPendingCreation(delivery.requestId)
+                          }}
+                        >
+                          <RefreshCw />
+                          重试
+                        </Button>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          onClick={() =>
+                            actions.discardPendingCreation(delivery.requestId)
+                          }
+                        >
+                          <X />
+                          移除
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className='flex min-h-7 items-center gap-1 opacity-100 transition-opacity motion-reduce:transition-none md:opacity-0 md:group-hover/comment:opacity-100 md:group-focus-within/comment:opacity-100'>
+                    <Button
+                      size='xs'
+                      variant='ghost'
+                      aria-label={`回复 ${comment.author.displayName}`}
+                      onClick={() =>
+                        onReply({
+                          commentId: comment.id,
+                          displayName: comment.author.displayName,
+                        })
+                      }
+                    >
+                      <MessageCircle />
+                      回复
+                    </Button>
+                    {canManage && !confirmingDelete ? (
+                      <>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          onClick={() => setEditing(true)}
+                        >
+                          编辑
+                        </Button>
+                        <Button
+                          size='icon-xs'
+                          variant='ghost'
+                          aria-label='删除评论'
+                          onClick={() => setConfirmingDelete(true)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </>
+                    ) : null}
+                    {canManage && confirmingDelete ? (
+                      <>
+                        <Button
+                          size='xs'
+                          variant='destructive'
+                          disabled={pending}
+                          onClick={() =>
+                            actions.deleteComment(thread, comment.id)
+                          }
+                        >
+                          确认删除
+                        </Button>
+                        <Button
+                          size='xs'
+                          variant='ghost'
+                          onClick={() => setConfirmingDelete(false)}
+                        >
+                          取消
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                )}
+              </AnimatedContent>
+            </div>
+          ) : null}
+          {error ? (
+            <p role='alert' className='mt-1 text-xs text-destructive'>
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </article>
+      {depth < 2 ? (
+        <div className='ml-4 min-w-0'>
+          <AnimatePresence>
+            {visibleChildren.map((child, index) => (
+              <CommentNode
+                key={commentRenderKeys[child.comment.id] ?? child.comment.id}
+                node={child}
+                depth={depth + 1}
+                thread={thread}
+                permissions={permissions}
+                actions={actions}
+                onReply={onReply}
+                onOpenReplies={onOpenReplies}
+                isLast={index === visibleChildren.length - 1}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      ) : hiddenReplyCount > 0 ? (
+        <div className='relative ml-4 min-w-0 pb-2 pl-7 pt-1'>
+          <span
+            aria-hidden
+            className='pointer-events-none absolute -top-px left-0 h-[calc(1.25rem+1px)] w-7 rounded-bl-xl border-b border-l border-border/80'
+          />
+          <Button
+            size='sm'
+            variant='secondary'
+            className='h-8 max-w-full rounded-lg px-2.5 text-xs font-normal'
+            onClick={() => onOpenReplies(comment.id)}
+          >
+            <MessageCircle className='size-3.5' />
+            <span className='truncate'>继续查看 {hiddenReplyCount} 条回复</span>
+          </Button>
+        </div>
+      ) : null}
+    </motion.div>
+  )
+}

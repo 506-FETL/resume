@@ -1,3 +1,4 @@
+import { contactEqual } from './utils'
 import type { JobApplication, TrackerContact } from '../../../types'
 import { Plus, Trash2, UserRound } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
@@ -25,22 +26,6 @@ import { getTrackerErrorMessage } from '../../../utils'
 
 interface ContactsProps {
   job: JobApplication
-}
-
-// 单行相等判断：用于逐行 dirty 计算，与全局保存解耦。
-function contactEqual(
-  a: TrackerContact | undefined,
-  b: TrackerContact | undefined,
-) {
-  if (!a || !b) return false
-
-  return (
-    a.id === b.id &&
-    a.name === b.name &&
-    a.role === b.role &&
-    a.channel === b.channel &&
-    a.note === b.note
-  )
 }
 
 export default function Contacts({ job }: ContactsProps) {

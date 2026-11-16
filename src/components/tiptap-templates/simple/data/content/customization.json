@@ -1,0 +1,89 @@
+[
+  {
+    "type": "heading",
+    "attrs": {
+      "textAlign": "left",
+      "level": 2
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "Make it your own"
+      }
+    ]
+  },
+  {
+    "type": "paragraph",
+    "attrs": {
+      "textAlign": "left"
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "Switch between light and dark modes, and tailor the editor's appearance with customizable CSS to match your style."
+      }
+    ]
+  },
+  {
+    "type": "taskList",
+    "content": [
+      {
+        "type": "taskItem",
+        "attrs": {
+          "checked": true
+        },
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "textAlign": "left"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "Test template"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "taskItem",
+        "attrs": {
+          "checked": false
+        },
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "textAlign": "left"
+            },
+            "content": [
+              {
+                "type": "text",
+                "marks": [
+                  {
+                    "type": "link",
+                    "attrs": {
+                      "href": "https://tiptap.dev/docs/ui-components/templates/simple-editor",
+                      "target": "_blank",
+                      "rel": "noopener noreferrer nofollow",
+                      "class": null
+                    }
+                  }
+                ],
+                "text": "Integrate the free template"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "paragraph",
+    "attrs": {
+      "textAlign": "left"
+    }
+  }
+]

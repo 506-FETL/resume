@@ -1,62 +1,20 @@
-import type { CSSProperties, ReactNode } from 'react'
-import type { InterviewSubStage } from '../../../types'
+import type { InterviewSubStagesProps } from './types'
+import { roundStatusLabel } from './utils'
+import { useInterviewRounds } from './use-interview-rounds'
+import { DeleteRoundDialog } from './delete-round-dialog'
+import type { CSSProperties } from 'react'
 import dayjs from 'dayjs'
 import { CalendarIcon, Check, MessageSquare, Plus, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import WorkflowDateField from '../workflow-date-field'
 import WorkflowNotesEditor from '../workflow-notes-editor'
-
-type RoundContent = Partial<
-  Pick<InterviewSubStage, 'label' | 'start_date' | 'notes'>
->
-
-interface InterviewSubStagesProps {
-  jobId: string
-  subStages: InterviewSubStage[]
-  canAdd: boolean
-  saveStatus: ReactNode
-  onAddSubStage: () => string | null
-  onDeleteSubStage: (id: string) => void
-  onUpdateSubStage: (
-    id: string,
-    updates: RoundContent,
-    immediate?: boolean,
-  ) => void
-  onFlush: () => void
-}
-
-function roundStatusLabel(round: InterviewSubStage) {
-  if (round.is_history)
-    return `历史 · ${round.status === '已完成' ? '已通过' : round.status === '已拒绝' ? '已结束' : '已记录'}`
-
-  return round.status === '已完成'
-    ? '已通过'
-    : round.status === '已拒绝'
-      ? '已结束'
-      : round.status === '进行中'
-        ? '进行中'
-        : '已记录'
-}
 
 export function InterviewSubStages({
   jobId,
@@ -68,120 +26,30 @@ export function InterviewSubStages({
   onUpdateSubStage,
   onFlush,
 }: InterviewSubStagesProps) {
-  const reduce = useReducedMotion()
-  const isNarrow = useIsMobile(640)
-  const cardWidth = isNarrow ? 9 : 10
-  const connectorWidth = isNarrow ? 1.25 : 1.5
-  const [selectedId, setSelectedId] = useState(subStages.at(-1)?.id ?? '')
+  const model = useInterviewRounds({ subStages, onAddSubStage, onFlush })
 
-  const [deletedRound, setDeletedRound] = useState<InterviewSubStage | null>(
-    null,
-  )
-
-  const [deleteOpen, setDeleteOpen] = useState(false)
-
-  const selectedRound =
-    subStages.find((round) => round.id === selectedId) ?? subStages.at(-1)
-
-  const activeRoundId = selectedRound?.id
-
-  const selectedIndex = subStages.findIndex(
-    (round) => round.id === selectedRound?.id,
-  )
-
-  const selectedLabel = selectedRound?.label || `第 ${selectedIndex + 1} 轮面试`
-  const focusNewRound = useRef<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const triggerRefs = useRef(new Map<string, HTMLButtonElement>())
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
-  const addRef = useRef<HTMLButtonElement>(null)
-  const headingRef = useRef<HTMLHeadingElement>(null)
-  const deletedRef = useRef(false)
-  const exitingRoundIdRef = useRef<string | null>(null)
-  const deleteTriggerRef = useRef<HTMLButtonElement | null>(null)
-
-  const revealSelectedRound = useCallback(() => {
-    const viewport = scrollRef.current
-    const trigger = activeRoundId && triggerRefs.current.get(activeRoundId)
-
-    if (!viewport || !trigger || exitingRoundIdRef.current) return
-
-    const viewportBox = viewport.getBoundingClientRect()
-    const triggerBox = trigger.getBoundingClientRect()
-
-    if (
-      triggerBox.left < viewportBox.left ||
-      triggerBox.right > viewportBox.right
-    ) {
-      viewport.scrollTo({
-        left:
-          viewport.scrollLeft +
-          triggerBox.left -
-          viewportBox.left -
-          (viewport.clientWidth - triggerBox.width) / 2,
-        behavior: reduce ? 'instant' : 'smooth',
-      })
-    }
-  }, [activeRoundId, reduce])
-
-  useEffect(() => {
-    if (subStages.some((round) => round.id === exitingRoundIdRef.current))
-      exitingRoundIdRef.current = null
-  }, [subStages])
-
-  useEffect(() => {
-    const viewport = scrollRef.current
-    let viewportWidth = viewport?.clientWidth
-
-    revealSelectedRound()
-
-    const observer = new ResizeObserver(() => {
-      if (viewport?.clientWidth === viewportWidth) return
-
-      viewportWidth = viewport?.clientWidth
-      revealSelectedRound()
-    })
-
-    if (viewport) observer.observe(viewport)
-
-    const frame =
-      focusNewRound.current === activeRoundId
-        ? requestAnimationFrame(() => {
-            if (inputRef.current) {
-              inputRef.current.focus({ preventScroll: true })
-              inputRef.current.select()
-              focusNewRound.current = null
-            }
-          })
-        : null
-
-    return () => {
-      observer.disconnect()
-
-      if (frame !== null) cancelAnimationFrame(frame)
-    }
-  }, [activeRoundId, subStages.length, revealSelectedRound])
-
-  const handleSelect = (id: string) => {
-    if (id === selectedRound?.id) return
-    if (panelRef.current?.contains(document.activeElement))
-      triggerRefs.current.get(id)?.focus({ preventScroll: true })
-
-    onFlush()
-    setSelectedId(id)
-  }
-
-  const handleAdd = () => {
-    onFlush()
-
-    const id = onAddSubStage()
-
-    if (id) {
-      focusNewRound.current = id
-      setSelectedId(id)
-    }
-  }
+  const {
+    reduce,
+    cardWidth,
+    connectorWidth,
+    setDeletedRound,
+    setDeleteOpen,
+    selectedRound,
+    selectedIndex,
+    selectedLabel,
+    inputRef,
+    triggerRefs,
+    scrollRef,
+    panelRef,
+    addRef,
+    headingRef,
+    deletedRef,
+    exitingRoundIdRef,
+    deleteTriggerRef,
+    revealSelectedRound,
+    handleSelect,
+    handleAdd,
+  } = model
 
   return (
     <section
@@ -472,63 +340,11 @@ export function InterviewSubStages({
           </TabsContent>
         </Tabs>
       )}
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent
-          className='max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto break-words'
-          style={{
-            animationDuration: `${reduce ? 0 : deleteOpen ? DURATION.base : DURATION.fast}s`,
-            animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
-          }}
-          onCloseAutoFocus={(event) => {
-            event.preventDefault()
-
-            if (deletedRef.current) {
-              const target =
-                (selectedRound && triggerRefs.current.get(selectedRound.id)) ||
-                addRef.current ||
-                headingRef.current
-
-              target?.focus({ preventScroll: true })
-            } else {
-              deleteTriggerRef.current?.focus({ preventScroll: true })
-            }
-          }}
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>删除这轮面试？</AlertDialogTitle>
-            <AlertDialogDescription>
-              「{deletedRound?.label || '该轮面试'}
-              」的日期和笔记将一并删除。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>保留</AlertDialogCancel>
-            <AlertDialogAction
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-              onClick={() => {
-                const deleting = deletedRound?.id
-
-                if (!deleting) return
-
-                deletedRef.current = true
-                exitingRoundIdRef.current =
-                  subStages.length > 1 ? deleting : null
-
-                if (selectedRound?.id === deleting) {
-                  const next =
-                    subStages[selectedIndex + 1] ?? subStages[selectedIndex - 1]
-
-                  setSelectedId(next?.id ?? '')
-                }
-
-                onDeleteSubStage(deleting)
-              }}
-            >
-              删除轮次
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteRoundDialog
+        model={model}
+        subStages={subStages}
+        onDeleteSubStage={onDeleteSubStage}
+      />
     </section>
   )
 }

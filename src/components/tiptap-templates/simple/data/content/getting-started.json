@@ -1,0 +1,115 @@
+[
+  {
+    "type": "heading",
+    "attrs": {
+      "textAlign": null,
+      "level": 1
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "Getting started"
+      }
+    ]
+  },
+  {
+    "type": "paragraph",
+    "attrs": {
+      "textAlign": null
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "Welcome to the "
+      },
+      {
+        "type": "text",
+        "marks": [
+          {
+            "type": "italic"
+          },
+          {
+            "type": "highlight",
+            "attrs": {
+              "color": "var(--tt-color-highlight-yellow)"
+            }
+          }
+        ],
+        "text": "Simple Editor"
+      },
+      {
+        "type": "text",
+        "text": " template! This template integrates "
+      },
+      {
+        "type": "text",
+        "marks": [
+          {
+            "type": "bold"
+          }
+        ],
+        "text": "open source"
+      },
+      {
+        "type": "text",
+        "text": " UI components and Tiptap extensions licensed under "
+      },
+      {
+        "type": "text",
+        "marks": [
+          {
+            "type": "bold"
+          }
+        ],
+        "text": "MIT"
+      },
+      {
+        "type": "text",
+        "text": "."
+      }
+    ]
+  },
+  {
+    "type": "paragraph",
+    "attrs": {
+      "textAlign": null
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "Integrate it by following the "
+      },
+      {
+        "type": "text",
+        "marks": [
+          {
+            "type": "link",
+            "attrs": {
+              "href": "https://tiptap.dev/docs/ui-components/templates/simple-editor",
+              "target": "_blank",
+              "rel": "noopener noreferrer nofollow",
+              "class": null
+            }
+          }
+        ],
+        "text": "Tiptap UI Components docs"
+      },
+      {
+        "type": "text",
+        "text": " or using our CLI tool."
+      }
+    ]
+  },
+  {
+    "type": "codeBlock",
+    "attrs": {
+      "language": null
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "npx @tiptap/cli init"
+      }
+    ]
+  }
+]

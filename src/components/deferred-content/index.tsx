@@ -17,15 +17,24 @@ export function createDeferredComponent<Props extends object>(
   label: string,
   fallback?: ReactNode,
   options?: { wrapFallback?: boolean },
-): ComponentType<Props> {
+): ComponentType<Props> & {
+  preload: () => Promise<DeferredModule<Props>>
+} {
   let modulePromise: Promise<DeferredModule<Props>> | undefined
+  let loadedContent: ComponentType<Props> | undefined
 
   const load = () => {
-    modulePromise ??= loader().catch((error: unknown) => {
-      modulePromise = undefined
+    modulePromise ??= loader()
+      .then((module) => {
+        loadedContent = module.default
 
-      throw error
-    })
+        return module
+      })
+      .catch((error: unknown) => {
+        modulePromise = undefined
+
+        throw error
+      })
 
     return modulePromise
   }
@@ -33,7 +42,7 @@ export function createDeferredComponent<Props extends object>(
   let LazyContent = lazy(load)
 
   function DeferredComponent(props: Props) {
-    const [Content, setContent] = useState(() => LazyContent)
+    const [Content, setContent] = useState(() => loadedContent ?? LazyContent)
     const reduced = useReducedMotion()
 
     const feedbackMotion = {
@@ -81,5 +90,5 @@ export function createDeferredComponent<Props extends object>(
     )
   }
 
-  return DeferredComponent
+  return Object.assign(DeferredComponent, { preload: load })
 }

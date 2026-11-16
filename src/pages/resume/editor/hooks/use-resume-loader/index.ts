@@ -1,0 +1,1 @@
+export { useResumeLoader } from './loader'

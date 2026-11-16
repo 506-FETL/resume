@@ -1,51 +1,36 @@
-import {
-  bindJobResume,
-  jobContextUrl,
-  useJobContextStore,
-} from '@/lib/job-context'
-import { toast } from 'sonner'
-import { JobContextBar } from '@/components/job-context'
-import type { MouseEvent } from 'react'
-import type { ResumeItem } from './types'
-import { ChevronLeft, ChevronRight, FileText, Plus } from 'lucide-react'
-import { AnimatePresence } from 'motion/react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
 import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
 import { DerivedJobsDialog } from '@/components/jd-variant/components/tasks-dialog'
+import { JobContextBar } from '@/components/job-context'
 import { PageLayout } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PresenceDiv } from '@/components/motion/presence-item'
-import { Button } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
 import { ResumeLibrarySkeleton } from '@/components/resume/library-skeleton'
+import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  getTrackerAccountScope,
-  isTrackerAccountScopeCurrent,
-} from '@/pages/tracker/lib/account-scope'
-import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
-import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { jobContextUrl } from '@/lib/job-context'
+import { DURATION, EASE } from '@/lib/motion'
 import { RESUME_LIBRARY_PAGE_SIZE } from '@/lib/supabase/resume/library'
+import { getResumeSnapshotById } from '@/lib/supabase/resume/share'
 import useResumeListStore from '@/pages/resume/store'
 import QuickDialog from '@/pages/share/components/quick-dialog'
 import useShareStore from '@/pages/share/store'
 import useCurrentResumeStore from '@/store/resume/current'
 import useUserStore from '@/store/user'
+import { AnimatePresence } from 'motion/react'
+import type { MouseEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CreateResumeCard from './components/create-resume-card'
 import HeadBars from './components/head-bars'
+import { LibraryPagination } from './components/library-pagination'
+import { LibraryResults } from './components/library-results'
 import LibrarySearch from './components/library-search'
-import ResumeCard from './components/resume-card'
 import SyncResumesDialog from './components/sync-resumes-dialog'
 import { useDeriveJd } from './hooks/use-derive-jd'
+import { useJobPreparation } from './hooks/use-job-preparation'
+import type { ResumeItem } from './types'
 
 const EMPTY_RESUMES: ResumeItem[] = []
 const LOADING_HINT_DELAY_MS = 200
@@ -53,20 +38,6 @@ const LOADING_HINT_DELAY_MS = 200
 export default function ResumePage() {
   const user = useUserStore((state) => state.currentUser)
   const authStatus = useUserStore((state) => state.authStatus)
-  const jobContext = useJobContextStore((state) => state.context)
-  const [routeParams] = useSearchParams()
-  const routeJobId = routeParams.get('jobId')
-  const routeAction = routeParams.get('action')
-
-  const [preparingResume, setPreparingResume] = useState<{
-    jobId: string
-    userId: string | null
-    resumeId: string
-  } | null>(null)
-
-  const prepareOperationRef = useRef(0)
-  const prepareQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const handledJobActionRef = useRef<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const createTriggerRef = useRef<HTMLButtonElement | null>(null)
   const allFilterTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -94,12 +65,9 @@ export default function ResumePage() {
     libraryParents,
     loadLibraryPage,
     refreshLibrary,
-    syncingIds,
     setupRealtimeSubscription,
     filterMode,
     setLibraryFilter,
-    setLibrarySearchInput,
-    setLibraryQuery,
     derivePendingFor,
     openDeriveFor,
     derivedJobsOpen,
@@ -155,78 +123,8 @@ export default function ResumePage() {
     return setupRealtimeSubscription()
   }, [isOnline, setupRealtimeSubscription, user?.id])
 
-  useEffect(() => {
-    if (
-      !jobContext ||
-      jobContext.id !== routeJobId ||
-      !jobContext.resumeId ||
-      loading
-    )
-      return
-
-    const key = `${user?.id}:${jobContext.id}:${jobContext.resumeId}:${routeAction}`
-
-    if (handledJobActionRef.current === key) return
-
-    handledJobActionRef.current = key
-
-    if (routeAction === 'customize') {
-      if (!jobContext.jdText.trim()) toast.info('请先返回岗位补充 JD 原文')
-      else openDeriveFor(jobContext.resumeId)
-    }
-    if (routeAction === 'share')
-      useShareStore
-        .getState()
-        .openDialog(jobContext.resumeId, jobContext.resumeName)
-  }, [jobContext, routeJobId, routeAction, loading, openDeriveFor, user?.id])
-
-  useLayoutEffect(() => {
-    setPreparingResume(null)
-
-    return () => {
-      prepareOperationRef.current += 1
-    }
-  }, [routeJobId, user?.id])
-
-  async function prepareForJob(resumeId: string) {
-    if (!jobContext || jobContext.id !== routeJobId) return
-
-    const jobId = jobContext.id
-    const scope = getTrackerAccountScope()
-    const operation = ++prepareOperationRef.current
-
-    setPreparingResume({ jobId, userId: scope.userId, resumeId })
-
-    const isCurrent = () =>
-      operation === prepareOperationRef.current &&
-      isTrackerAccountScopeCurrent(scope) &&
-      useJobContextStore.getState().context?.id === jobId &&
-      useJobContextStore.getState().context?.userId === scope.userId
-
-    // 顺序写入，防止较早的绑定请求最后落库，覆盖用户的最新选择。
-    prepareQueueRef.current = prepareQueueRef.current.then(async () => {
-      if (!isCurrent()) return
-
-      try {
-        const context = await bindJobResume(jobId, resumeId)
-
-        if (!isCurrent()) return
-
-        useJobContextStore.getState().setContext(context)
-        toast.success('已设为准备中的简历')
-      } catch (error) {
-        if (!isCurrent()) return
-
-        toast.error(error instanceof Error ? error.message : '关联失败，请重试')
-      } finally {
-        if (isCurrent()) setPreparingResume(null)
-      }
-    })
-
-    return prepareQueueRef.current
-  }
-
-  const visibleItems = resumes
+  const jobPreparation = useJobPreparation(loading)
+  const { jobContext, routeJobId } = jobPreparation
 
   const initialLoading = loading && (!accountMatches || !libraryHasLoaded)
 
@@ -399,210 +297,22 @@ export default function ResumePage() {
               </div>
             </div>
 
-            <div
-              ref={resumeListRef}
-              role='region'
-              aria-label='简历列表'
-              tabIndex={-1}
-              className='min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable]'
-              aria-busy={loading}
-              inert={loading || undefined}
-            >
-              <AnimatePresence mode='popLayout' initial={false}>
-                {visibleItems.map((resume, index) => {
-                  const isSyncingThis = syncingIds.has(resume.resume_id)
-
-                  return (
-                    <PresenceDiv
-                      key={resume.resume_id}
-                      className='min-w-0 border-b border-border/60 last:border-b-0'
-                      layout={shouldReduceMotion ? false : 'position'}
-                      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-                      animate={{
-                        opacity: isSyncingThis ? 0.55 : 1,
-                        y: 0,
-                        transition: {
-                          duration: shouldReduceMotion ? 0 : DURATION.base,
-                          ease: EASE.out,
-                          delay: shouldReduceMotion
-                            ? 0
-                            : staggerDelay(Math.min(index, 8)),
-                        },
-                      }}
-                      exit={{
-                        opacity: 0,
-                        y: shouldReduceMotion ? 0 : -4,
-                        transition: {
-                          duration: shouldReduceMotion ? 0 : DURATION.fast,
-                          ease: EASE.in,
-                        },
-                      }}
-                      transition={{
-                        duration: shouldReduceMotion ? 0 : DURATION.base,
-                        ease: EASE.out,
-                        layout: shouldReduceMotion
-                          ? { duration: 0 }
-                          : SPRING.layout,
-                      }}
-                    >
-                      <ResumeCard
-                        resume={resume}
-                        onDeletedClose={() =>
-                          pageStatusRef.current?.focus({ preventScroll: true })
-                        }
-                        preparedForJob={
-                          jobContext?.resumeId === resume.resume_id
-                        }
-                        preparingForJob={
-                          preparingResume?.jobId === routeJobId &&
-                          preparingResume?.userId === user?.id &&
-                          preparingResume?.resumeId === resume.resume_id
-                        }
-                        prepareDisabled={
-                          preparingResume?.jobId === routeJobId &&
-                          preparingResume?.userId === user?.id
-                        }
-                        onPrepareForJob={
-                          jobContext?.id === routeJobId && !resume.isOffline
-                            ? () => prepareForJob(resume.resume_id)
-                            : undefined
-                        }
-                      />
-                    </PresenceDiv>
-                  )
-                })}
-
-                {visibleItems.length === 0 && !loadError && !loading && (
-                  <PresenceDiv
-                    key='create-empty'
-                    layout={shouldReduceMotion ? false : 'position'}
-                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{
-                      opacity: 0,
-                      y: shouldReduceMotion ? 0 : -4,
-                      transition: {
-                        duration: shouldReduceMotion ? 0 : DURATION.fast,
-                        ease: EASE.in,
-                      },
-                    }}
-                    transition={{
-                      duration: shouldReduceMotion ? 0 : DURATION.base,
-                      ease: EASE.out,
-                      layout: shouldReduceMotion
-                        ? { duration: 0 }
-                        : SPRING.layout,
-                    }}
-                  >
-                    <Empty className='min-h-64 px-4 py-10'>
-                      <EmptyHeader>
-                        <EmptyMedia variant='icon'>
-                          <FileText aria-hidden />
-                        </EmptyMedia>
-                        <EmptyTitle>
-                          {libraryQuery
-                            ? '未找到匹配的简历'
-                            : libraryCounts?.all === 0
-                              ? '还没有简历'
-                              : filterMode === 'variants'
-                                ? '还没有可用的岗位版本'
-                                : '没有原始简历'}
-                        </EmptyTitle>
-                        <EmptyDescription>
-                          {libraryQuery
-                            ? '试试其他名称或描述，或清空搜索。'
-                            : libraryCounts?.all === 0
-                              ? '创建一份简历，整理经历并选择适合的模板。'
-                              : filterMode === 'variants'
-                                ? '从原始简历创建岗位版本，生成完成后会显示在这里。'
-                                : '创建一份新的原始简历，已有岗位版本可在「全部」中查看。'}
-                        </EmptyDescription>
-                      </EmptyHeader>
-                      <div className='flex flex-wrap justify-center gap-2'>
-                        {libraryQuery ? (
-                          <Button
-                            variant='outline'
-                            onClick={() => {
-                              document
-                                .getElementById('resume-library-search')
-                                ?.focus({ preventScroll: true })
-
-                              setLibrarySearchInput('')
-                              setLibraryQuery('')
-                            }}
-                          >
-                            清空搜索
-                          </Button>
-                        ) : (
-                          (libraryCounts?.all ?? 0) > 0 && (
-                            <Button
-                              variant='outline'
-                              onClick={() => {
-                                allFilterTriggerRef.current?.focus({
-                                  preventScroll: true,
-                                })
-
-                                setLibraryFilter('all')
-                              }}
-                            >
-                              查看全部简历
-                            </Button>
-                          )
-                        )}
-                        <Button
-                          aria-label='打开创建简历表单'
-                          onClick={openCreate}
-                        >
-                          <Plus aria-hidden />
-                          创建新简历
-                        </Button>
-                      </div>
-                    </Empty>
-                  </PresenceDiv>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <footer className='shrink-0 border-t bg-background pt-3 pb-[env(safe-area-inset-bottom)] [@media(max-height:500px)]:pt-1'>
-              <nav
-                aria-label='简历分页'
-                className='flex min-w-0 flex-wrap items-center justify-end gap-2'
-              >
-                <span
-                  ref={pageStatusRef}
-                  tabIndex={-1}
-                  role='status'
-                  aria-live='polite'
-                  className='mr-1 text-xs whitespace-nowrap text-muted-foreground tabular-nums'
-                >
-                  {pageCount !== null
-                    ? `第 ${libraryPage} / ${pageCount} 页 · ${libraryQuery ? `匹配 ${libraryTotal} 份` : `每页 ${RESUME_LIBRARY_PAGE_SIZE} 份`}`
-                    : loading
-                      ? `每页 ${RESUME_LIBRARY_PAGE_SIZE} 份`
-                      : '页数暂不可用'}
-                </span>
-                <Button
-                  variant='outline'
-                  size='icon-sm'
-                  aria-label='上一页简历'
-                  disabled={loading || libraryPage <= 1}
-                  onClick={(event) => changePage(event, libraryPage - 1)}
-                >
-                  <ChevronLeft />
-                </Button>
-                <Button
-                  variant='outline'
-                  size='icon-sm'
-                  aria-label='下一页简历'
-                  disabled={
-                    loading || pageCount === null || libraryPage >= pageCount
-                  }
-                  onClick={(event) => changePage(event, libraryPage + 1)}
-                >
-                  <ChevronRight />
-                </Button>
-              </nav>
-            </footer>
+            <LibraryResults
+              resumes={resumes}
+              loading={loading}
+              loadError={loadError}
+              resumeListRef={resumeListRef}
+              pageStatusRef={pageStatusRef}
+              allFilterTriggerRef={allFilterTriggerRef}
+              openCreate={openCreate}
+              jobPreparation={jobPreparation}
+            />
+            <LibraryPagination
+              loading={loading}
+              pageCount={pageCount}
+              pageStatusRef={pageStatusRef}
+              changePage={changePage}
+            />
 
             <QuickDialog
               getSnapshot={async () => {

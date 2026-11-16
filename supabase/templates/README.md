@@ -2,7 +2,20 @@
 
 这组模板包含 6 类认证邮件和 7 类安全通知。视觉沿用 GResume 现有产品风格：黑白卡片、细灰边框、紧凑圆角和品牌蓝；文案采用同一位“嘴硬但靠得住”的助手口吻，但不会在每封邮件里机械重复同一套句式。
 
-每个 HTML 文件都可以单独粘贴到 Supabase Dashboard 的对应模板中。
+运行 `pnpm build:email-templates`，在 `supabase/templates/dist/` 生成 13 份独立 HTML。每份生成文件都可以完整粘贴到 Supabase Dashboard 的对应模板中，无需额外拼接或加载本地源码。
+
+## 源码与生成
+
+每封邮件的源码位于同名目录，由 `index.mjs` 依次组合以下部分：
+
+- `header.mjs`：文档头、响应式样式、预览文字、外层卡片和品牌栏。
+- `hero.mjs`：邮件主题与手绘插画。
+- `content.mjs`：正文、账号信息、操作入口及安全说明。
+- `footer.mjs`：备用链接（如有）、页脚与文档收尾。
+
+各部分使用 `String.raw` 保留原 HTML 的换行与空白，生成器只按顺序连接，不压缩或改写标签、样式、变量和链接。维护时编辑源码模块，再运行生成命令；不要直接修改 `dist/` 中的生成文件。生成器使用 Node.js 内置功能，不需要额外依赖。
+
+下列表格中的 HTML 文件名均相对于 `supabase/templates/dist/`。
 
 ## 认证邮件
 
@@ -57,12 +70,13 @@
 
 ## 使用说明
 
-1. 在 Supabase Dashboard 进入 **Authentication → Emails**。
-2. 打开对应模板，将表格中的建议主题复制到 **Subject**。
-3. 将对应 HTML 文件的完整内容复制到 **Body → Source**。
-4. 对 7 类安全通知分别开启右侧开关；未开启的通知不会发送。
-5. 确认 **Authentication → URL Configuration** 中的 Site URL 和 Redirect URLs 指向实际生产站点。
-6. 逐封发送测试邮件，检查图片、按钮、验证码、变量替换、移动端宽度以及纯文本降级后的可读性。
+1. 运行 `pnpm build:email-templates`，取得 `supabase/templates/dist/` 中的生成文件。
+2. 在 Supabase Dashboard 进入 **Authentication → Emails**。
+3. 打开对应模板，将表格中的建议主题复制到 **Subject**。
+4. 将对应生成 HTML 文件的完整内容复制到 **Body → Source**。
+5. 对 7 类安全通知分别开启右侧开关；未开启的通知不会发送。
+6. 确认 **Authentication → URL Configuration** 中的 Site URL 和 Redirect URLs 指向实际生产站点。
+7. 逐封发送测试邮件，检查图片、按钮、验证码、变量替换、移动端宽度以及纯文本降级后的可读性。
 
 认证链接继续使用 Supabase 提供的 `{{ .ConfirmationURL }}`，不在模板中重新拼接令牌、类型或回调地址。安全通知没有处置令牌，因此提供账号资料页与忘记密码页入口。
 
